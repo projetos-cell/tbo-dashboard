@@ -36,7 +36,8 @@ const TBO_APP = {
       'alerts': typeof TBO_ALERTS !== 'undefined' ? TBO_ALERTS : null,
       'pipeline': typeof TBO_PIPELINE !== 'undefined' ? TBO_PIPELINE : null,
       'clientes': typeof TBO_CLIENTES !== 'undefined' ? TBO_CLIENTES : null,
-      'contratos': typeof TBO_CONTRATOS !== 'undefined' ? TBO_CONTRATOS : null
+      'contratos': typeof TBO_CONTRATOS !== 'undefined' ? TBO_CONTRATOS : null,
+      'inteligencia': typeof TBO_INTELIGENCIA !== 'undefined' ? TBO_INTELIGENCIA : null
     };
 
     Object.entries(modules).forEach(([name, mod]) => {
@@ -353,6 +354,8 @@ const TBO_APP = {
     'financeiro': 'Financeiro',
     'rh': 'Equipe',
     'configuracoes': 'Configuracoes',
+    // BI
+    'inteligencia': 'Inteligencia BI',
     // Placeholders
     'timeline': 'Timeline',
     'alerts': 'Alertas',
@@ -381,6 +384,7 @@ const TBO_APP = {
   // ── Module icons (Lucide icon names) ────────────────────────────────
   _moduleIcons: {
     'command-center': 'layout-dashboard',
+    'inteligencia': 'brain',
     'timeline': 'calendar-range',
     'alerts': 'bell-ring',
     'pipeline': 'filter',

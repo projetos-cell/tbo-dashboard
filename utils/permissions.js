@@ -18,7 +18,7 @@ const TBO_PERMISSIONS = {
     founder: {
       label: 'Fundador',
       color: '#E85102',
-      modules: ['command-center','timeline','alerts','pipeline','comercial','clientes','contratos','conteudo','projetos','mercado','reunioes','financeiro','rh','configuracoes'],
+      modules: ['command-center','timeline','alerts','inteligencia','pipeline','comercial','clientes','contratos','conteudo','projetos','mercado','reunioes','financeiro','rh','configuracoes'],
       dashboardVariant: 'full',
       defaultModule: 'command-center'
     },
@@ -39,7 +39,7 @@ const TBO_PERMISSIONS = {
     finance: {
       label: 'Financeiro',
       color: '#2ecc71',
-      modules: ['command-center','timeline','alerts','pipeline','financeiro','comercial','clientes','contratos','mercado','reunioes','configuracoes'],
+      modules: ['command-center','timeline','alerts','inteligencia','pipeline','financeiro','comercial','clientes','contratos','mercado','reunioes','configuracoes'],
       dashboardVariant: 'financial',
       defaultModule: 'command-center'
     }
@@ -94,7 +94,7 @@ const TBO_PERMISSIONS = {
       id: 'inteligencia',
       label: 'CONTEUDO & INTELIGENCIA',
       icon: 'brain',
-      modules: ['conteudo', 'mercado', 'reunioes', 'decisoes', 'biblioteca']
+      modules: ['inteligencia', 'conteudo', 'mercado', 'reunioes', 'decisoes', 'biblioteca']
     },
     {
       id: 'pessoas',

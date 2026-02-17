@@ -207,6 +207,9 @@ const TBO_COMMAND_CENTER = {
           </div>
         </section>
 
+        <!-- Business Pulse -->
+        ${this._renderBusinessPulse(d)}
+
         <!-- Two-column layout: Main + Sidebar -->
         <div class="cc-layout">
           <div class="cc-main">
@@ -1097,6 +1100,113 @@ const TBO_COMMAND_CENTER = {
         </div>
         <button class="btn btn-sm btn-ghost" style="width:100%; margin-top:8px;" onclick="TBO_ROUTER.navigate('financeiro')">Detalhar &rarr;</button>
       </div>
+    `;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BUSINESS PULSE — Quick BI preview for founder dashboard
+  // ═══════════════════════════════════════════════════════════════════════════
+  _renderBusinessPulse(d) {
+    const ctx = TBO_STORAGE.get('context');
+    const dc24 = ctx.dados_comerciais?.['2024'] || {};
+    const dc25 = ctx.dados_comerciais?.['2025'] || {};
+    const dc26 = ctx.dados_comerciais?.['2026'] || {};
+    const fc = dc26.fluxo_caixa || {};
+    const projAtivos = ctx.projetos_ativos || [];
+    const finalizados = ctx.projetos_finalizados || {};
+    const clientes = ctx.clientes_construtoras || [];
+    const deals = TBO_STORAGE.getCrmDeals();
+
+    // Churn: clients active in 2024/2025 not active now
+    const activeConstrutoras = new Set(projAtivos.map(p => p.construtora));
+    const prevClients = new Set();
+    ['2024','2025'].forEach(y => {
+      (finalizados[y] || []).forEach(p => {
+        clientes.forEach(c => { if (p.toLowerCase().includes(c.toLowerCase())) prevClients.add(c); });
+      });
+    });
+    projAtivos.forEach(p => { if (p.construtora) prevClients.add(p.construtora); });
+    const churned = [...prevClients].filter(c => !activeConstrutoras.has(c));
+    const churnRate = prevClients.size > 0 ? Math.round((churned.length / prevClients.size) * 100) : 0;
+
+    // LTV simple
+    const ticket = dc25.ticket_medio || dc24.ticket_medio || 0;
+    const clientYears = {};
+    Object.entries(finalizados).forEach(([y, list]) => {
+      list.forEach(p => { clientes.forEach(c => { if (p.toLowerCase().includes(c.toLowerCase())) { if (!clientYears[c]) clientYears[c] = new Set(); clientYears[c].add(y); } }); });
+    });
+    const avgRepeat = Object.values(clientYears).length > 0 ? Object.values(clientYears).reduce((s,v) => s + v.size, 0) / Object.values(clientYears).length : 1;
+    const ltv = Math.round(ticket * avgRepeat);
+
+    // Win rate
+    const winRate = parseFloat(dc25.conversao_proposta) || 0;
+
+    // Top5 concentration
+    const projPerClient = {};
+    projAtivos.forEach(p => { projPerClient[p.construtora] = (projPerClient[p.construtora] || 0) + 1; });
+    const top5 = Object.entries(projPerClient).sort((a,b) => b[1] - a[1]).slice(0, 5);
+    const top5Conc = projAtivos.length > 0 ? Math.round((top5.reduce((s,[,c]) => s+c, 0) / projAtivos.length) * 100) : 0;
+
+    // Pipeline coverage
+    const activeDeals = deals.filter(d2 => !['fechado_ganho','fechado_perdido'].includes(d2.stage));
+    const pipelineVal = activeDeals.reduce((s,d2) => s + (d2.value||0), 0);
+    const meta = fc.meta_vendas_mensal || 180000;
+    const coverage = meta > 0 ? (pipelineVal / meta).toFixed(1) : '0';
+
+    // Margin YTD
+    const mRealized = fc.meses_realizados || [];
+    const recYTD = mRealized.reduce((s, mes) => s + ((fc.receita_mensal||{})[mes]||0), 0);
+    const despYTD = mRealized.reduce((s, mes) => s + ((fc.despesa_mensal||{})[mes]||0), 0);
+    const margemYTD = recYTD > 0 ? ((recYTD - despYTD) / recYTD * 100).toFixed(1) : '0';
+
+    const fmt = (v) => {
+      const abs = Math.abs(v);
+      if (abs >= 1000000) return (v<0?'-':'') + (abs/1000000).toFixed(1) + 'M';
+      if (abs >= 1000) return (v<0?'-':'') + (abs/1000).toFixed(0) + 'k';
+      return v.toLocaleString('pt-BR');
+    };
+
+    const light = (val, good, warn) => val <= good ? 'green' : val <= warn ? 'yellow' : 'red';
+
+    return `
+      <section class="section" style="margin-bottom:16px;">
+        <div class="section-header">
+          <h2 class="section-title">Business Pulse</h2>
+          <button class="btn btn-sm btn-ghost" onclick="TBO_ROUTER.navigate('inteligencia')">Inteligencia BI &rarr;</button>
+        </div>
+        <div class="bi-pulse-grid">
+          <div class="bi-pulse-card">
+            <div class="bi-score-light bi-score-light--${light(churnRate, 15, 25)}"></div>
+            <div class="bi-pulse-val">${churnRate}%</div>
+            <div class="bi-pulse-label">Churn</div>
+          </div>
+          <div class="bi-pulse-card">
+            <div class="bi-score-light bi-score-light--green"></div>
+            <div class="bi-pulse-val">R$ ${fmt(ltv)}</div>
+            <div class="bi-pulse-label">LTV</div>
+          </div>
+          <div class="bi-pulse-card">
+            <div class="bi-score-light bi-score-light--${light(top5Conc, 50, 70)}"></div>
+            <div class="bi-pulse-val">${top5Conc}%</div>
+            <div class="bi-pulse-label">Concentracao</div>
+          </div>
+          <div class="bi-pulse-card">
+            <div class="bi-score-light bi-score-light--${winRate > 40 ? 'green' : winRate > 30 ? 'yellow' : 'red'}"></div>
+            <div class="bi-pulse-val">${winRate}%</div>
+            <div class="bi-pulse-label">Win Rate</div>
+          </div>
+          <div class="bi-pulse-card">
+            <div class="bi-score-light bi-score-light--${parseFloat(coverage) > 3 ? 'green' : parseFloat(coverage) > 1.5 ? 'yellow' : 'red'}"></div>
+            <div class="bi-pulse-val">${coverage}x</div>
+            <div class="bi-pulse-label">Pipeline</div>
+          </div>
+          <div class="bi-pulse-card">
+            <div class="bi-score-light bi-score-light--${parseFloat(margemYTD) > 10 ? 'green' : parseFloat(margemYTD) > 0 ? 'yellow' : 'red'}"></div>
+            <div class="bi-pulse-val">${margemYTD}%</div>
+            <div class="bi-pulse-label">Margem YTD</div>
+          </div>
+        </div>
+      </section>
     `;
   },
 

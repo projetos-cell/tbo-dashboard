@@ -4,11 +4,6 @@ const TBO_PLACEHOLDER = {
   _currentRoute: '',
 
   _labels: {
-    'timeline': 'Timeline',
-    'alerts': 'Alertas',
-    'pipeline': 'Pipeline',
-    'clientes': 'Clientes',
-    'contratos': 'Contratos',
     'entregas': 'Entregas',
     'tarefas': 'Tarefas Globais',
     'revisoes': 'Revisoes',
@@ -29,11 +24,6 @@ const TBO_PLACEHOLDER = {
   },
 
   _descriptions: {
-    'timeline': 'Visualize a linha do tempo dos projetos e marcos importantes.',
-    'alerts': 'Central de alertas e notificacoes do sistema.',
-    'pipeline': 'Funil de vendas e oportunidades importadas do CRM.',
-    'clientes': 'Cadastro e historico de clientes e construtoras.',
-    'contratos': 'Gestao de contratos, aditivos e vencimentos.',
     'entregas': 'Acompanhamento global de entregas por projeto.',
     'tarefas': 'Visao consolidada de todas as tarefas da equipe.',
     'revisoes': 'Ciclos de revisao e aprovacao de entregaveis.',

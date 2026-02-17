@@ -7,7 +7,6 @@ const TBO_PERMISSIONS = {
   // ── Role Definitions ──────────────────────────────────────────────────────
   // Placeholder modules accessible to all roles
   _placeholderModules: [
-    'timeline','alerts','pipeline','clientes','contratos',
     'entregas','tarefas','revisoes',
     'decisoes','biblioteca',
     'carga-trabalho','timesheets','capacidade',
@@ -19,28 +18,28 @@ const TBO_PERMISSIONS = {
     founder: {
       label: 'Fundador',
       color: '#E85102',
-      modules: ['command-center','conteudo','comercial','projetos','mercado','reunioes','financeiro','rh','configuracoes'],
+      modules: ['command-center','timeline','alerts','pipeline','comercial','clientes','contratos','conteudo','projetos','mercado','reunioes','financeiro','rh','configuracoes'],
       dashboardVariant: 'full',
       defaultModule: 'command-center'
     },
     project_owner: {
       label: 'Project Owner',
       color: '#8b5cf6',
-      modules: ['command-center','conteudo','comercial','projetos','mercado','reunioes','rh','configuracoes'],
+      modules: ['command-center','timeline','alerts','comercial','clientes','contratos','conteudo','projetos','mercado','reunioes','rh','configuracoes'],
       dashboardVariant: 'projects',
       defaultModule: 'command-center'
     },
     artist: {
       label: 'Artista',
       color: '#3a7bd5',
-      modules: ['command-center','projetos','mercado','reunioes','configuracoes'],
+      modules: ['command-center','timeline','alerts','projetos','mercado','reunioes','configuracoes'],
       dashboardVariant: 'tasks',
       defaultModule: 'command-center'
     },
     finance: {
       label: 'Financeiro',
       color: '#2ecc71',
-      modules: ['command-center','financeiro','comercial','mercado','reunioes','configuracoes'],
+      modules: ['command-center','timeline','alerts','pipeline','financeiro','comercial','clientes','contratos','mercado','reunioes','configuracoes'],
       dashboardVariant: 'financial',
       defaultModule: 'command-center'
     }

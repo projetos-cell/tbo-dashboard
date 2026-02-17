@@ -31,7 +31,12 @@ const TBO_APP = {
       'reunioes': typeof TBO_REUNIOES !== 'undefined' ? TBO_REUNIOES : null,
       'financeiro': typeof TBO_FINANCEIRO !== 'undefined' ? TBO_FINANCEIRO : null,
       'rh': typeof TBO_RH !== 'undefined' ? TBO_RH : null,
-      'configuracoes': typeof TBO_CONFIGURACOES !== 'undefined' ? TBO_CONFIGURACOES : null
+      'configuracoes': typeof TBO_CONFIGURACOES !== 'undefined' ? TBO_CONFIGURACOES : null,
+      'timeline': typeof TBO_TIMELINE !== 'undefined' ? TBO_TIMELINE : null,
+      'alerts': typeof TBO_ALERTS !== 'undefined' ? TBO_ALERTS : null,
+      'pipeline': typeof TBO_PIPELINE !== 'undefined' ? TBO_PIPELINE : null,
+      'clientes': typeof TBO_CLIENTES !== 'undefined' ? TBO_CLIENTES : null,
+      'contratos': typeof TBO_CONTRATOS !== 'undefined' ? TBO_CONTRATOS : null
     };
 
     Object.entries(modules).forEach(([name, mod]) => {
@@ -329,7 +334,6 @@ const TBO_APP = {
 
   // ── Placeholder module keys (all 17 routes not yet implemented) ──────
   _placeholderKeys: [
-    'timeline','alerts','pipeline','clientes','contratos',
     'entregas','tarefas','revisoes',
     'decisoes','biblioteca',
     'carga-trabalho','timesheets','capacidade',

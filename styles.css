@@ -3812,6 +3812,50 @@ select.form-input {
   text-align: center;
 }
 
+/* Gantt drag handles */
+.gantt-drag-handle {
+  opacity: 0;
+  transition: opacity 0.15s;
+  background: rgba(255,255,255,0.3);
+}
+.gantt-bar-drag:hover .gantt-drag-handle {
+  opacity: 1;
+}
+.gantt-bar-drag:hover {
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  filter: brightness(1.1);
+}
+
+/* Gantt scale buttons */
+.gantt-scale-btn--active {
+  background: var(--accent) !important;
+  color: #fff !important;
+  border-color: var(--accent) !important;
+}
+
+/* My Tasks section styles */
+.my-task-row:hover {
+  border-color: var(--accent-gold) !important;
+}
+
+/* Project overview responsive */
+@media (max-width: 700px) {
+  .project-overview {
+    grid-template-columns: 1fr !important;
+  }
+  .project-overview > div:last-child {
+    border-left: none !important;
+    border-top: 1px solid var(--border-subtle);
+    padding-left: 0 !important;
+    padding-top: 16px;
+  }
+}
+
+/* Modal panel tabs */
+.pj-modal-panel {
+  min-height: 100px;
+}
+
 /* Forecast table */
 .forecast-row {
   display: flex;

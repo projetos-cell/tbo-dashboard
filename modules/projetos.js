@@ -88,6 +88,7 @@ const TBO_PROJETOS = {
         <div class="tab-bar" style="margin-bottom:20px;">
           <button class="tab active" data-tab="pj-board">Board</button>
           <button class="tab" data-tab="pj-lista">Lista</button>
+          <button class="tab" data-tab="pj-mytasks">Minhas Tarefas</button>
           <button class="tab" data-tab="pj-tarefas">Tarefas</button>
           <button class="tab" data-tab="pj-entregaveis">Entregaveis</button>
           <button class="tab" data-tab="pj-tempo">Tempo</button>
@@ -120,6 +121,11 @@ const TBO_PROJETOS = {
         <!-- Tab: Lista -->
         <div class="tab-content" id="tab-pj-lista" style="display:none;">
           <div id="pjListContainer">${this._renderList(active)}</div>
+        </div>
+
+        <!-- Tab: Minhas Tarefas -->
+        <div class="tab-content" id="tab-pj-mytasks" style="display:none;">
+          ${this._renderMyTasks()}
         </div>
 
         <!-- Tab: Tarefas -->
@@ -655,78 +661,214 @@ const TBO_PROJETOS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // TAB: GANTT (CSS Grid Timeline)
+  // TAB: GANTT (Draggable Timeline with Scale Views & Dependencies)
   // ═══════════════════════════════════════════════════════════════════════════
 
   _ganttMonthOffset: 0,
   _ganttExpandedProjects: {},
+  _ganttScale: 'month', // 'day', 'week', 'month', 'quarter'
+  _ganttDragState: null,
+
+  _getGanttScaleConfig() {
+    const base = new Date();
+    base.setMonth(base.getMonth() + this._ganttMonthOffset);
+    const today = typeof TBO_WORKLOAD !== 'undefined' ? TBO_WORKLOAD._today() : new Date().toISOString().split('T')[0];
+    let cols = [];
+    let cellW = 28;
+    let headerHtml = '';
+
+    if (this._ganttScale === 'day') {
+      // 35 days, 28px each
+      base.setDate(1);
+      cellW = 32;
+      for (let i = 0; i < 35; i++) {
+        const d = new Date(base);
+        d.setDate(base.getDate() + i);
+        const ds = d.toISOString().split('T')[0];
+        cols.push({ date: ds, isWeekend: d.getDay() === 0 || d.getDay() === 6, isToday: ds === today });
+      }
+      headerHtml = cols.map(c => `<div class="gantt-header-cell${c.isWeekend ? ' gantt-header-cell--weekend' : ''}${c.isToday ? ' gantt-header-cell--today' : ''}" style="width:${cellW}px;">${new Date(c.date).getDate()}</div>`).join('');
+    } else if (this._ganttScale === 'week') {
+      // 12 weeks, wider cells
+      cellW = 80;
+      const weekStart = new Date(base);
+      weekStart.setDate(1);
+      const dow = weekStart.getDay();
+      weekStart.setDate(weekStart.getDate() - (dow === 0 ? 6 : dow - 1));
+      for (let i = 0; i < 12; i++) {
+        const ws = new Date(weekStart);
+        ws.setDate(weekStart.getDate() + i * 7);
+        const we = new Date(ws);
+        we.setDate(ws.getDate() + 6);
+        const wsStr = ws.toISOString().split('T')[0];
+        const weStr = we.toISOString().split('T')[0];
+        cols.push({ date: wsStr, endDate: weStr, isWeekend: false, isToday: today >= wsStr && today <= weStr, label: `${ws.getDate()}/${ws.getMonth()+1}` });
+      }
+      headerHtml = cols.map(c => `<div class="gantt-header-cell${c.isToday ? ' gantt-header-cell--today' : ''}" style="width:${cellW}px;font-size:0.65rem;">${c.label}</div>`).join('');
+    } else if (this._ganttScale === 'month') {
+      // 35 days (current default)
+      base.setDate(1);
+      cellW = 28;
+      for (let i = 0; i < 35; i++) {
+        const d = new Date(base);
+        d.setDate(base.getDate() + i);
+        const ds = d.toISOString().split('T')[0];
+        cols.push({ date: ds, isWeekend: d.getDay() === 0 || d.getDay() === 6, isToday: ds === today });
+      }
+      headerHtml = cols.map(c => `<div class="gantt-header-cell${c.isWeekend ? ' gantt-header-cell--weekend' : ''}${c.isToday ? ' gantt-header-cell--today' : ''}" style="width:${cellW}px;">${new Date(c.date).getDate()}</div>`).join('');
+    } else if (this._ganttScale === 'quarter') {
+      // 6 months, wide cells
+      cellW = 100;
+      for (let i = 0; i < 6; i++) {
+        const ms = new Date(base.getFullYear(), base.getMonth() + i, 1);
+        const me = new Date(base.getFullYear(), base.getMonth() + i + 1, 0);
+        const msStr = ms.toISOString().split('T')[0];
+        const meStr = me.toISOString().split('T')[0];
+        const lbl = ms.toLocaleDateString('pt-BR', { month: 'short' });
+        cols.push({ date: msStr, endDate: meStr, isWeekend: false, isToday: today >= msStr && today <= meStr, label: lbl });
+      }
+      headerHtml = cols.map(c => `<div class="gantt-header-cell${c.isToday ? ' gantt-header-cell--today' : ''}" style="width:${cellW}px;font-size:0.72rem;text-transform:capitalize;">${c.label}</div>`).join('');
+    }
+
+    const viewStart = cols[0]?.date || today;
+    const viewEnd = cols[cols.length - 1]?.endDate || cols[cols.length - 1]?.date || today;
+    const titleLabel = base.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+    return { cols, cellW, headerHtml, viewStart, viewEnd, titleLabel, today };
+  },
+
+  _ganttDateToPixel(dateStr, cols, cellW) {
+    if (this._ganttScale === 'week' || this._ganttScale === 'quarter') {
+      // Each col spans a date range
+      for (let i = 0; i < cols.length; i++) {
+        const cStart = cols[i].date;
+        const cEnd = cols[i].endDate || cols[i].date;
+        if (dateStr <= cStart) return i * cellW;
+        if (dateStr >= cStart && dateStr <= cEnd) {
+          const rangeDays = Math.max(1, (new Date(cEnd) - new Date(cStart)) / 86400000);
+          const offsetDays = (new Date(dateStr) - new Date(cStart)) / 86400000;
+          return i * cellW + (offsetDays / rangeDays) * cellW;
+        }
+      }
+      return cols.length * cellW;
+    } else {
+      // Day/month scale: each col = 1 day
+      const idx = cols.findIndex(c => c.date === dateStr);
+      if (idx >= 0) return idx * cellW;
+      if (dateStr < cols[0]?.date) return 0;
+      return cols.length * cellW;
+    }
+  },
+
+  _ganttPixelToDate(px, cols, cellW) {
+    if (this._ganttScale === 'week' || this._ganttScale === 'quarter') {
+      const colIdx = Math.floor(px / cellW);
+      const clamped = Math.max(0, Math.min(colIdx, cols.length - 1));
+      const col = cols[clamped];
+      const cStart = new Date(col.date);
+      const cEnd = new Date(col.endDate || col.date);
+      const rangeDays = Math.max(1, (cEnd - cStart) / 86400000);
+      const frac = (px - clamped * cellW) / cellW;
+      const day = new Date(cStart);
+      day.setDate(day.getDate() + Math.round(frac * rangeDays));
+      return day.toISOString().split('T')[0];
+    } else {
+      const colIdx = Math.max(0, Math.min(Math.round(px / cellW), cols.length - 1));
+      return cols[colIdx]?.date || cols[0]?.date;
+    }
+  },
 
   _renderGanttTab() {
     if (typeof TBO_WORKLOAD === 'undefined') {
       return '<div class="empty-state"><div class="empty-state-text">Modulo de workload nao carregado</div></div>';
     }
 
-    // View range: current month +/- offset, show 35 days
-    const baseDate = new Date();
-    baseDate.setMonth(baseDate.getMonth() + this._ganttMonthOffset);
-    baseDate.setDate(1);
-    const viewStart = baseDate.toISOString().split('T')[0];
-    const viewEndDate = new Date(baseDate);
-    viewEndDate.setDate(viewEndDate.getDate() + 34);
-    const viewEnd = viewEndDate.toISOString().split('T')[0];
-
-    const monthLabel = baseDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-
-    // Build day columns
-    const dayCols = [];
-    const d = new Date(viewStart);
-    for (let i = 0; i < 35; i++) {
-      const ds = new Date(d).toISOString().split('T')[0];
-      const dayNum = d.getDate();
-      const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-      const isToday = ds === TBO_WORKLOAD._today();
-      dayCols.push({ date: ds, dayNum, isWeekend, isToday });
-      d.setDate(d.getDate() + 1);
-    }
+    const sc = this._getGanttScaleConfig();
+    const { cols, cellW, headerHtml, viewStart, viewEnd, titleLabel, today } = sc;
+    const totalW = cols.length * cellW;
 
     const ganttData = TBO_WORKLOAD.getGanttData(viewStart, viewEnd);
-
-    // Separate projects and tasks
     const projectRows = ganttData.filter(r => r.type === 'project');
     const taskRows = ganttData.filter(r => r.type === 'task');
 
-    // Init expanded state
     projectRows.forEach(p => {
       if (this._ganttExpandedProjects[p.id] === undefined) this._ganttExpandedProjects[p.id] = false;
     });
 
-    // Build visible rows
     const visibleRows = [];
     projectRows.forEach(p => {
       visibleRows.push(p);
       if (this._ganttExpandedProjects[p.id]) {
-        const children = taskRows.filter(t => t.parentId === p.id);
-        children.forEach(c => visibleRows.push(c));
+        taskRows.filter(t => t.parentId === p.id).forEach(c => visibleRows.push(c));
       }
     });
 
-    // Helper: date to column index
-    const dateToCol = (dateStr) => {
-      const colIdx = dayCols.findIndex(c => c.date === dateStr);
-      if (colIdx >= 0) return colIdx + 1; // 1-based for grid
-      // If before viewStart
-      if (dateStr < viewStart) return 1;
-      // If after viewEnd
-      return dayCols.length;
-    };
+    // Dependency arrows SVG
+    let depsSvg = '';
+    const allTasks = TBO_STORAGE.getAllErpEntities('task');
+    const rowMap = {};
+    visibleRows.forEach((r, i) => { rowMap[r.id] = i; });
+    const depLines = [];
+    allTasks.forEach(t => {
+      if (!t.depends_on || !Array.isArray(t.depends_on)) return;
+      t.depends_on.forEach(depId => {
+        const fromIdx = rowMap[depId];
+        const toIdx = rowMap[t.id];
+        if (fromIdx === undefined || toIdx === undefined) return;
+        const fromRow = visibleRows[fromIdx];
+        const toRow = visibleRows[toIdx];
+        const x1 = this._ganttDateToPixel(fromRow.endDate, cols, cellW) + cellW;
+        const y1 = fromIdx * 36 + 18;
+        const x2 = this._ganttDateToPixel(toRow.startDate, cols, cellW);
+        const y2 = toIdx * 36 + 18;
+        depLines.push({ x1, y1, x2, y2 });
+      });
+    });
+    if (depLines.length > 0) {
+      depsSvg = `<svg class="gantt-deps-svg" style="position:absolute;top:0;left:0;width:${totalW}px;height:${visibleRows.length * 36}px;pointer-events:none;z-index:5;">
+        <defs><marker id="ganttArrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--accent-gold)" /></marker></defs>
+        ${depLines.map(l => `<path d="M${l.x1},${l.y1} C${l.x1 + 20},${l.y1} ${l.x2 - 20},${l.y2} ${l.x2},${l.y2}" stroke="var(--accent-gold)" stroke-width="1.5" fill="none" marker-end="url(#ganttArrow)" opacity="0.7"/>`).join('')}
+      </svg>`;
+    }
+
+    const scaleButtons = [
+      { key: 'day', label: 'Dias' },
+      { key: 'week', label: 'Semanas' },
+      { key: 'month', label: 'Mes' },
+      { key: 'quarter', label: 'Trimestre' }
+    ];
+
+    // Gantt filter state
+    const filterStatus = this._ganttFilterStatus || '';
+    const filterOwner = this._ganttFilterOwner || '';
+    const team = this._getTeamMembers();
 
     return `
       <!-- Controls -->
       <div class="gantt-controls" style="margin-bottom:12px;">
         <button class="btn btn-secondary gantt-nav-btn" id="ganttPrev">&lt;</button>
-        <span style="font-weight:700;font-size:0.85rem;min-width:150px;text-align:center;text-transform:capitalize;">${monthLabel}</span>
+        <span style="font-weight:700;font-size:0.85rem;min-width:180px;text-align:center;text-transform:capitalize;">${titleLabel}</span>
         <button class="btn btn-secondary gantt-nav-btn" id="ganttNext">&gt;</button>
         <button class="btn btn-secondary" id="ganttToday" style="font-size:0.68rem;padding:3px 8px;margin-left:12px;">Hoje</button>
+        <div style="margin-left:auto;display:flex;gap:3px;">
+          ${scaleButtons.map(s => `<button class="btn btn-secondary gantt-scale-btn${this._ganttScale === s.key ? ' gantt-scale-btn--active' : ''}" data-scale="${s.key}" style="font-size:0.65rem;padding:3px 8px;">${s.label}</button>`).join('')}
+        </div>
+      </div>
+
+      <!-- Gantt Filters -->
+      <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap;">
+        <select class="form-input" id="ganttFilterStatus" style="max-width:140px;font-size:0.75rem;">
+          <option value="">Todos status</option>
+          <option value="pendente" ${filterStatus === 'pendente' ? 'selected' : ''}>Pendente</option>
+          <option value="em_andamento" ${filterStatus === 'em_andamento' ? 'selected' : ''}>Em andamento</option>
+          <option value="concluida" ${filterStatus === 'concluida' ? 'selected' : ''}>Concluida</option>
+          <option value="atrasada" ${filterStatus === 'atrasada' ? 'selected' : ''}>Atrasada</option>
+        </select>
+        <select class="form-input" id="ganttFilterOwner" style="max-width:140px;font-size:0.75rem;">
+          <option value="">Todos responsaveis</option>
+          ${team.map(t => `<option value="${t}" ${filterOwner === t ? 'selected' : ''}>${t}</option>`).join('')}
+        </select>
+        <span style="font-size:0.68rem;color:var(--text-muted);margin-left:auto;">${visibleRows.length} itens | Arraste as barras para mudar datas</span>
       </div>
 
       <!-- Gantt Chart -->
@@ -755,47 +897,318 @@ const TBO_PROJETOS = {
         <!-- Timeline -->
         <div class="gantt-timeline" id="ganttTimeline">
           <!-- Day headers -->
-          <div class="gantt-header" style="display:grid;grid-template-columns:repeat(${dayCols.length}, 28px);">
-            ${dayCols.map(c => `<div class="gantt-header-cell${c.isWeekend ? ' gantt-header-cell--weekend' : ''}${c.isToday ? ' gantt-header-cell--today' : ''}">${c.dayNum}</div>`).join('')}
-          </div>
+          <div class="gantt-header" style="display:flex;">${headerHtml}</div>
 
           <!-- Row bars -->
-          <div class="gantt-body" style="position:relative;">
+          <div class="gantt-body" id="ganttBody" style="position:relative;width:${totalW}px;">
             ${visibleRows.map((r, idx) => {
-              const startCol = dateToCol(r.startDate);
-              const endCol = dateToCol(r.endDate) + 1;
-              const clampedStart = Math.max(1, startCol);
-              const clampedEnd = Math.min(dayCols.length + 1, endCol);
+              const barLeft = this._ganttDateToPixel(r.startDate, cols, cellW);
+              const barRight = this._ganttDateToPixel(r.endDate, cols, cellW) + cellW;
+              const barW = Math.max(cellW / 2, barRight - barLeft);
               const barClass = r.type === 'project' ? 'gantt-bar gantt-bar--project' : 'gantt-bar gantt-bar--task';
+              const barId = `gantt-bar-${r.id}`;
 
-              return `<div class="gantt-row" style="position:relative;height:36px;">
+              return `<div class="gantt-row" style="position:relative;height:36px;width:${totalW}px;">
                 <!-- Background grid -->
-                <div style="position:absolute;top:0;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(${dayCols.length}, 28px);">
-                  ${dayCols.map(c => `<div style="border-right:1px solid var(--border-subtle);${c.isWeekend ? 'background:var(--bg-elevated);' : ''}"></div>`).join('')}
+                <div style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;">
+                  ${cols.map(c => `<div style="width:${cellW}px;height:100%;border-right:1px solid var(--border-subtle);flex-shrink:0;${c.isWeekend ? 'background:var(--bg-elevated);' : ''}"></div>`).join('')}
                 </div>
-                <!-- Bar -->
-                ${clampedStart < clampedEnd ? `
-                  <div class="${barClass}" style="position:absolute;top:8px;height:20px;left:${(clampedStart - 1) * 28}px;width:${(clampedEnd - clampedStart) * 28}px;background:${r.color};border-radius:4px;opacity:${r.type === 'task' ? '0.8' : '1'};" title="${r.name} (${r.startDate} - ${r.endDate})"></div>
+                <!-- Draggable Bar -->
+                ${barLeft < totalW && barW > 0 ? `
+                  <div class="${barClass} gantt-bar-drag" id="${barId}" data-entity-type="${r.type}" data-entity-id="${r.id}" style="position:absolute;top:8px;height:20px;left:${barLeft}px;width:${barW}px;background:${r.color};border-radius:4px;cursor:grab;z-index:3;opacity:${r.type === 'task' ? '0.85' : '1'};" title="${r.name}&#10;${r.startDate} - ${r.endDate}">
+                    <!-- Left drag handle -->
+                    <div class="gantt-drag-handle gantt-drag-handle--left" data-handle="left" style="position:absolute;left:0;top:0;width:6px;height:100%;cursor:ew-resize;border-radius:4px 0 0 4px;"></div>
+                    <!-- Bar label -->
+                    <div class="gantt-bar-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 8px;line-height:20px;font-size:0.62rem;color:#fff;pointer-events:none;">${r.name}</div>
+                    <!-- Right drag handle -->
+                    <div class="gantt-drag-handle gantt-drag-handle--right" data-handle="right" style="position:absolute;right:0;top:0;width:6px;height:100%;cursor:ew-resize;border-radius:0 4px 4px 0;"></div>
+                  </div>
                 ` : ''}
               </div>`;
             }).join('')}
 
+            ${depsSvg}
+
             <!-- Today line -->
             ${(() => {
-              const todayIdx = dayCols.findIndex(c => c.isToday);
-              if (todayIdx < 0) return '';
-              return `<div class="gantt-today-line" style="position:absolute;top:0;bottom:0;left:${todayIdx * 28 + 14}px;width:2px;background:var(--accent-gold);z-index:10;pointer-events:none;"></div>`;
+              const todayPx = this._ganttDateToPixel(today, cols, cellW) + cellW / 2;
+              if (todayPx <= 0 || todayPx >= totalW) return '';
+              return `<div class="gantt-today-line" style="position:absolute;top:0;bottom:0;left:${todayPx}px;width:2px;background:var(--accent-gold);z-index:10;pointer-events:none;"></div>`;
             })()}
           </div>
         </div>
       </div>
 
       <!-- Legend -->
-      <div style="display:flex;gap:12px;margin-top:10px;font-size:0.68rem;color:var(--text-muted);flex-wrap:wrap;">
+      <div style="display:flex;gap:16px;margin-top:10px;font-size:0.68rem;color:var(--text-muted);flex-wrap:wrap;align-items:center;">
         <span>&#9632; Projeto</span>
         <span>&#9632; Tarefa</span>
         <span style="color:var(--accent-gold);">&#9475; Hoje</span>
+        <span>&#8594; Dependencia</span>
         <span>&#9654; Clique para expandir/colapsar</span>
+        <span>&#8596; Arraste bordas para redimensionar</span>
+      </div>
+    `;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TAB: MINHAS TAREFAS (My Tasks — Asana-like personal view)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  _myTasksSort: 'due_date', // 'due_date', 'priority', 'project', 'status'
+  _myTasksFilter: 'all', // 'all', 'week', 'completed'
+
+  _renderMyTasks() {
+    const user = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.getCurrentUser() : null;
+    const userName = user?.name || user?.id || '';
+    if (!userName) return '<div class="empty-state"><div class="empty-state-text">Login necessario para ver suas tarefas</div></div>';
+
+    const allTasks = TBO_STORAGE.getAllErpEntities('task');
+    const today = new Date().toISOString().split('T')[0];
+    const weekEnd = new Date();
+    weekEnd.setDate(weekEnd.getDate() + 7);
+    const weekEndStr = weekEnd.toISOString().split('T')[0];
+    const nextWeekEnd = new Date();
+    nextWeekEnd.setDate(nextWeekEnd.getDate() + 14);
+    const nextWeekEndStr = nextWeekEnd.toISOString().split('T')[0];
+
+    // Filter tasks assigned to current user (case insensitive match)
+    const uLower = userName.toLowerCase();
+    let myTasks = allTasks.filter(t => {
+      const tOwner = (t.owner || '').toLowerCase();
+      return tOwner === uLower || tOwner.includes(uLower);
+    });
+
+    // Apply filter
+    if (this._myTasksFilter === 'week') {
+      myTasks = myTasks.filter(t => t.status !== 'concluida' && t.status !== 'cancelada' && t.due_date && t.due_date <= weekEndStr);
+    } else if (this._myTasksFilter === 'completed') {
+      myTasks = myTasks.filter(t => t.status === 'concluida');
+    }
+
+    // Sort
+    if (this._myTasksSort === 'due_date') {
+      myTasks.sort((a, b) => {
+        if (!a.due_date && !b.due_date) return 0;
+        if (!a.due_date) return 1;
+        if (!b.due_date) return -1;
+        return a.due_date.localeCompare(b.due_date);
+      });
+    } else if (this._myTasksSort === 'priority') {
+      const pMap = { urgente: 0, alta: 1, media: 2, baixa: 3 };
+      myTasks.sort((a, b) => (pMap[a.priority] || 2) - (pMap[b.priority] || 2));
+    } else if (this._myTasksSort === 'project') {
+      myTasks.sort((a, b) => (a.project_name || '').localeCompare(b.project_name || ''));
+    } else if (this._myTasksSort === 'status') {
+      myTasks.sort((a, b) => (a.status || '').localeCompare(b.status || ''));
+    }
+
+    // Split into Asana-style sections
+    const overdue = myTasks.filter(t => t.status !== 'concluida' && t.status !== 'cancelada' && t.due_date && t.due_date < today);
+    const dueToday = myTasks.filter(t => t.status !== 'concluida' && t.status !== 'cancelada' && t.due_date === today);
+    const dueThisWeek = myTasks.filter(t => t.status !== 'concluida' && t.status !== 'cancelada' && t.due_date && t.due_date > today && t.due_date <= weekEndStr);
+    const dueNextWeek = myTasks.filter(t => t.status !== 'concluida' && t.status !== 'cancelada' && t.due_date && t.due_date > weekEndStr && t.due_date <= nextWeekEndStr);
+    const dueLater = myTasks.filter(t => t.status !== 'concluida' && t.status !== 'cancelada' && (!t.due_date || t.due_date > nextWeekEndStr));
+    const completed = myTasks.filter(t => t.status === 'concluida');
+
+    // Recently assigned (last 7 days created)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const recentCutoff = sevenDaysAgo.toISOString();
+    const recentlyAssigned = myTasks.filter(t => t.status !== 'concluida' && t.status !== 'cancelada' && t.createdAt && t.createdAt > recentCutoff);
+
+    const sections = [
+      { id: 'overdue', label: 'Atrasadas', tasks: overdue, color: '#ef4444', icon: '&#9888;' },
+      { id: 'today', label: 'A fazer hoje', tasks: dueToday, color: '#f59e0b', icon: '&#9678;' },
+      { id: 'week', label: 'A fazer esta semana', tasks: dueThisWeek, color: '#3b82f6', icon: '&#9656;' },
+      { id: 'nextweek', label: 'Proxima semana', tasks: dueNextWeek, color: '#8b5cf6', icon: '&#10148;' },
+      { id: 'later', label: 'Mais tarde', tasks: dueLater, color: '#6b7280', icon: '&#8943;' },
+      { id: 'done', label: 'Concluidas recentes', tasks: completed.slice(0, 10), color: '#22c55e', icon: '&#10003;' }
+    ];
+
+    const totalPending = overdue.length + dueToday.length + dueThisWeek.length + dueNextWeek.length + dueLater.length;
+
+    return `
+      <!-- KPIs -->
+      <div class="grid-4" style="margin-bottom:16px;">
+        <div class="kpi-card"><div class="kpi-label">Minhas Tarefas</div><div class="kpi-value">${totalPending}</div></div>
+        <div class="kpi-card"><div class="kpi-label">Vencem Hoje</div><div class="kpi-value" style="color:${dueToday.length > 0 ? '#f59e0b' : '#22c55e'};">${dueToday.length}</div></div>
+        <div class="kpi-card"><div class="kpi-label">Atrasadas</div><div class="kpi-value" style="color:${overdue.length > 0 ? '#ef4444' : '#22c55e'};">${overdue.length}</div></div>
+        <div class="kpi-card"><div class="kpi-label">Recentes</div><div class="kpi-value">${recentlyAssigned.length}</div></div>
+      </div>
+
+      <!-- Controls -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap;">
+        <select class="form-input" id="myTasksFilter" style="max-width:160px;font-size:0.78rem;">
+          <option value="all" ${this._myTasksFilter === 'all' ? 'selected' : ''}>Todas as tarefas</option>
+          <option value="week" ${this._myTasksFilter === 'week' ? 'selected' : ''}>Previstas p/ semana</option>
+          <option value="completed" ${this._myTasksFilter === 'completed' ? 'selected' : ''}>Concluidas</option>
+        </select>
+        <select class="form-input" id="myTasksSort" style="max-width:160px;font-size:0.78rem;">
+          <option value="due_date" ${this._myTasksSort === 'due_date' ? 'selected' : ''}>Ordenar: Data</option>
+          <option value="priority" ${this._myTasksSort === 'priority' ? 'selected' : ''}>Ordenar: Prioridade</option>
+          <option value="project" ${this._myTasksSort === 'project' ? 'selected' : ''}>Ordenar: Projeto</option>
+          <option value="status" ${this._myTasksSort === 'status' ? 'selected' : ''}>Ordenar: Status</option>
+        </select>
+      </div>
+
+      <!-- Task sections -->
+      ${sections.filter(s => s.tasks.length > 0).map(section => `
+        <div class="my-tasks-section" style="margin-bottom:16px;">
+          <div class="my-tasks-section-header" style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:2px solid ${section.color};margin-bottom:6px;">
+            <span style="color:${section.color};font-size:0.85rem;">${section.icon}</span>
+            <span style="font-weight:700;font-size:0.85rem;color:var(--text-primary);">${section.label}</span>
+            <span class="tag" style="font-size:0.65rem;background:${section.color}20;color:${section.color};">${section.tasks.length}</span>
+          </div>
+          <div class="my-tasks-list">
+            ${section.tasks.map(t => this._renderMyTaskRow(t, today)).join('')}
+          </div>
+        </div>
+      `).join('')}
+      ${totalPending === 0 && completed.length === 0 ? '<div class="empty-state"><div class="empty-state-text">Nenhuma tarefa atribuida a voce</div></div>' : ''}
+    `;
+  },
+
+  _renderMyTaskRow(t, today) {
+    const sm = typeof TBO_ERP !== 'undefined' ? TBO_ERP.stateMachines.task : null;
+    const stateColor = sm ? sm.colors[t.status] || '#94a3b8' : '#94a3b8';
+    const stateLabel = sm ? sm.labels[t.status] || t.status : t.status;
+    const isOverdue = t.due_date && t.due_date < today && t.status !== 'concluida';
+    const priorityColors = { urgente: '#ef4444', alta: '#f59e0b', media: '#3b82f6', baixa: '#6b7280' };
+    const pColor = priorityColors[t.priority] || '#6b7280';
+
+    return `<div class="my-task-row" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;margin-bottom:4px;background:var(--bg-card);border:1px solid var(--border-subtle);transition:background 0.15s;cursor:pointer;" onmouseenter="this.style.background='var(--bg-elevated)'" onmouseleave="this.style.background='var(--bg-card)'" onclick="TBO_PROJETOS._showProjectModal('${t.project_id}')">
+      <input type="checkbox" ${t.status === 'concluida' ? 'checked' : ''} onchange="event.stopPropagation();TBO_PROJETOS._toggleTask('${t.id}', this.checked)" style="cursor:pointer;flex-shrink:0;">
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-weight:600;font-size:0.82rem;${t.status === 'concluida' ? 'text-decoration:line-through;opacity:0.6;' : ''}">${t.title || t.name}</span>
+        </div>
+        <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">
+          ${t.project_name || ''}${t.phase ? ' / ' + t.phase : ''}
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+        ${t.due_date ? `<span style="font-size:0.7rem;padding:2px 6px;border-radius:4px;${isOverdue ? 'background:#ef444420;color:#ef4444;font-weight:600;' : 'color:var(--text-muted);'}">${t.due_date.slice(5)}</span>` : ''}
+        <span style="width:6px;height:6px;border-radius:50%;background:${pColor};flex-shrink:0;" title="${t.priority || 'media'}"></span>
+        <span class="tag" style="font-size:0.6rem;background:${stateColor}20;color:${stateColor};">${stateLabel}</span>
+      </div>
+      ${t.project_id && t.status !== 'concluida' ? `<button class="btn btn-secondary" style="font-size:0.62rem;padding:2px 6px;flex-shrink:0;" onclick="event.stopPropagation();TBO_PROJETOS._startTimerForTask('${t.project_id}','${t.id}','${(t.title || t.name || '').replace(/'/g, "\\'")}');" title="Iniciar timer">&#9654;</button>` : ''}
+    </div>`;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PROJECT OVERVIEW (Summary area inside project modal)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  _renderProjectOverview(project) {
+    if (!project) return '';
+
+    const tasks = TBO_STORAGE.getErpEntitiesByParent('task', project.id);
+    const deliverables = TBO_STORAGE.getErpEntitiesByParent('deliverable', project.id);
+    const timeEntries = TBO_STORAGE.getAllErpEntities('time_entry').filter(e => e.project_id === project.id);
+    const totalMinutes = timeEntries.reduce((s, e) => s + (e.duration_minutes || 0), 0);
+    const health = typeof TBO_ERP !== 'undefined' ? TBO_ERP.calculateHealthScore(project) : { score: 100, level: 'healthy', reasons: [] };
+    const healthColor = typeof TBO_ERP !== 'undefined' ? TBO_ERP.getHealthColor(health.score) : '#22c55e';
+    const sm = typeof TBO_ERP !== 'undefined' ? TBO_ERP.stateMachines.project : null;
+
+    const doneTasks = tasks.filter(t => t.status === 'concluida').length;
+    const totalTasks = tasks.length;
+    const completionPct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+    const doneDeliverables = deliverables.filter(d => d.status === 'entregue').length;
+
+    // Activity feed (last 5 audit entries for this project)
+    const history = typeof TBO_ERP !== 'undefined' ? TBO_ERP.getEntityHistory('project', project.id).slice(0, 5) : [];
+
+    // Team members on this project
+    const teamOnProject = [...new Set(tasks.map(t => t.owner).filter(Boolean))];
+
+    return `
+      <div class="project-overview" style="display:grid;grid-template-columns:1fr 280px;gap:20px;">
+        <!-- Left: Description & Status -->
+        <div>
+          <!-- Progress bar -->
+          <div style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px;">
+              <span style="font-weight:600;">Progresso</span>
+              <span style="color:${completionPct >= 80 ? '#22c55e' : completionPct >= 50 ? '#f59e0b' : 'var(--text-muted)'};">${completionPct}%</span>
+            </div>
+            <div style="height:8px;background:var(--bg-elevated);border-radius:4px;overflow:hidden;">
+              <div style="height:100%;width:${completionPct}%;background:${completionPct >= 80 ? '#22c55e' : completionPct >= 50 ? '#f59e0b' : 'var(--accent)'};border-radius:4px;transition:width 0.3s;"></div>
+            </div>
+          </div>
+
+          <!-- Stats row -->
+          <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:8px;margin-bottom:16px;">
+            <div style="text-align:center;padding:10px;background:var(--bg-elevated);border-radius:8px;">
+              <div style="font-size:1.1rem;font-weight:700;color:var(--accent-gold);">${doneTasks}/${totalTasks}</div>
+              <div style="font-size:0.65rem;color:var(--text-muted);">Tarefas</div>
+            </div>
+            <div style="text-align:center;padding:10px;background:var(--bg-elevated);border-radius:8px;">
+              <div style="font-size:1.1rem;font-weight:700;">${doneDeliverables}/${deliverables.length}</div>
+              <div style="font-size:0.65rem;color:var(--text-muted);">Entregaveis</div>
+            </div>
+            <div style="text-align:center;padding:10px;background:var(--bg-elevated);border-radius:8px;">
+              <div style="font-size:1.1rem;font-weight:700;">${typeof TBO_WORKLOAD !== 'undefined' ? TBO_WORKLOAD.formatHoursMinutes(totalMinutes) : Math.round(totalMinutes / 60) + 'h'}</div>
+              <div style="font-size:0.65rem;color:var(--text-muted);">Horas</div>
+            </div>
+            <div style="text-align:center;padding:10px;background:var(--bg-elevated);border-radius:8px;">
+              <div style="font-size:1.1rem;font-weight:700;color:${healthColor};">${health.score}</div>
+              <div style="font-size:0.65rem;color:var(--text-muted);">Saude</div>
+            </div>
+          </div>
+
+          ${project.notes ? `<div style="font-size:0.82rem;color:var(--text-secondary);padding:12px;background:var(--bg-elevated);border-radius:8px;margin-bottom:16px;border-left:3px solid var(--accent);">${project.notes}</div>` : ''}
+
+          <!-- Activity Feed -->
+          ${history.length > 0 ? `
+            <div style="margin-bottom:16px;">
+              <h4 style="font-size:0.82rem;font-weight:700;margin-bottom:8px;">Atividade Recente</h4>
+              <div style="display:flex;flex-direction:column;gap:4px;">
+                ${history.map(h => `<div style="font-size:0.72rem;color:var(--text-muted);padding:4px 8px;background:var(--bg-elevated);border-radius:4px;">
+                  <span style="font-weight:600;color:var(--text-secondary);">${h.userId || 'sistema'}</span> ${h.action}${h.from ? ' (' + h.from + ' → ' + h.to + ')' : ''} — ${typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.relativeTime(h.timestamp) : h.timestamp.slice(0, 16)}
+                </div>`).join('')}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- Right: Sidebar info -->
+        <div style="border-left:1px solid var(--border-subtle);padding-left:20px;">
+          <div style="margin-bottom:16px;">
+            <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Status</div>
+            <span class="tag" style="font-size:0.75rem;background:${sm ? sm.colors[project.status] + '20' : '#94a3b820'};color:${sm ? sm.colors[project.status] : '#94a3b8'};border:1px solid ${sm ? sm.colors[project.status] + '40' : '#94a3b840'};">${sm ? sm.labels[project.status] : project.status}</span>
+          </div>
+          <div style="margin-bottom:16px;">
+            <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Responsavel</div>
+            <div style="font-size:0.82rem;font-weight:600;">${project.owner || 'Nao definido'}</div>
+          </div>
+          <div style="margin-bottom:16px;">
+            <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Cliente</div>
+            <div style="font-size:0.82rem;">${project.client || '-'}</div>
+          </div>
+          ${project.value ? `<div style="margin-bottom:16px;">
+            <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Valor</div>
+            <div style="font-size:0.92rem;font-weight:700;color:var(--accent-gold);">${typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.currency(project.value) : 'R$ ' + project.value}</div>
+          </div>` : ''}
+          <div style="margin-bottom:16px;">
+            <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Prioridade</div>
+            <div style="font-size:0.82rem;">${project.priority || 'media'}</div>
+          </div>
+          ${project.start_date || project.end_date ? `<div style="margin-bottom:16px;">
+            <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Periodo</div>
+            <div style="font-size:0.78rem;">${project.start_date || '?'} - ${project.end_date || '?'}</div>
+          </div>` : ''}
+          ${teamOnProject.length > 0 ? `<div style="margin-bottom:16px;">
+            <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Equipe (${teamOnProject.length})</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+              ${teamOnProject.map(m => `<span class="deal-owner-badge" style="font-size:0.6rem;width:28px;height:28px;" title="${m}">${typeof TBO_PERMISSIONS !== 'undefined' ? TBO_PERMISSIONS.getInitials(m) : m.charAt(0)}</span>`).join('')}
+            </div>
+          </div>` : ''}
+          ${(project.services || []).length > 0 ? `<div style="margin-bottom:16px;">
+            <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Servicos</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">${project.services.map(s => `<span class="deal-service-tag">${s}</span>`).join('')}</div>
+          </div>` : ''}
+        </div>
       </div>
     `;
   },
@@ -891,6 +1304,7 @@ const TBO_PROJETOS = {
         if (tabId === 'pj-tempo') this._bindTimesheetEvents();
         else if (tabId === 'pj-gantt') this._bindGanttEvents();
         else if (tabId === 'pj-carga') this._bindWorkloadEvents();
+        else if (tabId === 'pj-mytasks') this._bindMyTasksEvents();
       });
     });
 
@@ -911,10 +1325,11 @@ const TBO_PROJETOS = {
     // Drag & drop for board
     this._initDragDrop();
 
-    // New tab bindings: Timesheet, Workload, Gantt
+    // New tab bindings: Timesheet, Workload, Gantt, My Tasks
     this._bindTimesheetEvents();
     this._bindGanttEvents();
     this._bindWorkloadEvents();
+    this._bindMyTasksEvents();
 
     // Init timer widget
     if (typeof TBO_WORKLOAD !== 'undefined') {
@@ -1073,15 +1488,26 @@ const TBO_PROJETOS = {
     }
 
     const p = existing || {};
+    const overviewHtml = existing ? this._renderProjectOverview(existing) : '';
     const modal = document.createElement('div');
     modal.className = 'modal-overlay active';
     modal.innerHTML = `
-      <div class="modal modal--lg active" style="max-width:700px;">
+      <div class="modal modal--lg active" style="max-width:${existing ? '860' : '700'}px;">
         <div class="modal-header">
           <h3 class="modal-title">${isNew ? 'Novo Projeto' : p.name}</h3>
           <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
         </div>
         <div class="modal-body" style="max-height:75vh;overflow-y:auto;">
+          ${existing ? `
+            <!-- Project Overview Tabs -->
+            <div class="tab-bar" style="margin-bottom:16px;font-size:0.82rem;">
+              <button class="tab active pj-modal-tab" data-mtab="overview">Resumo</button>
+              <button class="tab pj-modal-tab" data-mtab="edit">Editar</button>
+              <button class="tab pj-modal-tab" data-mtab="tasks">Tarefas</button>
+            </div>
+            <div class="pj-modal-panel active" id="pjMtab-overview">${overviewHtml}</div>
+            <div class="pj-modal-panel" id="pjMtab-edit" style="display:none;">
+          ` : ''}
           ${healthHtml}
           ${transitionHtml}
           <div class="grid-2" style="gap:12px;">
@@ -1141,8 +1567,16 @@ const TBO_PROJETOS = {
             <label class="form-label">Notas</label>
             <textarea class="form-input" id="pjModalNotes" rows="3">${p.notes || ''}</textarea>
           </div>
-          ${tasksDelivsHtml}
-          ${historyHtml}
+          ${existing ? `
+            </div><!-- close pjMtab-edit -->
+            <div class="pj-modal-panel" id="pjMtab-tasks" style="display:none;">
+              ${tasksDelivsHtml}
+              ${historyHtml}
+            </div>
+          ` : `
+            ${tasksDelivsHtml}
+            ${historyHtml}
+          `}
         </div>
         <div class="modal-footer" style="display:flex;justify-content:${isNew ? 'flex-end' : 'space-between'};">
           ${!isNew ? `<button class="btn btn-secondary" style="color:#ef4444;" onclick="TBO_PROJETOS._deleteProject('${p.id}')">Excluir</button>` : ''}
@@ -1155,6 +1589,17 @@ const TBO_PROJETOS = {
     `;
     document.body.appendChild(modal);
     modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+
+    // Modal tab switching
+    modal.querySelectorAll('.pj-modal-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        modal.querySelectorAll('.pj-modal-tab').forEach(t => t.classList.remove('active'));
+        modal.querySelectorAll('.pj-modal-panel').forEach(p => { p.classList.remove('active'); p.style.display = 'none'; });
+        tab.classList.add('active');
+        const panel = modal.querySelector(`#pjMtab-${tab.dataset.mtab}`);
+        if (panel) { panel.classList.add('active'); panel.style.display = ''; }
+      });
+    });
   },
 
   _saveProject(existingId) {
@@ -1246,27 +1691,99 @@ const TBO_PROJETOS = {
 
   _addTask(projectId) {
     const project = TBO_STORAGE.getErpEntity('project', projectId);
-    const title = prompt('Nome da tarefa:');
-    if (!title) return;
-    const dueDate = prompt('Prazo (YYYY-MM-DD) ou deixe vazio:', '');
-    TBO_STORAGE.addErpEntity('task', {
-      title,
-      project_id: projectId,
-      project_name: project?.name || '',
-      owner: project?.owner || '',
-      status: 'pendente',
-      due_date: dueDate || null,
-      priority: 'media',
-      source: 'manual'
+    const existingTasks = TBO_STORAGE.getErpEntitiesByParent('task', projectId);
+    const team = this._getTeamMembers();
+
+    const modal2 = document.createElement('div');
+    modal2.className = 'modal-overlay active';
+    modal2.style.zIndex = '1001';
+    modal2.innerHTML = `
+      <div class="modal active" style="max-width:480px;">
+        <div class="modal-header">
+          <h3 class="modal-title">Nova Tarefa</h3>
+          <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Titulo*</label>
+            <input type="text" class="form-input" id="ntTitle" placeholder="Nome da tarefa">
+          </div>
+          <div class="grid-2" style="gap:12px;">
+            <div class="form-group">
+              <label class="form-label">Responsavel</label>
+              <select class="form-input" id="ntOwner">
+                <option value="${project?.owner || ''}">${project?.owner || 'Selecione'}</option>
+                ${team.filter(t => t !== project?.owner).map(t => `<option value="${t}">${t}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Prioridade</label>
+              <select class="form-input" id="ntPriority">
+                <option value="baixa">Baixa</option>
+                <option value="media" selected>Media</option>
+                <option value="alta">Alta</option>
+                <option value="urgente">Urgente</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid-2" style="gap:12px;">
+            <div class="form-group">
+              <label class="form-label">Data inicio</label>
+              <input type="date" class="form-input" id="ntStartDate">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Prazo</label>
+              <input type="date" class="form-input" id="ntDueDate">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Estimativa (minutos)</label>
+            <input type="number" class="form-input" id="ntEstimate" placeholder="60" min="0">
+          </div>
+          ${existingTasks.length > 0 ? `<div class="form-group">
+            <label class="form-label">Depende de (bloqueada ate concluir)</label>
+            <select class="form-input" id="ntDependsOn">
+              <option value="">Nenhuma dependencia</option>
+              ${existingTasks.filter(t => t.status !== 'cancelada').map(t => `<option value="${t.id}">${t.title || t.name}</option>`).join('')}
+            </select>
+          </div>` : ''}
+        </div>
+        <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:8px;">
+          <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancelar</button>
+          <button class="btn btn-primary" id="ntSaveTask">Criar Tarefa</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal2);
+    modal2.addEventListener('click', (e) => { if (e.target === modal2) modal2.remove(); });
+
+    modal2.querySelector('#ntSaveTask').addEventListener('click', () => {
+      const title = modal2.querySelector('#ntTitle')?.value?.trim();
+      if (!title) { TBO_TOAST.warning('Titulo e obrigatorio'); return; }
+      const depId = modal2.querySelector('#ntDependsOn')?.value || null;
+      TBO_STORAGE.addErpEntity('task', {
+        title,
+        project_id: projectId,
+        project_name: project?.name || '',
+        owner: modal2.querySelector('#ntOwner')?.value || project?.owner || '',
+        status: 'pendente',
+        start_date: modal2.querySelector('#ntStartDate')?.value || null,
+        due_date: modal2.querySelector('#ntDueDate')?.value || null,
+        priority: modal2.querySelector('#ntPriority')?.value || 'media',
+        estimate_minutes: parseInt(modal2.querySelector('#ntEstimate')?.value) || 0,
+        depends_on: depId ? [depId] : [],
+        source: 'manual'
+      });
+      TBO_ERP.addAuditLog({
+        entityType: 'task', entityId: 'new',
+        action: 'created', userId: TBO_ERP._getCurrentUserId(),
+        reason: `Tarefa adicionada ao projeto ${project?.name}`, entityName: title
+      });
+      TBO_TOAST.success('Tarefa adicionada');
+      modal2.remove();
+      document.querySelector('.modal-overlay')?.remove();
+      this._refreshModule();
     });
-    TBO_ERP.addAuditLog({
-      entityType: 'task', entityId: 'new',
-      action: 'created', userId: TBO_ERP._getCurrentUserId(),
-      reason: `Tarefa adicionada ao projeto ${project?.name}`, entityName: title
-    });
-    TBO_TOAST.success('Tarefa adicionada');
-    document.querySelector('.modal-overlay')?.remove();
-    this._refreshModule();
   },
 
   _addDeliverable(projectId) {
@@ -1674,10 +2191,126 @@ const TBO_PROJETOS = {
 
   _tsClockInterval: null,
 
+  _ganttFilterStatus: '',
+  _ganttFilterOwner: '',
+
   _bindGanttEvents() {
     this._bind('ganttPrev', () => { this._ganttMonthOffset--; this._refreshGanttTab(); });
     this._bind('ganttNext', () => { this._ganttMonthOffset++; this._refreshGanttTab(); });
     this._bind('ganttToday', () => { this._ganttMonthOffset = 0; this._refreshGanttTab(); });
+
+    // Scale buttons
+    document.querySelectorAll('.gantt-scale-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this._ganttScale = btn.dataset.scale;
+        this._refreshGanttTab();
+      });
+    });
+
+    // Gantt filters
+    const gfStatus = document.getElementById('ganttFilterStatus');
+    if (gfStatus) gfStatus.addEventListener('change', () => { this._ganttFilterStatus = gfStatus.value; this._refreshGanttTab(); });
+    const gfOwner = document.getElementById('ganttFilterOwner');
+    if (gfOwner) gfOwner.addEventListener('change', () => { this._ganttFilterOwner = gfOwner.value; this._refreshGanttTab(); });
+
+    // Drag to resize/move bars
+    this._initGanttDrag();
+  },
+
+  _initGanttDrag() {
+    const body = document.getElementById('ganttBody');
+    if (!body) return;
+
+    const self = this;
+
+    body.addEventListener('mousedown', function(e) {
+      const handle = e.target.closest('.gantt-drag-handle');
+      const bar = e.target.closest('.gantt-bar-drag');
+      if (!bar) return;
+
+      e.preventDefault();
+      const entityType = bar.dataset.entityType;
+      const entityId = bar.dataset.entityId;
+      const sc = self._getGanttScaleConfig();
+      const startX = e.clientX;
+      const origLeft = parseFloat(bar.style.left);
+      const origWidth = parseFloat(bar.style.width);
+      const mode = handle ? handle.dataset.handle : 'move'; // 'left', 'right', or 'move'
+
+      bar.style.cursor = mode === 'move' ? 'grabbing' : 'ew-resize';
+      bar.style.opacity = '0.6';
+      bar.style.zIndex = '20';
+
+      function onMouseMove(ev) {
+        const dx = ev.clientX - startX;
+        if (mode === 'move') {
+          bar.style.left = (origLeft + dx) + 'px';
+        } else if (mode === 'left') {
+          const newLeft = origLeft + dx;
+          const newWidth = origWidth - dx;
+          if (newWidth > 10) { bar.style.left = newLeft + 'px'; bar.style.width = newWidth + 'px'; }
+        } else if (mode === 'right') {
+          const newWidth = origWidth + dx;
+          if (newWidth > 10) bar.style.width = newWidth + 'px';
+        }
+      }
+
+      function onMouseUp(ev) {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        bar.style.cursor = 'grab';
+        bar.style.opacity = entityType === 'task' ? '0.85' : '1';
+        bar.style.zIndex = '3';
+
+        // Calculate new dates from pixel positions
+        const newLeft = parseFloat(bar.style.left);
+        const newWidth = parseFloat(bar.style.width);
+        const newStartDate = self._ganttPixelToDate(newLeft, sc.cols, sc.cellW);
+        const newEndDate = self._ganttPixelToDate(newLeft + newWidth, sc.cols, sc.cellW);
+
+        // Save to ERP
+        if (entityType === 'project') {
+          TBO_STORAGE.updateErpEntity('project', entityId, { start_date: newStartDate, end_date: newEndDate });
+        } else {
+          TBO_STORAGE.updateErpEntity('task', entityId, { start_date: newStartDate, due_date: newEndDate });
+        }
+
+        if (typeof TBO_ERP !== 'undefined') {
+          TBO_ERP.addAuditLog({
+            entityType, entityId,
+            action: 'updated', userId: TBO_ERP._getCurrentUserId(),
+            reason: `Datas alteradas via Gantt (${newStartDate} - ${newEndDate})`,
+            entityName: bar.title?.split('\n')[0] || ''
+          });
+        }
+
+        if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Datas atualizadas');
+        // Soft refresh to update label positions
+        setTimeout(() => self._refreshGanttTab(), 150);
+      }
+
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    });
+  },
+
+  _bindMyTasksEvents() {
+    const filterEl = document.getElementById('myTasksFilter');
+    if (filterEl) filterEl.addEventListener('change', () => {
+      this._myTasksFilter = filterEl.value;
+      this._refreshMyTasksTab();
+    });
+    const sortEl = document.getElementById('myTasksSort');
+    if (sortEl) sortEl.addEventListener('change', () => {
+      this._myTasksSort = sortEl.value;
+      this._refreshMyTasksTab();
+    });
+  },
+
+  _refreshMyTasksTab() {
+    const container = document.getElementById('tab-pj-mytasks');
+    if (container) container.innerHTML = this._renderMyTasks();
+    this._bindMyTasksEvents();
   },
 
   _bindWorkloadEvents() {

@@ -967,6 +967,7 @@ const TBO_COMMAND_CENTER = {
     const completed = JSON.parse(localStorage.getItem('tbo_completed_actions') || '[]');
     const key = ai.task + '|' + ai.meeting;
     const isDone = completed.includes(key);
+    const escapedMeeting = (ai.meeting || '').replace(/'/g, "\\'");
     return `
       <tr class="${isDone ? 'cc-action-done' : ''}">
         <td style="text-align:center; cursor:pointer;" onclick="TBO_COMMAND_CENTER._toggleAction(this, '${key.replace(/'/g, "\\'")}')">
@@ -974,8 +975,10 @@ const TBO_COMMAND_CENTER = {
             ${isDone ? '<span style="color:#fff;font-size:0.65rem;">&#10003;</span>' : ''}
           </span>
         </td>
-        <td style="font-weight:500; ${isDone ? 'text-decoration:line-through; opacity:0.5;' : ''}">${ai.task}</td>
-        <td style="font-size:0.78rem; color:var(--text-secondary);">${ai.meeting}</td>
+        <td style="font-weight:500; ${isDone ? 'text-decoration:line-through; opacity:0.5;' : ''}">
+          <span class="cc-action-link" style="cursor:pointer; text-decoration-style:dotted; text-decoration-line:underline; text-underline-offset:3px; text-decoration-color:var(--border-default);" onclick="TBO_COMMAND_CENTER._navigateToActionItem('${escapedMeeting}')" title="Ver reuniao de origem">${ai.task}</span>
+        </td>
+        <td style="font-size:0.78rem; color:var(--text-secondary); cursor:pointer;" onclick="TBO_COMMAND_CENTER._navigateToActionItem('${escapedMeeting}')">${ai.meeting}</td>
         <td style="font-size:0.78rem; color:var(--text-muted);">${TBO_FORMATTER.date(ai.date)}</td>
       </tr>
     `;
@@ -1004,6 +1007,32 @@ const TBO_COMMAND_CENTER = {
     if (taskTd) {
       taskTd.style.textDecoration = isDone ? 'line-through' : 'none';
       taskTd.style.opacity = isDone ? '0.5' : '1';
+    }
+  },
+
+  // Navigate to the source meeting for an action item
+  _navigateToActionItem(meetingTitle) {
+    // Navigate to reunioes module; use hash to pass search hint
+    if (typeof TBO_ROUTER !== 'undefined') {
+      // Store the meeting title so reunioes module can highlight/filter it
+      sessionStorage.setItem('tbo_action_meeting', meetingTitle);
+      TBO_ROUTER.navigate('reunioes');
+      // After navigation, try to scroll to / highlight the matching meeting
+      setTimeout(() => {
+        const cards = document.querySelectorAll('.meeting-card, .card');
+        for (const card of cards) {
+          const titleEl = card.querySelector('.meeting-title, .card-title, h3, h4');
+          if (titleEl && titleEl.textContent.trim().toLowerCase().includes(meetingTitle.toLowerCase().substring(0, 20))) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            card.style.outline = '2px solid var(--accent-primary)';
+            card.style.outlineOffset = '2px';
+            card.style.transition = 'outline-color 2s ease';
+            setTimeout(() => { card.style.outlineColor = 'transparent'; }, 3000);
+            break;
+          }
+        }
+        sessionStorage.removeItem('tbo_action_meeting');
+      }, 400);
     }
   },
 

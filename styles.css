@@ -5822,6 +5822,10 @@ body.light-mode .data-table tbody tr:hover {
 .cc-action-done td {
   opacity: 0.5;
 }
+.cc-action-link:hover {
+  color: var(--accent-primary) !important;
+  text-decoration-color: var(--accent-primary) !important;
+}
 
 /* ── Funnel Visualization ── */
 .funnel-vis { display: flex; flex-direction: column; gap: 6px; }

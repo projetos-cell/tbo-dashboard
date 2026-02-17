@@ -58,7 +58,10 @@ const TBO_FINANCEIRO = {
         <section class="section">
           <div class="section-header">
             <h2 class="section-title">Painel Financeiro 2026</h2>
-            <span class="tag" style="font-size:0.72rem;">${realizados.length} meses realizados | ${mesesRestantes} projetados</span>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span class="tag" style="font-size:0.72rem;">${realizados.length} meses realizados | ${mesesRestantes} projetados</span>
+              <button class="btn btn-secondary" id="fnEditData" style="font-size:0.68rem;padding:3px 10px;">&#9998; Editar Dados</button>
+            </div>
           </div>
           <div class="grid-4" style="margin-bottom:12px;">
             <div class="kpi-card">
@@ -591,6 +594,7 @@ const TBO_FINANCEIRO = {
 
     this._bind('fnGerarCenario', () => this._generate('fnCenario', 'fnCenarioOutput', 'Com base nos dados financeiros reais de 2026 da TBO, simule: '));
     this._bind('fnGerarPricing', () => this._generate('fnPricingQuery', 'fnPricingOutput', 'Com base nos precos e custos da TBO em 2026, responda: '));
+    this._bind('fnEditData', () => this._showEditModal());
   },
 
   _bind(id, fn) {
@@ -604,9 +608,106 @@ const TBO_FINANCEIRO = {
     await this._generateDirect(prefix + val, outputId);
   },
 
+  _showEditModal() {
+    const context = TBO_STORAGE.get('context');
+    const dc26 = context.dados_comerciais?.['2026'] || {};
+    const fc = dc26.fluxo_caixa || {};
+    const recMensal = fc.receita_mensal || {};
+    const despMensal = fc.despesa_mensal || {};
+    const realizados = fc.meses_realizados || [];
+    const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    const mesesLabel = ['Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+    const rows = meses.map((m, i) => {
+      const isReal = realizados.includes(m);
+      return `<div style="display:grid;grid-template-columns:120px 1fr 1fr 60px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border-subtle);">
+        <span style="font-size:0.78rem;font-weight:${isReal ? '600' : '400'};color:${isReal ? 'var(--text-primary)' : 'var(--text-muted)'};">${mesesLabel[i]}</span>
+        <input type="number" class="form-input fn-edit-rec" data-mes="${m}" value="${recMensal[m] || 0}" style="font-size:0.78rem;padding:4px 8px;">
+        <input type="number" class="form-input fn-edit-desp" data-mes="${m}" value="${despMensal[m] || 0}" style="font-size:0.78rem;padding:4px 8px;">
+        <label style="display:flex;align-items:center;gap:4px;font-size:0.72rem;cursor:pointer;">
+          <input type="checkbox" class="fn-edit-real" data-mes="${m}" ${isReal ? 'checked' : ''}> Real
+        </label>
+      </div>`;
+    }).join('');
+
+    const html = `
+      <div style="margin-bottom:12px;">
+        <div style="display:grid;grid-template-columns:120px 1fr 1fr 60px;gap:8px;padding:6px 0;font-size:0.7rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border-subtle);">
+          <span>Mes</span><span>Receita (R$)</span><span>Despesa (R$)</span><span></span>
+        </div>
+        ${rows}
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+        <label class="form-label" style="margin:0;white-space:nowrap;">Meta mensal R$</label>
+        <input type="number" class="form-input" id="fnEditMeta" value="${fc.meta_vendas_mensal || 0}" style="max-width:150px;font-size:0.78rem;padding:4px 8px;">
+      </div>
+      <button class="btn btn-primary" id="fnSaveEdit" style="width:100%;">Salvar Dados Financeiros</button>
+    `;
+
+    if (typeof TBO_MODAL !== 'undefined') {
+      TBO_MODAL.show('Editar Dados Financeiros 2026', html, { width: '600px' });
+    } else {
+      // Fallback modal
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML = `<div class="pj-modal" style="max-width:600px;"><div class="pj-modal-header"><h3 style="font-size:1rem;">Editar Dados Financeiros 2026</h3><button class="pj-modal-close" onclick="this.closest('.modal-overlay').remove();">&#10005;</button></div><div class="pj-modal-body" style="padding:16px;">${html}</div></div>`;
+      document.body.appendChild(overlay);
+      overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    }
+
+    // Bind save
+    setTimeout(() => {
+      const saveBtn = document.getElementById('fnSaveEdit');
+      if (saveBtn) saveBtn.addEventListener('click', () => {
+        const ctx = TBO_STORAGE.get('context');
+        if (!ctx.dados_comerciais) ctx.dados_comerciais = {};
+        if (!ctx.dados_comerciais['2026']) ctx.dados_comerciais['2026'] = {};
+        if (!ctx.dados_comerciais['2026'].fluxo_caixa) ctx.dados_comerciais['2026'].fluxo_caixa = {};
+        const newFc = ctx.dados_comerciais['2026'].fluxo_caixa;
+
+        const newRec = {};
+        const newDesp = {};
+        const newReal = [];
+
+        document.querySelectorAll('.fn-edit-rec').forEach(el => {
+          const m = el.dataset.mes;
+          newRec[m] = parseFloat(el.value) || 0;
+        });
+        document.querySelectorAll('.fn-edit-desp').forEach(el => {
+          const m = el.dataset.mes;
+          newDesp[m] = parseFloat(el.value) || 0;
+        });
+        document.querySelectorAll('.fn-edit-real').forEach(el => {
+          if (el.checked) newReal.push(el.dataset.mes);
+        });
+
+        // Also build resultado
+        const newRes = {};
+        Object.keys(newRec).forEach(m => { newRes[m] = newRec[m] - (newDesp[m] || 0); });
+
+        newFc.receita_mensal = newRec;
+        newFc.despesa_mensal = newDesp;
+        newFc.resultado_mensal = newRes;
+        newFc.meses_realizados = newReal;
+
+        const meta = parseFloat(document.getElementById('fnEditMeta')?.value) || 0;
+        newFc.meta_vendas_mensal = meta;
+
+        TBO_STORAGE._data.context = ctx;
+        localStorage.setItem('tbo_context_override', JSON.stringify(ctx));
+
+        TBO_TOAST.success('Dados financeiros atualizados');
+        document.querySelector('.modal-overlay')?.remove();
+
+        // Refresh module
+        if (typeof TBO_ROUTER !== 'undefined') TBO_ROUTER.navigate('financeiro');
+      });
+    }, 100);
+  },
+
   async _generateDirect(msg, outputId) {
     if (!TBO_API.isConfigured()) {
-      TBO_TOAST.warning('API nao configurada', 'Va em Configuracoes (Alt+8) para inserir sua chave da API Claude.');
+      TBO_TOAST.warning('API nao configurada', 'Va em Configuracoes para inserir sua chave de IA (' + TBO_API.getProviderLabel() + ').');
       return;
     }
     const out = document.getElementById(outputId);

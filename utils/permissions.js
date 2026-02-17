@@ -8,8 +8,8 @@ const TBO_PERMISSIONS = {
   // Placeholder modules accessible to all roles
   _placeholderModules: [
     'timeline','alerts','pipeline','clientes','contratos',
-    'entregas','tarefas','revisoes','entregas-pendentes',
-    'revisoes-pendentes','decisoes','biblioteca',
+    'entregas','tarefas','revisoes',
+    'decisoes','biblioteca',
     'carga-trabalho','timesheets','capacidade',
     'pagar','receber','margens','conciliacao',
     'templates','permissoes-config','integracoes'
@@ -92,16 +92,10 @@ const TBO_PERMISSIONS = {
       modules: ['projetos', 'entregas', 'tarefas', 'revisoes']
     },
     {
-      id: 'producao',
-      label: 'PRODUCAO',
-      icon: 'pen-tool',
-      modules: ['conteudo', 'entregas-pendentes', 'revisoes-pendentes']
-    },
-    {
       id: 'inteligencia',
-      label: 'INTELIGENCIA',
+      label: 'CONTEUDO & INTELIGENCIA',
       icon: 'brain',
-      modules: ['mercado', 'reunioes', 'decisoes', 'biblioteca']
+      modules: ['conteudo', 'mercado', 'reunioes', 'decisoes', 'biblioteca']
     },
     {
       id: 'pessoas',

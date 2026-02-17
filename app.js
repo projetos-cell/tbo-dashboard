@@ -330,8 +330,8 @@ const TBO_APP = {
   // ── Placeholder module keys (all 17 routes not yet implemented) ──────
   _placeholderKeys: [
     'timeline','alerts','pipeline','clientes','contratos',
-    'entregas','tarefas','revisoes','entregas-pendentes',
-    'revisoes-pendentes','decisoes','biblioteca',
+    'entregas','tarefas','revisoes',
+    'decisoes','biblioteca',
     'carga-trabalho','timesheets','capacidade',
     'pagar','receber','margens','conciliacao',
     'templates','permissoes-config','integracoes'
@@ -420,8 +420,15 @@ const TBO_APP = {
   _updateStatus() {
     // API Key status
     const apiDot = document.querySelector('#statusAPI .status-dot');
+    const apiLabel = document.querySelector('#statusAPI .status-label');
     if (apiDot) {
       apiDot.dataset.status = TBO_API.isConfigured() ? 'connected' : 'disconnected';
+    }
+    if (apiLabel) {
+      const provider = TBO_API.getProvider();
+      apiLabel.textContent = TBO_API.isConfigured()
+        ? (provider === 'openai' ? 'GPT' : 'Claude')
+        : 'IA';
     }
 
     // Data status
@@ -457,6 +464,11 @@ const TBO_APP = {
     if (el) {
       const now = new Date();
       el.textContent = `${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+    }
+    // Update sidebar version from config
+    const verEl = document.getElementById('sidebarVersion');
+    if (verEl && typeof TBO_CONFIG !== 'undefined') {
+      verEl.textContent = `v${TBO_CONFIG.app.version}`;
     }
   },
 

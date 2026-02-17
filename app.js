@@ -37,7 +37,8 @@ const TBO_APP = {
       'pipeline': typeof TBO_PIPELINE !== 'undefined' ? TBO_PIPELINE : null,
       'clientes': typeof TBO_CLIENTES !== 'undefined' ? TBO_CLIENTES : null,
       'contratos': typeof TBO_CONTRATOS !== 'undefined' ? TBO_CONTRATOS : null,
-      'inteligencia': typeof TBO_INTELIGENCIA !== 'undefined' ? TBO_INTELIGENCIA : null
+      'inteligencia': typeof TBO_INTELIGENCIA !== 'undefined' ? TBO_INTELIGENCIA : null,
+      'cultura': typeof TBO_CULTURA !== 'undefined' ? TBO_CULTURA : null
     };
 
     Object.entries(modules).forEach(([name, mod]) => {
@@ -356,6 +357,7 @@ const TBO_APP = {
     'configuracoes': 'Configuracoes',
     // BI
     'inteligencia': 'Inteligencia BI',
+    'cultura': 'Manual de Cultura',
     // Placeholders
     'timeline': 'Timeline',
     'alerts': 'Alertas',
@@ -414,7 +416,8 @@ const TBO_APP = {
     'configuracoes': 'settings',
     'templates': 'layout-template',
     'permissoes-config': 'shield-check',
-    'integracoes': 'plug-zap'
+    'integracoes': 'plug-zap',
+    'cultura': 'book-open-text'
   },
 
   _updateHeaderTitle(moduleName) {

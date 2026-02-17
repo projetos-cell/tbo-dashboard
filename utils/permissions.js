@@ -18,28 +18,28 @@ const TBO_PERMISSIONS = {
     founder: {
       label: 'Fundador',
       color: '#E85102',
-      modules: ['command-center','timeline','alerts','inteligencia','pipeline','comercial','clientes','contratos','conteudo','projetos','mercado','reunioes','financeiro','rh','configuracoes'],
+      modules: ['command-center','timeline','alerts','inteligencia','pipeline','comercial','clientes','contratos','conteudo','projetos','mercado','reunioes','financeiro','rh','cultura','configuracoes'],
       dashboardVariant: 'full',
       defaultModule: 'command-center'
     },
     project_owner: {
       label: 'Project Owner',
       color: '#8b5cf6',
-      modules: ['command-center','timeline','alerts','comercial','clientes','contratos','conteudo','projetos','mercado','reunioes','rh','configuracoes'],
+      modules: ['command-center','timeline','alerts','comercial','clientes','contratos','conteudo','projetos','mercado','reunioes','rh','cultura','configuracoes'],
       dashboardVariant: 'projects',
       defaultModule: 'command-center'
     },
     artist: {
       label: 'Artista',
       color: '#3a7bd5',
-      modules: ['command-center','timeline','alerts','projetos','mercado','reunioes','configuracoes'],
+      modules: ['command-center','timeline','alerts','projetos','mercado','reunioes','cultura','configuracoes'],
       dashboardVariant: 'tasks',
       defaultModule: 'command-center'
     },
     finance: {
       label: 'Financeiro',
       color: '#2ecc71',
-      modules: ['command-center','timeline','alerts','inteligencia','pipeline','financeiro','comercial','clientes','contratos','mercado','reunioes','configuracoes'],
+      modules: ['command-center','timeline','alerts','inteligencia','pipeline','financeiro','comercial','clientes','contratos','mercado','reunioes','cultura','configuracoes'],
       dashboardVariant: 'financial',
       defaultModule: 'command-center'
     }
@@ -100,7 +100,7 @@ const TBO_PERMISSIONS = {
       id: 'pessoas',
       label: 'PESSOAS',
       icon: 'users',
-      modules: ['rh', 'carga-trabalho', 'timesheets', 'capacidade']
+      modules: ['rh', 'cultura', 'carga-trabalho', 'timesheets', 'capacidade']
     },
     {
       id: 'financeiro-section',

@@ -10,7 +10,7 @@ const TBO_CONFIG = {
   // --------------------------------------------------------------------------
   app: {
     name: "TBO OS",
-    version: "1.3.0",
+    version: "1.4.0",
     defaultModel: "claude-sonnet-4-20250514",
     fallbackModel: "claude-haiku-4-20250514",
     maxTokens: 4096,

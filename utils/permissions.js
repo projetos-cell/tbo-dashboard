@@ -11,7 +11,8 @@ const TBO_PERMISSIONS = {
     'decisoes','biblioteca',
     'carga-trabalho','timesheets','capacidade',
     'pagar','receber','margens','conciliacao',
-    'templates','permissoes-config','integracoes'
+    'templates','permissoes-config','integracoes',
+    'trilha-aprendizagem'
   ],
 
   _roles: {
@@ -100,7 +101,7 @@ const TBO_PERMISSIONS = {
       id: 'pessoas',
       label: 'PESSOAS',
       icon: 'users',
-      modules: ['rh', 'cultura', 'carga-trabalho', 'timesheets', 'capacidade']
+      modules: ['rh', 'cultura', 'trilha-aprendizagem', 'carga-trabalho', 'timesheets', 'capacidade']
     },
     {
       id: 'financeiro-section',
@@ -136,6 +137,17 @@ const TBO_PERMISSIONS = {
     if (!mapping) return [];
     const roleDef = this._roles[mapping.role];
     if (!roleDef) return [];
+    // Founders have FULL unrestricted access to every module
+    if (mapping.role === 'founder') {
+      const allMods = new Set();
+      // All role modules from every role
+      Object.values(this._roles).forEach(r => r.modules.forEach(m => allMods.add(m)));
+      // All placeholder modules
+      this._placeholderModules.forEach(m => allMods.add(m));
+      // All section modules (catches any not in roles)
+      this._sections.forEach(s => s.modules.forEach(m => allMods.add(m)));
+      return [...allMods];
+    }
     // Role modules + all placeholders (visible to everyone)
     return [...roleDef.modules, ...this._placeholderModules];
   },

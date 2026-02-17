@@ -1338,7 +1338,7 @@ body.dark-mode .theme-icon-dark { display: flex; }
   border-radius: var(--radius-md);
   padding: 16px;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   transition: all var(--transition-base);
 }
 
@@ -7343,6 +7343,32 @@ body .tab-btn {
 }
 .bi-pulse-val { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
 .bi-pulse-label { font-size: 0.65rem; color: var(--text-muted); }
+.bi-pulse-card { position: relative; }
+.bi-score-card { position: relative; }
+.bi-kpi { position: relative; }
+
+/* KPI Info Tooltip Icon */
+.kpi-info-icon {
+  position: absolute; top: 6px; right: 6px; z-index: 2;
+  width: 18px; height: 18px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted); cursor: help; opacity: 0.4;
+  transition: opacity 0.2s, color 0.2s;
+}
+.kpi-info-icon:hover { opacity: 1; color: var(--accent-primary); }
+.kpi-info-icon::after {
+  content: attr(data-tooltip);
+  position: absolute; bottom: calc(100% + 8px); right: -8px;
+  width: 220px; padding: 8px 10px;
+  background: var(--bg-elevated); color: var(--text-secondary);
+  border: 1px solid var(--border-default); border-radius: 8px;
+  font-size: 0.68rem; line-height: 1.4; font-weight: 400;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  pointer-events: none; opacity: 0;
+  transition: opacity 0.15s ease;
+  white-space: normal; text-align: left;
+}
+.kpi-info-icon:hover::after { opacity: 1; }
 
 @media (max-width: 768px) {
   .bi-scorecard-grid { grid-template-columns: repeat(2, 1fr); }

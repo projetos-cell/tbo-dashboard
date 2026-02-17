@@ -340,7 +340,8 @@ const TBO_APP = {
     'decisoes','biblioteca',
     'carga-trabalho','timesheets','capacidade',
     'pagar','receber','margens','conciliacao',
-    'templates','permissoes-config','integracoes'
+    'templates','permissoes-config','integracoes',
+    'trilha-aprendizagem'
   ],
 
   // ── Module labels (all 26 = 9 real + 17 placeholders) ──────────────
@@ -380,7 +381,8 @@ const TBO_APP = {
     'conciliacao': 'Conciliacao',
     'templates': 'Templates',
     'permissoes-config': 'Permissoes',
-    'integracoes': 'Integracoes'
+    'integracoes': 'Integracoes',
+    'trilha-aprendizagem': 'Trilha de Aprendizagem'
   },
 
   // ── Module icons (Lucide icon names) ────────────────────────────────
@@ -417,7 +419,8 @@ const TBO_APP = {
     'templates': 'layout-template',
     'permissoes-config': 'shield-check',
     'integracoes': 'plug-zap',
-    'cultura': 'book-open-text'
+    'cultura': 'book-open-text',
+    'trilha-aprendizagem': 'graduation-cap'
   },
 
   _updateHeaderTitle(moduleName) {

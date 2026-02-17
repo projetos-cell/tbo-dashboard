@@ -20,22 +20,26 @@ const TBO_MERCADO = {
             <button class="btn btn-sm btn-secondary" id="mkBuscarNoticias">Buscar Noticias</button>
           </div>
           <div class="grid-4" style="margin-bottom:12px;">
-            <div class="kpi-card">
+            <div class="kpi-card" style="position:relative;">
+              <span class="kpi-info-icon" data-tooltip="Numero de novos empreendimentos lancados em Curitiba no periodo. Fonte: ADEMI/BRAIN."><i data-lucide="info" style="width:12px;height:12px;"></i></span>
               <div class="kpi-label">Lancamentos CWB</div>
               <div class="kpi-value">${ic.empreendimentos_lancados || '\u2014'}</div>
               <div class="kpi-change negative">${ic.variacao_empreendimentos || ''}</div>
             </div>
-            <div class="kpi-card">
+            <div class="kpi-card" style="position:relative;">
+              <span class="kpi-info-icon" data-tooltip="Total de unidades residenciais lancadas em Curitiba. Indica o volume do mercado local."><i data-lucide="info" style="width:12px;height:12px;"></i></span>
               <div class="kpi-label">Unidades CWB</div>
               <div class="kpi-value">${TBO_FORMATTER.number(ic.unidades_lancadas)}</div>
               <div class="kpi-change negative">${ic.variacao_unidades || ''}</div>
             </div>
-            <div class="kpi-card">
+            <div class="kpi-card" style="position:relative;">
+              <span class="kpi-info-icon" data-tooltip="Empreendimentos lancados na Regiao Metropolitana de Curitiba. Inclui cidades vizinhas."><i data-lucide="info" style="width:12px;height:12px;"></i></span>
               <div class="kpi-label">Lancamentos RM</div>
               <div class="kpi-value">${rm.empreendimentos_lancados || '\u2014'}</div>
               <div class="kpi-change negative">${rm.variacao_empreendimentos || ''}</div>
             </div>
-            <div class="kpi-card">
+            <div class="kpi-card" style="position:relative;">
+              <span class="kpi-info-icon" data-tooltip="Total de unidades lancadas na Regiao Metropolitana. Visao ampliada do mercado regional."><i data-lucide="info" style="width:12px;height:12px;"></i></span>
               <div class="kpi-label">Unidades RM</div>
               <div class="kpi-value">${TBO_FORMATTER.number(rm.unidades_lancadas)}</div>
               <div class="kpi-change negative">${rm.variacao_unidades || ''}</div>

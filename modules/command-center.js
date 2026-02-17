@@ -1176,31 +1176,37 @@ const TBO_COMMAND_CENTER = {
         </div>
         <div class="bi-pulse-grid">
           <div class="bi-pulse-card">
+            <span class="kpi-info-icon" data-tooltip="Taxa de clientes que pararam de contratar. Clientes ativos em 2024/2025 que nao tem projetos em andamento."><i data-lucide="info" style="width:12px;height:12px;"></i></span>
             <div class="bi-score-light bi-score-light--${light(churnRate, 15, 25)}"></div>
             <div class="bi-pulse-val">${churnRate}%</div>
             <div class="bi-pulse-label">Churn</div>
           </div>
           <div class="bi-pulse-card">
+            <span class="kpi-info-icon" data-tooltip="Lifetime Value: valor medio que um cliente gera ao longo do relacionamento. Calculado: ticket medio x taxa media de recompra."><i data-lucide="info" style="width:12px;height:12px;"></i></span>
             <div class="bi-score-light bi-score-light--green"></div>
             <div class="bi-pulse-val">R$ ${fmt(ltv)}</div>
             <div class="bi-pulse-label">LTV</div>
           </div>
           <div class="bi-pulse-card">
+            <span class="kpi-info-icon" data-tooltip="Percentual dos projetos concentrado nos 5 maiores clientes. Acima de 70% indica risco de dependencia."><i data-lucide="info" style="width:12px;height:12px;"></i></span>
             <div class="bi-score-light bi-score-light--${light(top5Conc, 50, 70)}"></div>
             <div class="bi-pulse-val">${top5Conc}%</div>
             <div class="bi-pulse-label">Concentracao</div>
           </div>
           <div class="bi-pulse-card">
+            <span class="kpi-info-icon" data-tooltip="Taxa de conversao de propostas em contratos fechados. Percentual de propostas que viraram projetos."><i data-lucide="info" style="width:12px;height:12px;"></i></span>
             <div class="bi-score-light bi-score-light--${winRate > 40 ? 'green' : winRate > 30 ? 'yellow' : 'red'}"></div>
             <div class="bi-pulse-val">${winRate}%</div>
             <div class="bi-pulse-label">Win Rate</div>
           </div>
           <div class="bi-pulse-card">
+            <span class="kpi-info-icon" data-tooltip="Cobertura do pipeline: valor total de deals abertos dividido pela meta mensal. Acima de 3x e saudavel."><i data-lucide="info" style="width:12px;height:12px;"></i></span>
             <div class="bi-score-light bi-score-light--${parseFloat(coverage) > 3 ? 'green' : parseFloat(coverage) > 1.5 ? 'yellow' : 'red'}"></div>
             <div class="bi-pulse-val">${coverage}x</div>
             <div class="bi-pulse-label">Pipeline</div>
           </div>
           <div class="bi-pulse-card">
+            <span class="kpi-info-icon" data-tooltip="Margem acumulada no ano: (receita - despesa) / receita. Indica a saude financeira geral do estudio."><i data-lucide="info" style="width:12px;height:12px;"></i></span>
             <div class="bi-score-light bi-score-light--${parseFloat(margemYTD) > 10 ? 'green' : parseFloat(margemYTD) > 0 ? 'yellow' : 'red'}"></div>
             <div class="bi-pulse-val">${margemYTD}%</div>
             <div class="bi-pulse-label">Margem YTD</div>

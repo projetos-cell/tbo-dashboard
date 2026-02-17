@@ -236,14 +236,14 @@ const TBO_INTELIGENCIA = {
   // ═══════════════════════════════════════════════════════════════════
   _renderScorecard(m) {
     const kpis = [
-      { label: 'Margem YTD', value: `${m.margemYTD}%`, status: parseFloat(m.margemYTD) > 10 ? 'green' : parseFloat(m.margemYTD) > 5 ? 'yellow' : 'red' },
-      { label: 'Churn Rate', value: `${m.churnRate}%`, status: m.churnRate < 15 ? 'green' : m.churnRate < 25 ? 'yellow' : 'red' },
-      { label: 'LTV:CAC', value: `${m.ltvCacRatio}x`, status: parseFloat(m.ltvCacRatio) > 3 ? 'green' : parseFloat(m.ltvCacRatio) > 2 ? 'yellow' : 'red' },
-      { label: 'Win Rate', value: `${m.winRate25}%`, status: m.winRate25 > 40 ? 'green' : m.winRate25 > 30 ? 'yellow' : 'red' },
-      { label: 'Cobertura Pipeline', value: `${m.pipelineCoverage}x`, status: parseFloat(m.pipelineCoverage) > 3 ? 'green' : parseFloat(m.pipelineCoverage) > 1.5 ? 'yellow' : 'red' },
-      { label: 'Concentracao Top5', value: `${m.top5Concentration}%`, status: m.top5Concentration < 50 ? 'green' : m.top5Concentration < 70 ? 'yellow' : 'red' },
-      { label: 'Inadimplencia', value: `${m.inadimplencia}%`, status: m.inadimplencia < 20 ? 'green' : m.inadimplencia < 40 ? 'yellow' : 'red' },
-      { label: 'Forecast Accuracy', value: `${m.forecastAccuracy}%`, status: m.forecastAccuracy > 80 ? 'green' : m.forecastAccuracy > 60 ? 'yellow' : 'red' }
+      { label: 'Margem YTD', value: `${m.margemYTD}%`, status: parseFloat(m.margemYTD) > 10 ? 'green' : parseFloat(m.margemYTD) > 5 ? 'yellow' : 'red', tooltip: 'Margem acumulada no ano: (receita - despesa) / receita. Verde >10%, Amarelo >5%.' },
+      { label: 'Churn Rate', value: `${m.churnRate}%`, status: m.churnRate < 15 ? 'green' : m.churnRate < 25 ? 'yellow' : 'red', tooltip: 'Percentual de clientes que pararam de contratar. Clientes de 2024/2025 sem projeto ativo.' },
+      { label: 'LTV:CAC', value: `${m.ltvCacRatio}x`, status: parseFloat(m.ltvCacRatio) > 3 ? 'green' : parseFloat(m.ltvCacRatio) > 2 ? 'yellow' : 'red', tooltip: 'Relacao entre o valor vitalicio do cliente (LTV) e o custo de aquisicao (CAC). Ideal: >3x.' },
+      { label: 'Win Rate', value: `${m.winRate25}%`, status: m.winRate25 > 40 ? 'green' : m.winRate25 > 30 ? 'yellow' : 'red', tooltip: 'Taxa de conversao de propostas em contratos. Percentual de propostas que viraram projetos.' },
+      { label: 'Cobertura Pipeline', value: `${m.pipelineCoverage}x`, status: parseFloat(m.pipelineCoverage) > 3 ? 'green' : parseFloat(m.pipelineCoverage) > 1.5 ? 'yellow' : 'red', tooltip: 'Valor dos deals abertos dividido pela meta mensal. Acima de 3x e saudavel.' },
+      { label: 'Concentracao Top5', value: `${m.top5Concentration}%`, status: m.top5Concentration < 50 ? 'green' : m.top5Concentration < 70 ? 'yellow' : 'red', tooltip: 'Percentual de projetos nos 5 maiores clientes. Abaixo de 50% indica boa diversificacao.' },
+      { label: 'Inadimplencia', value: `${m.inadimplencia}%`, status: m.inadimplencia < 20 ? 'green' : m.inadimplencia < 40 ? 'yellow' : 'red', tooltip: 'Percentual de contas a receber em aberto vs total. Menos de 20% e saudavel.' },
+      { label: 'Forecast Accuracy', value: `${m.forecastAccuracy}%`, status: m.forecastAccuracy > 80 ? 'green' : m.forecastAccuracy > 60 ? 'yellow' : 'red', tooltip: 'Precisao do orcamento: receita real vs orcada no ano. Acima de 80% e bom.' }
     ];
 
     return `
@@ -255,6 +255,7 @@ const TBO_INTELIGENCIA = {
         <div class="bi-scorecard-grid">
           ${kpis.map(k => `
             <div class="bi-score-card">
+              ${k.tooltip ? `<span class="kpi-info-icon" data-tooltip="${k.tooltip}"><i data-lucide="info" style="width:12px;height:12px;"></i></span>` : ''}
               <div class="bi-score-light bi-score-light--${k.status}"></div>
               <div class="bi-score-body">
                 <div class="bi-score-value">${k.value}</div>
@@ -278,21 +279,25 @@ const TBO_INTELIGENCIA = {
         </div>
         <div class="bi-kpi-row">
           <div class="bi-kpi">
+            <span class="kpi-info-icon" data-tooltip="Percentual de clientes anteriores que nao tem projetos ativos atualmente."><i data-lucide="info" style="width:11px;height:11px;"></i></span>
             <div class="bi-kpi-value ${m.churnRate > 20 ? 'bi-kpi--red' : m.churnRate > 10 ? 'bi-kpi--yellow' : 'bi-kpi--green'}">${m.churnRate}%</div>
             <div class="bi-kpi-label">Churn Rate</div>
             <div class="bi-kpi-sub">${m.churnedClients.length} de ${m.totalHistoricalClients} clientes</div>
           </div>
           <div class="bi-kpi">
+            <span class="kpi-info-icon" data-tooltip="Percentual de clientes que continuam contratando. Inverso do churn."><i data-lucide="info" style="width:11px;height:11px;"></i></span>
             <div class="bi-kpi-value bi-kpi--green">${m.retentionRate}%</div>
             <div class="bi-kpi-label">Retencao</div>
             <div class="bi-kpi-sub">${m.activeClients} clientes ativos</div>
           </div>
           <div class="bi-kpi">
+            <span class="kpi-info-icon" data-tooltip="Percentual de clientes que contrataram mais de uma vez ao longo dos anos."><i data-lucide="info" style="width:11px;height:11px;"></i></span>
             <div class="bi-kpi-value">${m.repeatRate}%</div>
             <div class="bi-kpi-label">Taxa Recompra</div>
             <div class="bi-kpi-sub">${m.repeatClients.length} clientes recorrentes</div>
           </div>
           <div class="bi-kpi">
+            <span class="kpi-info-icon" data-tooltip="Numero medio de projetos por cliente ativo simultaneamente."><i data-lucide="info" style="width:11px;height:11px;"></i></span>
             <div class="bi-kpi-value">${m.avgProjectsPerClient}</div>
             <div class="bi-kpi-label">Projetos/Cliente</div>
             <div class="bi-kpi-sub">media de projetos ativos</div>
@@ -337,21 +342,25 @@ const TBO_INTELIGENCIA = {
         </div>
         <div class="bi-kpi-row">
           <div class="bi-kpi">
+            <span class="kpi-info-icon" data-tooltip="Lifetime Value: valor total estimado que um cliente gera. Calculado: ticket medio × frequencia de recompra."><i data-lucide="info" style="width:11px;height:11px;"></i></span>
             <div class="bi-kpi-value">${this._fmtCurrency(m.ltvSimple)}</div>
             <div class="bi-kpi-label">LTV Estimado</div>
             <div class="bi-kpi-sub">ticket × freq. recompra</div>
           </div>
           <div class="bi-kpi">
+            <span class="kpi-info-icon" data-tooltip="Custo de Aquisicao de Cliente: quanto custa trazer um novo cliente. Soma de vendas + marketing dividido por novos contratos."><i data-lucide="info" style="width:11px;height:11px;"></i></span>
             <div class="bi-kpi-value">${this._fmtCurrency(m.cac)}</div>
             <div class="bi-kpi-label">CAC</div>
             <div class="bi-kpi-sub">vendas+mkt / novos clientes</div>
           </div>
           <div class="bi-kpi">
+            <span class="kpi-info-icon" data-tooltip="Relacao LTV/CAC: quantas vezes o valor do cliente supera o custo de aquisicao. Ideal acima de 3x."><i data-lucide="info" style="width:11px;height:11px;"></i></span>
             <div class="bi-kpi-value ${parseFloat(m.ltvCacRatio) > 3 ? 'bi-kpi--green' : parseFloat(m.ltvCacRatio) > 2 ? 'bi-kpi--yellow' : 'bi-kpi--red'}">${m.ltvCacRatio}x</div>
             <div class="bi-kpi-label">LTV:CAC</div>
             <div class="bi-kpi-sub">${parseFloat(m.ltvCacRatio) > 3 ? 'Saudavel' : parseFloat(m.ltvCacRatio) > 2 ? 'Atencao' : 'Critico'}</div>
           </div>
           <div class="bi-kpi">
+            <span class="kpi-info-icon" data-tooltip="Receita media gerada por cliente. Total vendido dividido pelo numero de contratos no periodo."><i data-lucide="info" style="width:11px;height:11px;"></i></span>
             <div class="bi-kpi-value">${this._fmtCurrency(m.revenuePerClient)}</div>
             <div class="bi-kpi-label">Revenue/Cliente</div>
             <div class="bi-kpi-sub">media por contrato</div>
@@ -413,21 +422,25 @@ const TBO_INTELIGENCIA = {
         </div>
         <div class="bi-kpi-row">
           <div class="bi-kpi">
+            <span class="kpi-info-icon" data-tooltip="Taxa de conversao de propostas em contratos fechados em 2025. Compara com 2024."><i data-lucide="info" style="width:11px;height:11px;"></i></span>
             <div class="bi-kpi-value">${m.winRate25}%</div>
             <div class="bi-kpi-label">Win Rate 2025</div>
             <div class="bi-kpi-sub" style="color:${m.winRateTrend >= 0 ? '#22c55e' : '#ef4444'};">${m.winRateTrend >= 0 ? '+' : ''}${m.winRateTrend.toFixed(1)}pp vs 2024</div>
           </div>
           <div class="bi-kpi">
+            <span class="kpi-info-icon" data-tooltip="Valor total dos deals em negociacao no CRM. Representa o potencial de receita em andamento."><i data-lucide="info" style="width:11px;height:11px;"></i></span>
             <div class="bi-kpi-value">${this._fmtCurrency(m.pipelineValue)}</div>
             <div class="bi-kpi-label">Pipeline Ativo</div>
             <div class="bi-kpi-sub">${m.pipelineCount} deals</div>
           </div>
           <div class="bi-kpi">
+            <span class="kpi-info-icon" data-tooltip="Pipeline dividido pela meta mensal. Acima de 3x garante margem de seguranca para bater a meta."><i data-lucide="info" style="width:11px;height:11px;"></i></span>
             <div class="bi-kpi-value ${parseFloat(m.pipelineCoverage) > 3 ? 'bi-kpi--green' : 'bi-kpi--yellow'}">${m.pipelineCoverage}x</div>
             <div class="bi-kpi-label">Cobertura</div>
             <div class="bi-kpi-sub">vs meta R$ ${this._fmtCurrency(m.metaMensal)}/mes</div>
           </div>
           <div class="bi-kpi">
+            <span class="kpi-info-icon" data-tooltip="Precisao entre receita realizada e orcada no ano. Acima de 80% indica bom planejamento."><i data-lucide="info" style="width:11px;height:11px;"></i></span>
             <div class="bi-kpi-value">${m.forecastAccuracy}%</div>
             <div class="bi-kpi-label">Forecast Accuracy</div>
             <div class="bi-kpi-sub">real vs orcado YTD</div>
@@ -505,21 +518,25 @@ const TBO_INTELIGENCIA = {
         </div>
         <div class="bi-kpi-row">
           <div class="bi-kpi">
+            <span class="kpi-info-icon" data-tooltip="Margem acumulada no ano: (receita - despesa) / receita. Verde >10%, Amarelo >0%."><i data-lucide="info" style="width:11px;height:11px;"></i></span>
             <div class="bi-kpi-value ${parseFloat(m.margemYTD) > 10 ? 'bi-kpi--green' : parseFloat(m.margemYTD) > 0 ? 'bi-kpi--yellow' : 'bi-kpi--red'}">${m.margemYTD}%</div>
             <div class="bi-kpi-label">Margem YTD</div>
             <div class="bi-kpi-sub">${this._fmtCurrency(m.resultadoYTD)} resultado</div>
           </div>
           <div class="bi-kpi">
+            <span class="kpi-info-icon" data-tooltip="Despesa media mensal da empresa. Quanto a TBO gasta por mes com operacoes."><i data-lucide="info" style="width:11px;height:11px;"></i></span>
             <div class="bi-kpi-value">${this._fmtCurrency(m.burnRate)}</div>
             <div class="bi-kpi-label">Burn Rate/Mes</div>
             <div class="bi-kpi-sub">despesa media mensal</div>
           </div>
           <div class="bi-kpi">
+            <span class="kpi-info-icon" data-tooltip="Receita minima mensal para cobrir todas as despesas. Ponto de equilibrio operacional."><i data-lucide="info" style="width:11px;height:11px;"></i></span>
             <div class="bi-kpi-value">${this._fmtCurrency(m.breakEven)}</div>
             <div class="bi-kpi-label">Break-even</div>
             <div class="bi-kpi-sub">receita minima/mes</div>
           </div>
           <div class="bi-kpi">
+            <span class="kpi-info-icon" data-tooltip="Percentual de contas a receber vencidas vs total. Menos de 20% e saudavel."><i data-lucide="info" style="width:11px;height:11px;"></i></span>
             <div class="bi-kpi-value ${m.inadimplencia < 20 ? 'bi-kpi--green' : m.inadimplencia < 40 ? 'bi-kpi--yellow' : 'bi-kpi--red'}">${m.inadimplencia}%</div>
             <div class="bi-kpi-label">Inadimplencia</div>
             <div class="bi-kpi-sub">${this._fmtCurrency(m.emAberto)} em aberto</div>

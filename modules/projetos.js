@@ -259,42 +259,110 @@ const TBO_PROJETOS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // LIST VIEW
+  // LIST VIEW (Asana-like table with sortable columns)
   // ═══════════════════════════════════════════════════════════════════════════
 
+  _listSort: 'name', // 'name', 'status', 'owner', 'health', 'value', 'tasks'
+  _listSortDir: 'asc',
+
   _renderList(projects) {
-    const filtered = this._applyProjectFilters(projects);
+    let filtered = this._applyProjectFilters(projects);
     if (filtered.length === 0) return '<div class="empty-state"><div class="empty-state-text">Nenhum projeto encontrado</div></div>';
     const sm = typeof TBO_ERP !== 'undefined' ? TBO_ERP.stateMachines.project : null;
 
-    return filtered.map(p => {
-      const health = typeof TBO_ERP !== 'undefined' ? TBO_ERP.calculateHealthScore(p) : { score: 100 };
-      const healthColor = typeof TBO_ERP !== 'undefined' ? TBO_ERP.getHealthColor(health.score) : '#22c55e';
-      const stateColor = sm ? sm.colors[p.status] || '#94a3b8' : '#94a3b8';
-      const stateLabel = sm ? sm.labels[p.status] || p.status : p.status;
-      const tasks = TBO_STORAGE.getErpEntitiesByParent('task', p.id);
-      const doneTasks = tasks.filter(t => t.status === 'concluida').length;
+    // Sort
+    filtered = [...filtered].sort((a, b) => {
+      let cmp = 0;
+      const s = this._listSort;
+      if (s === 'name') cmp = (a.name || '').localeCompare(b.name || '');
+      else if (s === 'status') cmp = (a.status || '').localeCompare(b.status || '');
+      else if (s === 'owner') cmp = (a.owner || '').localeCompare(b.owner || '');
+      else if (s === 'health') {
+        const ha = typeof TBO_ERP !== 'undefined' ? TBO_ERP.calculateHealthScore(a).score : 100;
+        const hb = typeof TBO_ERP !== 'undefined' ? TBO_ERP.calculateHealthScore(b).score : 100;
+        cmp = ha - hb;
+      }
+      else if (s === 'value') cmp = (a.value || 0) - (b.value || 0);
+      else if (s === 'tasks') {
+        const ta = TBO_STORAGE.getErpEntitiesByParent('task', a.id).length;
+        const tb = TBO_STORAGE.getErpEntitiesByParent('task', b.id).length;
+        cmp = ta - tb;
+      }
+      return this._listSortDir === 'desc' ? -cmp : cmp;
+    });
 
-      return `<div class="card" style="margin-bottom:8px;padding:14px;cursor:pointer;" onclick="TBO_PROJETOS._showProjectModal('${p.id}')">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div style="flex:1;min-width:0;">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <div style="width:10px;height:10px;border-radius:50%;background:${healthColor};flex-shrink:0;" title="Saude: ${health.score}"></div>
-              <span style="font-weight:600;font-size:0.9rem;">${p.name}</span>
-              <span class="tag" style="font-size:0.68rem;background:${stateColor}20;color:${stateColor};border:1px solid ${stateColor}40;">${stateLabel}</span>
-            </div>
-            <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">
-              ${p.client || ''} ${p.owner ? '| ' + p.owner : '| <span style="color:#ef4444;">Sem responsavel</span>'}
-              ${tasks.length > 0 ? ` | ${doneTasks}/${tasks.length} tarefas` : ''}
-            </div>
-            ${p.next_action ? `<div style="font-size:0.72rem;color:var(--accent-gold);margin-top:4px;">\u25B6 ${p.next_action}${p.next_action_date ? ' (' + p.next_action_date + ')' : ''}</div>` : ''}
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            ${p.value ? `<span style="font-size:0.82rem;font-weight:600;color:var(--accent-gold);">${typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.currency(p.value) : 'R$' + p.value}</span>` : ''}
-          </div>
+    const sortIcon = (col) => {
+      if (this._listSort !== col) return '<span style="opacity:0.3;">&#8645;</span>';
+      return this._listSortDir === 'asc' ? '&#9650;' : '&#9660;';
+    };
+
+    return `
+      <!-- Sort controls -->
+      <div class="asana-table">
+        <div class="asana-table-header">
+          <div class="asana-col asana-col--name" data-sort-col="name" onclick="TBO_PROJETOS._toggleListSort('name')">Nome ${sortIcon('name')}</div>
+          <div class="asana-col asana-col--status" data-sort-col="status" onclick="TBO_PROJETOS._toggleListSort('status')">Status ${sortIcon('status')}</div>
+          <div class="asana-col asana-col--owner" data-sort-col="owner" onclick="TBO_PROJETOS._toggleListSort('owner')">Responsavel ${sortIcon('owner')}</div>
+          <div class="asana-col asana-col--health" data-sort-col="health" onclick="TBO_PROJETOS._toggleListSort('health')">Saude ${sortIcon('health')}</div>
+          <div class="asana-col asana-col--tasks" data-sort-col="tasks" onclick="TBO_PROJETOS._toggleListSort('tasks')">Tarefas ${sortIcon('tasks')}</div>
+          <div class="asana-col asana-col--value" data-sort-col="value" onclick="TBO_PROJETOS._toggleListSort('value')">Valor ${sortIcon('value')}</div>
         </div>
-      </div>`;
-    }).join('');
+        ${filtered.map(p => {
+          const health = typeof TBO_ERP !== 'undefined' ? TBO_ERP.calculateHealthScore(p) : { score: 100 };
+          const healthColor = typeof TBO_ERP !== 'undefined' ? TBO_ERP.getHealthColor(health.score) : '#22c55e';
+          const stateColor = sm ? sm.colors[p.status] || '#94a3b8' : '#94a3b8';
+          const stateLabel = sm ? sm.labels[p.status] || p.status : p.status;
+          const tasks = TBO_STORAGE.getErpEntitiesByParent('task', p.id);
+          const doneTasks = tasks.filter(t => t.status === 'concluida').length;
+          const pctDone = tasks.length > 0 ? Math.round((doneTasks / tasks.length) * 100) : 0;
+          const ownerInitials = p.owner ? (typeof TBO_PERMISSIONS !== 'undefined' ? TBO_PERMISSIONS.getInitials(p.owner) : p.owner.charAt(0)) : '?';
+
+          return `<div class="asana-table-row" onclick="TBO_PROJETOS._showProjectModal('${p.id}')">
+            <div class="asana-col asana-col--name">
+              <div style="width:8px;height:8px;border-radius:50%;background:${stateColor};flex-shrink:0;"></div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:600;font-size:0.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
+                <div style="font-size:0.68rem;color:var(--text-muted);">${p.client || ''}</div>
+              </div>
+            </div>
+            <div class="asana-col asana-col--status">
+              <span class="tag" style="font-size:0.62rem;background:${stateColor}20;color:${stateColor};border:1px solid ${stateColor}40;">${stateLabel}</span>
+            </div>
+            <div class="asana-col asana-col--owner">
+              <div class="deal-owner-badge" style="width:26px;height:26px;font-size:0.6rem;background:${p.owner ? 'var(--accent)' : '#6b7280'};" title="${p.owner || 'Sem responsavel'}">${ownerInitials}</div>
+              <span style="font-size:0.75rem;">${p.owner || '-'}</span>
+            </div>
+            <div class="asana-col asana-col--health">
+              <div style="width:36px;height:4px;background:var(--bg-elevated);border-radius:2px;overflow:hidden;">
+                <div style="height:100%;width:${health.score}%;background:${healthColor};border-radius:2px;"></div>
+              </div>
+              <span style="font-size:0.7rem;color:${healthColor};font-weight:600;">${health.score}</span>
+            </div>
+            <div class="asana-col asana-col--tasks">
+              ${tasks.length > 0 ? `
+                <div style="width:36px;height:4px;background:var(--bg-elevated);border-radius:2px;overflow:hidden;">
+                  <div style="height:100%;width:${pctDone}%;background:#22c55e;border-radius:2px;"></div>
+                </div>
+                <span style="font-size:0.7rem;color:var(--text-muted);">${doneTasks}/${tasks.length}</span>
+              ` : '<span style="font-size:0.7rem;color:var(--text-muted);">-</span>'}
+            </div>
+            <div class="asana-col asana-col--value">
+              <span style="font-size:0.78rem;font-weight:600;color:var(--accent-gold);">${p.value ? (typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.currency(p.value) : 'R$' + p.value) : '-'}</span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    `;
+  },
+
+  _toggleListSort(col) {
+    if (this._listSort === col) {
+      this._listSortDir = this._listSortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      this._listSort = col;
+      this._listSortDir = 'asc';
+    }
+    this._refreshBoard();
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -676,37 +744,96 @@ const TBO_PROJETOS = {
     let cols = [];
     let cellW = 28;
     let headerHtml = '';
+    const monthNames = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const dayNames = ['Dom','Seg','Ter','Qua','Qui','Sex','Sab'];
+
+    // Helper: build dual header (month row + day/week row) Asana-style
+    const buildDualHeader = (columns, cw, showDayName) => {
+      // Group columns by month for the top row
+      const monthGroups = [];
+      let curMonth = -1, curYear = -1, curStart = 0, curCount = 0;
+      columns.forEach((c, i) => {
+        const d = new Date(c.date);
+        const m = d.getMonth();
+        const y = d.getFullYear();
+        if (m !== curMonth || y !== curYear) {
+          if (curCount > 0) monthGroups.push({ month: curMonth, year: curYear, count: curCount, start: curStart });
+          curMonth = m; curYear = y; curStart = i; curCount = 1;
+        } else {
+          curCount++;
+        }
+      });
+      if (curCount > 0) monthGroups.push({ month: curMonth, year: curYear, count: curCount, start: curStart });
+
+      const topRow = `<div class="gantt-header-month">${monthGroups.map(g =>
+        `<div style="width:${g.count * cw}px;">${monthNames[g.month]} ${g.year}</div>`
+      ).join('')}</div>`;
+
+      const bottomRow = `<div class="gantt-header-weeks">${columns.map(c => {
+        const d = new Date(c.date);
+        const dayNum = d.getDate();
+        const label = showDayName ? `<div style="font-size:0.55rem;opacity:0.7;">${dayNames[d.getDay()].charAt(0)}</div>${dayNum}` : `${dayNum}`;
+        return `<div class="gantt-header-cell${c.isWeekend ? ' gantt-header-cell--weekend' : ''}${c.isToday ? ' gantt-header-cell--today' : ''}" style="width:${cw}px;">${label}</div>`;
+      }).join('')}</div>`;
+
+      return topRow + bottomRow;
+    };
 
     if (this._ganttScale === 'day') {
-      // 35 days, 28px each
+      // 35 days, 32px each with day names
       base.setDate(1);
-      cellW = 32;
+      cellW = 34;
       for (let i = 0; i < 35; i++) {
         const d = new Date(base);
         d.setDate(base.getDate() + i);
         const ds = d.toISOString().split('T')[0];
         cols.push({ date: ds, isWeekend: d.getDay() === 0 || d.getDay() === 6, isToday: ds === today });
       }
-      headerHtml = cols.map(c => `<div class="gantt-header-cell${c.isWeekend ? ' gantt-header-cell--weekend' : ''}${c.isToday ? ' gantt-header-cell--today' : ''}" style="width:${cellW}px;">${new Date(c.date).getDate()}</div>`).join('');
+      headerHtml = buildDualHeader(cols, cellW, true);
     } else if (this._ganttScale === 'week') {
-      // 12 weeks, wider cells
-      cellW = 80;
+      // 12 weeks — each cell = 1 day, grouped by weeks for visual clarity
+      cellW = 16;
       const weekStart = new Date(base);
       weekStart.setDate(1);
       const dow = weekStart.getDay();
       weekStart.setDate(weekStart.getDate() - (dow === 0 ? 6 : dow - 1));
-      for (let i = 0; i < 12; i++) {
-        const ws = new Date(weekStart);
-        ws.setDate(weekStart.getDate() + i * 7);
-        const we = new Date(ws);
-        we.setDate(ws.getDate() + 6);
-        const wsStr = ws.toISOString().split('T')[0];
-        const weStr = we.toISOString().split('T')[0];
-        cols.push({ date: wsStr, endDate: weStr, isWeekend: false, isToday: today >= wsStr && today <= weStr, label: `${ws.getDate()}/${ws.getMonth()+1}` });
+      for (let i = 0; i < 84; i++) {
+        const d = new Date(weekStart);
+        d.setDate(weekStart.getDate() + i);
+        const ds = d.toISOString().split('T')[0];
+        cols.push({ date: ds, isWeekend: d.getDay() === 0 || d.getDay() === 6, isToday: ds === today });
       }
-      headerHtml = cols.map(c => `<div class="gantt-header-cell${c.isToday ? ' gantt-header-cell--today' : ''}" style="width:${cellW}px;font-size:0.65rem;">${c.label}</div>`).join('');
+      // Build week header: top = months, bottom = week numbers
+      const monthGroups2 = [];
+      let cm2 = -1, cy2 = -1, cc2 = 0;
+      cols.forEach(c => {
+        const d = new Date(c.date);
+        if (d.getMonth() !== cm2 || d.getFullYear() !== cy2) {
+          if (cc2 > 0) monthGroups2.push({ month: cm2, year: cy2, count: cc2 });
+          cm2 = d.getMonth(); cy2 = d.getFullYear(); cc2 = 1;
+        } else { cc2++; }
+      });
+      if (cc2 > 0) monthGroups2.push({ month: cm2, year: cy2, count: cc2 });
+
+      const topRow2 = `<div class="gantt-header-month">${monthGroups2.map(g =>
+        `<div style="width:${g.count * cellW}px;">${monthNames[g.month]} ${g.year}</div>`
+      ).join('')}</div>`;
+
+      // Group by weeks for bottom row
+      const weekGroups = [];
+      for (let i = 0; i < cols.length; i += 7) {
+        const chunk = cols.slice(i, Math.min(i + 7, cols.length));
+        const ws = new Date(chunk[0].date);
+        const hasToday = chunk.some(c => c.isToday);
+        weekGroups.push({ label: `${ws.getDate()}/${ws.getMonth()+1}`, count: chunk.length, isToday: hasToday });
+      }
+      const bottomRow2 = `<div class="gantt-header-weeks">${weekGroups.map(w =>
+        `<div class="${w.isToday ? 'gantt-header-cell--today' : ''}" style="width:${w.count * cellW}px;text-align:center;border-right:1px solid var(--border-subtle);padding:3px 0;">${w.label}</div>`
+      ).join('')}</div>`;
+
+      headerHtml = topRow2 + bottomRow2;
     } else if (this._ganttScale === 'month') {
-      // 35 days (current default)
+      // 35 days (current default) with dual header
       base.setDate(1);
       cellW = 28;
       for (let i = 0; i < 35; i++) {
@@ -715,19 +842,51 @@ const TBO_PROJETOS = {
         const ds = d.toISOString().split('T')[0];
         cols.push({ date: ds, isWeekend: d.getDay() === 0 || d.getDay() === 6, isToday: ds === today });
       }
-      headerHtml = cols.map(c => `<div class="gantt-header-cell${c.isWeekend ? ' gantt-header-cell--weekend' : ''}${c.isToday ? ' gantt-header-cell--today' : ''}" style="width:${cellW}px;">${new Date(c.date).getDate()}</div>`).join('');
+      headerHtml = buildDualHeader(cols, cellW, false);
     } else if (this._ganttScale === 'quarter') {
-      // 6 months, wide cells
-      cellW = 100;
-      for (let i = 0; i < 6; i++) {
-        const ms = new Date(base.getFullYear(), base.getMonth() + i, 1);
-        const me = new Date(base.getFullYear(), base.getMonth() + i + 1, 0);
-        const msStr = ms.toISOString().split('T')[0];
-        const meStr = me.toISOString().split('T')[0];
-        const lbl = ms.toLocaleDateString('pt-BR', { month: 'short' });
-        cols.push({ date: msStr, endDate: meStr, isWeekend: false, isToday: today >= msStr && today <= meStr, label: lbl });
+      // Quarter: each col = 1 week, spanning 6 months
+      cellW = 24;
+      const qStart = new Date(base.getFullYear(), base.getMonth(), 1);
+      const qEnd = new Date(base.getFullYear(), base.getMonth() + 6, 0);
+      // Start from Monday of the first week
+      const firstDay = new Date(qStart);
+      const fdow = firstDay.getDay();
+      firstDay.setDate(firstDay.getDate() - (fdow === 0 ? 6 : fdow - 1));
+      const weeks = [];
+      let cursor = new Date(firstDay);
+      while (cursor <= qEnd) {
+        const ws = new Date(cursor);
+        const we = new Date(cursor);
+        we.setDate(we.getDate() + 6);
+        const wsStr = ws.toISOString().split('T')[0];
+        const weStr = we.toISOString().split('T')[0];
+        weeks.push({ date: wsStr, endDate: weStr, isWeekend: false, isToday: today >= wsStr && today <= weStr });
+        cursor.setDate(cursor.getDate() + 7);
       }
-      headerHtml = cols.map(c => `<div class="gantt-header-cell${c.isToday ? ' gantt-header-cell--today' : ''}" style="width:${cellW}px;font-size:0.72rem;text-transform:capitalize;">${c.label}</div>`).join('');
+      cols = weeks;
+
+      // Group by month for top header
+      const mGroups = [];
+      let lm = -1, ly = -1, lc = 0;
+      cols.forEach(c => {
+        const d = new Date(c.date);
+        const m = d.getMonth();
+        const y = d.getFullYear();
+        if (m !== lm || y !== ly) {
+          if (lc > 0) mGroups.push({ month: lm, year: ly, count: lc });
+          lm = m; ly = y; lc = 1;
+        } else { lc++; }
+      });
+      if (lc > 0) mGroups.push({ month: lm, year: ly, count: lc });
+
+      const topQ = `<div class="gantt-header-month">${mGroups.map(g =>
+        `<div style="width:${g.count * cellW}px;text-transform:capitalize;">${monthNames[g.month]}</div>`
+      ).join('')}</div>`;
+      const bottomQ = `<div class="gantt-header-weeks">${cols.map(c => {
+        const d = new Date(c.date);
+        return `<div class="${c.isToday ? 'gantt-header-cell--today' : ''}" style="width:${cellW}px;text-align:center;border-right:1px solid var(--border-subtle);padding:3px 0;">${d.getDate()}</div>`;
+      }).join('')}</div>`;
+      headerHtml = topQ + bottomQ;
     }
 
     const viewStart = cols[0]?.date || today;
@@ -897,7 +1056,7 @@ const TBO_PROJETOS = {
         <!-- Timeline -->
         <div class="gantt-timeline" id="ganttTimeline">
           <!-- Day headers -->
-          <div class="gantt-header" style="display:flex;">${headerHtml}</div>
+          <div class="gantt-header">${headerHtml}</div>
 
           <!-- Row bars -->
           <div class="gantt-body" id="ganttBody" style="position:relative;width:${totalW}px;">
@@ -914,16 +1073,23 @@ const TBO_PROJETOS = {
                   ${cols.map(c => `<div style="width:${cellW}px;height:100%;border-right:1px solid var(--border-subtle);flex-shrink:0;${c.isWeekend ? 'background:var(--bg-elevated);' : ''}"></div>`).join('')}
                 </div>
                 <!-- Draggable Bar -->
-                ${barLeft < totalW && barW > 0 ? `
-                  <div class="${barClass} gantt-bar-drag" id="${barId}" data-entity-type="${r.type}" data-entity-id="${r.id}" style="position:absolute;top:8px;height:20px;left:${barLeft}px;width:${barW}px;background:${r.color};border-radius:4px;cursor:grab;z-index:3;opacity:${r.type === 'task' ? '0.85' : '1'};" title="${r.name}&#10;${r.startDate} - ${r.endDate}">
-                    <!-- Left drag handle -->
-                    <div class="gantt-drag-handle gantt-drag-handle--left" data-handle="left" style="position:absolute;left:0;top:0;width:6px;height:100%;cursor:ew-resize;border-radius:4px 0 0 4px;"></div>
-                    <!-- Bar label -->
-                    <div class="gantt-bar-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 8px;line-height:20px;font-size:0.62rem;color:#fff;pointer-events:none;">${r.name}</div>
-                    <!-- Right drag handle -->
-                    <div class="gantt-drag-handle gantt-drag-handle--right" data-handle="right" style="position:absolute;right:0;top:0;width:6px;height:100%;cursor:ew-resize;border-radius:0 4px 4px 0;"></div>
-                  </div>
-                ` : ''}
+                ${barLeft < totalW && barW > 0 ? (() => {
+                  const ownerName = r.owner || '';
+                  const initials = ownerName && typeof TBO_PERMISSIONS !== 'undefined' ? TBO_PERMISSIONS.getInitials(ownerName) : ownerName.charAt(0).toUpperCase();
+                  const showAvatar = r.type === 'task' && ownerName && barW > 40;
+                  const pctDone = r.type === 'project' && r.progress !== undefined ? r.progress : 0;
+                  const progressW = r.type === 'project' ? Math.round(pctDone * barW / 100) : 0;
+                  return `
+                  <div class="${barClass} gantt-bar-drag" id="${barId}" data-entity-type="${r.type}" data-entity-id="${r.id}" style="position:absolute;top:6px;height:24px;left:${barLeft}px;width:${barW}px;background:${r.color};border-radius:6px;cursor:grab;z-index:3;opacity:${r.type === 'task' ? '0.9' : '1'};box-shadow:0 1px 4px rgba(0,0,0,0.2);" title="${r.name}&#10;${ownerName ? ownerName + '  |  ' : ''}${r.startDate} → ${r.endDate}">
+                    ${r.type === 'project' && pctDone > 0 ? `<div class="gantt-bar-progress" style="position:absolute;left:0;top:0;height:100%;width:${progressW}px;background:rgba(255,255,255,0.18);border-radius:6px 0 0 6px;pointer-events:none;"></div>` : ''}
+                    <div class="gantt-drag-handle gantt-drag-handle--left" data-handle="left" style="position:absolute;left:0;top:0;width:6px;height:100%;cursor:ew-resize;border-radius:6px 0 0 6px;"></div>
+                    <div class="gantt-bar-content" style="display:flex;align-items:center;gap:4px;padding:0 8px;height:100%;overflow:hidden;pointer-events:none;">
+                      ${showAvatar ? `<span class="gantt-bar-avatar" style="width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;font-size:0.5rem;font-weight:700;color:#fff;flex-shrink:0;border:1px solid rgba(255,255,255,0.4);">${initials}</span>` : ''}
+                      <span class="gantt-bar-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.62rem;color:#fff;line-height:24px;">${r.name}</span>
+                    </div>
+                    <div class="gantt-drag-handle gantt-drag-handle--right" data-handle="right" style="position:absolute;right:0;top:0;width:6px;height:100%;cursor:ew-resize;border-radius:0 6px 6px 0;"></div>
+                  </div>`;
+                })() : ''}
               </div>`;
             }).join('')}
 
@@ -1052,13 +1218,23 @@ const TBO_PROJETOS = {
         </select>
       </div>
 
+      <!-- Table header (Asana-style) -->
+      <div class="my-tasks-table-header">
+        <div class="my-tasks-hcell"></div>
+        <div class="my-tasks-hcell">Nome da tarefa</div>
+        <div class="my-tasks-hcell">Data</div>
+        <div class="my-tasks-hcell">Status</div>
+        <div class="my-tasks-hcell">Prioridade</div>
+        <div class="my-tasks-hcell"></div>
+      </div>
+
       <!-- Task sections -->
       ${sections.filter(s => s.tasks.length > 0).map(section => `
-        <div class="my-tasks-section" style="margin-bottom:16px;">
-          <div class="my-tasks-section-header" style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:2px solid ${section.color};margin-bottom:6px;">
-            <span style="color:${section.color};font-size:0.85rem;">${section.icon}</span>
-            <span style="font-weight:700;font-size:0.85rem;color:var(--text-primary);">${section.label}</span>
-            <span class="tag" style="font-size:0.65rem;background:${section.color}20;color:${section.color};">${section.tasks.length}</span>
+        <div class="my-tasks-section">
+          <div class="my-tasks-section-divider" style="border-left:3px solid ${section.color};">
+            <span class="my-tasks-section-icon" style="color:${section.color};">${section.icon}</span>
+            <span class="my-tasks-section-label">${section.label}</span>
+            <span class="my-tasks-section-count" style="background:${section.color}15;color:${section.color};">${section.tasks.length}</span>
           </div>
           <div class="my-tasks-list">
             ${section.tasks.map(t => this._renderMyTaskRow(t, today)).join('')}
@@ -1074,25 +1250,46 @@ const TBO_PROJETOS = {
     const stateColor = sm ? sm.colors[t.status] || '#94a3b8' : '#94a3b8';
     const stateLabel = sm ? sm.labels[t.status] || t.status : t.status;
     const isOverdue = t.due_date && t.due_date < today && t.status !== 'concluida';
-    const priorityColors = { urgente: '#ef4444', alta: '#f59e0b', media: '#3b82f6', baixa: '#6b7280' };
-    const pColor = priorityColors[t.priority] || '#6b7280';
+    const isDone = t.status === 'concluida';
+    const priorityClass = t.priority ? `priority-badge priority-badge--${t.priority}` : 'priority-badge priority-badge--media';
+    const priorityLabel = { urgente: 'Urgente', alta: 'Alta', media: 'Media', baixa: 'Baixa' };
+    const ownerInitials = t.owner && typeof TBO_PERMISSIONS !== 'undefined' ? TBO_PERMISSIONS.getInitials(t.owner) : (t.owner || '').charAt(0).toUpperCase();
 
-    return `<div class="my-task-row" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;margin-bottom:4px;background:var(--bg-card);border:1px solid var(--border-subtle);transition:background 0.15s;cursor:pointer;" onmouseenter="this.style.background='var(--bg-elevated)'" onmouseleave="this.style.background='var(--bg-card)'" onclick="TBO_PROJETOS._showProjectModal('${t.project_id}')">
-      <input type="checkbox" ${t.status === 'concluida' ? 'checked' : ''} onchange="event.stopPropagation();TBO_PROJETOS._toggleTask('${t.id}', this.checked)" style="cursor:pointer;flex-shrink:0;">
-      <div style="flex:1;min-width:0;">
-        <div style="display:flex;align-items:center;gap:6px;">
-          <span style="font-weight:600;font-size:0.82rem;${t.status === 'concluida' ? 'text-decoration:line-through;opacity:0.6;' : ''}">${t.title || t.name}</span>
-        </div>
-        <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">
-          ${t.project_name || ''}${t.phase ? ' / ' + t.phase : ''}
-        </div>
+    // Format due date nicely
+    let dueDateHtml = '<span style="color:var(--text-muted);font-size:0.72rem;">—</span>';
+    if (t.due_date) {
+      const d = new Date(t.due_date + 'T00:00:00');
+      const dayNum = d.getDate();
+      const monthNames = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+      const monthStr = monthNames[d.getMonth()];
+      const dateStr = `${dayNum} ${monthStr}`;
+      if (isOverdue) {
+        dueDateHtml = `<span class="my-tasks-date my-tasks-date--overdue">${dateStr}</span>`;
+      } else if (t.due_date === today) {
+        dueDateHtml = `<span class="my-tasks-date my-tasks-date--today">Hoje</span>`;
+      } else {
+        dueDateHtml = `<span class="my-tasks-date">${dateStr}</span>`;
+      }
+    }
+
+    return `<div class="my-tasks-row${isDone ? ' my-tasks-row--done' : ''}" onclick="TBO_PROJETOS._showProjectModal('${t.project_id}')">
+      <div class="my-tasks-cell my-tasks-cell--check">
+        <input type="checkbox" class="my-tasks-checkbox" ${isDone ? 'checked' : ''} onchange="event.stopPropagation();TBO_PROJETOS._toggleTask('${t.id}', this.checked)">
       </div>
-      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-        ${t.due_date ? `<span style="font-size:0.7rem;padding:2px 6px;border-radius:4px;${isOverdue ? 'background:#ef444420;color:#ef4444;font-weight:600;' : 'color:var(--text-muted);'}">${t.due_date.slice(5)}</span>` : ''}
-        <span style="width:6px;height:6px;border-radius:50%;background:${pColor};flex-shrink:0;" title="${t.priority || 'media'}"></span>
-        <span class="tag" style="font-size:0.6rem;background:${stateColor}20;color:${stateColor};">${stateLabel}</span>
+      <div class="my-tasks-cell my-tasks-cell--name">
+        <span class="my-tasks-name${isDone ? ' my-tasks-name--done' : ''}">${t.title || t.name}</span>
+        ${t.project_name ? `<span class="my-tasks-project-tag">${t.project_name}</span>` : ''}
       </div>
-      ${t.project_id && t.status !== 'concluida' ? `<button class="btn btn-secondary" style="font-size:0.62rem;padding:2px 6px;flex-shrink:0;" onclick="event.stopPropagation();TBO_PROJETOS._startTimerForTask('${t.project_id}','${t.id}','${(t.title || t.name || '').replace(/'/g, "\\'")}');" title="Iniciar timer">&#9654;</button>` : ''}
+      <div class="my-tasks-cell my-tasks-cell--date">${dueDateHtml}</div>
+      <div class="my-tasks-cell my-tasks-cell--status">
+        <span class="tag" style="font-size:0.6rem;background:${stateColor}20;color:${stateColor};border:1px solid ${stateColor}30;">${stateLabel}</span>
+      </div>
+      <div class="my-tasks-cell my-tasks-cell--priority">
+        <span class="${priorityClass}">${priorityLabel[t.priority] || 'Media'}</span>
+      </div>
+      <div class="my-tasks-cell my-tasks-cell--actions">
+        ${t.project_id && !isDone ? `<button class="my-tasks-timer-btn" onclick="event.stopPropagation();TBO_PROJETOS._startTimerForTask('${t.project_id}','${t.id}','${(t.title || t.name || '').replace(/'/g, "\\'")}');" title="Iniciar timer">&#9654;</button>` : ''}
+      </div>
     </div>`;
   },
 
@@ -2241,28 +2438,53 @@ const TBO_PROJETOS = {
       bar.style.opacity = '0.6';
       bar.style.zIndex = '20';
 
+      // Snap-to-day helper: round pixel to nearest cell boundary
+      function snapPx(px) {
+        return Math.round(px / sc.cellW) * sc.cellW;
+      }
+
+      // Tooltip element for live date preview
+      let tooltip = document.createElement('div');
+      tooltip.className = 'gantt-drag-tooltip';
+      tooltip.style.cssText = 'position:fixed;padding:4px 8px;background:#1a1a1a;color:#fff;font-size:0.65rem;border-radius:4px;pointer-events:none;z-index:100;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.4);display:none;';
+      document.body.appendChild(tooltip);
+
       function onMouseMove(ev) {
         const dx = ev.clientX - startX;
         if (mode === 'move') {
-          bar.style.left = (origLeft + dx) + 'px';
+          const snappedLeft = snapPx(origLeft + dx);
+          bar.style.left = snappedLeft + 'px';
         } else if (mode === 'left') {
-          const newLeft = origLeft + dx;
-          const newWidth = origWidth - dx;
-          if (newWidth > 10) { bar.style.left = newLeft + 'px'; bar.style.width = newWidth + 'px'; }
+          const rawLeft = origLeft + dx;
+          const snappedLeft = snapPx(rawLeft);
+          const newWidth = origWidth - (snappedLeft - origLeft);
+          if (newWidth > sc.cellW) { bar.style.left = snappedLeft + 'px'; bar.style.width = newWidth + 'px'; }
         } else if (mode === 'right') {
-          const newWidth = origWidth + dx;
-          if (newWidth > 10) bar.style.width = newWidth + 'px';
+          const rawWidth = origWidth + dx;
+          const snappedWidth = Math.max(sc.cellW, snapPx(rawWidth));
+          bar.style.width = snappedWidth + 'px';
         }
+
+        // Update live tooltip
+        const curLeft = parseFloat(bar.style.left);
+        const curWidth = parseFloat(bar.style.width);
+        const sd = self._ganttPixelToDate(curLeft, sc.cols, sc.cellW);
+        const ed = self._ganttPixelToDate(curLeft + curWidth, sc.cols, sc.cellW);
+        tooltip.textContent = `${sd} → ${ed}`;
+        tooltip.style.left = (ev.clientX + 12) + 'px';
+        tooltip.style.top = (ev.clientY - 28) + 'px';
+        tooltip.style.display = 'block';
       }
 
       function onMouseUp(ev) {
         document.removeEventListener('mousemove', onMouseMove);
         document.removeEventListener('mouseup', onMouseUp);
         bar.style.cursor = 'grab';
-        bar.style.opacity = entityType === 'task' ? '0.85' : '1';
+        bar.style.opacity = entityType === 'task' ? '0.9' : '1';
         bar.style.zIndex = '3';
+        if (tooltip.parentNode) tooltip.parentNode.removeChild(tooltip);
 
-        // Calculate new dates from pixel positions
+        // Calculate new dates from snapped pixel positions
         const newLeft = parseFloat(bar.style.left);
         const newWidth = parseFloat(bar.style.width);
         const newStartDate = self._ganttPixelToDate(newLeft, sc.cols, sc.cellW);
@@ -2279,7 +2501,7 @@ const TBO_PROJETOS = {
           TBO_ERP.addAuditLog({
             entityType, entityId,
             action: 'updated', userId: TBO_ERP._getCurrentUserId(),
-            reason: `Datas alteradas via Gantt (${newStartDate} - ${newEndDate})`,
+            reason: `Datas alteradas via Gantt (${newStartDate} → ${newEndDate})`,
             entityName: bar.title?.split('\n')[0] || ''
           });
         }

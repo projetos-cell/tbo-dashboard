@@ -3856,6 +3856,320 @@ select.form-input {
   min-height: 100px;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   Asana-like Table (List View)
+   ═══════════════════════════════════════════════════════════ */
+.asana-table {
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.asana-table-header {
+  display: grid;
+  grid-template-columns: 1fr 100px 130px 80px 80px 100px;
+  gap: 0;
+  padding: 8px 12px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.asana-table-header .asana-col {
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 0;
+  transition: color 0.15s;
+}
+.asana-table-header .asana-col:hover {
+  color: var(--text-primary);
+}
+.asana-table-row {
+  display: grid;
+  grid-template-columns: 1fr 100px 130px 80px 80px 100px;
+  gap: 0;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: background 0.12s;
+  align-items: center;
+}
+.asana-table-row:last-child {
+  border-bottom: none;
+}
+.asana-table-row:hover {
+  background: var(--bg-elevated);
+}
+.asana-col {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 0.78rem;
+}
+.asana-col--name {
+  overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Asana-like Priority & Status Badges
+   ═══════════════════════════════════════════════════════════ */
+.priority-badge {
+  font-size: 0.62rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.priority-badge--baixa {
+  background: #fef3c7;
+  color: #92400e;
+}
+.priority-badge--media {
+  background: #fed7aa;
+  color: #9a3412;
+}
+.priority-badge--alta {
+  background: #fecaca;
+  color: #991b1b;
+}
+.priority-badge--urgente {
+  background: #fee2e2;
+  color: #7f1d1d;
+  animation: pulse-urgente 2s infinite;
+}
+@keyframes pulse-urgente {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.status-badge {
+  font-size: 0.62rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.status-badge--em-dia {
+  background: #d1fae5;
+  color: #065f46;
+}
+.status-badge--em-risco {
+  background: #fef3c7;
+  color: #92400e;
+}
+.status-badge--em-atraso {
+  background: #ffe4e6;
+  color: #9f1239;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   My Tasks — Asana-like sections with columns
+   ═══════════════════════════════════════════════════════════ */
+.my-tasks-table-header {
+  display: grid;
+  grid-template-columns: 32px 1fr 100px 100px 80px 60px;
+  gap: 0;
+  padding: 6px 12px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.my-tasks-row {
+  display: grid;
+  grid-template-columns: 32px 1fr 100px 100px 80px 60px;
+  gap: 0;
+  padding: 8px 12px;
+  align-items: center;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background 0.12s;
+  cursor: pointer;
+}
+.my-tasks-row:hover {
+  background: var(--bg-elevated);
+}
+.my-tasks-row:last-child {
+  border-bottom: none;
+}
+.my-tasks-row--done {
+  opacity: 0.55;
+}
+.my-tasks-row--done .my-tasks-name {
+  text-decoration: line-through;
+}
+.my-tasks-cell {
+  font-size: 0.78rem;
+  min-width: 0;
+}
+.my-tasks-cell--check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.my-tasks-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+.my-tasks-cell--name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+}
+.my-tasks-name {
+  font-weight: 600;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.my-tasks-project-tag {
+  font-size: 0.6rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--accent)15;
+  color: var(--accent);
+  border: 1px solid var(--accent)25;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.my-tasks-cell--date {
+  text-align: center;
+}
+.my-tasks-date {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.my-tasks-date--overdue {
+  background: #ef444418;
+  color: #ef4444;
+  font-weight: 600;
+}
+.my-tasks-date--today {
+  background: #f59e0b18;
+  color: #f59e0b;
+  font-weight: 600;
+}
+.my-tasks-cell--status,
+.my-tasks-cell--priority {
+  text-align: center;
+}
+.my-tasks-cell--actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.my-tasks-timer-btn {
+  background: none;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.6rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.my-tasks-timer-btn:hover {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.my-tasks-hcell {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+/* Section divider in My Tasks */
+.my-tasks-section {
+  margin-bottom: 4px;
+}
+.my-tasks-section-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-elevated);
+}
+.my-tasks-section-icon {
+  font-size: 0.8rem;
+}
+.my-tasks-section-label {
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+}
+.my-tasks-section-count {
+  font-size: 0.6rem;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Gantt — Dual Header (Month + Week) Asana-style
+   ═══════════════════════════════════════════════════════════ */
+.gantt-header-month {
+  display: flex;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.gantt-header-month > div {
+  padding: 4px 8px;
+  border-right: 1px solid var(--border-subtle);
+  white-space: nowrap;
+  text-transform: capitalize;
+}
+.gantt-header-weeks {
+  display: flex;
+  font-size: 0.6rem;
+  color: var(--text-muted);
+}
+.gantt-header-weeks > div {
+  border-right: 1px solid var(--border-subtle);
+  padding: 3px 2px;
+  text-align: center;
+}
+
+/* Gantt bar improvements */
+.gantt-bar-drag {
+  transition: box-shadow 0.15s, filter 0.15s;
+}
+.gantt-bar-drag:hover {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.35);
+  filter: brightness(1.12);
+}
+.gantt-bar-drag .gantt-bar-label {
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* Responsive asana table */
+@media (max-width: 900px) {
+  .asana-table-header,
+  .asana-table-row {
+    grid-template-columns: 1fr 90px 80px 60px;
+  }
+  .asana-col--tasks,
+  .asana-col--value {
+    display: none;
+  }
+}
+
 /* Forecast table */
 .forecast-row {
   display: flex;

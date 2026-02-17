@@ -1,0 +1,675 @@
+// TBO OS — Main Application Entry Point
+// Initializes all systems, registers modules, binds events
+
+const TBO_APP = {
+  async init() {
+    console.log('[TBO OS] Initializing...');
+
+    // 0. Apply saved theme (light = default) + system detection
+    this._initTheme();
+    if (typeof TBO_UX !== 'undefined') TBO_UX.initThemeDetection();
+
+    // 1. Init auth & login UI
+    TBO_AUTH.initLoginUI();
+    const loggedIn = TBO_AUTH.checkSession();
+
+    // 2. Load data
+    try {
+      await TBO_STORAGE.loadAll();
+      console.log('[TBO OS] Data loaded');
+    } catch (e) {
+      console.warn('[TBO OS] Data load error:', e);
+    }
+
+    // 3. Register real modules with router
+    const modules = {
+      'command-center': typeof TBO_COMMAND_CENTER !== 'undefined' ? TBO_COMMAND_CENTER : null,
+      'conteudo': typeof TBO_CONTEUDO !== 'undefined' ? TBO_CONTEUDO : null,
+      'comercial': typeof TBO_COMERCIAL !== 'undefined' ? TBO_COMERCIAL : null,
+      'projetos': typeof TBO_PROJETOS !== 'undefined' ? TBO_PROJETOS : null,
+      'mercado': typeof TBO_MERCADO !== 'undefined' ? TBO_MERCADO : null,
+      'reunioes': typeof TBO_REUNIOES !== 'undefined' ? TBO_REUNIOES : null,
+      'financeiro': typeof TBO_FINANCEIRO !== 'undefined' ? TBO_FINANCEIRO : null,
+      'rh': typeof TBO_RH !== 'undefined' ? TBO_RH : null,
+      'configuracoes': typeof TBO_CONFIGURACOES !== 'undefined' ? TBO_CONFIGURACOES : null
+    };
+
+    Object.entries(modules).forEach(([name, mod]) => {
+      if (mod) TBO_ROUTER.register(name, mod);
+    });
+
+    // 3b. Register all placeholder modules
+    this._placeholderKeys.forEach(key => {
+      TBO_ROUTER.register(key, {
+        render() { TBO_PLACEHOLDER._currentRoute = key; return TBO_PLACEHOLDER.render(); },
+        init() { TBO_PLACEHOLDER.init(); }
+      });
+    });
+
+    // 4. Bind sidebar navigation
+    this._bindSidebar();
+
+    // 5. Bind header actions
+    this._bindHeader();
+
+    // 6. Bind search
+    this._bindSearch();
+
+    // 7. Setup keyboard shortcuts
+    this._setupShortcuts();
+
+    // 8. Update status indicators
+    this._updateStatus();
+
+    // 9. Sidebar resize handle
+    this._bindSidebarResize();
+
+    // 10. Listen for route changes to update sidebar
+    TBO_ROUTER.onChange((current) => {
+      this._setActiveNav(current);
+      this._updateHeaderTitle(current);
+    });
+
+    // 11. Listen for hash changes (with access control)
+    this._listenHashWithAuth();
+
+    // 12. Navigate to initial module (only if logged in)
+    if (loggedIn) {
+      const user = TBO_AUTH.getCurrentUser();
+      const defaultMod = user?.defaultModule || 'command-center';
+      TBO_ROUTER.initFromHash(defaultMod);
+    }
+
+    // 13. Update freshness timestamp
+    this._updateFreshness();
+
+    // 14. Init UX enhancements
+    if (typeof TBO_UX !== 'undefined') {
+      TBO_UX.initKeyboardNav();
+      // Show tour for first-time users (after a short delay)
+      if (loggedIn) TBO_UX.showTour();
+    }
+
+    // 15. Initialize Lucide icons
+    if (window.lucide) lucide.createIcons();
+
+    console.log('[TBO OS] Ready');
+  },
+
+  // ── Theme ──────────────────────────────────────────────────────────
+  _initTheme() {
+    const saved = localStorage.getItem('tbo_theme');
+    // Light is default — only apply dark if explicitly saved
+    if (saved === 'dark') {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.add('light-mode');
+    }
+    // Theme toggle is now in the user dropdown (rendered by auth.js)
+  },
+
+  // ── Sidebar ──────────────────────────────────────────────────────────
+  _bindSidebar() {
+    // 1. Dynamically render sidebar from permissions
+    this._renderSidebar();
+
+    // 2. Bind nav item clicks (event delegation on container)
+    const navEl = document.getElementById('sidebarNav');
+    if (navEl) {
+      navEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('.nav-item[data-module]');
+        if (!btn) return;
+        const mod = btn.dataset.module;
+        // Access control check
+        if (!TBO_AUTH.canAccess(mod)) {
+          const user = TBO_AUTH.getCurrentUser();
+          const roleLabel = user?.roleLabel || 'seu perfil';
+          TBO_TOAST.warning('Acesso restrito', `O perfil "${roleLabel}" nao tem acesso a este modulo.`);
+          return;
+        }
+        TBO_ROUTER.navigate(mod);
+        // Close mobile menu
+        document.getElementById('sidebar')?.classList.remove('mobile-open');
+      });
+    }
+
+    // 3. Brand logo — navigate to Dashboard
+    const brandLink = document.getElementById('brandLink');
+    if (brandLink) {
+      brandLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        TBO_ROUTER.navigate('command-center');
+        document.getElementById('sidebar')?.classList.remove('mobile-open');
+      });
+    }
+
+    // 4. Sidebar collapse toggle (with persistence)
+    const sidebar = document.getElementById('sidebar');
+    const toggleBtn = document.getElementById('sidebarToggle');
+
+    // Restore collapsed state from localStorage
+    if (sidebar && localStorage.getItem('tbo_sidebar_collapsed') === '1') {
+      sidebar.classList.add('collapsed');
+    }
+
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        const sb = document.getElementById('sidebar');
+        if (sb) {
+          sb.classList.toggle('collapsed');
+          localStorage.setItem('tbo_sidebar_collapsed', sb.classList.contains('collapsed') ? '1' : '0');
+        }
+      });
+    }
+
+    // 5. Mobile menu
+    const mobileBtn = document.getElementById('mobileMenuBtn');
+    if (mobileBtn) {
+      mobileBtn.addEventListener('click', () => {
+        document.getElementById('sidebar')?.classList.toggle('mobile-open');
+      });
+    }
+
+    // 6. Section toggles (collapsible groups)
+    this._bindSectionToggles();
+  },
+
+  // ── Dynamic Sidebar Renderer ─────────────────────────────────────────
+  _renderSidebar() {
+    const navEl = document.getElementById('sidebarNav');
+    if (!navEl) return;
+
+    const user = TBO_AUTH.getCurrentUser();
+    const sections = TBO_PERMISSIONS.getSectionsForUser(user?.id);
+
+    let html = '';
+    sections.forEach(section => {
+      // Filter to only modules that are actually registered in the router
+      const visibleModules = section.modules.filter(m => {
+        const real = TBO_ROUTER._resolveAlias(m);
+        return !!TBO_ROUTER._modules[real];
+      });
+      if (visibleModules.length === 0) return;
+
+      const isPlaceholder = (modKey) => this._placeholderKeys.includes(modKey);
+
+      html += `<div class="nav-section" data-section="${section.id}">
+        <button class="nav-section-toggle" data-section-toggle="${section.id}" aria-expanded="true">
+          <i data-lucide="${section.icon}" class="nav-section-icon"></i>
+          <span class="nav-section-label">${section.label}</span>
+          <i data-lucide="chevron-down" class="nav-section-chevron"></i>
+        </button>
+        <ul class="nav-list" role="menubar">
+          ${visibleModules.map(modKey => {
+            const label = this._moduleLabels[modKey] || modKey;
+            const icon = this._moduleIcons[modKey] || 'file';
+            const isPlc = isPlaceholder(modKey);
+            return `<li>
+              <button class="nav-item${isPlc ? ' nav-item--placeholder' : ''}" data-module="${modKey}" role="menuitem" title="${label}">
+                <i data-lucide="${icon}" class="nav-icon"></i>
+                <span class="nav-label">${label}</span>
+                ${isPlc ? '<span class="nav-badge-dev">Em dev</span>' : ''}
+              </button>
+            </li>`;
+          }).join('')}
+        </ul>
+      </div>`;
+    });
+
+    navEl.innerHTML = html;
+
+    // Re-init Lucide icons for new sidebar content
+    if (window.lucide) lucide.createIcons();
+  },
+
+  // ── Collapsible sidebar sections ──────────────────────────────────────────
+  _bindSectionToggles() {
+    document.querySelectorAll('.nav-section-toggle').forEach(toggle => {
+      const sectionId = toggle.dataset.sectionToggle;
+      const section = toggle.closest('.nav-section');
+      if (!section || !sectionId) return;
+
+      // Restore collapsed state from localStorage
+      const saved = localStorage.getItem(`tbo_section_${sectionId}`);
+      if (saved === '0') {
+        section.classList.add('collapsed');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+
+      toggle.addEventListener('click', () => {
+        const isCollapsed = section.classList.toggle('collapsed');
+        toggle.setAttribute('aria-expanded', !isCollapsed);
+        localStorage.setItem(`tbo_section_${sectionId}`, isCollapsed ? '0' : '1');
+      });
+    });
+  },
+
+  _bindSidebarResize() {
+    const handle = document.getElementById('sidebarResizeHandle');
+    const sidebar = document.getElementById('sidebar');
+    if (!handle || !sidebar) return;
+
+    let isResizing = false;
+
+    handle.addEventListener('mousedown', (e) => {
+      isResizing = true;
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isResizing) return;
+      const newWidth = Math.min(Math.max(e.clientX, 180), 400);
+      sidebar.style.width = newWidth + 'px';
+      sidebar.classList.remove('collapsed');
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (isResizing) {
+        isResizing = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    });
+  },
+
+  _setActiveNav(moduleName) {
+    // Resolve aliases so sidebar highlights the correct item
+    const resolved = TBO_ROUTER._resolveAlias(moduleName);
+    document.querySelectorAll('.nav-item').forEach(btn => {
+      const btnMod = btn.dataset.module;
+      const isActive = btnMod === resolved || btnMod === moduleName;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-current', isActive ? 'page' : 'false');
+      // Auto-expand parent section if active
+      if (isActive) {
+        const parentSection = btn.closest('.nav-section');
+        if (parentSection && parentSection.classList.contains('collapsed')) {
+          parentSection.classList.remove('collapsed');
+          const toggle = parentSection.querySelector('.nav-section-toggle');
+          if (toggle) toggle.setAttribute('aria-expanded', 'true');
+        }
+      }
+    });
+  },
+
+  // ── Hash with Auth ─────────────────────────────────────────────────
+  _listenHashWithAuth() {
+    window.addEventListener('hashchange', () => {
+      const hash = window.location.hash.replace('#', '');
+      const rawName = hash.split('/')[0];
+      const resolved = TBO_ROUTER._resolveAlias(rawName);
+      if (resolved && TBO_ROUTER._modules[resolved]) {
+        if (!TBO_AUTH.canAccess(resolved)) {
+          const user = TBO_AUTH.getCurrentUser();
+          const roleLabel = user?.roleLabel || 'seu perfil';
+          TBO_TOAST.warning('Acesso restrito', `O perfil "${roleLabel}" nao tem acesso a este modulo.`);
+          const defaultMod = user?.defaultModule || 'command-center';
+          if (defaultMod !== resolved) TBO_ROUTER.navigate(defaultMod);
+          return;
+        }
+        TBO_ROUTER.navigate(hash);
+      }
+    });
+  },
+
+  // ── Header ───────────────────────────────────────────────────────────
+  _bindHeader() {
+    const refreshBtn = document.getElementById('refreshBtn');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', () => this.refreshData());
+    }
+
+    const searchBtn = document.getElementById('searchBtn');
+    if (searchBtn) {
+      searchBtn.addEventListener('click', () => this.toggleSearch(true));
+    }
+  },
+
+  // ── Placeholder module keys (all 17 routes not yet implemented) ──────
+  _placeholderKeys: [
+    'timeline','alerts','pipeline','clientes','contratos',
+    'entregas','tarefas','revisoes','entregas-pendentes',
+    'revisoes-pendentes','decisoes','biblioteca',
+    'carga-trabalho','timesheets','capacidade',
+    'pagar','receber','margens','conciliacao',
+    'templates','permissoes-config','integracoes'
+  ],
+
+  // ── Module labels (all 26 = 9 real + 17 placeholders) ──────────────
+  _moduleLabels: {
+    // Real modules
+    'command-center': 'Dashboard',
+    'conteudo': 'Conteudo & Redacao',
+    'comercial': 'Propostas',
+    'projetos': 'Projetos',
+    'mercado': 'Inteligencia de Mercado',
+    'reunioes': 'Reunioes & Contexto',
+    'financeiro': 'Financeiro',
+    'rh': 'Equipe',
+    'configuracoes': 'Configuracoes',
+    // Placeholders
+    'timeline': 'Timeline',
+    'alerts': 'Alertas',
+    'pipeline': 'Pipeline',
+    'clientes': 'Clientes',
+    'contratos': 'Contratos',
+    'entregas': 'Entregas',
+    'tarefas': 'Tarefas',
+    'revisoes': 'Revisoes',
+    'entregas-pendentes': 'Entregas Pendentes',
+    'revisoes-pendentes': 'Revisoes Pendentes',
+    'decisoes': 'Decisoes',
+    'biblioteca': 'Biblioteca',
+    'carga-trabalho': 'Carga de Trabalho',
+    'timesheets': 'Timesheets',
+    'capacidade': 'Capacidade',
+    'pagar': 'Contas a Pagar',
+    'receber': 'Contas a Receber',
+    'margens': 'Margens',
+    'conciliacao': 'Conciliacao',
+    'templates': 'Templates',
+    'permissoes-config': 'Permissoes',
+    'integracoes': 'Integracoes'
+  },
+
+  // ── Module icons (Lucide icon names) ────────────────────────────────
+  _moduleIcons: {
+    'command-center': 'layout-dashboard',
+    'timeline': 'calendar-range',
+    'alerts': 'bell-ring',
+    'pipeline': 'filter',
+    'comercial': 'file-text',
+    'clientes': 'building-2',
+    'contratos': 'file-signature',
+    'projetos': 'clipboard-list',
+    'entregas': 'package-check',
+    'tarefas': 'list-checks',
+    'revisoes': 'git-pull-request',
+    'conteudo': 'pen-tool',
+    'entregas-pendentes': 'package',
+    'revisoes-pendentes': 'message-circle',
+    'mercado': 'bar-chart-3',
+    'reunioes': 'mic',
+    'decisoes': 'gavel',
+    'biblioteca': 'book-open',
+    'rh': 'users',
+    'carga-trabalho': 'gauge',
+    'timesheets': 'clock',
+    'capacidade': 'activity',
+    'financeiro': 'coins',
+    'pagar': 'credit-card',
+    'receber': 'receipt',
+    'margens': 'trending-up',
+    'conciliacao': 'scale',
+    'configuracoes': 'settings',
+    'templates': 'layout-template',
+    'permissoes-config': 'shield-check',
+    'integracoes': 'plug-zap'
+  },
+
+  _updateHeaderTitle(moduleName) {
+    const title = document.getElementById('headerTitle');
+    if (title) {
+      title.textContent = this._moduleLabels[moduleName] || moduleName;
+    }
+  },
+
+  // ── Status ───────────────────────────────────────────────────────────
+  _updateStatus() {
+    // API Key status
+    const apiDot = document.querySelector('#statusAPI .status-dot');
+    if (apiDot) {
+      apiDot.dataset.status = TBO_API.isConfigured() ? 'connected' : 'disconnected';
+    }
+
+    // Data status
+    const context = TBO_STORAGE.get('context');
+    const driveDot = document.querySelector('#statusDrive .status-dot');
+    if (driveDot) {
+      driveDot.dataset.status = (context.projetos_ativos && context.projetos_ativos.length > 0) ? 'connected' : 'stale';
+    }
+
+    const meetings = TBO_STORAGE.get('meetings');
+    const ffDot = document.querySelector('#statusFireflies .status-dot');
+    const ffLabel = document.querySelector('#statusFireflies .status-label');
+    const meetingsArr = meetings.meetings || meetings.reunioes_recentes || [];
+    const hasMeetings = meetingsArr.length > 0;
+    if (ffDot) {
+      ffDot.dataset.status = hasMeetings ? 'connected' : 'stale';
+    }
+    if (ffLabel && hasMeetings) {
+      const meta = meetings.metadata || meetings._metadata;
+      const dateStr = meta ? new Date(meta.collected_at || meta.generated_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '';
+      ffLabel.textContent = `Sincronizado \u2713 ${dateStr} | ${meetingsArr.length} reunioes`;
+    }
+
+    const market = TBO_STORAGE.get('market');
+    const mktDot = document.querySelector('#statusMarket .status-dot');
+    if (mktDot) {
+      mktDot.dataset.status = market.indicadores_curitiba ? 'connected' : 'stale';
+    }
+  },
+
+  _updateFreshness() {
+    const el = document.querySelector('#dataFreshness .freshness-text');
+    if (el) {
+      const now = new Date();
+      el.textContent = `${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+    }
+  },
+
+  // ── Search ───────────────────────────────────────────────────────────
+  _searchFilter: 'all',
+
+  _bindSearch() {
+    const overlay = document.getElementById('searchOverlay');
+    const input = document.getElementById('searchInput');
+    const results = document.getElementById('searchResults');
+
+    if (!overlay || !input) return;
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) this.toggleSearch(false);
+    });
+
+    let debounce = null;
+    input.addEventListener('input', () => {
+      clearTimeout(debounce);
+      debounce = setTimeout(() => {
+        this._performSearch(input.value, results);
+      }, 200);
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this.toggleSearch(false);
+      } else if (e.key === 'Enter') {
+        const focused = results.querySelector('.search-result-item.focused');
+        const first = focused || results.querySelector('.search-result-item');
+        if (first) first.click();
+      }
+    });
+
+    // Search filter chips
+    document.querySelectorAll('.search-filter-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('.search-filter-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        this._searchFilter = chip.dataset.filter || 'all';
+        // Re-run search with current input
+        if (input.value.trim().length >= 2) {
+          this._performSearch(input.value, results);
+        }
+      });
+    });
+  },
+
+  toggleSearch(show) {
+    const overlay = document.getElementById('searchOverlay');
+    const input = document.getElementById('searchInput');
+    if (!overlay) return;
+
+    if (show) {
+      overlay.hidden = false;
+      if (input) { input.value = ''; input.focus(); }
+      const results = document.getElementById('searchResults');
+      if (results) {
+        // Show search history if available
+        const historyHtml = (typeof TBO_UX !== 'undefined') ? TBO_UX.renderSearchHistory() : '';
+        results.innerHTML = historyHtml || `<div class="search-hint">
+          Digite para buscar modulos, projetos, clientes...
+        </div>`;
+        // Bind history item clicks
+        results.querySelectorAll('.ux-search-history-item').forEach(item => {
+          item.addEventListener('click', () => {
+            if (input) { input.value = item.dataset.query; input.dispatchEvent(new Event('input')); }
+          });
+        });
+      }
+    } else {
+      overlay.hidden = true;
+    }
+  },
+
+  _performSearch(query, resultsEl) {
+    if (!resultsEl) return;
+    if (!query || query.trim().length < 2) {
+      resultsEl.innerHTML = `<div class="search-hint">Digite ao menos 2 caracteres...</div>`;
+      return;
+    }
+
+    const filter = this._searchFilter || 'all';
+
+    const moduleResults = [];
+    if (filter === 'all' || filter === 'modulo') {
+      Object.entries(this._moduleLabels).forEach(([key, label]) => {
+        if (label.toLowerCase().includes(query.toLowerCase()) && TBO_AUTH.canAccess(key)) {
+          moduleResults.push({ type: 'modulo', key, label });
+        }
+      });
+    }
+
+    let dataResults = (typeof TBO_SEARCH !== 'undefined')
+      ? TBO_SEARCH.search(query, { limit: 10 })
+      : [];
+
+    // Apply filter to data results
+    if (filter !== 'all' && filter !== 'modulo') {
+      dataResults = dataResults.filter(r => r.type === filter || r.type?.startsWith(filter));
+    }
+
+    if (moduleResults.length === 0 && dataResults.length === 0) {
+      resultsEl.innerHTML = `<div class="search-hint">Nenhum resultado para "${query}"${filter !== 'all' ? ' neste filtro' : ''}</div>`;
+      return;
+    }
+
+    let html = '';
+    moduleResults.forEach(m => {
+      html += `<div class="search-result-item" data-action="navigate" data-module="${m.key}">
+        <span class="search-result-icon">\u{1F4E6}</span>
+        <div class="search-result-info">
+          <div class="search-result-title">${m.label}</div>
+        </div>
+        <span class="search-result-type">modulo</span>
+      </div>`;
+    });
+
+    const typeIcons = {
+      projeto_ativo: '\u{1F4CB}', projeto_finalizado: '\u2705',
+      cliente: '\u{1F3E2}', reuniao: '\u{1F3AF}', mercado: '\u{1F4C8}'
+    };
+    const typeLabels = {
+      projeto_ativo: 'Projeto', projeto_finalizado: 'Finalizado',
+      cliente: 'Cliente', reuniao: 'Reuniao', mercado: 'Mercado'
+    };
+
+    dataResults.forEach(r => {
+      html += `<div class="search-result-item" data-action="data" data-type="${r.type}" data-title="${r.title}">
+        <span class="search-result-icon">${typeIcons[r.type] || '\u{1F50D}'}</span>
+        <div class="search-result-info">
+          <div class="search-result-title">${r.title}</div>
+          <div class="search-result-subtitle">${r.subtitle || ''}</div>
+        </div>
+        <span class="search-result-type">${typeLabels[r.type] || r.type}</span>
+      </div>`;
+    });
+
+    resultsEl.innerHTML = html;
+
+    resultsEl.querySelectorAll('.search-result-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const action = item.dataset.action;
+        if (action === 'navigate') {
+          TBO_ROUTER.navigate(item.dataset.module);
+        } else if (action === 'data') {
+          const typeModuleMap = {
+            projeto_ativo: 'projetos', projeto_finalizado: 'projetos',
+            cliente: 'comercial', reuniao: 'reunioes', mercado: 'mercado'
+          };
+          TBO_ROUTER.navigate(typeModuleMap[item.dataset.type] || 'command-center');
+        }
+        // Save to search history
+        if (typeof TBO_UX !== 'undefined') {
+          const searchInput = document.getElementById('searchInput');
+          if (searchInput?.value) TBO_UX.addSearchHistory(searchInput.value.trim());
+        }
+        this.toggleSearch(false);
+      });
+    });
+  },
+
+  // ── Shortcuts ────────────────────────────────────────────────────────
+  _setupShortcuts() {
+    TBO_SHORTCUTS.init();
+
+    // Search
+    TBO_SHORTCUTS.bind('Alt+k', () => this.toggleSearch(true), 'Abrir busca rapida');
+
+    // Refresh
+    TBO_SHORTCUTS.bind('Alt+r', () => this.refreshData(), 'Atualizar dados');
+
+    // Toggle sidebar (with persistence)
+    TBO_SHORTCUTS.bind('Alt+b', () => {
+      const sb = document.getElementById('sidebar');
+      if (sb) {
+        sb.classList.toggle('collapsed');
+        localStorage.setItem('tbo_sidebar_collapsed', sb.classList.contains('collapsed') ? '1' : '0');
+      }
+    }, 'Recolher/expandir barra lateral');
+
+    // Escape to close overlays
+    TBO_SHORTCUTS.bind('Escape', () => {
+      this.toggleSearch(false);
+    }, 'Fechar dialogo');
+  },
+
+  // ── Refresh Data ─────────────────────────────────────────────────────
+  async refreshData() {
+    TBO_TOAST.info('Atualizando', 'Carregando dados atualizados...');
+
+    try {
+      await TBO_STORAGE.loadAll();
+      this._updateStatus();
+      this._updateFreshness();
+
+      const current = TBO_ROUTER.getCurrent();
+      if (current) {
+        TBO_ROUTER._currentModule = null;
+        await TBO_ROUTER.navigate(current);
+      }
+
+      TBO_TOAST.success('Atualizado', 'Dados carregados com sucesso.');
+    } catch (e) {
+      TBO_TOAST.error('Erro', 'Falha ao atualizar dados: ' + e.message);
+    }
+  }
+};
+
+// ── Boot ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  TBO_APP.init().catch(err => {
+    console.error('[TBO OS] Boot error:', err);
+  });
+});

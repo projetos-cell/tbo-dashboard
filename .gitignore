@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.local
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+.claude/
+*.lnk
+*.vbs
+nul
+TBO_OS.bat

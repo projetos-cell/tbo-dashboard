@@ -1,0 +1,90 @@
+{
+  "dados_mercado": [
+    {
+      "nome": "Brain Inteligência Estratégica",
+      "url": "https://brain.srv.br",
+      "ativo": true,
+      "tipo": "dados",
+      "frequencia": "mensal",
+      "foco": "Pesquisas de mercado imobiliário, indicadores do setor, relatórios sobre Curitiba e Paraná, tendências de comportamento do comprador",
+      "dados_esperados": "Número de lançamentos, unidades lançadas, VGV, preço médio/m², perfil de produtos (luxo/médio/econômico), taxa de vendas, estoque",
+      "prioridade": 1
+    },
+    {
+      "nome": "Cúpola",
+      "url": "https://cupola.com.br",
+      "ativo": true,
+      "tipo": "dados",
+      "frequencia": "semanal",
+      "foco": "Blog, artigos, cases de marketing imobiliário, dados de mercado, tendências, metodologias e frameworks de lançamento",
+      "dados_esperados": "Artigos recentes, tendências de marketing imobiliário, cases, metodologias, dados do setor",
+      "prioridade": 2
+    },
+    {
+      "nome": "DataStore / Mundo DataStore",
+      "url": "https://mundodatastore.com.br",
+      "ativo": true,
+      "tipo": "dados",
+      "frequencia": "mensal",
+      "foco": "Dados de lançamentos imobiliários, análises de mercado e VGV, rankings de incorporadoras, dados específicos de Curitiba",
+      "dados_esperados": "Rankings de incorporadoras, volume de lançamentos, VGV por região, dados comparativos",
+      "prioridade": 3
+    },
+    {
+      "nome": "ABRAINC",
+      "url": "https://abrainc.org.br",
+      "ativo": true,
+      "tipo": "dados",
+      "frequencia": "mensal",
+      "foco": "Indicadores do mercado imobiliário nacional, relatórios setoriais, dados de vendas/lançamentos/financiamento, índices de confiança",
+      "dados_esperados": "Indicadores nacionais, índice de confiança do setor, vendas líquidas, lançamentos, distratos, financiamento habitacional",
+      "prioridade": 4
+    },
+    {
+      "nome": "CBIC",
+      "url": "https://cbic.org.br",
+      "ativo": true,
+      "tipo": "dados",
+      "frequencia": "trimestral",
+      "foco": "Dados de construção civil, indicadores econômicos do setor, custos de construção, PIB da construção",
+      "dados_esperados": "CUB, INCC, PIB construção civil, emprego no setor, custo de materiais, financiamento",
+      "prioridade": 5
+    },
+    {
+      "nome": "SECOVI-PR",
+      "url": "https://secovipr.com.br",
+      "ativo": true,
+      "tipo": "dados",
+      "frequencia": "mensal",
+      "foco": "Mercado imobiliário do Paraná, dados de Curitiba e região metropolitana, indicadores locais",
+      "dados_esperados": "Lançamentos em Curitiba/RMC, vendas, estoque, preço médio, tendências regionais",
+      "prioridade": 6
+    },
+    {
+      "nome": "ADEMI-PR",
+      "url": "https://ademipr.com.br",
+      "ativo": true,
+      "tipo": "dados",
+      "frequencia": "mensal",
+      "foco": "Associação do mercado imobiliário do Paraná, dados de incorporadoras locais",
+      "dados_esperados": "Dados de incorporadoras do PR, eventos do setor, indicadores regionais",
+      "prioridade": 7
+    },
+    {
+      "nome": "Sinduscon-PR",
+      "url": "https://sindusconpr.com.br",
+      "ativo": true,
+      "tipo": "dados",
+      "frequencia": "mensal",
+      "foco": "Sindicato da construção do Paraná, custos de construção, CUB regional",
+      "dados_esperados": "CUB-PR, custos de construção, emprego na construção civil no Paraná",
+      "prioridade": 8
+    }
+  ],
+  "noticias": [
+    {"nome": "Valor Econômico - Imobiliário", "url": "https://valor.globo.com/empresas/construcao-e-imobiliario/", "ativo": true, "frequencia": "diária"},
+    {"nome": "InfoMoney - Imobiliário", "url": "https://www.infomoney.com.br/tudo-sobre/mercado-imobiliario/", "ativo": true, "frequencia": "diária"},
+    {"nome": "Imobi Report", "url": "https://imobireport.com.br", "ativo": true, "frequencia": "semanal"},
+    {"nome": "SECOVI-PR Notícias", "url": "https://secovipr.com.br/noticias", "ativo": true, "frequencia": "semanal"}
+  ]
+}

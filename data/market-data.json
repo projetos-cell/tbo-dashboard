@@ -1,0 +1,39 @@
+{
+  "ultima_atualizacao": "2026-02-16",
+  "fontes": [
+    {"nome": "Brain Inteligência Estratégica", "url": "https://brain.srv.br", "status": "ativo"},
+    {"nome": "Cúpola", "url": "https://cupola.com.br", "status": "ativo"},
+    {"nome": "DataStore", "url": "https://mundodatastore.com.br", "status": "ativo"},
+    {"nome": "ABRAINC", "url": "https://abrainc.org.br", "status": "ativo"},
+    {"nome": "CBIC", "url": "https://cbic.org.br", "status": "ativo"},
+    {"nome": "SECOVI-PR", "url": "https://secovipr.com.br", "status": "ativo"}
+  ],
+  "indicadores_curitiba": {
+    "periodo": "S1 2025",
+    "empreendimentos_lancados": 44,
+    "unidades_lancadas": 3076,
+    "variacao_empreendimentos": "-41%",
+    "variacao_unidades": "-47%",
+    "fonte": "Brain Inteligência Estratégica",
+    "contexto": "Retração significativa vs S1 2024 (74 empreendimentos / 5.840 unidades)"
+  },
+  "indicadores_rm_curitiba": {
+    "empreendimentos_lancados": 22,
+    "unidades_lancadas": 1490,
+    "variacao_empreendimentos": "-37%",
+    "variacao_unidades": "-47%"
+  },
+  "tendencias": [
+    "Mercado mais conservador - compras fatiadas e escopos menores",
+    "Incorporadoras priorizando itens essenciais (renders) sobre pacotes completos",
+    "Aumento de concorrência entre fornecedores de visualização",
+    "Pressão por justificativa de ROI em investimentos de marketing",
+    "Crescimento do segmento de alto padrão mesmo com retração geral",
+    "Digitalização acelerada dos processos de venda (tours virtuais, plataformas interativas)"
+  ],
+  "concorrentes_precos_mercado": {
+    "imagens_3d": {"minimo": 450, "maximo": 900, "tbo": "1300-1500"},
+    "filmes": {"minimo": 3000, "maximo": 5000, "tbo": 17972},
+    "books": {"minimo": 3000, "maximo": 6000, "tbo": "7000-10000"}
+  }
+}

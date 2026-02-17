@@ -1,0 +1,278 @@
+{
+  "empresa": {
+    "nome": "TBO",
+    "descricao": "Estúdio de visualização arquitetônica e marketing imobiliário de Curitiba",
+    "fundacao": 2019,
+    "projetos_entregues": "115+",
+    "cidade": "Curitiba/PR",
+    "socios": [
+      {"nome": "Marco Andolfato", "cargo": "COO / Diretor de Operações", "email": "marco@agenciatbo.com.br"},
+      {"nome": "Ruy Lima", "cargo": "Diretor Comercial e Novos Negócios", "email": "ruy@agenciatbo.com.br"}
+    ],
+    "bus": ["Digital 3D", "Audiovisual", "Branding", "Marketing", "Interiores"],
+    "posicionamento": "Parceiro estratégico de incorporadoras, não fornecedor. Resultado mensurável (ROAS 173.9x Porto Batel). Transforma archviz em ferramenta de vendas.",
+    "equipe_cargos": ["COO / Diretor de Operações", "Diretor Comercial", "Coord. Atendimento", "PO Marketing", "PO Branding", "PO Digital 3D", "Líder Técnico 3D", "Designer", "Artista 3D", "Analista de Marketing", "Comercial"]
+  },
+  "projetos_ativos": [
+    {"nome": "AGÊNCIA TBO_SEDE", "construtora": "TBO", "bus": ["Interiores"]},
+    {"nome": "ARQUITETARE 3dsMAX", "construtora": "Arquitetare", "bus": ["Digital 3D"]},
+    {"nome": "ARTHAUS", "construtora": "Arthaus", "bus": ["Digital 3D", "Branding", "Marketing", "Interiores", "Audiovisual"], "subpastas": ["00.ARQUIVOS RECEBIDOS", "01.MARKETING", "02.BRANDING", "03.INTERIORES", "04.DIGITAL 3D", "05.PROD.AUDIOVISUAL", "06.REFERÊNCIAS", "07.ATAS DE REUNIÃO", "08.FORMALIZAÇÃO DE ENTREGA", "10.PERSPECTIVAS"]},
+    {"nome": "CONSTRUTORA PESSOA_INSTITUCIONAL", "construtora": "Co.Pessoa", "bus": ["Branding", "Marketing"]},
+    {"nome": "CONSTRUTORA PESSOA_PORTO BATEL", "construtora": "Co.Pessoa", "bus": ["Digital 3D", "Branding", "Audiovisual", "Marketing"], "subpastas": ["00.ARQUIVOS RECEBIDOS", "01.RENDERS", "02.BRANDING", "03.PROD.AUDIOVISUAL", "04.REFERÊNCIAS", "05.ATAS DE REUNIÃO", "06. MARKETING", "07.FORMALIZAÇÃO DE ENTREGA"]},
+    {"nome": "CONSTRUTORA PESSOA_PORTOFINO", "construtora": "Co.Pessoa", "bus": ["Digital 3D", "Branding", "Audiovisual", "Marketing"], "subpastas": ["00.ARQUIVOS RECEBIDOS", "01.RENDERS", "02.BRANDING", "03.PROD.AUDIOVISUAL", "04.REFERÊNCIAS", "05.ATAS DE REUNIÃO", "06.MARKETING", "07.FORMALIZAÇÃO DE ENTREGA", "10.PERSPECTIVAS"]},
+    {"nome": "D.BORCATH_EMILIANO", "construtora": "D. Borcath", "bus": ["Marketing", "Branding", "Interiores", "Digital 3D", "Audiovisual"]},
+    {"nome": "D.BORCATH_ICCONO", "construtora": "D. Borcath", "bus": ["Digital 3D"]},
+    {"nome": "D.BORCATH_UNIT", "construtora": "D. Borcath", "bus": ["Digital 3D"]},
+    {"nome": "FONTANIVE_ECOVILLAGE", "construtora": "Fontanive", "bus": ["Digital 3D", "Branding", "Audiovisual"]},
+    {"nome": "FONTANIVE_ILHAS GREGAS", "construtora": "Fontanive", "bus": ["Digital 3D"]},
+    {"nome": "FONTANIVE_NEW LIFE 19", "construtora": "Fontanive", "bus": ["Digital 3D"]},
+    {"nome": "GESSI EMPREENDIMENTOS_CASA VERNAZZA", "construtora": "Gessi Empreendimentos", "bus": ["Digital 3D", "Branding"]},
+    {"nome": "GESSI EMPREENDIMENTOS_RIO MAGGIORE", "construtora": "Gessi Empreendimentos", "bus": ["Digital 3D"]},
+    {"nome": "GRP CONSTRUTORA_AXIS", "construtora": "GRP", "bus": ["Digital 3D", "Branding", "Audiovisual", "Marketing"]},
+    {"nome": "GRUPO THAL", "construtora": "Thal", "bus": ["Digital 3D"]},
+    {"nome": "GSPM EMPREENDIMENTOS_ALLES BLAU STUDIOS", "construtora": "GSPM", "bus": ["Digital 3D"]},
+    {"nome": "ITAMAR LEVI", "construtora": "Itamar Levi", "bus": ["Digital 3D"]},
+    {"nome": "LANGARD_VALLE 647", "construtora": "Langard", "bus": ["Digital 3D"]},
+    {"nome": "TBO ACADEMY", "construtora": "TBO", "bus": ["Marketing"]},
+    {"nome": "TBO_REBRANDING", "construtora": "TBO", "bus": ["Branding"]},
+    {"nome": "TEKTON_HORIZON", "construtora": "Tekton", "bus": ["Digital 3D", "Branding", "Audiovisual", "Marketing"]},
+    {"nome": "TEKTON_MARFINO", "construtora": "Tekton", "bus": ["Digital 3D"]},
+    {"nome": "VIPLAN_ARES", "construtora": "Viplan", "bus": ["Digital 3D"]},
+    {"nome": "VOLARQUE", "construtora": "Volarque", "bus": ["Digital 3D"]}
+  ],
+  "projetos_finalizados": {
+    "2020": ["AMANDA MELLO", "ANA CAROLINA - GETNINJAS", "AVANT GARDE", "BWC-EUROMAX", "GIOVANA PAIVA", "HYPE EMPREENDIMENTOS", "MOSTRA ARTEFACTO 2020", "SI.ADVISORS"],
+    "2021": ["587.GMES", "ALESSON 3AP", "ANA LETICIA VIRMOND", "COLA DESIGN", "CONSTRUTORA PRIDE", "ED. CARMEM", "GALVÃO E MELO", "GT BUILDING", "HOMS EMPREENDIMENTOS", "LEO MAIA ARQUITETOS", "PLAENGE", "PROD - CASACOR", "RENATA SIMAS", "SIDNEY MILLER - VANIA", "TBO - ISOMETRICO", "TRAÇO FINAL ARQUITETURA", "WB HOME"],
+    "2022": ["AMIGOS DO HC", "AVANTTI", "CARGOLIFT_VOLVO", "CONDOMÍNIO FLY", "CONSTROM - WISE", "DALTON VIDOTTI", "ELLANE", "GRP CONSTRUTORA", "GRUPO THAL", "HOMES INCORPORAÇÕES", "ITAMAR LEVI", "MEDIEVAL ENGENHARIA", "O3 EMPREENDIMENTOS - DECORADO NORT HILL", "O3 EMPREENDIMENTOS - OXYGEN", "O3 EMPREENDIMENTOS - SEDE", "OTT ENGENHARIA", "REALIZA ARQUITETURA", "RICARDO MAIO", "SIDNEY MILLER - W.HOME", "SWELL CONSTRUÇÕES"],
+    "2023": ["ARQUITETARE_FILME SÓCIAS", "AVANTTI - RESERVA MIRANTE", "AVANTTI - SEG. ETAPA", "BASE EMPREENDIMENTOS", "BASE FORTE CONSTRUTORA", "BOS INCORPORAÇÕES", "CASA COR", "CONSTRUTORA PESSOA_PLURAL", "FEIJÃO DA FUNDAÇÃO 2024", "FUNCIONAL", "GRP CONSTRUTORA_MORADA DO SOL", "HYPE EMPREENDIMENTOS", "MUSSI EMPREENDIMENTOS", "PRISCILA POLI", "RODOLFO FONTANA", "RZILLI_AURA", "SUTRIMEX", "VITTA INCORPORAÇÕES"],
+    "2024": ["ANDREIA GONZAGA", "ANNA MORETTI", "ARQUITETARE_MAX", "BSA_FILME INSTITUCIONAL", "CARLA BERTUOL", "DAMIANI_PACIFIC RESIDENCES", "FONTANIVE_TAJAHY", "HIEX", "HYPE", "INICIAÇÃO GABRIEL", "MEDIEVAL ENGENHARIA_CAIEIRAS RESIDENCE", "MUNDOLAR", "O3", "O3 EMPREENDIMENTOS_BALANCE", "PATRÃO_GAIA", "PRC", "VITTA 360", "W.HOME"],
+    "2025": ["AGBEM_SAN PIETRO", "ARQUITETARE 2", "ARTHUR SILVEIRA_CACHOEIRA ENIO", "CAIEIRAS", "COLETIVO 23D_SESIMBRA", "CONSTRUTORA GIACOMAZZI_VERO", "CONSTRUTORA PESSOA_PORTO ALTO", "DAMIANI_WAVE 3.0", "ELIO WINTER_CURITIBANOS", "F7 INCORPORADORA_FLOW", "FONTANIVE_ILHA DE MALTA", "GRP CONSTRUTORA", "GRP_INSTITUCIONAL", "HSH", "LUMME", "MDI BRASIL", "MEDIEVAL ENGENHARIA_GALLIANO250 ADICIONAL", "PATRÃO_ESTORIL", "PRC_RESERVA TUIUTI", "RZILLI_AURA", "TEKTON_BLANC", "VIPLAN_ART", "VIPLAN_PARAÍSO DAS ARAUCÁRIAS"],
+    "2026": ["GESSI EMPREENDIMENTOS_SAN GIMNIANO", "GRP CONSTRUTORA_NURA+LUMME"]
+  },
+  "clientes_construtoras": [
+    "Arthaus", "Fontanive", "Co.Pessoa", "GRP", "Tekton", "MDI Brasil", "AGBEM",
+    "Ricardo Maio", "Viplan", "Damiani", "Elio Winter", "Arthur Silveira", "Giacomazzi",
+    "Itamar Levi", "Thal", "Arquitetare", "F7 Inc.", "Medieval", "Patrão", "SoulPCR",
+    "RZilli", "Langard", "Volarque", "HSH", "Gessi Empreendimentos", "D. Borcath", "ARDC Empreendimentos"
+  ],
+  "dados_comerciais": {
+    "2024": {
+      "periodo": "Jun-Dez 2024 (7 meses)",
+      "propostas": 29,
+      "media_mensal_propostas": 4.1,
+      "contratos": 12,
+      "conversao_proposta": "41.37%",
+      "ticket_medio": 58465.53,
+      "total_proposto": 1482536.57,
+      "total_vendido": 701586.37,
+      "conversao_financeira": "47.32%",
+      "origem": "100% outbound"
+    },
+    "2025": {
+      "periodo": "Jan-Dez 2025 (12 meses)",
+      "propostas": 70,
+      "media_mensal_propostas": 5.8,
+      "contratos": 23,
+      "conversao_proposta": "42.59%",
+      "ticket_medio": 32455.07,
+      "total_proposto": 2997590.50,
+      "total_vendido": 746466.50,
+      "conversao_financeira": "37.70%",
+      "origem": "100% outbound",
+      "em_negociacao": 16
+    },
+    "2026": {
+      "periodo": "Jan-Fev 2026 (2 meses realizados + 10 projetados)",
+      "propostas": 0,
+      "media_mensal_propostas": 0,
+      "contratos": 0,
+      "conversao_proposta": "—",
+      "ticket_medio": 0,
+      "total_proposto": 0,
+      "total_vendido": 0,
+      "conversao_financeira": "—",
+      "origem": "outbound",
+      "em_negociacao": 0,
+      "nota": "Dados parciais — ano em andamento. Fluxo de caixa atualizado em Fev/2026.",
+      "fluxo_caixa": {
+        "meta_vendas_mensal": 180000,
+        "meta_vendas_anual": 2100000,
+        "receita_total_orcada": 1994796,
+        "despesa_total_orcada": 1508306,
+        "resultado_liquido_orcado": 300068,
+        "margem_liquida_orcada": "7.47%",
+        "receita_mensal": {
+          "jan": 130581, "fev": 159863, "mar": 86855,
+          "abr": 48880, "mai": 25880, "jun": 15000,
+          "jul": 120000, "ago": 120000, "set": 120000,
+          "out": 120000, "nov": 120000, "dez": 120000
+        },
+        "despesa_mensal": {
+          "jan": 103206, "fev": 128136, "mar": 119668,
+          "abr": 110093, "mai": 110093, "jun": 110093,
+          "jul": 110093, "ago": 110093, "set": 110093,
+          "out": 111393, "nov": 111393, "dez": 111393
+        },
+        "receita_total_projetada": 1187058,
+        "despesa_total_projetada": 1345748,
+        "resultado_liquido_projetado": -125164,
+        "saldo_caixa_projetado": -120190,
+        "meses_realizados": ["jan", "fev"],
+        "meses_projetados": ["mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"],
+        "resultado_mensal": {
+          "jan": 27375, "fev": 65253, "mar": -32814,
+          "abr": -61213, "mai": -84213, "jun": -95093,
+          "jul": 9907, "ago": 9907, "set": 9907,
+          "out": 8607, "nov": 8607, "dez": 8607
+        },
+        "margem_mensal": {
+          "jan": "20.96%", "fev": "33.74%", "mar": "-37.78%",
+          "abr": "-125.23%", "mai": "-325.40%", "jun": "-633.95%",
+          "jul": "8.26%", "ago": "8.26%", "set": "8.26%",
+          "out": "7.17%", "nov": "7.17%", "dez": "7.17%"
+        },
+        "despesas_detalhadas": {
+          "pessoas": {
+            "total_anual": 686170,
+            "equipe": [
+              {"nome": "Ruy", "cargo": "Socio", "salario": 12000},
+              {"nome": "Marco", "cargo": "Socio", "salario": 12000},
+              {"nome": "Rafa", "cargo": "PO Marketing", "salario": 4950},
+              {"nome": "Lucca", "cargo": "Analista de Marketing", "salario": 3500},
+              {"nome": "Nelson", "cargo": "PO Branding", "salario": 5500},
+              {"nome": "Celso", "cargo": "Assistente", "salario": 2150},
+              {"nome": "Nathalia", "cargo": "PO Digital 3D", "salario": 7000},
+              {"nome": "Tiago", "cargo": "Artista 3D Pleno", "salario": 4850},
+              {"nome": "Duda", "cargo": "Artista 3D Junior", "salario": 3300}
+            ]
+          },
+          "terceirizacao": {
+            "total_anual": 198600,
+            "fixos_mensais": [
+              {"nome": "Projetado Digital 3D", "valor": 5000},
+              {"nome": "Projetado Branding", "valor": 5000},
+              {"nome": "Projetado Marketing", "valor": 5000}
+            ]
+          },
+          "operacionais": {
+            "total_anual": 258482,
+            "itens": [
+              {"nome": "Ademi PR", "valor_mensal": 197.45},
+              {"nome": "BPO Financeiro", "valor_mensal": 1290},
+              {"nome": "BB Consorcio", "valor_mensal": 757.20},
+              {"nome": "Contabilidade", "valor_mensal": 380.55},
+              {"nome": "Parcela Emprestimo BB Pronanp", "valor_mensal": 3061.50},
+              {"nome": "Parcela Emprestimo", "valor_mensal": 3300},
+              {"nome": "Parcela Emprestimo Pessoal", "valor_mensal": 5000},
+              {"nome": "Mentoria Runb", "valor_mensal": 1320}
+            ]
+          },
+          "marketing": {"total_anual": 55000, "valor_mensal": 5000},
+          "vendas": {"total_anual": 147455, "valor_mensal": 12388}
+        },
+        "contas_a_receber": {
+          "fevereiro": {
+            "total": 159863,
+            "pago": 73685,
+            "em_aberto": 86178,
+            "clientes": [
+              {"nome": "Emiliano Perneta 724 (D.Borcath)", "valor": 20155, "status": "parcial"},
+              {"nome": "Construtora Viplan", "valor": 33394, "status": "em_aberto"},
+              {"nome": "Construtora Pessoa", "valor": 15405, "status": "pago"},
+              {"nome": "Gessi Construtora", "valor": 15000, "status": "pago"},
+              {"nome": "Hype T930103", "valor": 22750, "status": "parcial"},
+              {"nome": "GRP Borges Empreendimentos", "valor": 13880, "status": "em_aberto"},
+              {"nome": "GSPM Holding (Alles Blau)", "valor": 4682, "status": "em_aberto"},
+              {"nome": "Thal Engenharia", "valor": 2500, "status": "em_aberto"},
+              {"nome": "D.Borcath (Iccono + Unit)", "valor": 21512, "status": "em_aberto"}
+            ]
+          },
+          "marco": {
+            "total": 86855,
+            "pago": 0,
+            "em_aberto": 86855,
+            "clientes": [
+              {"nome": "Tekton Incorporadora", "valor": 9700},
+              {"nome": "Thal Engenharia", "valor": 2500},
+              {"nome": "Construtora Pessoa", "valor": 11405},
+              {"nome": "Gessi Construtora", "valor": 15000},
+              {"nome": "Emiliano Perneta 724 (D.Borcath)", "valor": 5000},
+              {"nome": "GRP Borges Empreendimentos", "valor": 8380},
+              {"nome": "GSPM Holding (Alles Blau)", "valor": 4682},
+              {"nome": "Hype T930103", "valor": 12188},
+              {"nome": "D.Borcath (Iccono + Unit)", "valor": 13000}
+            ]
+          },
+          "abril": {"total": 48880},
+          "maio": {"total": 25880},
+          "junho": {"total": 15000}
+        },
+        "criterios_operacao": {
+          "tributacao": "10%",
+          "criterio_contrato_virando_caixa": "30%",
+          "comissao_venda_liquido": "10%",
+          "participacao_plr": "10%"
+        }
+      },
+      "custos_por_bu": {
+        "branding": {"despesa_fixa": 11450, "time": 3},
+        "marketing": {"despesa_fixa": 7900, "time": 0},
+        "digital_3d": {"despesa_fixa": 17125, "time": 0},
+        "interiores": {"despesa_fixa": 12000, "time": 0},
+        "audiovisual": {"despesa_fixa": 6900, "time": 0},
+        "tbo_vendas_mkt": {"despesa_fixa": 0, "time": 0},
+        "operacao_gestao": {"despesa_fixa": 0, "time": 0},
+        "total_time_mensal": 55375
+      }
+    },
+    "evolucao_anual": {
+      "2024_vs_2025_topo_funil": "+141.4%",
+      "2024_vs_2025_ticket_medio": "-44.48%",
+      "2024_vs_2025_total_vendido": "+6.4%"
+    },
+    "precos": {
+      "imagem_2024": 1100,
+      "imagem_2025": "1300-1500",
+      "imagem_2026": "1500-1800",
+      "filme_2024": "5900-7900",
+      "filme_2025": 17972,
+      "filme_2026": "18000-22000"
+    },
+    "crescimento_topo_funil": "141.4%",
+    "queda_ticket_medio": "-44.48%",
+    "preco_imagem_2024": 1100,
+    "preco_imagem_2025": "1300-1500",
+    "preco_filme_2024": "5900-7900",
+    "preco_filme_2025": 17972
+  },
+  "mercado_curitiba_2025": {
+    "retracao_empreendimentos": "-41%",
+    "retracao_unidades": "-47%",
+    "curitiba_empreendimentos_s1_2024": 74,
+    "curitiba_empreendimentos_s1_2025": 44,
+    "curitiba_unidades_s1_2024": 5840,
+    "curitiba_unidades_s1_2025": 3076,
+    "rm_empreendimentos_s1_2024": 35,
+    "rm_empreendimentos_s1_2025": 22,
+    "fonte": "Brain Inteligência Estratégica"
+  },
+  "template_pastas_projeto": [
+    "00.ARQUIVOS RECEBIDOS",
+    "01.RENDERS / 01.MARKETING",
+    "02.BRANDING",
+    "03.PROD.AUDIOVISUAL / 03.INTERIORES",
+    "04.DIGITAL 3D / 04.REFERÊNCIAS",
+    "05.ATAS DE REUNIÃO / 05.PROD.AUDIOVISUAL",
+    "06.MARKETING / 06.REFERÊNCIAS / 06.FORMALIZAÇÃO",
+    "07.FORMALIZAÇÃO DE ENTREGA / 07.ATAS DE REUNIÃO",
+    "08.FORMALIZAÇÃO DE ENTREGA",
+    "10.PERSPECTIVAS"
+  ],
+  "orcamentos_enviados_construtoras": [
+    "3AP CONSTRUTORA", "A. YOSHII", "AGBEM", "ARQUITETARE", "ARTHAUS", "BASE EMPREENDIMENTOS",
+    "BOS EMPREENDIMENTOS", "CONSTRUTORA PESSOA", "CONSTRUTORA PRIDE", "D'BORCATH", "DAMIANI",
+    "FONTANIVE", "GRP CONSTRUTORA", "GRUPO THAL", "HYPE EMPREENDIMENTOS", "MEDIEVAL",
+    "MUSSI EMPREENDIMENTOS", "O3 EMPREENDIMENTOS", "PATRÃO", "PRC EMPREENDIMENTOS",
+    "R. ZILLI", "TEKTON", "VIPLAN", "SWELL", "LANGARD"
+  ]
+}

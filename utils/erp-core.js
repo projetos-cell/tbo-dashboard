@@ -179,6 +179,7 @@ const TBO_ERP = {
     TBO_STORAGE.updateErpEntity(entityType, entityId, updates);
 
     // Log the transition
+    const sm = this.stateMachines[entityType];
     this.addAuditLog({
       entityType,
       entityId,
@@ -187,7 +188,12 @@ const TBO_ERP = {
       to: newState,
       userId: userId || this._getCurrentUserId(),
       reason: reason || '',
-      entityName: entity.name || entity.title || entity.nome || entityId
+      entityName: entity.name || entity.title || entity.nome || entityId,
+      details: {
+        fromLabel: sm ? sm.labels[oldState] : oldState,
+        toLabel: sm ? sm.labels[newState] : newState,
+        transitionTime: new Date().toISOString()
+      }
     });
 
     return { ok: true, from: oldState, to: newState };
@@ -379,6 +385,98 @@ const TBO_ERP = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // PROJECT CODE — Auto-generate unique project codes (TBO-YYYY-NNN)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  generateProjectCode() {
+    const year = new Date().getFullYear();
+    const prefix = `TBO-${year}-`;
+
+    // Get all existing projects to find the highest code for this year
+    const projects = TBO_STORAGE.getAllErpEntities('project');
+    let maxNum = 0;
+
+    projects.forEach(p => {
+      if (p.code && p.code.startsWith(prefix)) {
+        const num = parseInt(p.code.replace(prefix, ''), 10);
+        if (!isNaN(num) && num > maxNum) maxNum = num;
+      }
+    });
+
+    const nextNum = maxNum + 1;
+    return prefix + String(nextNum).padStart(3, '0');
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DEADLINE ENGINE — Calculate days remaining, urgency, and deadline alerts
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  getDeadlineInfo(project) {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const result = {
+      hasDeadline: false,
+      daysRemaining: null,
+      urgency: 'none', // 'none', 'safe', 'warning', 'critical', 'overdue'
+      urgencyColor: '#94a3b8',
+      label: '',
+      endDate: null,
+      startDate: null,
+      durationDays: null,
+      progressPercent: null
+    };
+
+    if (!project.end_date) return result;
+    result.hasDeadline = true;
+    result.endDate = new Date(project.end_date);
+    result.endDate.setHours(0, 0, 0, 0);
+
+    if (project.start_date) {
+      result.startDate = new Date(project.start_date);
+      result.startDate.setHours(0, 0, 0, 0);
+      const totalDays = Math.ceil((result.endDate - result.startDate) / 86400000);
+      const elapsedDays = Math.ceil((now - result.startDate) / 86400000);
+      result.durationDays = totalDays;
+      result.progressPercent = totalDays > 0 ? Math.min(100, Math.max(0, Math.round((elapsedDays / totalDays) * 100))) : 0;
+    }
+
+    const diff = Math.ceil((result.endDate - now) / 86400000);
+    result.daysRemaining = diff;
+
+    if (['finalizado', 'cancelado'].includes(project.status)) {
+      result.urgency = 'none';
+      result.urgencyColor = '#94a3b8';
+      result.label = 'Concluido';
+    } else if (diff < 0) {
+      result.urgency = 'overdue';
+      result.urgencyColor = '#ef4444';
+      result.label = `${Math.abs(diff)}d atrasado`;
+    } else if (diff === 0) {
+      result.urgency = 'critical';
+      result.urgencyColor = '#ef4444';
+      result.label = 'Vence hoje';
+    } else if (diff <= 1) {
+      result.urgency = 'critical';
+      result.urgencyColor = '#ef4444';
+      result.label = 'Vence amanha';
+    } else if (diff <= 3) {
+      result.urgency = 'critical';
+      result.urgencyColor = '#f59e0b';
+      result.label = `${diff}d restantes`;
+    } else if (diff <= 7) {
+      result.urgency = 'warning';
+      result.urgencyColor = '#f59e0b';
+      result.label = `${diff}d restantes`;
+    } else {
+      result.urgency = 'safe';
+      result.urgencyColor = '#22c55e';
+      result.label = `${diff}d restantes`;
+    }
+
+    return result;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // MONTHLY CLOSING — check if a month is locked
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -550,6 +648,26 @@ const TBO_ERP = {
       }
     }
 
+    // Deadline overdue
+    const deadline = this.getDeadlineInfo(project);
+    if (deadline.hasDeadline && !['finalizado','cancelado'].includes(project.status)) {
+      if (deadline.urgency === 'overdue') {
+        const overdueDays = Math.abs(deadline.daysRemaining);
+        const penalty = Math.min(30, 10 + overdueDays * 2);
+        score -= penalty;
+        reasons.push(`Prazo vencido ha ${overdueDays}d (-${penalty})`);
+      } else if (deadline.daysRemaining <= 3) {
+        score -= 5;
+        reasons.push(`Prazo em ${deadline.daysRemaining}d (-5)`);
+      }
+    }
+
+    // No end_date defined for active project in production+ phases
+    if (!project.end_date && ['producao','revisao','entrega'].includes(project.status)) {
+      score -= 10;
+      reasons.push('Sem prazo definido (-10)');
+    }
+
     // Clamp
     score = Math.max(0, Math.min(100, score));
 
@@ -618,6 +736,30 @@ const TBO_ERP = {
           title: `Projeto em risco (${health.score}/100): ${p.name}`,
           action: health.reasons.join('; ')
         });
+      }
+
+      // Project deadline approaching or overdue
+      const deadline = this.getDeadlineInfo(p);
+      if (deadline.hasDeadline) {
+        if (deadline.urgency === 'overdue') {
+          alerts.push({
+            level: 'critical', icon: '\u23F0', entity: 'project', entityId: p.id,
+            title: `Projeto atrasado ${Math.abs(deadline.daysRemaining)}d: ${p.name}`,
+            action: `Prazo era ${typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.date(p.end_date) : p.end_date}`
+          });
+        } else if (deadline.urgency === 'critical') {
+          alerts.push({
+            level: 'critical', icon: '\u{1F514}', entity: 'project', entityId: p.id,
+            title: `Prazo em ${deadline.daysRemaining}d: ${p.name}`,
+            action: `Entrega prevista para ${typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.date(p.end_date) : p.end_date}`
+          });
+        } else if (deadline.urgency === 'warning') {
+          alerts.push({
+            level: 'warning', icon: '\u{1F4C5}', entity: 'project', entityId: p.id,
+            title: `Prazo em ${deadline.daysRemaining}d: ${p.name}`,
+            action: `Entrega prevista para ${typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.date(p.end_date) : p.end_date}`
+          });
+        }
       }
     });
 

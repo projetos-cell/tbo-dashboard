@@ -41,10 +41,19 @@ const TBO_PROJETOS = {
     const sm = typeof TBO_ERP !== 'undefined' ? TBO_ERP.stateMachines.project : null;
     const team = this._getTeamMembers();
 
+    // Deadline risk count
+    let deadlineRiskCount = 0;
+    if (typeof TBO_ERP !== 'undefined') {
+      active.forEach(p => {
+        const dl = TBO_ERP.getDeadlineInfo(p);
+        if (dl.urgency === 'overdue' || dl.urgency === 'critical') deadlineRiskCount++;
+      });
+    }
+
     return `
       <div class="projetos-module">
         <!-- KPIs -->
-        <div class="grid-5" style="margin-bottom:24px;">
+        <div class="grid-6" style="margin-bottom:24px;">
           <div class="kpi-card">
             <div class="kpi-label">Projetos Ativos</div>
             <div class="kpi-value">${active.length}</div>
@@ -64,6 +73,11 @@ const TBO_PROJETOS = {
           <div class="kpi-card">
             <div class="kpi-label">Em Producao</div>
             <div class="kpi-value">${byStatus['producao'] || 0}</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Risco de Prazo</div>
+            <div class="kpi-value" style="color:${deadlineRiskCount > 0 ? '#ef4444' : '#22c55e'};">${deadlineRiskCount}</div>
+            <div class="kpi-detail">${deadlineRiskCount > 0 ? 'atrasados/criticos' : 'tudo em dia'}</div>
           </div>
         </div>
 
@@ -236,6 +250,7 @@ const TBO_PROJETOS = {
     return `<div class="pipeline-card erp-project-card" draggable="true" data-id="${p.id}" onclick="TBO_PROJETOS._showProjectModal('${p.id}')">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div style="flex:1;min-width:0;">
+          ${p.code ? `<div style="font-size:0.6rem;color:var(--text-muted);font-family:monospace;letter-spacing:0.03em;margin-bottom:1px;">${p.code}</div>` : ''}
           <div style="font-weight:600;font-size:0.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
           <div style="font-size:0.7rem;color:var(--text-muted);">${p.client || ''}</div>
         </div>
@@ -255,6 +270,17 @@ const TBO_PROJETOS = {
         ${p.services.slice(0, 3).map(s => `<span class="deal-service-tag">${s}</span>`).join('')}
         ${p.services.length > 3 ? `<span class="deal-service-tag">+${p.services.length - 3}</span>` : ''}
       </div>` : ''}
+      ${(() => {
+        if (typeof TBO_ERP === 'undefined') return '';
+        const dl = TBO_ERP.getDeadlineInfo(p);
+        if (!dl.hasDeadline || dl.urgency === 'none') return '';
+        return `<div style="display:flex;align-items:center;gap:4px;margin-top:6px;padding-top:6px;border-top:1px solid var(--border-subtle);">
+          <span style="font-size:0.62rem;color:${dl.urgencyColor};font-weight:600;">${dl.label}</span>
+          ${dl.progressPercent !== null ? `<div style="flex:1;height:3px;background:var(--bg-tertiary);border-radius:2px;overflow:hidden;">
+            <div style="width:${dl.progressPercent}%;height:100%;background:${dl.urgencyColor};border-radius:2px;"></div>
+          </div>` : ''}
+        </div>`;
+      })()}
     </div>`;
   },
 
@@ -300,11 +326,13 @@ const TBO_PROJETOS = {
       <!-- Sort controls -->
       <div class="asana-table">
         <div class="asana-table-header">
+          <div class="asana-col asana-col--code" style="width:110px;">Codigo</div>
           <div class="asana-col asana-col--name" data-sort-col="name" onclick="TBO_PROJETOS._toggleListSort('name')">Nome ${sortIcon('name')}</div>
           <div class="asana-col asana-col--status" data-sort-col="status" onclick="TBO_PROJETOS._toggleListSort('status')">Status ${sortIcon('status')}</div>
           <div class="asana-col asana-col--owner" data-sort-col="owner" onclick="TBO_PROJETOS._toggleListSort('owner')">Responsavel ${sortIcon('owner')}</div>
           <div class="asana-col asana-col--health" data-sort-col="health" onclick="TBO_PROJETOS._toggleListSort('health')">Saude ${sortIcon('health')}</div>
           <div class="asana-col asana-col--tasks" data-sort-col="tasks" onclick="TBO_PROJETOS._toggleListSort('tasks')">Tarefas ${sortIcon('tasks')}</div>
+          <div class="asana-col asana-col--deadline" style="width:100px;">Prazo</div>
           <div class="asana-col asana-col--value" data-sort-col="value" onclick="TBO_PROJETOS._toggleListSort('value')">Valor ${sortIcon('value')}</div>
         </div>
         ${filtered.map(p => {
@@ -318,6 +346,7 @@ const TBO_PROJETOS = {
           const ownerInitials = p.owner ? (typeof TBO_PERMISSIONS !== 'undefined' ? TBO_PERMISSIONS.getInitials(p.owner) : p.owner.charAt(0)) : '?';
 
           return `<div class="asana-table-row" onclick="TBO_PROJETOS._showProjectModal('${p.id}')">
+            <div class="asana-col asana-col--code" style="width:110px;font-size:0.72rem;font-family:monospace;color:var(--text-muted);">${p.code || '-'}</div>
             <div class="asana-col asana-col--name">
               <div style="width:8px;height:8px;border-radius:50%;background:${stateColor};flex-shrink:0;"></div>
               <div style="flex:1;min-width:0;">
@@ -345,6 +374,14 @@ const TBO_PROJETOS = {
                 </div>
                 <span style="font-size:0.7rem;color:var(--text-muted);">${doneTasks}/${tasks.length}</span>
               ` : '<span style="font-size:0.7rem;color:var(--text-muted);">-</span>'}
+            </div>
+            <div class="asana-col asana-col--deadline" style="width:100px;">
+              ${(() => {
+                if (typeof TBO_ERP === 'undefined') return '-';
+                const dl = TBO_ERP.getDeadlineInfo(p);
+                if (!dl.hasDeadline) return '<span style="font-size:0.72rem;color:var(--text-muted);">-</span>';
+                return `<span style="font-size:0.72rem;color:${dl.urgencyColor};font-weight:${dl.urgency === 'overdue' || dl.urgency === 'critical' ? '700' : '400'};">${dl.label}</span>`;
+              })()}
             </div>
             <div class="asana-col asana-col--value">
               <span style="font-size:0.78rem;font-weight:600;color:var(--accent-gold);">${p.value ? (typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.currency(p.value) : 'R$' + p.value) : '-'}</span>
@@ -1394,6 +1431,15 @@ const TBO_PROJETOS = {
           ${project.start_date || project.end_date ? `<div style="margin-bottom:16px;">
             <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Periodo</div>
             <div style="font-size:0.78rem;">${project.start_date || '?'} - ${project.end_date || '?'}</div>
+            ${(() => {
+              if (typeof TBO_ERP === 'undefined') return '';
+              const dl = TBO_ERP.getDeadlineInfo(project);
+              if (!dl.hasDeadline) return '';
+              return `<div style="margin-top:4px;padding:4px 8px;background:${dl.urgencyColor}15;border-radius:4px;border-left:3px solid ${dl.urgencyColor};">
+                <div style="font-size:0.72rem;font-weight:600;color:${dl.urgencyColor};">${dl.label}</div>
+                ${dl.progressPercent !== null ? `<div style="height:3px;background:var(--bg-tertiary);border-radius:2px;margin-top:4px;"><div style="width:${dl.progressPercent}%;height:100%;background:${dl.urgencyColor};border-radius:2px;"></div></div>` : ''}
+              </div>`;
+            })()}
           </div>` : ''}
           ${teamOnProject.length > 0 ? `<div style="margin-bottom:16px;">
             <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Equipe (${teamOnProject.length})</div>
@@ -1691,7 +1737,7 @@ const TBO_PROJETOS = {
     modal.innerHTML = `
       <div class="modal modal--lg active" style="max-width:${existing ? '860' : '700'}px;">
         <div class="modal-header">
-          <h3 class="modal-title">${isNew ? 'Novo Projeto' : p.name}</h3>
+          <h3 class="modal-title">${isNew ? 'Novo Projeto' : `${p.code ? '<span style="font-family:monospace;font-size:0.72rem;color:var(--text-muted);font-weight:400;margin-right:8px;">' + p.code + '</span>' : ''}${p.name}`}</h3>
           <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
         </div>
         <div class="modal-body" style="max-height:75vh;overflow-y:auto;">
@@ -1748,6 +1794,16 @@ const TBO_PROJETOS = {
               ${BUS.map(bu => `<label style="display:flex;align-items:center;gap:4px;font-size:0.82rem;cursor:pointer;">
                 <input type="checkbox" value="${bu}" class="pjModalService" ${(p.services || []).includes(bu) ? 'checked' : ''}> ${bu}
               </label>`).join('')}
+            </div>
+          </div>
+          <div class="grid-2" style="gap:12px;margin-top:4px;">
+            <div class="form-group">
+              <label class="form-label">Data de Inicio</label>
+              <input type="date" class="form-input" id="pjModalStartDate" value="${p.start_date || ''}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Prazo Final</label>
+              <input type="date" class="form-input" id="pjModalEndDate" value="${p.end_date || ''}">
             </div>
           </div>
           <div class="grid-2" style="gap:12px;">
@@ -1816,6 +1872,8 @@ const TBO_PROJETOS = {
       value: Number(document.getElementById('pjModalValue')?.value) || 0,
       priority: document.getElementById('pjModalPriority')?.value || 'media',
       services,
+      start_date: document.getElementById('pjModalStartDate')?.value || null,
+      end_date: document.getElementById('pjModalEndDate')?.value || null,
       next_action: document.getElementById('pjModalNextAction')?.value?.trim() || null,
       next_action_date: document.getElementById('pjModalNextDate')?.value || null,
       notes: document.getElementById('pjModalNotes')?.value?.trim() || ''
@@ -1832,6 +1890,7 @@ const TBO_PROJETOS = {
     } else {
       data.status = 'briefing';
       data.source = 'manual';
+      data.code = typeof TBO_ERP !== 'undefined' ? TBO_ERP.generateProjectCode() : null;
       const newProject = TBO_STORAGE.addErpEntity('project', data);
       TBO_ERP.addAuditLog({
         entityType: 'project', entityId: newProject.id,

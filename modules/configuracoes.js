@@ -96,6 +96,7 @@ const TBO_CONFIGURACOES = {
 
           <!-- Status & Info -->
           <div>
+            ${typeof TBO_AUTH !== 'undefined' && TBO_AUTH.getCurrentUser()?.role === 'founder' ? this._renderUserManagement() : ''}
             <div class="card">
               <div class="card-header"><h3 class="card-title">Status do Sistema</h3></div>
 
@@ -173,6 +174,85 @@ const TBO_CONFIGURACOES = {
     `;
   },
 
+  _renderUserManagement() {
+    const roleColors = {
+      founder: '#E85102',
+      project_owner: '#8b5cf6',
+      comercial: '#f59e0b',
+      artist: '#3a7bd5',
+      finance: '#2ecc71'
+    };
+    const roleLabels = {
+      founder: 'Fundador',
+      project_owner: 'Project Owner',
+      comercial: 'Comercial',
+      artist: 'Artista',
+      finance: 'Financeiro'
+    };
+
+    const users = this._users || [];
+    const rows = users.map(u => {
+      const initials = (u.full_name || u.username || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+      const roleBg = roleColors[u.role] || '#6b7280';
+      const roleLabel = roleLabels[u.role] || u.role || 'N/A';
+      const isActive = u.is_active !== false;
+      return `<tr style="border-bottom:1px solid var(--border-subtle);">
+        <td style="padding:10px 8px;">
+          <div style="width:32px;height:32px;border-radius:50%;background:${roleBg};color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;">${initials}</div>
+        </td>
+        <td style="padding:10px 8px;font-size:0.82rem;color:var(--text-primary);font-weight:500;">${u.full_name || '-'}</td>
+        <td style="padding:10px 8px;font-size:0.78rem;color:var(--text-secondary);">${u.username || '-'}</td>
+        <td style="padding:10px 8px;">
+          <span class="tag" style="background:${roleBg}22;color:${roleBg};border:1px solid ${roleBg}44;font-size:0.72rem;">${roleLabel}</span>
+        </td>
+        <td style="padding:10px 8px;font-size:0.78rem;color:var(--text-secondary);">${u.bu || '-'}</td>
+        <td style="padding:10px 8px;text-align:center;">
+          <label class="user-toggle">
+            <input type="checkbox" data-userid="${u.id}" ${isActive ? 'checked' : ''}>
+            <span class="slider"></span>
+          </label>
+        </td>
+        <td style="padding:10px 8px;text-align:center;">
+          <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${isActive ? '#22c55e' : '#ef4444'};"></span>
+        </td>
+      </tr>`;
+    }).join('');
+
+    return `
+      <style>
+        .user-toggle { position:relative; display:inline-block; width:36px; height:20px; }
+        .user-toggle input { opacity:0; width:0; height:0; }
+        .user-toggle .slider { position:absolute; cursor:pointer; inset:0; background:#ccc; border-radius:20px; transition:.3s; }
+        .user-toggle .slider:before { content:''; position:absolute; height:14px; width:14px; left:3px; bottom:3px; background:white; border-radius:50%; transition:.3s; }
+        .user-toggle input:checked + .slider { background:#22c55e; }
+        .user-toggle input:checked + .slider:before { transform:translateX(16px); }
+      </style>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header">
+          <h3 class="card-title">Gestao de Usuarios</h3>
+          <button class="btn btn-secondary" id="cfgReloadUsers" style="font-size:0.72rem;padding:4px 10px;">Recarregar</button>
+        </div>
+        <div id="cfgUserTable" style="overflow-x:auto;">
+          ${users.length > 0 ? `
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="border-bottom:2px solid var(--border-subtle);">
+                <th style="padding:8px;font-size:0.72rem;color:var(--text-tertiary);text-align:left;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;"></th>
+                <th style="padding:8px;font-size:0.72rem;color:var(--text-tertiary);text-align:left;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Nome</th>
+                <th style="padding:8px;font-size:0.72rem;color:var(--text-tertiary);text-align:left;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Username</th>
+                <th style="padding:8px;font-size:0.72rem;color:var(--text-tertiary);text-align:left;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Cargo</th>
+                <th style="padding:8px;font-size:0.72rem;color:var(--text-tertiary);text-align:left;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">BU</th>
+                <th style="padding:8px;font-size:0.72rem;color:var(--text-tertiary);text-align:center;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Ativo</th>
+                <th style="padding:8px;font-size:0.72rem;color:var(--text-tertiary);text-align:center;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Status</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>` : `<div style="padding:20px;text-align:center;font-size:0.82rem;color:var(--text-tertiary);">Carregando usuarios...</div>`}
+        </div>
+      </div>
+    `;
+  },
+
   _renderStatus() {
     const context = TBO_STORAGE.get('context');
     const meetings = TBO_STORAGE.get('meetings');
@@ -200,6 +280,28 @@ const TBO_CONFIGURACOES = {
       </div>
     `).join('');
 
+    // Fireflies API configuration
+    const ffEnabled = typeof TBO_FIREFLIES !== 'undefined' && TBO_FIREFLIES.isEnabled();
+    const ffHasKey = typeof TBO_FIREFLIES !== 'undefined' && !!TBO_FIREFLIES.getApiKey();
+    const ffStatus = typeof TBO_FIREFLIES !== 'undefined' ? TBO_FIREFLIES.getStatus() : null;
+
+    html += `
+      <div style="margin-top:16px; padding-top:12px; border-top:2px solid var(--accent);">
+        <div style="font-size:0.85rem; font-weight:600; margin-bottom:8px; color:var(--accent);">Fireflies.ai — API em Tempo Real</div>
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+          <input type="password" id="cfgFirefliesKey" placeholder="Cole sua API Key do Fireflies..."
+            value="${ffHasKey ? '••••••••••••' : ''}"
+            style="flex:1; padding:6px 10px; border:1px solid var(--border-subtle); border-radius:6px; font-size:0.78rem; background:var(--bg-secondary); color:var(--text-primary);" />
+          <button class="btn btn-primary" id="cfgSaveFFKey" style="font-size:0.75rem; padding:6px 12px;">Salvar</button>
+        </div>
+        <div style="font-size:0.72rem; color:var(--text-tertiary); margin-bottom:10px;">
+          Obtenha sua API Key em <a href="https://app.fireflies.ai/integrations/custom/fireflies" target="_blank" style="color:var(--accent);">app.fireflies.ai/integrations</a> → Developer Settings
+        </div>
+        ${ffStatus && ffStatus.lastSync ? `<div style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:6px;">Ultimo sync: ${new Date(ffStatus.lastSync).toLocaleString('pt-BR')} | ${ffStatus.meetingCount} reunioes</div>` : ''}
+        ${ffStatus && ffStatus.error ? `<div style="font-size:0.75rem; color:var(--danger); margin-bottom:6px;">Erro: ${ffStatus.error}</div>` : ''}
+      </div>
+    `;
+
     // Fireflies details section
     if (meetingsArr.length > 0) {
       const catDist = meta?.category_distribution || {};
@@ -210,13 +312,13 @@ const TBO_CONFIGURACOES = {
       const catLabels = {
         cliente: 'Cliente', daily_socios: 'Daily Socios', alinhamento_interno: 'Interno',
         review_projeto: 'Review', estrategia: 'Estrategia', producao: 'Producao',
-        audio_whatsapp: 'Audio/WhatsApp', outros: 'Outros'
+        audio_whatsapp: 'Audio/WhatsApp', outros: 'Outros', geral: 'Geral'
       };
 
       html += `
-        <div style="margin-top:16px; padding-top:12px; border-top:2px solid var(--accent);">
-          <div style="font-size:0.85rem; font-weight:600; margin-bottom:8px; color:var(--accent);">Fireflies — Detalhes</div>
+        <div style="margin-top:12px; padding-top:8px;">
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:0.78rem; color:var(--text-secondary);">
+            <span>Fonte:</span><span style="color:var(--text-primary);">${ffEnabled ? 'API em tempo real' : 'Arquivo estatico'}</span>
             <span>Conta:</span><span style="color:var(--text-primary);">${meta?.account_email || 'marco@agenciatbo.com.br'}</span>
             <span>Total reunioes:</span><span style="color:var(--text-primary);">${meetingsArr.length}</span>
             <span>Total minutos:</span><span style="color:var(--text-primary);">${totalMin} min</span>
@@ -389,10 +491,69 @@ const TBO_CONFIGURACOES = {
       TBO_MODAL.show('Reunioes Fireflies', `<div style="max-height:400px;overflow-y:auto;">${html}</div>`);
     });
 
-    // Re-sync fireflies
-    this._bind('cfgResyncFF', () => {
-      TBO_TOAST.info('Re-sincronizacao', 'Para re-sincronizar reunioes do Fireflies, re-execute a Fase 3 no Claude Code.');
+    // Save Fireflies API key
+    this._bind('cfgSaveFFKey', () => {
+      const input = document.getElementById('cfgFirefliesKey');
+      if (!input) return;
+      const key = input.value.trim();
+      if (!key || key === '••••••••••••') {
+        TBO_TOAST.warn('API Key', 'Cole sua API Key do Fireflies para ativar a integracao.');
+        return;
+      }
+      if (typeof TBO_FIREFLIES !== 'undefined') {
+        TBO_FIREFLIES.setApiKey(key);
+        input.value = '••••••••••••';
+        TBO_TOAST.success('Fireflies', 'API Key salva! Re-sincronizando...');
+        TBO_FIREFLIES.forceRefresh().then(() => {
+          TBO_STORAGE.loadAll().then(() => {
+            if (typeof TBO_APP !== 'undefined') TBO_APP._updateStatus();
+            TBO_TOAST.success('Fireflies', `${TBO_FIREFLIES.getStatus().meetingCount} reunioes carregadas em tempo real!`);
+          });
+        }).catch(e => {
+          TBO_TOAST.error('Fireflies', `Erro: ${e.message}`);
+        });
+      }
     });
+
+    // Re-sync fireflies
+    this._bind('cfgResyncFF', async () => {
+      if (typeof TBO_FIREFLIES !== 'undefined' && TBO_FIREFLIES.isEnabled()) {
+        TBO_TOAST.info('Fireflies', 'Re-sincronizando reunioes...');
+        try {
+          await TBO_FIREFLIES.forceRefresh();
+          await TBO_STORAGE.loadAll();
+          if (typeof TBO_APP !== 'undefined') TBO_APP._updateStatus();
+          const status = TBO_FIREFLIES.getStatus();
+          TBO_TOAST.success('Fireflies', `${status.meetingCount} reunioes atualizadas!`);
+        } catch (e) {
+          TBO_TOAST.error('Fireflies', `Erro ao sincronizar: ${e.message}`);
+        }
+      } else {
+        TBO_TOAST.info('Fireflies', 'Configure sua API Key acima para ativar a sincronizacao em tempo real.');
+      }
+    });
+
+    // ── User Management bindings ──────────────────────────────────────────
+    if (typeof TBO_AUTH !== 'undefined' && TBO_AUTH.getCurrentUser()?.role === 'founder') {
+      this._loadUsers();
+
+      this._bind('cfgReloadUsers', () => {
+        TBO_TOAST.info('Recarregando', 'Atualizando lista de usuarios...');
+        this._loadUsers();
+      });
+
+      const userTable = document.getElementById('cfgUserTable');
+      if (userTable) {
+        userTable.addEventListener('change', (e) => {
+          const checkbox = e.target.closest('input[type="checkbox"][data-userid]');
+          if (checkbox) {
+            const userId = checkbox.dataset.userid;
+            const isActive = checkbox.checked;
+            this._toggleUserActive(userId, isActive);
+          }
+        });
+      }
+    }
 
     // ── Backup bindings ──────────────────────────────────────────────────
 
@@ -564,6 +725,98 @@ const TBO_CONFIGURACOES = {
       </div>
       ${log.length > 20 ? `<div style="font-size:0.72rem;color:var(--text-tertiary);padding:8px 0;text-align:center;">Mostrando 20 de ${log.length} registros</div>` : ''}
     `;
+  },
+
+  // ── User Management ─────────────────────────────────────────────────────
+
+  async _loadUsers() {
+    try {
+      const { data, error } = await TBO_SUPABASE.getClient()
+        .from('profiles')
+        .select('*')
+        .order('full_name');
+      if (error) throw error;
+      this._users = data || [];
+      const container = document.getElementById('cfgUserTable');
+      if (container) {
+        // Re-render just the table content
+        const roleColors = {
+          founder: '#E85102',
+          project_owner: '#8b5cf6',
+          comercial: '#f59e0b',
+          artist: '#3a7bd5',
+          finance: '#2ecc71'
+        };
+        const roleLabels = {
+          founder: 'Fundador',
+          project_owner: 'Project Owner',
+          comercial: 'Comercial',
+          artist: 'Artista',
+          finance: 'Financeiro'
+        };
+        const rows = this._users.map(u => {
+          const initials = (u.full_name || u.username || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+          const roleBg = roleColors[u.role] || '#6b7280';
+          const roleLabel = roleLabels[u.role] || u.role || 'N/A';
+          const isActive = u.is_active !== false;
+          return `<tr style="border-bottom:1px solid var(--border-subtle);">
+            <td style="padding:10px 8px;">
+              <div style="width:32px;height:32px;border-radius:50%;background:${roleBg};color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;">${initials}</div>
+            </td>
+            <td style="padding:10px 8px;font-size:0.82rem;color:var(--text-primary);font-weight:500;">${u.full_name || '-'}</td>
+            <td style="padding:10px 8px;font-size:0.78rem;color:var(--text-secondary);">${u.username || '-'}</td>
+            <td style="padding:10px 8px;">
+              <span class="tag" style="background:${roleBg}22;color:${roleBg};border:1px solid ${roleBg}44;font-size:0.72rem;">${roleLabel}</span>
+            </td>
+            <td style="padding:10px 8px;font-size:0.78rem;color:var(--text-secondary);">${u.bu || '-'}</td>
+            <td style="padding:10px 8px;text-align:center;">
+              <label class="user-toggle">
+                <input type="checkbox" data-userid="${u.id}" ${isActive ? 'checked' : ''}>
+                <span class="slider"></span>
+              </label>
+            </td>
+            <td style="padding:10px 8px;text-align:center;">
+              <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${isActive ? '#22c55e' : '#ef4444'};"></span>
+            </td>
+          </tr>`;
+        }).join('');
+
+        container.innerHTML = this._users.length > 0 ? `
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="border-bottom:2px solid var(--border-subtle);">
+                <th style="padding:8px;font-size:0.72rem;color:var(--text-tertiary);text-align:left;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;"></th>
+                <th style="padding:8px;font-size:0.72rem;color:var(--text-tertiary);text-align:left;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Nome</th>
+                <th style="padding:8px;font-size:0.72rem;color:var(--text-tertiary);text-align:left;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Username</th>
+                <th style="padding:8px;font-size:0.72rem;color:var(--text-tertiary);text-align:left;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Cargo</th>
+                <th style="padding:8px;font-size:0.72rem;color:var(--text-tertiary);text-align:left;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">BU</th>
+                <th style="padding:8px;font-size:0.72rem;color:var(--text-tertiary);text-align:center;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Ativo</th>
+                <th style="padding:8px;font-size:0.72rem;color:var(--text-tertiary);text-align:center;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Status</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>` : `<div style="padding:20px;text-align:center;font-size:0.82rem;color:var(--text-tertiary);">Nenhum usuario encontrado.</div>`;
+      }
+    } catch (e) {
+      console.error('[TBO_CONFIGURACOES] Erro ao carregar usuarios:', e);
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro', 'Falha ao carregar usuarios: ' + e.message);
+    }
+  },
+
+  async _toggleUserActive(userId, isActive) {
+    try {
+      const { error } = await TBO_SUPABASE.getClient()
+        .from('profiles')
+        .update({ is_active: isActive })
+        .eq('id', userId);
+      if (error) throw error;
+      TBO_TOAST.success('Usuario atualizado', isActive ? 'Usuario ativado com sucesso.' : 'Usuario desativado com sucesso.');
+      await this._loadUsers();
+    } catch (e) {
+      console.error('[TBO_CONFIGURACOES] Erro ao atualizar usuario:', e);
+      TBO_TOAST.error('Erro', 'Falha ao atualizar usuario: ' + e.message);
+      await this._loadUsers();
+    }
   },
 
   // ── Bind helper ─────────────────────────────────────────────────────────

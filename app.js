@@ -551,13 +551,41 @@ const TBO_APP = {
     const ffLabel = document.querySelector('#statusFireflies .status-label');
     const meetingsArr = meetings.meetings || meetings.reunioes_recentes || [];
     const hasMeetings = meetingsArr.length > 0;
+
+    // Check if Fireflies real-time API is active
+    const ffRealtime = typeof TBO_FIREFLIES !== 'undefined' && TBO_FIREFLIES.isEnabled();
     if (ffDot) {
-      ffDot.dataset.status = hasMeetings ? 'connected' : 'stale';
+      if (ffRealtime) {
+        const ffStatus = TBO_FIREFLIES.getStatus();
+        if (ffStatus.syncing) {
+          ffDot.dataset.status = 'stale';
+        } else if (ffStatus.error) {
+          ffDot.dataset.status = 'disconnected';
+        } else if (ffStatus.lastSync) {
+          ffDot.dataset.status = 'connected';
+        } else {
+          ffDot.dataset.status = hasMeetings ? 'connected' : 'stale';
+        }
+      } else {
+        ffDot.dataset.status = hasMeetings ? 'connected' : 'stale';
+      }
     }
-    if (ffLabel && hasMeetings) {
-      const meta = meetings.metadata || meetings._metadata;
-      const dateStr = meta ? new Date(meta.collected_at || meta.generated_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '';
-      ffLabel.textContent = `Sincronizado \u2713 ${dateStr} | ${meetingsArr.length} reunioes`;
+    if (ffLabel) {
+      if (ffRealtime && TBO_FIREFLIES.getStatus().lastSync) {
+        const ffStatus = TBO_FIREFLIES.getStatus();
+        const dateStr = new Date(ffStatus.lastSync).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        ffLabel.textContent = `Sincronizado \u2713 ${dateStr} | ${ffStatus.meetingCount} reunioes`;
+        const badge = document.getElementById('statusFireflies');
+        if (badge) badge.title = `Fireflies API — ${ffStatus.cacheAge || 'sincronizado'}`;
+      } else if (ffRealtime && TBO_FIREFLIES.getStatus().syncing) {
+        ffLabel.textContent = 'Sync...';
+      } else if (ffRealtime && TBO_FIREFLIES.getStatus().error) {
+        ffLabel.textContent = 'Erro API';
+      } else if (hasMeetings) {
+        const meta = meetings.metadata || meetings._metadata;
+        const dateStr = meta ? new Date(meta.collected_at || meta.generated_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '';
+        ffLabel.textContent = `Sincronizado \u2713 ${dateStr} | ${meetingsArr.length} reunioes`;
+      }
     }
 
     const market = TBO_STORAGE.get('market');
@@ -793,8 +821,9 @@ const TBO_APP = {
     TBO_TOAST.info('Atualizando', 'Carregando dados atualizados...');
 
     try {
-      // Clear Sheets cache to force fresh fetch
+      // Clear caches to force fresh fetch
       if (typeof TBO_SHEETS !== 'undefined') { TBO_SHEETS._cache = {}; }
+      if (typeof TBO_FIREFLIES !== 'undefined') { TBO_FIREFLIES._cache = null; TBO_FIREFLIES._cacheTime = null; }
       await TBO_STORAGE.loadAll();
       this._updateStatus();
       this._updateFreshness();

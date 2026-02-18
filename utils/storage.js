@@ -52,6 +52,9 @@ const TBO_STORAGE = {
     // 5. Load financial data from Google Sheets (overrides static JSON)
     await this._loadFromGoogleSheets();
 
+    // 6. Load meeting data from Fireflies API (overrides static JSON)
+    await this._loadFromFireflies();
+
     return this._data;
   },
 
@@ -113,6 +116,20 @@ const TBO_STORAGE = {
     }
   },
 
+  async _loadFromFireflies() {
+    if (typeof TBO_FIREFLIES === 'undefined' || !TBO_FIREFLIES.isEnabled()) return;
+    try {
+      const ffData = await TBO_FIREFLIES.sync();
+      if (!ffData || !ffData.meetings || ffData.meetings.length === 0) return;
+
+      // Replace meetings data entirely (Fireflies is source of truth when available)
+      this._data.meetings = ffData;
+      console.log(`[TBO Storage] Meetings loaded from Fireflies API: ${ffData.meetings.length} meetings`);
+    } catch (e) {
+      console.warn('[TBO Storage] Fireflies load failed, using static data:', e.message);
+    }
+  },
+
   async _warmErpCache() {
     const entityTypes = ['project', 'task', 'deliverable', 'proposal', 'decision', 'meeting_erp', 'time_entry'];
 
@@ -164,25 +181,35 @@ const TBO_STORAGE = {
     if (row.updated_at) { entity.updatedAt = row.updated_at; delete entity.updated_at; }
 
     // Entity-specific mappings
+    // owner = display name (owner_name), owner_id = UUID reference
     if (entityType === 'project') {
-      if (row.owner_id) { entity.owner = row.owner_id; delete entity.owner_id; }
+      if (row.owner_name) { entity.owner = row.owner_name; }
+      else if (row.owner_id) { entity.owner = row.owner_id; }
+      // Keep owner_id as UUID reference for Supabase writes
+      if (row.owner_id) { entity.owner_id = row.owner_id; }
       if (row.next_action_date !== undefined) { entity.next_action_date = row.next_action_date; }
       if (row.planned_cost !== undefined) { entity.planned_cost = row.planned_cost; }
       if (row.playbook_name !== undefined) { entity.playbook_name = row.playbook_name; }
     }
     if (entityType === 'task') {
-      if (row.owner_id) { entity.owner = row.owner_id; delete entity.owner_id; }
+      if (row.owner_name) { entity.owner = row.owner_name; }
+      else if (row.owner_id) { entity.owner = row.owner_id; }
+      if (row.owner_id) { entity.owner_id = row.owner_id; }
       if (row.project_id) { entity.project_id = row.project_id; }
       if (row.due_date !== undefined) { entity.due_date = row.due_date; }
       if (row.estimate_minutes !== undefined) { entity.estimate_minutes = row.estimate_minutes; }
     }
     if (entityType === 'deliverable') {
-      if (row.owner_id) { entity.owner = row.owner_id; delete entity.owner_id; }
+      if (row.owner_name) { entity.owner = row.owner_name; }
+      else if (row.owner_id) { entity.owner = row.owner_id; }
+      if (row.owner_id) { entity.owner_id = row.owner_id; }
       if (row.project_id) { entity.project_id = row.project_id; }
       if (row.current_version !== undefined) { entity.current_version = row.current_version; }
     }
     if (entityType === 'proposal') {
-      if (row.owner_id) { entity.owner = row.owner_id; delete entity.owner_id; }
+      if (row.owner_name) { entity.owner = row.owner_name; }
+      else if (row.owner_id) { entity.owner = row.owner_id; }
+      if (row.owner_id) { entity.owner_id = row.owner_id; }
     }
     if (entityType === 'time_entry') {
       if (row.user_id) { entity.user_id = row.user_id; }
@@ -208,6 +235,10 @@ const TBO_STORAGE = {
       if (skip.includes(key)) return;
       // Map known camelCase → snake_case
       if (key === 'owner' && entityType !== 'meeting_erp') {
+        // 'owner' holds display name → goes to owner_name column
+        row.owner_name = val || null;
+      } else if (key === 'owner_id') {
+        // owner_id is already the UUID → goes to owner_id column
         row.owner_id = val || null;
       } else if (key === 'project_name') {
         // project_name is derived, skip for DB

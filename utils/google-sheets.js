@@ -250,9 +250,9 @@ const TBO_SHEETS = {
     const saldo_caixa_entry = labelMap['Saldo de Caixa'];
     const saldo_caixa_projetado = saldo_caixa_entry ? this._parseValue(saldo_caixa_entry.row[12]) : resultado_total;
 
-    // ── Determine meses realizados (auto-detect from Receita Líquida row) ──
-    // Months with non-round receita values (not exactly 120000) in early months are likely realized
-    const meses_realizados = this._detectMesesRealizados(receita_mensal);
+    // ── Determine meses realizados ──
+    // Priority: 1) localStorage override, 2) existing static JSON value, 3) auto-detect fallback
+    const meses_realizados = this._getMesesRealizados(receita_mensal);
     const meses_projetados = meses.filter(m => !meses_realizados.includes(m));
 
     return {
@@ -344,41 +344,26 @@ const TBO_SHEETS = {
     return itens;
   },
 
-  // ── Auto-detect realized months ──
-  // Heuristic: months where receita differs from the "projetado" pattern (all same value)
-  _detectMesesRealizados(receita_mensal) {
-    const meses = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-    const values = meses.map(m => receita_mensal[m] || 0);
-
-    // Find the most common value (projected months all share the same value)
-    const freq = {};
-    values.forEach(v => { freq[v] = (freq[v] || 0) + 1; });
-    let projectedValue = 0;
-    let maxFreq = 0;
-    Object.entries(freq).forEach(([v, f]) => {
-      if (f > maxFreq) { maxFreq = f; projectedValue = parseFloat(v); }
-    });
-
-    // Also check localStorage override
+  // ── Get meses realizados ──
+  // Uses: 1) localStorage override, 2) existing static JSON, 3) safe default
+  _getMesesRealizados(receita_mensal) {
+    // 1. Check localStorage override (set by user or Configuracoes module)
     const override = localStorage.getItem('tbo_sheets_meses_realizados');
     if (override) {
       try { return JSON.parse(override); } catch (e) { /* ignore */ }
     }
 
-    // Months where value differs from the most frequent (projected) value are realized
-    // Only count consecutive months from the start
-    const realizados = [];
-    for (let i = 0; i < meses.length; i++) {
-      const v = values[i];
-      if (v !== projectedValue && v > 0) {
-        realizados.push(meses[i]);
-      } else if (realizados.length > 0) {
-        // Stop at first projected month
-        break;
+    // 2. Check existing static JSON data (from context-data.json loaded before Sheets)
+    if (typeof TBO_STORAGE !== 'undefined') {
+      const ctx = TBO_STORAGE._data?.context || {};
+      const existingFC = ctx.dados_comerciais?.['2026']?.fluxo_caixa;
+      if (existingFC && existingFC.meses_realizados && existingFC._source !== 'google_sheets') {
+        return existingFC.meses_realizados;
       }
     }
 
-    return realizados.length > 0 ? realizados : ['jan', 'fev']; // Safe fallback
+    // 3. Safe fallback — default to jan/fev (known realized from context-data.json)
+    return ['jan', 'fev'];
   },
 
   // ═══════════════════════════════════════════════════════════════════════════

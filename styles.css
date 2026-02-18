@@ -1374,6 +1374,7 @@ body.dark-mode .theme-icon-dark { display: flex; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
+.grid-6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
 
 .grid-auto-fill {
   display: grid;
@@ -6530,11 +6531,13 @@ body .tab-btn {
 @media (max-width: 1200px) {
   .grid-4 { grid-template-columns: repeat(2, 1fr); }
   .grid-5 { grid-template-columns: repeat(3, 1fr); }
+  .grid-6 { grid-template-columns: repeat(3, 1fr); }
 }
 
 @media (max-width: 1024px) {
   .grid-3 { grid-template-columns: repeat(2, 1fr); }
   .grid-5 { grid-template-columns: repeat(2, 1fr); }
+  .grid-6 { grid-template-columns: repeat(2, 1fr); }
   .main-content { padding: 20px; }
   .stat-list { gap: 24px; }
   .cc-layout { grid-template-columns: 1fr; }

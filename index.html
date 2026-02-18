@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="TBO OS - Sistema operacional do estudio TBO Arquitetura & Visualizacao">
+  <title>TBO OS - Painel de Comando</title>
+
+  <!-- Typography: Helvetica Neue LT Pro (local brand font) -->
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+
+  <!-- Leaflet Map Library -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+
+  <!-- Lucide Icons (stroke/outline, consistent style) -->
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js"></script>
+
+  <!-- Supabase Client (PostgreSQL backend) -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Accessibility: Skip link -->
+  <a href="#main-content" class="skip-link">Pular para conteudo</a>
+
+  <!-- Accessibility: ARIA live region for dynamic announcements -->
+  <div id="ariaLiveRegion" class="aria-live-region" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- SIDEBAR NAVIGATION                                      -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <aside id="sidebar" class="sidebar" role="complementary" aria-label="Barra lateral">
+    <!-- Brand — click to return to Dashboard -->
+    <a href="#command-center" class="sidebar-brand" id="brandLink" title="Voltar ao Dashboard">
+      <img class="brand-logo-svg" src="assets/logo-dark.svg" alt="TBO - think. build. own" draggable="false">
+      <span class="brand-label">Operating System</span>
+    </a>
+
+    <!-- Navigation Modules (generated dynamically by app.js from permissions._sections) -->
+    <nav class="sidebar-nav" id="sidebarNav">
+      <!-- Populated by TBO_APP._renderSidebar() after login -->
+    </nav>
+
+    <!-- Sidebar User Widget (populated by auth.js) -->
+    <div class="sidebar-user" id="sidebarUserWidget"></div>
+
+    <!-- Social Links -->
+    <div class="sidebar-social">
+      <a href="https://www.instagram.com/tbo.arq/" target="_blank" rel="noopener noreferrer" title="Instagram" class="sidebar-social-link">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5"/></svg>
+      </a>
+      <a href="https://www.linkedin.com/company/tbo-studio/" target="_blank" rel="noopener noreferrer" title="LinkedIn" class="sidebar-social-link">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+      </a>
+      <a href="https://www.behance.net/tbo_studio" target="_blank" rel="noopener noreferrer" title="Behance" class="sidebar-social-link">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12.5C1 12.5 3 5 8.5 5c3 0 4 2 4 4s-2 4-4 4H1zM13 12.5c0 0 2-7 7-7 3 0 4 2 4 4s-2 4-4 4h-7z"/></svg>
+      </a>
+      <a href="https://agenciatbo.com.br" target="_blank" rel="noopener noreferrer" title="Website" class="sidebar-social-link">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      </a>
+    </div>
+
+    <!-- Sidebar Footer -->
+    <div class="sidebar-footer">
+      <div class="sidebar-version" id="sidebarVersion">v2.0.0</div>
+      <button class="sidebar-collapse-btn" id="sidebarToggle" title="Recolher menu" aria-label="Recolher barra lateral">
+        <i data-lucide="chevron-left" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <!-- Sidebar Resize Handle -->
+    <div class="sidebar-resize-handle" id="sidebarResizeHandle" title="Arrastar para redimensionar"></div>
+  </aside>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- MAIN LAYOUT                                             -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="app-container" class="app-container">
+
+    <!-- ─────────────────────────────────────────────────── -->
+    <!-- HEADER                                                -->
+    <!-- ─────────────────────────────────────────────────── -->
+    <header id="app-header" class="app-header" role="banner">
+      <div class="header-left">
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Abrir menu" aria-expanded="false">
+          <i data-lucide="menu" aria-hidden="true"></i>
+        </button>
+        <h1 class="header-title" id="headerTitle">Dashboard</h1>
+        <span class="header-breadcrumb" id="headerBreadcrumb"></span>
+      </div>
+
+      <div class="header-right">
+        <!-- Status Indicators -->
+        <div class="status-indicators" role="status" aria-label="Status dos servicos">
+          <div class="status-badge" id="statusDrive" title="Google Drive">
+            <span class="status-dot" data-status="disconnected"></span>
+            <span class="status-label">Drive</span>
+          </div>
+          <div class="status-badge" id="statusFireflies" title="Fireflies.ai">
+            <span class="status-dot" data-status="disconnected"></span>
+            <span class="status-label">Fireflies</span>
+          </div>
+          <div class="status-badge" id="statusMarket" title="Dados de mercado">
+            <span class="status-dot" data-status="stale"></span>
+            <span class="status-label">Mercado</span>
+          </div>
+          <div class="status-badge" id="statusAPI" title="Chave de API">
+            <span class="status-dot" data-status="disconnected"></span>
+            <span class="status-label">API</span>
+          </div>
+        </div>
+
+        <!-- Data Freshness -->
+        <div class="header-freshness" id="dataFreshness" title="Ultima atualizacao dos dados">
+          <i data-lucide="clock" class="freshness-icon" aria-hidden="true"></i>
+          <span class="freshness-text">--</span>
+        </div>
+
+        <!-- Quick Actions -->
+        <button class="header-action-btn" id="refreshBtn" title="Atualizar dados" aria-label="Atualizar dados">
+          <i data-lucide="refresh-cw" aria-hidden="true"></i>
+        </button>
+        <button class="header-action-btn" id="searchBtn" title="Busca rapida" aria-label="Abrir busca rapida">
+          <i data-lucide="search" aria-hidden="true"></i>
+        </button>
+
+        <!-- User Menu (populated dynamically by auth.js) -->
+        <div class="user-menu" id="userMenu"></div>
+      </div>
+    </header>
+
+    <!-- ─────────────────────────────────────────────────── -->
+    <!-- MAIN CONTENT AREA                                     -->
+    <!-- ─────────────────────────────────────────────────── -->
+    <main id="main-content" class="main-content" aria-live="polite">
+      <!-- Module content loads here dynamically -->
+      <div class="module-loading" id="moduleLoading">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Carregando modulo...</p>
+      </div>
+
+      <div class="module-container" id="moduleContainer">
+        <!-- Active module renders here -->
+      </div>
+
+      <!-- Empty state / Welcome -->
+      <div class="module-empty" id="moduleEmpty" style="display:none;">
+        <div class="empty-illustration" aria-hidden="true">&#x1F3DB;&#xFE0F;</div>
+        <h2 class="empty-title">Bem-vindo ao TBO OS</h2>
+        <p class="empty-description">
+          Selecione um modulo na barra lateral para comecar.
+          <br>
+          Use <kbd>Alt+1</kbd> a <kbd>Alt+8</kbd> para navegar rapidamente.
+        </p>
+      </div>
+    </main>
+
+    <!-- ─────────────────────────────────────────────────── -->
+    <!-- SEARCH MODAL (Quick Command Palette)                  -->
+    <!-- ─────────────────────────────────────────────────── -->
+    <div class="search-overlay" id="searchOverlay" role="dialog" aria-modal="true" aria-label="Busca rapida" hidden>
+      <div class="search-modal">
+        <div class="search-input-wrapper">
+          <i data-lucide="search" class="search-input-icon" aria-hidden="true"></i>
+          <input
+            type="text"
+            id="searchInput"
+            class="search-input"
+            placeholder="Buscar modulos, projetos, clientes..."
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <kbd class="search-dismiss-hint">Esc</kbd>
+        </div>
+        <div class="search-filters" id="searchFilters">
+          <button class="search-filter-chip active" data-filter="all">Tudo</button>
+          <button class="search-filter-chip" data-filter="projeto_ativo">Projetos</button>
+          <button class="search-filter-chip" data-filter="cliente">Clientes</button>
+          <button class="search-filter-chip" data-filter="reuniao">Reunioes</button>
+          <button class="search-filter-chip" data-filter="modulo">Modulos</button>
+        </div>
+        <div class="search-results" id="searchResults">
+          <div class="search-hint">
+            Digite para buscar ou use atalhos:
+            <span class="search-hint-item"><kbd>Alt+1..8</kbd> Modulos</span>
+            <span class="search-hint-item"><kbd>Alt+R</kbd> Atualizar</span>
+            <span class="search-hint-item"><kbd>Alt+B</kbd> Barra lateral</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────────────── -->
+    <!-- TOAST / NOTIFICATION AREA                             -->
+    <!-- ─────────────────────────────────────────────────── -->
+    <div class="toast-container" id="toastContainer" role="log" aria-live="assertive" aria-label="Notificacoes"></div>
+
+    <!-- TIMER WIDGET (Global floating)                         -->
+    <!-- ─────────────────────────────────────────────────── -->
+    <div id="timerWidget" class="timer-widget" style="display:none;">
+      <div class="timer-widget-inner">
+        <div class="timer-info">
+          <span class="timer-project" id="twProject"></span>
+          <span class="timer-task" id="twTask"></span>
+        </div>
+        <div class="timer-clock" id="twClock">00:00:00</div>
+        <button class="btn btn-sm" id="twStopBtn" title="Parar timer">Parar</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- LOGIN SCREEN                                            -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-card">
+      <img class="login-logo" src="assets/logo-dark.svg" alt="TBO" draggable="false">
+      <h2 class="login-title">TBO OS</h2>
+      <p class="login-subtitle">Sistema Operacional do Studio TBO</p>
+
+      <!-- Google OAuth -->
+      <button class="btn login-google-btn" id="loginGoogleBtn">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 2.58 9 2.58z" fill="#EA4335"/></svg>
+        Entrar com Google
+      </button>
+
+      <!-- Divider -->
+      <div class="login-divider">
+        <div class="login-divider-line"></div>
+        <span class="login-divider-text">ou</span>
+        <div class="login-divider-line"></div>
+      </div>
+
+      <!-- Email login -->
+      <div class="form-group">
+        <label class="form-label" for="loginEmail">Email</label>
+        <input type="email" class="form-input" id="loginEmail" placeholder="seu@agenciatbo.com.br" autocomplete="email">
+      </div>
+
+      <!-- Legacy user select (hidden by default, shown if email fails) -->
+      <details class="login-legacy-details">
+        <summary class="login-legacy-summary">Login por usuario (legado)</summary>
+        <div class="form-group login-legacy-group">
+          <select class="form-input" id="loginUser">
+            <option value="">Selecione...</option>
+            <optgroup label="Diretoria">
+              <option value="marco">Marco Andolfato</option>
+              <option value="ruy">Ruy Lima</option>
+            </optgroup>
+            <optgroup label="Coordenacao & POs">
+              <option value="carol">Carol</option>
+              <option value="nelson">Nelson</option>
+              <option value="nath">Nathalia</option>
+              <option value="rafa">Rafa</option>
+              <option value="dann">Danniel</option>
+            </optgroup>
+            <optgroup label="Comercial">
+              <option value="gustavo">Gustavo</option>
+            </optgroup>
+            <optgroup label="Time">
+              <option value="celso">Celso</option>
+              <option value="erick">Erick</option>
+              <option value="duda">Duda</option>
+              <option value="tiago">Tiago M.</option>
+              <option value="mari">Mariane</option>
+              <option value="lucca">Lucca</option>
+            </optgroup>
+            <optgroup label="Financeiro">
+              <option value="financaazul">Financa Azul</option>
+            </optgroup>
+          </select>
+        </div>
+      </details>
+
+      <div class="form-group">
+        <label class="form-label" for="loginPass">Senha</label>
+        <input type="password" class="form-input" id="loginPass" placeholder="Digite sua senha" autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary login-submit-btn" id="loginBtn">Entrar</button>
+      <p class="login-error" id="loginError"></p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- SCRIPTS                                                 -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+
+  <!-- Configuration (API keys, endpoints, feature flags) -->
+  <script src="config.js"></script>
+
+  <!-- Crypto & Backup Utilities (must load before auth) -->
+  <script src="utils/crypto.js"></script>
+  <script src="utils/backup.js"></script>
+
+  <!-- Supabase Wrapper (must load after CDN, before storage) -->
+  <script src="utils/supabase.js"></script>
+
+  <!-- Utility Libraries -->
+  <script src="utils/api.js"></script>
+  <script src="utils/storage.js"></script>
+  <script src="utils/formatter.js"></script>
+  <script src="utils/toast.js"></script>
+  <script src="utils/router.js"></script>
+  <script src="utils/shortcuts.js"></script>
+  <script src="utils/search.js"></script>
+  <script src="utils/ux.js"></script>
+  <script src="utils/notifications.js"></script>
+
+  <!-- Permissions & RBAC -->
+  <script src="utils/permissions.js"></script>
+
+  <!-- Auth System -->
+  <script src="utils/auth.js"></script>
+
+  <!-- ERP Core Engine -->
+  <script src="utils/erp-core.js"></script>
+
+  <!-- Workload Engine (Timer, Timesheet, Capacity, Cost) -->
+  <script src="utils/workload.js"></script>
+
+  <!-- Module Scripts -->
+  <script src="modules/placeholder.js"></script>
+  <script src="modules/timeline.js"></script>
+  <script src="modules/alerts.js"></script>
+  <script src="modules/pipeline.js"></script>
+  <script src="modules/clientes.js"></script>
+  <script src="data/contratos-data.js"></script>
+  <script src="modules/contratos.js"></script>
+  <script src="modules/inteligencia.js"></script>
+  <script src="data/cultura-data.js"></script>
+  <script src="modules/cultura.js"></script>
+  <script src="modules/command-center.js"></script>
+  <script src="modules/conteudo.js"></script>
+  <script src="modules/comercial.js"></script>
+  <script src="modules/projetos.js"></script>
+  <script src="modules/mercado.js"></script>
+  <script src="modules/reunioes.js"></script>
+  <script src="modules/financeiro.js"></script>
+  <script src="modules/rh.js"></script>
+  <script src="modules/configuracoes.js"></script>
+  <script src="modules/changelog.js"></script>
+  <script src="modules/tarefas.js"></script>
+  <script src="modules/entregas.js"></script>
+  <script src="modules/revisoes.js"></script>
+  <script src="modules/decisoes.js"></script>
+  <script src="modules/timesheets.js"></script>
+  <script src="modules/carga-trabalho.js"></script>
+  <script src="modules/pagar.js"></script>
+  <script src="modules/receber.js"></script>
+  <script src="modules/margens.js"></script>
+  <script src="modules/conciliacao.js"></script>
+  <script src="modules/templates.js"></script>
+  <script src="modules/biblioteca.js"></script>
+  <script src="modules/capacidade.js"></script>
+  <script src="modules/permissoes-config.js"></script>
+  <script src="modules/integracoes.js"></script>
+  <script src="modules/trilha-aprendizagem.js"></script>
+  <script src="modules/pessoas-avancado.js"></script>
+  <script src="modules/portal-cliente.js"></script>
+
+  <!-- Enhancement Modules (100 improvements - v2.2.0) -->
+  <script src="utils/design-system.js"></script>
+  <script src="utils/ux-enhancements.js"></script>
+  <script src="utils/business-intelligence.js"></script>
+  <script src="utils/project-enhancements.js"></script>
+  <script src="utils/financial-enhancements.js"></script>
+  <script src="utils/people-enhancements.js"></script>
+  <script src="utils/analytics-enhancements.js"></script>
+  <script src="utils/navigation-enhancements.js"></script>
+  <script src="utils/integrations-enhancements.js"></script>
+  <script src="utils/performance-enhancements.js"></script>
+
+  <!-- Main Application Entry Point -->
+  <script src="app.js"></script>
+
+</body>
+</html>

@@ -764,23 +764,22 @@ const TBO_CONFIGURACOES = {
         .order('full_name');
       if (error) throw error;
       this._users = data || [];
+      const roleColors = {
+        founder: '#E85102',
+        project_owner: '#8b5cf6',
+        comercial: '#f59e0b',
+        artist: '#3a7bd5',
+        finance: '#2ecc71'
+      };
+      const roleLabels = {
+        founder: 'Fundador',
+        project_owner: 'Project Owner',
+        comercial: 'Comercial',
+        artist: 'Artista',
+        finance: 'Financeiro'
+      };
       const container = document.getElementById('cfgUserTable');
       if (container) {
-        // Re-render just the table content
-        const roleColors = {
-          founder: '#E85102',
-          project_owner: '#8b5cf6',
-          comercial: '#f59e0b',
-          artist: '#3a7bd5',
-          finance: '#2ecc71'
-        };
-        const roleLabels = {
-          founder: 'Fundador',
-          project_owner: 'Project Owner',
-          comercial: 'Comercial',
-          artist: 'Artista',
-          finance: 'Financeiro'
-        };
         const rows = this._users.map(u => {
           const initials = (u.full_name || u.username || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
           const roleBg = roleColors[u.role] || '#6b7280';
@@ -823,6 +822,26 @@ const TBO_CONFIGURACOES = {
             </thead>
             <tbody>${rows}</tbody>
           </table>` : `<div style="padding:20px;text-align:center;font-size:0.82rem;color:var(--text-tertiary);">Nenhum usuario encontrado.</div>`;
+      }
+
+      // Update summary badges
+      const summaryEl = document.getElementById('cfgUserSummary');
+      if (summaryEl) {
+        const total = this._users.length;
+        const active = this._users.filter(u => u.is_active !== false).length;
+        const inactive = total - active;
+        const roleCounts = {};
+        this._users.forEach(u => { roleCounts[u.role] = (roleCounts[u.role] || 0) + 1; });
+        let badges = '';
+        badges += '<span style="font-size:0.72rem;padding:4px 10px;border-radius:12px;background:var(--bg-tertiary);color:var(--text-primary);font-weight:600;">' + total + ' total</span>';
+        badges += '<span style="font-size:0.72rem;padding:4px 10px;border-radius:12px;background:#22c55e22;color:#22c55e;font-weight:600;">' + active + ' ativos</span>';
+        badges += '<span style="font-size:0.72rem;padding:4px 10px;border-radius:12px;background:#ef444422;color:#ef4444;font-weight:600;">' + inactive + ' inativos</span>';
+        Object.entries(roleCounts).forEach(([role, count]) => {
+          const color = roleColors[role] || '#6b7280';
+          const label = roleLabels[role] || role;
+          badges += '<span style="font-size:0.72rem;padding:4px 10px;border-radius:12px;background:' + color + '18;color:' + color + ';font-weight:500;">' + count + ' ' + label + '</span>';
+        });
+        summaryEl.innerHTML = badges;
       }
     } catch (e) {
       console.error('[TBO_CONFIGURACOES] Erro ao carregar usuarios:', e);

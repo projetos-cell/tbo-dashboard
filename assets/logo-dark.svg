@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Camada_2" data-name="Camada 2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 367.82 143.27">
+  <defs>
+    <style>
+      .cls-1 {
+        font-family: MounstaRegular, Mounsta;
+        font-size: 133.15px;
+      }
+
+      .cls-1, .cls-2 {
+        fill: #eaeaea;
+      }
+
+      .cls-3 {
+        fill: url(#Gradiente_sem_nome_10);
+      }
+    </style>
+    <linearGradient id="Gradiente_sem_nome_10" data-name="Gradiente sem nome 10" x1="26.8" y1="58.18" x2="81.91" y2="58.18" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#e85102"/>
+      <stop offset="1" stop-color="#ec7602"/>
+    </linearGradient>
+  </defs>
+  <g id="Camada_1-2" data-name="Camada 1">
+    <g>
+      <text class="cls-1" transform="translate(113.24 113.18)"><tspan x="0" y="0">tbo</tspan></text>
+      <g>
+        <circle class="cls-2" cx="65.16" cy="97.84" r="14.16"/>
+        <circle class="cls-2" cx="15.87" cy="46.43" r="14.16"/>
+        <circle class="cls-2" cx="14.16" cy="98.48" r="14.16"/>
+        <path class="cls-3" d="M55.01,73.86s0-.3.04-.75c.02-.14.03-.27.04-.41.22-1.95-1.02-8.08,2.27-11.37,2.33-2.33,5.52-3.11,8.75-2.66,1.93.27,3.91.21,5.78-.36,2.15-.65,4.17-1.82,5.87-3.52,5.53-5.53,5.53-14.5,0-20.03-5.53-5.53-14.5-5.53-20.03,0-1.7,1.7-2.87,3.72-3.52,5.87-.57,1.87-.63,3.84-.36,5.78.45,3.23-.32,6.42-2.66,8.75-3.29,3.29-9.42,2.06-11.37,2.27-.14.01-.27.02-.41.04-.45.04-.75.04-.75.04l.06.06c-3.78.61-7.37,2.73-9.75,6.44-2.94,4.58-2.91,10.67.09,15.21.57.87,1.22,1.63,1.91,2.33.69.69,1.46,1.34,2.33,1.91,4.54,3,10.63,3.03,15.21.09,3.7-2.37,5.83-5.96,6.44-9.75l.06.06Z"/>
+      </g>
+    </g>
+  </g>
+</svg>

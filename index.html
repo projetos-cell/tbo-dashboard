@@ -114,6 +114,10 @@
             <span class="status-dot" data-status="disconnected"></span>
             <span class="status-label">API</span>
           </div>
+          <div class="status-badge" id="statusSheets" title="Google Sheets (Financeiro)" style="cursor:pointer;" onclick="TBO_SHEETS.forceRefresh && TBO_SHEETS.forceRefresh().then(() => location.reload())">
+            <span class="status-dot" data-status="disconnected"></span>
+            <span class="status-label">Sheets</span>
+          </div>
         </div>
 
         <!-- Data Freshness -->
@@ -301,6 +305,9 @@
 
   <!-- Supabase Wrapper (must load after CDN, before storage) -->
   <script src="utils/supabase.js"></script>
+
+  <!-- Google Sheets Integration (live financial data) -->
+  <script src="utils/google-sheets.js"></script>
 
   <!-- Utility Libraries -->
   <script src="utils/api.js"></script>

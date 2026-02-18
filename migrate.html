@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TBO OS - Migracao para Supabase</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#0d1117; color:#e6edf3; padding:40px; }
+    h1 { font-size:1.6rem; margin-bottom:8px; }
+    .subtitle { color:#8b949e; margin-bottom:32px; }
+    .card { background:#161b22; border:1px solid #30363d; border-radius:8px; padding:20px; margin-bottom:16px; }
+    .card h3 { margin-bottom:12px; font-size:1rem; }
+    .btn { padding:10px 20px; border-radius:6px; border:none; cursor:pointer; font-size:0.85rem; font-weight:600; margin-right:8px; margin-bottom:8px; }
+    .btn-primary { background:#2563eb; color:white; }
+    .btn-primary:hover { background:#1d4ed8; }
+    .btn-danger { background:#dc2626; color:white; }
+    .btn-success { background:#16a34a; color:white; }
+    .btn:disabled { opacity:0.5; cursor:not-allowed; }
+    .log { background:#0d1117; border:1px solid #30363d; border-radius:6px; padding:12px; margin-top:12px; max-height:400px; overflow-y:auto; font-family:monospace; font-size:0.78rem; line-height:1.6; }
+    .log-ok { color:#22c55e; }
+    .log-warn { color:#f59e0b; }
+    .log-err { color:#ef4444; }
+    .log-info { color:#60a5fa; }
+    .stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:12px; margin:16px 0; }
+    .stat { background:#1c2128; border-radius:6px; padding:12px; text-align:center; }
+    .stat-val { font-size:1.4rem; font-weight:700; color:#60a5fa; }
+    .stat-label { font-size:0.72rem; color:#8b949e; margin-top:4px; }
+    .progress { background:#30363d; border-radius:4px; height:8px; overflow:hidden; margin:8px 0; }
+    .progress-bar { background:linear-gradient(90deg,#2563eb,#22c55e); height:100%; transition:width 0.3s; border-radius:4px; }
+    .warning { background:#f59e0b20; border:1px solid #f59e0b; border-radius:6px; padding:12px; margin-bottom:16px; font-size:0.82rem; }
+  </style>
+</head>
+<body>
+
+<h1>TBO OS - Migracao para Supabase</h1>
+<p class="subtitle">Migra dados do localStorage para o banco Supabase PostgreSQL. Executar apenas uma vez.</p>
+
+<div class="warning">
+  <strong>Atencao:</strong> Execute o SQL schema (<code>supabase-schema.sql</code>) no Supabase SQL Editor ANTES de iniciar a migracao.
+  Voce precisa estar logado no Supabase (autenticado) para que a migracao funcione.
+</div>
+
+<!-- Step 1: Analyze -->
+<div class="card">
+  <h3>1. Analisar dados locais</h3>
+  <p style="font-size:0.82rem;color:#8b949e;margin-bottom:12px;">Verifica o que existe no localStorage e quantifica.</p>
+  <button class="btn btn-primary" onclick="analyzeLocal()">Analisar localStorage</button>
+  <div class="stats" id="stats" style="display:none;"></div>
+  <div class="log" id="log-analyze" style="display:none;"></div>
+</div>
+
+<!-- Step 2: Test Connection -->
+<div class="card">
+  <h3>2. Testar conexao com Supabase</h3>
+  <button class="btn btn-primary" onclick="testConnection()">Testar Conexao</button>
+  <div class="log" id="log-connection" style="display:none;"></div>
+</div>
+
+<!-- Step 3: Migrate -->
+<div class="card">
+  <h3>3. Migrar dados</h3>
+  <p style="font-size:0.82rem;color:#8b949e;margin-bottom:12px;">Insere todos os dados do localStorage no Supabase. Entidades existentes (por legacy_id) sao ignoradas.</p>
+  <button class="btn btn-success" id="btn-migrate" onclick="startMigration()" disabled>Iniciar Migracao</button>
+  <div class="progress" id="progress" style="display:none;"><div class="progress-bar" id="progress-bar" style="width:0%;"></div></div>
+  <div class="log" id="log-migrate" style="display:none;"></div>
+</div>
+
+<!-- Step 4: Migrate Context -->
+<div class="card">
+  <h3>4. Migrar context-data para company_context</h3>
+  <p style="font-size:0.82rem;color:#8b949e;margin-bottom:12px;">Exporta dados estaticos (projetos_ativos, dados_comerciais, etc.) para a tabela company_context.</p>
+  <button class="btn btn-primary" id="btn-context" onclick="migrateContext()" disabled>Migrar Contexto</button>
+  <div class="log" id="log-context" style="display:none;"></div>
+</div>
+
+<!-- Supabase CDN -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+<script>
+// ── Supabase Config ──
+const SUPA_URL = 'https://olnndpultyllyhzxuyxh.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sbm5kcHVsdHlsbHloenh1eXhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyOTUxNjMsImV4cCI6MjA4Njg3MTE2M30.PPhMqKsYKcRB6GFmWxogcc0HIggkojK0DumiB1NDAXU';
+let client = null;
+
+function getClient() {
+  if (!client) client = supabase.createClient(SUPA_URL, SUPA_KEY);
+  return client;
+}
+
+// ── Table mapping ──
+const TABLE_MAP = {
+  project: 'projects',
+  task: 'tasks',
+  deliverable: 'deliverables',
+  proposal: 'proposals',
+  decision: 'decisions',
+  meeting_erp: 'meetings',
+  time_entry: 'time_entries'
+};
+
+const ERP_TYPES = ['project','task','deliverable','proposal','decision','meeting_erp','time_entry'];
+
+// ── Logging ──
+function log(containerId, msg, cls) {
+  const el = document.getElementById(containerId);
+  el.style.display = '';
+  el.innerHTML += `<div class="${cls || ''}">${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+// ── Step 1: Analyze ──
+function analyzeLocal() {
+  const statsEl = document.getElementById('stats');
+  statsEl.style.display = '';
+  statsEl.innerHTML = '';
+
+  let totalEntities = 0;
+
+  ERP_TYPES.forEach(type => {
+    try {
+      const raw = localStorage.getItem(`tbo_erp_${type}`);
+      const data = raw ? JSON.parse(raw) : {};
+      const count = Object.keys(data).length;
+      totalEntities += count;
+
+      statsEl.innerHTML += `<div class="stat"><div class="stat-val">${count}</div><div class="stat-label">${type}</div></div>`;
+      log('log-analyze', `${type}: ${count} entidades`, count > 0 ? 'log-ok' : 'log-warn');
+    } catch (e) {
+      log('log-analyze', `${type}: erro ao ler - ${e.message}`, 'log-err');
+    }
+  });
+
+  // CRM deals
+  try {
+    const crmRaw = localStorage.getItem('tbo_data_crm');
+    const crm = crmRaw ? JSON.parse(crmRaw) : {};
+    const dealCount = Object.keys(crm.deals || {}).length;
+    totalEntities += dealCount;
+    statsEl.innerHTML += `<div class="stat"><div class="stat-val">${dealCount}</div><div class="stat-label">crm_deals</div></div>`;
+    log('log-analyze', `CRM deals: ${dealCount}`, dealCount > 0 ? 'log-ok' : 'log-warn');
+  } catch (e) {
+    log('log-analyze', `CRM deals: erro - ${e.message}`, 'log-err');
+  }
+
+  // Audit log
+  try {
+    const auditRaw = localStorage.getItem('tbo_audit_log');
+    const audit = auditRaw ? JSON.parse(auditRaw) : [];
+    totalEntities += audit.length;
+    statsEl.innerHTML += `<div class="stat"><div class="stat-val">${audit.length}</div><div class="stat-label">audit_log</div></div>`;
+    log('log-analyze', `Audit log: ${audit.length} entradas`, 'log-info');
+  } catch (e) {}
+
+  // Context
+  try {
+    const ctxRaw = localStorage.getItem('tbo_data_context');
+    const hasCtx = !!ctxRaw;
+    log('log-analyze', `Context data: ${hasCtx ? 'presente' : 'ausente'}`, hasCtx ? 'log-ok' : 'log-warn');
+  } catch (e) {}
+
+  statsEl.innerHTML += `<div class="stat"><div class="stat-val" style="color:#22c55e;">${totalEntities}</div><div class="stat-label">TOTAL</div></div>`;
+  log('log-analyze', `\nTotal: ${totalEntities} itens para migrar`, 'log-info');
+
+  // Enable migrate button
+  if (totalEntities > 0) {
+    document.getElementById('btn-migrate').disabled = false;
+  }
+}
+
+// ── Step 2: Test Connection ──
+async function testConnection() {
+  log('log-connection', 'Conectando ao Supabase...', 'log-info');
+  try {
+    const c = getClient();
+    const { data, error } = await c.from('profiles').select('id').limit(1);
+    if (error) {
+      log('log-connection', `Erro: ${error.message}`, 'log-err');
+      log('log-connection', 'Verifique se o schema SQL foi executado no Supabase.', 'log-warn');
+    } else {
+      log('log-connection', 'Conexao OK! Tabela profiles acessivel.', 'log-ok');
+      document.getElementById('btn-migrate').disabled = false;
+      document.getElementById('btn-context').disabled = false;
+    }
+  } catch (e) {
+    log('log-connection', `Falha na conexao: ${e.message}`, 'log-err');
+  }
+}
+
+// ── Step 3: Migrate ERP + CRM + Audit ──
+async function startMigration() {
+  const btn = document.getElementById('btn-migrate');
+  btn.disabled = true;
+  btn.textContent = 'Migrando...';
+  document.getElementById('progress').style.display = '';
+
+  const c = getClient();
+  let migrated = 0, skipped = 0, errors = 0;
+  const allOps = [];
+
+  // Collect all entities
+  ERP_TYPES.forEach(type => {
+    try {
+      const raw = localStorage.getItem(`tbo_erp_${type}`);
+      const data = raw ? JSON.parse(raw) : {};
+      Object.values(data).forEach(entity => {
+        allOps.push({ type, entity, table: TABLE_MAP[type] });
+      });
+    } catch (e) {}
+  });
+
+  // CRM deals
+  try {
+    const crmRaw = localStorage.getItem('tbo_data_crm');
+    const crm = crmRaw ? JSON.parse(crmRaw) : {};
+    Object.values(crm.deals || {}).forEach(deal => {
+      allOps.push({ type: 'crm_deal', entity: deal, table: 'crm_deals' });
+    });
+  } catch (e) {}
+
+  // Audit log
+  try {
+    const auditRaw = localStorage.getItem('tbo_audit_log');
+    const audit = auditRaw ? JSON.parse(auditRaw) : [];
+    audit.forEach(entry => {
+      allOps.push({ type: 'audit', entity: entry, table: 'audit_log' });
+    });
+  } catch (e) {}
+
+  const total = allOps.length;
+  log('log-migrate', `Iniciando migracao de ${total} itens...`, 'log-info');
+
+  // Process in batches of 20
+  for (let i = 0; i < allOps.length; i++) {
+    const op = allOps[i];
+    try {
+      const result = await migrateOne(c, op);
+      if (result === 'migrated') migrated++;
+      else if (result === 'skipped') skipped++;
+      else errors++;
+    } catch (e) {
+      errors++;
+      log('log-migrate', `ERRO [${op.type}] ${op.entity.id || ''}: ${e.message}`, 'log-err');
+    }
+
+    // Update progress
+    const pct = Math.round(((i + 1) / total) * 100);
+    document.getElementById('progress-bar').style.width = pct + '%';
+
+    // Log every 50 items
+    if ((i + 1) % 50 === 0 || i === total - 1) {
+      log('log-migrate', `Progresso: ${i + 1}/${total} (${migrated} ok, ${skipped} skip, ${errors} err)`, 'log-info');
+    }
+  }
+
+  log('log-migrate', `\nMigracao concluida!`, 'log-ok');
+  log('log-migrate', `Migrados: ${migrated} | Ja existiam: ${skipped} | Erros: ${errors}`, migrated > 0 ? 'log-ok' : 'log-warn');
+
+  btn.textContent = 'Concluido';
+}
+
+async function migrateOne(c, op) {
+  const { type, entity, table } = op;
+
+  if (type === 'audit') {
+    // Audit log entries
+    const row = {
+      entity_type: entity.entityType || null,
+      entity_id: entity.entityId || null,
+      action: entity.action || null,
+      user_id: entity.userId || 'system',
+      details: {
+        from: entity.from || null,
+        to: entity.to || null,
+        reason: entity.reason || null,
+        entityName: entity.entityName || null,
+        legacy_id: entity.id
+      }
+    };
+    const { error } = await c.from(table).insert(row);
+    if (error) {
+      if (error.code === '23505') return 'skipped'; // duplicate
+      throw new Error(error.message);
+    }
+    return 'migrated';
+  }
+
+  if (type === 'crm_deal') {
+    // Check if already exists by legacy_id
+    const { data: existing } = await c.from(table).select('id').eq('legacy_id', entity.id).maybeSingle();
+    if (existing) return 'skipped';
+
+    const row = {
+      name: entity.name || '',
+      company: entity.company || '',
+      contact: entity.contact || '',
+      contact_email: entity.contactEmail || '',
+      stage: entity.stage || 'lead',
+      value: entity.value || 0,
+      probability: entity.probability || 0,
+      services: entity.services || [],
+      owner_id: entity.owner || null,
+      notes: entity.notes || '',
+      source: entity.source || 'manual',
+      rd_deal_id: entity.rdDealId || null,
+      margin: entity.margin || null,
+      cost: entity.cost || null,
+      risk_flag: !!entity.riskFlag,
+      priority: entity.priority || 'media',
+      expected_close: entity.expectedClose || null,
+      activities: entity.activities || [],
+      legacy_id: entity.id
+    };
+    const { error } = await c.from(table).insert(row);
+    if (error) {
+      if (error.code === '23505') return 'skipped';
+      throw new Error(error.message);
+    }
+    return 'migrated';
+  }
+
+  // ERP entities
+  const { data: existing } = await c.from(table).select('id').eq('legacy_id', entity.id).maybeSingle();
+  if (existing) return 'skipped';
+
+  const row = mapEntityToRow(type, entity);
+  row.legacy_id = entity.id;
+
+  const { error } = await c.from(table).insert(row);
+  if (error) {
+    if (error.code === '23505') return 'skipped';
+    throw new Error(error.message);
+  }
+  return 'migrated';
+}
+
+function mapEntityToRow(type, entity) {
+  const row = {};
+  const skip = ['id', 'createdAt', 'updatedAt', '_pendingSync', 'project_name'];
+
+  Object.entries(entity).forEach(([key, val]) => {
+    if (skip.includes(key)) return;
+    if (key === 'owner' && type !== 'meeting_erp') {
+      row.owner_id = val || null;
+    } else {
+      row[key] = val;
+    }
+  });
+
+  return row;
+}
+
+// ── Step 4: Migrate Context ──
+async function migrateContext() {
+  const btn = document.getElementById('btn-context');
+  btn.disabled = true;
+  btn.textContent = 'Migrando contexto...';
+
+  const c = getClient();
+
+  // Load context from localStorage or fetch from file
+  let context = {};
+  try {
+    const raw = localStorage.getItem('tbo_data_context');
+    if (raw) context = JSON.parse(raw);
+  } catch (e) {}
+
+  if (Object.keys(context).length === 0) {
+    try {
+      const resp = await fetch('data/context-data.json');
+      if (resp.ok) context = await resp.json();
+    } catch (e) {}
+  }
+
+  if (Object.keys(context).length === 0) {
+    log('log-context', 'Nenhum dado de contexto encontrado.', 'log-warn');
+    btn.textContent = 'Sem dados';
+    return;
+  }
+
+  const keys = Object.keys(context);
+  let migrated = 0, errors = 0;
+
+  for (const key of keys) {
+    try {
+      const { error } = await c.from('company_context').upsert({
+        key,
+        value: context[key]
+      }, { onConflict: 'key' });
+
+      if (error) {
+        log('log-context', `ERRO [${key}]: ${error.message}`, 'log-err');
+        errors++;
+      } else {
+        migrated++;
+      }
+    } catch (e) {
+      log('log-context', `ERRO [${key}]: ${e.message}`, 'log-err');
+      errors++;
+    }
+  }
+
+  log('log-context', `\nContexto migrado: ${migrated} chaves OK, ${errors} erros`, migrated > 0 ? 'log-ok' : 'log-warn');
+  btn.textContent = 'Concluido';
+}
+</script>
+
+</body>
+</html>

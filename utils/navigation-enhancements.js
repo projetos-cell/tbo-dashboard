@@ -1080,7 +1080,8 @@ const TBO_NAVIGATION = {
   ],
 
   initNaturalFilter() {
-    this._createFilterBar();
+    // Removed: filter bar disabled per user request
+    return;
   },
 
   _createFilterBar() {

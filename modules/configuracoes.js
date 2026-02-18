@@ -230,7 +230,30 @@ const TBO_CONFIGURACOES = {
       <div class="card" style="margin-bottom:16px;">
         <div class="card-header">
           <h3 class="card-title">Gestao de Usuarios</h3>
-          <button class="btn btn-secondary" id="cfgReloadUsers" style="font-size:0.72rem;padding:4px 10px;">Recarregar</button>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-primary" id="cfgAddUser" style="font-size:0.72rem;padding:4px 12px;">+ Novo Usuario</button>
+            <button class="btn btn-secondary" id="cfgReloadUsers" style="font-size:0.72rem;padding:4px 10px;">Recarregar</button>
+          </div>
+        </div>
+        <!-- Summary badges -->
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;" id="cfgUserSummary">
+          ${(() => {
+            const total = users.length;
+            const active = users.filter(u => u.is_active !== false).length;
+            const inactive = total - active;
+            const roleCounts = {};
+            users.forEach(u => { roleCounts[u.role] = (roleCounts[u.role] || 0) + 1; });
+            let badges = '';
+            badges += '<span style="font-size:0.72rem;padding:4px 10px;border-radius:12px;background:var(--bg-tertiary);color:var(--text-primary);font-weight:600;">' + total + ' total</span>';
+            badges += '<span style="font-size:0.72rem;padding:4px 10px;border-radius:12px;background:#22c55e22;color:#22c55e;font-weight:600;">' + active + ' ativos</span>';
+            badges += '<span style="font-size:0.72rem;padding:4px 10px;border-radius:12px;background:#ef444422;color:#ef4444;font-weight:600;">' + inactive + ' inativos</span>';
+            Object.entries(roleCounts).forEach(([role, count]) => {
+              const color = roleColors[role] || '#6b7280';
+              const label = roleLabels[role] || role;
+              badges += '<span style="font-size:0.72rem;padding:4px 10px;border-radius:12px;background:' + color + '18;color:' + color + ';font-weight:500;">' + count + ' ' + label + '</span>';
+            });
+            return badges;
+          })()}
         </div>
         <div id="cfgUserTable" style="overflow-x:auto;">
           ${users.length > 0 ? `
@@ -542,6 +565,10 @@ const TBO_CONFIGURACOES = {
         this._loadUsers();
       });
 
+      this._bind('cfgAddUser', () => {
+        this._showAddUserModal();
+      });
+
       const userTable = document.getElementById('cfgUserTable');
       if (userTable) {
         userTable.addEventListener('change', (e) => {
@@ -816,6 +843,144 @@ const TBO_CONFIGURACOES = {
       console.error('[TBO_CONFIGURACOES] Erro ao atualizar usuario:', e);
       TBO_TOAST.error('Erro', 'Falha ao atualizar usuario: ' + e.message);
       await this._loadUsers();
+    }
+  },
+
+  // ── Add User Modal ─────────────────────────────────────────────────────
+
+  _showAddUserModal() {
+    const roleOptions = [
+      { value: 'artist', label: 'Artista', color: '#3a7bd5' },
+      { value: 'project_owner', label: 'Project Owner', color: '#8b5cf6' },
+      { value: 'comercial', label: 'Comercial', color: '#f59e0b' },
+      { value: 'finance', label: 'Financeiro', color: '#2ecc71' },
+      { value: 'founder', label: 'Fundador', color: '#E85102' }
+    ];
+
+    const buOptions = ['', 'Branding', 'Digital 3D', 'Marketing', 'Vendas'];
+
+    const html = `
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div>
+          <label style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Nome Completo *</label>
+          <input type="text" id="addUserName" class="form-input" placeholder="Ex: Maria Silva" style="width:100%;">
+        </div>
+        <div>
+          <label style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Username *</label>
+          <input type="text" id="addUserUsername" class="form-input" placeholder="Ex: maria (sem espacos)" style="width:100%;">
+          <div style="font-size:0.68rem;color:var(--text-tertiary);margin-top:2px;">Identificador unico, usado para login legado</div>
+        </div>
+        <div>
+          <label style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Email *</label>
+          <input type="email" id="addUserEmail" class="form-input" placeholder="Ex: maria@agenciatbo.com.br" style="width:100%;">
+        </div>
+        <div>
+          <label style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Cargo / Role *</label>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            ${roleOptions.map(r => `
+              <label style="display:flex;align-items:center;gap:4px;padding:6px 12px;border:2px solid var(--border-subtle);border-radius:8px;cursor:pointer;font-size:0.78rem;transition:all .2s;" class="addUserRoleOption" data-role="${r.value}" data-color="${r.color}">
+                <input type="radio" name="addUserRole" value="${r.value}" style="display:none;">
+                <span style="width:10px;height:10px;border-radius:50%;background:${r.color};"></span>
+                ${r.label}
+              </label>
+            `).join('')}
+          </div>
+        </div>
+        <div>
+          <label style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Business Unit</label>
+          <select id="addUserBU" class="form-input" style="width:100%;">
+            ${buOptions.map(bu => `<option value="${bu}">${bu || '(Nenhuma)'}</option>`).join('')}
+          </select>
+        </div>
+        <button class="btn btn-primary" id="addUserSubmit" style="width:100%;margin-top:4px;">Criar Usuario</button>
+      </div>
+    `;
+
+    if (typeof TBO_MODAL !== 'undefined') {
+      TBO_MODAL.show('Novo Usuario', html);
+    } else {
+      // Fallback: create inline modal
+      const overlay = document.createElement('div');
+      overlay.id = 'addUserOverlay';
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
+      overlay.innerHTML = `<div style="background:var(--bg-primary,#fff);border-radius:12px;padding:24px;max-width:480px;width:90%;max-height:90vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h3 style="font-size:1rem;font-weight:700;margin:0;">Novo Usuario</h3>
+          <button id="addUserClose" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-tertiary);">&times;</button>
+        </div>
+        ${html}
+      </div>`;
+      document.body.appendChild(overlay);
+      document.getElementById('addUserClose')?.addEventListener('click', () => overlay.remove());
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    }
+
+    // Bind role selection
+    setTimeout(() => {
+      document.querySelectorAll('.addUserRoleOption').forEach(opt => {
+        opt.addEventListener('click', () => {
+          document.querySelectorAll('.addUserRoleOption').forEach(o => {
+            o.style.borderColor = 'var(--border-subtle)';
+            o.style.background = 'transparent';
+          });
+          opt.style.borderColor = opt.dataset.color;
+          opt.style.background = opt.dataset.color + '15';
+          opt.querySelector('input').checked = true;
+        });
+      });
+
+      // Bind submit
+      document.getElementById('addUserSubmit')?.addEventListener('click', () => this._submitAddUser());
+    }, 100);
+  },
+
+  async _submitAddUser() {
+    const name = document.getElementById('addUserName')?.value?.trim();
+    const username = document.getElementById('addUserUsername')?.value?.trim()?.toLowerCase();
+    const email = document.getElementById('addUserEmail')?.value?.trim()?.toLowerCase();
+    const roleEl = document.querySelector('input[name="addUserRole"]:checked');
+    const role = roleEl?.value;
+    const bu = document.getElementById('addUserBU')?.value || null;
+
+    // Validation
+    if (!name) { TBO_TOAST.warn('Campo obrigatorio', 'Informe o nome completo.'); return; }
+    if (!username) { TBO_TOAST.warn('Campo obrigatorio', 'Informe o username.'); return; }
+    if (!email) { TBO_TOAST.warn('Campo obrigatorio', 'Informe o email.'); return; }
+    if (!role) { TBO_TOAST.warn('Campo obrigatorio', 'Selecione um cargo/role.'); return; }
+
+    // Check for spaces in username
+    if (username.includes(' ')) { TBO_TOAST.warn('Username invalido', 'O username nao pode conter espacos.'); return; }
+
+    try {
+      // Insert directly into profiles (with a random UUID since we don't create auth users in legacy mode)
+      const newId = crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16); });
+
+      const { error } = await TBO_SUPABASE.getClient()
+        .from('profiles')
+        .insert({
+          id: newId,
+          username: username,
+          full_name: name,
+          email: email,
+          role: role,
+          bu: bu,
+          is_active: true
+        });
+
+      if (error) throw error;
+
+      TBO_TOAST.success('Usuario criado', `${name} foi adicionado com sucesso como ${role}.`);
+
+      // Close modal
+      const overlay = document.getElementById('addUserOverlay');
+      if (overlay) overlay.remove();
+      if (typeof TBO_MODAL !== 'undefined' && TBO_MODAL.close) TBO_MODAL.close();
+
+      // Reload users
+      await this._loadUsers();
+    } catch (e) {
+      console.error('[TBO_CONFIGURACOES] Erro ao criar usuario:', e);
+      TBO_TOAST.error('Erro ao criar usuario', e.message || 'Verifique os dados e tente novamente.');
     }
   },
 

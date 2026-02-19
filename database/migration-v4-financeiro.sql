@@ -61,7 +61,28 @@ CREATE TABLE IF NOT EXISTS fin_clients (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 5. LANCAMENTOS FINANCEIROS (tabela principal)
+-- 5. NOTAS FISCAIS (antes de fin_transactions que referencia esta tabela)
+CREATE TABLE IF NOT EXISTS fin_invoices (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    number TEXT NOT NULL,
+    series TEXT,
+    type TEXT CHECK (type IN ('nfse', 'nfe', 'nfce', 'outros')),
+    client_id UUID REFERENCES fin_clients(id),
+    vendor_id UUID REFERENCES fin_vendors(id),
+    amount NUMERIC(15,2) NOT NULL,
+    tax_amount NUMERIC(15,2) DEFAULT 0,
+    issue_date DATE NOT NULL,
+    status TEXT DEFAULT 'emitida' CHECK (status IN ('rascunho', 'emitida', 'cancelada', 'substituida')),
+    pdf_url TEXT,
+    xml_url TEXT,
+    omie_id TEXT,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 6. LANCAMENTOS FINANCEIROS (tabela principal)
 CREATE TABLE IF NOT EXISTS fin_transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
@@ -88,27 +109,6 @@ CREATE TABLE IF NOT EXISTS fin_transactions (
     omie_id TEXT,
     is_realized BOOLEAN DEFAULT false,
     created_by UUID REFERENCES auth.users(id),
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- 6. NOTAS FISCAIS
-CREATE TABLE IF NOT EXISTS fin_invoices (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    number TEXT NOT NULL,
-    series TEXT,
-    type TEXT CHECK (type IN ('nfse', 'nfe', 'nfce', 'outros')),
-    client_id UUID REFERENCES fin_clients(id),
-    vendor_id UUID REFERENCES fin_vendors(id),
-    amount NUMERIC(15,2) NOT NULL,
-    tax_amount NUMERIC(15,2) DEFAULT 0,
-    issue_date DATE NOT NULL,
-    status TEXT DEFAULT 'emitida' CHECK (status IN ('rascunho', 'emitida', 'cancelada', 'substituida')),
-    pdf_url TEXT,
-    xml_url TEXT,
-    omie_id TEXT,
-    notes TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );

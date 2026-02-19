@@ -84,9 +84,12 @@ const TBO_NAVIGATION = {
     this.initSidebarCollapse();
     this.initNaturalFilter();
 
-    // Show onboarding for first-time users (delayed)
+    // Show onboarding for first-time users (delayed, somente se autenticado)
     if (!localStorage.getItem(this._keys.tourDone)) {
-      setTimeout(() => this.startOnboardingTour(), 2000);
+      setTimeout(() => {
+        const isLoggedIn = typeof TBO_AUTH !== 'undefined' && TBO_AUTH.checkSession && TBO_AUTH.checkSession();
+        if (isLoggedIn) this.startOnboardingTour();
+      }, 2000);
     }
 
     console.log('[TBO Navigation] Ready.');

@@ -39,6 +39,17 @@ const TBO_APP = {
       TBO_SUPABASE.initOnlineListeners();
     }
 
+    // 0c. Seed chaves de integracoes (se nao existirem)
+    if (!localStorage.getItem('tbo_fireflies_api_key')) {
+      localStorage.setItem('tbo_fireflies_api_key', 'e46b7c6c-21ab-48c2-bb23-f1e93645bca6');
+      localStorage.setItem('tbo_fireflies_enabled', 'true');
+    }
+    if (!localStorage.getItem('tbo_omie_app_key')) {
+      localStorage.setItem('tbo_omie_app_key', '5716751616576');
+      localStorage.setItem('tbo_omie_app_secret', '21f5e10c60cc84333c4852f50c58afe4');
+      localStorage.setItem('tbo_omie_enabled', 'true');
+    }
+
     // 1. Init auth & login UI
     TBO_AUTH.initLoginUI();
     TBO_AUTH.initAuthListener();

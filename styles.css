@@ -489,7 +489,7 @@ strong {
   padding: 10px 20px;
   font-size: 0.85rem;
   color: var(--text-secondary);
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
   position: relative;
   text-align: left;
   border: none;
@@ -722,7 +722,7 @@ strong {
   border-radius: var(--radius-sm);
   color: var(--text-muted);
   font-size: 0.9rem;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .sidebar-collapse-btn:hover {
@@ -788,7 +788,7 @@ strong {
   border-radius: var(--radius-sm);
   color: var(--text-muted);
   font-size: 0.85rem;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
   background: none;
   border: none;
   cursor: pointer;
@@ -996,7 +996,7 @@ body.dark-mode .theme-icon-dark { display: flex; }
   opacity: 0;
   visibility: hidden;
   transform: translateY(-4px);
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
   padding: 0;
 }
 .user-dropdown.open {
@@ -1044,7 +1044,7 @@ body.dark-mode .theme-icon-dark { display: flex; }
   font-size: 0.82rem;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
   border: none;
   background: none;
   text-align: left;
@@ -1232,7 +1232,7 @@ body.dark-mode .theme-icon-dark { display: flex; }
   height: 2px;
   background: var(--text-secondary);
   border-radius: 1px;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 /* -- Status Indicators -- */
@@ -1313,7 +1313,7 @@ body.dark-mode .theme-icon-dark { display: flex; }
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
   font-size: 1rem;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
   position: relative;
 }
 
@@ -1342,7 +1342,7 @@ body.dark-mode .theme-icon-dark { display: flex; }
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   padding: 20px;
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .card:hover {
@@ -1449,7 +1449,7 @@ body.dark-mode .theme-icon-dark { display: flex; }
   padding: 16px;
   position: relative;
   overflow: visible;
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .kpi-card:hover {
@@ -1529,7 +1529,7 @@ body.dark-mode .theme-icon-dark { display: flex; }
   border-radius: var(--radius-sm);
   font-size: 0.82rem;
   font-weight: 500;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
   white-space: nowrap;
   cursor: pointer;
   line-height: 1.4;
@@ -1659,7 +1659,7 @@ body.dark-mode .theme-icon-dark { display: flex; }
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: 0.9rem;
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
   outline: none;
 }
 
@@ -1727,7 +1727,7 @@ select.form-input {
   background: var(--bg-input);
   cursor: pointer;
   flex-shrink: 0;
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .form-check input[type="checkbox"] { border-radius: var(--radius-xs); }
@@ -1795,7 +1795,7 @@ select.form-input {
   height: 16px;
   background: var(--text-secondary);
   border-radius: var(--radius-full);
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .toggle input:checked + .toggle-slider {
@@ -2020,7 +2020,7 @@ select.form-input {
   font-weight: 500;
   color: var(--text-muted);
   border-bottom: 2px solid transparent;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
   margin-bottom: -1px;
   cursor: pointer;
   white-space: nowrap;
@@ -2058,7 +2058,7 @@ select.form-input {
   border: none;
   border-bottom: 2px solid transparent;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 .tab--sub:hover { color: var(--text-secondary); }
 .tab--sub.active {
@@ -2203,7 +2203,7 @@ select.form-input {
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
   white-space: nowrap;
 }
 
@@ -2308,7 +2308,7 @@ select.form-input {
   z-index: var(--z-modal);
   opacity: 0;
   visibility: hidden;
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
   backdrop-filter: blur(4px);
 }
 
@@ -2360,7 +2360,7 @@ select.form-input {
   border-radius: var(--radius-sm);
   color: var(--text-muted);
   font-size: 1.1rem;
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .modal-close:hover {
@@ -2646,7 +2646,7 @@ select.form-input {
   opacity: 0;
   visibility: hidden;
   transform: translateY(-4px);
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
   padding: 4px 0;
 }
 
@@ -2664,7 +2664,7 @@ select.form-input {
   font-size: 0.82rem;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .dropdown-item:hover {
@@ -2971,7 +2971,7 @@ select.form-input {
   padding: 6px 8px;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .folder-tree-item:hover {
@@ -3051,7 +3051,7 @@ select.form-input {
   border-radius: var(--radius-md);
   padding: 12px;
   cursor: grab;
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .pipeline-deal:hover {
@@ -3244,7 +3244,7 @@ select.form-input {
   border-radius: var(--radius-md);
   padding: 12px;
   cursor: grab;
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .pipeline-card:hover {
@@ -3438,7 +3438,7 @@ select.form-input {
   padding: 14px;
   margin-bottom: 8px;
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .proposal-card:hover {
@@ -3483,7 +3483,7 @@ select.form-input {
   border-radius: var(--radius-sm);
   cursor: pointer;
   margin-bottom: 6px;
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .playbook-option:hover {
@@ -3521,7 +3521,7 @@ select.form-input {
   background: var(--bg-elevated);
   color: var(--text-primary);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .state-transition-btn:hover {
@@ -3556,7 +3556,7 @@ select.form-input {
   padding: 40px 24px;
   text-align: center;
   cursor: pointer;
-  transition: all 200ms ease;
+  transition: color 200ms ease, background-color 200ms ease, border-color 200ms ease, opacity 200ms ease, transform 200ms ease, box-shadow 200ms ease;
   background: var(--bg-card);
   position: relative;
 }
@@ -3656,7 +3656,7 @@ select.form-input {
   cursor: pointer;
   box-shadow: var(--shadow-md);
   white-space: nowrap;
-  transition: all 150ms ease;
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease, opacity 150ms ease, transform 150ms ease, box-shadow 150ms ease;
   animation: fab-item-in 200ms ease forwards;
   opacity: 0;
   transform: translateY(8px) scale(0.95);
@@ -4055,7 +4055,7 @@ select.form-input {
   align-items: center;
   justify-content: center;
   font-size: 0.85rem;
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .gantt-nav-btn:hover {
@@ -4338,7 +4338,7 @@ select.form-input {
   border-radius: 4px;
   font-size: 0.6rem;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: color 0.15s, background-color 0.15s, border-color 0.15s, opacity 0.15s, transform 0.15s, box-shadow 0.15s;
 }
 .my-tasks-timer-btn:hover {
   background: var(--accent);
@@ -4685,7 +4685,7 @@ select.form-input {
   border-radius: var(--radius-md);
   border: 1px solid var(--border-default);
   background: var(--bg-card);
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .meeting-card:hover {
@@ -4768,7 +4768,7 @@ select.form-input {
   color: var(--text-secondary);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .calendar-day:hover { background: rgba(255, 255, 255, 0.05); }
@@ -4906,7 +4906,7 @@ select.form-input {
   border-radius: var(--radius-sm);
   margin-bottom: 8px;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .history-item:hover {
@@ -4993,7 +4993,7 @@ select.form-input {
   border: 1px solid var(--border-default);
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
   white-space: nowrap;
 }
 
@@ -5094,7 +5094,7 @@ select.form-input {
   color: var(--text-secondary);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .pagination-item:hover {
@@ -5729,7 +5729,7 @@ body.light-mode .data-table tbody tr:hover {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-full);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
   white-space: nowrap;
 }
 
@@ -5751,7 +5751,7 @@ body.light-mode .data-table tbody tr:hover {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   padding: 14px 16px;
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .trend-card:hover {
@@ -5793,7 +5793,7 @@ body.light-mode .data-table tbody tr:hover {
   border-radius: var(--radius-md);
   padding: 20px;
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
   text-align: center;
 }
 
@@ -5837,7 +5837,7 @@ body.light-mode .data-table tbody tr:hover {
   display: flex;
   align-items: center;
   gap: 12px;
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .source-card:hover {
@@ -5880,7 +5880,7 @@ body.light-mode .data-table tbody tr:hover {
   border-radius: var(--radius-md);
   padding: 16px;
   margin-bottom: 12px;
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .news-card:hover {
@@ -7302,7 +7302,7 @@ body .tab-btn {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border-subtle);
   background: transparent; color: var(--text-secondary);
-  font-size: 0.72rem; font-weight: 500; cursor: pointer; transition: all 0.15s;
+  font-size: 0.72rem; font-weight: 500; cursor: pointer; transition: color 0.15s, background-color 0.15s, border-color 0.15s, opacity 0.15s, transform 0.15s, box-shadow 0.15s;
 }
 .clientes-crm-pill:hover {
   border-color: var(--pill-color, var(--accent-primary));
@@ -7375,7 +7375,7 @@ body .tab-btn {
 .clientes-interaction-btn {
   font-size: 0.62rem; font-weight: 600; padding: 2px 8px; border-radius: 4px;
   background: var(--accent-alpha-12); color: var(--accent-primary);
-  border: 1px solid var(--accent-alpha-25); cursor: pointer; transition: all 0.15s;
+  border: 1px solid var(--accent-alpha-25); cursor: pointer; transition: color 0.15s, background-color 0.15s, border-color 0.15s, opacity 0.15s, transform 0.15s, box-shadow 0.15s;
   white-space: nowrap;
 }
 .clientes-interaction-btn:hover {
@@ -7851,7 +7851,7 @@ body .tab-btn {
 .cultura-card {
   display: flex; align-items: center; gap: 16px; padding: 20px;
   background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
-  cursor: pointer; transition: all 0.2s; text-align: left; width: 100%;
+  cursor: pointer; transition: color 0.2s, background-color 0.2s, border-color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s; text-align: left; width: 100%;
 }
 .cultura-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
 .cultura-card-icon { width: 44px; height: 44px; border-radius: 10px; background: rgba(232,81,2,0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--accent); }
@@ -7866,7 +7866,7 @@ body .tab-btn {
   display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
   background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px;
   color: var(--text-secondary); font-size: 0.85em; cursor: pointer; margin-bottom: 24px;
-  transition: all 0.2s;
+  transition: color 0.2s, background-color 0.2s, border-color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 .cultura-back:hover { border-color: var(--accent); color: var(--accent); }
 
@@ -9234,7 +9234,7 @@ body.focus-mode .main-content {
   font-weight: 500;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .focus-exit-btn:hover {
@@ -9584,7 +9584,7 @@ body.focus-mode .focus-exit-btn {
   font-size: 0.8rem;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .smart-date-preview:hover {
@@ -10248,7 +10248,7 @@ body.focus-mode .focus-exit-btn {
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   outline: none;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .sidebar-search-input::placeholder {
@@ -10295,7 +10295,7 @@ body.focus-mode .focus-exit-btn {
   background: var(--bg-tertiary);
   border: none;
   font-size: 11px;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .sidebar-search-clear:hover {
@@ -10405,7 +10405,7 @@ body.focus-mode .focus-exit-btn {
   border: none;
   background: none;
   border-radius: 3px;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
   padding: 0;
   margin-left: auto;
 }
@@ -10743,7 +10743,7 @@ body.focus-mode .focus-exit-btn {
   background: none;
   width: 100%;
   text-align: left;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .sidebar-context-item:hover {
@@ -10851,7 +10851,7 @@ body.focus-mode .focus-exit-btn {
 
 /* ── SIDEBAR USER WIDGET REFINAMENTO ────────────────────────────────────── */
 .sidebar-user {
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .sidebar-user:hover {
@@ -10899,7 +10899,7 @@ body.focus-mode .focus-exit-btn {
   border: 2px solid var(--border-default);
   border-radius: var(--radius-xl, 16px);
   cursor: pointer;
-  transition: all 200ms ease;
+  transition: color 200ms ease, background-color 200ms ease, border-color 200ms ease, opacity 200ms ease, transform 200ms ease, box-shadow 200ms ease;
   text-align: left;
   position: relative;
   overflow: hidden;

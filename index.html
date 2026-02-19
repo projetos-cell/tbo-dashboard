@@ -8,29 +8,35 @@
 
   <!-- Resource Hints: preconnect para CDNs e Supabase (v2.1 performance) -->
   <link rel="preconnect" href="https://olnndpultyllyhzxuyxh.supabase.co" crossorigin>
-  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="dns-prefetch" href="https://olnndpultyllyhzxuyxh.supabase.co">
+
+  <!-- Preload critical assets (fetched early, applied when needed) -->
+  <link rel="preload" as="style" href="styles.css">
+  <link rel="preload" as="image" href="assets/logo-dark.svg">
 
   <!-- Typography: Helvetica Neue LT Pro (local brand font) -->
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="assets/favicon.png">
 
-  <!-- Leaflet Map Library -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
-
-  <!-- Lucide Icons (stroke/outline, consistent style) -->
-  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js" crossorigin="anonymous"></script>
-
-  <!-- Supabase Client (PostgreSQL backend) -->
-  <script src="https://unpkg.com/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js" crossorigin="anonymous">
-
   <!-- Styles -->
   <link rel="stylesheet" href="styles.css">
+
+  <!-- Leaflet CSS (loaded early for layout, JS deferred below) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
+
+  <!-- Preload critical CDN scripts -->
+  <link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js" crossorigin="anonymous">
+  <link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.js" crossorigin="anonymous">
+
+  <!-- CDN Libraries (defer = non-blocking, execute in order after HTML parsed) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
 
   <!-- Prevenir flash do login: esconder overlay e sidebar ate JS decidir -->
   <style>
@@ -324,147 +330,143 @@
   <!-- ═══════════════════════════════════════════════════════ -->
 
   <!-- Configuration (API keys, endpoints, feature flags) -->
-  <script src="config.js"></script>
+  <script defer src="config.js"></script>
 
   <!-- Backup Utilities -->
-  <script src="utils/backup.js"></script>
-  <!-- REMOVIDO: utils/crypto.js (legacy auth eliminado em v2.1 — TBO_CRYPTO nao mais utilizado) -->
+  <script defer src="utils/backup.js"></script>
 
   <!-- Error Monitor & Performance (v2.1 observabilidade) -->
-  <script src="utils/error-monitor.js"></script>
+  <script defer src="utils/error-monitor.js"></script>
 
   <!-- Supabase Wrapper (must load after CDN, before storage) -->
-  <script src="utils/supabase.js"></script>
+  <script defer src="utils/supabase.js"></script>
 
   <!-- Google Sheets Integration (live financial data) -->
-  <script src="utils/google-sheets.js"></script>
+  <script defer src="utils/google-sheets.js"></script>
 
   <!-- Fireflies.ai Integration (live meeting data) -->
-  <script src="utils/fireflies.js"></script>
+  <script defer src="utils/fireflies.js"></script>
 
   <!-- RD Station CRM Integration (unilateral: RD → TBO) -->
-  <script src="utils/rd-station.js"></script>
-
-  <!-- Omie ERP removido em v2.1 (nao utilizado) -->
+  <script defer src="utils/rd-station.js"></script>
 
   <!-- Google Calendar Integration (read-only) -->
-  <script src="utils/google-calendar.js"></script>
+  <script defer src="utils/google-calendar.js"></script>
   <!-- Parsers financeiros (OFX/CSV) -->
-  <script src="utils/ofx-parser.js"></script>
-  <script src="utils/csv-parser.js"></script>
+  <script defer src="utils/ofx-parser.js"></script>
+  <script defer src="utils/csv-parser.js"></script>
   <!-- PDF Export -->
-  <script src="utils/pdf-export.js"></script>
+  <script defer src="utils/pdf-export.js"></script>
 
   <!-- Utility Libraries -->
-  <script src="utils/api.js"></script>
-  <script src="utils/storage.js"></script>
-  <script src="utils/formatter.js"></script>
-  <script src="utils/toast.js"></script>
-  <script src="utils/router.js"></script>
-  <script src="utils/shortcuts.js"></script>
-  <script src="utils/search.js"></script>
-  <script src="utils/ux.js"></script>
-  <script src="utils/notifications.js"></script>
+  <script defer src="utils/api.js"></script>
+  <script defer src="utils/storage.js"></script>
+  <script defer src="utils/formatter.js"></script>
+  <script defer src="utils/toast.js"></script>
+  <script defer src="utils/router.js"></script>
+  <script defer src="utils/shortcuts.js"></script>
+  <script defer src="utils/search.js"></script>
+  <script defer src="utils/ux.js"></script>
+  <script defer src="utils/notifications.js"></script>
 
   <!-- Permissions & RBAC -->
-  <script src="utils/permissions.js"></script>
+  <script defer src="utils/permissions.js"></script>
 
   <!-- Auth System -->
-  <script src="utils/auth.js"></script>
+  <script defer src="utils/auth.js"></script>
 
   <!-- ERP Core Engine -->
-  <script src="utils/erp-core.js"></script>
+  <script defer src="utils/erp-core.js"></script>
 
   <!-- Workload Engine (Timer, Timesheet, Capacity, Cost) -->
-  <script src="utils/workload.js"></script>
+  <script defer src="utils/workload.js"></script>
 
   <!-- Module Scripts -->
-  <script src="modules/placeholder.js"></script>
-  <!-- timeline.js removido em v2.1 -->
-  <script src="modules/alerts.js"></script>
-  <script src="modules/pipeline.js"></script>
-  <script src="modules/clientes.js"></script>
-  <script src="data/contratos-data.js"></script>
-  <script src="modules/contratos.js"></script>
-  <script src="modules/inteligencia.js"></script>
-  <script src="data/cultura-data.js"></script>
-  <script src="modules/cultura.js"></script>
-  <script src="modules/command-center.js"></script>
-  <script src="modules/conteudo.js"></script>
-  <script src="modules/comercial.js"></script>
-  <script src="modules/projetos.js"></script>
-  <script src="modules/mercado.js"></script>
-  <script src="modules/reunioes.js"></script>
-  <script src="modules/financeiro.js"></script>
-  <script src="modules/rh.js"></script>
-  <script src="modules/configuracoes.js"></script>
-  <script src="modules/changelog.js"></script>
-  <script src="modules/tarefas.js"></script>
-  <script src="modules/entregas.js"></script>
-  <script src="modules/revisoes.js"></script>
-  <script src="modules/decisoes.js"></script>
-  <script src="modules/timesheets.js"></script>
-  <script src="modules/carga-trabalho.js"></script>
-  <script src="modules/pagar.js"></script>
-  <script src="modules/receber.js"></script>
-  <script src="modules/margens.js"></script>
-  <script src="modules/conciliacao.js"></script>
-  <script src="modules/templates.js"></script>
-  <script src="modules/biblioteca.js"></script>
-  <script src="modules/capacidade.js"></script>
-  <script src="modules/permissoes-config.js"></script>
-  <script src="modules/integracoes.js"></script>
-  <script src="modules/trilha-aprendizagem.js"></script>
-  <script src="modules/pessoas-avancado.js"></script>
-  <script src="modules/portal-cliente.js"></script>
+  <script defer src="modules/placeholder.js"></script>
+  <script defer src="modules/alerts.js"></script>
+  <script defer src="modules/pipeline.js"></script>
+  <script defer src="modules/clientes.js"></script>
+  <script defer src="data/contratos-data.js"></script>
+  <script defer src="modules/contratos.js"></script>
+  <script defer src="modules/inteligencia.js"></script>
+  <script defer src="data/cultura-data.js"></script>
+  <script defer src="modules/cultura.js"></script>
+  <script defer src="modules/command-center.js"></script>
+  <script defer src="modules/conteudo.js"></script>
+  <script defer src="modules/comercial.js"></script>
+  <script defer src="modules/projetos.js"></script>
+  <script defer src="modules/mercado.js"></script>
+  <script defer src="modules/reunioes.js"></script>
+  <script defer src="modules/financeiro.js"></script>
+  <script defer src="modules/rh.js"></script>
+  <script defer src="modules/configuracoes.js"></script>
+  <script defer src="modules/changelog.js"></script>
+  <script defer src="modules/tarefas.js"></script>
+  <script defer src="modules/entregas.js"></script>
+  <script defer src="modules/revisoes.js"></script>
+  <script defer src="modules/decisoes.js"></script>
+  <script defer src="modules/timesheets.js"></script>
+  <script defer src="modules/carga-trabalho.js"></script>
+  <script defer src="modules/pagar.js"></script>
+  <script defer src="modules/receber.js"></script>
+  <script defer src="modules/margens.js"></script>
+  <script defer src="modules/conciliacao.js"></script>
+  <script defer src="modules/templates.js"></script>
+  <script defer src="modules/biblioteca.js"></script>
+  <script defer src="modules/capacidade.js"></script>
+  <script defer src="modules/permissoes-config.js"></script>
+  <script defer src="modules/integracoes.js"></script>
+  <script defer src="modules/trilha-aprendizagem.js"></script>
+  <script defer src="modules/pessoas-avancado.js"></script>
+  <script defer src="modules/portal-cliente.js"></script>
 
   <!-- Novos modulos v2.2 -->
-  <script src="modules/admin-portal.js"></script>
-  <script src="modules/conciliacao-bancaria.js"></script>
-  <script src="modules/onboarding-wizard.js"></script>
-  <script src="modules/academy-catalogo.js"></script>
+  <script defer src="modules/admin-portal.js"></script>
+  <script defer src="modules/conciliacao-bancaria.js"></script>
+  <script defer src="modules/onboarding-wizard.js"></script>
+  <script defer src="modules/academy-catalogo.js"></script>
 
   <!-- Workspace Selector (Multi-tenant v2) -->
-  <script src="modules/workspace-selector.js"></script>
+  <script defer src="modules/workspace-selector.js"></script>
 
   <!-- Onboarding System -->
-  <script src="js/supabase-client.js"></script>
-  <script src="js/onboarding-guard.js"></script>
-  <script src="js/notificacoes.js"></script>
-  <script src="js/admin-onboarding.js"></script>
+  <script defer src="js/supabase-client.js"></script>
+  <script defer src="js/onboarding-guard.js"></script>
+  <script defer src="js/notificacoes.js"></script>
+  <script defer src="js/admin-onboarding.js"></script>
 
   <!-- UI Components (dropzone, skeleton, color picker, auto-refresh, count-up, parallax) -->
-  <script src="utils/ui-components.js"></script>
+  <script defer src="utils/ui-components.js"></script>
 
   <!-- Workflow Engine (templates de fluxo, conectores entre modulos) -->
-  <script src="utils/workflow-engine.js"></script>
+  <script defer src="utils/workflow-engine.js"></script>
 
   <!-- Realtime Engine (subscriptions ERP, presence, KPIs live) -->
-  <script src="utils/realtime-engine.js"></script>
+  <script defer src="utils/realtime-engine.js"></script>
 
   <!-- Digest Engine (resumo diario/semanal, relatorio financeiro) -->
-  <script src="utils/digest-engine.js"></script>
+  <script defer src="utils/digest-engine.js"></script>
 
   <!-- Document Versions (versionamento, upload, rollback, preview) -->
-  <script src="utils/document-versions.js"></script>
+  <script defer src="utils/document-versions.js"></script>
 
   <!-- Dynamic Templates (propostas, contratos, emails com {{variaveis}}) -->
-  <script src="utils/dynamic-templates.js"></script>
+  <script defer src="utils/dynamic-templates.js"></script>
 
   <!-- Enhancement Modules (100 improvements - v2.2.0) -->
-  <script src="utils/design-system.js"></script>
-  <script src="utils/ux-enhancements.js"></script>
-  <script src="utils/business-intelligence.js"></script>
-  <script src="utils/project-enhancements.js"></script>
-  <script src="utils/financial-enhancements.js"></script>
-  <script src="utils/people-enhancements.js"></script>
-  <script src="utils/analytics-enhancements.js"></script>
-  <script src="utils/navigation-enhancements.js"></script>
-  <script src="utils/integrations-enhancements.js"></script>
-  <script src="utils/performance-enhancements.js"></script>
+  <script defer src="utils/design-system.js"></script>
+  <script defer src="utils/ux-enhancements.js"></script>
+  <script defer src="utils/business-intelligence.js"></script>
+  <script defer src="utils/project-enhancements.js"></script>
+  <script defer src="utils/financial-enhancements.js"></script>
+  <script defer src="utils/people-enhancements.js"></script>
+  <script defer src="utils/analytics-enhancements.js"></script>
+  <script defer src="utils/navigation-enhancements.js"></script>
+  <script defer src="utils/integrations-enhancements.js"></script>
+  <script defer src="utils/performance-enhancements.js"></script>
 
   <!-- Main Application Entry Point -->
-  <script src="app.js"></script>
+  <script defer src="app.js"></script>
 
 </body>
 </html>

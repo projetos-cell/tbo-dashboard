@@ -1,5 +1,6 @@
 // TBO OS — Authentication & Session Management
-// Supports: Supabase Auth (Google OAuth + email/password) + legacy fallback
+// Supabase Auth exclusivo (Google OAuth, email/password, Magic Link) — v2.1
+// Legacy mode (TBO_CRYPTO) removido em v2.1 por seguranca
 // Delegates role/permission logic to TBO_PERMISSIONS.
 // Manages login, session, user menu dropdown, sidebar user widget.
 
@@ -35,29 +36,10 @@ const TBO_AUTH = {
     this._authResolved = true;
   },
 
-  // ── Legacy user credentials (fallback when Supabase is unavailable) ────
-  _users: {
-    marco:    { name: 'Marco Andolfato',  email: 'marco@agenciatbo.com.br' },
-    ruy:      { name: 'Ruy Lima',         email: 'ruy@agenciatbo.com.br' },
-    carol:    { name: 'Carol',            email: 'carol@agenciatbo.com.br' },
-    nelson:   { name: 'Nelson',           email: 'nelson@agenciatbo.com.br' },
-    nath:     { name: 'Nathalia',         email: 'nath@agenciatbo.com.br' },
-    rafa:     { name: 'Rafa',             email: 'rafa@agenciatbo.com.br' },
-    gustavo:  { name: 'Gustavo',          email: 'gustavo@agenciatbo.com.br' },
-    celso:    { name: 'Celso',            email: 'celso@agenciatbo.com.br' },
-    erick:    { name: 'Erick',            email: 'erick@agenciatbo.com.br' },
-    dann:     { name: 'Danniel',          email: 'dann@agenciatbo.com.br' },
-    duda:     { name: 'Duda',             email: 'duda@agenciatbo.com.br' },
-    tiago:    { name: 'Tiago M.',         email: 'tiago@agenciatbo.com.br' },
-    mari:     { name: 'Mariane',          email: 'mari@agenciatbo.com.br' },
-    lucca:    { name: 'Lucca',            email: 'lucca@agenciatbo.com.br' },
-    financaazul: { name: 'Financa Azul',  email: 'financeiro@agenciatbo.com.br' }
-  },
+  // REMOVIDO: _users hardcoded (legacy mode eliminado — v2.1 seguranca)
+  // Todos os usuarios agora sao gerenciados via Supabase Auth + profiles table
 
   // Session state
-  _sessionExpiresHours: 8,
-  _expirationCheckInterval: null,
-  _supabaseAuthMode: false, // true when authenticated via Supabase
   _cachedUser: null,
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -65,7 +47,7 @@ const TBO_AUTH = {
   // ═══════════════════════════════════════════════════════════════════════════
 
   getCurrentUser() {
-    // Return cached user if available
+    // Retorna usuario cacheado se disponivel
     if (this._cachedUser) return this._cachedUser;
 
     try {
@@ -73,13 +55,26 @@ const TBO_AUTH = {
       if (!raw) return null;
       const session = JSON.parse(raw);
 
-      // Check token expiration (legacy mode)
-      if (!this._supabaseAuthMode && session.expiresAt) {
-        if (typeof TBO_CRYPTO !== 'undefined' && TBO_CRYPTO.isTokenExpired(session.expiresAt)) {
-          this.logout();
-          this._showSessionExpiredMessage();
-          return null;
-        }
+      // v2.1: Rejeitar sessoes legacy (authMode != 'supabase')
+      if (session.authMode && session.authMode !== 'supabase') {
+        console.warn('[TBO Auth] Sessao legacy detectada, forçando relogin');
+        this.logout();
+        return null;
+      }
+
+      // v2.1: Validar campos obrigatorios (prevenir session tampering)
+      if (!session.id || !session.role || !session.modules || !Array.isArray(session.modules)) {
+        console.warn('[TBO Auth] Sessao invalida (campos ausentes), forçando relogin');
+        sessionStorage.removeItem('tbo_auth');
+        return null;
+      }
+
+      // v2.1: Validar que role e um dos roles conhecidos
+      const validRoles = Object.keys(typeof TBO_PERMISSIONS !== 'undefined' ? TBO_PERMISSIONS._roles : {});
+      if (validRoles.length > 0 && !validRoles.includes(session.role)) {
+        console.warn('[TBO Auth] Role invalido na sessao:', session.role);
+        sessionStorage.removeItem('tbo_auth');
+        return null;
       }
 
       this._cachedUser = session;
@@ -113,7 +108,7 @@ const TBO_AUTH = {
     const session = await this._buildSupabaseSession(data.user);
     if (!session) return { ok: false, msg: 'Perfil nao encontrado no Supabase.' };
 
-    this._supabaseAuthMode = true;
+    // v2.1: auth mode sempre supabase
     this._cachedUser = session;
     sessionStorage.setItem('tbo_auth', JSON.stringify(session));
 
@@ -189,67 +184,25 @@ const TBO_AUTH = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // LOGIN — Legacy (username + password via TBO_CRYPTO)
+  // LOGIN — Email/password via Supabase (legacy mode REMOVIDO em v2.1)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  async login(userId, password, skipSupabase) {
-    // Try Supabase email auth first (unless explicitly skipped)
-    if (!skipSupabase && typeof TBO_SUPABASE !== 'undefined' && TBO_SUPABASE.isOnline()) {
-      try {
-        const email = this._users[userId]?.email || `${userId}@agenciatbo.com.br`;
-        const result = await this.loginWithEmail(email, password);
-        if (result.ok) return result;
-        console.warn('[TBO Auth] Supabase login failed, trying legacy:', result.msg);
-      } catch (e) {
-        console.warn('[TBO Auth] Supabase login error, falling back to legacy:', e);
-      }
+  async login(userId, password) {
+    // v2.1: Login exclusivamente via Supabase Auth
+    if (typeof TBO_SUPABASE === 'undefined' || !TBO_SUPABASE.isOnline()) {
+      return { ok: false, msg: 'Supabase indisponivel. Verifique sua conexao.' };
     }
 
-    // Legacy path: TBO_CRYPTO hash verification
-    const cred = this._users[userId];
-    if (!cred) return { ok: false, msg: 'Usuario nao encontrado.' };
+    // Converter userId para email se necessario
+    const email = userId.includes('@') ? userId : `${userId}@agenciatbo.com.br`;
 
-    if (typeof TBO_CRYPTO === 'undefined') {
-      return { ok: false, msg: 'Modulo de criptografia nao disponivel.' };
+    try {
+      const result = await this.loginWithEmail(email, password);
+      return result;
+    } catch (e) {
+      console.error('[TBO Auth] Login error:', e);
+      return { ok: false, msg: e.message || 'Erro ao fazer login.' };
     }
-
-    const userHashes = await TBO_CRYPTO.getDefaultUserHashes();
-    const stored = userHashes[userId];
-    if (!stored) return { ok: false, msg: 'Credenciais nao configuradas.' };
-
-    const valid = await TBO_CRYPTO.verifyPassword(password, stored.hash, stored.salt);
-    if (!valid) return { ok: false, msg: 'Senha incorreta.' };
-
-    // Build session from TBO_PERMISSIONS
-    const roleInfo = TBO_PERMISSIONS.getRoleForUser(userId);
-    if (!roleInfo) return { ok: false, msg: 'Permissoes nao configuradas.' };
-
-    const { token, expiresAt } = TBO_CRYPTO.generateSessionToken(this._sessionExpiresHours);
-
-    const session = {
-      id: userId,
-      name: cred.name,
-      role: roleInfo.roleName,
-      roleLabel: roleInfo.label,
-      roleColor: roleInfo.color,
-      modules: TBO_PERMISSIONS.getModulesForUser(userId),
-      dashboardVariant: roleInfo.dashboardVariant,
-      defaultModule: roleInfo.defaultModule,
-      bu: roleInfo.bu,
-      isCoordinator: roleInfo.isCoordinator,
-      initials: TBO_PERMISSIONS.getInitials(cred.name),
-      loginAt: new Date().toISOString(),
-      token,
-      expiresAt,
-      authMode: 'legacy'
-    };
-
-    this._supabaseAuthMode = false;
-    this._cachedUser = session;
-    sessionStorage.setItem('tbo_auth', JSON.stringify(session));
-    this._startExpirationCheck();
-
-    return { ok: true, session };
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -288,35 +241,9 @@ const TBO_AUTH = {
       };
     }
 
-    // Fallback: try to map by email to legacy user
-    const email = authUser.email;
-    if (email) {
-      const legacyId = Object.keys(this._users).find(k => this._users[k].email === email);
-      if (legacyId) {
-        const roleInfo = TBO_PERMISSIONS.getRoleForUser(legacyId);
-        if (roleInfo) {
-          return {
-            id: legacyId,
-            supabaseId: authUser.id,
-            name: this._users[legacyId].name,
-            email,
-            role: roleInfo.roleName,
-            roleLabel: roleInfo.label,
-            roleColor: roleInfo.color,
-            modules: TBO_PERMISSIONS.getModulesForUser(legacyId),
-            dashboardVariant: roleInfo.dashboardVariant,
-            defaultModule: roleInfo.defaultModule,
-            bu: roleInfo.bu,
-            isCoordinator: roleInfo.isCoordinator,
-            initials: TBO_PERMISSIONS.getInitials(this._users[legacyId].name),
-            loginAt: new Date().toISOString(),
-            authMode: 'supabase',
-            avatarUrl: authUser.user_metadata?.avatar_url || null
-          };
-        }
-      }
-    }
-
+    // v2.1: Sem fallback legacy — profile obrigatorio no Supabase
+    // Se o usuario nao tem profile, retornar null (forcara criacao no onboarding)
+    console.warn('[TBO Auth] Nenhum profile encontrado para:', authUser.email);
     return null;
   },
 
@@ -337,7 +264,7 @@ const TBO_AUTH = {
         if (!this._cachedUser || this._cachedUser.supabaseId !== supaSession.user.id) {
           const session = await this._buildSupabaseSession(supaSession.user);
           if (session) {
-            this._supabaseAuthMode = true;
+            // v2.1: auth mode sempre supabase
             this._cachedUser = session;
             sessionStorage.setItem('tbo_auth', JSON.stringify(session));
 
@@ -384,7 +311,7 @@ const TBO_AUTH = {
     if (session && !this._cachedUser) {
       const userSession = await this._buildSupabaseSession(session.user);
       if (userSession) {
-        this._supabaseAuthMode = true;
+        // v2.1: auth mode sempre supabase
         this._cachedUser = userSession;
         sessionStorage.setItem('tbo_auth', JSON.stringify(userSession));
       }
@@ -397,7 +324,7 @@ const TBO_AUTH = {
 
   async logout() {
     // Supabase signout
-    if (this._supabaseAuthMode && typeof TBO_SUPABASE !== 'undefined') {
+    if (typeof TBO_SUPABASE !== 'undefined') {
       const client = TBO_SUPABASE.getClient();
       if (client) {
         try { await client.auth.signOut(); } catch (e) { /* ignore */ }
@@ -406,48 +333,15 @@ const TBO_AUTH = {
     }
 
     this._cachedUser = null;
-    this._supabaseAuthMode = false;
     sessionStorage.removeItem('tbo_auth');
-    this._stopExpirationCheck();
     // Limpar tenant ativo (v2 multi-tenant)
     if (typeof TBO_WORKSPACE !== 'undefined') {
       TBO_WORKSPACE.clearTenant();
     }
   },
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // SESSION EXPIRATION (legacy mode only)
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  _startExpirationCheck() {
-    this._stopExpirationCheck();
-    this._expirationCheckInterval = setInterval(() => {
-      const user = this.getCurrentUser();
-      if (!user) {
-        this._stopExpirationCheck();
-      }
-    }, 60 * 1000);
-  },
-
-  _stopExpirationCheck() {
-    if (this._expirationCheckInterval) {
-      clearInterval(this._expirationCheckInterval);
-      this._expirationCheckInterval = null;
-    }
-  },
-
-  _showSessionExpiredMessage() {
-    this._setOverlayState('login');
-
-    const container = document.getElementById('userMenu');
-    if (container) container.innerHTML = '';
-    const sidebarWidget = document.getElementById('sidebarUserWidget');
-    if (sidebarWidget) sidebarWidget.innerHTML = '';
-
-    if (typeof TBO_TOAST !== 'undefined') {
-      TBO_TOAST.warning('Sessao expirada', 'Sua sessao expirou. Faca login novamente.');
-    }
-  },
+  // REMOVIDO: _startExpirationCheck, _stopExpirationCheck, _showSessionExpiredMessage
+  // (legacy mode eliminado em v2.1 — Supabase gerencia expiracão via autoRefreshToken)
 
   // ═══════════════════════════════════════════════════════════════════════════
   // ACCESS CHECKS
@@ -552,21 +446,18 @@ const TBO_AUTH = {
 
       let result;
       if (email && typeof TBO_SUPABASE !== 'undefined' && TBO_SUPABASE.isOnline()) {
-        // Try Supabase email auth
+        // Supabase email auth (unico modo suportado em v2.1+)
         try {
           result = await this.loginWithEmail(email, password);
         } catch (e) {
           console.warn('[TBO Auth] Supabase email auth error:', e);
           result = { ok: false, msg: e.message };
         }
-        if (!result.ok) {
-          // Fallback to legacy — skip Supabase retry since we already tried
-          if (userId && this._users[userId]) {
-            result = await this.login(userId, password, true);
-          }
-        }
+      } else if (email) {
+        // Supabase offline — orientar usuario
+        result = { ok: false, msg: 'Sem conexao com o servidor. Verifique sua internet.' };
       } else {
-        // Legacy login
+        // Login por userId (converte para email)
         result = await this.login(userId, password);
       }
 
@@ -684,10 +575,6 @@ const TBO_AUTH = {
       this._applyAccess();
       this._renderUserMenu(user);
       this._renderSidebarUser(user);
-
-      if (!this._supabaseAuthMode) {
-        this._startExpirationCheck();
-      }
 
       return true;
     }

@@ -295,8 +295,11 @@ const TBO_ADMIN_PORTAL = {
         }
       }
 
-      // Profiles (usuarios)
-      const { data: profiles } = await client.from('profiles').select('*');
+      // Profiles (usuarios) — filtrado por tenant_id (v2.1 multi-tenant)
+      const tenantId = TBO_SUPABASE.getCurrentTenantId();
+      let profQuery = client.from('profiles').select('*');
+      if (tenantId) profQuery = profQuery.eq('tenant_id', tenantId);
+      const { data: profiles } = await profQuery;
       this._users = profiles || [];
 
       // Enrichir com tenant_members

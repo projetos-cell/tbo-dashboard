@@ -685,11 +685,13 @@ const TBO_STORAGE = {
       return;
     }
 
-    // Fire-and-forget async write
+    // Fire-and-forget async write (com tenant_id — v2.1 multi-tenant)
     (async () => {
       try {
+        const tenantId = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getCurrentTenantId() : null;
         if (action === 'insert') {
           const row = {
+            tenant_id: tenantId,
             name: deal.name,
             company: deal.company,
             contact: deal.contact,

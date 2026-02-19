@@ -1,0 +1,20 @@
+{
+  "name": "tbo-os",
+  "version": "2.2.0",
+  "description": "TBO OS — Sistema interno da Agencia TBO",
+  "private": true,
+  "scripts": {
+    "lint": "eslint \"modules/**/*.js\" \"utils/**/*.js\" \"js/**/*.js\" \"app.js\"",
+    "lint:fix": "eslint --fix \"modules/**/*.js\" \"utils/**/*.js\" \"js/**/*.js\" \"app.js\"",
+    "security:check": "grep -rn 'api_key.*=.*[a-f0-9-]\\{20,\\}' app.js modules/ utils/ js/ || echo 'OK: no hardcoded keys'",
+    "validate": "node scripts/validate-build.js",
+    "build": "node scripts/build.js",
+    "build:clean": "rm -rf dist && node scripts/build.js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "esbuild": "^0.20.2",
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0"
+  }
+}

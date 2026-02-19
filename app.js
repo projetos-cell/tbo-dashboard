@@ -39,16 +39,15 @@ const TBO_APP = {
       TBO_SUPABASE.initOnlineListeners();
     }
 
-    // 0c. Seed chaves de integracoes (se nao existirem)
-    if (!localStorage.getItem('tbo_fireflies_api_key')) {
-      localStorage.setItem('tbo_fireflies_api_key', 'e46b7c6c-21ab-48c2-bb23-f1e93645bca6');
-      localStorage.setItem('tbo_fireflies_enabled', 'true');
+    // 0b2. Init error monitor (v2.1 observabilidade)
+    if (typeof TBO_ERROR_MONITOR !== 'undefined') {
+      TBO_ERROR_MONITOR.init();
     }
-    if (!localStorage.getItem('tbo_omie_app_key')) {
-      localStorage.setItem('tbo_omie_app_key', '5716751616576');
-      localStorage.setItem('tbo_omie_app_secret', '21f5e10c60cc84333c4852f50c58afe4');
-      localStorage.setItem('tbo_omie_enabled', 'true');
-    }
+
+    // 0c. Credenciais de integracoes carregadas do Supabase (integration_configs)
+    // REMOVIDO: seed hardcoded de API keys (seguranca — nunca commitar credenciais)
+    // As integracoes buscam keys via integration_configs table apos login
+    // Configuracao pelo admin em: Configuracoes > Integracoes
 
     // 1. Init auth & login UI
     TBO_AUTH.initLoginUI();
@@ -169,6 +168,23 @@ const TBO_APP = {
 
     // 13. Navigate to initial module (only if logged in)
     if (loggedIn) {
+      // 13a. Carregar credenciais de integracoes do Supabase (nao hardcoded)
+      if (typeof TBO_SUPABASE !== 'undefined') {
+        const tenantId = TBO_SUPABASE.getCurrentTenantId();
+        if (tenantId) {
+          TBO_SUPABASE.loadIntegrationKeys(tenantId).catch(e =>
+            console.warn('[TBO OS] Integration keys load error:', e)
+          );
+        }
+      }
+
+      // 13b. Carregar roles de usuario do Supabase (RBAC dinamico — v2.1)
+      if (typeof TBO_PERMISSIONS !== 'undefined' && TBO_PERMISSIONS.loadUserRolesFromSupabase) {
+        TBO_PERMISSIONS.loadUserRolesFromSupabase().catch(e =>
+          console.warn('[TBO OS] User roles load error:', e)
+        );
+      }
+
       // Verificar se precisa selecionar workspace (multi-tenant v2)
       if (typeof TBO_WORKSPACE !== 'undefined' && TBO_WORKSPACE.shouldShowSelector()) {
         // Carregar tenants e mostrar selector
@@ -308,11 +324,13 @@ const TBO_APP = {
       const user = TBO_AUTH.getCurrentUser();
       if (!user) return;
 
-      // Buscar contagens relevantes em paralelo
+      // Buscar contagens relevantes em paralelo (com tenant_id — v2.1 multi-tenant)
+      const tenantId = TBO_SUPABASE.getCurrentTenantId();
+      const tenantFilter = (q) => tenantId ? q.eq('tenant_id', tenantId) : q;
       const [tasksRes, alertsRes, notifRes] = await Promise.allSettled([
-        client.from('tasks').select('id', { count: 'exact', head: true }).eq('assigned_to', user.id).eq('status', 'pendente'),
+        tenantFilter(client.from('tasks').select('id', { count: 'exact', head: true }).eq('assigned_to', user.id).eq('status', 'pendente')),
         client.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('read', false),
-        client.from('crm_deals').select('id', { count: 'exact', head: true }).eq('stage', 'negociacao')
+        tenantFilter(client.from('crm_deals').select('id', { count: 'exact', head: true }).eq('stage', 'negociacao'))
       ]);
 
       const newCounts = {};
@@ -1103,6 +1121,16 @@ const TBO_APP = {
     const searchBtn = document.getElementById('searchBtn');
     if (searchBtn) {
       searchBtn.addEventListener('click', () => this.toggleSearch(true));
+    }
+
+    // v2.1: Handler do Sheets status badge (removido onclick inline do HTML para CSP)
+    const sheetsBtn = document.getElementById('statusSheets');
+    if (sheetsBtn) {
+      sheetsBtn.addEventListener('click', () => {
+        if (typeof TBO_SHEETS !== 'undefined' && TBO_SHEETS.forceRefresh) {
+          TBO_SHEETS.forceRefresh().then(() => location.reload());
+        }
+      });
     }
   },
 

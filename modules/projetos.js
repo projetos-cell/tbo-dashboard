@@ -190,7 +190,7 @@ const TBO_PROJETOS = {
               <label class="form-label">Projeto</label>
               <select class="form-input" id="pjPrepProjeto">
                 <option value="">Selecione</option>
-                ${active.map(p => `<option value="${p.name}">${p.name} (${p.client})</option>`).join('')}
+                ${active.map(p => `<option value="${_escapeHtml(p.name)}">${_escapeHtml(p.name)} (${_escapeHtml(p.client)})</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
@@ -251,13 +251,13 @@ const TBO_PROJETOS = {
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div style="flex:1;min-width:0;">
           ${p.code ? `<div style="font-size:0.6rem;color:var(--text-muted);font-family:monospace;letter-spacing:0.03em;margin-bottom:1px;">${p.code}</div>` : ''}
-          <div style="font-weight:600;font-size:0.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
-          <div style="font-size:0.7rem;color:var(--text-muted);">${p.client || ''}</div>
+          <div style="font-weight:600;font-size:0.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${_escapeHtml(p.name)}</div>
+          <div style="font-size:0.7rem;color:var(--text-muted);">${_escapeHtml(p.client) || ''}</div>
         </div>
-        <div class="deal-owner-badge" title="${p.owner || 'Sem responsavel'}" style="background:${p.owner ? 'var(--accent)' : '#ef4444'};">${ownerInitials}</div>
+        <div class="deal-owner-badge" title="${_escapeHtml(p.owner) || 'Sem responsavel'}" style="background:${p.owner ? 'var(--accent)' : '#ef4444'};">${ownerInitials}</div>
       </div>
-      ${p.next_action ? `<div style="font-size:0.68rem;color:var(--accent-gold);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${p.next_action}">
-        \u25B6 ${p.next_action}
+      ${p.next_action ? `<div style="font-size:0.68rem;color:var(--accent-gold);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${_escapeHtml(p.next_action)}">
+        \u25B6 ${_escapeHtml(p.next_action)}
       </div>` : (p.status !== 'finalizado' && p.status !== 'pausado' ? '<div style="font-size:0.68rem;color:#ef4444;margin-top:6px;">\u26A0 Sem proxima acao</div>' : '')}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
         ${tasks.length > 0 ? `<div style="font-size:0.65rem;color:var(--text-muted);">${doneTasks}/${tasks.length} tarefas</div>` : '<span></span>'}
@@ -350,16 +350,16 @@ const TBO_PROJETOS = {
             <div class="asana-col asana-col--name">
               <div style="width:8px;height:8px;border-radius:50%;background:${stateColor};flex-shrink:0;"></div>
               <div style="flex:1;min-width:0;">
-                <div style="font-weight:600;font-size:0.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
-                <div style="font-size:0.68rem;color:var(--text-muted);">${p.client || ''}</div>
+                <div style="font-weight:600;font-size:0.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${_escapeHtml(p.name)}</div>
+                <div style="font-size:0.68rem;color:var(--text-muted);">${_escapeHtml(p.client) || ''}</div>
               </div>
             </div>
             <div class="asana-col asana-col--status">
               <span class="tag" style="font-size:0.62rem;background:${stateColor}20;color:${stateColor};border:1px solid ${stateColor}40;">${stateLabel}</span>
             </div>
             <div class="asana-col asana-col--owner">
-              <div class="deal-owner-badge" style="width:26px;height:26px;font-size:0.6rem;background:${p.owner ? 'var(--accent)' : '#6b7280'};" title="${p.owner || 'Sem responsavel'}">${ownerInitials}</div>
-              <span style="font-size:0.75rem;">${p.owner || '-'}</span>
+              <div class="deal-owner-badge" style="width:26px;height:26px;font-size:0.6rem;background:${p.owner ? 'var(--accent)' : '#6b7280'};" title="${_escapeHtml(p.owner) || 'Sem responsavel'}">${ownerInitials}</div>
+              <span style="font-size:0.75rem;">${_escapeHtml(p.owner) || '-'}</span>
             </div>
             <div class="asana-col asana-col--health">
               <div style="width:36px;height:4px;background:var(--bg-elevated);border-radius:2px;overflow:hidden;">
@@ -441,7 +441,7 @@ const TBO_PROJETOS = {
                   ${t.estimate_minutes ? `<span style="font-size:0.62rem;color:var(--text-muted);">${TBO_WORKLOAD ? TBO_WORKLOAD.formatHoursMinutes(t.estimate_minutes) : t.estimate_minutes + 'min'}</span>` : ''}
                 </div>
                 <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">
-                  ${t.project_name ? t.project_name + ' | ' : ''}${t.owner || '<span style="color:#ef4444;">Sem responsavel</span>'}
+                  ${t.project_name ? _escapeHtml(t.project_name) + ' | ' : ''}${t.owner ? _escapeHtml(t.owner) : '<span style="color:#ef4444;">Sem responsavel</span>'}
                   ${t.due_date ? ' | ' + (isOverdue ? '<span style="color:#ef4444;">' : isToday ? '<span style="color:#f59e0b;">' : '<span>') + t.due_date + '</span>' : ''}
                   ${t.phase ? ' | ' + t.phase : ''}
                 </div>
@@ -480,12 +480,12 @@ const TBO_PROJETOS = {
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <div style="flex:1;">
                 <div style="display:flex;align-items:center;gap:6px;">
-                  <span style="font-weight:600;font-size:0.82rem;">${d.name}</span>
+                  <span style="font-weight:600;font-size:0.82rem;">${_escapeHtml(d.name)}</span>
                   <span class="tag" style="font-size:0.62rem;background:${stateColor}20;color:${stateColor};">${stateLabel}</span>
                   ${d.current_version ? `<span class="tag" style="font-size:0.62rem;">${d.current_version}</span>` : ''}
                 </div>
                 <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">
-                  ${d.project_name || ''} | ${d.owner || 'Sem responsavel'} | ${versions.length} versao(es)
+                  ${_escapeHtml(d.project_name) || ''} | ${_escapeHtml(d.owner) || 'Sem responsavel'} | ${versions.length} versao(es)
                 </div>
               </div>
               <div style="display:flex;gap:4px;">
@@ -563,8 +563,8 @@ const TBO_PROJETOS = {
         ${runningTimer ? `
           <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--accent-gold)10;border:1px solid var(--accent-gold)30;border-radius:8px;">
             <div style="flex:1;">
-              <div style="font-weight:600;font-size:0.82rem;">${(() => { const p = TBO_STORAGE.getErpEntity('project', runningTimer.project_id); return p ? p.name : ''; })()}</div>
-              <div style="font-size:0.72rem;color:var(--text-muted);">${runningTimer.description || ''}</div>
+              <div style="font-weight:600;font-size:0.82rem;">${(() => { const p = TBO_STORAGE.getErpEntity('project', runningTimer.project_id); return p ? _escapeHtml(p.name) : ''; })()}</div>
+              <div style="font-size:0.72rem;color:var(--text-muted);">${_escapeHtml(runningTimer.description) || ''}</div>
             </div>
             <div style="font-family:monospace;font-size:1.1rem;font-weight:700;color:var(--accent-gold);" id="tsTimerClock">--:--</div>
             <button class="btn btn-primary" style="font-size:0.78rem;padding:6px 14px;background:#ef4444;" id="tsStopTimer">Parar</button>
@@ -575,7 +575,7 @@ const TBO_PROJETOS = {
               <label class="form-label" style="font-size:0.7rem;">Projeto</label>
               <select class="form-input" id="tsTimerProject" style="font-size:0.78rem;">
                 <option value="">Selecione...</option>
-                ${projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+                ${projects.map(p => `<option value="${p.id}">${_escapeHtml(p.name)}</option>`).join('')}
               </select>
             </div>
             <div style="flex:1;min-width:140px;">
@@ -613,7 +613,7 @@ const TBO_PROJETOS = {
           <div class="timesheet-cell timesheet-cell--header">Total</div>
           <!-- Rows per project -->
           ${ts.projects.length > 0 ? ts.projects.map(pr => `
-            <div class="timesheet-cell timesheet-cell--project">${pr.project_name}</div>
+            <div class="timesheet-cell timesheet-cell--project">${_escapeHtml(pr.project_name)}</div>
             ${ts.days.map(d => {
               const mins = pr.days[d] || 0;
               return `<div class="timesheet-cell${mins === 0 ? ' timesheet-cell--empty' : ''}">${mins > 0 ? TBO_WORKLOAD.formatHoursMinutes(mins) : '-'}</div>`;
@@ -651,8 +651,8 @@ const TBO_PROJETOS = {
               const project = TBO_STORAGE.getErpEntity('project', e.project_id);
               return `<div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--bg-elevated);border-radius:6px;font-size:0.78rem;">
                 <span style="font-family:monospace;color:var(--text-muted);min-width:90px;">${e.start_time || '--:--'} - ${e.end_time || '--:--'}</span>
-                <span style="font-weight:600;color:var(--accent-gold);min-width:100px;">${project ? project.name : ''}</span>
-                <span style="flex:1;color:var(--text-secondary);">${e.description || ''}</span>
+                <span style="font-weight:600;color:var(--accent-gold);min-width:100px;">${project ? _escapeHtml(project.name) : ''}</span>
+                <span style="flex:1;color:var(--text-secondary);">${_escapeHtml(e.description) || ''}</span>
                 <span style="font-weight:700;min-width:50px;text-align:right;">${TBO_WORKLOAD.formatHoursMinutes(e.duration_minutes)}</span>
                 <span style="font-size:0.65rem;color:var(--text-muted);">${e.source === 'timer' ? '&#9201;' : '&#9998;'}</span>
                 <button class="btn btn-secondary" style="font-size:0.62rem;padding:2px 6px;" onclick="TBO_PROJETOS._editTimeEntry('${e.id}')">&#9998;</button>
@@ -703,7 +703,7 @@ const TBO_PROJETOS = {
                 if (!m) return '';
                 const marginColor = m.margin_real >= 40 ? '#22c55e' : m.margin_real >= 20 ? '#f59e0b' : '#ef4444';
                 return `<div class="cost-table-row">
-                  <span style="font-weight:600;">${p.name}</span>
+                  <span style="font-weight:600;">${_escapeHtml(p.name)}</span>
                   <span>${typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.currency(m.revenue) : 'R$' + m.revenue}</span>
                   <span>${typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.currency(m.planned_cost) : 'R$' + m.planned_cost}</span>
                   <span style="${m.is_over_budget ? 'color:#ef4444;font-weight:700;' : ''}">${typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.currency(m.tracked_cost) : 'R$' + m.tracked_cost}</span>
@@ -729,7 +729,7 @@ const TBO_PROJETOS = {
               const fillPct = Math.min(u.utilization_pct, 150);
               const barClass = u.utilization_pct > 100 ? 'capacity-bar-fill--over' : u.utilization_pct > 80 ? 'capacity-bar-fill--warn' : 'capacity-bar-fill--ok';
               return `<div class="capacity-row">
-                <span style="min-width:100px;font-size:0.78rem;font-weight:600;">${u.userName}</span>
+                <span style="min-width:100px;font-size:0.78rem;font-weight:600;">${_escapeHtml(u.userName)}</span>
                 <div class="capacity-bar" style="flex:1;">
                   <div class="capacity-bar-fill ${barClass}" style="width:${Math.min(fillPct, 100)}%;"></div>
                   <span class="capacity-bar-label">${TBO_WORKLOAD.formatHoursMinutes(u.tracked_minutes)}/${TBO_WORKLOAD.formatHoursMinutes(u.capacity_minutes)} (${u.utilization_pct}%)</span>
@@ -1076,15 +1076,15 @@ const TBO_PROJETOS = {
             if (r.type === 'project') {
               const expanded = this._ganttExpandedProjects[r.id];
               const childCount = taskRows.filter(t => t.parentId === r.id).length;
-              return `<div class="gantt-label-row gantt-label-row--project" onclick="TBO_PROJETOS._toggleGanttProject('${r.id}')" style="cursor:pointer;" title="${r.name}">
+              return `<div class="gantt-label-row gantt-label-row--project" onclick="TBO_PROJETOS._toggleGanttProject('${r.id}')" style="cursor:pointer;" title="${_escapeHtml(r.name)}">
                 <span style="font-size:0.7rem;margin-right:4px;">${expanded ? '&#9660;' : '&#9654;'}</span>
-                <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.name}</span>
+                <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${_escapeHtml(r.name)}</span>
                 <span style="font-size:0.6rem;color:var(--text-muted);margin-left:auto;">${childCount}</span>
               </div>`;
             } else {
-              return `<div class="gantt-label-row gantt-label-row--task" title="${r.name}">
-                <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.name}</span>
-                ${r.owner ? `<span style="font-size:0.58rem;color:var(--text-muted);margin-left:auto;">${r.owner}</span>` : ''}
+              return `<div class="gantt-label-row gantt-label-row--task" title="${_escapeHtml(r.name)}">
+                <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${_escapeHtml(r.name)}</span>
+                ${r.owner ? `<span style="font-size:0.58rem;color:var(--text-muted);margin-left:auto;">${_escapeHtml(r.owner)}</span>` : ''}
               </div>`;
             }
           }).join('')}
@@ -1117,12 +1117,12 @@ const TBO_PROJETOS = {
                   const pctDone = r.type === 'project' && r.progress !== undefined ? r.progress : 0;
                   const progressW = r.type === 'project' ? Math.round(pctDone * barW / 100) : 0;
                   return `
-                  <div class="${barClass} gantt-bar-drag" id="${barId}" data-entity-type="${r.type}" data-entity-id="${r.id}" style="position:absolute;top:6px;height:24px;left:${barLeft}px;width:${barW}px;background:${r.color};border-radius:6px;cursor:grab;z-index:3;opacity:${r.type === 'task' ? '0.9' : '1'};box-shadow:0 1px 4px rgba(0,0,0,0.2);" title="${r.name}&#10;${ownerName ? ownerName + '  |  ' : ''}${r.startDate} → ${r.endDate}">
+                  <div class="${barClass} gantt-bar-drag" id="${barId}" data-entity-type="${r.type}" data-entity-id="${r.id}" style="position:absolute;top:6px;height:24px;left:${barLeft}px;width:${barW}px;background:${r.color};border-radius:6px;cursor:grab;z-index:3;opacity:${r.type === 'task' ? '0.9' : '1'};box-shadow:0 1px 4px rgba(0,0,0,0.2);" title="${_escapeHtml(r.name)}&#10;${ownerName ? _escapeHtml(ownerName) + '  |  ' : ''}${r.startDate} → ${r.endDate}">
                     ${r.type === 'project' && pctDone > 0 ? `<div class="gantt-bar-progress" style="position:absolute;left:0;top:0;height:100%;width:${progressW}px;background:rgba(255,255,255,0.18);border-radius:6px 0 0 6px;pointer-events:none;"></div>` : ''}
                     <div class="gantt-drag-handle gantt-drag-handle--left" data-handle="left" style="position:absolute;left:0;top:0;width:6px;height:100%;cursor:ew-resize;border-radius:6px 0 0 6px;"></div>
                     <div class="gantt-bar-content" style="display:flex;align-items:center;gap:4px;padding:0 8px;height:100%;overflow:hidden;pointer-events:none;">
                       ${showAvatar ? `<span class="gantt-bar-avatar" style="width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;font-size:0.5rem;font-weight:700;color:#fff;flex-shrink:0;border:1px solid rgba(255,255,255,0.4);">${initials}</span>` : ''}
-                      <span class="gantt-bar-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.62rem;color:#fff;line-height:24px;">${r.name}</span>
+                      <span class="gantt-bar-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.62rem;color:#fff;line-height:24px;">${_escapeHtml(r.name)}</span>
                     </div>
                     <div class="gantt-drag-handle gantt-drag-handle--right" data-handle="right" style="position:absolute;right:0;top:0;width:6px;height:100%;cursor:ew-resize;border-radius:0 6px 6px 0;"></div>
                   </div>`;
@@ -1391,7 +1391,7 @@ const TBO_PROJETOS = {
             </div>
           </div>
 
-          ${project.notes ? `<div style="font-size:0.82rem;color:var(--text-secondary);padding:12px;background:var(--bg-elevated);border-radius:8px;margin-bottom:16px;border-left:3px solid var(--accent);">${project.notes}</div>` : ''}
+          ${project.notes ? `<div style="font-size:0.82rem;color:var(--text-secondary);padding:12px;background:var(--bg-elevated);border-radius:8px;margin-bottom:16px;border-left:3px solid var(--accent);">${_escapeHtml(project.notes)}</div>` : ''}
 
           <!-- Activity Feed -->
           ${history.length > 0 ? `
@@ -1414,11 +1414,11 @@ const TBO_PROJETOS = {
           </div>
           <div style="margin-bottom:16px;">
             <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Responsavel</div>
-            <div style="font-size:0.82rem;font-weight:600;">${project.owner || 'Nao definido'}</div>
+            <div style="font-size:0.82rem;font-weight:600;">${_escapeHtml(project.owner) || 'Nao definido'}</div>
           </div>
           <div style="margin-bottom:16px;">
             <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Cliente</div>
-            <div style="font-size:0.82rem;">${project.client || '-'}</div>
+            <div style="font-size:0.82rem;">${_escapeHtml(project.client) || '-'}</div>
           </div>
           ${project.value ? `<div style="margin-bottom:16px;">
             <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Valor</div>
@@ -1444,7 +1444,7 @@ const TBO_PROJETOS = {
           ${teamOnProject.length > 0 ? `<div style="margin-bottom:16px;">
             <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Equipe (${teamOnProject.length})</div>
             <div style="display:flex;flex-wrap:wrap;gap:4px;">
-              ${teamOnProject.map(m => `<span class="deal-owner-badge" style="font-size:0.6rem;width:28px;height:28px;" title="${m}">${typeof TBO_PERMISSIONS !== 'undefined' ? TBO_PERMISSIONS.getInitials(m) : m.charAt(0)}</span>`).join('')}
+              ${teamOnProject.map(m => `<span class="deal-owner-badge" style="font-size:0.6rem;width:28px;height:28px;" title="${_escapeHtml(m)}">${typeof TBO_PERMISSIONS !== 'undefined' ? TBO_PERMISSIONS.getInitials(m) : _escapeHtml(m).charAt(0)}</span>`).join('')}
             </div>
           </div>` : ''}
           ${(project.services || []).length > 0 ? `<div style="margin-bottom:16px;">
@@ -1699,7 +1699,7 @@ const TBO_PROJETOS = {
           ${deliverables.length > 0 ? deliverables.map(d => {
             const dc = delSm ? delSm.colors[d.status] || '#94a3b8' : '#94a3b8';
             return `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:0.78rem;">
-              <span style="flex:1;font-weight:500;">${d.name}</span>
+              <span style="flex:1;font-weight:500;">${_escapeHtml(d.name)}</span>
               <span class="tag" style="font-size:0.6rem;background:${dc}20;color:${dc};">${delSm ? delSm.labels[d.status] : d.status}</span>
               ${d.current_version ? `<span style="font-size:0.65rem;color:var(--text-muted);">${d.current_version}</span>` : ''}
             </div>`;
@@ -1737,7 +1737,7 @@ const TBO_PROJETOS = {
     modal.innerHTML = `
       <div class="modal modal--lg active" style="max-width:${existing ? '860' : '700'}px;">
         <div class="modal-header">
-          <h3 class="modal-title">${isNew ? 'Novo Projeto' : `${p.code ? '<span style="font-family:monospace;font-size:0.72rem;color:var(--text-muted);font-weight:400;margin-right:8px;">' + p.code + '</span>' : ''}${p.name}`}</h3>
+          <h3 class="modal-title">${isNew ? 'Novo Projeto' : `${p.code ? '<span style="font-family:monospace;font-size:0.72rem;color:var(--text-muted);font-weight:400;margin-right:8px;">' + _escapeHtml(p.code) + '</span>' : ''}${_escapeHtml(p.name)}`}</h3>
           <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
         </div>
         <div class="modal-body" style="max-height:75vh;overflow-y:auto;">
@@ -1756,11 +1756,11 @@ const TBO_PROJETOS = {
           <div class="grid-2" style="gap:12px;">
             <div class="form-group">
               <label class="form-label">Nome do Projeto*</label>
-              <input type="text" class="form-input" id="pjModalName" value="${p.name || ''}">
+              <input type="text" class="form-input" id="pjModalName" value="${_escapeHtml(p.name)}">
             </div>
             <div class="form-group">
               <label class="form-label">Cliente/Construtora*</label>
-              <input type="text" class="form-input" id="pjModalClient" value="${p.client || ''}" list="pjClientList">
+              <input type="text" class="form-input" id="pjModalClient" value="${_escapeHtml(p.client)}" list="pjClientList">
               <datalist id="pjClientList">
                 ${(TBO_STORAGE.get('context').clientes_construtoras || []).map(c => `<option value="${c}">`).join('')}
               </datalist>
@@ -1771,7 +1771,7 @@ const TBO_PROJETOS = {
               <label class="form-label">Responsavel</label>
               <select class="form-input" id="pjModalOwner">
                 <option value="">Selecione</option>
-                ${team.map(t => `<option value="${t}" ${p.owner === t ? 'selected' : ''}>${t}</option>`).join('')}
+                ${team.map(t => `<option value="${_escapeHtml(t)}" ${p.owner === t ? 'selected' : ''}>${_escapeHtml(t)}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
@@ -1809,7 +1809,7 @@ const TBO_PROJETOS = {
           <div class="grid-2" style="gap:12px;">
             <div class="form-group">
               <label class="form-label">Proxima Acao</label>
-              <input type="text" class="form-input" id="pjModalNextAction" value="${p.next_action || ''}" placeholder="O que precisa ser feito a seguir?">
+              <input type="text" class="form-input" id="pjModalNextAction" value="${_escapeHtml(p.next_action)}" placeholder="O que precisa ser feito a seguir?">
             </div>
             <div class="form-group">
               <label class="form-label">Prazo Proxima Acao</label>
@@ -1818,7 +1818,7 @@ const TBO_PROJETOS = {
           </div>
           <div class="form-group">
             <label class="form-label">Notas</label>
-            <textarea class="form-input" id="pjModalNotes" rows="3">${p.notes || ''}</textarea>
+            <textarea class="form-input" id="pjModalNotes" rows="3">${_escapeHtml(p.notes)}</textarea>
           </div>
           ${existing ? `
             </div><!-- close pjMtab-edit -->
@@ -1968,8 +1968,8 @@ const TBO_PROJETOS = {
             <div class="form-group">
               <label class="form-label">Responsavel</label>
               <select class="form-input" id="ntOwner">
-                <option value="${project?.owner || ''}">${project?.owner || 'Selecione'}</option>
-                ${team.filter(t => t !== project?.owner).map(t => `<option value="${t}">${t}</option>`).join('')}
+                <option value="${_escapeHtml(project?.owner) || ''}">${_escapeHtml(project?.owner) || 'Selecione'}</option>
+                ${team.filter(t => t !== project?.owner).map(t => `<option value="${_escapeHtml(t)}">${_escapeHtml(t)}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
@@ -2161,7 +2161,7 @@ const TBO_PROJETOS = {
             <label class="form-label">Projeto*</label>
             <select class="form-input" id="meProject">
               <option value="">Selecione...</option>
-              ${projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+              ${projects.map(p => `<option value="${p.id}">${_escapeHtml(p.name)}</option>`).join('')}
             </select>
           </div>
           <div class="grid-2" style="gap:12px;">
@@ -2261,7 +2261,7 @@ const TBO_PROJETOS = {
           </div>
           <div class="form-group">
             <label class="form-label">Descricao</label>
-            <input type="text" class="form-input" id="eeDesc" value="${entry.description || ''}">
+            <input type="text" class="form-input" id="eeDesc" value="${_escapeHtml(entry.description)}">
           </div>
         </div>
         <div class="modal-footer" style="display:flex;justify-content:space-between;">
@@ -2365,7 +2365,7 @@ const TBO_PROJETOS = {
           ${team.map(m => {
             const override = config.overrides?.[m.id]?.weekly_hours || '';
             return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-              <span style="min-width:100px;font-size:0.78rem;">${m.nome}</span>
+              <span style="min-width:100px;font-size:0.78rem;">${_escapeHtml(m.nome)}</span>
               <input type="number" class="form-input capOverride" data-user="${m.id}" value="${override}" placeholder="${config.defaults?.weekly_hours || 40}" min="0" max="60" style="max-width:80px;font-size:0.78rem;">
               <span style="font-size:0.68rem;color:var(--text-muted);">h/sem</span>
             </div>`;

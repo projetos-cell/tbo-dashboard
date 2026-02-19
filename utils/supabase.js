@@ -348,6 +348,67 @@ const TBO_SUPABASE = {
     }
   },
 
+  // ── Carregar credenciais de integracoes do Supabase ────────────────────
+  // Fonte de verdade: tabela integration_configs (criada na migration v3)
+  // Cacheia em localStorage para uso offline
+  async loadIntegrationKeys(tenantId) {
+    try {
+      const client = this.getClient();
+      if (!client || !tenantId) return;
+
+      const { data, error } = await client
+        .from('integration_configs')
+        .select('integration_type, api_key, api_secret, active')
+        .eq('tenant_id', tenantId)
+        .eq('active', true);
+
+      if (error) {
+        console.warn('[TBO Supabase] loadIntegrationKeys error:', error.message);
+        return;
+      }
+
+      if (!data || data.length === 0) return;
+
+      // Persistir em localStorage para uso pelas integracoes existentes
+      data.forEach(config => {
+        if (config.integration_type === 'fireflies' && config.api_key) {
+          localStorage.setItem('tbo_fireflies_api_key', config.api_key);
+          localStorage.setItem('tbo_fireflies_enabled', 'true');
+        } else if (config.integration_type === 'omie' && config.api_key) {
+          localStorage.setItem('tbo_omie_app_key', config.api_key);
+          if (config.api_secret) localStorage.setItem('tbo_omie_app_secret', config.api_secret);
+          localStorage.setItem('tbo_omie_enabled', 'true');
+        } else if (config.integration_type === 'rd_station' && config.api_key) {
+          localStorage.setItem('tbo_rd_api_token', config.api_key);
+          localStorage.setItem('tbo_rd_enabled', 'true');
+        } else if (config.integration_type === 'google_calendar') {
+          localStorage.setItem('tbo_gcal_enabled', config.active ? 'true' : 'false');
+        }
+      });
+
+      console.log(`[TBO Supabase] ${data.length} integration keys loaded from DB`);
+    } catch (e) {
+      console.warn('[TBO Supabase] loadIntegrationKeys failed:', e);
+    }
+  },
+
+  // ── Obter tenant_id ativo do usuario atual ──────────────────────────
+  getCurrentTenantId() {
+    // Tentar de workspace selector primeiro
+    const wsId = localStorage.getItem('tbo_current_tenant');
+    if (wsId) return wsId;
+
+    // Tentar do session
+    try {
+      const raw = sessionStorage.getItem('tbo_auth');
+      if (raw) {
+        const session = JSON.parse(raw);
+        return session.tenantId || null;
+      }
+    } catch { /* ignore */ }
+    return null;
+  },
+
   // ── Online/offline listeners ──────────────────────────────────────────
   initOnlineListeners() {
     window.addEventListener('online', () => {

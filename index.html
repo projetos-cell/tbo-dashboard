@@ -6,6 +6,14 @@
   <meta name="description" content="TBO OS - Sistema operacional do estudio TBO Arquitetura & Visualizacao">
   <title>TBO OS - Painel de Comando</title>
 
+  <!-- Resource Hints: preconnect para CDNs e Supabase (v2.1 performance) -->
+  <link rel="preconnect" href="https://olnndpultyllyhzxuyxh.supabase.co" crossorigin>
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="dns-prefetch" href="https://olnndpultyllyhzxuyxh.supabase.co">
+
   <!-- Typography: Helvetica Neue LT Pro (local brand font) -->
 
   <!-- Favicon -->
@@ -16,10 +24,10 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
 
   <!-- Lucide Icons (stroke/outline, consistent style) -->
-  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js"></script>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js" crossorigin="anonymous"></script>
 
   <!-- Supabase Client (PostgreSQL backend) -->
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js" crossorigin="anonymous">
 
   <!-- Styles -->
   <link rel="stylesheet" href="styles.css">
@@ -161,7 +169,7 @@
             <span class="status-dot" data-status="disconnected"></span>
             <span class="status-label">API</span>
           </div>
-          <div class="status-badge" id="statusSheets" title="Google Sheets (Financeiro)" style="cursor:pointer;" onclick="TBO_SHEETS.forceRefresh && TBO_SHEETS.forceRefresh().then(() => location.reload())">
+          <div class="status-badge" id="statusSheets" title="Google Sheets (Financeiro)" style="cursor:pointer;">
             <span class="status-dot" data-status="disconnected"></span>
             <span class="status-label">Sheets</span>
           </div>
@@ -297,40 +305,7 @@
         <input type="email" class="form-input" id="loginEmail" placeholder="seu@agenciatbo.com.br" autocomplete="email">
       </div>
 
-      <!-- Legacy user select (hidden by default, shown if email fails) -->
-      <details class="login-legacy-details">
-        <summary class="login-legacy-summary">Login por usuário (legado)</summary>
-        <div class="form-group login-legacy-group">
-          <select class="form-input" id="loginUser">
-            <option value="">Selecione...</option>
-            <optgroup label="Diretoria">
-              <option value="marco">Marco Andolfato</option>
-              <option value="ruy">Ruy Lima</option>
-            </optgroup>
-            <optgroup label="Coordenação & POs">
-              <option value="carol">Carol</option>
-              <option value="nelson">Nelson</option>
-              <option value="nath">Nathalia</option>
-              <option value="rafa">Rafa</option>
-              <option value="dann">Danniel</option>
-            </optgroup>
-            <optgroup label="Comercial">
-              <option value="gustavo">Gustavo</option>
-            </optgroup>
-            <optgroup label="Time">
-              <option value="celso">Celso</option>
-              <option value="erick">Erick</option>
-              <option value="duda">Duda</option>
-              <option value="tiago">Tiago M.</option>
-              <option value="mari">Mariane</option>
-              <option value="lucca">Lucca</option>
-            </optgroup>
-            <optgroup label="Financeiro">
-              <option value="financaazul">Finança Azul</option>
-            </optgroup>
-          </select>
-        </div>
-      </details>
+      <!-- Login legado removido em v2.1 — Supabase Auth e a unica via de acesso -->
 
       <div class="form-group">
         <label class="form-label" for="loginPass">Senha</label>
@@ -351,9 +326,12 @@
   <!-- Configuration (API keys, endpoints, feature flags) -->
   <script src="config.js"></script>
 
-  <!-- Crypto & Backup Utilities (must load before auth) -->
-  <script src="utils/crypto.js"></script>
+  <!-- Backup Utilities -->
   <script src="utils/backup.js"></script>
+  <!-- REMOVIDO: utils/crypto.js (legacy auth eliminado em v2.1 — TBO_CRYPTO nao mais utilizado) -->
+
+  <!-- Error Monitor & Performance (v2.1 observabilidade) -->
+  <script src="utils/error-monitor.js"></script>
 
   <!-- Supabase Wrapper (must load after CDN, before storage) -->
   <script src="utils/supabase.js"></script>

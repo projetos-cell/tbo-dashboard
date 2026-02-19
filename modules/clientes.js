@@ -136,24 +136,24 @@ const TBO_CLIENTES = {
     const nextActionDays = c.next_action_date ? this._daysUntil(c.next_action_date) : null;
 
     return `
-      <div class="clientes-card" data-client="${c.name}">
+      <div class="clientes-card" data-client="${_escapeHtml(c.name)}">
         <div class="clientes-card-header">
           <div class="clientes-card-avatar" style="background:${this._avatarColor(c.name)};">${this._initials(c.name)}</div>
           <div class="clientes-card-info">
-            <div class="clientes-card-name">${c.name}</div>
-            ${c.contact ? `<div class="clientes-card-contact">${c.contact}</div>` : ''}
-            ${c.email ? `<div class="clientes-card-email">${c.email}</div>` : ''}
+            <div class="clientes-card-name">${_escapeHtml(c.name)}</div>
+            ${c.contact ? `<div class="clientes-card-contact">${_escapeHtml(c.contact)}</div>` : ''}
+            ${c.email ? `<div class="clientes-card-email">${_escapeHtml(c.email)}</div>` : ''}
           </div>
           <div class="clientes-card-actions">
-            <button class="clientes-detail-btn" data-detail-client="${c.name}" title="Ver detalhes">&#128269;</button>
-            <button class="clientes-edit-btn" data-edit-client="${c.name}" title="Editar">&#9998;</button>
+            <button class="clientes-detail-btn" data-detail-client="${_escapeHtml(c.name)}" title="Ver detalhes">&#128269;</button>
+            <button class="clientes-edit-btn" data-edit-client="${_escapeHtml(c.name)}" title="Editar">&#9998;</button>
           </div>
         </div>
 
         <!-- CRM Status Badge + Sales Owner -->
         <div class="clientes-crm-row">
           ${statusCfg ? `<span class="clientes-status-badge" style="background:${statusCfg.color}20;color:${statusCfg.color};border:1px solid ${statusCfg.color}40;">${statusCfg.label}</span>` : '<span class="clientes-status-badge clientes-status-badge--none">Sem status</span>'}
-          ${c.sales_owner ? `<span class="clientes-sales-owner" title="Responsavel Comercial">&#128100; ${c.sales_owner}</span>` : ''}
+          ${c.sales_owner ? `<span class="clientes-sales-owner" title="Responsavel Comercial">&#128100; ${_escapeHtml(c.sales_owner)}</span>` : ''}
         </div>
 
         <div class="clientes-card-body">
@@ -172,12 +172,12 @@ const TBO_CLIENTES = {
           ` : ''}
           ${c.activeProjectNames.length > 0 ? `
             <div class="clientes-card-projects">
-              ${c.activeProjectNames.slice(0, 3).map(p => `<span class="clientes-project-tag">${p}</span>`).join('')}
+              ${c.activeProjectNames.slice(0, 3).map(p => `<span class="clientes-project-tag">${_escapeHtml(p)}</span>`).join('')}
               ${c.activeProjectNames.length > 3 ? `<span class="clientes-project-more">+${c.activeProjectNames.length - 3}</span>` : ''}
             </div>
           ` : ''}
-          ${c.notes ? `<div class="clientes-card-notes">${c.notes}</div>` : ''}
-          ${c.phone ? `<div class="clientes-card-phone">${c.phone}</div>` : ''}
+          ${c.notes ? `<div class="clientes-card-notes">${_escapeHtml(c.notes)}</div>` : ''}
+          ${c.phone ? `<div class="clientes-card-phone">${_escapeHtml(c.phone)}</div>` : ''}
 
           <!-- Last interaction -->
           ${c.last_interaction_date ? `
@@ -191,7 +191,7 @@ const TBO_CLIENTES = {
           ${c.next_action ? `
             <div class="clientes-next-action ${nextActionOverdue ? 'clientes-next-action--overdue' : ''}">
               <span class="clientes-next-action-label">Proximo passo:</span>
-              <span class="clientes-next-action-text">${c.next_action}</span>
+              <span class="clientes-next-action-text">${_escapeHtml(c.next_action)}</span>
               ${c.next_action_date ? `<span class="clientes-next-action-date">${nextActionOverdue ? 'Atrasado' : (nextActionDays === 0 ? 'Hoje' : 'em ' + nextActionDays + 'd')}</span>` : ''}
             </div>
           ` : ''}
@@ -202,7 +202,7 @@ const TBO_CLIENTES = {
             ${c.activeProjects > 0 ? 'Ativo' : 'Sem projetos'}
           </span>
           <div style="display:flex;gap:6px;align-items:center;">
-            <button class="clientes-interaction-btn" data-interaction-client="${c.name}" title="Registrar interacao">+ Interacao</button>
+            <button class="clientes-interaction-btn" data-interaction-client="${_escapeHtml(c.name)}" title="Registrar interacao">+ Interacao</button>
             ${c.since ? `<span class="clientes-card-since">Desde ${c.since}</span>` : ''}
           </div>
         </div>
@@ -285,21 +285,21 @@ const TBO_CLIENTES = {
           <div class="modal-body" style="display:grid;gap:12px;max-height:70vh;overflow-y:auto;">
             <div class="form-group">
               <label class="form-label">Nome do Cliente / Construtora</label>
-              <input class="form-input" id="clientName" value="${c.name || ''}" placeholder="Construtora XYZ" ${isEdit ? 'readonly' : ''}>
+              <input class="form-input" id="clientName" value="${_escapeHtml(c.name)}" placeholder="Construtora XYZ" ${isEdit ? 'readonly' : ''}>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
               <div class="form-group">
                 <label class="form-label">Contato Principal</label>
-                <input class="form-input" id="clientContact" value="${c.contact || ''}" placeholder="Nome do contato">
+                <input class="form-input" id="clientContact" value="${_escapeHtml(c.contact)}" placeholder="Nome do contato">
               </div>
               <div class="form-group">
                 <label class="form-label">Email</label>
-                <input class="form-input" id="clientEmail" type="email" value="${c.email || ''}" placeholder="email@exemplo.com">
+                <input class="form-input" id="clientEmail" type="email" value="${_escapeHtml(c.email)}" placeholder="email@exemplo.com">
               </div>
             </div>
             <div class="form-group">
               <label class="form-label">Telefone</label>
-              <input class="form-input" id="clientPhone" value="${c.phone || ''}" placeholder="(41) 99999-9999">
+              <input class="form-input" id="clientPhone" value="${_escapeHtml(c.phone)}" placeholder="(41) 99999-9999">
             </div>
 
             <!-- CRM Fields Section -->
@@ -310,7 +310,7 @@ const TBO_CLIENTES = {
                 <label class="form-label">Responsavel Comercial</label>
                 <select class="form-input" id="clientSalesOwner">
                   <option value="">-- Selecionar --</option>
-                  ${teamMembers.map(m => `<option value="${m}" ${c.sales_owner === m ? 'selected' : ''}>${m}</option>`).join('')}
+                  ${teamMembers.map(m => `<option value="${_escapeHtml(m)}" ${c.sales_owner === m ? 'selected' : ''}>${_escapeHtml(m)}</option>`).join('')}
                 </select>
               </div>
               <div class="form-group">
@@ -335,12 +335,12 @@ const TBO_CLIENTES = {
 
             <div class="form-group">
               <label class="form-label">Proximo Passo / Follow-up</label>
-              <input class="form-input" id="clientNextAction" value="${c.next_action || ''}" placeholder="Ex: Enviar proposta atualizada">
+              <input class="form-input" id="clientNextAction" value="${_escapeHtml(c.next_action)}" placeholder="Ex: Enviar proposta atualizada">
             </div>
 
             <div class="form-group">
               <label class="form-label">Observacoes</label>
-              <textarea class="form-input" id="clientNotes" rows="3" placeholder="Notas sobre o cliente...">${c.notes || ''}</textarea>
+              <textarea class="form-input" id="clientNotes" rows="3" placeholder="Notas sobre o cliente...">${_escapeHtml(c.notes)}</textarea>
             </div>
           </div>
           <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:16px 20px;">
@@ -365,7 +365,7 @@ const TBO_CLIENTES = {
           <div class="modal-body" style="display:grid;gap:12px;">
             <div class="form-group">
               <label class="form-label">Cliente</label>
-              <input class="form-input" value="${clientName}" readonly>
+              <input class="form-input" value="${_escapeHtml(clientName)}" readonly>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
               <div class="form-group">
@@ -407,7 +407,7 @@ const TBO_CLIENTES = {
       <div class="modal-overlay active clientes-detail-overlay">
         <div class="modal-card" style="max-width:560px;">
           <div class="modal-header">
-            <h3>Detalhes: ${clientName}</h3>
+            <h3>Detalhes: ${_escapeHtml(clientName)}</h3>
             <button class="modal-close clientes-detail-close">&#10005;</button>
           </div>
           <div class="modal-body" style="max-height:70vh;overflow-y:auto;">
@@ -420,37 +420,37 @@ const TBO_CLIENTES = {
               ${clientData.sales_owner ? `
                 <div class="clientes-detail-row">
                   <span class="clientes-detail-label">Responsavel:</span>
-                  <span class="clientes-detail-value">${clientData.sales_owner}</span>
+                  <span class="clientes-detail-value">${_escapeHtml(clientData.sales_owner)}</span>
                 </div>
               ` : ''}
               ${clientData.contact ? `
                 <div class="clientes-detail-row">
                   <span class="clientes-detail-label">Contato:</span>
-                  <span class="clientes-detail-value">${clientData.contact}</span>
+                  <span class="clientes-detail-value">${_escapeHtml(clientData.contact)}</span>
                 </div>
               ` : ''}
               ${clientData.email ? `
                 <div class="clientes-detail-row">
                   <span class="clientes-detail-label">Email:</span>
-                  <span class="clientes-detail-value">${clientData.email}</span>
+                  <span class="clientes-detail-value">${_escapeHtml(clientData.email)}</span>
                 </div>
               ` : ''}
               ${clientData.phone ? `
                 <div class="clientes-detail-row">
                   <span class="clientes-detail-label">Telefone:</span>
-                  <span class="clientes-detail-value">${clientData.phone}</span>
+                  <span class="clientes-detail-value">${_escapeHtml(clientData.phone)}</span>
                 </div>
               ` : ''}
               ${clientData.next_action ? `
                 <div class="clientes-detail-row">
                   <span class="clientes-detail-label">Proximo passo:</span>
-                  <span class="clientes-detail-value">${clientData.next_action}${clientData.next_action_date ? ` (${this._formatDate(clientData.next_action_date)})` : ''}</span>
+                  <span class="clientes-detail-value">${_escapeHtml(clientData.next_action)}${clientData.next_action_date ? ` (${this._formatDate(clientData.next_action_date)})` : ''}</span>
                 </div>
               ` : ''}
               ${clientData.notes ? `
                 <div class="clientes-detail-row">
                   <span class="clientes-detail-label">Notas:</span>
-                  <span class="clientes-detail-value" style="font-style:italic;">${clientData.notes}</span>
+                  <span class="clientes-detail-value" style="font-style:italic;">${_escapeHtml(clientData.notes)}</span>
                 </div>
               ` : ''}
             </div>
@@ -474,7 +474,7 @@ const TBO_CLIENTES = {
                         <span class="clientes-interaction-type">${this._interactionTypes[i.type] || i.type}</span>
                         <span class="clientes-interaction-date">${this._formatDate(i.date)}</span>
                       </div>
-                      ${i.notes ? `<div class="clientes-interaction-notes">${i.notes}</div>` : ''}
+                      ${i.notes ? `<div class="clientes-interaction-notes">${_escapeHtml(i.notes)}</div>` : ''}
                     </div>
                   </div>
                 `).join('')}

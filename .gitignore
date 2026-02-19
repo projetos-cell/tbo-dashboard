@@ -14,5 +14,19 @@ TBO_OS.bat
 
 .vercel
 
+# Build output
+dist/
+
 # Onboarding config (contem credenciais)
 config.js
+
+# OneDrive lock files
+_ul*
+
+# Word temp files
+~WRD*
+~$*
+*.tmp
+
+# Supabase CLI temp
+supabase/.temp/

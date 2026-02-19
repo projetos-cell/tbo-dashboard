@@ -1115,7 +1115,7 @@ const TBO_COMMAND_CENTER = {
           ${cicloAtual ? `
           <div class="card" style="padding:14px;">
             <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Ciclo de Avaliacao</div>
-            <div style="font-weight:600; font-size:0.85rem; margin-bottom:4px;">${cicloAtual.nome || cicloAtual.titulo || 'Ciclo atual'}</div>
+            <div style="font-weight:600; font-size:0.85rem; margin-bottom:4px;">${_escapeHtml(cicloAtual.nome || cicloAtual.titulo) || 'Ciclo atual'}</div>
             <div class="cc-progress-bar" style="margin:8px 0 4px;">
               <div class="cc-progress-fill" style="width:${totalEsperados > 0 ? (totalAvaliados / totalEsperados * 100).toFixed(0) : 0}%; background:var(--accent-gold);"></div>
             </div>
@@ -1128,7 +1128,7 @@ const TBO_COMMAND_CENTER = {
             <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Proximas 1:1s</div>
             ${upcoming.slice(0, 3).map(o => `
               <div style="display:flex; justify-content:space-between; align-items:center; padding:4px 0;">
-                <span style="font-size:0.82rem; font-weight:500;">${o.colaborador}</span>
+                <span style="font-size:0.82rem; font-weight:500;">${_escapeHtml(o.colaborador)}</span>
                 <span style="font-size:0.72rem; color:var(--text-muted);">${TBO_FORMATTER.date(o.data)}</span>
               </div>
             `).join('')}
@@ -1141,7 +1141,7 @@ const TBO_COMMAND_CENTER = {
             <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Feedbacks Recentes</div>
             ${recentFb.map(f => `
               <div style="padding:4px 0;">
-                <div style="font-size:0.82rem; font-weight:500;">${f.de || f.remetente} &rarr; ${f.para || f.destinatario}</div>
+                <div style="font-size:0.82rem; font-weight:500;">${_escapeHtml(f.de || f.remetente)} &rarr; ${_escapeHtml(f.para || f.destinatario)}</div>
                 <div style="font-size:0.72rem; color:var(--text-muted);">${TBO_FORMATTER.relativeTime(f.data)}</div>
               </div>
             `).join('')}
@@ -1204,9 +1204,9 @@ const TBO_COMMAND_CENTER = {
           <h3 class="card-title" style="font-size:0.82rem;">Proxima 1:1</h3>
         </div>
         <div style="padding:4px 0;">
-          <div style="font-size:0.85rem; font-weight:600;">${rhData.upcoming11.lider || 'Lider'}</div>
+          <div style="font-size:0.85rem; font-weight:600;">${_escapeHtml(rhData.upcoming11.lider) || 'Lider'}</div>
           <div style="font-size:0.78rem; color:var(--text-muted);">${TBO_FORMATTER.date(rhData.upcoming11.data)}</div>
-          ${rhData.upcoming11.pauta ? `<div style="font-size:0.75rem; color:var(--text-secondary); margin-top:4px;">${TBO_FORMATTER.truncate(rhData.upcoming11.pauta, 80)}</div>` : ''}
+          ${rhData.upcoming11.pauta ? `<div style="font-size:0.75rem; color:var(--text-secondary); margin-top:4px;">${TBO_FORMATTER.truncate(_escapeHtml(rhData.upcoming11.pauta), 80)}</div>` : ''}
         </div>
         <button class="btn btn-sm btn-ghost" style="width:100%; margin-top:8px;" onclick="TBO_ROUTER.navigate('rh')">Ver RH &rarr;</button>
       </div>
@@ -1226,7 +1226,7 @@ const TBO_COMMAND_CENTER = {
         ${rhData.recentFeedbacks.map(f => `
           <div class="cc-sidebar-item">
             <div>
-              <div class="cc-sidebar-item-title">${f.de || f.remetente}</div>
+              <div class="cc-sidebar-item-title">${_escapeHtml(f.de || f.remetente)}</div>
               <div style="font-size:0.72rem; color:var(--text-muted);">${TBO_FORMATTER.relativeTime(f.data)}</div>
             </div>
             <span class="tag" style="background:${f.tipo === 'positivo' ? 'var(--color-success-dim)' : 'var(--color-warning-dim)'}; color:${f.tipo === 'positivo' ? 'var(--color-success)' : 'var(--color-warning)'};">${f.tipo === 'positivo' ? '+' : '\u0394'}</span>
@@ -1287,9 +1287,9 @@ const TBO_COMMAND_CENTER = {
     return `
       <div class="card" style="padding:14px; position:relative;">
         <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${phaseColor};border-radius:var(--radius-md) var(--radius-md) 0 0;"></div>
-        <div style="font-weight:600; font-size:0.85rem; margin-bottom:4px;">${p.nome}</div>
+        <div style="font-weight:600; font-size:0.85rem; margin-bottom:4px;">${_escapeHtml(p.nome)}</div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <span style="font-size:0.75rem; color:var(--text-tertiary);">${p.construtora}</span>
+          <span style="font-size:0.75rem; color:var(--text-tertiary);">${_escapeHtml(p.construtora)}</span>
           <span style="font-size:0.68rem; padding:2px 6px; border-radius:var(--radius-full); background:${phaseColor}22; color:${phaseColor};">${phaseLabel}</span>
         </div>
         <div style="display:flex; gap:4px; flex-wrap:wrap;">
@@ -1336,8 +1336,8 @@ const TBO_COMMAND_CENTER = {
               <span class="cc-news-dot" style="background:${color};"></span>
               <div class="cc-news-content">
                 <span class="cc-news-tag" style="background:${color}22;color:${color};">${catLabels[cat] || cat}</span>
-                <div class="cc-news-title">${n.title || n.titulo}</div>
-                <div class="cc-news-meta">${n.source || n.fonte}${relDate ? ' \u2022 ' + relDate : ''}</div>
+                <div class="cc-news-title">${_escapeHtml(n.title || n.titulo)}</div>
+                <div class="cc-news-meta">${_escapeHtml(n.source || n.fonte)}${relDate ? ' \u2022 ' + relDate : ''}</div>
               </div>
             </div>`;
         }).join('')}
@@ -1360,9 +1360,9 @@ const TBO_COMMAND_CENTER = {
           </span>
         </td>
         <td style="font-weight:500; ${isDone ? 'text-decoration:line-through; opacity:0.5;' : ''}">
-          <span class="cc-action-link" style="cursor:pointer; text-decoration-style:dotted; text-decoration-line:underline; text-underline-offset:3px; text-decoration-color:var(--border-default);" onclick="TBO_COMMAND_CENTER._navigateToActionItem('${escapedMeeting}')" title="Ver reuniao de origem">${ai.task}</span>
+          <span class="cc-action-link" style="cursor:pointer; text-decoration-style:dotted; text-decoration-line:underline; text-underline-offset:3px; text-decoration-color:var(--border-default);" onclick="TBO_COMMAND_CENTER._navigateToActionItem('${escapedMeeting}')" title="Ver reuniao de origem">${_escapeHtml(ai.task)}</span>
         </td>
-        <td style="font-size:0.78rem; color:var(--text-secondary); cursor:pointer;" onclick="TBO_COMMAND_CENTER._navigateToActionItem('${escapedMeeting}')">${ai.meeting}</td>
+        <td style="font-size:0.78rem; color:var(--text-secondary); cursor:pointer;" onclick="TBO_COMMAND_CENTER._navigateToActionItem('${escapedMeeting}')">${_escapeHtml(ai.meeting)}</td>
         <td style="font-size:0.78rem; color:var(--text-muted);">${TBO_FORMATTER.date(ai.date)}</td>
       </tr>
     `;
@@ -1430,7 +1430,7 @@ const TBO_COMMAND_CENTER = {
         ${meetingsArr.length > 0 ? meetingsArr.slice(0, 5).map(m => `
           <div class="cc-sidebar-item" onclick="TBO_ROUTER.navigate('reunioes')">
             <div>
-              <div class="cc-sidebar-item-title">${m.title || m.titulo}</div>
+              <div class="cc-sidebar-item-title">${_escapeHtml(m.title || m.titulo)}</div>
               <div class="cc-sidebar-item-meta">${TBO_FORMATTER.relativeTime(m.date || m.data)}</div>
             </div>
           </div>
@@ -1451,8 +1451,8 @@ const TBO_COMMAND_CENTER = {
         ${escapedEntries.map(([person, count]) => {
           const escaped = person.replace(/'/g, "\\'");
           return `
-          <div class="cc-sidebar-item" style="cursor:pointer;" onclick="TBO_COMMAND_CENTER._filterActionsByPerson('${escaped}')" title="Ver action items de ${person}">
-            <div class="cc-sidebar-item-title">${person}</div>
+          <div class="cc-sidebar-item" style="cursor:pointer;" onclick="TBO_COMMAND_CENTER._filterActionsByPerson('${escaped}')" title="Ver action items de ${_escapeHtml(person)}">
+            <div class="cc-sidebar-item-title">${_escapeHtml(person)}</div>
             <span class="tag">${count}</span>
           </div>`;
         }).join('')}
@@ -1504,7 +1504,7 @@ const TBO_COMMAND_CENTER = {
     detail.dataset.person = person;
     detail.style.display = 'block';
     detail.innerHTML = `
-      <div style="font-size:0.72rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px;">${person} (${items.length})</div>
+      <div style="font-size:0.72rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px;">${_escapeHtml(person)} (${items.length})</div>
       ${items.slice(0, 8).map(ai => {
         const key = ai.task + '|' + ai.meeting;
         const isDone = completed.includes(key);
@@ -1512,8 +1512,8 @@ const TBO_COMMAND_CENTER = {
         <div style="display:flex; align-items:flex-start; gap:6px; padding:4px 0; font-size:0.75rem; ${isDone ? 'opacity:0.5; text-decoration:line-through;' : ''}">
           <span style="flex-shrink:0; margin-top:2px; width:6px; height:6px; border-radius:50%; background:${isDone ? 'var(--color-success)' : 'var(--accent, #E85102)'}; display:inline-block;"></span>
           <div>
-            <div style="line-height:1.3;">${ai.task}</div>
-            <div style="font-size:0.68rem; color:var(--text-muted);">${ai.meeting}</div>
+            <div style="line-height:1.3;">${_escapeHtml(ai.task)}</div>
+            <div style="font-size:0.68rem; color:var(--text-muted);">${_escapeHtml(ai.meeting)}</div>
           </div>
         </div>`;
       }).join('')}
@@ -1727,7 +1727,7 @@ const TBO_COMMAND_CENTER = {
       alerts.push({
         type: 'warning', icon: '\u{1F4C5}',
         title: `${projectsNoMeeting.length} Projeto${projectsNoMeeting.length > 1 ? 's' : ''} sem Reuniao Recente`,
-        message: `${projectsNoMeeting.slice(0, 3).map(p => p.nome).join(', ')}${projectsNoMeeting.length > 3 ? '...' : ''} sem reuniao nas ultimas 2 semanas.`
+        message: `${projectsNoMeeting.slice(0, 3).map(p => _escapeHtml(p.nome)).join(', ')}${projectsNoMeeting.length > 3 ? '...' : ''} sem reuniao nas ultimas 2 semanas.`
       });
     }
 
@@ -1742,7 +1742,7 @@ const TBO_COMMAND_CENTER = {
       alerts.push({
         type: 'critical', icon: '\u{1F6A8}',
         title: `${overdueActions.length} Action Items com +7 dias`,
-        message: `Itens pendentes de reunioes anteriores. Verifique: ${overdueActions.slice(0, 2).map(a => a.task).join(', ')}${overdueActions.length > 2 ? '...' : ''}`
+        message: `Itens pendentes de reunioes anteriores. Verifique: ${overdueActions.slice(0, 2).map(a => _escapeHtml(a.task)).join(', ')}${overdueActions.length > 2 ? '...' : ''}`
       });
     }
 

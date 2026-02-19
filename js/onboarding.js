@@ -147,7 +147,7 @@ const TBO_ONBOARDING = {
 
     const totalAtividades = this._atividades.filter(a => a.obrigatorio).length;
     const concluidas = this._progresso.filter(p => p.concluido).length;
-    const percentual = totalAtividades > 0 ? Math.round((concluidas / totalAtividades) * 100) : 0;
+    const percentualAtividades = totalAtividades > 0 ? Math.round((concluidas / totalAtividades) * 100) : 0;
     const diasConcluidos = this._diasLiberados.filter(d => d.concluido).length;
     const totalDias = this._dias.length;
 
@@ -157,12 +157,12 @@ const TBO_ONBOARDING = {
         <div class="onb-progress-header">
           <div>
             <div class="onb-progress-label">Seu progresso</div>
-            <div class="onb-progress-days">${diasConcluidos} de ${totalDias} dias concluidos</div>
+            <div class="onb-progress-days">${diasConcluidos} de ${totalDias} dias concluidos · ${concluidas} de ${totalAtividades} atividades</div>
           </div>
-          <div class="onb-progress-percent">${percentual}%</div>
+          <div class="onb-progress-percent">${percentualAtividades}%</div>
         </div>
         <div class="onb-progress-bar">
-          <div class="onb-progress-fill" style="width:${percentual}%;"></div>
+          <div class="onb-progress-fill" style="width:${percentualAtividades}%;"></div>
         </div>
       </div>
 
@@ -175,7 +175,7 @@ const TBO_ONBOARDING = {
       <div id="onbDiaDetail"></div>
 
       <!-- Botao final -->
-      <div class="onb-final-btn ${percentual >= 100 ? 'visible' : ''}" id="onbFinalBtn">
+      <div class="onb-final-btn ${percentualAtividades >= 100 ? 'visible' : ''}" id="onbFinalBtn">
         <button class="btn btn-primary btn-lg" id="onbConcluirBtn" style="padding:16px 48px;font-size:16px;">
           <i data-lucide="rocket" style="width:20px;height:20px;margin-right:8px;"></i>
           Estou pronto para comecar!
@@ -240,7 +240,21 @@ const TBO_ONBOARDING = {
 
     list.addEventListener('click', (e) => {
       const card = e.target.closest('.onb-dia-card');
-      if (!card || card.dataset.locked === 'true') return;
+      if (!card) return;
+
+      if (card.dataset.locked === 'true') {
+        // Feedback visual para dia bloqueado
+        if (typeof TBO_TOAST !== 'undefined') {
+          TBO_TOAST.info('Dia bloqueado', 'Complete o dia anterior para desbloquear este.');
+        } else {
+          // Mini toast inline se TBO_TOAST nao disponivel
+          card.style.transition = 'transform 150ms';
+          card.style.transform = 'translateX(-4px)';
+          setTimeout(() => { card.style.transform = 'translateX(4px)'; }, 150);
+          setTimeout(() => { card.style.transform = ''; }, 300);
+        }
+        return;
+      }
 
       const diaId = card.dataset.diaId;
       this._abrirDia(diaId);
@@ -370,11 +384,13 @@ const TBO_ONBOARDING = {
         conteudoHtml = `
           <div style="text-align:center;">
             ${atv.url_conteudo
-              ? `<video controls style="width:100%;border-radius:8px;"><source src="${atv.url_conteudo}"></video>`
+              ? `<div style="margin-bottom:12px;"><p style="text-align:left;color:var(--text-secondary);font-size:13px;">${atv.descricao || ''}</p></div>
+                 <video controls style="width:100%;border-radius:8px;" preload="metadata"><source src="${atv.url_conteudo}"></video>`
               : `<div style="padding:40px;background:var(--bg-secondary);border-radius:8px;">
                   <i data-lucide="play-circle" style="width:48px;height:48px;color:var(--brand-orange);margin-bottom:12px;"></i>
                   <p style="color:var(--text-muted);">Video sera disponibilizado em breve.</p>
                   <p style="color:var(--text-muted);font-size:13px;">${atv.descricao || ''}</p>
+                  <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">Voce pode marcar como concluida para continuar.</p>
                 </div>`
             }
           </div>
@@ -386,8 +402,15 @@ const TBO_ONBOARDING = {
         conteudoHtml = `
           <div style="padding:20px;background:var(--bg-secondary);border-radius:8px;">
             ${atv.url_conteudo
-              ? `<p>Documento: <a href="${atv.url_conteudo}" target="_blank" class="btn btn-sm btn-secondary" style="margin-left:8px;">Abrir documento</a></p>`
-              : `<p style="color:var(--text-muted);">${atv.descricao || 'Conteudo sera disponibilizado em breve.'}</p>`
+              ? `<p style="margin-bottom:12px;">${atv.descricao || ''}</p>
+                 <a href="${atv.url_conteudo}" target="_blank" rel="noopener" class="btn btn-primary btn-sm" style="display:inline-flex;align-items:center;gap:6px;">
+                   <i data-lucide="external-link" style="width:14px;height:14px;"></i> Abrir documento
+                 </a>`
+              : `<div style="text-align:center;padding:12px;">
+                   <i data-lucide="file-text" style="width:32px;height:32px;color:var(--text-muted);margin-bottom:8px;"></i>
+                   <p style="color:var(--text-muted);margin-bottom:4px;">${atv.descricao || ''}</p>
+                   <p style="font-size:12px;color:var(--text-muted);">O documento sera disponibilizado em breve. Voce pode marcar como concluida para continuar.</p>
+                 </div>`
             }
           </div>
         `;
@@ -408,9 +431,16 @@ const TBO_ONBOARDING = {
         conteudoHtml = `
           <div>
             <p style="margin-bottom:12px;">${atv.descricao || ''}</p>
+            ${atv.url_conteudo
+              ? `<p style="margin-bottom:12px;"><a href="${atv.url_conteudo}" target="_blank" rel="noopener" class="btn btn-sm btn-secondary" style="display:inline-flex;align-items:center;gap:6px;">
+                   <i data-lucide="external-link" style="width:14px;height:14px;"></i> Abrir recurso de apoio
+                 </a></p>`
+              : ''
+            }
             <div class="form-group">
               <label class="form-label">Sua resposta</label>
               <textarea class="form-input" id="onbTarefaResposta" rows="6" placeholder="Escreva sua resposta aqui..."></textarea>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Minimo de 10 caracteres</div>
             </div>
           </div>
         `;
@@ -420,6 +450,14 @@ const TBO_ONBOARDING = {
         conteudoHtml = `
           <div>
             <p style="margin-bottom:16px;">${atv.descricao || ''}</p>
+            ${atv.url_conteudo
+              ? `<p style="margin-bottom:16px;"><a href="${atv.url_conteudo}" target="_blank" rel="noopener" class="btn btn-sm btn-secondary" style="display:inline-flex;align-items:center;gap:6px;">
+                   <i data-lucide="file-text" style="width:14px;height:14px;"></i> Ler documento completo
+                 </a></p>`
+              : `<div style="padding:12px;background:var(--bg-secondary);border-radius:8px;margin-bottom:16px;">
+                   <p style="font-size:12px;color:var(--text-muted);margin:0;">O documento completo sera disponibilizado em breve. Ao aceitar, voce confirma ciencia dos termos gerais.</p>
+                 </div>`
+            }
             <label class="form-check" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
               <input type="checkbox" id="onbAceiteCheck">
               <span style="font-size:14px;">Li e concordo com os termos acima</span>
@@ -493,10 +531,19 @@ const TBO_ONBOARDING = {
         if (!starBtn) return;
         const rating = parseInt(starBtn.dataset.rating);
         document.getElementById('onbFeedbackRating').value = rating;
-        // Atualizar visual das estrelas
+        // Atualizar visual das estrelas (cor no botao e no SVG interno)
         starsContainer.querySelectorAll('.onb-star-btn').forEach(btn => {
           const r = parseInt(btn.dataset.rating);
-          btn.style.color = r <= rating ? 'var(--brand-orange, #E85102)' : 'var(--text-muted, #9F9F9F)';
+          const cor = r <= rating ? 'var(--brand-orange, #E85102)' : 'var(--text-muted, #9F9F9F)';
+          btn.style.color = cor;
+          // Forcar cor no SVG Lucide (que pode ignorar color do parent)
+          const svg = btn.querySelector('svg');
+          if (svg) {
+            svg.style.color = cor;
+            svg.style.stroke = cor;
+            if (r <= rating) svg.style.fill = cor;
+            else svg.style.fill = 'none';
+          }
         });
         // Label descritivo
         const label = document.getElementById('onbFeedbackLabel');
@@ -529,6 +576,9 @@ const TBO_ONBOARDING = {
         if (check && !check.checked) {
           if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.warning('Acao necessaria', 'Voce precisa aceitar os termos para continuar.');
           else alert('Voce precisa aceitar os termos para continuar.');
+          btn.disabled = false;
+          btn.innerHTML = '<i data-lucide="check" style="width:14px;height:14px;margin-right:4px;"></i> Marcar como concluida';
+          if (window.lucide) lucide.createIcons();
           return;
         }
       }
@@ -540,6 +590,9 @@ const TBO_ONBOARDING = {
         if (!resposta || resposta.trim().length < 10) {
           if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.warning('Resposta curta', 'Escreva uma resposta mais detalhada (minimo 10 caracteres).');
           else alert('Por favor, escreva uma resposta mais detalhada (minimo 10 caracteres).');
+          btn.disabled = false;
+          btn.innerHTML = '<i data-lucide="check" style="width:14px;height:14px;margin-right:4px;"></i> Marcar como concluida';
+          if (window.lucide) lucide.createIcons();
           return;
         }
       }
@@ -602,9 +655,20 @@ const TBO_ONBOARDING = {
       await this._carregarDados();
       this._render();
 
-      // Se tinha um dia aberto, reabrir
+      // Se tinha um dia aberto, reabrir e verificar se o dia foi completado
       if (this._diaAberto) {
-        this._abrirDia(this._diaAberto);
+        const dia = this._dias.find(d => d.id === this._diaAberto);
+        const atividadesDia = this._atividades.filter(a => a.dia_id === this._diaAberto && a.obrigatorio);
+        const concluidasDia = atividadesDia.filter(a =>
+          this._progresso.some(p => p.atividade_id === a.id && p.concluido)
+        ).length;
+
+        if (dia && concluidasDia === atividadesDia.length && atividadesDia.length > 0) {
+          // Dia completo! Mostrar mini-celebracao
+          this._showDiaConclusaoCelebration(dia);
+        } else {
+          this._abrirDia(this._diaAberto);
+        }
       }
 
     } catch (e) {
@@ -789,6 +853,36 @@ const TBO_ONBOARDING = {
         if (this._diaAberto) this._abrirDia(this._diaAberto);
       })
       .subscribe();
+  },
+
+  // ── Celebracao ao completar todas as atividades de um dia ───────────────
+  _showDiaConclusaoCelebration(dia) {
+    const area = document.getElementById('onbCelebrationArea');
+    if (!area) return;
+
+    const esc = typeof _escapeHtml === 'function' ? _escapeHtml : (s) => s == null ? '' : String(s);
+    area.innerHTML = `
+      <div class="onb-celebration" id="onbDiaConclusao">
+        <div class="onb-celebration-content">
+          <div class="onb-celebration-emoji">🎉</div>
+          <div class="onb-celebration-title">Dia ${dia.numero} concluido!</div>
+          <div class="onb-celebration-msg">
+            Voce completou todas as atividades de <strong>${esc(dia.titulo)}</strong>.<br>
+            Continue assim!
+          </div>
+          <button class="btn btn-primary" id="onbDiaConclusaoClose">Continuar</button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('onbDiaConclusaoClose')?.addEventListener('click', () => {
+      area.innerHTML = '';
+    });
+
+    // Auto-fechar apos 4 segundos
+    setTimeout(() => {
+      if (document.getElementById('onbDiaConclusao')) area.innerHTML = '';
+    }, 4000);
   },
 
   _showDiaCelebration(dia) {

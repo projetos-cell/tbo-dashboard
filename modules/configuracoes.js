@@ -1192,10 +1192,14 @@ const TBO_CONFIGURACOES = {
 
   async _loadUsers() {
     try {
-      const { data, error } = await TBO_SUPABASE.getClient()
+      // v2.1: filtrar profiles por tenant_id (multi-tenant)
+      const tenantId = TBO_SUPABASE.getCurrentTenantId();
+      let query = TBO_SUPABASE.getClient()
         .from('profiles')
         .select('*')
         .order('full_name');
+      if (tenantId) query = query.eq('tenant_id', tenantId);
+      const { data, error } = await query;
       if (error) throw error;
       this._users = data || [];
       const container = document.getElementById('cfgUserTable');

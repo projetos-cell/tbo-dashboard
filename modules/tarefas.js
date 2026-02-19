@@ -121,11 +121,11 @@ const TBO_TAREFAS = {
           </select>
           <select class="form-input" id="tfFilterOwner" style="max-width:150px;">
             <option value="">Todos responsaveis</option>
-            ${team.map(t => `<option value="${t}">${t}</option>`).join('')}
+            ${team.map(t => `<option value="${_escapeHtml(t)}">${_escapeHtml(t)}</option>`).join('')}
           </select>
           <select class="form-input" id="tfFilterProject" style="max-width:180px;">
             <option value="">Todos projetos</option>
-            ${activeProjects.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+            ${activeProjects.map(p => `<option value="${p.id}">${_escapeHtml(p.name)}</option>`).join('')}
           </select>
           <select class="form-input" id="tfFilterPriority" style="max-width:130px;">
             <option value="">Prioridade</option>
@@ -203,12 +203,12 @@ const TBO_TAREFAS = {
 
             return `<tr style="border-bottom:1px solid var(--border-subtle);${rowBg}" data-task-id="${t.id}">
               <td style="padding:10px 8px;${rowIndent}">
-                <div style="font-weight:600;display:flex;align-items:center;">${subtaskPrefix}${blocked ? '<span title="Bloqueada por dependencias">\u{1F512}</span> ' : ''}${t.title || t.name || '-'}</div>
-                ${t.description ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${isSubtask ? 'margin-left:24px;' : ''}">${t.description}</div>` : ''}
-                ${depNames.length > 0 ? `<div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px;${isSubtask ? 'margin-left:24px;' : ''}">Depende de: ${depNames.join(', ')}</div>` : ''}
+                <div style="font-weight:600;display:flex;align-items:center;">${subtaskPrefix}${blocked ? '<span title="Bloqueada por dependencias">\u{1F512}</span> ' : ''}${_escapeHtml(t.title || t.name) || '-'}</div>
+                ${t.description ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${isSubtask ? 'margin-left:24px;' : ''}">${_escapeHtml(t.description)}</div>` : ''}
+                ${depNames.length > 0 ? `<div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px;${isSubtask ? 'margin-left:24px;' : ''}">Depende de: ${depNames.map(n => _escapeHtml(n)).join(', ')}</div>` : ''}
               </td>
-              <td style="padding:10px 8px;"><span class="tag" style="font-size:0.7rem;">${projName}</span></td>
-              <td style="padding:10px 8px;">${t.owner || '-'}</td>
+              <td style="padding:10px 8px;"><span class="tag" style="font-size:0.7rem;">${_escapeHtml(projName)}</span></td>
+              <td style="padding:10px 8px;">${_escapeHtml(t.owner) || '-'}</td>
               <td style="padding:10px 8px;"><span style="color:${pColor};font-weight:600;font-size:0.75rem;text-transform:uppercase;">${t.priority || '-'}</span></td>
               <td style="padding:10px 8px;">
                 <span class="tag" style="background:${stateColor}20;color:${stateColor};font-size:0.7rem;">${stateLabel}</span>
@@ -258,13 +258,13 @@ const TBO_TAREFAS = {
               const parentTask = isSubtask ? tasks.find(p => p.id === t.parent_id) : null;
               const parentLabel = parentTask ? (parentTask.title || parentTask.name || '') : '';
               return `<div class="card" style="padding:10px;margin-bottom:8px;cursor:pointer;border-left:3px solid ${sm.colors[state]};${isSubtask ? 'margin-left:12px;' : ''}" data-task-id="${t.id}">
-                ${isSubtask ? `<div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:3px;font-family:monospace;">\u2514\u2500 subtarefa${parentLabel ? ' de: ' + parentLabel : ''}</div>` : ''}
-                <div style="font-weight:600;font-size:0.8rem;margin-bottom:4px;">${blocked ? '<span title="Bloqueada por dependencias">\u{1F512}</span> ' : ''}${t.title || t.name || '-'}</div>
+                ${isSubtask ? `<div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:3px;font-family:monospace;">\u2514\u2500 subtarefa${parentLabel ? ' de: ' + _escapeHtml(parentLabel) : ''}</div>` : ''}
+                <div style="font-weight:600;font-size:0.8rem;margin-bottom:4px;">${blocked ? '<span title="Bloqueada por dependencias">\u{1F512}</span> ' : ''}${_escapeHtml(t.title || t.name) || '-'}</div>
                 ${blocked ? '<div style="margin-bottom:4px;"><span class="tag" style="background:#ef444420;color:#ef4444;font-size:0.62rem;">Bloqueada</span></div>' : ''}
-                ${projName ? `<div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:4px;">${projName}</div>` : ''}
-                ${depNames.length > 0 ? `<div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:4px;">Depende de: ${depNames.join(', ')}</div>` : ''}
+                ${projName ? `<div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:4px;">${_escapeHtml(projName)}</div>` : ''}
+                ${depNames.length > 0 ? `<div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:4px;">Depende de: ${depNames.map(n => _escapeHtml(n)).join(', ')}</div>` : ''}
                 <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.7rem;">
-                  <span style="color:var(--text-secondary);">${t.owner || '-'}</span>
+                  <span style="color:var(--text-secondary);">${_escapeHtml(t.owner) || '-'}</span>
                   ${t.due_date ? `<span style="color:${isOverdue ? '#ef4444' : 'var(--text-muted)'};">${new Date(t.due_date).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit'})}</span>` : ''}
                 </div>
               </div>`;
@@ -406,7 +406,7 @@ const TBO_TAREFAS = {
           <label class="form-label">Projeto *</label>
           <select class="form-input" id="tfNewProject">
             <option value="">Selecione...</option>
-            ${projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+            ${projects.map(p => `<option value="${p.id}">${_escapeHtml(p.name)}</option>`).join('')}
           </select>
         </div>
         ${parentCandidates.length > 0 ? `
@@ -414,7 +414,7 @@ const TBO_TAREFAS = {
           <label class="form-label">Tarefa pai</label>
           <select class="form-input" id="tfNewParent">
             <option value="">Nenhuma (tarefa independente)</option>
-            ${parentCandidates.map(t => `<option value="${t.id}">${t.title || t.name || t.id}</option>`).join('')}
+            ${parentCandidates.map(t => `<option value="${t.id}">${_escapeHtml(t.title || t.name) || t.id}</option>`).join('')}
           </select>
           <div style="font-size:0.68rem;color:var(--text-muted);margin-top:4px;">Selecione para criar como subtarefa de outra tarefa.</div>
         </div>
@@ -424,7 +424,7 @@ const TBO_TAREFAS = {
             <label class="form-label">Responsavel</label>
             <select class="form-input" id="tfNewOwner">
               <option value="">Selecione...</option>
-              ${team.map(t => `<option value="${t}">${t}</option>`).join('')}
+              ${team.map(t => `<option value="${_escapeHtml(t)}">${_escapeHtml(t)}</option>`).join('')}
             </select>
           </div>
           <div class="form-group">
@@ -455,7 +455,7 @@ const TBO_TAREFAS = {
             ${activeTasks.map(at => `
               <label style="display:flex;align-items:center;gap:6px;font-size:0.78rem;padding:3px 0;cursor:pointer;">
                 <input type="checkbox" class="tfDepCheckbox" value="${at.id}">
-                <span>${at.title || at.name || at.id}</span>
+                <span>${_escapeHtml(at.title || at.name) || at.id}</span>
               </label>
             `).join('')}
           </div>

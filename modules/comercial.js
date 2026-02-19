@@ -345,19 +345,19 @@ const TBO_COMERCIAL = {
       : '';
     const linkedProj = deal.project_id ? (typeof TBO_STORAGE !== 'undefined' ? TBO_STORAGE.getErpEntity('project', deal.project_id) : null) : null;
     const projectBadge = linkedProj
-      ? `<span style="font-size:0.58rem;padding:1px 4px;border-radius:3px;background:#14b8a622;color:#14b8a6;font-weight:600;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;" title="Projeto: ${(linkedProj.name || '').replace(/"/g, '&quot;')}">${TBO_FORMATTER.truncate(linkedProj.name, 12)}</span>`
+      ? `<span style="font-size:0.58rem;padding:1px 4px;border-radius:3px;background:#14b8a622;color:#14b8a6;font-weight:600;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;" title="Projeto: ${_escapeHtml(linkedProj.name)}">${TBO_FORMATTER.truncate(_escapeHtml(linkedProj.name), 12)}</span>`
       : '';
 
     return `
-      <div class="pipeline-deal ${agingClass}" draggable="true" data-deal-id="${deal.id}" title="${deal.name}">
+      <div class="pipeline-deal ${agingClass}" draggable="true" data-deal-id="${deal.id}" title="${_escapeHtml(deal.name)}">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:4px;">
-          <div class="pipeline-deal-name">${deal.riskFlag ? '<span style="color:#ef4444;" title="Risco">\u{1F534}</span> ' : ''}${TBO_FORMATTER.truncate(deal.name, 30)}</div>
+          <div class="pipeline-deal-name">${deal.riskFlag ? '<span style="color:#ef4444;" title="Risco">\u{1F534}</span> ' : ''}${TBO_FORMATTER.truncate(_escapeHtml(deal.name), 30)}</div>
           <div style="display:flex; align-items:center; gap:4px;">
             ${projectBadge}${rdBadge}${agingBadge}
-            <div class="deal-owner-badge" title="${deal.owner || 'Sem responsavel'}">${ownerInitials}</div>
+            <div class="deal-owner-badge" title="${_escapeHtml(deal.owner) || 'Sem responsavel'}">${ownerInitials}</div>
           </div>
         </div>
-        <div class="pipeline-deal-company">${deal.company || '\u2014'}</div>
+        <div class="pipeline-deal-company">${_escapeHtml(deal.company) || '\u2014'}</div>
         <div class="pipeline-deal-value">${TBO_FORMATTER.currency(deal.value)}${deal.probability ? ' &middot; ' + deal.probability + '%' : ''}</div>
         ${servicesTags ? `<div class="deal-services-tags">${servicesTags}</div>` : ''}
         <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">${updatedRel}</div>
@@ -704,12 +704,12 @@ const TBO_COMERCIAL = {
             </p>
             <div class="form-group">
               <label class="form-label">Nome do Projeto</label>
-              <input type="text" class="form-input" id="cmDealNewProjName" value="${(deal.name || '').replace(/"/g, '&quot;')}">
+              <input type="text" class="form-input" id="cmDealNewProjName" value="${_escapeHtml(deal.name)}">
             </div>
             <div class="grid-2" style="gap:12px;">
               <div class="form-group">
                 <label class="form-label">Cliente</label>
-                <input type="text" class="form-input" id="cmDealNewProjClient" value="${(deal.company || '').replace(/"/g, '&quot;')}">
+                <input type="text" class="form-input" id="cmDealNewProjClient" value="${_escapeHtml(deal.company)}">
               </div>
               <div class="form-group">
                 <label class="form-label">Valor (R$)</label>
@@ -792,22 +792,22 @@ const TBO_COMERCIAL = {
             <div class="grid-2" style="gap:16px;">
               <div class="form-group">
                 <label class="form-label">Nome do Deal *</label>
-                <input type="text" class="form-input" id="cmDealName" value="${isEdit ? (deal.name || '').replace(/"/g, '&quot;') : ''}" placeholder="Ex: Imagens Empreendimento X">
+                <input type="text" class="form-input" id="cmDealName" value="${isEdit ? _escapeHtml(deal.name) : ''}" placeholder="Ex: Imagens Empreendimento X">
               </div>
               <div class="form-group">
                 <label class="form-label">Empresa / Construtora *</label>
-                <input type="text" class="form-input" id="cmDealCompany" value="${isEdit ? (deal.company || '').replace(/"/g, '&quot;') : ''}" placeholder="Nome da construtora" list="cmDealCompanyList">
+                <input type="text" class="form-input" id="cmDealCompany" value="${isEdit ? _escapeHtml(deal.company) : ''}" placeholder="Nome da construtora" list="cmDealCompanyList">
                 <datalist id="cmDealCompanyList">
                   ${(typeof TBO_SEARCH !== 'undefined' ? TBO_SEARCH.getClientList() : []).map(c => `<option value="${c.value}">`).join('')}
                 </datalist>
               </div>
               <div class="form-group">
                 <label class="form-label">Contato</label>
-                <input type="text" class="form-input" id="cmDealContact" value="${isEdit ? (deal.contact || '').replace(/"/g, '&quot;') : ''}" placeholder="Nome do contato">
+                <input type="text" class="form-input" id="cmDealContact" value="${isEdit ? _escapeHtml(deal.contact) : ''}" placeholder="Nome do contato">
               </div>
               <div class="form-group">
                 <label class="form-label">Email contato</label>
-                <input type="email" class="form-input" id="cmDealEmail" value="${isEdit ? (deal.contactEmail || '').replace(/"/g, '&quot;') : ''}" placeholder="email@empresa.com">
+                <input type="email" class="form-input" id="cmDealEmail" value="${isEdit ? _escapeHtml(deal.contactEmail) : ''}" placeholder="email@empresa.com">
               </div>
               <div class="form-group">
                 <label class="form-label">Etapa</label>
@@ -819,7 +819,7 @@ const TBO_COMERCIAL = {
                 <label class="form-label">Responsavel</label>
                 <select class="form-input" id="cmDealOwner">
                   <option value="">Selecione</option>
-                  ${team.map(m => `<option value="${m}" ${(isEdit && deal.owner === m) ? 'selected' : ''}>${m}</option>`).join('')}
+                  ${team.map(m => `<option value="${_escapeHtml(m)}" ${(isEdit && deal.owner === m) ? 'selected' : ''}>${_escapeHtml(m)}</option>`).join('')}
                 </select>
               </div>
               <div class="form-group">
@@ -846,7 +846,7 @@ const TBO_COMERCIAL = {
                 <label class="form-label">Projeto Vinculado</label>
                 <select class="form-input" id="cmDealProjectId">
                   <option value="">Nenhum</option>
-                  ${activeProjects.map(p => `<option value="${p.id}" ${(isEdit && deal.project_id === p.id) ? 'selected' : ''}>${p.name}${p.client ? ' (' + p.client + ')' : ''}</option>`).join('')}
+                  ${activeProjects.map(p => `<option value="${p.id}" ${(isEdit && deal.project_id === p.id) ? 'selected' : ''}>${_escapeHtml(p.name)}${p.client ? ' (' + _escapeHtml(p.client) + ')' : ''}</option>`).join('')}
                 </select>
               </div>
             </div>
@@ -854,9 +854,9 @@ const TBO_COMERCIAL = {
             <div style="margin-top:8px; padding:10px 12px; background:var(--bg-tertiary); border-radius:6px; border-left:3px solid var(--accent-gold);">
               <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:2px;">Projeto vinculado</div>
               <div style="display:flex; align-items:center; gap:8px;">
-                <span style="font-weight:600; font-size:0.85rem;">${linkedProject.name}</span>
+                <span style="font-weight:600; font-size:0.85rem;">${_escapeHtml(linkedProject.name)}</span>
                 ${linkedProject.status ? `<span class="tag" style="font-size:0.62rem; padding:1px 6px;">${linkedProject.status}</span>` : ''}
-                ${linkedProject.client ? `<span style="font-size:0.75rem; color:var(--text-secondary);">${linkedProject.client}</span>` : ''}
+                ${linkedProject.client ? `<span style="font-size:0.75rem; color:var(--text-secondary);">${_escapeHtml(linkedProject.client)}</span>` : ''}
               </div>
             </div>` : ''}
             <div class="form-group" style="margin-top:12px;">
@@ -871,7 +871,7 @@ const TBO_COMERCIAL = {
             </div>
             <div class="form-group" style="margin-top:12px;">
               <label class="form-label">Notas</label>
-              <textarea class="form-input" id="cmDealNotes" rows="3" placeholder="Observacoes, historico, contexto...">${isEdit ? (deal.notes || '') : ''}</textarea>
+              <textarea class="form-input" id="cmDealNotes" rows="3" placeholder="Observacoes, historico, contexto...">${isEdit ? _escapeHtml(deal.notes) : ''}</textarea>
             </div>
             ${isEdit && deal.rdDealId ? (() => {
               const rdNotes = (deal.activities || []).filter(a => a._source === 'rd_station');
@@ -962,7 +962,7 @@ const TBO_COMERCIAL = {
     if (isEdit) {
       document.getElementById('cmDealDelete')?.addEventListener('click', () => {
         if (typeof TBO_UX !== 'undefined' && TBO_UX.confirm) {
-          TBO_UX.confirm('Excluir Deal', `Tem certeza que deseja excluir "${deal.name}"?`, () => {
+          TBO_UX.confirm('Excluir Deal', `Tem certeza que deseja excluir "${_escapeHtml(deal.name)}"?`, () => {
             TBO_STORAGE.deleteCrmDeal(dealId);
             TBO_TOAST.success('Deal excluido');
             close();
@@ -1355,7 +1355,7 @@ const TBO_COMERCIAL = {
                 <label class="form-label">Responsavel</label>
                 <select class="form-input" id="cmExportOwner">
                   <option value="">Todos</option>
-                  ${team.map(m => `<option value="${m}">${m}</option>`).join('')}
+                  ${team.map(m => `<option value="${_escapeHtml(m)}">${_escapeHtml(m)}</option>`).join('')}
                 </select>
               </div>
               <div class="form-group">
@@ -1688,11 +1688,11 @@ const TBO_COMERCIAL = {
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <div style="flex:1;min-width:0;">
                 <div style="display:flex;align-items:center;gap:8px;">
-                  <span style="font-weight:600;font-size:0.85rem;">${p.name}</span>
+                  <span style="font-weight:600;font-size:0.85rem;">${_escapeHtml(p.name)}</span>
                   <span class="tag" style="font-size:0.65rem;background:${stateColor}20;color:${stateColor};border:1px solid ${stateColor}40;">${stateLabel}</span>
                 </div>
                 <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">
-                  ${p.company || p.client || ''} | ${p.owner || 'Sem responsavel'} | ${typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.relativeTime(p.updatedAt || p.createdAt) : ''}
+                  ${_escapeHtml(p.company || p.client) || ''} | ${_escapeHtml(p.owner) || 'Sem responsavel'} | ${typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.relativeTime(p.updatedAt || p.createdAt) : ''}
                 </div>
               </div>
               <div style="display:flex;align-items:center;gap:8px;">
@@ -1735,7 +1735,7 @@ const TBO_COMERCIAL = {
     modal.innerHTML = `
       <div class="modal modal--lg active" style="max-width:600px;">
         <div class="modal-header">
-          <h3 class="modal-title">${isNew ? 'Nova Proposta' : p.name}</h3>
+          <h3 class="modal-title">${isNew ? 'Nova Proposta' : _escapeHtml(p.name)}</h3>
           <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
         </div>
         <div class="modal-body" style="max-height:70vh;overflow-y:auto;">
@@ -1743,11 +1743,11 @@ const TBO_COMERCIAL = {
           <div class="grid-2" style="gap:12px;">
             <div class="form-group">
               <label class="form-label">Nome/Titulo*</label>
-              <input type="text" class="form-input" id="cmPropName" value="${p.name || ''}">
+              <input type="text" class="form-input" id="cmPropName" value="${_escapeHtml(p.name)}">
             </div>
             <div class="form-group">
               <label class="form-label">Cliente/Construtora*</label>
-              <input type="text" class="form-input" id="cmPropClient" value="${p.client || p.company || ''}" list="cmPropClientList">
+              <input type="text" class="form-input" id="cmPropClient" value="${_escapeHtml(p.client || p.company)}" list="cmPropClientList">
               <datalist id="cmPropClientList">${clients.map(c => `<option value="${c}">`).join('')}</datalist>
             </div>
           </div>
@@ -1760,7 +1760,7 @@ const TBO_COMERCIAL = {
               <label class="form-label">Responsavel</label>
               <select class="form-input" id="cmPropOwner">
                 <option value="">Selecione</option>
-                ${team.map(t => `<option value="${t}" ${p.owner === t ? 'selected' : ''}>${t}</option>`).join('')}
+                ${team.map(t => `<option value="${_escapeHtml(t)}" ${p.owner === t ? 'selected' : ''}>${_escapeHtml(t)}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
@@ -1782,12 +1782,12 @@ const TBO_COMERCIAL = {
           </div>
           <div class="form-group">
             <label class="form-label">Contato</label>
-            <input type="text" class="form-input" id="cmPropContact" value="${p.contact || ''}" placeholder="Nome do contato">
+            <input type="text" class="form-input" id="cmPropContact" value="${_escapeHtml(p.contact)}" placeholder="Nome do contato">
           </div>
           ${p.deal_id ? `<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:8px;">Vinculada ao deal: ${p.deal_id}</div>` : ''}
           <div class="form-group">
             <label class="form-label">Notas</label>
-            <textarea class="form-input" id="cmPropNotes" rows="3">${p.notes || ''}</textarea>
+            <textarea class="form-input" id="cmPropNotes" rows="3">${_escapeHtml(p.notes)}</textarea>
           </div>
         </div>
         <div class="modal-footer" style="display:flex;justify-content:${isNew ? 'flex-end' : 'space-between'};">

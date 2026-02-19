@@ -1,0 +1,203 @@
+# ============================================================================
+# TBO OS — CI/CD Pipeline (zero-local)
+# Lint, Security Scan, Build Validation, Deploy Gate
+# ============================================================================
+
+name: TBO OS CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # ── 1. Lint & Code Quality ─────────────────────────────────────────────
+  lint:
+    name: Lint & Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: ESLint
+        run: npx eslint "modules/**/*.js" "utils/**/*.js" "js/**/*.js" "app.js" --format=stylish
+        continue-on-error: true
+
+      - name: Check for hardcoded credentials
+        run: |
+          echo "=== Verificando credenciais hardcoded ==="
+          # Procurar padroes de API keys, secrets, tokens hardcoded
+          FOUND=0
+          for pattern in "api_key.*=.*['\"][a-f0-9-]{20,}" "api_secret.*=.*['\"][a-f0-9]{20,}" "password.*=.*['\"].{8,}" "SUPABASE_ANON_KEY.*=.*['\"]eyJ"; do
+            if grep -rn --include="*.js" "$pattern" app.js modules/ utils/ js/ 2>/dev/null | grep -v node_modules | grep -v ".example"; then
+              echo "ALERTA: Possivel credencial hardcoded encontrada!"
+              FOUND=1
+            fi
+          done
+          if [ $FOUND -eq 1 ]; then
+            echo "::error::Credenciais hardcoded detectadas! Remova antes de fazer merge."
+            exit 1
+          fi
+          echo "Nenhuma credencial hardcoded encontrada."
+
+      - name: Check for console.log in production code
+        run: |
+          COUNT=$(grep -rn "console\.log" modules/ utils/ app.js --include="*.js" | grep -v "// debug" | wc -l)
+          echo "console.log encontrados: $COUNT"
+          if [ "$COUNT" -gt 100 ]; then
+            echo "::warning::Mais de 100 console.log no codigo. Considere reduzir para producao."
+          fi
+
+  # ── 2. Security Scan ──────────────────────────────────────────────────
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check XSS vulnerabilities
+        run: |
+          echo "=== Verificando innerHTML sem escapeHtml ==="
+          # Procurar innerHTML com template literals que nao usam escapeHtml
+          RISKY=$(grep -rn "\.innerHTML\s*=" modules/ utils/ js/ app.js --include="*.js" | \
+            grep -v "escapeHtml\|_escapeHtml\|esc(" | \
+            grep '`.*\${' | wc -l)
+          echo "innerHTML com template literals sem sanitizacao: $RISKY"
+          if [ "$RISKY" -gt 0 ]; then
+            echo "::warning::$RISKY usos de innerHTML com interpolacao sem sanitizacao XSS"
+            grep -rn "\.innerHTML\s*=" modules/ utils/ js/ app.js --include="*.js" | \
+              grep -v "escapeHtml\|_escapeHtml\|esc(" | \
+              grep '`.*\${' | head -20
+          fi
+
+      - name: Check API proxy security
+        run: |
+          echo "=== Verificando proxies sem autenticacao ==="
+          for proxy in api/omie-proxy.js api/rd-proxy.js; do
+            if [ -f "$proxy" ]; then
+              if ! grep -q "authorization\|auth\|token\|Bearer" "$proxy"; then
+                echo "::error::$proxy nao verifica autenticacao!"
+                exit 1
+              fi
+            fi
+          done
+          echo "Proxies com verificacao de auth: OK"
+
+      - name: Check RLS coverage
+        run: |
+          echo "=== Verificando queries sem tenant_id ==="
+          # Listar queries Supabase que podem estar sem filtro de tenant
+          RISKY_QUERIES=$(grep -rn "\.from(" modules/ utils/ app.js --include="*.js" | \
+            grep -E "tasks|projects|crm_deals|deliverables|proposals" | \
+            grep -v "tenant_id\|tenantFilter\|tFilter" | wc -l)
+          echo "Queries potencialmente sem tenant_id: $RISKY_QUERIES"
+          if [ "$RISKY_QUERIES" -gt 10 ]; then
+            echo "::warning::$RISKY_QUERIES queries podem estar sem filtro tenant_id"
+          fi
+
+  # ── 3. Build Validation ───────────────────────────────────────────────
+  build:
+    name: Build Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate HTML
+        run: |
+          echo "=== Validando index.html ==="
+          # Verificar que todos os scripts referenciados existem
+          MISSING=0
+          for script in $(grep -oP 'src="([^"]+\.js)"' index.html | sed 's/src="//;s/"//'); do
+            if [ ! -f "$script" ]; then
+              echo "::error::Script referenciado mas nao encontrado: $script"
+              MISSING=1
+            fi
+          done
+          if [ $MISSING -eq 1 ]; then
+            exit 1
+          fi
+          echo "Todos os scripts referenciados existem: OK"
+
+      - name: Validate JSON configs
+        run: |
+          echo "=== Validando vercel.json ==="
+          python3 -c "import json; json.load(open('vercel.json'))" && echo "vercel.json: OK"
+          if [ -f "config.example.js" ]; then
+            echo "config.example.js presente: OK"
+          fi
+
+      - name: Check file sizes
+        run: |
+          echo "=== Verificando tamanhos de arquivo ==="
+          TOTAL_JS=$(find . -name "*.js" -not -path "./node_modules/*" -exec wc -c {} + | tail -1 | awk '{print $1}')
+          TOTAL_CSS=$(find . -name "*.css" -not -path "./node_modules/*" -exec wc -c {} + | tail -1 | awk '{print $1}')
+          echo "Total JS: $(echo "scale=1; $TOTAL_JS/1024/1024" | bc)MB"
+          echo "Total CSS: $(echo "scale=1; $TOTAL_CSS/1024/1024" | bc)MB"
+          # Alertar se JS exceder 3MB
+          if [ "$TOTAL_JS" -gt 3145728 ]; then
+            echo "::warning::Total JS excede 3MB. Considere code splitting ou minificacao."
+          fi
+
+      - name: Count scripts loaded
+        run: |
+          SCRIPT_COUNT=$(grep -c '<script src=' index.html)
+          echo "Scripts carregados no index.html: $SCRIPT_COUNT"
+          if [ "$SCRIPT_COUNT" -gt 80 ]; then
+            echo "::warning::$SCRIPT_COUNT scripts carregados sequencialmente. Performance impactada."
+          fi
+
+  # ── 4. Migration Validation ───────────────────────────────────────────
+  migrations:
+    name: SQL Migration Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate SQL syntax
+        run: |
+          echo "=== Validando migrations SQL ==="
+          for sql in database/migration-*.sql database/schema.sql; do
+            if [ -f "$sql" ]; then
+              # Verificar balanceamento de parenteses e ponto-e-virgula
+              OPEN=$(grep -o '(' "$sql" | wc -l)
+              CLOSE=$(grep -o ')' "$sql" | wc -l)
+              if [ "$OPEN" -ne "$CLOSE" ]; then
+                echo "::warning::$sql tem parenteses desbalanceados (open=$OPEN, close=$CLOSE)"
+              else
+                echo "$sql: parenteses OK"
+              fi
+              # Verificar que toda CREATE TABLE tem RLS
+              TABLES=$(grep -c "CREATE TABLE" "$sql" || true)
+              RLS=$(grep -c "ENABLE ROW LEVEL SECURITY\|ALTER TABLE.*ENABLE ROW" "$sql" || true)
+              echo "$sql: $TABLES tabelas, $RLS com RLS"
+              if [ "$TABLES" -gt 0 ] && [ "$RLS" -lt "$TABLES" ]; then
+                echo "::warning::$sql tem $TABLES tabelas mas apenas $RLS com RLS habilitado"
+              fi
+            fi
+          done
+
+  # ── 5. Deploy Gate ────────────────────────────────────────────────────
+  deploy-gate:
+    name: Deploy Gate
+    needs: [lint, security, build, migrations]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: All checks passed
+        run: |
+          echo "============================================"
+          echo "  TBO OS — Todas as verificacoes passaram"
+          echo "  Deploy para Vercel autorizado"
+          echo "============================================"

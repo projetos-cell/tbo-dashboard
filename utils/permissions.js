@@ -64,30 +64,70 @@ const TBO_PERMISSIONS = {
     }
   },
 
-  // ── User → Role Mapping (real TBO team — Feb 2026) ──────────────────────
-  _userRoles: {
-    // Diretoria
+  // ── User → Role Mapping ──────────────────────────────────────────────────
+  // v2.1: fonte de verdade e Supabase (profiles + tenant_members + roles)
+  // Fallback hardcoded mantido apenas para bootstrap inicial / offline
+  _userRoles: {},
+  _userRolesLoaded: false,
+
+  // Carregar roles do Supabase (chamado apos login)
+  async loadUserRolesFromSupabase() {
+    try {
+      if (typeof TBO_SUPABASE === 'undefined') return;
+      const client = TBO_SUPABASE.getClient();
+      if (!client) return;
+
+      const tenantId = TBO_SUPABASE.getCurrentTenantId();
+      if (!tenantId) return;
+
+      // Buscar profiles com role do tenant_members
+      const { data: members, error } = await client
+        .from('tenant_members')
+        .select('user_id, role_id, roles(name), profiles(username, bu, is_coordinator)')
+        .eq('tenant_id', tenantId);
+
+      if (error || !members) {
+        console.warn('[TBO Permissions] Falha ao carregar roles do Supabase:', error?.message);
+        return;
+      }
+
+      const newRoles = {};
+      members.forEach(m => {
+        const username = m.profiles?.username;
+        if (!username) return;
+        newRoles[username] = {
+          role: m.roles?.name || 'artist',
+          bu: m.profiles?.bu || null,
+          isCoordinator: m.profiles?.is_coordinator || false
+        };
+      });
+
+      if (Object.keys(newRoles).length > 0) {
+        this._userRoles = newRoles;
+        this._userRolesLoaded = true;
+        console.log(`[TBO Permissions] ${Object.keys(newRoles).length} user roles carregados do Supabase`);
+      }
+    } catch (e) {
+      console.warn('[TBO Permissions] loadUserRolesFromSupabase error:', e);
+    }
+  },
+
+  // Fallback hardcoded — usado apenas se Supabase nao estiver disponivel
+  _defaultUserRoles: {
     marco:    { role: 'founder',       bu: null,           isCoordinator: false },
     ruy:      { role: 'founder',       bu: null,           isCoordinator: false },
-    // Coord. Atendimento — acesso amplo (coordena projetos)
     carol:    { role: 'project_owner', bu: null,           isCoordinator: true  },
-    // POs — acesso a modulos operacionais da sua BU
     nelson:   { role: 'project_owner', bu: 'Branding',     isCoordinator: false },
     nath:     { role: 'project_owner', bu: 'Digital 3D',   isCoordinator: true  },
     rafa:     { role: 'project_owner', bu: 'Marketing',    isCoordinator: false },
-    // Comercial
     gustavo:  { role: 'comercial',     bu: 'Vendas',       isCoordinator: false },
-    // Branding team
     celso:    { role: 'artist',        bu: 'Branding',     isCoordinator: false },
     erick:    { role: 'artist',        bu: 'Branding',     isCoordinator: false },
-    // Digital 3D team
     dann:     { role: 'project_owner', bu: 'Digital 3D',   isCoordinator: false },
     duda:     { role: 'artist',        bu: 'Digital 3D',   isCoordinator: false },
     tiago:    { role: 'artist',        bu: 'Digital 3D',   isCoordinator: false },
     mari:     { role: 'artist',        bu: 'Digital 3D',   isCoordinator: false },
-    // Marketing team
     lucca:    { role: 'artist',        bu: 'Marketing',    isCoordinator: false },
-    // Terceirizado — Financeiro
     financaazul: { role: 'finance',    bu: null,           isCoordinator: false }
   },
 
@@ -140,7 +180,8 @@ const TBO_PERMISSIONS = {
   // ── Public API ────────────────────────────────────────────────────────────
 
   getRoleForUser(userId) {
-    const mapping = this._userRoles[userId];
+    // v2.1: tentar do Supabase primeiro, fallback para defaults
+    const mapping = this._userRoles[userId] || this._defaultUserRoles[userId];
     if (!mapping) return null;
     const roleDef = this._roles[mapping.role];
     if (!roleDef) return null;
@@ -153,7 +194,7 @@ const TBO_PERMISSIONS = {
   },
 
   getModulesForUser(userId) {
-    const mapping = this._userRoles[userId];
+    const mapping = this._userRoles[userId] || this._defaultUserRoles[userId];
     if (!mapping) return [];
     const roleDef = this._roles[mapping.role];
     if (!roleDef) return [];
@@ -218,17 +259,17 @@ const TBO_PERMISSIONS = {
   },
 
   getUserBU(userId) {
-    const mapping = this._userRoles[userId];
+    const mapping = this._userRoles[userId] || this._defaultUserRoles[userId];
     return mapping ? mapping.bu : null;
   },
 
   isCoordinator(userId) {
-    const mapping = this._userRoles[userId];
+    const mapping = this._userRoles[userId] || this._defaultUserRoles[userId];
     return mapping ? mapping.isCoordinator : false;
   },
 
   isFounder(userId) {
-    const mapping = this._userRoles[userId];
+    const mapping = this._userRoles[userId] || this._defaultUserRoles[userId];
     return mapping ? mapping.role === 'founder' : false;
   }
 };

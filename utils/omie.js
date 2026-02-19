@@ -75,10 +75,22 @@ const TBO_OMIE = {
 
     this._lastRequestTime = Date.now();
 
+    // Obter token de autenticacao Supabase para o proxy
+    let authToken = '';
+    try {
+      if (typeof TBO_SUPABASE !== 'undefined') {
+        const session = await TBO_SUPABASE.getSession();
+        authToken = session?.access_token || '';
+      }
+    } catch (e) { /* ignore */ }
+
     try {
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+        },
         body: JSON.stringify(body)
       });
 

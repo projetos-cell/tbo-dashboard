@@ -294,11 +294,16 @@ const TBO_CHAT = {
 
   _bindEvents() {
     const self = this;
-    const container = document.querySelector('.chat-module');
-    if (!container) return;
+
+    // ═══ IMPORTANTE: usar document como alvo de delegation ═══
+    // O .chat-module e substituido pelo render() a cada navegacao,
+    // entao listeners no container antigo se perdem.
+    // Usando document, os listeners sobrevivem a re-renders.
 
     // ── Event delegation: click ──
-    container.addEventListener('click', (e) => {
+    document.addEventListener('click', (e) => {
+      // Ignorar clicks fora do chat
+      if (!e.target.closest('.chat-module')) return;
       const btn = e.target.closest('[id]');
       if (!btn) return;
       const id = btn.id;
@@ -316,29 +321,32 @@ const TBO_CHAT = {
     });
 
     // ── Input: keydown (Enter to send) ──
-    container.addEventListener('keydown', (e) => {
-      if (e.target.id !== 'chatInput') return;
-      // Mention suggestions navigation
-      if (self._showMentionSuggestions) {
-        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    document.addEventListener('keydown', (e) => {
+      if (e.target.id === 'chatInput') {
+        // Mention suggestions navigation
+        if (self._showMentionSuggestions) {
+          if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            self._navigateMentionSuggestion(e.key === 'ArrowDown' ? 1 : -1);
+            return;
+          }
+          if (e.key === 'Enter' || e.key === 'Tab') {
+            const active = document.querySelector('.chat-mention-item.active');
+            if (active) { e.preventDefault(); self._selectMention(active.dataset.userId); return; }
+          }
+          if (e.key === 'Escape') { self._hideMentionSuggestions(); return; }
+        }
+        if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
-          self._navigateMentionSuggestion(e.key === 'ArrowDown' ? 1 : -1);
-          return;
+          self._sendMessage();
         }
-        if (e.key === 'Enter' || e.key === 'Tab') {
-          const active = document.querySelector('.chat-mention-item.active');
-          if (active) { e.preventDefault(); self._selectMention(active.dataset.userId); return; }
-        }
-        if (e.key === 'Escape') { self._hideMentionSuggestions(); return; }
       }
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        self._sendMessage();
-      }
+      // Fechar modais com Escape
+      if (e.key === 'Escape') self._closeAllModals();
     });
 
     // ── Input: auto-resize + typing + mention check ──
-    container.addEventListener('input', (e) => {
+    document.addEventListener('input', (e) => {
       if (e.target.id === 'chatInput') {
         const input = e.target;
         input.style.height = 'auto';
@@ -352,30 +360,8 @@ const TBO_CHAT = {
     });
 
     // ── File input change ──
-    container.addEventListener('change', (e) => {
+    document.addEventListener('change', (e) => {
       if (e.target.id === 'chatFileInput') self._handleFileSelect(e);
-    });
-
-    // ── Scroll load more ──
-    const scroll = document.getElementById('chatMessagesScroll');
-    if (scroll) {
-      scroll.addEventListener('scroll', () => {
-        if (scroll.scrollTop < 50 && !self._loadingMore && !self._allLoaded) {
-          self._loadOlderMessages();
-        }
-      });
-    }
-
-    // ── Fechar modais com Escape ──
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') self._closeAllModals();
-    });
-
-    // ── Fechar modais ao clicar no overlay ──
-    document.querySelectorAll('.chat-modal-overlay').forEach(overlay => {
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) self._closeAllModals();
-      });
     });
 
     // ── Fechar pickers ao clicar fora ──
@@ -387,6 +373,13 @@ const TBO_CHAT = {
       if (!e.target.closest('#chatStickerPicker') && !e.target.closest('#chatStickerBtn')) {
         const p = document.getElementById('chatStickerPicker');
         if (p) p.style.display = 'none';
+      }
+    });
+
+    // ── Fechar modais ao clicar no overlay (delegation) ──
+    document.addEventListener('click', (e) => {
+      if (e.target.classList.contains('chat-modal-overlay')) {
+        self._closeAllModals();
       }
     });
   },
@@ -672,6 +665,16 @@ const TBO_CHAT = {
     this._subscribeToChannel(channel.id);
     this._initPresence(channel.id);
     document.getElementById('chatInput')?.focus();
+
+    // Scroll listener para carregar mensagens antigas (re-bind pois o elemento muda)
+    const scroll = document.getElementById('chatMessagesScroll');
+    if (scroll) {
+      scroll.addEventListener('scroll', () => {
+        if (scroll.scrollTop < 50 && !this._loadingMore && !this._allLoaded) {
+          this._loadOlderMessages();
+        }
+      });
+    }
   },
 
   async _loadChannelMembers(channelId) {

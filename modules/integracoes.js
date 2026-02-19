@@ -86,6 +86,8 @@ const TBO_INTEGRACOES = {
       this._checkAI(),
       this._checkFireflies(),
       this._checkRdStation(),
+      this._checkOmie(),
+      this._checkGoogleCalendar(),
       this._checkNotion()
     ];
   },
@@ -156,12 +158,48 @@ const TBO_INTEGRACOES = {
       name: 'RD Station CRM',
       icon: 'briefcase',
       status: hasToken ? (isConnected ? 'connected' : 'partial') : 'disconnected',
-      description: 'CRM para gestao de deals e contatos comerciais.',
+      description: 'CRM para gestao de deals e contatos (sync unilateral RD → TBO).',
       details: hasToken
         ? (isConnected
           ? `Sincronizado. ${status.rdDealCount || 0} deals. Ultimo sync: ${status.lastSync ? new Date(status.lastSync).toLocaleString('pt-BR') : 'nunca'}`
           : `Token configurado. ${status?.error || 'Verificando conexao.'}`)
         : 'Nenhum token. Configure em Configuracoes.'
+    };
+  },
+
+  _checkOmie() {
+    const hasCredentials = typeof TBO_OMIE !== 'undefined' && TBO_OMIE.isEnabled();
+    const status = typeof TBO_OMIE !== 'undefined' ? TBO_OMIE.getStatus() : null;
+
+    return {
+      name: 'Omie ERP',
+      icon: 'receipt',
+      status: hasCredentials ? (status?.lastSync ? 'connected' : 'partial') : 'disconnected',
+      description: 'ERP financeiro — contas a pagar/receber, clientes (sync Omie → TBO).',
+      details: hasCredentials
+        ? (status?.lastSync
+          ? `${status.contasPagar} CP, ${status.contasReceber} CR, ${status.clientes} clientes. Ultimo sync: ${new Date(status.lastSync).toLocaleString('pt-BR')}`
+          : `Credenciais configuradas. ${status?.error || 'Aguardando primeiro sync.'}`)
+        : 'Sem credenciais. Configure App Key/Secret em Configuracoes.'
+    };
+  },
+
+  _checkGoogleCalendar() {
+    const isEnabled = typeof TBO_GOOGLE_CALENDAR !== 'undefined' && TBO_GOOGLE_CALENDAR.isEnabled();
+    const status = typeof TBO_GOOGLE_CALENDAR !== 'undefined' ? TBO_GOOGLE_CALENDAR.getStatus() : null;
+    const currentUser = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.getCurrentUser() : null;
+    const isGoogleUser = !!currentUser?.supabaseUserId && !!currentUser?.avatarUrl;
+
+    return {
+      name: 'Google Calendar',
+      icon: 'calendar',
+      status: isEnabled && isGoogleUser ? (status?.lastSync ? 'connected' : 'partial') : 'disconnected',
+      description: 'Sincronizacao de eventos do Google Calendar (somente leitura).',
+      details: isEnabled && isGoogleUser
+        ? (status?.lastSync
+          ? `${status.eventCount} eventos, ${status.todayCount} hoje. Ultimo sync: ${new Date(status.lastSync).toLocaleString('pt-BR')}`
+          : 'Habilitado. Faca login via Google para ativar.')
+        : 'Requer login via Google OAuth com scope calendar.readonly.'
     };
   },
 

@@ -4,6 +4,24 @@
 const TBO_CHANGELOG = {
   _versions: [
     {
+      version: '2.1.0',
+      date: '2026-02-19',
+      title: 'Integracoes v2 — Omie, Calendar, RD Unilateral',
+      type: 'major',
+      changes: [
+        { type: 'feature', text: 'Integracao Omie ERP: conector REST para contas a pagar/receber, clientes, categorias (sync Omie → TBO)' },
+        { type: 'feature', text: 'Integracao Google Calendar: sincronizacao de eventos via Google OAuth (somente leitura)' },
+        { type: 'feature', text: 'Proxy Vercel para Omie API (/api/omie-proxy) — evita CORS' },
+        { type: 'feature', text: 'Tela de configuracao completa para Omie (App Key/Secret, teste, sync manual)' },
+        { type: 'feature', text: 'Tela de configuracao para Google Calendar (sync, teste, auto-sync)' },
+        { type: 'feature', text: 'Cards de status para Omie e Google Calendar no modulo Integracoes' },
+        { type: 'improvement', text: 'RD Station convertido para sync unilateral (RD → TBO) — RD e fonte unica de verdade' },
+        { type: 'improvement', text: 'Push de deals para RD Station desativado (nenhum dado e enviado ao CRM)' },
+        { type: 'improvement', text: 'Pipeline de loadAll() agora inclui Omie (etapa 8) e Google Calendar (etapa 9)' },
+        { type: 'improvement', text: 'Fireflies.ai verificado e confirmado funcional (sem alteracoes necessarias)' }
+      ]
+    },
+    {
       version: '2.0.0',
       date: '2026-02-19',
       title: 'TBO OS v2 — Multi-tenant',
@@ -206,8 +224,8 @@ const TBO_CHANGELOG = {
         <div style="background:linear-gradient(135deg, #E85102 0%, #ff7b3a 100%);color:#fff;padding:16px 24px;border-radius:var(--radius-lg, 12px);margin-bottom:24px;display:flex;align-items:center;gap:16px;">
           <i data-lucide="rocket" style="width:28px;height:28px;flex-shrink:0;"></i>
           <div>
-            <div style="font-family:var(--font-display);font-size:1.1rem;font-weight:700;">Voce esta na v2.0</div>
-            <div style="font-size:0.82rem;opacity:0.9;">TBO OS agora e multi-empresa, com RBAC no Supabase, Magic Link e workspace selector.</div>
+            <div style="font-family:var(--font-display);font-size:1.1rem;font-weight:700;">Voce esta na v2.1</div>
+            <div style="font-size:0.82rem;opacity:0.9;">Integracoes v2: Omie ERP, Google Calendar, RD Station unilateral e Fireflies verificado.</div>
           </div>
         </div>
 

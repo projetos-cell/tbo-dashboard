@@ -58,6 +58,12 @@ const TBO_STORAGE = {
     // 7. Sync deals/contacts from RD Station CRM
     await this._loadFromRdStation();
 
+    // 8. Sync dados financeiros do Omie ERP
+    await this._loadFromOmie();
+
+    // 9. Sync eventos do Google Calendar
+    await this._loadFromGoogleCalendar();
+
     return this._data;
   },
 
@@ -139,10 +145,34 @@ const TBO_STORAGE = {
     try {
       const result = await TBO_RD_STATION.sync();
       if (result) {
-        console.log(`[TBO Storage] RD Station sync: ${result.created} created, ${result.updated} updated, ${result.pushed} pushed, ${result.contacts} contacts`);
+        console.log(`[TBO Storage] RD Station sync: ${result.created} created, ${result.updated} updated, ${result.contacts} contacts`);
       }
     } catch (e) {
       console.warn('[TBO Storage] RD Station sync failed:', e.message);
+    }
+  },
+
+  async _loadFromOmie() {
+    if (typeof TBO_OMIE === 'undefined' || !TBO_OMIE.isEnabled()) return;
+    try {
+      const result = await TBO_OMIE.sync();
+      if (result) {
+        console.log(`[TBO Storage] Omie sync: ${result.contasPagar} CP, ${result.contasReceber} CR, ${result.clientes} clientes`);
+      }
+    } catch (e) {
+      console.warn('[TBO Storage] Omie sync failed:', e.message);
+    }
+  },
+
+  async _loadFromGoogleCalendar() {
+    if (typeof TBO_GOOGLE_CALENDAR === 'undefined' || !TBO_GOOGLE_CALENDAR.isEnabled()) return;
+    try {
+      const result = await TBO_GOOGLE_CALENDAR.sync();
+      if (result) {
+        console.log(`[TBO Storage] Google Calendar sync: ${result.events} events`);
+      }
+    } catch (e) {
+      console.warn('[TBO Storage] Google Calendar sync failed:', e.message);
     }
   },
 

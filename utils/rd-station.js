@@ -1,5 +1,7 @@
 // ============================================================================
-// TBO OS — RD Station CRM Integration (Full Bidirectional Sync)
+// TBO OS — RD Station CRM Integration (Unilateral Sync: RD → TBO)
+// RD Station e a fonte unica de verdade para dados comerciais.
+// Somente PULL — nenhum dado e enviado de volta ao RD Station.
 // Advanced: Deals, Contacts, Activities/Notes, Tasks, Organizations,
 //           Products, Sources, Campaigns, Pipelines, Custom Fields
 // API Docs: https://developers.rdstation.com/reference
@@ -265,31 +267,39 @@ const TBO_RD_STATION = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // WRITE — Push data to RD Station
+  // WRITE — DESATIVADO (v2: sync unilateral, RD e fonte unica de verdade)
+  // Os metodos abaixo estao mantidos como stubs para compatibilidade,
+  // mas nao enviam dados ao RD Station.
   // ═══════════════════════════════════════════════════════════════════════════
 
   async createDeal(dealPayload) {
-    return this._post('deals', { deal: dealPayload });
+    console.warn('[TBO RD Station] createDeal desativado — sync unilateral (RD → TBO)');
+    return null;
   },
 
   async updateDeal(rdDealId, dealPayload) {
-    return this._put(`deals/${rdDealId}`, { deal: dealPayload });
+    console.warn('[TBO RD Station] updateDeal desativado — sync unilateral (RD → TBO)');
+    return null;
   },
 
   async upsertContact(contactPayload) {
-    return this._post('contacts/upsert', { contact: contactPayload });
+    console.warn('[TBO RD Station] upsertContact desativado — sync unilateral (RD → TBO)');
+    return null;
   },
 
   async createActivity(dealId, text) {
-    return this._post('activities', { activity: { deal_id: dealId, text } });
+    console.warn('[TBO RD Station] createActivity desativado — sync unilateral (RD → TBO)');
+    return null;
   },
 
   async createTask(taskPayload) {
-    return this._post('tasks', { task: taskPayload });
+    console.warn('[TBO RD Station] createTask desativado — sync unilateral (RD → TBO)');
+    return null;
   },
 
   async updateTask(taskId, taskPayload) {
-    return this._put(`tasks/${taskId}`, { task: taskPayload });
+    console.warn('[TBO RD Station] updateTask desativado — sync unilateral (RD → TBO)');
+    return null;
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -508,7 +518,7 @@ const TBO_RD_STATION = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // SYNC — Bidirectional sync (called by TBO_STORAGE.loadAll)
+  // SYNC — Unilateral (RD → TBO) — RD Station e fonte unica de verdade
   // ═══════════════════════════════════════════════════════════════════════════
 
   async sync() {
@@ -519,7 +529,7 @@ const TBO_RD_STATION = {
     this._syncError = null;
 
     try {
-      console.log('[TBO RD Station] Starting full bidirectional sync...');
+      console.log('[TBO RD Station] Starting unilateral sync (RD → TBO)...');
 
       // 1. Fetch and cache deal stages, build mapping if needed
       const rdStages = await this.fetchDealStages();
@@ -594,9 +604,9 @@ const TBO_RD_STATION = {
     const rdDeals = await this.fetchAllDeals();
     const crmData = TBO_STORAGE.getCrmData();
     const localDeals = crmData.deals || {};
-    let created = 0, updated = 0, pushed = 0;
+    let created = 0, updated = 0;
 
-    // ── PULL: RD → TBO ──
+    // ── PULL: RD → TBO (unilateral — RD e fonte unica de verdade) ──
     for (const rdDeal of rdDeals) {
       const rdId = String(rdDeal.id);
 
@@ -612,67 +622,20 @@ const TBO_RD_STATION = {
         created++;
       } else {
         const [localId, localDeal] = localEntry;
-        if (localDeal.source === 'rd_sync') {
-          // RD is source of truth — update local (enriched)
-          const updates = this._rdDealToTboDeal(rdDeal, rdActivities, rdTasks);
-          delete updates.source;     // preserve source
-          delete updates.rdDealId;   // preserve rdDealId
-          // Merge activities: keep local-only activities, add RD ones
-          const localActivities = (localDeal.activities || []).filter(a => a._source !== 'rd_station');
-          updates.activities = [...updates.activities, ...localActivities];
-          TBO_STORAGE.updateCrmDeal(localId, updates);
-          updated++;
-        }
-        // If source !== 'rd_sync', TBO is source of truth — skip
+        // RD e sempre fonte de verdade — atualizar local (enriched)
+        const updates = this._rdDealToTboDeal(rdDeal, rdActivities, rdTasks);
+        delete updates.source;     // preserve source
+        delete updates.rdDealId;   // preserve rdDealId
+        // Merge activities: keep local-only activities, add RD ones
+        const localActivities = (localDeal.activities || []).filter(a => a._source !== 'rd_station');
+        updates.activities = [...updates.activities, ...localActivities];
+        TBO_STORAGE.updateCrmDeal(localId, updates);
+        updated++;
       }
     }
 
-    // ── PUSH: TBO → RD ──
-    // Re-read CRM data (may have changed from pull)
-    const freshCrmData = TBO_STORAGE.getCrmData();
-    const freshDeals = freshCrmData.deals || {};
-
-    for (const [localId, deal] of Object.entries(freshDeals)) {
-      if (deal.source === 'rd_sync') continue; // Already from RD
-
-      if (!deal.rdDealId) {
-        // New local deal — push to RD
-        try {
-          // Upsert contact first if email exists
-          if (deal.contactEmail) {
-            try {
-              await this.upsertContact({
-                name: deal.contact || '',
-                emails: [{ email: deal.contactEmail }],
-                organization_name: deal.company || ''
-              });
-            } catch (e) {
-              console.warn('[TBO RD Station] Contact upsert failed:', e.message);
-            }
-          }
-
-          const rdPayload = this._tboDealToRdDeal(deal);
-          const result = await this.createDeal(rdPayload);
-          if (result && result.id) {
-            TBO_STORAGE.updateCrmDeal(localId, { rdDealId: String(result.id) });
-          }
-          pushed++;
-        } catch (e) {
-          console.warn('[TBO RD Station] Push create failed:', e.message);
-        }
-      } else if (deal.updatedAt && this._lastSync && deal.updatedAt > this._lastSync) {
-        // Updated local deal — push update to RD
-        try {
-          const rdPayload = this._tboDealToRdDeal(deal);
-          await this.updateDeal(deal.rdDealId, rdPayload);
-          pushed++;
-        } catch (e) {
-          console.warn('[TBO RD Station] Push update failed:', e.message);
-        }
-      }
-    }
-
-    return { created, updated, pushed };
+    // PUSH desativado (v2) — RD Station e fonte unica de verdade
+    return { created, updated, pushed: 0 };
   },
 
   async _syncContacts() {
@@ -800,36 +763,18 @@ const TBO_RD_STATION = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // PUSH HOOKS — Called by storage.js on deal create/update
+  // PUSH HOOKS — DESATIVADO (v2: sync unilateral, RD e fonte unica)
+  // Mantidos como stubs para compatibilidade com storage.js
   // ═══════════════════════════════════════════════════════════════════════════
 
   async pushDealCreate(tboDeal) {
-    if (!this.isEnabled()) return null;
-
-    // Upsert contact first if email exists
-    if (tboDeal.contactEmail) {
-      try {
-        await this.upsertContact({
-          name: tboDeal.contact || '',
-          emails: [{ email: tboDeal.contactEmail }],
-          organization_name: tboDeal.company || ''
-        });
-      } catch (e) {
-        console.warn('[TBO RD Station] Contact upsert on deal create failed:', e.message);
-      }
-    }
-
-    // Create deal in RD
-    const rdPayload = this._tboDealToRdDeal(tboDeal);
-    const result = await this.createDeal(rdPayload);
-    return result;
+    // v2: nao envia dados ao RD Station — sync unilateral
+    return null;
   },
 
   async pushDealUpdate(tboDeal) {
-    if (!this.isEnabled() || !tboDeal.rdDealId) return null;
-
-    const rdPayload = this._tboDealToRdDeal(tboDeal);
-    return this.updateDeal(tboDeal.rdDealId, rdPayload);
+    // v2: nao envia dados ao RD Station — sync unilateral
+    return null;
   },
 
   // ═══════════════════════════════════════════════════════════════════════════

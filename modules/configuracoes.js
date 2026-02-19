@@ -431,7 +431,7 @@ const TBO_CONFIGURACOES = {
 
     html += `
       <div style="margin-top:16px; padding-top:12px; border-top:2px solid #7c3aed;">
-        <div style="font-size:0.85rem; font-weight:600; margin-bottom:8px; color:#7c3aed;">RD Station CRM — Sync Bidirecional</div>
+        <div style="font-size:0.85rem; font-weight:600; margin-bottom:8px; color:#7c3aed;">RD Station CRM — Sync Unilateral (RD → TBO)</div>
         <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
           <input type="password" id="cfgRdToken" placeholder="Cole seu API Token do RD Station CRM..."
             value="${rdHasToken ? '••••••••••••' : ''}"
@@ -465,6 +465,76 @@ const TBO_CONFIGURACOES = {
             <input type="checkbox" id="cfgRdAutoSync" ${rdEnabled ? 'checked' : ''}> Auto-sync
           </label>
         </div>
+      </div>
+    `;
+
+    // ── Omie ERP configuration ──
+    const omieEnabled = typeof TBO_OMIE !== 'undefined' && TBO_OMIE.isEnabled();
+    const omieHasKey = typeof TBO_OMIE !== 'undefined' && !!TBO_OMIE.getAppKey();
+    const omieStatus = typeof TBO_OMIE !== 'undefined' ? TBO_OMIE.getStatus() : null;
+
+    html += `
+      <div style="margin-top:16px; padding-top:12px; border-top:2px solid #f97316;">
+        <div style="font-size:0.85rem; font-weight:600; margin-bottom:8px; color:#f97316;">Omie ERP — Sync Unilateral (Omie → TBO)</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+          <input type="text" id="cfgOmieAppKey" placeholder="App Key"
+            value="${omieHasKey ? '••••••••••••' : ''}"
+            style="padding:6px 10px; border:1px solid var(--border-subtle); border-radius:6px; font-size:0.78rem; background:var(--bg-secondary); color:var(--text-primary);" />
+          <input type="password" id="cfgOmieAppSecret" placeholder="App Secret"
+            value="${omieHasKey ? '••••••••••••' : ''}"
+            style="padding:6px 10px; border:1px solid var(--border-subtle); border-radius:6px; font-size:0.78rem; background:var(--bg-secondary); color:var(--text-primary);" />
+        </div>
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+          <button class="btn btn-primary" id="cfgSaveOmie" style="font-size:0.75rem; padding:6px 12px;">Salvar</button>
+          <button class="btn btn-secondary" id="cfgTestOmie" style="font-size:0.75rem; padding:6px 12px;">Testar</button>
+          <button class="btn btn-secondary" id="cfgOmieSync" style="font-size:0.75rem; padding:4px 10px;" ${!omieEnabled ? 'disabled' : ''}>Sincronizar</button>
+        </div>
+        <div style="font-size:0.72rem; color:var(--text-tertiary); margin-bottom:8px;">
+          Obtenha suas credenciais em <a href="https://app.omie.com.br" target="_blank" style="color:#f97316;">Omie</a> → Configuracoes → API → Chaves
+        </div>
+        <div id="cfgOmieTestResult" style="margin-top:4px; font-size:0.75rem; display:none;"></div>
+        ${omieStatus && omieStatus.lastSync ? `
+        <div style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:8px;">
+          <div style="margin-bottom:4px;">Ultimo sync: <strong>${new Date(omieStatus.lastSync).toLocaleString('pt-BR')}</strong></div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); gap:4px;">
+            <span style="background:var(--bg-secondary); padding:2px 6px; border-radius:4px;">${omieStatus.contasPagar || 0} contas pagar</span>
+            <span style="background:var(--bg-secondary); padding:2px 6px; border-radius:4px;">${omieStatus.contasReceber || 0} contas receber</span>
+            <span style="background:var(--bg-secondary); padding:2px 6px; border-radius:4px;">${omieStatus.clientes || 0} clientes</span>
+            <span style="background:var(--bg-secondary); padding:2px 6px; border-radius:4px;">${omieStatus.categorias || 0} categorias</span>
+          </div>
+        </div>` : ''}
+        ${omieStatus && omieStatus.error ? `<div style="font-size:0.75rem; color:var(--danger); margin-bottom:6px;">Erro: ${omieStatus.error}</div>` : ''}
+      </div>
+    `;
+
+    // ── Google Calendar configuration ──
+    const gcalEnabled = typeof TBO_GOOGLE_CALENDAR !== 'undefined' && TBO_GOOGLE_CALENDAR.isEnabled();
+    const gcalStatus = typeof TBO_GOOGLE_CALENDAR !== 'undefined' ? TBO_GOOGLE_CALENDAR.getStatus() : null;
+    const currentUser = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.getCurrentUser() : null;
+    const isGoogleUser = !!currentUser?.supabaseUserId && !!currentUser?.avatarUrl;
+
+    html += `
+      <div style="margin-top:16px; padding-top:12px; border-top:2px solid #4285f4;">
+        <div style="font-size:0.85rem; font-weight:600; margin-bottom:8px; color:#4285f4;">Google Calendar — Eventos (Somente Leitura)</div>
+        <div style="font-size:0.78rem; color:var(--text-secondary); margin-bottom:10px;">
+          ${isGoogleUser
+            ? 'Logado via Google OAuth. Eventos podem ser sincronizados automaticamente.'
+            : 'Faca login via Google (botao na tela de login) para habilitar Google Calendar.'}
+        </div>
+        <div style="display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
+          <button class="btn btn-secondary" id="cfgGcalSync" style="font-size:0.75rem; padding:4px 10px;" ${!isGoogleUser ? 'disabled' : ''}>Sincronizar Eventos</button>
+          <button class="btn btn-secondary" id="cfgGcalTest" style="font-size:0.75rem; padding:4px 10px;" ${!isGoogleUser ? 'disabled' : ''}>Testar Conexao</button>
+          <label style="display:flex; align-items:center; gap:4px; font-size:0.78rem; cursor:pointer;">
+            <input type="checkbox" id="cfgGcalAutoSync" ${gcalEnabled ? 'checked' : ''}> Auto-sync
+          </label>
+        </div>
+        <div id="cfgGcalTestResult" style="margin-top:4px; font-size:0.75rem; display:none;"></div>
+        ${gcalStatus && gcalStatus.lastSync ? `
+        <div style="font-size:0.75rem; color:var(--text-secondary);">
+          Ultimo sync: <strong>${new Date(gcalStatus.lastSync).toLocaleString('pt-BR')}</strong> —
+          ${gcalStatus.eventCount || 0} eventos, ${gcalStatus.todayCount || 0} hoje
+        </div>` : ''}
+        ${gcalStatus && gcalStatus.error ? `<div style="font-size:0.75rem; color:var(--danger);">Erro: ${gcalStatus.error}</div>` : ''}
       </div>
     `;
 
@@ -716,7 +786,7 @@ const TBO_CONFIGURACOES = {
       try {
         const result = await TBO_RD_STATION.forceRefresh();
         if (result) {
-          TBO_TOAST.success('RD Station', `Sync completo: ${result.created} novos, ${result.updated} atualizados, ${result.pushed} enviados | ${result.contacts} contatos, ${result.organizations || 0} empresas, ${result.activities || 0} notas, ${result.tasks || 0} tarefas`);
+          TBO_TOAST.success('RD Station', `Sync completo: ${result.created} novos, ${result.updated} atualizados | ${result.contacts} contatos, ${result.organizations || 0} empresas, ${result.activities || 0} notas, ${result.tasks || 0} tarefas`);
         } else {
           TBO_TOAST.warning('RD Station', 'Sync retornou sem resultado.');
         }
@@ -739,6 +809,101 @@ const TBO_CONFIGURACOES = {
         if (typeof TBO_RD_STATION !== 'undefined') {
           TBO_RD_STATION.setEnabled(rdAutoSync.checked);
           TBO_TOAST.info('RD Station', rdAutoSync.checked ? 'Auto-sync ativado.' : 'Auto-sync desativado.');
+        }
+      });
+    }
+
+    // ── Omie ERP bindings ─────────────────────────────────────────────────
+    this._bind('cfgSaveOmie', () => {
+      const keyInput = document.getElementById('cfgOmieAppKey');
+      const secretInput = document.getElementById('cfgOmieAppSecret');
+      if (!keyInput || !secretInput) return;
+      const key = keyInput.value.trim();
+      const secret = secretInput.value.trim();
+      if (!key || !secret || key === '••••••••••••' || secret === '••••••••••••') {
+        TBO_TOAST.warning('Omie', 'Preencha App Key e App Secret.');
+        return;
+      }
+      if (typeof TBO_OMIE !== 'undefined') {
+        TBO_OMIE.setCredentials(key, secret);
+        TBO_OMIE.setEnabled(true);
+        keyInput.value = '••••••••••••';
+        secretInput.value = '••••••••••••';
+        TBO_TOAST.success('Omie', 'Credenciais salvas!');
+      }
+    });
+
+    this._bind('cfgTestOmie', async () => {
+      const resultEl = document.getElementById('cfgOmieTestResult');
+      if (!resultEl) return;
+      resultEl.style.display = 'block';
+      resultEl.innerHTML = '<span style="color:#f97316;">Testando conexao...</span>';
+      try {
+        if (typeof TBO_OMIE === 'undefined' || !TBO_OMIE.getAppKey()) {
+          resultEl.innerHTML = '<span style="color:#ef4444;">Nenhuma credencial configurada.</span>';
+          return;
+        }
+        const result = await TBO_OMIE.testConnection();
+        resultEl.innerHTML = `<span style="color:#22c55e;">&#10003; Conectado!</span> <span style="color:var(--text-muted);">${result.total || 0} categorias no Omie</span>`;
+      } catch (e) {
+        resultEl.innerHTML = `<span style="color:#ef4444;">&#10007; Erro: ${e.message}</span>`;
+      }
+    });
+
+    this._bind('cfgOmieSync', async () => {
+      if (typeof TBO_OMIE === 'undefined' || !TBO_OMIE.isEnabled()) return;
+      TBO_TOAST.info('Omie', 'Sincronizando dados financeiros...');
+      try {
+        const result = await TBO_OMIE.forceRefresh();
+        if (result) {
+          TBO_TOAST.success('Omie', `Sync completo: ${result.contasPagar} CP, ${result.contasReceber} CR, ${result.clientes} clientes, ${result.categorias} categorias`);
+        } else {
+          TBO_TOAST.warning('Omie', 'Sync retornou sem resultado.');
+        }
+      } catch (e) {
+        TBO_TOAST.error('Omie', `Erro: ${e.message}`);
+      }
+    });
+
+    // ── Google Calendar bindings ────────────────────────────────────────────
+    this._bind('cfgGcalSync', async () => {
+      if (typeof TBO_GOOGLE_CALENDAR === 'undefined') return;
+      TBO_TOAST.info('Google Calendar', 'Sincronizando eventos...');
+      try {
+        const result = await TBO_GOOGLE_CALENDAR.forceRefresh();
+        if (result) {
+          TBO_TOAST.success('Google Calendar', `${result.events} eventos sincronizados!`);
+        } else {
+          TBO_TOAST.warning('Google Calendar', 'Sync retornou sem resultado. Verifique login Google.');
+        }
+      } catch (e) {
+        TBO_TOAST.error('Google Calendar', `Erro: ${e.message}`);
+      }
+    });
+
+    this._bind('cfgGcalTest', async () => {
+      const resultEl = document.getElementById('cfgGcalTestResult');
+      if (!resultEl) return;
+      resultEl.style.display = 'block';
+      resultEl.innerHTML = '<span style="color:#4285f4;">Testando conexao...</span>';
+      try {
+        if (typeof TBO_GOOGLE_CALENDAR === 'undefined') {
+          resultEl.innerHTML = '<span style="color:#ef4444;">Modulo nao carregado.</span>';
+          return;
+        }
+        const result = await TBO_GOOGLE_CALENDAR.testConnection();
+        resultEl.innerHTML = `<span style="color:#22c55e;">&#10003; Conectado!</span> <span style="color:var(--text-muted);">${result.calendars || 0} calendarios</span>`;
+      } catch (e) {
+        resultEl.innerHTML = `<span style="color:#ef4444;">&#10007; Erro: ${e.message}</span>`;
+      }
+    });
+
+    const gcalAutoSync = document.getElementById('cfgGcalAutoSync');
+    if (gcalAutoSync) {
+      gcalAutoSync.addEventListener('change', () => {
+        if (typeof TBO_GOOGLE_CALENDAR !== 'undefined') {
+          TBO_GOOGLE_CALENDAR.setEnabled(gcalAutoSync.checked);
+          TBO_TOAST.info('Google Calendar', gcalAutoSync.checked ? 'Auto-sync ativado.' : 'Auto-sync desativado.');
         }
       });
     }

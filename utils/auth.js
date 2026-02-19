@@ -105,7 +105,7 @@ const TBO_AUTH = {
       const { error } = await client.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin + window.location.pathname
+          redirectTo: window.location.origin + '/'
         }
       });
 

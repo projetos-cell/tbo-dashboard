@@ -94,7 +94,8 @@ const TBO_APP = {
       'integracoes': typeof TBO_INTEGRACOES !== 'undefined' ? TBO_INTEGRACOES : null,
       'trilha-aprendizagem': typeof TBO_TRILHA_APRENDIZAGEM !== 'undefined' ? TBO_TRILHA_APRENDIZAGEM : null,
       'pessoas-avancado': typeof TBO_PESSOAS_AVANCADO !== 'undefined' ? TBO_PESSOAS_AVANCADO : null,
-      'admin-onboarding': typeof TBO_ADMIN_ONBOARDING !== 'undefined' ? TBO_ADMIN_ONBOARDING : null
+      'admin-onboarding': typeof TBO_ADMIN_ONBOARDING !== 'undefined' ? TBO_ADMIN_ONBOARDING : null,
+      'workspace': typeof TBO_WORKSPACE !== 'undefined' ? TBO_WORKSPACE : null
     };
 
     Object.entries(modules).forEach(([name, mod]) => {
@@ -153,9 +154,16 @@ const TBO_APP = {
 
     // 13. Navigate to initial module (only if logged in)
     if (loggedIn) {
-      const user = TBO_AUTH.getCurrentUser();
-      const defaultMod = user?.defaultModule || 'command-center';
-      TBO_ROUTER.initFromHash(defaultMod);
+      // Verificar se precisa selecionar workspace (multi-tenant v2)
+      if (typeof TBO_WORKSPACE !== 'undefined' && TBO_WORKSPACE.shouldShowSelector()) {
+        // Carregar tenants e mostrar selector
+        await TBO_WORKSPACE.loadTenants();
+        TBO_ROUTER.navigate('workspace');
+      } else {
+        // Dashboard e sempre a first page
+        const defaultMod = 'command-center';
+        TBO_ROUTER.initFromHash(defaultMod);
+      }
     }
 
     // 14. Update freshness timestamp
@@ -185,14 +193,23 @@ const TBO_APP = {
       ['Analytics', typeof TBO_ANALYTICS !== 'undefined' ? TBO_ANALYTICS : null],
       ['Navigation', typeof TBO_NAVIGATION !== 'undefined' ? TBO_NAVIGATION : null],
       ['Integrations', typeof TBO_INTEGRATIONS !== 'undefined' ? TBO_INTEGRATIONS : null],
-      ['Performance', typeof TBO_PERFORMANCE !== 'undefined' ? TBO_PERFORMANCE : null]
+      ['Performance', typeof TBO_PERFORMANCE !== 'undefined' ? TBO_PERFORMANCE : null],
+      ['UI Components', typeof TBO_UI !== 'undefined' ? TBO_UI : null],
+      ['Workflow Engine', typeof TBO_WORKFLOW !== 'undefined' ? TBO_WORKFLOW : null],
+      ['Realtime Engine', typeof TBO_REALTIME !== 'undefined' ? TBO_REALTIME : null],
+      ['Digest Engine', typeof TBO_DIGEST !== 'undefined' ? TBO_DIGEST : null],
+      ['Document Versions', typeof TBO_DOC_VERSIONS !== 'undefined' ? TBO_DOC_VERSIONS : null],
+      ['Dynamic Templates', typeof TBO_DYNAMIC_TEMPLATES !== 'undefined' ? TBO_DYNAMIC_TEMPLATES : null]
     ];
 
     enhancementModules.forEach(([name, mod]) => {
       if (mod && mod.init) this._safeInit(name, () => mod.init());
     });
 
-    // 16. Initialize Lucide icons
+    // 16. FAB — Quick Create
+    this._bindFab();
+
+    // 17. Initialize Lucide icons
     if (window.lucide) lucide.createIcons();
 
     console.log('[TBO OS] Ready — 100 enhancements loaded');
@@ -210,32 +227,147 @@ const TBO_APP = {
     // Theme toggle is now in the user dropdown (rendered by auth.js)
   },
 
-  // ── Sidebar ──────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  // SIDEBAR MEGA UPGRADE — busca, favoritos, recentes, visual polish,
+  // performance, badges, context menu, drag&drop, mini-preview
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // ── Helper XSS (C14 — seguranca) ──────────────────────────────────────
+  _escHtml(str) {
+    if (!str) return '';
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  },
+
+  // ── Favoritos storage ─────────────────────────────────────────────────
+  _getFavorites() {
+    try { return JSON.parse(localStorage.getItem('tbo_sidebar_favorites') || '[]'); } catch { return []; }
+  },
+  _setFavorites(arr) {
+    localStorage.setItem('tbo_sidebar_favorites', JSON.stringify(arr.slice(0, 5)));
+  },
+  _toggleFavorite(modKey) {
+    let favs = this._getFavorites();
+    if (favs.includes(modKey)) {
+      favs = favs.filter(f => f !== modKey);
+    } else {
+      if (favs.length >= 5) { TBO_TOAST.warning('Limite', 'Máximo de 5 favoritos.'); return; }
+      favs.push(modKey);
+    }
+    this._setFavorites(favs);
+    this._renderFavorites();
+    this._updatePinButtons();
+  },
+
+  // ── Recentes storage ──────────────────────────────────────────────────
+  _getRecents() {
+    try { return JSON.parse(localStorage.getItem('tbo_sidebar_recents') || '[]'); } catch { return []; }
+  },
+  _addRecent(modKey) {
+    let rec = this._getRecents().filter(r => r !== modKey);
+    rec.unshift(modKey);
+    localStorage.setItem('tbo_sidebar_recents', JSON.stringify(rec.slice(0, 3)));
+    this._renderRecents();
+  },
+
+  // ── Module usage analytics (C6 — ordenacao inteligente) ───────────────
+  _trackUsage(modKey) {
+    try {
+      const usage = JSON.parse(localStorage.getItem('tbo_sidebar_usage') || '{}');
+      usage[modKey] = (usage[modKey] || 0) + 1;
+      localStorage.setItem('tbo_sidebar_usage', JSON.stringify(usage));
+    } catch {}
+  },
+
+  // ── Notification badges data (F27) ────────────────────────────────────
+  _badgeCounts: {},
+  _badgeInterval: null,
+
+  async _fetchBadgeCounts() {
+    try {
+      if (typeof TBO_SUPABASE === 'undefined') return;
+      const client = TBO_SUPABASE.getClient ? TBO_SUPABASE.getClient() : null;
+      if (!client) return;
+
+      const user = TBO_AUTH.getCurrentUser();
+      if (!user) return;
+
+      // Buscar contagens relevantes em paralelo
+      const [tasksRes, alertsRes, notifRes] = await Promise.allSettled([
+        client.from('tasks').select('id', { count: 'exact', head: true }).eq('assigned_to', user.id).eq('status', 'pendente'),
+        client.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('read', false),
+        client.from('crm_deals').select('id', { count: 'exact', head: true }).eq('stage', 'negociacao')
+      ]);
+
+      const newCounts = {};
+      if (tasksRes.status === 'fulfilled' && tasksRes.value.count > 0) newCounts['tarefas'] = tasksRes.value.count;
+      if (alertsRes.status === 'fulfilled' && alertsRes.value.count > 0) newCounts['alerts'] = alertsRes.value.count;
+      if (notifRes.status === 'fulfilled' && notifRes.value.count > 0) newCounts['pipeline'] = notifRes.value.count;
+
+      this._badgeCounts = newCounts;
+      this._renderBadges();
+    } catch (e) {
+      console.warn('[Sidebar] Badge fetch error:', e);
+    }
+  },
+
+  _renderBadges() {
+    Object.entries(this._badgeCounts).forEach(([modKey, count]) => {
+      // Buscar em todas as areas (nav, favoritos, recentes)
+      document.querySelectorAll(`.nav-item[data-module="${modKey}"]`).forEach(btn => {
+        let badge = btn.querySelector('.nav-notification-badge');
+        if (count > 0) {
+          if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'nav-notification-badge';
+            btn.appendChild(badge);
+          }
+          badge.textContent = count > 99 ? '99+' : count;
+          if (count > 10) badge.classList.add('badge-urgent');
+          else badge.classList.remove('badge-urgent');
+        } else if (badge) {
+          badge.remove();
+        }
+      });
+    });
+  },
+
+  // ── Sidebar principal ─────────────────────────────────────────────────
   _bindSidebar() {
-    // 1. Dynamically render sidebar from permissions
+    // 1. Render sidebar dinamico
     this._renderSidebar();
 
-    // 2. Bind nav item clicks (event delegation on container)
-    const navEl = document.getElementById('sidebarNav');
-    if (navEl) {
-      navEl.addEventListener('click', (e) => {
+    // 2. Event delegation para clicks em nav items (nav + favoritos + recentes)
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+      sidebar.addEventListener('click', (e) => {
+        // Pin button
+        const pinBtn = e.target.closest('.nav-pin-btn');
+        if (pinBtn) {
+          e.stopPropagation();
+          const modKey = pinBtn.closest('.nav-item')?.dataset.module;
+          if (modKey) this._toggleFavorite(modKey);
+          return;
+        }
+
         const btn = e.target.closest('.nav-item[data-module]');
         if (!btn) return;
         const mod = btn.dataset.module;
-        // Access control check
         if (!TBO_AUTH.canAccess(mod)) {
           const user = TBO_AUTH.getCurrentUser();
           const roleLabel = user?.roleLabel || 'seu perfil';
-          TBO_TOAST.warning('Acesso restrito', `O perfil "${roleLabel}" nao tem acesso a este modulo.`);
+          TBO_TOAST.warning('Acesso restrito', `O perfil "${roleLabel}" não tem acesso a este módulo.`);
           return;
         }
         TBO_ROUTER.navigate(mod);
-        // Close mobile menu
-        document.getElementById('sidebar')?.classList.remove('mobile-open');
+        this._addRecent(mod);
+        this._trackUsage(mod);
+        sidebar.classList.remove('mobile-open');
       });
     }
 
-    // 3. Brand logo — navigate to Dashboard
+    // 3. Brand logo
     const brandLink = document.getElementById('brandLink');
     if (brandLink) {
       brandLink.addEventListener('click', (e) => {
@@ -245,15 +377,11 @@ const TBO_APP = {
       });
     }
 
-    // 4. Sidebar collapse toggle (with persistence)
-    const sidebar = document.getElementById('sidebar');
-    const toggleBtn = document.getElementById('sidebarToggle');
-
-    // Restore collapsed state from localStorage
+    // 4. Collapse toggle
     if (sidebar && localStorage.getItem('tbo_sidebar_collapsed') === '1') {
       sidebar.classList.add('collapsed');
     }
-
+    const toggleBtn = document.getElementById('sidebarToggle');
     if (toggleBtn) {
       toggleBtn.addEventListener('click', () => {
         const sb = document.getElementById('sidebar');
@@ -272,11 +400,37 @@ const TBO_APP = {
       });
     }
 
-    // 6. Section toggles (collapsible groups)
+    // 6. Section toggles
     this._bindSectionToggles();
+
+    // 7. Busca rapida inline
+    this._bindSidebarSearch();
+
+    // 8. Render favoritos e recentes
+    this._renderFavorites();
+    this._renderRecents();
+
+    // 9. Scroll fade gradients (B12)
+    this._bindScrollFade();
+
+    // 10. Virtual tooltip para collapsed (C17)
+    this._bindVirtualTooltip();
+
+    // 11. Context menu (F28)
+    this._bindContextMenu();
+
+    // 12. Mini-preview (F30)
+    this._bindMiniPreview();
+
+    // 13. Keyboard navigation (acessibilidade)
+    this._bindSidebarKeyboard();
+
+    // 14. Badge counts (F27) — atualizar a cada 2min
+    this._fetchBadgeCounts();
+    this._badgeInterval = setInterval(() => this._fetchBadgeCounts(), 120000);
   },
 
-  // ── Dynamic Sidebar Renderer ─────────────────────────────────────────
+  // ── Dynamic Sidebar Renderer (C14 XSS safe, C18 preload states) ───────
   _renderSidebar() {
     const navEl = document.getElementById('sidebarNav');
     if (!navEl) return;
@@ -286,7 +440,6 @@ const TBO_APP = {
 
     let html = '';
     sections.forEach(section => {
-      // Filter to only modules that are actually registered in the router
       const visibleModules = section.modules.filter(m => {
         const real = TBO_ROUTER._resolveAlias(m);
         return !!TBO_ROUTER._modules[real];
@@ -295,22 +448,33 @@ const TBO_APP = {
 
       const isPlaceholder = (modKey) => this._placeholderKeys.includes(modKey);
 
-      html += `<div class="nav-section" data-section="${section.id}">
-        <button class="nav-section-toggle" data-section-toggle="${section.id}" aria-expanded="true">
-          <i data-lucide="${section.icon}" class="nav-section-icon"></i>
-          <span class="nav-section-label">${section.label}</span>
+      // C18 — Preload collapsed state from localStorage (evita flash)
+      const savedState = localStorage.getItem(`tbo_section_${section.id}`);
+      const isCollapsed = savedState === '0';
+
+      // C14 — XSS safe: escapar labels
+      const safeLabel = this._escHtml(section.label);
+      const safeIcon = this._escHtml(section.icon);
+
+      html += `<div class="nav-section${isCollapsed ? ' collapsed' : ''}" data-section="${this._escHtml(section.id)}">
+        <button class="nav-section-toggle" data-section-toggle="${this._escHtml(section.id)}" aria-expanded="${!isCollapsed}">
+          <i data-lucide="${safeIcon}" class="nav-section-icon"></i>
+          <span class="nav-section-label">${safeLabel}</span>
           <i data-lucide="chevron-down" class="nav-section-chevron"></i>
         </button>
-        <ul class="nav-list" role="menubar">
+        <ul class="nav-list" role="menubar"${isCollapsed ? ' style="max-height:0;opacity:0"' : ''}>
           ${visibleModules.map(modKey => {
-            const label = this._moduleLabels[modKey] || modKey;
-            const icon = this._moduleIcons[modKey] || 'file';
+            const label = this._escHtml(this._moduleLabels[modKey] || modKey);
+            const icon = this._escHtml(this._moduleIcons[modKey] || 'file');
             const isPlc = isPlaceholder(modKey);
             return `<li>
-              <button class="nav-item${isPlc ? ' nav-item--placeholder' : ''}" data-module="${modKey}" role="menuitem" title="${label}">
+              <button class="nav-item${isPlc ? ' nav-item--placeholder' : ''}" data-module="${this._escHtml(modKey)}" role="menuitem" title="${label}" tabindex="0">
                 <i data-lucide="${icon}" class="nav-icon"></i>
                 <span class="nav-label">${label}</span>
                 ${isPlc ? '<span class="nav-badge-dev">Em dev</span>' : ''}
+                <button class="nav-pin-btn" title="Fixar como favorito" aria-label="Fixar ${label}">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                </button>
               </button>
             </li>`;
           }).join('')}
@@ -320,31 +484,427 @@ const TBO_APP = {
 
     navEl.innerHTML = html;
 
-    // Re-init Lucide icons for new sidebar content
-    if (window.lucide) lucide.createIcons();
+    // C15 — Lazy Lucide: renderizar apenas no elemento sidebar (nao DOM inteiro)
+    if (window.lucide) lucide.createIcons({ root: navEl });
+
+    // Atualizar pin buttons
+    this._updatePinButtons();
   },
 
-  // ── Collapsible sidebar sections ──────────────────────────────────────────
+  _updatePinButtons() {
+    const favs = this._getFavorites();
+    document.querySelectorAll('.nav-pin-btn').forEach(btn => {
+      const modKey = btn.closest('.nav-item')?.dataset.module;
+      if (modKey && favs.includes(modKey)) {
+        btn.classList.add('pinned');
+        btn.querySelector('svg').setAttribute('fill', 'currentColor');
+      } else {
+        btn.classList.remove('pinned');
+        btn.querySelector('svg').setAttribute('fill', 'none');
+      }
+    });
+  },
+
+  // ── Favoritos render ──────────────────────────────────────────────────
+  _renderFavorites() {
+    const container = document.getElementById('sidebarFavorites');
+    const list = document.getElementById('sidebarFavoritesList');
+    if (!container || !list) return;
+
+    const favs = this._getFavorites();
+    container.setAttribute('data-count', favs.length);
+
+    if (favs.length === 0) {
+      list.innerHTML = '';
+      return;
+    }
+
+    list.innerHTML = favs.map(modKey => {
+      const label = this._escHtml(this._moduleLabels[modKey] || modKey);
+      const icon = this._escHtml(this._moduleIcons[modKey] || 'file');
+      return `<li>
+        <button class="nav-item" data-module="${this._escHtml(modKey)}" role="menuitem" title="${label}">
+          <i data-lucide="${icon}" class="nav-icon"></i>
+          <span class="nav-label">${label}</span>
+        </button>
+      </li>`;
+    }).join('');
+
+    if (window.lucide) lucide.createIcons({ root: list });
+  },
+
+  // ── Recentes render ───────────────────────────────────────────────────
+  _renderRecents() {
+    const container = document.getElementById('sidebarRecents');
+    const list = document.getElementById('sidebarRecentsList');
+    if (!container || !list) return;
+
+    const recents = this._getRecents();
+    if (recents.length === 0) {
+      container.style.display = 'none';
+      return;
+    }
+    container.style.display = '';
+
+    list.innerHTML = recents.map(modKey => {
+      const label = this._escHtml(this._moduleLabels[modKey] || modKey);
+      const icon = this._escHtml(this._moduleIcons[modKey] || 'file');
+      return `<li>
+        <button class="nav-item" data-module="${this._escHtml(modKey)}" role="menuitem" title="${label}">
+          <i data-lucide="${icon}" class="nav-icon"></i>
+          <span class="nav-label">${label}</span>
+        </button>
+      </li>`;
+    }).join('');
+
+    if (window.lucide) lucide.createIcons({ root: list });
+  },
+
+  // ── Busca rapida inline (A1) ──────────────────────────────────────────
+  _bindSidebarSearch() {
+    const input = document.getElementById('sidebarSearchInput');
+    const clearBtn = document.getElementById('sidebarSearchClear');
+    if (!input) return;
+
+    let debounce = null;
+    input.addEventListener('input', () => {
+      clearTimeout(debounce);
+      debounce = setTimeout(() => this._filterSidebar(input.value), 100);
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        input.value = '';
+        this._filterSidebar('');
+        input.blur();
+      } else if (e.key === 'Enter') {
+        // Navegar para o primeiro item visivel
+        const firstVisible = document.querySelector('#sidebarNav .nav-item:not(.search-hidden)');
+        if (firstVisible) {
+          firstVisible.click();
+          input.value = '';
+          this._filterSidebar('');
+        }
+      }
+    });
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        input.value = '';
+        this._filterSidebar('');
+        input.focus();
+      });
+    }
+
+    // Atalho "/" para focar na busca
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const active = document.activeElement;
+        if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) return;
+        e.preventDefault();
+        input.focus();
+      }
+    });
+  },
+
+  _filterSidebar(query) {
+    const navEl = document.getElementById('sidebarNav');
+    if (!navEl) return;
+
+    const q = query.trim().toLowerCase();
+    const emptyMsg = navEl.querySelector('.sidebar-search-empty');
+    if (emptyMsg) emptyMsg.remove();
+
+    if (!q) {
+      // Restaurar tudo
+      navEl.querySelectorAll('.nav-item').forEach(btn => {
+        btn.classList.remove('search-hidden', 'search-match');
+      });
+      navEl.querySelectorAll('.nav-section').forEach(sec => {
+        sec.classList.remove('search-hidden');
+      });
+      return;
+    }
+
+    let matchCount = 0;
+    navEl.querySelectorAll('.nav-section').forEach(section => {
+      let sectionHasMatch = false;
+      section.querySelectorAll('.nav-item').forEach(btn => {
+        const label = (btn.getAttribute('title') || '').toLowerCase();
+        const modKey = (btn.dataset.module || '').toLowerCase();
+        const matches = label.includes(q) || modKey.includes(q);
+        btn.classList.toggle('search-hidden', !matches);
+        btn.classList.toggle('search-match', matches);
+        if (matches) { sectionHasMatch = true; matchCount++; }
+      });
+      section.classList.toggle('search-hidden', !sectionHasMatch);
+      // Auto-expand section que tem match
+      if (sectionHasMatch && section.classList.contains('collapsed')) {
+        section.classList.remove('collapsed');
+      }
+    });
+
+    if (matchCount === 0) {
+      const emptyDiv = document.createElement('div');
+      emptyDiv.className = 'sidebar-search-empty';
+      emptyDiv.textContent = `Nenhum módulo para "${query}"`;
+      navEl.appendChild(emptyDiv);
+    }
+  },
+
+  // ── Collapsible sidebar sections (B8 — transicao suave) ──────────────
   _bindSectionToggles() {
     document.querySelectorAll('.nav-section-toggle').forEach(toggle => {
       const sectionId = toggle.dataset.sectionToggle;
       const section = toggle.closest('.nav-section');
       if (!section || !sectionId) return;
 
-      // Restore collapsed state from localStorage
-      const saved = localStorage.getItem(`tbo_section_${sectionId}`);
-      if (saved === '0') {
-        section.classList.add('collapsed');
-        toggle.setAttribute('aria-expanded', 'false');
-      }
-
+      // Estado ja aplicado no render (C18 preload)
       toggle.addEventListener('click', () => {
         const isCollapsed = section.classList.toggle('collapsed');
         toggle.setAttribute('aria-expanded', !isCollapsed);
         localStorage.setItem(`tbo_section_${sectionId}`, isCollapsed ? '0' : '1');
+
+        // Animar max-height para transicao suave (B8)
+        const list = section.querySelector('.nav-list');
+        if (list) {
+          if (isCollapsed) {
+            list.style.maxHeight = list.scrollHeight + 'px';
+            // Force reflow
+            list.offsetHeight;
+            list.style.maxHeight = '0';
+            list.style.opacity = '0';
+          } else {
+            list.style.maxHeight = list.scrollHeight + 'px';
+            list.style.opacity = '1';
+            // Remover max-height fixo apos transicao
+            setTimeout(() => { list.style.maxHeight = ''; }, 300);
+          }
+        }
+      });
+
+      // Keyboard: Enter/Space para toggle
+      toggle.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggle.click();
+        }
       });
     });
   },
+
+  // ── Scroll fade gradients (B12) ───────────────────────────────────────
+  _bindScrollFade() {
+    const wrapper = document.getElementById('sidebarNavWrapper');
+    const nav = document.getElementById('sidebarNav');
+    if (!wrapper || !nav) return;
+
+    const update = () => {
+      const st = nav.scrollTop;
+      const sh = nav.scrollHeight;
+      const ch = nav.clientHeight;
+      wrapper.classList.toggle('can-scroll-up', st > 5);
+      wrapper.classList.toggle('can-scroll-down', st + ch < sh - 5);
+    };
+
+    nav.addEventListener('scroll', update, { passive: true });
+    // Check inicial apos render
+    setTimeout(update, 100);
+    // Re-check quando secoes expandem/colapsam
+    new MutationObserver(update).observe(nav, { childList: true, subtree: true, attributes: true });
+  },
+
+  // ── Virtual tooltip (C17 — 1 DOM element reusado) ─────────────────────
+  _bindVirtualTooltip() {
+    const tooltip = document.getElementById('sidebarTooltip');
+    const sidebar = document.getElementById('sidebar');
+    if (!tooltip || !sidebar) return;
+
+    let showTimer = null;
+
+    sidebar.addEventListener('mouseover', (e) => {
+      if (!sidebar.classList.contains('collapsed')) return;
+      const btn = e.target.closest('.nav-item[data-module]');
+      if (!btn) return;
+
+      clearTimeout(showTimer);
+      showTimer = setTimeout(() => {
+        const label = btn.getAttribute('title') || '';
+        if (!label) return;
+        const rect = btn.getBoundingClientRect();
+        tooltip.textContent = label;
+        tooltip.style.left = (rect.right + 8) + 'px';
+        tooltip.style.top = (rect.top + rect.height / 2) + 'px';
+        tooltip.style.transform = 'translateY(-50%)';
+        tooltip.classList.add('visible');
+      }, 80);
+    });
+
+    sidebar.addEventListener('mouseout', (e) => {
+      const btn = e.target.closest('.nav-item[data-module]');
+      if (!btn) return;
+      clearTimeout(showTimer);
+      tooltip.classList.remove('visible');
+    });
+  },
+
+  // ── Context menu (F28) ────────────────────────────────────────────────
+  _bindContextMenu() {
+    const menu = document.getElementById('sidebarContextMenu');
+    const sidebar = document.getElementById('sidebar');
+    if (!menu || !sidebar) return;
+
+    let currentMod = null;
+
+    sidebar.addEventListener('contextmenu', (e) => {
+      const btn = e.target.closest('.nav-item[data-module]');
+      if (!btn) return;
+      e.preventDefault();
+      currentMod = btn.dataset.module;
+      const label = this._escHtml(this._moduleLabels[currentMod] || currentMod);
+      const isFav = this._getFavorites().includes(currentMod);
+
+      menu.innerHTML = `
+        <button class="sidebar-context-item" data-action="open">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Abrir ${label}
+        </button>
+        <button class="sidebar-context-item" data-action="fav">
+          <svg viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          ${isFav ? 'Remover dos favoritos' : 'Fixar como favorito'}
+        </button>
+        <div class="sidebar-context-separator"></div>
+        <button class="sidebar-context-item" data-action="copy">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copiar link
+        </button>
+      `;
+
+      const rect = btn.getBoundingClientRect();
+      menu.style.left = Math.min(e.clientX, window.innerWidth - 200) + 'px';
+      menu.style.top = Math.min(e.clientY, window.innerHeight - 150) + 'px';
+      menu.classList.add('visible');
+    });
+
+    menu.addEventListener('click', (e) => {
+      const item = e.target.closest('.sidebar-context-item');
+      if (!item || !currentMod) return;
+      const action = item.dataset.action;
+
+      if (action === 'open') {
+        TBO_ROUTER.navigate(currentMod);
+      } else if (action === 'fav') {
+        this._toggleFavorite(currentMod);
+      } else if (action === 'copy') {
+        const url = `${window.location.origin}${window.location.pathname}#${currentMod}`;
+        navigator.clipboard.writeText(url).then(() => {
+          TBO_TOAST.success('Link copiado', url);
+        });
+      }
+      menu.classList.remove('visible');
+    });
+
+    // Fechar ao clicar fora
+    document.addEventListener('click', () => menu.classList.remove('visible'));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') menu.classList.remove('visible'); });
+  },
+
+  // ── Mini-preview on hover (F30) ───────────────────────────────────────
+  _bindMiniPreview() {
+    const preview = document.getElementById('sidebarMiniPreview');
+    const sidebar = document.getElementById('sidebar');
+    if (!preview || !sidebar) return;
+
+    let hoverTimer = null;
+    let currentHoverMod = null;
+
+    // Dados de preview por modulo (KPIs mockados — em produção viria do Supabase)
+    const previewData = {
+      'command-center': { kpis: [{ v: '—', l: 'Projetos' }, { v: '—', l: 'Tarefas' }, { v: '—', l: 'Deals' }, { v: '—', l: 'Entregas' }] },
+      'projetos': { kpis: [{ v: '—', l: 'Ativos' }, { v: '—', l: 'Atrasados' }, { v: '—', l: 'Finalizados' }, { v: '—', l: 'Este mês' }] },
+      'tarefas': { kpis: [{ v: '—', l: 'Pendentes' }, { v: '—', l: 'Em andamento' }, { v: '—', l: 'Concluídas' }, { v: '—', l: 'Atrasadas' }] },
+      'pipeline': { kpis: [{ v: '—', l: 'Leads' }, { v: '—', l: 'Negociação' }, { v: '—', l: 'Proposta' }, { v: '—', l: 'Fechados' }] },
+      'financeiro': { kpis: [{ v: '—', l: 'Receita' }, { v: '—', l: 'Despesa' }, { v: '—', l: 'Lucro' }, { v: '—', l: 'A receber' }] },
+      'rh': { kpis: [{ v: '—', l: 'Equipe' }, { v: '—', l: 'Ativos' }, { v: '—', l: 'Onboarding' }, { v: '—', l: 'BUs' }] },
+    };
+
+    sidebar.addEventListener('mouseover', (e) => {
+      const btn = e.target.closest('.nav-item[data-module]');
+      if (!btn || sidebar.classList.contains('collapsed')) { clearTimeout(hoverTimer); return; }
+
+      const modKey = btn.dataset.module;
+      if (modKey === currentHoverMod) return;
+      currentHoverMod = modKey;
+
+      clearTimeout(hoverTimer);
+      hoverTimer = setTimeout(() => {
+        const data = previewData[modKey];
+        if (!data) return;
+
+        const label = this._escHtml(this._moduleLabels[modKey] || modKey);
+        const icon = this._escHtml(this._moduleIcons[modKey] || 'file');
+
+        preview.innerHTML = `
+          <div class="sidebar-mini-preview-title">
+            <i data-lucide="${icon}"></i> ${label}
+          </div>
+          <div class="sidebar-mini-preview-kpis">
+            ${data.kpis.map(k => `
+              <div class="sidebar-mini-kpi">
+                <div class="sidebar-mini-kpi-value">${k.v}</div>
+                <div class="sidebar-mini-kpi-label">${k.l}</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+
+        if (window.lucide) lucide.createIcons({ root: preview });
+
+        const rect = btn.getBoundingClientRect();
+        const sidebarRect = sidebar.getBoundingClientRect();
+        preview.style.left = (sidebarRect.right + 8) + 'px';
+        preview.style.top = Math.min(rect.top, window.innerHeight - 180) + 'px';
+        preview.classList.add('visible');
+      }, 600); // 600ms delay
+    });
+
+    sidebar.addEventListener('mouseout', (e) => {
+      const btn = e.target.closest('.nav-item[data-module]');
+      if (!btn) return;
+      clearTimeout(hoverTimer);
+      currentHoverMod = null;
+      preview.classList.remove('visible');
+    });
+  },
+
+  // ── Keyboard navigation sidebar (acessibilidade) ──────────────────────
+  _bindSidebarKeyboard() {
+    const navEl = document.getElementById('sidebarNav');
+    if (!navEl) return;
+
+    navEl.addEventListener('keydown', (e) => {
+      const items = [...navEl.querySelectorAll('.nav-item:not(.search-hidden)')];
+      const current = document.activeElement;
+      const idx = items.indexOf(current);
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const next = items[idx + 1] || items[0];
+        if (next) next.focus();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prev = items[idx - 1] || items[items.length - 1];
+        if (prev) prev.focus();
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        if (current && current.classList.contains('nav-item')) current.click();
+      }
+    });
+  },
+
+  // ── Sidebar resize com snap points (C16 — rAF throttle) ──────────────
+  _SIDEBAR_SNAP_POINTS: [64, 180, 260, 340],
+  _SIDEBAR_SNAP_THRESHOLD: 25,
 
   _bindSidebarResize() {
     const handle = document.getElementById('sidebarResizeHandle');
@@ -352,33 +912,128 @@ const TBO_APP = {
     if (!handle || !sidebar) return;
 
     let isResizing = false;
+    let rafPending = false;
+
+    // Restaurar largura salva
+    const savedWidth = localStorage.getItem('tbo_sidebar_width');
+    if (savedWidth) {
+      const w = parseInt(savedWidth);
+      if (w <= 64) {
+        sidebar.classList.add('collapsed');
+        sidebar.style.width = '';
+      } else {
+        sidebar.classList.remove('collapsed');
+        sidebar.style.width = w + 'px';
+        sidebar.classList.toggle('sidebar-compact', w > 64 && w < 220);
+      }
+    }
+
+    // Ghost line + snap indicator
+    const ghost = document.createElement('div');
+    ghost.style.cssText = 'position:fixed;top:0;bottom:0;width:2px;background:var(--brand-orange);z-index:9999;pointer-events:none;display:none;opacity:0.7;';
+    const snapIndicator = document.createElement('div');
+    snapIndicator.style.cssText = 'position:fixed;top:50%;transform:translateY(-50%);background:var(--brand-orange);color:#fff;font-size:11px;font-weight:600;padding:4px 8px;border-radius:4px;z-index:9999;pointer-events:none;display:none;white-space:nowrap;';
+    document.body.appendChild(ghost);
+    document.body.appendChild(snapIndicator);
+
+    const getSnapPoint = (x) => {
+      for (const sp of this._SIDEBAR_SNAP_POINTS) {
+        if (Math.abs(x - sp) < this._SIDEBAR_SNAP_THRESHOLD) return sp;
+      }
+      return null;
+    };
+
+    const getSnapLabel = (w) => {
+      if (w <= 64) return 'Colapsado';
+      if (w <= 180) return 'Compacto';
+      if (w <= 260) return 'Normal';
+      return 'Expandido';
+    };
 
     handle.addEventListener('mousedown', (e) => {
       isResizing = true;
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
+      sidebar.style.transition = 'none';
+      ghost.style.display = 'block';
       e.preventDefault();
     });
 
+    // C16 — rAF throttled mousemove
     document.addEventListener('mousemove', (e) => {
       if (!isResizing) return;
-      const newWidth = Math.min(Math.max(e.clientX, 180), 400);
-      sidebar.style.width = newWidth + 'px';
-      sidebar.classList.remove('collapsed');
+      if (rafPending) return;
+      rafPending = true;
+      requestAnimationFrame(() => {
+        rafPending = false;
+        const rawWidth = Math.min(Math.max(e.clientX, 50), 400);
+        const snapped = getSnapPoint(rawWidth);
+        const finalWidth = snapped || rawWidth;
+
+        ghost.style.left = finalWidth + 'px';
+        ghost.style.background = snapped ? 'var(--brand-orange)' : 'var(--text-muted)';
+        ghost.style.width = snapped ? '3px' : '2px';
+
+        if (snapped) {
+          snapIndicator.style.display = 'block';
+          snapIndicator.style.left = (finalWidth + 8) + 'px';
+          snapIndicator.textContent = getSnapLabel(snapped) + ' (' + snapped + 'px)';
+        } else {
+          snapIndicator.style.display = 'none';
+        }
+
+        if (finalWidth <= 64) {
+          sidebar.classList.add('collapsed');
+          sidebar.style.width = '';
+          sidebar.classList.remove('sidebar-compact');
+        } else {
+          sidebar.classList.remove('collapsed');
+          sidebar.style.width = finalWidth + 'px';
+          sidebar.classList.toggle('sidebar-compact', finalWidth > 64 && finalWidth < 220);
+        }
+      });
     });
 
     document.addEventListener('mouseup', () => {
-      if (isResizing) {
-        isResizing = false;
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
+      if (!isResizing) return;
+      isResizing = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      sidebar.style.transition = '';
+      ghost.style.display = 'none';
+      snapIndicator.style.display = 'none';
+
+      const currentWidth = sidebar.offsetWidth;
+      const snapped = getSnapPoint(currentWidth);
+      if (snapped) {
+        if (snapped <= 64) {
+          sidebar.classList.add('collapsed');
+          sidebar.style.width = '';
+        } else {
+          sidebar.style.width = snapped + 'px';
+        }
       }
+
+      const w = sidebar.classList.contains('collapsed') ? 64 : sidebar.offsetWidth;
+      localStorage.setItem('tbo_sidebar_width', w);
+      localStorage.setItem('tbo_sidebar_collapsed', w <= 64 ? '1' : '0');
+    });
+
+    handle.addEventListener('dblclick', () => {
+      sidebar.classList.remove('collapsed', 'sidebar-compact');
+      sidebar.style.width = '';
+      localStorage.setItem('tbo_sidebar_width', '260');
+      localStorage.setItem('tbo_sidebar_collapsed', '0');
     });
   },
 
+  // ── Set active nav + indicador de secao ativa (B7) ────────────────────
   _setActiveNav(moduleName) {
-    // Resolve aliases so sidebar highlights the correct item
     const resolved = TBO_ROUTER._resolveAlias(moduleName);
+
+    // Remover section-active anterior
+    document.querySelectorAll('.nav-section.section-active').forEach(s => s.classList.remove('section-active'));
+
     document.querySelectorAll('.nav-item').forEach(btn => {
       const btnMod = btn.dataset.module;
       const isActive = btnMod === resolved || btnMod === moduleName;
@@ -387,13 +1042,20 @@ const TBO_APP = {
       // Auto-expand parent section if active
       if (isActive) {
         const parentSection = btn.closest('.nav-section');
-        if (parentSection && parentSection.classList.contains('collapsed')) {
-          parentSection.classList.remove('collapsed');
-          const toggle = parentSection.querySelector('.nav-section-toggle');
-          if (toggle) toggle.setAttribute('aria-expanded', 'true');
+        if (parentSection) {
+          // B7 — Marcar secao como ativa
+          parentSection.classList.add('section-active');
+          if (parentSection.classList.contains('collapsed')) {
+            parentSection.classList.remove('collapsed');
+            const toggle = parentSection.querySelector('.nav-section-toggle');
+            if (toggle) toggle.setAttribute('aria-expanded', 'true');
+          }
         }
       }
     });
+
+    // Atualizar badges apos nav
+    this._renderBadges();
   },
 
   // ── Hash with Auth ─────────────────────────────────────────────────
@@ -406,7 +1068,7 @@ const TBO_APP = {
         if (!TBO_AUTH.canAccess(resolved)) {
           const user = TBO_AUTH.getCurrentUser();
           const roleLabel = user?.roleLabel || 'seu perfil';
-          TBO_TOAST.warning('Acesso restrito', `O perfil "${roleLabel}" nao tem acesso a este modulo.`);
+          TBO_TOAST.warning('Acesso restrito', `O perfil "${roleLabel}" não tem acesso a este módulo.`);
           const defaultMod = user?.defaultModule || 'command-center';
           if (defaultMod !== resolved) TBO_ROUTER.navigate(defaultMod);
           return;
@@ -436,16 +1098,16 @@ const TBO_APP = {
   _moduleLabels: {
     // Real modules
     'command-center': 'Dashboard',
-    'conteudo': 'Conteudo & Redacao',
+    'conteudo': 'Conteúdo & Redação',
     'comercial': 'Propostas',
     'projetos': 'Projetos',
-    'mercado': 'Inteligencia de Mercado',
-    'reunioes': 'Reunioes & Contexto',
+    'mercado': 'Inteligência de Mercado',
+    'reunioes': 'Reuniões & Contexto',
     'financeiro': 'Financeiro',
     'rh': 'Equipe',
-    'configuracoes': 'Configuracoes',
+    'configuracoes': 'Configurações',
     // BI
-    'inteligencia': 'Inteligencia BI',
+    'inteligencia': 'Inteligência BI',
     'cultura': 'Manual de Cultura',
     // Placeholders
     'timeline': 'Timeline',
@@ -456,10 +1118,10 @@ const TBO_APP = {
     'contratos': 'Contratos',
     'entregas': 'Entregas',
     'tarefas': 'Tarefas',
-    'revisoes': 'Revisoes',
+    'revisoes': 'Revisões',
     'entregas-pendentes': 'Entregas Pendentes',
-    'revisoes-pendentes': 'Revisoes Pendentes',
-    'decisoes': 'Decisoes',
+    'revisoes-pendentes': 'Revisões Pendentes',
+    'decisoes': 'Decisões',
     'biblioteca': 'Biblioteca',
     'carga-trabalho': 'Carga de Trabalho',
     'timesheets': 'Timesheets',
@@ -467,13 +1129,13 @@ const TBO_APP = {
     'pagar': 'Contas a Pagar',
     'receber': 'Contas a Receber',
     'margens': 'Margens',
-    'conciliacao': 'Conciliacao',
+    'conciliacao': 'Conciliação',
     'templates': 'Templates',
-    'permissoes-config': 'Permissoes',
-    'integracoes': 'Integracoes',
+    'permissoes-config': 'Permissões',
+    'integracoes': 'Integrações',
     'trilha-aprendizagem': 'Trilha de Aprendizagem',
-    'pessoas-avancado': 'Pessoas Avancado',
-    'admin-onboarding': 'Gestao de Onboarding',
+    'pessoas-avancado': 'Pessoas Avançado',
+    'admin-onboarding': 'Gestão de Onboarding',
     'changelog': 'Changelog'
   },
 
@@ -692,7 +1354,7 @@ const TBO_APP = {
         // Show search history if available
         const historyHtml = (typeof TBO_UX !== 'undefined') ? TBO_UX.renderSearchHistory() : '';
         results.innerHTML = historyHtml || `<div class="search-hint">
-          Digite para buscar modulos, projetos, clientes...
+          Digite para buscar módulos, projetos, clientes...
         </div>`;
         // Bind history item clicks
         results.querySelectorAll('.ux-search-history-item').forEach(item => {
@@ -745,7 +1407,7 @@ const TBO_APP = {
         <div class="search-result-info">
           <div class="search-result-title">${m.label}</div>
         </div>
-        <span class="search-result-type">modulo</span>
+        <span class="search-result-type">módulo</span>
       </div>`;
     });
 
@@ -755,7 +1417,7 @@ const TBO_APP = {
     };
     const typeLabels = {
       projeto_ativo: 'Projeto', projeto_finalizado: 'Finalizado',
-      cliente: 'Cliente', reuniao: 'Reuniao', mercado: 'Mercado'
+      cliente: 'Cliente', reuniao: 'Reunião', mercado: 'Mercado'
     };
 
     dataResults.forEach(r => {
@@ -798,7 +1460,7 @@ const TBO_APP = {
     TBO_SHORTCUTS.init();
 
     // Search
-    TBO_SHORTCUTS.bind('Alt+k', () => this.toggleSearch(true), 'Abrir busca rapida');
+    TBO_SHORTCUTS.bind('Alt+k', () => this.toggleSearch(true), 'Abrir busca rápida');
 
     // Refresh
     TBO_SHORTCUTS.bind('Alt+r', () => this.refreshData(), 'Atualizar dados');
@@ -815,7 +1477,54 @@ const TBO_APP = {
     // Escape to close overlays
     TBO_SHORTCUTS.bind('Escape', () => {
       this.toggleSearch(false);
-    }, 'Fechar dialogo');
+    }, 'Fechar diálogo');
+  },
+
+  // ── FAB (Floating Action Button) ───────────────────────────────────────
+  _bindFab() {
+    const fabBtn = document.getElementById('fabBtn');
+    const fabMenu = document.getElementById('fabMenu');
+    if (!fabBtn || !fabMenu) return;
+
+    let isOpen = false;
+
+    fabBtn.addEventListener('click', () => {
+      isOpen = !isOpen;
+      fabBtn.classList.toggle('open', isOpen);
+      fabMenu.style.display = isOpen ? 'flex' : 'none';
+    });
+
+    // Fechar ao clicar fora
+    document.addEventListener('click', (e) => {
+      if (isOpen && !e.target.closest('.fab-container')) {
+        isOpen = false;
+        fabBtn.classList.remove('open');
+        fabMenu.style.display = 'none';
+      }
+    });
+
+    // Acoes do menu
+    fabMenu.addEventListener('click', (e) => {
+      const item = e.target.closest('.fab-menu-item');
+      if (!item) return;
+      const type = item.dataset.create;
+
+      isOpen = false;
+      fabBtn.classList.remove('open');
+      fabMenu.style.display = 'none';
+
+      const moduleMap = { tarefa: 'tarefas', projeto: 'projetos', proposta: 'comercial', reuniao: 'reunioes' };
+      const target = moduleMap[type];
+      if (target) {
+        TBO_ROUTER.navigate(target);
+        // Apos navegar, tentar abrir modal de criacao se o modulo suportar
+        setTimeout(() => {
+          const createBtn = document.querySelector('[data-action="create"], [data-action="new"], #newBtn, .btn-create');
+          if (createBtn) createBtn.click();
+        }, 400);
+      }
+      TBO_TOAST.info('Criação rápida', `Abrindo ${item.querySelector('span')?.textContent || type}...`);
+    });
   },
 
   // ── Refresh Data ─────────────────────────────────────────────────────

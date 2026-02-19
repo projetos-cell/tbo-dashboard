@@ -4,6 +4,37 @@
 // Manages login, session, user menu dropdown, sidebar user widget.
 
 const TBO_AUTH = {
+  // ── Controle centralizado do overlay de login (evita race condition / flash) ────
+  _overlayState: null, // 'login' | 'app' — estado atual do overlay
+  _authResolved: false, // true quando auth flow terminou (logado ou nao)
+
+  /**
+   * Metodo UNICO para mostrar/esconder login overlay.
+   * Todos os code paths devem usar este metodo em vez de manipular classList diretamente.
+   */
+  _setOverlayState(state) {
+    if (this._overlayState === state) return;
+    this._overlayState = state;
+
+    const overlay = document.getElementById('loginOverlay');
+    if (!overlay) return;
+
+    if (state === 'app') {
+      // Usuario logado: esconder login, mostrar app
+      overlay.classList.add('hidden');
+      overlay.classList.remove('visible');
+      document.body.classList.remove('auth-pending');
+      document.body.classList.add('auth-resolved');
+    } else {
+      // Nao logado: mostrar login, esconder app
+      overlay.classList.remove('hidden');
+      overlay.classList.add('visible');
+      document.body.classList.remove('auth-pending');
+      document.body.classList.add('auth-resolved');
+    }
+    this._authResolved = true;
+  },
+
   // ── Legacy user credentials (fallback when Supabase is unavailable) ────
   _users: {
     marco:    { name: 'Marco Andolfato',  email: 'marco@agenciatbo.com.br' },
@@ -126,6 +157,34 @@ const TBO_AUTH = {
         return { ok: false, msg: 'Login com Google nao habilitado. Use usuario e senha.', providerDisabled: true };
       }
       return { ok: false, msg: e.message || 'Erro ao conectar com Google.' };
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LOGIN — Magic Link via Supabase
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  async loginWithMagicLink(email) {
+    if (typeof TBO_SUPABASE === 'undefined') {
+      return { ok: false, msg: 'Supabase nao disponivel.' };
+    }
+
+    const client = TBO_SUPABASE.getClient();
+    if (!client) return { ok: false, msg: 'Supabase client nao inicializado.' };
+
+    try {
+      const { error } = await client.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: window.location.origin + '/'
+        }
+      });
+
+      if (error) return { ok: false, msg: error.message };
+
+      return { ok: true, magicLinkSent: true };
+    } catch (e) {
+      return { ok: false, msg: e.message || 'Erro ao enviar Magic Link.' };
     }
   },
 
@@ -282,9 +341,8 @@ const TBO_AUTH = {
             this._cachedUser = session;
             sessionStorage.setItem('tbo_auth', JSON.stringify(session));
 
-            // Update UI
-            const overlay = document.getElementById('loginOverlay');
-            if (overlay) overlay.classList.add('hidden');
+            // Update UI via metodo centralizado (evita flash)
+            this._setOverlayState('app');
             this._applyAccess();
             this._renderUserMenu(session);
             this._renderSidebarUser(session);
@@ -304,8 +362,7 @@ const TBO_AUTH = {
         sessionStorage.removeItem('tbo_auth');
         TBO_SUPABASE.clearProfileCache();
 
-        const overlay = document.getElementById('loginOverlay');
-        if (overlay) overlay.classList.remove('hidden');
+        this._setOverlayState('login');
         const container = document.getElementById('userMenu');
         if (container) container.innerHTML = '';
         const sidebarWidget = document.getElementById('sidebarUserWidget');
@@ -352,6 +409,10 @@ const TBO_AUTH = {
     this._supabaseAuthMode = false;
     sessionStorage.removeItem('tbo_auth');
     this._stopExpirationCheck();
+    // Limpar tenant ativo (v2 multi-tenant)
+    if (typeof TBO_WORKSPACE !== 'undefined') {
+      TBO_WORKSPACE.clearTenant();
+    }
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -376,8 +437,7 @@ const TBO_AUTH = {
   },
 
   _showSessionExpiredMessage() {
-    const overlay = document.getElementById('loginOverlay');
-    if (overlay) overlay.classList.remove('hidden');
+    this._setOverlayState('login');
 
     const container = document.getElementById('userMenu');
     if (container) container.innerHTML = '';
@@ -516,7 +576,7 @@ const TBO_AUTH = {
       }
 
       if (result.ok) {
-        overlay.classList.add('hidden');
+        this._setOverlayState('app');
         this._applyAccess();
         this._renderUserMenu(result.session);
         this._renderSidebarUser(result.session);
@@ -546,6 +606,30 @@ const TBO_AUTH = {
         if (e.key === 'Enter') {
           if (passInput) passInput.focus();
           else doLogin();
+        }
+      });
+    }
+
+    // Magic Link button
+    const magicBtn = document.getElementById('loginMagicBtn');
+    if (magicBtn) {
+      magicBtn.addEventListener('click', async () => {
+        const email = document.getElementById('loginEmail')?.value?.trim();
+        if (!email) {
+          this._showLoginError(errorEl, 'Informe o email para receber o Magic Link.');
+          return;
+        }
+        magicBtn.disabled = true;
+        magicBtn.textContent = 'Enviando...';
+        const result = await this.loginWithMagicLink(email);
+        magicBtn.disabled = false;
+        magicBtn.textContent = 'Enviar Magic Link por e-mail';
+        if (result.ok && result.magicLinkSent) {
+          if (typeof TBO_TOAST !== 'undefined') {
+            TBO_TOAST.success('Magic Link enviado', `Verifique seu e-mail (${email}) e clique no link para entrar.`);
+          }
+        } else {
+          this._showLoginError(errorEl, result.msg || 'Erro ao enviar Magic Link.');
         }
       });
     }
@@ -588,16 +672,15 @@ const TBO_AUTH = {
 
   checkSession() {
     const user = this.getCurrentUser();
-    const overlay = document.getElementById('loginOverlay');
 
     if (user) {
       if (!user.dashboardVariant || !user.roleLabel) {
         this.logout();
-        if (overlay) overlay.classList.remove('hidden');
+        this._setOverlayState('login');
         return false;
       }
 
-      if (overlay) overlay.classList.add('hidden');
+      this._setOverlayState('app');
       this._applyAccess();
       this._renderUserMenu(user);
       this._renderSidebarUser(user);
@@ -609,7 +692,7 @@ const TBO_AUTH = {
       return true;
     }
 
-    if (overlay) overlay.classList.remove('hidden');
+    this._setOverlayState('login');
     return false;
   },
 
@@ -700,18 +783,47 @@ const TBO_AUTH = {
     // Theme toggle
     const themeBtn = document.getElementById('dropdownThemeToggle');
     if (themeBtn) {
-      themeBtn.addEventListener('click', () => {
+      themeBtn.addEventListener('click', (e) => {
         const isDark = document.body.classList.contains('dark-mode');
-        document.body.classList.toggle('dark-mode', !isDark);
-        document.body.classList.toggle('light-mode', isDark);
-        localStorage.setItem('tbo_theme', isDark ? 'light' : 'dark');
-        const iconEl = themeBtn.querySelector('i');
-        if (iconEl) {
-          iconEl.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
-          if (window.lucide) lucide.createIcons();
-        }
+        const newTheme = isDark ? 'light' : 'dark';
+
+        // Transicao cinematica circular (tipo Android 12)
+        const rect = themeBtn.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const maxRadius = Math.hypot(Math.max(cx, window.innerWidth - cx), Math.max(cy, window.innerHeight - cy));
+
+        // Criar overlay circular
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;pointer-events:none;`;
+        const bg = newTheme === 'dark' ? '#141414' : '#EAEAEA';
+        overlay.style.background = bg;
+        overlay.style.clipPath = `circle(0px at ${cx}px ${cy}px)`;
+        overlay.style.transition = 'clip-path 500ms cubic-bezier(0.4, 0, 0.2, 1)';
+        document.body.appendChild(overlay);
+
+        // Trigger transicao
+        requestAnimationFrame(() => {
+          overlay.style.clipPath = `circle(${maxRadius}px at ${cx}px ${cy}px)`;
+        });
+
+        // Aplicar tema apos metade da animacao
+        setTimeout(() => {
+          document.body.classList.toggle('dark-mode', !isDark);
+          document.body.classList.toggle('light-mode', isDark);
+          localStorage.setItem('tbo_theme', newTheme);
+          const iconEl = themeBtn.querySelector('i');
+          if (iconEl) {
+            iconEl.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
+            if (window.lucide) lucide.createIcons();
+          }
+        }, 250);
+
+        // Remover overlay apos animacao
+        setTimeout(() => overlay.remove(), 550);
+
         if (typeof TBO_COMMAND_CENTER !== 'undefined' && TBO_COMMAND_CENTER._leafletMap) {
-          setTimeout(() => TBO_COMMAND_CENTER._leafletMap.invalidateSize(), 100);
+          setTimeout(() => TBO_COMMAND_CENTER._leafletMap.invalidateSize(), 600);
         }
         if (dropdown) dropdown.classList.remove('open');
       });
@@ -722,8 +834,7 @@ const TBO_AUTH = {
     if (logoutBtn) {
       logoutBtn.addEventListener('click', async () => {
         await this.logout();
-        const overlay = document.getElementById('loginOverlay');
-        if (overlay) overlay.classList.remove('hidden');
+        this._setOverlayState('login');
         const passInput = document.getElementById('loginPass');
         if (passInput) passInput.value = '';
         const emailInput = document.getElementById('loginEmail');

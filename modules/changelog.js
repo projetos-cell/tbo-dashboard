@@ -4,6 +4,25 @@
 const TBO_CHANGELOG = {
   _versions: [
     {
+      version: '2.0.0',
+      date: '2026-02-19',
+      title: 'TBO OS v2 — Multi-tenant',
+      type: 'major',
+      changes: [
+        { type: 'feature', text: 'Arquitetura multi-empresa: suporte a TBO e TBO Academy (e N empresas futuras)' },
+        { type: 'feature', text: 'Workspace Selector: tela de selecao de empresa ao entrar no sistema' },
+        { type: 'feature', text: 'RBAC no Supabase: roles e permissoes por modulo armazenados no banco (nao mais hardcoded)' },
+        { type: 'feature', text: 'Magic Link: login sem senha via e-mail (Supabase OTP)' },
+        { type: 'feature', text: 'Changelog retroativo: historico completo de versoes persistido no Supabase' },
+        { type: 'feature', text: 'Migration SQL v3: tabelas tenants, roles, role_permissions, tenant_members, integration_configs, sync_logs, culture_pages, collaborator_history, changelog_entries' },
+        { type: 'fix', text: 'Flash do login ao recarregar pagina: unificado controle do overlay em metodo centralizado' },
+        { type: 'fix', text: 'First page sempre e o Dashboard: rota padrao forcada para #command-center' },
+        { type: 'fix', text: 'Removido botao "+" duplicado na tela de tarefas (mantido apenas FAB global)' },
+        { type: 'fix', text: 'Removido filtro de periodo no dashboard' },
+        { type: 'improvement', text: 'Preparacao para integracoes Omie, Google Calendar e conciliacao bancaria' }
+      ]
+    },
+    {
       version: '1.9.0',
       date: '2026-02-17',
       title: 'Modulos Financeiros',
@@ -183,6 +202,15 @@ const TBO_CHANGELOG = {
 
     return `
       <div class="changelog-module">
+        <!-- Banner v2 -->
+        <div style="background:linear-gradient(135deg, #E85102 0%, #ff7b3a 100%);color:#fff;padding:16px 24px;border-radius:var(--radius-lg, 12px);margin-bottom:24px;display:flex;align-items:center;gap:16px;">
+          <i data-lucide="rocket" style="width:28px;height:28px;flex-shrink:0;"></i>
+          <div>
+            <div style="font-family:var(--font-display);font-size:1.1rem;font-weight:700;">Voce esta na v2.0</div>
+            <div style="font-size:0.82rem;opacity:0.9;">TBO OS agora e multi-empresa, com RBAC no Supabase, Magic Link e workspace selector.</div>
+          </div>
+        </div>
+
         <div class="module-header" style="margin-bottom:24px;">
           <div>
             <h2 class="module-title" style="margin:0;">Changelog</h2>

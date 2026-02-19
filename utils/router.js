@@ -11,7 +11,8 @@ const TBO_ROUTER = {
     'inteligencia-mercado': 'mercado',
     'reunioes-contexto': 'reunioes',
     'equipe': 'rh',
-    'dashboard': 'command-center'
+    'dashboard': 'command-center',
+    'home': 'workspace'
   },
 
   _resolveAlias(name) {
@@ -79,16 +80,33 @@ const TBO_ROUTER = {
     if (empty) empty.style.display = 'none';
 
     // Show skeleton instead of spinner (better perceived performance)
-    if (typeof TBO_UX !== 'undefined' && container) {
+    if (typeof TBO_UI !== 'undefined' && container) {
+      TBO_UI.showSkeleton(container, moduleName);
+    } else if (typeof TBO_UX !== 'undefined' && container) {
       TBO_UX.showSkeleton(container);
     } else if (loading) {
       loading.classList.add('visible');
     }
 
     try {
+      // Transicao de pagina: fade-out → swap → fade-in
+      if (container && prev) {
+        container.classList.add('page-exit');
+        await new Promise(r => setTimeout(r, 180));
+      }
+
       if (module.render) {
         const html = await module.render();
-        if (container) container.innerHTML = html;
+        if (container) {
+          container.innerHTML = html;
+          container.classList.remove('page-exit');
+          container.classList.add('page-enter');
+          // Force reflow para a transicao funcionar
+          void container.offsetHeight;
+          container.classList.remove('page-enter');
+          container.classList.add('page-enter-active');
+          setTimeout(() => container.classList.remove('page-enter-active'), 220);
+        }
       }
       if (module.init) {
         await module.init();

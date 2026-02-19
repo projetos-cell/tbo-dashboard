@@ -12,7 +12,8 @@ const TBO_PERMISSIONS = {
     'decisoes','biblioteca',
     'carga-trabalho','timesheets','capacidade',
     'trilha-aprendizagem','pessoas-avancado',
-    'integracoes','templates'
+    'integracoes','templates',
+    'workspace','changelog'
   ],
 
   // Finance-restricted modules (founders + finance only)
@@ -112,7 +113,7 @@ const TBO_PERMISSIONS = {
     },
     {
       id: 'inteligencia',
-      label: 'CONTEUDO & INTELIGENCIA',
+      label: 'CONTEÚDO & INTELIGÊNCIA',
       icon: 'brain',
       modules: ['inteligencia', 'conteudo', 'mercado', 'reunioes', 'decisoes', 'biblioteca']
     },

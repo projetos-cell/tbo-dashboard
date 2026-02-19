@@ -261,15 +261,37 @@ const TBO_COMMAND_CENTER = {
       }
     }
 
+    // Frases motivacionais rotativas
+    const frases = [
+      'Cada projeto e uma nova oportunidade de criar algo incrivel.',
+      'Foco e clareza transformam ideias em resultados.',
+      'A consistencia e o motor do sucesso.',
+      'Grandes resultados comecam com pequenas acoes diarias.',
+      'Construa hoje o que voce quer ver amanha.',
+      'Disciplina e liberdade sao dois lados da mesma moeda.',
+      'A excelencia nao e um ato, e um habito.',
+      'O melhor momento para agir e agora.',
+      'Cada desafio e uma chance de crescer.'
+    ];
+    const fraseIdx = Math.floor(Date.now() / 86400000) % frases.length;
+    const frase = frases[fraseIdx];
+
+    // Data formatada
+    const dataHoje = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
     return `
-      <div class="cc-greeting" style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div class="cc-greeting" style="display:flex;justify-content:space-between;align-items:flex-start;padding:20px 0 12px;">
         <div>
           <h1 class="cc-greeting-title">${greeting}, ${firstName}${timerBadge}</h1>
-          ${subline ? `<p class="cc-greeting-sub">${subline}</p>` : ''}
+          <p style="font-size:0.78rem;color:var(--text-muted);margin:2px 0 0;text-transform:capitalize;">${dataHoje}</p>
+          ${subline ? `<p class="cc-greeting-sub" style="margin-top:6px;">${subline}</p>` : ''}
+          <p style="font-size:0.78rem;color:var(--text-secondary);font-style:italic;margin-top:8px;opacity:0.8;">"${frase}"</p>
         </div>
-        <button class="btn btn-sm btn-ghost" id="ccCustomizeToggle" style="flex-shrink:0;display:inline-flex;align-items:center;gap:4px;font-size:0.75rem;">
-          <i data-lucide="sliders-horizontal" style="width:14px;height:14px;"></i> Personalizar
-        </button>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          <button class="btn btn-sm btn-ghost" id="ccCustomizeToggle" style="display:inline-flex;align-items:center;gap:4px;font-size:0.75rem;">
+            <i data-lucide="sliders-horizontal" style="width:14px;height:14px;"></i> Personalizar
+          </button>
+        </div>
       </div>
     `;
   },
@@ -1843,6 +1865,8 @@ const TBO_COMMAND_CENTER = {
 
       // Initialize drag-and-drop (always active, no edit mode)
       this._initDragDrop();
+
+      // Period selector removido (v2 — filtro de periodo nao necessario no dashboard)
     }
 
     // Quick-done buttons for "My Tasks Today"

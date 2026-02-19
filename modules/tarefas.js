@@ -132,7 +132,7 @@ const TBO_TAREFAS = {
             ${TBO_CONFIG.business.priorities.map(p => `<option value="${p.id}">${p.label}</option>`).join('')}
           </select>
           <input type="text" class="form-input" id="tfFilterSearch" placeholder="Buscar..." style="max-width:180px;">
-          <button class="btn btn-primary" id="tfBtnNewTask" style="margin-left:auto;">+ Nova Tarefa</button>
+          <!-- Botao "Nova Tarefa" removido (v2): usar FAB global no canto inferior direito -->
         </div>
 
         <!-- Tab: Todas -->

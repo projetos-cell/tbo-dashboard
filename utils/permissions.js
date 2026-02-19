@@ -14,13 +14,13 @@ const TBO_PERMISSIONS = {
   // ── Role Definitions ──────────────────────────────────────────────────────
 
   // Modules visible to ALL roles (operational basics)
+  // v2.2.1: Removidos modulos admin que estavam acessiveis a todos os roles
+  // integracoes, templates, workspace, pessoas-avancado → movidos para _adminModules
   _sharedModules: [
     'entregas','tarefas','revisoes',
     'decisoes','biblioteca',
-    // carga-trabalho, timesheets, capacidade removidos em v2.2
-    'trilha-aprendizagem','pessoas-avancado',
-    'integracoes','templates',
-    'workspace','changelog','chat'
+    'trilha-aprendizagem',
+    'changelog','chat'
   ],
 
   // Finance-restricted modules (founders + finance only)
@@ -28,9 +28,10 @@ const TBO_PERMISSIONS = {
     'pagar','receber','margens','conciliacao'
   ],
 
-  // Admin modules (founders + project_owners)
+  // Admin modules (founders + project_owners com coordenacao)
+  // v2.2.1: integracoes, templates, workspace, pessoas-avancado movidos para ca
   _adminModules: [
-    'permissoes-config'
+    'permissoes-config','integracoes','templates','workspace','pessoas-avancado'
   ],
 
   _roles: {
@@ -44,7 +45,8 @@ const TBO_PERMISSIONS = {
     project_owner: {
       label: 'Project Owner',
       color: '#8b5cf6',
-      modules: ['command-center','alerts','comercial','clientes','portal-cliente','contratos','conteudo','projetos','mercado','reunioes','rh','cultura','configuracoes','admin-onboarding'],
+      // v2.2.1: removido 'comercial' (CRM/pipeline com dados financeiros sigilosos)
+      modules: ['command-center','alerts','clientes','portal-cliente','contratos','conteudo','projetos','mercado','reunioes','rh','cultura','configuracoes','admin-onboarding'],
       dashboardVariant: 'projects',
       defaultModule: 'command-center'
     },

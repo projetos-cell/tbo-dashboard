@@ -187,10 +187,24 @@ const TBO_APP = {
       }
 
       // 13b. Carregar roles de usuario do Supabase (RBAC dinamico — v2.1)
+      // v2.2.1: AWAIT obrigatorio — corrige race condition onde sidebar renderizava
+      // com roles defaults antes do Supabase retornar os roles reais
       if (typeof TBO_PERMISSIONS !== 'undefined' && TBO_PERMISSIONS.loadUserRolesFromSupabase) {
-        TBO_PERMISSIONS.loadUserRolesFromSupabase().catch(e =>
-          console.warn('[TBO OS] User roles load error:', e)
-        );
+        try {
+          await Promise.race([
+            TBO_PERMISSIONS.loadUserRolesFromSupabase(),
+            new Promise(resolve => setTimeout(() => {
+              console.warn('[TBO OS] User roles load timeout 5s — usando defaults');
+              resolve();
+            }, 5000))
+          ]);
+        } catch (e) {
+          console.warn('[TBO OS] User roles load error:', e);
+        }
+        // Re-render sidebar com roles corretos apos carregamento
+        this._renderSidebar();
+        this._bindSectionToggles();
+        TBO_AUTH._applyAccess();
       }
 
       // Verificar se precisa selecionar workspace (multi-tenant v2)
@@ -304,13 +318,18 @@ const TBO_APP = {
   },
 
   // ── Recentes storage ──────────────────────────────────────────────────
+  // v2.2.1: prefixado com userId para isolar recentes entre usuarios
+  _getRecentsKey() {
+    const user = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.getCurrentUser() : null;
+    return user?.id ? `tbo_sidebar_recents_${user.id}` : 'tbo_sidebar_recents';
+  },
   _getRecents() {
-    try { return JSON.parse(localStorage.getItem('tbo_sidebar_recents') || '[]'); } catch { return []; }
+    try { return JSON.parse(localStorage.getItem(this._getRecentsKey()) || '[]'); } catch { return []; }
   },
   _addRecent(modKey) {
     let rec = this._getRecents().filter(r => r !== modKey);
     rec.unshift(modKey);
-    localStorage.setItem('tbo_sidebar_recents', JSON.stringify(rec.slice(0, 3)));
+    localStorage.setItem(this._getRecentsKey(), JSON.stringify(rec.slice(0, 3)));
     this._renderRecents();
   },
 
@@ -481,7 +500,8 @@ const TBO_APP = {
     if (!navEl) return;
 
     const user = TBO_AUTH.getCurrentUser();
-    const sections = TBO_PERMISSIONS.getSectionsForUser(user?.id);
+    // v2.2.1: passar email para garantir que super admins vejam todos os modulos
+    const sections = TBO_PERMISSIONS.getSectionsForUser(user?.id, user?.email);
 
     let html = '';
     sections.forEach(section => {
@@ -760,6 +780,8 @@ const TBO_APP = {
   },
 
   // ── Virtual tooltip (C17 — 1 DOM element reusado) ─────────────────────
+  // v2.2.1: corrigido para evitar tooltip fantasma — usa mouseenter/mouseleave
+  // e verifica estado collapsed antes de exibir
   _bindVirtualTooltip() {
     const tooltip = document.getElementById('sidebarTooltip');
     const sidebar = document.getElementById('sidebar');
@@ -767,13 +789,21 @@ const TBO_APP = {
 
     let showTimer = null;
 
+    // Usar event delegation com mouseenter nao borbulha — usar mouseover com guard
     sidebar.addEventListener('mouseover', (e) => {
-      if (!sidebar.classList.contains('collapsed')) return;
+      if (!sidebar.classList.contains('collapsed')) {
+        // Garantir que tooltip esta escondido quando sidebar nao esta collapsed
+        clearTimeout(showTimer);
+        tooltip.classList.remove('visible');
+        return;
+      }
       const btn = e.target.closest('.nav-item[data-module]');
       if (!btn) return;
 
       clearTimeout(showTimer);
       showTimer = setTimeout(() => {
+        // Double-check collapsed state (pode mudar durante timeout)
+        if (!sidebar.classList.contains('collapsed')) return;
         const label = btn.getAttribute('title') || '';
         if (!label) return;
         const rect = btn.getBoundingClientRect();
@@ -782,15 +812,22 @@ const TBO_APP = {
         tooltip.style.top = (rect.top + rect.height / 2) + 'px';
         tooltip.style.transform = 'translateY(-50%)';
         tooltip.classList.add('visible');
-      }, 80);
+      }, 120);
     });
 
     sidebar.addEventListener('mouseout', (e) => {
-      const btn = e.target.closest('.nav-item[data-module]');
-      if (!btn) return;
       clearTimeout(showTimer);
       tooltip.classList.remove('visible');
     });
+
+    // Esconder tooltip ao expandir sidebar
+    const observer = new MutationObserver(() => {
+      if (!sidebar.classList.contains('collapsed')) {
+        clearTimeout(showTimer);
+        tooltip.classList.remove('visible');
+      }
+    });
+    observer.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
   },
 
   // ── Context menu (F28) ────────────────────────────────────────────────

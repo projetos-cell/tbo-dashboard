@@ -75,20 +75,58 @@ const TBO_STORAGE = {
     return this._data;
   },
 
+  // v2.2.1: Tracking de falhas com exponential backoff para evitar console spam
+  _apiFailCounts: {},
+  _apiMaxBackoff: 300000, // 5 minutos maximo entre retentativas
+
+  _shouldSkipApi(apiName) {
+    const fail = this._apiFailCounts[apiName];
+    if (!fail) return false;
+    const backoff = Math.min(fail.count * fail.count * 5000, this._apiMaxBackoff);
+    return (Date.now() - fail.lastFail) < backoff;
+  },
+
+  _recordApiFail(apiName) {
+    if (!this._apiFailCounts[apiName]) {
+      this._apiFailCounts[apiName] = { count: 0, lastFail: 0 };
+    }
+    this._apiFailCounts[apiName].count++;
+    this._apiFailCounts[apiName].lastFail = Date.now();
+  },
+
+  _recordApiSuccess(apiName) {
+    delete this._apiFailCounts[apiName];
+  },
+
   // APIs externas: carrega em background, atualiza widgets quando pronto
   // v2.1: Cada API tem timeout de 10s para prevenir hang infinito
+  // v2.2.1: Exponential backoff para evitar console spam em APIs com falha
   loadExternalAPIs() {
     const t0 = performance.now();
-    // Todas as APIs externas em paralelo com timeout individual
-    Promise.allSettled([
-      this._withTimeout(this._loadFromGoogleSheets(), 10000, 'Google Sheets'),
-      this._withTimeout(this._loadFromFireflies(), 10000, 'Fireflies'),
-      this._withTimeout(this._loadFromRdStation(), 10000, 'RD Station'),
-      this._withTimeout(this._loadFromGoogleCalendar(), 10000, 'Google Calendar')
-    ]).then((results) => {
+
+    const apis = [
+      { name: 'Google Sheets', fn: () => this._loadFromGoogleSheets() },
+      { name: 'Fireflies', fn: () => this._loadFromFireflies() },
+      { name: 'RD Station', fn: () => this._loadFromRdStation() },
+      { name: 'Google Calendar', fn: () => this._loadFromGoogleCalendar() }
+    ];
+
+    const tasks = apis.map(api => {
+      if (this._shouldSkipApi(api.name)) {
+        const fail = this._apiFailCounts[api.name];
+        const backoff = Math.min(fail.count * fail.count * 5000, this._apiMaxBackoff);
+        const nextRetry = Math.round((backoff - (Date.now() - fail.lastFail)) / 1000);
+        console.debug(`[TBO Storage] ${api.name}: skipped (backoff, retry em ${nextRetry}s)`);
+        return Promise.resolve(null);
+      }
+      return this._withTimeout(api.fn(), 10000, api.name)
+        .then(result => { this._recordApiSuccess(api.name); return result; })
+        .catch(e => { this._recordApiFail(api.name); return null; });
+    });
+
+    Promise.allSettled(tasks).then((results) => {
       const ok = results.filter(r => r.status === 'fulfilled' && r.value !== null).length;
-      console.log(`[TBO Storage] APIs externas: ${ok}/4 sync OK em ${Math.round(performance.now() - t0)}ms`);
-      // Disparar evento para widgets atualizarem seus dados
+      console.log(`[TBO Storage] APIs externas: ${ok}/${apis.length} sync OK em ${Math.round(performance.now() - t0)}ms`);
       window.dispatchEvent(new CustomEvent('tbo:external-data-loaded'));
     });
   },

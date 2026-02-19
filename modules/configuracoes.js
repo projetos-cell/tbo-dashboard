@@ -9,9 +9,9 @@ const TBO_CONFIGURACOES = {
   // ── Definicao das categorias ─────────────────────────────────────────────
   _categories: [
     { id: 'perfil',       icon: 'user',          label: 'Perfil & Conta' },
-    { id: 'integracoes',  icon: 'plug',          label: 'Integracoes' },
-    { id: 'ia',           icon: 'brain',         label: 'Inteligencia Artificial' },
-    { id: 'usuarios',     icon: 'users',         label: 'Gestao de Usuarios' },
+    { id: 'integracoes',  icon: 'plug',          label: 'Integrações' },
+    { id: 'ia',           icon: 'brain',         label: 'Inteligência Artificial' },
+    { id: 'usuarios',     icon: 'users',         label: 'Gestão de Usuários' },
     { id: 'dados',        icon: 'database',      label: 'Dados & Backup' },
     { id: 'sistema',      icon: 'settings',      label: 'Sistema' }
   ],
@@ -30,7 +30,7 @@ const TBO_CONFIGURACOES = {
       <div class="cfg-container">
         <!-- Sidebar de categorias -->
         <nav class="cfg-sidebar">
-          <div class="cfg-sidebar-title">Configuracoes</div>
+          <div class="cfg-sidebar-title">Configurações</div>
           ${visibleCats.map(c => `
             <button class="cfg-sidebar-item ${this._activeCategory === c.id ? 'active' : ''}"
                     data-category="${c.id}" id="cfgCat_${c.id}">
@@ -68,13 +68,15 @@ const TBO_CONFIGURACOES = {
 
   _renderPerfil() {
     const user = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.getCurrentUser() : null;
-    const name = user?.full_name || user?.username || 'Usuario';
+    const name = user?.name || user?.full_name || user?.username || 'Usuário';
     const email = user?.email || '-';
     const role = user?.role || '-';
     const avatar = user?.avatarUrl || '';
-    const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-    const roleLabel = typeof TBO_CONFIG !== 'undefined' ? TBO_CONFIG.business.getRoleLabel(role) : role;
-    const roleColor = typeof TBO_CONFIG !== 'undefined' ? TBO_CONFIG.business.getRoleColor(role) : '#666';
+    // v2.2.1: Usar initials do user session (calculado em auth.js via TBO_PERMISSIONS.getInitials)
+    // Fallback para calculo local caso nao exista
+    const initials = user?.initials || TBO_PERMISSIONS.getInitials(name);
+    const roleLabel = user?.roleLabel || (typeof TBO_CONFIG !== 'undefined' ? TBO_CONFIG.business.getRoleLabel(role) : role);
+    const roleColor = user?.roleColor || (typeof TBO_CONFIG !== 'undefined' ? TBO_CONFIG.business.getRoleColor(role) : '#666');
 
     // Tema atual
     const theme = localStorage.getItem('tbo_theme') || 'system';
@@ -86,7 +88,7 @@ const TBO_CONFIGURACOES = {
     return `
       <div class="cfg-section-header">
         <h2>Perfil & Conta</h2>
-        <p class="cfg-section-desc">Informacoes do usuario atual e preferencias de interface.</p>
+        <p class="cfg-section-desc">Informações do usuário atual e preferências de interface.</p>
       </div>
 
       <!-- Card: Perfil do Usuario -->
@@ -106,7 +108,7 @@ const TBO_CONFIGURACOES = {
 
       <!-- Card: Tema -->
       <div class="card cfg-card">
-        <h3 class="cfg-card-title"><i data-lucide="palette"></i> Aparencia</h3>
+        <h3 class="cfg-card-title"><i data-lucide="palette"></i> Aparência</h3>
         <div class="cfg-theme-selector">
           <button class="cfg-theme-btn ${theme === 'light' ? 'active' : ''}" data-theme="light">
             <i data-lucide="sun"></i> Claro
@@ -122,26 +124,26 @@ const TBO_CONFIGURACOES = {
 
       <!-- Card: Notificacoes -->
       <div class="card cfg-card">
-        <h3 class="cfg-card-title"><i data-lucide="bell"></i> Notificacoes</h3>
+        <h3 class="cfg-card-title"><i data-lucide="bell"></i> Notificações</h3>
         <div class="cfg-toggle-list">
           <label class="cfg-toggle-row">
             <div>
-              <div class="cfg-toggle-label">Notificacoes gerais</div>
+              <div class="cfg-toggle-label">Notificações gerais</div>
               <div class="cfg-toggle-hint">Toasts de sucesso, info e avisos</div>
             </div>
             <input type="checkbox" id="cfgNotifGeneral" class="cfg-checkbox" ${notifGeneral ? 'checked' : ''}>
           </label>
           <label class="cfg-toggle-row">
             <div>
-              <div class="cfg-toggle-label">Notificacoes de sincronizacao</div>
-              <div class="cfg-toggle-hint">Alertas quando integracoes sincronizam</div>
+              <div class="cfg-toggle-label">Notificações de sincronização</div>
+              <div class="cfg-toggle-hint">Alertas quando integrações sincronizam</div>
             </div>
             <input type="checkbox" id="cfgNotifSync" class="cfg-checkbox" ${notifSync ? 'checked' : ''}>
           </label>
           <label class="cfg-toggle-row">
             <div>
-              <div class="cfg-toggle-label">Notificacoes de erros</div>
-              <div class="cfg-toggle-hint">Alertas de falha em operacoes</div>
+              <div class="cfg-toggle-label">Notificações de erros</div>
+              <div class="cfg-toggle-hint">Alertas de falha em operações</div>
             </div>
             <input type="checkbox" id="cfgNotifErrors" class="cfg-checkbox" ${notifErrors ? 'checked' : ''}>
           </label>
@@ -155,8 +157,8 @@ const TBO_CONFIGURACOES = {
   _renderIntegracoes() {
     return `
       <div class="cfg-section-header">
-        <h2>Integracoes</h2>
-        <p class="cfg-section-desc">Gerencie conexoes com servicos externos.</p>
+        <h2>Integrações</h2>
+        <p class="cfg-section-desc">Gerencie conexões com serviços externos.</p>
       </div>
 
       ${this._renderIntegrationCard_Fireflies()}
@@ -182,7 +184,7 @@ const TBO_CONFIGURACOES = {
           </div>
           <div class="cfg-integration-meta">
             <h3>Fireflies.ai</h3>
-            <span class="cfg-integration-desc">Transcricao automatica de reunioes</span>
+            <span class="cfg-integration-desc">Transcrição automática de reuniões</span>
           </div>
           <span class="cfg-status-badge ${connected ? 'connected' : 'disconnected'}">
             ${connected ? 'Conectado' : 'Desconectado'}
@@ -259,7 +261,7 @@ const TBO_CONFIGURACOES = {
                      placeholder="Cole seu API Token do RD Station CRM...">
               <button class="btn btn-primary btn-sm" id="cfgSaveRdToken">Salvar</button>
             </div>
-            <span class="cfg-field-hint">Obtenha em <a href="https://crm.rdstation.com" target="_blank">RD Station CRM</a> -> Configuracoes -> Token de API</span>
+            <span class="cfg-field-hint">Obtenha em <a href="https://crm.rdstation.com" target="_blank">RD Station CRM</a> -> Configurações -> Token de API</span>
           </div>
 
           <div class="cfg-integration-actions">
@@ -328,7 +330,7 @@ const TBO_CONFIGURACOES = {
               <i data-lucide="refresh-cw"></i> Sincronizar Eventos
             </button>
             <button class="btn btn-secondary btn-sm" id="cfgGcalTest">
-              <i data-lucide="zap"></i> Testar Conexao
+              <i data-lucide="zap"></i> Testar Conexão
             </button>
             <label class="cfg-inline-toggle">
               <input type="checkbox" id="cfgGcalAutoSync" ${enabled ? 'checked' : ''}> Auto-sync
@@ -430,7 +432,7 @@ const TBO_CONFIGURACOES = {
 
     return `
       <div class="cfg-section-header">
-        <h2>Inteligencia Artificial</h2>
+        <h2>Inteligência Artificial</h2>
         <p class="cfg-section-desc">Configure o provedor e modelos de IA utilizados pelo sistema.</p>
       </div>
 
@@ -486,10 +488,10 @@ const TBO_CONFIGURACOES = {
       <div class="card cfg-card">
         <div class="cfg-ia-actions">
           <button class="btn btn-primary" id="cfgSaveApi" style="flex:1;">
-            <i data-lucide="save"></i> Salvar Configuracoes
+            <i data-lucide="save"></i> Salvar Configurações
           </button>
           <button class="btn btn-secondary" id="cfgTestApi" style="flex:1;">
-            <i data-lucide="zap"></i> Testar Conexao
+            <i data-lucide="zap"></i> Testar Conexão
           </button>
         </div>
         <div id="cfgTestResult" class="cfg-test-result" style="display:none;"></div>
@@ -538,8 +540,8 @@ const TBO_CONFIGURACOES = {
 
     return `
       <div class="cfg-section-header">
-        <h2>Gestao de Usuarios</h2>
-        <p class="cfg-section-desc">Gerencie acessos e permissoes da equipe.</p>
+        <h2>Gestão de Usuários</h2>
+        <p class="cfg-section-desc">Gerencie acessos e permissões da equipe.</p>
       </div>
 
       <!-- Card: Acoes e resumo -->
@@ -661,7 +663,7 @@ const TBO_CONFIGURACOES = {
     return `
       <div class="cfg-section-header">
         <h2>Sistema</h2>
-        <p class="cfg-section-desc">Status dos servicos, versao e informacoes tecnicas.</p>
+        <p class="cfg-section-desc">Status dos serviços, versão e informações técnicas.</p>
       </div>
 
       <!-- Card: Status dos servicos -->
@@ -738,7 +740,7 @@ const TBO_CONFIGURACOES = {
     return `
       <div class="card cfg-card">
         <div class="cfg-card-title-row">
-          <h3 class="cfg-card-title"><i data-lucide="bar-chart-3"></i> Configuracoes Financeiras ${fy}</h3>
+          <h3 class="cfg-card-title"><i data-lucide="bar-chart-3"></i> Configurações Financeiras ${fy}</h3>
           <span class="tag gold">Editavel</span>
         </div>
         <span class="cfg-field-hint" style="margin-bottom:12px;display:block;">Valores refletidos em KPIs, BI e dashboards. Salvos no Supabase.</span>

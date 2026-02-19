@@ -606,15 +606,12 @@ const TBO_AUTH = {
 
     const buLabel = user.bu ? ` \u00B7 ${user.bu}` : '';
 
-    // Session info
+    // v2.2.1: Removido "Autenticado via Supabase" (info tecnica nao relevante para usuario)
+    // Mostrar apenas info util: horario de login
     let sessionInfo = '';
-    if (user.authMode === 'supabase') {
-      sessionInfo = '<div class="user-dropdown-session">Autenticado via Supabase</div>';
-    } else if (user.expiresAt) {
-      const remaining = new Date(user.expiresAt) - new Date();
-      const hours = Math.floor(remaining / (1000 * 60 * 60));
-      const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-      sessionInfo = `<div class="user-dropdown-session">Sessao expira em ${hours}h${minutes.toString().padStart(2, '0')}m</div>`;
+    if (user.loginAt) {
+      const loginTime = new Date(user.loginAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      sessionInfo = `<div class="user-dropdown-session">Conectado desde ${loginTime}</div>`;
     }
 
     // Avatar: use Google avatar if available, else initials

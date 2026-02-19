@@ -488,12 +488,29 @@ const TBO_CHAT = {
 
     try {
       const user = await this._getCurrentUser();
-      const { data: memberships, error: memErr } = await client
+      let { data: memberships, error: memErr } = await client
         .from('chat_channel_members')
         .select('channel_id, last_read_at')
         .eq('user_id', user.id);
 
       if (memErr) throw memErr;
+
+      // v2.2.1: Auto-join em canais publicos (ex: #geral) para novos usuarios
+      if (!memberships?.length) {
+        const joined = await this._autoJoinPublicChannels(client, user);
+        if (joined > 0) {
+          // Recarregar memberships apos auto-join
+          const { data: newMemberships } = await client
+            .from('chat_channel_members')
+            .select('channel_id, last_read_at')
+            .eq('user_id', user.id);
+          if (newMemberships?.length) {
+            // Continuar com os novos memberships
+            memberships = newMemberships;
+          }
+        }
+      }
+
       if (!memberships?.length) {
         list.innerHTML = '<div style="padding:20px;text-align:center;font-size:0.78rem;color:var(--text-muted);">Nenhum canal ainda. Crie um!</div>';
         return;
@@ -1741,6 +1758,48 @@ const TBO_CHAT = {
     document.getElementById('chatChannelNameInput')?.focus();
 
     this._on('chatCreateChannelBtn', 'click', () => this._createChannel());
+  },
+
+  // v2.2.1: Auto-join em canais publicos para novos usuarios
+  // Adiciona automaticamente o usuario a canais do tipo 'channel' (nao DMs/privados)
+  async _autoJoinPublicChannels(client, user) {
+    try {
+      const tenantId = this._getTenantId();
+      if (!tenantId) return 0;
+
+      // Buscar canais publicos do tenant (tipo 'channel', nao arquivados)
+      const { data: publicChannels, error } = await client
+        .from('chat_channels')
+        .select('id, name')
+        .eq('tenant_id', tenantId)
+        .eq('type', 'channel')
+        .eq('is_archived', false);
+
+      if (error || !publicChannels?.length) return 0;
+
+      // Inserir membership para cada canal publico
+      const inserts = publicChannels.map(ch => ({
+        channel_id: ch.id,
+        user_id: user.id,
+        role: 'member'
+      }));
+
+      const { error: insertErr } = await client
+        .from('chat_channel_members')
+        .upsert(inserts, { onConflict: 'channel_id,user_id', ignoreDuplicates: true });
+
+      if (insertErr) {
+        console.warn('[Chat] Auto-join error:', insertErr.message);
+        return 0;
+      }
+
+      const names = publicChannels.map(c => `#${c.name}`).join(', ');
+      console.log(`[Chat] Auto-join: usuario adicionado a ${publicChannels.length} canais: ${names}`);
+      return publicChannels.length;
+    } catch (e) {
+      console.warn('[Chat] Auto-join falhou:', e.message);
+      return 0;
+    }
   },
 
   async _createChannel() {

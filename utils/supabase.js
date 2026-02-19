@@ -9,9 +9,17 @@ const TBO_SUPABASE = {
   _profileCache: null,
   _profilePromise: null,
 
-  // Supabase project credentials
-  _url: 'https://olnndpultyllyhzxuyxh.supabase.co',
-  _anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sbm5kcHVsdHlsbHloenh1eXhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyOTUxNjMsImV4cCI6MjA4Njg3MTE2M30.PPhMqKsYKcRB6GFmWxogcc0HIggkojK0DumiB1NDAXU',
+  // Credenciais centralizadas via config.js (ONBOARDING_CONFIG) — sem hardcode
+  get _url() {
+    return (typeof ONBOARDING_CONFIG !== 'undefined' && ONBOARDING_CONFIG.SUPABASE_URL)
+      || (typeof TBO_CONFIG !== 'undefined' && TBO_CONFIG.supabaseUrl)
+      || '';
+  },
+  get _anonKey() {
+    return (typeof ONBOARDING_CONFIG !== 'undefined' && ONBOARDING_CONFIG.SUPABASE_ANON_KEY)
+      || (typeof TBO_CONFIG !== 'undefined' && TBO_CONFIG.supabaseAnonKey)
+      || '';
+  },
 
   // ── Client singleton ──────────────────────────────────────────────────
   getClient() {
@@ -203,6 +211,141 @@ const TBO_SUPABASE = {
     });
     if (error) { console.warn('[TBO Supabase] listFiles error:', error); return []; }
     return data || [];
+  },
+
+  // ── Business Config CRUD (replaces localStorage overrides) ────────────
+  // Table: business_config { id uuid PK, key text UNIQUE, value jsonb, updated_at timestamptz }
+
+  async loadBusinessConfig() {
+    try {
+      const client = this.getClient();
+      if (!client) return null;
+
+      const { data, error } = await client
+        .from('business_config')
+        .select('key, value')
+        .order('key');
+
+      if (error) {
+        // Table might not exist yet — fall back silently
+        if (error.code === '42P01' || error.message?.includes('does not exist')) {
+          console.info('[TBO Supabase] business_config table not found, using defaults');
+          return null;
+        }
+        throw error;
+      }
+
+      if (!data || data.length === 0) return null;
+
+      // Reconstruct config object from key-value rows
+      const config = {};
+      data.forEach(row => {
+        config[row.key] = row.value;
+      });
+      return config;
+    } catch (e) {
+      console.warn('[TBO Supabase] loadBusinessConfig error:', e.message);
+      return null;
+    }
+  },
+
+  async saveBusinessConfigKey(key, value) {
+    try {
+      const client = this.getClient();
+      if (!client) return false;
+      const session = await this.getSession();
+
+      const { error } = await client
+        .from('business_config')
+        .upsert({
+          key,
+          value,
+          updated_at: new Date().toISOString(),
+          updated_by: session?.user?.id || null
+        }, { onConflict: 'key' });
+
+      if (error) throw error;
+      return true;
+    } catch (e) {
+      console.warn('[TBO Supabase] saveBusinessConfigKey error:', e.message);
+      return false;
+    }
+  },
+
+  async saveBusinessConfigBulk(configObject) {
+    try {
+      const client = this.getClient();
+      if (!client) return false;
+      const session = await this.getSession();
+
+      const rows = Object.entries(configObject).map(([key, value]) => ({
+        key,
+        value,
+        updated_at: new Date().toISOString(),
+        updated_by: session?.user?.id || null
+      }));
+
+      const { error } = await client
+        .from('business_config')
+        .upsert(rows, { onConflict: 'key' });
+
+      if (error) throw error;
+      return true;
+    } catch (e) {
+      console.warn('[TBO Supabase] saveBusinessConfigBulk error:', e.message);
+      return false;
+    }
+  },
+
+  // ── Fluxo de Caixa CRUD (replaces Google Sheets/JSON) ────────────────
+  // Table: financial_data { id uuid PK, year int, month text, category text, value jsonb, updated_at timestamptz }
+
+  async loadFinancialData(year) {
+    try {
+      const client = this.getClient();
+      if (!client) return null;
+
+      const { data, error } = await client
+        .from('financial_data')
+        .select('*')
+        .eq('year', year)
+        .order('month');
+
+      if (error) {
+        if (error.code === '42P01' || error.message?.includes('does not exist')) return null;
+        throw error;
+      }
+
+      return data;
+    } catch (e) {
+      console.warn('[TBO Supabase] loadFinancialData error:', e.message);
+      return null;
+    }
+  },
+
+  async saveFinancialData(year, month, category, value) {
+    try {
+      const client = this.getClient();
+      if (!client) return false;
+      const session = await this.getSession();
+
+      const { error } = await client
+        .from('financial_data')
+        .upsert({
+          year,
+          month,
+          category,
+          value,
+          updated_at: new Date().toISOString(),
+          updated_by: session?.user?.id || null
+        }, { onConflict: 'year,month,category' });
+
+      if (error) throw error;
+      return true;
+    } catch (e) {
+      console.warn('[TBO Supabase] saveFinancialData error:', e.message);
+      return false;
+    }
   },
 
   // ── Online/offline listeners ──────────────────────────────────────────

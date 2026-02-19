@@ -13,3 +13,6 @@ nul
 TBO_OS.bat
 
 .vercel
+
+# Onboarding config (contem credenciais)
+config.js

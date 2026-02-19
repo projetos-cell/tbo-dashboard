@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TBO OS — Admin Onboarding</title>
+  <link rel="icon" type="image/png" href="../assets/favicon.png">
+  <link rel="stylesheet" href="../styles.css">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js"></script>
+  <link rel="stylesheet" href="../css/onboarding-admin.css">
+</head>
+<body>
+  <!-- Esta pagina e acessada dentro do sistema principal via modulo registrado no router -->
+  <!-- O HTML abaixo sera usado como fallback standalone para acesso direto -->
+  <div id="adminOnboardingStandalone" style="display:none;">
+    <header style="background:var(--bg-card);padding:16px 24px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:16px;">
+        <a href="../index.html"><img src="../assets/logo-dark.svg" alt="TBO" style="height:24px;"></a>
+        <h1 style="font-size:16px;margin:0;">Gestao de Onboarding</h1>
+      </div>
+      <a href="../index.html" class="btn btn-ghost btn-sm">Voltar ao sistema</a>
+    </header>
+    <main style="max-width:1200px;margin:0 auto;padding:24px;" id="adminOnboardingContent">
+      <div style="text-align:center;padding:40px;">
+        <div class="loading-spinner"></div>
+        <p style="color:var(--text-muted);">Carregando...</p>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/admin-onboarding.js"></script>
+  <script>
+    // Se acessado como standalone, exibir
+    if (!window.parent || window.parent === window) {
+      document.getElementById('adminOnboardingStandalone').style.display = 'block';
+      document.addEventListener('DOMContentLoaded', () => {
+        TBO_ADMIN_ONBOARDING.init(document.getElementById('adminOnboardingContent'));
+      });
+    }
+  </script>
+</body>
+</html>

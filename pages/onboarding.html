@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TBO OS — Onboarding</title>
+  <link rel="icon" type="image/png" href="../assets/favicon.png">
+  <link rel="stylesheet" href="../styles.css">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js"></script>
+  <style>
+    /* Layout da pagina de onboarding — standalone sem sidebar */
+    body {
+      background: var(--bg-root, #EAEAEA);
+      margin: 0;
+      padding: 0;
+    }
+    .onb-header {
+      background: var(--bg-card, #fff);
+      border-bottom: 1px solid var(--border-light, #DFDFDF);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .onb-header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .onb-header-left img { height: 24px; }
+    .onb-header-left h1 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary, #0F0F0F);
+      margin: 0;
+    }
+    .onb-header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .onb-user-name {
+      font-size: 14px;
+      color: var(--text-secondary, #606060);
+    }
+    .onb-banner-reduzido {
+      background: linear-gradient(135deg, var(--brand-orange, #E85102) 0%, var(--brand-orange-dark, #BE4202) 100%);
+      color: #fff;
+      padding: 12px 24px;
+      text-align: center;
+      font-size: 14px;
+    }
+    .onb-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+    .onb-progress-section {
+      background: var(--bg-card, #fff);
+      border-radius: var(--radius-lg, 12px);
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.06));
+    }
+    .onb-progress-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .onb-progress-label {
+      font-size: 14px;
+      color: var(--text-secondary, #606060);
+    }
+    .onb-progress-percent {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--brand-orange, #E85102);
+    }
+    .onb-progress-bar {
+      height: 8px;
+      background: var(--bg-tertiary, #EAEAEA);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .onb-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--brand-orange, #E85102), var(--brand-orange-light, #FD8241));
+      border-radius: 4px;
+      transition: width 0.6s ease;
+    }
+    .onb-progress-days {
+      font-size: 13px;
+      color: var(--text-muted, #9F9F9F);
+    }
+    .onb-dias-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .onb-dia-card {
+      background: var(--bg-card, #fff);
+      border-radius: var(--radius-md, 8px);
+      padding: 16px 20px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      cursor: pointer;
+      transition: all var(--transition-fast, 150ms);
+      border: 2px solid transparent;
+    }
+    .onb-dia-card:hover:not(.locked) {
+      box-shadow: var(--shadow-md);
+      border-color: var(--brand-orange-pale, #FED5C0);
+    }
+    .onb-dia-card.locked {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .onb-dia-card.active {
+      border-color: var(--brand-orange, #E85102);
+    }
+    .onb-dia-card.completed {
+      border-color: var(--success, #2ecc71);
+      background: var(--bg-card, #fff);
+    }
+    /* ── Animacoes de transicao ────────────────────────────────────── */
+    .onb-dia-card {
+      animation: onb-slide-in 0.35s ease forwards;
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    .onb-dia-card:nth-child(1) { animation-delay: 0.05s; }
+    .onb-dia-card:nth-child(2) { animation-delay: 0.10s; }
+    .onb-dia-card:nth-child(3) { animation-delay: 0.15s; }
+    .onb-dia-card:nth-child(4) { animation-delay: 0.20s; }
+    .onb-dia-card:nth-child(5) { animation-delay: 0.25s; }
+    .onb-dia-card:nth-child(6) { animation-delay: 0.30s; }
+    .onb-dia-card:nth-child(7) { animation-delay: 0.35s; }
+    .onb-dia-card:nth-child(8) { animation-delay: 0.40s; }
+    .onb-dia-card:nth-child(9) { animation-delay: 0.45s; }
+    .onb-dia-card:nth-child(10) { animation-delay: 0.50s; }
+    @keyframes onb-slide-in {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    /* Animacao do detalhe do dia ao abrir */
+    .onb-dia-detail {
+      animation: onb-expand 0.3s ease;
+    }
+    @keyframes onb-expand {
+      0% { opacity: 0; transform: translateY(-8px); max-height: 0; }
+      100% { opacity: 1; transform: translateY(0); max-height: 2000px; }
+    }
+    /* Animacao da barra de progresso */
+    .onb-progress-fill {
+      animation: onb-progress-grow 0.8s ease;
+    }
+    @keyframes onb-progress-grow {
+      from { width: 0%; }
+    }
+    /* Unlock pulse (quando dia muda de locked para available) */
+    .onb-dia-card.just-unlocked {
+      animation: onb-unlock-pulse 0.6s ease;
+    }
+    @keyframes onb-unlock-pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(232,81,2,0.4); }
+      50% { transform: scale(1.02); box-shadow: 0 0 0 12px rgba(232,81,2,0); }
+      100% { transform: scale(1); box-shadow: var(--shadow-sm); }
+    }
+    /* Atividade concluida — fade suave */
+    .onb-atividade-item.concluida {
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .onb-dia-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 16px;
+    }
+    .onb-dia-icon.locked { background: var(--bg-tertiary, #EAEAEA); color: var(--text-muted, #9F9F9F); }
+    .onb-dia-icon.available { background: var(--brand-orange-pale, #FED5C0); color: var(--brand-orange, #E85102); }
+    .onb-dia-icon.in-progress { background: var(--brand-orange, #E85102); color: #fff; }
+    .onb-dia-icon.completed { background: var(--success, #2ecc71); color: #fff; }
+    .onb-dia-info { flex: 1; }
+    .onb-dia-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary, #0F0F0F);
+      margin-bottom: 2px;
+    }
+    .onb-dia-meta {
+      font-size: 13px;
+      color: var(--text-muted, #9F9F9F);
+    }
+    .onb-dia-status {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .onb-dia-status.locked { background: var(--bg-tertiary); color: var(--text-muted); }
+    .onb-dia-status.available { background: var(--brand-orange-pale); color: var(--brand-orange-dark); }
+    .onb-dia-status.in-progress { background: #fff3e0; color: #e65100; }
+    .onb-dia-status.completed { background: #e8f5e9; color: #2e7d32; }
+
+    /* Conteudo do dia expandido */
+    .onb-dia-detail {
+      background: var(--bg-card, #fff);
+      border-radius: var(--radius-lg, 12px);
+      padding: 24px;
+      margin-top: 24px;
+      box-shadow: var(--shadow-md);
+    }
+    .onb-dia-detail-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .onb-dia-detail-header h2 {
+      margin: 0;
+      font-size: 18px;
+      color: var(--text-primary);
+    }
+    .onb-atividade-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px;
+      border-radius: var(--radius-sm, 6px);
+      margin-bottom: 8px;
+      transition: background var(--transition-fast);
+    }
+    .onb-atividade-item:hover { background: var(--bg-secondary, #f5f5f5); }
+    .onb-atividade-item.concluida { opacity: 0.7; }
+    .onb-atividade-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 14px;
+    }
+    .onb-atividade-icon.video { background: #ede7f6; color: #7c4dff; }
+    .onb-atividade-icon.documento, .onb-atividade-icon.sop { background: #e3f2fd; color: #1976d2; }
+    .onb-atividade-icon.quiz { background: #fff3e0; color: #e65100; }
+    .onb-atividade-icon.tarefa { background: #e8f5e9; color: #2e7d32; }
+    .onb-atividade-icon.aceite { background: #fce4ec; color: #c62828; }
+    .onb-atividade-icon.formulario { background: #e0f7fa; color: #00838f; }
+    .onb-atividade-info { flex: 1; }
+    .onb-atividade-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+    .onb-atividade-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .onb-atividade-time {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .onb-atividade-action {
+      flex-shrink: 0;
+    }
+    .onb-atividade-check {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid var(--border-light, #DFDFDF);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    .onb-atividade-check.done {
+      background: var(--success, #2ecc71);
+      border-color: var(--success);
+      color: #fff;
+    }
+    /* Modal para atividades */
+    .onb-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .onb-modal {
+      background: var(--bg-card, #fff);
+      border-radius: var(--radius-lg, 12px);
+      width: 100%;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+    }
+    .onb-modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .onb-modal-body { padding: 24px; }
+    .onb-modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border-light);
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    /* Celebracao */
+    .onb-celebration {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.6);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .onb-celebration-content {
+      background: var(--bg-card, #fff);
+      border-radius: var(--radius-xl, 16px);
+      padding: 48px;
+      text-align: center;
+      animation: onb-pop-in 0.4s ease;
+      max-width: 400px;
+    }
+    @keyframes onb-pop-in {
+      0% { transform: scale(0.8); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .onb-celebration-emoji { font-size: 64px; margin-bottom: 16px; }
+    .onb-celebration-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    .onb-celebration-msg { color: var(--text-muted); font-size: 14px; margin-bottom: 24px; }
+    /* Botao final */
+    .onb-final-btn {
+      display: none;
+      text-align: center;
+      margin-top: 32px;
+    }
+    .onb-final-btn.visible { display: block; }
+
+    /* ── Responsividade Mobile ───────────────────────────────────── */
+    @media (max-width: 600px) {
+      .onb-header { padding: 12px 16px; }
+      .onb-header-left h1 { font-size: 14px; }
+      .onb-container { padding: 16px 12px; }
+      .onb-progress-section { padding: 16px; }
+      .onb-progress-percent { font-size: 20px; }
+      .onb-dia-card { padding: 12px 14px; gap: 12px; }
+      .onb-dia-icon { width: 36px; height: 36px; font-size: 14px; }
+      .onb-dia-title { font-size: 14px; }
+      .onb-dia-meta { font-size: 12px; }
+      .onb-dia-status { font-size: 11px; padding: 3px 8px; }
+      .onb-dia-detail { padding: 16px; }
+      .onb-dia-detail-header h2 { font-size: 16px; }
+      .onb-atividade-item { padding: 10px 8px; gap: 10px; flex-wrap: wrap; }
+      .onb-atividade-icon { width: 28px; height: 28px; }
+      .onb-atividade-action { width: 100%; margin-top: 8px; }
+      .onb-atividade-action .btn { width: 100%; text-align: center; }
+      .onb-modal { max-width: 95vw; max-height: 90vh; }
+      .onb-modal-header { padding: 16px; }
+      .onb-modal-body { padding: 16px; }
+      .onb-modal-footer { padding: 12px 16px; flex-direction: column; }
+      .onb-modal-footer .btn { width: 100%; }
+      .onb-celebration-content { padding: 32px 20px; }
+      .onb-celebration-emoji { font-size: 48px; }
+      .onb-celebration-title { font-size: 20px; }
+      .onb-final-btn .btn { padding: 14px 32px; font-size: 14px; width: 100%; }
+    }
+    @media (max-width: 400px) {
+      .onb-header-left img { height: 20px; }
+      .onb-user-name { display: none; }
+    }
+
+    /* ── Dark Mode (herda do sistema via prefers-color-scheme ou data-theme) ── */
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg-root: #141414;
+        --bg-card: #1E1E1E;
+        --bg-secondary: #252525;
+        --bg-tertiary: #2A2A2A;
+        --text-primary: #F0F0F0;
+        --text-secondary: #B0B0B0;
+        --text-muted: #808080;
+        --border-light: #333;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+        --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+        --shadow-lg: 0 8px 30px rgba(0,0,0,0.5);
+      }
+      :root:not([data-theme="light"]) .onb-header {
+        border-bottom-color: #333;
+      }
+      :root:not([data-theme="light"]) .onb-dia-status.in-progress {
+        background: #3d2100;
+        color: #ffab40;
+      }
+      :root:not([data-theme="light"]) .onb-dia-status.completed {
+        background: #1a3a1a;
+        color: #66bb6a;
+      }
+      :root:not([data-theme="light"]) .onb-atividade-icon.video { background: #2d1b69; }
+      :root:not([data-theme="light"]) .onb-atividade-icon.documento,
+      :root:not([data-theme="light"]) .onb-atividade-icon.sop { background: #1a2d47; }
+      :root:not([data-theme="light"]) .onb-atividade-icon.quiz { background: #3d2100; }
+      :root:not([data-theme="light"]) .onb-atividade-icon.tarefa { background: #1a3a1a; }
+      :root:not([data-theme="light"]) .onb-atividade-icon.aceite { background: #3a1a1a; }
+      :root:not([data-theme="light"]) .onb-atividade-icon.formulario { background: #1a3a3a; }
+    }
+    [data-theme="dark"] {
+      --bg-root: #141414;
+      --bg-card: #1E1E1E;
+      --bg-secondary: #252525;
+      --bg-tertiary: #2A2A2A;
+      --text-primary: #F0F0F0;
+      --text-secondary: #B0B0B0;
+      --text-muted: #808080;
+      --border-light: #333;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+      --shadow-lg: 0 8px 30px rgba(0,0,0,0.5);
+    }
+    [data-theme="dark"] .onb-header { border-bottom-color: #333; }
+    [data-theme="dark"] .onb-dia-status.in-progress { background: #3d2100; color: #ffab40; }
+    [data-theme="dark"] .onb-dia-status.completed { background: #1a3a1a; color: #66bb6a; }
+    [data-theme="dark"] .onb-atividade-icon.video { background: #2d1b69; }
+    [data-theme="dark"] .onb-atividade-icon.documento,
+    [data-theme="dark"] .onb-atividade-icon.sop { background: #1a2d47; }
+    [data-theme="dark"] .onb-atividade-icon.quiz { background: #3d2100; }
+    [data-theme="dark"] .onb-atividade-icon.tarefa { background: #1a3a1a; }
+    [data-theme="dark"] .onb-atividade-icon.aceite { background: #3a1a1a; }
+    [data-theme="dark"] .onb-atividade-icon.formulario { background: #1a3a3a; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="onb-header">
+    <div class="onb-header-left">
+      <img src="../assets/logo-dark.svg" alt="TBO">
+      <h1>Onboarding</h1>
+    </div>
+    <div class="onb-header-right">
+      <span class="onb-user-name" id="onbUserName"></span>
+      <button class="btn btn-ghost btn-sm" id="onbLogoutBtn" title="Sair">
+        <i data-lucide="log-out" style="width:16px;height:16px;"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Banner para onboarding reduzido -->
+  <div class="onb-banner-reduzido" id="onbBannerReduzido" style="display:none;">
+    Bem-vindo(a) a nova plataforma! Complete o onboarding rapido para liberar todos os recursos.
+  </div>
+
+  <!-- Conteudo principal -->
+  <div class="onb-container" id="onbContainer">
+    <div style="text-align:center;padding:40px;">
+      <div class="loading-spinner"></div>
+      <p style="color:var(--text-muted);margin-top:12px;">Carregando onboarding...</p>
+    </div>
+  </div>
+
+  <!-- Area para modais -->
+  <div id="onbModalArea"></div>
+  <!-- Area para celebracoes -->
+  <div id="onbCelebrationArea"></div>
+
+  <script src="../config.js"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/onboarding.js"></script>
+</body>
+</html>

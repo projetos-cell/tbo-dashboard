@@ -29,14 +29,14 @@ const TBO_PERMISSIONS = {
     founder: {
       label: 'Fundador',
       color: '#E85102',
-      modules: ['command-center','timeline','alerts','inteligencia','pipeline','comercial','clientes','portal-cliente','contratos','conteudo','projetos','mercado','reunioes','financeiro','rh','cultura','configuracoes'],
+      modules: ['command-center','timeline','alerts','inteligencia','pipeline','comercial','clientes','portal-cliente','contratos','conteudo','projetos','mercado','reunioes','financeiro','rh','cultura','configuracoes','admin-onboarding'],
       dashboardVariant: 'full',
       defaultModule: 'command-center'
     },
     project_owner: {
       label: 'Project Owner',
       color: '#8b5cf6',
-      modules: ['command-center','timeline','alerts','comercial','clientes','portal-cliente','contratos','conteudo','projetos','mercado','reunioes','rh','cultura','configuracoes'],
+      modules: ['command-center','timeline','alerts','comercial','clientes','portal-cliente','contratos','conteudo','projetos','mercado','reunioes','rh','cultura','configuracoes','admin-onboarding'],
       dashboardVariant: 'projects',
       defaultModule: 'command-center'
     },
@@ -120,7 +120,7 @@ const TBO_PERMISSIONS = {
       id: 'pessoas',
       label: 'PESSOAS',
       icon: 'users',
-      modules: ['rh', 'cultura', 'trilha-aprendizagem', 'pessoas-avancado', 'carga-trabalho', 'timesheets', 'capacidade']
+      modules: ['rh', 'cultura', 'trilha-aprendizagem', 'pessoas-avancado', 'carga-trabalho', 'timesheets', 'capacidade', 'admin-onboarding']
     },
     {
       id: 'financeiro-section',

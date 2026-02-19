@@ -2,6 +2,28 @@
 // Initializes all systems, registers modules, binds events
 
 const TBO_APP = {
+  // ── Error boundary global — captura falhas em modulos sem quebrar o sistema ──
+  _safeInit(moduleName, initFn) {
+    try {
+      const result = initFn();
+      // Se retornar Promise, capturar rejeicao
+      if (result && typeof result.catch === 'function') {
+        result.catch(e => {
+          console.error(`[TBO OS] Modulo "${moduleName}" falhou na inicializacao:`, e);
+          if (typeof TBO_TOAST !== 'undefined') {
+            TBO_TOAST.error('Erro no modulo', `O modulo "${moduleName}" encontrou um erro. Tente recarregar.`);
+          }
+        });
+      }
+      return result;
+    } catch (e) {
+      console.error(`[TBO OS] Modulo "${moduleName}" falhou na inicializacao:`, e);
+      if (typeof TBO_TOAST !== 'undefined') {
+        TBO_TOAST.error('Erro no modulo', `O modulo "${moduleName}" encontrou um erro. Tente recarregar.`);
+      }
+    }
+  },
+
   async init() {
     console.log('[TBO OS] Initializing...');
 
@@ -71,7 +93,8 @@ const TBO_APP = {
       'permissoes-config': typeof TBO_PERMISSOES_CONFIG !== 'undefined' ? TBO_PERMISSOES_CONFIG : null,
       'integracoes': typeof TBO_INTEGRACOES !== 'undefined' ? TBO_INTEGRACOES : null,
       'trilha-aprendizagem': typeof TBO_TRILHA_APRENDIZAGEM !== 'undefined' ? TBO_TRILHA_APRENDIZAGEM : null,
-      'pessoas-avancado': typeof TBO_PESSOAS_AVANCADO !== 'undefined' ? TBO_PESSOAS_AVANCADO : null
+      'pessoas-avancado': typeof TBO_PESSOAS_AVANCADO !== 'undefined' ? TBO_PESSOAS_AVANCADO : null,
+      'admin-onboarding': typeof TBO_ADMIN_ONBOARDING !== 'undefined' ? TBO_ADMIN_ONBOARDING : null
     };
 
     Object.entries(modules).forEach(([name, mod]) => {
@@ -118,17 +141,27 @@ const TBO_APP = {
       TBO_BACKUP.autoBackup();
     }
 
-    // 12. Navigate to initial module (only if logged in)
+    // 12. Onboarding guard — verifica ANTES do router para bloquear navegacao
+    if (typeof TBO_ONBOARDING_GUARD !== 'undefined' && loggedIn) {
+      try { await TBO_ONBOARDING_GUARD.verificar(); } catch(e) { console.warn('[TBO OS] Onboarding guard error:', e); }
+    }
+
+    // 12b. Onboarding notifications — badge no header
+    if (typeof TBO_ONBOARDING_NOTIFICACOES !== 'undefined' && loggedIn) {
+      try { TBO_ONBOARDING_NOTIFICACOES.init(); } catch(e) { console.warn('[TBO OS] Onboarding notificacoes error:', e); }
+    }
+
+    // 13. Navigate to initial module (only if logged in)
     if (loggedIn) {
       const user = TBO_AUTH.getCurrentUser();
       const defaultMod = user?.defaultModule || 'command-center';
       TBO_ROUTER.initFromHash(defaultMod);
     }
 
-    // 13. Update freshness timestamp
+    // 14. Update freshness timestamp
     this._updateFreshness();
 
-    // 14. Init UX enhancements
+    // 14b. Init UX enhancements
     if (typeof TBO_UX !== 'undefined') {
       TBO_UX.initKeyboardNav();
       TBO_UX.initOfflineDetection();
@@ -136,61 +169,28 @@ const TBO_APP = {
       if (loggedIn) TBO_UX.showTour();
     }
 
-    // 14b. Init notifications
+    // 14c. Init notifications
     if (typeof TBO_NOTIFICATIONS !== 'undefined' && loggedIn) {
       TBO_NOTIFICATIONS.init();
     }
 
-    // ── 15. Init Enhancement Modules (100 improvements) ──────────────
-    // Design System tokens & skeleton loading
-    if (typeof TBO_DESIGN !== 'undefined' && TBO_DESIGN.init) {
-      try { TBO_DESIGN.init(); } catch(e) { console.warn('[TBO OS] Design system init error:', e); }
-    }
+    // ── 15. Init Enhancement Modules (com error boundary global) ─────
+    const enhancementModules = [
+      ['Design System', typeof TBO_DESIGN !== 'undefined' ? TBO_DESIGN : null],
+      ['UX Enhancements', typeof TBO_UX_ENHANCEMENTS !== 'undefined' ? TBO_UX_ENHANCEMENTS : null],
+      ['Business Intelligence', typeof TBO_BUSINESS_INTELLIGENCE !== 'undefined' ? TBO_BUSINESS_INTELLIGENCE : null],
+      ['Project Enhancements', typeof TBO_PROJECT_ENHANCEMENTS !== 'undefined' ? TBO_PROJECT_ENHANCEMENTS : null],
+      ['Financial Enhancements', typeof TBO_FINANCIAL_ENHANCEMENTS !== 'undefined' ? TBO_FINANCIAL_ENHANCEMENTS : null],
+      ['People Enhancements', typeof TBO_PEOPLE_ENHANCEMENTS !== 'undefined' ? TBO_PEOPLE_ENHANCEMENTS : null],
+      ['Analytics', typeof TBO_ANALYTICS !== 'undefined' ? TBO_ANALYTICS : null],
+      ['Navigation', typeof TBO_NAVIGATION !== 'undefined' ? TBO_NAVIGATION : null],
+      ['Integrations', typeof TBO_INTEGRATIONS !== 'undefined' ? TBO_INTEGRATIONS : null],
+      ['Performance', typeof TBO_PERFORMANCE !== 'undefined' ? TBO_PERFORMANCE : null]
+    ];
 
-    // UX Enhancements (Command Palette, Focus Mode, Inline Editing, etc.)
-    if (typeof TBO_UX_ENHANCEMENTS !== 'undefined' && TBO_UX_ENHANCEMENTS.init) {
-      try { TBO_UX_ENHANCEMENTS.init(); } catch(e) { console.warn('[TBO OS] UX enhancements init error:', e); }
-    }
-
-    // Business Intelligence (Deal Scoring, Revenue Forecast, Client Health)
-    if (typeof TBO_BUSINESS_INTELLIGENCE !== 'undefined' && TBO_BUSINESS_INTELLIGENCE.init) {
-      try { TBO_BUSINESS_INTELLIGENCE.init(); } catch(e) { console.warn('[TBO OS] BI init error:', e); }
-    }
-
-    // Project Enhancements (Playbook, Dependency Graph, Sprint Planning)
-    if (typeof TBO_PROJECT_ENHANCEMENTS !== 'undefined' && TBO_PROJECT_ENHANCEMENTS.init) {
-      try { TBO_PROJECT_ENHANCEMENTS.init(); } catch(e) { console.warn('[TBO OS] Project enhancements init error:', e); }
-    }
-
-    // Financial Enhancements (Cashflow, Pricing Calculator, CLV)
-    if (typeof TBO_FINANCIAL_ENHANCEMENTS !== 'undefined' && TBO_FINANCIAL_ENHANCEMENTS.init) {
-      try { TBO_FINANCIAL_ENHANCEMENTS.init(); } catch(e) { console.warn('[TBO OS] Financial enhancements init error:', e); }
-    }
-
-    // People & Culture (1:1 Assistant, Peer Recognition, Burnout Risk)
-    if (typeof TBO_PEOPLE_ENHANCEMENTS !== 'undefined' && TBO_PEOPLE_ENHANCEMENTS.init) {
-      try { TBO_PEOPLE_ENHANCEMENTS.init(); } catch(e) { console.warn('[TBO OS] People enhancements init error:', e); }
-    }
-
-    // Analytics & Reporting (Cohort Analysis, Report Builder, SLA Tracker)
-    if (typeof TBO_ANALYTICS !== 'undefined' && TBO_ANALYTICS.init) {
-      try { TBO_ANALYTICS.init(); } catch(e) { console.warn('[TBO OS] Analytics init error:', e); }
-    }
-
-    // Navigation Enhancements (Breadcrumbs, FAB, Deep Links, Onboarding Tour)
-    if (typeof TBO_NAVIGATION !== 'undefined' && TBO_NAVIGATION.init) {
-      try { TBO_NAVIGATION.init(); } catch(e) { console.warn('[TBO OS] Navigation init error:', e); }
-    }
-
-    // Integrations (Google Drive, WhatsApp, Notion, Calendar, Slack)
-    if (typeof TBO_INTEGRATIONS !== 'undefined' && TBO_INTEGRATIONS.init) {
-      try { TBO_INTEGRATIONS.init(); } catch(e) { console.warn('[TBO OS] Integrations init error:', e); }
-    }
-
-    // Performance (Virtual Scroll, PWA, Service Worker, Optimistic UI)
-    if (typeof TBO_PERFORMANCE !== 'undefined' && TBO_PERFORMANCE.init) {
-      try { TBO_PERFORMANCE.init(); } catch(e) { console.warn('[TBO OS] Performance init error:', e); }
-    }
+    enhancementModules.forEach(([name, mod]) => {
+      if (mod && mod.init) this._safeInit(name, () => mod.init());
+    });
 
     // 16. Initialize Lucide icons
     if (window.lucide) lucide.createIcons();
@@ -473,6 +473,7 @@ const TBO_APP = {
     'integracoes': 'Integracoes',
     'trilha-aprendizagem': 'Trilha de Aprendizagem',
     'pessoas-avancado': 'Pessoas Avancado',
+    'admin-onboarding': 'Gestao de Onboarding',
     'changelog': 'Changelog'
   },
 
@@ -514,6 +515,7 @@ const TBO_APP = {
     'cultura': 'book-open-text',
     'trilha-aprendizagem': 'graduation-cap',
     'pessoas-avancado': 'heart-pulse',
+    'admin-onboarding': 'user-check',
     'changelog': 'file-clock'
   },
 

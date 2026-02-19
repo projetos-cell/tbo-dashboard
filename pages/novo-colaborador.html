@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TBO OS — Novo Colaborador</title>
+  <link rel="icon" type="image/png" href="../assets/favicon.png">
+  <link rel="stylesheet" href="../styles.css">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js"></script>
+  <style>
+    @media (max-width: 600px) {
+      main { padding: 0 12px !important; margin: 16px auto !important; }
+      header { padding: 12px 16px !important; }
+      header h1 { font-size: 14px !important; }
+      .card-body [style*="grid-template-columns: 1fr 1fr"],
+      [style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+      .form-input { font-size: 16px; }
+    }
+
+    /* ── Dark Mode ───────────────────────────────────────────────── */
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg-root: #141414;
+        --bg-card: #1E1E1E;
+        --bg-secondary: #252525;
+        --text-primary: #F0F0F0;
+        --text-secondary: #B0B0B0;
+        --text-muted: #808080;
+        --border-light: #333;
+        --shadow-lg: 0 8px 30px rgba(0,0,0,0.5);
+      }
+    }
+    [data-theme="dark"] {
+      --bg-root: #141414;
+      --bg-card: #1E1E1E;
+      --bg-secondary: #252525;
+      --text-primary: #F0F0F0;
+      --text-secondary: #B0B0B0;
+      --text-muted: #808080;
+      --border-light: #333;
+      --shadow-lg: 0 8px 30px rgba(0,0,0,0.5);
+    }
+  </style>
+</head>
+<body>
+  <header style="background:var(--bg-card,#fff);padding:16px 24px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:16px;">
+      <a href="../index.html"><img src="../assets/logo-dark.svg" alt="TBO" style="height:24px;"></a>
+      <h1 style="font-size:16px;margin:0;">Cadastrar Novo Colaborador</h1>
+    </div>
+    <a href="../index.html#admin-onboarding" class="btn btn-ghost btn-sm">
+      <i data-lucide="arrow-left" style="width:14px;height:14px;margin-right:4px;"></i>
+      Voltar
+    </a>
+  </header>
+
+  <main style="max-width:560px;margin:32px auto;padding:0 24px;">
+    <div id="novoColabContent">
+      <div style="text-align:center;padding:40px;">
+        <div class="loading-spinner"></div>
+        <p style="color:var(--text-muted);">Carregando...</p>
+      </div>
+    </div>
+  </main>
+
+  <script src="../config.js"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/novo-colaborador.js"></script>
+</body>
+</html>

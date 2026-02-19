@@ -116,7 +116,8 @@ const TBO_APP = {
       'admin-portal': typeof TBO_ADMIN_PORTAL !== 'undefined' ? TBO_ADMIN_PORTAL : null,
       'conciliacao-bancaria': typeof TBO_CONCILIACAO_BANCARIA !== 'undefined' ? TBO_CONCILIACAO_BANCARIA : null,
       'onboarding-wizard': typeof TBO_ONBOARDING_WIZARD !== 'undefined' ? TBO_ONBOARDING_WIZARD : null,
-      'academy': typeof TBO_ACADEMY_CATALOGO !== 'undefined' ? TBO_ACADEMY_CATALOGO : null
+      'academy': typeof TBO_ACADEMY_CATALOGO !== 'undefined' ? TBO_ACADEMY_CATALOGO : null,
+      'chat': typeof TBO_CHAT !== 'undefined' ? TBO_CHAT : null
     };
 
     Object.entries(modules).forEach(([name, mod]) => {
@@ -1187,7 +1188,8 @@ const TBO_APP = {
     'trilha-aprendizagem': 'Trilha de Aprendizagem',
     'pessoas-avancado': 'Pessoas Avançado',
     'admin-onboarding': 'Gestão de Onboarding',
-    'changelog': 'Changelog'
+    'changelog': 'Changelog',
+    'chat': 'Chat'
   },
 
   // ── Module icons (Lucide icon names) ────────────────────────────────
@@ -1226,7 +1228,8 @@ const TBO_APP = {
     'trilha-aprendizagem': 'graduation-cap',
     'pessoas-avancado': 'heart-pulse',
     'admin-onboarding': 'user-check',
-    'changelog': 'file-clock'
+    'changelog': 'file-clock',
+    'chat': 'message-circle'
   },
 
   _updateHeaderTitle(moduleName) {

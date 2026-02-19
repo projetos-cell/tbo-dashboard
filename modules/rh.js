@@ -53,6 +53,9 @@ const TBO_RH = {
   ],
 
   _activeTab: 'visao-geral',
+  _filterBU: '',
+  _filterSearch: '',
+  _loading: false,
 
   // ── Helpers ──────────────────────────────────────────────────────
   _genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); },
@@ -372,7 +375,7 @@ const TBO_RH = {
         </div>
 
         <!-- 1:1s -->
-        <div style="background:var(--bg-elevated);border-radius:var(--radius-md, 8px);padding:16px;">
+        <div style="background:var(--bg-elevated);border-radius:var(--radius-md, 8px);padding:16px;margin-bottom:16px;">
           <div style="font-weight:600;font-size:0.82rem;margin-bottom:8px;">1:1s (${oneOnOnes.length})</div>
           ${oneOnOnes.slice(0, 3).map(o => `
             <div style="font-size:0.75rem;padding:6px 0;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;">
@@ -380,6 +383,40 @@ const TBO_RH = {
               <span class="tag" style="font-size:0.6rem;background:${o.status === 'agendada' ? 'var(--color-info-dim)' : 'var(--color-success-dim)'};color:${o.status === 'agendada' ? 'var(--color-info)' : 'var(--color-success)'};">${o.status}</span>
             </div>
           `).join('') || '<div style="font-size:0.72rem;color:var(--text-muted);">Nenhuma 1:1</div>'}
+        </div>
+
+        <!-- Tarefas da Pessoa (Supabase) -->
+        <div style="background:var(--bg-elevated);border-radius:var(--radius-md, 8px);padding:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div style="font-weight:600;font-size:0.82rem;">Tarefas</div>
+            <button class="btn btn-primary btn-sm" id="rhNewPersonTask" style="font-size:0.68rem;padding:4px 10px;">+ Nova</button>
+          </div>
+          <div id="rhPersonTaskForm" style="display:none;margin-bottom:12px;padding:12px;background:var(--bg-primary);border-radius:var(--radius-md, 8px);border:1px solid var(--border-subtle);">
+            <input type="text" class="form-input" id="ptTitle" placeholder="Titulo da tarefa..." style="font-size:0.78rem;padding:6px 10px;margin-bottom:8px;">
+            <div style="display:flex;gap:8px;margin-bottom:8px;">
+              <select class="form-input" id="ptPriority" style="font-size:0.72rem;padding:4px 8px;flex:1;">
+                <option value="media">Media</option>
+                <option value="alta">Alta</option>
+                <option value="baixa">Baixa</option>
+              </select>
+              <select class="form-input" id="ptCategory" style="font-size:0.72rem;padding:4px 8px;flex:1;">
+                <option value="general">Geral</option>
+                <option value="pdi">PDI</option>
+                <option value="onboarding">Onboarding</option>
+                <option value="1on1_action">Acao 1:1</option>
+              </select>
+              <input type="date" class="form-input" id="ptDueDate" style="font-size:0.72rem;padding:4px 8px;flex:1;">
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-primary btn-sm" id="ptSave" style="font-size:0.68rem;padding:4px 12px;">Salvar</button>
+              <button class="btn btn-secondary btn-sm" id="ptCancel" style="font-size:0.68rem;padding:4px 12px;">Cancelar</button>
+            </div>
+          </div>
+          <div id="rhPersonTaskList" data-person="${personId}">
+            <div style="text-align:center;padding:12px;font-size:0.72rem;color:var(--text-muted);">
+              <i data-lucide="loader" style="width:16px;height:16px;animation:spin 1s linear infinite;"></i> Carregando tarefas...
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -871,7 +908,8 @@ const TBO_RH = {
       .rh-person-card { background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-md, 8px); padding: 16px; cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s; }
       .rh-person-card:hover { border-color: var(--accent-gold); box-shadow: 0 2px 8px rgba(232,81,2,0.1); }
       .rh-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; flex-shrink: 0; }
-      .rh-drawer { position: fixed; top: 0; right: 0; width: 400px; max-width: 90vw; height: 100vh; background: var(--bg-primary); border-left: 1px solid var(--border-subtle); box-shadow: -4px 0 16px rgba(0,0,0,0.15); z-index: 1000; overflow-y: auto; }
+      .rh-drawer { position: fixed; top: 0; right: 0; width: 400px; max-width: 90vw; height: 100vh; background: var(--bg-primary); border-left: 1px solid var(--border-subtle); box-shadow: -4px 0 16px rgba(0,0,0,0.15); z-index: 1000; overflow-y: auto; transform: translateX(100%); transition: transform 0.25s cubic-bezier(0.4,0,0.2,1); }
+      .rh-drawer.rh-drawer-open { transform: translateX(0); }
       .rh-drawer-content { padding: 24px; }
       .subtab-content { display: none; }
       .subtab-content.active { display: block; }
@@ -882,16 +920,37 @@ const TBO_RH = {
   // INIT (Event Bindings)
   // ══════════════════════════════════════════════════════════════════
   init() {
-    // Main tab switching
+    // Main tab switching — otimizado: so re-renderiza conteudo da tab, nao o modulo inteiro
     document.querySelectorAll('#rhMainTabs .tab').forEach(tab => {
       tab.addEventListener('click', () => {
+        // Salvar filtros antes de trocar
+        const filterBuEl = document.querySelector('.rh-filter-bu');
+        const filterSearchEl = document.querySelector('.rh-filter-search');
+        if (filterBuEl) this._filterBU = filterBuEl.value;
+        if (filterSearchEl) this._filterSearch = filterSearchEl.value;
+
         this._activeTab = tab.dataset.tab;
-        const container = document.getElementById('moduleContainer');
-        if (container) { container.innerHTML = this.render(); this.init(); }
+
+        // Atualizar visual da tab bar sem re-renderizar
+        document.querySelectorAll('#rhMainTabs .tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        // Re-renderizar apenas o conteudo da tab
+        const tabContent = document.getElementById('rhTabContent');
+        if (tabContent) {
+          tabContent.innerHTML = this._renderActiveTab();
+          this._initActiveTab();
+        }
         if (typeof TBO_UX !== 'undefined') TBO_UX.updateBreadcrumb('rh', tab.textContent.trim());
       });
     });
 
+    // Inicializar bindings da tab ativa
+    this._initActiveTab();
+  },
+
+  // ── Init bindings para a tab ativa (chamado no init e ao trocar tab) ──
+  _initActiveTab() {
     // Performance subtab switching
     document.querySelectorAll('#rhPerfSubtabs .tab--sub').forEach(tab => {
       tab.addEventListener('click', () => {
@@ -903,25 +962,23 @@ const TBO_RH = {
       });
     });
 
-    // Visao Geral: people card clicks (open drawer)
+    // Visao Geral: people card clicks (open drawer com backdrop)
     document.querySelectorAll('.rh-person-card').forEach(card => {
       card.addEventListener('click', () => {
-        const drawer = document.getElementById('rhPersonDrawer');
-        if (drawer) {
-          drawer.innerHTML = this._renderPersonDrawer(card.dataset.person);
-          drawer.style.display = 'block';
-          if (window.lucide) lucide.createIcons();
-          this._bind('rhCloseDrawer', () => { drawer.style.display = 'none'; drawer.innerHTML = ''; });
-        }
+        this._openPersonDrawer(card.dataset.person);
       });
     });
 
-    // Visao Geral: filters
+    // Visao Geral: restaurar filtros preservados e bind events
     const filterBu = document.querySelector('.rh-filter-bu');
     const filterSearch = document.querySelector('.rh-filter-search');
+    if (filterBu && this._filterBU) filterBu.value = this._filterBU;
+    if (filterSearch && this._filterSearch) filterSearch.value = this._filterSearch;
     const applyFilters = () => {
       const bu = filterBu ? filterBu.value : '';
       const search = filterSearch ? filterSearch.value.toLowerCase() : '';
+      this._filterBU = bu;
+      this._filterSearch = search;
       document.querySelectorAll('.rh-person-card').forEach(card => {
         const matchBu = !bu || card.dataset.bu === bu;
         const matchSearch = !search || card.textContent.toLowerCase().includes(search);
@@ -930,6 +987,8 @@ const TBO_RH = {
     };
     if (filterBu) filterBu.addEventListener('change', applyFilters);
     if (filterSearch) filterSearch.addEventListener('input', applyFilters);
+    // Aplicar filtros restaurados
+    if (this._filterBU || this._filterSearch) applyFilters();
 
     // Person detail (ranking)
     this._bindPersonDetailClicks();
@@ -989,14 +1048,198 @@ const TBO_RH = {
       const oo = { id: this._genId(), lider: document.getElementById('ooLider')?.value, colaborador: document.getElementById('ooColab')?.value, data: document.getElementById('ooData')?.value || new Date().toISOString(), status: 'agendada', items: [] };
       const items = this._getStore('1on1s'); items.push(oo); this._setStore('1on1s', items);
       TBO_TOAST.success('1:1 agendada!');
-      const container = document.getElementById('moduleContainer');
-      if (container) { container.innerHTML = this.render(); this.init(); }
+      // Re-renderizar apenas a tab ao inves do modulo inteiro
+      const tabContent = document.getElementById('rhTabContent');
+      if (tabContent) { tabContent.innerHTML = this._renderActiveTab(); this._initActiveTab(); }
     });
 
     // Action checkboxes
     this._bindActionChecks();
 
     // Lucide icons
+    if (window.lucide) lucide.createIcons();
+  },
+
+  // ── Abrir drawer com backdrop (fechar com click fora, Escape) ──
+  _openPersonDrawer(personId) {
+    const drawer = document.getElementById('rhPersonDrawer');
+    if (!drawer) return;
+
+    // Criar backdrop se nao existir
+    let backdrop = document.getElementById('rhDrawerBackdrop');
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.id = 'rhDrawerBackdrop';
+      backdrop.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:999;opacity:0;transition:opacity 0.2s ease;';
+      drawer.parentElement.appendChild(backdrop);
+    }
+
+    drawer.innerHTML = this._renderPersonDrawer(personId);
+    drawer.style.display = 'block';
+    backdrop.style.display = 'block';
+    requestAnimationFrame(() => { backdrop.style.opacity = '1'; drawer.classList.add('rh-drawer-open'); });
+    if (window.lucide) lucide.createIcons();
+
+    // Carregar tarefas da pessoa (async — Supabase ou localStorage)
+    this._loadPersonTasks(personId);
+
+    // Fechar pelo X
+    this._bind('rhCloseDrawer', () => this._closePersonDrawer());
+    // Fechar pelo backdrop
+    backdrop.addEventListener('click', () => this._closePersonDrawer());
+    // Fechar por Escape
+    this._drawerEscHandler = (e) => { if (e.key === 'Escape') this._closePersonDrawer(); };
+    document.addEventListener('keydown', this._drawerEscHandler);
+  },
+
+  _closePersonDrawer() {
+    const drawer = document.getElementById('rhPersonDrawer');
+    const backdrop = document.getElementById('rhDrawerBackdrop');
+    if (drawer) { drawer.classList.remove('rh-drawer-open'); setTimeout(() => { drawer.style.display = 'none'; drawer.innerHTML = ''; }, 200); }
+    if (backdrop) { backdrop.style.opacity = '0'; setTimeout(() => { backdrop.style.display = 'none'; }, 200); }
+    if (this._drawerEscHandler) { document.removeEventListener('keydown', this._drawerEscHandler); this._drawerEscHandler = null; }
+  },
+
+  // ── Person Tasks (Supabase) ─────────────────────────────────
+  async _loadPersonTasks(personId) {
+    const list = document.getElementById('rhPersonTaskList');
+    if (!list) return;
+
+    // Tentar Supabase primeiro
+    if (typeof TBO_SUPABASE !== 'undefined') {
+      try {
+        const client = TBO_SUPABASE.getClient();
+        const tenantId = TBO_SUPABASE.getCurrentTenantId();
+        if (client && tenantId) {
+          const { data, error } = await client.from('person_tasks')
+            .select('*')
+            .eq('tenant_id', tenantId)
+            .eq('person_id', personId)
+            .neq('status', 'cancelada')
+            .order('created_at', { ascending: false });
+          if (!error && data) {
+            this._personTasks = data;
+            list.innerHTML = this._renderPersonTaskItems(data, personId);
+            this._bindPersonTaskActions(personId);
+            return;
+          }
+        }
+      } catch (e) { console.warn('[RH] Supabase person_tasks nao disponivel, usando localStorage', e.message); }
+    }
+
+    // Fallback: localStorage
+    const tasks = this._getStore('person_tasks_' + personId);
+    this._personTasks = tasks;
+    list.innerHTML = this._renderPersonTaskItems(tasks, personId);
+    this._bindPersonTaskActions(personId);
+  },
+
+  _renderPersonTaskItems(tasks, personId) {
+    const pending = tasks.filter(t => t.status !== 'concluida');
+    const done = tasks.filter(t => t.status === 'concluida');
+    if (!tasks.length) return '<div style="font-size:0.72rem;color:var(--text-muted);padding:8px 0;">Nenhuma tarefa ainda</div>';
+
+    const priorityColors = { alta: 'var(--color-danger)', media: 'var(--accent-gold)', baixa: 'var(--color-info)' };
+    const categoryLabels = { pdi: 'PDI', onboarding: 'Onboard', '1on1_action': '1:1', general: 'Geral' };
+
+    const renderTask = (t) => `
+      <div class="rh-person-task-item" style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-subtle);">
+        <input type="checkbox" class="rh-task-check" data-task-id="${t.id}" data-person="${personId}" ${t.status === 'concluida' ? 'checked' : ''} style="margin-top:2px;cursor:pointer;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:0.75rem;${t.status === 'concluida' ? 'text-decoration:line-through;color:var(--text-muted);' : ''}">${this._esc(t.title)}</div>
+          <div style="display:flex;gap:4px;margin-top:3px;">
+            <span class="tag" style="font-size:0.55rem;background:${priorityColors[t.priority] || 'var(--text-muted)'}20;color:${priorityColors[t.priority] || 'var(--text-muted)'};">${t.priority || 'media'}</span>
+            <span class="tag" style="font-size:0.55rem;">${categoryLabels[t.category] || 'Geral'}</span>
+            ${t.due_date ? `<span style="font-size:0.55rem;color:var(--text-muted);">${t.due_date}</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+
+    let html = pending.map(renderTask).join('');
+    if (done.length) {
+      html += `<div style="font-size:0.68rem;color:var(--text-muted);margin-top:8px;margin-bottom:4px;">Concluidas (${done.length})</div>`;
+      html += done.slice(0, 3).map(renderTask).join('');
+    }
+    return html;
+  },
+
+  _bindPersonTaskActions(personId) {
+    // Botao nova tarefa
+    this._bindToggle('rhNewPersonTask', 'rhPersonTaskForm');
+    this._bindToggle('ptCancel', 'rhPersonTaskForm', false);
+
+    // Salvar tarefa
+    this._bind('ptSave', async () => {
+      const title = document.getElementById('ptTitle')?.value?.trim();
+      if (!title) { TBO_TOAST.warning('Digite o titulo da tarefa'); return; }
+
+      const task = {
+        id: this._genId(),
+        person_id: personId,
+        title,
+        priority: document.getElementById('ptPriority')?.value || 'media',
+        category: document.getElementById('ptCategory')?.value || 'general',
+        due_date: document.getElementById('ptDueDate')?.value || null,
+        status: 'pendente',
+        created_at: new Date().toISOString()
+      };
+
+      // Tentar Supabase
+      if (typeof TBO_SUPABASE !== 'undefined') {
+        try {
+          const client = TBO_SUPABASE.getClient();
+          const tenantId = TBO_SUPABASE.getCurrentTenantId();
+          if (client && tenantId) {
+            const session = await TBO_SUPABASE.getSession();
+            const { error } = await client.from('person_tasks').insert({
+              ...task, tenant_id: tenantId, assigned_by: session?.user?.id || null
+            });
+            if (!error) {
+              TBO_TOAST.success('Tarefa criada!');
+              await this._loadPersonTasks(personId);
+              document.getElementById('rhPersonTaskForm').style.display = 'none';
+              document.getElementById('ptTitle').value = '';
+              return;
+            }
+          }
+        } catch (e) { console.warn('[RH] Fallback localStorage para person_tasks', e.message); }
+      }
+
+      // Fallback: localStorage
+      const tasks = this._getStore('person_tasks_' + personId);
+      tasks.unshift(task);
+      this._setStore('person_tasks_' + personId, tasks);
+      TBO_TOAST.success('Tarefa criada!');
+      await this._loadPersonTasks(personId);
+      document.getElementById('rhPersonTaskForm').style.display = 'none';
+      document.getElementById('ptTitle').value = '';
+    });
+
+    // Toggle status das tarefas
+    document.querySelectorAll('.rh-task-check').forEach(chk => {
+      chk.addEventListener('change', async () => {
+        const taskId = chk.dataset.taskId;
+        const pid = chk.dataset.person;
+        const newStatus = chk.checked ? 'concluida' : 'pendente';
+
+        if (typeof TBO_SUPABASE !== 'undefined') {
+          try {
+            const client = TBO_SUPABASE.getClient();
+            if (client) {
+              await client.from('person_tasks').update({ status: newStatus }).eq('id', taskId);
+              await this._loadPersonTasks(pid);
+              return;
+            }
+          } catch (e) { /* fallback */ }
+        }
+
+        const tasks = this._getStore('person_tasks_' + pid);
+        const t = tasks.find(x => x.id === taskId);
+        if (t) { t.status = newStatus; this._setStore('person_tasks_' + pid, tasks); }
+        await this._loadPersonTasks(pid);
+      });
+    });
+
     if (window.lucide) lucide.createIcons();
   },
 
@@ -1077,7 +1320,8 @@ const TBO_RH = {
     review.mediaGeral = +((review.autoMedia * 0.2 + review.gestorMedia * 0.5 + review.paresMedia * 0.3)).toFixed(2);
     this._setStore('avaliacoes_people', reviews);
     TBO_TOAST.success('Avaliacao submetida!', `${this._getPersonName(targetId)} — ${review.mediaGeral.toFixed(1)}`);
-    const container = document.getElementById('moduleContainer');
-    if (container) { container.innerHTML = this.render(); this.init(); }
+    // Re-renderizar apenas a tab ao inves do modulo inteiro
+    const tabContent = document.getElementById('rhTabContent');
+    if (tabContent) { tabContent.innerHTML = this._renderActiveTab(); this._initActiveTab(); }
   }
 };

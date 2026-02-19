@@ -20,7 +20,7 @@ const TBO_PERMISSIONS = {
     // carga-trabalho, timesheets, capacidade removidos em v2.2
     'trilha-aprendizagem','pessoas-avancado',
     'integracoes','templates',
-    'workspace','changelog'
+    'workspace','changelog','chat'
   ],
 
   // Finance-restricted modules (founders + finance only)
@@ -144,7 +144,7 @@ const TBO_PERMISSIONS = {
       id: 'command-center-section',
       label: 'COMMAND CENTER',
       icon: 'layout-dashboard',
-      modules: ['command-center',  'alerts']
+      modules: ['command-center', 'alerts', 'chat']
     },
     {
       id: 'receita',

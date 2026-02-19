@@ -62,7 +62,8 @@ const TBO_NAVIGATION = {
     'portal-cliente': 'Portal do Cliente',
     'permissoes-config': 'Permissoes',
     'alerts': 'Alertas',
-    'timeline': 'Timeline'
+    'timeline': 'Timeline',
+    'chat': 'Chat'
   },
 
   // ═══════════════════════════════════════════════════════════════════════════

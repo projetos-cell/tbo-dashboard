@@ -1,0 +1,763 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="UTF-8">
+<meta name="ProgId" content="Word.Document">
+<meta name="Generator" content="Microsoft Word 15">
+<meta name="Originator" content="Microsoft Word 15">
+<style>
+  @page {
+    size: A4;
+    margin: 2.5cm 2cm 2cm 2.5cm;
+  }
+  body {
+    font-family: 'Segoe UI', Calibri, sans-serif;
+    font-size: 11pt;
+    color: #1a1a1a;
+    line-height: 1.6;
+  }
+  h1 {
+    font-size: 22pt;
+    color: #E85102;
+    border-bottom: 3px solid #E85102;
+    padding-bottom: 8px;
+    margin-top: 0;
+  }
+  h2 {
+    font-size: 16pt;
+    color: #333;
+    margin-top: 28px;
+    border-left: 4px solid #E85102;
+    padding-left: 12px;
+  }
+  h3 {
+    font-size: 13pt;
+    color: #E85102;
+    margin-top: 20px;
+  }
+  .header-bar {
+    background-color: #E85102;
+    color: white;
+    padding: 20px 30px;
+    margin: -20px -20px 30px -20px;
+    text-align: center;
+  }
+  .header-bar h1 {
+    color: white;
+    border: none;
+    margin: 0;
+    font-size: 26pt;
+  }
+  .header-bar p {
+    color: #FED5C0;
+    margin: 8px 0 0 0;
+    font-size: 12pt;
+  }
+  .step-box {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    background-color: #fafafa;
+    page-break-inside: avoid;
+  }
+  .step-number {
+    display: inline-block;
+    background-color: #E85102;
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 28px;
+    font-weight: bold;
+    font-size: 14pt;
+    margin-right: 10px;
+  }
+  .step-title {
+    font-size: 13pt;
+    font-weight: bold;
+    color: #333;
+  }
+  .info-box {
+    border-left: 4px solid #3498db;
+    background-color: #ebf5fb;
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-size: 10pt;
+  }
+  .warning-box {
+    border-left: 4px solid #f39c12;
+    background-color: #fef9e7;
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-size: 10pt;
+  }
+  .success-box {
+    border-left: 4px solid #2ecc71;
+    background-color: #eafaf1;
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-size: 10pt;
+  }
+  .screen-desc {
+    border: 2px dashed #ccc;
+    padding: 20px;
+    margin: 12px 0;
+    text-align: center;
+    color: #888;
+    font-style: italic;
+    background-color: #f9f9f9;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 12px 0;
+  }
+  th {
+    background-color: #E85102;
+    color: white;
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 10pt;
+  }
+  td {
+    border: 1px solid #ddd;
+    padding: 8px 14px;
+    font-size: 10pt;
+  }
+  tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+  .persona-card {
+    border: 2px solid #E85102;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px 0;
+    background: linear-gradient(135deg, #fff5f0, #ffffff);
+  }
+  .persona-card h3 {
+    margin-top: 0;
+    color: #E85102;
+  }
+  .timeline {
+    border-left: 3px solid #E85102;
+    margin-left: 20px;
+    padding-left: 20px;
+  }
+  .timeline-item {
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .timeline-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    background-color: #E85102;
+    border-radius: 50%;
+    margin-left: -27px;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  .footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 2px solid #E85102;
+    text-align: center;
+    color: #999;
+    font-size: 9pt;
+  }
+  .page-break {
+    page-break-before: always;
+  }
+  ul li {
+    margin-bottom: 6px;
+  }
+  .checklist li {
+    list-style: none;
+    margin-bottom: 8px;
+  }
+  .checklist li:before {
+    content: "\2610  ";
+    font-size: 14pt;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- CAPA -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<div class="header-bar">
+  <h1>TBO OS &mdash; Guia de Onboarding</h1>
+  <p>Tutorial Completo para Novos Colaboradores</p>
+</div>
+
+<br>
+
+<div class="persona-card">
+  <h3>Sobre Este Tutorial</h3>
+  <p>Este documento simula, passo a passo, a experiencia de um <b>novo colaborador</b> entrando na TBO.
+  Voce acompanhara a jornada completa: do recebimento do convite por e-mail ate a conclusao do onboarding
+  e acesso total ao sistema TBO OS.</p>
+
+  <p><b>Personagem:</b> Ana Silva &mdash; nova Artista 3D contratada pela TBO<br>
+  <b>Data de Inicio:</b> 10/03/2026 (segunda-feira)<br>
+  <b>Buddy designado:</b> Carol (Designer Senior)<br>
+  <b>Tipo de Onboarding:</b> Completo (10 dias)</p>
+</div>
+
+<div class="info-box">
+  <b>Nota:</b> Este tutorial usa um cenario ficticio (roleplay) para demonstrar todas as telas e funcionalidades
+  do sistema de onboarding. As telas descritas correspondem ao sistema real implantado no TBO OS.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- PARTE 1: ANTES DO PRIMEIRO DIA -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<h2>Parte 1 &mdash; Antes do Primeiro Dia</h2>
+
+<h3>1.1 Cadastro pelo Administrador</h3>
+
+<p>Antes de tudo, um administrador da TBO (como o Marco ou o Ruy) cadastra a Ana no sistema.</p>
+
+<div class="step-box">
+  <span class="step-number">1</span>
+  <span class="step-title">Admin acessa &ldquo;Novo Colaborador&rdquo;</span>
+  <p>No TBO OS, o administrador clica no menu <b>Admin Onboarding</b> na sidebar e depois no botao
+  <b>&ldquo;+ Novo Colaborador&rdquo;</b>. Isso abre a pagina <code>pages/novo-colaborador.html</code>.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-number">2</span>
+  <span class="step-title">Preenchimento do Cadastro</span>
+  <p>O admin preenche os dados:</p>
+  <table>
+    <tr><th>Campo</th><th>Valor Preenchido</th></tr>
+    <tr><td>Nome completo</td><td>Ana Silva</td></tr>
+    <tr><td>E-mail</td><td>ana@tbo.com</td></tr>
+    <tr><td>Cargo</td><td>Artista 3D</td></tr>
+    <tr><td>Tipo de contrato</td><td>CLT</td></tr>
+    <tr><td>Data de inicio</td><td>10/03/2026</td></tr>
+    <tr><td>Buddy</td><td>Carol (selecionado no dropdown)</td></tr>
+  </table>
+</div>
+
+<div class="step-box">
+  <span class="step-number">3</span>
+  <span class="step-title">Sistema Gera o Convite</span>
+  <p>Ao clicar em <b>&ldquo;Cadastrar&rdquo;</b>, o sistema automaticamente:</p>
+  <ul>
+    <li>Cria o registro da Ana na tabela <code>colaboradores</code> com status <b>&ldquo;aguardando_convite&rdquo;</b></li>
+    <li>Gera um token unico de convite (valido por 7 dias)</li>
+    <li>Monta o link: <code>https://tbo-dashboard-main.vercel.app/pages/convite.html?token=abc123...</code></li>
+    <li>Exibe o link na tela para o admin copiar e enviar por e-mail</li>
+  </ul>
+</div>
+
+<div class="success-box">
+  <b>Resultado:</b> O admin envia o link de convite para ana@tbo.com por e-mail.
+  A Ana recebera esse link e podera se cadastrar no sistema.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- PARTE 2: ACEITANDO O CONVITE -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<div class="page-break"></div>
+
+<h2>Parte 2 &mdash; Aceitando o Convite</h2>
+
+<p><i>E sexta-feira, 07/03/2026. A Ana recebe um e-mail da TBO com o assunto
+&ldquo;Bem-vinda a TBO! Configure seu acesso&rdquo;.</i></p>
+
+<div class="step-box">
+  <span class="step-number">4</span>
+  <span class="step-title">Ana clica no link do convite</span>
+  <p>Ao clicar no link do e-mail, a Ana e levada para a <b>pagina de aceite do convite</b>.
+  E uma pagina limpa, sem menu lateral, apenas com o logo da TBO e um formulario.</p>
+
+  <div class="screen-desc">
+    [Tela: Logo TBO no topo]<br>
+    [Card central: &ldquo;Bem-vindo(a) a TBO!&rdquo;]<br>
+    [Subtitulo: &ldquo;Configure seu acesso ao sistema&rdquo;]
+  </div>
+</div>
+
+<div class="step-box">
+  <span class="step-number">5</span>
+  <span class="step-title">Formulario de Aceite</span>
+  <p>A Ana ve seus dados pre-preenchidos (somente leitura) e precisa completar:</p>
+  <table>
+    <tr><th>Campo</th><th>Tipo</th><th>O que a Ana faz</th></tr>
+    <tr><td>Nome</td><td>Somente leitura</td><td>Ja aparece &ldquo;Ana Silva&rdquo;</td></tr>
+    <tr><td>E-mail</td><td>Somente leitura</td><td>Ja aparece &ldquo;ana@tbo.com&rdquo;</td></tr>
+    <tr><td>Foto de perfil</td><td>Upload (clica no circulo)</td><td>Faz upload de sua foto</td></tr>
+    <tr><td>Telefone</td><td>Texto</td><td>Digita &ldquo;(41) 99999-1234&rdquo;</td></tr>
+    <tr><td>Senha</td><td>Password</td><td>Cria uma senha forte</td></tr>
+    <tr><td>Confirmar senha</td><td>Password</td><td>Repete a senha</td></tr>
+  </table>
+</div>
+
+<div class="step-box">
+  <span class="step-number">6</span>
+  <span class="step-title">Envio e Confirmacao</span>
+  <p>Ao clicar em <b>&ldquo;Criar minha conta&rdquo;</b>:</p>
+  <ul>
+    <li>O sistema cria a conta no Supabase Auth</li>
+    <li>Faz upload da foto para o bucket de storage</li>
+    <li>Atualiza o status da Ana para <b>&ldquo;aguardando_inicio&rdquo;</b></li>
+    <li>Exibe uma tela de sucesso com check verde e a mensagem:
+    <b>&ldquo;Conta criada com sucesso! Seu onboarding comeca em 10/03/2026.&rdquo;</b></li>
+  </ul>
+</div>
+
+<div class="info-box">
+  <b>O que acontece nos bastidores:</b> O sistema agenda automaticamente a liberacao do Dia 1
+  para 10/03/2026 via trigger no banco de dados. Na vespera (09/03), uma notificacao e
+  registrada para lembrar o buddy (Carol) de preparar a recepcao.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- PARTE 3: PRIMEIRO DIA -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<div class="page-break"></div>
+
+<h2>Parte 3 &mdash; Primeiro Dia (10/03/2026)</h2>
+
+<p><i>E segunda-feira de manha. A Ana chega na TBO, liga o computador e acessa o sistema.</i></p>
+
+<div class="step-box">
+  <span class="step-number">7</span>
+  <span class="step-title">Login no TBO OS</span>
+  <p>A Ana acessa <code>https://tbo-dashboard-main.vercel.app</code> e faz login com o e-mail
+  e senha que criou no convite.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-number">8</span>
+  <span class="step-title">Redirecionamento Automatico</span>
+  <p>Ao fazer login, o <b>onboarding-guard</b> detecta que a Ana tem status <b>&ldquo;onboarding&rdquo;</b>
+  e automaticamente redireciona para a <b>pagina de onboarding</b>
+  (<code>pages/onboarding.html</code>). Ela nao consegue acessar o sistema completo ate concluir o processo.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-number">9</span>
+  <span class="step-title">Tela de Onboarding &mdash; Visao Geral</span>
+  <p>A Ana ve uma pagina dedicada com:</p>
+  <ul>
+    <li><b>Barra de progresso:</b> &ldquo;Dia 1 de 10 &mdash; 0% concluido&rdquo;</li>
+    <li><b>Lista de dias:</b> O Dia 1 esta <span style="color:#2ecc71;">desbloqueado (verde)</span>,
+    os dias 2-10 estao <span style="color:#999;">bloqueados (cadeado cinza)</span></li>
+    <li><b>Mensagem de boas-vindas</b> do sistema</li>
+    <li><b>Animacao:</b> Os cards dos dias aparecem com uma animacao suave de slide (de baixo para cima)</li>
+  </ul>
+</div>
+
+<div class="warning-box">
+  <b>Importante:</b> A Ana so pode avancar para o Dia 2 apos completar TODAS as atividades do Dia 1.
+  O sistema nao permite pular dias.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- PARTE 4: REALIZANDO AS ATIVIDADES -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<h2>Parte 4 &mdash; Realizando as Atividades</h2>
+
+<h3>4.1 Abrindo o Dia 1</h3>
+
+<div class="step-box">
+  <span class="step-number">10</span>
+  <span class="step-title">Clicando no Dia 1</span>
+  <p>A Ana clica no card do <b>Dia 1 &mdash; &ldquo;Bem-vindo a TBO&rdquo;</b>.
+  O card expande com uma animacao suave, revelando a lista de atividades do dia:</p>
+
+  <table>
+    <tr><th>#</th><th>Atividade</th><th>Tipo</th><th>Duracao Est.</th></tr>
+    <tr><td>1</td><td>Video: Historia da TBO</td><td>Video</td><td>15 min</td></tr>
+    <tr><td>2</td><td>Documento: Manual do Colaborador</td><td>Documento/SOP</td><td>30 min</td></tr>
+    <tr><td>3</td><td>Quiz: Cultura e Valores</td><td>Quiz</td><td>10 min</td></tr>
+    <tr><td>4</td><td>Aceite: Codigo de Conduta</td><td>Aceite</td><td>5 min</td></tr>
+    <tr><td>5</td><td>Tarefa: Apresentar-se no grupo</td><td>Tarefa</td><td>10 min</td></tr>
+  </table>
+</div>
+
+<h3>4.2 Tipos de Atividades</h3>
+
+<p>Cada tipo de atividade funciona de forma diferente:</p>
+
+<div class="step-box">
+  <span class="step-number">A</span>
+  <span class="step-title">Atividade tipo VIDEO</span>
+  <p>A Ana clica em &ldquo;Video: Historia da TBO&rdquo;. Um modal abre com:</p>
+  <ul>
+    <li>Player de video embutido</li>
+    <li>Descricao da atividade</li>
+    <li>Botao <b>&ldquo;Marcar como concluido&rdquo;</b> (so ativa apos assistir)</li>
+    <li>Avaliacao com <b>5 estrelas</b> (opcional)</li>
+  </ul>
+  <p>Ao clicar nas estrelas, labels descritivos aparecem: <i>Ruim, Regular, Bom, Muito bom, Excelente</i>.</p>
+  <p>O sistema registra automaticamente o <b>tempo gasto</b> na atividade (do momento que abriu o modal ate concluir).</p>
+</div>
+
+<div class="step-box">
+  <span class="step-number">B</span>
+  <span class="step-title">Atividade tipo DOCUMENTO/SOP</span>
+  <p>Abre um modal com o documento para leitura. Pode ser um PDF embutido ou texto formatado.
+  Apos a leitura, a Ana clica em &ldquo;Marcar como concluido&rdquo;.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-number">C</span>
+  <span class="step-title">Atividade tipo QUIZ</span>
+  <p>Apresenta perguntas de multipla escolha sobre o conteudo estudado.
+  A Ana precisa responder todas as perguntas corretamente para concluir.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-number">D</span>
+  <span class="step-title">Atividade tipo ACEITE</span>
+  <p>Exibe um documento (ex: Codigo de Conduta) com um checkbox:
+  <b>&ldquo;Li e concordo com os termos acima&rdquo;</b>. A Ana precisa marcar o checkbox
+  e clicar em confirmar.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-number">E</span>
+  <span class="step-title">Atividade tipo TAREFA</span>
+  <p>Descreve uma tarefa pratica que a Ana deve realizar (ex: &ldquo;Apresentar-se no grupo do Teams&rdquo;).
+  Apos realizar, ela clica em &ldquo;Marcar como concluido&rdquo; para confirmar.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-number">F</span>
+  <span class="step-title">Atividade tipo FORMULARIO</span>
+  <p>Um formulario com campos para a Ana preencher (ex: &ldquo;Dados para crachá&rdquo;).
+  Apos preencher e enviar, a atividade e marcada como concluida.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- PARTE 5: PROGRESSO DIA A DIA -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<div class="page-break"></div>
+
+<h2>Parte 5 &mdash; Progresso Dia a Dia</h2>
+
+<h3>5.1 Concluindo o Dia 1</h3>
+
+<div class="step-box">
+  <span class="step-number">11</span>
+  <span class="step-title">Todas as atividades concluidas</span>
+  <p>Apos a Ana completar todas as 5 atividades do Dia 1:</p>
+  <ul>
+    <li>O card do Dia 1 muda para <span style="color:#2ecc71;"><b>verde com check</b></span></li>
+    <li>A barra de progresso atualiza para <b>10%</b></li>
+    <li>O <b>Dia 2 desbloqueia</b> automaticamente com uma animacao de pulso</li>
+    <li>Uma notificacao aparece: <b>&ldquo;Parabens! Dia 1 concluido. Dia 2 liberado!&rdquo;</b></li>
+  </ul>
+</div>
+
+<h3>5.2 Visao dos 10 Dias</h3>
+
+<p>O onboarding completo da Ana tem 10 dias, com conteudos progressivos:</p>
+
+<table>
+  <tr><th>Dia</th><th>Tema</th><th>Atividades</th><th>Foco</th></tr>
+  <tr><td>1</td><td>Bem-vindo a TBO</td><td>5</td><td>Cultura, valores, documentos basicos</td></tr>
+  <tr><td>2</td><td>Conhecendo a Equipe</td><td>4</td><td>Organograma, apresentacoes, buddy</td></tr>
+  <tr><td>3</td><td>Ferramentas e Sistemas</td><td>6</td><td>TBO OS, e-mail, comunicacao</td></tr>
+  <tr><td>4</td><td>Processos e Workflows</td><td>5</td><td>Como projetos funcionam</td></tr>
+  <tr><td>5</td><td>Qualidade e Padroes</td><td>4</td><td>SOPs de qualidade, revisao</td></tr>
+  <tr><td>6</td><td>Ferramentas Tecnicas</td><td>5</td><td>Softwares especificos do cargo</td></tr>
+  <tr><td>7</td><td>Primeiro Projeto</td><td>3</td><td>Projeto supervisionado</td></tr>
+  <tr><td>8</td><td>Comunicacao com Cliente</td><td>4</td><td>Padroes de atendimento</td></tr>
+  <tr><td>9</td><td>Autonomia</td><td>3</td><td>Tarefa independente</td></tr>
+  <tr><td>10</td><td>Conclusao</td><td>4</td><td>Avaliacao final, feedback, celebracao</td></tr>
+</table>
+
+<h3>5.3 O que acontece se a Ana atrasar?</h3>
+
+<div class="warning-box">
+  <b>Monitoramento automatico:</b>
+  <ul style="margin-bottom:0;">
+    <li><b>1 dia sem atividade:</b> A Ana recebe uma notificacao gentil: &ldquo;Voce tem atividades pendentes no Dia X&rdquo;</li>
+    <li><b>2 dias sem atividade:</b> O buddy (Carol) e o admin recebem um alerta: &ldquo;Ana esta inativa ha 2 dias&rdquo;</li>
+    <li>O painel admin mostra a Ana como <span style="color:#e74c3c;"><b>&ldquo;Atrasada&rdquo;</b></span></li>
+  </ul>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- PARTE 6: CONCLUSAO -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<div class="page-break"></div>
+
+<h2>Parte 6 &mdash; Conclusao do Onboarding</h2>
+
+<div class="step-box">
+  <span class="step-number">12</span>
+  <span class="step-title">Ultimo dia concluido!</span>
+  <p>Apos a Ana completar todas as atividades do Dia 10:</p>
+  <ul>
+    <li>A barra de progresso chega a <b>100%</b></li>
+    <li>Uma <b>celebracao especial</b> e exibida na tela:</li>
+  </ul>
+
+  <div class="screen-desc">
+    [Animacao de CONFETTI colorido caindo pela tela inteira]<br>
+    [Card central com icone de trofeu]<br>
+    [Titulo: &ldquo;Parabens, Ana! Onboarding Concluido!&rdquo;]<br>
+    [Subtitulo: &ldquo;Voce completou todas as etapas. Bem-vinda a equipe!&rdquo;]<br>
+    [Botao: &ldquo;Acessar o TBO OS&rdquo;]
+  </div>
+
+  <p>O confetti usa 120 particulas nas cores da TBO (laranja, verde, azul, amarelo)
+  com fisica de gravidade e fade-out automatico.</p>
+</div>
+
+<div class="step-box">
+  <span class="step-number">13</span>
+  <span class="step-title">Status Atualizado</span>
+  <p>Automaticamente o sistema:</p>
+  <ul>
+    <li>Muda o status da Ana para <b>&ldquo;ativo&rdquo;</b></li>
+    <li>Remove o bloqueio do onboarding-guard</li>
+    <li>Notifica o admin e o buddy sobre a conclusao</li>
+    <li>Agenda check-ins automaticos para o <b>Dia 30</b> e <b>Dia 90</b></li>
+  </ul>
+</div>
+
+<div class="step-box">
+  <span class="step-number">14</span>
+  <span class="step-title">Acesso Completo ao Sistema</span>
+  <p>A Ana agora pode acessar todos os modulos do TBO OS de acordo com seu perfil
+  (role: <b>artist</b>):</p>
+  <ul>
+    <li>Dashboard com KPIs</li>
+    <li>Projetos e Tarefas</li>
+    <li>Timesheets</li>
+    <li>Trilha de Aprendizagem</li>
+    <li>E todos os demais modulos do seu perfil</li>
+  </ul>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- PARTE 7: VISAO DO ADMIN -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<div class="page-break"></div>
+
+<h2>Parte 7 &mdash; Visao do Administrador</h2>
+
+<p><i>Enquanto a Ana faz o onboarding, o admin (Marco) acompanha tudo pelo painel.</i></p>
+
+<h3>7.1 Painel Admin Onboarding</h3>
+
+<div class="step-box">
+  <span class="step-number">15</span>
+  <span class="step-title">Dashboard de KPIs</span>
+  <p>No topo do painel, cards mostram:</p>
+  <table>
+    <tr><th>KPI</th><th>Valor</th></tr>
+    <tr><td>Em Onboarding</td><td>3 colaboradores</td></tr>
+    <tr><td>Concluidos (ultimo mes)</td><td>2</td></tr>
+    <tr><td>Atrasados</td><td>1</td></tr>
+    <tr><td>Progresso Medio</td><td>45%</td></tr>
+  </table>
+  <p>Abaixo dos KPIs, um <b>grafico de distribuicao de progresso</b> mostra quantos
+  colaboradores estao em cada faixa (0-25%, 26-50%, 51-75%, 76-99%).</p>
+</div>
+
+<div class="step-box">
+  <span class="step-number">16</span>
+  <span class="step-title">Tabela de Colaboradores</span>
+  <p>Uma tabela lista todos os colaboradores em onboarding:</p>
+  <table>
+    <tr><th>Nome</th><th>Cargo</th><th>Tipo</th><th>Progresso</th><th>Dia Atual</th><th>Status</th></tr>
+    <tr><td>Ana Silva</td><td>Artista 3D</td><td>Completo</td><td>40%</td><td>4/10</td>
+    <td><span style="color:#2ecc71;">Em dia</span></td></tr>
+    <tr><td>Pedro Santos</td><td>Dev Frontend</td><td>Completo</td><td>70%</td><td>7/10</td>
+    <td><span style="color:#2ecc71;">Em dia</span></td></tr>
+    <tr><td>Maria Lima</td><td>Comercial</td><td>Reduzido</td><td>33%</td><td>1/3</td>
+    <td><span style="color:#e74c3c;">Atrasada</span></td></tr>
+  </table>
+</div>
+
+<div class="step-box">
+  <span class="step-number">17</span>
+  <span class="step-title">Detalhes e Timeline</span>
+  <p>Ao clicar na Ana, o admin ve um painel lateral com:</p>
+  <ul>
+    <li><b>Dados pessoais:</b> foto, cargo, e-mail, buddy</li>
+    <li><b>Progresso por dia:</b> quais dias estao concluidos, em andamento ou bloqueados</li>
+    <li><b>Atividades detalhadas:</b> cada atividade com status, tempo gasto e avaliacao</li>
+    <li><b>Timeline cronologica:</b> linha do tempo vertical mostrando cada evento (dia liberado,
+    atividade concluida, etc.) com horario</li>
+    <li><b>Check-ins:</b> historico e agendamentos de check-ins</li>
+  </ul>
+</div>
+
+<h3>7.2 Acoes do Admin</h3>
+
+<table>
+  <tr><th>Acao</th><th>Descricao</th></tr>
+  <tr><td>Reenviar Convite</td><td>Gera novo token e link para colaboradores que nao aceitaram</td></tr>
+  <tr><td>Marcar Check-in</td><td>Registra que o check-in de 30 ou 90 dias foi realizado</td></tr>
+  <tr><td>Exportar CSV</td><td>Baixa planilha com dados de todos os colaboradores</td></tr>
+  <tr><td>Imprimir</td><td>Versao otimizada para impressao do painel</td></tr>
+  <tr><td>Filtrar</td><td>Filtra por status: Todos, Em Onboarding, Concluidos, Atrasados</td></tr>
+</table>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- PARTE 8: ONBOARDING REDUZIDO -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<div class="page-break"></div>
+
+<h2>Parte 8 &mdash; Onboarding Reduzido (Usuarios Existentes)</h2>
+
+<div class="info-box">
+  Colaboradores que ja trabalham na TBO (como Carol, Nelson, Ruy) fazem um
+  <b>onboarding reduzido de 3 dias</b>, focado apenas em conhecer o sistema TBO OS.
+</div>
+
+<table>
+  <tr><th>Dia</th><th>Tema</th><th>Conteudo</th></tr>
+  <tr><td>1</td><td>Conhecendo o TBO OS</td><td>Tour pelo sistema, funcionalidades basicas</td></tr>
+  <tr><td>2</td><td>Seu Perfil e Modulos</td><td>Modulos do seu cargo, como usar no dia a dia</td></tr>
+  <tr><td>3</td><td>Dicas e Avaliacao</td><td>Dicas avancadas, quiz final, feedback</td></tr>
+</table>
+
+<p><b>Diferenca principal:</b> Durante o onboarding reduzido, o colaborador <b>nao e bloqueado</b>
+do sistema. Em vez disso, aparece um <b>banner persistente no topo</b> da tela convidando a completar
+as atividades.</p>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- PARTE 9: NOTIFICACOES -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<h2>Parte 9 &mdash; Sistema de Notificacoes</h2>
+
+<p>O sistema envia notificacoes automaticas durante todo o processo:</p>
+
+<table>
+  <tr><th>Momento</th><th>Destinatario</th><th>Notificacao</th></tr>
+  <tr><td>Vespera do inicio</td><td>Buddy</td><td>&ldquo;Amanha comeca o onboarding de Ana Silva&rdquo;</td></tr>
+  <tr><td>Dia liberado</td><td>Colaborador</td><td>&ldquo;Dia X esta disponivel! Acesse suas atividades&rdquo;</td></tr>
+  <tr><td>1 dia inativo</td><td>Colaborador</td><td>&ldquo;Voce tem atividades pendentes&rdquo;</td></tr>
+  <tr><td>2 dias inativo</td><td>Buddy + Admin</td><td>&ldquo;Ana esta inativa ha 2 dias&rdquo;</td></tr>
+  <tr><td>Dia concluido</td><td>Colaborador</td><td>&ldquo;Parabens! Dia X concluido&rdquo;</td></tr>
+  <tr><td>Onboarding concluido</td><td>Todos</td><td>&ldquo;Ana completou o onboarding!&rdquo;</td></tr>
+  <tr><td>Check-in Dia 30</td><td>Admin + Buddy</td><td>&ldquo;Check-in de 30 dias com Ana&rdquo;</td></tr>
+  <tr><td>Check-in Dia 90</td><td>Admin + Buddy</td><td>&ldquo;Check-in de 90 dias com Ana&rdquo;</td></tr>
+</table>
+
+<p>As notificacoes aparecem no <b>icone de sino</b> no header do TBO OS, com badge
+mostrando a quantidade de nao lidas. Ao clicar, abre um dropdown com a lista.</p>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- RESUMO VISUAL -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<div class="page-break"></div>
+
+<h2>Resumo &mdash; Fluxo Completo</h2>
+
+<div class="timeline">
+  <div class="timeline-item">
+    <span class="timeline-dot"></span>
+    <b>Admin cadastra novo colaborador</b><br>
+    <span style="color:#888;">Preenche dados + seleciona buddy &rarr; sistema gera convite</span>
+  </div>
+  <div class="timeline-item">
+    <span class="timeline-dot"></span>
+    <b>Colaborador recebe e-mail com link</b><br>
+    <span style="color:#888;">Link unico com token valido por 7 dias</span>
+  </div>
+  <div class="timeline-item">
+    <span class="timeline-dot"></span>
+    <b>Colaborador aceita convite</b><br>
+    <span style="color:#888;">Upload de foto + criacao de senha &rarr; conta criada</span>
+  </div>
+  <div class="timeline-item">
+    <span class="timeline-dot"></span>
+    <b>Dia 1 liberado automaticamente na data de inicio</b><br>
+    <span style="color:#888;">Trigger no banco de dados + notificacao</span>
+  </div>
+  <div class="timeline-item">
+    <span class="timeline-dot"></span>
+    <b>Colaborador completa atividades dia a dia</b><br>
+    <span style="color:#888;">Video, documentos, quiz, aceites, tarefas, formularios</span>
+  </div>
+  <div class="timeline-item">
+    <span class="timeline-dot"></span>
+    <b>Cada dia concluido libera o proximo</b><br>
+    <span style="color:#888;">Progresso atualizado em tempo real</span>
+  </div>
+  <div class="timeline-item">
+    <span class="timeline-dot"></span>
+    <b>Admin acompanha pelo painel</b><br>
+    <span style="color:#888;">KPIs, tabela, timeline, exportacao</span>
+  </div>
+  <div class="timeline-item">
+    <span class="timeline-dot"></span>
+    <b>Ultimo dia concluido &rarr; Celebracao!</b><br>
+    <span style="color:#888;">Confetti + trofeu + status &ldquo;ativo&rdquo;</span>
+  </div>
+  <div class="timeline-item">
+    <span class="timeline-dot"></span>
+    <b>Acesso completo ao TBO OS</b><br>
+    <span style="color:#888;">Todos os modulos do perfil liberados</span>
+  </div>
+  <div class="timeline-item">
+    <span class="timeline-dot"></span>
+    <b>Check-ins de acompanhamento</b><br>
+    <span style="color:#888;">Dia 30 e Dia 90 apos o inicio</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- CHECKLIST -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<h2>Checklist do Novo Colaborador</h2>
+
+<ul class="checklist">
+  <li>Recebi o e-mail de convite da TBO</li>
+  <li>Cliquei no link e criei minha conta (foto + senha)</li>
+  <li>Fiz login no TBO OS na data de inicio</li>
+  <li>Completei o Dia 1 (cultura, valores, documentos)</li>
+  <li>Completei o Dia 2 (equipe, organograma, buddy)</li>
+  <li>Completei o Dia 3 (ferramentas e sistemas)</li>
+  <li>Completei o Dia 4 (processos e workflows)</li>
+  <li>Completei o Dia 5 (qualidade e padroes)</li>
+  <li>Completei o Dia 6 (ferramentas tecnicas)</li>
+  <li>Completei o Dia 7 (primeiro projeto)</li>
+  <li>Completei o Dia 8 (comunicacao com cliente)</li>
+  <li>Completei o Dia 9 (autonomia)</li>
+  <li>Completei o Dia 10 (avaliacao final e celebracao)</li>
+  <li>Tenho acesso completo ao TBO OS</li>
+  <li>Agendei check-in de 30 dias com meu buddy</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- FOOTER -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<div class="footer">
+  <p><b>TBO &mdash; Studio de Visualizacao Arquitetonica</b><br>
+  Curitiba, PR &mdash; Brasil<br><br>
+  Documento gerado automaticamente pelo TBO OS<br>
+  Versao 1.0 &mdash; Fevereiro 2026</p>
+</div>
+
+</body>
+</html>

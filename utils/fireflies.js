@@ -79,26 +79,40 @@ const TBO_FIREFLIES = {
     const apiKey = this.getApiKey();
     if (!apiKey) throw new Error('Fireflies API key not configured');
 
-    const response = await fetch(this._endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({ query, variables })
-    });
+    // v2.1: AbortController com timeout de 10s para prevenir hang infinito
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
 
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`Fireflies API error ${response.status}: ${text}`);
+    try {
+      const response = await fetch(this._endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({ query, variables }),
+        signal: controller.signal
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Fireflies API error ${response.status}: ${text}`);
+      }
+
+      const json = await response.json();
+      if (json.errors && json.errors.length > 0) {
+        throw new Error(`Fireflies GraphQL error: ${json.errors[0].message}`);
+      }
+
+      return json.data;
+    } catch (e) {
+      if (e.name === 'AbortError') {
+        throw new Error('Fireflies API timeout (10s)');
+      }
+      throw e;
+    } finally {
+      clearTimeout(timeout);
     }
-
-    const json = await response.json();
-    if (json.errors && json.errors.length > 0) {
-      throw new Error(`Fireflies GraphQL error: ${json.errors[0].message}`);
-    }
-
-    return json.data;
   },
 
   // ═══════════════════════════════════════════════════════════════════════════

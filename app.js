@@ -54,11 +54,17 @@ const TBO_APP = {
     TBO_AUTH.initAuthListener();
     const loggedIn = TBO_AUTH.checkSession();
 
-    // 2. Load critical data (JSON + ERP cache — APIs externas carregam em background)
-    // v2.1 Performance: loadCritical() carrega apenas dados essenciais (~500ms)
-    // APIs externas (Sheets, Fireflies, RD, Omie, Calendar) carregam apos dashboard visivel
+    // 2. Load critical data (JSON + ERP cache) com timeout global de 10s
+    // v2.1: Se Supabase/APIs estiverem lentas, continua com cache do localStorage
+    // APIs externas (Sheets, Fireflies, RD, Calendar) carregam apos dashboard visivel
     try {
-      await TBO_STORAGE.loadCritical();
+      await Promise.race([
+        TBO_STORAGE.loadCritical(),
+        new Promise(resolve => setTimeout(() => {
+          console.warn('[TBO OS] loadCritical() timeout 10s — continuando com cache');
+          resolve();
+        }, 10000))
+      ]);
       console.log('[TBO OS] Critical data loaded');
     } catch (e) {
       console.warn('[TBO OS] Data load error:', e);
@@ -81,7 +87,7 @@ const TBO_APP = {
       'rh': typeof TBO_RH !== 'undefined' ? TBO_RH : null,
       'configuracoes': typeof TBO_CONFIGURACOES !== 'undefined' ? TBO_CONFIGURACOES : null,
       'changelog': typeof TBO_CHANGELOG !== 'undefined' ? TBO_CHANGELOG : null,
-      'timeline': typeof TBO_TIMELINE !== 'undefined' ? TBO_TIMELINE : null,
+      // timeline removido em v2.1
       'alerts': typeof TBO_ALERTS !== 'undefined' ? TBO_ALERTS : null,
       'pipeline': typeof TBO_PIPELINE !== 'undefined' ? TBO_PIPELINE : null,
       'clientes': typeof TBO_CLIENTES !== 'undefined' ? TBO_CLIENTES : null,
@@ -1159,7 +1165,6 @@ const TBO_APP = {
     'inteligencia': 'Inteligência BI',
     'cultura': 'Manual de Cultura',
     // Placeholders
-    'timeline': 'Timeline',
     'alerts': 'Alertas',
     'pipeline': 'Pipeline',
     'clientes': 'Clientes',
@@ -1192,7 +1197,6 @@ const TBO_APP = {
   _moduleIcons: {
     'command-center': 'layout-dashboard',
     'inteligencia': 'brain',
-    'timeline': 'calendar-range',
     'alerts': 'bell-ring',
     'pipeline': 'filter',
     'comercial': 'file-text',

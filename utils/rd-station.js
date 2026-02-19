@@ -18,7 +18,7 @@ const TBO_RD_STATION = {
   _syncing: false,
   _lastRequestTime: 0,
   _rateLimitDelay: 500, // 500ms between API calls
-  _maxRetries: 3,
+  _maxRetries: 1,
   _pageLimit: 200,
 
   // Stage mapping keywords for auto-mapping
@@ -100,8 +100,12 @@ const TBO_RD_STATION = {
 
     this._lastRequestTime = Date.now();
 
+    // v2.1: AbortController com timeout de 10s para prevenir hang infinito
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
     try {
-      const response = await fetch(url, options);
+      const response = await fetch(url, { ...options, signal: controller.signal });
 
       // Rate limited — retry
       if (response.status === 429 && retryCount < this._maxRetries) {
@@ -117,10 +121,15 @@ const TBO_RD_STATION = {
 
       return response.json();
     } catch (e) {
+      if (e.name === 'AbortError') {
+        throw new Error('RD Station API timeout (10s)');
+      }
       if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
         throw new Error('Erro de rede — verifique conexao ou configure um proxy CORS.');
       }
       throw e;
+    } finally {
+      clearTimeout(timeout);
     }
   },
 

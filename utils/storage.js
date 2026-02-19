@@ -19,6 +19,19 @@ const TBO_STORAGE = {
   // ERP entity cache (mirrors Supabase tables in localStorage for sync reads)
   _erpCache: {},
 
+  // v2.1: Helper para timeout em promises (previne hang infinito em APIs externas)
+  _withTimeout(promise, ms, label = 'operation') {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`${label} timeout after ${ms}ms`)), ms)
+      )
+    ]).catch(e => {
+      console.warn(`[TBO Storage] ${label}:`, e.message);
+      return null;
+    });
+  },
+
   // ═══════════════════════════════════════════════════════════════════════════
   // LOAD ALL — static JSON files + warm ERP cache from Supabase
   // ═══════════════════════════════════════════════════════════════════════════
@@ -43,13 +56,14 @@ const TBO_STORAGE = {
     entityTypes.forEach(type => this._loadErpCacheFromLocal(type));
 
     // 2. Carregar JSON staticos + company context + ERP cache do Supabase EM PARALELO
+    // v2.1: Cada operacao tem timeout individual para prevenir hang
     await Promise.all([
-      // 2a. JSON files (5 fetches em paralelo internamente)
-      this._loadStaticJsonFiles(),
-      // 2b. Company context do Supabase
-      this._loadCompanyContext(),
-      // 2c. ERP cache fresco do Supabase (sobrescreve localStorage)
-      this._warmErpCache()
+      // 2a. JSON files (5 fetches em paralelo internamente) — max 5s
+      this._withTimeout(this._loadStaticJsonFiles(), 5000, 'JSON files'),
+      // 2b. Company context do Supabase — max 5s
+      this._withTimeout(this._loadCompanyContext(), 5000, 'Company context'),
+      // 2c. ERP cache fresco do Supabase (sobrescreve localStorage) — max 8s
+      this._withTimeout(this._warmErpCache(), 8000, 'ERP cache')
     ]);
 
     // 3. Process sync queue (fire-and-forget)
@@ -62,18 +76,18 @@ const TBO_STORAGE = {
   },
 
   // APIs externas: carrega em background, atualiza widgets quando pronto
+  // v2.1: Cada API tem timeout de 10s para prevenir hang infinito
   loadExternalAPIs() {
     const t0 = performance.now();
-    // Todas as APIs externas em paralelo (nao espera uma para comecar outra)
+    // Todas as APIs externas em paralelo com timeout individual
     Promise.allSettled([
-      this._loadFromGoogleSheets(),
-      this._loadFromFireflies(),
-      this._loadFromRdStation(),
-      this._loadFromOmie(),
-      this._loadFromGoogleCalendar()
+      this._withTimeout(this._loadFromGoogleSheets(), 10000, 'Google Sheets'),
+      this._withTimeout(this._loadFromFireflies(), 10000, 'Fireflies'),
+      this._withTimeout(this._loadFromRdStation(), 10000, 'RD Station'),
+      this._withTimeout(this._loadFromGoogleCalendar(), 10000, 'Google Calendar')
     ]).then((results) => {
-      const ok = results.filter(r => r.status === 'fulfilled').length;
-      console.log(`[TBO Storage] APIs externas: ${ok}/5 sync OK em ${Math.round(performance.now() - t0)}ms`);
+      const ok = results.filter(r => r.status === 'fulfilled' && r.value !== null).length;
+      console.log(`[TBO Storage] APIs externas: ${ok}/4 sync OK em ${Math.round(performance.now() - t0)}ms`);
       // Disparar evento para widgets atualizarem seus dados
       window.dispatchEvent(new CustomEvent('tbo:external-data-loaded'));
     });
@@ -180,50 +194,7 @@ const TBO_STORAGE = {
     }
   },
 
-  async _loadFromOmie() {
-    if (typeof TBO_OMIE === 'undefined' || !TBO_OMIE.isEnabled()) return;
-    try {
-      // Restaurar overrides do Supabase antes do sync
-      if (typeof TBO_OMIE_BRIDGE !== 'undefined') {
-        await TBO_OMIE_BRIDGE.loadOverridesFromSupabase();
-      }
-
-      // Tentar sync com Omie API
-      let result = null;
-      try {
-        result = await TBO_OMIE.sync();
-      } catch (syncErr) {
-        console.warn('[TBO Storage] Omie API sync falhou, tentando restaurar do Supabase...', syncErr.message);
-        // Fallback: restaurar dados do Supabase se o sync falhar
-        if (typeof TBO_OMIE_BRIDGE !== 'undefined') {
-          await TBO_OMIE_BRIDGE.restoreFromSupabase();
-        }
-      }
-
-      if (result) {
-        console.log(`[TBO Storage] Omie sync: ${result.contasPagar} CP, ${result.contasReceber} CR, ${result.clientes} clientes`);
-        // Persistir sync no Supabase para backup
-        if (typeof TBO_OMIE_BRIDGE !== 'undefined') {
-          TBO_OMIE_BRIDGE.persistSyncToSupabase(); // async fire-and-forget
-        }
-      }
-
-      // Mergear dados Omie no fluxo_caixa via bridge
-      if (typeof TBO_OMIE_BRIDGE !== 'undefined' && TBO_OMIE_BRIDGE.isActive()) {
-        const ctx = this._data.context || {};
-        const fy = (typeof TBO_CONFIG !== 'undefined' && TBO_CONFIG.app?.fiscalYear) || new Date().getFullYear();
-        if (!ctx.dados_comerciais) ctx.dados_comerciais = {};
-        if (!ctx.dados_comerciais[fy]) ctx.dados_comerciais[fy] = {};
-
-        const existingFc = ctx.dados_comerciais[fy].fluxo_caixa || {};
-        ctx.dados_comerciais[fy].fluxo_caixa = TBO_OMIE_BRIDGE.getMergedFluxoCaixa(existingFc);
-        this._data.context = ctx;
-        console.log('[TBO Storage] Omie bridge: dados financeiros mergeados no fluxo_caixa');
-      }
-    } catch (e) {
-      console.warn('[TBO Storage] Omie sync failed:', e.message);
-    }
-  },
+  // _loadFromOmie() removido em v2.1 (integracao Omie desativada)
 
   async _loadFromGoogleCalendar() {
     if (typeof TBO_GOOGLE_CALENDAR === 'undefined' || !TBO_GOOGLE_CALENDAR.isEnabled()) return;

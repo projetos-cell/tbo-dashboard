@@ -215,10 +215,13 @@ const TBO_AUTH = {
     // Fetch profile from Supabase
     const profile = await TBO_SUPABASE.getProfile(true);
 
+    // v2.1: Super admins SEMPRE recebem role 'founder', independente do Supabase
+    const isSuperAdmin = TBO_PERMISSIONS.isSuperAdmin(authUser.email);
+
     // If profile exists in Supabase, use it
     if (profile) {
       const userId = profile.username || authUser.email?.split('@')[0] || authUser.id;
-      const roleName = profile.role || 'artist';
+      const roleName = isSuperAdmin ? 'founder' : (profile.role || 'artist');
       const roleDef = TBO_PERMISSIONS._roles[roleName];
 
       return {
@@ -229,7 +232,7 @@ const TBO_AUTH = {
         role: roleName,
         roleLabel: roleDef?.label || roleName,
         roleColor: roleDef?.color || '#94a3b8',
-        modules: TBO_PERMISSIONS.getModulesForUser(userId) || roleDef?.modules || [],
+        modules: TBO_PERMISSIONS.getModulesForUser(userId, authUser.email) || roleDef?.modules || [],
         dashboardVariant: roleDef?.dashboardVariant || 'tasks',
         defaultModule: roleDef?.defaultModule || 'command-center',
         bu: profile.bu || TBO_PERMISSIONS.getUserBU(userId),
@@ -241,8 +244,32 @@ const TBO_AUTH = {
       };
     }
 
-    // v2.1: Sem fallback legacy — profile obrigatorio no Supabase
-    // Se o usuario nao tem profile, retornar null (forcara criacao no onboarding)
+    // v2.1: Super admins sem profile — criar sessao minima garantida
+    if (isSuperAdmin) {
+      const userId = authUser.email.split('@')[0];
+      const roleDef = TBO_PERMISSIONS._roles['founder'];
+      console.warn('[TBO Auth] Super admin sem profile — criando sessao founder:', authUser.email);
+      return {
+        id: userId,
+        supabaseId: authUser.id,
+        name: authUser.user_metadata?.full_name || userId,
+        email: authUser.email,
+        role: 'founder',
+        roleLabel: roleDef.label,
+        roleColor: roleDef.color,
+        modules: TBO_PERMISSIONS.getModulesForUser(userId, authUser.email),
+        dashboardVariant: 'full',
+        defaultModule: 'command-center',
+        bu: null,
+        isCoordinator: false,
+        initials: TBO_PERMISSIONS.getInitials(authUser.user_metadata?.full_name || userId),
+        loginAt: new Date().toISOString(),
+        authMode: 'supabase',
+        avatarUrl: authUser.user_metadata?.avatar_url || null
+      };
+    }
+
+    // Sem fallback legacy — profile obrigatorio no Supabase
     console.warn('[TBO Auth] Nenhum profile encontrado para:', authUser.email);
     return null;
   },
@@ -418,26 +445,17 @@ const TBO_AUTH = {
       });
     }
 
-    // Email/password or legacy login
+    // v2.1: Login apenas por email via Supabase Auth
     const doLogin = async () => {
-      // Check if email field exists (new UI) or select (legacy UI)
       const emailInput = document.getElementById('loginEmail');
-      const userSelect = document.getElementById('loginUser');
+      const email = emailInput?.value?.trim();
 
-      let userId, email, password;
-
-      if (emailInput && emailInput.value) {
-        email = emailInput.value.trim();
-        password = passInput?.value || '';
-        // Extract userId from email for legacy bridge
-        userId = email.split('@')[0];
-      } else if (userSelect && userSelect.value) {
-        userId = userSelect.value;
-        password = passInput?.value || '';
-      } else {
-        this._showLoginError(errorEl, 'Informe o email ou selecione um usuario.');
+      if (!email) {
+        this._showLoginError(errorEl, 'Informe seu email para entrar.');
         return;
       }
+
+      const password = passInput?.value || '';
 
       if (btn) {
         btn.disabled = true;
@@ -445,20 +463,15 @@ const TBO_AUTH = {
       }
 
       let result;
-      if (email && typeof TBO_SUPABASE !== 'undefined' && TBO_SUPABASE.isOnline()) {
-        // Supabase email auth (unico modo suportado em v2.1+)
+      if (typeof TBO_SUPABASE !== 'undefined' && TBO_SUPABASE.isOnline()) {
         try {
           result = await this.loginWithEmail(email, password);
         } catch (e) {
           console.warn('[TBO Auth] Supabase email auth error:', e);
           result = { ok: false, msg: e.message };
         }
-      } else if (email) {
-        // Supabase offline — orientar usuario
-        result = { ok: false, msg: 'Sem conexao com o servidor. Verifique sua internet.' };
       } else {
-        // Login por userId (converte para email)
-        result = await this.login(userId, password);
+        result = { ok: false, msg: 'Sem conexao com o servidor. Verifique sua internet.' };
       }
 
       if (btn) {

@@ -86,7 +86,6 @@ const TBO_INTEGRACOES = {
       this._checkAI(),
       this._checkFireflies(),
       this._checkRdStation(),
-      this._checkOmie(),
       this._checkGoogleCalendar(),
       this._checkNotion()
     ];
@@ -167,22 +166,7 @@ const TBO_INTEGRACOES = {
     };
   },
 
-  _checkOmie() {
-    const hasCredentials = typeof TBO_OMIE !== 'undefined' && TBO_OMIE.isEnabled();
-    const status = typeof TBO_OMIE !== 'undefined' ? TBO_OMIE.getStatus() : null;
-
-    return {
-      name: 'Omie ERP',
-      icon: 'receipt',
-      status: hasCredentials ? (status?.lastSync ? 'connected' : 'partial') : 'disconnected',
-      description: 'ERP financeiro — contas a pagar/receber, clientes (sync Omie → TBO).',
-      details: hasCredentials
-        ? (status?.lastSync
-          ? `${status.contasPagar} CP, ${status.contasReceber} CR, ${status.clientes} clientes. Ultimo sync: ${new Date(status.lastSync).toLocaleString('pt-BR')}`
-          : `Credenciais configuradas. ${status?.error || 'Aguardando primeiro sync.'}`)
-        : 'Sem credenciais. Configure App Key/Secret em Configuracoes.'
-    };
-  },
+  // Omie ERP removido em v2.1
 
   _checkGoogleCalendar() {
     const isEnabled = typeof TBO_GOOGLE_CALENDAR !== 'undefined' && TBO_GOOGLE_CALENDAR.isEnabled();

@@ -52,7 +52,23 @@ const TBO_SHEETS = {
     const spreadsheetId = this.getSpreadsheetId();
     const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
 
-    const response = await fetch(url);
+    // v2.1: AbortController com timeout de 10s para prevenir hang infinito
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    let response;
+    try {
+      response = await fetch(url, { signal: controller.signal });
+    } catch (e) {
+      clearTimeout(timeout);
+      if (e.name === 'AbortError') {
+        throw new Error(`Sheets "${sheetName}" timeout (10s)`);
+      }
+      throw e;
+    } finally {
+      clearTimeout(timeout);
+    }
+
     if (!response.ok) {
       throw new Error(`Sheets fetch failed: ${response.status} ${response.statusText}`);
     }

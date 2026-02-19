@@ -60,10 +60,6 @@ const TBO_FINANCEIRO = {
             <h2 class="section-title">Painel Financeiro 2026</h2>
             <div style="display:flex;gap:8px;align-items:center;">
               <span class="tag" style="font-size:0.72rem;">${realizados.length} meses realizados | ${mesesRestantes} projetados</span>
-              ${typeof TBO_OMIE_BRIDGE !== 'undefined' && TBO_OMIE_BRIDGE.isActive() ? `
-              <span class="tag" style="font-size:0.65rem;background:#f9731620;color:#f97316;display:flex;align-items:center;gap:4px;">
-                <i data-lucide="cloud-download" style="width:10px;height:10px;"></i> Omie Sync ${typeof TBO_OMIE !== 'undefined' && TBO_OMIE._lastSync ? new Date(TBO_OMIE._lastSync).toLocaleString('pt-BR') : ''}
-              </span>` : ''}
               <button class="btn btn-secondary" id="fnEditData" style="font-size:0.68rem;padding:3px 10px;">&#9998; Editar Dados</button>
             </div>
           </div>
@@ -826,16 +822,9 @@ const TBO_FINANCEIRO = {
       } catch (e) { console.warn('[Financeiro] Supabase save failed:', e.message); }
     }
 
-    // Se Omie ativo, salvar overrides no bridge (persistido no Supabase)
-    if (typeof TBO_OMIE_BRIDGE !== 'undefined' && TBO_OMIE_BRIDGE.isActive()) {
-      Object.entries(newRec).forEach(([m, v]) => TBO_OMIE_BRIDGE.setOverride('receita', m, v));
-      Object.entries(newDesp).forEach(([m, v]) => TBO_OMIE_BRIDGE.setOverride('despesa', m, v));
-    }
-
     this._fluxoDirty = false;
     if (status) {
-      const src = typeof TBO_OMIE_BRIDGE !== 'undefined' && TBO_OMIE_BRIDGE.isActive() ? 'Omie override + ' : '';
-      status.textContent = supaOk ? `${src}Supabase + local` : `${src}Salvo localmente`;
+      status.textContent = supaOk ? 'Supabase + local' : 'Salvo localmente';
       status.style.color = supaOk ? '#22c55e' : '#f59e0b';
     }
     if (btn) btn.style.background = '';

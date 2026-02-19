@@ -419,34 +419,7 @@ const TBO_CONCILIACAO_BANCARIA = {
         }
       }
 
-      // Match individual contra transacoes Omie
-      if (typeof TBO_OMIE_BRIDGE !== 'undefined' && TBO_OMIE_BRIDGE.isActive()) {
-        if (txn.isCredit) {
-          const omieCR = TBO_OMIE_BRIDGE.getContasReceber();
-          const match = omieCR.find(cr =>
-            Math.abs((cr.valor || 0) - txn.absAmount) < 0.01 &&
-            this._dateClose(cr.vencimento, txn.date, 7)
-          );
-          if (match) {
-            txn._matchStatus = 'matched';
-            txn._matchSuggestion = `Omie CR: ${match.clienteNome || ''} — ${match.descricao || ''} (R$ ${this._fmt(match.valor)})`;
-            txn._omieMatchId = match.omieId;
-            continue;
-          }
-        } else {
-          const omieCP = TBO_OMIE_BRIDGE.getContasPagar();
-          const match = omieCP.find(cp =>
-            Math.abs((cp.valor || 0) - txn.absAmount) < 0.01 &&
-            this._dateClose(cp.vencimento, txn.date, 7)
-          );
-          if (match) {
-            txn._matchStatus = 'matched';
-            txn._matchSuggestion = `Omie CP: ${match.fornecedorNome || ''} — ${match.descricao || ''} (R$ ${this._fmt(match.valor)})`;
-            txn._omieMatchId = match.omieId;
-            continue;
-          }
-        }
-      }
+      // Omie matching removido em v2.1
 
       // Sem match
       txn._matchStatus = txn._matchStatus || 'unmatched';

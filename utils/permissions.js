@@ -4,6 +4,13 @@
 
 const TBO_PERMISSIONS = {
 
+  // ── Super Administradores (acesso total, NUNCA perdem acesso) ───────────
+  _superAdmins: ['marco@agenciatbo.com.br', 'ruy@agenciatbo.com.br'],
+
+  isSuperAdmin(email) {
+    return email && this._superAdmins.includes(email.toLowerCase());
+  },
+
   // ── Role Definitions ──────────────────────────────────────────────────────
 
   // Modules visible to ALL roles (operational basics)
@@ -30,35 +37,35 @@ const TBO_PERMISSIONS = {
     founder: {
       label: 'Fundador',
       color: '#E85102',
-      modules: ['command-center','timeline','alerts','inteligencia','pipeline','comercial','clientes','portal-cliente','contratos','conteudo','projetos','mercado','reunioes','financeiro','rh','cultura','configuracoes','admin-onboarding'],
+      modules: ['command-center','alerts','inteligencia','pipeline','comercial','clientes','portal-cliente','contratos','conteudo','projetos','mercado','reunioes','financeiro','rh','cultura','configuracoes','admin-onboarding'],
       dashboardVariant: 'full',
       defaultModule: 'command-center'
     },
     project_owner: {
       label: 'Project Owner',
       color: '#8b5cf6',
-      modules: ['command-center','timeline','alerts','comercial','clientes','portal-cliente','contratos','conteudo','projetos','mercado','reunioes','rh','cultura','configuracoes','admin-onboarding'],
+      modules: ['command-center','alerts','comercial','clientes','portal-cliente','contratos','conteudo','projetos','mercado','reunioes','rh','cultura','configuracoes','admin-onboarding'],
       dashboardVariant: 'projects',
       defaultModule: 'command-center'
     },
     artist: {
       label: 'Artista',
       color: '#3a7bd5',
-      modules: ['command-center','timeline','alerts','projetos','mercado','reunioes','cultura','configuracoes'],
+      modules: ['command-center','alerts','projetos','mercado','reunioes','cultura','configuracoes'],
       dashboardVariant: 'tasks',
       defaultModule: 'command-center'
     },
     comercial: {
       label: 'Comercial',
       color: '#f59e0b',
-      modules: ['command-center','timeline','alerts','pipeline','comercial','clientes','portal-cliente','contratos','projetos','mercado','reunioes','cultura','configuracoes'],
+      modules: ['command-center','alerts','pipeline','comercial','clientes','portal-cliente','contratos','projetos','mercado','reunioes','cultura','configuracoes'],
       dashboardVariant: 'full',
       defaultModule: 'command-center'
     },
     finance: {
       label: 'Financeiro',
       color: '#2ecc71',
-      modules: ['command-center','timeline','alerts','inteligencia','pipeline','financeiro','comercial','clientes','portal-cliente','contratos','mercado','reunioes','cultura','configuracoes'],
+      modules: ['command-center','alerts','inteligencia','pipeline','financeiro','comercial','clientes','portal-cliente','contratos','mercado','reunioes','cultura','configuracoes'],
       dashboardVariant: 'financial',
       defaultModule: 'command-center'
     }
@@ -137,7 +144,7 @@ const TBO_PERMISSIONS = {
       id: 'command-center-section',
       label: 'COMMAND CENTER',
       icon: 'layout-dashboard',
-      modules: ['command-center', 'timeline', 'alerts']
+      modules: ['command-center',  'alerts']
     },
     {
       id: 'receita',
@@ -193,7 +200,18 @@ const TBO_PERMISSIONS = {
     };
   },
 
-  getModulesForUser(userId) {
+  getModulesForUser(userId, email) {
+    // v2.1: Super admins SEMPRE tem acesso total, independente do que Supabase retorna
+    if (email && this.isSuperAdmin(email)) {
+      const allMods = new Set();
+      Object.values(this._roles).forEach(r => r.modules.forEach(m => allMods.add(m)));
+      this._sharedModules.forEach(m => allMods.add(m));
+      this._financeModules.forEach(m => allMods.add(m));
+      this._adminModules.forEach(m => allMods.add(m));
+      this._sections.forEach(s => s.modules.forEach(m => allMods.add(m)));
+      return [...allMods];
+    }
+
     const mapping = this._userRoles[userId] || this._defaultUserRoles[userId];
     if (!mapping) return [];
     const roleDef = this._roles[mapping.role];
@@ -236,13 +254,13 @@ const TBO_PERMISSIONS = {
     return roleDef ? roleDef.defaultModule : 'command-center';
   },
 
-  canAccess(userId, moduleName) {
-    const modules = this.getModulesForUser(userId);
+  canAccess(userId, moduleName, email) {
+    const modules = this.getModulesForUser(userId, email);
     return modules.includes(moduleName);
   },
 
-  getSectionsForUser(userId) {
-    const allowed = this.getModulesForUser(userId);
+  getSectionsForUser(userId, email) {
+    const allowed = this.getModulesForUser(userId, email);
     return this._sections
       .map(section => ({
         ...section,

@@ -16,6 +16,7 @@ const TBO_COMMAND_CENTER = {
     'news-feed':        { label: 'Noticias',             icon: 'newspaper',       zone: 'main' },
     'projects-overview':{ label: 'Projetos Ativos',      icon: 'building-2',      zone: 'main' },
     'cities-map':       { label: 'Mapa de Cidades',      icon: 'map',             zone: 'main' },
+    'culture-nudge':    { label: 'Cultura TBO',            icon: 'sparkles',        zone: 'sidebar' },
     'sidebar-meetings': { label: 'Reunioes',             icon: 'calendar',        zone: 'sidebar' },
     'sidebar-actions':  { label: 'Action Items',         icon: 'check-square',    zone: 'sidebar' },
     'sidebar-market':   { label: 'Mercado',              icon: 'trending-up',     zone: 'sidebar' },
@@ -25,7 +26,7 @@ const TBO_COMMAND_CENTER = {
   _getDefaultLayout() {
     return {
       main: ['my-tasks', 'weekly-summary', 'erp-alerts', 'actions-today', 'kpis', 'business-pulse', 'strategic-alerts', 'pipeline-funnel', 'people-widget', 'news-feed', 'projects-overview', 'cities-map'],
-      sidebar: ['sidebar-meetings', 'sidebar-actions', 'sidebar-market', 'sidebar-commercial'],
+      sidebar: ['culture-nudge', 'sidebar-meetings', 'sidebar-actions', 'sidebar-market', 'sidebar-commercial'],
       hidden: []
     };
   },
@@ -531,6 +532,9 @@ const TBO_COMMAND_CENTER = {
 
       case 'pipeline-funnel':
         return this._renderPipelineFunnel(d);
+
+      case 'culture-nudge':
+        return this._renderCultureNudge();
 
       case 'people-widget':
         return this._renderPeopleWidget();
@@ -1085,6 +1089,54 @@ const TBO_COMMAND_CENTER = {
         </div>
       </section>
     `;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CULTURE NUDGE WIDGET — Micro-lembrete diario da cultura TBO
+  // ═══════════════════════════════════════════════════════════════════════════
+  _renderCultureNudge() {
+    if (typeof TBO_CULTURA_DATA === 'undefined' || !TBO_CULTURA_DATA.nudges) {
+      return '<div style="padding:12px;color:var(--text-muted);font-size:0.78rem;">Dados de cultura nao disponiveis.</div>';
+    }
+
+    const valor = TBO_CULTURA_DATA.nudges.valorDoDia();
+    const tip = TBO_CULTURA_DATA.nudges.tipCultural();
+    const reflexao = TBO_CULTURA_DATA.nudges.reflexaoDoDia();
+
+    return `
+      <section class="section" style="padding:0;">
+        <!-- Valor do dia -->
+        <div style="background:linear-gradient(135deg, #E8510215, #E8510208);border:1px solid #E8510230;border-radius:10px;padding:14px 16px;margin-bottom:10px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span style="font-size:1.1rem;">${this._esc(valor.emoji || '')}</span>
+            <span style="font-size:0.72rem;font-weight:700;color:#E85102;text-transform:uppercase;letter-spacing:0.5px;">Valor do Dia</span>
+          </div>
+          <div style="font-weight:700;font-size:0.88rem;margin-bottom:4px;">${this._esc(valor.nome)}</div>
+          <div style="font-size:0.75rem;color:var(--text-secondary);line-height:1.4;">${this._esc(valor.desc)}</div>
+        </div>
+
+        <!-- Tip cultural -->
+        <div style="background:var(--bg-secondary);border-radius:8px;padding:12px 14px;margin-bottom:10px;">
+          <div style="font-size:0.65rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px;">
+            <i data-lucide="lightbulb" style="width:11px;height:11px;display:inline;vertical-align:-1px;"></i> Dica
+          </div>
+          <div style="font-size:0.75rem;color:var(--text-primary);line-height:1.45;">${this._esc(tip)}</div>
+        </div>
+
+        <!-- Reflexao -->
+        <div style="background:var(--bg-secondary);border-radius:8px;padding:12px 14px;">
+          <div style="font-size:0.65rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px;">
+            <i data-lucide="brain" style="width:11px;height:11px;display:inline;vertical-align:-1px;"></i> Reflexao
+          </div>
+          <div style="font-size:0.75rem;color:var(--text-primary);line-height:1.45;font-style:italic;">${this._esc(reflexao)}</div>
+        </div>
+
+        <div style="margin-top:10px;text-align:center;">
+          <button class="btn btn-sm btn-ghost" onclick="TBO_ROUTER.navigate('cultura')" style="font-size:0.7rem;color:var(--accent-gold);">
+            <i data-lucide="book-open" style="width:12px;height:12px;"></i> Ver Manual de Cultura
+          </button>
+        </div>
+      </section>`;
   },
 
   // ═══════════════════════════════════════════════════════════════════════════

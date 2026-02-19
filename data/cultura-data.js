@@ -1,15 +1,32 @@
-// TBO OS — Manual de Cultura Data (extracted from Notion — Feb 2026)
+// TBO OS — Manual de Cultura Data (synced from Notion — Feb 2026)
 // Source: https://www.notion.so/Manual-de-Cultura-2193782e356143e5b41756c78e230cec
+// v2.1: Conteudo enriquecido com 12 secoes do Notion (antes eram 8)
 
 const TBO_CULTURA_DATA = {
 
   metadata: {
     source: 'Notion — Manual de Cultura TBO',
-    lastUpdate: '2026-02-09',
-    totalSections: 8
+    lastUpdate: '2026-02-19',
+    totalSections: 12,
+    version: '2.1'
   },
 
-  // ── SECTION 1: Sobre a TBO ──────────────────────────────────────────
+  // ── SECTION 1: Mensagem dos Fundadores ──────────────────────────────
+  mensagemFundadores: {
+    id: 'mensagem-fundadores',
+    titulo: 'Mensagem dos Fundadores',
+    icon: 'quote',
+    resumo: 'A origem da TBO, visao de futuro e compromisso com o time.',
+    callout: 'Construimos a TBO com a crenca de que e possivel fazer trabalho de excelencia no mercado imobiliario brasileiro. Cada pessoa que entra nesse time carrega a responsabilidade de manter esse padrao — e a liberdade de supera-lo.',
+    autores: ['Ruy Lima — CEO', 'Marco Andolfato — COO'],
+    pilares: [
+      'Excelencia como habito, nao como excecao.',
+      'Tecnologia a servico da criatividade.',
+      'Pessoas no centro de tudo que construimos.'
+    ]
+  },
+
+  // ── SECTION 2: Sobre a TBO ──────────────────────────────────────────
   sobre: {
     id: 'sobre',
     titulo: 'Sobre a TBO',
@@ -32,7 +49,7 @@ const TBO_CULTURA_DATA = {
     }
   },
 
-  // ── SECTION 2: Missao, Visao, Valores ────────────────────────────────
+  // ── SECTION 3: Missao, Visao, Valores ────────────────────────────────
   mvv: {
     id: 'mvv',
     titulo: 'Missao, Visao & Valores',
@@ -57,16 +74,16 @@ const TBO_CULTURA_DATA = {
       ]
     },
     valores: [
-      { nome: 'Excelencia Tecnica', desc: 'Qualidade inegociavel em cada pixel, cada frame, cada palavra.' },
-      { nome: 'Ownership', desc: 'Cada pessoa e dona do seu resultado. Autonomia com responsabilidade.' },
-      { nome: 'Colaboracao', desc: 'Times integrados, conhecimento compartilhado, ego fora da porta.' },
-      { nome: 'Inovacao', desc: 'Inconformismo criativo. Buscar o novo, questionar o obvio.' },
-      { nome: 'Cliente Primeiro', desc: 'Entender o negocio do cliente como se fosse nosso.' },
-      { nome: 'Superacao', desc: 'Ir alem do esperado. Entregar mais do que foi pedido.' }
+      { nome: 'Excelencia Tecnica', desc: 'Qualidade inegociavel em cada pixel, cada frame, cada palavra.', emoji: '🎯' },
+      { nome: 'Ownership', desc: 'Cada pessoa e dona do seu resultado. Autonomia com responsabilidade.', emoji: '🔑' },
+      { nome: 'Colaboracao', desc: 'Times integrados, conhecimento compartilhado, ego fora da porta.', emoji: '🤝' },
+      { nome: 'Inovacao', desc: 'Inconformismo criativo. Buscar o novo, questionar o obvio.', emoji: '💡' },
+      { nome: 'Cliente Primeiro', desc: 'Entender o negocio do cliente como se fosse nosso.', emoji: '❤️' },
+      { nome: 'Superacao', desc: 'Ir alem do esperado. Entregar mais do que foi pedido.', emoji: '🚀' }
     ]
   },
 
-  // ── SECTION 3: Estrategia ────────────────────────────────────────────
+  // ── SECTION 4: Estrategia ────────────────────────────────────────────
   estrategia: {
     id: 'estrategia',
     titulo: 'Estrategia',
@@ -82,7 +99,179 @@ const TBO_CULTURA_DATA = {
     frameworkDecisao: 'Antes de qualquer decisao estrategica, pergunte: (1) Isso nos aproxima da visao? (2) Isso fortalece nosso posicionamento no imobiliario? (3) Isso e escalavel sem perder qualidade? Se a resposta for NAO para qualquer uma, reconsidere.'
   },
 
-  // ── SECTION 4: Comunicacao ───────────────────────────────────────────
+  // ── SECTION 5: Cultura Viva ─────────────────────────────────────────
+  culturaViva: {
+    id: 'cultura-viva',
+    titulo: 'Vida na TBO — Cultura Viva',
+    icon: 'sparkles',
+    resumo: 'Comportamentos que vivemos, o que NAO e nossa cultura, e autoavaliacao.',
+    comportamentos: [
+      { pilar: 'Autonomia', desc: 'Agir sem precisar de permissao. Tomar decisoes informadas. Resolver antes de escalar.' },
+      { pilar: 'Excelencia', desc: 'Nao entregar nada que voce nao colocaria no portfolio. Curadoria obsessiva.' },
+      { pilar: 'Colaboracao', desc: 'Compartilhar aprendizados. Pedir ajuda sem medo. Dar feedback com empatia.' },
+      { pilar: 'Aprendizado Continuo', desc: 'Buscar referencia fora do obvio. Estudar. Evoluir o oficio.' },
+      { pilar: 'Mentalidade de Dono', desc: 'Tratar cada projeto como se o nome da empresa fosse o seu nome.' }
+    ],
+    antiCultura: [
+      'Esperar permissao para agir quando a resposta e obvia.',
+      'Entregar "so o que foi pedido" sem pensar no resultado.',
+      'Guardar conhecimento como vantagem pessoal.',
+      'Dizer "isso nao e minha area" quando o time precisa.',
+      'Aceitar mediocridade como padrao.',
+      'Evitar conversas dificeis por conforto.',
+      'Reclamar sem propor solucao.',
+      'Tratar erro como fracasso ao inves de aprendizado.'
+    ],
+    autoavaliacao: [
+      'Eu tomo decisoes sem precisar de aprovacao constante?',
+      'Eu compartilho o que aprendo com meus colegas?',
+      'Eu busco feedback ativamente, nao apenas quando recebo?',
+      'Eu cuido dos detalhes como se fossem meus?',
+      'Eu proponho solucoes quando encontro problemas?',
+      'Eu priorizo resultado sobre processo?',
+      'Eu trato as entregas do time como se fossem minhas?'
+    ]
+  },
+
+  // ── SECTION 6: Lideranca ────────────────────────────────────────────
+  lideranca: {
+    id: 'lideranca',
+    titulo: 'Lideranca na TBO',
+    icon: 'crown',
+    resumo: 'Autonomia, feedback, 1:1s e tomada de decisao.',
+    principioAutonomia: {
+      titulo: 'Autonomia com posicao',
+      desc: 'Na TBO, lideranca nao e sobre cargo — e sobre comportamento. Cada pessoa e lider do seu trabalho.',
+      praticas: [
+        'Se voce identificou um problema, resolva ou proponha uma solucao.',
+        'Se precisa de uma decisao, traga opcoes — nao so a pergunta.',
+        'Se discorda, diga com argumentos — silencio nao e concordancia.',
+        'Se errou, assuma e corrija — transparencia > perfeicao.'
+      ]
+    },
+    feedback: {
+      titulo: 'Framework de Feedback (baseado em Crucial Conversations)',
+      principios: [
+        'Feedback nao e ataque — e investimento no crescimento do outro.',
+        'Comece pelo fato, nao pela interpretacao.',
+        'Descreva o impacto: o que aconteceu como consequencia.',
+        'Proponha o caminho: o que voce sugere de diferente.',
+        'Escute a perspectiva do outro com genuina curiosidade.'
+      ],
+      template: 'Eu observei que [fato]. O impacto foi [consequencia]. Eu sugiro que [proposta]. O que voce acha?',
+      comoReceber: [
+        'Escute antes de reagir.',
+        'Parta da premissa de que quem fala quer ajudar.',
+        'Pergunte exemplos se nao entendeu.',
+        'Agradeca — feedback e um presente.',
+        'Nao concorde por educacao. Reflita. Responda depois se precisar.'
+      ]
+    },
+    oneOnOnes: {
+      titulo: 'Guia de 1:1s',
+      frequencia: 'Mensal (minimo). Semanal para novos membros.',
+      estrutura: [
+        'Como voce esta? (pessoal)',
+        'O que esta indo bem?',
+        'O que esta travando voce?',
+        'Feedback (nos dois sentidos)',
+        'Proximos passos e compromissos'
+      ],
+      dicas: [
+        'Nunca cancele um 1:1 — e o momento mais importante do mes.',
+        'Lider escuta 80% do tempo, fala 20%.',
+        'Registre action items e cobre na proxima.'
+      ]
+    },
+    tomadaDecisao: {
+      titulo: 'Como tomamos decisoes',
+      modelo: 'RACI simplificado: quem decide (D), quem executa (E), quem e consultado (C), quem e informado (I).',
+      regras: [
+        'Decisoes operacionais: PO decide, time executa.',
+        'Decisoes estrategicas: Direcao decide com input dos POs.',
+        'Decisoes de escopo: PO + cliente, com alinhamento da direcao.',
+        'Decisoes de pessoas: Direcao, com input do PO direto.'
+      ]
+    }
+  },
+
+  // ── SECTION 7: Regras de Negocio ────────────────────────────────────
+  regrasNegocio: {
+    id: 'regras-negocio',
+    titulo: 'Regras de Negocio',
+    icon: 'book-open',
+    resumo: '8 blocos operacionais: da entrada de projetos a protecao da equipe.',
+    blocos: [
+      {
+        nome: 'Entrada de Projetos',
+        regras: [
+          'Todo projeto entra via briefing no Notion.',
+          'Sem briefing aprovado, nao existe projeto.',
+          'Gustavo (Comercial) e a porta de entrada para novos clientes.',
+          'Precificacao segue tabela + margem minima de 40%.'
+        ]
+      },
+      {
+        nome: 'Onboarding do Cliente',
+        regras: [
+          'Kick-off obrigatorio com cliente + time.',
+          'Materiais de referencia e branding do cliente coletados antes do inicio.',
+          'Comunicar claramente: prazos, escopo, canais de contato.'
+        ]
+      },
+      {
+        nome: 'Kickoff Interno',
+        regras: [
+          'PO define cronograma e distribui tasks.',
+          'Time valida viabilidade tecnica e prazos.',
+          'Riscos mapeados e comunicados na primeira semana.'
+        ]
+      },
+      {
+        nome: 'Entregas',
+        regras: [
+          'Curadoria antes de enviar ao cliente — PO aprova tudo.',
+          'Nomenclatura padrao de arquivos.',
+          'Entrega via Drive em pasta padrao do projeto.'
+        ]
+      },
+      {
+        nome: 'Revisoes',
+        regras: [
+          '3 rodadas incluidas no escopo.',
+          'Revisoes extras geram custo adicional e novo prazo.',
+          'Revisao nao e refacao — mudanca de conceito e novo escopo.'
+        ]
+      },
+      {
+        nome: 'Governanca',
+        regras: [
+          'Reunioes internas semanais por BU.',
+          'Daily de socios: alinhamento estrategico.',
+          'Review criativo quinzenal: padrao de qualidade.'
+        ]
+      },
+      {
+        nome: 'Financeiro',
+        regras: [
+          'Cobranca: 50% entrada + 50% entrega (padrao).',
+          'Projetos longos: parcelas mensais.',
+          'Inadimplencia > 30 dias: pausa no projeto + notificacao.'
+        ]
+      },
+      {
+        nome: 'Protecao da Equipe',
+        regras: [
+          'Carga de trabalho monitorada semanalmente.',
+          'Prazo minimo respeitado — urgencia nao justifica burnout.',
+          'Cliente que desrespeita o time e redirecionado a direcao.',
+          'Ferias e descanso sao inegociaveis.'
+        ]
+      }
+    ]
+  },
+
+  // ── SECTION 8: Comunicacao ───────────────────────────────────────────
   comunicacao: {
     id: 'comunicacao',
     titulo: 'Comunicacao',
@@ -122,7 +311,7 @@ const TBO_CULTURA_DATA = {
     palavrasEvitamos: 'Promocao, novidade, propaganda, simplicidade, jargoes vazios, girias, superioridade'
   },
 
-  // ── SECTION 5: Estrutura de Cargos ───────────────────────────────────
+  // ── SECTION 9: Estrutura de Cargos ───────────────────────────────────
   estrutura: {
     id: 'estrutura',
     titulo: 'Estrutura de Cargos',
@@ -147,7 +336,7 @@ const TBO_CULTURA_DATA = {
     totalPessoas: '17 (15 internas + 2 suporte terceirizado)'
   },
 
-  // ── SECTION 6: Politicas ─────────────────────────────────────────────
+  // ── SECTION 10: Politicas ─────────────────────────────────────────────
   politicas: {
     id: 'politicas',
     titulo: 'Politicas & Compliance',
@@ -206,7 +395,7 @@ const TBO_CULTURA_DATA = {
     }
   },
 
-  // ── SECTION 7: Ferramentas ───────────────────────────────────────────
+  // ── SECTION 11: Ferramentas ───────────────────────────────────────────
   ferramentas: {
     id: 'ferramentas',
     titulo: 'Guia de Ferramentas',
@@ -228,7 +417,7 @@ const TBO_CULTURA_DATA = {
     ]
   },
 
-  // ── SECTION 8: Cultura & Lideranca ───────────────────────────────────
+  // ── SECTION 12: Cultura & Lideranca (legado — manter compatibilidade) ──
   cultura: {
     id: 'cultura',
     titulo: 'Cultura & Lideranca',
@@ -251,5 +440,46 @@ const TBO_CULTURA_DATA = {
       'Toma decisoes dificeis com maturidade.'
     ],
     trabalhoRemoto: 'A TBO e uma empresa remota com raizes em Curitiba. A comunicacao assincrona e padrao. A distancia nunca pode ser desculpa para desalinhamento.'
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // CULTURE NUDGES — Micro-lembretes para o dashboard
+  // Rotacionados diariamente no widget do Command Center
+  // ═══════════════════════════════════════════════════════════════════════
+
+  nudges: {
+    // Valor do dia (6 valores, rotaciona pelo dia do ano)
+    valorDoDia() {
+      const valores = TBO_CULTURA_DATA.mvv.valores;
+      const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+      return valores[dayOfYear % valores.length];
+    },
+
+    // Tip cultural aleatorio
+    tipCultural() {
+      const tips = [
+        ...TBO_CULTURA_DATA.culturaViva.comportamentos.map(c => `${c.pilar}: ${c.desc}`),
+        ...TBO_CULTURA_DATA.cultura.principiosCulturais,
+        ...TBO_CULTURA_DATA.lideranca.principioAutonomia.praticas,
+        ...TBO_CULTURA_DATA.lideranca.feedback.principios,
+        ...TBO_CULTURA_DATA.comunicacao.regrasOuro.map(r => `${r.titulo}: ${r.desc}`)
+      ];
+      const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+      return tips[dayOfYear % tips.length];
+    },
+
+    // Anti-padrao do dia (lembrete do que NAO fazer)
+    antiPadraoDoDia() {
+      const anti = TBO_CULTURA_DATA.culturaViva.antiCultura;
+      const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+      return anti[dayOfYear % anti.length];
+    },
+
+    // Pergunta de autoavaliacao
+    reflexaoDoDia() {
+      const perguntas = TBO_CULTURA_DATA.culturaViva.autoavaliacao;
+      const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+      return perguntas[dayOfYear % perguntas.length];
+    }
   }
 };

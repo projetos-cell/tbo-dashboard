@@ -65,7 +65,6 @@ const TBO_PAGAR = {
           <button class="tab" data-tab="pg-categorias">Categorias</button>
           <button class="tab" data-tab="pg-equipe">Folha de Pagamento</button>
           <button class="tab" data-tab="pg-projetos">Custos de Projetos</button>
-          ${typeof TBO_OMIE_BRIDGE !== 'undefined' && TBO_OMIE_BRIDGE.isActive() ? '<button class="tab" data-tab="pg-omie"><i data-lucide="cloud-download" style="width:12px;height:12px;"></i> Contas Omie</button>' : ''}
         </div>
 
         <!-- Tab: Fluxo Mensal -->
@@ -130,93 +129,8 @@ const TBO_PAGAR = {
           ${this._renderProjectCosts(activeProjects)}
         </div>
 
-        <!-- Tab: Contas Omie (individual line items) -->
-        ${typeof TBO_OMIE_BRIDGE !== 'undefined' && TBO_OMIE_BRIDGE.isActive() ? `
-        <div class="tab-content" id="tab-pg-omie" style="display:none;">
-          ${this._renderOmiePayables()}
-        </div>` : ''}
       </div>
     `;
-  },
-
-  _renderOmiePayables() {
-    if (typeof TBO_OMIE_BRIDGE === 'undefined') return '';
-    const items = TBO_OMIE_BRIDGE.getContasPagar();
-    const fmt = (v) => 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-    const hoje = new Date();
-    const resumo = TBO_OMIE_BRIDGE.getResumoFinanceiro();
-
-    // Separar vencidos
-    const vencidos = items.filter(i => !TBO_OMIE_BRIDGE._isRealized(i) && TBO_OMIE_BRIDGE._toDate(i.vencimento) < hoje);
-
-    return `<div class="card" style="padding:16px;">
-      ${vencidos.length > 0 ? `
-      <div style="background:#ef444415;border:1px solid #ef444440;border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
-        <i data-lucide="alert-triangle" style="width:18px;height:18px;color:#ef4444;"></i>
-        <div>
-          <div style="font-weight:600;font-size:0.85rem;color:#ef4444;">${vencidos.length} conta${vencidos.length > 1 ? 's' : ''} vencida${vencidos.length > 1 ? 's' : ''}</div>
-          <div style="font-size:0.75rem;color:var(--text-secondary);">Total vencido: ${fmt(vencidos.reduce((s, i) => s + (i.valor || 0), 0))}</div>
-        </div>
-      </div>` : ''}
-
-      ${resumo ? `
-      <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;">
-        <div style="background:var(--bg-secondary);padding:10px 16px;border-radius:8px;flex:1;min-width:120px;">
-          <div style="font-size:0.7rem;color:var(--text-muted);">Total a Pagar</div>
-          <div style="font-weight:700;font-size:1rem;">${fmt(resumo.totalPagar)}</div>
-        </div>
-        <div style="background:var(--bg-secondary);padding:10px 16px;border-radius:8px;flex:1;min-width:120px;">
-          <div style="font-size:0.7rem;color:var(--text-muted);">Qtd Contas</div>
-          <div style="font-weight:700;font-size:1rem;">${resumo.contasPagar}</div>
-        </div>
-      </div>` : ''}
-
-      <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
-          <thead>
-            <tr style="border-bottom:2px solid var(--border-default);text-align:left;">
-              <th style="padding:8px;">Vencimento</th>
-              <th style="padding:8px;">Fornecedor</th>
-              <th style="padding:8px;">Descricao</th>
-              <th style="padding:8px;">Categoria</th>
-              <th style="padding:8px;text-align:right;">Valor</th>
-              <th style="padding:8px;text-align:center;">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${items.length === 0 ? '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--text-muted);">Nenhuma conta a pagar no Omie.</td></tr>' :
-            items.map(item => {
-              const isVencido = !TBO_OMIE_BRIDGE._isRealized(item) && TBO_OMIE_BRIDGE._toDate(item.vencimento) < hoje;
-              const isPago = TBO_OMIE_BRIDGE._isRealized(item);
-              const statusColor = isPago ? '#22c55e' : (isVencido ? '#ef4444' : '#f59e0b');
-              const statusLabel = isPago ? 'Pago' : (isVencido ? 'Vencido' : 'A Vencer');
-              return `<tr style="border-bottom:1px solid var(--border-subtle);${isVencido ? 'background:#ef444408;' : ''}">
-                <td style="padding:8px;font-weight:500;">${TBO_OMIE_BRIDGE._fmtDate(item.vencimento)}</td>
-                <td style="padding:8px;">${item.fornecedorNome || item.fornecedor || '—'}</td>
-                <td style="padding:8px;color:var(--text-secondary);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.descricao || '—'}</td>
-                <td style="padding:8px;"><span class="tag" style="font-size:0.65rem;">${item.categoriaNome || '—'}</span></td>
-                <td style="padding:8px;text-align:right;font-weight:600;">${fmt(item.valor)}</td>
-                <td style="padding:8px;text-align:center;">
-                  <span class="tag" style="font-size:0.65rem;background:${statusColor}20;color:${statusColor};">${statusLabel}</span>
-                </td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-          ${items.length > 0 ? `
-          <tfoot>
-            <tr style="border-top:2px solid var(--border-default);font-weight:700;">
-              <td style="padding:10px 8px;" colspan="4">Total (${items.length} contas)</td>
-              <td style="padding:10px 8px;text-align:right;">${fmt(items.reduce((s, i) => s + (i.valor || 0), 0))}</td>
-              <td></td>
-            </tr>
-          </tfoot>` : ''}
-        </table>
-      </div>
-      <div style="margin-top:12px;font-size:0.7rem;color:var(--text-muted);display:flex;align-items:center;gap:6px;">
-        <i data-lucide="cloud" style="width:12px;height:12px;"></i>
-        Fonte: Omie ERP (sync unilateral) — Ultima atualizacao: ${TBO_OMIE._lastSync ? new Date(TBO_OMIE._lastSync).toLocaleString('pt-BR') : 'nunca'}
-      </div>
-    </div>`;
   },
 
   _renderCatBar(label, value, total, color) {

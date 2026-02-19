@@ -155,9 +155,42 @@ const TBO_STORAGE = {
   async _loadFromOmie() {
     if (typeof TBO_OMIE === 'undefined' || !TBO_OMIE.isEnabled()) return;
     try {
-      const result = await TBO_OMIE.sync();
+      // Restaurar overrides do Supabase antes do sync
+      if (typeof TBO_OMIE_BRIDGE !== 'undefined') {
+        await TBO_OMIE_BRIDGE.loadOverridesFromSupabase();
+      }
+
+      // Tentar sync com Omie API
+      let result = null;
+      try {
+        result = await TBO_OMIE.sync();
+      } catch (syncErr) {
+        console.warn('[TBO Storage] Omie API sync falhou, tentando restaurar do Supabase...', syncErr.message);
+        // Fallback: restaurar dados do Supabase se o sync falhar
+        if (typeof TBO_OMIE_BRIDGE !== 'undefined') {
+          await TBO_OMIE_BRIDGE.restoreFromSupabase();
+        }
+      }
+
       if (result) {
         console.log(`[TBO Storage] Omie sync: ${result.contasPagar} CP, ${result.contasReceber} CR, ${result.clientes} clientes`);
+        // Persistir sync no Supabase para backup
+        if (typeof TBO_OMIE_BRIDGE !== 'undefined') {
+          TBO_OMIE_BRIDGE.persistSyncToSupabase(); // async fire-and-forget
+        }
+      }
+
+      // Mergear dados Omie no fluxo_caixa via bridge
+      if (typeof TBO_OMIE_BRIDGE !== 'undefined' && TBO_OMIE_BRIDGE.isActive()) {
+        const ctx = this._data.context || {};
+        const fy = (typeof TBO_CONFIG !== 'undefined' && TBO_CONFIG.app?.fiscalYear) || new Date().getFullYear();
+        if (!ctx.dados_comerciais) ctx.dados_comerciais = {};
+        if (!ctx.dados_comerciais[fy]) ctx.dados_comerciais[fy] = {};
+
+        const existingFc = ctx.dados_comerciais[fy].fluxo_caixa || {};
+        ctx.dados_comerciais[fy].fluxo_caixa = TBO_OMIE_BRIDGE.getMergedFluxoCaixa(existingFc);
+        this._data.context = ctx;
+        console.log('[TBO Storage] Omie bridge: dados financeiros mergeados no fluxo_caixa');
       }
     } catch (e) {
       console.warn('[TBO Storage] Omie sync failed:', e.message);

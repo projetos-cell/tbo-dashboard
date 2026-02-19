@@ -419,9 +419,52 @@ const TBO_CONCILIACAO_BANCARIA = {
         }
       }
 
+      // Match individual contra transacoes Omie
+      if (typeof TBO_OMIE_BRIDGE !== 'undefined' && TBO_OMIE_BRIDGE.isActive()) {
+        if (txn.isCredit) {
+          const omieCR = TBO_OMIE_BRIDGE.getContasReceber();
+          const match = omieCR.find(cr =>
+            Math.abs((cr.valor || 0) - txn.absAmount) < 0.01 &&
+            this._dateClose(cr.vencimento, txn.date, 7)
+          );
+          if (match) {
+            txn._matchStatus = 'matched';
+            txn._matchSuggestion = `Omie CR: ${match.clienteNome || ''} — ${match.descricao || ''} (R$ ${this._fmt(match.valor)})`;
+            txn._omieMatchId = match.omieId;
+            continue;
+          }
+        } else {
+          const omieCP = TBO_OMIE_BRIDGE.getContasPagar();
+          const match = omieCP.find(cp =>
+            Math.abs((cp.valor || 0) - txn.absAmount) < 0.01 &&
+            this._dateClose(cp.vencimento, txn.date, 7)
+          );
+          if (match) {
+            txn._matchStatus = 'matched';
+            txn._matchSuggestion = `Omie CP: ${match.fornecedorNome || ''} — ${match.descricao || ''} (R$ ${this._fmt(match.valor)})`;
+            txn._omieMatchId = match.omieId;
+            continue;
+          }
+        }
+      }
+
       // Sem match
       txn._matchStatus = txn._matchStatus || 'unmatched';
     }
+  },
+
+  // Verifica se duas datas estao dentro de N dias de diferenca
+  _dateClose(dateStr1, dateStr2, maxDays) {
+    if (!dateStr1 || !dateStr2) return false;
+    const parse = (s) => {
+      if (s.includes('/')) { const p = s.split('/'); return new Date(p[2], p[1] - 1, p[0]); }
+      return new Date(s);
+    };
+    try {
+      const d1 = parse(dateStr1);
+      const d2 = parse(dateStr2);
+      return Math.abs(d1 - d2) <= maxDays * 24 * 60 * 60 * 1000;
+    } catch { return false; }
   },
 
   _getImportHistory() {

@@ -60,7 +60,20 @@ const TBO_CHAT = {
   // ── Helpers ──────────────────────────────────────────────────────
   _esc(s) { return typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.escapeHtml(s) : String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;' }[c])); },
   _getClient() { return typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null; },
-  _getTenantId() { return typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getCurrentTenantId() : null; },
+  _getTenantId() {
+    // Tentar varias fontes de tenant_id
+    if (typeof TBO_SUPABASE !== 'undefined') {
+      const fromMethod = TBO_SUPABASE.getCurrentTenantId?.();
+      if (fromMethod) return fromMethod;
+    }
+    // Fallback: user_metadata
+    if (this._currentUser?.user_metadata?.tenant_id) return this._currentUser.user_metadata.tenant_id;
+    // Fallback: sessionStorage
+    try {
+      const auth = JSON.parse(sessionStorage.getItem('tbo_auth') || '{}');
+      return auth?.user?.tenant_id || auth?.tenant_id || null;
+    } catch (e) { return null; }
+  },
 
   async _getCurrentUser() {
     if (this._currentUser) return this._currentUser;
@@ -253,6 +266,8 @@ const TBO_CHAT = {
   // ══════════════════════════════════════════════════════════════════
   // INIT
   // ══════════════════════════════════════════════════════════════════
+  _bound: false,
+
   async init() {
     if (window.lucide) lucide.createIcons();
 
@@ -263,96 +278,107 @@ const TBO_CHAT = {
       return;
     }
 
+    // Bind events via delegation (uma unica vez)
+    if (!this._bound) {
+      this._bindEvents();
+      this._bound = true;
+    }
+
     // Carregar todos os usuarios do tenant (para mencoes)
     await this._loadAllUsers();
 
     // Carregar secoes e canais
     await this._loadSections();
     await this._loadChannels();
-
-    this._bindEvents();
   },
 
   _bindEvents() {
-    // Novo canal
-    this._on('chatNewChannel', 'click', () => this._showNewChannelModal());
-    // Nova secao
-    this._on('chatNewSection', 'click', () => this._showNewSectionModal());
-    // Fechar modais com Escape / overlay click
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') this._closeAllModals();
-    });
-    document.querySelectorAll('.chat-modal-overlay').forEach(overlay => {
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) this._closeAllModals();
-      });
+    const self = this;
+    const container = document.querySelector('.chat-module');
+    if (!container) return;
+
+    // ── Event delegation: click ──
+    container.addEventListener('click', (e) => {
+      const btn = e.target.closest('[id]');
+      if (!btn) return;
+      const id = btn.id;
+      if (id === 'chatNewChannel') self._showNewChannelModal();
+      else if (id === 'chatNewSection') self._showNewSectionModal();
+      else if (id === 'chatBackBtn') self._showSidebar();
+      else if (id === 'chatManageMembers') self._showMembersModal();
+      else if (id === 'chatAttachBtn') document.getElementById('chatFileInput')?.click();
+      else if (id === 'chatEmojiBtn') self._toggleEmojiPicker();
+      else if (id === 'chatStickerBtn') self._toggleStickerPicker();
+      else if (id === 'chatPollBtn') self._showPollModal();
+      else if (id === 'chatMentionBtn') self._insertMentionTrigger();
+      else if (id === 'chatSendBtn') self._sendMessage();
+      else if (id === 'chatLoadMoreBtn') self._loadOlderMessages();
     });
 
-    // Back button (mobile)
-    this._on('chatBackBtn', 'click', () => this._showSidebar());
-    // Gerenciar membros
-    this._on('chatManageMembers', 'click', () => this._showMembersModal());
-    // Attach
-    this._on('chatAttachBtn', 'click', () => document.getElementById('chatFileInput')?.click());
-    this._on('chatFileInput', 'change', (e) => this._handleFileSelect(e));
-    // Emoji
-    this._on('chatEmojiBtn', 'click', () => this._toggleEmojiPicker());
-    // Stickers
-    this._on('chatStickerBtn', 'click', () => this._toggleStickerPicker());
-    // Poll
-    this._on('chatPollBtn', 'click', () => this._showPollModal());
-    // Mention button
-    this._on('chatMentionBtn', 'click', () => this._insertMentionTrigger());
-    // Search canais
-    this._on('chatSearchInput', 'input', (e) => this._filterChannels(e.target.value));
+    // ── Input: keydown (Enter to send) ──
+    container.addEventListener('keydown', (e) => {
+      if (e.target.id !== 'chatInput') return;
+      // Mention suggestions navigation
+      if (self._showMentionSuggestions) {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          self._navigateMentionSuggestion(e.key === 'ArrowDown' ? 1 : -1);
+          return;
+        }
+        if (e.key === 'Enter' || e.key === 'Tab') {
+          const active = document.querySelector('.chat-mention-item.active');
+          if (active) { e.preventDefault(); self._selectMention(active.dataset.userId); return; }
+        }
+        if (e.key === 'Escape') { self._hideMentionSuggestions(); return; }
+      }
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        self._sendMessage();
+      }
+    });
 
-    // Input: auto-resize + send + mention detection
-    const input = document.getElementById('chatInput');
-    if (input) {
-      input.addEventListener('input', (e) => {
+    // ── Input: auto-resize + typing + mention check ──
+    container.addEventListener('input', (e) => {
+      if (e.target.id === 'chatInput') {
+        const input = e.target;
         input.style.height = 'auto';
         input.style.height = Math.min(input.scrollHeight, 120) + 'px';
-        this._sendTypingIndicator();
-        this._checkMentionTrigger(input);
-      });
-      input.addEventListener('keydown', (e) => {
-        // Mention suggestions navigation
-        if (this._showMentionSuggestions) {
-          if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-            e.preventDefault();
-            this._navigateMentionSuggestion(e.key === 'ArrowDown' ? 1 : -1);
-            return;
-          }
-          if (e.key === 'Enter' || e.key === 'Tab') {
-            const active = document.querySelector('.chat-mention-item.active');
-            if (active) { e.preventDefault(); this._selectMention(active.dataset.userId); return; }
-          }
-          if (e.key === 'Escape') { this._hideMentionSuggestions(); return; }
-        }
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          this._sendMessage();
-        }
-      });
-    }
+        self._sendTypingIndicator();
+        self._checkMentionTrigger(input);
+      }
+      if (e.target.id === 'chatSearchInput') {
+        self._filterChannels(e.target.value);
+      }
+    });
 
-    // Send button
-    this._on('chatSendBtn', 'click', () => this._sendMessage());
+    // ── File input change ──
+    container.addEventListener('change', (e) => {
+      if (e.target.id === 'chatFileInput') self._handleFileSelect(e);
+    });
 
-    // Scroll load more
+    // ── Scroll load more ──
     const scroll = document.getElementById('chatMessagesScroll');
     if (scroll) {
       scroll.addEventListener('scroll', () => {
-        if (scroll.scrollTop < 50 && !this._loadingMore && !this._allLoaded) {
-          this._loadOlderMessages();
+        if (scroll.scrollTop < 50 && !self._loadingMore && !self._allLoaded) {
+          self._loadOlderMessages();
         }
       });
     }
 
-    // Load more button
-    this._on('chatLoadMoreBtn', 'click', () => this._loadOlderMessages());
+    // ── Fechar modais com Escape ──
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') self._closeAllModals();
+    });
 
-    // Fechar pickers ao clicar fora
+    // ── Fechar modais ao clicar no overlay ──
+    document.querySelectorAll('.chat-modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) self._closeAllModals();
+      });
+    });
+
+    // ── Fechar pickers ao clicar fora ──
     document.addEventListener('click', (e) => {
       if (!e.target.closest('#chatEmojiPicker') && !e.target.closest('#chatEmojiBtn')) {
         const p = document.getElementById('chatEmojiPicker');
@@ -363,11 +389,6 @@ const TBO_CHAT = {
         if (p) p.style.display = 'none';
       }
     });
-  },
-
-  _on(id, event, fn) {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener(event, fn);
   },
 
   _closeAllModals() {

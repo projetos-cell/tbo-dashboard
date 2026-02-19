@@ -45,8 +45,7 @@ const TBO_NAVIGATION = {
     'entregas': 'Entregas',
     'revisoes': 'Revisoes',
     'decisoes': 'Decisoes',
-    'timesheets': 'Timesheets',
-    'carga-trabalho': 'Carga de Trabalho',
+    // timesheets, carga-trabalho removidos em v2.2
     'pagar': 'Contas a Pagar',
     'receber': 'Contas a Receber',
     'margens': 'Margens',
@@ -55,7 +54,7 @@ const TBO_NAVIGATION = {
     'cultura': 'Manual de Cultura',
     'biblioteca': 'Biblioteca',
     'templates': 'Templates',
-    'capacidade': 'Capacidade',
+    // capacidade removido em v2.2
     'changelog': 'Changelog',
     'integracoes': 'Integracoes',
     'trilha-aprendizagem': 'Trilha de Aprendizagem',
@@ -286,6 +285,16 @@ const TBO_NAVIGATION = {
         this._closeFAB();
       }
     });
+
+    // Observar timer widget para evitar sobreposicao
+    const timerWidget = document.getElementById('timerWidget');
+    if (timerWidget) {
+      const _updateFabTimerClass = () => {
+        container.classList.toggle('tbo-fab-timer-active', timerWidget.style.display !== 'none');
+      };
+      _updateFabTimerClass(); // estado inicial
+      new MutationObserver(_updateFabTimerClass).observe(timerWidget, { attributes: true, attributeFilter: ['style'] });
+    }
   },
 
   _toggleFAB() {
@@ -1418,6 +1427,14 @@ const TBO_NAVIGATION = {
       bottom: 96px;
     }
 
+    /* Evitar sobreposicao com timer widget */
+    .tbo-fab-container.tbo-fab-timer-active {
+      bottom: 110px;
+    }
+    .tbo-fab-container.tbo-fab-with-tabbar.tbo-fab-timer-active {
+      bottom: 160px;
+    }
+
     .tbo-fab-main {
       width: 67px;
       height: 67px;
@@ -2071,6 +2088,9 @@ const TBO_NAVIGATION = {
       .tbo-fab-container {
         bottom: 72px;
         right: 16px;
+      }
+      .tbo-fab-container.tbo-fab-timer-active {
+        bottom: 140px;
       }
 
       .tbo-fab-main {

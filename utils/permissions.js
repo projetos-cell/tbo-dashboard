@@ -17,7 +17,7 @@ const TBO_PERMISSIONS = {
   _sharedModules: [
     'entregas','tarefas','revisoes',
     'decisoes','biblioteca',
-    'carga-trabalho','timesheets','capacidade',
+    // carga-trabalho, timesheets, capacidade removidos em v2.2
     'trilha-aprendizagem','pessoas-avancado',
     'integracoes','templates',
     'workspace','changelog'
@@ -168,7 +168,7 @@ const TBO_PERMISSIONS = {
       id: 'pessoas',
       label: 'PESSOAS',
       icon: 'users',
-      modules: ['rh', 'cultura', 'trilha-aprendizagem', 'pessoas-avancado', 'carga-trabalho', 'timesheets', 'capacidade', 'admin-onboarding']
+      modules: ['rh', 'cultura', 'trilha-aprendizagem', 'pessoas-avancado', 'admin-onboarding']
     },
     {
       id: 'financeiro-section',

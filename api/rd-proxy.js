@@ -50,21 +50,32 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // ── Validar token de autenticacao Supabase ──
+  // ── Validar token de autenticacao Supabase (via fetch direto, sem SDK) ──
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Token de autenticacao ausente' });
   }
 
-  const token = authHeader.replace('Bearer ', '');
-  const { createClient } = require('@supabase/supabase-js');
-  const supabase = createClient(
-    process.env.SUPABASE_URL || '',
-    process.env.SUPABASE_ANON_KEY || ''
-  );
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !user) {
-    return res.status(401).json({ error: 'Token invalido ou expirado' });
+  const supabaseUrl = process.env.SUPABASE_URL || 'https://olnndpultyllyhzxuyxh.supabase.co';
+  const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
+
+  let user;
+  try {
+    const authRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: {
+        'Authorization': authHeader,
+        'apikey': supabaseKey
+      }
+    });
+    if (!authRes.ok) {
+      return res.status(401).json({ error: 'Token invalido ou expirado' });
+    }
+    user = await authRes.json();
+    if (!user || !user.id) {
+      return res.status(401).json({ error: 'Usuario nao encontrado' });
+    }
+  } catch (e) {
+    return res.status(401).json({ error: 'Erro ao validar autenticacao' });
   }
 
   // ── Rate limiting por usuario ──

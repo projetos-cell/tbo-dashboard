@@ -1,28 +1,37 @@
 // TBO OS — Module: Manual de Cultura
-// Viewer for TBO culture manual content (from Notion)
+// Viewer for TBO culture manual content (from Notion + Supabase culture_pages)
 const TBO_CULTURA = {
 
   _currentSection: null,
+  _customPages: [],  // Paginas do Supabase (culture_pages)
+  _tab: 'manual',    // manual | paginas | editor
 
   render() {
     const data = typeof TBO_CULTURA_DATA !== 'undefined' ? TBO_CULTURA_DATA : null;
-    if (!data) return '<div class="module-empty"><h2>Dados de cultura nao encontrados</h2></div>';
-
-    const sections = [data.sobre, data.mvv, data.estrategia, data.comunicacao, data.estrutura, data.politicas, data.ferramentas, data.cultura];
+    const sections = data ? [data.sobre, data.mvv, data.estrategia, data.comunicacao, data.estrutura, data.politicas, data.ferramentas, data.cultura] : [];
 
     return `
     <div class="cultura-module">
       <div class="cultura-header">
         <div class="cultura-header-info">
           <h2 class="cultura-title">Manual de Cultura TBO</h2>
-          <p class="cultura-subtitle">Fonte: Notion &mdash; Atualizado em ${data.metadata.lastUpdate}</p>
+          <p class="cultura-subtitle">Fonte: Notion + Supabase &mdash; Atualizado em ${data?.metadata?.lastUpdate || new Date().toLocaleDateString('pt-BR')}</p>
         </div>
         <div class="cultura-header-stats">
-          <div class="cultura-stat"><span class="cultura-stat-num">${sections.length}</span><span class="cultura-stat-label">Secoes</span></div>
+          <div class="cultura-stat"><span class="cultura-stat-num">${sections.length + this._customPages.length}</span><span class="cultura-stat-label">Secoes</span></div>
           <div class="cultura-stat"><span class="cultura-stat-num">17</span><span class="cultura-stat-label">Pessoas</span></div>
           <div class="cultura-stat"><span class="cultura-stat-num">5</span><span class="cultura-stat-label">BUs</span></div>
         </div>
       </div>
+
+      <!-- Tabs -->
+      <div style="display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border-default);">
+        <button class="btn btn-ghost cultura-tab-btn" data-tab="manual" style="border-radius:var(--radius-md) var(--radius-md) 0 0;border-bottom:2px solid ${this._tab === 'manual' ? 'var(--brand-primary)' : 'transparent'};font-weight:${this._tab === 'manual' ? '600' : '400'};font-size:0.82rem;padding:8px 16px;">Manual Notion</button>
+        <button class="btn btn-ghost cultura-tab-btn" data-tab="paginas" style="border-radius:var(--radius-md) var(--radius-md) 0 0;border-bottom:2px solid ${this._tab === 'paginas' ? 'var(--brand-primary)' : 'transparent'};font-weight:${this._tab === 'paginas' ? '600' : '400'};font-size:0.82rem;padding:8px 16px;">Paginas (${this._customPages.length})</button>
+        <button class="btn btn-ghost cultura-tab-btn" data-tab="editor" style="border-radius:var(--radius-md) var(--radius-md) 0 0;border-bottom:2px solid ${this._tab === 'editor' ? 'var(--brand-primary)' : 'transparent'};font-weight:${this._tab === 'editor' ? '600' : '400'};font-size:0.82rem;padding:8px 16px;">+ Nova Pagina</button>
+      </div>
+
+      ${this._tab === 'paginas' ? this._renderCustomPages() : this._tab === 'editor' ? this._renderEditor() : ''}
 
       <div class="cultura-grid">
         ${sections.map(s => `
@@ -44,7 +53,72 @@ const TBO_CULTURA = {
     </div>`;
   },
 
+  _renderCustomPages() {
+    const categories = { valores: 'Valores', praticas: 'Praticas', rituais: 'Rituais', padroes: 'Padroes', geral: 'Geral' };
+
+    if (!this._customPages.length) {
+      return `<div class="card" style="text-align:center;padding:32px;"><p style="color:var(--text-muted);">Nenhuma pagina customizada. Crie uma na aba "Nova Pagina".</p></div>`;
+    }
+
+    return `
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;">
+        ${this._customPages.map(p => `
+          <div class="card" style="cursor:pointer;" data-page-id="${p.id}">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <span class="tag" style="font-size:0.62rem;">${categories[p.category] || p.category || 'Geral'}</span>
+              ${p.is_published ? '' : '<span class="tag" style="font-size:0.62rem;background:var(--color-warning)18;color:var(--color-warning);">Rascunho</span>'}
+            </div>
+            <h3 style="margin:0 0 4px;font-size:0.92rem;">${this._esc(p.title)}</h3>
+            <p style="font-size:0.75rem;color:var(--text-secondary);margin:0;line-height:1.4;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">
+              ${this._esc((p.content || '').substring(0, 200))}
+            </p>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  },
+
+  _renderEditor() {
+    return `
+      <div class="card" style="max-width:640px;">
+        <h3 style="margin:0 0 16px;font-size:0.92rem;">Nova Pagina de Cultura</h3>
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <label style="font-size:0.82rem;font-weight:500;">
+            Titulo
+            <input type="text" id="cultPageTitle" placeholder="Ex: Politica de Home Office" style="width:100%;margin-top:4px;padding:10px 12px;border:1px solid var(--border-default);border-radius:var(--radius-md);font-size:0.88rem;background:var(--bg-primary);">
+          </label>
+          <label style="font-size:0.82rem;font-weight:500;">
+            Categoria
+            <select id="cultPageCategory" style="width:100%;margin-top:4px;padding:10px 12px;border:1px solid var(--border-default);border-radius:var(--radius-md);font-size:0.88rem;background:var(--bg-primary);">
+              <option value="geral">Geral</option>
+              <option value="valores">Valores</option>
+              <option value="praticas">Praticas</option>
+              <option value="rituais">Rituais</option>
+              <option value="padroes">Padroes de Qualidade</option>
+            </select>
+          </label>
+          <label style="font-size:0.82rem;font-weight:500;">
+            Conteudo
+            <textarea id="cultPageContent" rows="8" placeholder="Escreva o conteudo da pagina..." style="width:100%;margin-top:4px;padding:10px 12px;border:1px solid var(--border-default);border-radius:var(--radius-md);font-size:0.88rem;background:var(--bg-primary);resize:vertical;"></textarea>
+          </label>
+          <div style="display:flex;gap:12px;">
+            <button class="btn btn-primary" id="cultPageSave">Salvar Pagina</button>
+            <button class="btn btn-ghost" id="cultPageCancel">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
   init() {
+    // Tab navigation
+    document.querySelectorAll('.cultura-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this._tab = btn.dataset.tab;
+        this._rerender();
+      });
+    });
+
     document.querySelectorAll('.cultura-card').forEach(card => {
       card.addEventListener('click', () => {
         const sectionId = card.dataset.section;
@@ -55,7 +129,78 @@ const TBO_CULTURA = {
     const backBtn = document.getElementById('culturaBack');
     if (backBtn) backBtn.addEventListener('click', () => this._hideSection());
 
+    // Editor save
+    document.getElementById('cultPageSave')?.addEventListener('click', () => this._savePage());
+    document.getElementById('cultPageCancel')?.addEventListener('click', () => { this._tab = 'paginas'; this._rerender(); });
+
+    // Load custom pages
+    this._loadCustomPages();
+
     if (window.lucide) lucide.createIcons();
+  },
+
+  async _loadCustomPages() {
+    try {
+      if (typeof TBO_SUPABASE === 'undefined' || !TBO_SUPABASE.getClient()) return;
+      const client = TBO_SUPABASE.getClient();
+      const { data } = await client.from('culture_pages').select('*').order('order_index');
+      if (data) this._customPages = data;
+    } catch (e) {
+      console.warn('[Cultura] Erro ao carregar paginas:', e.message);
+    }
+  },
+
+  async _savePage() {
+    const title = document.getElementById('cultPageTitle')?.value?.trim();
+    const category = document.getElementById('cultPageCategory')?.value;
+    const content = document.getElementById('cultPageContent')?.value?.trim();
+
+    if (!title) {
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.warning('Cultura', 'Preencha o titulo.');
+      return;
+    }
+
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+    try {
+      const client = TBO_SUPABASE?.getClient();
+      if (client) {
+        const tenantStr = localStorage.getItem('tbo_current_workspace');
+        const tenantId = tenantStr ? JSON.parse(tenantStr).id : null;
+        const { data: { user } } = await client.auth.getUser();
+
+        await client.from('culture_pages').insert({
+          tenant_id: tenantId,
+          title, slug, content, category,
+          is_published: true,
+          created_by: user?.id,
+          order_index: this._customPages.length
+        });
+      }
+    } catch (e) {
+      console.warn('[Cultura] Erro ao salvar:', e.message);
+    }
+
+    // Adicionar localmente tambem
+    this._customPages.push({ id: 'local_' + Date.now(), title, slug, content, category, is_published: true });
+    if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Cultura', 'Pagina criada!');
+    this._tab = 'paginas';
+    this._rerender();
+  },
+
+  _rerender() {
+    const container = document.getElementById('moduleContainer');
+    if (container) {
+      container.innerHTML = this.render();
+      this.init();
+    }
+  },
+
+  _esc(str) {
+    if (typeof _escapeHtml === 'function') return _escapeHtml(String(str || ''));
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
   },
 
   _showSection(sectionId) {

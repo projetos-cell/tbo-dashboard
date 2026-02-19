@@ -4,6 +4,26 @@
 const TBO_CHANGELOG = {
   _versions: [
     {
+      version: '2.2.0',
+      date: '2026-02-19',
+      title: 'Plataforma Completa — Financeiro, Academy, Admin, PDF',
+      type: 'major',
+      changes: [
+        { type: 'feature', text: 'Schema financeiro nativo: 12 tabelas (transactions, receivables, payables, invoices, categories, cost_centers, vendors, clients, bank_imports, bank_transactions, reconciliation_rules/audit)' },
+        { type: 'feature', text: 'Conciliacao bancaria: upload OFX/CSV, preview, auto-match por data/valor, aprovar/rejeitar, historico' },
+        { type: 'feature', text: 'Parser OFX: suporte a todos os bancos (SGML + XML)' },
+        { type: 'feature', text: 'Parser CSV: deteccao automatica de layout (Itau, Bradesco, BB, Nubank, Inter, Santander)' },
+        { type: 'feature', text: 'TBO Academy: catalogo de cursos, matriculas, progresso, certificados (Supabase-backed)' },
+        { type: 'feature', text: 'Admin Portal: gestao de empresas, usuarios, roles, matrix de permissoes, auditoria' },
+        { type: 'feature', text: 'Onboarding Wizard: wizard de primeiro acesso (perfil, empresa, preferencias) com 4 etapas' },
+        { type: 'feature', text: 'Export PDF: relatorios via html2pdf.js com cabecalho TBO e formatacao limpa' },
+        { type: 'feature', text: 'Pesquisas de Mercado: tabelas market_research + market_sources no Supabase' },
+        { type: 'improvement', text: 'Manual de Cultura expandido: tabs Notion + Supabase culture_pages + editor de paginas' },
+        { type: 'improvement', text: 'Ficha Colaborador PJ: campos cargo, department, salary_pj, contract_type, cnpj, start_date no profiles' },
+        { type: 'improvement', text: 'Migrations v4 (financeiro) e v5 (academy + mercado) prontas para execucao' }
+      ]
+    },
+    {
       version: '2.1.0',
       date: '2026-02-19',
       title: 'Integracoes v2 — Omie, Calendar, RD Unilateral',
@@ -224,8 +244,8 @@ const TBO_CHANGELOG = {
         <div style="background:linear-gradient(135deg, #E85102 0%, #ff7b3a 100%);color:#fff;padding:16px 24px;border-radius:var(--radius-lg, 12px);margin-bottom:24px;display:flex;align-items:center;gap:16px;">
           <i data-lucide="rocket" style="width:28px;height:28px;flex-shrink:0;"></i>
           <div>
-            <div style="font-family:var(--font-display);font-size:1.1rem;font-weight:700;">Voce esta na v2.1</div>
-            <div style="font-size:0.82rem;opacity:0.9;">Integracoes v2: Omie ERP, Google Calendar, RD Station unilateral e Fireflies verificado.</div>
+            <div style="font-family:var(--font-display);font-size:1.1rem;font-weight:700;">Voce esta na v2.2</div>
+            <div style="font-size:0.82rem;opacity:0.9;">Plataforma completa: Financeiro nativo, Academy, Admin Portal, Conciliacao Bancaria, PDF Export.</div>
           </div>
         </div>
 

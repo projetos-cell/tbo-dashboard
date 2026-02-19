@@ -95,7 +95,11 @@ const TBO_APP = {
       'trilha-aprendizagem': typeof TBO_TRILHA_APRENDIZAGEM !== 'undefined' ? TBO_TRILHA_APRENDIZAGEM : null,
       'pessoas-avancado': typeof TBO_PESSOAS_AVANCADO !== 'undefined' ? TBO_PESSOAS_AVANCADO : null,
       'admin-onboarding': typeof TBO_ADMIN_ONBOARDING !== 'undefined' ? TBO_ADMIN_ONBOARDING : null,
-      'workspace': typeof TBO_WORKSPACE !== 'undefined' ? TBO_WORKSPACE : null
+      'workspace': typeof TBO_WORKSPACE !== 'undefined' ? TBO_WORKSPACE : null,
+      'admin-portal': typeof TBO_ADMIN_PORTAL !== 'undefined' ? TBO_ADMIN_PORTAL : null,
+      'conciliacao-bancaria': typeof TBO_CONCILIACAO_BANCARIA !== 'undefined' ? TBO_CONCILIACAO_BANCARIA : null,
+      'onboarding-wizard': typeof TBO_ONBOARDING_WIZARD !== 'undefined' ? TBO_ONBOARDING_WIZARD : null,
+      'academy': typeof TBO_ACADEMY_CATALOGO !== 'undefined' ? TBO_ACADEMY_CATALOGO : null
     };
 
     Object.entries(modules).forEach(([name, mod]) => {

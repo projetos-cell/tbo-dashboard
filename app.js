@@ -54,10 +54,12 @@ const TBO_APP = {
     TBO_AUTH.initAuthListener();
     const loggedIn = TBO_AUTH.checkSession();
 
-    // 2. Load data
+    // 2. Load critical data (JSON + ERP cache — APIs externas carregam em background)
+    // v2.1 Performance: loadCritical() carrega apenas dados essenciais (~500ms)
+    // APIs externas (Sheets, Fireflies, RD, Omie, Calendar) carregam apos dashboard visivel
     try {
-      await TBO_STORAGE.loadAll();
-      console.log('[TBO OS] Data loaded');
+      await TBO_STORAGE.loadCritical();
+      console.log('[TBO OS] Critical data loaded');
     } catch (e) {
       console.warn('[TBO OS] Data load error:', e);
     }
@@ -195,6 +197,10 @@ const TBO_APP = {
         const defaultMod = 'command-center';
         TBO_ROUTER.initFromHash(defaultMod);
       }
+
+      // v2.1 Performance: APIs externas carregam APOS dashboard visivel
+      // Nao bloqueia render — widgets atualizam via evento 'tbo:external-data-loaded'
+      TBO_STORAGE.loadExternalAPIs();
     }
 
     // 14. Update freshness timestamp

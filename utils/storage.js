@@ -23,8 +23,64 @@ const TBO_STORAGE = {
   // LOAD ALL — static JSON files + warm ERP cache from Supabase
   // ═══════════════════════════════════════════════════════════════════════════
 
+  // v2.1 Performance: loadAll() separado em loadCritical() + loadExternalAPIs()
+  // loadCritical() carrega apenas dados essenciais para renderizar o dashboard (~500ms)
+  // loadExternalAPIs() sincroniza APIs externas em background (5-15s, nao bloqueia UI)
   async loadAll() {
-    // 1. Load static JSON files (context, meetings, market, etc.)
+    await this.loadCritical();
+    // APIs externas em background (nao bloqueia dashboard)
+    this.loadExternalAPIs();
+    return this._data;
+  },
+
+  // Dados essenciais: JSON staticos + company context + ERP cache (em paralelo)
+  async loadCritical() {
+    const t0 = performance.now();
+
+    // 1. Restaurar ERP cache do localStorage imediatamente (sync, <10ms)
+    // Permite render instantaneo enquanto Supabase carrega dados frescos
+    const entityTypes = ['project', 'task', 'deliverable', 'proposal', 'decision', 'meeting_erp', 'time_entry'];
+    entityTypes.forEach(type => this._loadErpCacheFromLocal(type));
+
+    // 2. Carregar JSON staticos + company context + ERP cache do Supabase EM PARALELO
+    await Promise.all([
+      // 2a. JSON files (5 fetches em paralelo internamente)
+      this._loadStaticJsonFiles(),
+      // 2b. Company context do Supabase
+      this._loadCompanyContext(),
+      // 2c. ERP cache fresco do Supabase (sobrescreve localStorage)
+      this._warmErpCache()
+    ]);
+
+    // 3. Process sync queue (fire-and-forget)
+    if (typeof TBO_SUPABASE !== 'undefined') {
+      TBO_SUPABASE.processSyncQueue();
+    }
+
+    console.log(`[TBO Storage] Dados criticos carregados em ${Math.round(performance.now() - t0)}ms`);
+    return this._data;
+  },
+
+  // APIs externas: carrega em background, atualiza widgets quando pronto
+  loadExternalAPIs() {
+    const t0 = performance.now();
+    // Todas as APIs externas em paralelo (nao espera uma para comecar outra)
+    Promise.allSettled([
+      this._loadFromGoogleSheets(),
+      this._loadFromFireflies(),
+      this._loadFromRdStation(),
+      this._loadFromOmie(),
+      this._loadFromGoogleCalendar()
+    ]).then((results) => {
+      const ok = results.filter(r => r.status === 'fulfilled').length;
+      console.log(`[TBO Storage] APIs externas: ${ok}/5 sync OK em ${Math.round(performance.now() - t0)}ms`);
+      // Disparar evento para widgets atualizarem seus dados
+      window.dispatchEvent(new CustomEvent('tbo:external-data-loaded'));
+    });
+  },
+
+  // Helper: carregar JSON files estaticos em paralelo
+  async _loadStaticJsonFiles() {
     const promises = Object.entries(this.paths).map(async ([key, path]) => {
       try {
         const response = await fetch(path);
@@ -37,34 +93,6 @@ const TBO_STORAGE = {
       }
     });
     await Promise.all(promises);
-
-    // 2. Load company_context from Supabase (overrides static if available)
-    await this._loadCompanyContext();
-
-    // 3. Warm ERP cache from Supabase
-    await this._warmErpCache();
-
-    // 4. Process any pending sync queue
-    if (typeof TBO_SUPABASE !== 'undefined') {
-      TBO_SUPABASE.processSyncQueue();
-    }
-
-    // 5. Load financial data from Google Sheets (overrides static JSON)
-    await this._loadFromGoogleSheets();
-
-    // 6. Load meeting data from Fireflies API (overrides static JSON)
-    await this._loadFromFireflies();
-
-    // 7. Sync deals/contacts from RD Station CRM
-    await this._loadFromRdStation();
-
-    // 8. Sync dados financeiros do Omie ERP
-    await this._loadFromOmie();
-
-    // 9. Sync eventos do Google Calendar
-    await this._loadFromGoogleCalendar();
-
-    return this._data;
   },
 
   async _loadCompanyContext() {

@@ -6,7 +6,7 @@ const TBO_INTELIGENCIA = {
     const ctx = TBO_STORAGE.get('context');
     const dc24 = ctx.dados_comerciais?.['2024'] || {};
     const dc25 = ctx.dados_comerciais?.['2025'] || {};
-    const dc26 = ctx.dados_comerciais?.['2026'] || {};
+    const dc26 = ctx.dados_comerciais?.[TBO_CONFIG.app.fiscalYear] || {};
     const fc = dc26.fluxo_caixa || {};
     const projAtivos = ctx.projetos_ativos || [];
     const finalizados = ctx.projetos_finalizados || {};
@@ -80,8 +80,8 @@ const TBO_INTELIGENCIA = {
       });
     });
     projAtivos.forEach(p => {
-      if (p.construtora && clientYears[p.construtora]) clientYears[p.construtora].add('2026');
-      else if (p.construtora) clientYears[p.construtora] = new Set(['2026']);
+      if (p.construtora && clientYears[p.construtora]) clientYears[p.construtora].add(TBO_CONFIG.app.fiscalYear);
+      else if (p.construtora) clientYears[p.construtora] = new Set([TBO_CONFIG.app.fiscalYear]);
     });
     const repeatClients = Object.entries(clientYears).filter(([, years]) => years.size >= 2);
     m.repeatRate = clientes.length > 0 ? Math.round((repeatClients.length / clientes.length) * 100) : 0;
@@ -164,7 +164,7 @@ const TBO_INTELIGENCIA = {
     m.crmWinRate = (wonDeals.length + lostDeals.length) > 0 ? Math.round((wonDeals.length / (wonDeals.length + lostDeals.length)) * 100) : 0;
 
     // Pipeline velocity
-    const metaMensal = fc.meta_vendas_mensal || 180000;
+    const metaMensal = fc.meta_vendas_mensal || TBO_CONFIG.business.financial.monthlyTarget;
     m.pipelineCoverage = metaMensal > 0 ? (m.pipelineValue / metaMensal).toFixed(1) : '0';
     m.metaMensal = metaMensal;
 

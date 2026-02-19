@@ -15,7 +15,7 @@ const TBO_WORKLOAD = {
 
   _getSalaryData() {
     const ctx = TBO_STORAGE.get('context');
-    return ctx.dados_comerciais?.['2026']?.fluxo_caixa?.despesas_detalhadas?.pessoas?.equipe || [];
+    return ctx.dados_comerciais?.[TBO_CONFIG.app.fiscalYear]?.fluxo_caixa?.despesas_detalhadas?.pessoas?.equipe || [];
   },
 
   _getCurrentUserId() {

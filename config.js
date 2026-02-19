@@ -21,7 +21,8 @@ const TBO_CONFIG = {
     foundedYear: 2019,
     city: "Curitiba",
     state: "PR",
-    country: "Brasil"
+    country: "Brasil",
+    get fiscalYear() { return String(new Date().getFullYear()); }
   },
 
   // --------------------------------------------------------------------------
@@ -453,7 +454,467 @@ Este modulo e para configuracoes do sistema. Nao requer interacao com IA.`
   // --------------------------------------------------------------------------
   getTomDeVoz(channel) {
     return this.tomDeVoz[channel] || this.tomDeVoz.institucional;
+  },
+
+  // --------------------------------------------------------------------------
+  // Business Configuration — Centralized values (previously hardcoded)
+  // All modules reference TBO_CONFIG.business.* instead of inline constants
+  // Persisted overrides in localStorage key 'tbo_business_config'
+  // --------------------------------------------------------------------------
+  business: {
+
+    // ── Business Units ────────────────────────────────────────────────────
+    businessUnits: [
+      { id: 'digital-3d', name: 'Digital 3D', icon: '\uD83C\uDFA8', color: '#3b82f6' },
+      { id: 'audiovisual', name: 'Audiovisual', icon: '\uD83C\uDFAC', color: '#ec4899' },
+      { id: 'branding', name: 'Branding', icon: '\uD83C\uDFF7\uFE0F', color: '#f59e0b' },
+      { id: 'marketing', name: 'Marketing', icon: '\uD83D\uDCE2', color: '#06b6d4' },
+      { id: 'interiores', name: 'Interiores', icon: '\uD83D\uDECB\uFE0F', color: '#8b5cf6' },
+      { id: 'gamificacao', name: 'Gamificacao', icon: '\uD83C\uDFAE', color: '#14b8a6' }
+    ],
+
+    // Helper: flat name list (backwards-compatible with _BUS arrays)
+    getBUNames() {
+      return TBO_CONFIG.business.businessUnits.map(bu => bu.name);
+    },
+
+    // ── CRM Pipeline Stages ──────────────────────────────────────────────
+    crmStages: [
+      { id: 'lead', label: 'Lead', order: 1, isActive: true, keywords: ['lead', 'novo', 'entrada'] },
+      { id: 'qualificacao', label: 'Qualificacao', order: 2, isActive: true, keywords: ['qualifica', 'qualified'] },
+      { id: 'proposta', label: 'Proposta', order: 3, isActive: true, keywords: ['proposta', 'proposal'] },
+      { id: 'negociacao', label: 'Negociacao', order: 4, isActive: true, keywords: ['negocia', 'negotiat', 'follow'] },
+      { id: 'fechado_ganho', label: 'Fechado Ganho', order: 5, isFinal: true, isWon: true, keywords: ['ganho', 'won'] },
+      { id: 'fechado_perdido', label: 'Fechado Perdido', order: 6, isFinal: true, isLost: true, keywords: ['perdido', 'lost'] }
+    ],
+
+    getCrmStageIds() { return TBO_CONFIG.business.crmStages.map(s => s.id); },
+    getClosedStages() { return TBO_CONFIG.business.crmStages.filter(s => s.isFinal).map(s => s.id); },
+    getWonStage() { return TBO_CONFIG.business.crmStages.find(s => s.isWon)?.id || 'fechado_ganho'; },
+    getLostStage() { return TBO_CONFIG.business.crmStages.find(s => s.isLost)?.id || 'fechado_perdido'; },
+
+    // ── Task Statuses ────────────────────────────────────────────────────
+    taskStatuses: [
+      { id: 'pendente', label: 'Pendente', color: '#f59e0b', icon: '\u23F3' },
+      { id: 'em_andamento', label: 'Em Andamento', color: '#3b82f6', icon: '\u25B6\uFE0F' },
+      { id: 'concluida', label: 'Concluida', color: '#22c55e', icon: '\u2705' },
+      { id: 'cancelada', label: 'Cancelada', color: '#6b7280', icon: '\u274C' }
+    ],
+
+    getCompletedTaskStatuses() { return ['concluida', 'cancelada']; },
+    getActiveTaskStatuses() { return ['pendente', 'em_andamento']; },
+
+    // ── Deliverable Statuses ─────────────────────────────────────────────
+    deliverableStatuses: [
+      { id: 'pendente', label: 'Pendente', order: 1 },
+      { id: 'em_producao', label: 'Em Producao', order: 2 },
+      { id: 'em_revisao', label: 'Em Revisao', order: 3 },
+      { id: 'aprovado', label: 'Aprovado', order: 4 },
+      { id: 'entregue', label: 'Entregue', order: 5 }
+    ],
+
+    // ── Project Statuses ─────────────────────────────────────────────────
+    projectFinalStatuses: ['finalizado', 'cancelado'],
+
+    // ── Contract Statuses ────────────────────────────────────────────────
+    contractStatuses: [
+      { id: 'ativo', label: 'Ativo', color: '#22c55e' },
+      { id: 'pendente', label: 'Pendente', color: '#f59e0b' },
+      { id: 'finalizado', label: 'Finalizado', color: '#6b7280' },
+      { id: 'cancelado', label: 'Cancelado', color: '#ef4444' }
+    ],
+
+    // ── Proposal Statuses ────────────────────────────────────────────────
+    proposalStatuses: [
+      { id: 'rascunho', label: 'Rascunho' },
+      { id: 'enviada', label: 'Enviada' },
+      { id: 'em_negociacao', label: 'Em Negociacao' },
+      { id: 'aprovada', label: 'Aprovada' },
+      { id: 'recusada', label: 'Recusada' },
+      { id: 'convertida', label: 'Convertida' }
+    ],
+
+    // ── Priority Levels ──────────────────────────────────────────────────
+    priorities: [
+      { id: 'urgente', label: 'Urgente', color: '#8b0000', sortOrder: 0 },
+      { id: 'alta', label: 'Alta', color: '#ef4444', sortOrder: 1 },
+      { id: 'media', label: 'Media', color: '#f59e0b', sortOrder: 2 },
+      { id: 'baixa', label: 'Baixa', color: '#22c55e', sortOrder: 3 }
+    ],
+    defaultPriority: 'media',
+
+    getPrioritySortMap() {
+      const map = {};
+      TBO_CONFIG.business.priorities.forEach(p => { map[p.id] = p.sortOrder; });
+      return map;
+    },
+
+    getPriorityColor(id) {
+      return TBO_CONFIG.business.priorities.find(p => p.id === id)?.color || '#6b7280';
+    },
+
+    // ── Role Definitions ─────────────────────────────────────────────────
+    roles: {
+      founder:       { label: 'Fundador',       color: '#E85102' },
+      project_owner: { label: 'Project Owner',  color: '#8b5cf6' },
+      artist:        { label: 'Artista',         color: '#3a7bd5' },
+      comercial:     { label: 'Comercial',       color: '#f59e0b' },
+      finance:       { label: 'Financeiro',      color: '#2ecc71' }
+    },
+
+    getRoleColor(role) {
+      return TBO_CONFIG.business.roles[role]?.color || '#6b7280';
+    },
+
+    getRoleLabel(role) {
+      return TBO_CONFIG.business.roles[role]?.label || role || 'N/A';
+    },
+
+    // ── Time & Deadline Thresholds ───────────────────────────────────────
+    thresholds: {
+      dealAging: { warningDays: 7, criticalDays: 14 },
+      contractExpiring: { windowDays: 30 },
+      staleDeal: { noActivityDays: 14 },
+      projectMonitoring: { noMeetingDays: 7, noActivityDays: 7, activityScorePenalty: 10 },
+      followUp: { highUrgencyDays: 14, mediumUrgencyDays: 7 }
+    },
+
+    // ── Scoring & Analytics Thresholds ───────────────────────────────────
+    scoring: {
+      risk: { low: 70, medium: 40 },
+      dealQuality: { hot: 70 },
+      churnRisk: { critical: 70, high: 45, moderate: 25 },
+      analytics: {
+        revenue:    { green: 100000, yellow: 50000 },
+        margin:     { green: 35, yellow: 25 },
+        completion: { green: 70, yellow: 50 },
+        deliveryDays: { green: 75, yellow: 100 },
+        onTimePercent: { green: 80, yellow: 60 },
+        responseHours: { green: 12, yellow: 24 }
+      },
+      progress: { excellent: 75, good: 40 }
+    },
+
+    // ── Dashboard Widget Limits ──────────────────────────────────────────
+    widgetLimits: {
+      myTasks: 6,
+      alerts: 8,
+      actionsToday: 6,
+      projectCards: 6,
+      myProjects: 9,
+      recentFeedback: 3,
+      oneOnOnes: 3,
+      recentMeetings: 5,
+      actionOwners: 6,
+      personActions: 8,
+      topClients: 5,
+      newsFeed: 5,
+      noMeetingProjects: 3,
+      overdueActions: 2,
+      pipelineCards: 5
+    },
+
+    // ── Gamification ─────────────────────────────────────────────────────
+    gamification: {
+      xpPoints: { goalCompleted: 100, levelUp: 200, mentorSession: 50 },
+      levels: [
+        { name: 'Bronze', min: 0, max: 500, color: '#CD7F32' },
+        { name: 'Prata', min: 500, max: 1500, color: '#C0C0C0' },
+        { name: 'Ouro', min: 1500, max: 3000, color: '#FFD700' },
+        { name: 'Diamante', min: 3000, max: Infinity, color: '#B9F2FF' }
+      ],
+      competencyLevels: ['Iniciante', 'Basico', 'Intermediario', 'Avancado', 'Expert'],
+      badges: [
+        { id: 'starter', name: 'Iniciante', icon: '\uD83C\uDF31', threshold: 1, desc: 'Primeira meta concluida' },
+        { id: 'bronze', name: 'Bronze', icon: '\uD83E\uDD49', threshold: 3, desc: '3 metas concluidas' },
+        { id: 'silver', name: 'Prata', icon: '\uD83E\uDD48', threshold: 5, desc: '5 metas concluidas' },
+        { id: 'gold', name: 'Ouro', icon: '\uD83E\uDD47', threshold: 10, desc: '10 metas concluidas' },
+        { id: 'diamond', name: 'Diamante', icon: '\uD83D\uDC8E', threshold: 20, desc: '20 metas concluidas' },
+        { id: 'applied', name: 'Aplicou', icon: '\uD83D\uDE80', threshold: -1, desc: 'Aplicou em projeto' },
+        { id: 'streak3', name: 'Streak', icon: '\uD83D\uDD25', threshold: -1, desc: '3 semanas consecutivas' }
+      ]
+    },
+
+    // ── Competency / Skills by BU ────────────────────────────────────────
+    competencies: {
+      'Branding': ['Identidade Visual', 'Tipografia', 'Naming', 'Brand Strategy', 'Packaging', 'Motion Graphics'],
+      'Digital 3D': ['3ds Max', 'V-Ray', 'SketchUp', 'Lumion', 'Photoshop', 'InDesign', 'After Effects'],
+      'Marketing': ['Copywriting', 'SEO', 'Analytics', 'Social Media', 'Email Marketing', 'Paid Ads'],
+      'Vendas': ['Negociacao', 'CRM', 'Proposta Comercial', 'Follow-up', 'Networking']
+    },
+
+    // ── Sexy Canvas Blocks ───────────────────────────────────────────────
+    sexyCanvasBlocks: [
+      'Luxuria', 'Gula', 'Ganancia', 'Vaidade', 'Inveja',
+      'Preguica', 'Ira', 'Diversao', 'Pertencimento', 'Liberdade'
+    ],
+
+    // ── Fallback Team (when TBO_RH unavailable) ──────────────────────────
+    fallbackTeam: ['Marco', 'Ruy', 'Nathalia', 'Nelson', 'Danniel', 'Felipe', 'Lucas F.', 'Carol'],
+
+    // ── Month Abbreviations (pt-BR) ──────────────────────────────────────
+    months: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
+
+    // ── Onboarding Milestones ────────────────────────────────────────────
+    onboardingMilestones: [
+      { percentage: 100, message: 'Onboarding concluido!' },
+      { percentage: 75, message: 'Quase la!' },
+      { percentage: 50, message: 'Halfway there!' }
+    ],
+
+    // ── Financial Targets ──────────────────────────────────────────────
+    financial: {
+      monthlyTarget: 180000,
+      quarterlyTarget: 150000,
+      premiumThreshold: 30000,
+      currency: 'BRL',
+      averageTicket2025: 32455,
+      totalRevenue2024: 701586,
+
+      // Service pricing by BU (used in BI & commercial modules)
+      servicePricing: {
+        'Digital 3D':  { min: 8000, max: 15000 },
+        'Audiovisual': { min: 6000, max: 15000 },
+        'Branding':    { min: 3000, max: 5000 },
+        'Marketing':   { min: 4000, max: 6000 },
+        'Interiores':  { min: 15000, max: 25000 },
+        'Gamificacao': { min: 1300, max: 1500 }
+      },
+
+      // Detailed service catalog (used in pricing calculator)
+      serviceCatalog: {
+        render_fachada:      { label: 'Render de Fachada',   min: 1300,  max: 1500,  marketMin: 450,  marketMax: 900,   unit: 'por imagem' },
+        render_interno:      { label: 'Render Interno',      min: 1100,  max: 1300,  marketMin: 400,  marketMax: 800,   unit: 'por imagem' },
+        video_institucional: { label: 'Video Institucional',  min: 17972, max: 17972, marketMin: 3000, marketMax: 5000,  unit: 'por projeto' },
+        tour_virtual_360:    { label: 'Tour Virtual 360',     min: 4000,  max: 6000,  marketMin: 2000, marketMax: 4000,  unit: 'por projeto' },
+        branding_completo:   { label: 'Branding Completo',    min: 15000, max: 25000, marketMin: 7000, marketMax: 10000, unit: 'por projeto' },
+        pack_social_media:   { label: 'Pack Social Media',    min: 3000,  max: 5000,  marketMin: 1500, marketMax: 3000,  unit: 'mensal' },
+        planta_humanizada:   { label: 'Planta Humanizada',    min: 800,   max: 1200,  marketMin: 300,  marketMax: 700,   unit: 'por planta' },
+        animacao_flythrough: { label: 'Animacao Flythrough',  min: 8000,  max: 15000, marketMin: 4000, marketMax: 8000,  unit: 'por projeto' }
+      },
+
+      // Complexity multipliers for pricing calculator
+      complexityMultipliers: {
+        simples: { label: 'Simples', multiplier: 1.0 },
+        media:   { label: 'Media',   multiplier: 1.3 },
+        alta:    { label: 'Alta',    multiplier: 1.6 },
+        premium: { label: 'Premium', multiplier: 2.0 }
+      },
+
+      // Client type discounts
+      clientDiscounts: {
+        novo:        { label: 'Novo',        discount: 0 },
+        recorrente:  { label: 'Recorrente',  discount: 0.05 },
+        estrategico: { label: 'Estrategico', discount: 0.10 }
+      },
+
+      // Commission structure
+      commissionRates: { standard: 0.05, premium: 0.08 },
+
+      // Cost per hour by role (R$/h)
+      roleHourlyCost: {
+        founder: 150, socio: 150, coo: 150, diretor: 150,
+        po: 80, coordenador: 80,
+        artista: 50, designer: 50, analista: 50,
+        assistente: 35, terceiro: 40, externo: 0
+      },
+
+      // Deal value brackets for win/loss analysis
+      dealValueBrackets: [
+        { label: 'Ate R$ 10k',    min: 0,     max: 10000 },
+        { label: 'R$ 10k-30k',    min: 10000, max: 30000 },
+        { label: 'R$ 30k-80k',    min: 30000, max: 80000 },
+        { label: 'Acima R$ 80k',  min: 80000, max: Infinity }
+      ],
+
+      // Loyalty discount tiers
+      loyaltyDiscounts: [
+        { minProjects: 5, discount: 0.05 },
+        { minProjects: 3, discount: 0.03 }
+      ],
+
+      // Payment speed scoring
+      paymentSpeedScoring: { pago: 95, parcial: 60, atrasado: 30 },
+
+      // Meeting action item monetary value (R$)
+      actionItemValue: 200
+    },
+
+    // ── Business Intelligence Scoring ──────────────────────────────────
+    biScoring: {
+      serviceWinRates: {
+        'Digital 3D': 55, 'Audiovisual': 50, 'Branding': 40,
+        'Marketing': 35, 'Interiores': 45, 'Gamificacao': 48
+      },
+      baseWinRate: 40,
+      stageBonuses: {
+        lead: -10, qualificacao: 0, proposta: 10,
+        negociacao: 15, fechado_ganho: 30, fechado_perdido: -30
+      },
+      dealAgingDays: { recent: 3, week: 7, biweekly: 14, month: 30 },
+      dealValueRanges: { optimalMin: 0.5, optimalMax: 2.0, strongMax: 4.0 },
+      probabilityBase: 50,
+      probabilityDivisor: 5,
+      seasonalMonths: { start: 6, end: 2 },
+      recommendationThresholds: { excellent: 80, good: 60, moderate: 40, low: 20 },
+
+      // Deal scoring factors (points)
+      dealScoring: {
+        baseScore: 50,
+        activityBonuses: { recentDays: 3, recentPts: 10, weekDays: 7, weekPts: 5 },
+        inactivityPenalties: { twoWeeksDays: 14, twoWeeksPts: -10, monthDays: 30, monthPts: -20 },
+        valueBonuses: { optimal: 10, strong: 5, tooHigh: -5, tooLow: -5 },
+        clientBonuses: { existing: 15, repeatThreshold: 3, repeatPts: 5 },
+        seasonalBonuses: { favorable: 5, slow: -5 },
+        maxScore: 100, minScore: 0
+      },
+
+      // Engagement scoring (days since last meeting → score)
+      engagementLevels: [
+        { maxDays: 7,  score: 100 },
+        { maxDays: 14, score: 80 },
+        { maxDays: 30, score: 60 },
+        { maxDays: 60, score: 40 },
+        { maxDays: 90, score: 20 },
+        { maxDays: Infinity, score: 5 }
+      ],
+
+      // Health score weights
+      healthWeights: {
+        frequency: 0.25, ticket: 0.15, paymentSpeed: 0.20,
+        revisionRate: 0.15, engagement: 0.25
+      },
+
+      // Churn risk scoring
+      churnRisk: {
+        baseRisk: 20,
+        inactivity90d: 20, inactivity30d: 10,
+        lowFrequency: 25, singleBU: 5,
+        approvalDelay: 10, lowRevisionRate: 15,
+        thresholds: { urgent: 70, medium: 50, low: 30 }
+      },
+
+      // Follow-up urgency (days without activity by stage)
+      followUpUrgency: {
+        proposta: 5, negociacao: 10, qualificacao: 10,
+        lead: 2, general: 5, maxDays: 30
+      },
+
+      // Win rate visual thresholds
+      winRateThresholds: { strong: 50, moderate: 30 },
+
+      // Utilization thresholds for workload
+      utilizationThresholds: { critical: 100, warning: 80 },
+
+      // Meeting productivity verdict
+      meetingProductivity: {
+        productiveROI: 50, productiveActions: 3,
+        improductiveMaxHours: 0.5, improductiveMinActions: 0
+      }
+    }
+  },
+
+  // --------------------------------------------------------------------------
+  // Business Config: Load user overrides from localStorage
+  // --------------------------------------------------------------------------
+  // Load overrides: localStorage first (instant), then Supabase (async)
+  loadBusinessOverrides() {
+    try {
+      const saved = localStorage.getItem('tbo_business_config');
+      if (saved) {
+        const overrides = JSON.parse(saved);
+        this._deepMerge(this.business, overrides);
+      }
+    } catch (e) { console.warn('[TBO_CONFIG] Failed to load business overrides:', e.message); }
+  },
+
+  // Async: load from Supabase and merge (called after Supabase init)
+  async loadFromSupabase() {
+    if (typeof TBO_SUPABASE === 'undefined') return false;
+    try {
+      const config = await TBO_SUPABASE.loadBusinessConfig();
+      if (!config) return false;
+
+      // Merge each key into the business config
+      Object.entries(config).forEach(([key, value]) => {
+        if (key === 'financial' && typeof value === 'object') {
+          this._deepMerge(this.business.financial, value);
+        } else if (key === 'biScoring' && typeof value === 'object') {
+          this._deepMerge(this.business.biScoring, value);
+        } else if (this.business[key] !== undefined) {
+          if (typeof value === 'object' && typeof this.business[key] === 'object' && !Array.isArray(value)) {
+            this._deepMerge(this.business[key], value);
+          } else {
+            this.business[key] = value;
+          }
+        }
+      });
+
+      // Also cache to localStorage for instant load next time
+      localStorage.setItem('tbo_business_config', JSON.stringify(config));
+      console.log('[TBO_CONFIG] Business config loaded from Supabase');
+      return true;
+    } catch (e) {
+      console.warn('[TBO_CONFIG] Supabase config load failed:', e.message);
+      return false;
+    }
+  },
+
+  // Save a specific section to both Supabase and localStorage
+  async saveBusinessConfig(sectionKey, value) {
+    // Always update in-memory
+    if (this.business[sectionKey] !== undefined) {
+      if (typeof value === 'object' && typeof this.business[sectionKey] === 'object' && !Array.isArray(value)) {
+        this._deepMerge(this.business[sectionKey], value);
+      } else {
+        this.business[sectionKey] = value;
+      }
+    }
+
+    // Save to localStorage (instant)
+    try {
+      const current = JSON.parse(localStorage.getItem('tbo_business_config') || '{}');
+      current[sectionKey] = value;
+      localStorage.setItem('tbo_business_config', JSON.stringify(current));
+    } catch (e) { console.warn('[TBO_CONFIG] localStorage save failed:', e.message); }
+
+    // Save to Supabase (async, non-blocking)
+    if (typeof TBO_SUPABASE !== 'undefined') {
+      const ok = await TBO_SUPABASE.saveBusinessConfigKey(sectionKey, value);
+      if (ok) console.log(`[TBO_CONFIG] '${sectionKey}' saved to Supabase`);
+      return ok;
+    }
+    return true;
+  },
+
+  // Legacy compat
+  saveBusinessOverrides(overrides) {
+    try {
+      localStorage.setItem('tbo_business_config', JSON.stringify(overrides));
+      this._deepMerge(this.business, overrides);
+    } catch (e) { console.warn('[TBO_CONFIG] Failed to save business overrides:', e.message); }
+  },
+
+  _deepMerge(target, source) {
+    for (const key of Object.keys(source)) {
+      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key]) && typeof target[key] === 'object') {
+        this._deepMerge(target[key], source[key]);
+      } else {
+        target[key] = source[key];
+      }
+    }
   }
+};
+
+// Load any user-customized business overrides on startup (sync/instant)
+TBO_CONFIG.loadBusinessOverrides();
+
+// ============================================================================
+// Credenciais centralizadas (NUNCA commitar este arquivo — esta no .gitignore)
+// ============================================================================
+const ONBOARDING_CONFIG = {
+  SUPABASE_URL: 'https://olnndpultyllyhzxuyxh.supabase.co',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sbm5kcHVsdHlsbHloenh1eXhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyOTUxNjMsImV4cCI6MjA4Njg3MTE2M30.PPhMqKsYKcRB6GFmWxogcc0HIggkojK0DumiB1NDAXU'
 };
 
 // Export for use in other modules

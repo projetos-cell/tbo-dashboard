@@ -110,7 +110,7 @@ const TBO_PIPELINE = {
         ${['fechado_ganho','fechado_perdido'].map(sid => {
           const s = stages.find(st => st.id === sid);
           if (!s) return '';
-          const stageDeals = deals.filter(d => d.stage === sid).slice(0, 5);
+          const stageDeals = deals.filter(d => d.stage === sid).slice(0, TBO_CONFIG.business.widgetLimits.pipelineCards);
           const total = deals.filter(d => d.stage === sid).length;
           return `
             <div class="pipeline-column pipeline-column--closed" data-stage="${sid}">
@@ -258,7 +258,7 @@ const TBO_PIPELINE = {
   _formatDate(dateStr) {
     if (!dateStr) return '';
     const d = new Date(dateStr + 'T12:00:00');
-    const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const months = TBO_CONFIG.business.months;
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
   },
 

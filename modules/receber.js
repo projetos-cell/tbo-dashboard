@@ -4,7 +4,7 @@ const TBO_RECEBER = {
 
   render() {
     const context = TBO_STORAGE.get('context');
-    const fc = context.dados_comerciais?.['2026']?.fluxo_caixa || {};
+    const fc = context.dados_comerciais?.[TBO_CONFIG.app.fiscalYear]?.fluxo_caixa || {};
     const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
     const mesesLabel = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
     const realizados = fc.meses_realizados || [];

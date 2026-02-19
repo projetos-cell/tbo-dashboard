@@ -85,6 +85,7 @@ const TBO_INTEGRACOES = {
       this._checkGoogleOAuth(),
       this._checkAI(),
       this._checkFireflies(),
+      this._checkRdStation(),
       this._checkNotion()
     ];
   },
@@ -143,6 +144,24 @@ const TBO_INTEGRACOES = {
       status: hasKey ? (isConnected ? 'connected' : 'partial') : 'disconnected',
       description: 'Transcricao automatica de reunioes.',
       details: hasKey ? (isConnected ? 'Conectado e funcional.' : 'Chave configurada, verificando conexao.') : 'Nenhuma chave de API. Adicione em config.js.'
+    };
+  },
+
+  _checkRdStation() {
+    const hasToken = typeof TBO_RD_STATION !== 'undefined' && !!TBO_RD_STATION.getApiToken();
+    const status = typeof TBO_RD_STATION !== 'undefined' ? TBO_RD_STATION.getStatus() : null;
+    const isConnected = status?.enabled && !status?.error;
+
+    return {
+      name: 'RD Station CRM',
+      icon: 'briefcase',
+      status: hasToken ? (isConnected ? 'connected' : 'partial') : 'disconnected',
+      description: 'CRM para gestao de deals e contatos comerciais.',
+      details: hasToken
+        ? (isConnected
+          ? `Sincronizado. ${status.rdDealCount || 0} deals. Ultimo sync: ${status.lastSync ? new Date(status.lastSync).toLocaleString('pt-BR') : 'nunca'}`
+          : `Token configurado. ${status?.error || 'Verificando conexao.'}`)
+        : 'Nenhum token. Configure em Configuracoes.'
     };
   },
 

@@ -6,7 +6,7 @@ const TBO_PROJETOS = {
   _getTeamMembers() {
     if (typeof TBO_RH !== 'undefined' && TBO_RH._team) return TBO_RH._team;
     const ctx = TBO_STORAGE.get('context');
-    const equipe = ctx.dados_comerciais?.['2026']?.fluxo_caixa?.despesas_detalhadas?.pessoas?.equipe || [];
+    const equipe = ctx.dados_comerciais?.[TBO_CONFIG.app.fiscalYear]?.fluxo_caixa?.despesas_detalhadas?.pessoas?.equipe || [];
     return equipe.map(e => e.nome);
   },
 
@@ -326,13 +326,13 @@ const TBO_PROJETOS = {
       <!-- Sort controls -->
       <div class="asana-table">
         <div class="asana-table-header">
-          <div class="asana-col asana-col--code" style="width:110px;">Codigo</div>
+          <div class="asana-col asana-col--code">Codigo</div>
           <div class="asana-col asana-col--name" data-sort-col="name" onclick="TBO_PROJETOS._toggleListSort('name')">Nome ${sortIcon('name')}</div>
           <div class="asana-col asana-col--status" data-sort-col="status" onclick="TBO_PROJETOS._toggleListSort('status')">Status ${sortIcon('status')}</div>
           <div class="asana-col asana-col--owner" data-sort-col="owner" onclick="TBO_PROJETOS._toggleListSort('owner')">Responsavel ${sortIcon('owner')}</div>
           <div class="asana-col asana-col--health" data-sort-col="health" onclick="TBO_PROJETOS._toggleListSort('health')">Saude ${sortIcon('health')}</div>
           <div class="asana-col asana-col--tasks" data-sort-col="tasks" onclick="TBO_PROJETOS._toggleListSort('tasks')">Tarefas ${sortIcon('tasks')}</div>
-          <div class="asana-col asana-col--deadline" style="width:100px;">Prazo</div>
+          <div class="asana-col asana-col--deadline">Prazo</div>
           <div class="asana-col asana-col--value" data-sort-col="value" onclick="TBO_PROJETOS._toggleListSort('value')">Valor ${sortIcon('value')}</div>
         </div>
         ${filtered.map(p => {
@@ -346,7 +346,7 @@ const TBO_PROJETOS = {
           const ownerInitials = p.owner ? (typeof TBO_PERMISSIONS !== 'undefined' ? TBO_PERMISSIONS.getInitials(p.owner) : p.owner.charAt(0)) : '?';
 
           return `<div class="asana-table-row" onclick="TBO_PROJETOS._showProjectModal('${p.id}')">
-            <div class="asana-col asana-col--code" style="width:110px;font-size:0.72rem;font-family:monospace;color:var(--text-muted);">${p.code || '-'}</div>
+            <div class="asana-col asana-col--code" style="font-size:0.72rem;font-family:monospace;color:var(--text-muted);">${p.code || '-'}</div>
             <div class="asana-col asana-col--name">
               <div style="width:8px;height:8px;border-radius:50%;background:${stateColor};flex-shrink:0;"></div>
               <div style="flex:1;min-width:0;">
@@ -375,7 +375,7 @@ const TBO_PROJETOS = {
                 <span style="font-size:0.7rem;color:var(--text-muted);">${doneTasks}/${tasks.length}</span>
               ` : '<span style="font-size:0.7rem;color:var(--text-muted);">-</span>'}
             </div>
-            <div class="asana-col asana-col--deadline" style="width:100px;">
+            <div class="asana-col asana-col--deadline">
               ${(() => {
                 if (typeof TBO_ERP === 'undefined') return '-';
                 const dl = TBO_ERP.getDeadlineInfo(p);

@@ -2,7 +2,7 @@
 const TBO_FINANCEIRO = {
   render() {
     const context = TBO_STORAGE.get('context');
-    const dc26 = context.dados_comerciais?.['2026'] || {};
+    const dc26 = context.dados_comerciais?.[TBO_CONFIG.app.fiscalYear] || {};
     const fc = dc26.fluxo_caixa || {};
     const precos = context.dados_comerciais?.precos || {};
     const market = TBO_STORAGE.get('market');
@@ -124,36 +124,51 @@ const TBO_FINANCEIRO = {
             <div class="context-banner-text">Projecao anual: ${TBO_FORMATTER.currency(resultadoAnual)}. Receita de ${TBO_FORMATTER.currency(receitaTotal)} contra despesas de ${TBO_FORMATTER.currency(despesaTotal)}. Para equilibrar, e necessario faturar ${TBO_FORMATTER.currency(receitaMensalEquilibrio)}/mes nos ${mesesRestantes} meses restantes.</div>
           </div>` : ''}
 
-          <!-- Monthly Table -->
+          <!-- Monthly Table — Editable Excel-style -->
           <div class="card" style="margin-bottom:16px;">
-            <div class="card-header"><h3 class="card-title">Receita vs Despesa — Mensal</h3></div>
+            <div class="card-header">
+              <h3 class="card-title">Fluxo de Caixa — Mensal</h3>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <span id="fnEditStatus" style="font-size:0.68rem;color:var(--text-tertiary);"></span>
+                <button class="btn btn-primary" id="fnSaveFluxo" style="font-size:0.72rem;padding:4px 12px;">Salvar</button>
+              </div>
+            </div>
             <div style="overflow-x:auto;">
-              <table class="data-table">
+              <table class="data-table" id="fnFluxoTable" style="font-size:0.8rem;">
                 <thead>
-                  <tr>
-                    <th>Mes</th>
-                    <th>Receita</th>
-                    <th>Despesa</th>
-                    <th>Resultado</th>
-                    <th>Margem</th>
-                    <th style="width:120px;">vs Meta</th>
+                  <tr style="background:var(--bg-tertiary);">
+                    <th style="min-width:70px;position:sticky;left:0;background:var(--bg-tertiary);z-index:1;">Mes</th>
+                    <th style="min-width:110px;text-align:right;">Receita</th>
+                    <th style="min-width:110px;text-align:right;">Despesa</th>
+                    <th style="min-width:100px;text-align:right;">Resultado</th>
+                    <th style="min-width:60px;text-align:right;">Margem</th>
+                    <th style="min-width:55px;text-align:center;">Real</th>
+                    <th style="width:90px;">vs Meta</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'].map(m => {
                     const rec = recMensal[m] || 0;
                     const desp = despMensal[m] || 0;
-                    const res = resMensal[m] || (rec - desp);
-                    const margem = fc.margem_mensal?.[m] || (rec > 0 ? ((res / rec) * 100).toFixed(1) + '%' : '\u2014');
+                    const res = rec - desp;
+                    const margem = rec > 0 ? ((res / rec) * 100).toFixed(1) : '0.0';
                     const isReal = realizados.includes(m);
                     const mesLabel = {jan:'Jan',fev:'Fev',mar:'Mar',abr:'Abr',mai:'Mai',jun:'Jun',jul:'Jul',ago:'Ago',set:'Set',out:'Out',nov:'Nov',dez:'Dez'}[m];
-                    const barW = Math.max(Math.round((rec / (fc.meta_vendas_mensal || 180000)) * 100), 3);
-                    return `<tr style="${!isReal ? 'opacity:0.65;' : ''}">
-                      <td><strong>${mesLabel}</strong> ${isReal ? '<span class="tag" style="font-size:0.6rem; padding:0 4px;">REAL</span>' : '<span style="font-size:0.6rem; color:var(--text-tertiary);">proj</span>'}</td>
-                      <td>${TBO_FORMATTER.currency(rec)}</td>
-                      <td>${TBO_FORMATTER.currency(desp)}</td>
-                      <td style="color:${res >= 0 ? 'var(--color-success)' : 'var(--color-danger)'}; font-weight:600;">${TBO_FORMATTER.currency(res)}</td>
-                      <td style="color:${parseFloat(margem) >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${margem}</td>
+                    const barW = Math.max(Math.round((rec / (fc.meta_vendas_mensal || TBO_CONFIG.business.financial.monthlyTarget)) * 100), 3);
+                    const inputStyle = 'width:100%;text-align:right;padding:3px 6px;border:1px solid transparent;border-radius:4px;font-size:0.8rem;background:transparent;color:var(--text-primary);transition:border-color 0.15s;';
+                    return `<tr data-mes="${m}" style="${!isReal ? 'opacity:0.7;' : ''}">
+                      <td style="position:sticky;left:0;background:var(--bg-primary);z-index:1;"><strong>${mesLabel}</strong></td>
+                      <td style="padding:2px 4px;">
+                        <input type="number" class="fn-cell fn-rec" data-mes="${m}" value="${rec}" style="${inputStyle}" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='transparent'">
+                      </td>
+                      <td style="padding:2px 4px;">
+                        <input type="number" class="fn-cell fn-desp" data-mes="${m}" value="${desp}" style="${inputStyle}" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='transparent'">
+                      </td>
+                      <td class="fn-resultado" data-mes="${m}" style="text-align:right;font-weight:600;color:${res >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${TBO_FORMATTER.currency(res)}</td>
+                      <td class="fn-margem" data-mes="${m}" style="text-align:right;font-size:0.75rem;color:${parseFloat(margem) >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${margem}%</td>
+                      <td style="text-align:center;">
+                        <input type="checkbox" class="fn-real" data-mes="${m}" ${isReal ? 'checked' : ''} style="cursor:pointer;width:16px;height:16px;accent-color:var(--accent);">
+                      </td>
                       <td>
                         <div class="mini-progress">
                           <div class="mini-progress-bar"><div class="mini-progress-fill" style="width:${Math.min(barW, 100)}%; background:${res >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};"></div></div>
@@ -161,16 +176,25 @@ const TBO_FINANCEIRO = {
                       </td>
                     </tr>`;
                   }).join('')}
-                  <tr style="border-top:2px solid var(--border-hover); font-weight:700;">
-                    <td>TOTAL</td>
-                    <td>${TBO_FORMATTER.currency(receitaTotal)}</td>
-                    <td>${TBO_FORMATTER.currency(despesaTotal)}</td>
-                    <td style="color:${resultadoAnual >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${TBO_FORMATTER.currency(resultadoAnual)}</td>
-                    <td>${receitaTotal > 0 ? ((resultadoAnual / receitaTotal) * 100).toFixed(1) + '%' : '\u2014'}</td>
+                  <tr id="fnTotalsRow" style="border-top:2px solid var(--border-hover); font-weight:700; background:var(--bg-tertiary);">
+                    <td style="position:sticky;left:0;background:var(--bg-tertiary);z-index:1;">TOTAL</td>
+                    <td id="fnTotalRec" style="text-align:right;padding:6px 10px;">${TBO_FORMATTER.currency(receitaTotal)}</td>
+                    <td id="fnTotalDesp" style="text-align:right;padding:6px 10px;">${TBO_FORMATTER.currency(despesaTotal)}</td>
+                    <td id="fnTotalRes" style="text-align:right;color:${resultadoAnual >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${TBO_FORMATTER.currency(resultadoAnual)}</td>
+                    <td id="fnTotalMarg" style="text-align:right;font-size:0.75rem;">${receitaTotal > 0 ? ((resultadoAnual / receitaTotal) * 100).toFixed(1) + '%' : '\u2014'}</td>
+                    <td></td>
                     <td></td>
                   </tr>
                 </tbody>
               </table>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:10px;padding-top:8px;border-top:1px solid var(--border-subtle);">
+              <div style="flex:1;display:flex;gap:12px;font-size:0.72rem;color:var(--text-tertiary);">
+                <span>Meta mensal: <strong style="color:var(--text-primary);">${TBO_FORMATTER.currency(fc.meta_vendas_mensal || TBO_CONFIG.business.financial.monthlyTarget)}</strong></span>
+                <span>|</span>
+                <span>Meta anual: <strong style="color:var(--text-primary);">${TBO_FORMATTER.currency(fc.meta_vendas_anual || TBO_CONFIG.business.financial.monthlyTarget * 12)}</strong></span>
+              </div>
+              <span style="font-size:0.68rem;color:var(--text-tertiary);">Clique nas celulas para editar</span>
             </div>
           </div>
 
@@ -340,7 +364,7 @@ const TBO_FINANCEIRO = {
               </div>
               <div style="text-align:center; padding:16px;">
                 <div style="font-size:0.78rem; color:var(--text-secondary); margin-bottom:4px;">Receita p/ Equilibrio Restante</div>
-                <div style="font-size:1.4rem; font-weight:700; color:${receitaMensalEquilibrio <= (fc.meta_vendas_mensal || 180000) ? 'var(--color-success)' : 'var(--color-danger)'};">${TBO_FORMATTER.currency(receitaMensalEquilibrio)}</div>
+                <div style="font-size:1.4rem; font-weight:700; color:${receitaMensalEquilibrio <= (fc.meta_vendas_mensal || TBO_CONFIG.business.financial.monthlyTarget) ? 'var(--color-success)' : 'var(--color-danger)'};">${TBO_FORMATTER.currency(receitaMensalEquilibrio)}</div>
                 <div style="font-size:0.72rem; color:var(--text-tertiary); margin-top:2px;">por mes (${mesesRestantes} meses)</div>
               </div>
               <div style="text-align:center; padding:16px;">
@@ -361,19 +385,25 @@ const TBO_FINANCEIRO = {
             </div>
           </div>
 
-          <!-- Equipe -->
+          <!-- Equipe — Editable -->
           ${fc.despesas_detalhadas?.pessoas?.equipe ? `
           <div class="card">
-            <div class="card-header"><h3 class="card-title">Custo de Equipe (${fc.despesas_detalhadas.pessoas.equipe.length} pessoas)</h3></div>
-            <table class="data-table">
-              <thead><tr><th>Nome</th><th>Cargo</th><th>Salario</th><th>% do Total</th></tr></thead>
+            <div class="card-header">
+              <h3 class="card-title">Custo de Equipe (${fc.despesas_detalhadas.pessoas.equipe.length} pessoas)</h3>
+              <button class="btn btn-secondary" id="fnSaveEquipe" style="font-size:0.68rem;padding:3px 10px;">Salvar Equipe</button>
+            </div>
+            <table class="data-table" id="fnEquipeTable">
+              <thead><tr><th>Nome</th><th>Cargo</th><th style="text-align:right;">Salario</th><th>% do Total</th></tr></thead>
               <tbody>
-                ${fc.despesas_detalhadas.pessoas.equipe.map(p => {
+                ${fc.despesas_detalhadas.pessoas.equipe.map((p, i) => {
                   const pct = ((p.salario / (fc.despesas_detalhadas.pessoas.total_anual / 12)) * 100).toFixed(0);
+                  const inputStyle = 'width:100px;text-align:right;padding:3px 6px;border:1px solid transparent;border-radius:4px;font-size:0.8rem;background:transparent;color:var(--text-primary);';
                   return `<tr>
                     <td>${p.nome}</td>
                     <td style="font-size:0.78rem; color:var(--text-secondary);">${p.cargo}</td>
-                    <td>${TBO_FORMATTER.currency(p.salario)}</td>
+                    <td style="padding:2px 4px;text-align:right;">
+                      <input type="number" class="fn-salario" data-idx="${i}" value="${p.salario}" style="${inputStyle}" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='transparent'">
+                    </td>
                     <td>
                       <div class="mini-progress">
                         <div class="mini-progress-bar"><div class="mini-progress-fill" style="width:${pct}%;"></div></div>
@@ -384,7 +414,7 @@ const TBO_FINANCEIRO = {
                 }).join('')}
                 <tr style="border-top:2px solid var(--border-hover); font-weight:700;">
                   <td colspan="2">TOTAL MENSAL</td>
-                  <td>${TBO_FORMATTER.currency(fc.despesas_detalhadas.pessoas.equipe.reduce((s, p) => s + p.salario, 0))}</td>
+                  <td id="fnEquipeTotal" style="text-align:right;padding:6px 10px;">${TBO_FORMATTER.currency(fc.despesas_detalhadas.pessoas.equipe.reduce((s, p) => s + p.salario, 0))}</td>
                   <td></td>
                 </tr>
               </tbody>
@@ -568,6 +598,9 @@ const TBO_FINANCEIRO = {
       });
     });
 
+    // ── Excel-style inline editing for Fluxo de Caixa ──────────────────
+    this._initFluxoEditor();
+
     // Quick chips for simulator
     document.querySelectorAll('#fnQuickChips .quick-chip').forEach(chip => {
       chip.addEventListener('click', () => {
@@ -594,7 +627,227 @@ const TBO_FINANCEIRO = {
 
     this._bind('fnGerarCenario', () => this._generate('fnCenario', 'fnCenarioOutput', 'Com base nos dados financeiros reais de 2026 da TBO, simule: '));
     this._bind('fnGerarPricing', () => this._generate('fnPricingQuery', 'fnPricingOutput', 'Com base nos precos e custos da TBO em 2026, responda: '));
-    this._bind('fnEditData', () => this._showEditModal());
+    this._bind('fnEditData', () => {
+      // Scroll to and focus first editable cell
+      const firstInput = document.querySelector('.fn-rec');
+      if (firstInput) { firstInput.scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => { firstInput.focus(); firstInput.select(); }, 300); }
+    });
+  },
+
+  // ── Excel-style Fluxo Editor ──────────────────────────────────────────
+
+  _initFluxoEditor() {
+    const table = document.getElementById('fnFluxoTable');
+    if (!table) return;
+
+    this._fluxoDirty = false;
+
+    // Recalculate on input change
+    table.addEventListener('input', (e) => {
+      if (e.target.classList.contains('fn-cell')) {
+        this._recalcFluxo();
+        this._markDirty();
+      }
+    });
+
+    // Checkbox change (realizado toggle)
+    table.addEventListener('change', (e) => {
+      if (e.target.classList.contains('fn-real')) {
+        const mes = e.target.dataset.mes;
+        const row = e.target.closest('tr');
+        if (row) {
+          row.style.opacity = e.target.checked ? '1' : '0.7';
+        }
+        this._markDirty();
+      }
+    });
+
+    // Tab navigation between cells (Excel-like)
+    table.addEventListener('keydown', (e) => {
+      if (e.target.classList.contains('fn-cell') && e.key === 'Tab') {
+        // Default tab works, but also recalc
+        setTimeout(() => this._recalcFluxo(), 10);
+      }
+      if (e.target.classList.contains('fn-cell') && e.key === 'Enter') {
+        e.preventDefault();
+        // Move to next row same column
+        const currentRow = e.target.closest('tr');
+        const nextRow = currentRow?.nextElementSibling;
+        if (nextRow) {
+          const isRec = e.target.classList.contains('fn-rec');
+          const nextInput = nextRow.querySelector(isRec ? '.fn-rec' : '.fn-desp');
+          if (nextInput) { nextInput.focus(); nextInput.select(); }
+        }
+      }
+    });
+
+    // Select all on focus
+    table.addEventListener('focusin', (e) => {
+      if (e.target.classList.contains('fn-cell')) {
+        setTimeout(() => e.target.select(), 0);
+      }
+    });
+
+    // Save button
+    this._bind('fnSaveFluxo', () => this._saveFluxoData());
+
+    // Equipe salary editing
+    const equipeTable = document.getElementById('fnEquipeTable');
+    if (equipeTable) {
+      equipeTable.addEventListener('input', (e) => {
+        if (e.target.classList.contains('fn-salario')) {
+          let total = 0;
+          document.querySelectorAll('.fn-salario').forEach(el => { total += parseFloat(el.value) || 0; });
+          const totalEl = document.getElementById('fnEquipeTotal');
+          if (totalEl) totalEl.textContent = TBO_FORMATTER.currency(total);
+          this._markDirty();
+        }
+      });
+    }
+    this._bind('fnSaveEquipe', () => this._saveEquipeData());
+  },
+
+  _recalcFluxo() {
+    const meta = TBO_CONFIG.business.financial.monthlyTarget;
+    let totalRec = 0, totalDesp = 0;
+
+    document.querySelectorAll('#fnFluxoTable tbody tr[data-mes]').forEach(row => {
+      const m = row.dataset.mes;
+      const recInput = row.querySelector('.fn-rec');
+      const despInput = row.querySelector('.fn-desp');
+      const resCell = row.querySelector('.fn-resultado');
+      const margCell = row.querySelector('.fn-margem');
+      const bar = row.querySelector('.mini-progress-fill');
+
+      const rec = parseFloat(recInput?.value) || 0;
+      const desp = parseFloat(despInput?.value) || 0;
+      const res = rec - desp;
+      const margem = rec > 0 ? ((res / rec) * 100).toFixed(1) : '0.0';
+
+      totalRec += rec;
+      totalDesp += desp;
+
+      if (resCell) {
+        resCell.textContent = TBO_FORMATTER.currency(res);
+        resCell.style.color = res >= 0 ? 'var(--color-success)' : 'var(--color-danger)';
+      }
+      if (margCell) {
+        margCell.textContent = margem + '%';
+        margCell.style.color = parseFloat(margem) >= 0 ? 'var(--color-success)' : 'var(--color-danger)';
+      }
+      if (bar) {
+        const barW = Math.min(Math.max(Math.round((rec / meta) * 100), 3), 100);
+        bar.style.width = barW + '%';
+        bar.style.background = res >= 0 ? 'var(--color-success)' : 'var(--color-danger)';
+      }
+    });
+
+    const totalRes = totalRec - totalDesp;
+    const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+    el('fnTotalRec', TBO_FORMATTER.currency(totalRec));
+    el('fnTotalDesp', TBO_FORMATTER.currency(totalDesp));
+    const totalResEl = document.getElementById('fnTotalRes');
+    if (totalResEl) {
+      totalResEl.textContent = TBO_FORMATTER.currency(totalRes);
+      totalResEl.style.color = totalRes >= 0 ? 'var(--color-success)' : 'var(--color-danger)';
+    }
+    const totalMargEl = document.getElementById('fnTotalMarg');
+    if (totalMargEl) {
+      totalMargEl.textContent = totalRec > 0 ? ((totalRes / totalRec) * 100).toFixed(1) + '%' : '\u2014';
+    }
+  },
+
+  _markDirty() {
+    this._fluxoDirty = true;
+    const status = document.getElementById('fnEditStatus');
+    if (status) {
+      status.textContent = 'Alteracoes nao salvas';
+      status.style.color = '#f59e0b';
+    }
+    const btn = document.getElementById('fnSaveFluxo');
+    if (btn) btn.style.background = '#f59e0b';
+  },
+
+  async _saveFluxoData() {
+    const status = document.getElementById('fnEditStatus');
+    const btn = document.getElementById('fnSaveFluxo');
+    if (status) { status.textContent = 'Salvando...'; status.style.color = 'var(--accent)'; }
+
+    const newRec = {}, newDesp = {}, newReal = [], newRes = {};
+
+    document.querySelectorAll('.fn-rec').forEach(el => {
+      newRec[el.dataset.mes] = parseFloat(el.value) || 0;
+    });
+    document.querySelectorAll('.fn-desp').forEach(el => {
+      newDesp[el.dataset.mes] = parseFloat(el.value) || 0;
+    });
+    document.querySelectorAll('.fn-real').forEach(el => {
+      if (el.checked) newReal.push(el.dataset.mes);
+    });
+    Object.keys(newRec).forEach(m => { newRes[m] = newRec[m] - (newDesp[m] || 0); });
+
+    // Update localStorage context
+    const ctx = TBO_STORAGE.get('context');
+    if (!ctx.dados_comerciais) ctx.dados_comerciais = {};
+    if (!ctx.dados_comerciais[TBO_CONFIG.app.fiscalYear]) ctx.dados_comerciais[TBO_CONFIG.app.fiscalYear] = {};
+    if (!ctx.dados_comerciais[TBO_CONFIG.app.fiscalYear].fluxo_caixa) ctx.dados_comerciais[TBO_CONFIG.app.fiscalYear].fluxo_caixa = {};
+    const fc = ctx.dados_comerciais[TBO_CONFIG.app.fiscalYear].fluxo_caixa;
+
+    fc.receita_mensal = newRec;
+    fc.despesa_mensal = newDesp;
+    fc.resultado_mensal = newRes;
+    fc.meses_realizados = newReal;
+
+    TBO_STORAGE._data.context = ctx;
+    localStorage.setItem('tbo_context_override', JSON.stringify(ctx));
+
+    // Save to Supabase financial_data
+    let supaOk = false;
+    if (typeof TBO_SUPABASE !== 'undefined') {
+      try {
+        const client = TBO_SUPABASE.getClient();
+        if (client) {
+          const year = parseInt(TBO_CONFIG.app.fiscalYear);
+          const rows = [];
+          Object.entries(newRec).forEach(([m, v]) => {
+            rows.push({ year, month: m, category: 'receita', subcategory: 'total', value: v, is_realized: newReal.includes(m), updated_at: new Date().toISOString() });
+          });
+          Object.entries(newDesp).forEach(([m, v]) => {
+            rows.push({ year, month: m, category: 'despesa', subcategory: 'total', value: v, is_realized: newReal.includes(m), updated_at: new Date().toISOString() });
+          });
+          const { error } = await client.from('financial_data').upsert(rows, { onConflict: 'year,month,category,subcategory' });
+          supaOk = !error;
+          if (error) console.warn('[Financeiro] Supabase save error:', error.message);
+        }
+      } catch (e) { console.warn('[Financeiro] Supabase save failed:', e.message); }
+    }
+
+    this._fluxoDirty = false;
+    if (status) {
+      status.textContent = supaOk ? 'Salvo no Supabase + local' : 'Salvo localmente';
+      status.style.color = supaOk ? '#22c55e' : '#f59e0b';
+    }
+    if (btn) btn.style.background = '';
+    TBO_TOAST.success('Dados financeiros salvos', supaOk ? 'Supabase + localStorage atualizados.' : 'Salvo localmente.');
+  },
+
+  async _saveEquipeData() {
+    const ctx = TBO_STORAGE.get('context');
+    const equipe = ctx.dados_comerciais?.[TBO_CONFIG.app.fiscalYear]?.fluxo_caixa?.despesas_detalhadas?.pessoas?.equipe;
+    if (!equipe) return;
+
+    document.querySelectorAll('.fn-salario').forEach(el => {
+      const idx = parseInt(el.dataset.idx);
+      if (equipe[idx]) equipe[idx].salario = parseFloat(el.value) || 0;
+    });
+
+    // Recalculate total_anual
+    const totalMensal = equipe.reduce((s, p) => s + p.salario, 0);
+    ctx.dados_comerciais[TBO_CONFIG.app.fiscalYear].fluxo_caixa.despesas_detalhadas.pessoas.total_anual = totalMensal * 12;
+
+    TBO_STORAGE._data.context = ctx;
+    localStorage.setItem('tbo_context_override', JSON.stringify(ctx));
+    TBO_TOAST.success('Equipe atualizada', `Total mensal: ${TBO_FORMATTER.currency(totalMensal)}`);
   },
 
   _bind(id, fn) {
@@ -610,7 +863,7 @@ const TBO_FINANCEIRO = {
 
   _showEditModal() {
     const context = TBO_STORAGE.get('context');
-    const dc26 = context.dados_comerciais?.['2026'] || {};
+    const dc26 = context.dados_comerciais?.[TBO_CONFIG.app.fiscalYear] || {};
     const fc = dc26.fluxo_caixa || {};
     const recMensal = fc.receita_mensal || {};
     const despMensal = fc.despesa_mensal || {};
@@ -645,12 +898,12 @@ const TBO_FINANCEIRO = {
     `;
 
     if (typeof TBO_MODAL !== 'undefined') {
-      TBO_MODAL.show('Editar Dados Financeiros 2026', html, { width: '600px' });
+      TBO_MODAL.show(`Editar Dados Financeiros ${TBO_CONFIG.app.fiscalYear}`, html, { width: '600px' });
     } else {
       // Fallback modal
       const overlay = document.createElement('div');
       overlay.className = 'modal-overlay';
-      overlay.innerHTML = `<div class="pj-modal" style="max-width:600px;"><div class="pj-modal-header"><h3 style="font-size:1rem;">Editar Dados Financeiros 2026</h3><button class="pj-modal-close" onclick="this.closest('.modal-overlay').remove();">&#10005;</button></div><div class="pj-modal-body" style="padding:16px;">${html}</div></div>`;
+      overlay.innerHTML = `<div class="pj-modal" style="max-width:600px;"><div class="pj-modal-header"><h3 style="font-size:1rem;">Editar Dados Financeiros ${TBO_CONFIG.app.fiscalYear}</h3><button class="pj-modal-close" onclick="this.closest('.modal-overlay').remove();">&#10005;</button></div><div class="pj-modal-body" style="padding:16px;">${html}</div></div>`;
       document.body.appendChild(overlay);
       overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
     }
@@ -661,9 +914,9 @@ const TBO_FINANCEIRO = {
       if (saveBtn) saveBtn.addEventListener('click', () => {
         const ctx = TBO_STORAGE.get('context');
         if (!ctx.dados_comerciais) ctx.dados_comerciais = {};
-        if (!ctx.dados_comerciais['2026']) ctx.dados_comerciais['2026'] = {};
-        if (!ctx.dados_comerciais['2026'].fluxo_caixa) ctx.dados_comerciais['2026'].fluxo_caixa = {};
-        const newFc = ctx.dados_comerciais['2026'].fluxo_caixa;
+        if (!ctx.dados_comerciais[TBO_CONFIG.app.fiscalYear]) ctx.dados_comerciais[TBO_CONFIG.app.fiscalYear] = {};
+        if (!ctx.dados_comerciais[TBO_CONFIG.app.fiscalYear].fluxo_caixa) ctx.dados_comerciais[TBO_CONFIG.app.fiscalYear].fluxo_caixa = {};
+        const newFc = ctx.dados_comerciais[TBO_CONFIG.app.fiscalYear].fluxo_caixa;
 
         const newRec = {};
         const newDesp = {};

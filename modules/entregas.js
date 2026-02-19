@@ -122,10 +122,21 @@ const TBO_ENTREGAS = {
             const lastVersion = versions[versions.length - 1];
             const updatedStr = d.updatedAt ? new Date(d.updatedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-';
 
+            const checklist = d.checklist || [];
+            const checkDone = checklist.filter(c => c.done).length;
+            const checkTotal = checklist.length;
+            const checkPct = checkTotal > 0 ? Math.round((checkDone / checkTotal) * 100) : 0;
+
             return `<tr style="border-bottom:1px solid var(--border-subtle);">
               <td style="padding:10px 8px;">
                 <div style="font-weight:600;">${d.title || d.name || '-'}</div>
                 ${d.type ? `<div style="font-size:0.7rem;color:var(--text-muted);">${d.type}</div>` : ''}
+                ${checkTotal > 0 ? `<div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+                  <div style="flex:1;max-width:80px;height:4px;background:var(--bg-tertiary);border-radius:2px;overflow:hidden;">
+                    <div style="width:${checkPct}%;height:100%;background:${checkPct === 100 ? '#22c55e' : '#3b82f6'};border-radius:2px;"></div>
+                  </div>
+                  <span style="font-size:0.65rem;color:var(--text-muted);">${checkDone}/${checkTotal}</span>
+                </div>` : ''}
               </td>
               <td style="padding:10px 8px;"><span class="tag" style="font-size:0.7rem;">${projName}</span></td>
               <td style="padding:10px 8px;">${d.owner || '-'}</td>
@@ -136,7 +147,8 @@ const TBO_ENTREGAS = {
               </td>
               <td style="padding:10px 8px;font-size:0.78rem;color:var(--text-secondary);">${updatedStr}</td>
               <td style="padding:10px 8px;">
-                <div style="display:flex;gap:4px;">
+                <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                  <button class="btn btn-sm btn-secondary entChecklist" data-id="${d.id}" style="font-size:0.7rem;" title="Checklist">\u2611 ${checkTotal > 0 ? checkDone + '/' + checkTotal : 'Checklist'}</button>
                   ${d.status === 'em_producao' ? `<button class="btn btn-sm btn-secondary entSubmitReview" data-id="${d.id}" style="font-size:0.7rem;">Enviar p/ Revisao</button>` : ''}
                   ${d.status === 'em_revisao' ? `
                     <button class="btn btn-sm btn-primary entApprove" data-id="${d.id}" style="font-size:0.7rem;">Aprovar</button>
@@ -217,6 +229,14 @@ const TBO_ENTREGAS = {
       });
     });
 
+    // Checklist management
+    document.querySelectorAll('.entChecklist').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        this._showChecklistModal(id);
+      });
+    });
+
     // Mark as delivered
     document.querySelectorAll('.entDeliver').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -226,6 +246,89 @@ const TBO_ENTREGAS = {
           if (result.ok) { TBO_TOAST.success('Marcado como entregue', ''); this._refresh(); }
           else TBO_TOAST.error('Erro', result.error);
         }
+      });
+    });
+  },
+
+  _showChecklistModal(deliverableId) {
+    const d = TBO_STORAGE.getErpEntity('deliverable', deliverableId);
+    if (!d) return;
+    const checklist = d.checklist || [];
+    const title = d.title || d.name || 'Entregavel';
+
+    const renderItems = (items) => items.map((item, i) => `
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border-subtle);">
+        <input type="checkbox" class="ent-check-item" data-idx="${i}" ${item.done ? 'checked' : ''} style="width:18px;height:18px;cursor:pointer;">
+        <span style="flex:1;font-size:0.82rem;${item.done ? 'text-decoration:line-through;color:var(--text-muted);' : ''}">${item.text}</span>
+        <button class="ent-check-remove" data-idx="${i}" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1rem;" title="Remover">&times;</button>
+      </div>
+    `).join('');
+
+    const html = `
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div style="font-size:0.78rem;color:var(--text-secondary);">Checklist para: <strong>${title}</strong></div>
+        <div id="entChecklistItems">${checklist.length > 0 ? renderItems(checklist) : '<div style="color:var(--text-muted);font-size:0.82rem;padding:12px 0;">Nenhum item no checklist.</div>'}</div>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="entChecklistNewItem" class="form-input" placeholder="Novo item do checklist..." style="flex:1;">
+          <button id="entChecklistAdd" class="btn btn-sm btn-primary" style="white-space:nowrap;">+ Adicionar</button>
+        </div>
+      </div>
+    `;
+
+    if (typeof TBO_UX !== 'undefined' && TBO_UX.openModal) {
+      TBO_UX.openModal('Checklist de Entregaveis', html, { width: '480px' });
+    } else {
+      const overlay = document.createElement('div');
+      overlay.id = 'entChecklistOverlay';
+      overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+      overlay.innerHTML = `<div style="background:var(--bg-primary);border-radius:12px;padding:24px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h3 style="margin:0;font-size:1rem;">Checklist de Entregaveis</h3>
+          <button id="entChecklistClose" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-secondary);">&times;</button>
+        </div>
+        ${html}
+      </div>`;
+      document.body.appendChild(overlay);
+      document.getElementById('entChecklistClose')?.addEventListener('click', () => overlay.remove());
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    }
+
+    // Bind add new item
+    const addBtn = document.getElementById('entChecklistAdd');
+    const input = document.getElementById('entChecklistNewItem');
+    const addItem = () => {
+      const text = input?.value?.trim();
+      if (!text) return;
+      const current = TBO_STORAGE.getErpEntity('deliverable', deliverableId);
+      const cl = current.checklist || [];
+      cl.push({ text, done: false, addedAt: new Date().toISOString() });
+      TBO_STORAGE.updateErpEntity('deliverable', deliverableId, { checklist: cl });
+      input.value = '';
+      this._showChecklistModal(deliverableId);
+    };
+    addBtn?.addEventListener('click', addItem);
+    input?.addEventListener('keydown', (e) => { if (e.key === 'Enter') addItem(); });
+
+    // Bind toggle & remove
+    document.querySelectorAll('.ent-check-item').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const idx = parseInt(cb.dataset.idx);
+        const current = TBO_STORAGE.getErpEntity('deliverable', deliverableId);
+        const cl = current.checklist || [];
+        if (cl[idx]) { cl[idx].done = cb.checked; cl[idx].doneAt = cb.checked ? new Date().toISOString() : null; }
+        TBO_STORAGE.updateErpEntity('deliverable', deliverableId, { checklist: cl });
+        this._showChecklistModal(deliverableId);
+      });
+    });
+
+    document.querySelectorAll('.ent-check-remove').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.idx);
+        const current = TBO_STORAGE.getErpEntity('deliverable', deliverableId);
+        const cl = current.checklist || [];
+        cl.splice(idx, 1);
+        TBO_STORAGE.updateErpEntity('deliverable', deliverableId, { checklist: cl });
+        this._showChecklistModal(deliverableId);
       });
     });
   },

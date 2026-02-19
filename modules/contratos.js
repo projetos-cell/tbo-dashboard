@@ -76,17 +76,18 @@ const TBO_CONTRATOS = {
       return 0;
     });
 
-    // Stats
+    // Stats — status values from TBO_CONFIG.business.contractStatuses
     const ativos = contracts.filter(c => c.status === 'ativo');
     const finalizados = contracts.filter(c => c.status === 'finalizado');
     const totalValue = contracts.reduce((s, c) => s + (c.value || 0), 0);
     const totalAtivosValue = ativos.reduce((s, c) => s + (c.value || 0), 0);
     const uniqueClients = [...new Set(contracts.map(c => c.client))].sort();
     const ticketMedio = contracts.length > 0 ? totalValue / contracts.filter(c => c.value > 0).length : 0;
+    const expiringWindowDays = TBO_CONFIG.business.thresholds.contractExpiring.windowDays;
     const expiringSoon = contracts.filter(c => {
-      if (c.status !== 'ativo' || !c.endDate) return false;
+      if (c.status !== 'ativo' || !c.endDate) return false; // status from TBO_CONFIG.business.contractStatuses
       const days = (new Date(c.endDate) - new Date()) / (1000 * 60 * 60 * 24);
-      return days >= 0 && days <= 30;
+      return days >= 0 && days <= expiringWindowDays;
     });
 
     // Service breakdown
@@ -107,6 +108,7 @@ const TBO_CONTRATOS = {
     });
     const topClients = Object.entries(clientMap).sort((a, b) => b[1].valor - a[1].valor).slice(0, 8);
 
+    // Filter buttons — status keys from TBO_CONFIG.business.contractStatuses
     const filterBtns = [
       { key: 'all', label: 'Todos', count: contracts.length },
       { key: 'ativo', label: 'Ativos', count: ativos.length },
@@ -152,7 +154,7 @@ const TBO_CONTRATOS = {
             </div>
             <div class="contratos-stat">
               <div class="contratos-stat-value">${expiringSoon.length}</div>
-              <div class="contratos-stat-label">Vencendo 30d</div>
+              <div class="contratos-stat-label">Vencendo ${expiringWindowDays}d</div>
             </div>
           </div>
         </section>
@@ -227,10 +229,11 @@ const TBO_CONTRATOS = {
               <tbody>
                 ${filtered.length === 0 ? '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted);">Nenhum contrato encontrado</td></tr>' : ''}
                 ${filtered.map(c => {
+                  // Status colors/labels — values from TBO_CONFIG.business.contractStatuses
                   const statusColors = { ativo: '#22c55e', pendente: '#f59e0b', finalizado: '#94a3b8', cancelado: '#ef4444' };
                   const statusLabels = { ativo: 'Ativo', pendente: 'Pendente', finalizado: 'Finalizado', cancelado: 'Cancelado' };
                   const color = statusColors[c.status] || '#94a3b8';
-                  const isExpiring = c.status === 'ativo' && c.endDate && (new Date(c.endDate) - new Date()) / (1000 * 60 * 60 * 24) <= 30;
+                  const isExpiring = c.status === 'ativo' && c.endDate && (new Date(c.endDate) - new Date()) / (1000 * 60 * 60 * 24) <= expiringWindowDays;
                   const imgs = c.qtdImagens || 0;
                   const plantas = c.qtdPlantas || 0;
                   const qtdStr = [];
@@ -265,7 +268,7 @@ const TBO_CONTRATOS = {
         ${expiringSoon.length > 0 ? `
           <section class="section">
             <div class="contratos-expiring-section">
-              <h3 style="font-size:0.85rem;color:var(--accent-warning);margin-bottom:12px;">&#9888; Contratos Vencendo em 30 dias</h3>
+              <h3 style="font-size:0.85rem;color:var(--accent-warning);margin-bottom:12px;">&#9888; Contratos Vencendo em ${expiringWindowDays} dias</h3>
               <div class="contratos-expiring-list">
                 ${expiringSoon.map(c => `
                   <div class="contratos-expiring-item">
@@ -289,6 +292,7 @@ const TBO_CONTRATOS = {
     // Related contracts (same client)
     const related = allContracts.filter(x => x.client === c.client && x.id !== c.id);
     const clientTotal = allContracts.filter(x => x.client === c.client).reduce((s, x) => s + (x.value || 0), 0);
+    // Status colors/labels — values from TBO_CONFIG.business.contractStatuses
     const statusColors = { ativo: '#22c55e', pendente: '#f59e0b', finalizado: '#94a3b8', cancelado: '#ef4444' };
     const statusLabels = { ativo: 'Ativo', pendente: 'Pendente', finalizado: 'Finalizado', cancelado: 'Cancelado' };
     const color = statusColors[c.status] || '#94a3b8';
@@ -394,7 +398,7 @@ const TBO_CONTRATOS = {
       value: c.valorTotal || 0,
       startDate: '',
       endDate: '',
-      status: c.status || 'finalizado',
+      status: c.status || 'finalizado', // default status from TBO_CONFIG.business.contractStatuses
       notes: '',
       qtdImagens: c.qtdImagens || 0,
       qtdPlantas: c.qtdPlantas || 0,
@@ -417,7 +421,7 @@ const TBO_CONTRATOS = {
         value: 0,
         startDate: '',
         endDate: '',
-        status: 'ativo',
+        status: 'ativo', // status from TBO_CONFIG.business.contractStatuses
         notes: '',
         qtdImagens: 0,
         qtdPlantas: 0,
@@ -470,6 +474,7 @@ const TBO_CONTRATOS = {
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
               <div class="form-group">
                 <label class="form-label">Status</label>
+                <!-- Status options from TBO_CONFIG.business.contractStatuses -->
                 <select class="form-input" id="contratoStatus">
                   <option value="pendente" ${c.status === 'pendente' ? 'selected' : ''}>Pendente</option>
                   <option value="ativo" ${c.status === 'ativo' || !c.status ? 'selected' : ''}>Ativo</option>
@@ -732,7 +737,7 @@ const TBO_CONTRATOS = {
       value: parseFloat(document.getElementById('contratoValue')?.value) || 0,
       startDate: document.getElementById('contratoStart')?.value || '',
       endDate: document.getElementById('contratoEnd')?.value || '',
-      status: document.getElementById('contratoStatus')?.value || 'ativo',
+      status: document.getElementById('contratoStatus')?.value || 'ativo', // default status from TBO_CONFIG.business.contractStatuses
       services: (document.getElementById('contratoServices')?.value || '').split(',').map(s => s.trim()).filter(Boolean),
       notes: document.getElementById('contratoNotes')?.value || '',
       qtdImagens: parseInt(document.getElementById('contratoImgs')?.value) || 0,

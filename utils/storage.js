@@ -55,6 +55,9 @@ const TBO_STORAGE = {
     // 6. Load meeting data from Fireflies API (overrides static JSON)
     await this._loadFromFireflies();
 
+    // 7. Sync deals/contacts from RD Station CRM
+    await this._loadFromRdStation();
+
     return this._data;
   },
 
@@ -83,14 +86,15 @@ const TBO_STORAGE = {
       const sheetsData = await TBO_SHEETS.syncAll();
       if (!sheetsData) return;
 
-      // Merge fluxo_caixa into context.dados_comerciais['2026']
+      // Merge fluxo_caixa into context.dados_comerciais[fiscalYear]
       const ctx = this._data.context || {};
+      const fy = TBO_CONFIG.app.fiscalYear;
       if (!ctx.dados_comerciais) ctx.dados_comerciais = {};
-      if (!ctx.dados_comerciais['2026']) ctx.dados_comerciais['2026'] = {};
+      if (!ctx.dados_comerciais[fy]) ctx.dados_comerciais[fy] = {};
 
       if (sheetsData.fluxo_caixa) {
         // Preserve meta_vendas and budget fields from static JSON if Sheets doesn't have them
-        const existingFC = ctx.dados_comerciais['2026'].fluxo_caixa || {};
+        const existingFC = ctx.dados_comerciais[fy].fluxo_caixa || {};
         const merged = {
           ...existingFC,        // Static JSON as base
           ...sheetsData.fluxo_caixa  // Sheets data overrides
@@ -99,12 +103,12 @@ const TBO_STORAGE = {
         if (sheetsData.fluxo_caixa.contas_a_receber) {
           merged.contas_a_receber = sheetsData.fluxo_caixa.contas_a_receber;
         }
-        ctx.dados_comerciais['2026'].fluxo_caixa = merged;
+        ctx.dados_comerciais[fy].fluxo_caixa = merged;
       }
 
       if (sheetsData.custos_por_bu && Object.keys(sheetsData.custos_por_bu).length > 0) {
-        ctx.dados_comerciais['2026'].custos_por_bu = {
-          ...(ctx.dados_comerciais['2026'].custos_por_bu || {}),
+        ctx.dados_comerciais[fy].custos_por_bu = {
+          ...(ctx.dados_comerciais[fy].custos_por_bu || {}),
           ...sheetsData.custos_por_bu
         };
       }
@@ -127,6 +131,18 @@ const TBO_STORAGE = {
       console.log(`[TBO Storage] Meetings loaded from Fireflies API: ${ffData.meetings.length} meetings`);
     } catch (e) {
       console.warn('[TBO Storage] Fireflies load failed, using static data:', e.message);
+    }
+  },
+
+  async _loadFromRdStation() {
+    if (typeof TBO_RD_STATION === 'undefined' || !TBO_RD_STATION.isEnabled()) return;
+    try {
+      const result = await TBO_RD_STATION.sync();
+      if (result) {
+        console.log(`[TBO Storage] RD Station sync: ${result.created} created, ${result.updated} updated, ${result.pushed} pushed, ${result.contacts} contacts`);
+      }
+    } catch (e) {
+      console.warn('[TBO Storage] RD Station sync failed:', e.message);
     }
   },
 
@@ -417,9 +433,9 @@ const TBO_STORAGE = {
       full += `2024: ${dc['2024']?.propostas || 0} propostas, ${dc['2024']?.conversao_proposta || 'N/A'} conversão, ticket médio R$${dc['2024']?.ticket_medio || 'N/A'}, vendido R$${dc['2024']?.total_vendido || 'N/A'}\n`;
       full += `2025: ${dc['2025']?.propostas || 0} propostas, ${dc['2025']?.conversao_proposta || 'N/A'} conversão, ticket médio R$${dc['2025']?.ticket_medio || 'N/A'}, vendido R$${dc['2025']?.total_vendido || 'N/A'}\n`;
 
-      const fc = dc['2026']?.fluxo_caixa;
+      const fc = dc[TBO_CONFIG.app.fiscalYear]?.fluxo_caixa;
       if (fc) {
-        full += `\n[FLUXO DE CAIXA 2026]\n`;
+        full += `\n[FLUXO DE CAIXA ${TBO_CONFIG.app.fiscalYear}]\n`;
         full += `Meta vendas: R$${fc.meta_vendas_mensal}/mês (R$${fc.meta_vendas_anual}/ano)\n`;
         full += `Receita projetada: R$${fc.receita_total_projetada} | Despesa projetada: R$${fc.despesa_total_projetada}\n`;
         full += `Resultado líquido projetado: R$${fc.resultado_liquido_projetado}\n`;
@@ -548,6 +564,19 @@ const TBO_STORAGE = {
     // Async Supabase write
     this._crmDealToSupabase('insert', newDeal);
 
+    // Async RD Station push (only if enabled and deal is not from RD)
+    if (typeof TBO_RD_STATION !== 'undefined' && TBO_RD_STATION.isEnabled()) {
+      if (newDeal.source !== 'rd_sync') {
+        TBO_RD_STATION.pushDealCreate(newDeal).then(r => {
+          if (r && r.id) {
+            this.updateCrmDeal(id, { rdDealId: String(r.id) });
+          }
+        }).catch(e => {
+          console.warn('[TBO Storage] RD Station push failed:', e.message);
+        });
+      }
+    }
+
     return newDeal;
   },
 
@@ -559,6 +588,16 @@ const TBO_STORAGE = {
 
     // Async Supabase write
     this._crmDealToSupabase('update', data.deals[id]);
+
+    // Async RD Station push (only if deal has rdDealId and is not rd_sync source)
+    if (typeof TBO_RD_STATION !== 'undefined' && TBO_RD_STATION.isEnabled()) {
+      const deal = data.deals[id];
+      if (deal.rdDealId && deal.source !== 'rd_sync') {
+        TBO_RD_STATION.pushDealUpdate(deal).catch(e => {
+          console.warn('[TBO Storage] RD Station update push failed:', e.message);
+        });
+      }
+    }
 
     return data.deals[id];
   },

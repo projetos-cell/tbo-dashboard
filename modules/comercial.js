@@ -3,15 +3,15 @@ const TBO_COMERCIAL = {
   // Active filters state
   _filters: { owner: '', service: '', search: '' },
 
-  // BU list constant
-  _BUS: ['Digital 3D','Audiovisual','Branding','Marketing','Interiores','Gamificacao'],
+  // BU list — from centralized config
+  get _BUS() { return TBO_CONFIG.business.getBUNames(); },
 
   // Team members for owner select
   _getTeamMembers() {
     if (typeof TBO_RH !== 'undefined' && TBO_RH._team) {
       return TBO_RH._team.filter(m => m.status !== 'saindo').map(m => m.nome);
     }
-    return ['Marco','Ruy','Nathalia','Nelson','Danniel','Felipe','Lucas F.','Carol'];
+    return TBO_CONFIG.business.fallbackTeam;
   },
 
   render() {
@@ -27,13 +27,14 @@ const TBO_COMERCIAL = {
     const crm = TBO_STORAGE.getCrmData();
     const deals = TBO_STORAGE.getCrmDeals();
     const stages = (crm.stages || []).sort((a, b) => a.order - b.order);
-    const dc26 = context.dados_comerciais?.['2026'] || {};
+    const dc26 = context.dados_comerciais?.[TBO_CONFIG.app.fiscalYear] || {};
     const fc = dc26.fluxo_caixa || {};
 
     // Compute live KPIs
-    const activeDeals = deals.filter(d => !['fechado_ganho','fechado_perdido'].includes(d.stage));
+    const closedStages = TBO_CONFIG.business.getClosedStages();
+    const activeDeals = deals.filter(d => !closedStages.includes(d.stage));
     const pipelineTotal = activeDeals.reduce((s, d) => s + (d.value || 0), 0);
-    const metaMensal = fc.meta_vendas_mensal || 180000;
+    const metaMensal = fc.meta_vendas_mensal || TBO_CONFIG.business.financial.monthlyTarget;
     const forecast = activeDeals.reduce((s, d) => s + ((d.value || 0) * (d.probability || 0) / 100), 0);
     const wonDeals = deals.filter(d => d.stage === 'fechado_ganho');
     const lostDeals = deals.filter(d => d.stage === 'fechado_perdido');
@@ -224,16 +225,20 @@ const TBO_COMERCIAL = {
     const crm = TBO_STORAGE.getCrmData();
     const deals = TBO_STORAGE.getCrmDeals();
     const stages = (crm.stages || []).sort((a, b) => a.order - b.order);
-    const rdConnected = !!crm.config?.rdToken;
+    const rdStatus = typeof TBO_RD_STATION !== 'undefined' ? TBO_RD_STATION.getStatus() : null;
+    const rdConnected = rdStatus?.enabled || false;
+    const rdSyncing = rdStatus?.syncing || false;
 
     return `
       <!-- RD Status Banner -->
       <div class="crm-status-banner" style="display:flex; align-items:center; justify-content:space-between; padding:10px 16px; border-radius:8px; background:var(--bg-tertiary); margin-bottom:16px; flex-wrap:wrap; gap:8px;">
         <div style="display:flex; align-items:center; gap:8px;">
-          <span class="status-dot" style="background:${rdConnected ? '#22c55e' : '#ef4444'};"></span>
-          <span style="font-size:0.82rem; color:var(--text-secondary);">RD Station: ${rdConnected ? 'Conectado' : 'Desconectado (modo local)'}</span>
+          <span class="status-dot" style="background:${rdConnected ? '#22c55e' : '#ef4444'};${rdSyncing ? 'animation:pulse 1s infinite;' : ''}"></span>
+          <span style="font-size:0.82rem; color:var(--text-secondary);">RD Station: ${rdSyncing ? 'Sincronizando...' : (rdConnected ? 'Conectado' : 'Desconectado (modo local)')}</span>
+          ${rdStatus?.lastSync ? `<span style="font-size:0.7rem; color:var(--text-muted);">${rdStatus.rdDealCount || 0} deals sincronizados</span>` : ''}
         </div>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          ${rdConnected ? '<button class="btn btn-sm btn-secondary" id="cmCrmRdSync">Sync RD</button>' : ''}
           <button class="btn btn-sm btn-secondary" id="cmCrmImport">Importar CSV</button>
           <button class="btn btn-sm btn-secondary" id="cmCrmExport">Exportar</button>
           <button class="btn btn-sm btn-secondary" id="cmCrmStageConfig" title="Configurar etapas">Etapas</button>
@@ -335,13 +340,20 @@ const TBO_COMERCIAL = {
       : agingClass === 'deal-aging-warning'
         ? `<span class="deal-aging-badge warning" title="Parado ha ${ageDays} dias">${ageDays}d</span>`
         : '';
+    const rdBadge = deal.rdDealId
+      ? '<span style="font-size:0.58rem;padding:1px 4px;border-radius:3px;background:#7c3aed22;color:#7c3aed;font-weight:600;" title="Sincronizado com RD Station">RD</span>'
+      : '';
+    const linkedProj = deal.project_id ? (typeof TBO_STORAGE !== 'undefined' ? TBO_STORAGE.getErpEntity('project', deal.project_id) : null) : null;
+    const projectBadge = linkedProj
+      ? `<span style="font-size:0.58rem;padding:1px 4px;border-radius:3px;background:#14b8a622;color:#14b8a6;font-weight:600;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;" title="Projeto: ${(linkedProj.name || '').replace(/"/g, '&quot;')}">${TBO_FORMATTER.truncate(linkedProj.name, 12)}</span>`
+      : '';
 
     return `
       <div class="pipeline-deal ${agingClass}" draggable="true" data-deal-id="${deal.id}" title="${deal.name}">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:4px;">
           <div class="pipeline-deal-name">${deal.riskFlag ? '<span style="color:#ef4444;" title="Risco">\u{1F534}</span> ' : ''}${TBO_FORMATTER.truncate(deal.name, 30)}</div>
           <div style="display:flex; align-items:center; gap:4px;">
-            ${agingBadge}
+            ${projectBadge}${rdBadge}${agingBadge}
             <div class="deal-owner-badge" title="${deal.owner || 'Sem responsavel'}">${ownerInitials}</div>
           </div>
         </div>
@@ -458,6 +470,7 @@ const TBO_COMERCIAL = {
         cost: null,
         riskFlag: false,
         priority: 'media',
+        project_id: null,
         createdAt: now,
         updatedAt: now,
         expectedClose: '',
@@ -498,6 +511,7 @@ const TBO_COMERCIAL = {
         cost: null,
         riskFlag: false,
         priority: 'baixa',
+        project_id: null,
         createdAt: now,
         updatedAt: now,
         expectedClose: '',
@@ -526,9 +540,11 @@ const TBO_COMERCIAL = {
 
   _getDealAgingClass(deal) {
     const days = this._getDealAgeDays(deal);
-    if (['fechado_ganho', 'fechado_perdido'].includes(deal.stage)) return '';
-    if (days >= 14) return 'deal-aging-critical';
-    if (days >= 7) return 'deal-aging-warning';
+    const closed = TBO_CONFIG.business.getClosedStages();
+    if (closed.includes(deal.stage)) return '';
+    const t = TBO_CONFIG.business.thresholds.dealAging;
+    if (days >= t.criticalDays) return 'deal-aging-critical';
+    if (days >= t.warningDays) return 'deal-aging-warning';
     return '';
   },
 
@@ -563,6 +579,18 @@ const TBO_COMERCIAL = {
     this._bind('cmCrmImport', () => this._showImportModal());
     this._bind('cmCrmExport', () => this._showExportModal());
     this._bind('cmCrmStageConfig', () => this._showStageConfigModal());
+    this._bind('cmCrmRdSync', async () => {
+      if (typeof TBO_RD_STATION !== 'undefined' && TBO_RD_STATION.isEnabled()) {
+        TBO_TOAST.info('RD Station', 'Sincronizando deals...');
+        try {
+          await TBO_RD_STATION.forceRefresh();
+          this._refreshPipeline();
+          TBO_TOAST.success('RD Station', 'Deals sincronizados!');
+        } catch (e) {
+          TBO_TOAST.error('RD Station', e.message);
+        }
+      }
+    });
 
     // Pipeline filters
     const filterOwner = document.getElementById('cmFilterOwner');
@@ -651,6 +679,93 @@ const TBO_COMERCIAL = {
     const newLabel = (stages.find(s => s.id === newStageId) || {}).label || newStageId;
     TBO_TOAST.success(`${TBO_FORMATTER.truncate(deal.name, 20)}: ${oldLabel} \u2192 ${newLabel}`);
     this._refreshPipeline();
+
+    // If moved to fechado_ganho and no linked project, prompt to create one
+    if (newStageId === 'fechado_ganho' && !deal.project_id) {
+      this._showCreateProjectFromDealPrompt(dealId);
+    }
+  },
+
+  _showCreateProjectFromDealPrompt(dealId) {
+    const crm = TBO_STORAGE.getCrmData();
+    const deal = crm.deals[dealId];
+    if (!deal) return;
+
+    const html = `
+      <div class="modal-overlay active" id="cmDealProjectPromptOverlay">
+        <div class="modal" style="max-width:460px;">
+          <div class="modal-header">
+            <h3 class="modal-title">Criar Projeto a partir do Deal?</h3>
+            <button class="modal-close" id="cmDealProjectPromptClose">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:16px;">
+              O deal <strong>${TBO_FORMATTER.escapeHtml(deal.name)}</strong> foi marcado como ganho mas nao possui um projeto vinculado. Deseja criar um novo projeto?
+            </p>
+            <div class="form-group">
+              <label class="form-label">Nome do Projeto</label>
+              <input type="text" class="form-input" id="cmDealNewProjName" value="${(deal.name || '').replace(/"/g, '&quot;')}">
+            </div>
+            <div class="grid-2" style="gap:12px;">
+              <div class="form-group">
+                <label class="form-label">Cliente</label>
+                <input type="text" class="form-input" id="cmDealNewProjClient" value="${(deal.company || '').replace(/"/g, '&quot;')}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Valor (R$)</label>
+                <input type="number" class="form-input" id="cmDealNewProjValue" value="${deal.value || 0}">
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer" style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn btn-sm btn-secondary" id="cmDealProjectPromptSkip">Pular</button>
+            <button class="btn btn-sm btn-primary" id="cmDealProjectPromptCreate">Criar Projeto</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', html);
+
+    const overlay = document.getElementById('cmDealProjectPromptOverlay');
+    const close = () => overlay?.remove();
+    document.getElementById('cmDealProjectPromptClose')?.addEventListener('click', close);
+    document.getElementById('cmDealProjectPromptSkip')?.addEventListener('click', close);
+    overlay?.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    document.getElementById('cmDealProjectPromptCreate')?.addEventListener('click', () => {
+      const projName = document.getElementById('cmDealNewProjName')?.value?.trim();
+      const projClient = document.getElementById('cmDealNewProjClient')?.value?.trim();
+      const projValue = parseFloat(document.getElementById('cmDealNewProjValue')?.value) || 0;
+
+      if (!projName) { TBO_TOAST.warning('Nome do projeto e obrigatorio'); return; }
+
+      const newProject = TBO_STORAGE.addErpEntity('project', {
+        name: projName,
+        client: projClient,
+        company: projClient,
+        value: projValue,
+        services: deal.services || [],
+        owner: deal.owner || '',
+        status: 'ativo',
+        deal_id: dealId,
+        notes: 'Projeto criado a partir do deal: ' + deal.name
+      });
+
+      if (typeof TBO_ERP !== 'undefined') TBO_ERP.addAuditLog({
+        entityType: 'project', entityId: newProject.id,
+        action: 'created', userId: TBO_ERP._getCurrentUserId(),
+        reason: 'Criado a partir do deal ganho: ' + dealId,
+        entityName: projName
+      });
+
+      // Link the project back to the deal
+      TBO_STORAGE.updateCrmDeal(dealId, { project_id: newProject.id });
+
+      TBO_TOAST.success(`Projeto "${projName}" criado e vinculado ao deal`);
+      close();
+      this._refreshPipeline();
+    });
   },
 
   // ===========================================================================
@@ -663,6 +778,8 @@ const TBO_COMERCIAL = {
     const isEdit = !!deal;
     const stages = (crm.stages || []).sort((a, b) => a.order - b.order);
     const team = this._getTeamMembers();
+    const activeProjects = typeof TBO_STORAGE !== 'undefined' ? (TBO_STORAGE.getAllErpEntities('project') || []).filter(p => !['cancelado','concluido'].includes(p.status)) : [];
+    const linkedProject = (isEdit && deal.project_id) ? activeProjects.find(p => p.id === deal.project_id) || TBO_STORAGE.getErpEntity('project', deal.project_id) : null;
 
     const html = `
       <div class="modal-overlay active" id="cmDealModalOverlay">
@@ -725,7 +842,23 @@ const TBO_COMERCIAL = {
                   <option value="alta" ${(isEdit && deal.priority === 'alta') ? 'selected' : ''}>Alta</option>
                 </select>
               </div>
+              <div class="form-group">
+                <label class="form-label">Projeto Vinculado</label>
+                <select class="form-input" id="cmDealProjectId">
+                  <option value="">Nenhum</option>
+                  ${activeProjects.map(p => `<option value="${p.id}" ${(isEdit && deal.project_id === p.id) ? 'selected' : ''}>${p.name}${p.client ? ' (' + p.client + ')' : ''}</option>`).join('')}
+                </select>
+              </div>
             </div>
+            ${isEdit && linkedProject ? `
+            <div style="margin-top:8px; padding:10px 12px; background:var(--bg-tertiary); border-radius:6px; border-left:3px solid var(--accent-gold);">
+              <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:2px;">Projeto vinculado</div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-weight:600; font-size:0.85rem;">${linkedProject.name}</span>
+                ${linkedProject.status ? `<span class="tag" style="font-size:0.62rem; padding:1px 6px;">${linkedProject.status}</span>` : ''}
+                ${linkedProject.client ? `<span style="font-size:0.75rem; color:var(--text-secondary);">${linkedProject.client}</span>` : ''}
+              </div>
+            </div>` : ''}
             <div class="form-group" style="margin-top:12px;">
               <label class="form-label">Servicos</label>
               <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
@@ -740,6 +873,31 @@ const TBO_COMERCIAL = {
               <label class="form-label">Notas</label>
               <textarea class="form-input" id="cmDealNotes" rows="3" placeholder="Observacoes, historico, contexto...">${isEdit ? (deal.notes || '') : ''}</textarea>
             </div>
+            ${isEdit && deal.rdDealId ? (() => {
+              const rdNotes = (deal.activities || []).filter(a => a._source === 'rd_station');
+              const rdTasks = deal.rdTasks || [];
+              if (rdNotes.length === 0 && rdTasks.length === 0) return '';
+              let timeline = `<div style="margin-top:12px; padding:10px 12px; background:var(--bg-tertiary); border-radius:8px; border-left:3px solid #7c3aed; max-height:250px; overflow-y:auto;">
+                <div style="font-size:0.75rem; font-weight:600; color:#7c3aed; margin-bottom:8px;">Timeline RD Station (${rdNotes.length} notas${rdTasks.length ? ', ' + rdTasks.length + ' tarefas' : ''})</div>`;
+              const items = [
+                ...rdNotes.map(n => ({ type: 'note', text: n.text, date: n.date })),
+                ...rdTasks.map(t => ({ type: 'task', text: (t.title || '') + (t.description ? ': ' + t.description : ''), date: t.dueDate || '', status: t.status }))
+              ].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+              for (const item of items) {
+                const icon = item.type === 'note' ? '\u{1F4DD}' : '\u{2705}';
+                const dateStr = item.date ? new Date(item.date).toLocaleDateString('pt-BR') : '';
+                const statusBadge = item.status ? `<span class="tag" style="font-size:0.6rem; padding:1px 4px; margin-left:4px;">${item.status}</span>` : '';
+                timeline += `<div style="padding:6px 0; border-bottom:1px solid var(--border-subtle); font-size:0.78rem;">
+                  <div style="display:flex; align-items:center; gap:4px; margin-bottom:2px;">
+                    <span>${icon}</span>
+                    <span style="color:var(--text-muted); font-size:0.7rem;">${dateStr}</span>${statusBadge}
+                  </div>
+                  <div style="color:var(--text-secondary); white-space:pre-wrap;">${(item.text || '').replace(/</g, '&lt;').slice(0, 500)}</div>
+                </div>`;
+              }
+              timeline += `</div>`;
+              return timeline;
+            })() : ''}
             <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
               <label style="display:flex; align-items:center; gap:4px; font-size:0.82rem; cursor:pointer;">
                 <input type="checkbox" id="cmDealRiskFlag" ${(isEdit && deal.riskFlag) ? 'checked' : ''}> Sinalizar como risco
@@ -784,7 +942,8 @@ const TBO_COMERCIAL = {
         priority: document.getElementById('cmDealPriority')?.value || 'media',
         services: [...document.querySelectorAll('.cm-deal-service-check:checked')].map(c => c.value),
         notes: document.getElementById('cmDealNotes')?.value?.trim() || '',
-        riskFlag: !!document.getElementById('cmDealRiskFlag')?.checked
+        riskFlag: !!document.getElementById('cmDealRiskFlag')?.checked,
+        project_id: document.getElementById('cmDealProjectId')?.value || null
       };
       if (!formData.name) { TBO_TOAST.warning('Nome do deal e obrigatorio'); return; }
       if (!formData.company) { TBO_TOAST.warning('Empresa e obrigatoria'); return; }

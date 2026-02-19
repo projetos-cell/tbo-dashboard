@@ -639,11 +639,12 @@ const TBO_ERP = {
       }
     }
 
-    // -10: No recent activity (>7 days since last update)
+    // Penalty: No recent activity
     if (project.updatedAt) {
       const days = Math.floor((new Date() - new Date(project.updatedAt)) / 86400000);
-      if (days > 7 && activeStates.includes(project.status)) {
-        score -= 10;
+      const pm = TBO_CONFIG.business.thresholds.projectMonitoring;
+      if (days > pm.noActivityDays && activeStates.includes(project.status)) {
+        score -= pm.activityScorePenalty;
         reasons.push(`Sem atividade ha ${days} dias`);
       }
     }

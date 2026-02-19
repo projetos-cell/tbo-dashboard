@@ -302,13 +302,14 @@ const TBO_ANALYTICS = {
     const onTime = completed.length ? Math.round((completed.filter(p => new Date(p.completed_at) <= new Date(p.deadline)).length / completed.length) * 100) : 0;
     const avgResponse = Math.round(projects.reduce((s, p) => s + (p.sla_response_h || 0), 0) / projects.length);
 
+    const t = TBO_CONFIG.business.scoring.analytics;
     const kpis = [
-      { label: 'Receita Total', value: this._formatBRL(revenue), status: revenue > 100000 ? 'green' : revenue > 50000 ? 'yellow' : 'red' },
-      { label: 'Margem Média', value: `${avgMargin}%`, status: avgMargin >= 35 ? 'green' : avgMargin >= 25 ? 'yellow' : 'red' },
-      { label: 'Taxa de Conclusão', value: `${completionRate}%`, status: completionRate >= 70 ? 'green' : completionRate >= 50 ? 'yellow' : 'red' },
-      { label: 'Entrega Média', value: `${avgDelivery} dias`, status: avgDelivery <= 75 ? 'green' : avgDelivery <= 100 ? 'yellow' : 'red' },
-      { label: 'No Prazo', value: `${onTime}%`, status: onTime >= 80 ? 'green' : onTime >= 60 ? 'yellow' : 'red' },
-      { label: 'Resposta Média', value: `${avgResponse}h`, status: avgResponse <= 12 ? 'green' : avgResponse <= 24 ? 'yellow' : 'red' }
+      { label: 'Receita Total', value: this._formatBRL(revenue), status: revenue > t.revenue.green ? 'green' : revenue > t.revenue.yellow ? 'yellow' : 'red' },
+      { label: 'Margem Média', value: `${avgMargin}%`, status: avgMargin >= t.margin.green ? 'green' : avgMargin >= t.margin.yellow ? 'yellow' : 'red' },
+      { label: 'Taxa de Conclusão', value: `${completionRate}%`, status: completionRate >= t.completion.green ? 'green' : completionRate >= t.completion.yellow ? 'yellow' : 'red' },
+      { label: 'Entrega Média', value: `${avgDelivery} dias`, status: avgDelivery <= t.deliveryDays.green ? 'green' : avgDelivery <= t.deliveryDays.yellow ? 'yellow' : 'red' },
+      { label: 'No Prazo', value: `${onTime}%`, status: onTime >= t.onTimePercent.green ? 'green' : onTime >= t.onTimePercent.yellow ? 'yellow' : 'red' },
+      { label: 'Resposta Média', value: `${avgResponse}h`, status: avgResponse <= t.responseHours.green ? 'green' : avgResponse <= t.responseHours.yellow ? 'yellow' : 'red' }
     ];
 
     return { bu: buName, projects: projects.length, kpis };

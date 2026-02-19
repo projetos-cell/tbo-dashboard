@@ -42,7 +42,7 @@ const TBO_FINANCIAL = {
 
   _getFluxoCaixa() {
     const ctx = this._ctx();
-    return ctx.dados_comerciais?.['2026']?.fluxo_caixa || null;
+    return ctx.dados_comerciais?.[TBO_CONFIG.app.fiscalYear]?.fluxo_caixa || null;
   },
 
   _loadInvoices() {
@@ -229,29 +229,10 @@ const TBO_FINANCIAL = {
   // 2. PRICING CALCULATOR
   // =========================================================================
 
-  _serviceCatalog: {
-    render_fachada:       { label: 'Render de Fachada',       min: 1300, max: 1500, marketMin: 450,  marketMax: 900,   unit: 'por imagem' },
-    render_interno:       { label: 'Render Interno',          min: 1100, max: 1300, marketMin: 400,  marketMax: 800,   unit: 'por imagem' },
-    video_institucional:  { label: 'Video Institucional',     min: 17972,max: 17972,marketMin: 3000, marketMax: 5000,  unit: 'por projeto' },
-    tour_virtual_360:     { label: 'Tour Virtual 360',        min: 4000, max: 6000, marketMin: 2000, marketMax: 4000,  unit: 'por projeto' },
-    branding_completo:    { label: 'Branding Completo',       min: 15000,max: 25000,marketMin: 7000, marketMax: 10000, unit: 'por projeto' },
-    pack_social_media:    { label: 'Pack Social Media',       min: 3000, max: 5000, marketMin: 1500, marketMax: 3000,  unit: 'mensal' },
-    planta_humanizada:    { label: 'Planta Humanizada',       min: 800,  max: 1200, marketMin: 300,  marketMax: 700,   unit: 'por planta' },
-    animacao_flythrough:  { label: 'Animacao Flythrough',     min: 8000, max: 15000,marketMin: 4000, marketMax: 8000,  unit: 'por projeto' }
-  },
-
-  _complexityMultipliers: {
-    simples: { label: 'Simples', multiplier: 1.0 },
-    media:   { label: 'Media',   multiplier: 1.3 },
-    alta:    { label: 'Alta',    multiplier: 1.6 },
-    premium: { label: 'Premium', multiplier: 2.0 }
-  },
-
-  _clientDiscounts: {
-    novo:         { label: 'Novo',         discount: 0 },
-    recorrente:   { label: 'Recorrente',   discount: 0.05 },
-    estrategico:  { label: 'Estrategico',  discount: 0.10 }
-  },
+  // Pricing data now centralized in TBO_CONFIG.business.financial
+  get _serviceCatalog()        { return TBO_CONFIG.business.financial.serviceCatalog; },
+  get _complexityMultipliers() { return TBO_CONFIG.business.financial.complexityMultipliers; },
+  get _clientDiscounts()       { return TBO_CONFIG.business.financial.clientDiscounts; },
 
   calculatePricing(services = [], complexity = 'media', clientType = 'novo') {
     try {
@@ -369,10 +350,11 @@ const TBO_FINANCIAL = {
   getCommissionRules() {
     const saved = this._loadCommissionConfig();
     if (saved) return saved;
+    const fin = TBO_CONFIG.business.financial;
     return {
       rates: { standard: 0.05, premium: 0.08 },
-      premiumThreshold: 30000,
-      targets: { monthly: 50000, quarterly: 150000 },
+      premiumThreshold: fin.premiumThreshold,
+      targets: { monthly: 50000, quarterly: fin.quarterlyTarget },
       team: ['Ruy', 'Gustavo']
     };
   },

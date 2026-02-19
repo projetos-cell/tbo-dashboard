@@ -424,10 +424,11 @@ const TBO_PEOPLE = {
     }
 
     totalScore = Math.min(100, totalScore);
+    const cr = TBO_CONFIG.business.scoring.churnRisk;
     let level = 'low';
-    if (totalScore >= 70) level = 'critical';
-    else if (totalScore >= 45) level = 'high';
-    else if (totalScore >= 25) level = 'moderate';
+    if (totalScore >= cr.critical) level = 'critical';
+    else if (totalScore >= cr.high) level = 'high';
+    else if (totalScore >= cr.moderate) level = 'moderate';
 
     const recommendations = {
       low: 'Situacao saudavel. Manter acompanhamento regular.',

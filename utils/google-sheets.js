@@ -256,8 +256,8 @@ const TBO_SHEETS = {
     const meses_projetados = meses.filter(m => !meses_realizados.includes(m));
 
     return {
-      meta_vendas_mensal: 180000,
-      meta_vendas_anual: 2100000,
+      meta_vendas_mensal: TBO_CONFIG.business.financial.monthlyTarget,
+      meta_vendas_anual: TBO_CONFIG.business.financial.monthlyTarget * 12,
       receita_mensal,
       despesa_mensal,
       resultado_mensal,
@@ -356,7 +356,7 @@ const TBO_SHEETS = {
     // 2. Check existing static JSON data (from context-data.json loaded before Sheets)
     if (typeof TBO_STORAGE !== 'undefined') {
       const ctx = TBO_STORAGE._data?.context || {};
-      const existingFC = ctx.dados_comerciais?.['2026']?.fluxo_caixa;
+      const existingFC = ctx.dados_comerciais?.[TBO_CONFIG.app.fiscalYear]?.fluxo_caixa;
       if (existingFC && existingFC.meses_realizados && existingFC._source !== 'google_sheets') {
         return existingFC.meses_realizados;
       }

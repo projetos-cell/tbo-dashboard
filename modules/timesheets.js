@@ -6,7 +6,7 @@ const TBO_TIMESHEETS = {
   _getTeamMembers() {
     if (typeof TBO_RH !== 'undefined' && TBO_RH._team) return TBO_RH._team;
     const ctx = TBO_STORAGE.get('context');
-    return ctx.dados_comerciais?.['2026']?.fluxo_caixa?.despesas_detalhadas?.pessoas?.equipe?.map(e => e.nome) || [];
+    return ctx.dados_comerciais?.[TBO_CONFIG.app.fiscalYear]?.fluxo_caixa?.despesas_detalhadas?.pessoas?.equipe?.map(e => e.nome) || [];
   },
 
   render() {

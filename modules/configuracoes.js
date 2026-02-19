@@ -97,6 +97,7 @@ const TBO_CONFIGURACOES = {
           <!-- Status & Info -->
           <div>
             ${typeof TBO_AUTH !== 'undefined' && TBO_AUTH.getCurrentUser()?.role === 'founder' ? this._renderUserManagement() : ''}
+            ${typeof TBO_AUTH !== 'undefined' && ['founder','coo'].includes(TBO_AUTH.getCurrentUser()?.role) ? this._renderFinancialConfig() : ''}
             <div class="card">
               <div class="card-header"><h3 class="card-title">Status do Sistema</h3></div>
 
@@ -175,26 +176,11 @@ const TBO_CONFIGURACOES = {
   },
 
   _renderUserManagement() {
-    const roleColors = {
-      founder: '#E85102',
-      project_owner: '#8b5cf6',
-      comercial: '#f59e0b',
-      artist: '#3a7bd5',
-      finance: '#2ecc71'
-    };
-    const roleLabels = {
-      founder: 'Fundador',
-      project_owner: 'Project Owner',
-      comercial: 'Comercial',
-      artist: 'Artista',
-      finance: 'Financeiro'
-    };
-
     const users = this._users || [];
     const rows = users.map(u => {
       const initials = (u.full_name || u.username || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-      const roleBg = roleColors[u.role] || '#6b7280';
-      const roleLabel = roleLabels[u.role] || u.role || 'N/A';
+      const roleBg = TBO_CONFIG.business.getRoleColor(u.role);
+      const roleLabel = TBO_CONFIG.business.getRoleLabel(u.role);
       const isActive = u.is_active !== false;
       return `<tr style="border-bottom:1px solid var(--border-subtle);">
         <td style="padding:10px 8px;">
@@ -248,8 +234,8 @@ const TBO_CONFIGURACOES = {
             badges += '<span style="font-size:0.72rem;padding:4px 10px;border-radius:12px;background:#22c55e22;color:#22c55e;font-weight:600;">' + active + ' ativos</span>';
             badges += '<span style="font-size:0.72rem;padding:4px 10px;border-radius:12px;background:#ef444422;color:#ef4444;font-weight:600;">' + inactive + ' inativos</span>';
             Object.entries(roleCounts).forEach(([role, count]) => {
-              const color = roleColors[role] || '#6b7280';
-              const label = roleLabels[role] || role;
+              const color = TBO_CONFIG.business.getRoleColor(role);
+              const label = TBO_CONFIG.business.getRoleLabel(role);
               badges += '<span style="font-size:0.72rem;padding:4px 10px;border-radius:12px;background:' + color + '18;color:' + color + ';font-weight:500;">' + count + ' ' + label + '</span>';
             });
             return badges;
@@ -271,6 +257,80 @@ const TBO_CONFIGURACOES = {
             </thead>
             <tbody>${rows}</tbody>
           </table>` : `<div style="padding:20px;text-align:center;font-size:0.82rem;color:var(--text-tertiary);">Carregando usuarios...</div>`}
+        </div>
+      </div>
+    `;
+  },
+
+  _renderFinancialConfig() {
+    const fin = TBO_CONFIG.business.financial;
+    const bi = TBO_CONFIG.business.biScoring;
+    const fy = TBO_CONFIG.app.fiscalYear;
+
+    const _field = (id, label, value, hint) => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-subtle);">
+        <div>
+          <div style="font-size:0.82rem;font-weight:500;">${label}</div>
+          ${hint ? `<div style="font-size:0.68rem;color:var(--text-tertiary);">${hint}</div>` : ''}
+        </div>
+        <input type="number" id="${id}" value="${value}" style="width:110px;text-align:right;padding:4px 8px;border:1px solid var(--border-subtle);border-radius:6px;font-size:0.82rem;background:var(--bg-secondary);color:var(--text-primary);">
+      </div>`;
+
+    return `
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header">
+          <h3 class="card-title">Configuracoes Financeiras ${fy}</h3>
+          <span class="tag gold">Editavel</span>
+        </div>
+        <div style="font-size:0.75rem;color:var(--text-tertiary);margin-bottom:12px;">
+          Valores refletidos em KPIs, BI e dashboards. Salvos no Supabase.
+        </div>
+
+        <div style="font-size:0.78rem;font-weight:600;color:var(--accent);margin-bottom:6px;">Metas</div>
+        ${_field('cfgFinMonthly', 'Meta Vendas Mensal', fin.monthlyTarget, 'R$/mes')}
+        ${_field('cfgFinQuarterly', 'Meta Trimestral', fin.quarterlyTarget, 'R$/trimestre')}
+        ${_field('cfgFinPremium', 'Threshold Premium', fin.premiumThreshold, 'Deals acima = premium')}
+
+        <div style="font-size:0.78rem;font-weight:600;color:var(--accent);margin:12px 0 6px;">Referencia</div>
+        ${_field('cfgFinAvgTicket', 'Ticket Medio 2025', fin.averageTicket2025, 'Usado no scoring BI')}
+        ${_field('cfgFinRevenue2024', 'Receita Total 2024', fin.totalRevenue2024, 'Benchmark historico')}
+
+        <div style="font-size:0.78rem;font-weight:600;color:var(--accent);margin:12px 0 6px;">Comissoes</div>
+        ${_field('cfgFinCommStd', 'Comissao Padrao (%)', (fin.commissionRates?.standard || 0.05) * 100, 'Deals normais')}
+        ${_field('cfgFinCommPrem', 'Comissao Premium (%)', (fin.commissionRates?.premium || 0.08) * 100, 'Deals > threshold')}
+
+        <div style="font-size:0.78rem;font-weight:600;color:var(--accent);margin:12px 0 6px;">BI Scoring</div>
+        ${_field('cfgBiBaseWinRate', 'Win Rate Base (%)', bi.baseWinRate, 'Taxa base de conversao')}
+        ${_field('cfgBiProbBase', 'Probabilidade Base', bi.probabilityBase, 'Score inicial deals')}
+
+        <div style="display:flex;gap:8px;margin-top:14px;">
+          <button class="btn btn-primary" id="cfgSaveFinancial" style="flex:1;font-size:0.78rem;">Salvar no Supabase</button>
+          <button class="btn btn-secondary" id="cfgSyncFromSheets" style="flex:1;font-size:0.78rem;">Sync Google Sheets</button>
+        </div>
+        <div id="cfgFinSaveResult" style="margin-top:6px;font-size:0.75rem;display:none;"></div>
+
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border-subtle);">
+          <div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:6px;">Pricing por BU</div>
+          <div style="display:grid;grid-template-columns:1fr auto auto;gap:4px;font-size:0.75rem;">
+            <div style="font-weight:600;color:var(--text-tertiary);">Servico</div>
+            <div style="font-weight:600;color:var(--text-tertiary);text-align:right;">Min</div>
+            <div style="font-weight:600;color:var(--text-tertiary);text-align:right;">Max</div>
+            ${Object.entries(fin.servicePricing || {}).map(([bu, p]) => `
+              <div>${bu}</div>
+              <div style="text-align:right;color:var(--text-secondary);">R$ ${(p.min || 0).toLocaleString('pt-BR')}</div>
+              <div style="text-align:right;color:var(--text-primary);font-weight:500;">R$ ${(p.max || 0).toLocaleString('pt-BR')}</div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border-subtle);">
+          <div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:6px;">Setup Supabase</div>
+          <button class="btn btn-secondary" id="cfgCreateFinTables" style="width:100%;font-size:0.72rem;padding:4px 8px;">
+            Criar Tabelas no Supabase (executar 1x)
+          </button>
+          <div style="font-size:0.68rem;color:var(--text-tertiary);margin-top:4px;">
+            Cria business_config, financial_data, financial_targets, operating_criteria
+          </div>
         </div>
       </div>
     `;
@@ -363,6 +423,50 @@ const TBO_CONFIGURACOES = {
         </div>
       `;
     }
+
+    // ── RD Station CRM configuration ──
+    const rdEnabled = typeof TBO_RD_STATION !== 'undefined' && TBO_RD_STATION.isEnabled();
+    const rdHasToken = typeof TBO_RD_STATION !== 'undefined' && !!TBO_RD_STATION.getApiToken();
+    const rdStatus = typeof TBO_RD_STATION !== 'undefined' ? TBO_RD_STATION.getStatus() : null;
+
+    html += `
+      <div style="margin-top:16px; padding-top:12px; border-top:2px solid #7c3aed;">
+        <div style="font-size:0.85rem; font-weight:600; margin-bottom:8px; color:#7c3aed;">RD Station CRM — Sync Bidirecional</div>
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+          <input type="password" id="cfgRdToken" placeholder="Cole seu API Token do RD Station CRM..."
+            value="${rdHasToken ? '••••••••••••' : ''}"
+            style="flex:1; padding:6px 10px; border:1px solid var(--border-subtle); border-radius:6px; font-size:0.78rem; background:var(--bg-secondary); color:var(--text-primary);" />
+          <button class="btn btn-primary" id="cfgSaveRdToken" style="font-size:0.75rem; padding:6px 12px;">Salvar</button>
+          <button class="btn btn-secondary" id="cfgTestRd" style="font-size:0.75rem; padding:6px 12px;">Testar</button>
+        </div>
+        <div style="font-size:0.72rem; color:var(--text-tertiary); margin-bottom:10px;">
+          Obtenha seu token em <a href="https://crm.rdstation.com" target="_blank" style="color:#7c3aed;">RD Station CRM</a> → Configuracoes → Token de API
+        </div>
+        <div id="cfgRdTestResult" style="margin-top:4px; font-size:0.75rem; display:none;"></div>
+        ${rdStatus && rdStatus.lastSync ? `
+        <div style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:8px;">
+          <div style="margin-bottom:4px;">Ultimo sync: <strong>${new Date(rdStatus.lastSync).toLocaleString('pt-BR')}</strong></div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); gap:4px;">
+            <span style="background:var(--bg-secondary); padding:2px 6px; border-radius:4px;">${rdStatus.rdDealCount || 0} deals</span>
+            <span style="background:var(--bg-secondary); padding:2px 6px; border-radius:4px;">${rdStatus.contactCount || 0} contatos</span>
+            <span style="background:var(--bg-secondary); padding:2px 6px; border-radius:4px;">${rdStatus.organizationCount || 0} empresas</span>
+            <span style="background:var(--bg-secondary); padding:2px 6px; border-radius:4px;">${rdStatus.activityCount || 0} notas</span>
+            <span style="background:var(--bg-secondary); padding:2px 6px; border-radius:4px;">${rdStatus.taskCount || 0} tarefas</span>
+            <span style="background:var(--bg-secondary); padding:2px 6px; border-radius:4px;">${rdStatus.productCount || 0} produtos</span>
+            <span style="background:var(--bg-secondary); padding:2px 6px; border-radius:4px;">${rdStatus.sourceCount || 0} origens</span>
+            <span style="background:var(--bg-secondary); padding:2px 6px; border-radius:4px;">${rdStatus.pipelineCount || 0} funis</span>
+          </div>
+        </div>` : ''}
+        ${rdStatus && rdStatus.error ? `<div style="font-size:0.75rem; color:var(--danger); margin-bottom:6px;">Erro: ${rdStatus.error}</div>` : ''}
+        <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+          <button class="btn btn-secondary" id="cfgRdSync" style="font-size:0.75rem; padding:4px 10px;" ${!rdEnabled ? 'disabled' : ''}>Sincronizar Agora</button>
+          <button class="btn btn-secondary" id="cfgRdStageMapping" style="font-size:0.75rem; padding:4px 10px;" ${!rdEnabled ? 'disabled' : ''}>Mapear Etapas</button>
+          <label style="display:flex; align-items:center; gap:4px; font-size:0.78rem; cursor:pointer;">
+            <input type="checkbox" id="cfgRdAutoSync" ${rdEnabled ? 'checked' : ''}> Auto-sync
+          </label>
+        </div>
+      </div>
+    `;
 
     return html;
   },
@@ -520,7 +624,7 @@ const TBO_CONFIGURACOES = {
       if (!input) return;
       const key = input.value.trim();
       if (!key || key === '••••••••••••') {
-        TBO_TOAST.warn('API Key', 'Cole sua API Key do Fireflies para ativar a integracao.');
+        TBO_TOAST.warning('API Key', 'Cole sua API Key do Fireflies para ativar a integracao.');
         return;
       }
       if (typeof TBO_FIREFLIES !== 'undefined') {
@@ -553,6 +657,171 @@ const TBO_CONFIGURACOES = {
         }
       } else {
         TBO_TOAST.info('Fireflies', 'Configure sua API Key acima para ativar a sincronizacao em tempo real.');
+      }
+    });
+
+    // ── RD Station CRM bindings ─────────────────────────────────────────
+    this._bind('cfgSaveRdToken', () => {
+      const input = document.getElementById('cfgRdToken');
+      if (!input) return;
+      const token = input.value.trim();
+      if (!token || token === '••••••••••••') {
+        TBO_TOAST.warning('RD Station', 'Cole seu API Token do RD Station CRM.');
+        return;
+      }
+      if (typeof TBO_RD_STATION !== 'undefined') {
+        TBO_RD_STATION.setApiToken(token);
+        TBO_RD_STATION.setEnabled(true);
+        input.value = '••••••••••••';
+        TBO_TOAST.success('RD Station', 'Token salvo! Testando conexao...');
+        TBO_RD_STATION.testConnection().then(result => {
+          const users = result.users || result || [];
+          TBO_TOAST.success('RD Station', `Conectado! ${Array.isArray(users) ? users.length : 0} usuarios encontrados.`);
+          return TBO_RD_STATION.fetchDealStages();
+        }).then(stages => {
+          if (stages && stages.length > 0 && !TBO_RD_STATION.getStageMapping()) {
+            const mapping = TBO_RD_STATION.buildDefaultStageMapping(stages);
+            TBO_RD_STATION.setStageMapping(mapping);
+            TBO_TOAST.info('RD Station', 'Mapeamento de etapas criado automaticamente.');
+          }
+          const statusEl = document.getElementById('statusIntegrations');
+          if (statusEl) statusEl.innerHTML = this._renderStatus();
+        }).catch(e => {
+          TBO_TOAST.error('RD Station', `Erro: ${e.message}`);
+        });
+      }
+    });
+
+    this._bind('cfgTestRd', async () => {
+      const resultEl = document.getElementById('cfgRdTestResult');
+      if (!resultEl) return;
+      resultEl.style.display = 'block';
+      resultEl.innerHTML = '<span style="color:#7c3aed;">Testando conexao...</span>';
+      try {
+        if (typeof TBO_RD_STATION === 'undefined' || !TBO_RD_STATION.getApiToken()) {
+          resultEl.innerHTML = '<span style="color:#ef4444;">Nenhum token configurado.</span>';
+          return;
+        }
+        const result = await TBO_RD_STATION.testConnection();
+        const users = result.users || result || [];
+        resultEl.innerHTML = `<span style="color:#22c55e;">&#10003; Conectado!</span> <span style="color:var(--text-muted);">${Array.isArray(users) ? users.length : 0} usuarios no CRM</span>`;
+      } catch (e) {
+        resultEl.innerHTML = `<span style="color:#ef4444;">&#10007; Erro: ${e.message}</span>`;
+      }
+    });
+
+    this._bind('cfgRdSync', async () => {
+      if (typeof TBO_RD_STATION === 'undefined' || !TBO_RD_STATION.isEnabled()) return;
+      TBO_TOAST.info('RD Station', 'Sincronizando deals e contatos...');
+      try {
+        const result = await TBO_RD_STATION.forceRefresh();
+        if (result) {
+          TBO_TOAST.success('RD Station', `Sync completo: ${result.created} novos, ${result.updated} atualizados, ${result.pushed} enviados | ${result.contacts} contatos, ${result.organizations || 0} empresas, ${result.activities || 0} notas, ${result.tasks || 0} tarefas`);
+        } else {
+          TBO_TOAST.warning('RD Station', 'Sync retornou sem resultado.');
+        }
+        const statusEl = document.getElementById('statusIntegrations');
+        if (statusEl) statusEl.innerHTML = this._renderStatus();
+      } catch (e) {
+        TBO_TOAST.error('RD Station', `Erro: ${e.message}`);
+      }
+    });
+
+    this._bind('cfgRdStageMapping', () => {
+      if (typeof TBO_RD_STATION !== 'undefined') {
+        TBO_RD_STATION._showStageMappingModal();
+      }
+    });
+
+    const rdAutoSync = document.getElementById('cfgRdAutoSync');
+    if (rdAutoSync) {
+      rdAutoSync.addEventListener('change', () => {
+        if (typeof TBO_RD_STATION !== 'undefined') {
+          TBO_RD_STATION.setEnabled(rdAutoSync.checked);
+          TBO_TOAST.info('RD Station', rdAutoSync.checked ? 'Auto-sync ativado.' : 'Auto-sync desativado.');
+        }
+      });
+    }
+
+    // ── Financial Config bindings ─────────────────────────────────────────
+    this._bind('cfgSaveFinancial', async () => {
+      const resultEl = document.getElementById('cfgFinSaveResult');
+      if (resultEl) { resultEl.style.display = 'block'; resultEl.innerHTML = '<span style="color:var(--accent);">Salvando...</span>'; }
+
+      const getVal = (id) => parseFloat(document.getElementById(id)?.value) || 0;
+
+      const financialUpdate = {
+        monthlyTarget: getVal('cfgFinMonthly'),
+        quarterlyTarget: getVal('cfgFinQuarterly'),
+        premiumThreshold: getVal('cfgFinPremium'),
+        averageTicket2025: getVal('cfgFinAvgTicket'),
+        totalRevenue2024: getVal('cfgFinRevenue2024'),
+        commissionRates: {
+          standard: getVal('cfgFinCommStd') / 100,
+          premium: getVal('cfgFinCommPrem') / 100
+        }
+      };
+
+      const biUpdate = {
+        baseWinRate: getVal('cfgBiBaseWinRate'),
+        probabilityBase: getVal('cfgBiProbBase')
+      };
+
+      // Save to config + Supabase
+      const ok1 = await TBO_CONFIG.saveBusinessConfig('financial', financialUpdate);
+      const ok2 = await TBO_CONFIG.saveBusinessConfig('biScoring', biUpdate);
+
+      if (resultEl) {
+        if (ok1 && ok2) {
+          resultEl.innerHTML = '<span style="color:#22c55e;">&#10003; Salvo no Supabase e localStorage!</span>';
+          TBO_TOAST.success('Configuracoes financeiras', 'Valores atualizados com sucesso. KPIs ja refletem os novos valores.');
+        } else {
+          resultEl.innerHTML = '<span style="color:#f59e0b;">&#9888; Salvo localmente. Supabase indisponivel (tabelas criadas?).</span>';
+          TBO_TOAST.info('Configuracoes financeiras', 'Salvo localmente. Execute "Criar Tabelas" se o Supabase ainda nao esta configurado.');
+        }
+      }
+    });
+
+    this._bind('cfgSyncFromSheets', async () => {
+      if (typeof TBO_SHEETS === 'undefined') {
+        TBO_TOAST.warning('Google Sheets', 'Modulo de Google Sheets nao disponivel.');
+        return;
+      }
+      TBO_TOAST.info('Google Sheets', 'Sincronizando dados financeiros...');
+      try {
+        await TBO_SHEETS.syncFluxoCaixa();
+        TBO_TOAST.success('Google Sheets', 'Fluxo de caixa atualizado da planilha!');
+      } catch (e) {
+        TBO_TOAST.error('Google Sheets', `Erro: ${e.message}`);
+      }
+    });
+
+    this._bind('cfgCreateFinTables', async () => {
+      if (typeof TBO_SUPABASE === 'undefined') {
+        TBO_TOAST.error('Supabase', 'Cliente Supabase nao inicializado.');
+        return;
+      }
+      TBO_TOAST.info('Supabase', 'Criando tabelas financeiras...');
+      try {
+        const client = TBO_SUPABASE.getClient();
+        if (!client) throw new Error('Supabase client nao disponivel');
+
+        // Try to create tables via rpc or direct SQL
+        // Note: This requires the SQL to be run in Supabase Dashboard
+        // We'll just verify if the tables exist
+        const { data, error } = await client.from('business_config').select('key').limit(1);
+        if (error && error.code === '42P01') {
+          TBO_TOAST.warning('Supabase', 'Tabelas nao existem. Acesse o Supabase Dashboard > SQL Editor e execute o arquivo sql/create-tables.sql');
+        } else if (error) {
+          TBO_TOAST.error('Supabase', `Erro: ${error.message}`);
+        } else {
+          TBO_TOAST.success('Supabase', 'Tabelas ja existem! Pronto para usar.');
+          // Try initial save
+          const ok = await TBO_CONFIG.saveBusinessConfig('financial', TBO_CONFIG.business.financial);
+          if (ok) TBO_TOAST.success('Supabase', 'Config financeiro salvo com sucesso!');
+        }
+      } catch (e) {
+        TBO_TOAST.error('Supabase', `Erro: ${e.message}. Execute o SQL manualmente no Supabase Dashboard.`);
       }
     });
 
@@ -764,26 +1033,12 @@ const TBO_CONFIGURACOES = {
         .order('full_name');
       if (error) throw error;
       this._users = data || [];
-      const roleColors = {
-        founder: '#E85102',
-        project_owner: '#8b5cf6',
-        comercial: '#f59e0b',
-        artist: '#3a7bd5',
-        finance: '#2ecc71'
-      };
-      const roleLabels = {
-        founder: 'Fundador',
-        project_owner: 'Project Owner',
-        comercial: 'Comercial',
-        artist: 'Artista',
-        finance: 'Financeiro'
-      };
       const container = document.getElementById('cfgUserTable');
       if (container) {
         const rows = this._users.map(u => {
           const initials = (u.full_name || u.username || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-          const roleBg = roleColors[u.role] || '#6b7280';
-          const roleLabel = roleLabels[u.role] || u.role || 'N/A';
+          const roleBg = TBO_CONFIG.business.getRoleColor(u.role);
+          const roleLabel = TBO_CONFIG.business.getRoleLabel(u.role);
           const isActive = u.is_active !== false;
           return `<tr style="border-bottom:1px solid var(--border-subtle);">
             <td style="padding:10px 8px;">
@@ -837,8 +1092,8 @@ const TBO_CONFIGURACOES = {
         badges += '<span style="font-size:0.72rem;padding:4px 10px;border-radius:12px;background:#22c55e22;color:#22c55e;font-weight:600;">' + active + ' ativos</span>';
         badges += '<span style="font-size:0.72rem;padding:4px 10px;border-radius:12px;background:#ef444422;color:#ef4444;font-weight:600;">' + inactive + ' inativos</span>';
         Object.entries(roleCounts).forEach(([role, count]) => {
-          const color = roleColors[role] || '#6b7280';
-          const label = roleLabels[role] || role;
+          const color = TBO_CONFIG.business.getRoleColor(role);
+          const label = TBO_CONFIG.business.getRoleLabel(role);
           badges += '<span style="font-size:0.72rem;padding:4px 10px;border-radius:12px;background:' + color + '18;color:' + color + ';font-weight:500;">' + count + ' ' + label + '</span>';
         });
         summaryEl.innerHTML = badges;
@@ -868,15 +1123,11 @@ const TBO_CONFIGURACOES = {
   // ── Add User Modal ─────────────────────────────────────────────────────
 
   _showAddUserModal() {
-    const roleOptions = [
-      { value: 'artist', label: 'Artista', color: '#3a7bd5' },
-      { value: 'project_owner', label: 'Project Owner', color: '#8b5cf6' },
-      { value: 'comercial', label: 'Comercial', color: '#f59e0b' },
-      { value: 'finance', label: 'Financeiro', color: '#2ecc71' },
-      { value: 'founder', label: 'Fundador', color: '#E85102' }
-    ];
+    const roleOptions = Object.entries(TBO_CONFIG.business.roles).map(([id, r]) => ({
+      value: id, label: r.label, color: r.color
+    }));
 
-    const buOptions = ['', 'Branding', 'Digital 3D', 'Marketing', 'Vendas'];
+    const buOptions = ['', ...TBO_CONFIG.business.getBUNames()];
 
     const html = `
       <div style="display:flex;flex-direction:column;gap:14px;">
@@ -962,13 +1213,13 @@ const TBO_CONFIGURACOES = {
     const bu = document.getElementById('addUserBU')?.value || null;
 
     // Validation
-    if (!name) { TBO_TOAST.warn('Campo obrigatorio', 'Informe o nome completo.'); return; }
-    if (!username) { TBO_TOAST.warn('Campo obrigatorio', 'Informe o username.'); return; }
-    if (!email) { TBO_TOAST.warn('Campo obrigatorio', 'Informe o email.'); return; }
-    if (!role) { TBO_TOAST.warn('Campo obrigatorio', 'Selecione um cargo/role.'); return; }
+    if (!name) { TBO_TOAST.warning('Campo obrigatorio', 'Informe o nome completo.'); return; }
+    if (!username) { TBO_TOAST.warning('Campo obrigatorio', 'Informe o username.'); return; }
+    if (!email) { TBO_TOAST.warning('Campo obrigatorio', 'Informe o email.'); return; }
+    if (!role) { TBO_TOAST.warning('Campo obrigatorio', 'Selecione um cargo/role.'); return; }
 
     // Check for spaces in username
-    if (username.includes(' ')) { TBO_TOAST.warn('Username invalido', 'O username nao pode conter espacos.'); return; }
+    if (username.includes(' ')) { TBO_TOAST.warning('Username invalido', 'O username nao pode conter espacos.'); return; }
 
     try {
       // Insert directly into profiles (with a random UUID since we don't create auth users in legacy mode)

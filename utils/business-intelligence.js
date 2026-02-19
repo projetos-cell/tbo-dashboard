@@ -78,50 +78,51 @@ const TBO_BI = {
     if (!deal) return { score: 0, factors: ['Deal nao informado'], recommendation: 'Nenhum deal fornecido.' };
 
     const factors = [];
-    let score = 50; // base
+    const ds = TBO_CONFIG.business.biScoring.dealScoring;
+    let score = ds.baseScore;
 
     const context = this._safeGet('context');
     const dc = context.dados_comerciais || {};
     const allDeals = this._safeGetDeals();
 
     // Factor 1: Time in current stage (penalizes stale deals)
+    const ageDays = TBO_CONFIG.business.biScoring.dealAgingDays;
+    const actB = ds.activityBonuses;
+    const inactP = ds.inactivityPenalties;
     if (deal.updatedAt) {
       const daysInStage = this._daysBetween(deal.updatedAt);
-      if (daysInStage <= 3) { score += 10; factors.push('Atividade recente (+10)'); }
-      else if (daysInStage <= 7) { score += 5; factors.push('Atividade na ultima semana (+5)'); }
-      else if (daysInStage <= 14) { factors.push('7-14 dias sem atividade (neutro)'); }
-      else if (daysInStage <= 30) { score -= 10; factors.push(`${daysInStage} dias parado (-10)`); }
-      else { score -= 20; factors.push(`${daysInStage} dias estagnado (-20)`); }
+      if (daysInStage <= actB.recentDays) { score += actB.recentPts; factors.push(`Atividade recente (+${actB.recentPts})`); }
+      else if (daysInStage <= actB.weekDays) { score += actB.weekPts; factors.push(`Atividade na ultima semana (+${actB.weekPts})`); }
+      else if (daysInStage <= ageDays.biweekly) { factors.push('7-14 dias sem atividade (neutro)'); }
+      else if (daysInStage <= ageDays.month) { score += inactP.twoWeeksPts; factors.push(`${daysInStage} dias parado (${inactP.twoWeeksPts})`); }
+      else { score += inactP.monthPts; factors.push(`${daysInStage} dias estagnado (${inactP.monthPts})`); }
     }
 
     // Factor 2: Deal value vs average ticket
-    const avgTicket2025 = dc['2025']?.ticket_medio || 32455;
+    const avgTicket = dc['2025']?.ticket_medio || TBO_CONFIG.business.financial.averageTicket2025;
+    const valRanges = TBO_CONFIG.business.biScoring.dealValueRanges;
+    const valB = ds.valueBonuses;
     if (deal.value > 0) {
-      const ratio = deal.value / avgTicket2025;
-      if (ratio >= 0.5 && ratio <= 2.0) { score += 10; factors.push('Valor dentro da faixa ideal (+10)'); }
-      else if (ratio > 2.0 && ratio <= 4.0) { score += 5; factors.push('Valor acima da media, bom potencial (+5)'); }
-      else if (ratio > 4.0) { score -= 5; factors.push('Valor muito alto, maior risco de negociacao (-5)'); }
-      else { score -= 5; factors.push('Valor abaixo do ticket medio (-5)'); }
+      const ratio = deal.value / avgTicket;
+      if (ratio >= valRanges.optimalMin && ratio <= valRanges.optimalMax) { score += valB.optimal; factors.push(`Valor dentro da faixa ideal (+${valB.optimal})`); }
+      else if (ratio > valRanges.optimalMax && ratio <= valRanges.strongMax) { score += valB.strong; factors.push(`Valor acima da media, bom potencial (+${valB.strong})`); }
+      else if (ratio > valRanges.strongMax) { score += valB.tooHigh; factors.push(`Valor muito alto, maior risco de negociacao (${valB.tooHigh})`); }
+      else { score += valB.tooLow; factors.push(`Valor abaixo do ticket medio (${valB.tooLow})`); }
     } else {
       score -= 10;
       factors.push('Sem valor definido (-10)');
     }
 
     // Factor 3: Service type win rate estimate
-    const serviceWinRates = {
-      'Digital 3D': 55, 'render_fachada': 55, 'render_interno': 50,
-      'Branding': 40, 'branding': 40,
-      'Marketing': 35, 'pack_social': 35,
-      'Audiovisual': 45, 'video': 45, 'animacao': 45,
-      'tour_virtual': 50,
-      'Interiores': 48
-    };
+    const biCfg = TBO_CONFIG.business.biScoring;
+    const serviceWinRates = biCfg.serviceWinRates;
+    const baseWinRate = biCfg.baseWinRate;
 
     const services = deal.services || [];
     if (services.length > 0) {
-      const rates = services.map(s => serviceWinRates[s] || 40);
+      const rates = services.map(s => serviceWinRates[s] || baseWinRate);
       const avgRate = this._mean(rates);
-      const boost = Math.round((avgRate - 40) / 3);
+      const boost = Math.round((avgRate - baseWinRate) / 3);
       score += boost;
       factors.push(`Servicos (${services.join(', ')}): taxa estimada ${avgRate.toFixed(0)}% (${boost >= 0 ? '+' : ''}${boost})`);
     }
@@ -131,9 +132,10 @@ const TBO_BI = {
     const finalizados = context.projetos_finalizados || {};
     const company = (deal.company || '').toLowerCase();
 
+    const cliB = ds.clientBonuses;
     if (company) {
       const isExisting = clientes.some(c => c.toLowerCase().includes(company) || company.includes(c.toLowerCase()));
-      if (isExisting) { score += 15; factors.push('Cliente existente na base (+15)'); }
+      if (isExisting) { score += cliB.existing; factors.push(`Cliente existente na base (+${cliB.existing})`); }
 
       let totalProjetos = 0;
       Object.values(finalizados).forEach(arr => {
@@ -141,37 +143,37 @@ const TBO_BI = {
           totalProjetos += arr.filter(p => p.toLowerCase().includes(company)).length;
         }
       });
-      if (totalProjetos >= 3) { score += 5; factors.push(`${totalProjetos} projetos historicos (+5)`); }
+      if (totalProjetos >= cliB.repeatThreshold) { score += cliB.repeatPts; factors.push(`${totalProjetos} projetos historicos (+${cliB.repeatPts})`); }
     }
 
     // Factor 5: Stage proximity to close
-    const stageBonus = {
-      lead: -10, qualificacao: 0, proposta: 10, negociacao: 15, fechado_ganho: 30, fechado_perdido: -30
-    };
-    const stageB = stageBonus[deal.stage] || 0;
+    const stageBonuses = biCfg.stageBonuses;
+    const stageB = stageBonuses[deal.stage] || 0;
     score += stageB;
     if (stageB !== 0) factors.push(`Estagio ${deal.stage} (${stageB >= 0 ? '+' : ''}${stageB})`);
 
     // Factor 6: Seasonal pattern (S1 weaker, S2 stronger)
     const currentMonth = new Date().getMonth();
-    if (currentMonth >= 6) { score += 5; factors.push('Periodo S2 favoravel (+5)'); }
-    else if (currentMonth <= 2) { score -= 5; factors.push('Inicio de ano, mercado mais lento (-5)'); }
+    const sB = ds.seasonalBonuses;
+    if (currentMonth >= biCfg.seasonalMonths.start) { score += sB.favorable; factors.push(`Periodo S2 favoravel (+${sB.favorable})`); }
+    else if (currentMonth <= biCfg.seasonalMonths.end) { score += sB.slow; factors.push(`Inicio de ano, mercado mais lento (${sB.slow})`); }
 
     // Factor 7: Probability already set by user
     if (deal.probability > 0) {
-      const probAdjust = Math.round((deal.probability - 50) / 5);
+      const probAdjust = Math.round((deal.probability - biCfg.probabilityBase) / biCfg.probabilityDivisor);
       score += probAdjust;
       factors.push(`Probabilidade manual ${deal.probability}% (${probAdjust >= 0 ? '+' : ''}${probAdjust})`);
     }
 
-    score = this._clamp(Math.round(score), 0, 100);
+    score = this._clamp(Math.round(score), ds.minScore, ds.maxScore);
 
     // Recommendation
+    const recTh = biCfg.recommendationThresholds;
     let recommendation;
-    if (score >= 80) recommendation = 'Alta probabilidade de fechamento. Priorizar follow-up e proposta final.';
-    else if (score >= 60) recommendation = 'Bom potencial. Manter contato regular e agendar reuniao de alinhamento.';
-    else if (score >= 40) recommendation = 'Potencial moderado. Requalificar necessidades e ajustar proposta.';
-    else if (score >= 20) recommendation = 'Baixo potencial. Avaliar se vale manter esforco comercial.';
+    if (score >= recTh.excellent) recommendation = 'Alta probabilidade de fechamento. Priorizar follow-up e proposta final.';
+    else if (score >= recTh.good) recommendation = 'Bom potencial. Manter contato regular e agendar reuniao de alinhamento.';
+    else if (score >= recTh.moderate) recommendation = 'Potencial moderado. Requalificar necessidades e ajustar proposta.';
+    else if (score >= recTh.low) recommendation = 'Baixo potencial. Avaliar se vale manter esforco comercial.';
     else recommendation = 'Muito baixo. Considerar descontinuar ou redirecionar abordagem.';
 
     return { score, factors, recommendation };
@@ -190,7 +192,7 @@ const TBO_BI = {
     const historicalValues = [];
 
     // 2024: total_vendido distributed across 7 months (Jun-Dec)
-    const total2024 = dc['2024']?.total_vendido || 701586;
+    const total2024 = dc['2024']?.total_vendido || TBO_CONFIG.business.financial.totalRevenue2024;
     const monthly2024 = total2024 / 7;
     for (let i = 5; i <= 11; i++) { // Jun=5 to Dec=11
       historicalMonths.push(2024 * 12 + i);
@@ -207,8 +209,8 @@ const TBO_BI = {
       historicalValues.push(monthly2025 * seasonFactor);
     }
 
-    // 2026: actual cash flow data from fluxo_caixa
-    const fc = dc['2026']?.fluxo_caixa;
+    // Current year: actual cash flow data from fluxo_caixa
+    const fc = dc[TBO_CONFIG.app.fiscalYear]?.fluxo_caixa;
     const receitaMensal2026 = fc?.receita_mensal || {};
     const monthKeys = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
     const realized = fc?.meses_realizados || ['jan', 'fev'];
@@ -289,8 +291,8 @@ const TBO_BI = {
       confidence: Math.round(this._mean(forecast.map(f => f.confidence))),
       regression: { slope: Math.round(reg.slope), r2: Math.round(reg.r2 * 100) / 100 },
       meta: {
-        metaMensal: fc?.meta_vendas_mensal || 180000,
-        metaAnual: fc?.meta_vendas_anual || 2100000,
+        metaMensal: fc?.meta_vendas_mensal || TBO_CONFIG.business.financial.monthlyTarget,
+        metaAnual: fc?.meta_vendas_anual || (TBO_CONFIG.business.financial.monthlyTarget * 12),
         resultadoProjetado: fc?.resultado_liquido_projetado || 0
       }
     };
@@ -343,7 +345,8 @@ const TBO_BI = {
     const ticketTrend = this._clamp(Math.round(avgServices * 20), 0, 100);
 
     const daysSinceLastMeeting = lastMeetingDate ? this._daysBetween(lastMeetingDate) : 999;
-    const engagement = daysSinceLastMeeting <= 7 ? 100 : daysSinceLastMeeting <= 14 ? 80 : daysSinceLastMeeting <= 30 ? 60 : daysSinceLastMeeting <= 60 ? 40 : daysSinceLastMeeting <= 90 ? 20 : 5;
+    const engLevels = TBO_CONFIG.business.biScoring.engagementLevels;
+    const engagement = (engLevels.find(l => daysSinceLastMeeting <= l.maxDays) || engLevels[engLevels.length - 1]).score;
 
     // Revision rate from ERP deliverables
     const erpProjects = this._safeGetErp('project').filter(p => (p.client || '').toLowerCase().includes(cn) || (p.client_company || '').toLowerCase().includes(cn));
@@ -355,14 +358,16 @@ const TBO_BI = {
 
     // Payment speed from contas_a_receber
     let paymentSpeed = 60;
-    const fc = (context.dados_comerciais || {})['2026']?.fluxo_caixa;
+    const fc = (context.dados_comerciais || {})[TBO_CONFIG.app.fiscalYear]?.fluxo_caixa;
     if (fc?.contas_a_receber?.fevereiro?.clientes) {
       const entry = fc.contas_a_receber.fevereiro.clientes.find(c => c.nome.toLowerCase().includes(cn));
-      if (entry) paymentSpeed = entry.status === 'pago' ? 95 : entry.status === 'parcial' ? 60 : 30;
+      const pss = TBO_CONFIG.business.financial.paymentSpeedScoring;
+      if (entry) paymentSpeed = pss[entry.status] || 60;
     }
 
     const factors = { frequency, ticketTrend, paymentSpeed, revisionRate, engagement };
-    const weights = { frequency: 0.25, ticketTrend: 0.15, paymentSpeed: 0.20, revisionRate: 0.15, engagement: 0.25 };
+    const hw = TBO_CONFIG.business.biScoring.healthWeights;
+    const weights = { frequency: hw.frequency, ticketTrend: hw.ticket, paymentSpeed: hw.paymentSpeed, revisionRate: hw.revisionRate, engagement: hw.engagement };
 
     let score = 0;
     Object.entries(factors).forEach(([key, val]) => {
@@ -371,8 +376,9 @@ const TBO_BI = {
     score = this._clamp(Math.round(score), 0, 100);
 
     let risk;
-    if (score >= 70) risk = 'low';
-    else if (score >= 40) risk = 'medium';
+    const rt = TBO_CONFIG.business.scoring.risk;
+    if (score >= rt.low) risk = 'low';
+    else if (score >= rt.medium) risk = 'medium';
     else risk = 'high';
 
     // Find last project date
@@ -585,7 +591,7 @@ const TBO_BI = {
 
     // Template selection based on stage and days
     if (deal.stage === 'proposta' && daysSince >= 5) {
-      urgency = daysSince >= 14 ? 'high' : daysSince >= 7 ? 'medium' : 'low';
+      urgency = daysSince >= TBO_CONFIG.business.thresholds.followUp.highUrgencyDays ? 'high' : daysSince >= TBO_CONFIG.business.thresholds.followUp.mediumUrgencyDays ? 'medium' : 'low';
       subject = `Proposta TBO x ${clientName} — ${dealName}`;
       body = `Ola!\n\nEstou fazendo um follow-up referente a proposta que enviamos ${daysSince > 7 ? 'ha ' + daysSince + ' dias' : 'recentemente'} para o projeto ${dealName}.\n\nFicamos empolgados com a possibilidade de trabalhar juntos nesse projeto (${services}). Gostariamos de saber se houve a oportunidade de avaliar a proposta e se tem alguma duvida.${value > 0 ? '\n\nO investimento proposto de ' + this._formatCurrency(value) + ' inclui nosso pacote completo com acompanhamento dedicado.' : ''}\n\nEstamos a disposicao para uma call rapida de alinhamento.\n\nAbracos,\nEquipe TBO`;
     } else if (deal.stage === 'negociacao' && daysSince >= 10) {
@@ -624,14 +630,15 @@ const TBO_BI = {
     const cn = clientName.toLowerCase();
 
     const signals = [];
-    let risk = 20; // base risk
+    const cr = TBO_CONFIG.business.biScoring.churnRisk;
+    let risk = cr.baseRisk;
 
     // Signal 1: No active projects
     const ativos = (context.projetos_ativos || []).filter(p =>
       (p.construtora || '').toLowerCase().includes(cn)
     );
     if (ativos.length === 0) {
-      risk += 25;
+      risk += cr.lowFrequency;
       signals.push('Nenhum projeto ativo no momento');
     }
 
@@ -647,7 +654,7 @@ const TBO_BI = {
     if (years.length >= 2) {
       const last = yearCounts[years[years.length - 1]] || 0;
       const prev = yearCounts[years[years.length - 2]] || 0;
-      if (last < prev) { risk += 15; signals.push(`Frequencia decrescente: ${prev} projetos em ${years[years.length - 2]} vs ${last} em ${years[years.length - 1]}`); }
+      if (last < prev) { risk += cr.lowRevisionRate; signals.push(`Frequencia decrescente: ${prev} projetos em ${years[years.length - 2]} vs ${last} em ${years[years.length - 1]}`); }
     }
 
     // Signal 3: No recent meetings
@@ -661,17 +668,17 @@ const TBO_BI = {
     if (!lastActivity && years.length > 0) lastActivity = `${years[years.length - 1]}-12-31`;
 
     const daysSinceActivity = lastActivity ? this._daysBetween(lastActivity) : 365;
-    if (daysSinceActivity > 90) { risk += 20; signals.push(`${daysSinceActivity} dias sem contato registrado`); }
-    else if (daysSinceActivity > 30) { risk += 10; signals.push(`${daysSinceActivity} dias desde ultimo contato`); }
+    if (daysSinceActivity > 90) { risk += cr.inactivity90d; signals.push(`${daysSinceActivity} dias sem contato registrado`); }
+    else if (daysSinceActivity > 30) { risk += cr.inactivity30d; signals.push(`${daysSinceActivity} dias desde ultimo contato`); }
 
     // Signal 4: Low project count
     const totalProjects = Object.values(yearCounts).reduce((s, v) => s + v, 0) + ativos.length;
-    if (totalProjects <= 1) { risk += 10; signals.push('Apenas 1 projeto no historico (baixa fidelizacao)'); }
+    if (totalProjects <= 1) { risk += cr.approvalDelay; signals.push('Apenas 1 projeto no historico (baixa fidelizacao)'); }
 
     // Signal 5: Single BU (low switching cost)
     if (ativos.length > 0) {
       const allBus = new Set(); ativos.forEach(p => (p.bus || []).forEach(b => allBus.add(b)));
-      if (allBus.size <= 1) { risk += 5; signals.push(`Usa apenas 1 BU (${[...allBus].join(', ')}), facil de substituir`); }
+      if (allBus.size <= 1) { risk += cr.singleBU; signals.push(`Usa apenas 1 BU (${[...allBus].join(', ')}), facil de substituir`); }
     }
 
     // Signal 6: Long approval times from ERP
@@ -679,16 +686,17 @@ const TBO_BI = {
     const reviewDelivs = this._safeGetErp('deliverable').filter(d => d.status === 'em_revisao' && erpProjs.some(p => p.id === d.project_id));
     if (reviewDelivs.length > 0) {
       const avgDays = this._mean(reviewDelivs.map(d => this._daysBetween(d.updatedAt || d.createdAt)));
-      if (avgDays > 7) { risk += 10; signals.push(`Tempo medio de aprovacao: ${Math.round(avgDays)} dias`); }
+      if (avgDays > 7) { risk += cr.approvalDelay; signals.push(`Tempo medio de aprovacao: ${Math.round(avgDays)} dias`); }
     }
 
     risk = this._clamp(risk, 0, 100);
 
     // Recommended action
+    const cTh = cr.thresholds;
     let recommendedAction;
-    if (risk >= 70) recommendedAction = 'Urgente: agendar reuniao de relacionamento. Oferecer condicoes especiais para novo projeto.';
-    else if (risk >= 50) recommendedAction = 'Enviar case study relevante e propor reuniao de alinhamento para proximos projetos.';
-    else if (risk >= 30) recommendedAction = 'Manter comunicacao regular. Incluir em newsletters e eventos TBO.';
+    if (risk >= cTh.urgent) recommendedAction = 'Urgente: agendar reuniao de relacionamento. Oferecer condicoes especiais para novo projeto.';
+    else if (risk >= cTh.medium) recommendedAction = 'Enviar case study relevante e propor reuniao de alinhamento para proximos projetos.';
+    else if (risk >= cTh.low) recommendedAction = 'Manter comunicacao regular. Incluir em newsletters e eventos TBO.';
     else recommendedAction = 'Baixo risco de churn. Focar em upsell e expansion.';
 
     if (signals.length === 0) signals.push('Nenhum sinal de churn detectado');
@@ -705,7 +713,7 @@ const TBO_BI = {
 
     const context = this._safeGet('context');
     const dc = context.dados_comerciais || {};
-    const fc = dc['2026']?.fluxo_caixa || {};
+    const fc = dc[TBO_CONFIG.app.fiscalYear]?.fluxo_caixa || {};
     const receitaMensal = fc.receita_mensal || {};
     const monthKeys = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
     const mKey = monthKeys[month] || 'jan';
@@ -729,7 +737,7 @@ const TBO_BI = {
     const sr = seasonalRaw[month] || seasonalRaw[0];
     const season = { outlook: sr[0], opportunity: sr[1], actions: sr[2] };
     const historicalRevenue = receitaMensal[mKey] || 0;
-    const metaMensal = fc.meta_vendas_mensal || 180000;
+    const metaMensal = fc.meta_vendas_mensal || TBO_CONFIG.business.financial.monthlyTarget;
 
     return {
       month: month,
@@ -844,7 +852,7 @@ const TBO_BI = {
     // Revenue forecast insights
     try {
       const forecast = this.forecastRevenue(3);
-      const meta = this._safeGet('context').dados_comerciais?.['2026']?.fluxo_caixa?.meta_vendas_mensal || 180000;
+      const meta = this._safeGet('context').dados_comerciais?.[TBO_CONFIG.app.fiscalYear]?.fluxo_caixa?.meta_vendas_mensal || TBO_CONFIG.business.financial.monthlyTarget;
       const next = forecast.forecast.find(f => !f.realized);
       if (next) {
         const gap = meta - next.predicted;
@@ -856,9 +864,9 @@ const TBO_BI = {
     // Deal scoring insights
     try {
       const deals = this._safeGetDeals().filter(d => !['fechado_ganho', 'fechado_perdido'].includes(d.stage));
-      const hot = deals.filter(d => this.predictDealScore(d).score >= 70);
+      const hot = deals.filter(d => this.predictDealScore(d).score >= TBO_CONFIG.business.scoring.dealQuality.hot);
       if (hot.length > 0) insights.push({ category: 'pipeline', priority: 'info', title: `${hot.length} deal(s) com alta probabilidade`, detail: hot.map(d => d.name).join(', '), action: 'Priorizar follow-up e propostas finais' });
-      const stale = deals.filter(d => d.updatedAt && this._daysBetween(d.updatedAt) > 14);
+      const stale = deals.filter(d => d.updatedAt && this._daysBetween(d.updatedAt) > TBO_CONFIG.business.thresholds.staleDeal.noActivityDays);
       if (stale.length > 0) insights.push({ category: 'pipeline', priority: 'warning', title: `${stale.length} deal(s) estagnado(s)`, detail: stale.map(d => `${d.name} (${this._daysBetween(d.updatedAt)}d)`).join(', '), action: 'Reativar contato ou mover para perdido' });
     } catch (e) { /* skip */ }
 

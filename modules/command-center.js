@@ -177,7 +177,7 @@ const TBO_COMMAND_CENTER = {
     const meta = meetings.metadata || meetings._metadata || {};
 
     const now = new Date();
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const weekAgo = new Date(now.getTime() - TBO_CONFIG.business.thresholds.projectMonitoring.noMeetingDays * 86400000);
     const recentMeetings = meetingsArr.filter(m => new Date(m.date || m.data) >= weekAgo);
 
     let totalActions = 0;
@@ -198,7 +198,7 @@ const TBO_COMMAND_CENTER = {
     const noticias = news.noticias || [];
     const dc24 = context.dados_comerciais?.['2024'] || {};
     const dc25 = context.dados_comerciais?.['2025'] || {};
-    const dc26 = context.dados_comerciais?.['2026'] || {};
+    const dc26 = context.dados_comerciais?.[TBO_CONFIG.app.fiscalYear] || {};
 
     const data = { context, ativos, finalizados, totalFinalizados, ic, meetingsArr, meta, recentMeetings, totalActions, actionsByPerson, actionItems, noticias, dc24, dc25, dc26 };
     this._lastData = data;
@@ -1013,7 +1013,7 @@ const TBO_COMMAND_CENTER = {
     const propostas25 = dc25.propostas || 0;
     const contratos25 = dc25.contratos || 0;
     const negociacao25 = dc25.em_negociacao || 0;
-    const metaAnual = fc.meta_vendas_anual || 2100000;
+    const metaAnual = fc.meta_vendas_anual || (TBO_CONFIG.business.financial.monthlyTarget * 12);
     const receitaYTD = (fc.meses_realizados || []).reduce((s, m) => s + ((fc.receita_mensal || {})[m] || 0), 0);
     const progressMeta = metaAnual > 0 ? ((receitaYTD / metaAnual) * 100) : 0;
 
@@ -1565,7 +1565,7 @@ const TBO_COMMAND_CENTER = {
     const ctx = TBO_STORAGE.get('context');
     const dc24 = ctx.dados_comerciais?.['2024'] || {};
     const dc25 = ctx.dados_comerciais?.['2025'] || {};
-    const dc26 = ctx.dados_comerciais?.['2026'] || {};
+    const dc26 = ctx.dados_comerciais?.[TBO_CONFIG.app.fiscalYear] || {};
     const fc = dc26.fluxo_caixa || {};
     const projAtivos = ctx.projetos_ativos || [];
     const finalizados = ctx.projetos_finalizados || {};
@@ -1605,7 +1605,7 @@ const TBO_COMMAND_CENTER = {
     // Pipeline coverage
     const activeDeals = deals.filter(d2 => !['fechado_ganho','fechado_perdido'].includes(d2.stage));
     const pipelineVal = activeDeals.reduce((s,d2) => s + (d2.value||0), 0);
-    const meta = fc.meta_vendas_mensal || 180000;
+    const meta = fc.meta_vendas_mensal || TBO_CONFIG.business.financial.monthlyTarget;
     const coverage = meta > 0 ? (pipelineVal / meta).toFixed(1) : '0';
 
     // Margin YTD
@@ -1710,7 +1710,7 @@ const TBO_COMMAND_CENTER = {
     }
 
     // 3. Overdue action items (from meetings older than 7 days)
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const weekAgo = new Date(Date.now() - TBO_CONFIG.business.thresholds.projectMonitoring.noMeetingDays * 86400000);
     const completed = JSON.parse(localStorage.getItem('tbo_completed_actions') || '[]');
     const overdueActions = actionItems.filter(ai => {
       const key = ai.task + '|' + ai.meeting;
@@ -2032,7 +2032,7 @@ const TBO_COMMAND_CENTER = {
       const news = TBO_STORAGE.get('news');
 
       let extraCtx = '\n[REUNIOES DA SEMANA]\n';
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const weekAgo = new Date(Date.now() - TBO_CONFIG.business.thresholds.projectMonitoring.noMeetingDays * 86400000);
       meetingsArr.filter(m => new Date(m.date || m.data) >= weekAgo).forEach(m => {
         extraCtx += `- ${m.title || m.titulo} (${TBO_FORMATTER.date(m.date || m.data)}): ${m.summary || m.resumo || 'sem resumo'}\n`;
         const items = m.action_items || [];

@@ -2,39 +2,12 @@
 // PDI with status, deadlines, gap linkage, gamification, ROI tracking, mentoring, learning paths
 const TBO_TRILHA_APRENDIZAGEM = {
 
-  _buCompetencies: {
-    'Branding': ['Identidade Visual', 'Tipografia', 'Naming', 'Brand Strategy', 'Packaging', 'Motion Graphics'],
-    'Digital 3D': ['3ds Max', 'V-Ray', 'SketchUp', 'Lumion', 'Photoshop', 'InDesign', 'After Effects'],
-    'Marketing': ['Copywriting', 'SEO', 'Analytics', 'Social Media', 'Email Marketing', 'Paid Ads'],
-    'Vendas': ['Negociacao', 'CRM', 'Proposta Comercial', 'Follow-up', 'Networking']
-  },
-
-  _levels: ['Iniciante', 'Basico', 'Intermediario', 'Avancado', 'Expert'],
-
-  // Badge thresholds
-  _badges: [
-    { id: 'starter',    nome: 'Iniciante',       icon: '\u{1F331}', threshold: 1,  desc: 'Primeira meta concluida' },
-    { id: 'bronze',     nome: 'Bronze',           icon: '\u{1F949}', threshold: 3,  desc: '3 metas concluidas' },
-    { id: 'silver',     nome: 'Prata',            icon: '\u{1F948}', threshold: 5,  desc: '5 metas concluidas' },
-    { id: 'gold',       nome: 'Ouro',             icon: '\u{1F947}', threshold: 10, desc: '10 metas concluidas' },
-    { id: 'diamond',    nome: 'Diamante',         icon: '\u{1F48E}', threshold: 20, desc: '20 metas concluidas' },
-    { id: 'applied',    nome: 'Aplicador',        icon: '\u{1F680}', threshold: -1, desc: 'Aplicou learning em projeto' },
-    { id: 'streak3',    nome: 'Streak 3 sem',     icon: '\u{1F525}', threshold: -1, desc: '3 semanas consecutivas com progresso' }
-  ],
-
-  // XP system constants
-  _xpRules: {
-    goalCompleted: 100,
-    levelUp: 200,
-    mentorSession: 50
-  },
-
-  _xpLevels: [
-    { name: 'Bronze',   min: 0,    max: 500,  color: '#CD7F32', icon: '\u{1F949}' },
-    { name: 'Prata',    min: 500,  max: 1500, color: '#C0C0C0', icon: '\u{1F948}' },
-    { name: 'Ouro',     min: 1500, max: 3000, color: '#FFD700', icon: '\u{1F947}' },
-    { name: 'Diamante', min: 3000, max: Infinity, color: '#B9F2FF', icon: '\u{1F48E}' }
-  ],
+  // Competencies, levels, badges, XP — from centralized config
+  get _buCompetencies() { return TBO_CONFIG.business.competencies; },
+  get _levels() { return TBO_CONFIG.business.gamification.competencyLevels; },
+  get _badges() { return TBO_CONFIG.business.gamification.badges.map(b => ({ id: b.id, nome: b.name, icon: b.icon, threshold: b.threshold, desc: b.desc })); },
+  get _xpRules() { return TBO_CONFIG.business.gamification.xpPoints; },
+  get _xpLevels() { return TBO_CONFIG.business.gamification.levels; },
 
   // Default learning paths
   _defaultPaths: [

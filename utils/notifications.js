@@ -135,7 +135,7 @@ const TBO_NOTIFICATIONS = {
   },
 
   // ── Create notification ───────────────────────────────────────────────
-  async create(userId, { title, body, type, entityType, entityId, actionUrl }) {
+  async create(userId, { title, body, type, entityType, entityId, actionUrl, tenantId }) {
     const notif = {
       id: 'notif_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
       userId,
@@ -149,11 +149,16 @@ const TBO_NOTIFICATIONS = {
       createdAt: new Date().toISOString()
     };
 
+    // Resolve tenant_id se nao fornecido
+    const resolvedTenantId = tenantId
+      || (typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getCurrentTenantId?.() : null)
+      || null;
+
     // Save to Supabase
     try {
       const client = TBO_SUPABASE.getClient();
       if (client && TBO_SUPABASE.isOnline()) {
-        const { data, error } = await client.from('notifications').insert({
+        const row = {
           user_id: userId,
           title,
           body: body || '',
@@ -162,7 +167,10 @@ const TBO_NOTIFICATIONS = {
           entity_id: entityId || null,
           action_url: actionUrl || null,
           read: false
-        }).select().single();
+        };
+        if (resolvedTenantId) row.tenant_id = resolvedTenantId;
+
+        const { data, error } = await client.from('notifications').insert(row).select().single();
 
         if (!error && data) {
           notif.id = data.id;

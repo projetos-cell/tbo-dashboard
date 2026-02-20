@@ -288,12 +288,18 @@ const TBO_CHAT = {
             <div class="chat-user-card-avatar" id="chatUserCardAvatar"></div>
             <div class="chat-user-card-info">
               <div class="chat-user-card-name" id="chatUserCardName"></div>
+              <div class="chat-user-card-role" id="chatUserCardRole" style="display:none;"></div>
               <div class="chat-user-card-email" id="chatUserCardEmail"></div>
             </div>
           </div>
-          <button class="chat-user-card-dm" id="chatUserCardDM">
-            <i data-lucide="message-circle" style="width:14px;height:14px;"></i> Chat privado
-          </button>
+          <div class="chat-user-card-actions">
+            <button class="chat-user-card-dm" id="chatUserCardDM">
+              <i data-lucide="message-circle" style="width:14px;height:14px;"></i> Chat privado
+            </button>
+            <button class="chat-user-card-profile" id="chatUserCardProfile">
+              <i data-lucide="user" style="width:14px;height:14px;"></i> Ver perfil
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -303,6 +309,8 @@ const TBO_CHAT = {
   // INIT
   // ══════════════════════════════════════════════════════════════════
   _bound: false,
+  _lastTenantId: null,     // Detectar troca de tenant entre init()s
+  _usersReady: false,      // Flag: _allUsers carregado com sucesso
 
   async init() {
     if (window.lucide) lucide.createIcons();
@@ -314,14 +322,27 @@ const TBO_CHAT = {
       return;
     }
 
+    // Detectar troca de tenant — invalidar cache de usuarios
+    const currentTenant = this._getTenantId();
+    if (this._lastTenantId && this._lastTenantId !== currentTenant) {
+      // Tenant mudou: limpar cache do tenant anterior e forcar reload
+      delete this._usersCache[this._lastTenantId];
+      this._allUsers = [];
+      this._members = {};
+      this._usersReady = false;
+    }
+    this._lastTenantId = currentTenant;
+
     // Bind events via delegation (uma unica vez)
     if (!this._bound) {
       this._bindEvents();
       this._bound = true;
     }
 
-    // Carregar todos os usuarios do tenant (para mencoes)
+    // Carregar todos os usuarios do tenant (para mencoes) — DEVE completar antes de permitir digitacao
+    this._usersReady = false;
     await this._loadAllUsers();
+    this._usersReady = this._allUsers.length > 0;
 
     // Carregar secoes e canais
     await this._loadSections();
@@ -428,11 +449,12 @@ const TBO_CHAT = {
       if (!e.target.closest('.chat-module')) return;
       const author = e.target.closest('.chat-message-author[data-user-id]');
       const avatar = e.target.closest('.chat-message-avatar[data-user-id]');
-      const target = author || avatar;
+      const mention = e.target.closest('.chat-mention[data-user-id]');
+      const target = author || avatar || mention;
       if (!target) return;
 
       const userId = target.dataset.userId;
-      if (!userId || userId === self._currentUser?.id) return;
+      if (!userId) return;
 
       clearTimeout(_hoverCardHideTimer);
       clearTimeout(_hoverCardTimer);
@@ -442,8 +464,9 @@ const TBO_CHAT = {
     document.addEventListener('mouseout', (e) => {
       const author = e.target.closest('.chat-message-author[data-user-id]');
       const avatar = e.target.closest('.chat-message-avatar[data-user-id]');
+      const mention = e.target.closest('.chat-mention[data-user-id]');
       const card = e.target.closest('.chat-user-card');
-      if (!author && !avatar && !card) return;
+      if (!author && !avatar && !mention && !card) return;
 
       clearTimeout(_hoverCardTimer);
       _hoverCardHideTimer = setTimeout(() => self._hideUserCard(), 300);
@@ -463,6 +486,33 @@ const TBO_CHAT = {
         const userId = card?.dataset.userId;
         if (userId) self._openDirectMessage(userId);
         self._hideUserCard();
+      }
+      // Clicar no botao "Ver perfil" — navegar para modulo People/Profile
+      if (e.target.closest('#chatUserCardProfile')) {
+        const card = document.getElementById('chatUserCard');
+        const userId = card?.dataset.userId;
+        if (userId) {
+          self._hideUserCard();
+          // Navegar para perfil no modulo People (se disponivel), senao fallback
+          if (typeof TBO_ROUTER !== 'undefined' && TBO_ROUTER.navigate) {
+            TBO_ROUTER.navigate('people', { userId });
+          } else {
+            window.location.hash = `#people?userId=${userId}`;
+          }
+        }
+      }
+    });
+
+    // Fechar mention suggestions ao perder foco do textarea (com delay para permitir click)
+    document.addEventListener('focusout', (e) => {
+      if (e.target.id === 'chatInput') {
+        setTimeout(() => {
+          const active = document.activeElement;
+          const suggestions = document.getElementById('chatMentionSuggestions');
+          if (suggestions && !suggestions.contains(active)) {
+            self._hideMentionSuggestions();
+          }
+        }, 200);
       }
     });
   },
@@ -486,11 +536,18 @@ const TBO_CHAT = {
 
     const name = user.name || 'Usuario';
     const email = user.email || '';
+    const role = user.role || '';
     const avatarHtml = this._renderAvatar(userId, 40);
 
     document.getElementById('chatUserCardAvatar').innerHTML = avatarHtml;
     document.getElementById('chatUserCardName').textContent = name;
     document.getElementById('chatUserCardEmail').textContent = email;
+    // Role label
+    const roleEl = document.getElementById('chatUserCardRole');
+    if (roleEl) {
+      roleEl.textContent = role;
+      roleEl.style.display = role ? 'inline-block' : 'none';
+    }
     card.dataset.userId = userId;
 
     // Posicionar ao lado do anchor
@@ -602,29 +659,82 @@ const TBO_CHAT = {
 
   // ══════════════════════════════════════════════════════════════════
   // LOAD ALL USERS (para mencoes e adicionar membros)
+  // Cache por tenant, invalida ao trocar tenant. Fonte: profiles (Supabase)
   // ══════════════════════════════════════════════════════════════════
-  async _loadAllUsers() {
+  _usersCache: {},          // { [tenantId]: { users: [], ts: Date.now() } }
+  _usersCacheTTL: 5 * 60 * 1000, // 5 min TTL
+  _usersLoading: null,      // promise de carregamento em andamento (previne fetches concorrentes)
+
+  async _loadAllUsers(forceRefresh = false) {
     const client = this._getClient();
     if (!client) return;
-    // v2.1: Filtrar por tenant_id para prevenir exposicao cross-tenant
     const tenantId = this._getTenantId();
     if (!tenantId) { console.warn('[Chat] tenant_id nao disponivel, abortando _loadAllUsers'); return; }
-    try {
-      // Tentar profiles primeiro — filtrado por tenant
-      const { data: profiles } = await client.from('profiles').select('id, full_name, email, avatar_url').eq('tenant_id', tenantId);
-      if (profiles?.length) {
-        this._allUsers = profiles.map(p => ({ id: p.id, name: p.full_name || p.email?.split('@')[0] || 'Usuario', email: p.email, avatar: p.avatar_url }));
-        profiles.forEach(p => {
-          this._members[p.id] = { name: p.full_name || p.email?.split('@')[0], email: p.email, avatar: p.avatar_url };
-        });
-        return;
-      }
-      // Fallback: buscar de colaboradores — filtrado por tenant
-      const { data: colabs } = await client.from('colaboradores').select('id, nome, email').eq('tenant_id', tenantId);
-      if (colabs?.length) {
-        this._allUsers = colabs.map(c => ({ id: c.id, name: c.nome || c.email?.split('@')[0], email: c.email, avatar: null }));
-      }
-    } catch (e) { console.warn('[Chat] Nao foi possivel carregar usuarios:', e.message); }
+
+    // Cache hit — retornar dados ja carregados se dentro do TTL
+    const cached = this._usersCache[tenantId];
+    if (!forceRefresh && cached && (Date.now() - cached.ts < this._usersCacheTTL)) {
+      this._allUsers = cached.users;
+      cached.users.forEach(u => {
+        this._members[u.id] = { name: u.name, email: u.email, avatar: u.avatar, role: u.role };
+      });
+      return;
+    }
+
+    // Evitar fetches concorrentes (ex: init + selectChannel chamam ao mesmo tempo)
+    if (this._usersLoading) { await this._usersLoading; return; }
+
+    this._usersLoading = (async () => {
+      try {
+        // Buscar profiles ativos do tenant com role via tenant_members + roles
+        const { data: profiles, error } = await client
+          .from('profiles')
+          .select('id, full_name, username, email, avatar_url, role, cargo')
+          .eq('tenant_id', tenantId)
+          .eq('is_active', true);
+
+        if (error) throw error;
+
+        if (profiles?.length) {
+          // Tentar enriquecer com role label do RBAC
+          let roleMap = {};
+          try {
+            const { data: tmData } = await client
+              .from('tenant_members')
+              .select('user_id, roles:role_id(name, label, slug)')
+              .eq('tenant_id', tenantId)
+              .eq('is_active', true);
+            if (tmData?.length) {
+              tmData.forEach(tm => {
+                if (tm.roles) roleMap[tm.user_id] = tm.roles.label || tm.roles.name || tm.roles.slug;
+              });
+            }
+          } catch { /* role enrichment is optional */ }
+
+          this._allUsers = profiles.map(p => ({
+            id: p.id,
+            name: p.full_name || p.username || p.email?.split('@')[0] || 'Usuario',
+            email: p.email,
+            avatar: p.avatar_url,
+            role: roleMap[p.id] || p.cargo || p.role || null
+          }));
+          this._allUsers.forEach(u => {
+            this._members[u.id] = { name: u.name, email: u.email, avatar: u.avatar, role: u.role };
+          });
+          // Salvar no cache
+          this._usersCache[tenantId] = { users: [...this._allUsers], ts: Date.now() };
+          return;
+        }
+        // Fallback: buscar de colaboradores — filtrado por tenant
+        const { data: colabs } = await client.from('colaboradores').select('id, nome, email').eq('tenant_id', tenantId);
+        if (colabs?.length) {
+          this._allUsers = colabs.map(c => ({ id: c.id, name: c.nome || c.email?.split('@')[0], email: c.email, avatar: null, role: null }));
+          this._usersCache[tenantId] = { users: [...this._allUsers], ts: Date.now() };
+        }
+      } catch (e) { console.warn('[Chat] Nao foi possivel carregar usuarios:', e.message); }
+    })();
+
+    try { await this._usersLoading; } finally { this._usersLoading = null; }
   },
 
   // ══════════════════════════════════════════════════════════════════
@@ -1253,21 +1363,29 @@ const TBO_CHAT = {
 
       // Fase 1: tokens <@user_id> (content ja escapado: &lt;@uuid&gt;)
       content = content.replace(/&lt;@([\w-]+)&gt;/g, (match, userId) => {
-        const name = mentionMap[userId]
-          || this._allUsers.find(u => u.id === userId)?.name
-          || 'Usuario';
-        return `<span class="chat-mention" data-user-id="${userId}">@${this._esc(name)}</span>`;
+        const user = this._allUsers.find(u => u.id === userId);
+        const name = user?.name || mentionMap[userId] || null;
+        const isSelf = userId === this._currentUser?.id;
+        if (name) {
+          return `<span class="chat-mention${isSelf ? ' chat-mention-self' : ''}" data-user-id="${userId}" title="${this._esc(name)}">@${this._esc(name)}</span>`;
+        }
+        // Fallback: usuario deletado ou fora do tenant
+        const fallbackName = mentionMap[userId] || 'Usuario';
+        return `<span class="chat-mention chat-mention-unknown" title="Usuario nao encontrado">@${this._esc(fallbackName)}</span>`;
       });
 
       // Fase 2: fallback para mensagens antigas sem tokens (formato @Nome)
       // Regex Unicode para suportar acentos, hifens, pontos, underscores
       content = content.replace(/@([\p{L}\p{N}._-]+(?:\s[\p{L}\p{N}._-]+)*)/gu, (match, name) => {
-        // Nao processar se ja esta dentro de um span de mencao
+        // Nao processar se ja esta dentro de um span de mencao (evitar double-processing)
         const user = this._allUsers.find(u =>
           u.name.toLowerCase() === name.toLowerCase() ||
           u.name.toLowerCase().startsWith(name.toLowerCase())
         );
-        if (user) return `<span class="chat-mention" data-user-id="${user.id}">@${this._esc(user.name)}</span>`;
+        if (user) {
+          const isSelf = user.id === this._currentUser?.id;
+          return `<span class="chat-mention${isSelf ? ' chat-mention-self' : ''}" data-user-id="${user.id}" title="${this._esc(user.name)}">@${this._esc(user.name)}</span>`;
+        }
         return match;
       });
     }
@@ -1504,6 +1622,7 @@ const TBO_CHAT = {
     this._mentionStartPos = pos + 1;
     this._showMentionSuggestions = true;
     this._mentionQuery = '';
+    this._mentionActiveIdx = 0;
     // Atualizar indices das mencoes existentes apos insercao do @
     this._pendingMentions.forEach(m => {
       if (m.startIdx >= pos) { m.startIdx += 1; m.endIdx += 1; }
@@ -1531,6 +1650,10 @@ const TBO_CHAT = {
 
     if (atPos >= 0) {
       const query = text.slice(atPos + 1, pos);
+
+      // Descaracterizar mencao: se query tem mais de 30 chars, provavelmente nao eh mencao
+      if (query.length > 30) { this._hideMentionSuggestions(); return; }
+
       // Se a query corresponde a uma mencao ja selecionada, nao mostrar sugestoes
       const isCompletedMention = this._pendingMentions.some(m =>
         m.startIdx === atPos && m.endIdx <= pos
@@ -1539,40 +1662,72 @@ const TBO_CHAT = {
         this._hideMentionSuggestions();
         return;
       }
+
+      // Lazy-load: se _allUsers ainda nao carregou, carregar agora (ex: race condition no init)
+      if (!this._usersReady && !this._allUsers.length) {
+        this._loadAllUsers().then(() => {
+          this._usersReady = this._allUsers.length > 0;
+          if (this._showMentionSuggestions) this._renderMentionSuggestions();
+        });
+      }
+
       this._mentionStartPos = atPos + 1;
-      this._mentionQuery = query.toLowerCase();
+      this._mentionQuery = query;
       this._showMentionSuggestions = true;
+      this._mentionActiveIdx = 0; // Reset keyboard nav index
       this._renderMentionSuggestions();
     } else {
       this._hideMentionSuggestions();
     }
   },
 
+  _mentionActiveIdx: 0, // Track keyboard selection index
+
   _renderMentionSuggestions() {
     const el = document.getElementById('chatMentionSuggestions');
     if (!el) return;
 
     const q = this._normalizeForSearch(this._mentionQuery);
-    const filtered = this._allUsers
-      .filter(u => {
-        if (!q) return true; // Mostrar todos se query vazia (recem digitou @)
-        const normName = this._normalizeForSearch(u.name);
-        const normEmail = this._normalizeForSearch(u.email || '');
-        return normName.includes(q) || normEmail.includes(q);
-      })
-      .filter(u => u.id !== this._currentUser?.id) // Excluir usuario atual
-      .slice(0, 8);
+    const currentId = this._currentUser?.id;
 
-    if (!filtered.length) { el.style.display = 'none'; return; }
+    // Filtrar e classificar em 3 tiers: 1) prefix name, 2) contains name, 3) contains email
+    const tier1 = [], tier2 = [], tier3 = [];
+    for (const u of this._allUsers) {
+      if (u.id === currentId) continue; // Excluir usuario atual
+      const normName = this._normalizeForSearch(u.name);
+      const normEmail = this._normalizeForSearch(u.email || '');
+      if (!q) {
+        tier1.push(u); // Query vazia: mostrar todos
+      } else if (normName.startsWith(q)) {
+        tier1.push(u); // Match no inicio do nome
+      } else if (normName.includes(q)) {
+        tier2.push(u); // Match em qualquer parte do nome
+      } else if (normEmail.includes(q)) {
+        tier3.push(u); // Match no email
+      }
+    }
+
+    const filtered = [...tier1, ...tier2, ...tier3].slice(0, 8);
+
+    if (!filtered.length) {
+      el.innerHTML = `<div style="padding:12px 16px;font-size:0.78rem;color:var(--text-muted);text-align:center;">Nenhum usuario encontrado</div>`;
+      el.style.display = 'block';
+      return;
+    }
+
+    // Clamp active index
+    if (this._mentionActiveIdx >= filtered.length) this._mentionActiveIdx = 0;
 
     el.innerHTML = filtered.map((u, i) => {
-      const color = this._getUserColor(u.id);
-      const initials = this._getInitials(u.name);
-      return `<div class="chat-mention-item ${i === 0 ? 'active' : ''}" data-user-id="${u.id}" data-user-name="${this._esc(u.name)}">
+      const roleLabel = u.role ? `<span class="chat-mention-role">${this._esc(u.role)}</span>` : '';
+      return `<div class="chat-mention-item ${i === this._mentionActiveIdx ? 'active' : ''}" data-user-id="${u.id}" data-user-name="${this._esc(u.name)}" data-idx="${i}">
         ${this._renderAvatar(u.id, 28)}
-        <div>
-          <div style="font-weight:600;font-size:0.8rem;">${this._esc(u.name)}</div>
-          <div style="font-size:0.68rem;color:var(--text-muted);">${this._esc(u.email || '')}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-weight:600;font-size:0.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${this._esc(u.name)}</span>
+            ${roleLabel}
+          </div>
+          <div style="font-size:0.68rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${this._esc(u.email || '')}</div>
         </div>
       </div>`;
     }).join('');
@@ -1587,14 +1742,12 @@ const TBO_CHAT = {
   _navigateMentionSuggestion(dir) {
     const items = document.querySelectorAll('.chat-mention-item');
     if (!items.length) return;
-    let activeIdx = -1;
-    items.forEach((item, i) => { if (item.classList.contains('active')) activeIdx = i; });
     items.forEach(item => item.classList.remove('active'));
-    let newIdx = activeIdx + dir;
-    if (newIdx < 0) newIdx = items.length - 1;
-    if (newIdx >= items.length) newIdx = 0;
-    items[newIdx].classList.add('active');
-    items[newIdx].scrollIntoView({ block: 'nearest' });
+    this._mentionActiveIdx += dir;
+    if (this._mentionActiveIdx < 0) this._mentionActiveIdx = items.length - 1;
+    if (this._mentionActiveIdx >= items.length) this._mentionActiveIdx = 0;
+    items[this._mentionActiveIdx].classList.add('active');
+    items[this._mentionActiveIdx].scrollIntoView({ block: 'nearest' });
   },
 
   _selectMention(userId) {
@@ -1606,22 +1759,27 @@ const TBO_CHAT = {
 
     const text = input.value;
     const atPos = this._mentionStartPos - 1; // Posicao do @
+    const cursorPos = input.selectionStart;
     const before = text.slice(0, atPos);
-    const after = text.slice(input.selectionStart);
+    const after = text.slice(cursorPos);
     const mentionText = '@' + user.name;
-    const insertedLength = mentionText.length + 1; // +1 para o espaco
+    const newFragment = mentionText + ' '; // espaco apos mencao
 
     // Recalcular indices de mencoes existentes que estao apos o ponto de insercao
-    const oldLength = input.selectionStart - atPos;
-    const delta = insertedLength - oldLength;
+    const oldLength = cursorPos - atPos; // O que sera removido (@query)
+    const delta = newFragment.length - oldLength;
     this._pendingMentions.forEach(m => {
-      if (m.startIdx > atPos) { m.startIdx += delta; m.endIdx += delta; }
+      if (m.startIdx >= cursorPos) { m.startIdx += delta; m.endIdx += delta; }
     });
 
-    input.value = before + mentionText + ' ' + after;
-    const newCursorPos = before.length + mentionText.length + 1;
+    input.value = before + newFragment + after;
+    const newCursorPos = before.length + newFragment.length;
     input.focus();
     input.selectionStart = input.selectionEnd = newCursorPos;
+
+    // Auto-resize textarea apos insercao
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
 
     // Registrar a mencao pendente com o ID do usuario
     this._pendingMentions.push({
@@ -1636,6 +1794,7 @@ const TBO_CHAT = {
 
   _hideMentionSuggestions() {
     this._showMentionSuggestions = false;
+    this._mentionActiveIdx = 0;
     const el = document.getElementById('chatMentionSuggestions');
     if (el) el.style.display = 'none';
   },
@@ -1670,21 +1829,33 @@ const TBO_CHAT = {
   },
 
   // Enviar notificacoes para usuarios mencionados (reutiliza TBO_NOTIFICATIONS)
+  // Inclui tenant_id, channel context, dedup por message+user
   async _notifyMentionedUsers(mentions, messageData, displayContent) {
     if (typeof TBO_NOTIFICATIONS === 'undefined') return;
     const currentUserId = this._currentUser?.id;
     const senderName = this._getUserName(currentUserId);
     const channelName = this._activeChannel?.name || 'chat';
+    const channelId = this._activeChannel?.id;
+    const tenantId = this._getTenantId();
+    const notifiedIds = new Set(); // Dedup
+
     for (const mention of mentions) {
       if (mention.id === currentUserId) continue; // Nao notificar a si mesmo
+      if (notifiedIds.has(mention.id)) continue;  // Dedup: usuario mencionado 2x na mesma msg
+      notifiedIds.add(mention.id);
       try {
+        // Construir preview limpo (remover tokens <@...> do texto)
+        const cleanPreview = (displayContent || '')
+          .replace(/<@[\w-]+>/g, '@' + mention.name)
+          .slice(0, 80);
         await TBO_NOTIFICATIONS.create(mention.id, {
           title: `${senderName} mencionou voce`,
-          body: `em #${channelName}: "${(displayContent || '').slice(0, 80)}"`,
+          body: `em #${channelName}: "${cleanPreview}"`,
           type: 'mention',
           entityType: 'chat_message',
           entityId: messageData.id,
-          actionUrl: '#chat'
+          actionUrl: `#chat?channel=${channelId || ''}`,
+          tenantId
         });
       } catch (e) {
         console.warn('[Chat] Erro ao enviar notificacao de mencao:', e.message);
@@ -1693,12 +1864,27 @@ const TBO_CHAT = {
   },
 
   // Validar mencoes pendentes apos edicao do textarea (remove entradas invalidas)
+  // Tambem tenta recalcular indices quando texto muda (paste, backspace, etc)
   _validatePendingMentions(input) {
     const text = input.value;
     this._pendingMentions = this._pendingMentions.filter(m => {
-      if (m.endIdx > text.length) return false;
+      // Bounds check
+      if (m.startIdx < 0 || m.endIdx > text.length) return false;
+      const expected = '@' + m.name;
       const actual = text.slice(m.startIdx, m.endIdx);
-      return actual === '@' + m.name;
+      if (actual === expected) return true;
+      // Tentar encontrar a mencao proxima da posicao original (usuario colou texto antes)
+      const searchWindow = Math.min(text.length, m.startIdx + expected.length + 20);
+      const searchStart = Math.max(0, m.startIdx - 20);
+      const nearby = text.slice(searchStart, searchWindow);
+      const idx = nearby.indexOf(expected);
+      if (idx >= 0) {
+        const newStart = searchStart + idx;
+        m.startIdx = newStart;
+        m.endIdx = newStart + expected.length;
+        return true;
+      }
+      return false; // Mencao corrompida — invalidar
     });
   },
 
@@ -2435,9 +2621,13 @@ const TBO_CHAT = {
       .chat-reaction-chip span { font-size: 0.65rem; font-weight: 600; color: var(--text-muted); }
       .chat-reaction-chip.active span { color: var(--accent, #E85102); }
 
-      /* ── Mentions ── */
-      .chat-mention { background: rgba(99, 102, 241, 0.15); color: #818cf8; padding: 2px 6px; border-radius: 4px; font-weight: 600; cursor: pointer; transition: background 0.15s; text-decoration: none; }
-      .chat-mention:hover { background: rgba(99, 102, 241, 0.25); text-decoration: underline; }
+      /* ── Mentions (Slack-grade pills) ── */
+      .chat-mention { display: inline; background: rgba(99, 102, 241, 0.12); color: #818cf8; padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: inherit; cursor: pointer; transition: all 0.15s ease; text-decoration: none; white-space: nowrap; border: 1px solid transparent; }
+      .chat-mention:hover { background: rgba(99, 102, 241, 0.22); border-color: rgba(99, 102, 241, 0.3); }
+      .chat-mention-self { background: rgba(232, 81, 2, 0.12); color: var(--accent, #E85102); }
+      .chat-mention-self:hover { background: rgba(232, 81, 2, 0.22); border-color: rgba(232, 81, 2, 0.3); }
+      .chat-mention-unknown { background: rgba(120, 120, 120, 0.1); color: var(--text-muted); cursor: default; font-style: italic; }
+      .chat-mention-unknown:hover { background: rgba(120, 120, 120, 0.15); }
 
       /* ── Attachments ── */
       .chat-attachment-image { margin-top: 6px; max-width: 320px; }
@@ -2503,9 +2693,14 @@ const TBO_CHAT = {
       .chat-sticker-label { font-size: 0.55rem; color: var(--text-muted); margin-top: 2px; }
 
       /* ── Mention Suggestions ── */
-      .chat-mention-suggestions { position: absolute; bottom: 100%; left: 12px; right: 12px; max-height: 200px; overflow-y: auto; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg, 12px); box-shadow: 0 4px 16px rgba(0,0,0,0.15); z-index: 100; margin-bottom: 4px; }
-      .chat-mention-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; cursor: pointer; transition: background 0.1s; }
-      .chat-mention-item:hover, .chat-mention-item.active { background: var(--bg-elevated); }
+      .chat-mention-suggestions { position: absolute; bottom: 100%; left: 12px; right: 12px; max-height: 320px; overflow-y: auto; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg, 12px); box-shadow: 0 4px 20px rgba(0,0,0,0.18); z-index: 100; margin-bottom: 4px; scrollbar-width: thin; }
+      .chat-mention-suggestions::-webkit-scrollbar { width: 4px; }
+      .chat-mention-suggestions::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 4px; }
+      .chat-mention-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; cursor: pointer; transition: background 0.12s ease; border-left: 2px solid transparent; }
+      .chat-mention-item:hover, .chat-mention-item.active { background: var(--bg-elevated); border-left-color: var(--accent, #E85102); }
+      .chat-mention-item:first-child { border-radius: 12px 12px 0 0; }
+      .chat-mention-item:last-child { border-radius: 0 0 12px 12px; }
+      .chat-mention-role { font-size: 0.6rem; font-weight: 600; padding: 1px 6px; border-radius: 8px; background: var(--accent, #E85102)12; color: var(--accent, #E85102); white-space: nowrap; flex-shrink: 0; }
       .chat-mention-avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 700; flex-shrink: 0; }
 
       /* ── Modals ── */
@@ -2515,13 +2710,20 @@ const TBO_CHAT = {
       .chat-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 
       /* ── User Hover Card ── */
-      .chat-user-card { position: fixed; z-index: 10001; width: 240px; background: var(--bg-card, #1e1e1e); border: 1px solid var(--border-default, #333); border-radius: var(--radius-md, 8px); box-shadow: var(--shadow-xl, 0 8px 24px rgba(0,0,0,0.3)); padding: 14px; pointer-events: auto; }
-      .chat-user-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+      .chat-user-card { position: fixed; z-index: 10001; width: 260px; background: var(--bg-card, #1e1e1e); border: 1px solid var(--border-default, #333); border-radius: var(--radius-lg, 12px); box-shadow: 0 8px 32px rgba(0,0,0,0.25); padding: 16px; pointer-events: auto; animation: chatCardFadeIn 0.15s ease; }
+      @keyframes chatCardFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+      .chat-user-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
       .chat-user-card-avatar .chat-message-avatar { cursor: default; }
-      .chat-user-card-name { font-size: 0.88rem; font-weight: 600; color: var(--text-primary); }
-      .chat-user-card-email { font-size: 0.72rem; color: var(--text-muted); word-break: break-all; }
-      .chat-user-card-dm { width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 12px; font-size: 0.78rem; font-weight: 500; background: var(--accent-gold-dim, rgba(232,81,2,0.1)); color: var(--accent-gold, #E85102); border: 1px solid var(--accent-gold, #E85102); border-radius: var(--radius-sm, 6px); cursor: pointer; transition: background 0.15s, color 0.15s; }
+      .chat-user-card-info { min-width: 0; flex: 1; }
+      .chat-user-card-name { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .chat-user-card-role { display: inline-block; font-size: 0.62rem; font-weight: 600; padding: 2px 8px; border-radius: 10px; background: var(--accent, #E85102)12; color: var(--accent, #E85102); margin-top: 3px; }
+      .chat-user-card-email { font-size: 0.72rem; color: var(--text-muted); word-break: break-all; margin-top: 2px; }
+      .chat-user-card-actions { display: flex; gap: 6px; }
+      .chat-user-card-dm, .chat-user-card-profile { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 7px 10px; font-size: 0.72rem; font-weight: 600; border-radius: var(--radius-sm, 6px); cursor: pointer; transition: all 0.15s; border: 1px solid var(--border-subtle); }
+      .chat-user-card-dm { background: var(--accent-gold-dim, rgba(232,81,2,0.1)); color: var(--accent-gold, #E85102); border-color: var(--accent-gold, #E85102); }
       .chat-user-card-dm:hover { background: var(--accent-gold, #E85102); color: #fff; }
+      .chat-user-card-profile { background: var(--bg-elevated); color: var(--text-secondary); }
+      .chat-user-card-profile:hover { background: var(--bg-primary); color: var(--text-primary); border-color: var(--text-muted); }
 
       /* ── Members List ── */
       .chat-members-list { display: flex; flex-direction: column; gap: 6px; }

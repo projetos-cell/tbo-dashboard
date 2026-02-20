@@ -1870,7 +1870,7 @@ const TBO_PROJECT_WORKSPACE = {
 .pw-tab-content { flex: 1; overflow-y: auto; padding-bottom: 40px; }
 
 /* ── List View ── */
-.pw-list-header { display: flex; align-items: center; padding: 8px 28px; border-bottom: 2px solid var(--border-subtle); font-size: 0.72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; position: sticky; top: 0; background: color-mix(in srgb, var(--bg-primary) 92%, white); z-index: 5; }
+.pw-list-header { display: flex; align-items: center; padding: 8px 28px; border-bottom: 2px solid var(--border-subtle, #ddd); font-size: 0.72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; position: sticky; top: 0; background: var(--bg-tertiary, #f5f5f5); z-index: 5; }
 .pw-list-header .pw-list-col { border-right: 1px solid color-mix(in srgb, var(--border-subtle) 60%, transparent); }
 .pw-list-header .pw-list-col:last-child { border-right: none; }
 .pw-list-col { padding: 0 8px; }
@@ -1889,8 +1889,8 @@ const TBO_PROJECT_WORKSPACE = {
 
 /* Task Row */
 .pw-list-row { display: flex; align-items: center; padding: 6px 28px; border-bottom: 1px solid var(--border-subtle); font-size: 0.82rem; transition: background 0.1s; cursor: default; }
-.pw-list-row:nth-child(even of .pw-list-row) { background: color-mix(in srgb, var(--bg-secondary) 40%, transparent); }
-.pw-list-row:hover { background: color-mix(in srgb, var(--accent-gold) 6%, var(--bg-tertiary)); }
+.pw-list-row:nth-child(even of .pw-list-row) { background: color-mix(in srgb, var(--bg-tertiary, #f0f0f0) 35%, transparent); }
+.pw-list-row:hover { background: color-mix(in srgb, var(--accent-gold, #d4af37) 6%, var(--bg-tertiary, #eaeaea)); }
 .pw-list-row .pw-list-col { border-right: 1px solid color-mix(in srgb, var(--border-subtle) 50%, transparent); }
 .pw-list-row .pw-list-col:last-child { border-right: none; }
 .pw-list-row--done { opacity: 0.55; }

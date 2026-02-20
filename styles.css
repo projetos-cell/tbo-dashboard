@@ -734,66 +734,15 @@ strong {
 .sidebar.collapsed .sidebar-collapse-btn { transform: rotate(180deg); }
 .sidebar.collapsed .theme-toggle-btn { display: none; }
 
-/* -- Sidebar pin button -- */
-.sidebar-pin-btn {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-  color: var(--text-muted);
-  cursor: pointer;
-  border: none;
-  background: none;
-  transition: color var(--transition-fast), background-color var(--transition-fast);
-}
-.sidebar-pin-btn:hover {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-}
-.sidebar-pin-btn.pinned {
-  color: var(--accent-gold);
-}
-
-/* -- Sidebar auto-hide mode -- */
-.sidebar.sidebar-auto-hide {
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: calc(var(--z-sidebar) + 10);
-  transition: transform 0.28s cubic-bezier(.4,0,.2,1), opacity 0.22s ease, width var(--transition-normal);
-}
-.sidebar.sidebar-auto-hide.auto-hidden {
-  transform: translateX(calc(-100% + 12px));
-  opacity: 0.6;
-}
-.sidebar.sidebar-auto-hide.auto-hidden:hover {
-  transform: translateX(0);
-  opacity: 1;
-}
-/* Quando auto-hide esta ativo, main precisa expandir */
-.sidebar.sidebar-auto-hide ~ .main-content {
-  margin-left: 0;
-}
-/* Aba lateral sutil para indicar sidebar escondida */
-.sidebar.sidebar-auto-hide.auto-hidden::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 48px;
-  background: var(--accent-gold);
-  border-radius: 0 4px 4px 0;
-  opacity: 0.5;
-  transition: opacity var(--transition-fast);
-}
-.sidebar.sidebar-auto-hide.auto-hidden:hover::after {
-  opacity: 0;
-}
-.sidebar.collapsed .sidebar-pin-btn { display: none; }
+/* -- Sidebar Minibar (collapsed = Asana-style icon bar) -- */
+.sidebar.collapsed .sidebar-footer { justify-content: center; padding: 8px 0; }
+/* Separador sutil entre top area e modulos no modo minibar */
+.sidebar.collapsed .sidebar-nav-wrapper { border-top: 1px solid var(--border-subtle); }
+/* Centralizar melhor os icones no minibar */
+.sidebar.collapsed .nav-icon { width: 22px; height: 22px; }
+/* Hover mais visivel no minibar */
+.sidebar.collapsed .nav-item:hover { background: rgba(212, 175, 55, 0.08); border-radius: 8px; }
+.sidebar.collapsed .nav-item.active { border-radius: 8px; }
 
 /* -- Section drag & drop -- */
 .nav-section-drag-handle {

@@ -57,6 +57,12 @@ Priorize noticias sobre:
 7. Sustentabilidade na construcao
 8. PropTech e inovacao no setor`,
 
+  // Escapa HTML para prevenir XSS
+  _esc(s) { if (s == null) return ''; const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; },
+
+  // Valida URL para prevenir javascript: e outros protocolos perigosos
+  _safeUrl(url) { if (!url) return ''; const s = String(url).trim(); if (/^https?:\/\//i.test(s)) return this._esc(s); return ''; },
+
   // Cache de noticias (localStorage + timestamp)
   _cacheKey: 'tbo_inteligencia_imob_cache',
   _cacheTTL: 4 * 60 * 60 * 1000, // 4 horas
@@ -151,30 +157,32 @@ Priorize noticias sobre:
         <!-- Feed de noticias -->
         <div id="imobFeed" style="display:grid;gap:12px;">
           ${filtered.map(n => {
+            const catKey = this._esc(n.categoria || '');
             const color = catColors[n.categoria] || 'var(--text-muted)';
+            const relKey = (n.relevancia || '').replace(/[^a-z]/g, '');
             return `
-              <div class="imob-card imob-relevancia-${n.relevancia}">
+              <div class="imob-card imob-relevancia-${this._esc(relKey)}">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
                   <div style="flex:1;">
                     <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
-                      <span class="tag" style="font-size:0.62rem;background:${color}15;color:${color};">${catLabels[n.categoria] || n.categoria}</span>
-                      <span style="font-size:0.68rem;color:var(--text-muted);">${n.fonte}</span>
-                      <span style="font-size:0.62rem;color:var(--text-muted);">${new Date(n.data).toLocaleDateString('pt-BR')}</span>
+                      <span class="tag" style="font-size:0.62rem;background:${color}15;color:${color};">${catLabels[n.categoria] || catKey}</span>
+                      <span style="font-size:0.68rem;color:var(--text-muted);">${this._esc(n.fonte)}</span>
+                      <span style="font-size:0.62rem;color:var(--text-muted);">${n.data ? new Date(n.data).toLocaleDateString('pt-BR') : ''}</span>
                     </div>
-                    <div style="font-weight:700;font-size:0.9rem;margin-bottom:6px;">${n.titulo}</div>
-                    <div style="font-size:0.8rem;color:var(--text-secondary);line-height:1.5;margin-bottom:8px;">${n.resumo}</div>
+                    <div style="font-weight:700;font-size:0.9rem;margin-bottom:6px;">${this._esc(n.titulo)}</div>
+                    <div style="font-size:0.8rem;color:var(--text-secondary);line-height:1.5;margin-bottom:8px;">${this._esc(n.resumo)}</div>
                     ${n.insight_tbo ? `
                       <div style="background:var(--accent-gold)08;border-radius:6px;padding:8px 12px;margin-bottom:8px;">
                         <div style="font-size:0.68rem;font-weight:600;color:var(--accent-gold);margin-bottom:2px;">Insight TBO</div>
-                        <div style="font-size:0.75rem;color:var(--text-secondary);">${n.insight_tbo}</div>
+                        <div style="font-size:0.75rem;color:var(--text-secondary);">${this._esc(n.insight_tbo)}</div>
                       </div>
                     ` : ''}
                     <div style="display:flex;gap:4px;flex-wrap:wrap;">
-                      ${(n.tags || []).map(t => `<span class="tag" style="font-size:0.58rem;">${t}</span>`).join('')}
+                      ${(n.tags || []).map(t => `<span class="tag" style="font-size:0.58rem;">${this._esc(t)}</span>`).join('')}
                     </div>
                   </div>
                   <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;">
-                    <span class="tag" style="font-size:0.6rem;background:${n.relevancia === 'alta' ? 'var(--color-success-dim)' : n.relevancia === 'media' ? 'var(--accent-gold)20' : 'var(--bg-tertiary)'};color:${n.relevancia === 'alta' ? 'var(--color-success)' : n.relevancia === 'media' ? 'var(--accent-gold)' : 'var(--text-muted)'};">${n.relevancia}</span>
+                    <span class="tag" style="font-size:0.6rem;background:${n.relevancia === 'alta' ? 'var(--color-success-dim)' : n.relevancia === 'media' ? 'var(--accent-gold)20' : 'var(--bg-tertiary)'};color:${n.relevancia === 'alta' ? 'var(--color-success)' : n.relevancia === 'media' ? 'var(--accent-gold)' : 'var(--text-muted)'};">${this._esc(n.relevancia)}</span>
                   </div>
                 </div>
               </div>`;
@@ -185,7 +193,7 @@ Priorize noticias sobre:
         <!-- Prompt utilizado (collapsible) -->
         <details style="margin-top:24px;">
           <summary style="font-size:0.78rem;color:var(--text-muted);cursor:pointer;padding:8px 0;">Ver prompt de curadoria utilizado</summary>
-          <pre style="font-size:0.7rem;background:var(--bg-elevated);padding:16px;border-radius:8px;overflow-x:auto;white-space:pre-wrap;color:var(--text-secondary);line-height:1.6;margin-top:8px;border:1px solid var(--border-subtle);">${this._curadoriaPrompt}</pre>
+          <pre style="font-size:0.7rem;background:var(--bg-elevated);padding:16px;border-radius:8px;overflow-x:auto;white-space:pre-wrap;color:var(--text-secondary);line-height:1.6;margin-top:8px;border:1px solid var(--border-subtle);">${this._esc(this._curadoriaPrompt)}</pre>
         </details>
       </div>
     `;

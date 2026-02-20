@@ -296,16 +296,29 @@ const TBO_ROUTER = {
   // Initialize from URL hash (supports deep links like #projetos/ativos e #projeto/id/tab)
   initFromHash(defaultModule = 'command-center') {
     const hash = window.location.hash.replace('#', '');
+    if (!hash) {
+      this.navigate(defaultModule);
+      return;
+    }
+
     // Checar rota parametrizada primeiro
     const paramRoute = this._parseParamRoute(hash);
     if (paramRoute && this._modules[paramRoute.moduleName]) {
       this.navigate(hash);
       return;
     }
+
+    // Rota normal: resolver alias e verificar se modulo existe
     const rawName = hash.split('/')[0];
     const resolved = this._resolveAlias(rawName);
-    const target = resolved && this._modules[resolved] ? hash : defaultModule;
-    this.navigate(target);
+
+    // Verificar se o modulo esta registrado E nao e null
+    if (resolved && this._modules[resolved] && this._modules[resolved] !== null) {
+      this.navigate(hash);
+    } else {
+      console.warn(`[TBO Router] Modulo "${rawName}" (resolved: "${resolved}") nao encontrado, redirecionando para ${defaultModule}`);
+      this.navigate(defaultModule);
+    }
   },
 
   // Listen for hash changes (suporta rotas parametrizadas)

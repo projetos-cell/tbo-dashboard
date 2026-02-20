@@ -154,7 +154,8 @@ const TBO_FINANCEIRO = {
                     const margem = rec > 0 ? ((res / rec) * 100).toFixed(1) : '0.0';
                     const isReal = realizados.includes(m);
                     const mesLabel = {jan:'Jan',fev:'Fev',mar:'Mar',abr:'Abr',mai:'Mai',jun:'Jun',jul:'Jul',ago:'Ago',set:'Set',out:'Out',nov:'Nov',dez:'Dez'}[m];
-                    const barW = Math.max(Math.round((rec / (fc.meta_vendas_mensal || TBO_CONFIG.business.financial.monthlyTarget)) * 100), 3);
+                    const barMeta = fc.meta_vendas_mensal || (typeof TBO_CONFIG !== 'undefined' && TBO_CONFIG.business?.financial?.monthlyTarget) || 1;
+                    const barW = Math.max(Math.round((rec / barMeta) * 100), 3);
                     const inputStyle = 'width:100%;text-align:right;padding:3px 6px;border:1px solid transparent;border-radius:4px;font-size:0.8rem;background:transparent;color:var(--text-primary);transition:border-color 0.15s;';
                     return `<tr data-mes="${m}" style="${!isReal ? 'opacity:0.7;' : ''}">
                       <td style="position:sticky;left:0;background:var(--bg-primary);z-index:1;"><strong>${mesLabel}</strong></td>
@@ -167,7 +168,7 @@ const TBO_FINANCEIRO = {
                       <td class="fn-resultado" data-mes="${m}" style="text-align:right;font-weight:600;color:${res >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${TBO_FORMATTER.currency(res)}</td>
                       <td class="fn-margem" data-mes="${m}" style="text-align:right;font-size:0.75rem;color:${parseFloat(margem) >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${margem}%</td>
                       <td style="text-align:center;">
-                        <input type="checkbox" class="fn-real" data-mes="${m}" ${isReal ? 'checked' : ''} style="cursor:pointer;width:16px;height:16px;accent-color:var(--accent);">
+                        <input type="checkbox" class="fn-real" data-mes="${m}" ${isReal ? 'checked' : ''} aria-label="Marcar ${mesLabel} como real" style="cursor:pointer;width:16px;height:16px;accent-color:var(--accent);">
                       </td>
                       <td>
                         <div class="mini-progress">
@@ -708,7 +709,7 @@ const TBO_FINANCEIRO = {
   },
 
   _recalcFluxo() {
-    const meta = TBO_CONFIG.business.financial.monthlyTarget;
+    const meta = TBO_CONFIG.business.financial.monthlyTarget || 1;
     let totalRec = 0, totalDesp = 0;
 
     document.querySelectorAll('#fnFluxoTable tbody tr[data-mes]').forEach(row => {

@@ -729,7 +729,15 @@ const TBO_AUTH = {
     const container = document.getElementById('userMenu');
     if (!container || !user) return;
 
-    const buLabel = user.bu ? ` \u00B7 ${user.bu}` : '';
+    // v2.1: Escapar dados do usuario para prevenir XSS
+    const esc = typeof _escapeHtml === 'function' ? _escapeHtml : (s) => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#x27;'}[c]));
+    const safeName = esc(user.name);
+    const safeRoleLabel = esc(user.roleLabel);
+    const safeInitials = esc(user.initials);
+    // Validar avatar URL: aceitar apenas https://
+    const safeAvatarUrl = (user.avatarUrl && /^https:\/\//i.test(user.avatarUrl)) ? user.avatarUrl : null;
+
+    const buLabel = user.bu ? ` \u00B7 ${esc(user.bu)}` : '';
 
     // v2.2.1: Removido "Autenticado via Supabase" (info tecnica nao relevante para usuario)
     // Mostrar apenas info util: horario de login
@@ -739,27 +747,27 @@ const TBO_AUTH = {
       sessionInfo = `<div class="user-dropdown-session">Conectado desde ${loginTime}</div>`;
     }
 
-    // Avatar: use Google avatar if available, else initials
-    const avatarHtml = user.avatarUrl
-      ? `<img src="${user.avatarUrl}" class="user-avatar user-avatar--img" alt="${user.name}" style="width:32px;height:32px;border-radius:50%;">`
-      : `<div class="user-avatar" style="background:${user.roleColor};">${user.initials}</div>`;
+    // Avatar: use Google avatar if available (validated https), else initials
+    const avatarHtml = safeAvatarUrl
+      ? `<img src="${safeAvatarUrl}" class="user-avatar user-avatar--img" alt="${safeName}" style="width:32px;height:32px;border-radius:50%;">`
+      : `<div class="user-avatar" style="background:${user.roleColor};">${safeInitials}</div>`;
 
-    const avatarLgHtml = user.avatarUrl
-      ? `<img src="${user.avatarUrl}" class="user-avatar user-avatar--lg user-avatar--img" alt="${user.name}" style="width:48px;height:48px;border-radius:50%;">`
-      : `<div class="user-avatar user-avatar--lg" style="background:${user.roleColor};">${user.initials}</div>`;
+    const avatarLgHtml = safeAvatarUrl
+      ? `<img src="${safeAvatarUrl}" class="user-avatar user-avatar--lg user-avatar--img" alt="${safeName}" style="width:48px;height:48px;border-radius:50%;">`
+      : `<div class="user-avatar user-avatar--lg" style="background:${user.roleColor};">${safeInitials}</div>`;
 
     container.innerHTML = `
       <button class="user-menu-trigger" id="userMenuTrigger" aria-haspopup="true" aria-expanded="false">
         ${avatarHtml}
-        <span class="user-menu-name">${user.name}</span>
+        <span class="user-menu-name">${safeName}</span>
         <i data-lucide="chevron-down" class="user-menu-chevron" aria-hidden="true"></i>
       </button>
       <div class="user-dropdown" id="userDropdown">
         <div class="user-dropdown-header">
           ${avatarLgHtml}
           <div class="user-dropdown-info">
-            <div class="user-dropdown-name">${user.name}</div>
-            <div class="user-dropdown-role">${user.roleLabel}${buLabel}</div>
+            <div class="user-dropdown-name">${safeName}</div>
+            <div class="user-dropdown-role">${safeRoleLabel}${buLabel}</div>
             ${sessionInfo}
           </div>
         </div>
@@ -886,17 +894,24 @@ const TBO_AUTH = {
     const widget = document.getElementById('sidebarUserWidget');
     if (!widget || !user) return;
 
-    const buLabel = user.bu ? ` \u00B7 ${user.bu}` : '';
+    // v2.1: Escapar dados do usuario para prevenir XSS
+    const esc = typeof _escapeHtml === 'function' ? _escapeHtml : (s) => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#x27;'}[c]));
+    const safeName = esc(user.name);
+    const safeRoleLabel = esc(user.roleLabel);
+    const safeInitials = esc(user.initials);
+    const safeAvatarUrl = (user.avatarUrl && /^https:\/\//i.test(user.avatarUrl)) ? user.avatarUrl : null;
 
-    const avatarHtml = user.avatarUrl
-      ? `<img src="${user.avatarUrl}" class="sidebar-user-avatar" alt="${user.name}" style="width:32px;height:32px;border-radius:50%;">`
-      : `<div class="sidebar-user-avatar" style="background:${user.roleColor}; color:#fff;">${user.initials}</div>`;
+    const buLabel = user.bu ? ` \u00B7 ${esc(user.bu)}` : '';
+
+    const avatarHtml = safeAvatarUrl
+      ? `<img src="${safeAvatarUrl}" class="sidebar-user-avatar" alt="${safeName}" style="width:32px;height:32px;border-radius:50%;">`
+      : `<div class="sidebar-user-avatar" style="background:${user.roleColor}; color:#fff;">${safeInitials}</div>`;
 
     widget.innerHTML = `
       ${avatarHtml}
       <div class="sidebar-user-info">
-        <div class="sidebar-user-name">${user.name}</div>
-        <div class="sidebar-user-role">${user.roleLabel}${buLabel}</div>
+        <div class="sidebar-user-name">${safeName}</div>
+        <div class="sidebar-user-role">${safeRoleLabel}${buLabel}</div>
       </div>
     `;
   }

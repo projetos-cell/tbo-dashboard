@@ -33,6 +33,18 @@ const TBO_ADMIN_PORTAL = {
   // ── Render principal ─────────────────────────────────────────────────────
 
   render() {
+    // v2.1: Verificacao de role — apenas founder, admin ou project_owner podem acessar
+    if (typeof TBO_AUTH !== 'undefined') {
+      const user = TBO_AUTH.getCurrentUser();
+      if (!user || !['founder', 'owner', 'admin', 'project_owner'].includes(user.role)) {
+        return `<div class="card" style="padding:40px;text-align:center;">
+          <i data-lucide="shield-alert" style="width:48px;height:48px;color:var(--color-danger);margin-bottom:12px;"></i>
+          <h3 style="margin:0 0 8px;">Acesso Negado</h3>
+          <p style="color:var(--text-muted);font-size:0.85rem;">Voce nao tem permissao para acessar o Admin Portal.</p>
+        </div>`;
+      }
+    }
+
     return `
       <style>${this._getStyles()}</style>
       <div class="ap-module">
@@ -237,8 +249,9 @@ const TBO_ADMIN_PORTAL = {
       this._loading = true;
 
       // Carregar tudo em paralelo
+      // v2.1: Filtrar tenants pelo tenant_id atual (prevenir vazamento cross-tenant)
       const [tenantsRes, rolesRes, permsRes, permsCatalogRes, profilesRes, membersRes] = await Promise.all([
-        client.from('tenants').select('*'),
+        client.from('tenants').select('*').eq('id', tenantId),
         client.from('roles').select('*').eq('tenant_id', tenantId).order('sort_order'),
         client.from('role_permissions').select('*, permissions(module, action)').not('permission_id', 'is', null),
         client.from('permissions').select('*').order('sort_order'),

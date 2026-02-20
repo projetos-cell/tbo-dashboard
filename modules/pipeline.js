@@ -4,6 +4,11 @@ const TBO_PIPELINE = {
   _showAddModal: false,
   _editingDeal: null,
 
+  // Helper XSS: escapa HTML em conteudo
+  _esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; },
+  // Helper XSS: escapa para uso em atributos HTML (value="...")
+  _escAttr(s) { return (s == null ? '' : String(s)).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); },
+
   render() {
     const crmData = TBO_STORAGE.getCrmData();
     const deals = TBO_STORAGE.getCrmDeals();
@@ -89,8 +94,8 @@ const TBO_PIPELINE = {
                 ${stageDeals.length === 0 ? '<div class="pipeline-empty-col">Arraste deals aqui</div>' : ''}
                 ${stageDeals.map(d => `
                   <div class="pipeline-card" draggable="true" data-deal-id="${d.id}">
-                    <div class="pipeline-card-name">${d.name || 'Sem nome'}</div>
-                    <div class="pipeline-card-company">${d.company || ''}</div>
+                    <div class="pipeline-card-name">${this._esc(d.name || 'Sem nome')}</div>
+                    <div class="pipeline-card-company">${this._esc(d.company || '')}</div>
                     <div class="pipeline-card-footer">
                       <span class="pipeline-card-value">R$ ${this._fmt(d.value)}</span>
                       ${d.probability ? `<span class="pipeline-card-prob">${d.probability}%</span>` : ''}
@@ -121,7 +126,7 @@ const TBO_PIPELINE = {
               <div class="pipeline-column-body" data-stage-drop="${sid}">
                 ${stageDeals.map(d => `
                   <div class="pipeline-card pipeline-card--closed" data-deal-id="${d.id}">
-                    <div class="pipeline-card-name">${d.name || 'Sem nome'}</div>
+                    <div class="pipeline-card-name">${this._esc(d.name || 'Sem nome')}</div>
                     <div class="pipeline-card-value">R$ ${this._fmt(d.value)}</div>
                   </div>
                 `).join('')}
@@ -157,12 +162,12 @@ const TBO_PIPELINE = {
               const color = stage ? stage.color : '#94a3b8';
               const label = stage ? stage.label : d.stage;
               return `<tr>
-                <td><strong>${d.name || 'Sem nome'}</strong></td>
-                <td>${d.company || '-'}</td>
-                <td><span class="pipeline-table-badge" style="background:${color}20;color:${color};border:1px solid ${color}40;">${label}</span></td>
+                <td><strong>${this._esc(d.name || 'Sem nome')}</strong></td>
+                <td>${this._esc(d.company || '-')}</td>
+                <td><span class="pipeline-table-badge" style="background:${color}20;color:${color};border:1px solid ${color}40;">${this._esc(label)}</span></td>
                 <td>R$ ${this._fmt(d.value)}</td>
                 <td>${d.probability || 0}%</td>
-                <td>${d.owner || '-'}</td>
+                <td>${this._esc(d.owner || '-')}</td>
                 <td>${d.expectedClose ? this._formatDate(d.expectedClose) : '-'}</td>
                 <td>
                   <button class="pipeline-card-edit" data-edit-deal="${d.id}" title="Editar">&#9998;</button>
@@ -194,17 +199,17 @@ const TBO_PIPELINE = {
           <div class="modal-body" style="display:grid;gap:12px;">
             <div class="form-group">
               <label class="form-label">Nome do Deal</label>
-              <input class="form-input" id="dealName" value="${d.name || ''}" placeholder="Ex: Projeto Residencial XYZ">
+              <input class="form-input" id="dealName" value="${this._escAttr(d.name || '')}" placeholder="Ex: Projeto Residencial XYZ">
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
               <div class="form-group">
                 <label class="form-label">Empresa / Cliente</label>
-                <input class="form-input" id="dealCompany" value="${d.company || ''}" list="clientList" placeholder="Construtora">
-                <datalist id="clientList">${clients.map(c => `<option value="${c}">`).join('')}</datalist>
+                <input class="form-input" id="dealCompany" value="${this._escAttr(d.company || '')}" list="clientList" placeholder="Construtora">
+                <datalist id="clientList">${clients.map(c => `<option value="${this._escAttr(c)}">`).join('')}</datalist>
               </div>
               <div class="form-group">
                 <label class="form-label">Contato</label>
-                <input class="form-input" id="dealContact" value="${d.contact || ''}" placeholder="Nome do contato">
+                <input class="form-input" id="dealContact" value="${this._escAttr(d.contact || '')}" placeholder="Nome do contato">
               </div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
@@ -231,15 +236,15 @@ const TBO_PIPELINE = {
             </div>
             <div class="form-group">
               <label class="form-label">Responsavel</label>
-              <input class="form-input" id="dealOwner" value="${d.owner || ''}" placeholder="Nome">
+              <input class="form-input" id="dealOwner" value="${this._escAttr(d.owner || '')}" placeholder="Nome">
             </div>
             <div class="form-group">
               <label class="form-label">Servicos</label>
-              <input class="form-input" id="dealServices" value="${(d.services || []).join(', ')}" placeholder="Digital 3D, Branding, Marketing...">
+              <input class="form-input" id="dealServices" value="${this._escAttr((d.services || []).join(', '))}" placeholder="Digital 3D, Branding, Marketing...">
             </div>
             <div class="form-group">
               <label class="form-label">Notas</label>
-              <textarea class="form-input" id="dealNotes" rows="3" placeholder="Observacoes...">${d.notes || ''}</textarea>
+              <textarea class="form-input" id="dealNotes" rows="3" placeholder="Observacoes...">${this._esc(d.notes || '')}</textarea>
             </div>
           </div>
           <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:16px 20px;">

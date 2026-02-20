@@ -210,16 +210,22 @@ const TBO_APP = {
         TBO_AUTH._applyAccess();
       }
 
+      // Salvar hash original antes de qualquer redirect (para F5 preservar rota)
+      const originalHash = window.location.hash.replace('#', '');
+
       // Verificar se precisa selecionar workspace (multi-tenant v2)
       if (typeof TBO_WORKSPACE !== 'undefined' && TBO_WORKSPACE.shouldShowSelector()) {
         // Carregar tenants e mostrar selector
         await TBO_WORKSPACE.loadTenants();
         TBO_ROUTER.navigate('workspace');
       } else {
-        // Dashboard e sempre a first page
+        // Respeitar hash da URL (F5/deep link) ou ir para command-center
         const defaultMod = 'command-center';
         TBO_ROUTER.initFromHash(defaultMod);
       }
+
+      // Registrar listener para mudancas de hash (navegacao por URL)
+      TBO_ROUTER.listenHashChanges();
 
       // v2.1 Performance: APIs externas carregam APOS dashboard visivel
       // Nao bloqueia render — widgets atualizam via evento 'tbo:external-data-loaded'

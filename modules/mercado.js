@@ -1,6 +1,12 @@
 // TBO OS — Module: Inteligencia de Mercado (Noticias e Dados)
 const TBO_MERCADO = {
 
+  // Escapa HTML para prevenir XSS
+  _esc(s) { if (s == null) return ''; const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; },
+
+  // Valida URL para prevenir javascript: e outros protocolos perigosos
+  _safeUrl(url) { if (!url) return ''; const s = String(url).trim(); if (/^https?:\/\//i.test(s)) return this._esc(s); return ''; },
+
   render() {
     const market = TBO_STORAGE.get('market');
     const news = TBO_STORAGE.get('news');
@@ -16,38 +22,38 @@ const TBO_MERCADO = {
         <!-- KPIs -->
         <section class="section">
           <div class="section-header">
-            <h2 class="section-title">Mercado Imobiliario ${ic.periodo || ''}</h2>
+            <h2 class="section-title">Mercado Imobiliario ${this._esc(ic.periodo || '')}</h2>
             <button class="btn btn-sm btn-secondary" id="mkBuscarNoticias">Buscar Noticias</button>
           </div>
           <div class="grid-4" style="margin-bottom:12px;">
             <div class="kpi-card" style="position:relative;">
               <span class="kpi-info-icon" data-tooltip="Numero de novos empreendimentos lancados em Curitiba no periodo. Fonte: ADEMI/BRAIN."><i data-lucide="info" style="width:12px;height:12px;"></i></span>
               <div class="kpi-label">Lancamentos CWB</div>
-              <div class="kpi-value">${ic.empreendimentos_lancados || '\u2014'}</div>
-              <div class="kpi-change negative">${ic.variacao_empreendimentos || ''}</div>
+              <div class="kpi-value">${this._esc(ic.empreendimentos_lancados || '\u2014')}</div>
+              <div class="kpi-change negative">${this._esc(ic.variacao_empreendimentos || '')}</div>
             </div>
             <div class="kpi-card" style="position:relative;">
               <span class="kpi-info-icon" data-tooltip="Total de unidades residenciais lancadas em Curitiba. Indica o volume do mercado local."><i data-lucide="info" style="width:12px;height:12px;"></i></span>
               <div class="kpi-label">Unidades CWB</div>
               <div class="kpi-value">${TBO_FORMATTER.number(ic.unidades_lancadas)}</div>
-              <div class="kpi-change negative">${ic.variacao_unidades || ''}</div>
+              <div class="kpi-change negative">${this._esc(ic.variacao_unidades || '')}</div>
             </div>
             <div class="kpi-card" style="position:relative;">
               <span class="kpi-info-icon" data-tooltip="Empreendimentos lancados na Regiao Metropolitana de Curitiba. Inclui cidades vizinhas."><i data-lucide="info" style="width:12px;height:12px;"></i></span>
               <div class="kpi-label">Lancamentos RM</div>
-              <div class="kpi-value">${rm.empreendimentos_lancados || '\u2014'}</div>
-              <div class="kpi-change negative">${rm.variacao_empreendimentos || ''}</div>
+              <div class="kpi-value">${this._esc(rm.empreendimentos_lancados || '\u2014')}</div>
+              <div class="kpi-change negative">${this._esc(rm.variacao_empreendimentos || '')}</div>
             </div>
             <div class="kpi-card" style="position:relative;">
               <span class="kpi-info-icon" data-tooltip="Total de unidades lancadas na Regiao Metropolitana. Visao ampliada do mercado regional."><i data-lucide="info" style="width:12px;height:12px;"></i></span>
               <div class="kpi-label">Unidades RM</div>
               <div class="kpi-value">${TBO_FORMATTER.number(rm.unidades_lancadas)}</div>
-              <div class="kpi-change negative">${rm.variacao_unidades || ''}</div>
+              <div class="kpi-change negative">${this._esc(rm.variacao_unidades || '')}</div>
             </div>
           </div>
           ${ic.contexto ? `
           <div class="context-banner">
-            <div class="context-banner-text">${ic.contexto}</div>
+            <div class="context-banner-text">${this._esc(ic.contexto)}</div>
           </div>
           ` : ''}
         </section>
@@ -96,7 +102,7 @@ const TBO_MERCADO = {
               return `
                 <div class="trend-card">
                   <span class="trend-card-tag trend-card-tag--${impact}">${labels[impact]}</span>
-                  <div class="trend-card-text">${t}</div>
+                  <div class="trend-card-text">${this._esc(t)}</div>
                 </div>`;
             }).join('')}
           </div>
@@ -142,15 +148,15 @@ const TBO_MERCADO = {
           <div class="card" style="margin-bottom:16px;">
             <div class="card-header">
               <h3 class="card-title">Fontes de Dados e Noticias</h3>
-              <span style="font-size:0.72rem; color:var(--text-muted);">Atualizado: ${market.ultima_atualizacao || '\u2014'}</span>
+              <span style="font-size:0.72rem; color:var(--text-muted);">Atualizado: ${this._esc(market.ultima_atualizacao || '\u2014')}</span>
             </div>
             <div class="source-grid">
               ${allSources.map(s => {
                 const isActive = s.ativo !== false && s.active !== false;
-                const name = s.nome || s.name || 'Fonte';
-                const type = s.tipo || s.type || '';
-                const freq = s.frequencia || s.frequency || '';
-                const url = s.url || '';
+                const name = this._esc(s.nome || s.name || 'Fonte');
+                const type = this._esc(s.tipo || s.type || '');
+                const freq = this._esc(s.frequencia || s.frequency || '');
+                const url = this._safeUrl(s.url || '');
                 return `
                   <div class="source-card">
                     <div class="source-dot ${isActive ? 'source-dot--active' : 'source-dot--inactive'}"></div>
@@ -192,8 +198,14 @@ const TBO_MERCADO = {
       const date = n.date || n.data || '';
       const isLocal = (n.region || n.regiao || '').toLowerCase().includes('curitiba') || (n.region || n.regiao || '').toLowerCase().includes('parana');
 
+      const safeUrl = this._safeUrl(n.url);
+      const title = this._esc(n.title || n.titulo);
+      const source = this._esc(n.source || n.fonte || '');
+      const summary = this._esc(n.summary || n.resumo || '');
+      const region = this._esc(n.region || n.regiao || '');
+
       return `
-        <div class="news-card" data-category="${cat}" data-region="${n.region || n.regiao || ''}">
+        <div class="news-card" data-category="${this._esc(cat)}" data-region="${region}">
           <div class="news-card-header">
             <span class="news-card-tag" style="background:${color}20; color:${color}; border:1px solid ${color}40;">
               ${icon} ${TBO_FORMATTER.capitalize(cat)}
@@ -201,9 +213,9 @@ const TBO_MERCADO = {
             ${isLocal ? '<span class="news-card-tag" style="background:var(--accent-gold-dim); color:var(--accent-gold); border:1px solid var(--accent-gold)40;">Curitiba/PR</span>' : ''}
             <span class="news-card-date">${date ? TBO_FORMATTER.date(date) : ''}</span>
           </div>
-          <div class="news-card-title">${n.url ? `<a href="${n.url}" target="_blank" rel="noopener">${n.title || n.titulo}</a>` : (n.title || n.titulo)}</div>
-          <div class="news-card-source">${n.source || n.fonte || ''}</div>
-          ${n.summary || n.resumo ? `<div class="news-card-summary">${n.summary || n.resumo}</div>` : ''}
+          <div class="news-card-title">${safeUrl ? `<a href="${safeUrl}" target="_blank" rel="noopener">${title}</a>` : title}</div>
+          <div class="news-card-source">${source}</div>
+          ${summary ? `<div class="news-card-summary">${summary}</div>` : ''}
         </div>
       `;
     }).join('');
@@ -430,7 +442,7 @@ Retorne APENAS JSON array: [{"title":"...","source":"Valor Economico|InfoMoney|S
       if (typeof TBO_UX !== 'undefined') {
         TBO_UX.showError(feed, e.message, () => this._fetchNews());
       } else if (feed) {
-        feed.innerHTML = '<div class="empty-state"><div class="empty-state-text">Erro ao buscar noticias: ' + e.message + '</div></div>';
+        feed.innerHTML = '<div class="empty-state"><div class="empty-state-text">Erro ao buscar noticias: ' + this._esc(e.message) + '</div></div>';
       }
     } finally {
       if (typeof TBO_UX !== 'undefined') {

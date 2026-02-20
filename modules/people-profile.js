@@ -22,14 +22,16 @@ const TBO_PEOPLE_PROFILE = {
   _esc(s) { return typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.escapeHtml(s) : s; },
 
   _isAdmin() {
-    if (typeof TBO_AUTH === 'undefined') return true;
+    // v2.1: Fail closed — se TBO_AUTH nao carregou, negar acesso (prevenir privilege escalation)
+    if (typeof TBO_AUTH === 'undefined') return false;
     return TBO_AUTH.canDo('users', 'edit') || TBO_AUTH.getCurrentUser()?.isCoordinator;
   },
 
   _currentUserId() {
-    if (typeof TBO_AUTH === 'undefined') return 'marco';
+    // v2.1: Fail closed — retornar null se auth nao disponivel (nao hardcoded)
+    if (typeof TBO_AUTH === 'undefined') return null;
     const u = TBO_AUTH.getCurrentUser();
-    return u ? u.id : 'marco';
+    return u ? u.id : null;
   },
 
   _getAvatarHTML(person, size = 64, fontSize = '1.2rem') {

@@ -125,8 +125,9 @@ const TBO_RH = {
 
           if (this._filterSquad) query = query.eq('bu', this._filterSquad);
           if (this._filterSearch) {
-            // Busca por nome OU email
-            query = query.or(`full_name.ilike.%${this._filterSearch}%,email.ilike.%${this._filterSearch}%`);
+            // Busca por nome OU email — sanitizar contra caracteres especiais do PostgREST
+            const safeSearch = this._filterSearch.replace(/[%(),.]/g, '');
+            query = query.or(`full_name.ilike.%${safeSearch}%,email.ilike.%${safeSearch}%`);
           }
 
           // Ordenacao e paginacao

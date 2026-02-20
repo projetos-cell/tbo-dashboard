@@ -176,7 +176,7 @@ const TBO_PROJETOS = {
                 <span class="tag">${projs.length}</span>
               </div>
               <div class="grid-3">
-                ${projs.map(name => `<div class="card" style="padding:12px;"><div style="font-size:0.85rem;">${name}</div></div>`).join('')}
+                ${projs.map(name => `<div class="card" style="padding:12px;"><div style="font-size:0.85rem;">${_escapeHtml(name)}</div></div>`).join('')}
               </div>
             </div>
           `).join('')}
@@ -246,8 +246,9 @@ const TBO_PROJETOS = {
     const tasks = TBO_STORAGE.getErpEntitiesByParent('task', p.id);
     const doneTasks = tasks.filter(t => t.status === 'concluida').length;
     const ownerInitials = p.owner ? (typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.initials(p.owner) : p.owner.charAt(0)) : '?';
+    const safeId = String(p.id).replace(/[^a-zA-Z0-9_-]/g, '');
 
-    return `<div class="pipeline-card erp-project-card" draggable="true" data-id="${p.id}" onclick="TBO_ROUTER.navigate('projeto/${p.id}/list')">
+    return `<div class="pipeline-card erp-project-card" draggable="true" data-id="${safeId}" onclick="TBO_ROUTER.navigate('projeto/${safeId}/list')">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div style="flex:1;min-width:0;">
           ${p.code ? `<div style="font-size:0.6rem;color:var(--text-muted);font-family:monospace;letter-spacing:0.03em;margin-bottom:1px;">${p.code}</div>` : ''}
@@ -267,7 +268,7 @@ const TBO_PROJETOS = {
         </div>
       </div>
       ${(p.services || []).length > 0 ? `<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:6px;">
-        ${p.services.slice(0, 3).map(s => `<span class="deal-service-tag">${s}</span>`).join('')}
+        ${p.services.slice(0, 3).map(s => `<span class="deal-service-tag">${_escapeHtml(s)}</span>`).join('')}
         ${p.services.length > 3 ? `<span class="deal-service-tag">+${p.services.length - 3}</span>` : ''}
       </div>` : ''}
       ${(() => {

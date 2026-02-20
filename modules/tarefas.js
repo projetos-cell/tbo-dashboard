@@ -975,8 +975,8 @@ const TBO_TAREFAS = {
         ${parentCandidates.length > 0 ? `
         <div class="form-group">
           <label class="form-label">Tarefa pai</label>
-          <select class="form-input" id="tfNewParent">
-            <option value="">Nenhuma (tarefa independente)</option>
+          <select class="form-input" id="tfNewParent" autocomplete="off">
+            <option value="" selected>Nenhuma (tarefa independente)</option>
             ${parentCandidates.map(t => `<option value="${t.id}">${_escapeHtml(t.title || t.name) || t.id}</option>`).join('')}
           </select>
           <div style="font-size:0.68rem;color:var(--text-muted);margin-top:4px;">Selecione para criar como subtarefa de outra tarefa.</div>
@@ -1051,7 +1051,9 @@ const TBO_TAREFAS = {
     const dependsOn = Array.from(depCheckboxes).map(cb => cb.value);
 
     const user = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.getCurrentUser() : null;
-    const parentId = document.getElementById('tfNewParent')?.value || null;
+    // Tarefa pai: so atribuir se usuario selecionou explicitamente (valor nao vazio)
+    const parentSelect = document.getElementById('tfNewParent');
+    const parentId = (parentSelect && parentSelect.value && parentSelect.value.trim() !== '') ? parentSelect.value : null;
     const task = {
       title: title,
       name: title,

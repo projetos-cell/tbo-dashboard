@@ -15,6 +15,11 @@ const TBO_CONTRATOS = {
 
   _storageKey: 'tbo_contracts',
 
+  // Helper XSS: escapa HTML em conteudo
+  _esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; },
+  // Helper XSS: escapa para uso em atributos HTML (value="...")
+  _escAttr(s) { return (s == null ? '' : String(s)).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); },
+
   _getContracts() {
     try {
       return JSON.parse(localStorage.getItem(this._storageKey) || '[]');
@@ -168,7 +173,7 @@ const TBO_CONTRATOS = {
                 ${svcList.map(([svc, d]) => {
                   const pct = totalValue > 0 ? (d.valor / totalValue * 100) : 0;
                   return `<div class="contratos-breakdown-row">
-                    <span class="contratos-breakdown-label">${svc}</span>
+                    <span class="contratos-breakdown-label">${this._esc(svc)}</span>
                     <div class="contratos-breakdown-bar-wrap">
                       <div class="contratos-breakdown-bar" style="width:${pct}%"></div>
                     </div>
@@ -182,8 +187,8 @@ const TBO_CONTRATOS = {
               <div class="contratos-breakdown-list">
                 ${topClients.map(([client, d]) => {
                   const pct = totalValue > 0 ? (d.valor / totalValue * 100) : 0;
-                  return `<div class="contratos-breakdown-row contratos-client-row" data-client="${client}">
-                    <span class="contratos-breakdown-label">${client}</span>
+                  return `<div class="contratos-breakdown-row contratos-client-row" data-client="${this._escAttr(client)}">
+                    <span class="contratos-breakdown-label">${this._esc(client)}</span>
                     <div class="contratos-breakdown-bar-wrap">
                       <div class="contratos-breakdown-bar" style="width:${pct}%;background:var(--accent-gold);"></div>
                     </div>
@@ -204,11 +209,11 @@ const TBO_CONTRATOS = {
             <div class="contratos-search-row">
               <select class="form-input contratos-client-select" style="max-width:180px;font-size:0.75rem;padding:5px 8px;">
                 <option value="all">Todos clientes</option>
-                ${uniqueClients.map(cl => `<option value="${cl}" ${this._clientFilter === cl ? 'selected' : ''}>${cl}</option>`).join('')}
+                ${uniqueClients.map(cl => `<option value="${this._escAttr(cl)}" ${this._clientFilter === cl ? 'selected' : ''}>${this._esc(cl)}</option>`).join('')}
               </select>
               <div class="contratos-search-wrap">
                 <i data-lucide="search" style="width:14px;height:14px;color:var(--text-muted);"></i>
-                <input type="text" class="form-input contratos-search-input" placeholder="Buscar contrato..." value="${this._search}" style="font-size:0.75rem;padding:5px 8px;">
+                <input type="text" class="form-input contratos-search-input" placeholder="Buscar contrato..." value="${this._escAttr(this._search)}" style="font-size:0.75rem;padding:5px 8px;">
               </div>
             </div>
           </div>
@@ -241,14 +246,14 @@ const TBO_CONTRATOS = {
                   if (plantas > 0) qtdStr.push(`${plantas} plt`);
                   return `<tr class="${isExpiring ? 'contratos-row-warning' : ''} contratos-row-clickable" data-detail="${c.id}">
                     <td>
-                      <strong>${c.name || 'Sem nome'}</strong>
-                      ${c.notes ? `<div class="contratos-note-preview">${c.notes.substring(0, 50)}${c.notes.length > 50 ? '...' : ''}</div>` : ''}
+                      <strong>${this._esc(c.name || 'Sem nome')}</strong>
+                      ${c.notes ? `<div class="contratos-note-preview">${this._esc(c.notes.substring(0, 50))}${c.notes.length > 50 ? '...' : ''}</div>` : ''}
                     </td>
-                    <td>${c.client || '-'}</td>
-                    <td>${(c.services || []).map(s => `<span class="contratos-service-tag">${s}</span>`).join('') || '-'}</td>
+                    <td>${this._esc(c.client || '-')}</td>
+                    <td>${(c.services || []).map(s => `<span class="contratos-service-tag">${this._esc(s)}</span>`).join('') || '-'}</td>
                     <td style="font-weight:600;white-space:nowrap;">R$ ${this._fmt(c.value)}</td>
                     <td style="white-space:nowrap;font-size:0.72rem;color:var(--text-muted);">${qtdStr.join(' / ') || '-'}</td>
-                    <td><span class="contratos-status-badge" style="background:${color}20;color:${color};border:1px solid ${color}40;">${statusLabels[c.status] || c.status}</span></td>
+                    <td><span class="contratos-status-badge" style="background:${color}20;color:${color};border:1px solid ${color}40;">${this._esc(statusLabels[c.status] || c.status)}</span></td>
                     <td>
                       <button class="contratos-edit-btn" data-edit="${c.id}" title="Editar">&#9998;</button>
                       <button class="contratos-delete-btn" data-delete="${c.id}" title="Remover">&#10005;</button>
@@ -272,8 +277,8 @@ const TBO_CONTRATOS = {
               <div class="contratos-expiring-list">
                 ${expiringSoon.map(c => `
                   <div class="contratos-expiring-item">
-                    <span class="contratos-expiring-name">${c.name}</span>
-                    <span class="contratos-expiring-client">${c.client}</span>
+                    <span class="contratos-expiring-name">${this._esc(c.name)}</span>
+                    <span class="contratos-expiring-client">${this._esc(c.client)}</span>
                     <span class="contratos-expiring-date">${this._formatDate(c.endDate)}</span>
                     <span class="contratos-expiring-value">R$ ${this._fmt(c.value)}</span>
                   </div>
@@ -305,12 +310,12 @@ const TBO_CONTRATOS = {
           </button>
           <div class="contratos-detail-header">
             <div>
-              <h2 class="contratos-detail-title">${c.name}</h2>
-              <p class="contratos-detail-client">${c.client}</p>
+              <h2 class="contratos-detail-title">${this._esc(c.name)}</h2>
+              <p class="contratos-detail-client">${this._esc(c.client)}</p>
             </div>
             <div style="text-align:right;">
               <div class="contratos-detail-valor">R$ ${this._fmt(c.value)}</div>
-              <span class="contratos-status-badge" style="background:${color}20;color:${color};border:1px solid ${color}40;">${statusLabels[c.status] || c.status}</span>
+              <span class="contratos-status-badge" style="background:${color}20;color:${color};border:1px solid ${color}40;">${this._esc(statusLabels[c.status] || c.status)}</span>
             </div>
           </div>
 
@@ -318,7 +323,7 @@ const TBO_CONTRATOS = {
             <div class="contratos-detail-card">
               <h4>Servicos</h4>
               <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
-                ${(c.services || []).map(s => `<span class="contratos-service-tag">${s}</span>`).join('') || '<span style="color:var(--text-muted);">Nenhum</span>'}
+                ${(c.services || []).map(s => `<span class="contratos-service-tag">${this._esc(s)}</span>`).join('') || '<span style="color:var(--text-muted);">Nenhum</span>'}
               </div>
             </div>
             <div class="contratos-detail-card">
@@ -334,11 +339,11 @@ const TBO_CONTRATOS = {
             </div>
             <div class="contratos-detail-card">
               <h4>Arquivo Origem</h4>
-              <p style="font-size:0.75rem;color:var(--text-muted);">${c.arquivo || 'N/A'}</p>
+              <p style="font-size:0.75rem;color:var(--text-muted);">${this._esc(c.arquivo || 'N/A')}</p>
             </div>
           </div>
 
-          ${c.notes ? `<div class="contratos-detail-notes"><h4>Observacoes</h4><p>${c.notes}</p></div>` : ''}
+          ${c.notes ? `<div class="contratos-detail-notes"><h4>Observacoes</h4><p>${this._esc(c.notes)}</p></div>` : ''}
 
           <!-- Attachments -->
           <div class="contratos-attachments" id="contratosAttachmentSection" data-contract="${c.id}">
@@ -363,13 +368,13 @@ const TBO_CONTRATOS = {
             <div class="contratos-related">
               <h3 style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px;">
                 <i data-lucide="link" style="width:14px;height:14px;"></i>
-                Outros contratos — ${c.client} (R$ ${this._fmt(clientTotal)} total)
+                Outros contratos — ${this._esc(c.client)} (R$ ${this._fmt(clientTotal)} total)
               </h3>
               <div class="contratos-related-list">
                 ${related.map(r => `
                   <div class="contratos-related-item contratos-related-click" data-detail="${r.id}">
-                    <span><strong>${r.name}</strong></span>
-                    <span class="contratos-status-badge" style="background:${(statusColors[r.status] || '#94a3b8')}20;color:${statusColors[r.status] || '#94a3b8'};border:1px solid ${(statusColors[r.status] || '#94a3b8')}40;font-size:0.65rem;">${statusLabels[r.status] || r.status}</span>
+                    <span><strong>${this._esc(r.name)}</strong></span>
+                    <span class="contratos-status-badge" style="background:${(statusColors[r.status] || '#94a3b8')}20;color:${statusColors[r.status] || '#94a3b8'};border:1px solid ${(statusColors[r.status] || '#94a3b8')}40;font-size:0.65rem;">${this._esc(statusLabels[r.status] || r.status)}</span>
                     <span style="font-weight:600;">R$ ${this._fmt(r.value)}</span>
                   </div>
                 `).join('')}
@@ -448,13 +453,13 @@ const TBO_CONTRATOS = {
           <div class="modal-body" style="display:grid;gap:12px;">
             <div class="form-group">
               <label class="form-label">Nome do Contrato / Projeto</label>
-              <input class="form-input" id="contratoName" value="${c.name || ''}" placeholder="Ex: Projeto XYZ">
+              <input class="form-input" id="contratoName" value="${this._escAttr(c.name || '')}" placeholder="Ex: Projeto XYZ">
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
               <div class="form-group">
                 <label class="form-label">Cliente</label>
-                <input class="form-input" id="contratoClient" value="${c.client || ''}" list="contratoClientList" placeholder="Construtora">
-                <datalist id="contratoClientList">${clients.map(cl => `<option value="${cl}">`).join('')}</datalist>
+                <input class="form-input" id="contratoClient" value="${this._escAttr(c.client || '')}" list="contratoClientList" placeholder="Construtora">
+                <datalist id="contratoClientList">${clients.map(cl => `<option value="${this._escAttr(cl)}">`).join('')}</datalist>
               </div>
               <div class="form-group">
                 <label class="form-label">Valor (R$)</label>
@@ -493,11 +498,11 @@ const TBO_CONTRATOS = {
             </div>
             <div class="form-group">
               <label class="form-label">Servicos (separados por virgula)</label>
-              <input class="form-input" id="contratoServices" value="${(c.services || []).join(', ')}" placeholder="Render 3D, Branding, Marketing...">
+              <input class="form-input" id="contratoServices" value="${this._escAttr((c.services || []).join(', '))}" placeholder="Render 3D, Branding, Marketing...">
             </div>
             <div class="form-group">
               <label class="form-label">Observacoes</label>
-              <textarea class="form-input" id="contratoNotes" rows="3" placeholder="Notas sobre o contrato...">${c.notes || ''}</textarea>
+              <textarea class="form-input" id="contratoNotes" rows="3" placeholder="Notas sobre o contrato...">${this._esc(c.notes || '')}</textarea>
             </div>
             <div class="form-group">
               <label class="form-label">Anexar Arquivos</label>
@@ -784,7 +789,7 @@ const TBO_CONTRATOS = {
   _renderFilePreview(file, index) {
     return `<div class="contratos-file-preview">
       <i data-lucide="${this._getFileIcon(file.name)}" class="contratos-file-preview-icon"></i>
-      <span class="contratos-file-preview-name">${file.name}</span>
+      <span class="contratos-file-preview-name">${this._esc(file.name)}</span>
       <span class="contratos-file-preview-size">${this._formatFileSize(file.size)}</span>
       <button class="contratos-file-preview-remove" data-index="${index}" title="Remover">&times;</button>
     </div>`;

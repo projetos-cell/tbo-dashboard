@@ -396,9 +396,12 @@ const TBO_CHAT = {
   async _loadAllUsers() {
     const client = this._getClient();
     if (!client) return;
+    // v2.1: Filtrar por tenant_id para prevenir exposicao cross-tenant
+    const tenantId = this._getTenantId();
+    if (!tenantId) { console.warn('[Chat] tenant_id nao disponivel, abortando _loadAllUsers'); return; }
     try {
-      // Tentar profiles primeiro
-      const { data: profiles } = await client.from('profiles').select('id, full_name, email, avatar_url');
+      // Tentar profiles primeiro — filtrado por tenant
+      const { data: profiles } = await client.from('profiles').select('id, full_name, email, avatar_url').eq('tenant_id', tenantId);
       if (profiles?.length) {
         this._allUsers = profiles.map(p => ({ id: p.id, name: p.full_name || p.email?.split('@')[0] || 'Usuario', email: p.email, avatar: p.avatar_url }));
         profiles.forEach(p => {
@@ -406,8 +409,8 @@ const TBO_CHAT = {
         });
         return;
       }
-      // Fallback: buscar de colaboradores ou user_metadata
-      const { data: colabs } = await client.from('colaboradores').select('id, nome, email');
+      // Fallback: buscar de colaboradores — filtrado por tenant
+      const { data: colabs } = await client.from('colaboradores').select('id, nome, email').eq('tenant_id', tenantId);
       if (colabs?.length) {
         this._allUsers = colabs.map(c => ({ id: c.id, name: c.nome || c.email?.split('@')[0], email: c.email, avatar: null }));
       }

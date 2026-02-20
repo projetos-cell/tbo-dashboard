@@ -278,7 +278,89 @@ const TBO_AUTH = {
       };
     }
 
-    // Sem fallback legacy — profile obrigatorio no Supabase
+    // v2.2.2: Auto-provisionamento para novos membros @agenciatbo.com.br via Google OAuth
+    // Cria profile automatico com role 'artist' (menor permissao) — admin configura depois
+    if (authUser.email && authUser.email.toLowerCase().endsWith('@agenciatbo.com.br')) {
+      console.log('[TBO Auth] Novo membro detectado — auto-provisionando profile:', authUser.email);
+      try {
+        const client = TBO_SUPABASE.getClient();
+        const tenantId = TBO_SUPABASE.getCurrentTenantId() || '89080d1a-bc79-4c3f-8fce-20aabc561c0d';
+        const username = authUser.email.split('@')[0];
+        const fullName = authUser.user_metadata?.full_name || username;
+
+        // Criar profile com role padrao 'artist'
+        const { data: newProfile, error: profileErr } = await client
+          .from('profiles')
+          .insert({
+            id: authUser.id,
+            username: username,
+            full_name: fullName,
+            email: authUser.email,
+            role: 'artist',
+            bu: null,
+            is_coordinator: false,
+            is_active: true,
+            tenant_id: tenantId,
+            first_login_completed: false,
+            onboarding_wizard_completed: false,
+            avatar_url: authUser.user_metadata?.avatar_url || null
+          })
+          .select()
+          .single();
+
+        if (profileErr) {
+          console.warn('[TBO Auth] Erro ao criar profile:', profileErr.message);
+        } else {
+          console.log('[TBO Auth] Profile criado com sucesso para:', username);
+        }
+
+        // Adicionar ao tenant_members com role Artista
+        // Buscar role_id do Artista
+        const { data: artistRole } = await client
+          .from('roles')
+          .select('id')
+          .eq('tenant_id', tenantId)
+          .ilike('slug', 'artista')
+          .single();
+
+        if (artistRole) {
+          const { error: tmErr } = await client
+            .from('tenant_members')
+            .insert({
+              user_id: authUser.id,
+              tenant_id: tenantId,
+              role_id: artistRole.id
+            });
+          if (tmErr) console.warn('[TBO Auth] Erro ao criar tenant_member:', tmErr.message);
+        }
+
+        // Construir sessao com os dados recem-criados
+        const roleDef = TBO_PERMISSIONS._roles['artist'];
+        return {
+          id: username,
+          supabaseId: authUser.id,
+          name: fullName,
+          email: authUser.email,
+          role: 'artist',
+          roleLabel: roleDef?.label || 'Artista',
+          roleColor: roleDef?.color || '#3a7bd5',
+          modules: [...new Set([...(roleDef?.modules || []), ...TBO_PERMISSIONS._sharedModules])],
+          dashboardVariant: roleDef?.dashboardVariant || 'tasks',
+          defaultModule: roleDef?.defaultModule || 'command-center',
+          bu: null,
+          isCoordinator: false,
+          initials: TBO_PERMISSIONS.getInitials(fullName),
+          loginAt: new Date().toISOString(),
+          authMode: 'supabase',
+          avatarUrl: authUser.user_metadata?.avatar_url || null,
+          _isNewMember: true // flag para mostrar boas-vindas
+        };
+      } catch (e) {
+        console.error('[TBO Auth] Auto-provisionamento falhou:', e);
+      }
+    }
+
+    // Sem fallback — profile obrigatorio para dominios externos
     console.warn('[TBO Auth] Nenhum profile encontrado para:', authUser.email);
     return null;
   },

@@ -584,11 +584,11 @@ const TBO_APP = {
       const tenantId = typeof TBO_SUPABASE.getCurrentTenantId === 'function'
         ? TBO_SUPABASE.getCurrentTenantId() : null;
 
-      // Buscar projetos ativos do usuario (owner ou membro)
+      // Buscar projetos ativos do usuario (producao = ativo no schema atual)
       let query = client
         .from('projects')
-        .select('id, name, status, color, task_count:tasks(count)')
-        .in('status', ['ativo', 'em_andamento', 'planejamento'])
+        .select('id, name, status')
+        .not('status', 'eq', 'concluido')
         .order('updated_at', { ascending: false })
         .limit(8);
 
@@ -609,22 +609,21 @@ const TBO_APP = {
       }
 
       const statusColors = {
-        ativo: '#22c55e',
+        producao: '#22c55e',
         em_andamento: '#3b82f6',
         planejamento: '#a855f7',
         pausado: '#eab308',
-        concluido: '#6b7280'
+        concluido: '#6b7280',
+        ativo: '#22c55e'
       };
 
       list.innerHTML = projects.map(p => {
-        const color = p.color || statusColors[p.status] || '#94a3b8';
+        const color = statusColors[p.status] || '#3b82f6';
         const name = this._escHtml(p.name || 'Sem nome');
-        const taskCount = Array.isArray(p.task_count) && p.task_count[0] ? p.task_count[0].count : '';
         return `<li>
           <button class="sidebar-project-item" data-project-id="${this._escHtml(p.id)}" title="${name}">
             <span class="sidebar-project-dot" style="background:${color}"></span>
             <span class="sidebar-project-name">${name}</span>
-            ${taskCount ? `<span class="sidebar-project-count">${taskCount}</span>` : ''}
           </button>
         </li>`;
       }).join('');

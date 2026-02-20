@@ -365,6 +365,37 @@ const TBO_APP = {
     } catch {}
   },
 
+  // ── Ordem customizada das secoes (DnD) ──────────────────────────────
+  _getSectionOrder() {
+    try { return JSON.parse(localStorage.getItem('tbo_sidebar_section_order') || '[]'); } catch { return []; }
+  },
+  _setSectionOrder(order) {
+    localStorage.setItem('tbo_sidebar_section_order', JSON.stringify(order));
+  },
+  _applySectionOrder(sections) {
+    const order = this._getSectionOrder();
+    if (!order.length) return sections;
+    // Ordenar secoes pela posicao salva, mantendo novas no final
+    const ordered = [];
+    order.forEach(id => {
+      const s = sections.find(sec => sec.id === id);
+      if (s) ordered.push(s);
+    });
+    // Adicionar secoes que nao estao na ordem salva (novas)
+    sections.forEach(s => {
+      if (!order.includes(s.id)) ordered.push(s);
+    });
+    return ordered;
+  },
+
+  // ── Sidebar pin/unpin (auto-hide) ───────────────────────────────────
+  _isSidebarPinned() {
+    return localStorage.getItem('tbo_sidebar_pinned') !== '0';
+  },
+  _setSidebarPinned(pinned) {
+    localStorage.setItem('tbo_sidebar_pinned', pinned ? '1' : '0');
+  },
+
   // ── Notification badges data (F27) ────────────────────────────────────
   _badgeCounts: {},
   _badgeInterval: null,
@@ -489,6 +520,12 @@ const TBO_APP = {
 
     // 6. Section toggles
     this._bindSectionToggles();
+
+    // 6b. Drag & drop para reordenar secoes
+    this._bindSectionDragDrop();
+
+    // 6c. Pin/unpin sidebar (fixo vs auto-hide)
+    this._bindSidebarPin();
 
     // 7. Busca rapida inline
     this._bindSidebarSearch();
@@ -699,7 +736,10 @@ const TBO_APP = {
 
     const user = TBO_AUTH.getCurrentUser();
     // v2.2.1: passar email para garantir que super admins vejam todos os modulos
-    const sections = TBO_PERMISSIONS.getSectionsForUser(user?.id, user?.email);
+    let sections = TBO_PERMISSIONS.getSectionsForUser(user?.id, user?.email);
+
+    // v2.6: Aplicar ordem customizada do usuario
+    sections = this._applySectionOrder(sections);
 
     let html = '';
     sections.forEach(section => {
@@ -719,8 +759,11 @@ const TBO_APP = {
       const safeLabel = this._escHtml(section.label);
       const safeIcon = this._escHtml(section.icon);
 
-      html += `<div class="nav-section${isCollapsed ? ' collapsed' : ''}" data-section="${this._escHtml(section.id)}">
+      html += `<div class="nav-section${isCollapsed ? ' collapsed' : ''}" data-section="${this._escHtml(section.id)}" draggable="true">
         <button class="nav-section-toggle" data-section-toggle="${this._escHtml(section.id)}" aria-expanded="${!isCollapsed}">
+          <span class="nav-section-drag-handle" title="Arrastar para reordenar">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="5" r="2"/><circle cx="15" cy="5" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="9" cy="19" r="2"/><circle cx="15" cy="19" r="2"/></svg>
+          </span>
           <i data-lucide="${safeIcon}" class="nav-section-icon"></i>
           <span class="nav-section-label">${safeLabel}</span>
           <i data-lucide="chevron-down" class="nav-section-chevron"></i>
@@ -954,6 +997,146 @@ const TBO_APP = {
         }
       });
     });
+  },
+
+  // ── Drag & Drop para reordenar secoes da sidebar ────────────────────
+  _bindSectionDragDrop() {
+    const navEl = document.getElementById('sidebarNav');
+    if (!navEl) return;
+
+    let draggedSection = null;
+    let dragPlaceholder = null;
+
+    navEl.addEventListener('dragstart', (e) => {
+      const section = e.target.closest('.nav-section[draggable]');
+      if (!section) return;
+      // Permitir drag apenas pelo handle ou header
+      const handle = e.target.closest('.nav-section-drag-handle, .nav-section-toggle');
+      if (!handle) { e.preventDefault(); return; }
+
+      draggedSection = section;
+      section.classList.add('nav-section--dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', section.dataset.section);
+
+      // Placeholder visual
+      dragPlaceholder = document.createElement('div');
+      dragPlaceholder.className = 'nav-section-drop-placeholder';
+      dragPlaceholder.style.height = section.offsetHeight + 'px';
+    });
+
+    navEl.addEventListener('dragover', (e) => {
+      if (!draggedSection) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+
+      const target = e.target.closest('.nav-section[draggable]');
+      if (!target || target === draggedSection) return;
+
+      // Determinar se soltar antes ou depois baseado na posicao Y do mouse
+      const rect = target.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      const insertBefore = e.clientY < midY;
+
+      // Remover placeholder anterior
+      if (dragPlaceholder.parentNode) dragPlaceholder.remove();
+
+      if (insertBefore) {
+        target.before(dragPlaceholder);
+      } else {
+        target.after(dragPlaceholder);
+      }
+    });
+
+    navEl.addEventListener('dragend', () => {
+      if (draggedSection) {
+        draggedSection.classList.remove('nav-section--dragging');
+        draggedSection = null;
+      }
+      if (dragPlaceholder?.parentNode) dragPlaceholder.remove();
+      dragPlaceholder = null;
+    });
+
+    navEl.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (!draggedSection || !dragPlaceholder?.parentNode) return;
+
+      // Inserir secao na posicao do placeholder
+      dragPlaceholder.replaceWith(draggedSection);
+      draggedSection.classList.remove('nav-section--dragging');
+
+      // Salvar nova ordem
+      const newOrder = [...navEl.querySelectorAll('.nav-section[data-section]')]
+        .map(s => s.dataset.section);
+      this._setSectionOrder(newOrder);
+
+      draggedSection = null;
+      dragPlaceholder = null;
+
+      TBO_TOAST.success('Sidebar', 'Ordem das seções atualizada');
+    });
+  },
+
+  // ── Sidebar pin/unpin — auto-hide mode ──────────────────────────────
+  _bindSidebarPin() {
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+
+    // Renderizar botao de pin no footer
+    const footer = sidebar.querySelector('.sidebar-footer');
+    if (!footer) return;
+
+    const pinBtn = document.createElement('button');
+    pinBtn.className = 'sidebar-pin-btn';
+    pinBtn.id = 'sidebarPinBtn';
+    pinBtn.title = 'Fixar/soltar sidebar';
+    pinBtn.setAttribute('aria-label', 'Fixar ou soltar sidebar');
+    footer.insertBefore(pinBtn, footer.firstChild);
+
+    const updatePinIcon = () => {
+      const pinned = this._isSidebarPinned();
+      pinBtn.innerHTML = pinned
+        ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5"><path d="M12 2C7.58 2 4 5.58 4 10c0 3.03 1.64 5.8 4.28 7.28L12 22l3.72-4.72C18.36 15.8 20 13.03 20 10c0-4.42-3.58-8-8-8zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>'
+        : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2C7.58 2 4 5.58 4 10c0 3.03 1.64 5.8 4.28 7.28L12 22l3.72-4.72C18.36 15.8 20 13.03 20 10c0-4.42-3.58-8-8-8zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>';
+      pinBtn.classList.toggle('pinned', pinned);
+      sidebar.classList.toggle('sidebar-auto-hide', !pinned);
+    };
+
+    updatePinIcon();
+
+    pinBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const newState = !this._isSidebarPinned();
+      this._setSidebarPinned(newState);
+      updatePinIcon();
+      // Se fixar, garantir que a sidebar esteja aberta
+      if (newState) {
+        sidebar.classList.remove('collapsed');
+        localStorage.setItem('tbo_sidebar_collapsed', '0');
+      }
+      TBO_TOAST.info('Sidebar', newState ? 'Sidebar fixada' : 'Sidebar em modo auto-hide');
+    });
+
+    // Auto-hide: esconder quando mouse sai, mostrar quando entra
+    let hideTimeout = null;
+    sidebar.addEventListener('mouseenter', () => {
+      if (sidebar.classList.contains('sidebar-auto-hide')) {
+        clearTimeout(hideTimeout);
+        sidebar.classList.remove('auto-hidden');
+      }
+    });
+    sidebar.addEventListener('mouseleave', () => {
+      if (sidebar.classList.contains('sidebar-auto-hide')) {
+        hideTimeout = setTimeout(() => {
+          sidebar.classList.add('auto-hidden');
+        }, 400);
+      }
+    });
+
+    // Se ja esta em auto-hide, iniciar escondido
+    if (!this._isSidebarPinned()) {
+      setTimeout(() => sidebar.classList.add('auto-hidden'), 1000);
+    }
   },
 
   // ── Scroll fade gradients (B12) ───────────────────────────────────────

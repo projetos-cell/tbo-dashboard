@@ -48,6 +48,32 @@ const TBO_PROJECT_WORKSPACE = {
     { id: 'gantt', label: 'Gantt', icon: 'gantt-chart' }
   ],
 
+  // ── Ordem customizada das tabs (persistida por projeto) ─────────────
+  _getTabOrder() {
+    try {
+      const key = `tbo_pw_tab_order_${this._projectId || 'default'}`;
+      return JSON.parse(localStorage.getItem(key) || '[]');
+    } catch { return []; }
+  },
+  _setTabOrder(order) {
+    const key = `tbo_pw_tab_order_${this._projectId || 'default'}`;
+    localStorage.setItem(key, JSON.stringify(order));
+  },
+  _getOrderedTabs() {
+    const order = this._getTabOrder();
+    if (!order.length) return [...this._tabs];
+    const ordered = [];
+    order.forEach(id => {
+      const t = this._tabs.find(tab => tab.id === id);
+      if (t) ordered.push(t);
+    });
+    // Tabs novas que nao estao na ordem salva
+    this._tabs.forEach(t => {
+      if (!order.includes(t.id)) ordered.push(t);
+    });
+    return ordered;
+  },
+
   _esc(str) {
     if (typeof _escapeHtml === 'function') return _escapeHtml(str);
     if (str == null) return '';
@@ -117,6 +143,9 @@ const TBO_PROJECT_WORKSPACE = {
         }
       });
     });
+
+    // Bind tab drag & drop (reordenar)
+    this._bindTabDragDrop();
 
     // Bind section toggle
     this._bindSectionToggles();
@@ -281,10 +310,11 @@ const TBO_PROJECT_WORKSPACE = {
   // ── Render: Tabs ──────────────────────────────────────────────────────────
 
   _renderTabs() {
+    const tabs = this._getOrderedTabs();
     return `
       <div class="pw-tabs-bar">
-        ${this._tabs.map(t => `
-          <button class="pw-tab${t.id === this._activeTab ? ' pw-tab--active' : ''}" data-tab="${t.id}">
+        ${tabs.map(t => `
+          <button class="pw-tab${t.id === this._activeTab ? ' pw-tab--active' : ''}" data-tab="${t.id}" draggable="true">
             <i data-lucide="${t.icon}" style="width:15px;height:15px;"></i>
             <span>${t.label}</span>
           </button>
@@ -2889,6 +2919,83 @@ const TBO_PROJECT_WORKSPACE = {
     this._showOptionsPopup(); // Refresh popup
   },
 
+  // ── Tab Drag & Drop (reordenar) ──────────────────────────────────────
+
+  _bindTabDragDrop() {
+    const tabsBar = document.querySelector('.pw-tabs-bar');
+    if (!tabsBar) return;
+
+    let draggedTab = null;
+    let dragIndicator = null;
+
+    tabsBar.addEventListener('dragstart', (e) => {
+      const tab = e.target.closest('.pw-tab[draggable]');
+      if (!tab) return;
+      draggedTab = tab;
+      tab.classList.add('pw-tab--dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', tab.dataset.tab);
+
+      // Indicador de posicao (linha vertical)
+      dragIndicator = document.createElement('div');
+      dragIndicator.className = 'pw-tab-drop-indicator';
+    });
+
+    tabsBar.addEventListener('dragover', (e) => {
+      if (!draggedTab) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+
+      const target = e.target.closest('.pw-tab[draggable]');
+      if (!target || target === draggedTab) {
+        if (dragIndicator?.parentNode) dragIndicator.remove();
+        return;
+      }
+
+      // Posicionar indicador antes ou depois do target
+      const rect = target.getBoundingClientRect();
+      const midX = rect.left + rect.width / 2;
+      const insertBefore = e.clientX < midX;
+
+      if (dragIndicator.parentNode) dragIndicator.remove();
+      if (insertBefore) {
+        target.before(dragIndicator);
+      } else {
+        target.after(dragIndicator);
+      }
+    });
+
+    tabsBar.addEventListener('dragend', () => {
+      if (draggedTab) {
+        draggedTab.classList.remove('pw-tab--dragging');
+        draggedTab = null;
+      }
+      if (dragIndicator?.parentNode) dragIndicator.remove();
+      dragIndicator = null;
+    });
+
+    tabsBar.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (!draggedTab || !dragIndicator?.parentNode) return;
+
+      // Inserir tab na posicao do indicador
+      dragIndicator.replaceWith(draggedTab);
+      draggedTab.classList.remove('pw-tab--dragging');
+
+      // Salvar nova ordem
+      const newOrder = [...tabsBar.querySelectorAll('.pw-tab[data-tab]')]
+        .map(t => t.dataset.tab);
+      this._setTabOrder(newOrder);
+
+      draggedTab = null;
+      dragIndicator = null;
+
+      if (typeof TBO_TOAST !== 'undefined') {
+        TBO_TOAST.success('Tabs', 'Ordem das tabs atualizada');
+      }
+    });
+  },
+
   // ── Rename Tab ────────────────────────────────────────────────────────
 
   _renameTab(newName) {
@@ -2899,7 +3006,7 @@ const TBO_PROJECT_WORKSPACE = {
       const tabsBar = document.querySelector('.pw-tabs-bar');
       if (tabsBar) {
         tabsBar.outerHTML = this._renderTabs();
-        // Re-bind tab clicks
+        // Re-bind tab clicks + DnD
         document.querySelectorAll('.pw-tab').forEach(t => {
           t.addEventListener('click', (e) => {
             const tabId = e.currentTarget.dataset.tab;
@@ -2908,6 +3015,7 @@ const TBO_PROJECT_WORKSPACE = {
             }
           });
         });
+        this._bindTabDragDrop();
         if (window.lucide) lucide.createIcons();
       }
     }
@@ -3175,6 +3283,11 @@ const TBO_PROJECT_WORKSPACE = {
 .pw-tab { display: flex; align-items: center; gap: 6px; padding: 10px 16px; font-size: 0.82rem; font-weight: 500; color: var(--text-muted); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
 .pw-tab:hover { color: var(--text-primary); background: var(--bg-tertiary); }
 .pw-tab--active { color: var(--text-primary); border-bottom-color: var(--accent-gold); font-weight: 600; }
+.pw-tab[draggable] { cursor: grab; }
+.pw-tab[draggable]:active { cursor: grabbing; }
+.pw-tab--dragging { opacity: 0.3; background: var(--bg-tertiary); }
+.pw-tab-drop-indicator { width: 2px; background: var(--accent-gold); border-radius: 1px; align-self: stretch; margin: 4px 0; flex-shrink: 0; animation: pw-indicator-pulse 0.8s ease infinite alternate; }
+@keyframes pw-indicator-pulse { from { opacity: 0.5; } to { opacity: 1; } }
 
 /* ── Toolbar ── */
 .pw-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 28px; border-bottom: 1px solid var(--border-subtle); }

@@ -734,6 +734,105 @@ strong {
 .sidebar.collapsed .sidebar-collapse-btn { transform: rotate(180deg); }
 .sidebar.collapsed .theme-toggle-btn { display: none; }
 
+/* -- Sidebar pin button -- */
+.sidebar-pin-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  border: none;
+  background: none;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+.sidebar-pin-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+.sidebar-pin-btn.pinned {
+  color: var(--accent-gold);
+}
+
+/* -- Sidebar auto-hide mode -- */
+.sidebar.sidebar-auto-hide {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: calc(var(--z-sidebar) + 10);
+  transition: transform 0.28s cubic-bezier(.4,0,.2,1), opacity 0.22s ease, width var(--transition-normal);
+}
+.sidebar.sidebar-auto-hide.auto-hidden {
+  transform: translateX(calc(-100% + 12px));
+  opacity: 0.6;
+}
+.sidebar.sidebar-auto-hide.auto-hidden:hover {
+  transform: translateX(0);
+  opacity: 1;
+}
+/* Quando auto-hide esta ativo, main precisa expandir */
+.sidebar.sidebar-auto-hide ~ .main-content {
+  margin-left: 0;
+}
+/* Aba lateral sutil para indicar sidebar escondida */
+.sidebar.sidebar-auto-hide.auto-hidden::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 48px;
+  background: var(--accent-gold);
+  border-radius: 0 4px 4px 0;
+  opacity: 0.5;
+  transition: opacity var(--transition-fast);
+}
+.sidebar.sidebar-auto-hide.auto-hidden:hover::after {
+  opacity: 0;
+}
+.sidebar.collapsed .sidebar-pin-btn { display: none; }
+
+/* -- Section drag & drop -- */
+.nav-section-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  opacity: 0;
+  cursor: grab;
+  transition: opacity var(--transition-fast), color var(--transition-fast);
+  flex-shrink: 0;
+}
+.nav-section-toggle:hover .nav-section-drag-handle {
+  opacity: 0.5;
+}
+.nav-section-drag-handle:hover {
+  opacity: 1 !important;
+  color: var(--text-primary);
+}
+.nav-section-drag-handle:active {
+  cursor: grabbing;
+}
+.nav-section--dragging {
+  opacity: 0.4;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+}
+.nav-section-drop-placeholder {
+  background: var(--accent-gold-dim);
+  border: 2px dashed var(--accent-gold);
+  border-radius: var(--radius-sm);
+  margin: 4px 8px;
+  min-height: 32px;
+  transition: height 0.15s ease;
+}
+.sidebar.collapsed .nav-section-drag-handle { display: none; }
+
 /* -- Sidebar resize handle -- */
 .sidebar-resize-handle {
   position: absolute;

@@ -10786,6 +10786,284 @@ body.focus-mode .focus-exit-btn {
   background: var(--bg-tertiary);
 }
 
+/* ── SIDEBAR CREATE BUTTON (Asana-style) ──────────────────────────────────── */
+.sidebar-create {
+  padding: 8px 12px 4px;
+  position: relative;
+}
+
+.sidebar-create-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent-gold);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  white-space: nowrap;
+}
+
+.sidebar-create-btn:hover {
+  background: color-mix(in srgb, var(--accent-gold) 88%, #000);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-gold) 30%, transparent);
+}
+
+.sidebar-create-btn:active {
+  transform: scale(0.97);
+}
+
+.sidebar-create-btn svg,
+.sidebar-create-btn i {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.sidebar-create-label {
+  flex: 1;
+  text-align: left;
+}
+
+.sidebar-create-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 12px;
+  right: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+  padding: 6px 0;
+  display: none;
+  animation: sidebarDropFade 0.15s ease;
+}
+
+.sidebar-create-dropdown.visible {
+  display: block;
+}
+
+@keyframes sidebarDropFade {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.sidebar-create-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 14px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  text-align: left;
+}
+
+.sidebar-create-option:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.sidebar-create-option i,
+.sidebar-create-option svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.sidebar-create-option:hover i,
+.sidebar-create-option:hover svg {
+  color: var(--accent-gold);
+}
+
+.sidebar.collapsed .sidebar-create-label {
+  display: none;
+}
+
+.sidebar.collapsed .sidebar-create-btn {
+  justify-content: center;
+  padding: 9px;
+}
+
+.sidebar.collapsed .sidebar-create-dropdown {
+  left: 64px;
+  right: auto;
+  width: 200px;
+  top: 0;
+}
+
+/* ── SIDEBAR PROJECTS SECTION ─────────────────────────────────────────────── */
+.sidebar-projects {
+  padding: 0 0 4px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sidebar-projects-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px 4px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.sidebar-projects-header i,
+.sidebar-projects-header svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.sidebar-projects-toggle {
+  margin-left: auto;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  border-radius: 4px;
+  transition: color 0.12s, background 0.12s, transform 0.2s;
+  padding: 0;
+}
+
+.sidebar-projects-toggle:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.sidebar-projects-toggle i,
+.sidebar-projects-toggle svg {
+  width: 12px;
+  height: 12px;
+}
+
+.sidebar-projects.collapsed .sidebar-projects-toggle {
+  transform: rotate(-90deg);
+}
+
+.sidebar-projects-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: max-height 0.25s ease, opacity 0.2s ease;
+}
+
+.sidebar-projects.collapsed .sidebar-projects-list {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.sidebar-project-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 16px 7px 20px;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s;
+  text-align: left;
+  position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.sidebar-project-item:hover {
+  color: var(--text-primary);
+  background: rgba(232, 81, 2, 0.05);
+}
+
+.sidebar-project-item.active {
+  color: var(--accent-gold);
+  background: var(--accent-gold-dim);
+}
+
+.sidebar-project-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sidebar-project-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-project-count {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.sidebar-projects-empty {
+  padding: 8px 20px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.sidebar.collapsed .sidebar-projects {
+  display: none;
+}
+
+/* ── SIDEBAR NAV ACTIVE INDICATOR (Asana-style bar) ───────────────────────── */
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  background: var(--accent-gold);
+  border-radius: 0 3px 3px 0;
+  animation: navIndicatorIn 0.2s ease;
+}
+
+@keyframes navIndicatorIn {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+.sidebar.collapsed .nav-item.active::before {
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+}
+
+/* ── IMPROVED NAV SECTION HEADERS ─────────────────────────────────────────── */
+.nav-section-toggle {
+  padding: 12px 16px 4px;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════ */
 /* WORKSPACE SELECTOR (TBO OS v2)                                            */
 /* ═══════════════════════════════════════════════════════════════════════════ */

@@ -497,6 +497,13 @@ const TBO_APP = {
     this._renderFavorites();
     this._renderRecents();
 
+    // 8b. Botao Criar (Asana-style)
+    this._bindCreateButton();
+
+    // 8c. Secao de projetos
+    this._renderSidebarProjects();
+    this._bindSidebarProjects();
+
     // 9. Scroll fade gradients (B12)
     this._bindScrollFade();
 
@@ -515,6 +522,175 @@ const TBO_APP = {
     // 14. Badge counts (F27) — atualizar a cada 2min
     this._fetchBadgeCounts();
     this._badgeInterval = setInterval(() => this._fetchBadgeCounts(), 120000);
+  },
+
+  // ── Botao Criar — dropdown com acoes rapidas (Asana-style) ────────────
+  _bindCreateButton() {
+    const btn = document.getElementById('sidebarCreateBtn');
+    const dropdown = document.getElementById('sidebarCreateDropdown');
+    if (!btn || !dropdown) return;
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdown.classList.toggle('visible');
+    });
+
+    // Fechar dropdown ao clicar fora
+    document.addEventListener('click', () => dropdown.classList.remove('visible'));
+
+    // Acoes do dropdown
+    dropdown.addEventListener('click', (e) => {
+      const opt = e.target.closest('.sidebar-create-option');
+      if (!opt) return;
+      e.stopPropagation();
+      dropdown.classList.remove('visible');
+
+      const action = opt.dataset.create;
+      if (action === 'projeto') {
+        TBO_ROUTER.navigate('projetos');
+        // Abrir modal de criacao apos carregar modulo
+        setTimeout(() => {
+          const createBtn = document.querySelector('[onclick*="criarProjeto"], .btn-criar-projeto, [data-action="novo-projeto"]');
+          if (createBtn) createBtn.click();
+        }, 500);
+      } else if (action === 'tarefa') {
+        TBO_ROUTER.navigate('tarefas');
+      } else if (action === 'contato') {
+        TBO_ROUTER.navigate('clientes');
+      } else if (action === 'deal') {
+        TBO_ROUTER.navigate('pipeline');
+      }
+    });
+
+    // Lucide icons no dropdown
+    if (window.lucide) lucide.createIcons({ root: dropdown });
+  },
+
+  // ── Secao "Meus Projetos" na sidebar ────────────────────────────────────
+  _sidebarProjectsLoaded: false,
+
+  async _renderSidebarProjects() {
+    const list = document.getElementById('sidebarProjectsList');
+    if (!list) return;
+
+    try {
+      if (typeof TBO_SUPABASE === 'undefined') return;
+      const client = TBO_SUPABASE.getClient ? TBO_SUPABASE.getClient() : null;
+      if (!client) return;
+
+      const user = TBO_AUTH.getCurrentUser();
+      if (!user) return;
+
+      const tenantId = typeof TBO_SUPABASE.getCurrentTenantId === 'function'
+        ? TBO_SUPABASE.getCurrentTenantId() : null;
+
+      // Buscar projetos ativos do usuario (owner ou membro)
+      let query = client
+        .from('projects')
+        .select('id, name, status, color, task_count:tasks(count)')
+        .in('status', ['ativo', 'em_andamento', 'planejamento'])
+        .order('updated_at', { ascending: false })
+        .limit(8);
+
+      if (tenantId) query = query.eq('tenant_id', tenantId);
+
+      const { data: projects, error } = await query;
+
+      if (error) {
+        console.warn('[Sidebar Projects] Query error:', error.message);
+        // Tentar fallback com ERP data
+        this._renderSidebarProjectsFallback(list);
+        return;
+      }
+
+      if (!projects || projects.length === 0) {
+        this._renderSidebarProjectsFallback(list);
+        return;
+      }
+
+      const statusColors = {
+        ativo: '#22c55e',
+        em_andamento: '#3b82f6',
+        planejamento: '#a855f7',
+        pausado: '#eab308',
+        concluido: '#6b7280'
+      };
+
+      list.innerHTML = projects.map(p => {
+        const color = p.color || statusColors[p.status] || '#94a3b8';
+        const name = this._escHtml(p.name || 'Sem nome');
+        const taskCount = Array.isArray(p.task_count) && p.task_count[0] ? p.task_count[0].count : '';
+        return `<li>
+          <button class="sidebar-project-item" data-project-id="${this._escHtml(p.id)}" title="${name}">
+            <span class="sidebar-project-dot" style="background:${color}"></span>
+            <span class="sidebar-project-name">${name}</span>
+            ${taskCount ? `<span class="sidebar-project-count">${taskCount}</span>` : ''}
+          </button>
+        </li>`;
+      }).join('');
+
+      this._sidebarProjectsLoaded = true;
+    } catch (e) {
+      console.warn('[Sidebar Projects] Error:', e);
+      this._renderSidebarProjectsFallback(list);
+    }
+  },
+
+  _renderSidebarProjectsFallback(list) {
+    // Tentar usar dados do ERP/Storage
+    if (typeof TBO_STORAGE === 'undefined') {
+      list.innerHTML = '<li class="sidebar-projects-empty">Nenhum projeto</li>';
+      return;
+    }
+
+    const context = TBO_STORAGE.get('context') || {};
+    const projetos = context.projetos_ativos || [];
+
+    if (projetos.length === 0) {
+      list.innerHTML = '<li class="sidebar-projects-empty">Nenhum projeto</li>';
+      return;
+    }
+
+    list.innerHTML = projetos.slice(0, 8).map(p => {
+      const name = this._escHtml(p.nome || p.name || 'Projeto');
+      const id = p.id || '';
+      return `<li>
+        <button class="sidebar-project-item" data-project-id="${this._escHtml(id)}" title="${name}">
+          <span class="sidebar-project-dot" style="background:#3b82f6"></span>
+          <span class="sidebar-project-name">${name}</span>
+        </button>
+      </li>`;
+    }).join('');
+  },
+
+  _bindSidebarProjects() {
+    const container = document.getElementById('sidebarProjects');
+    const toggleBtn = document.getElementById('sidebarProjectsToggle');
+    const list = document.getElementById('sidebarProjectsList');
+    if (!container || !list) return;
+
+    // Toggle expand/collapse
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        container.classList.toggle('collapsed');
+        localStorage.setItem('tbo_sidebar_projects_collapsed', container.classList.contains('collapsed') ? '1' : '0');
+      });
+      // Restaurar estado
+      if (localStorage.getItem('tbo_sidebar_projects_collapsed') === '1') {
+        container.classList.add('collapsed');
+      }
+    }
+
+    // Click em projeto → navegar para project-workspace
+    list.addEventListener('click', (e) => {
+      const btn = e.target.closest('.sidebar-project-item');
+      if (!btn) return;
+      const projectId = btn.dataset.projectId;
+      if (projectId) {
+        TBO_ROUTER.navigate(`projeto/${projectId}/overview`);
+        document.getElementById('sidebar')?.classList.remove('mobile-open');
+      }
+    });
   },
 
   // ── Dynamic Sidebar Renderer (C14 XSS safe, C18 preload states) ───────
@@ -1161,6 +1337,17 @@ const TBO_APP = {
 
     // Atualizar badges apos nav
     this._renderBadges();
+
+    // Atualizar projeto ativo na sidebar projects
+    this._updateActiveProject();
+  },
+
+  _updateActiveProject() {
+    const route = TBO_ROUTER.getCurrentRoute();
+    const projectId = route ? TBO_ROUTER._parseParamRoute(route)?.params?.id : null;
+    document.querySelectorAll('.sidebar-project-item').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.projectId === projectId);
+    });
   },
 
   // ── Hash with Auth ─────────────────────────────────────────────────

@@ -68,9 +68,35 @@
       <span class="brand-label">Operating System</span>
     </a>
 
+    <!-- Botao Criar (Asana-style) -->
+    <div class="sidebar-create" id="sidebarCreate">
+      <button class="sidebar-create-btn" id="sidebarCreateBtn" title="Criar novo">
+        <i data-lucide="plus" aria-hidden="true"></i>
+        <span class="sidebar-create-label">Criar</span>
+      </button>
+      <div class="sidebar-create-dropdown" id="sidebarCreateDropdown">
+        <button class="sidebar-create-option" data-create="projeto">
+          <i data-lucide="folder-plus"></i>
+          <span>Novo Projeto</span>
+        </button>
+        <button class="sidebar-create-option" data-create="tarefa">
+          <i data-lucide="check-square"></i>
+          <span>Nova Tarefa</span>
+        </button>
+        <button class="sidebar-create-option" data-create="contato">
+          <i data-lucide="user-plus"></i>
+          <span>Novo Contato</span>
+        </button>
+        <button class="sidebar-create-option" data-create="deal">
+          <i data-lucide="handshake"></i>
+          <span>Novo Deal</span>
+        </button>
+      </div>
+    </div>
+
     <!-- Busca rapida inline -->
     <div class="sidebar-search" id="sidebarSearch">
-      <input type="text" class="sidebar-search-input" id="sidebarSearchInput" placeholder="Buscar módulo..." autocomplete="off" spellcheck="false">
+      <input type="text" class="sidebar-search-input" id="sidebarSearchInput" placeholder="Buscar..." autocomplete="off" spellcheck="false">
       <svg class="sidebar-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <button class="sidebar-search-clear" id="sidebarSearchClear" title="Limpar busca">&times;</button>
       <span class="sidebar-search-kbd">/</span>
@@ -83,6 +109,20 @@
         <span>FAVORITOS</span>
       </div>
       <ul class="sidebar-favorites-list" id="sidebarFavoritesList"></ul>
+    </div>
+
+    <!-- Meus Projetos (lista de projetos do usuario) -->
+    <div class="sidebar-projects" id="sidebarProjects">
+      <div class="sidebar-projects-header">
+        <i data-lucide="folder-kanban" aria-hidden="true"></i>
+        <span>PROJETOS</span>
+        <button class="sidebar-projects-toggle" id="sidebarProjectsToggle" title="Expandir/recolher">
+          <i data-lucide="chevron-down" aria-hidden="true"></i>
+        </button>
+      </div>
+      <ul class="sidebar-projects-list" id="sidebarProjectsList">
+        <!-- Populado por app.js -->
+      </ul>
     </div>
 
     <!-- Recentes (ultimos 3 visitados) -->

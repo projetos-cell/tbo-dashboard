@@ -117,7 +117,8 @@ const TBO_APP = {
       'conciliacao-bancaria': typeof TBO_CONCILIACAO_BANCARIA !== 'undefined' ? TBO_CONCILIACAO_BANCARIA : null,
       'onboarding-wizard': typeof TBO_ONBOARDING_WIZARD !== 'undefined' ? TBO_ONBOARDING_WIZARD : null,
       'academy': typeof TBO_ACADEMY_CATALOGO !== 'undefined' ? TBO_ACADEMY_CATALOGO : null,
-      'chat': typeof TBO_CHAT !== 'undefined' ? TBO_CHAT : null
+      'chat': typeof TBO_CHAT !== 'undefined' ? TBO_CHAT : null,
+      'project-workspace': typeof TBO_PROJECT_WORKSPACE !== 'undefined' ? TBO_PROJECT_WORKSPACE : null
     };
 
     Object.entries(modules).forEach(([name, mod]) => {

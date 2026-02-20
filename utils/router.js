@@ -1,6 +1,7 @@
-// TBO OS — Simple Client-Side Router
+// TBO OS — Client-Side Router com suporte a rotas parametrizadas
 const TBO_ROUTER = {
   _currentModule: null,
+  _currentRoute: null, // Guarda rota completa (ex: "projeto/p_abc123/list")
   _modules: {},
   _onChangeCallbacks: [],
 
@@ -15,6 +16,12 @@ const TBO_ROUTER = {
     'home': 'workspace'
   },
 
+  // Rotas parametrizadas: prefixo → modulo handler
+  // Formato: #projeto/{id}/{tab} → modulo 'project-workspace' recebe params
+  _paramRoutes: {
+    'projeto': 'project-workspace'
+  },
+
   _resolveAlias(name) {
     return this._aliases[name] || name;
   },
@@ -24,9 +31,33 @@ const TBO_ROUTER = {
     this._modules[name] = module;
   },
 
-  // Navigate to a module (supports deep linking: moduleName/tabId)
-  async navigate(moduleName) {
-    // Parse deep link (e.g., "projetos/ativos")
+  // Parseia rota parametrizada: "projeto/p_abc/list" → { module, params }
+  _parseParamRoute(fullHash) {
+    const parts = fullHash.split('/');
+    const prefix = parts[0];
+    if (this._paramRoutes[prefix] && parts.length >= 2) {
+      return {
+        moduleName: this._paramRoutes[prefix],
+        params: {
+          id: parts[1],
+          tab: parts[2] || 'list' // default tab = list
+        },
+        fullRoute: fullHash
+      };
+    }
+    return null;
+  },
+
+  // Navigate to a module (supports deep linking: moduleName/tabId e rotas parametrizadas)
+  async navigate(fullRoute) {
+    // 1. Checar se eh rota parametrizada (ex: "projeto/p_abc123/list")
+    const paramRoute = this._parseParamRoute(fullRoute);
+    if (paramRoute) {
+      return this._navigateParam(paramRoute);
+    }
+
+    // 2. Parse deep link normal (e.g., "projetos/ativos")
+    let moduleName = fullRoute;
     let tabHint = null;
     if (moduleName.includes('/')) {
       const parts = moduleName.split('/');
@@ -37,7 +68,7 @@ const TBO_ROUTER = {
     // Resolve aliases (e.g., "propostas" → "comercial")
     moduleName = this._resolveAlias(moduleName);
 
-    if (moduleName === this._currentModule && !tabHint) return;
+    if (moduleName === this._currentModule && !tabHint && !this._currentRoute) return;
 
     // Permission guard — redirect if user lacks access
     if (typeof TBO_AUTH !== 'undefined' && !TBO_AUTH.canAccess(moduleName)) {
@@ -63,6 +94,7 @@ const TBO_ROUTER = {
 
     const prev = this._currentModule;
     this._currentModule = moduleName;
+    this._currentRoute = null; // Limpa rota parametrizada
 
     // Update URL hash
     window.location.hash = tabHint ? `${moduleName}/${tabHint}` : moduleName;
@@ -136,6 +168,111 @@ const TBO_ROUTER = {
     }
   },
 
+  // Navegacao parametrizada (projeto workspace)
+  async _navigateParam(route) {
+    const { moduleName, params, fullRoute } = route;
+
+    // Permissao: usa modulo-pai (projetos) para checar acesso
+    const permModule = moduleName === 'project-workspace' ? 'projetos' : moduleName;
+    if (typeof TBO_AUTH !== 'undefined' && !TBO_AUTH.canAccess(permModule)) {
+      const user = TBO_AUTH.getCurrentUser();
+      const defaultMod = user?.defaultModule || 'command-center';
+      if (typeof TBO_TOAST !== 'undefined') {
+        TBO_TOAST.warning('Acesso restrito', 'Voce nao tem permissao para acessar projetos.');
+      }
+      this.navigate(defaultMod);
+      return;
+    }
+
+    const module = this._modules[moduleName];
+    if (!module) {
+      console.warn(`Param module "${moduleName}" not registered`);
+      return;
+    }
+
+    // Se ja estamos no mesmo projeto mas em tab diferente, troca apenas a tab
+    if (this._currentModule === moduleName && this._currentRoute) {
+      const prevParams = this._parseParamRoute(this._currentRoute)?.params;
+      if (prevParams && prevParams.id === params.id && prevParams.tab !== params.tab) {
+        this._currentRoute = fullRoute;
+        window.location.hash = fullRoute;
+        if (module.switchTab) {
+          module.switchTab(params.tab);
+        }
+        return;
+      }
+    }
+
+    // Cleanup previous module
+    if (this._currentModule && this._modules[this._currentModule]?.destroy) {
+      try { this._modules[this._currentModule].destroy(); } catch (e) { console.warn(e); }
+    }
+
+    const prev = this._currentModule;
+    this._currentModule = moduleName;
+    this._currentRoute = fullRoute;
+
+    // Update URL hash
+    window.location.hash = fullRoute;
+
+    // Notify listeners (passa 'projetos' como moduleName para sidebar highlight)
+    this._onChangeCallbacks.forEach(cb => {
+      try { cb('projetos', prev); } catch (e) { console.warn(e); }
+    });
+
+    const container = document.getElementById('moduleContainer');
+    const loading = document.getElementById('moduleLoading');
+    const empty = document.getElementById('moduleEmpty');
+
+    if (empty) empty.style.display = 'none';
+
+    // Skeleton enquanto carrega
+    if (container) {
+      container.innerHTML = module._renderSkeleton ? module._renderSkeleton() : '<div style="padding:40px;text-align:center;"><div class="spinner"></div></div>';
+    }
+
+    try {
+      if (container && prev) {
+        container.classList.add('page-exit');
+        await new Promise(r => setTimeout(r, 120));
+      }
+
+      // Passa params para o modulo
+      if (module.setParams) module.setParams(params);
+
+      if (module.render) {
+        const html = await module.render();
+        if (container) {
+          container.innerHTML = html;
+          container.classList.remove('page-exit');
+          container.classList.add('page-enter');
+          void container.offsetHeight;
+          container.classList.remove('page-enter');
+          container.classList.add('page-enter-active');
+          setTimeout(() => container.classList.remove('page-enter-active'), 220);
+        }
+      }
+      if (module.init) {
+        await module.init();
+      }
+      if (typeof TBO_UX !== 'undefined') TBO_UX.updateBreadcrumb('projetos', module._projectName || 'Projeto');
+      if (window.lucide) lucide.createIcons();
+    } catch (error) {
+      console.error(`Error rendering param module "${moduleName}":`, error);
+      if (container) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">\u26A0\uFE0F</div>
+            <div class="empty-state-text">Erro ao carregar projeto: ${error.message}</div>
+            <button class="btn btn-primary" style="margin-top:16px;" onclick="TBO_ROUTER.navigate('projetos')">Voltar para Projetos</button>
+          </div>
+        `;
+      }
+    } finally {
+      if (loading) loading.classList.remove('visible');
+    }
+  },
+
   // Listen for module changes
   onChange(callback) {
     this._onChangeCallbacks.push(callback);
@@ -146,20 +283,43 @@ const TBO_ROUTER = {
     return this._currentModule;
   },
 
-  // Initialize from URL hash (supports deep links like #projetos/ativos)
+  // Retorna rota completa atual (para param routes)
+  getCurrentRoute() {
+    return this._currentRoute;
+  },
+
+  // Initialize from URL hash (supports deep links like #projetos/ativos e #projeto/id/tab)
   initFromHash(defaultModule = 'command-center') {
     const hash = window.location.hash.replace('#', '');
+    // Checar rota parametrizada primeiro
+    const paramRoute = this._parseParamRoute(hash);
+    if (paramRoute && this._modules[paramRoute.moduleName]) {
+      this.navigate(hash);
+      return;
+    }
     const rawName = hash.split('/')[0];
     const resolved = this._resolveAlias(rawName);
     const target = resolved && this._modules[resolved] ? hash : defaultModule;
     this.navigate(target);
   },
 
-  // Listen for hash changes
+  // Listen for hash changes (suporta rotas parametrizadas)
   listenHashChanges() {
     window.addEventListener('hashchange', () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash && this._modules[hash]) {
+      if (!hash) return;
+
+      // Rota parametrizada?
+      const paramRoute = this._parseParamRoute(hash);
+      if (paramRoute && this._modules[paramRoute.moduleName]) {
+        this.navigate(hash);
+        return;
+      }
+
+      // Rota normal
+      const moduleName = hash.split('/')[0];
+      const resolved = this._resolveAlias(moduleName);
+      if (resolved && this._modules[resolved]) {
         this.navigate(hash);
       }
     });

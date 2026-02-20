@@ -247,7 +247,7 @@ const TBO_PROJETOS = {
     const doneTasks = tasks.filter(t => t.status === 'concluida').length;
     const ownerInitials = p.owner ? (typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.initials(p.owner) : p.owner.charAt(0)) : '?';
 
-    return `<div class="pipeline-card erp-project-card" draggable="true" data-id="${p.id}" onclick="TBO_PROJETOS._showProjectModal('${p.id}')">
+    return `<div class="pipeline-card erp-project-card" draggable="true" data-id="${p.id}" onclick="TBO_ROUTER.navigate('projeto/${p.id}/list')">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div style="flex:1;min-width:0;">
           ${p.code ? `<div style="font-size:0.6rem;color:var(--text-muted);font-family:monospace;letter-spacing:0.03em;margin-bottom:1px;">${p.code}</div>` : ''}
@@ -345,7 +345,7 @@ const TBO_PROJETOS = {
           const pctDone = tasks.length > 0 ? Math.round((doneTasks / tasks.length) * 100) : 0;
           const ownerInitials = p.owner ? (typeof TBO_PERMISSIONS !== 'undefined' ? TBO_PERMISSIONS.getInitials(p.owner) : p.owner.charAt(0)) : '?';
 
-          return `<div class="asana-table-row" onclick="TBO_PROJETOS._showProjectModal('${p.id}')">
+          return `<div class="asana-table-row" onclick="TBO_ROUTER.navigate('projeto/${p.id}/list')">
             <div class="asana-col asana-col--code" style="font-size:0.72rem;font-family:monospace;color:var(--text-muted);">${p.code || '-'}</div>
             <div class="asana-col asana-col--name">
               <div style="width:8px;height:8px;border-radius:50%;background:${stateColor};flex-shrink:0;"></div>
@@ -1309,7 +1309,7 @@ const TBO_PROJETOS = {
       }
     }
 
-    return `<div class="my-tasks-row${isDone ? ' my-tasks-row--done' : ''}" onclick="TBO_PROJETOS._showProjectModal('${t.project_id}')">
+    return `<div class="my-tasks-row${isDone ? ' my-tasks-row--done' : ''}" onclick="TBO_ROUTER.navigate('projeto/${t.project_id}/list')">
       <div class="my-tasks-cell my-tasks-cell--check">
         <input type="checkbox" class="my-tasks-checkbox" ${isDone ? 'checked' : ''} onchange="event.stopPropagation();TBO_PROJETOS._toggleTask('${t.id}', this.checked)">
       </div>

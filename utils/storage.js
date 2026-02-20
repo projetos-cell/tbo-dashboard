@@ -346,6 +346,12 @@ const TBO_STORAGE = {
     // Map app camelCase fields to Supabase snake_case columns
     const row = {};
     const skip = ['createdAt', 'updatedAt', 'id', '_pendingSync'];
+    // Campos que sao date/numeric/uuid no PostgreSQL — string vazia deve virar null
+    const nullableFields = new Set([
+      'due_date', 'start_date', 'end_date', 'completed_at', 'date',
+      'estimate_minutes', 'sort_order', 'value',
+      'project_id', 'decision_id', 'parent_id', 'created_by', 'tenant_id'
+    ]);
 
     Object.entries(entity).forEach(([key, val]) => {
       if (skip.includes(key)) return;
@@ -359,7 +365,8 @@ const TBO_STORAGE = {
       } else if (key === 'project_name') {
         // project_name is derived, skip for DB
       } else {
-        row[key] = val;
+        // Converter strings vazias em null para campos date/numeric/uuid
+        row[key] = (val === '' && nullableFields.has(key)) ? null : val;
       }
     });
 

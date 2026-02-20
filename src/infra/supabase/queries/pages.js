@@ -8,7 +8,8 @@
 
 const PagesRepo = (() => {
   function _db() { return RepoBase.getDb(); }
-  function _tid() { return RepoBase.requireTenantId(); }
+  // Usa resolveTenantId (async) para garantir fallback via user_metadata
+  async function _tid() { return RepoBase.resolveTenantId(); }
 
   return {
     /**
@@ -23,7 +24,7 @@ const PagesRepo = (() => {
      * @returns {Object} Página criada
      */
     async create({ space_id, title, content, icon, cover_url, created_by }) {
-      const tid = _tid();
+      const tid = await _tid();
       const { data, error } = await _db().from('pages')
         .insert({
           tenant_id: tid,
@@ -86,7 +87,7 @@ const PagesRepo = (() => {
      * @returns {Array} Lista de páginas
      */
     async listBySpace(spaceId, { limit = 50, offset = 0 } = {}) {
-      const tid = _tid();
+      const tid = await _tid();
       const { data, error } = await _db().from('pages')
         .select('id, title, icon, updated_at, created_at, created_by, updated_by')
         .eq('tenant_id', tid)

@@ -207,24 +207,154 @@ Priorize noticias sobre:
       });
     });
 
-    // Botao atualizar
+    // Botao atualizar — buscar noticias reais via proxy
     const refreshBtn = document.getElementById('imobRefresh');
     if (refreshBtn) {
-      refreshBtn.addEventListener('click', () => {
+      refreshBtn.addEventListener('click', async () => {
         if (typeof TBO_TOAST !== 'undefined') {
-          TBO_TOAST.info('Curadoria em andamento', 'Buscando noticias das ultimas 24h...');
+          TBO_TOAST.info('Curadoria em andamento', 'Buscando noticias reais das ultimas 24h...');
         }
-        // Aqui seria a chamada para a API de IA (ex: OpenAI, Claude, etc.)
-        // Por enquanto, simula com os dados seed
-        setTimeout(() => {
-          this._setCache(this._seedNoticias);
-          if (typeof TBO_TOAST !== 'undefined') {
-            TBO_TOAST.success('Curadoria concluida', `${this._seedNoticias.length} noticias encontradas`);
+        refreshBtn.disabled = true;
+        refreshBtn.innerHTML = '<i data-lucide="loader-2" style="width:14px;height:14px;animation:spin 1s linear infinite;"></i> Buscando...';
+
+        try {
+          let noticias = [];
+          let usedReal = false;
+
+          // 1) Proxy RSS via Vercel
+          try {
+            const proxyUrl = `${window.location.origin}/api/news-proxy?limit=30`;
+            const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(12000) });
+            if (resp.ok) {
+              const data = await resp.json();
+              if (data.success && data.news?.length > 0) {
+                noticias = data.news.map(n => ({
+                  data: n.date, categoria: this._mapCategory(n.category),
+                  fonte: n.source, titulo: n.title, resumo: n.summary || '',
+                  link: n.url || '#', relevancia: 'media',
+                  tags: [n.category, n.region].filter(Boolean),
+                  insight_tbo: ''
+                }));
+                usedReal = true;
+              }
+            }
+          } catch { /* proxy indisponivel */ }
+
+          // 2) Fallback: CORS proxy publico
+          if (!usedReal) {
+            try {
+              const queries = ['mercado+imobiliário+Brasil', 'arquitetura+design+interiores+2026', 'arte+contemporânea+Brasil'];
+              const corsProxy = 'https://api.allorigins.win/raw?url=';
+              for (const q of queries) {
+                try {
+                  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=pt-BR&gl=BR&ceid=BR:pt-419`;
+                  const resp = await fetch(corsProxy + encodeURIComponent(rssUrl), { signal: AbortSignal.timeout(8000) });
+                  if (!resp.ok) continue;
+                  const xml = await resp.text();
+                  const items = this._parseRSS(xml);
+                  noticias = noticias.concat(items);
+                } catch { /* skip */ }
+              }
+              if (noticias.length > 0) usedReal = true;
+            } catch { /* fallback falhou */ }
           }
-        }, 2000);
+
+          // 3) Ultimo fallback: IA
+          if (!usedReal && typeof TBO_API !== 'undefined' && TBO_API.isConfigured()) {
+            try {
+              const result = await TBO_API.call(
+                'Retorne APENAS JSON array, sem markdown.',
+                this._curadoriaPrompt + '\n\nRetorne as noticias em JSON array.',
+                { temperature: 0.7, maxTokens: 3500 }
+              );
+              let text = result.text.trim();
+              if (text.startsWith('```')) text = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+              const parsed = JSON.parse(text);
+              noticias = Array.isArray(parsed) ? parsed : (parsed.noticias || []);
+            } catch { /* IA falhou */ }
+          }
+
+          // Fallback final: seed
+          if (noticias.length === 0) noticias = this._seedNoticias;
+
+          // Deduplicar
+          const seen = new Set();
+          noticias = noticias.filter(n => {
+            const k = (n.titulo || '').toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 50);
+            if (seen.has(k)) return false;
+            seen.add(k); return true;
+          });
+
+          this._setCache(noticias);
+          if (typeof TBO_TOAST !== 'undefined') {
+            TBO_TOAST.success('Curadoria concluida', `${noticias.length} noticias ${usedReal ? 'reais' : '(seed)'} carregadas`);
+          }
+
+          // Re-renderizar
+          this._activeFilter = 'todas';
+          const container = document.getElementById('moduleContent') || document.querySelector('.module-content') || document.getElementById('moduleContainer');
+          if (container) { container.innerHTML = this.render(); this.init(); }
+          if (window.lucide) lucide.createIcons();
+        } catch (e) {
+          if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro', e.message);
+        } finally {
+          refreshBtn.disabled = false;
+          refreshBtn.innerHTML = '<i data-lucide="refresh-cw" style="width:14px;height:14px;"></i> Atualizar';
+          if (window.lucide) lucide.createIcons();
+        }
       });
     }
 
     if (window.lucide) lucide.createIcons();
+  },
+
+  // Mapear categorias do proxy para as categorias locais
+  _mapCategory(cat) {
+    const map = {
+      lancamentos: 'mercado_imobiliario', indicadores: 'mercado_imobiliario',
+      incorporadoras: 'mercado_imobiliario', tendencias: 'mercado_imobiliario',
+      mercado: 'mercado_imobiliario', curitiba: 'mercado_imobiliario',
+      custos: 'mercado_imobiliario', financiamento: 'mercado_imobiliario',
+      arquitetura: 'arquitetura', design: 'design', arte: 'arte'
+    };
+    return map[cat] || 'mercado_imobiliario';
+  },
+
+  // Parsear RSS XML simples
+  _parseRSS(xml) {
+    const items = [];
+    const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
+    let match;
+    while ((match = itemRegex.exec(xml)) !== null) {
+      const itemXml = match[1];
+      const getTag = (tag) => {
+        const r = new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>|<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i');
+        const m = itemXml.match(r);
+        return m ? (m[1] || m[2] || '').trim() : '';
+      };
+      const title = getTag('title').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+      const link = getTag('link');
+      const pubDate = getTag('pubDate');
+      const source = getTag('source');
+      const desc = getTag('description').replace(/<[^>]*>/g, '').substring(0, 300);
+      if (title) {
+        const cat = this._categorizeRSSTitle(title);
+        items.push({
+          data: pubDate ? new Date(pubDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          categoria: cat, fonte: source || 'Google News',
+          titulo: title, resumo: desc, link: link || '#',
+          relevancia: 'media', tags: [cat], insight_tbo: ''
+        });
+      }
+    }
+    return items;
+  },
+
+  _categorizeRSSTitle(title) {
+    const t = (title || '').toLowerCase();
+    if (/arquitetur|edificio|projeto|fachada|urbanis/i.test(t)) return 'arquitetura';
+    if (/design|interior|decorac|mobili/i.test(t)) return 'design';
+    if (/arte|museu|exposic|galeria|bienal|masp/i.test(t)) return 'arte';
+    return 'mercado_imobiliario';
   }
 };

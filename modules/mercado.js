@@ -273,86 +273,157 @@ const TBO_MERCADO = {
   },
 
   async _fetchNews() {
-    if (!TBO_API.isConfigured()) {
-      TBO_TOAST.warning('API nao configurada', 'Acesse Configuracoes para inserir sua chave.');
-      return;
-    }
-
     const btn = document.getElementById('mkBuscarNoticias');
     const feed = document.getElementById('mkNewsFeed');
     if (typeof TBO_UX !== 'undefined') {
       TBO_UX.btnLoading(btn, true, 'Buscando...');
-      TBO_UX.showLoading(feed, 'Buscando noticias atualizadas do mercado imobiliario...');
+      TBO_UX.showLoading(feed, 'Buscando noticias reais do mercado imobiliario...');
     } else {
       if (btn) { btn.disabled = true; btn.textContent = 'Buscando...'; }
-      if (feed) feed.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-muted);">Buscando noticias atualizadas do mercado imobiliario...</div>';
+      if (feed) feed.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-muted);">Buscando noticias reais do mercado imobiliario...</div>';
     }
 
     try {
-      const market = TBO_STORAGE.get('market');
-      const ic = market.indicadores_curitiba || {};
-
-      const prompt = `Voce e um analista de mercado imobiliario brasileiro. Gere uma lista de 12-15 noticias REAIS e ATUAIS (fevereiro 2026) sobre o mercado imobiliario brasileiro, com foco em Curitiba/PR.
-
-DADOS ATUAIS DO MERCADO:
-- Curitiba S1 2025: ${ic.empreendimentos_lancados || 44} empreendimentos lancados (${ic.variacao_empreendimentos || '-41%'}), ${ic.unidades_lancadas || 3076} unidades (${ic.variacao_unidades || '-47%'})
-- Contexto: ${ic.contexto || 'Retracao significativa no mercado'}
-
-CATEGORIAS (use exatamente estes nomes):
-- lancamentos: novos empreendimentos, VGV, lancamentos
-- indicadores: Selic, INCC, IPCA, indices do setor
-- incorporadoras: resultados de empresas, fusoes, estrategias
-- tendencias: tecnologia, sustentabilidade, novos modelos
-
-Para cada noticia, retorne JSON com:
-- title: titulo da noticia
-- source: fonte (Valor Economico, InfoMoney, SECOVI-PR, Brain, etc)
-- date: data ISO (use datas de janeiro-fevereiro 2026)
-- category: uma das categorias acima
-- region: "curitiba", "parana", "nacional"
-- summary: resumo de 2-3 frases
-
-IMPORTANTE: Baseie-se em tendencias REAIS do mercado. Use dados verosimeis. Retorne APENAS o JSON array, sem markdown.
-
-Formato: [{"title":"...","source":"...","date":"2026-02-XX","category":"...","region":"...","summary":"..."}]`;
-
-      const result = await TBO_API.call(
-        'Voce e um gerador de dados de mercado imobiliario. Retorne APENAS JSON valido, sem blocos de codigo markdown.',
-        prompt,
-        { temperature: 0.8, maxTokens: 4096 }
-      );
-
+      // 1) Tentar proxy de noticias reais (Google News RSS via Vercel)
       let newsArray = [];
+      let usedRealNews = false;
+
       try {
-        // Try to parse the response as JSON
-        let text = result.text.trim();
-        // Remove markdown code block if present
-        if (text.startsWith('```')) {
-          text = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+        const proxyUrl = `${window.location.origin}/api/news-proxy?limit=25&queries=mercado_imobiliario,lancamentos_curitiba,incorporadoras,selic_imoveis,construcao_civil,curitiba_imoveis`;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 12000);
+
+        const response = await fetch(proxyUrl, {
+          signal: controller.signal,
+          headers: {
+            'Authorization': typeof TBO_SUPABASE !== 'undefined' ? `Bearer ${TBO_SUPABASE.getAccessToken?.() || ''}` : ''
+          }
+        });
+        clearTimeout(timeout);
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.news && data.news.length > 0) {
+            newsArray = data.news.map(n => ({
+              title: n.title,
+              titulo: n.title,
+              source: n.source,
+              fonte: n.source,
+              url: n.url,
+              date: n.date,
+              data: n.date,
+              summary: n.summary,
+              resumo: n.summary,
+              category: n.category,
+              categoria: n.category,
+              region: n.region,
+              regiao: n.region === 'curitiba' ? 'Curitiba' : n.region === 'nacional' ? 'Nacional' : n.region
+            }));
+            usedRealNews = true;
+          }
         }
-        newsArray = JSON.parse(text);
-      } catch (e) {
-        console.warn('Failed to parse news JSON:', e);
-        TBO_TOAST.error('Erro', 'Nao foi possivel processar as noticias. Tente novamente.');
-        if (feed) feed.innerHTML = '<div class="empty-state"><div class="empty-state-text">Erro ao processar noticias</div></div>';
-        return;
+      } catch (proxyErr) {
+        console.warn('Proxy de noticias indisponivel, tentando fallback...', proxyErr.message);
       }
 
-      if (Array.isArray(newsArray) && newsArray.length > 0) {
-        // Save to storage
+      // 2) Fallback: buscar via Google News RSS diretamente (pode falhar por CORS)
+      if (!usedRealNews) {
+        try {
+          const queries = [
+            'mercado+imobiliário+Brasil+2026',
+            'lançamentos+imobiliários+Curitiba',
+            'Selic+imóveis+2026'
+          ];
+          const corsProxy = 'https://api.allorigins.win/raw?url=';
+
+          for (const q of queries) {
+            try {
+              const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=pt-BR&gl=BR&ceid=BR:pt-419`;
+              const resp = await fetch(corsProxy + encodeURIComponent(rssUrl), { signal: AbortSignal.timeout(8000) });
+              if (!resp.ok) continue;
+              const xml = await resp.text();
+
+              // Parsear RSS simples
+              const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
+              let match;
+              while ((match = itemRegex.exec(xml)) !== null) {
+                const itemXml = match[1];
+                const getTag = (tag) => {
+                  const r = new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>|<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i');
+                  const m = itemXml.match(r);
+                  return m ? (m[1] || m[2] || '').trim() : '';
+                };
+                const title = getTag('title').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+                const link = getTag('link');
+                const pubDate = getTag('pubDate');
+                const source = getTag('source');
+                if (title) {
+                  newsArray.push({
+                    title, titulo: title, url: link,
+                    source: source || 'Google News', fonte: source || 'Google News',
+                    date: pubDate ? new Date(pubDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                    data: pubDate ? new Date(pubDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                    summary: '', resumo: '',
+                    category: this._categorizeByTitle(title), categoria: this._categorizeByTitle(title),
+                    region: this._detectRegion(title), regiao: this._detectRegion(title)
+                  });
+                }
+              }
+            } catch { /* skip query */ }
+          }
+          if (newsArray.length > 0) usedRealNews = true;
+        } catch (fallbackErr) {
+          console.warn('Fallback RSS tambem falhou:', fallbackErr.message);
+        }
+      }
+
+      // 3) Ultimo fallback: gerar via IA (se API configurada)
+      if (!usedRealNews && TBO_API.isConfigured()) {
+        const market = TBO_STORAGE.get('market');
+        const ic = market.indicadores_curitiba || {};
+
+        const prompt = `Gere 12 noticias REALISTAS e ATUAIS (fevereiro 2026) sobre mercado imobiliario brasileiro, foco Curitiba/PR.
+
+Contexto: ${ic.contexto || 'Mercado em retracao'}, ${ic.empreendimentos_lancados || 44} empreendimentos, Selic ~12.75%.
+
+Retorne APENAS JSON array: [{"title":"...","source":"Valor Economico|InfoMoney|SECOVI-PR|Brain|etc","date":"2026-02-XX","category":"lancamentos|indicadores|incorporadoras|tendencias","region":"curitiba|nacional","summary":"2-3 frases"}]`;
+
+        try {
+          const result = await TBO_API.call('Retorne APENAS JSON valido, sem markdown.', prompt, { temperature: 0.7, maxTokens: 3000 });
+          let text = result.text.trim();
+          if (text.startsWith('```')) text = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+          const parsed = JSON.parse(text);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            newsArray = parsed.map(n => ({ ...n, titulo: n.title, fonte: n.source, data: n.date, resumo: n.summary, categoria: n.category, regiao: n.region }));
+          }
+        } catch (aiErr) {
+          console.warn('Fallback IA tambem falhou:', aiErr.message);
+        }
+      }
+
+      // Deduplicar
+      const seen = new Set();
+      newsArray = newsArray.filter(item => {
+        const key = (item.title || item.titulo || '').toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 50);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      if (newsArray.length > 0) {
         const newsData = {
           ultima_atualizacao: new Date().toISOString(),
           noticias: newsArray,
-          nota: 'Gerado via Claude API'
+          nota: usedRealNews ? 'Noticias reais via RSS/proxy' : 'Noticias geradas via IA (fallback)'
         };
         TBO_STORAGE.set('news', newsData);
-        // Save to localStorage for persistence
-        try {
-          localStorage.setItem('tbo_data_news', JSON.stringify(newsData));
-        } catch (e) { /* ignore */ }
+        try { localStorage.setItem('tbo_data_news', JSON.stringify(newsData)); } catch { /* ignore */ }
 
         if (feed) feed.innerHTML = this._renderNewsList(newsArray);
-        TBO_TOAST.success('Noticias atualizadas', `${newsArray.length} noticias carregadas.`);
+        TBO_TOAST.success('Noticias atualizadas', `${newsArray.length} noticias ${usedRealNews ? 'reais' : '(IA)'} carregadas.`);
+      } else {
+        TBO_TOAST.error('Sem noticias', 'Nao foi possivel buscar noticias. Verifique sua conexao.');
+        if (feed) feed.innerHTML = '<div class="empty-state"><div class="empty-state-text">Nenhuma noticia encontrada. Tente novamente mais tarde.</div></div>';
       }
     } catch (e) {
       TBO_TOAST.error('Erro', e.message);
@@ -368,6 +439,21 @@ Formato: [{"title":"...","source":"...","date":"2026-02-XX","category":"...","re
         btn.disabled = false; btn.textContent = 'Buscar Noticias';
       }
     }
+  },
+
+  _categorizeByTitle(title) {
+    const t = (title || '').toLowerCase();
+    if (/lanc|empreendiment|residencial|apartament/i.test(t)) return 'lancamentos';
+    if (/selic|juros|ipca|incc|inflac|indicador|pib/i.test(t)) return 'indicadores';
+    if (/incorporadora|construtora|mrv|cyrela|eztec/i.test(t)) return 'incorporadoras';
+    if (/tendenc|futuro|projec|inovac|proptech|tech/i.test(t)) return 'tendencias';
+    return 'mercado';
+  },
+
+  _detectRegion(title) {
+    const t = (title || '').toLowerCase();
+    if (/curitiba|cwb|paran/i.test(t)) return 'curitiba';
+    return 'nacional';
   },
 
   async _generateConsulta() {

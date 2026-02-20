@@ -119,7 +119,8 @@ const TBO_APP = {
       'academy': typeof TBO_ACADEMY_CATALOGO !== 'undefined' ? TBO_ACADEMY_CATALOGO : null,
       'chat': typeof TBO_CHAT !== 'undefined' ? TBO_CHAT : null,
       'project-workspace': typeof TBO_PROJECT_WORKSPACE !== 'undefined' ? TBO_PROJECT_WORKSPACE : null,
-      'inteligencia-imobiliaria': typeof TBO_INTELIGENCIA_IMOBILIARIA !== 'undefined' ? TBO_INTELIGENCIA_IMOBILIARIA : null
+      'inteligencia-imobiliaria': typeof TBO_INTELIGENCIA_IMOBILIARIA !== 'undefined' ? TBO_INTELIGENCIA_IMOBILIARIA : null,
+      'people-profile': typeof TBO_PEOPLE_PROFILE !== 'undefined' ? TBO_PEOPLE_PROFILE : null
     };
 
     Object.entries(modules).forEach(([name, mod]) => {

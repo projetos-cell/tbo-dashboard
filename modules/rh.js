@@ -1,6 +1,7 @@
-// TBO OS — Module: Pessoas (People Management v2.3)
-// 5 tabs: Visao Geral, Performance & PDI, Cultura & Reconhecimento, 1:1s & Rituais, Analytics
-// v2.3: Carrega equipe do Supabase (profiles) + Google avatars + loading skeleton
+// TBO OS — Module: Pessoas / Equipe (People Ops v3.0)
+// Diretorio de equipe com Supabase como fonte unica de verdade
+// Features: tabela paginada, organograma, perfil Asana-style, acoes admin, RBAC
+// v3.0: Rewrite completo — Supabase-first, server-side pagination, RLS-aware
 const TBO_RH = {
 
   // ── Team Data — Seed/fallback (quando Supabase indisponivel) ──
@@ -91,9 +92,19 @@ const TBO_RH = {
   },
 
   // ── Carregar equipe do Supabase ────────────────────────────────
-  // v2.3: Fonte de verdade. Fallback para _teamSeed se offline/erro.
-  async _loadTeamFromSupabase() {
-    if (this._teamLoaded) return;
+  // v3.0: Supabase como fonte unica. Inclui role RBAC, status, ultimo login.
+  // Paginacao server-side. Fallback para _teamSeed se offline/erro.
+  _page: 0,
+  _pageSize: 50,
+  _totalCount: 0,
+  _sortBy: 'full_name',
+  _sortDir: 'asc',
+  _filterRole: '',
+  _filterStatus: '',
+  _filterSquad: '',
+
+  async _loadTeamFromSupabase(options = {}) {
+    if (this._teamLoaded && !options.force) return;
     this._loading = true;
     this._teamLoadError = null;
 
@@ -102,38 +113,72 @@ const TBO_RH = {
         const client = TBO_SUPABASE.getClient();
         const tenantId = TBO_SUPABASE.getCurrentTenantId();
         if (client && tenantId) {
-          const { data: profiles, error } = await client
+          // Montar query com filtros
+          let query = client
             .from('profiles')
-            .select('id, username, full_name, email, role, bu, is_coordinator, is_active, tenant_id, avatar_url')
-            .eq('tenant_id', tenantId)
-            .eq('is_active', true)
-            .order('full_name');
+            .select('id, username, full_name, email, role, bu, is_coordinator, is_active, tenant_id, avatar_url, created_at, last_sign_in_at', { count: 'exact' })
+            .eq('tenant_id', tenantId);
 
-          if (!error && profiles && profiles.length > 0) {
+          // Filtros server-side
+          if (this._filterStatus === 'ativo') query = query.eq('is_active', true);
+          else if (this._filterStatus === 'inativo' || this._filterStatus === 'suspenso' || this._filterStatus === 'removido') query = query.eq('is_active', false);
+
+          if (this._filterSquad) query = query.eq('bu', this._filterSquad);
+          if (this._filterSearch) {
+            // Busca por nome OU email
+            query = query.or(`full_name.ilike.%${this._filterSearch}%,email.ilike.%${this._filterSearch}%`);
+          }
+
+          // Ordenacao e paginacao
+          query = query.order(this._sortBy, { ascending: this._sortDir === 'asc' })
+            .range(this._page * this._pageSize, (this._page + 1) * this._pageSize - 1);
+
+          const { data: profiles, error, count } = await query;
+
+          if (!error && profiles) {
+            this._totalCount = count || profiles.length;
+
             // Mapear profiles do Supabase para formato _team
-            // Manter dados extras do seed (cargo, area, nivel, lider) via username match
             const seedMap = {};
             this._teamSeed.forEach(s => { seedMap[s.id] = s; });
 
-            this._team = profiles
-              .filter(p => !p.email?.includes('financeiro@')) // excluir terceirizado
-              .map(p => {
-                const username = p.username || p.email?.split('@')[0] || '';
-                const seed = seedMap[username] || {};
-                return {
-                  id: username,
-                  supabaseId: p.id,
-                  nome: p.full_name || username,
-                  cargo: seed.cargo || (p.is_coordinator ? 'Coordenador(a)' : p.role || ''),
-                  area: seed.area || (p.bu ? `BU ${p.bu}` : ''),
-                  bu: p.bu || seed.bu || '',
-                  nivel: seed.nivel || '',
-                  lider: seed.lider || null,
-                  status: 'ativo',
-                  avatarUrl: p.avatar_url || null,
-                  email: p.email || ''
-                };
-              });
+            // Carregar roles RBAC dos tenant_members
+            let roleMap = {};
+            try {
+              const { data: members } = await client
+                .from('tenant_members')
+                .select('user_id, role_id, roles(name, label, color)')
+                .eq('tenant_id', tenantId);
+              if (members) {
+                members.forEach(m => { roleMap[m.user_id] = m.roles || {}; });
+              }
+            } catch (e) { /* fallback silencioso */ }
+
+            this._team = profiles.map(p => {
+              const username = p.username || p.email?.split('@')[0] || '';
+              const seed = seedMap[username] || {};
+              const rbacRole = roleMap[p.id] || {};
+              return {
+                id: username,
+                supabaseId: p.id,
+                nome: p.full_name || username,
+                cargo: seed.cargo || (p.is_coordinator ? 'Coordenador(a)' : p.role || ''),
+                area: seed.area || (p.bu ? `BU ${p.bu}` : ''),
+                bu: p.bu || seed.bu || '',
+                nivel: seed.nivel || '',
+                lider: seed.lider || null,
+                status: p.is_active ? 'ativo' : 'inativo',
+                avatarUrl: p.avatar_url || null,
+                email: p.email || '',
+                rbacRole: rbacRole.name || p.role || 'artist',
+                rbacLabel: rbacRole.label || p.role || 'Artista',
+                rbacColor: rbacRole.color || '#94a3b8',
+                isCoordinator: p.is_coordinator || false,
+                dataEntrada: p.created_at || null,
+                ultimoLogin: p.last_sign_in_at || null,
+                terceirizado: seed.terceirizado || false
+              };
+            });
 
             // Construir profileMap para acesso rapido por username
             this._profileMap = {};
@@ -143,13 +188,14 @@ const TBO_RH = {
                 supabaseId: p.id,
                 avatarUrl: p.avatar_url || null,
                 email: p.email,
-                fullName: p.full_name
+                fullName: p.full_name,
+                lastSignIn: p.last_sign_in_at
               };
             });
 
             this._teamLoaded = true;
             this._loading = false;
-            console.log(`[RH] Equipe carregada do Supabase: ${this._team.length} membros`);
+            console.log(`[RH] Equipe carregada do Supabase: ${this._team.length}/${this._totalCount} membros`);
             return;
           }
         }
@@ -162,6 +208,7 @@ const TBO_RH = {
     // Fallback: usar seed data
     console.log('[RH] Usando seed data como fallback');
     this._team = [...this._teamSeed];
+    this._totalCount = this._team.length;
     this._teamLoaded = true;
     this._loading = false;
   },
@@ -391,6 +438,7 @@ const TBO_RH = {
 
   // Sub-view da visao geral: 'cards' (default), 'organograma', 'tabela'
   _visaoGeralView: 'tabela',
+  _searchDebounceTimer: null,
 
   _renderVisaoGeral() {
     const team = this._getInternalTeam();
@@ -400,18 +448,29 @@ const TBO_RH = {
     const bus = this._getBUs();
     const v = this._visaoGeralView;
 
-    // Calcular proximo nivel para cada pessoa
-    const nivelMap = ['Jr. I','Jr. II','Jr. III','Pleno I','Pleno II','Pleno III','Senior I','Senior II','Senior III','Lead','Principal'];
+    // Extrair roles RBAC unicos para filtro
+    const rbacRoles = [...new Set(team.map(t => t.rbacRole).filter(Boolean))].sort();
+    // Extrair status unicos
+    const statuses = [...new Set(team.map(t => t.status || 'ativo'))].sort();
+    // Lideres
+    const leaders = team.filter(t => team.some(m => m.lider === t.id));
+
+    // Contadores para KPIs
+    const onboarding = team.filter(t => t.status === 'onboarding').length;
+    const coordinators = team.filter(t => t.isCoordinator).length;
+
+    // Paginacao info
+    const totalPages = Math.ceil(this._totalCount / this._pageSize) || 1;
 
     return `
       <div class="grid-4" style="margin-bottom:24px;">
-        <div class="kpi-card"><div class="kpi-label">Total Pessoas</div><div class="kpi-value">${team.length}</div><div class="kpi-sub">colaboradores internos</div></div>
+        <div class="kpi-card"><div class="kpi-label">Total Pessoas</div><div class="kpi-value">${this._totalCount || team.length}</div><div class="kpi-sub">${coordinators} coordenadores</div></div>
         <div class="kpi-card kpi-card--success"><div class="kpi-label">Ativos</div><div class="kpi-value">${team.filter(t => t.status === 'ativo').length}</div><div class="kpi-sub">em operacao</div></div>
         <div class="kpi-card kpi-card--blue"><div class="kpi-label">BUs</div><div class="kpi-value">${bus.length}</div><div class="kpi-sub">${bus.join(', ')}</div></div>
         <div class="kpi-card kpi-card--gold"><div class="kpi-label">Media Performance</div><div class="kpi-value">${mediaGeral}</div><div class="kpi-sub">escala 1-5</div></div>
       </div>
 
-      <!-- Toolbar: view switcher + filtros -->
+      <!-- Toolbar: view switcher + filtros avancados -->
       <div class="card" style="margin-bottom:16px;padding:10px 16px;">
         <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between;">
           <div style="display:flex;gap:4px;align-items:center;">
@@ -425,12 +484,25 @@ const TBO_RH = {
               <i data-lucide="layout-grid" style="width:14px;height:14px;"></i>
             </button>
           </div>
-          <div style="display:flex;gap:10px;align-items:center;">
-            <select class="form-input rh-filter-bu" style="width:auto;min-width:130px;padding:5px 10px;font-size:0.76rem;">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <div style="position:relative;">
+              <i data-lucide="search" style="width:13px;height:13px;position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none;"></i>
+              <input type="text" class="form-input rh-filter-search" placeholder="Buscar por nome ou email..." style="width:auto;min-width:200px;padding:5px 10px 5px 28px;font-size:0.76rem;">
+            </div>
+            <select class="form-input rh-filter-bu" style="width:auto;min-width:120px;padding:5px 10px;font-size:0.76rem;">
               <option value="">Todas BUs</option>
-              ${bus.map(bu => `<option value="${bu}">${bu}</option>`).join('')}
+              ${bus.map(bu => `<option value="${bu}" ${this._filterSquad === bu ? 'selected' : ''}>${bu}</option>`).join('')}
             </select>
-            <input type="text" class="form-input rh-filter-search" placeholder="Buscar por nome..." style="width:auto;min-width:180px;padding:5px 10px;font-size:0.76rem;">
+            <select class="form-input rh-filter-role" style="width:auto;min-width:110px;padding:5px 10px;font-size:0.76rem;">
+              <option value="">Todos Roles</option>
+              ${rbacRoles.map(r => `<option value="${r}" ${this._filterRole === r ? 'selected' : ''}>${r}</option>`).join('')}
+            </select>
+            <select class="form-input rh-filter-status" style="width:auto;min-width:100px;padding:5px 10px;font-size:0.76rem;">
+              <option value="">Todos Status</option>
+              <option value="ativo" ${this._filterStatus === 'ativo' ? 'selected' : ''}>Ativo</option>
+              <option value="inativo" ${this._filterStatus === 'inativo' ? 'selected' : ''}>Inativo</option>
+              <option value="onboarding" ${this._filterStatus === 'onboarding' ? 'selected' : ''}>Onboarding</option>
+            </select>
           </div>
         </div>
       </div>
@@ -440,8 +512,28 @@ const TBO_RH = {
         ${this._renderVisaoGeralContent(team, reviews)}
       </div>
 
+      <!-- Paginacao (so na view tabela) -->
+      ${v === 'tabela' && this._totalCount > this._pageSize ? `
+      <div class="card rh-pagination" style="margin-top:12px;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:0.75rem;color:var(--text-muted);">
+          Mostrando ${this._page * this._pageSize + 1}–${Math.min((this._page + 1) * this._pageSize, this._totalCount)} de ${this._totalCount}
+        </span>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-sm btn-secondary rh-page-btn" data-page="prev" ${this._page === 0 ? 'disabled' : ''}>
+            <i data-lucide="chevron-left" style="width:14px;height:14px;"></i>
+          </button>
+          <span style="font-size:0.78rem;padding:4px 10px;font-weight:600;">${this._page + 1} / ${totalPages}</span>
+          <button class="btn btn-sm btn-secondary rh-page-btn" data-page="next" ${this._page >= totalPages - 1 ? 'disabled' : ''}>
+            <i data-lucide="chevron-right" style="width:14px;height:14px;"></i>
+          </button>
+        </div>
+      </div>` : ''}
+
       <!-- Drawer de detalhe (Perfil Asana-style) -->
       <div id="rhPersonDrawer" class="rh-drawer" style="display:none;"></div>
+
+      <!-- Context menu (acoes por usuario) -->
+      <div id="rhContextMenu" class="rh-context-menu" style="display:none;"></div>
     `;
   },
 
@@ -505,12 +597,21 @@ const TBO_RH = {
   // ── Tabela por BU (estilo Notion) ─────────────────────────────────
   _renderTabelaBU(team, reviews) {
     const bus = this._getBUs();
-    const nivelMap = ['Jr. I','Jr. II','Jr. III','Pleno I','Pleno II','Pleno III','Senior I','Senior II','Senior III','Lead','Principal'];
     const buColors = { 'Branding': '#8b5cf6', 'Digital 3D': '#3a7bd5', 'Marketing': '#f59e0b', 'Vendas': '#2ecc71' };
+    const statusConfig = {
+      'ativo':      { label: 'Ativo',      color: 'var(--color-success)', icon: 'check-circle' },
+      'onboarding': { label: 'Onboarding', color: 'var(--color-info)',    icon: 'compass' },
+      'convidado':  { label: 'Convidado',  color: 'var(--color-purple, #8b5cf6)', icon: 'mail' },
+      'ferias':     { label: 'Ferias',     color: 'var(--color-warning)', icon: 'sun' },
+      'suspenso':   { label: 'Suspenso',   color: 'var(--color-warning)', icon: 'pause-circle' },
+      'inativo':    { label: 'Inativo',    color: 'var(--text-muted)',    icon: 'x-circle' },
+      'removido':   { label: 'Removido',   color: 'var(--color-danger)',  icon: 'user-x' }
+    };
 
-    const getProximoNivel = (nivel) => {
-      const idx = nivelMap.indexOf(nivel);
-      return idx >= 0 && idx < nivelMap.length - 1 ? nivelMap[idx + 1] : '\u2014';
+    // Sortable header helper
+    const sortIcon = (col) => {
+      if (this._sortBy === col) return `<i data-lucide="${this._sortDir === 'asc' ? 'chevron-up' : 'chevron-down'}" style="width:12px;height:12px;opacity:0.7;"></i>`;
+      return `<i data-lucide="chevrons-up-down" style="width:11px;height:11px;opacity:0.3;"></i>`;
     };
 
     // Agrupar por BU (+ grupo "Diretoria" para quem nao tem BU)
@@ -521,34 +622,45 @@ const TBO_RH = {
       groups[g].push(p);
     });
 
-    // Ordenar: Diretoria primeiro, depois BUs alfabeticamente
+    // Ordenar: Diretoria primeiro, depois BUs
     const sortedGroups = Object.entries(groups).sort((a, b) => {
       if (a[0] === 'Diretoria') return -1;
       if (b[0] === 'Diretoria') return 1;
       return a[0].localeCompare(b[0]);
     });
 
+    const isAdmin = this._isAdmin();
+
     return `
       <div class="card rh-tabela-card" style="overflow:hidden;">
         <div style="overflow-x:auto;">
-          <table class="data-table rh-bu-table" style="min-width:800px;">
+          <table class="data-table rh-bu-table" style="min-width:950px;">
             <thead>
               <tr>
-                <th style="min-width:200px;">Colaborador(a)</th>
-                <th style="min-width:90px;">Entrada</th>
-                <th style="min-width:120px;">Area da Empresa</th>
-                <th style="min-width:140px;">Cargo</th>
-                <th style="min-width:90px;">Nivel Atual</th>
-                <th style="min-width:90px;">Proximo Nivel</th>
-                <th style="min-width:80px;text-align:center;">Status</th>
+                <th class="rh-sort-header" data-sort="full_name" style="min-width:200px;cursor:pointer;">
+                  <div style="display:flex;align-items:center;gap:4px;">Colaborador(a) ${sortIcon('full_name')}</div>
+                </th>
+                <th style="min-width:130px;">Cargo</th>
+                <th style="min-width:100px;">Papel RBAC</th>
+                <th style="min-width:90px;">Squad/BU</th>
+                <th class="rh-sort-header" data-sort="created_at" style="min-width:85px;cursor:pointer;">
+                  <div style="display:flex;align-items:center;gap:4px;">Entrada ${sortIcon('created_at')}</div>
+                </th>
+                <th style="min-width:95px;">Lider</th>
+                <th style="min-width:75px;text-align:center;">Status</th>
+                <th class="rh-sort-header" data-sort="last_sign_in_at" style="min-width:85px;cursor:pointer;">
+                  <div style="display:flex;align-items:center;gap:4px;">Ultimo Login ${sortIcon('last_sign_in_at')}</div>
+                </th>
+                ${isAdmin ? '<th style="width:40px;text-align:center;"></th>' : ''}
               </tr>
             </thead>
             <tbody>
               ${sortedGroups.map(([groupName, members]) => {
                 const color = buColors[groupName] || 'var(--accent-gold)';
+                const colSpan = isAdmin ? 9 : 8;
                 return `
                   <tr class="rh-bu-group-header" data-group="${groupName}">
-                    <td colspan="7" style="background:${color}08;padding:8px 16px;cursor:pointer;">
+                    <td colspan="${colSpan}" style="background:${color}08;padding:8px 16px;cursor:pointer;">
                       <div style="display:flex;align-items:center;gap:8px;">
                         <i data-lucide="chevron-down" class="rh-group-chevron" style="width:14px;height:14px;color:${color};transition:transform 0.2s;"></i>
                         <span style="font-weight:700;font-size:0.85rem;color:${color};">${groupName}</span>
@@ -557,26 +669,43 @@ const TBO_RH = {
                     </td>
                   </tr>
                   ${members.map(p => {
-                    const review = reviews.find(r => r.pessoaId === p.id);
-                    const dataEntrada = p.dataInicio || (p.id === 'marco' || p.id === 'ruy' ? '2021-03-01' : '2024-06-01');
-                    const statusColor = p.status === 'ativo' ? 'var(--color-success)' : p.status === 'ferias' ? 'var(--color-info)' : 'var(--color-warning)';
+                    const dataEntrada = p.dataEntrada || p.dataInicio || (p.id === 'marco' || p.id === 'ruy' ? '2021-03-01' : '2024-06-01');
+                    const st = statusConfig[p.status] || statusConfig['ativo'];
+                    const rbacColor = p.rbacColor || '#94a3b8';
+                    const liderNome = p.lider ? this._getPersonName(p.lider) : '\u2014';
+                    const ultimoLogin = p.ultimoLogin ? new Date(p.ultimoLogin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : '\u2014';
                     return `
                     <tr class="rh-bu-row rh-person-row" data-person="${p.id}" data-group="${groupName}" data-bu="${p.bu || ''}" style="cursor:pointer;">
                       <td>
                         <div style="display:flex;align-items:center;gap:10px;">
                           ${this._getAvatarHTML(p, 32, '0.72rem')}
-                          <div>
-                            <div style="font-weight:600;font-size:0.82rem;">${this._esc(p.nome)}</div>
-                            ${p.email ? `<div style="font-size:0.66rem;color:var(--text-muted);">${this._esc(p.email)}</div>` : ''}
+                          <div style="min-width:0;">
+                            <div style="font-weight:600;font-size:0.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${this._esc(p.nome)}</div>
+                            ${p.email ? `<div style="font-size:0.66rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${this._esc(p.email)}</div>` : ''}
                           </div>
                         </div>
                       </td>
-                      <td style="font-size:0.78rem;color:var(--text-secondary);">${new Date(dataEntrada).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}</td>
-                      <td style="font-size:0.78rem;">${this._esc(p.area || p.bu || 'Geral')}</td>
                       <td style="font-size:0.78rem;">${this._esc(p.cargo)}</td>
-                      <td><span class="tag" style="font-size:0.68rem;">${this._esc(p.nivel || '\u2014')}</span></td>
-                      <td><span class="tag" style="font-size:0.68rem;background:var(--color-info-dim);color:var(--color-info);">${getProximoNivel(p.nivel)}</span></td>
-                      <td style="text-align:center;"><span class="tag" style="font-size:0.65rem;background:${statusColor}20;color:${statusColor};">${p.status || 'ativo'}</span></td>
+                      <td>
+                        <span class="tag" style="font-size:0.65rem;background:${rbacColor}18;color:${rbacColor};border:1px solid ${rbacColor}30;">
+                          ${this._esc(p.rbacLabel || p.rbacRole || 'artist')}
+                        </span>
+                      </td>
+                      <td style="font-size:0.78rem;">${this._esc(p.bu || 'Geral')}</td>
+                      <td style="font-size:0.75rem;color:var(--text-secondary);">${new Date(dataEntrada).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}</td>
+                      <td style="font-size:0.75rem;">${liderNome !== '\u2014' ? `<span style="color:var(--text-secondary);">${this._esc(liderNome)}</span>` : '<span style="color:var(--text-muted);">\u2014</span>'}</td>
+                      <td style="text-align:center;">
+                        <span class="tag" style="font-size:0.62rem;background:${st.color}18;color:${st.color};">
+                          ${st.label}
+                        </span>
+                      </td>
+                      <td style="font-size:0.72rem;color:var(--text-muted);">${ultimoLogin}</td>
+                      ${isAdmin ? `
+                      <td style="text-align:center;">
+                        <button class="btn btn-ghost btn-sm rh-action-menu-btn" data-person="${p.id}" data-name="${this._esc(p.nome)}" style="padding:2px 6px;" title="Acoes" onclick="event.stopPropagation();">
+                          <i data-lucide="more-horizontal" style="width:14px;height:14px;"></i>
+                        </button>
+                      </td>` : ''}
                     </tr>`;
                   }).join('')}
                 `;
@@ -585,6 +714,202 @@ const TBO_RH = {
           </table>
         </div>
       </div>`;
+  },
+
+  // ── Context menu (acoes por usuario) ───────────────────────────────
+  _renderContextMenu(personId, personName, x, y) {
+    const isOwner = this._isAdmin();
+    const person = this._getPerson(personId);
+    const isSelf = personId === this._currentUserId();
+
+    const items = [
+      { icon: 'user', label: 'Ver perfil', action: 'view_profile', always: true },
+      { icon: 'shield', label: 'Alterar role RBAC', action: 'change_role', admin: true },
+      { icon: 'briefcase', label: 'Alterar cargo', action: 'change_cargo', admin: true },
+      { icon: 'users', label: 'Mover de squad', action: 'change_squad', admin: true },
+      { icon: 'mail', label: 'Reenviar convite', action: 'resend_invite', admin: true, condition: person?.status === 'convidado' },
+      { divider: true },
+      { icon: 'pause-circle', label: 'Suspender', action: 'suspend', admin: true, danger: false, condition: person?.status === 'ativo' },
+      { icon: 'play-circle', label: 'Reativar', action: 'reactivate', admin: true, condition: person?.status === 'suspenso' || person?.status === 'inativo' },
+      { icon: 'user-x', label: 'Remover do time', action: 'remove', admin: true, danger: true, condition: !isSelf }
+    ];
+
+    const menu = document.getElementById('rhContextMenu');
+    if (!menu) return;
+
+    const filteredItems = items.filter(item => {
+      if (item.divider) return true;
+      if (item.condition === false) return false;
+      if (item.admin && !isOwner) return false;
+      return true;
+    });
+
+    menu.innerHTML = `
+      <div class="rh-ctx-header" style="padding:8px 12px;border-bottom:1px solid var(--border-subtle);font-size:0.72rem;color:var(--text-muted);font-weight:600;">
+        ${this._esc(personName)}
+      </div>
+      ${filteredItems.map(item => {
+        if (item.divider) return '<div style="height:1px;background:var(--border-subtle);margin:4px 0;"></div>';
+        return `
+          <button class="rh-ctx-item ${item.danger ? 'rh-ctx-danger' : ''}" data-action="${item.action}" data-person="${personId}">
+            <i data-lucide="${item.icon}" style="width:14px;height:14px;"></i>
+            <span>${item.label}</span>
+          </button>`;
+      }).join('')}
+    `;
+
+    // Posicionar menu (viewport-aware)
+    const menuW = 200, menuH = filteredItems.length * 36 + 40;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const posX = x + menuW > vw ? x - menuW : x;
+    const posY = y + menuH > vh ? Math.max(8, y - menuH) : y;
+
+    menu.style.cssText = `display:block;position:fixed;top:${posY}px;left:${posX}px;z-index:1100;min-width:${menuW}px;`;
+    if (window.lucide) lucide.createIcons();
+
+    // Fechar ao clicar fora
+    const closeMenu = (e) => {
+      if (!menu.contains(e.target)) {
+        menu.style.display = 'none';
+        document.removeEventListener('click', closeMenu);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', closeMenu), 10);
+  },
+
+  // ── Handler de acoes do context menu ──────────────────────────────
+  async _handleContextAction(action, personId) {
+    const person = this._getPerson(personId);
+    if (!person) return;
+
+    switch (action) {
+      case 'view_profile':
+        TBO_ROUTER.navigate(`people/${personId}/overview`);
+        break;
+
+      case 'change_role':
+        // TODO: Modal para selecionar novo role RBAC (carregado de roles table)
+        if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.info('Em desenvolvimento', 'Alterar role RBAC sera implementado com o Admin Portal completo.');
+        break;
+
+      case 'change_cargo':
+        const newCargo = prompt(`Novo cargo para ${person.nome}:`, person.cargo);
+        if (newCargo && newCargo !== person.cargo) {
+          // Atualizar no Supabase se disponivel
+          if (typeof TBO_SUPABASE !== 'undefined') {
+            try {
+              const client = TBO_SUPABASE.getClient();
+              if (client && person.supabaseId) {
+                await client.from('profiles').update({ role: newCargo }).eq('id', person.supabaseId);
+                person.cargo = newCargo;
+                if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Cargo atualizado!');
+                this._refreshVisaoGeral();
+                return;
+              }
+            } catch (e) { console.warn('[RH] Erro ao atualizar cargo:', e.message); }
+          }
+          person.cargo = newCargo;
+          if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Cargo atualizado (local)');
+          this._refreshVisaoGeral();
+        }
+        break;
+
+      case 'change_squad':
+        const bus = this._getBUs();
+        const newBU = prompt(`Mover ${person.nome} para qual squad/BU?\nOpcoes: ${bus.join(', ')}`, person.bu);
+        if (newBU !== null && newBU !== person.bu) {
+          if (typeof TBO_SUPABASE !== 'undefined') {
+            try {
+              const client = TBO_SUPABASE.getClient();
+              if (client && person.supabaseId) {
+                await client.from('profiles').update({ bu: newBU }).eq('id', person.supabaseId);
+                person.bu = newBU;
+                if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Squad atualizado!');
+                this._refreshVisaoGeral();
+                return;
+              }
+            } catch (e) { console.warn('[RH] Erro ao atualizar squad:', e.message); }
+          }
+          person.bu = newBU;
+          if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Squad atualizado (local)');
+          this._refreshVisaoGeral();
+        }
+        break;
+
+      case 'suspend':
+        if (confirm(`Suspender ${person.nome}? O usuario perdera acesso ao sistema.`)) {
+          if (typeof TBO_SUPABASE !== 'undefined') {
+            try {
+              const client = TBO_SUPABASE.getClient();
+              if (client && person.supabaseId) {
+                await client.from('profiles').update({ is_active: false }).eq('id', person.supabaseId);
+              }
+            } catch (e) { console.warn('[RH] Erro ao suspender:', e.message); }
+          }
+          person.status = 'suspenso';
+          if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.warning('Usuario suspenso');
+          this._refreshVisaoGeral();
+        }
+        break;
+
+      case 'reactivate':
+        if (typeof TBO_SUPABASE !== 'undefined') {
+          try {
+            const client = TBO_SUPABASE.getClient();
+            if (client && person.supabaseId) {
+              await client.from('profiles').update({ is_active: true }).eq('id', person.supabaseId);
+            }
+          } catch (e) { console.warn('[RH] Erro ao reativar:', e.message); }
+        }
+        person.status = 'ativo';
+        if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Usuario reativado!');
+        this._refreshVisaoGeral();
+        break;
+
+      case 'remove':
+        if (confirm(`ATENCAO: Remover ${person.nome} do time? Esta acao pode ser revertida apenas pelo admin.`)) {
+          if (typeof TBO_SUPABASE !== 'undefined') {
+            try {
+              const client = TBO_SUPABASE.getClient();
+              if (client && person.supabaseId) {
+                await client.from('profiles').update({ is_active: false }).eq('id', person.supabaseId);
+              }
+            } catch (e) { console.warn('[RH] Erro ao remover:', e.message); }
+          }
+          person.status = 'removido';
+          if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.warning('Usuario removido do time');
+          this._refreshVisaoGeral();
+        }
+        break;
+
+      case 'resend_invite':
+        if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.info('Em desenvolvimento', 'Reenvio de convite sera implementado com o sistema de onboarding.');
+        break;
+    }
+  },
+
+  // ── Refresh helper (re-renderiza conteudo da visao geral) ──────────
+  _refreshVisaoGeral() {
+    const content = document.getElementById('rhVisaoGeralContent');
+    if (content) {
+      const team = this._getInternalTeam();
+      const reviews = this._getStore('avaliacoes_people');
+      content.innerHTML = this._renderVisaoGeralContent(team, reviews);
+      this._bindVisaoGeralContent();
+      if (window.lucide) lucide.createIcons();
+    }
+  },
+
+  // ── Server-side reload (para sort/filter/pagination) ──────────────
+  async _reloadTeamServerSide() {
+    this._teamLoaded = false;
+    await this._loadTeamFromSupabase({ force: true });
+    // Re-renderizar toda a visao geral (com novos dados e paginacao)
+    const tabContent = document.getElementById('rhTabContent');
+    if (tabContent) {
+      tabContent.innerHTML = this._renderVisaoGeral();
+      this._initActiveTab();
+    }
   },
 
   // ── Cards Grid (view original) ────────────────────────────────────
@@ -670,7 +995,12 @@ const TBO_RH = {
                 </div>
               </div>
             </div>
-            <button class="btn btn-secondary btn-sm" id="rhCloseDrawer" style="flex-shrink:0;"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
+            <div style="display:flex;gap:6px;flex-shrink:0;">
+              <button class="btn btn-primary btn-sm" id="rhOpenFullProfile" data-person="${personId}" title="Ver perfil completo" style="font-size:0.68rem;padding:3px 10px;">
+                <i data-lucide="external-link" style="width:12px;height:12px;"></i> Perfil
+              </button>
+              <button class="btn btn-secondary btn-sm" id="rhCloseDrawer"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
+            </div>
           </div>
           ${person.email ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:8px;margin-left:88px;"><i data-lucide="mail" style="width:12px;height:12px;vertical-align:-2px;margin-right:4px;"></i>${this._esc(person.email)}</div>` : ''}
           ${person.lider ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;margin-left:88px;"><i data-lucide="user" style="width:12px;height:12px;vertical-align:-2px;margin-right:4px;"></i>Reporta a: <strong>${this._getPersonName(person.lider)}</strong></div>` : ''}
@@ -1316,6 +1646,22 @@ const TBO_RH = {
       .rh-person-row { cursor: pointer; }
       .rh-tabela-card { border: 1px solid var(--border-subtle); border-radius: var(--radius-md, 8px); }
 
+      /* ── Sort headers ── */
+      .rh-sort-header { user-select: none; }
+      .rh-sort-header:hover { background: var(--bg-tertiary) !important; }
+      .rh-sort-header div { display: inline-flex; align-items: center; gap: 3px; }
+
+      /* ── Context menu (acoes por usuario) ── */
+      .rh-context-menu { background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md, 8px); box-shadow: 0 8px 24px rgba(0,0,0,0.18); overflow: hidden; min-width: 200px; }
+      .rh-ctx-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 14px; border: none; background: none; cursor: pointer; font-size: 0.78rem; color: var(--text-primary); transition: background 0.12s; text-align: left; }
+      .rh-ctx-item:hover { background: var(--bg-elevated); }
+      .rh-ctx-danger { color: var(--color-danger); }
+      .rh-ctx-danger:hover { background: var(--color-danger)08; }
+
+      /* ── Pagination ── */
+      .rh-pagination { border: 1px solid var(--border-subtle); border-radius: var(--radius-md, 8px); }
+      .rh-page-btn:disabled { opacity: 0.3; pointer-events: none; }
+
       /* ── Subtabs ── */
       .subtab-content { display: none; }
       .subtab-content.active { display: block; }
@@ -1395,38 +1741,97 @@ const TBO_RH = {
     // Bind do conteudo da visao geral (cards/tabela/organograma)
     this._bindVisaoGeralContent();
 
-    // Visao Geral: restaurar filtros preservados e bind events
+    // ── Filtros avancados ──
     const filterBu = document.querySelector('.rh-filter-bu');
     const filterSearch = document.querySelector('.rh-filter-search');
-    if (filterBu && this._filterBU) filterBu.value = this._filterBU;
+    const filterRole = document.querySelector('.rh-filter-role');
+    const filterStatus = document.querySelector('.rh-filter-status');
+
+    // Restaurar valores de filtros preservados
+    if (filterBu && this._filterSquad) filterBu.value = this._filterSquad;
     if (filterSearch && this._filterSearch) filterSearch.value = this._filterSearch;
-    const applyFilters = () => {
+    if (filterRole && this._filterRole) filterRole.value = this._filterRole;
+    if (filterStatus && this._filterStatus) filterStatus.value = this._filterStatus;
+
+    // Filtro local/client-side (rapido, para organograma e cards)
+    const applyClientFilters = () => {
       const bu = filterBu ? filterBu.value : '';
       const search = filterSearch ? filterSearch.value.toLowerCase() : '';
-      this._filterBU = bu;
-      this._filterSearch = search;
-      // Filtrar cards
+      const role = filterRole ? filterRole.value : '';
+      const status = filterStatus ? filterStatus.value : '';
+
+      // Cards
       document.querySelectorAll('.rh-person-card').forEach(card => {
         const matchBu = !bu || card.dataset.bu === bu;
         const matchSearch = !search || card.textContent.toLowerCase().includes(search);
         card.style.display = (matchBu && matchSearch) ? '' : 'none';
       });
-      // Filtrar linhas de tabela
+      // Organograma nodes
+      document.querySelectorAll('.rh-org-node').forEach(node => {
+        const matchSearch = !search || node.textContent.toLowerCase().includes(search);
+        node.style.display = matchSearch ? '' : 'none';
+      });
+      // Tabela rows (client-side filtering for responsiveness)
       document.querySelectorAll('.rh-bu-row').forEach(row => {
         const matchBu = !bu || row.dataset.bu === bu || row.dataset.group === bu;
         const matchSearch = !search || row.textContent.toLowerCase().includes(search);
         row.style.display = (matchBu && matchSearch) ? '' : 'none';
       });
-      // Filtrar nodes do organograma
-      document.querySelectorAll('.rh-org-node').forEach(node => {
-        const matchSearch = !search || node.textContent.toLowerCase().includes(search);
-        node.style.display = matchSearch ? '' : 'none';
-      });
     };
-    if (filterBu) filterBu.addEventListener('change', applyFilters);
-    if (filterSearch) filterSearch.addEventListener('input', applyFilters);
-    // Aplicar filtros restaurados
-    if (this._filterBU || this._filterSearch) applyFilters();
+
+    // Filtros server-side (para busca/paginacao — debounced)
+    const applyServerFilters = () => {
+      this._filterSquad = filterBu ? filterBu.value : '';
+      this._filterRole = filterRole ? filterRole.value : '';
+      this._filterStatus = filterStatus ? filterStatus.value : '';
+      this._filterSearch = filterSearch ? filterSearch.value.trim() : '';
+      this._page = 0; // Reset paginacao ao filtrar
+      this._reloadTeamServerSide();
+    };
+
+    // Bind filter events
+    if (filterBu) filterBu.addEventListener('change', () => { applyClientFilters(); applyServerFilters(); });
+    if (filterRole) filterRole.addEventListener('change', applyServerFilters);
+    if (filterStatus) filterStatus.addEventListener('change', applyServerFilters);
+    if (filterSearch) {
+      // Debounce busca: client-side imediato, server-side apos 400ms
+      filterSearch.addEventListener('input', () => {
+        applyClientFilters();
+        clearTimeout(this._searchDebounceTimer);
+        this._searchDebounceTimer = setTimeout(applyServerFilters, 400);
+      });
+    }
+
+    // Aplicar filtros restaurados imediatamente
+    if (this._filterSquad || this._filterSearch) applyClientFilters();
+
+    // ── Sort headers (click to sort) ──
+    document.querySelectorAll('.rh-sort-header').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.sort;
+        if (this._sortBy === col) {
+          this._sortDir = this._sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+          this._sortBy = col;
+          this._sortDir = 'asc';
+        }
+        this._page = 0;
+        this._reloadTeamServerSide();
+      });
+    });
+
+    // ── Paginacao ──
+    document.querySelectorAll('.rh-page-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.dataset.page === 'prev' && this._page > 0) {
+          this._page--;
+        } else if (btn.dataset.page === 'next') {
+          const totalPages = Math.ceil(this._totalCount / this._pageSize);
+          if (this._page < totalPages - 1) this._page++;
+        }
+        this._reloadTeamServerSide();
+      });
+    });
 
     // Person detail (ranking)
     this._bindPersonDetailClicks();
@@ -1578,6 +1983,11 @@ const TBO_RH = {
     this._loadPersonTasks(personId);
     this._loadOnboardingData(personId);
 
+    // Abrir perfil completo
+    this._bind('rhOpenFullProfile', () => {
+      this._closePersonDrawer();
+      TBO_ROUTER.navigate(`people/${personId}/overview`);
+    });
     // Fechar pelo X
     this._bind('rhCloseDrawer', () => this._closePersonDrawer());
     // Fechar pelo backdrop
@@ -1765,6 +2175,23 @@ const TBO_RH = {
         const isHidden = rows[0]?.style.display === 'none';
         rows.forEach(r => r.style.display = isHidden ? '' : 'none');
         if (chevron) chevron.style.transform = isHidden ? '' : 'rotate(-90deg)';
+      });
+    });
+    // Action menu (⋯) — abre context menu por usuario
+    document.querySelectorAll('.rh-action-menu-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const rect = btn.getBoundingClientRect();
+        this._renderContextMenu(btn.dataset.person, btn.dataset.name, rect.right - 200, rect.bottom + 4);
+      });
+    });
+    // Context menu items
+    document.querySelectorAll('.rh-ctx-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const menu = document.getElementById('rhContextMenu');
+        if (menu) menu.style.display = 'none';
+        this._handleContextAction(item.dataset.action, item.dataset.person);
       });
     });
     // Colleague chips no drawer -> abrir perfil

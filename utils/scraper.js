@@ -304,50 +304,43 @@ REGRAS:
   },
 
   async generateNewsFeed() {
+    // Tentar buscar noticias reais via proxy primeiro
+    try {
+      const proxyUrl = `${window.location.origin}/api/news-proxy?limit=20`;
+      const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.success && data.news?.length > 0) {
+          console.log(`[TBO_SCRAPER] ${data.news.length} noticias reais carregadas via proxy`);
+          return data.news.map(n => ({
+            titulo: n.title, fonte: n.source, data: n.date,
+            resumo: n.summary || '', categoria: n.category,
+            regional: n.region === 'curitiba', relevancia_tbo: 'media',
+            url: n.url || '#'
+          }));
+        }
+      }
+    } catch (e) {
+      console.warn('[TBO_SCRAPER] Proxy indisponivel, tentando IA:', e.message);
+    }
+
+    // Fallback: gerar via IA
     if (!TBO_API.isConfigured()) {
-      throw new Error('API key necessária.');
+      throw new Error('API key necessária e proxy indisponível.');
     }
 
     const market = TBO_STORAGE.get('market');
 
     const systemPrompt = `Você é um curador de notícias do setor imobiliário brasileiro, especialista em Curitiba/PR.
-Gere um feed de notícias REALISTA baseado em tendências reais do mercado imobiliário em fevereiro de 2026.
+Gere um feed de notícias REALISTA baseado em tendências reais do mercado imobiliário.
 
-CONTEXTO ATUAL DO MERCADO:
-- Retração de -41% em lançamentos e -47% em unidades em Curitiba (S1 2025 vs S1 2024)
-- Mercado mais conservador, compras fatiadas
-- Segmento de alto padrão resiliente
-- Pressão por justificativa de ROI
-${JSON.stringify(market.tendencias || [], null, 2)}
+CONTEXTO ATUAL: ${JSON.stringify(market.indicadores_curitiba || {}, null, 2)}
 
-Para cada notícia, forneça em formato JSON:
-{
-  "noticias": [
-    {
-      "titulo": "...",
-      "fonte": "nome da fonte real (Brain, Cúpola, ABRAINC, Valor Econômico, InfoMoney, etc.)",
-      "data": "2026-02-XX",
-      "resumo": "2-3 frases descritivas",
-      "categoria": "lancamentos|indicadores|incorporadoras|tendencias|custos|financiamento",
-      "regional": true/false,
-      "relevancia_tbo": "alta|media|baixa",
-      "url": "#"
-    }
-  ]
-}
+Retorne JSON array: [{"titulo":"...","fonte":"Valor Econômico|InfoMoney|SECOVI-PR|Brain|etc","data":"2026-02-XX","resumo":"2-3 frases","categoria":"lancamentos|indicadores|incorporadoras|tendencias","regional":true/false,"relevancia_tbo":"alta|media|baixa","url":"#"}]
 
-Gere 12 notícias variadas e realistas cobrindo:
-- Dados de lançamentos (Brain, DataStore)
-- Indicadores nacionais (ABRAINC)
-- Custos de construção (CBIC, Sinduscon-PR)
-- Tendências de marketing (Cúpola)
-- Mercado financeiro/Selic (Valor, InfoMoney)
-- Mercado local (SECOVI-PR)
+Gere 12 noticias variadas. Responda APENAS com JSON, sem markdown.`;
 
-Priorize relevância para Curitiba/PR e para um studio de visualização arquitetônica.
-Responda APENAS com o JSON, sem texto adicional.`;
-
-    const response = await TBO_API.call(systemPrompt, 'Gere o feed de notícias atualizado para hoje.', { maxTokens: 4000, temperature: 0.7 });
+    const response = await TBO_API.call(systemPrompt, 'Gere o feed de notícias atualizado para hoje.', { maxTokens: 3500, temperature: 0.7 });
 
     try {
       let jsonText = response.text;

@@ -18,8 +18,10 @@ const TBO_ROUTER = {
 
   // Rotas parametrizadas: prefixo → modulo handler
   // Formato: #projeto/{id}/{tab} → modulo 'project-workspace' recebe params
+  // Formato: #people/{userId}/{tab} → modulo 'people-profile' recebe params
   _paramRoutes: {
-    'projeto': 'project-workspace'
+    'projeto': 'project-workspace',
+    'people': 'people-profile'
   },
 
   _resolveAlias(name) {
@@ -172,8 +174,8 @@ const TBO_ROUTER = {
   async _navigateParam(route) {
     const { moduleName, params, fullRoute } = route;
 
-    // Permissao: usa modulo-pai (projetos) para checar acesso
-    const permModule = moduleName === 'project-workspace' ? 'projetos' : moduleName;
+    // Permissao: usa modulo-pai para checar acesso
+    const permModule = moduleName === 'project-workspace' ? 'projetos' : moduleName === 'people-profile' ? 'rh' : moduleName;
     if (typeof TBO_AUTH !== 'undefined' && !TBO_AUTH.canAccess(permModule)) {
       const user = TBO_AUTH.getCurrentUser();
       const defaultMod = user?.defaultModule || 'command-center';
@@ -215,9 +217,10 @@ const TBO_ROUTER = {
     // Update URL hash
     window.location.hash = fullRoute;
 
-    // Notify listeners (passa 'projetos' como moduleName para sidebar highlight)
+    // Notify listeners (passa modulo-pai como moduleName para sidebar highlight)
+    const sidebarModule = moduleName === 'people-profile' ? 'rh' : 'projetos';
     this._onChangeCallbacks.forEach(cb => {
-      try { cb('projetos', prev); } catch (e) { console.warn(e); }
+      try { cb(sidebarModule, prev); } catch (e) { console.warn(e); }
     });
 
     const container = document.getElementById('moduleContainer');
@@ -255,7 +258,9 @@ const TBO_ROUTER = {
       if (module.init) {
         await module.init();
       }
-      if (typeof TBO_UX !== 'undefined') TBO_UX.updateBreadcrumb('projetos', module._projectName || 'Projeto');
+      const breadcrumbParent = moduleName === 'people-profile' ? 'rh' : 'projetos';
+      const breadcrumbLabel = moduleName === 'people-profile' ? (module._personName || 'Perfil') : (module._projectName || 'Projeto');
+      if (typeof TBO_UX !== 'undefined') TBO_UX.updateBreadcrumb(breadcrumbParent, breadcrumbLabel);
       if (window.lucide) lucide.createIcons();
     } catch (error) {
       console.error(`Error rendering param module "${moduleName}":`, error);

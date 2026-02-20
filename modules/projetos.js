@@ -675,6 +675,7 @@ const TBO_PROJETOS = {
 
     const user = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.getCurrentUser() : null;
     const canSeeCost = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.canDo('finance', 'view') : false;
+    const isFounder = user && (user.role === 'founder' || user.role === 'admin' || (typeof TBO_AUTH !== 'undefined' && TBO_AUTH.isAdmin && TBO_AUTH.isAdmin()));
 
     // Team utilization
     const weekStart = TBO_WORKLOAD.getWeekStart();
@@ -1566,6 +1567,9 @@ const TBO_PROJETOS = {
     // Drag & drop for board
     this._initDragDrop();
 
+    // Context menu em project cards (right-click e ⋯)
+    this._initProjectContextMenu();
+
     // New tab bindings: Timesheet, Workload, Gantt, My Tasks
     this._bindTimesheetEvents();
     this._bindGanttEvents();
@@ -1575,6 +1579,20 @@ const TBO_PROJETOS = {
     // Init timer widget
     if (typeof TBO_WORKLOAD !== 'undefined') {
       TBO_WORKLOAD.initTimerWidget();
+    }
+
+    // Inject context menu CSS
+    if (!document.getElementById('pj-ctx-css')) {
+      const s = document.createElement('style');
+      s.id = 'pj-ctx-css';
+      s.textContent = `
+        .pj-ctx-item { display:flex; align-items:center; gap:10px; width:100%; padding:8px 14px; font-size:0.8rem; color:var(--text-primary); border:none; background:none; cursor:pointer; text-align:left; }
+        .pj-ctx-item:hover { background:var(--bg-secondary); }
+        .pj-ctx-item--danger { color:var(--color-danger); }
+        .pj-ctx-item--danger:hover { background:#ef444412; }
+        .pj-ctx-divider { height:1px; background:var(--border-subtle); margin:4px 8px; }
+      `;
+      document.head.appendChild(s);
     }
   },
 
@@ -1621,6 +1639,163 @@ const TBO_PROJETOS = {
       this._refreshBoard();
     } else {
       TBO_TOAST.error(result.error);
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CONTEXT MENU (projetos)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  _initProjectContextMenu() {
+    // Right-click em cards do board
+    document.querySelectorAll('.erp-project-card').forEach(card => {
+      card.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const projectId = card.dataset.id;
+        if (projectId) this._showProjectContextMenu(projectId, e.clientX, e.clientY);
+      });
+    });
+
+    // Right-click em rows da lista
+    document.querySelectorAll('.pj-list-row').forEach(row => {
+      row.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const projectId = row.dataset.id;
+        if (projectId) this._showProjectContextMenu(projectId, e.clientX, e.clientY);
+      });
+    });
+  },
+
+  _showProjectContextMenu(projectId, x, y) {
+    const project = TBO_STORAGE.getErpEntity('project', projectId);
+    if (!project) return;
+    const sm = typeof TBO_ERP !== 'undefined' ? TBO_ERP.stateMachines.project : null;
+    const isFinal = TBO_CONFIG.business.projectFinalStatuses?.includes(project.status);
+
+    let menu = document.getElementById('pjContextMenu');
+    if (!menu) {
+      menu = document.createElement('div');
+      menu.id = 'pjContextMenu';
+      menu.className = 'pj-context-menu';
+      document.body.appendChild(menu);
+    }
+
+    const items = [
+      { icon: 'folder-open', label: 'Abrir projeto', action: 'open' },
+      { icon: 'edit-3', label: 'Editar detalhes', action: 'edit' },
+      { divider: true },
+      { icon: 'copy', label: 'Duplicar projeto', action: 'duplicate' },
+      { icon: 'link', label: 'Copiar link', action: 'copy_link' },
+      { divider: true }
+    ];
+
+    // Transicoes de status disponiveis
+    if (sm && !isFinal) {
+      const transitions = typeof TBO_ERP !== 'undefined' ? TBO_ERP.getValidTransitions('project', project.status) : [];
+      if (transitions.length > 0) {
+        transitions.forEach(tr => {
+          items.push({ icon: 'arrow-right', label: `Mover para ${tr.label}`, action: `move_${tr.state}` });
+        });
+        items.push({ divider: true });
+      }
+    }
+
+    items.push({ icon: 'archive', label: isFinal ? 'Reativar projeto' : 'Arquivar projeto', action: isFinal ? 'reactivate' : 'archive' });
+    items.push({ icon: 'trash-2', label: 'Excluir projeto', action: 'delete', danger: true });
+
+    menu.innerHTML = items.map(item => {
+      if (item.divider) return '<div class="pj-ctx-divider"></div>';
+      return `<button class="pj-ctx-item ${item.danger ? 'pj-ctx-item--danger' : ''}" data-action="${item.action}" data-project-id="${projectId}">
+        <i data-lucide="${item.icon}" style="width:14px;height:14px;"></i>
+        <span>${item.label}</span>
+      </button>`;
+    }).join('');
+
+    // Posicionar (viewport-aware)
+    const menuW = 220, menuH = items.length * 36;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const posX = x + menuW > vw ? x - menuW : x;
+    const posY = y + menuH > vh ? Math.max(8, y - menuH) : y;
+
+    menu.style.cssText = `display:block;position:fixed;top:${posY}px;left:${posX}px;z-index:1100;background:var(--bg-primary);border:1px solid var(--border-default);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.15);padding:4px 0;min-width:210px;`;
+    if (window.lucide) lucide.createIcons();
+
+    menu.querySelectorAll('.pj-ctx-item').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.style.display = 'none';
+        this._handleProjectContextAction(btn.dataset.action, btn.dataset.projectId);
+      });
+    });
+
+    const closeMenu = (e) => {
+      if (!menu.contains(e.target)) {
+        menu.style.display = 'none';
+        document.removeEventListener('click', closeMenu);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', closeMenu), 10);
+    const escHandler = (e) => {
+      if (e.key === 'Escape') { menu.style.display = 'none'; document.removeEventListener('keydown', escHandler); }
+    };
+    document.addEventListener('keydown', escHandler);
+  },
+
+  _handleProjectContextAction(action, projectId) {
+    switch (action) {
+      case 'open':
+        TBO_ROUTER.navigate(`projeto/${projectId}/list`);
+        break;
+      case 'edit':
+        this._showProjectModal(projectId);
+        break;
+      case 'duplicate': {
+        const p = TBO_STORAGE.getErpEntity('project', projectId);
+        if (p) {
+          const newP = { ...p, id: undefined, name: (p.name || 'Projeto') + ' (copia)', status: 'briefing', code: '' };
+          TBO_STORAGE.addErpEntity('project', newP);
+          this._refreshBoard();
+          TBO_TOAST.success('Projeto duplicado!');
+        }
+        break;
+      }
+      case 'copy_link':
+        navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}#projeto/${projectId}/list`).then(() => {
+          TBO_TOAST.success('Link copiado!');
+        });
+        break;
+      case 'archive':
+        if (typeof TBO_ERP !== 'undefined') {
+          const result = TBO_ERP.transition('project', projectId, 'finalizado');
+          if (result.ok) { this._refreshBoard(); TBO_TOAST.success('Projeto arquivado'); }
+          else TBO_TOAST.error(result.error);
+        }
+        break;
+      case 'reactivate':
+        TBO_STORAGE.updateErpEntity('project', projectId, { status: 'em_andamento' });
+        this._refreshBoard();
+        TBO_TOAST.success('Projeto reativado');
+        break;
+      case 'delete':
+        if (confirm('Excluir este projeto permanentemente? Todas as tarefas associadas serao perdidas.')) {
+          TBO_STORAGE.deleteErpEntity('project', projectId);
+          this._refreshBoard();
+          TBO_TOAST.success('Projeto excluido');
+        }
+        break;
+      default:
+        // Transicoes de status (move_xxx)
+        if (action.startsWith('move_')) {
+          const newState = action.replace('move_', '');
+          if (typeof TBO_ERP !== 'undefined') {
+            const result = TBO_ERP.transition('project', projectId, newState);
+            if (result.ok) { this._refreshBoard(); TBO_TOAST.success(`Projeto movido para ${TBO_ERP.getStateLabel('project', newState)}`); }
+            else TBO_TOAST.error(result.error);
+          }
+        }
+        break;
     }
   },
 

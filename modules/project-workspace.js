@@ -836,8 +836,16 @@ const TBO_PROJECT_WORKSPACE = {
         };
 
         return `
-          <div class="pw-list-row${isDone ? ' pw-list-row--done' : ''}" data-task-id="${this._esc(task.id)}">
+          <div class="pw-list-row${isDone ? ' pw-list-row--done' : ''}" data-task-id="${this._esc(task.id)}" data-section="${this._esc(section.name)}" draggable="false">
+            <div class="pw-drag-handle" title="Arrastar para reordenar" data-task-id="${this._esc(task.id)}">
+              <i data-lucide="grip-vertical" style="width:14px;height:14px;color:var(--text-muted);opacity:0.3;"></i>
+            </div>
             ${visibleCols.map(c => renderCell(c.id)).join('')}
+            <div class="pw-list-col pw-list-col--actions" style="width:32px;flex-shrink:0;">
+              <button class="pw-row-menu-btn btn btn-ghost btn-sm" data-task-id="${this._esc(task.id)}" title="Acoes" style="padding:2px 4px;" onclick="event.stopPropagation();">
+                <i data-lucide="more-horizontal" style="width:14px;height:14px;"></i>
+              </button>
+            </div>
           </div>
         `;
       }).join('');
@@ -1006,10 +1014,13 @@ const TBO_PROJECT_WORKSPACE = {
           </div>
           <div class="pw-board-cards">
             ${tasks.map(t => `
-              <div class="pw-board-card">
+              <div class="pw-board-card" data-task-id="${this._esc(t.id)}" draggable="true">
                 <div class="pw-board-card-name">${this._esc(t.title || t.name || 'Sem titulo')}</div>
                 ${t.owner ? `<div class="pw-board-card-owner"><i data-lucide="user" style="width:12px;height:12px;"></i> ${this._esc(t.owner)}</div>` : ''}
                 ${t.due_date ? `<div class="pw-board-card-date"><i data-lucide="calendar" style="width:12px;height:12px;"></i> ${new Date(t.due_date).toLocaleDateString('pt-BR')}</div>` : ''}
+                <div style="display:flex;gap:4px;margin-top:6px;">
+                  ${t.priority ? `<span class="pw-priority-chip" style="font-size:0.62rem;background:${{urgente:'#ef4444',alta:'#f59e0b',media:'#3b82f6',baixa:'#6b7280'}[t.priority] || '#6b7280'}15;color:${{urgente:'#ef4444',alta:'#f59e0b',media:'#3b82f6',baixa:'#6b7280'}[t.priority] || '#6b7280'};">${t.priority}</span>` : ''}
+                </div>
               </div>
             `).join('')}
             ${tasks.length === 0 ? '<div class="pw-board-empty">Sem tarefas</div>' : ''}
@@ -1239,6 +1250,47 @@ const TBO_PROJECT_WORKSPACE = {
       });
     });
 
+    // Click na row abre task detail panel
+    document.querySelectorAll('.pw-list-row').forEach(row => {
+      row.addEventListener('click', (e) => {
+        // Nao abrir se clicou no check, menu, drag handle, ou input
+        if (e.target.closest('.pw-check-btn') || e.target.closest('.pw-row-menu-btn') ||
+            e.target.closest('.pw-drag-handle') || e.target.closest('input')) return;
+        const taskId = row.dataset.taskId;
+        if (taskId) this._openTaskDetail(taskId);
+      });
+    });
+
+    // Botao (⋯) context menu por tarefa
+    document.querySelectorAll('.pw-row-menu-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const rect = btn.getBoundingClientRect();
+        this._showTaskContextMenu(btn.dataset.taskId, rect.right - 210, rect.bottom + 4);
+      });
+    });
+
+    // Right-click context menu em rows
+    document.querySelectorAll('.pw-list-row').forEach(row => {
+      row.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const taskId = row.dataset.taskId;
+        if (taskId) this._showTaskContextMenu(taskId, e.clientX, e.clientY);
+      });
+    });
+
+    // Drag and drop para reordenacao
+    this._initListDragDrop();
+
+    // Board card clicks (abrir detalhe)
+    document.querySelectorAll('.pw-board-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const taskId = card.dataset.taskId;
+        if (taskId) this._openTaskDetail(taskId);
+      });
+    });
+
     // Toolbar buttons (filtros, ordenar, agrupar, opcoes)
     this._bindToolbarButtons();
   },
@@ -1356,6 +1408,420 @@ const TBO_PROJECT_WORKSPACE = {
     if (typeof TBO_TOAST !== 'undefined') {
       TBO_TOAST.success('Secao criada', `"${name.trim()}" adicionada ao projeto`);
     }
+  },
+
+  // ══════════════════════════════════════════════════════════════════════
+  // TASK DETAIL PANEL (slide-in drawer, Asana-style)
+  // ══════════════════════════════════════════════════════════════════════
+
+  _openTaskDetail(taskId) {
+    const task = this._tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const sm = typeof TBO_ERP !== 'undefined' ? TBO_ERP.stateMachines.task : null;
+    const isDone = task.status === 'concluida';
+    const priorityColor = { 'urgente': '#ef4444', 'alta': '#f59e0b', 'media': '#3b82f6', 'baixa': '#6b7280' }[task.priority] || '#6b7280';
+    const statusLabel = sm?.labels?.[task.status] || task.status || '-';
+    const statusColor = sm?.colors?.[task.status] || '#6b7280';
+
+    // Criar/atualizar elementos
+    let detail = document.getElementById('pwTaskDetail');
+    let backdrop = document.getElementById('pwDetailBackdrop');
+
+    if (!detail) {
+      detail = document.createElement('div');
+      detail.id = 'pwTaskDetail';
+      detail.className = 'pw-task-detail';
+      document.body.appendChild(detail);
+    }
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.id = 'pwDetailBackdrop';
+      backdrop.className = 'pw-detail-backdrop';
+      document.body.appendChild(backdrop);
+    }
+
+    const statusOptions = ['pendente', 'em_andamento', 'revisao', 'concluida', 'bloqueada'].map(s => {
+      const lbl = sm?.labels?.[s] || s;
+      return `<option value="${s}" ${task.status === s ? 'selected' : ''}>${this._esc(lbl)}</option>`;
+    }).join('');
+
+    const priorityOptions = ['urgente', 'alta', 'media', 'baixa'].map(p =>
+      `<option value="${p}" ${task.priority === p ? 'selected' : ''}>${p.charAt(0).toUpperCase() + p.slice(1)}</option>`
+    ).join('');
+
+    detail.innerHTML = `
+      <div class="pw-detail-header">
+        <button class="pw-check-btn${isDone ? ' pw-check-btn--done' : ''}" id="pwDetailCheck" data-task-id="${this._esc(taskId)}" style="margin-top:2px;">
+          <i data-lucide="${isDone ? 'check-circle-2' : 'circle'}" style="width:22px;height:22px;"></i>
+        </button>
+        <div style="flex:1;">
+          <input type="text" class="pw-detail-input" id="pwDetailTitle" value="${this._esc(task.title || task.name || '')}" style="font-size:1.1rem;font-weight:700;border:none;padding:0;background:transparent;" />
+        </div>
+        <button class="btn btn-ghost btn-sm" id="pwDetailClose" style="flex-shrink:0;">
+          <i data-lucide="x" style="width:18px;height:18px;"></i>
+        </button>
+      </div>
+
+      <div class="pw-detail-body">
+        <!-- Status & Priority -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+          <div class="pw-detail-field">
+            <div class="pw-detail-label">Status</div>
+            <select class="pw-detail-select" id="pwDetailStatus" style="width:100%;">
+              ${statusOptions}
+            </select>
+          </div>
+          <div class="pw-detail-field">
+            <div class="pw-detail-label">Prioridade</div>
+            <select class="pw-detail-select" id="pwDetailPriority" style="width:100%;">
+              ${priorityOptions}
+            </select>
+          </div>
+        </div>
+
+        <!-- Responsavel & Datas -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+          <div class="pw-detail-field">
+            <div class="pw-detail-label">Responsavel</div>
+            <input type="text" class="pw-detail-input" id="pwDetailOwner" value="${this._esc(task.owner || '')}" placeholder="Sem responsavel" />
+          </div>
+          <div class="pw-detail-field">
+            <div class="pw-detail-label">Data de conclusao</div>
+            <input type="date" class="pw-detail-input" id="pwDetailDueDate" value="${task.due_date || ''}" />
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+          <div class="pw-detail-field">
+            <div class="pw-detail-label">Secao</div>
+            <div class="pw-detail-value">${this._esc(task.phase || '-')}</div>
+          </div>
+          <div class="pw-detail-field">
+            <div class="pw-detail-label">Projeto</div>
+            <div class="pw-detail-value">${this._esc(this._project?.name || '-')}</div>
+          </div>
+        </div>
+
+        <!-- Descricao -->
+        <div class="pw-detail-field">
+          <div class="pw-detail-label">Descricao</div>
+          <textarea class="pw-detail-textarea" id="pwDetailDesc" placeholder="Adicionar descricao...">${this._esc(task.description || task.notes || '')}</textarea>
+        </div>
+
+        <!-- Subtarefas -->
+        <div class="pw-detail-field">
+          <div class="pw-detail-label">Subtarefas</div>
+          <div style="padding:8px 0;font-size:0.78rem;color:var(--text-muted);">
+            ${task.subtasks && task.subtasks.length ? task.subtasks.map(st => `
+              <div style="display:flex;align-items:center;gap:8px;padding:4px 0;">
+                <i data-lucide="${st.done ? 'check-circle-2' : 'circle'}" style="width:14px;height:14px;color:${st.done ? 'var(--color-success)' : 'var(--text-muted)'};"></i>
+                <span style="${st.done ? 'text-decoration:line-through;color:var(--text-muted);' : ''}">${this._esc(st.title || st.name || '')}</span>
+              </div>`).join('') : '<span>Nenhuma subtarefa</span>'}
+          </div>
+        </div>
+
+        <!-- Acoes -->
+        <div style="display:flex;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border-subtle);">
+          <button class="btn btn-primary btn-sm" id="pwDetailSave">
+            <i data-lucide="save" style="width:14px;height:14px;"></i> Salvar
+          </button>
+          <button class="btn btn-secondary btn-sm" id="pwDetailDuplicate">
+            <i data-lucide="copy" style="width:14px;height:14px;"></i> Duplicar
+          </button>
+          <button class="btn btn-ghost btn-sm" id="pwDetailDelete" style="color:var(--color-danger);margin-left:auto;">
+            <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Excluir
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Mostrar com animacao
+    detail.style.display = 'block';
+    backdrop.style.display = 'block';
+    requestAnimationFrame(() => {
+      backdrop.classList.add('pw-detail-open');
+      detail.classList.add('pw-detail-open');
+    });
+    if (window.lucide) lucide.createIcons();
+
+    // Bindings do painel
+    this._bindTaskDetailActions(taskId);
+  },
+
+  _closeTaskDetail() {
+    const detail = document.getElementById('pwTaskDetail');
+    const backdrop = document.getElementById('pwDetailBackdrop');
+    if (detail) {
+      detail.classList.remove('pw-detail-open');
+      setTimeout(() => { detail.style.display = 'none'; }, 250);
+    }
+    if (backdrop) {
+      backdrop.classList.remove('pw-detail-open');
+      setTimeout(() => { backdrop.style.display = 'none'; }, 200);
+    }
+    if (this._detailEscHandler) {
+      document.removeEventListener('keydown', this._detailEscHandler);
+      this._detailEscHandler = null;
+    }
+  },
+
+  _bindTaskDetailActions(taskId) {
+    // Fechar
+    const closeBtn = document.getElementById('pwDetailClose');
+    if (closeBtn) closeBtn.addEventListener('click', () => this._closeTaskDetail());
+
+    const backdrop = document.getElementById('pwDetailBackdrop');
+    if (backdrop) backdrop.addEventListener('click', () => this._closeTaskDetail());
+
+    this._detailEscHandler = (e) => { if (e.key === 'Escape') this._closeTaskDetail(); };
+    document.addEventListener('keydown', this._detailEscHandler);
+
+    // Check/uncheck no painel
+    const checkBtn = document.getElementById('pwDetailCheck');
+    if (checkBtn) checkBtn.addEventListener('click', () => {
+      this._toggleTask(taskId);
+      this._closeTaskDetail();
+      setTimeout(() => this._openTaskDetail(taskId), 300);
+    });
+
+    // Salvar alteracoes
+    const saveBtn = document.getElementById('pwDetailSave');
+    if (saveBtn) saveBtn.addEventListener('click', () => {
+      const task = this._tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      const newTitle = document.getElementById('pwDetailTitle')?.value?.trim();
+      const newStatus = document.getElementById('pwDetailStatus')?.value;
+      const newPriority = document.getElementById('pwDetailPriority')?.value;
+      const newOwner = document.getElementById('pwDetailOwner')?.value?.trim();
+      const newDueDate = document.getElementById('pwDetailDueDate')?.value;
+      const newDesc = document.getElementById('pwDetailDesc')?.value?.trim();
+
+      if (newTitle) task.title = newTitle;
+      if (newTitle) task.name = newTitle;
+      if (newStatus) task.status = newStatus;
+      if (newPriority) task.priority = newPriority;
+      task.owner = newOwner || '';
+      task.due_date = newDueDate || '';
+      task.description = newDesc || '';
+
+      // Persistir
+      if (typeof TBO_STORAGE !== 'undefined') {
+        TBO_STORAGE.updateErpEntity('task', taskId, task);
+      }
+
+      this._closeTaskDetail();
+      this._refreshListView();
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Tarefa atualizada!');
+    });
+
+    // Duplicar
+    const dupBtn = document.getElementById('pwDetailDuplicate');
+    if (dupBtn) dupBtn.addEventListener('click', () => {
+      const task = this._tasks.find(t => t.id === taskId);
+      if (!task) return;
+      const newTask = { ...task, id: undefined, title: (task.title || task.name) + ' (copia)', status: 'pendente' };
+      if (typeof TBO_STORAGE !== 'undefined') {
+        TBO_STORAGE.addErpEntity('task', newTask);
+      }
+      this._closeTaskDetail();
+      this._loadProject();
+      this._refreshListView();
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Tarefa duplicada!');
+    });
+
+    // Excluir
+    const delBtn = document.getElementById('pwDetailDelete');
+    if (delBtn) delBtn.addEventListener('click', () => {
+      if (!confirm('Excluir esta tarefa permanentemente?')) return;
+      if (typeof TBO_STORAGE !== 'undefined') {
+        TBO_STORAGE.deleteErpEntity('task', taskId);
+      }
+      this._closeTaskDetail();
+      this._loadProject();
+      this._refreshListView();
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Tarefa excluida');
+    });
+  },
+
+  _refreshListView() {
+    this._loadProject();
+    const content = document.getElementById('pwTabContent');
+    if (content && (this._activeTab === 'list' || this._activeTab === 'board')) {
+      content.innerHTML = this._activeTab === 'list' ? this._renderListView() : this._renderBoardView();
+      this._bindSectionToggles();
+      this._bindActions();
+      if (window.lucide) lucide.createIcons();
+    }
+  },
+
+  // ══════════════════════════════════════════════════════════════════════
+  // CONTEXT MENU (tarefas, secoes)
+  // ══════════════════════════════════════════════════════════════════════
+
+  _showTaskContextMenu(taskId, x, y) {
+    const task = this._tasks.find(t => t.id === taskId);
+    if (!task) return;
+    const isDone = task.status === 'concluida';
+    const sm = typeof TBO_ERP !== 'undefined' ? TBO_ERP.stateMachines.task : null;
+
+    let menu = document.getElementById('pwContextMenu');
+    if (!menu) {
+      menu = document.createElement('div');
+      menu.id = 'pwContextMenu';
+      menu.className = 'pw-context-menu';
+      document.body.appendChild(menu);
+    }
+
+    const items = [
+      { icon: 'external-link', label: 'Abrir detalhes', action: 'open_detail' },
+      { icon: isDone ? 'rotate-ccw' : 'check-circle', label: isDone ? 'Reabrir tarefa' : 'Marcar como concluida', action: 'toggle_done' },
+      { divider: true },
+      { icon: 'copy', label: 'Duplicar', action: 'duplicate' },
+      { icon: 'list-plus', label: 'Adicionar subtarefa', action: 'add_subtask' },
+      { icon: 'link', label: 'Copiar link', action: 'copy_link' },
+      { divider: true },
+      { icon: 'trash-2', label: 'Excluir', action: 'delete', danger: true }
+    ];
+
+    menu.innerHTML = items.map(item => {
+      if (item.divider) return '<div class="pw-ctx-divider"></div>';
+      return `<button class="pw-ctx-item ${item.danger ? 'pw-ctx-item--danger' : ''}" data-action="${item.action}" data-task-id="${taskId}">
+        <i data-lucide="${item.icon}" style="width:14px;height:14px;"></i>
+        <span>${item.label}</span>
+      </button>`;
+    }).join('');
+
+    // Posicionar (viewport-aware)
+    const menuW = 210, menuH = items.length * 36;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const posX = x + menuW > vw ? x - menuW : x;
+    const posY = y + menuH > vh ? Math.max(8, y - menuH) : y;
+
+    menu.style.cssText = `display:block;position:fixed;top:${posY}px;left:${posX}px;z-index:1100;`;
+    if (window.lucide) lucide.createIcons();
+
+    // Bind acoes
+    menu.querySelectorAll('.pw-ctx-item').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.style.display = 'none';
+        this._handleTaskContextAction(btn.dataset.action, btn.dataset.taskId);
+      });
+    });
+
+    // Fechar ao clicar fora
+    const closeMenu = (e) => {
+      if (!menu.contains(e.target)) {
+        menu.style.display = 'none';
+        document.removeEventListener('click', closeMenu);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', closeMenu), 10);
+  },
+
+  _handleTaskContextAction(action, taskId) {
+    switch (action) {
+      case 'open_detail':
+        this._openTaskDetail(taskId);
+        break;
+      case 'toggle_done':
+        this._toggleTask(taskId);
+        break;
+      case 'duplicate': {
+        const task = this._tasks.find(t => t.id === taskId);
+        if (task && typeof TBO_STORAGE !== 'undefined') {
+          TBO_STORAGE.addErpEntity('task', { ...task, id: undefined, title: (task.title || task.name) + ' (copia)', status: 'pendente' });
+          this._refreshListView();
+          if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Tarefa duplicada!');
+        }
+        break;
+      }
+      case 'add_subtask':
+        if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.info('Em desenvolvimento', 'Adicionar subtarefa inline sera implementado em breve.');
+        break;
+      case 'copy_link':
+        navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}#projeto/${this._projectId}/list?task=${taskId}`).then(() => {
+          if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Link copiado!');
+        });
+        break;
+      case 'delete':
+        if (confirm('Excluir esta tarefa?')) {
+          if (typeof TBO_STORAGE !== 'undefined') TBO_STORAGE.deleteErpEntity('task', taskId);
+          this._refreshListView();
+          if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Tarefa excluida');
+        }
+        break;
+    }
+  },
+
+  // ══════════════════════════════════════════════════════════════════════
+  // DRAG AND DROP (reordenacao de tarefas)
+  // ══════════════════════════════════════════════════════════════════════
+
+  _initListDragDrop() {
+    let draggedId = null;
+
+    document.querySelectorAll('.pw-drag-handle').forEach(handle => {
+      const row = handle.closest('.pw-list-row');
+      if (!row) return;
+
+      handle.addEventListener('mousedown', (e) => {
+        row.draggable = true;
+      });
+
+      row.addEventListener('dragstart', (e) => {
+        draggedId = row.dataset.taskId;
+        row.classList.add('pw-dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', draggedId);
+      });
+
+      row.addEventListener('dragend', () => {
+        row.classList.remove('pw-dragging');
+        row.draggable = false;
+        document.querySelectorAll('.pw-drag-over').forEach(el => el.classList.remove('pw-drag-over'));
+      });
+    });
+
+    // Drop targets (todas as rows)
+    document.querySelectorAll('.pw-list-row').forEach(row => {
+      row.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (row.dataset.taskId !== draggedId) {
+          row.classList.add('pw-drag-over');
+        }
+      });
+
+      row.addEventListener('dragleave', () => {
+        row.classList.remove('pw-drag-over');
+      });
+
+      row.addEventListener('drop', (e) => {
+        e.preventDefault();
+        row.classList.remove('pw-drag-over');
+        const targetId = row.dataset.taskId;
+        if (!draggedId || draggedId === targetId) return;
+
+        // Reordenar tarefas na mesma secao
+        const section = this._sections.find(s => s.tasks.some(t => t.id === draggedId));
+        if (section) {
+          const fromIdx = section.tasks.findIndex(t => t.id === draggedId);
+          const toIdx = section.tasks.findIndex(t => t.id === targetId);
+          if (fromIdx !== -1 && toIdx !== -1) {
+            const [moved] = section.tasks.splice(fromIdx, 1);
+            section.tasks.splice(toIdx, 0, moved);
+            // Atualizar position nos dados
+            section.tasks.forEach((t, i) => { t.position = i; });
+            this._refreshListView();
+            if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.info('Tarefa reordenada');
+          }
+        }
+        draggedId = null;
+      });
+    });
   },
 
   // ── Popup Management ───────────────────────────────────────────────────
@@ -1887,8 +2353,43 @@ const TBO_PROJECT_WORKSPACE = {
 .pw-section-name { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); }
 .pw-section-count { font-size: 0.72rem; color: var(--text-muted); margin-left: 4px; }
 
+/* Drag handle */
+.pw-drag-handle { width: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; cursor: grab; opacity: 0; transition: opacity 0.15s; margin-left: -4px; }
+.pw-list-row:hover .pw-drag-handle { opacity: 1; }
+.pw-drag-handle:active { cursor: grabbing; }
+.pw-list-row.pw-dragging { opacity: 0.5; background: var(--accent-gold)10; }
+.pw-list-row.pw-drag-over { border-top: 2px solid var(--accent-gold); }
+
+/* Row action menu button */
+.pw-row-menu-btn { opacity: 0; transition: opacity 0.15s; }
+.pw-list-row:hover .pw-row-menu-btn { opacity: 1; }
+
+/* Task detail panel (side drawer) */
+.pw-task-detail { position: fixed; top: 0; right: 0; width: 520px; max-width: 95vw; height: 100vh; background: var(--bg-primary); border-left: 1px solid var(--border-subtle); box-shadow: -6px 0 24px rgba(0,0,0,0.2); z-index: 1000; transform: translateX(100%); transition: transform 0.25s cubic-bezier(0.4,0,0.2,1); overflow-y: auto; }
+.pw-task-detail.pw-detail-open { transform: translateX(0); }
+.pw-detail-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.35); z-index: 999; opacity: 0; transition: opacity 0.2s; }
+.pw-detail-backdrop.pw-detail-open { opacity: 1; }
+.pw-detail-header { display: flex; align-items: flex-start; gap: 12px; padding: 20px 24px; border-bottom: 1px solid var(--border-subtle); }
+.pw-detail-body { padding: 20px 24px; }
+.pw-detail-field { margin-bottom: 16px; }
+.pw-detail-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px; font-weight: 600; }
+.pw-detail-value { font-size: 0.88rem; color: var(--text-primary); }
+.pw-detail-textarea { width: 100%; min-height: 80px; padding: 10px 12px; font-size: 0.82rem; border: 1px solid var(--border-subtle); border-radius: 6px; background: var(--bg-elevated); color: var(--text-primary); resize: vertical; outline: none; }
+.pw-detail-textarea:focus { border-color: var(--accent-gold); box-shadow: 0 0 0 2px rgba(212,175,55,0.15); }
+.pw-detail-input { width: 100%; padding: 6px 10px; font-size: 0.82rem; border: 1px solid var(--border-subtle); border-radius: 6px; background: var(--bg-elevated); color: var(--text-primary); outline: none; }
+.pw-detail-input:focus { border-color: var(--accent-gold); }
+.pw-detail-select { padding: 6px 10px; font-size: 0.82rem; border: 1px solid var(--border-subtle); border-radius: 6px; background: var(--bg-elevated); color: var(--text-primary); outline: none; }
+
+/* Context menu (universal) */
+.pw-context-menu { position: fixed; z-index: 1100; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); min-width: 200px; overflow: hidden; }
+.pw-ctx-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 14px; border: none; background: none; cursor: pointer; font-size: 0.78rem; color: var(--text-primary); transition: background 0.1s; text-align: left; }
+.pw-ctx-item:hover { background: var(--bg-elevated); }
+.pw-ctx-item--danger { color: var(--color-danger); }
+.pw-ctx-item--danger:hover { background: rgba(239,68,68,0.06); }
+.pw-ctx-divider { height: 1px; background: var(--border-subtle); margin: 4px 0; }
+
 /* Task Row */
-.pw-list-row { display: flex; align-items: center; padding: 6px 28px; border-bottom: 1px solid var(--border-subtle); font-size: 0.82rem; transition: background 0.1s; cursor: default; }
+.pw-list-row { display: flex; align-items: center; padding: 6px 28px; border-bottom: 1px solid var(--border-subtle); font-size: 0.82rem; transition: background 0.1s; cursor: pointer; }
 .pw-list-row:nth-child(even of .pw-list-row) { background: color-mix(in srgb, var(--bg-tertiary, #f0f0f0) 35%, transparent); }
 .pw-list-row:hover { background: color-mix(in srgb, var(--accent-gold, #d4af37) 6%, var(--bg-tertiary, #eaeaea)); }
 .pw-list-row .pw-list-col { border-right: 1px solid color-mix(in srgb, var(--border-subtle) 50%, transparent); }

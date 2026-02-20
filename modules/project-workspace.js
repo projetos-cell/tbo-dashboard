@@ -1016,19 +1016,13 @@ const TBO_PROJECT_WORKSPACE = {
               </span>` : ''}
             </div>
 
-            ${p.description || p.notes ? `
-              <div class="pw-ov-description">
-                <p>${this._esc(p.description || p.notes || '')}</p>
-              </div>
-            ` : `
-              <div class="pw-ov-description pw-ov-description--empty">
-                <p style="color:var(--text-muted);font-style:italic;">Adicione uma descricao ao projeto para que a equipe entenda os objetivos.</p>
-              </div>
-            `}
+            <div class="pw-ov-description pw-ov-editable" id="pwOvDescription" title="Clique para editar a descricao">
+              <p contenteditable="true" class="pw-ov-editable-field" data-field="description" data-placeholder="Clique aqui para adicionar uma descricao do projeto...">${this._esc(p.description || p.notes || '')}</p>
+            </div>
 
-            <div class="pw-ov-summary">
+            <div class="pw-ov-summary pw-ov-editable" id="pwOvSummary">
               <i data-lucide="sparkles" style="width:14px;height:14px;color:var(--accent-gold);flex-shrink:0;"></i>
-              <span>${summaryText}</span>
+              <span contenteditable="true" class="pw-ov-editable-field" data-field="summary_note" data-placeholder="Escreva um resumo ou nota sobre o projeto...">${this._esc(p.summary_note || summaryText)}</span>
             </div>
           </div>
         </div>
@@ -1611,6 +1605,17 @@ const TBO_PROJECT_WORKSPACE = {
     `;
   },
 
+  // ── Salvar campo do projeto (descricao, summary_note) ────────────────
+  _saveProjectField(fieldName, value) {
+    if (!this._project || !this._projectId) return;
+    // Atualizar estado local
+    this._project[fieldName] = value;
+    // Persistir no storage
+    if (typeof TBO_STORAGE !== 'undefined') {
+      TBO_STORAGE.updateErpEntity('project', this._projectId, { [fieldName]: value });
+    }
+  },
+
   _setProjectStatus(status) {
     if (!this._project) return;
     this._project.project_status = status;
@@ -1816,6 +1821,38 @@ const TBO_PROJECT_WORKSPACE = {
   },
 
   _bindActions() {
+    // Overview: campos editaveis (descricao e summary)
+    document.querySelectorAll('.pw-ov-editable-field').forEach(field => {
+      // Placeholder visual quando vazio
+      const updatePlaceholder = () => {
+        const text = field.textContent.trim();
+        field.classList.toggle('pw-ov-editable--empty', !text);
+      };
+      updatePlaceholder();
+
+      field.addEventListener('focus', () => {
+        field.classList.add('pw-ov-editable--focused');
+      });
+
+      field.addEventListener('blur', () => {
+        field.classList.remove('pw-ov-editable--focused');
+        updatePlaceholder();
+        const fieldName = field.dataset.field;
+        const value = field.textContent.trim();
+        this._saveProjectField(fieldName, value);
+      });
+
+      field.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          field.blur();
+        }
+        if (e.key === 'Escape') {
+          field.blur();
+        }
+      });
+    });
+
     // Adicionar tarefa (botao toolbar)
     const addTaskBtn = document.getElementById('pwAddTask');
     if (addTaskBtn) {
@@ -3583,8 +3620,14 @@ const TBO_PROJECT_WORKSPACE = {
 .pw-ov-status-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 600; padding: 4px 12px; border-radius: 16px; }
 .pw-ov-deadline { display: inline-flex; align-items: center; gap: 4px; font-size: 0.78rem; font-weight: 600; }
 .pw-ov-description { margin-bottom: 12px; }
-.pw-ov-description p { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.6; margin: 0; white-space: pre-wrap; }
-.pw-ov-summary { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text-muted); padding: 8px 12px; background: var(--bg-tertiary); border-radius: 8px; }
+.pw-ov-description p { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.6; margin: 0; white-space: pre-wrap; outline: none; }
+.pw-ov-summary { display: flex; align-items: flex-start; gap: 8px; font-size: 0.78rem; color: var(--text-muted); padding: 8px 12px; background: var(--bg-tertiary); border-radius: 8px; }
+.pw-ov-summary .pw-ov-editable-field { flex: 1; }
+.pw-ov-editable-field { outline: none; border-radius: 4px; padding: 2px 4px; transition: background 0.15s, box-shadow 0.15s; cursor: text; min-height: 1.2em; }
+.pw-ov-editable-field:hover { background: rgba(232, 81, 2, 0.04); }
+.pw-ov-editable-field.pw-ov-editable--focused { background: var(--bg-primary); box-shadow: 0 0 0 2px var(--accent-gold); }
+.pw-ov-editable-field.pw-ov-editable--empty::before { content: attr(data-placeholder); color: var(--text-muted); font-style: italic; pointer-events: none; }
+.pw-ov-description .pw-ov-editable-field { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.6; white-space: pre-wrap; }
 .pw-ov-members { display: flex; flex-direction: column; gap: 8px; }
 .pw-ov-member { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 8px; transition: background 0.15s; }
 .pw-ov-member:hover { background: var(--bg-tertiary); }

@@ -51,7 +51,7 @@ const TBO_REALTIME = {
                   label: 'Ver',
                   callback: () => {
                     const moduleMap = { projects: 'projetos', tasks: 'tarefas', deliverables: 'entregas', proposals: 'comercial', crm_deals: 'pipeline' };
-                    if (typeof TBO_ROUTER !== 'undefined') TBO_ROUTER.navigate(moduleMap[table] || 'command-center');
+                    if (typeof TBO_ROUTER !== 'undefined') TBO_ROUTER.navigate(moduleMap[table] || 'dashboard');
                   }
                 }
               );

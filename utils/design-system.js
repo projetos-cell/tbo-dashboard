@@ -183,7 +183,7 @@ const TBO_DESIGN = {
 
   /** @private Map of module names to their accent color */
   _moduleColors: {
-    'command-center': '#E85102',   // brand orange
+    'dashboard': '#E85102',   // brand orange
     'projetos':       '#3b82f6',   // blue
     'financeiro':     '#10b981',   // emerald
     'pessoas':        '#8b5cf6',   // purple
@@ -201,7 +201,7 @@ const TBO_DESIGN = {
    */
   getModuleColor(moduleName) {
     const key = (moduleName || '').toLowerCase().trim();
-    return this._moduleColors[key] || this._moduleColors['command-center'];
+    return this._moduleColors[key] || this._moduleColors['dashboard'];
   },
 
   /**

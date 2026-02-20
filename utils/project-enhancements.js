@@ -1035,7 +1035,7 @@ Equipe TBO`;
 
   _getModuleLabel(moduleId) {
     const labels = {
-      'command-center': 'Command Center',
+      'dashboard': 'Dashboard',
       'projetos': 'Projetos',
       'pipeline': 'Pipeline',
       'comercial': 'Comercial',

@@ -21,8 +21,18 @@ const TBO_SUPABASE = {
       || '';
   },
 
-  // ── Client singleton ──────────────────────────────────────────────────
+  // ── Client singleton (H6: delega para TBO_DB quando disponível) ──────
   getClient() {
+    // Se TBO_DB está inicializado, reutilizar seu client (evitar 2 instâncias)
+    if (typeof TBO_DB !== 'undefined' && TBO_DB.isReady()) {
+      if (!this._client) {
+        this._client = TBO_DB.getClient();
+        console.log('[TBO_SUPABASE] Reutilizando client do TBO_DB (single instance)');
+      }
+      return this._client;
+    }
+
+    // Fallback: criar client próprio (cenário legacy / onboarding)
     if (!this._client) {
       if (typeof supabase === 'undefined' || !supabase.createClient) {
         console.error('[TBO Supabase] supabase-js CDN not loaded');

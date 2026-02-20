@@ -81,7 +81,7 @@ const TBO_APP = {
 
     // 3. Register real modules with router
     const modules = {
-      'command-center': typeof TBO_COMMAND_CENTER !== 'undefined' ? TBO_COMMAND_CENTER : null,
+      'dashboard': typeof TBO_COMMAND_CENTER !== 'undefined' ? TBO_COMMAND_CENTER : null,
       'conteudo': typeof TBO_CONTEUDO !== 'undefined' ? TBO_CONTEUDO : null,
       'comercial': typeof TBO_COMERCIAL !== 'undefined' ? TBO_COMERCIAL : null,
       'projetos': typeof TBO_PROJETOS !== 'undefined' ? TBO_PROJETOS : null,
@@ -120,7 +120,7 @@ const TBO_APP = {
       'admin-portal': typeof TBO_ADMIN_PORTAL !== 'undefined' ? TBO_ADMIN_PORTAL : null,
       'conciliacao-bancaria': typeof TBO_CONCILIACAO_BANCARIA !== 'undefined' ? TBO_CONCILIACAO_BANCARIA : null,
       'onboarding-wizard': typeof TBO_ONBOARDING_WIZARD !== 'undefined' ? TBO_ONBOARDING_WIZARD : null,
-      'academy': typeof TBO_ACADEMY_CATALOGO !== 'undefined' ? TBO_ACADEMY_CATALOGO : null,
+      // 'academy': desativado — removido do boot para performance (v2.6)
       'chat': typeof TBO_CHAT !== 'undefined' ? TBO_CHAT : null,
       'project-workspace': typeof TBO_PROJECT_WORKSPACE !== 'undefined' ? TBO_PROJECT_WORKSPACE : null,
       'inteligencia-imobiliaria': typeof TBO_INTELIGENCIA_IMOBILIARIA !== 'undefined' ? TBO_INTELIGENCIA_IMOBILIARIA : null,
@@ -229,7 +229,7 @@ const TBO_APP = {
           if (originalHash && originalHash !== 'workspace') {
             window.location.hash = originalHash;
           }
-          TBO_ROUTER.initFromHash('command-center');
+          TBO_ROUTER.initFromHash('dashboard');
         } else {
           // Multi-tenant: mostrar selector, mas guardar hash para restaurar depois
           if (originalHash) {
@@ -239,7 +239,7 @@ const TBO_APP = {
         }
       } else {
         // Respeitar hash da URL (F5/deep link) ou ir para command-center
-        const defaultMod = 'command-center';
+        const defaultMod = 'dashboard';
         TBO_ROUTER.initFromHash(defaultMod);
       }
 
@@ -469,7 +469,7 @@ const TBO_APP = {
     if (brandLink) {
       brandLink.addEventListener('click', (e) => {
         e.preventDefault();
-        TBO_ROUTER.navigate('command-center');
+        TBO_ROUTER.navigate('dashboard');
         document.getElementById('sidebar')?.classList.remove('mobile-open');
       });
     }
@@ -1441,7 +1441,7 @@ const TBO_APP = {
           const user = TBO_AUTH.getCurrentUser();
           const roleLabel = user?.roleLabel || 'seu perfil';
           TBO_TOAST.warning('Acesso restrito', `O perfil "${roleLabel}" não tem acesso a este módulo.`);
-          const defaultMod = user?.defaultModule || 'command-center';
+          const defaultMod = user?.defaultModule || 'dashboard';
           if (defaultMod !== resolved) TBO_ROUTER.navigate(defaultMod);
           return;
         }
@@ -1479,7 +1479,7 @@ const TBO_APP = {
   // ── Module labels (v3 — reorganizado) ──────────────────────────────
   _moduleLabels: {
     // Inicio
-    'command-center': 'Página Inicial',
+    'dashboard': 'Dashboard',
     'alerts': 'Caixa de Entrada',
     'chat': 'Chat',
     // Execucao
@@ -1530,7 +1530,7 @@ const TBO_APP = {
   // ── Module icons (Lucide icon names — v3) ──────────────────────────
   _moduleIcons: {
     // Inicio
-    'command-center': 'layout-dashboard',
+    'dashboard': 'layout-dashboard',
     'alerts': 'inbox',
     'chat': 'message-circle',
     // Execucao
@@ -1832,7 +1832,7 @@ const TBO_APP = {
             projeto_ativo: 'projetos', projeto_finalizado: 'projetos',
             cliente: 'comercial', reuniao: 'reunioes', mercado: 'mercado'
           };
-          TBO_ROUTER.navigate(typeModuleMap[item.dataset.type] || 'command-center');
+          TBO_ROUTER.navigate(typeModuleMap[item.dataset.type] || 'dashboard');
         }
         // Save to search history
         if (typeof TBO_UX !== 'undefined') {

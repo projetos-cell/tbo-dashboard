@@ -335,7 +335,7 @@ const TBO_UX = {
     if (localStorage.getItem(this._tourKey)) return;
 
     const steps = [
-      { target: '.nav-item[data-module="command-center"]', title: 'Dashboard', text: 'Visao geral com KPIs, alertas e mapa de cidades.', position: 'right' },
+      { target: '.nav-item[data-module="dashboard"]', title: 'Dashboard', text: 'Visao geral com KPIs, alertas e mapa de cidades.', position: 'right' },
       { target: '#searchBtn', title: 'Busca Rapida', text: 'Pressione Alt+K para buscar qualquer coisa.', position: 'bottom' },
       { target: '#refreshBtn', title: 'Atualizar Dados', text: 'Sincronize os dados mais recentes do Drive e Fireflies.', position: 'bottom' },
       { target: '#themeToggle', title: 'Tema', text: 'Alterne entre modo claro e escuro.', position: 'right' },

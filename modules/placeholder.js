@@ -56,7 +56,7 @@ const TBO_PLACEHOLDER = {
           <p style="margin:0;font-size:0.78rem;color:var(--text-muted);line-height:1.5;">${desc}</p>
           <div style="margin-top:20px;display:flex;gap:8px;justify-content:center;">
             <button class="btn btn-secondary" onclick="history.back()" style="font-size:0.78rem;">&#8592; Voltar</button>
-            <button class="btn btn-primary" onclick="TBO_ROUTER.navigate('command-center')" style="font-size:0.78rem;">Dashboard</button>
+            <button class="btn btn-primary" onclick="TBO_ROUTER.navigate('dashboard')" style="font-size:0.78rem;">Dashboard</button>
           </div>
         </div>
       </div>

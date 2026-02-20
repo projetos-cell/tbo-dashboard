@@ -32,7 +32,7 @@ jobs:
         run: npm ci
 
       - name: ESLint
-        run: npx eslint "modules/**/*.js" "utils/**/*.js" "js/**/*.js" "app.js" --format=stylish
+        run: npx eslint "src/**/*.js" "modules/**/*.js" "utils/**/*.js" "js/**/*.js" "app.js" --format=stylish
         continue-on-error: true
 
       - name: Check for hardcoded credentials
@@ -158,7 +158,28 @@ jobs:
             echo "::warning::$SCRIPT_COUNT scripts carregados sequencialmente. Performance impactada."
           fi
 
-  # ── 4. Migration Validation ───────────────────────────────────────────
+  # ── 4. Security Guardrails ────────────────────────────────────────────
+  guardrails:
+    name: Security Guardrails
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check no service_role in frontend
+        run: node --experimental-modules scripts/ci-check-no-service-role.js
+
+      - name: Check single Supabase client
+        run: node --experimental-modules scripts/ci-check-single-supabase-client.js
+
+      - name: Validate build
+        run: node scripts/validate-build.js
+
+  # ── 5. Migration Validation ───────────────────────────────────────────
   migrations:
     name: SQL Migration Validation
     runs-on: ubuntu-latest
@@ -191,7 +212,7 @@ jobs:
   # ── 5. Deploy Gate ────────────────────────────────────────────────────
   deploy-gate:
     name: Deploy Gate
-    needs: [lint, security, build, migrations]
+    needs: [lint, security, build, guardrails, migrations]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:

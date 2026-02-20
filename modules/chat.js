@@ -342,7 +342,6 @@ const TBO_CHAT = {
     // Carregar todos os usuarios do tenant (para mencoes) — DEVE completar antes de permitir digitacao
     this._usersReady = false;
     await this._loadAllUsers();
-    this._usersReady = this._allUsers.length > 0;
 
     // Carregar secoes e canais
     await this._loadSections();
@@ -531,13 +530,17 @@ const TBO_CHAT = {
     const card = document.getElementById('chatUserCard');
     if (!card) return;
 
-    const user = this._members[userId] || this._allUsers?.find(u => u.id === userId);
+    // Buscar dados do usuario de _allUsers (fonte completa) e fallback para _members
+    const userObj = this._allUsers?.find(u => u.id === userId);
+    const member = this._members[userId];
+    const user = userObj || member;
     if (!user) return;
 
     const name = user.name || 'Usuario';
     const email = user.email || '';
     const role = user.role || '';
-    const avatarHtml = this._renderAvatar(userId, 40);
+    const isSelf = userId === this._currentUser?.id;
+    const avatarHtml = this._renderAvatar(userId, 44);
 
     document.getElementById('chatUserCardAvatar').innerHTML = avatarHtml;
     document.getElementById('chatUserCardName').textContent = name;
@@ -550,32 +553,49 @@ const TBO_CHAT = {
     }
     card.dataset.userId = userId;
 
-    // Posicionar ao lado do anchor
+    // Esconder botao DM se for o proprio usuario
+    const dmBtn = document.getElementById('chatUserCardDM');
+    if (dmBtn) dmBtn.style.display = isSelf ? 'none' : 'flex';
+
+    // Posicionar ao lado do anchor com smart positioning
     const rect = anchorEl.getBoundingClientRect();
     card.style.display = 'block';
-    const cardRect = card.getBoundingClientRect();
+    card.style.opacity = '0';
 
-    let left = rect.right + 8;
-    let top = rect.top;
+    // Aguardar layout para obter dimensoes corretas
+    requestAnimationFrame(() => {
+      const cardRect = card.getBoundingClientRect();
+      let left = rect.right + 8;
+      let top = rect.top;
 
-    // Se sai da tela a direita, posicionar a esquerda
-    if (left + cardRect.width > window.innerWidth) {
-      left = rect.left - cardRect.width - 8;
-    }
-    // Se sai da tela embaixo, ajustar para cima
-    if (top + cardRect.height > window.innerHeight) {
-      top = window.innerHeight - cardRect.height - 8;
-    }
+      // Se sai da tela a direita, posicionar a esquerda
+      if (left + cardRect.width > window.innerWidth - 12) {
+        left = rect.left - cardRect.width - 8;
+      }
+      // Se sai da tela a esquerda, alinhar com a borda
+      if (left < 12) left = 12;
 
-    card.style.left = left + 'px';
-    card.style.top = top + 'px';
+      // Se sai da tela embaixo, ajustar para cima
+      if (top + cardRect.height > window.innerHeight - 12) {
+        top = window.innerHeight - cardRect.height - 12;
+      }
+      // Se sai da tela em cima
+      if (top < 12) top = 12;
 
-    if (window.lucide) lucide.createIcons({ root: card });
+      card.style.left = left + 'px';
+      card.style.top = top + 'px';
+      card.style.opacity = '1';
+
+      if (window.lucide) lucide.createIcons({ root: card });
+    });
   },
 
   _hideUserCard() {
     const card = document.getElementById('chatUserCard');
-    if (card) card.style.display = 'none';
+    if (card) {
+      card.style.opacity = '0';
+      setTimeout(() => { if (card.style.opacity === '0') card.style.display = 'none'; }, 150);
+    }
   },
 
   async _openDirectMessage(targetUserId) {
@@ -664,17 +684,31 @@ const TBO_CHAT = {
   _usersCache: {},          // { [tenantId]: { users: [], ts: Date.now() } }
   _usersCacheTTL: 5 * 60 * 1000, // 5 min TTL
   _usersLoading: null,      // promise de carregamento em andamento (previne fetches concorrentes)
+  _usersLoadRetries: 0,     // Contagem de retries para backoff
+  _usersLoadMaxRetries: 3,  // Max retries antes de desistir
 
   async _loadAllUsers(forceRefresh = false) {
     const client = this._getClient();
-    if (!client) return;
+    if (!client) { console.warn('[Chat] Supabase client nao disponivel para _loadAllUsers'); return; }
     const tenantId = this._getTenantId();
-    if (!tenantId) { console.warn('[Chat] tenant_id nao disponivel, abortando _loadAllUsers'); return; }
+    if (!tenantId) {
+      console.warn('[Chat] tenant_id nao disponivel, agendando retry em 1s...');
+      // Retry apos auth resolver — comum em page refresh
+      if (this._usersLoadRetries < this._usersLoadMaxRetries) {
+        this._usersLoadRetries++;
+        await new Promise(r => setTimeout(r, 1000));
+        return this._loadAllUsers(forceRefresh);
+      }
+      console.error('[Chat] _loadAllUsers: tenant_id nao resolvido apos retries');
+      return;
+    }
+    this._usersLoadRetries = 0; // Reset retries ao ter tenant valido
 
     // Cache hit — retornar dados ja carregados se dentro do TTL
     const cached = this._usersCache[tenantId];
     if (!forceRefresh && cached && (Date.now() - cached.ts < this._usersCacheTTL)) {
       this._allUsers = cached.users;
+      this._usersReady = true;
       cached.users.forEach(u => {
         this._members[u.id] = { name: u.name, email: u.email, avatar: u.avatar, role: u.role };
       });
@@ -687,51 +721,75 @@ const TBO_CHAT = {
     this._usersLoading = (async () => {
       try {
         // Buscar profiles ativos do tenant com role via tenant_members + roles
-        const { data: profiles, error } = await client
-          .from('profiles')
-          .select('id, full_name, username, email, avatar_url, role, cargo')
-          .eq('tenant_id', tenantId)
-          .eq('is_active', true);
+        // Carregar ambos em paralelo para performance
+        const [profilesRes, rolesRes] = await Promise.all([
+          client
+            .from('profiles')
+            .select('id, full_name, username, email, avatar_url, role, cargo')
+            .eq('tenant_id', tenantId)
+            .eq('is_active', true),
+          client
+            .from('tenant_members')
+            .select('user_id, roles:role_id(name, label, slug)')
+            .eq('tenant_id', tenantId)
+            .eq('is_active', true)
+            .then(r => r)
+            .catch(() => ({ data: null })) // Role enrichment e opcional
+        ]);
 
+        const { data: profiles, error } = profilesRes;
         if (error) throw error;
 
         if (profiles?.length) {
-          // Tentar enriquecer com role label do RBAC
-          let roleMap = {};
-          try {
-            const { data: tmData } = await client
-              .from('tenant_members')
-              .select('user_id, roles:role_id(name, label, slug)')
-              .eq('tenant_id', tenantId)
-              .eq('is_active', true);
-            if (tmData?.length) {
-              tmData.forEach(tm => {
-                if (tm.roles) roleMap[tm.user_id] = tm.roles.label || tm.roles.name || tm.roles.slug;
-              });
-            }
-          } catch { /* role enrichment is optional */ }
+          // Montar mapa de roles a partir de tenant_members
+          const roleMap = {};
+          if (rolesRes.data?.length) {
+            rolesRes.data.forEach(tm => {
+              if (tm.roles) roleMap[tm.user_id] = tm.roles.label || tm.roles.name || tm.roles.slug;
+            });
+          }
 
           this._allUsers = profiles.map(p => ({
             id: p.id,
             name: p.full_name || p.username || p.email?.split('@')[0] || 'Usuario',
             email: p.email,
             avatar: p.avatar_url,
-            role: roleMap[p.id] || p.cargo || p.role || null
+            role: roleMap[p.id] || p.cargo || p.role || null,
+            // Pre-computar normalizado para busca rapida de mencoes
+            _nameNorm: this._normalizeForSearch(p.full_name || p.username || p.email?.split('@')[0] || ''),
+            _emailNorm: this._normalizeForSearch(p.email || '')
           }));
           this._allUsers.forEach(u => {
             this._members[u.id] = { name: u.name, email: u.email, avatar: u.avatar, role: u.role };
           });
           // Salvar no cache
           this._usersCache[tenantId] = { users: [...this._allUsers], ts: Date.now() };
+          this._usersReady = true;
           return;
         }
         // Fallback: buscar de colaboradores — filtrado por tenant
         const { data: colabs } = await client.from('colaboradores').select('id, nome, email').eq('tenant_id', tenantId);
         if (colabs?.length) {
-          this._allUsers = colabs.map(c => ({ id: c.id, name: c.nome || c.email?.split('@')[0], email: c.email, avatar: null, role: null }));
+          this._allUsers = colabs.map(c => ({
+            id: c.id,
+            name: c.nome || c.email?.split('@')[0],
+            email: c.email,
+            avatar: null,
+            role: null,
+            _nameNorm: this._normalizeForSearch(c.nome || c.email?.split('@')[0] || ''),
+            _emailNorm: this._normalizeForSearch(c.email || '')
+          }));
           this._usersCache[tenantId] = { users: [...this._allUsers], ts: Date.now() };
+          this._usersReady = true;
+        } else {
+          // Nenhum usuario encontrado — marcar como pronto (lista vazia e valida)
+          this._allUsers = [];
+          this._usersReady = true;
         }
-      } catch (e) { console.warn('[Chat] Nao foi possivel carregar usuarios:', e.message); }
+      } catch (e) {
+        console.warn('[Chat] Nao foi possivel carregar usuarios:', e.message);
+        // Manter _usersReady como false para permitir retry lazy
+      }
     })();
 
     try { await this._usersLoading; } finally { this._usersLoading = null; }
@@ -1364,27 +1422,30 @@ const TBO_CHAT = {
       // Fase 1: tokens <@user_id> (content ja escapado: &lt;@uuid&gt;)
       content = content.replace(/&lt;@([\w-]+)&gt;/g, (match, userId) => {
         const user = this._allUsers.find(u => u.id === userId);
-        const name = user?.name || mentionMap[userId] || null;
+        const member = this._members[userId];
+        const name = user?.name || member?.name || mentionMap[userId] || null;
         const isSelf = userId === this._currentUser?.id;
+        const role = user?.role || member?.role || '';
         if (name) {
-          return `<span class="chat-mention${isSelf ? ' chat-mention-self' : ''}" data-user-id="${userId}" title="${this._esc(name)}">@${this._esc(name)}</span>`;
+          return `<span class="chat-mention${isSelf ? ' chat-mention-self' : ''}" data-user-id="${userId}" data-user-role="${this._esc(role)}" title="${this._esc(name)}${role ? ' · ' + this._esc(role) : ''}">@${this._esc(name)}</span>`;
         }
         // Fallback: usuario deletado ou fora do tenant
         const fallbackName = mentionMap[userId] || 'Usuario';
-        return `<span class="chat-mention chat-mention-unknown" title="Usuario nao encontrado">@${this._esc(fallbackName)}</span>`;
+        return `<span class="chat-mention chat-mention-unknown" title="Usuario nao disponivel">@${this._esc(fallbackName)}</span>`;
       });
 
       // Fase 2: fallback para mensagens antigas sem tokens (formato @Nome)
       // Regex Unicode para suportar acentos, hifens, pontos, underscores
-      content = content.replace(/@([\p{L}\p{N}._-]+(?:\s[\p{L}\p{N}._-]+)*)/gu, (match, name) => {
-        // Nao processar se ja esta dentro de um span de mencao (evitar double-processing)
+      // Usa negative lookbehind para nao re-processar mencoes ja convertidas
+      content = content.replace(/(^|[^">;])@([\p{L}\p{N}._-]+(?:\s[\p{L}\p{N}._-]+)*)/gu, (match, prefix, name) => {
+        // Nao processar se ja esta dentro de um span de mencao
         const user = this._allUsers.find(u =>
           u.name.toLowerCase() === name.toLowerCase() ||
           u.name.toLowerCase().startsWith(name.toLowerCase())
         );
         if (user) {
           const isSelf = user.id === this._currentUser?.id;
-          return `<span class="chat-mention${isSelf ? ' chat-mention-self' : ''}" data-user-id="${user.id}" title="${this._esc(user.name)}">@${this._esc(user.name)}</span>`;
+          return `${prefix}<span class="chat-mention${isSelf ? ' chat-mention-self' : ''}" data-user-id="${user.id}" title="${this._esc(user.name)}">@${this._esc(user.name)}</span>`;
         }
         return match;
       });
@@ -1639,7 +1700,7 @@ const TBO_CHAT = {
     for (let i = pos - 1; i >= 0; i--) {
       if (text[i] === '@') {
         // Validar que @ esta no inicio ou precedido por espaco/newline
-        if (i === 0 || text[i - 1] === ' ' || text[i - 1] === '\n') {
+        if (i === 0 || /[\s\n]/.test(text[i - 1])) {
           atPos = i;
         }
         break; // Parar no primeiro @ encontrado
@@ -1654,9 +1715,12 @@ const TBO_CHAT = {
       // Descaracterizar mencao: se query tem mais de 30 chars, provavelmente nao eh mencao
       if (query.length > 30) { this._hideMentionSuggestions(); return; }
 
+      // Caracteres invalidos para mencao (ex: newline, tab) — fechar sugestoes
+      if (/[\t]/.test(query)) { this._hideMentionSuggestions(); return; }
+
       // Se a query corresponde a uma mencao ja selecionada, nao mostrar sugestoes
       const isCompletedMention = this._pendingMentions.some(m =>
-        m.startIdx === atPos && m.endIdx <= pos
+        m.startIdx === atPos && m.endIdx <= pos && m.endIdx >= pos
       );
       if (isCompletedMention) {
         this._hideMentionSuggestions();
@@ -1664,9 +1728,8 @@ const TBO_CHAT = {
       }
 
       // Lazy-load: se _allUsers ainda nao carregou, carregar agora (ex: race condition no init)
-      if (!this._usersReady && !this._allUsers.length) {
+      if (!this._usersReady) {
         this._loadAllUsers().then(() => {
-          this._usersReady = this._allUsers.length > 0;
           if (this._showMentionSuggestions) this._renderMentionSuggestions();
         });
       }
@@ -1688,66 +1751,111 @@ const TBO_CHAT = {
     if (!el) return;
 
     const q = this._normalizeForSearch(this._mentionQuery);
+    const qWords = q.split(/\s+/).filter(Boolean); // Suportar busca multi-palavra (ex: "joao silva")
     const currentId = this._currentUser?.id;
 
-    // Filtrar e classificar em 3 tiers: 1) prefix name, 2) contains name, 3) contains email
-    const tier1 = [], tier2 = [], tier3 = [];
+    // Filtrar e classificar em 4 tiers:
+    // 1) nome completo comeca com query
+    // 2) qualquer palavra do nome comeca com query (ex: "silva" match "Joao Silva")
+    // 3) match parcial em qualquer parte do nome
+    // 4) match no email (antes do @ ou email completo)
+    const tier1 = [], tier2 = [], tier3 = [], tier4 = [];
     for (const u of this._allUsers) {
       if (u.id === currentId) continue; // Excluir usuario atual
-      const normName = this._normalizeForSearch(u.name);
-      const normEmail = this._normalizeForSearch(u.email || '');
+      const normName = u._nameNorm || this._normalizeForSearch(u.name);
+      const normEmail = u._emailNorm || this._normalizeForSearch(u.email || '');
+
       if (!q) {
         tier1.push(u); // Query vazia: mostrar todos
-      } else if (normName.startsWith(q)) {
-        tier1.push(u); // Match no inicio do nome
+        continue;
+      }
+
+      // Multi-palavra: todas as palavras da query devem dar match em palavras do nome
+      if (qWords.length > 1) {
+        const nameWords = normName.split(/\s+/);
+        const allMatch = qWords.every(qw => nameWords.some(nw => nw.startsWith(qw) || nw.includes(qw)));
+        if (allMatch) { tier1.push(u); continue; }
+      }
+
+      if (normName.startsWith(q)) {
+        tier1.push(u); // Match no inicio do nome completo
+      } else if (normName.split(/\s+/).some(w => w.startsWith(q))) {
+        tier2.push(u); // Match no inicio de qualquer palavra do nome (ex: "sil" -> "Joao Silva")
       } else if (normName.includes(q)) {
-        tier2.push(u); // Match em qualquer parte do nome
+        tier3.push(u); // Match parcial em qualquer parte do nome
       } else if (normEmail.includes(q)) {
-        tier3.push(u); // Match no email
+        tier4.push(u); // Match no email
       }
     }
 
-    const filtered = [...tier1, ...tier2, ...tier3].slice(0, 8);
+    const filtered = [...tier1, ...tier2, ...tier3, ...tier4].slice(0, 8);
 
     if (!filtered.length) {
-      el.innerHTML = `<div style="padding:12px 16px;font-size:0.78rem;color:var(--text-muted);text-align:center;">Nenhum usuario encontrado</div>`;
+      el.innerHTML = `<div class="chat-mention-empty">
+        <i data-lucide="search-x" style="width:16px;height:16px;opacity:0.4;"></i>
+        <span>Nenhum usuario encontrado</span>
+      </div>`;
       el.style.display = 'block';
+      if (window.lucide) lucide.createIcons();
       return;
     }
 
     // Clamp active index
     if (this._mentionActiveIdx >= filtered.length) this._mentionActiveIdx = 0;
 
-    el.innerHTML = filtered.map((u, i) => {
+    // Helper: highlight do match na string
+    const _highlightMatch = (text, query) => {
+      if (!query) return this._esc(text);
+      const normText = this._normalizeForSearch(text);
+      const idx = normText.indexOf(this._normalizeForSearch(query));
+      if (idx < 0) return this._esc(text);
+      const before = text.slice(0, idx);
+      const match = text.slice(idx, idx + query.length);
+      const after = text.slice(idx + query.length);
+      return `${this._esc(before)}<mark class="chat-mention-highlight">${this._esc(match)}</mark>${this._esc(after)}`;
+    };
+
+    el.innerHTML = `<div class="chat-mention-header">Mencionar alguem</div>` +
+    filtered.map((u, i) => {
       const roleLabel = u.role ? `<span class="chat-mention-role">${this._esc(u.role)}</span>` : '';
+      const nameHtml = q ? _highlightMatch(u.name, this._mentionQuery) : this._esc(u.name);
+      const emailHtml = q ? _highlightMatch(u.email || '', this._mentionQuery) : this._esc(u.email || '');
       return `<div class="chat-mention-item ${i === this._mentionActiveIdx ? 'active' : ''}" data-user-id="${u.id}" data-user-name="${this._esc(u.name)}" data-idx="${i}">
-        ${this._renderAvatar(u.id, 28)}
+        ${this._renderAvatar(u.id, 30)}
         <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:center;gap:6px;">
-            <span style="font-weight:600;font-size:0.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${this._esc(u.name)}</span>
+            <span class="chat-mention-item-name">${nameHtml}</span>
             ${roleLabel}
           </div>
-          <div style="font-size:0.68rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${this._esc(u.email || '')}</div>
+          <div class="chat-mention-item-email">${emailHtml}</div>
         </div>
       </div>`;
     }).join('');
     el.style.display = 'block';
+    if (window.lucide) lucide.createIcons();
 
-    // Bind clicks
+    // Bind clicks (mousedown para nao perder foco do textarea)
     el.querySelectorAll('.chat-mention-item').forEach(item => {
-      item.addEventListener('click', () => this._selectMention(item.dataset.userId));
+      item.addEventListener('mousedown', (e) => {
+        e.preventDefault(); // Evitar blur no textarea
+        this._selectMention(item.dataset.userId);
+      });
     });
   },
 
   _navigateMentionSuggestion(dir) {
-    const items = document.querySelectorAll('.chat-mention-item');
+    const container = document.getElementById('chatMentionSuggestions');
+    if (!container) return;
+    const items = container.querySelectorAll('.chat-mention-item');
     if (!items.length) return;
     items.forEach(item => item.classList.remove('active'));
     this._mentionActiveIdx += dir;
     if (this._mentionActiveIdx < 0) this._mentionActiveIdx = items.length - 1;
     if (this._mentionActiveIdx >= items.length) this._mentionActiveIdx = 0;
-    items[this._mentionActiveIdx].classList.add('active');
-    items[this._mentionActiveIdx].scrollIntoView({ block: 'nearest' });
+    const activeItem = items[this._mentionActiveIdx];
+    activeItem.classList.add('active');
+    // Scroll suave dentro do container de sugestoes
+    activeItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   },
 
   _selectMention(userId) {
@@ -1770,7 +1878,11 @@ const TBO_CHAT = {
     const delta = newFragment.length - oldLength;
     this._pendingMentions.forEach(m => {
       if (m.startIdx >= cursorPos) { m.startIdx += delta; m.endIdx += delta; }
+      // Mencoes que estao parcialmente sobrepostas com a regiao substituida — invalidar
+      else if (m.startIdx > atPos && m.startIdx < cursorPos) { m._invalid = true; }
     });
+    // Remover mencoes invalidadas
+    this._pendingMentions = this._pendingMentions.filter(m => !m._invalid);
 
     input.value = before + newFragment + after;
     const newCursorPos = before.length + newFragment.length;
@@ -1805,24 +1917,31 @@ const TBO_CHAT = {
     if (!this._pendingMentions.length) {
       return { content: rawContent, mentions: [] };
     }
+
+    // Validar mencoes antes de construir tokens
+    const validMentions = this._pendingMentions.filter(m => {
+      if (m.startIdx < 0 || m.endIdx > rawContent.length) return false;
+      const expected = '@' + m.name;
+      return rawContent.slice(m.startIdx, m.endIdx) === expected;
+    });
+
+    if (!validMentions.length) {
+      return { content: rawContent, mentions: [] };
+    }
+
     // Ordenar mencoes por posicao (do fim para o inicio) para substituicao segura
-    const sorted = [...this._pendingMentions].sort((a, b) => b.startIdx - a.startIdx);
+    const sorted = [...validMentions].sort((a, b) => b.startIdx - a.startIdx);
     let tokenContent = rawContent;
     const mentionsArray = [];
     const seenIds = new Set();
 
     for (const mention of sorted) {
-      const expectedText = '@' + mention.name;
-      const actual = tokenContent.slice(mention.startIdx, mention.endIdx);
-      // Verificar que o texto ainda corresponde (usuario pode ter editado)
-      if (actual === expectedText) {
-        tokenContent = tokenContent.slice(0, mention.startIdx)
-          + '<@' + mention.id + '>'
-          + tokenContent.slice(mention.endIdx);
-        if (!seenIds.has(mention.id)) {
-          mentionsArray.push({ id: mention.id, name: mention.name });
-          seenIds.add(mention.id);
-        }
+      tokenContent = tokenContent.slice(0, mention.startIdx)
+        + '<@' + mention.id + '>'
+        + tokenContent.slice(mention.endIdx);
+      if (!seenIds.has(mention.id)) {
+        mentionsArray.push({ id: mention.id, name: mention.name });
+        seenIds.add(mention.id);
       }
     }
     return { content: tokenContent, mentions: mentionsArray };
@@ -1833,22 +1952,34 @@ const TBO_CHAT = {
   async _notifyMentionedUsers(mentions, messageData, displayContent) {
     if (typeof TBO_NOTIFICATIONS === 'undefined') return;
     const currentUserId = this._currentUser?.id;
-    const senderName = this._getUserName(currentUserId);
+    const senderName = this._getUserName(currentUserId) || this._currentUser?.user_metadata?.full_name || 'Alguem';
     const channelName = this._activeChannel?.name || 'chat';
     const channelId = this._activeChannel?.id;
     const tenantId = this._getTenantId();
+    if (!tenantId) return; // Sem tenant, nao notificar
+
     const notifiedIds = new Set(); // Dedup
+
+    // Construir preview limpo uma unica vez (remover tokens <@...> do texto)
+    const cleanPreview = (displayContent || '')
+      .replace(/<@[\w-]+>/g, (match) => {
+        const uid = match.slice(2, -1);
+        const m = mentions.find(x => x.id === uid);
+        return '@' + (m?.name || 'usuario');
+      })
+      .slice(0, 100)
+      .trim();
+
+    // Enviar notificacoes em paralelo (non-blocking, com Promise.allSettled)
+    const notificationPromises = [];
 
     for (const mention of mentions) {
       if (mention.id === currentUserId) continue; // Nao notificar a si mesmo
       if (notifiedIds.has(mention.id)) continue;  // Dedup: usuario mencionado 2x na mesma msg
       notifiedIds.add(mention.id);
-      try {
-        // Construir preview limpo (remover tokens <@...> do texto)
-        const cleanPreview = (displayContent || '')
-          .replace(/<@[\w-]+>/g, '@' + mention.name)
-          .slice(0, 80);
-        await TBO_NOTIFICATIONS.create(mention.id, {
+
+      notificationPromises.push(
+        TBO_NOTIFICATIONS.create(mention.id, {
           title: `${senderName} mencionou voce`,
           body: `em #${channelName}: "${cleanPreview}"`,
           type: 'mention',
@@ -1856,10 +1987,15 @@ const TBO_CHAT = {
           entityId: messageData.id,
           actionUrl: `#chat?channel=${channelId || ''}`,
           tenantId
-        });
-      } catch (e) {
-        console.warn('[Chat] Erro ao enviar notificacao de mencao:', e.message);
-      }
+        }).catch(e => {
+          console.warn(`[Chat] Erro ao notificar mencao para ${mention.id}:`, e.message);
+        })
+      );
+    }
+
+    // Fire-and-forget: nao bloquear o envio da mensagem
+    if (notificationPromises.length) {
+      Promise.allSettled(notificationPromises);
     }
   },
 
@@ -1867,24 +2003,63 @@ const TBO_CHAT = {
   // Tambem tenta recalcular indices quando texto muda (paste, backspace, etc)
   _validatePendingMentions(input) {
     const text = input.value;
+    const cursorPos = input.selectionStart;
+
     this._pendingMentions = this._pendingMentions.filter(m => {
-      // Bounds check
-      if (m.startIdx < 0 || m.endIdx > text.length) return false;
       const expected = '@' + m.name;
-      const actual = text.slice(m.startIdx, m.endIdx);
-      if (actual === expected) return true;
-      // Tentar encontrar a mencao proxima da posicao original (usuario colou texto antes)
-      const searchWindow = Math.min(text.length, m.startIdx + expected.length + 20);
-      const searchStart = Math.max(0, m.startIdx - 20);
-      const nearby = text.slice(searchStart, searchWindow);
-      const idx = nearby.indexOf(expected);
-      if (idx >= 0) {
-        const newStart = searchStart + idx;
-        m.startIdx = newStart;
-        m.endIdx = newStart + expected.length;
+
+      // Bounds check basico
+      if (m.startIdx < 0 || m.startIdx >= text.length) return false;
+
+      // Checar match exato na posicao registrada
+      if (m.endIdx <= text.length) {
+        const actual = text.slice(m.startIdx, m.endIdx);
+        if (actual === expected) return true;
+      }
+
+      // Cursor dentro da mencao e texto nao bate — usuario editou a mencao, invalidar
+      if (cursorPos > m.startIdx && cursorPos <= m.endIdx) {
+        return false;
+      }
+
+      // Tentar encontrar a mencao numa janela expandida (usuario colou/deletou texto antes)
+      const windowSize = 50;
+      const searchStart = Math.max(0, m.startIdx - windowSize);
+      const searchEnd = Math.min(text.length, m.startIdx + expected.length + windowSize);
+      const nearby = text.slice(searchStart, searchEnd);
+
+      // Buscar todas as ocorrencias do expected na janela
+      let bestIdx = -1;
+      let bestDist = Infinity;
+      let searchPos = 0;
+      while (true) {
+        const idx = nearby.indexOf(expected, searchPos);
+        if (idx < 0) break;
+        const absolutePos = searchStart + idx;
+        const dist = Math.abs(absolutePos - m.startIdx);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestIdx = absolutePos;
+        }
+        searchPos = idx + 1;
+      }
+
+      if (bestIdx >= 0) {
+        m.startIdx = bestIdx;
+        m.endIdx = bestIdx + expected.length;
         return true;
       }
+
       return false; // Mencao corrompida — invalidar
+    });
+
+    // Dedup: remover mencoes duplicadas para o mesmo usuario na mesma posicao
+    const seen = new Set();
+    this._pendingMentions = this._pendingMentions.filter(m => {
+      const key = `${m.id}:${m.startIdx}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
     });
   },
 
@@ -2622,12 +2797,12 @@ const TBO_CHAT = {
       .chat-reaction-chip.active span { color: var(--accent, #E85102); }
 
       /* ── Mentions (Slack-grade pills) ── */
-      .chat-mention { display: inline; background: rgba(99, 102, 241, 0.12); color: #818cf8; padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: inherit; cursor: pointer; transition: all 0.15s ease; text-decoration: none; white-space: nowrap; border: 1px solid transparent; }
-      .chat-mention:hover { background: rgba(99, 102, 241, 0.22); border-color: rgba(99, 102, 241, 0.3); }
-      .chat-mention-self { background: rgba(232, 81, 2, 0.12); color: var(--accent, #E85102); }
-      .chat-mention-self:hover { background: rgba(232, 81, 2, 0.22); border-color: rgba(232, 81, 2, 0.3); }
-      .chat-mention-unknown { background: rgba(120, 120, 120, 0.1); color: var(--text-muted); cursor: default; font-style: italic; }
-      .chat-mention-unknown:hover { background: rgba(120, 120, 120, 0.15); }
+      .chat-mention { display: inline; background: rgba(99, 102, 241, 0.10); color: #818cf8; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: inherit; cursor: pointer; transition: all 0.18s ease; text-decoration: none; white-space: nowrap; border: 1px solid transparent; vertical-align: baseline; }
+      .chat-mention:hover { background: rgba(99, 102, 241, 0.22); border-color: rgba(99, 102, 241, 0.25); box-shadow: 0 1px 4px rgba(99, 102, 241, 0.15); }
+      .chat-mention-self { background: rgba(232, 81, 2, 0.10); color: var(--accent, #E85102); }
+      .chat-mention-self:hover { background: rgba(232, 81, 2, 0.22); border-color: rgba(232, 81, 2, 0.25); box-shadow: 0 1px 4px rgba(232, 81, 2, 0.15); }
+      .chat-mention-unknown { background: rgba(120, 120, 120, 0.08); color: var(--text-muted); cursor: default; font-style: italic; border: 1px dashed rgba(120, 120, 120, 0.2); }
+      .chat-mention-unknown:hover { background: rgba(120, 120, 120, 0.12); box-shadow: none; }
 
       /* ── Attachments ── */
       .chat-attachment-image { margin-top: 6px; max-width: 320px; }
@@ -2693,15 +2868,21 @@ const TBO_CHAT = {
       .chat-sticker-label { font-size: 0.55rem; color: var(--text-muted); margin-top: 2px; }
 
       /* ── Mention Suggestions ── */
-      .chat-mention-suggestions { position: absolute; bottom: 100%; left: 12px; right: 12px; max-height: 320px; overflow-y: auto; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg, 12px); box-shadow: 0 4px 20px rgba(0,0,0,0.18); z-index: 100; margin-bottom: 4px; scrollbar-width: thin; }
+      .chat-mention-suggestions { position: absolute; bottom: 100%; left: 12px; right: 12px; max-height: 380px; overflow-y: auto; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg, 12px); box-shadow: 0 8px 32px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.08); z-index: 100; margin-bottom: 4px; scrollbar-width: thin; animation: chatMentionSlideIn 0.15s ease-out; }
+      @keyframes chatMentionSlideIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
       .chat-mention-suggestions::-webkit-scrollbar { width: 4px; }
       .chat-mention-suggestions::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 4px; }
-      .chat-mention-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; cursor: pointer; transition: background 0.12s ease; border-left: 2px solid transparent; }
+      .chat-mention-header { font-size: 0.62rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 14px 4px; user-select: none; }
+      .chat-mention-item { display: flex; align-items: center; gap: 10px; padding: 7px 14px; cursor: pointer; transition: all 0.12s ease; border-left: 2px solid transparent; }
       .chat-mention-item:hover, .chat-mention-item.active { background: var(--bg-elevated); border-left-color: var(--accent, #E85102); }
-      .chat-mention-item:first-child { border-radius: 12px 12px 0 0; }
+      .chat-mention-item.active { background: rgba(232, 81, 2, 0.06); }
       .chat-mention-item:last-child { border-radius: 0 0 12px 12px; }
-      .chat-mention-role { font-size: 0.6rem; font-weight: 600; padding: 1px 6px; border-radius: 8px; background: var(--accent, #E85102)12; color: var(--accent, #E85102); white-space: nowrap; flex-shrink: 0; }
-      .chat-mention-avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 700; flex-shrink: 0; }
+      .chat-mention-item-name { font-weight: 600; font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .chat-mention-item-email { font-size: 0.68rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .chat-mention-role { font-size: 0.58rem; font-weight: 600; padding: 2px 7px; border-radius: 8px; background: rgba(232, 81, 2, 0.08); color: var(--accent, #E85102); white-space: nowrap; flex-shrink: 0; line-height: 1.3; }
+      .chat-mention-highlight { background: rgba(232, 81, 2, 0.15); color: var(--accent, #E85102); border-radius: 2px; padding: 0 1px; font-weight: inherit; }
+      .chat-mention-empty { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 16px; font-size: 0.78rem; color: var(--text-muted); }
+      .chat-mention-avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 700; flex-shrink: 0; }
 
       /* ── Modals ── */
       .chat-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1100; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
@@ -2710,8 +2891,7 @@ const TBO_CHAT = {
       .chat-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 
       /* ── User Hover Card ── */
-      .chat-user-card { position: fixed; z-index: 10001; width: 260px; background: var(--bg-card, #1e1e1e); border: 1px solid var(--border-default, #333); border-radius: var(--radius-lg, 12px); box-shadow: 0 8px 32px rgba(0,0,0,0.25); padding: 16px; pointer-events: auto; animation: chatCardFadeIn 0.15s ease; }
-      @keyframes chatCardFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+      .chat-user-card { position: fixed; z-index: 10001; width: 270px; background: var(--bg-card, #1e1e1e); border: 1px solid var(--border-default, #333); border-radius: var(--radius-lg, 12px); box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.1); padding: 16px; pointer-events: auto; transition: opacity 0.15s ease, transform 0.15s ease; backdrop-filter: blur(8px); }
       .chat-user-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
       .chat-user-card-avatar .chat-message-avatar { cursor: default; }
       .chat-user-card-info { min-width: 0; flex: 1; }

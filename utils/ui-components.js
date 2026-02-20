@@ -106,7 +106,7 @@ const TBO_UI = {
   // SKELETON LOADING POR MODULO
   // ══════════════════════════════════════════════════════════════════════
   _skeletonTemplates: {
-    'command-center': `
+    'dashboard': `
       <div class="skel-greeting skel-shimmer" style="height:60px;border-radius:8px;margin-bottom:16px;"></div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
         ${Array(4).fill('<div class="skel-kpi skel-shimmer" style="height:90px;border-radius:8px;"></div>').join('')}

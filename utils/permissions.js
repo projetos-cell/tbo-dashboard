@@ -31,12 +31,12 @@ const TBO_PERMISSIONS = {
     'entregas','tarefas','revisoes',
     'decisoes','biblioteca',
     'trilha-aprendizagem',
-    'changelog','chat'
+    'changelog','chat','carga-trabalho'
   ],
 
   // Finance-restricted modules (founders + finance only)
   _financeModules: [
-    'pagar','receber','margens','conciliacao'
+    'pagar','receber','margens','conciliacao','conciliacao-bancaria'
   ],
 
   // Admin modules (founders + project_owners com coordenacao)
@@ -50,9 +50,9 @@ const TBO_PERMISSIONS = {
     founder: {
       label: 'Fundador',
       color: '#E85102',
-      modules: ['command-center','alerts','inteligencia','pipeline','comercial','clientes','portal-cliente','contratos','conteudo','projetos','mercado','reunioes','financeiro','rh','cultura','configuracoes','admin-onboarding'],
+      modules: ['dashboard','alerts','inteligencia','pipeline','comercial','clientes','portal-cliente','contratos','conteudo','projetos','mercado','reunioes','financeiro','rh','cultura','configuracoes','admin-onboarding'],
       dashboardVariant: 'full',
-      defaultModule: 'command-center'
+      defaultModule: 'dashboard'
     },
     project_owner: {
       label: 'Project Owner',
@@ -60,30 +60,30 @@ const TBO_PERMISSIONS = {
       // v2.2.1: removido 'comercial' (CRM/pipeline com dados financeiros sigilosos)
       // v2.2.2: removidos clientes/contratos (dados de receita) — PO foca em projetos/entregas
       // portal-cliente movido para secao PROJETOS (visivel a POs para acompanhar cliente)
-      modules: ['command-center','alerts','portal-cliente','conteudo','projetos','mercado','reunioes','rh','cultura','configuracoes','admin-onboarding'],
+      modules: ['dashboard','alerts','portal-cliente','conteudo','projetos','mercado','reunioes','rh','cultura','configuracoes','admin-onboarding'],
       dashboardVariant: 'projects',
-      defaultModule: 'command-center'
+      defaultModule: 'dashboard'
     },
     artist: {
       label: 'Artista',
       color: '#3a7bd5',
-      modules: ['command-center','alerts','projetos','mercado','reunioes','cultura','configuracoes'],
+      modules: ['dashboard','alerts','projetos','mercado','reunioes','cultura','configuracoes'],
       dashboardVariant: 'tasks',
-      defaultModule: 'command-center'
+      defaultModule: 'dashboard'
     },
     comercial: {
       label: 'Comercial',
       color: '#f59e0b',
-      modules: ['command-center','alerts','pipeline','comercial','clientes','portal-cliente','contratos','projetos','mercado','reunioes','cultura','configuracoes'],
+      modules: ['dashboard','alerts','pipeline','comercial','clientes','portal-cliente','contratos','projetos','mercado','reunioes','cultura','configuracoes'],
       dashboardVariant: 'full',
-      defaultModule: 'command-center'
+      defaultModule: 'dashboard'
     },
     finance: {
       label: 'Financeiro',
       color: '#2ecc71',
-      modules: ['command-center','alerts','inteligencia','pipeline','financeiro','comercial','clientes','portal-cliente','contratos','mercado','reunioes','cultura','configuracoes'],
+      modules: ['dashboard','alerts','inteligencia','pipeline','financeiro','comercial','clientes','portal-cliente','contratos','mercado','reunioes','cultura','configuracoes'],
       dashboardVariant: 'financial',
-      defaultModule: 'command-center'
+      defaultModule: 'dashboard'
     }
   },
 
@@ -159,7 +159,7 @@ const TBO_PERMISSIONS = {
       id: 'inicio',
       label: 'INÍCIO',
       icon: 'home',
-      modules: ['command-center', 'alerts', 'chat']
+      modules: ['dashboard', 'alerts', 'chat']
     },
     {
       id: 'execucao',
@@ -183,7 +183,7 @@ const TBO_PERMISSIONS = {
       id: 'financeiro-section',
       label: 'FINANCEIRO',
       icon: 'coins',
-      modules: ['financeiro', 'pagar', 'receber', 'margens', 'conciliacao']
+      modules: ['financeiro', 'pagar', 'receber', 'margens', 'conciliacao', 'conciliacao-bancaria']
     },
     {
       id: 'fornecedores',
@@ -436,7 +436,7 @@ const TBO_PERMISSIONS = {
 
   getDefaultModule(roleName) {
     const roleDef = this._roles[roleName];
-    return roleDef ? roleDef.defaultModule : 'command-center';
+    return roleDef ? roleDef.defaultModule : 'dashboard';
   },
 
   canAccess(userId, moduleName, email) {

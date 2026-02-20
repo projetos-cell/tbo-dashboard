@@ -1,0 +1,13 @@
+# Arquivos que NÃO devem ir para o deploy
+archive/
+supabase/
+database/
+docs/
+scripts/
+.github/
+*.md
+.eslintrc*
+eslint.config.*
+package*.json
+node_modules/
+.env*

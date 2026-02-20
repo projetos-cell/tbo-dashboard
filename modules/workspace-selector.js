@@ -151,7 +151,7 @@ const TBO_WORKSPACE = {
           // Navegar para o dashboard apos breve delay
           setTimeout(() => {
             if (typeof TBO_ROUTER !== 'undefined') {
-              TBO_ROUTER.navigate('command-center');
+              TBO_ROUTER.navigate('dashboard');
             }
           }, 300);
 

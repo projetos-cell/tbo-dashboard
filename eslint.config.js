@@ -11,7 +11,35 @@ export default [
         ...globals.browser,
         // Supabase CDN global
         supabase: "readonly",
-        // TBO OS singletons (definidos em utils/)
+
+        // ─── src/ v3.0 singletons (enterprise layer) ───
+        TBO_DB: "readonly",
+        TBO_APP_CONFIG: "readonly",
+        TBO_LOGGER: "readonly",
+        TBO_ERRORS: "readonly",
+        TBO_SANITIZE: "readonly",
+        TBO_VALIDATE: "readonly",
+        TBO_RBAC: "readonly",
+        TBO_HTTP: "readonly",
+        TBO_STORAGE: "readonly",
+        TBO_ROUTE_REGISTRY: "readonly",
+
+        // Repositories (Data Access Layer)
+        RepoBase: "readonly",
+        ProjectsRepo: "readonly",
+        PeopleRepo: "readonly",
+        FinanceRepo: "readonly",
+        ChatRepo: "readonly",
+        CrmRepo: "readonly",
+        AuditRepo: "readonly",
+
+        // Integration contracts
+        RDStationIntegration: "readonly",
+        OmieIntegration: "readonly",
+        FirefliesIntegration: "readonly",
+        GoogleCalendarIntegration: "readonly",
+
+        // ─── Legacy singletons (utils/) ───
         TBO_SUPABASE: "readonly",
         TBO_AUTH: "readonly",
         TBO_PERMISSIONS: "readonly",
@@ -22,6 +50,7 @@ export default [
         TBO_APP: "readonly",
         TBO_WORKSPACE: "readonly",
         TBO_UX: "readonly",
+        TBO_UI: "readonly",
         TBO_DIGEST: "readonly",
         TBO_WORKFLOW: "readonly",
         TBO_REALTIME: "readonly",
@@ -30,20 +59,34 @@ export default [
         TBO_PDF_EXPORT: "readonly",
         TBO_CRYPTO: "readonly",
         TBO_NOTIFICATIONS: "readonly",
+        TBO_ERP: "readonly",
+        TBO_NAVIGATION: "readonly",
+        TBO_SEARCH: "readonly",
+        TBO_SHORTCUTS: "readonly",
+        TBO_BI: "readonly",
+        TBO_DS: "readonly",
+        TBO_CHAT: "readonly",
+        TBO_GOOGLE_CALENDAR: "readonly",
+
         // Onboarding globals
         ONBOARDING_CONFIG: "readonly",
         TBO_ONBOARDING_DB: "readonly",
         _escapeHtml: "readonly",
-        // Lucide icons CDN
+
+        // CDN globals
         lucide: "readonly",
-        // Chart.js CDN
-        Chart: "readonly"
+        Chart: "readonly",
+        L: "readonly", // Leaflet
+        marked: "readonly" // Markdown parser
       }
     },
     rules: {
       // Erros criticos
       "no-undef": "warn",
-      "no-unused-vars": "off", // Muitos singletons definidos globalmente
+      "no-unused-vars": ["warn", {
+        "varsIgnorePattern": "^_|^TBO_|Repo$|Integration$",
+        "argsIgnorePattern": "^_"
+      }],
       "no-redeclare": "error",
 
       // Seguranca
@@ -61,7 +104,18 @@ export default [
       "no-duplicate-case": "error",
       "valid-typeof": "error",
       "eqeqeq": ["warn", "smart"],
-      "no-throw-literal": "warn"
+      "no-throw-literal": "warn",
+      "consistent-return": "warn",
+      "no-shadow": "warn",
+      "prefer-const": "warn",
+      "no-var": "warn"
+    }
+  },
+  {
+    // src/ + utils/: relaxar no-redeclare (singletons definidos E registrados como globals)
+    files: ["src/**/*.js", "utils/**/*.js"],
+    rules: {
+      "no-redeclare": "off"
     }
   },
   {
@@ -71,6 +125,8 @@ export default [
       "database/",
       "supabase/",
       "docs/",
+      "dist/",
+      "archive/",
       "*.json",
       "*.css",
       "*.html",

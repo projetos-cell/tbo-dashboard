@@ -1320,12 +1320,12 @@ const TBO_CONFIGURACOES = {
     this._bind('cfgClearAllHistory', () => {
       if (typeof TBO_UX !== 'undefined') {
         TBO_UX.confirm('Limpar todo historico', 'Isso removera permanentemente o historico de geracoes de todos os modulos. Continuar?', () => {
-          const modules = ['command-center', 'conteudo', 'comercial', 'projetos', 'mercado', 'reunioes', 'financeiro'];
+          const modules = ['dashboard', 'conteudo', 'comercial', 'projetos', 'mercado', 'reunioes', 'financeiro'];
           modules.forEach(m => TBO_STORAGE.clearHistory(m));
           TBO_TOAST.success('Historico limpo', 'Todo o historico de geracoes foi removido.');
         }, { danger: true, confirmText: 'Limpar tudo' });
       } else {
-        const modules = ['command-center', 'conteudo', 'comercial', 'projetos', 'mercado', 'reunioes', 'financeiro'];
+        const modules = ['dashboard', 'conteudo', 'comercial', 'projetos', 'mercado', 'reunioes', 'financeiro'];
         modules.forEach(m => TBO_STORAGE.clearHistory(m));
         TBO_TOAST.success('Historico limpo', 'Todo o historico de geracoes foi removido.');
       }

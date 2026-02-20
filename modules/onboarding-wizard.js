@@ -191,7 +191,7 @@ const TBO_ONBOARDING_WIZARD = {
         <div>
           <label style="font-size:0.82rem;font-weight:500;display:block;margin-bottom:8px;">Modulo inicial</label>
           <select id="owDefaultModule" style="width:100%;padding:10px 12px;border:1px solid var(--border-default);border-radius:var(--radius-md);font-size:0.88rem;background:var(--bg-primary);">
-            <option value="command-center">Dashboard (Command Center)</option>
+            <option value="dashboard">Dashboard</option>
             <option value="projetos">Projetos</option>
             <option value="tarefas">Tarefas</option>
             <option value="pipeline">Pipeline</option>
@@ -274,7 +274,7 @@ const TBO_ONBOARDING_WIZARD = {
       case 2:
         this._formData.theme = document.querySelector('input[name="owTheme"]:checked')?.value || 'light';
         this._formData.notifications = document.getElementById('owNotifications')?.checked !== false;
-        this._formData.defaultModule = document.getElementById('owDefaultModule')?.value || 'command-center';
+        this._formData.defaultModule = document.getElementById('owDefaultModule')?.value || 'dashboard';
         break;
     }
   },
@@ -317,7 +317,7 @@ const TBO_ONBOARDING_WIZARD = {
     // Redirecionar apos 2s
     setTimeout(() => {
       if (typeof TBO_ROUTER !== 'undefined') {
-        TBO_ROUTER.navigate(this._formData.defaultModule || 'command-center');
+        TBO_ROUTER.navigate(this._formData.defaultModule || 'dashboard');
       }
     }, 2000);
   },

@@ -63,7 +63,7 @@
   <!-- ═══════════════════════════════════════════════════════ -->
   <aside id="sidebar" class="sidebar" role="complementary" aria-label="Barra lateral">
     <!-- Brand — click to return to Dashboard -->
-    <a href="#command-center" class="sidebar-brand" id="brandLink" aria-label="Voltar ao Dashboard">
+    <a href="#dashboard" class="sidebar-brand" id="brandLink" aria-label="Voltar ao Dashboard">
       <img class="brand-logo-svg" src="assets/logo-dark.svg" alt="TBO - think. build. own" draggable="false">
       <span class="brand-label">Operating System</span>
     </a>
@@ -325,8 +325,64 @@
   <!-- SCRIPTS                                                 -->
   <!-- ═══════════════════════════════════════════════════════ -->
 
-  <!-- Configuration (API keys, endpoints, feature flags) -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- PHASE 1: Configuration (MUST load first — provides ONBOARDING_CONFIG) -->
+  <!-- ═══════════════════════════════════════════════════════ -->
   <script defer src="config.js"></script>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- PHASE 2: SRC/ ARCHITECTURE LAYER (v3.0 Enterprise)     -->
+  <!-- Core → Infra → App (carregam ANTES dos módulos)        -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+
+  <!-- Core: Observability (sem dependências) -->
+  <script defer src="src/core/observability/logger.js"></script>
+  <script defer src="src/core/observability/errors.js"></script>
+
+  <!-- Core: Security & Validation (sem dependências) -->
+  <script defer src="src/core/security/sanitize.js"></script>
+  <script defer src="src/core/validation/schemas.js"></script>
+
+  <!-- Core: RBAC Engine (depende de TBO_AUTH — carregado depois, usa typeof check) -->
+  <script defer src="src/core/permissions/engine.js"></script>
+
+  <!-- App: Config (depende de TBO_LOGGER) -->
+  <script defer src="src/app/config/index.js"></script>
+
+  <!-- Infra: Supabase Single Client (depende de ONBOARDING_CONFIG via config.js) -->
+  <script defer src="src/infra/supabase/client.js"></script>
+
+  <!-- Infra: HTTP Fetcher (sem dependências) -->
+  <script defer src="src/infra/http/fetcher.js"></script>
+
+  <!-- Infra: Storage (depende de TBO_DB) -->
+  <script defer src="src/infra/supabase/storage/index.js"></script>
+
+  <!-- Infra: Repositories (dependem de TBO_DB + TBO_AUTH) -->
+  <script defer src="src/infra/supabase/queries/_base.js"></script>
+  <script defer src="src/infra/supabase/queries/projects.js"></script>
+  <script defer src="src/infra/supabase/queries/people.js"></script>
+  <script defer src="src/infra/supabase/queries/finance.js"></script>
+  <script defer src="src/infra/supabase/queries/chat.js"></script>
+  <script defer src="src/infra/supabase/queries/crm.js"></script>
+  <script defer src="src/infra/supabase/queries/audit.js"></script>
+
+  <!-- Infra: Integration Contracts -->
+  <script defer src="src/infra/integrations/rdstation/index.js"></script>
+  <script defer src="src/infra/integrations/omie/index.js"></script>
+  <script defer src="src/infra/integrations/fireflies/index.js"></script>
+  <script defer src="src/infra/integrations/google-calendar/index.js"></script>
+
+  <!-- App: Route Registry -->
+  <script defer src="src/app/routes/index.js"></script>
+
+  <!-- Shared: Constants & Utils -->
+  <script defer src="src/shared/constants/index.js"></script>
+  <script defer src="src/shared/utils/index.js"></script>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- PHASE 3: LEGACY LAYER (utils + modules)                -->
+  <!-- ═══════════════════════════════════════════════════════ -->
 
   <!-- Backup Utilities -->
   <script defer src="utils/backup.js"></script>
@@ -428,7 +484,7 @@
   <script defer src="modules/admin-portal.js"></script>
   <script defer src="modules/conciliacao-bancaria.js"></script>
   <script defer src="modules/onboarding-wizard.js"></script>
-  <script defer src="modules/academy-catalogo.js"></script>
+  <!-- academy-catalogo.js removido do boot — desativado para performance (v2.6) -->
   <script defer src="modules/chat.js?v=2026022004"></script>
 
   <!-- Workspace Selector (Multi-tenant v2) -->
@@ -470,7 +526,13 @@
   <script defer src="utils/integrations-enhancements.js"></script>
   <script defer src="utils/performance-enhancements.js"></script>
 
-  <!-- Main Application Entry Point -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- PHASE 4: Bootstrap (APÓS config + utils + módulos)     -->
+  <!-- Inicializa TBO_DB, error handlers, route registry      -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <script defer src="src/app/entrypoints/bootstrap.js"></script>
+
+  <!-- Main Application Entry Point (ÚLTIMO — wiring final) -->
   <script defer src="app.js?v=2026022003"></script>
 
 </body>

@@ -12,7 +12,7 @@ const TBO_ROUTER = {
     'inteligencia-mercado': 'mercado',
     'reunioes-contexto': 'reunioes',
     'equipe': 'rh',
-    'dashboard': 'command-center',
+    'command-center': 'dashboard',  // Compat: rota antiga redireciona para dashboard
     'home': 'workspace'
   },
 
@@ -86,7 +86,7 @@ const TBO_ROUTER = {
     // Permission guard — redirect if user lacks access
     if (typeof TBO_AUTH !== 'undefined' && !TBO_AUTH.canAccess(moduleName)) {
       const user = TBO_AUTH.getCurrentUser();
-      const defaultMod = user?.defaultModule || 'command-center';
+      const defaultMod = user?.defaultModule || 'dashboard';
       if (typeof TBO_TOAST !== 'undefined') {
         TBO_TOAST.warning('Acesso restrito', `Voce nao tem permissao para este modulo. Redirecionando...`);
       }
@@ -189,7 +189,7 @@ const TBO_ROUTER = {
     const permModule = moduleName === 'project-workspace' ? 'projetos' : moduleName === 'people-profile' ? 'rh' : moduleName;
     if (typeof TBO_AUTH !== 'undefined' && !TBO_AUTH.canAccess(permModule)) {
       const user = TBO_AUTH.getCurrentUser();
-      const defaultMod = user?.defaultModule || 'command-center';
+      const defaultMod = user?.defaultModule || 'dashboard';
       if (typeof TBO_TOAST !== 'undefined') {
         TBO_TOAST.warning('Acesso restrito', 'Voce nao tem permissao para acessar projetos.');
       }
@@ -305,7 +305,7 @@ const TBO_ROUTER = {
   },
 
   // Initialize from URL hash (supports deep links like #projetos/ativos e #projeto/id/tab)
-  initFromHash(defaultModule = 'command-center') {
+  initFromHash(defaultModule = 'dashboard') {
     const hash = window.location.hash.replace('#', '');
     if (!hash) {
       this.navigate(defaultModule);

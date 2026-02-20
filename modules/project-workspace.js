@@ -1870,7 +1870,9 @@ const TBO_PROJECT_WORKSPACE = {
 .pw-tab-content { flex: 1; overflow-y: auto; padding-bottom: 40px; }
 
 /* ── List View ── */
-.pw-list-header { display: flex; align-items: center; padding: 8px 28px; border-bottom: 1px solid var(--border-subtle); font-size: 0.72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; position: sticky; top: 0; background: var(--bg-primary); z-index: 5; }
+.pw-list-header { display: flex; align-items: center; padding: 8px 28px; border-bottom: 2px solid var(--border-subtle); font-size: 0.72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; position: sticky; top: 0; background: color-mix(in srgb, var(--bg-primary) 92%, white); z-index: 5; }
+.pw-list-header .pw-list-col { border-right: 1px solid color-mix(in srgb, var(--border-subtle) 60%, transparent); }
+.pw-list-header .pw-list-col:last-child { border-right: none; }
 .pw-list-col { padding: 0 8px; }
 .pw-list-col--name { flex: 1; min-width: 0; padding-left: 28px; }
 .pw-list-col--owner { width: 140px; flex-shrink: 0; }
@@ -1886,8 +1888,11 @@ const TBO_PROJECT_WORKSPACE = {
 .pw-section-count { font-size: 0.72rem; color: var(--text-muted); margin-left: 4px; }
 
 /* Task Row */
-.pw-list-row { display: flex; align-items: center; padding: 6px 28px; border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 40%, transparent); font-size: 0.82rem; transition: background 0.1s; cursor: default; }
-.pw-list-row:hover { background: var(--bg-tertiary); }
+.pw-list-row { display: flex; align-items: center; padding: 6px 28px; border-bottom: 1px solid var(--border-subtle); font-size: 0.82rem; transition: background 0.1s; cursor: default; }
+.pw-list-row:nth-child(even of .pw-list-row) { background: color-mix(in srgb, var(--bg-secondary) 40%, transparent); }
+.pw-list-row:hover { background: color-mix(in srgb, var(--accent-gold) 6%, var(--bg-tertiary)); }
+.pw-list-row .pw-list-col { border-right: 1px solid color-mix(in srgb, var(--border-subtle) 50%, transparent); }
+.pw-list-row .pw-list-col:last-child { border-right: none; }
 .pw-list-row--done { opacity: 0.55; }
 .pw-list-row--done .pw-task-name { text-decoration: line-through; }
 
@@ -1903,7 +1908,7 @@ const TBO_PROJECT_WORKSPACE = {
 .pw-status-chip { font-size: 0.7rem; font-weight: 600; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
 
 /* Add task row */
-.pw-add-task-row { padding: 4px 28px 4px 56px; }
+.pw-add-task-row { padding: 4px 28px 4px 56px; border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 30%, transparent); }
 .pw-add-task-placeholder { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-muted); cursor: pointer; padding: 6px 0; transition: color 0.15s; }
 .pw-add-task-placeholder:hover { color: var(--text-primary); }
 

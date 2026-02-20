@@ -87,6 +87,7 @@ const TBO_APP = {
       'projetos': typeof TBO_PROJETOS !== 'undefined' ? TBO_PROJETOS : null,
       'mercado': typeof TBO_MERCADO !== 'undefined' ? TBO_MERCADO : null,
       'reunioes': typeof TBO_REUNIOES !== 'undefined' ? TBO_REUNIOES : null,
+      'agenda': typeof TBO_AGENDA !== 'undefined' ? TBO_AGENDA : null,
       'financeiro': typeof TBO_FINANCEIRO !== 'undefined' ? TBO_FINANCEIRO : null,
       'rh': typeof TBO_RH !== 'undefined' ? TBO_RH : null,
       'configuracoes': typeof TBO_CONFIGURACOES !== 'undefined' ? TBO_CONFIGURACOES : null,
@@ -1497,6 +1498,7 @@ const TBO_APP = {
     'projetos': 'Projetos',
     'tarefas': 'Tarefas',
     'reunioes': 'Calendário',
+    'agenda': 'Agenda',
     'biblioteca': 'Arquivos',
     // Producao
     'entregas': 'QA / Aprovações',
@@ -1548,6 +1550,7 @@ const TBO_APP = {
     'projetos': 'folder-kanban',
     'tarefas': 'list-checks',
     'reunioes': 'calendar',
+    'agenda': 'calendar-days',
     'biblioteca': 'files',
     // Producao
     'entregas': 'check-circle-2',

@@ -24,7 +24,7 @@ const TBO_NAV_TREE = (() => {
         { id: 'home-inicio',     label: 'Página Inicial',    icon: 'layout-dashboard',   route: 'dashboard' },
         { id: 'home-inbox',      label: 'Caixa de Entrada',  icon: 'inbox',              route: 'alerts',         badge: 'alerts' },
         { id: 'home-activity',   label: 'Atividade',         icon: 'activity',            route: null,             action: 'activity-feed' },
-        { id: 'home-agenda',     label: 'Agenda',            icon: 'calendar',            route: 'reunioes' }
+        { id: 'home-agenda',     label: 'Agenda',            icon: 'calendar-days',       route: 'agenda' }
       ]
     },
     {

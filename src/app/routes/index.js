@@ -28,6 +28,7 @@ const TBO_ROUTE_REGISTRY = (() => {
     'conteudo':               'conteudo',
     'mercado':                'mercado',
     'reunioes':               'reunioes',
+    'agenda':                 'agenda',
     'integracoes':            'integracoes',
     'configuracoes':          'configuracoes',
     'admin':                  'admin-portal',
@@ -82,6 +83,7 @@ const TBO_ROUTE_REGISTRY = (() => {
     'projetos':               { label: 'Projetos',               icon: 'folder-kanban',      group: 'execucao',     color: '#3B82F6' },
     'tarefas':                { label: 'Tarefas',                icon: 'list-checks',        group: 'execucao',     color: '#22C55E' },
     'reunioes':               { label: 'Calendário',             icon: 'calendar',           group: 'execucao',     color: '#0EA5E9' },
+    'agenda':                 { label: 'Agenda',                 icon: 'calendar-days',      group: 'execucao',     color: '#0EA5E9' },
     'biblioteca':             { label: 'Arquivos',               icon: 'files',              group: 'execucao',     color: '#64748B' },
     // Produção
     'entregas':               { label: 'QA / Aprovações',        icon: 'check-circle-2',     group: 'producao',     color: '#10B981' },

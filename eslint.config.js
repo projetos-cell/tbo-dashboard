@@ -106,7 +106,8 @@ export default [
       "no-undef": "warn",
       "no-unused-vars": ["warn", {
         "varsIgnorePattern": "^_|^TBO_|Repo$|Integration$",
-        "argsIgnorePattern": "^_"
+        "argsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
       }],
       "no-redeclare": "error",
 

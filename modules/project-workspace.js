@@ -1003,33 +1003,87 @@ const TBO_PROJECT_WORKSPACE = {
     const statuses = sm ? sm.states : ['pendente', 'em_andamento', 'concluida', 'cancelada'];
     const labels = sm?.labels || { pendente: 'Pendente', em_andamento: 'Em andamento', concluida: 'Concluida', cancelada: 'Cancelada' };
     const colors = sm?.colors || { pendente: '#6b7280', em_andamento: '#3b82f6', concluida: '#22c55e', cancelada: '#ef4444' };
+    const priColors = { urgente: '#ef4444', alta: '#f59e0b', media: '#3b82f6', baixa: '#6b7280' };
+    const priLabels = { urgente: 'Urgente', alta: 'Alta', media: 'Media', baixa: 'Baixa' };
+
+    const _fmtDate = (d) => {
+      if (!d) return '';
+      const dt = new Date(d);
+      const now = new Date();
+      const diff = Math.floor((dt - now) / 86400000);
+      const str = dt.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' });
+      if (diff < 0) return `<span style="color:#ef4444;">${str}</span>`;
+      if (diff === 0) return `<span style="color:#f59e0b;">Hoje</span>`;
+      if (diff === 1) return `<span style="color:#f59e0b;">Amanha</span>`;
+      return str;
+    };
+
+    const _avatar = (name) => {
+      if (!name) return '';
+      const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+      return `<div class="pw-card-avatar" title="${this._esc(name)}">${initials}</div>`;
+    };
 
     const columns = statuses.map(status => {
       const tasks = this._tasks.filter(t => t.status === status);
+      const isDoneCol = status === 'concluida';
       return `
-        <div class="pw-board-col">
+        <div class="pw-board-col" data-status="${status}">
           <div class="pw-board-col-header" style="border-top:3px solid ${colors[status]};">
             <span>${labels[status] || status}</span>
             <span class="pw-board-count">${tasks.length}</span>
           </div>
-          <div class="pw-board-cards">
-            ${tasks.map(t => `
-              <div class="pw-board-card" data-task-id="${this._esc(t.id)}" draggable="true">
-                <div class="pw-board-card-name">${this._esc(t.title || t.name || 'Sem titulo')}</div>
-                ${t.owner ? `<div class="pw-board-card-owner"><i data-lucide="user" style="width:12px;height:12px;"></i> ${this._esc(t.owner)}</div>` : ''}
-                ${t.due_date ? `<div class="pw-board-card-date"><i data-lucide="calendar" style="width:12px;height:12px;"></i> ${new Date(t.due_date).toLocaleDateString('pt-BR')}</div>` : ''}
-                <div style="display:flex;gap:4px;margin-top:6px;">
-                  ${t.priority ? `<span class="pw-priority-chip" style="font-size:0.62rem;background:${{urgente:'#ef4444',alta:'#f59e0b',media:'#3b82f6',baixa:'#6b7280'}[t.priority] || '#6b7280'}15;color:${{urgente:'#ef4444',alta:'#f59e0b',media:'#3b82f6',baixa:'#6b7280'}[t.priority] || '#6b7280'};">${t.priority}</span>` : ''}
+          <div class="pw-board-cards" data-status="${status}">
+            ${tasks.map(t => {
+              const isDone = t.status === 'concluida';
+              const pc = priColors[t.priority] || '#6b7280';
+              return `
+              <div class="pw-board-card${isDone ? ' pw-board-card--done' : ''}" data-task-id="${this._esc(t.id)}" draggable="true">
+                <div class="pw-card-top">
+                  <button class="pw-card-check${isDone ? ' pw-card-check--done' : ''}" data-task-id="${this._esc(t.id)}" onclick="event.stopPropagation();TBO_PROJECT_WORKSPACE._toggleTask('${this._esc(t.id)}')">
+                    <i data-lucide="${isDone ? 'check-circle-2' : 'circle'}" style="width:16px;height:16px;"></i>
+                  </button>
+                  <div class="pw-board-card-name">${this._esc(t.title || t.name || 'Sem titulo')}</div>
                 </div>
-              </div>
-            `).join('')}
+                <div class="pw-card-meta">
+                  ${t.priority ? `<span class="pw-card-badge" style="background:${pc}20;color:${pc};border:1px solid ${pc}40;">${priLabels[t.priority] || t.priority}</span>` : ''}
+                  ${!isDoneCol && t.due_date ? `<span class="pw-card-date"><i data-lucide="calendar" style="width:11px;height:11px;"></i> ${_fmtDate(t.due_date)}</span>` : ''}
+                </div>
+                ${t.owner ? `<div class="pw-card-footer">${_avatar(t.owner)}<span class="pw-card-owner-name">${this._esc(t.owner)}</span></div>` : ''}
+              </div>`;
+            }).join('')}
             ${tasks.length === 0 ? '<div class="pw-board-empty">Sem tarefas</div>' : ''}
+            <button class="pw-board-add-btn" onclick="TBO_PROJECT_WORKSPACE._addTaskToStatus('${status}')">
+              <i data-lucide="plus" style="width:14px;height:14px;"></i> Adicionar tarefa
+            </button>
           </div>
         </div>
       `;
     }).join('');
 
     return `<div class="pw-board">${columns}</div>`;
+  },
+
+  // Adicionar tarefa diretamente em uma coluna do board
+  _addTaskToStatus(status) {
+    const firstSection = this._sections[0]?.name || 'Planejamento';
+    const newTask = {
+      title: 'Nova tarefa',
+      status: status,
+      priority: 'media',
+      phase: firstSection,
+      project_id: this._projectId
+    };
+    if (typeof TBO_STORAGE !== 'undefined') {
+      TBO_STORAGE.addErpEntity('task', newTask);
+    }
+    this._loadProject();
+    this._refreshListView();
+    // Abrir detalhe da tarefa recem criada
+    setTimeout(() => {
+      const latest = this._tasks.find(t => t.title === 'Nova tarefa' && t.status === status);
+      if (latest) this._openTaskDetail(latest.id);
+    }, 100);
   },
 
   // ── Timeline View (placeholder MVP) ───────────────────────────────────────
@@ -1521,6 +1575,36 @@ const TBO_PROJECT_WORKSPACE = {
           </div>
         </div>
 
+        <!-- Dependencias -->
+        <div class="pw-detail-field">
+          <div class="pw-detail-label">Dependencias</div>
+          <div class="pw-detail-deps" style="padding:4px 0;">
+            ${task.dependencies && task.dependencies.length ? task.dependencies.map(dep => {
+              const depTask = this._tasks.find(dt => dt.id === dep);
+              return depTask ? `<span class="pw-dep-chip" onclick="TBO_PROJECT_WORKSPACE._openTaskDetail('${this._esc(dep)}')">${this._esc(depTask.title || depTask.name)}</span>` : '';
+            }).join('') : '<span style="font-size:0.78rem;color:var(--text-muted);cursor:pointer;" onclick="TBO_PROJECT_WORKSPACE._addDependency(\''+this._esc(taskId)+'\')"><i data-lucide="plus" style="width:12px;height:12px;vertical-align:middle;"></i> Adicionar dependencia</span>'}
+          </div>
+        </div>
+
+        <!-- Comentarios / Atividade (Asana-style) -->
+        <div class="pw-detail-field pw-detail-comments-section">
+          <div class="pw-detail-label" style="display:flex;align-items:center;gap:8px;">
+            <span>Comentarios</span>
+            <span class="pw-comment-count" id="pwCommentCount">${(task.comments || []).length}</span>
+          </div>
+          <div class="pw-comment-input-wrap">
+            <div class="pw-comment-avatar">${this._getMyInitials()}</div>
+            <input type="text" class="pw-comment-input" id="pwCommentInput" placeholder="Escreva um comentario..."
+              onkeydown="if(event.key==='Enter'&&this.value.trim()){TBO_PROJECT_WORKSPACE._addComment('${this._esc(taskId)}',this.value);this.value='';}" />
+            <button class="pw-comment-send" onclick="const inp=document.getElementById('pwCommentInput');if(inp.value.trim()){TBO_PROJECT_WORKSPACE._addComment('${this._esc(taskId)}',inp.value);inp.value='';}">
+              <i data-lucide="send" style="width:14px;height:14px;"></i>
+            </button>
+          </div>
+          <div class="pw-comments-list" id="pwCommentsList">
+            ${this._renderComments(task.comments || [])}
+          </div>
+        </div>
+
         <!-- Acoes -->
         <div style="display:flex;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border-subtle);">
           <button class="btn btn-primary btn-sm" id="pwDetailSave">
@@ -1643,6 +1727,88 @@ const TBO_PROJECT_WORKSPACE = {
       this._refreshListView();
       if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Tarefa excluida');
     });
+  },
+
+  // ── Comentarios (Asana-style activity feed) ──────────────────────────
+
+  _getMyInitials() {
+    try {
+      const user = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.getCurrentUser() : null;
+      if (user?.name) return user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+      return 'EU';
+    } catch (e) { return 'EU'; }
+  },
+
+  _renderComments(comments) {
+    if (!comments || comments.length === 0) {
+      return '<div class="pw-no-comments">Nenhum comentario ainda. Seja o primeiro!</div>';
+    }
+    return comments.slice().reverse().map(c => {
+      const initials = (c.author || '').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || '??';
+      const timeStr = c.created_at ? this._timeAgo(c.created_at) : '';
+      return `
+        <div class="pw-comment-item">
+          <div class="pw-comment-avatar">${initials}</div>
+          <div class="pw-comment-content">
+            <div class="pw-comment-header">
+              <span class="pw-comment-author">${this._esc(c.author || 'Anonimo')}</span>
+              <span class="pw-comment-time">${timeStr}</span>
+            </div>
+            <div class="pw-comment-text">${this._esc(c.text || '')}</div>
+          </div>
+        </div>`;
+    }).join('');
+  },
+
+  _timeAgo(dateStr) {
+    const now = new Date();
+    const then = new Date(dateStr);
+    const diffMs = now - then;
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return 'agora';
+    if (mins < 60) return `${mins}min atras`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h atras`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d atras`;
+    return then.toLocaleDateString('pt-BR');
+  },
+
+  _addComment(taskId, text) {
+    if (!text || !text.trim()) return;
+    const task = this._tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    if (!task.comments) task.comments = [];
+    const user = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.getCurrentUser() : null;
+    const comment = {
+      id: Date.now().toString(36),
+      author: user?.name || 'Voce',
+      text: text.trim(),
+      created_at: new Date().toISOString()
+    };
+    task.comments.push(comment);
+
+    // Persistir
+    if (typeof TBO_STORAGE !== 'undefined') {
+      TBO_STORAGE.updateErpEntity('task', taskId, { comments: task.comments });
+    }
+
+    // Atualizar UI
+    const list = document.getElementById('pwCommentsList');
+    if (list) {
+      list.innerHTML = this._renderComments(task.comments);
+      if (window.lucide) lucide.createIcons();
+    }
+    const countEl = document.getElementById('pwCommentCount');
+    if (countEl) countEl.textContent = task.comments.length;
+  },
+
+  _addDependency(taskId) {
+    // Placeholder — abrir seletor de dependencias futuramente
+    if (typeof TBO_TOAST !== 'undefined') {
+      TBO_TOAST.info('Em breve', 'Selecionar dependencias sera disponibilizado em breve.');
+    }
   },
 
   _refreshListView() {
@@ -2443,6 +2609,43 @@ const TBO_PROJECT_WORKSPACE = {
 .pw-board-card-name { font-size: 0.82rem; font-weight: 500; color: var(--text-primary); margin-bottom: 6px; }
 .pw-board-card-owner, .pw-board-card-date { display: flex; align-items: center; gap: 4px; font-size: 0.72rem; color: var(--text-muted); }
 .pw-board-empty { text-align: center; padding: 20px; font-size: 0.75rem; color: var(--text-muted); }
+
+/* ── Board Cards Asana-style ── */
+.pw-card-top { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+.pw-card-check { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0; flex-shrink: 0; transition: color 0.15s; }
+.pw-card-check:hover { color: var(--color-success); }
+.pw-card-check--done { color: var(--color-success, #22c55e); }
+.pw-board-card--done { opacity: 0.6; }
+.pw-board-card--done .pw-board-card-name { text-decoration: line-through; color: var(--text-muted); }
+.pw-card-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+.pw-card-badge { font-size: 0.65rem; font-weight: 600; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+.pw-card-date { display: flex; align-items: center; gap: 3px; font-size: 0.68rem; color: var(--text-muted); }
+.pw-card-footer { display: flex; align-items: center; gap: 6px; margin-top: 4px; padding-top: 6px; border-top: 1px solid var(--border-subtle); }
+.pw-card-avatar { width: 22px; height: 22px; border-radius: 50%; background: var(--accent-gold); color: #000; font-size: 0.6rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pw-card-owner-name { font-size: 0.7rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pw-board-add-btn { background: none; border: 1px dashed var(--border-subtle); border-radius: 8px; padding: 8px; color: var(--text-muted); font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.15s; margin-top: 4px; }
+.pw-board-add-btn:hover { border-color: var(--accent-gold); color: var(--accent-gold); background: rgba(212,175,55,0.05); }
+
+/* ── Task Detail Comments ── */
+.pw-detail-comments-section { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-subtle); }
+.pw-comment-count { font-size: 0.65rem; background: var(--bg-tertiary); color: var(--text-muted); padding: 1px 7px; border-radius: 10px; font-weight: 500; }
+.pw-comment-input-wrap { display: flex; align-items: center; gap: 8px; margin-top: 8px; margin-bottom: 12px; }
+.pw-comment-input { flex: 1; padding: 8px 12px; font-size: 0.82rem; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-primary); color: var(--text-primary); outline: none; transition: border-color 0.15s; }
+.pw-comment-input:focus { border-color: var(--accent-gold); box-shadow: 0 0 0 2px rgba(212,175,55,0.1); }
+.pw-comment-input::placeholder { color: var(--text-muted); }
+.pw-comment-send { background: var(--accent-gold); border: none; color: #000; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: opacity 0.15s; flex-shrink: 0; }
+.pw-comment-send:hover { opacity: 0.85; }
+.pw-comment-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-gold); color: #000; font-size: 0.65rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pw-comments-list { display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; }
+.pw-comment-item { display: flex; gap: 8px; padding: 8px 0; }
+.pw-comment-content { flex: 1; min-width: 0; }
+.pw-comment-header { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+.pw-comment-author { font-size: 0.78rem; font-weight: 600; color: var(--text-primary); }
+.pw-comment-time { font-size: 0.68rem; color: var(--text-muted); }
+.pw-comment-text { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.pw-no-comments { font-size: 0.78rem; color: var(--text-muted); padding: 12px 0; text-align: center; }
+.pw-dep-chip { display: inline-flex; align-items: center; gap: 4px; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 3px 10px; font-size: 0.72rem; color: var(--text-primary); cursor: pointer; transition: border-color 0.15s; }
+.pw-dep-chip:hover { border-color: var(--accent-gold); }
 
 /* ── Dashboard ── */
 .pw-dashboard { padding: 24px 28px; }

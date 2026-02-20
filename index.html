@@ -46,6 +46,9 @@
   <link rel="stylesheet" href="src/system/sidebar/AddToSpaceOverlay.css">
   <link rel="stylesheet" href="src/system/sidebar/SecondarySidebar.css">
 
+  <!-- Page Editor (Notion-style) CSS -->
+  <link rel="stylesheet" href="modules/page-editor.css">
+
   <!-- Leaflet CSS (loaded early for layout, JS deferred below) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
 
@@ -386,6 +389,7 @@
   <script defer src="src/infra/supabase/queries/chat.js"></script>
   <script defer src="src/infra/supabase/queries/crm.js"></script>
   <script defer src="src/infra/supabase/queries/audit.js"></script>
+  <script defer src="src/infra/supabase/queries/pages.js"></script>
 
   <!-- Infra: Integration Contracts -->
   <script defer src="src/infra/integrations/rdstation/index.js"></script>
@@ -527,6 +531,7 @@
   <script defer src="modules/trilha-aprendizagem.js"></script>
   <script defer src="modules/pessoas-avancado.js"></script>
   <script defer src="modules/portal-cliente.js"></script>
+  <script defer src="modules/page-editor.js"></script>
 
   <!-- Admin Portal — sub-modulos (carregar ANTES do orquestrador) -->
   <script defer src="modules/admin/users-tab.js"></script>

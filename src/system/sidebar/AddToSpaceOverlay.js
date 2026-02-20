@@ -27,6 +27,7 @@ const TBO_ADD_TO_SPACE = (() => {
   let _onCreateCb = null;
   let _onCloseCb = null;
   let _searchTerm = '';
+  let _destPopoverOpen = false;
 
   // ── Templates de criação ────────────────────────────────────────────────
 
@@ -186,11 +187,17 @@ const TBO_ADD_TO_SPACE = (() => {
               </button>
               <div class="ats-header-title">
                 <span class="ats-header-prefix">Adicionar a</span>
-                <span class="ats-header-space">
+                <button class="ats-header-space" data-ats-dest-trigger aria-expanded="false" aria-haspopup="listbox" title="Trocar destino">
                   <i data-lucide="${icon}" class="ats-header-space-icon"></i>
-                  <span class="ats-header-space-label">${label}</span>
+                  <span class="ats-header-space-label" id="atsDestLabel">${label}</span>
                   <i data-lucide="chevron-down" class="ats-header-chevron"></i>
-                </span>
+                </button>
+                <div class="ats-dest-popover" id="atsDestPopover" role="listbox" aria-label="Selecionar destino" style="display:none;">
+                  <div class="ats-dest-search-wrap">
+                    <input type="text" class="ats-dest-search" placeholder="Buscar espaço..." data-ats-dest-search autocomplete="off" spellcheck="false">
+                  </div>
+                  <div class="ats-dest-list" id="atsDestList"></div>
+                </div>
               </div>
             </div>
             <div class="ats-header-center">
@@ -369,7 +376,7 @@ const TBO_ADD_TO_SPACE = (() => {
     _refreshContent();
   }
 
-  function _onCreateClick(e) {
+  async function _onCreateClick(e) {
     const btn = e.target.closest('[data-ats-create]');
     if (!btn) return;
 
@@ -377,7 +384,44 @@ const TBO_ADD_TO_SPACE = (() => {
     const type = btn.dataset.type;
     const templateKey = btn.dataset.template || null;
 
-    // Callback
+    // ── Página vazia → criar no Supabase e navegar para editor ──
+    if (actionId === 'empty-page') {
+      // Evitar double-click
+      if (btn.disabled) return;
+      btn.disabled = true;
+      btn.style.opacity = '0.6';
+      btn.style.pointerEvents = 'none';
+
+      try {
+        const user = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.getCurrentUser() : null;
+        if (!user) throw new Error('Usuário não autenticado');
+
+        const page = await PagesRepo.create({
+          space_id: _currentSpace?.spaceId || 'ws-geral',
+          title: 'Nova página',
+          content: {},
+          created_by: user.supabaseId || user.id
+        });
+
+        close();
+        window.location.hash = 'page/' + page.id;
+
+        if (typeof TBO_TOAST !== 'undefined') {
+          TBO_TOAST.success('Página criada', `Página criada em ${_currentSpace?.spaceLabel || 'espaço'}`);
+        }
+      } catch (err) {
+        console.error('[TBO AddToSpace] Erro ao criar página:', err);
+        btn.disabled = false;
+        btn.style.opacity = '';
+        btn.style.pointerEvents = '';
+        if (typeof TBO_TOAST !== 'undefined') {
+          TBO_TOAST.error('Erro', 'Não foi possível criar a página. Tente novamente.');
+        }
+      }
+      return;
+    }
+
+    // ── Demais ações: callback genérico ──
     if (typeof _onCreateCb === 'function') {
       _onCreateCb({
         actionId,
@@ -392,12 +436,134 @@ const TBO_ADD_TO_SPACE = (() => {
     if (typeof TBO_TOAST !== 'undefined') {
       const item = [...PRIMARY_ACTIONS, ...QUICK_START_TEMPLATES].find(x => x.id === actionId);
       TBO_TOAST.success(
-        'Criando...',
-        `${item ? item.title : actionId} em ${_currentSpace?.spaceLabel || 'espaço'}`
+        'Em breve',
+        `${item ? item.title : actionId} será implementado na próxima fase`
       );
     }
 
     close();
+  }
+
+  // ── Destination Picker ─────────────────────────────────────────────────
+
+  function _getWorkspaces() {
+    if (typeof TBO_SIDEBAR_SERVICE !== 'undefined' && TBO_SIDEBAR_SERVICE.initialized) {
+      return TBO_SIDEBAR_SERVICE.getItems()
+        .filter(i => i.type === 'workspace')
+        .map(ws => ({ id: ws.id, name: ws.name, icon: ws.icon || 'folder' }));
+    }
+    // Fallback
+    return [{ id: 'ws-geral', name: 'Geral', icon: 'globe' }];
+  }
+
+  function _openDestPicker() {
+    const popover = document.getElementById('atsDestPopover');
+    const trigger = _overlay?.querySelector('[data-ats-dest-trigger]');
+    if (!popover || !trigger) return;
+
+    _destPopoverOpen = true;
+    popover.style.display = '';
+    trigger.setAttribute('aria-expanded', 'true');
+
+    _renderDestList('');
+
+    const searchInput = popover.querySelector('[data-ats-dest-search]');
+    if (searchInput) {
+      searchInput.value = '';
+      setTimeout(() => searchInput.focus(), 30);
+    }
+
+    // Fechar ao clicar fora
+    setTimeout(() => {
+      document.addEventListener('click', _onDestClickOutside, true);
+    }, 10);
+  }
+
+  function _closeDestPicker() {
+    const popover = document.getElementById('atsDestPopover');
+    const trigger = _overlay?.querySelector('[data-ats-dest-trigger]');
+    if (popover) popover.style.display = 'none';
+    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+    _destPopoverOpen = false;
+    document.removeEventListener('click', _onDestClickOutside, true);
+  }
+
+  function _onDestClickOutside(e) {
+    const popover = document.getElementById('atsDestPopover');
+    const trigger = _overlay?.querySelector('[data-ats-dest-trigger]');
+    if (!popover || !trigger) return;
+    if (!popover.contains(e.target) && !trigger.contains(e.target)) {
+      _closeDestPicker();
+    }
+  }
+
+  function _renderDestList(filter) {
+    const list = document.getElementById('atsDestList');
+    if (!list) return;
+    const workspaces = _getWorkspaces();
+    const q = (filter || '').toLowerCase();
+    const filtered = q ? workspaces.filter(ws => ws.name.toLowerCase().includes(q)) : workspaces;
+
+    if (filtered.length === 0) {
+      list.innerHTML = '<div class="ats-dest-empty">Nenhum espaço encontrado</div>';
+      return;
+    }
+
+    const currentId = _currentSpace?.spaceId;
+    list.innerHTML = filtered.map(ws => `
+      <button class="ats-dest-item${ws.id === currentId ? ' ats-dest-item--active' : ''}"
+              data-ats-dest-id="${_esc(ws.id)}"
+              data-ats-dest-name="${_esc(ws.name)}"
+              data-ats-dest-icon="${_esc(ws.icon)}"
+              role="option"
+              aria-selected="${ws.id === currentId}">
+        <i data-lucide="${_esc(ws.icon)}" class="ats-dest-item-icon"></i>
+        <span class="ats-dest-item-name">${_esc(ws.name)}</span>
+        ${ws.id === currentId ? '<i data-lucide="check" class="ats-dest-item-check"></i>' : ''}
+      </button>
+    `).join('');
+
+    if (window.lucide) lucide.createIcons({ root: list });
+
+    // Bind clicks nos items
+    list.querySelectorAll('[data-ats-dest-id]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.atsDestId;
+        const name = btn.dataset.atsDestName;
+        const icon = btn.dataset.atsDestIcon;
+        _selectDestination(id, name, icon);
+      });
+    });
+  }
+
+  function _selectDestination(id, name, icon) {
+    _currentSpace = {
+      ..._currentSpace,
+      spaceId: id,
+      spaceLabel: name,
+      spaceIcon: icon
+    };
+
+    // Atualizar label no header
+    const labelEl = document.getElementById('atsDestLabel');
+    if (labelEl) labelEl.textContent = name;
+
+    // Atualizar ícone no header
+    const trigger = _overlay?.querySelector('[data-ats-dest-trigger]');
+    if (trigger) {
+      const iconEl = trigger.querySelector('.ats-header-space-icon');
+      if (iconEl) {
+        iconEl.setAttribute('data-lucide', icon);
+        if (window.lucide) lucide.createIcons({ root: trigger });
+      }
+    }
+
+    // Atualizar aria-label do overlay
+    const overlayEl = _overlay;
+    if (overlayEl) overlayEl.setAttribute('aria-label', `Adicionar a ${name}`);
+
+    _closeDestPicker();
   }
 
   // ── Refresh conteúdo (busca) ────────────────────────────────────────────
@@ -433,6 +599,33 @@ const TBO_ADD_TO_SPACE = (() => {
 
     // Cards
     _overlay.addEventListener('click', _onCreateClick);
+
+    // Destination picker trigger
+    const destTrigger = _overlay.querySelector('[data-ats-dest-trigger]');
+    if (destTrigger) {
+      destTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (_destPopoverOpen) {
+          _closeDestPicker();
+        } else {
+          _openDestPicker();
+        }
+      });
+    }
+
+    // Destination search
+    const destSearch = _overlay.querySelector('[data-ats-dest-search]');
+    if (destSearch) {
+      destSearch.addEventListener('input', (e) => {
+        _renderDestList(e.target.value.trim());
+      });
+      destSearch.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          e.stopPropagation();
+          _closeDestPicker();
+        }
+      });
+    }
 
     // ESC + Focus trap
     document.addEventListener('keydown', _onKeydown);

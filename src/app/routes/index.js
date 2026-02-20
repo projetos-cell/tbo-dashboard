@@ -70,6 +70,10 @@ const TBO_ROUTE_REGISTRY = (() => {
     'people': {
       module: 'people-profile',
       permissionModule: 'rh'
+    },
+    'page': {
+      module: 'page-editor',
+      permissionModule: null  // RLS cuida do acesso — sem restrição por módulo
     }
   };
 
@@ -125,7 +129,9 @@ const TBO_ROUTE_REGISTRY = (() => {
     // Outros
     'conteudo':               { label: 'Conteúdo & Redação',     icon: 'pen-tool',           group: 'outros',       color: '#64748B' },
     'decisoes':               { label: 'Decisões',               icon: 'gavel',              group: 'outros',       color: '#64748B' },
-    'templates':              { label: 'Templates',              icon: 'layout-template',    group: 'outros',       color: '#64748B' }
+    'templates':              { label: 'Templates',              icon: 'layout-template',    group: 'outros',       color: '#64748B' },
+    // Pages (editor Notion-style)
+    'page-editor':            { label: 'Página',                 icon: 'file-text',          group: 'outros',       color: '#E85102' }
   };
 
   return {

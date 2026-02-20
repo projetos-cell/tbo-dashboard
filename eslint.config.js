@@ -95,6 +95,8 @@ export default [
         TBO_SIDEBAR_BRIDGE: "readonly",
         TBO_ADD_TO_SPACE: "readonly",
         TBO_SECONDARY_SIDEBAR: "readonly",
+        TBO_PAGE_EDITOR: "readonly",
+        PagesRepo: "readonly",
 
         // Onboarding globals
         ONBOARDING_CONFIG: "readonly",

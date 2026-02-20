@@ -1,0 +1,395 @@
+/* ============================================================================
+ * TBO OS — Page Editor (Notion-style)
+ *
+ * Editor de página com título editável, conteúdo livre e autosave.
+ * Layout centralizado estreito (max-width 720px) inspirado no Notion.
+ * ============================================================================ */
+
+/* ── Container ──────────────────────────────────────────────────────────── */
+
+.pe-container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 64px;
+  min-height: calc(100vh - var(--header-height, 0px) - 48px);
+}
+
+/* ── Topbar ─────────────────────────────────────────────────────────────── */
+
+.pe-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-subtle, #eaeaea);
+  margin-bottom: 32px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pe-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted, #9f9f9f);
+  min-width: 0;
+}
+
+.pe-breadcrumb-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-xs, 3px);
+  cursor: pointer;
+  color: var(--text-muted, #9f9f9f);
+  transition: all 0.12s ease;
+  flex-shrink: 0;
+}
+
+.pe-breadcrumb-link:hover {
+  background: var(--bg-card-hover, #f5f5f5);
+  color: var(--text-primary, #0f0f0f);
+}
+
+.pe-breadcrumb-space {
+  color: var(--text-muted, #9f9f9f);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.pe-breadcrumb-sep {
+  width: 12px;
+  height: 12px;
+  color: var(--text-muted, #9f9f9f);
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.pe-breadcrumb-page {
+  color: var(--text-secondary, #606060);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.pe-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pe-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted, #9f9f9f);
+  white-space: nowrap;
+}
+
+.pe-status-icon {
+  color: var(--color-success, #2ecc71);
+}
+
+/* ── Editor Area ────────────────────────────────────────────────────────── */
+
+.pe-editor-area {
+  padding: 8px 0 80px;
+  position: relative;
+}
+
+/* ── Capa ───────────────────────────────────────────────────────────────── */
+
+.pe-cover {
+  width: calc(100% + 128px);
+  margin-left: -64px;
+  height: 200px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 0;
+  margin-bottom: 24px;
+}
+
+/* ── Meta Actions (ícone, capa) ─────────────────────────────────────────── */
+
+.pe-meta-actions {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.pe-editor-area:hover .pe-meta-actions,
+.pe-meta-actions:focus-within {
+  opacity: 1;
+}
+
+.pe-meta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted, #9f9f9f);
+  background: none;
+  border: none;
+  border-radius: var(--radius-xs, 3px);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.pe-meta-btn:hover {
+  background: var(--bg-card-hover, #f5f5f5);
+  color: var(--text-secondary, #606060);
+}
+
+.pe-meta-btn i {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── Ícone da página ────────────────────────────────────────────────────── */
+
+.pe-icon {
+  font-size: 48px;
+  line-height: 1;
+  margin-bottom: 8px;
+  cursor: pointer;
+  display: inline-block;
+  transition: opacity 0.15s ease;
+  user-select: none;
+}
+
+.pe-icon:hover {
+  opacity: 0.7;
+}
+
+/* ── Título ──────────────────────────────────────────────────────────────── */
+
+.pe-title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--text-primary, #0f0f0f);
+  line-height: 1.2;
+  margin: 0 0 4px;
+  padding: 4px 0;
+  outline: none;
+  border: none;
+  word-break: break-word;
+  min-height: 1.2em;
+}
+
+.pe-title:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-muted, #9f9f9f);
+  font-weight: 400;
+  pointer-events: none;
+}
+
+.pe-title:focus {
+  outline: none;
+}
+
+/* ── Conteúdo ────────────────────────────────────────────────────────────── */
+
+.pe-content {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--text-primary, #0f0f0f);
+  outline: none;
+  border: none;
+  min-height: 300px;
+  padding: 8px 0;
+  word-break: break-word;
+}
+
+.pe-content:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-muted, #9f9f9f);
+  pointer-events: none;
+}
+
+.pe-content:focus {
+  outline: none;
+}
+
+/* Estilos do conteúdo inline */
+.pe-content h1 { font-size: 1.75rem; font-weight: 700; margin: 24px 0 8px; }
+.pe-content h2 { font-size: 1.4rem; font-weight: 600; margin: 20px 0 6px; }
+.pe-content h3 { font-size: 1.15rem; font-weight: 600; margin: 16px 0 4px; }
+.pe-content p { margin: 4px 0; }
+.pe-content ul,
+.pe-content ol { margin: 4px 0; padding-left: 24px; }
+.pe-content li { margin: 2px 0; }
+.pe-content blockquote {
+  border-left: 3px solid var(--brand-orange, #E85102);
+  padding-left: 16px;
+  margin: 12px 0;
+  color: var(--text-secondary, #606060);
+}
+.pe-content code {
+  background: var(--bg-elevated, #f0f0f0);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.9em;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+.pe-content pre {
+  background: var(--bg-elevated, #f0f0f0);
+  padding: 16px;
+  border-radius: var(--radius-sm, 6px);
+  overflow-x: auto;
+  margin: 12px 0;
+}
+.pe-content pre code {
+  background: none;
+  padding: 0;
+}
+.pe-content a {
+  color: var(--brand-orange-dark, #BE4202);
+  text-decoration: underline;
+}
+.pe-content hr {
+  border: none;
+  border-top: 1px solid var(--border-subtle, #eaeaea);
+  margin: 24px 0;
+}
+
+/* ── Página não encontrada ──────────────────────────────────────────────── */
+
+.pe-not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120px 20px;
+  text-align: center;
+}
+
+.pe-not-found-icon {
+  width: 48px;
+  height: 48px;
+  color: var(--text-muted, #9f9f9f);
+  opacity: 0.4;
+  margin-bottom: 16px;
+}
+
+.pe-not-found-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary, #0f0f0f);
+  margin: 0 0 8px;
+}
+
+.pe-not-found-text {
+  font-size: 0.9rem;
+  color: var(--text-muted, #9f9f9f);
+  margin: 0 0 24px;
+}
+
+/* ── Skeleton ────────────────────────────────────────────────────────────── */
+
+.pe-skeleton-text {
+  display: inline-block;
+  background: var(--bg-card-hover, #f0f0f0);
+  border-radius: var(--radius-xs, 3px);
+  animation: pe-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pe-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ── Dark Mode ───────────────────────────────────────────────────────────── */
+
+body.dark-mode .pe-breadcrumb-link:hover {
+  background: var(--bg-card-hover, #2a2a2a);
+}
+
+body.dark-mode .pe-meta-btn:hover {
+  background: var(--bg-card-hover, #2a2a2a);
+}
+
+body.dark-mode .pe-topbar {
+  border-bottom-color: var(--border-default, #2a2a2a);
+}
+
+body.dark-mode .pe-content code {
+  background: var(--bg-elevated, #2a2a2a);
+}
+
+body.dark-mode .pe-content pre {
+  background: var(--bg-elevated, #2a2a2a);
+}
+
+body.dark-mode .pe-content blockquote {
+  color: var(--text-muted, #9f9f9f);
+}
+
+body.dark-mode .pe-skeleton-text {
+  background: var(--bg-card-hover, #2a2a2a);
+}
+
+/* ── Responsivo ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .pe-container {
+    padding: 0 32px;
+  }
+  .pe-cover {
+    width: calc(100% + 64px);
+    margin-left: -32px;
+  }
+}
+
+@media (max-width: 600px) {
+  .pe-container {
+    padding: 0 16px;
+  }
+  .pe-cover {
+    width: calc(100% + 32px);
+    margin-left: -16px;
+    height: 140px;
+  }
+  .pe-title {
+    font-size: 1.75rem;
+  }
+  .pe-topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .pe-breadcrumb-page {
+    max-width: 150px;
+  }
+  .pe-meta-actions {
+    opacity: 1;
+  }
+}
+
+/* ── Print ────────────────────────────────────────────────────────────────── */
+
+@media print {
+  .pe-topbar,
+  .pe-meta-actions {
+    display: none !important;
+  }
+  .pe-container {
+    max-width: 100%;
+    padding: 0;
+  }
+  .pe-content {
+    min-height: auto;
+  }
+}

@@ -125,7 +125,8 @@ const TBO_APP = {
       'chat': typeof TBO_CHAT !== 'undefined' ? TBO_CHAT : null,
       'project-workspace': typeof TBO_PROJECT_WORKSPACE !== 'undefined' ? TBO_PROJECT_WORKSPACE : null,
       'inteligencia-imobiliaria': typeof TBO_INTELIGENCIA_IMOBILIARIA !== 'undefined' ? TBO_INTELIGENCIA_IMOBILIARIA : null,
-      'people-profile': typeof TBO_PEOPLE_PROFILE !== 'undefined' ? TBO_PEOPLE_PROFILE : null
+      'people-profile': typeof TBO_PEOPLE_PROFILE !== 'undefined' ? TBO_PEOPLE_PROFILE : null,
+      'page-editor': typeof TBO_PAGE_EDITOR !== 'undefined' ? TBO_PAGE_EDITOR : null
     };
 
     Object.entries(modules).forEach(([name, mod]) => {

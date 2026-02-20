@@ -185,13 +185,14 @@ const TBO_ROUTER = {
   async _navigateParam(route) {
     const { moduleName, params, fullRoute } = route;
 
-    // Permissao: usa modulo-pai para checar acesso
-    const permModule = moduleName === 'project-workspace' ? 'projetos' : moduleName === 'people-profile' ? 'rh' : moduleName;
-    if (typeof TBO_AUTH !== 'undefined' && !TBO_AUTH.canAccess(permModule)) {
+    // Permissao: usa modulo-pai para checar acesso (se definido)
+    const prefix = fullRoute.split('/')[0];
+    const permModule = this._paramPermissions?.[prefix] || null;
+    if (permModule && typeof TBO_AUTH !== 'undefined' && !TBO_AUTH.canAccess(permModule)) {
       const user = TBO_AUTH.getCurrentUser();
       const defaultMod = user?.defaultModule || 'dashboard';
       if (typeof TBO_TOAST !== 'undefined') {
-        TBO_TOAST.warning('Acesso restrito', 'Voce nao tem permissao para acessar projetos.');
+        TBO_TOAST.warning('Acesso restrito', 'Voce nao tem permissao para acessar este conteudo.');
       }
       this.navigate(defaultMod);
       return;
@@ -229,7 +230,7 @@ const TBO_ROUTER = {
     window.location.hash = fullRoute;
 
     // Notify listeners (passa modulo-pai como moduleName para sidebar highlight)
-    const sidebarModule = moduleName === 'people-profile' ? 'rh' : 'projetos';
+    const sidebarModule = this._paramPermissions?.[prefix] || moduleName;
     this._onChangeCallbacks.forEach(cb => {
       try { cb(sidebarModule, prev); } catch (e) { console.warn(e); }
     });
@@ -269,18 +270,19 @@ const TBO_ROUTER = {
       if (module.init) {
         await module.init();
       }
-      const breadcrumbParent = moduleName === 'people-profile' ? 'rh' : 'projetos';
-      const breadcrumbLabel = moduleName === 'people-profile' ? (module._personName || 'Perfil') : (module._projectName || 'Projeto');
+      const breadcrumbParent = this._paramPermissions?.[prefix] || moduleName;
+      const breadcrumbLabel = module._breadcrumbLabel || module._personName || module._projectName || 'Página';
       if (typeof TBO_UX !== 'undefined') TBO_UX.updateBreadcrumb(breadcrumbParent, breadcrumbLabel);
       if (window.lucide) lucide.createIcons();
     } catch (error) {
       console.error(`Error rendering param module "${moduleName}":`, error);
+      const fallbackRoute = this._paramPermissions?.[prefix] || 'dashboard';
       if (container) {
         container.innerHTML = `
           <div class="empty-state">
             <div class="empty-state-icon">\u26A0\uFE0F</div>
-            <div class="empty-state-text">Erro ao carregar projeto: ${error.message}</div>
-            <button class="btn btn-primary" style="margin-top:16px;" onclick="TBO_ROUTER.navigate('projetos')">Voltar para Projetos</button>
+            <div class="empty-state-text">Erro ao carregar: ${error.message}</div>
+            <button class="btn btn-primary" style="margin-top:16px;" onclick="TBO_ROUTER.navigate('${fallbackRoute}')">Voltar</button>
           </div>
         `;
       }

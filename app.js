@@ -27,6 +27,10 @@ const TBO_APP = {
   async init() {
     console.log('[TBO OS] Initializing...');
 
+    // 0-pre. Limpar chaves legadas do localStorage (v2.6.1 — evitar bugs de sidebar)
+    localStorage.removeItem('tbo_sidebar_width');
+    localStorage.removeItem('tbo_sidebar_mode');
+
     // 0. Apply saved theme (light = default) + system detection
     this._initTheme();
     if (typeof TBO_UX !== 'undefined') {

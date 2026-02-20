@@ -330,6 +330,13 @@ const TBO_SIDEBAR_RENDERER = (() => {
       }
       break;
 
+    case 'toggle-inbox':
+      // Abrir/fechar painel complementar de notificações
+      if (typeof TBO_SECONDARY_SIDEBAR !== 'undefined') {
+        TBO_SECONDARY_SIDEBAR.toggle('inbox');
+      }
+      break;
+
     case 'activity-feed':
       if (typeof TBO_ACTIVITY_FEED !== 'undefined') {
         TBO_ACTIVITY_FEED.toggle();

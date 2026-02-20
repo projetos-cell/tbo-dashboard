@@ -1,0 +1,438 @@
+/* ============================================================================
+ * TBO OS — Secondary Sidebar (Painel Complementar)
+ *
+ * Painel lateral que abre entre a sidebar principal e o conteúdo.
+ * Layout: [ Sidebar Principal ] [ Secondary Sidebar ] [ Main Content ]
+ *
+ * Classes de controle:
+ *   body.ss-open         — ativa reflow do layout
+ *   .ss-panel--open      — mostra o painel com transição
+ * ============================================================================ */
+
+/* ── Painel Container ────────────────────────────────────────────────── */
+
+.ss-panel {
+  width: 0;
+  min-width: 0;
+  height: 100vh;
+  background: var(--bg-sidebar, #ffffff);
+  border-right: 1px solid var(--border-subtle, #eaeaea);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              min-width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  z-index: 10;
+}
+
+.ss-panel--open {
+  width: 380px;
+  min-width: 380px;
+}
+
+/* ── Layout reflow quando aberto ─────────────────────────────────────── */
+
+body.ss-open .app-container {
+  transition: flex 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Header ──────────────────────────────────────────────────────────── */
+
+.ss-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--border-subtle, #eaeaea);
+  flex-shrink: 0;
+  min-height: 52px;
+}
+
+.ss-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ss-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #0f0f0f);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.ss-unread-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--brand-orange, #E85102);
+  border-radius: var(--radius-full, 9999px);
+  flex-shrink: 0;
+}
+
+.ss-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* ── Botão "Marcar lidas" ────────────────────────────────────────────── */
+
+.ss-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary, #606060);
+  background: none;
+  border: 1px solid var(--border-subtle, #eaeaea);
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  white-space: nowrap;
+}
+
+.ss-action-btn:hover {
+  background: var(--bg-card-hover, #f5f5f5);
+  color: var(--text-primary, #0f0f0f);
+  border-color: var(--border-hover, #9f9f9f);
+}
+
+.ss-action-btn:focus-visible {
+  outline: 2px solid var(--brand-orange, #E85102);
+  outline-offset: 1px;
+}
+
+.ss-action-btn i {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── Botão fechar ────────────────────────────────────────────────────── */
+
+.ss-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  color: var(--text-muted, #9f9f9f);
+  transition: all 0.12s ease;
+}
+
+.ss-close-btn:hover {
+  background: var(--bg-card-hover, #f5f5f5);
+  color: var(--text-primary, #0f0f0f);
+}
+
+.ss-close-btn:focus-visible {
+  outline: 2px solid var(--brand-orange, #E85102);
+  outline-offset: 1px;
+}
+
+.ss-close-btn i {
+  width: 16px;
+  height: 16px;
+}
+
+/* ── Body (scroll) ───────────────────────────────────────────────────── */
+
+.ss-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0;
+}
+
+.ss-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.ss-body::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 2px;
+}
+
+.ss-body:hover::-webkit-scrollbar-thumb {
+  background: var(--brand-gray-400, #9f9f9f);
+}
+
+/* ── Grupo de notificações ───────────────────────────────────────────── */
+
+.ss-group {
+  margin-bottom: 4px;
+}
+
+.ss-group-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted, #9f9f9f);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 12px 20px 6px;
+  margin: 0;
+}
+
+/* ── Item de notificação ─────────────────────────────────────────────── */
+
+.ss-notif {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+  position: relative;
+  border-left: 3px solid transparent;
+}
+
+.ss-notif:hover {
+  background: var(--bg-card-hover, #f5f5f5);
+}
+
+.ss-notif:focus-visible {
+  outline: none;
+  background: var(--bg-card-hover, #f5f5f5);
+  border-left-color: var(--brand-orange, #E85102);
+}
+
+/* Estado não lido */
+.ss-notif--unread {
+  background: rgba(232, 81, 2, 0.03);
+}
+
+.ss-notif--unread:hover {
+  background: rgba(232, 81, 2, 0.06);
+}
+
+/* ── Avatar ──────────────────────────────────────────────────────────── */
+
+.ss-notif-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full, 9999px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.ss-notif-avatar span {
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+/* ── Conteúdo ────────────────────────────────────────────────────────── */
+
+.ss-notif-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.ss-notif-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.ss-notif-user {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #0f0f0f);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ss-notif-time {
+  font-size: 11px;
+  color: var(--text-muted, #9f9f9f);
+  flex-shrink: 0;
+}
+
+.ss-notif-action {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 2px;
+}
+
+.ss-notif-type-icon {
+  width: 12px;
+  height: 12px;
+  color: var(--text-muted, #9f9f9f);
+  flex-shrink: 0;
+}
+
+.ss-notif-action span {
+  font-size: 12px;
+  color: var(--text-secondary, #606060);
+}
+
+.ss-notif-target {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary, #0f0f0f);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+.ss-notif-preview {
+  font-size: 12px;
+  color: var(--text-muted, #9f9f9f);
+  line-height: 1.4;
+  margin: 2px 0 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── Indicador de não lido (dot) ─────────────────────────────────────── */
+
+.ss-notif-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--brand-orange, #E85102);
+  flex-shrink: 0;
+  margin-top: 14px;
+}
+
+/* ── Estado vazio ────────────────────────────────────────────────────── */
+
+.ss-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.ss-empty-icon {
+  width: 40px;
+  height: 40px;
+  color: var(--text-muted, #9f9f9f);
+  opacity: 0.4;
+  margin-bottom: 12px;
+}
+
+.ss-empty-text {
+  font-size: 13px;
+  color: var(--text-muted, #9f9f9f);
+  margin: 0;
+}
+
+/* ── Dark Mode ───────────────────────────────────────────────────────── */
+
+body.dark-mode .ss-panel {
+  background: var(--bg-sidebar, #1a1a1a);
+  border-right-color: var(--border-default, #2a2a2a);
+}
+
+body.dark-mode .ss-header {
+  border-bottom-color: var(--border-default, #2a2a2a);
+}
+
+body.dark-mode .ss-notif:hover {
+  background: var(--bg-card-hover, #2a2a2a);
+}
+
+body.dark-mode .ss-notif--unread {
+  background: rgba(232, 81, 2, 0.06);
+}
+
+body.dark-mode .ss-notif--unread:hover {
+  background: rgba(232, 81, 2, 0.1);
+}
+
+body.dark-mode .ss-action-btn {
+  border-color: var(--border-default, #3a3a3a);
+}
+
+body.dark-mode .ss-action-btn:hover {
+  background: var(--bg-card-hover, #2a2a2a);
+  border-color: var(--border-hover, #555);
+}
+
+body.dark-mode .ss-close-btn:hover {
+  background: var(--bg-card-hover, #2a2a2a);
+}
+
+/* ── Responsivo — Mobile overlay ─────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .ss-panel {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: var(--z-overlay, 1000);
+    width: 0;
+    min-width: 0;
+    box-shadow: none;
+    border-right: none;
+  }
+
+  .ss-panel--open {
+    width: 100vw;
+    min-width: 100vw;
+    box-shadow: var(--shadow-lg, 0 8px 32px rgba(0, 0, 0, 0.2));
+  }
+
+  body.ss-open .app-container {
+    /* No mobile, não faz reflow — overlay cobre tudo */
+  }
+
+  .ss-notif {
+    padding: 12px 16px;
+  }
+
+  .ss-group-title {
+    padding: 12px 16px 6px;
+  }
+
+  .ss-header {
+    padding: 16px 16px 12px;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1100px) {
+  .ss-panel--open {
+    width: 320px;
+    min-width: 320px;
+  }
+}
+
+/* ── Print: esconder ─────────────────────────────────────────────────── */
+
+@media print {
+  .ss-panel {
+    display: none !important;
+  }
+}

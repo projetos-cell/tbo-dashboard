@@ -37,7 +37,7 @@ const TBO_SIDEBAR_SERVICE = (() => {
     { id: 'sys-search',     name: 'Buscar',           type: 'system',    order_index: 2,  icon: 'search',           route: null,         allowed_roles: [], metadata: { action: 'search' } },
     { id: 'sys-reunioes',   name: 'Reuniões',         type: 'system',    order_index: 3,  icon: 'calendar',         route: 'agenda',     allowed_roles: [] },
     { id: 'sys-ia',         name: 'IA TBO',           type: 'system',    order_index: 5,  icon: 'sparkles',         route: null,         allowed_roles: [], metadata: { action: 'ai-assistant' } },
-    { id: 'sys-inbox',      name: 'Caixa de entrada', type: 'system',    order_index: 6,  icon: 'inbox',            route: 'alerts',     allowed_roles: [], metadata: { badge_key: 'alerts' } },
+    { id: 'sys-inbox',      name: 'Caixa de entrada', type: 'system',    order_index: 6,  icon: 'inbox',            route: null,         allowed_roles: [], metadata: { action: 'toggle-inbox', badge_key: 'alerts' } },
     { id: 'sys-biblioteca', name: 'Biblioteca',       type: 'system',    order_index: 7,  icon: 'library',          route: 'biblioteca', allowed_roles: [] },
 
     // Separador

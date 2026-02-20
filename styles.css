@@ -807,7 +807,13 @@ strong {
 .sidebar.collapsed .nav-item.active { background: var(--accent-gold-dim); }
 
 /* -- Section drag & drop -- */
+.nav-section {
+  position: relative;
+}
 .nav-section-drag-handle {
+  position: absolute;
+  left: 4px;
+  top: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -817,9 +823,9 @@ strong {
   opacity: 0;
   cursor: grab;
   transition: opacity var(--transition-fast), color var(--transition-fast);
-  flex-shrink: 0;
+  z-index: 2;
 }
-.nav-section-toggle:hover .nav-section-drag-handle {
+.nav-section:hover > .nav-section-drag-handle {
   opacity: 0.5;
 }
 .nav-section-drag-handle:hover {
@@ -1170,6 +1176,16 @@ body.dark-mode .theme-icon-dark { display: flex; }
   font-size: 0.8rem;
   font-weight: 700;
   flex-shrink: 0;
+}
+
+/* v2.6.1: Avatar img do Google no sidebar footer */
+.sidebar-user-avatar--img {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--accent-gold-dim);
 }
 
 
@@ -10440,59 +10456,6 @@ body.focus-mode .focus-exit-btn {
   display: none;
 }
 
-/* ── 3. RECENTES ────────────────────────────────────────────────────────── */
-.sidebar-recents {
-  padding: 0 0 4px;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.sidebar-recents-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px 2px;
-  font-size: 0.6rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
-}
-
-.sidebar-recents-header svg {
-  width: 12px;
-  height: 12px;
-}
-
-.sidebar-recents-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.sidebar-recents .nav-item {
-  padding: 6px 20px;
-  font-size: 0.8rem;
-  opacity: 0.85;
-}
-
-.sidebar-recents .nav-item .nav-icon {
-  width: 16px;
-  height: 16px;
-}
-
-.sidebar-recents .nav-item .nav-icon svg {
-  width: 16px;
-  height: 16px;
-}
-
-.sidebar-recents:empty {
-  display: none;
-}
-
-.sidebar.collapsed .sidebar-recents {
-  display: none;
-}
-
 /* ── 7. INDICADOR DE SECAO ATIVA ────────────────────────────────────────── */
 .nav-section.section-active > .nav-section-toggle {
   color: var(--accent-gold);
@@ -10916,29 +10879,23 @@ body.focus-mode .focus-exit-btn {
   top: auto;
 }
 
-/* ── SIDEBAR PROJECTS SECTION ─────────────────────────────────────────────── */
-.sidebar-projects {
-  padding: 0 0 4px;
-  border-bottom: 1px solid var(--border-subtle);
+/* ── SIDEBAR PROJECTS INLINE (dentro da secao PRODUCAO) ───────────────────── */
+.sidebar-projects-inline {
+  padding: 4px 0 2px;
+  margin-top: 2px;
+  border-top: 1px solid var(--border-subtle);
 }
 
-.sidebar-projects-header {
+.sidebar-projects-inline .sidebar-projects-header {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 16px 4px;
-  font-size: 0.62rem;
+  padding: 6px 20px 2px;
+  font-size: 0.58rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-muted);
-}
-
-.sidebar-projects-header i,
-.sidebar-projects-header svg {
-  width: 12px;
-  height: 12px;
-  flex-shrink: 0;
 }
 
 .sidebar-projects-toggle {
@@ -10962,13 +10919,12 @@ body.focus-mode .focus-exit-btn {
   color: var(--text-primary);
 }
 
-.sidebar-projects-toggle i,
 .sidebar-projects-toggle svg {
   width: 12px;
   height: 12px;
 }
 
-.sidebar-projects.collapsed .sidebar-projects-toggle {
+.sidebar-projects-inline.collapsed .sidebar-projects-toggle {
   transform: rotate(-90deg);
 }
 
@@ -10982,11 +10938,22 @@ body.focus-mode .focus-exit-btn {
   transition: max-height 0.25s ease, opacity 0.2s ease;
 }
 
-.sidebar-projects.collapsed .sidebar-projects-list {
+.sidebar-projects-inline.collapsed .sidebar-projects-list {
   max-height: 0;
   opacity: 0;
   overflow: hidden;
   pointer-events: none;
+}
+
+/* Colapsar projetos junto com a secao PRODUCAO */
+.nav-section.collapsed .sidebar-projects-inline {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  margin: 0;
+  padding: 0;
+  border: none;
 }
 
 .sidebar-project-item {
@@ -11043,7 +11010,7 @@ body.focus-mode .focus-exit-btn {
   font-style: italic;
 }
 
-.sidebar.collapsed .sidebar-projects {
+.sidebar.collapsed .sidebar-projects-inline {
   display: none;
 }
 

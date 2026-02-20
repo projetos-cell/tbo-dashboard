@@ -15,7 +15,7 @@
   <link rel="dns-prefetch" href="https://olnndpultyllyhzxuyxh.supabase.co">
 
   <!-- Preload critical assets (fetched early, applied when needed) -->
-  <link rel="preload" as="style" href="styles.css?v=2026022001">
+  <link rel="preload" as="style" href="styles.css?v=2026022002">
   <link rel="preload" as="image" href="assets/logo-dark.svg">
 
   <!-- Typography: Helvetica Neue LT Pro (local brand font) -->
@@ -24,7 +24,7 @@
   <link rel="icon" type="image/png" href="assets/favicon.png">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="styles.css?v=2026022001">
+  <link rel="stylesheet" href="styles.css?v=2026022002">
 
   <!-- Leaflet CSS (loaded early for layout, JS deferred below) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
@@ -109,29 +109,6 @@
         <span>FAVORITOS</span>
       </div>
       <ul class="sidebar-favorites-list" id="sidebarFavoritesList"></ul>
-    </div>
-
-    <!-- Meus Projetos (lista de projetos do usuario) -->
-    <div class="sidebar-projects" id="sidebarProjects">
-      <div class="sidebar-projects-header">
-        <i data-lucide="folder-kanban" aria-hidden="true"></i>
-        <span>PROJETOS</span>
-        <button class="sidebar-projects-toggle" id="sidebarProjectsToggle" title="Expandir/recolher">
-          <i data-lucide="chevron-down" aria-hidden="true"></i>
-        </button>
-      </div>
-      <ul class="sidebar-projects-list" id="sidebarProjectsList">
-        <!-- Populado por app.js -->
-      </ul>
-    </div>
-
-    <!-- Recentes (ultimos 3 visitados) -->
-    <div class="sidebar-recents" id="sidebarRecents">
-      <div class="sidebar-recents-header">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        <span>RECENTES</span>
-      </div>
-      <ul class="sidebar-recents-list" id="sidebarRecentsList"></ul>
     </div>
 
     <!-- Navigation Modules (generated dynamically by app.js from permissions._sections) -->
@@ -393,7 +370,7 @@
   <script defer src="utils/permissions.js"></script>
 
   <!-- Auth System -->
-  <script defer src="utils/auth.js"></script>
+  <script defer src="utils/auth.js?v=2026022002"></script>
 
   <!-- ERP Core Engine -->
   <script defer src="utils/erp-core.js"></script>
@@ -453,7 +430,7 @@
   <script defer src="modules/conciliacao-bancaria.js"></script>
   <script defer src="modules/onboarding-wizard.js"></script>
   <script defer src="modules/academy-catalogo.js"></script>
-  <script defer src="modules/chat.js?v=2026022001"></script>
+  <script defer src="modules/chat.js?v=2026022002"></script>
 
   <!-- Workspace Selector (Multi-tenant v2) -->
   <script defer src="modules/workspace-selector.js"></script>
@@ -495,7 +472,7 @@
   <script defer src="utils/performance-enhancements.js"></script>
 
   <!-- Main Application Entry Point -->
-  <script defer src="app.js?v=2026022001"></script>
+  <script defer src="app.js?v=2026022002"></script>
 
 </body>
 </html>

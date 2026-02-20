@@ -228,6 +228,15 @@ const TBO_AUTH = {
       const roleName = isSuperAdmin ? 'founder' : (profile.role || 'artist');
       const roleDef = TBO_PERMISSIONS._roles[roleName];
 
+      // v2.6.1: Sincronizar avatar do Google para profiles (fire-and-forget)
+      const googleAvatar = authUser.user_metadata?.avatar_url || null;
+      if (googleAvatar && googleAvatar !== profile.avatar_url) {
+        TBO_SUPABASE.getClient()
+          .from('profiles').update({ avatar_url: googleAvatar }).eq('id', authUser.id)
+          .then(() => console.log('[TBO Auth] Avatar sincronizado com Google'))
+          .catch(e => console.warn('[TBO Auth] Avatar sync error:', e.message));
+      }
+
       // v2.5: Carregar permissoes granulares do Supabase (non-blocking)
       try {
         await TBO_PERMISSIONS.loadPermissionsMatrix(authUser.id);

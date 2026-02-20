@@ -587,7 +587,14 @@ const TBO_CHAT = {
       await this._loadChannels();
       this._selectChannel(channel);
     } catch (e) {
-      TBO_TOAST.error('Erro ao abrir DM', e.message);
+      // v2.6.1: Mensagem especifica para erros de RLS
+      const isRLS = e.message?.includes('row-level security') || e.code === '42501';
+      if (isRLS) {
+        TBO_TOAST.error('Erro de permissao', 'Policy RLS ausente no chat_channels. Execute verify-chat-rls.sql no Supabase.');
+        console.error('[TBO Chat] RLS Policy Error:', e.message, '— Execute database/verify-chat-rls.sql');
+      } else {
+        TBO_TOAST.error('Erro ao abrir DM', e.message);
+      }
     }
   },
 
@@ -671,7 +678,10 @@ const TBO_CHAT = {
       document.getElementById('chatSectionModal').style.display = 'none';
       await this._loadSections();
       this._renderChannelList();
-    } catch (e) { TBO_TOAST.error('Erro', e.message); }
+    } catch (e) {
+      const isRLS = e.message?.includes('row-level security') || e.code === '42501';
+      TBO_TOAST.error(isRLS ? 'Erro de permissao' : 'Erro', isRLS ? 'Policy RLS ausente. Execute verify-chat-rls.sql' : e.message);
+    }
   },
 
   _toggleSection(sectionId) {
@@ -2041,7 +2051,10 @@ const TBO_CHAT = {
 
       await this._loadChannels();
       this._selectChannel(channel);
-    } catch (e) { TBO_TOAST.error('Erro ao criar canal', e.message); }
+    } catch (e) {
+      const isRLS = e.message?.includes('row-level security') || e.code === '42501';
+      TBO_TOAST.error(isRLS ? 'Erro de permissao' : 'Erro ao criar canal', isRLS ? 'Policy RLS ausente. Execute verify-chat-rls.sql' : e.message);
+    }
   },
 
   // ══════════════════════════════════════════════════════════════════

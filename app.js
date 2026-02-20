@@ -344,22 +344,6 @@ const TBO_APP = {
     this._updatePinButtons();
   },
 
-  // ── Recentes storage ──────────────────────────────────────────────────
-  // v2.2.1: prefixado com userId para isolar recentes entre usuarios
-  _getRecentsKey() {
-    const user = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.getCurrentUser() : null;
-    return user?.id ? `tbo_sidebar_recents_${user.id}` : 'tbo_sidebar_recents';
-  },
-  _getRecents() {
-    try { return JSON.parse(localStorage.getItem(this._getRecentsKey()) || '[]'); } catch { return []; }
-  },
-  _addRecent(modKey) {
-    let rec = this._getRecents().filter(r => r !== modKey);
-    rec.unshift(modKey);
-    localStorage.setItem(this._getRecentsKey(), JSON.stringify(rec.slice(0, 3)));
-    this._renderRecents();
-  },
-
   // ── Module usage analytics (C6 — ordenacao inteligente) ───────────────
   _trackUsage(modKey) {
     try {
@@ -475,7 +459,6 @@ const TBO_APP = {
           return;
         }
         TBO_ROUTER.navigate(mod);
-        this._addRecent(mod);
         this._trackUsage(mod);
         sidebar.classList.remove('mobile-open');
       });
@@ -520,9 +503,8 @@ const TBO_APP = {
     // 7c. Footer com avatar do usuario + collapse
     this._renderSidebarFooter();
 
-    // 8. Render favoritos e recentes
+    // 8. Render favoritos
     this._renderFavorites();
-    this._renderRecents();
 
     // 8b. Botao Criar (Asana-style)
     this._bindCreateButton();
@@ -594,8 +576,18 @@ const TBO_APP = {
   _sidebarProjectsLoaded: false,
 
   async _renderSidebarProjects() {
-    const list = document.getElementById('sidebarProjectsList');
-    if (!list) return;
+    // v2.6.1: Projetos renderizam DENTRO da secao PRODUCAO
+    const producaoSection = document.querySelector('.nav-section[data-section="producao"]');
+    if (!producaoSection) return;
+
+    // Criar/reutilizar container inline dentro de PRODUCAO
+    let container = producaoSection.querySelector('.sidebar-projects-inline');
+    if (!container) {
+      container = document.createElement('div');
+      container.className = 'sidebar-projects-inline';
+      container.id = 'sidebarProjectsInline';
+      producaoSection.appendChild(container);
+    }
 
     try {
       if (typeof TBO_SUPABASE === 'undefined') return;
@@ -608,7 +600,7 @@ const TBO_APP = {
       const tenantId = typeof TBO_SUPABASE.getCurrentTenantId === 'function'
         ? TBO_SUPABASE.getCurrentTenantId() : null;
 
-      // Buscar projetos ativos do usuario (producao = ativo no schema atual)
+      // Buscar projetos ativos do usuario
       let query = client
         .from('projects')
         .select('id, name, status')
@@ -622,96 +614,106 @@ const TBO_APP = {
 
       if (error) {
         console.warn('[Sidebar Projects] Query error:', error.message);
-        // Tentar fallback com ERP data
-        this._renderSidebarProjectsFallback(list);
+        this._renderSidebarProjectsInline(container, null);
         return;
       }
 
-      if (!projects || projects.length === 0) {
-        this._renderSidebarProjectsFallback(list);
-        return;
-      }
-
-      const statusColors = {
-        producao: '#22c55e',
-        em_andamento: '#3b82f6',
-        planejamento: '#a855f7',
-        pausado: '#eab308',
-        concluido: '#6b7280',
-        ativo: '#22c55e'
-      };
-
-      list.innerHTML = projects.map(p => {
-        const color = statusColors[p.status] || '#3b82f6';
-        const name = this._escHtml(p.name || 'Sem nome');
-        return `<li>
-          <button class="sidebar-project-item" data-project-id="${this._escHtml(p.id)}" title="${name}">
-            <span class="sidebar-project-dot" style="background:${color}"></span>
-            <span class="sidebar-project-name">${name}</span>
-          </button>
-        </li>`;
-      }).join('');
-
+      this._renderSidebarProjectsInline(container, projects);
       this._sidebarProjectsLoaded = true;
     } catch (e) {
       console.warn('[Sidebar Projects] Error:', e);
-      this._renderSidebarProjectsFallback(list);
+      this._renderSidebarProjectsInline(container, null);
     }
   },
 
-  _renderSidebarProjectsFallback(list) {
-    // Tentar usar dados do ERP/Storage
-    if (typeof TBO_STORAGE === 'undefined') {
-      list.innerHTML = '<li class="sidebar-projects-empty">Nenhum projeto</li>';
-      return;
-    }
-
-    const context = TBO_STORAGE.get('context') || {};
-    const projetos = context.projetos_ativos || [];
-
-    if (projetos.length === 0) {
-      list.innerHTML = '<li class="sidebar-projects-empty">Nenhum projeto</li>';
-      return;
-    }
-
-    list.innerHTML = projetos.slice(0, 8).map(p => {
-      const name = this._escHtml(p.nome || p.name || 'Projeto');
-      const id = p.id || '';
-      return `<li>
-        <button class="sidebar-project-item" data-project-id="${this._escHtml(id)}" title="${name}">
-          <span class="sidebar-project-dot" style="background:#3b82f6"></span>
-          <span class="sidebar-project-name">${name}</span>
-        </button>
-      </li>`;
-    }).join('');
-  },
-
-  _bindSidebarProjects() {
-    const container = document.getElementById('sidebarProjects');
-    const toggleBtn = document.getElementById('sidebarProjectsToggle');
-    const list = document.getElementById('sidebarProjectsList');
-    if (!container || !list) return;
-
-    // Toggle expand/collapse
-    if (toggleBtn) {
-      toggleBtn.addEventListener('click', () => {
-        container.classList.toggle('collapsed');
-        localStorage.setItem('tbo_sidebar_projects_collapsed', container.classList.contains('collapsed') ? '1' : '0');
-      });
-      // Restaurar estado
-      if (localStorage.getItem('tbo_sidebar_projects_collapsed') === '1') {
-        container.classList.add('collapsed');
+  _renderSidebarProjectsInline(container, projects) {
+    // Se nao tem projetos do Supabase, tentar fallback ERP
+    let items = projects;
+    if (!items || items.length === 0) {
+      if (typeof TBO_STORAGE !== 'undefined') {
+        const context = TBO_STORAGE.get('context') || {};
+        const erpProjetos = context.projetos_ativos || [];
+        items = erpProjetos.slice(0, 8).map(p => ({
+          id: p.id || '', name: p.nome || p.name || 'Projeto', status: 'em_andamento'
+        }));
       }
     }
 
-    // Click em projeto → navegar para project-workspace
-    list.addEventListener('click', (e) => {
+    if (!items || items.length === 0) {
+      container.innerHTML = '';
+      return;
+    }
+
+    const statusColors = {
+      producao: '#22c55e', em_andamento: '#3b82f6', planejamento: '#a855f7',
+      pausado: '#eab308', concluido: '#6b7280', ativo: '#22c55e'
+    };
+
+    const isCollapsed = localStorage.getItem('tbo_sidebar_projects_collapsed') === '1';
+
+    container.innerHTML = `
+      <div class="sidebar-projects-header">
+        <span>PROJETOS</span>
+        <button class="sidebar-projects-toggle" id="sidebarProjectsToggle" title="Expandir/recolher">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+      </div>
+      <ul class="sidebar-projects-list" id="sidebarProjectsList"${isCollapsed ? ' style="max-height:0;opacity:0;"' : ''}>
+        ${items.map(p => {
+          const color = statusColors[p.status] || '#3b82f6';
+          const name = this._escHtml(p.name || 'Sem nome');
+          return `<li>
+            <button class="sidebar-project-item" data-project-id="${this._escHtml(p.id)}" title="${name}">
+              <span class="sidebar-project-dot" style="background:${color}"></span>
+              <span class="sidebar-project-name">${name}</span>
+            </button>
+          </li>`;
+        }).join('')}
+      </ul>
+    `;
+
+    if (isCollapsed) container.classList.add('collapsed');
+
+    if (window.lucide) lucide.createIcons({ root: container });
+  },
+
+  _bindSidebarProjects() {
+    const container = document.getElementById('sidebarProjectsInline');
+    if (!container) return;
+
+    // Toggle expand/collapse
+    container.addEventListener('click', (e) => {
+      const toggleBtn = e.target.closest('.sidebar-projects-toggle');
+      if (toggleBtn) {
+        e.stopPropagation();
+        const list = container.querySelector('.sidebar-projects-list');
+        const isCollapsed = container.classList.toggle('collapsed');
+        localStorage.setItem('tbo_sidebar_projects_collapsed', isCollapsed ? '1' : '0');
+        if (list) {
+          if (isCollapsed) {
+            list.style.maxHeight = list.scrollHeight + 'px';
+            list.offsetHeight; // force reflow
+            list.style.maxHeight = '0';
+            list.style.opacity = '0';
+          } else {
+            list.style.maxHeight = list.scrollHeight + 'px';
+            list.style.opacity = '1';
+            setTimeout(() => { list.style.maxHeight = ''; }, 200);
+          }
+        }
+        return;
+      }
+
+      // Click em projeto → navegar para project-workspace
       const btn = e.target.closest('.sidebar-project-item');
-      if (!btn) return;
-      const projectId = btn.dataset.projectId;
-      if (projectId) {
-        TBO_ROUTER.navigate(`projeto/${projectId}/overview`);
-        document.getElementById('sidebar')?.classList.remove('mobile-open');
+      if (btn) {
+        const projectId = btn.dataset.projectId;
+        if (projectId) {
+          TBO_ROUTER.navigate(`projeto/${projectId}/overview`);
+          document.getElementById('sidebar')?.classList.remove('mobile-open');
+        }
       }
     });
   },
@@ -747,10 +749,10 @@ const TBO_APP = {
       const safeIcon = this._escHtml(section.icon);
 
       html += `<div class="nav-section${isCollapsed ? ' collapsed' : ''}" data-section="${this._escHtml(section.id)}" draggable="true">
+        <span class="nav-section-drag-handle" title="Arrastar para reordenar">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="5" r="2"/><circle cx="15" cy="5" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="9" cy="19" r="2"/><circle cx="15" cy="19" r="2"/></svg>
+        </span>
         <button class="nav-section-toggle" data-section-toggle="${this._escHtml(section.id)}" aria-expanded="${!isCollapsed}">
-          <span class="nav-section-drag-handle" title="Arrastar para reordenar">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="5" r="2"/><circle cx="15" cy="5" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="9" cy="19" r="2"/><circle cx="15" cy="19" r="2"/></svg>
-          </span>
           <i data-lucide="${safeIcon}" class="nav-section-icon"></i>
           <span class="nav-section-label">${safeLabel}</span>
           <i data-lucide="chevron-down" class="nav-section-chevron"></i>
@@ -813,33 +815,6 @@ const TBO_APP = {
     }
 
     list.innerHTML = favs.map(modKey => {
-      const label = this._escHtml(this._moduleLabels[modKey] || modKey);
-      const icon = this._escHtml(this._moduleIcons[modKey] || 'file');
-      return `<li>
-        <button class="nav-item" data-module="${this._escHtml(modKey)}" role="menuitem" title="${label}">
-          <i data-lucide="${icon}" class="nav-icon"></i>
-          <span class="nav-label">${label}</span>
-        </button>
-      </li>`;
-    }).join('');
-
-    if (window.lucide) lucide.createIcons({ root: list });
-  },
-
-  // ── Recentes render ───────────────────────────────────────────────────
-  _renderRecents() {
-    const container = document.getElementById('sidebarRecents');
-    const list = document.getElementById('sidebarRecentsList');
-    if (!container || !list) return;
-
-    const recents = this._getRecents();
-    if (recents.length === 0) {
-      container.style.display = 'none';
-      return;
-    }
-    container.style.display = '';
-
-    list.innerHTML = recents.map(modKey => {
       const label = this._escHtml(this._moduleLabels[modKey] || modKey);
       const icon = this._escHtml(this._moduleIcons[modKey] || 'file');
       return `<li>
@@ -977,9 +952,15 @@ const TBO_APP = {
     const name = this._escHtml(fullName);
     const role = this._escHtml(user?.roleLabel || user?.role || '');
 
+    // v2.6.1: Avatar do Google com fallback para initials
+    const safeAvatarUrl = (user?.avatarUrl && /^https:\/\//i.test(user.avatarUrl)) ? user.avatarUrl : null;
+    const avatarHtml = safeAvatarUrl
+      ? `<img src="${safeAvatarUrl}" class="sidebar-user-avatar sidebar-user-avatar--img" alt="${name}" onerror="this.outerHTML='<div class=\\'sidebar-user-avatar\\'>${initials}</div>'">`
+      : `<div class="sidebar-user-avatar">${initials}</div>`;
+
     footer.innerHTML = `
       <div class="sidebar-footer-user" title="${name} — ${role}">
-        <div class="sidebar-user-avatar">${initials}</div>
+        ${avatarHtml}
         <div class="sidebar-footer-user-info">
           <span class="sidebar-user-name">${name}</span>
           <span class="sidebar-user-role">${role}</span>
@@ -1028,6 +1009,8 @@ const TBO_APP = {
 
       // Estado ja aplicado no render (C18 preload)
       toggle.addEventListener('click', () => {
+        // v2.6.1: Nao toggle se estiver arrastando (drag and drop)
+        if (this._isDragging) return;
         const isCollapsed = section.classList.toggle('collapsed');
         toggle.setAttribute('aria-expanded', !isCollapsed);
         localStorage.setItem(`tbo_section_${sectionId}`, isCollapsed ? '0' : '1');
@@ -1061,6 +1044,8 @@ const TBO_APP = {
   },
 
   // ── Drag & Drop para reordenar secoes da sidebar ────────────────────
+  _isDragging: false,
+
   _bindSectionDragDrop() {
     const navEl = document.getElementById('sidebarNav');
     if (!navEl) return;
@@ -1071,10 +1056,11 @@ const TBO_APP = {
     navEl.addEventListener('dragstart', (e) => {
       const section = e.target.closest('.nav-section[draggable]');
       if (!section) return;
-      // Permitir drag apenas pelo handle ou header
-      const handle = e.target.closest('.nav-section-drag-handle, .nav-section-toggle');
+      // v2.6.1: Permitir drag APENAS pelo handle (fora do button agora)
+      const handle = e.target.closest('.nav-section-drag-handle');
       if (!handle) { e.preventDefault(); return; }
 
+      this._isDragging = true;
       draggedSection = section;
       section.classList.add('nav-section--dragging');
       e.dataTransfer.effectAllowed = 'move';
@@ -1116,6 +1102,8 @@ const TBO_APP = {
       }
       if (dragPlaceholder?.parentNode) dragPlaceholder.remove();
       dragPlaceholder = null;
+      // v2.6.1: Delay para nao disparar click do toggle apos drag
+      setTimeout(() => { this._isDragging = false; }, 150);
     });
 
     navEl.addEventListener('drop', (e) => {

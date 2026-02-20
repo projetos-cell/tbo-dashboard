@@ -674,9 +674,7 @@ const TBO_PROJETOS = {
     }
 
     const user = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.getCurrentUser() : null;
-    const isFounder = user && user.role === 'founder';
-    const isFinance = user && user.role === 'finance';
-    const canSeeCost = isFounder || isFinance;
+    const canSeeCost = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.canDo('finance', 'view') : false;
 
     // Team utilization
     const weekStart = TBO_WORKLOAD.getWeekStart();

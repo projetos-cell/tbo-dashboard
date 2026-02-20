@@ -101,9 +101,6 @@
       </nav>
     </div>
 
-    <!-- Sidebar User Widget (populated by auth.js) -->
-    <div class="sidebar-user" id="sidebarUserWidget"></div>
-
     <!-- Virtual tooltip (reusado por JS) -->
     <div class="sidebar-tooltip" id="sidebarTooltip"></div>
     <!-- Context menu (right-click) -->
@@ -111,25 +108,8 @@
     <!-- Mini preview (hover prolongado) -->
     <div class="sidebar-mini-preview" id="sidebarMiniPreview"></div>
 
-    <!-- Social Links -->
-    <div class="sidebar-social">
-      <a href="https://www.instagram.com/tbo.arq/" target="_blank" rel="noopener noreferrer" title="Instagram" class="sidebar-social-link">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5"/></svg>
-      </a>
-      <a href="https://www.linkedin.com/company/tbo-studio/" target="_blank" rel="noopener noreferrer" title="LinkedIn" class="sidebar-social-link">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
-      </a>
-      <a href="https://www.behance.net/tbo_studio" target="_blank" rel="noopener noreferrer" title="Behance" class="sidebar-social-link">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12.5C1 12.5 3 5 8.5 5c3 0 4 2 4 4s-2 4-4 4H1zM13 12.5c0 0 2-7 7-7 3 0 4 2 4 4s-2 4-4 4h-7z"/></svg>
-      </a>
-      <a href="https://agenciatbo.com.br" target="_blank" rel="noopener noreferrer" title="Website" class="sidebar-social-link">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-      </a>
-    </div>
-
-    <!-- Sidebar Footer -->
+    <!-- Sidebar Footer (apenas collapse btn) -->
     <div class="sidebar-footer">
-      <div class="sidebar-version" id="sidebarVersion">v2.0.0</div>
       <button class="sidebar-collapse-btn" id="sidebarToggle" title="Recolher menu" aria-label="Recolher barra lateral">
         <i data-lucide="chevron-left" aria-hidden="true"></i>
       </button>
@@ -389,6 +369,7 @@
   <script defer src="data/contratos-data.js"></script>
   <script defer src="modules/contratos.js"></script>
   <script defer src="modules/inteligencia.js"></script>
+  <script defer src="modules/inteligencia-imobiliaria.js"></script>
   <script defer src="data/cultura-data.js"></script>
   <script defer src="modules/cultura.js"></script>
   <script defer src="modules/command-center.js"></script>
@@ -419,6 +400,12 @@
   <script defer src="modules/trilha-aprendizagem.js"></script>
   <script defer src="modules/pessoas-avancado.js"></script>
   <script defer src="modules/portal-cliente.js"></script>
+
+  <!-- Admin Portal — sub-modulos (carregar ANTES do orquestrador) -->
+  <script defer src="modules/admin/users-tab.js"></script>
+  <script defer src="modules/admin/roles-tab.js"></script>
+  <script defer src="modules/admin/permissions-tab.js"></script>
+  <script defer src="modules/admin/audit-tab.js"></script>
 
   <!-- Novos modulos v2.2 -->
   <script defer src="modules/admin-portal.js"></script>

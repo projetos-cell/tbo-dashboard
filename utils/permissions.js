@@ -1,6 +1,10 @@
-// TBO OS — Permissions & RBAC Definitions
+// TBO OS — Permissions & RBAC Definitions (v2.5 — RBAC Completo)
 // Central authority for roles, module access, sidebar sections, and user-role mapping.
 // Loaded BEFORE auth.js — no dependencies on other TBO modules.
+//
+// v2.5: Suporte a permissoes granulares (module.action) via Supabase.
+//       canDo() para checks granulares, canDoInProject() para overrides por projeto.
+//       Backwards compatible: canAccess() e getModulesForUser() continuam funcionando.
 
 const TBO_PERMISSIONS = {
 
@@ -10,6 +14,13 @@ const TBO_PERMISSIONS = {
   isSuperAdmin(email) {
     return email && this._superAdmins.includes(email.toLowerCase());
   },
+
+  // ── v2.5: RBAC Granular — dados carregados do Supabase ─────────────────
+  _permissionsMatrix: {},   // { 'module.action': true } — flat map para o usuario logado
+  _dbRoles: [],             // roles[] completos do Supabase (substituem _roles para UI)
+  _dbPermissions: [],       // permissions[] catalogo do Supabase
+  _projectOverrides: {},    // { projectId: { 'module.action': true } }
+  _matrixLoaded: false,
 
   // ── Role Definitions ──────────────────────────────────────────────────────
 
@@ -29,9 +40,10 @@ const TBO_PERMISSIONS = {
   ],
 
   // Admin modules (founders + project_owners com coordenacao)
-  // v2.2.1: integracoes, templates, workspace, pessoas-avancado movidos para ca
+  // v3: admin-portal, configuracoes, inteligencia-imobiliaria adicionados
   _adminModules: [
-    'permissoes-config','integracoes','templates','workspace','pessoas-avancado'
+    'permissoes-config','integracoes','templates','workspace','pessoas-avancado',
+    'admin-portal','configuracoes','inteligencia-imobiliaria'
   ],
 
   _roles: {
@@ -140,39 +152,32 @@ const TBO_PERMISSIONS = {
     lucas:    { role: 'artist',        bu: null,           isCoordinator: false }
   },
 
-  // ── Sidebar Section Definitions (organized by operational flow) ───────────
+  // ── Sidebar Section Definitions (v3 — reorganizado por area operacional) ──
+  // Ordem: Inicio > Execucao > Producao > Pessoas > Financeiro > Fornecedores > Comercial > Admin
   _sections: [
     {
-      id: 'command-center-section',
-      label: 'COMMAND CENTER',
-      icon: 'layout-dashboard',
+      id: 'inicio',
+      label: 'INÍCIO',
+      icon: 'home',
       modules: ['command-center', 'alerts', 'chat']
     },
     {
-      id: 'receita',
-      label: 'RECEITA',
-      icon: 'trending-up',
-      // v2.2.2: portal-cliente movido para PROJETOS (e visao do cliente sobre o projeto)
-      modules: ['pipeline', 'comercial', 'clientes', 'contratos']
-    },
-    {
-      id: 'projetos-core',
-      label: 'PROJETOS',
+      id: 'execucao',
+      label: 'EXECUÇÃO',
       icon: 'clipboard-list',
-      // v2.2.2: portal-cliente agora e modulo de projetos (visao do cliente)
-      modules: ['projetos', 'portal-cliente', 'entregas', 'tarefas', 'revisoes']
+      modules: ['projetos', 'tarefas', 'reunioes', 'biblioteca']
     },
     {
-      id: 'inteligencia',
-      label: 'CONTEÚDO & INTELIGÊNCIA',
-      icon: 'brain',
-      modules: ['inteligencia', 'conteudo', 'mercado', 'reunioes', 'decisoes', 'biblioteca']
+      id: 'producao',
+      label: 'PRODUÇÃO',
+      icon: 'cog',
+      modules: ['entregas', 'revisoes', 'portal-cliente']
     },
     {
       id: 'pessoas',
       label: 'PESSOAS',
       icon: 'users',
-      modules: ['rh', 'cultura', 'trilha-aprendizagem', 'pessoas-avancado', 'admin-onboarding']
+      modules: ['rh', 'admin-onboarding', 'trilha-aprendizagem', 'cultura', 'pessoas-avancado']
     },
     {
       id: 'financeiro-section',
@@ -181,12 +186,167 @@ const TBO_PERMISSIONS = {
       modules: ['financeiro', 'pagar', 'receber', 'margens', 'conciliacao']
     },
     {
-      id: 'sistema',
-      label: 'SISTEMA',
-      icon: 'settings',
-      modules: ['configuracoes', 'templates', 'permissoes-config', 'integracoes', 'changelog']
+      id: 'fornecedores',
+      label: 'FORNECEDORES',
+      icon: 'truck',
+      modules: ['contratos']
+    },
+    {
+      id: 'comercial',
+      label: 'COMERCIAL',
+      icon: 'trending-up',
+      modules: ['pipeline', 'comercial', 'clientes', 'inteligencia', 'inteligencia-imobiliaria', 'mercado']
+    },
+    {
+      id: 'admin',
+      label: 'ADMINISTRAÇÃO',
+      icon: 'shield',
+      // Somente Owner/Admin — controle via RBAC em getModulesForUser
+      modules: ['admin-portal', 'permissoes-config', 'integracoes', 'configuracoes', 'changelog']
     }
   ],
+
+  // ── v2.5: Carregar matrix de permissoes granulares do Supabase ───────────
+
+  async loadPermissionsMatrix(userId) {
+    try {
+      if (typeof TBO_SUPABASE === 'undefined') return;
+      const client = TBO_SUPABASE.getClient();
+      if (!client) return;
+
+      const tenantId = TBO_SUPABASE.getCurrentTenantId();
+      if (!tenantId) return;
+
+      // 1. Carregar todas as roles do tenant (para admin UI)
+      const { data: roles } = await client
+        .from('roles')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .order('sort_order');
+      this._dbRoles = roles || [];
+
+      // 2. Carregar catalogo de permissions
+      const { data: perms } = await client
+        .from('permissions')
+        .select('*')
+        .order('sort_order');
+      this._dbPermissions = perms || [];
+
+      // 3. Carregar permissoes do usuario via RPC
+      const { data: userPerms, error } = await client
+        .rpc('get_user_permissions', { p_user_id: userId });
+
+      if (error) {
+        console.warn('[TBO Permissions] RPC get_user_permissions error:', error.message);
+        // Fallback: tentar query direta se RPC nao existe (migration nao executada)
+        return;
+      }
+
+      // 4. Popular matrix como flat map { 'module.action': true }
+      this._permissionsMatrix = {};
+      (userPerms || []).forEach(p => {
+        if (p.granted) {
+          this._permissionsMatrix[`${p.module}.${p.action}`] = true;
+        }
+      });
+
+      this._matrixLoaded = true;
+      console.log(`[TBO Permissions] Matrix carregada: ${Object.keys(this._permissionsMatrix).length} permissoes para usuario`);
+    } catch (e) {
+      console.warn('[TBO Permissions] loadPermissionsMatrix error:', e);
+      // Fallback silencioso — canDo() usara canAccess() como fallback
+    }
+  },
+
+  // v2.5: Carregar overrides de role por projeto
+  async loadProjectOverrides(userId) {
+    try {
+      if (typeof TBO_SUPABASE === 'undefined') return;
+      const client = TBO_SUPABASE.getClient();
+      if (!client) return;
+
+      const { data: memberships } = await client
+        .from('project_memberships')
+        .select('project_id, role_id, roles(slug)')
+        .eq('user_id', userId);
+
+      if (!memberships || memberships.length === 0) return;
+
+      // Para cada projeto com override, carregar permissoes desse role
+      for (const m of memberships) {
+        const roleSlug = m.roles?.slug;
+        if (!roleSlug) continue;
+
+        // Buscar permissoes do role override
+        const { data: rolePerms } = await client
+          .rpc('get_user_permissions', { p_user_id: userId });
+        // Nota: Na v2.5 os overrides usam o role_id do project_membership
+        // Para simplificar, cache o slug — implementacao completa em v2.6
+        this._projectOverrides[m.project_id] = { _roleSlug: roleSlug };
+      }
+    } catch (e) {
+      console.warn('[TBO Permissions] loadProjectOverrides error:', e);
+    }
+  },
+
+  // ── v2.5: canDo() — Core permission check granular ─────────────────────
+  // Aceita: canDo('projects', 'create') ou canDo('projects.create')
+  canDo(moduleOrKey, action) {
+    // Super admin bypass
+    const user = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.getCurrentUser() : null;
+    if (user && this.isSuperAdmin(user.email)) return true;
+
+    // Formato: canDo('projects', 'create') ou canDo('projects.create')
+    let key;
+    if (action) {
+      key = `${moduleOrKey}.${action}`;
+    } else {
+      key = moduleOrKey; // ja no formato module.action
+    }
+
+    // Se matrix carregada, usar permissoes granulares
+    if (this._matrixLoaded) {
+      return !!this._permissionsMatrix[key];
+    }
+
+    // Fallback: se matrix nao carregada, usar modulo-level (backwards compat)
+    const mod = key.split('.')[0];
+    return this.canAccess(user?.id, mod, user?.email);
+  },
+
+  // v2.5: canDoInProject() — Check com override de role por projeto
+  canDoInProject(projectId, moduleOrKey, action) {
+    const user = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.getCurrentUser() : null;
+    if (user && this.isSuperAdmin(user.email)) return true;
+
+    const key = action ? `${moduleOrKey}.${action}` : moduleOrKey;
+
+    // Verificar override do projeto primeiro
+    const overrides = this._projectOverrides[projectId];
+    if (overrides && key in overrides) {
+      return overrides[key];
+    }
+
+    // Fallback para permissao global
+    return this.canDo(key);
+  },
+
+  // v2.5: Getters para admin UI
+  getDbRoles() {
+    return this._dbRoles;
+  },
+
+  getDbPermissions() {
+    return this._dbPermissions;
+  },
+
+  getPermissionsMatrix() {
+    return { ...this._permissionsMatrix };
+  },
+
+  isMatrixLoaded() {
+    return this._matrixLoaded;
+  },
 
   // ── Public API ────────────────────────────────────────────────────────────
 
@@ -207,15 +367,31 @@ const TBO_PERMISSIONS = {
   getModulesForUser(userId, email) {
     // v2.1: Super admins SEMPRE tem acesso total, independente do que Supabase retorna
     if (email && this.isSuperAdmin(email)) {
-      const allMods = new Set();
-      Object.values(this._roles).forEach(r => r.modules.forEach(m => allMods.add(m)));
-      this._sharedModules.forEach(m => allMods.add(m));
-      this._financeModules.forEach(m => allMods.add(m));
-      this._adminModules.forEach(m => allMods.add(m));
-      this._sections.forEach(s => s.modules.forEach(m => allMods.add(m)));
-      return [...allMods];
+      return this._getAllModules();
     }
 
+    // v2.5: Se matrix de permissoes carregada, derivar modulos das permissoes *.view
+    if (this._matrixLoaded) {
+      const modules = new Set();
+      // Extrair modulos unicos das permissoes granted
+      Object.keys(this._permissionsMatrix).forEach(key => {
+        const mod = key.split('.')[0];
+        modules.add(mod);
+      });
+      // Sempre incluir modulos basicos compartilhados
+      this._sharedModules.forEach(m => modules.add(m));
+      // Manter modulos hardcoded do role como fallback (para modulos sem permission catalogada)
+      const mapping = this._userRoles[userId] || this._defaultUserRoles[userId];
+      if (mapping) {
+        const roleDef = this._roles[mapping.role];
+        if (roleDef) {
+          roleDef.modules.forEach(m => modules.add(m));
+        }
+      }
+      return [...modules];
+    }
+
+    // Fallback: logica hardcoded original (quando Supabase indisponivel)
     const mapping = this._userRoles[userId] || this._defaultUserRoles[userId];
     if (!mapping) return [];
     const roleDef = this._roles[mapping.role];
@@ -223,13 +399,7 @@ const TBO_PERMISSIONS = {
 
     // Founders: acesso total irrestrito
     if (mapping.role === 'founder') {
-      const allMods = new Set();
-      Object.values(this._roles).forEach(r => r.modules.forEach(m => allMods.add(m)));
-      this._sharedModules.forEach(m => allMods.add(m));
-      this._financeModules.forEach(m => allMods.add(m));
-      this._adminModules.forEach(m => allMods.add(m));
-      this._sections.forEach(s => s.modules.forEach(m => allMods.add(m)));
-      return [...allMods];
+      return this._getAllModules();
     }
 
     // Base: role modules + shared modules
@@ -246,6 +416,17 @@ const TBO_PERMISSIONS = {
     }
 
     return [...new Set(mods)];
+  },
+
+  // v2.5: Helper — retorna todos os modulos do sistema
+  _getAllModules() {
+    const allMods = new Set();
+    Object.values(this._roles).forEach(r => r.modules.forEach(m => allMods.add(m)));
+    this._sharedModules.forEach(m => allMods.add(m));
+    this._financeModules.forEach(m => allMods.add(m));
+    this._adminModules.forEach(m => allMods.add(m));
+    this._sections.forEach(s => s.modules.forEach(m => allMods.add(m)));
+    return [...allMods];
   },
 
   getDashboardVariant(roleName) {

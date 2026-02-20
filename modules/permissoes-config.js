@@ -9,7 +9,7 @@ const TBO_PERMISSOES_CONFIG = {
 
   render() {
     const currentUser = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.getCurrentUserSync() : null;
-    const isFounder = currentUser?.role === 'founder';
+    const canEditRoles = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.canDo('roles', 'edit') : false;
     const roles = typeof TBO_PERMISSIONS !== 'undefined' ? TBO_PERMISSIONS._roles : {};
 
     if (this._loading) {
@@ -53,7 +53,7 @@ const TBO_PERMISSOES_CONFIG = {
         </div>
 
         <!-- Info bar -->
-        ${!isFounder ? '<div class="card" style="margin-bottom:16px;padding:12px 16px;background:var(--bg-tertiary);border-left:3px solid var(--text-muted);"><p style="margin:0;font-size:0.78rem;color:var(--text-secondary);"><i data-lucide="lock" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"></i>Somente Founders podem editar roles.</p></div>' : ''}
+        ${!canEditRoles ? '<div class="card" style="margin-bottom:16px;padding:12px 16px;background:var(--bg-tertiary);border-left:3px solid var(--text-muted);"><p style="margin:0;font-size:0.78rem;color:var(--text-secondary);"><i data-lucide="lock" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"></i>Voce nao tem permissao para editar roles.</p></div>' : ''}
 
         <!-- Users Table -->
         <div class="card">
@@ -70,7 +70,7 @@ const TBO_PERMISSOES_CONFIG = {
                   <th style="text-align:left;padding:8px;">BU</th>
                   <th style="text-align:center;padding:8px;">Coord.</th>
                   <th style="text-align:center;padding:8px;">Status</th>
-                  ${isFounder ? '<th style="text-align:center;padding:8px;">Acoes</th>' : ''}
+                  ${canEditRoles ? '<th style="text-align:center;padding:8px;">Acoes</th>' : ''}
                 </tr>
               </thead>
               <tbody>
@@ -97,7 +97,7 @@ const TBO_PERMISSOES_CONFIG = {
                       <td style="padding:8px;color:var(--text-secondary);">${u.bu || '<span style="color:var(--text-muted);">—</span>'}</td>
                       <td style="padding:8px;text-align:center;">${u.isCoordinator ? '<i data-lucide="check-circle" style="width:16px;height:16px;color:var(--color-success);"></i>' : '<span style="color:var(--text-muted);">—</span>'}</td>
                       <td style="padding:8px;text-align:center;">${isNew ? '<span style="font-size:0.7rem;padding:2px 6px;background:#f59e0b22;color:#f59e0b;border-radius:4px;">Novo</span>' : '<span style="font-size:0.7rem;padding:2px 6px;background:#2ecc7122;color:#2ecc71;border-radius:4px;">Ativo</span>'}</td>
-                      ${isFounder ? `<td style="padding:8px;text-align:center;">
+                      ${canEditRoles ? `<td style="padding:8px;text-align:center;">
                         <button class="btn btn-sm btn-ghost perm-edit-btn" data-sid="${u.supabaseId}" data-username="${this._esc(u.username)}" title="Editar ${this._esc(u.name)}">
                           <i data-lucide="pencil" style="width:14px;height:14px;"></i>
                         </button>

@@ -917,7 +917,7 @@ const TBO_CONTRATOS = {
     const attachments = this._attachmentsCache[contractId] || [];
     const bucket = TBO_SUPABASE._storageBucket;
     const currentUser = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.getCurrentUser() : null;
-    const canDelete = currentUser?.role === 'founder' || currentUser?.role === 'project_owner';
+    const canDelete = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.canDo('files', 'delete') : false;
 
     if (attachments.length === 0) {
       listEl.innerHTML = '<div class="contratos-attachments-empty">Nenhum anexo. Clique em "Anexar Arquivo" para adicionar.</div>';

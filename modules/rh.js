@@ -73,8 +73,8 @@ const TBO_RH = {
 
   _isAdmin() {
     if (typeof TBO_AUTH === 'undefined') return true;
-    const u = TBO_AUTH.getCurrentUser();
-    return u && (u.role === 'founder' || u.isCoordinator);
+    // RBAC: usa canDo para verificar permissao de gestao de usuarios
+    return TBO_AUTH.canDo('users', 'edit') || TBO_AUTH.getCurrentUser()?.isCoordinator;
   },
   _currentUserId() {
     if (typeof TBO_AUTH === 'undefined') return 'marco';
@@ -386,48 +386,212 @@ const TBO_RH = {
   },
 
   // ══════════════════════════════════════════════════════════════════
-  // TAB 1: VISAO GERAL
+  // TAB 1: VISAO GERAL (Redesign v3 — Organograma + Tabela BU)
   // ══════════════════════════════════════════════════════════════════
+
+  // Sub-view da visao geral: 'cards' (default), 'organograma', 'tabela'
+  _visaoGeralView: 'tabela',
+
   _renderVisaoGeral() {
     const team = this._getInternalTeam();
     const reviews = this._getStore('avaliacoes_people');
     const medias = reviews.map(r => r.mediaGeral).filter(Boolean);
-    const mediaGeral = medias.length ? (medias.reduce((a, b) => a + b, 0) / medias.length).toFixed(1) : '—';
+    const mediaGeral = medias.length ? (medias.reduce((a, b) => a + b, 0) / medias.length).toFixed(1) : '\u2014';
+    const bus = this._getBUs();
+    const v = this._visaoGeralView;
+
+    // Calcular proximo nivel para cada pessoa
+    const nivelMap = ['Jr. I','Jr. II','Jr. III','Pleno I','Pleno II','Pleno III','Senior I','Senior II','Senior III','Lead','Principal'];
 
     return `
       <div class="grid-4" style="margin-bottom:24px;">
         <div class="kpi-card"><div class="kpi-label">Total Pessoas</div><div class="kpi-value">${team.length}</div><div class="kpi-sub">colaboradores internos</div></div>
         <div class="kpi-card kpi-card--success"><div class="kpi-label">Ativos</div><div class="kpi-value">${team.filter(t => t.status === 'ativo').length}</div><div class="kpi-sub">em operacao</div></div>
-        <div class="kpi-card kpi-card--blue"><div class="kpi-label">BUs</div><div class="kpi-value">${this._getBUs().length}</div><div class="kpi-sub">${this._getBUs().join(', ')}</div></div>
+        <div class="kpi-card kpi-card--blue"><div class="kpi-label">BUs</div><div class="kpi-value">${bus.length}</div><div class="kpi-sub">${bus.join(', ')}</div></div>
         <div class="kpi-card kpi-card--gold"><div class="kpi-label">Media Performance</div><div class="kpi-value">${mediaGeral}</div><div class="kpi-sub">escala 1-5</div></div>
       </div>
 
-      <!-- Filtros -->
-      <div class="card" style="margin-bottom:16px;padding:12px 16px;">
-        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-          <span style="font-size:0.78rem;font-weight:600;color:var(--text-muted);">Filtrar:</span>
-          <select class="form-input rh-filter-bu" style="width:auto;min-width:140px;padding:6px 10px;font-size:0.78rem;">
-            <option value="">Todas BUs</option>
-            ${this._getBUs().map(bu => `<option value="${bu}">${bu}</option>`).join('')}
-          </select>
-          <input type="text" class="form-input rh-filter-search" placeholder="Buscar por nome..." style="width:auto;min-width:200px;padding:6px 10px;font-size:0.78rem;">
+      <!-- Toolbar: view switcher + filtros -->
+      <div class="card" style="margin-bottom:16px;padding:10px 16px;">
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between;">
+          <div style="display:flex;gap:4px;align-items:center;">
+            <button class="btn btn-sm rh-view-btn ${v === 'organograma' ? 'btn-primary' : 'btn-secondary'}" data-view="organograma" title="Organograma">
+              <i data-lucide="git-branch" style="width:14px;height:14px;"></i>
+            </button>
+            <button class="btn btn-sm rh-view-btn ${v === 'tabela' ? 'btn-primary' : 'btn-secondary'}" data-view="tabela" title="Tabela por BU">
+              <i data-lucide="table-2" style="width:14px;height:14px;"></i>
+            </button>
+            <button class="btn btn-sm rh-view-btn ${v === 'cards' ? 'btn-primary' : 'btn-secondary'}" data-view="cards" title="Cards">
+              <i data-lucide="layout-grid" style="width:14px;height:14px;"></i>
+            </button>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <select class="form-input rh-filter-bu" style="width:auto;min-width:130px;padding:5px 10px;font-size:0.76rem;">
+              <option value="">Todas BUs</option>
+              ${bus.map(bu => `<option value="${bu}">${bu}</option>`).join('')}
+            </select>
+            <input type="text" class="form-input rh-filter-search" placeholder="Buscar por nome..." style="width:auto;min-width:180px;padding:5px 10px;font-size:0.76rem;">
+          </div>
         </div>
       </div>
 
-      <!-- Grid de membros -->
-      <div class="rh-people-grid" id="rhPeopleGrid">
-        ${this._renderPeopleCards(team, reviews)}
+      <!-- Conteudo da view ativa -->
+      <div id="rhVisaoGeralContent">
+        ${this._renderVisaoGeralContent(team, reviews)}
       </div>
 
-      <!-- Drawer de detalhe -->
+      <!-- Drawer de detalhe (Perfil Asana-style) -->
       <div id="rhPersonDrawer" class="rh-drawer" style="display:none;"></div>
     `;
   },
 
+  _renderVisaoGeralContent(team, reviews) {
+    switch (this._visaoGeralView) {
+      case 'organograma': return this._renderOrganograma(team);
+      case 'tabela':      return this._renderTabelaBU(team, reviews);
+      case 'cards':       return this._renderPeopleCards(team, reviews);
+      default:            return this._renderTabelaBU(team, reviews);
+    }
+  },
+
+  // ── Organograma (Org Chart) ──────────────────────────────────────
+  _renderOrganograma(team) {
+    // Construir arvore hierarquica baseada no campo 'lider'
+    const roots = team.filter(t => !t.lider);
+    const getChildren = (parentId) => team.filter(t => t.lider === parentId);
+    const buColors = { 'Branding': '#8b5cf6', 'Digital 3D': '#3a7bd5', 'Marketing': '#f59e0b', 'Vendas': '#2ecc71' };
+
+    const renderNode = (person, level = 0) => {
+      const children = getChildren(person.id);
+      const color = buColors[person.bu] || 'var(--accent-gold)';
+      const review = this._getStore('avaliacoes_people').find(r => r.pessoaId === person.id);
+      const score = review ? review.mediaGeral.toFixed(1) : '';
+      const isLeader = children.length > 0;
+
+      return `
+        <div class="rh-org-node" data-person="${person.id}" style="cursor:pointer;">
+          <div class="rh-org-card" style="border-left:3px solid ${color};">
+            <div style="display:flex;align-items:center;gap:10px;">
+              ${this._getAvatarHTML(person, 36, '0.8rem')}
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:700;font-size:0.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${this._esc(person.nome)}</div>
+                <div style="font-size:0.68rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${this._esc(person.cargo)}</div>
+              </div>
+              ${score ? `<div style="font-size:0.72rem;font-weight:700;color:${review.mediaGeral >= 4 ? 'var(--color-success)' : review.mediaGeral >= 3 ? 'var(--accent-gold)' : 'var(--color-danger)'};">${score}</div>` : ''}
+            </div>
+            ${person.bu ? `<span class="tag" style="font-size:0.58rem;margin-top:6px;background:${color}15;color:${color};">${person.bu}</span>` : ''}
+          </div>
+          ${children.length ? `
+            <div class="rh-org-children">
+              ${children.map(c => renderNode(c, level + 1)).join('')}
+            </div>
+          ` : ''}
+        </div>`;
+    };
+
+    return `
+      <div class="card" style="padding:24px;overflow-x:auto;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
+          <i data-lucide="git-branch" style="width:18px;height:18px;color:var(--accent-gold);"></i>
+          <h3 style="font-size:0.95rem;margin:0;">Organograma TBO</h3>
+          <span style="font-size:0.72rem;color:var(--text-muted);margin-left:auto;">${team.length} pessoas</span>
+        </div>
+        <div class="rh-org-tree">
+          ${roots.map(r => renderNode(r)).join('')}
+        </div>
+      </div>`;
+  },
+
+  // ── Tabela por BU (estilo Notion) ─────────────────────────────────
+  _renderTabelaBU(team, reviews) {
+    const bus = this._getBUs();
+    const nivelMap = ['Jr. I','Jr. II','Jr. III','Pleno I','Pleno II','Pleno III','Senior I','Senior II','Senior III','Lead','Principal'];
+    const buColors = { 'Branding': '#8b5cf6', 'Digital 3D': '#3a7bd5', 'Marketing': '#f59e0b', 'Vendas': '#2ecc71' };
+
+    const getProximoNivel = (nivel) => {
+      const idx = nivelMap.indexOf(nivel);
+      return idx >= 0 && idx < nivelMap.length - 1 ? nivelMap[idx + 1] : '\u2014';
+    };
+
+    // Agrupar por BU (+ grupo "Diretoria" para quem nao tem BU)
+    const groups = {};
+    team.forEach(p => {
+      const g = p.bu || 'Diretoria';
+      if (!groups[g]) groups[g] = [];
+      groups[g].push(p);
+    });
+
+    // Ordenar: Diretoria primeiro, depois BUs alfabeticamente
+    const sortedGroups = Object.entries(groups).sort((a, b) => {
+      if (a[0] === 'Diretoria') return -1;
+      if (b[0] === 'Diretoria') return 1;
+      return a[0].localeCompare(b[0]);
+    });
+
+    return `
+      <div class="card rh-tabela-card" style="overflow:hidden;">
+        <div style="overflow-x:auto;">
+          <table class="data-table rh-bu-table" style="min-width:800px;">
+            <thead>
+              <tr>
+                <th style="min-width:200px;">Colaborador(a)</th>
+                <th style="min-width:90px;">Entrada</th>
+                <th style="min-width:120px;">Area da Empresa</th>
+                <th style="min-width:140px;">Cargo</th>
+                <th style="min-width:90px;">Nivel Atual</th>
+                <th style="min-width:90px;">Proximo Nivel</th>
+                <th style="min-width:80px;text-align:center;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sortedGroups.map(([groupName, members]) => {
+                const color = buColors[groupName] || 'var(--accent-gold)';
+                return `
+                  <tr class="rh-bu-group-header" data-group="${groupName}">
+                    <td colspan="7" style="background:${color}08;padding:8px 16px;cursor:pointer;">
+                      <div style="display:flex;align-items:center;gap:8px;">
+                        <i data-lucide="chevron-down" class="rh-group-chevron" style="width:14px;height:14px;color:${color};transition:transform 0.2s;"></i>
+                        <span style="font-weight:700;font-size:0.85rem;color:${color};">${groupName}</span>
+                        <span style="font-size:0.72rem;color:var(--text-muted);">${members.length} pessoas</span>
+                      </div>
+                    </td>
+                  </tr>
+                  ${members.map(p => {
+                    const review = reviews.find(r => r.pessoaId === p.id);
+                    const dataEntrada = p.dataInicio || (p.id === 'marco' || p.id === 'ruy' ? '2021-03-01' : '2024-06-01');
+                    const statusColor = p.status === 'ativo' ? 'var(--color-success)' : p.status === 'ferias' ? 'var(--color-info)' : 'var(--color-warning)';
+                    return `
+                    <tr class="rh-bu-row rh-person-row" data-person="${p.id}" data-group="${groupName}" data-bu="${p.bu || ''}" style="cursor:pointer;">
+                      <td>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                          ${this._getAvatarHTML(p, 32, '0.72rem')}
+                          <div>
+                            <div style="font-weight:600;font-size:0.82rem;">${this._esc(p.nome)}</div>
+                            ${p.email ? `<div style="font-size:0.66rem;color:var(--text-muted);">${this._esc(p.email)}</div>` : ''}
+                          </div>
+                        </div>
+                      </td>
+                      <td style="font-size:0.78rem;color:var(--text-secondary);">${new Date(dataEntrada).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}</td>
+                      <td style="font-size:0.78rem;">${this._esc(p.area || p.bu || 'Geral')}</td>
+                      <td style="font-size:0.78rem;">${this._esc(p.cargo)}</td>
+                      <td><span class="tag" style="font-size:0.68rem;">${this._esc(p.nivel || '\u2014')}</span></td>
+                      <td><span class="tag" style="font-size:0.68rem;background:var(--color-info-dim);color:var(--color-info);">${getProximoNivel(p.nivel)}</span></td>
+                      <td style="text-align:center;"><span class="tag" style="font-size:0.65rem;background:${statusColor}20;color:${statusColor};">${p.status || 'ativo'}</span></td>
+                    </tr>`;
+                  }).join('')}
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  },
+
+  // ── Cards Grid (view original) ────────────────────────────────────
   _renderPeopleCards(team, reviews) {
-    return team.map(person => {
+    const cards = team.map(person => {
       const review = reviews.find(r => r.pessoaId === person.id);
-      const score = review ? review.mediaGeral.toFixed(1) : '—';
+      const score = review ? review.mediaGeral.toFixed(1) : '\u2014';
       const scoreColor = review ? (review.mediaGeral >= 4 ? 'var(--color-success)' : review.mediaGeral >= 3 ? 'var(--accent-gold)' : 'var(--color-danger)') : 'var(--text-muted)';
       const buLabel = person.bu || 'Geral';
       const buColors = { 'Branding': '#8b5cf6', 'Digital 3D': '#3a7bd5', 'Marketing': '#f59e0b', 'Vendas': '#2ecc71' };
@@ -453,6 +617,8 @@ const TBO_RH = {
           </div>
         </div>`;
     }).join('');
+
+    return `<div class="rh-people-grid" id="rhPeopleGrid">${cards}</div>`;
   },
 
   _renderPersonDrawer(personId) {
@@ -463,94 +629,175 @@ const TBO_RH = {
     const feedbacks = this._getStore('feedbacks').filter(f => f.para === personId || f.de === personId);
     const elogios = this._getStore('elogios').filter(e => e.para === personId);
     const oneOnOnes = this._getStore('1on1s').filter(o => o.lider === personId || o.colaborador === personId);
-    const initials = person.nome.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+    const buColors = { 'Branding': '#8b5cf6', 'Digital 3D': '#3a7bd5', 'Marketing': '#f59e0b', 'Vendas': '#2ecc71' };
+    const buColor = buColors[person.bu] || 'var(--accent-gold)';
+
+    // Colaboradores frequentes: quem esta na mesma BU ou compartilha 1:1s
+    const colleagues = this._getInternalTeam().filter(t => t.id !== person.id && (t.bu === person.bu || t.lider === person.id || person.lider === t.id)).slice(0, 6);
+
+    // Metas simuladas (baseadas no PDI/gaps)
+    const metas = [];
+    if (review) {
+      (review.gaps || []).forEach((g, i) => {
+        const progress = Math.floor(Math.random() * 60) + 20;
+        metas.push({ id: i, nome: `Desenvolver ${g}`, progresso: progress, prazo: '2026-06-30' });
+      });
+      if (!metas.length) {
+        metas.push({ id: 0, nome: 'Manter excelencia nas entregas', progresso: 85, prazo: '2026-06-30' });
+      }
+    }
+
+    // Projetos recentes simulados (baseado na BU)
+    const projetos = [
+      { nome: `Projeto ${person.bu || 'Geral'} Q1`, status: 'em_andamento', cor: 'var(--color-info)' },
+      { nome: `Campanha ${person.area || 'Interna'}`, status: 'concluido', cor: 'var(--color-success)' }
+    ];
 
     return `
-      <div class="rh-drawer-content">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-          <h3 style="margin:0;font-size:1.1rem;">Perfil</h3>
-          <button class="btn btn-secondary btn-sm" id="rhCloseDrawer"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
-        </div>
-
-        <!-- Header -->
-        <div style="text-align:center;margin-bottom:20px;">
-          <div style="display:flex;justify-content:center;margin-bottom:10px;">${this._getAvatarHTML(person, 64, '1.4rem')}</div>
-          <div style="font-weight:700;font-size:1.1rem;">${this._esc(person.nome)}</div>
-          <div style="font-size:0.8rem;color:var(--text-muted);">${this._esc(person.cargo)} \u2022 ${this._esc(person.area)}</div>
-          <div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">${this._esc(person.nivel)}${person.lider ? ' \u2022 Lider: ' + this._getPersonName(person.lider) : ''}</div>
-        </div>
-
-        ${review ? `
-        <!-- Performance -->
-        <div style="background:var(--bg-elevated);border-radius:var(--radius-md, 8px);padding:16px;margin-bottom:16px;">
-          <div style="font-weight:600;font-size:0.82rem;margin-bottom:12px;">Performance</div>
-          <div style="display:flex;justify-content:center;margin-bottom:12px;">
-            <div style="font-size:2.4rem;font-weight:800;color:${review.mediaGeral >= 4 ? 'var(--color-success)' : review.mediaGeral >= 3 ? 'var(--accent-gold)' : 'var(--color-danger)'};">${review.mediaGeral.toFixed(1)}</div>
-          </div>
-          <div style="display:flex;gap:16px;justify-content:center;font-size:0.72rem;color:var(--text-muted);">
-            <span>Auto: ${review.autoMedia.toFixed(1)}</span>
-            <span>Gestor: ${review.gestorMedia.toFixed(1)}</span>
-            <span>Pares: ${review.paresMedia.toFixed(1)}</span>
-          </div>
-          ${this._renderMiniRadar(review)}
-        </div>
-        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:16px;">
-          ${(review.destaques || []).map(d => `<span class="tag" style="font-size:0.65rem;background:var(--color-success-dim);color:var(--color-success);">${d}</span>`).join('')}
-          ${(review.gaps || []).map(g => `<span class="tag" style="font-size:0.65rem;background:var(--color-warning-dim);color:var(--color-warning);">${g}</span>`).join('')}
-        </div>
-        ` : ''}
-
-        <!-- Elogios recebidos -->
-        <div style="background:var(--bg-elevated);border-radius:var(--radius-md, 8px);padding:16px;margin-bottom:16px;">
-          <div style="font-weight:600;font-size:0.82rem;margin-bottom:8px;">Elogios (${elogios.length})</div>
-          ${elogios.slice(0, 3).map(e => {
-            const v = this._valores.find(v2 => v2.id === e.valor);
-            return `<div style="font-size:0.75rem;padding:6px 0;border-bottom:1px solid var(--border-subtle);">${v ? v.emoji : ''} <strong>${this._getPersonName(e.de)}</strong>: ${this._esc(e.mensagem).slice(0, 60)}...</div>`;
-          }).join('') || '<div style="font-size:0.72rem;color:var(--text-muted);">Nenhum elogio</div>'}
-        </div>
-
-        <!-- 1:1s -->
-        <div style="background:var(--bg-elevated);border-radius:var(--radius-md, 8px);padding:16px;margin-bottom:16px;">
-          <div style="font-weight:600;font-size:0.82rem;margin-bottom:8px;">1:1s (${oneOnOnes.length})</div>
-          ${oneOnOnes.slice(0, 3).map(o => `
-            <div style="font-size:0.75rem;padding:6px 0;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;">
-              <span>${this._getPersonName(o.lider)} \u2194 ${this._getPersonName(o.colaborador)}</span>
-              <span class="tag" style="font-size:0.6rem;background:${o.status === 'agendada' ? 'var(--color-info-dim)' : 'var(--color-success-dim)'};color:${o.status === 'agendada' ? 'var(--color-info)' : 'var(--color-success)'};">${o.status}</span>
+      <div class="rh-drawer-content rh-profile-asana">
+        <!-- Header Asana-style com banner -->
+        <div class="rh-profile-header" style="background:linear-gradient(135deg, ${buColor}15 0%, ${buColor}05 100%);margin:-24px -24px 0;padding:20px 24px 16px;border-bottom:1px solid var(--border-subtle);">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div style="display:flex;align-items:center;gap:16px;">
+              ${this._getAvatarHTML(person, 72, '1.5rem')}
+              <div>
+                <div style="font-weight:800;font-size:1.15rem;margin-bottom:2px;">${this._esc(person.nome)}</div>
+                <div style="font-size:0.82rem;color:var(--text-muted);">${this._esc(person.cargo)}</div>
+                <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+                  ${person.bu ? `<span class="tag" style="font-size:0.65rem;background:${buColor}15;color:${buColor};">${person.bu}</span>` : ''}
+                  ${person.nivel ? `<span class="tag" style="font-size:0.65rem;">${this._esc(person.nivel)}</span>` : ''}
+                  <span class="tag" style="font-size:0.65rem;background:var(--color-success)20;color:var(--color-success);">${person.status || 'ativo'}</span>
+                </div>
+              </div>
             </div>
-          `).join('') || '<div style="font-size:0.72rem;color:var(--text-muted);">Nenhuma 1:1</div>'}
+            <button class="btn btn-secondary btn-sm" id="rhCloseDrawer" style="flex-shrink:0;"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
+          </div>
+          ${person.email ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:8px;margin-left:88px;"><i data-lucide="mail" style="width:12px;height:12px;vertical-align:-2px;margin-right:4px;"></i>${this._esc(person.email)}</div>` : ''}
+          ${person.lider ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;margin-left:88px;"><i data-lucide="user" style="width:12px;height:12px;vertical-align:-2px;margin-right:4px;"></i>Reporta a: <strong>${this._getPersonName(person.lider)}</strong></div>` : ''}
         </div>
 
-        <!-- Tarefas da Pessoa (Supabase) -->
-        <div style="background:var(--bg-elevated);border-radius:var(--radius-md, 8px);padding:16px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <div style="font-weight:600;font-size:0.82rem;">Tarefas</div>
-            <button class="btn btn-primary btn-sm" id="rhNewPersonTask" style="font-size:0.68rem;padding:4px 10px;">+ Nova</button>
-          </div>
-          <div id="rhPersonTaskForm" style="display:none;margin-bottom:12px;padding:12px;background:var(--bg-primary);border-radius:var(--radius-md, 8px);border:1px solid var(--border-subtle);">
-            <input type="text" class="form-input" id="ptTitle" placeholder="Titulo da tarefa..." style="font-size:0.78rem;padding:6px 10px;margin-bottom:8px;">
-            <div style="display:flex;gap:8px;margin-bottom:8px;">
-              <select class="form-input" id="ptPriority" style="font-size:0.72rem;padding:4px 8px;flex:1;">
-                <option value="media">Media</option>
-                <option value="alta">Alta</option>
-                <option value="baixa">Baixa</option>
-              </select>
-              <select class="form-input" id="ptCategory" style="font-size:0.72rem;padding:4px 8px;flex:1;">
-                <option value="general">Geral</option>
-                <option value="pdi">PDI</option>
-                <option value="onboarding">Onboarding</option>
-                <option value="1on1_action">Acao 1:1</option>
-              </select>
-              <input type="date" class="form-input" id="ptDueDate" style="font-size:0.72rem;padding:4px 8px;flex:1;">
+        <!-- Dados do Onboarding (carrega async do Supabase) -->
+        <div id="rhOnboardingData" style="margin-top:16px;"></div>
+
+        <!-- Layout 2 colunas estilo Asana -->
+        <div style="display:grid;grid-template-columns:1fr;gap:16px;margin-top:16px;">
+
+          <!-- Minhas Tarefas -->
+          <div class="rh-profile-section">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <div style="font-weight:700;font-size:0.88rem;display:flex;align-items:center;gap:6px;">
+                <i data-lucide="check-circle" style="width:16px;height:16px;color:var(--color-success);"></i> Tarefas
+              </div>
+              <button class="btn btn-primary btn-sm" id="rhNewPersonTask" style="font-size:0.66rem;padding:3px 10px;">+ Nova</button>
             </div>
-            <div style="display:flex;gap:8px;">
-              <button class="btn btn-primary btn-sm" id="ptSave" style="font-size:0.68rem;padding:4px 12px;">Salvar</button>
-              <button class="btn btn-secondary btn-sm" id="ptCancel" style="font-size:0.68rem;padding:4px 12px;">Cancelar</button>
+            <div id="rhPersonTaskForm" style="display:none;margin-bottom:12px;padding:12px;background:var(--bg-primary);border-radius:var(--radius-md, 8px);border:1px solid var(--border-subtle);">
+              <input type="text" class="form-input" id="ptTitle" placeholder="Titulo da tarefa..." style="font-size:0.78rem;padding:6px 10px;margin-bottom:8px;">
+              <div style="display:flex;gap:8px;margin-bottom:8px;">
+                <select class="form-input" id="ptPriority" style="font-size:0.72rem;padding:4px 8px;flex:1;">
+                  <option value="media">Media</option><option value="alta">Alta</option><option value="baixa">Baixa</option>
+                </select>
+                <select class="form-input" id="ptCategory" style="font-size:0.72rem;padding:4px 8px;flex:1;">
+                  <option value="general">Geral</option><option value="pdi">PDI</option><option value="onboarding">Onboarding</option><option value="1on1_action">Acao 1:1</option>
+                </select>
+                <input type="date" class="form-input" id="ptDueDate" style="font-size:0.72rem;padding:4px 8px;flex:1;">
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-primary btn-sm" id="ptSave" style="font-size:0.66rem;padding:3px 10px;">Salvar</button>
+                <button class="btn btn-secondary btn-sm" id="ptCancel" style="font-size:0.66rem;padding:3px 10px;">Cancelar</button>
+              </div>
+            </div>
+            <div id="rhPersonTaskList" data-person="${personId}">
+              <div style="text-align:center;padding:12px;font-size:0.72rem;color:var(--text-muted);">
+                <i data-lucide="loader" style="width:14px;height:14px;animation:spin 1s linear infinite;"></i> Carregando...
+              </div>
             </div>
           </div>
-          <div id="rhPersonTaskList" data-person="${personId}">
-            <div style="text-align:center;padding:12px;font-size:0.72rem;color:var(--text-muted);">
-              <i data-lucide="loader" style="width:16px;height:16px;animation:spin 1s linear infinite;"></i> Carregando tarefas...
+
+          <!-- Meus Projetos Recentes -->
+          <div class="rh-profile-section">
+            <div style="font-weight:700;font-size:0.88rem;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+              <i data-lucide="folder" style="width:16px;height:16px;color:var(--color-info);"></i> Projetos Recentes
             </div>
+            ${projetos.map(pj => `
+              <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--bg-elevated);border-radius:6px;margin-bottom:6px;">
+                <div style="width:8px;height:8px;border-radius:50%;background:${pj.cor};flex-shrink:0;"></div>
+                <div style="flex:1;font-size:0.8rem;font-weight:500;">${pj.nome}</div>
+                <span class="tag" style="font-size:0.6rem;background:${pj.cor}20;color:${pj.cor};">${pj.status === 'concluido' ? 'Concluido' : 'Em andamento'}</span>
+              </div>
+            `).join('')}
+          </div>
+
+          <!-- Minhas Metas -->
+          <div class="rh-profile-section">
+            <div style="font-weight:700;font-size:0.88rem;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+              <i data-lucide="target" style="width:16px;height:16px;color:var(--accent-gold);"></i> Metas
+            </div>
+            ${metas.map(m => `
+              <div style="margin-bottom:10px;">
+                <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px;">
+                  <span>${m.nome}</span>
+                  <span style="font-weight:600;color:${m.progresso >= 75 ? 'var(--color-success)' : m.progresso >= 40 ? 'var(--accent-gold)' : 'var(--color-danger)'};">${m.progresso}%</span>
+                </div>
+                <div style="height:6px;background:var(--bg-tertiary);border-radius:3px;overflow:hidden;">
+                  <div style="height:100%;width:${m.progresso}%;background:${m.progresso >= 75 ? 'var(--color-success)' : m.progresso >= 40 ? 'var(--accent-gold)' : 'var(--color-danger)'};border-radius:3px;transition:width 0.3s;"></div>
+                </div>
+              </div>
+            `).join('') || '<div style="font-size:0.72rem;color:var(--text-muted);">Sem metas definidas</div>'}
+          </div>
+
+          ${review ? `
+          <!-- Performance (compacto) -->
+          <div class="rh-profile-section">
+            <div style="font-weight:700;font-size:0.88rem;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+              <i data-lucide="bar-chart-3" style="width:16px;height:16px;color:var(--color-purple, #8b5cf6);"></i> Performance
+            </div>
+            <div style="display:flex;align-items:center;gap:16px;margin-bottom:10px;">
+              <div style="font-size:2rem;font-weight:800;color:${review.mediaGeral >= 4 ? 'var(--color-success)' : review.mediaGeral >= 3 ? 'var(--accent-gold)' : 'var(--color-danger)'};">${review.mediaGeral.toFixed(1)}</div>
+              <div style="flex:1;">
+                ${['Auto|autoMedia|var(--color-info)', 'Gestor|gestorMedia|var(--accent-gold)', 'Pares|paresMedia|var(--color-purple, #8b5cf6)'].map(s => {
+                  const [l, k, c] = s.split('|');
+                  return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;"><span style="font-size:0.68rem;width:40px;color:var(--text-muted);">${l}</span><div style="flex:1;height:4px;background:var(--bg-tertiary);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${(review[k] / 5) * 100}%;background:${c};border-radius:2px;"></div></div><span style="font-size:0.68rem;font-weight:600;">${review[k].toFixed(1)}</span></div>`;
+                }).join('')}
+              </div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+              ${(review.destaques || []).map(d => `<span class="tag" style="font-size:0.6rem;background:var(--color-success-dim);color:var(--color-success);">${d}</span>`).join('')}
+              ${(review.gaps || []).map(g => `<span class="tag" style="font-size:0.6rem;background:var(--color-warning-dim);color:var(--color-warning);">${g}</span>`).join('')}
+            </div>
+          </div>
+          ` : ''}
+
+          <!-- Colaboradores Frequentes -->
+          <div class="rh-profile-section">
+            <div style="font-weight:700;font-size:0.88rem;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+              <i data-lucide="users" style="width:16px;height:16px;color:var(--text-muted);"></i> Colaboradores Frequentes
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              ${colleagues.map(c => `
+                <div class="rh-colleague-chip rh-person-row" data-person="${c.id}" style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--bg-elevated);border-radius:20px;cursor:pointer;transition:background 0.15s;">
+                  ${this._getAvatarHTML(c, 24, '0.6rem')}
+                  <span style="font-size:0.72rem;font-weight:500;">${this._esc(c.nome.split(' ')[0])}</span>
+                </div>
+              `).join('') || '<div style="font-size:0.72rem;color:var(--text-muted);">Nenhum</div>'}
+            </div>
+          </div>
+
+          <!-- Academy / Elogios -->
+          <div class="rh-profile-section">
+            <div style="font-weight:700;font-size:0.88rem;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+              <i data-lucide="award" style="width:16px;height:16px;color:var(--accent-gold);"></i> Reconhecimentos & Academy
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+              ${elogios.slice(0, 4).map(e => {
+                const v = this._valores.find(v2 => v2.id === e.valor);
+                return `<div style="display:flex;align-items:center;gap:4px;padding:4px 10px;background:var(--bg-elevated);border-radius:6px;font-size:0.72rem;">${v ? v.emoji : '\u2B50'} ${v ? v.nome : ''}</div>`;
+              }).join('') || '<span style="font-size:0.72rem;color:var(--text-muted);">Nenhum reconhecimento</span>'}
+            </div>
+            ${review && review.destaques ? `
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">Habilidades desenvolvidas:</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+              ${review.destaques.map(d => `<span class="tag" style="font-size:0.62rem;">${d}</span>`).join('')}
+            </div>` : ''}
           </div>
         </div>
       </div>
@@ -908,6 +1155,7 @@ const TBO_RH = {
           <div style="flex:1;font-size:0.82rem;">${a.texto}</div>
           <span style="font-size:0.72rem;color:var(--text-muted);">${this._getPersonName(a.responsavel)}</span>
           <span style="font-size:0.68rem;color:${a.prazo && new Date(a.prazo) < new Date() ? 'var(--color-danger)' : 'var(--text-muted)'};">${a.prazo ? new Date(a.prazo + 'T12:00').toLocaleDateString('pt-BR') : ''}</span>
+          <button class="btn btn-ghost btn-sm rh-action-delete" data-id="${a.id}" title="Excluir acao" style="color:var(--color-danger);padding:2px 6px;"><i data-lucide="trash-2" style="width:12px;height:12px;"></i></button>
         </div>`).join('')}
       </div></div>` : ''}
 
@@ -1038,16 +1286,41 @@ const TBO_RH = {
   // ══════════════════════════════════════════════════════════════════
   _getScopedCSS() {
     return `
+      /* ── Cards grid ── */
       .rh-people-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
       .rh-person-card { background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-md, 8px); padding: 16px; cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s; }
       .rh-person-card:hover { border-color: var(--accent-gold); box-shadow: 0 2px 8px rgba(232,81,2,0.1); }
       .rh-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; flex-shrink: 0; }
-      .rh-drawer { position: fixed; top: 0; right: 0; width: 400px; max-width: 90vw; height: 100vh; background: var(--bg-primary); border-left: 1px solid var(--border-subtle); box-shadow: -4px 0 16px rgba(0,0,0,0.15); z-index: 1000; overflow-y: auto; transform: translateX(100%); transition: transform 0.25s cubic-bezier(0.4,0,0.2,1); }
+
+      /* ── Drawer (perfil Asana-style) ── */
+      .rh-drawer { position: fixed; top: 0; right: 0; width: 460px; max-width: 92vw; height: 100vh; background: var(--bg-primary); border-left: 1px solid var(--border-subtle); box-shadow: -4px 0 20px rgba(0,0,0,0.18); z-index: 1000; overflow-y: auto; transform: translateX(100%); transition: transform 0.25s cubic-bezier(0.4,0,0.2,1); }
       .rh-drawer.rh-drawer-open { transform: translateX(0); }
       .rh-drawer-content { padding: 24px; }
+      .rh-profile-section { background: var(--bg-elevated); border-radius: var(--radius-md, 8px); padding: 16px; }
+      .rh-colleague-chip:hover { background: var(--bg-tertiary) !important; }
+
+      /* ── Organograma (org chart tree) ── */
+      .rh-org-tree { display: flex; flex-direction: column; gap: 0; padding-left: 0; }
+      .rh-org-node { position: relative; }
+      .rh-org-card { background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 10px 14px; margin: 3px 0; transition: border-color 0.2s, box-shadow 0.2s; }
+      .rh-org-card:hover { border-color: var(--accent-gold); box-shadow: 0 2px 8px rgba(232,81,2,0.08); }
+      .rh-org-children { margin-left: 32px; padding-left: 16px; border-left: 2px solid var(--border-subtle); }
+
+      /* ── Tabela por BU (estilo Notion) ── */
+      .rh-bu-table { width: 100%; border-collapse: collapse; }
+      .rh-bu-table thead th { position: sticky; top: 0; background: var(--bg-elevated); z-index: 2; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; padding: 10px 12px; border-bottom: 2px solid var(--border-subtle); }
+      .rh-bu-table tbody td { padding: 8px 12px; border-bottom: 1px solid var(--border-subtle); font-size: 0.8rem; }
+      .rh-bu-group-header td { font-weight: 700; }
+      .rh-bu-row { transition: background 0.15s; }
+      .rh-bu-row:hover { background: var(--bg-elevated); }
+      .rh-person-row { cursor: pointer; }
+      .rh-tabela-card { border: 1px solid var(--border-subtle); border-radius: var(--radius-md, 8px); }
+
+      /* ── Subtabs ── */
       .subtab-content { display: none; }
       .subtab-content.active { display: block; }
-      /* Skeleton loading animation */
+
+      /* ── Skeleton loading ── */
       .rh-skeleton { background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-elevated) 50%, var(--bg-tertiary) 75%); background-size: 200% 100%; animation: rh-shimmer 1.5s ease-in-out infinite; }
       @keyframes rh-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
       .rh-skeleton-card { opacity: 0.7; }
@@ -1100,12 +1373,27 @@ const TBO_RH = {
       });
     });
 
-    // Visao Geral: people card clicks (open drawer com backdrop)
-    document.querySelectorAll('.rh-person-card').forEach(card => {
-      card.addEventListener('click', () => {
-        this._openPersonDrawer(card.dataset.person);
+    // ── Visao Geral: View Switcher (organograma / tabela / cards) ──
+    document.querySelectorAll('.rh-view-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this._visaoGeralView = btn.dataset.view;
+        // Atualizar visual dos botoes
+        document.querySelectorAll('.rh-view-btn').forEach(b => { b.classList.remove('btn-primary'); b.classList.add('btn-secondary'); });
+        btn.classList.remove('btn-secondary'); btn.classList.add('btn-primary');
+        // Re-renderizar apenas o conteudo da view
+        const content = document.getElementById('rhVisaoGeralContent');
+        if (content) {
+          const team = this._getInternalTeam();
+          const reviews = this._getStore('avaliacoes_people');
+          content.innerHTML = this._renderVisaoGeralContent(team, reviews);
+          this._bindVisaoGeralContent();
+        }
+        if (window.lucide) lucide.createIcons();
       });
     });
+
+    // Bind do conteudo da visao geral (cards/tabela/organograma)
+    this._bindVisaoGeralContent();
 
     // Visao Geral: restaurar filtros preservados e bind events
     const filterBu = document.querySelector('.rh-filter-bu');
@@ -1117,10 +1405,22 @@ const TBO_RH = {
       const search = filterSearch ? filterSearch.value.toLowerCase() : '';
       this._filterBU = bu;
       this._filterSearch = search;
+      // Filtrar cards
       document.querySelectorAll('.rh-person-card').forEach(card => {
         const matchBu = !bu || card.dataset.bu === bu;
         const matchSearch = !search || card.textContent.toLowerCase().includes(search);
         card.style.display = (matchBu && matchSearch) ? '' : 'none';
+      });
+      // Filtrar linhas de tabela
+      document.querySelectorAll('.rh-bu-row').forEach(row => {
+        const matchBu = !bu || row.dataset.bu === bu || row.dataset.group === bu;
+        const matchSearch = !search || row.textContent.toLowerCase().includes(search);
+        row.style.display = (matchBu && matchSearch) ? '' : 'none';
+      });
+      // Filtrar nodes do organograma
+      document.querySelectorAll('.rh-org-node').forEach(node => {
+        const matchSearch = !search || node.textContent.toLowerCase().includes(search);
+        node.style.display = matchSearch ? '' : 'none';
       });
     };
     if (filterBu) filterBu.addEventListener('change', applyFilters);
@@ -1198,6 +1498,62 @@ const TBO_RH = {
     if (window.lucide) lucide.createIcons();
   },
 
+  // ── Carregar dados do onboarding (tabela colaboradores) ──
+  async _loadOnboardingData(personId) {
+    const container = document.getElementById('rhOnboardingData');
+    if (!container) return;
+
+    if (typeof TBO_SUPABASE === 'undefined') return;
+    try {
+      const client = TBO_SUPABASE.getClient();
+      const person = this._getPerson(personId);
+      if (!client || !person) return;
+
+      // Buscar por email no colaboradores
+      const email = person.email;
+      if (!email) return;
+
+      const { data, error } = await client
+        .from('colaboradores')
+        .select('*')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (error || !data) return;
+
+      // Renderizar dados do onboarding
+      const fields = [];
+      if (data.telefone) fields.push({ icon: 'phone', label: 'Telefone', value: data.telefone });
+      if (data.tipo_contrato) fields.push({ icon: 'file-text', label: 'Contrato', value: data.tipo_contrato });
+      if (data.data_inicio) fields.push({ icon: 'calendar', label: 'Inicio', value: new Date(data.data_inicio).toLocaleDateString('pt-BR') });
+      if (data.tipo_onboarding) fields.push({ icon: 'compass', label: 'Onboarding', value: data.tipo_onboarding });
+      if (data.quiz_score_final) fields.push({ icon: 'award', label: 'Quiz Score', value: `${data.quiz_score_final}%` });
+
+      if (fields.length) {
+        container.innerHTML = `
+          <div class="rh-profile-section">
+            <div style="font-weight:700;font-size:0.88rem;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+              <i data-lucide="clipboard-list" style="width:16px;height:16px;color:var(--color-info);"></i> Dados do Onboarding
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              ${fields.map(f => `
+                <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--bg-primary);border-radius:6px;">
+                  <i data-lucide="${f.icon}" style="width:12px;height:12px;color:var(--text-muted);flex-shrink:0;"></i>
+                  <div>
+                    <div style="font-size:0.62rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.3px;">${f.label}</div>
+                    <div style="font-size:0.78rem;font-weight:500;">${this._esc(f.value)}</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>`;
+        if (window.lucide) lucide.createIcons();
+      }
+    } catch (e) {
+      console.warn('[RH] Erro ao carregar dados onboarding:', e.message);
+    }
+  },
+
   // ── Abrir drawer com backdrop (fechar com click fora, Escape) ──
   _openPersonDrawer(personId) {
     const drawer = document.getElementById('rhPersonDrawer');
@@ -1218,8 +1574,9 @@ const TBO_RH = {
     requestAnimationFrame(() => { backdrop.style.opacity = '1'; drawer.classList.add('rh-drawer-open'); });
     if (window.lucide) lucide.createIcons();
 
-    // Carregar tarefas da pessoa (async — Supabase ou localStorage)
+    // Carregar tarefas da pessoa e dados do onboarding (async)
     this._loadPersonTasks(personId);
+    this._loadOnboardingData(personId);
 
     // Fechar pelo X
     this._bind('rhCloseDrawer', () => this._closePersonDrawer());
@@ -1381,6 +1738,44 @@ const TBO_RH = {
     if (window.lucide) lucide.createIcons();
   },
 
+  // ── Bind para conteudo da visao geral (cards/tabela/organograma) ──
+  _bindVisaoGeralContent() {
+    // Cards: click abre drawer
+    document.querySelectorAll('.rh-person-card').forEach(card => {
+      card.addEventListener('click', () => this._openPersonDrawer(card.dataset.person));
+    });
+    // Tabela: click na row abre drawer
+    document.querySelectorAll('.rh-person-row').forEach(row => {
+      row.addEventListener('click', () => this._openPersonDrawer(row.dataset.person));
+    });
+    // Organograma: click no node abre drawer
+    document.querySelectorAll('.rh-org-node > .rh-org-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const node = card.closest('.rh-org-node');
+        if (node) this._openPersonDrawer(node.dataset.person);
+      });
+    });
+    // Tabela BU: toggle de grupo (colapsar/expandir)
+    document.querySelectorAll('.rh-bu-group-header').forEach(header => {
+      header.addEventListener('click', () => {
+        const group = header.dataset.group;
+        const rows = document.querySelectorAll(`.rh-bu-row[data-group="${group}"]`);
+        const chevron = header.querySelector('.rh-group-chevron');
+        const isHidden = rows[0]?.style.display === 'none';
+        rows.forEach(r => r.style.display = isHidden ? '' : 'none');
+        if (chevron) chevron.style.transform = isHidden ? '' : 'rotate(-90deg)';
+      });
+    });
+    // Colleague chips no drawer -> abrir perfil
+    document.querySelectorAll('.rh-colleague-chip').forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._openPersonDrawer(chip.dataset.person);
+      });
+    });
+  },
+
   // ── Bind helpers ──────────────────────────────────────────────
   _bind(id, fn) { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); },
 
@@ -1432,6 +1827,22 @@ const TBO_RH = {
         items.forEach(o => { (o.items || []).forEach(a => { if (a.id === chk.dataset.id) a.concluido = chk.checked; }); });
         this._setStore('1on1s', items);
         TBO_TOAST.success('Acao atualizada!');
+      });
+    });
+
+    // v2.5.1: Delete de acoes pendentes
+    document.querySelectorAll('.rh-action-delete').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const actionId = btn.dataset.id;
+        const items = this._getStore('1on1s');
+        items.forEach(o => {
+          if (o.items) o.items = o.items.filter(a => a.id !== actionId);
+        });
+        this._setStore('1on1s', items);
+        TBO_TOAST.success('Acao removida');
+        const tabContent = document.getElementById('rhTabContent');
+        if (tabContent) { tabContent.innerHTML = this._renderActiveTab(); this._initActiveTab(); }
+        if (window.lucide) lucide.createIcons();
       });
     });
   },

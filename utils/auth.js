@@ -69,8 +69,12 @@ const TBO_AUTH = {
         return null;
       }
 
-      // v2.1: Validar que role e um dos roles conhecidos
-      const validRoles = Object.keys(typeof TBO_PERMISSIONS !== 'undefined' ? TBO_PERMISSIONS._roles : {});
+      // v2.5: Validar que role e um dos roles conhecidos (hardcoded + dinamicos do Supabase)
+      const hardcodedRoles = Object.keys(typeof TBO_PERMISSIONS !== 'undefined' ? TBO_PERMISSIONS._roles : {});
+      const dbRoleSlugs = (typeof TBO_PERMISSIONS !== 'undefined' && TBO_PERMISSIONS._dbRoles.length > 0)
+        ? TBO_PERMISSIONS._dbRoles.map(r => r.slug)
+        : [];
+      const validRoles = [...new Set([...hardcodedRoles, ...dbRoleSlugs])];
       if (validRoles.length > 0 && !validRoles.includes(session.role)) {
         console.warn('[TBO Auth] Role invalido na sessao:', session.role);
         sessionStorage.removeItem('tbo_auth');
@@ -223,6 +227,13 @@ const TBO_AUTH = {
       const userId = profile.username || authUser.email?.split('@')[0] || authUser.id;
       const roleName = isSuperAdmin ? 'founder' : (profile.role || 'artist');
       const roleDef = TBO_PERMISSIONS._roles[roleName];
+
+      // v2.5: Carregar permissoes granulares do Supabase (non-blocking)
+      try {
+        await TBO_PERMISSIONS.loadPermissionsMatrix(authUser.id);
+      } catch (e) {
+        console.warn('[TBO Auth] loadPermissionsMatrix fallback:', e);
+      }
 
       return {
         id: userId,
@@ -396,7 +407,10 @@ const TBO_AUTH = {
               TBO_APP._renderSidebar();
               TBO_APP._bindSectionToggles();
             }
-            if (typeof TBO_ROUTER !== 'undefined') {
+            // v2.5.1: Apenas navegar se ainda nao tiver modulo ativo (evita
+            // sobrescrever hash do usuario durante reload — corrige bug onde
+            // recarregar #projetos redirecionava para dashboard)
+            if (typeof TBO_ROUTER !== 'undefined' && !TBO_ROUTER._currentModule) {
               TBO_ROUTER.initFromHash(session.defaultModule);
             }
             if (window.lucide) lucide.createIcons();
@@ -471,13 +485,33 @@ const TBO_AUTH = {
     return user.modules.includes(moduleName);
   },
 
+  // v2.5: Permissao granular — delega para TBO_PERMISSIONS.canDo()
+  // Aceita: canDo('projects', 'create') ou canDo('projects.create')
+  canDo(module, action) {
+    if (typeof TBO_PERMISSIONS !== 'undefined') {
+      return TBO_PERMISSIONS.canDo(module, action);
+    }
+    // Fallback seguro: apenas admins
+    return this.isAdmin();
+  },
+
+  // v2.5: Permissao granular com override por projeto
+  canDoInProject(projectId, module, action) {
+    if (typeof TBO_PERMISSIONS !== 'undefined') {
+      return TBO_PERMISSIONS.canDoInProject(projectId, module, action);
+    }
+    return this.isAdmin();
+  },
+
   isAdmin() {
     const user = this.getCurrentUser();
-    return user && user.role === 'founder';
+    // v2.5: admin = founder OU role admin/owner do Supabase
+    return user && (user.role === 'founder' || user.role === 'owner' || user.role === 'admin');
   },
 
   isFounder() {
-    return this.isAdmin();
+    const user = this.getCurrentUser();
+    return user && (user.role === 'founder' || user.role === 'owner');
   },
 
   getAllowedModules() {

@@ -200,131 +200,9 @@ const TBO_NAVIGATION = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 2. QUICK ACTIONS FAB (Floating Action Button)
+  // 2. QUICK ACTIONS FAB — removido em v2.5.1
   // ═══════════════════════════════════════════════════════════════════════════
-  _fabActions: [
-    { id: 'novo-projeto',  label: 'Novo Projeto',  icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>' },
-    { id: 'nova-tarefa',   label: 'Nova Tarefa',   icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' },
-    { id: 'novo-contrato', label: 'Novo Contrato', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' },
-    { id: 'nova-reuniao',  label: 'Nova Reuniao',  icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' },
-    { id: 'novo-cliente',  label: 'Novo Cliente',  icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>' }
-  ],
-
-  initFAB() {
-    if (document.getElementById('tboFAB')) return;
-
-    const container = document.createElement('div');
-    container.id = 'tboFAB';
-    container.className = 'tbo-fab-container';
-
-    // Build action buttons (rendered above the main FAB, hidden initially)
-    let actionsHtml = '<div class="tbo-fab-actions" id="tboFabActions">';
-    this._fabActions.forEach((action, i) => {
-      actionsHtml += `
-        <button class="tbo-fab-action-btn" data-action="${action.id}" title="${action.label}" style="transition-delay: ${i * 40}ms;">
-          <span class="tbo-fab-action-icon">${action.icon}</span>
-          <span class="tbo-fab-action-label">${action.label}</span>
-        </button>`;
-    });
-    actionsHtml += '</div>';
-
-    container.innerHTML = `
-      ${actionsHtml}
-      <button class="tbo-fab-main" id="tboFabMain" title="Acoes rapidas" aria-label="Abrir acoes rapidas" aria-expanded="false">
-        <svg class="tbo-fab-icon-plus" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-      </button>
-    `;
-
-    document.body.appendChild(container);
-
-    // Bind main FAB toggle
-    const mainBtn = document.getElementById('tboFabMain');
-    mainBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this._toggleFAB();
-    });
-
-    // Bind action buttons
-    container.querySelectorAll('.tbo-fab-action-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const actionId = btn.dataset.action;
-        this._closeFAB();
-
-        // Dispatch custom event
-        document.dispatchEvent(new CustomEvent('tbo:quick-action', {
-          detail: { action: actionId }
-        }));
-
-        // Default navigation behavior
-        const routeMap = {
-          'novo-projeto': 'projetos',
-          'nova-tarefa': 'tarefas',
-          'novo-contrato': 'contratos',
-          'nova-reuniao': 'reunioes',
-          'novo-cliente': 'clientes'
-        };
-        if (routeMap[actionId] && typeof TBO_ROUTER !== 'undefined') {
-          TBO_ROUTER.navigate(routeMap[actionId]);
-        }
-      });
-    });
-
-    // Close on outside click
-    document.addEventListener('click', (e) => {
-      if (this._fabOpen && !container.contains(e.target)) {
-        this._closeFAB();
-      }
-    });
-
-    // Close on Escape
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && this._fabOpen) {
-        this._closeFAB();
-      }
-    });
-
-    // Observar timer widget para evitar sobreposicao
-    const timerWidget = document.getElementById('timerWidget');
-    if (timerWidget) {
-      const _updateFabTimerClass = () => {
-        container.classList.toggle('tbo-fab-timer-active', timerWidget.style.display !== 'none');
-      };
-      _updateFabTimerClass(); // estado inicial
-      new MutationObserver(_updateFabTimerClass).observe(timerWidget, { attributes: true, attributeFilter: ['style'] });
-    }
-  },
-
-  _toggleFAB() {
-    if (this._fabOpen) {
-      this._closeFAB();
-    } else {
-      this._openFAB();
-    }
-  },
-
-  _openFAB() {
-    this._fabOpen = true;
-    const container = document.getElementById('tboFAB');
-    const mainBtn = document.getElementById('tboFabMain');
-    if (!container || !mainBtn) return;
-
-    container.classList.add('tbo-fab-open');
-    mainBtn.setAttribute('aria-expanded', 'true');
-  },
-
-  _closeFAB() {
-    this._fabOpen = false;
-    const container = document.getElementById('tboFAB');
-    const mainBtn = document.getElementById('tboFabMain');
-    if (!container || !mainBtn) return;
-
-    container.classList.remove('tbo-fab-open');
-    mainBtn.setAttribute('aria-expanded', 'false');
-  },
+  initFAB() { /* removido */ },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 3. MOBILE TAB BAR
@@ -399,10 +277,7 @@ const TBO_NAVIGATION = {
       tabBar.style.display = matches ? 'flex' : 'none';
     }
 
-    // Adjust FAB position when tab bar is visible
-    if (fab) {
-      fab.classList.toggle('tbo-fab-with-tabbar', matches);
-    }
+    // FAB removido em v2.5.1
 
     // Auto-collapse sidebar on mobile
     if (matches) {
@@ -1410,131 +1285,7 @@ const TBO_NAVIGATION = {
       opacity: 0.5;
     }
 
-    /* =====================================================================
-       FAB (Floating Action Button)
-       ===================================================================== */
-    .tbo-fab-container {
-      position: fixed;
-      bottom: 40px;
-      right: 32px;
-      z-index: var(--z-overlay, 500);
-      display: flex;
-      flex-direction: column-reverse;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .tbo-fab-container.tbo-fab-with-tabbar {
-      bottom: 96px;
-    }
-
-    /* Evitar sobreposicao com timer widget */
-    .tbo-fab-container.tbo-fab-timer-active {
-      bottom: 110px;
-    }
-    .tbo-fab-container.tbo-fab-with-tabbar.tbo-fab-timer-active {
-      bottom: 160px;
-    }
-
-    .tbo-fab-main {
-      width: 67px;
-      height: 67px;
-      border-radius: 50%;
-      background: var(--accent, #E85102);
-      color: #fff;
-      border: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 6px 20px rgba(232, 81, 2, 0.35);
-      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
-                  box-shadow 0.3s ease,
-                  background 0.2s ease;
-    }
-
-    .tbo-fab-main svg {
-      width: 28px;
-      height: 28px;
-    }
-
-    .tbo-fab-main:hover {
-      background: var(--brand-orange-dark, #BE4202);
-      box-shadow: 0 8px 28px rgba(232, 81, 2, 0.45);
-      transform: scale(1.05);
-    }
-
-    .tbo-fab-main:active {
-      transform: scale(0.95);
-    }
-
-    .tbo-fab-icon-plus {
-      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    .tbo-fab-open .tbo-fab-icon-plus {
-      transform: rotate(45deg);
-    }
-
-    .tbo-fab-actions {
-      display: flex;
-      flex-direction: column-reverse;
-      gap: 8px;
-      pointer-events: none;
-      opacity: 0;
-      transform: translateY(20px) scale(0.8);
-      transition: opacity 0.25s ease,
-                  transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    .tbo-fab-open .tbo-fab-actions {
-      pointer-events: auto;
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-
-    .tbo-fab-action-btn {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 16px;
-      background: var(--bg-card, #fff);
-      color: var(--text-primary, #0f0f0f);
-      border: 1px solid var(--border-default, #eee);
-      border-radius: 28px;
-      cursor: pointer;
-      white-space: nowrap;
-      font-size: 0.85rem;
-      font-weight: 500;
-      box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.08));
-      transition: transform 0.2s ease,
-                  box-shadow 0.2s ease,
-                  background 0.15s ease;
-      opacity: 0;
-      transform: translateY(10px) scale(0.9);
-    }
-
-    .tbo-fab-open .tbo-fab-action-btn {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-
-    .tbo-fab-action-btn:hover {
-      background: var(--accent-alpha-08, rgba(232,81,2,0.08));
-      border-color: var(--accent, #E85102);
-      box-shadow: var(--shadow-lg, 0 8px 30px rgba(0,0,0,0.12));
-      transform: translateX(-4px);
-    }
-
-    .tbo-fab-action-icon {
-      display: flex;
-      align-items: center;
-      color: var(--accent, #E85102);
-    }
-
-    .tbo-fab-action-label {
-      font-family: var(--font-body);
-    }
+    /* FAB removido em v2.5.1 */
 
     /* =====================================================================
        MOBILE TAB BAR
@@ -2086,23 +1837,6 @@ const TBO_NAVIGATION = {
         display: none;
       }
 
-      .tbo-fab-container {
-        bottom: 72px;
-        right: 16px;
-      }
-      .tbo-fab-container.tbo-fab-timer-active {
-        bottom: 140px;
-      }
-
-      .tbo-fab-main {
-        width: 48px;
-        height: 48px;
-      }
-
-      .tbo-fab-action-label {
-        font-size: 0.8rem;
-      }
-
       .tbo-recents-panel {
         width: calc(100vw - 32px);
         right: 16px !important;
@@ -2124,12 +1858,6 @@ const TBO_NAVIGATION = {
     body.dark-mode .tbo-breadcrumb-bar {
       background: var(--bg-card);
       border-color: var(--border-default);
-    }
-
-    body.dark-mode .tbo-fab-action-btn {
-      background: var(--bg-card);
-      border-color: var(--border-default);
-      color: var(--text-primary);
     }
 
     body.dark-mode .tbo-mobile-tab-bar {
@@ -2159,11 +1887,6 @@ const TBO_NAVIGATION = {
     /* =====================================================================
        ANIMATION KEYFRAMES
        ===================================================================== */
-    @keyframes tbo-fab-pulse {
-      0%, 100% { box-shadow: 0 4px 16px rgba(232, 81, 2, 0.35); }
-      50% { box-shadow: 0 4px 24px rgba(232, 81, 2, 0.55); }
-    }
-
     @keyframes tbo-tour-spotlight-pulse {
       0%, 100% { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 0 4px rgba(232, 81, 2, 0.4); }
       50% { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 0 8px rgba(232, 81, 2, 0.2); }
@@ -2177,7 +1900,6 @@ const TBO_NAVIGATION = {
        PRINT MEDIA -- HIDE NAVIGATION ENHANCEMENTS
        ===================================================================== */
     @media print {
-      .tbo-fab-container,
       .tbo-mobile-tab-bar,
       .tbo-breadcrumb-bar,
       .tbo-natural-filter,

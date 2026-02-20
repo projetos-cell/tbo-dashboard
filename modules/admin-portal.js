@@ -1,261 +1,175 @@
 // ============================================================================
-// TBO OS — Modulo: Admin Portal
-// Painel administrativo: Empresas, Usuarios, Roles, Integracoes, Auditoria
-// Acesso restrito a roles admin/socio
+// TBO OS — Modulo: Admin Portal (v3.0 — Modular Tabs)
+// Orquestrador: delega para sub-modulos em modules/admin/*.js
+// Acesso restrito a roles Owner ou Admin
+//
+// Sub-modulos:
+//   - modules/admin/users-tab.js       → TBO_ADMIN_USERS_TAB
+//   - modules/admin/roles-tab.js       → TBO_ADMIN_ROLES_TAB
+//   - modules/admin/permissions-tab.js → TBO_ADMIN_PERMISSIONS_TAB
+//   - modules/admin/audit-tab.js       → TBO_ADMIN_AUDIT_TAB
 // ============================================================================
 
 const TBO_ADMIN_PORTAL = {
-  _tab: 'empresas',
+  _tab: 'usuarios',
   _tenants: [],
   _users: [],
   _roles: [],
+  _permissions: [],        // catalogo de permissions do Supabase
+  _rolePermissions: {},    // { roleId: Set(['module.action', ...]) }
+  _members: [],            // tenant_members raw
   _loading: false,
+  _showModal: null,        // 'addRole' | 'editRole' | 'inviteUser' | 'deleteConfirm' | null
+  _modalData: {},
+
+  // ── Tab config — icone e label de cada tab ───────────────────────────────
+  _tabConfig: [
+    { id: 'usuarios',   icon: 'users',       label: 'Usuarios' },
+    { id: 'papeis',     icon: 'shield',      label: 'Papeis' },
+    { id: 'permissoes', icon: 'lock',        label: 'Permissoes' },
+    { id: 'auditoria',  icon: 'scroll-text', label: 'Auditoria' }
+  ],
+
+  // ── Render principal ─────────────────────────────────────────────────────
 
   render() {
     return `
-      <div class="admin-portal-module">
+      <style>${this._getStyles()}</style>
+      <div class="ap-module">
         <div class="module-header" style="margin-bottom:24px;">
           <div>
             <h2 class="module-title" style="margin:0;">Admin Portal</h2>
-            <p style="color:var(--text-tertiary);font-size:0.82rem;margin-top:4px;">Gestao centralizada de empresas, usuarios, roles e integracoes</p>
+            <p style="color:var(--text-tertiary);font-size:0.82rem;margin-top:4px;">Gestao centralizada de papeis, permissoes, usuarios e auditoria</p>
           </div>
           <div style="display:flex;gap:8px;">
-            <span class="tag gold">Admin</span>
+            <span class="tag gold">RBAC v3.0</span>
           </div>
         </div>
 
         <!-- Tabs -->
-        <div style="display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border-default);">
-          ${['empresas', 'usuarios', 'roles', 'integracoes', 'auditoria'].map(t => `
-            <button class="btn btn-ghost ap-tab-btn" data-tab="${t}" style="border-radius:var(--radius-md) var(--radius-md) 0 0;border-bottom:2px solid ${this._tab === t ? 'var(--brand-primary)' : 'transparent'};font-weight:${this._tab === t ? '600' : '400'};font-size:0.82rem;padding:8px 16px;">
-              ${{ empresas: 'Empresas', usuarios: 'Usuarios', roles: 'Roles & Permissoes', integracoes: 'Integracoes', auditoria: 'Auditoria' }[t]}
+        <div class="ap-tabs">
+          ${this._tabConfig.map(t => `
+            <button class="ap-tab-btn ${this._tab === t.id ? 'active' : ''}" data-tab="${t.id}">
+              <i data-lucide="${t.icon}" style="width:14px;height:14px;"></i>
+              ${t.label}
             </button>
           `).join('')}
         </div>
 
         <div id="apTabContent">
-          ${this._loading ? '<div style="text-align:center;padding:40px;"><p style="color:var(--text-muted);">Carregando...</p></div>' : this._renderTab()}
+          ${this._loading ? '<div style="text-align:center;padding:40px;"><div class="spinner"></div><p style="color:var(--text-muted);margin-top:12px;">Carregando...</p></div>' : this._renderTab()}
         </div>
+
+        ${this._renderModal()}
       </div>
     `;
   },
 
+  // ── Delegacao de render para sub-modulos ──────────────────────────────────
+
   _renderTab() {
+    // Setup sub-modulo com dados compartilhados
+    this._setupSubModule();
+
     switch (this._tab) {
-      case 'empresas': return this._renderEmpresas();
-      case 'usuarios': return this._renderUsuarios();
-      case 'roles': return this._renderRoles();
-      case 'integracoes': return this._renderIntegracoes();
-      case 'auditoria': return this._renderAuditoria();
+      case 'usuarios':
+        return typeof TBO_ADMIN_USERS_TAB !== 'undefined' ? TBO_ADMIN_USERS_TAB.render() : this._renderFallback('Usuarios');
+      case 'papeis':
+        return typeof TBO_ADMIN_ROLES_TAB !== 'undefined' ? TBO_ADMIN_ROLES_TAB.render() : this._renderFallback('Papeis');
+      case 'permissoes':
+        return typeof TBO_ADMIN_PERMISSIONS_TAB !== 'undefined' ? TBO_ADMIN_PERMISSIONS_TAB.render() : this._renderFallback('Permissoes');
+      case 'auditoria':
+        return typeof TBO_ADMIN_AUDIT_TAB !== 'undefined' ? TBO_ADMIN_AUDIT_TAB.render() : this._renderFallback('Auditoria');
       default: return '';
     }
   },
 
-  _renderEmpresas() {
-    const tenants = this._tenants;
+  _setupSubModule() {
+    // Passa dados compartilhados para o sub-modulo ativo
+    if (typeof TBO_ADMIN_USERS_TAB !== 'undefined') TBO_ADMIN_USERS_TAB.setup(this);
+    if (typeof TBO_ADMIN_ROLES_TAB !== 'undefined') TBO_ADMIN_ROLES_TAB.setup(this);
+    if (typeof TBO_ADMIN_PERMISSIONS_TAB !== 'undefined') TBO_ADMIN_PERMISSIONS_TAB.setup(this);
+    if (typeof TBO_ADMIN_AUDIT_TAB !== 'undefined') TBO_ADMIN_AUDIT_TAB.setup(this);
+  },
+
+  _renderFallback(tabName) {
+    return `<div class="card" style="padding:40px;text-align:center;">
+      <p style="color:var(--text-muted);font-size:0.85rem;">Modulo "${tabName}" nao carregado. Verifique se o script esta incluido no index.html.</p>
+    </div>`;
+  },
+
+  // ── Modal centralizado ────────────────────────────────────────────────────
+
+  _renderModal() {
+    if (!this._showModal) return '';
+
+    let title = '';
+    let body = '';
+    let footer = '';
+
+    if (this._showModal === 'addRole' || this._showModal === 'editRole') {
+      const isEdit = this._showModal === 'editRole';
+      title = isEdit ? 'Editar Papel' : 'Novo Papel';
+      body = typeof TBO_ADMIN_ROLES_TAB !== 'undefined'
+        ? TBO_ADMIN_ROLES_TAB.renderRoleModal(this._modalData, isEdit)
+        : '<p>Modulo de papeis nao carregado.</p>';
+      footer = `
+        <button class="btn btn-secondary" id="apModalCancel">Cancelar</button>
+        <button class="btn btn-primary" id="apModalSaveRole">${isEdit ? 'Salvar' : 'Criar'}</button>
+      `;
+    }
+
+    if (this._showModal === 'inviteUser') {
+      title = 'Convidar Usuario';
+      body = typeof TBO_ADMIN_USERS_TAB !== 'undefined'
+        ? TBO_ADMIN_USERS_TAB.renderInviteModal()
+        : '<p>Modulo de usuarios nao carregado.</p>';
+      footer = `
+        <button class="btn btn-secondary" id="apModalCancel">Cancelar</button>
+        <button class="btn btn-primary" id="apModalInviteUser">Enviar Convite</button>
+      `;
+    }
+
+    if (this._showModal === 'deleteConfirm') {
+      title = 'Confirmar Exclusao';
+      body = typeof TBO_ADMIN_ROLES_TAB !== 'undefined'
+        ? TBO_ADMIN_ROLES_TAB.renderDeleteConfirmModal(this._modalData)
+        : '<p>Confirma exclusao?</p>';
+      footer = `
+        <button class="btn btn-secondary" id="apModalCancel">Cancelar</button>
+        <button class="btn btn-primary" style="background:var(--color-danger);border-color:var(--color-danger);" id="apModalConfirmDelete">Excluir</button>
+      `;
+    }
 
     return `
-      <div class="grid-4" style="margin-bottom:20px;">
-        <div class="kpi-card">
-          <div class="kpi-label">Total Empresas</div>
-          <div class="kpi-value">${tenants.length}</div>
+      <div class="modal-overlay active" id="apModalOverlay">
+        <div class="modal-card" style="max-width:500px;">
+          <div class="modal-header">
+            <h3 style="margin:0;font-size:1rem;">${title}</h3>
+            <button class="modal-close" id="apModalClose">&#10005;</button>
+          </div>
+          <div class="modal-body">${body}</div>
+          <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;">${footer}</div>
         </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Ativas</div>
-          <div class="kpi-value" style="color:var(--color-success);">${tenants.filter(t => t.is_active !== false).length}</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-          <h3 style="margin:0;font-size:0.92rem;">Empresas (Tenants)</h3>
-          <button class="btn btn-primary" id="apAddTenant" style="font-size:0.78rem;">+ Nova Empresa</button>
-        </div>
-        <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
-          <thead>
-            <tr style="border-bottom:2px solid var(--border-default);">
-              <th style="text-align:left;padding:8px;">Nome</th>
-              <th style="text-align:left;padding:8px;">Slug</th>
-              <th style="text-align:center;padding:8px;">Membros</th>
-              <th style="text-align:center;padding:8px;">Status</th>
-              <th style="text-align:left;padding:8px;">Criado em</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${tenants.map(t => `
-              <tr style="border-bottom:1px solid var(--border-subtle);">
-                <td style="padding:6px 8px;font-weight:600;">${this._esc(t.name)}</td>
-                <td style="padding:6px 8px;"><code style="font-size:0.72rem;">${this._esc(t.slug)}</code></td>
-                <td style="padding:6px 8px;text-align:center;">${t._memberCount || '—'}</td>
-                <td style="padding:6px 8px;text-align:center;">
-                  <span class="tag ${t.is_active !== false ? 'gold' : ''}">${t.is_active !== false ? 'Ativo' : 'Inativo'}</span>
-                </td>
-                <td style="padding:6px 8px;font-size:0.72rem;">${t.created_at ? new Date(t.created_at).toLocaleDateString('pt-BR') : '—'}</td>
-              </tr>
-            `).join('')}
-            ${!tenants.length ? '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--text-muted);">Nenhuma empresa encontrada</td></tr>' : ''}
-          </tbody>
-        </table>
       </div>
     `;
   },
 
-  _renderUsuarios() {
-    const users = this._users;
+  // ── API publica para sub-modulos ──────────────────────────────────────────
 
-    return `
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-          <h3 style="margin:0;font-size:0.92rem;">Usuarios do Workspace</h3>
-          <button class="btn btn-primary" id="apInviteUser" style="font-size:0.78rem;">+ Convidar Usuario</button>
-        </div>
-        <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
-          <thead>
-            <tr style="border-bottom:2px solid var(--border-default);">
-              <th style="text-align:left;padding:8px;">Nome</th>
-              <th style="text-align:left;padding:8px;">Email</th>
-              <th style="text-align:left;padding:8px;">Role</th>
-              <th style="text-align:center;padding:8px;">Status</th>
-              <th style="text-align:left;padding:8px;">Ultimo Login</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${users.map(u => `
-              <tr style="border-bottom:1px solid var(--border-subtle);">
-                <td style="padding:6px 8px;">
-                  <div style="display:flex;align-items:center;gap:8px;">
-                    ${u.avatar_url ? `<img src="${this._esc(u.avatar_url)}" style="width:24px;height:24px;border-radius:50%;">` : '<div style="width:24px;height:24px;border-radius:50%;background:var(--bg-elevated);display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:600;">' + (u.full_name || u.email || '?')[0].toUpperCase() + '</div>'}
-                    <span style="font-weight:500;">${this._esc(u.full_name || u.email || 'Sem nome')}</span>
-                  </div>
-                </td>
-                <td style="padding:6px 8px;font-size:0.78rem;color:var(--text-secondary);">${this._esc(u.email || '—')}</td>
-                <td style="padding:6px 8px;">
-                  <select class="ap-role-select" data-user-id="${u.id}" style="font-size:0.72rem;padding:2px 6px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-primary);">
-                    ${this._roles.map(r => `<option value="${r.id}" ${u._role_id === r.id ? 'selected' : ''}>${this._esc(r.name)}</option>`).join('')}
-                  </select>
-                </td>
-                <td style="padding:6px 8px;text-align:center;">
-                  <span class="tag ${u.is_active !== false ? 'gold' : ''}">${u.is_active !== false ? 'Ativo' : 'Inativo'}</span>
-                </td>
-                <td style="padding:6px 8px;font-size:0.72rem;color:var(--text-muted);">${u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString('pt-BR') : 'Nunca'}</td>
-              </tr>
-            `).join('')}
-            ${!users.length ? '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--text-muted);">Nenhum usuario encontrado</td></tr>' : ''}
-          </tbody>
-        </table>
-      </div>
-    `;
+  _openModal(type, data) {
+    this._showModal = type;
+    this._modalData = data || {};
+    this._rerender();
   },
 
-  _renderRoles() {
-    const roles = this._roles;
-    const modules = [
-      'command-center', 'projetos', 'tarefas', 'entregas', 'revisoes', 'timeline',
-      'timesheets', 'carga-trabalho', 'capacidade', 'comercial', 'pipeline', 'clientes',
-      'inteligencia', 'mercado', 'conteudo', 'financeiro', 'receber', 'pagar', 'margens',
-      'conciliacao', 'contratos', 'rh', 'pessoas-avancado', 'cultura', 'reunioes',
-      'decisoes', 'biblioteca', 'alerts', 'changelog', 'configuracoes', 'integracoes'
-    ];
-
-    return `
-      <div class="card" style="overflow-x:auto;">
-        <h3 style="margin:0 0 16px;font-size:0.92rem;">Matrix de Permissoes</h3>
-        <p style="font-size:0.72rem;color:var(--text-muted);margin-bottom:16px;">V = View, C = Create, E = Edit, D = Delete, X = Export</p>
-        <table style="width:100%;border-collapse:collapse;font-size:0.68rem;">
-          <thead>
-            <tr style="border-bottom:2px solid var(--border-default);">
-              <th style="text-align:left;padding:6px;position:sticky;left:0;background:var(--bg-primary);min-width:120px;">Modulo</th>
-              ${roles.map(r => `<th style="text-align:center;padding:6px;min-width:80px;">${this._esc(r.name)}</th>`).join('')}
-            </tr>
-          </thead>
-          <tbody>
-            ${modules.map(mod => `
-              <tr style="border-bottom:1px solid var(--border-subtle);">
-                <td style="padding:4px 6px;position:sticky;left:0;background:var(--bg-primary);font-weight:500;">${mod}</td>
-                ${roles.map(r => {
-                  const perms = r._permissions?.[mod];
-                  if (!perms) return '<td style="padding:4px 6px;text-align:center;color:var(--text-muted);">—</td>';
-                  const flags = [
-                    perms.can_view ? 'V' : '',
-                    perms.can_create ? 'C' : '',
-                    perms.can_edit ? 'E' : '',
-                    perms.can_delete ? 'D' : '',
-                    perms.can_export ? 'X' : ''
-                  ].filter(Boolean).join('');
-                  return `<td style="padding:4px 6px;text-align:center;color:var(--color-success);font-weight:600;">${flags || '—'}</td>`;
-                }).join('')}
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
+  _closeModal() {
+    this._showModal = null;
+    this._modalData = {};
+    this._rerender();
   },
 
-  _renderIntegracoes() {
-    const integrations = typeof TBO_INTEGRACOES !== 'undefined' ? TBO_INTEGRACOES._checkAll() : [];
-
-    return `
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;">
-        ${integrations.map(integ => {
-          const statusColor = integ.status === 'connected' ? 'var(--color-success)' : integ.status === 'partial' ? 'var(--color-warning)' : 'var(--color-danger)';
-          const statusLabel = integ.status === 'connected' ? 'Conectado' : integ.status === 'partial' ? 'Parcial' : 'Desconectado';
-
-          return `
-            <div class="card" style="position:relative;overflow:hidden;">
-              <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${statusColor};"></div>
-              <div style="display:flex;align-items:center;gap:12px;padding-top:8px;">
-                <i data-lucide="${integ.icon}" style="width:20px;height:20px;color:${statusColor};"></i>
-                <div style="flex:1;">
-                  <strong style="font-size:0.85rem;">${this._esc(integ.name)}</strong>
-                  <span style="font-size:0.65rem;padding:2px 6px;border-radius:999px;background:${statusColor}18;color:${statusColor};margin-left:8px;">${statusLabel}</span>
-                </div>
-              </div>
-              <p style="font-size:0.75rem;color:var(--text-secondary);margin:8px 0 0;">${this._esc(integ.details || integ.description)}</p>
-            </div>
-          `;
-        }).join('')}
-      </div>
-    `;
-  },
-
-  _renderAuditoria() {
-    const logs = this._getRecentAuditLogs();
-
-    return `
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-          <h3 style="margin:0;font-size:0.92rem;">Logs de Auditoria (Recentes)</h3>
-          <span class="tag">${logs.length} registros</span>
-        </div>
-        <table style="width:100%;border-collapse:collapse;font-size:0.78rem;">
-          <thead>
-            <tr style="border-bottom:2px solid var(--border-default);">
-              <th style="text-align:left;padding:8px;">Quando</th>
-              <th style="text-align:left;padding:8px;">Usuario</th>
-              <th style="text-align:left;padding:8px;">Acao</th>
-              <th style="text-align:left;padding:8px;">Entidade</th>
-              <th style="text-align:left;padding:8px;">Detalhes</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${logs.slice(0, 50).map(l => `
-              <tr style="border-bottom:1px solid var(--border-subtle);">
-                <td style="padding:6px 8px;white-space:nowrap;font-size:0.72rem;">${l.created_at ? new Date(l.created_at).toLocaleString('pt-BR') : '—'}</td>
-                <td style="padding:6px 8px;">${this._esc(l.user_name || l.user_id || '—')}</td>
-                <td style="padding:6px 8px;">
-                  <span class="tag" style="font-size:0.65rem;">${this._esc(l.action || '—')}</span>
-                </td>
-                <td style="padding:6px 8px;font-size:0.72rem;">${this._esc(l.entity_type || '')} ${this._esc(l.entity_name || '')}</td>
-                <td style="padding:6px 8px;font-size:0.72rem;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;">${this._esc(l.details || '—')}</td>
-              </tr>
-            `).join('')}
-            ${!logs.length ? '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--text-muted);">Nenhum log encontrado</td></tr>' : ''}
-          </tbody>
-        </table>
-      </div>
-    `;
-  },
+  // ── Init & Event Binding ──────────────────────────────────────────────────
 
   async init() {
     // Tab navigation
@@ -266,66 +180,122 @@ const TBO_ADMIN_PORTAL = {
       });
     });
 
-    // Carregar dados do Supabase
-    await this._loadData();
+    // Carregar dados na primeira vez
+    if (!this._roles.length) {
+      await this._loadData();
+    }
+
+    // Bind tab-specific events delegando para sub-modulo
+    this._bindTabEvents();
+    this._bindModalEvents();
   },
 
-  async _loadData() {
-    if (typeof TBO_SUPABASE === 'undefined' || !TBO_SUPABASE.getClient()) return;
-
-    const client = TBO_SUPABASE.getClient();
-
-    try {
-      // Tenants
-      const { data: tenants } = await client.from('tenants').select('*');
-      this._tenants = tenants || [];
-
-      // Roles do tenant atual
-      const { data: roles } = await client.from('roles').select('*');
-      this._roles = roles || [];
-
-      // Permissions
-      const { data: perms } = await client.from('role_permissions').select('*');
-      if (perms) {
-        for (const r of this._roles) {
-          r._permissions = {};
-          perms.filter(p => p.role_id === r.id).forEach(p => {
-            r._permissions[p.module] = p;
-          });
-        }
-      }
-
-      // Profiles (usuarios) — filtrado por tenant_id (v2.1 multi-tenant)
-      const tenantId = TBO_SUPABASE.getCurrentTenantId();
-      let profQuery = client.from('profiles').select('*');
-      if (tenantId) profQuery = profQuery.eq('tenant_id', tenantId);
-      const { data: profiles } = await profQuery;
-      this._users = profiles || [];
-
-      // Enrichir com tenant_members
-      const { data: members } = await client.from('tenant_members').select('*');
-      if (members) {
-        for (const u of this._users) {
-          const mem = members.find(m => m.user_id === u.id);
-          if (mem) u._role_id = mem.role_id;
-        }
-        for (const t of this._tenants) {
-          t._memberCount = members.filter(m => m.tenant_id === t.id).length;
-        }
-      }
-
-      this._rerender();
-    } catch (e) {
-      console.warn('[Admin Portal] Erro ao carregar dados:', e.message);
+  _bindTabEvents() {
+    switch (this._tab) {
+      case 'usuarios':
+        if (typeof TBO_ADMIN_USERS_TAB !== 'undefined') TBO_ADMIN_USERS_TAB.bind();
+        break;
+      case 'papeis':
+        if (typeof TBO_ADMIN_ROLES_TAB !== 'undefined') TBO_ADMIN_ROLES_TAB.bind();
+        break;
+      case 'permissoes':
+        if (typeof TBO_ADMIN_PERMISSIONS_TAB !== 'undefined') TBO_ADMIN_PERMISSIONS_TAB.bind();
+        break;
+      case 'auditoria':
+        if (typeof TBO_ADMIN_AUDIT_TAB !== 'undefined') TBO_ADMIN_AUDIT_TAB.bind();
+        break;
     }
   },
 
-  _getRecentAuditLogs() {
-    try {
-      const logs = JSON.parse(localStorage.getItem('tbo_audit_log') || '[]');
-      return logs.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || '')).slice(0, 100);
-    } catch { return []; }
+  _bindModalEvents() {
+    document.getElementById('apModalOverlay')?.addEventListener('click', (e) => {
+      if (e.target.id === 'apModalOverlay') this._closeModal();
+    });
+    document.getElementById('apModalClose')?.addEventListener('click', () => this._closeModal());
+    document.getElementById('apModalCancel')?.addEventListener('click', () => this._closeModal());
+
+    // Delegar handlers para sub-modulos
+    document.getElementById('apModalSaveRole')?.addEventListener('click', () => {
+      if (typeof TBO_ADMIN_ROLES_TAB !== 'undefined') TBO_ADMIN_ROLES_TAB.handleSaveRole(this._modalData);
+    });
+    document.getElementById('apModalInviteUser')?.addEventListener('click', () => {
+      if (typeof TBO_ADMIN_USERS_TAB !== 'undefined') TBO_ADMIN_USERS_TAB.handleInvite();
+    });
+    document.getElementById('apModalConfirmDelete')?.addEventListener('click', () => {
+      if (typeof TBO_ADMIN_ROLES_TAB !== 'undefined') TBO_ADMIN_ROLES_TAB.handleDeleteRole(this._modalData);
+    });
   },
+
+  // ── Data Loading (centralizado) ───────────────────────────────────────────
+
+  async _loadData() {
+    if (typeof TBO_SUPABASE === 'undefined' || !TBO_SUPABASE.getClient()) return;
+    const client = TBO_SUPABASE.getClient();
+    const tenantId = TBO_SUPABASE.getCurrentTenantId();
+
+    try {
+      this._loading = true;
+
+      // Carregar tudo em paralelo
+      const [tenantsRes, rolesRes, permsRes, permsCatalogRes, profilesRes, membersRes] = await Promise.all([
+        client.from('tenants').select('*'),
+        client.from('roles').select('*').eq('tenant_id', tenantId).order('sort_order'),
+        client.from('role_permissions').select('*, permissions(module, action)').not('permission_id', 'is', null),
+        client.from('permissions').select('*').order('sort_order'),
+        client.from('profiles').select('*').eq('tenant_id', tenantId),
+        client.from('tenant_members').select('*').eq('tenant_id', tenantId)
+      ]);
+
+      this._tenants = tenantsRes.data || [];
+      this._roles = rolesRes.data || [];
+      this._permissions = permsCatalogRes.data || [];
+      this._users = profilesRes.data || [];
+      this._members = membersRes.data || [];
+
+      // Build role permissions map: { roleId: Set(['module.action', ...]) }
+      this._rolePermissions = {};
+      (permsRes.data || []).forEach(rp => {
+        if (!rp.granted || !rp.permissions) return;
+        if (!this._rolePermissions[rp.role_id]) this._rolePermissions[rp.role_id] = new Set();
+        this._rolePermissions[rp.role_id].add(`${rp.permissions.module}.${rp.permissions.action}`);
+      });
+
+      // Fallback: se nao tem permissions normalizados, usar VCEDX
+      if (permsRes.data?.length === 0 || !permsRes.data?.some(rp => rp.permission_id)) {
+        const { data: legacyPerms } = await client.from('role_permissions').select('*');
+        (legacyPerms || []).forEach(rp => {
+          if (!this._rolePermissions[rp.role_id]) this._rolePermissions[rp.role_id] = new Set();
+          if (rp.can_view) this._rolePermissions[rp.role_id].add(`${rp.module}.view`);
+          if (rp.can_create) this._rolePermissions[rp.role_id].add(`${rp.module}.create`);
+          if (rp.can_edit) this._rolePermissions[rp.role_id].add(`${rp.module}.edit`);
+          if (rp.can_delete) this._rolePermissions[rp.role_id].add(`${rp.module}.delete`);
+          if (rp.can_export) this._rolePermissions[rp.role_id].add(`${rp.module}.export`);
+        });
+      }
+
+      // Enriquecer usuarios com role_id
+      for (const u of this._users) {
+        const mem = this._members.find(m => m.user_id === u.id);
+        if (mem) u._role_id = mem.role_id;
+      }
+      for (const t of this._tenants) {
+        t._memberCount = this._members.filter(m => m.tenant_id === t.id).length;
+      }
+
+      this._loading = false;
+      this._rerender();
+
+      // Carregar audit logs se na tab auditoria
+      if (this._tab === 'auditoria' && typeof TBO_ADMIN_AUDIT_TAB !== 'undefined') {
+        await TBO_ADMIN_AUDIT_TAB.loadLogs();
+      }
+    } catch (e) {
+      console.warn('[Admin Portal] Erro ao carregar dados:', e.message);
+      this._loading = false;
+    }
+  },
+
+  // ── Rerender ─────────────────────────────────────────────────────────────
 
   _rerender() {
     const container = document.getElementById('moduleContainer');
@@ -337,9 +307,125 @@ const TBO_ADMIN_PORTAL = {
   },
 
   _esc(str) {
+    if (typeof TBO_FORMATTER !== 'undefined') return TBO_FORMATTER.escapeHtml(String(str || ''));
     if (typeof _escapeHtml === 'function') return _escapeHtml(String(str || ''));
     const div = document.createElement('div');
     div.textContent = str || '';
     return div.innerHTML;
+  },
+
+  // ── CSS (compartilhado entre tabs) ────────────────────────────────────────
+  _getStyles() {
+    return `
+      .ap-module { max-width: 1200px; }
+
+      .ap-tabs {
+        display: flex;
+        gap: 2px;
+        margin-bottom: 20px;
+        border-bottom: 2px solid var(--border-default);
+        overflow-x: auto;
+      }
+      .ap-tab-btn {
+        display: flex; align-items: center; gap: 6px;
+        padding: 10px 16px;
+        border: none; background: none;
+        font-size: 0.82rem; font-weight: 500;
+        color: var(--text-secondary);
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+        cursor: pointer;
+        transition: all 0.15s;
+        white-space: nowrap;
+      }
+      .ap-tab-btn:hover { color: var(--text-primary); background: var(--bg-secondary); }
+      .ap-tab-btn.active { color: var(--brand-primary); border-bottom-color: var(--brand-primary); font-weight: 600; }
+
+      .ap-table {
+        width: 100%; border-collapse: collapse; font-size: 0.82rem;
+      }
+      .ap-table thead tr { border-bottom: 2px solid var(--border-default); }
+      .ap-table th { text-align: left; padding: 8px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted); font-weight: 600; }
+      .ap-table tbody tr { border-bottom: 1px solid var(--border-subtle); transition: background 0.1s; }
+      .ap-table tbody tr:hover { background: var(--bg-secondary); }
+      .ap-table td { padding: 8px; }
+
+      .ap-role-select {
+        font-size: 0.75rem; padding: 4px 8px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border-default);
+        background: var(--bg-primary);
+        cursor: pointer;
+      }
+
+      .ap-status-badge {
+        font-size: 0.68rem; padding: 2px 8px; border-radius: 999px; font-weight: 600;
+      }
+      .ap-status-badge.active { background: #22c55e18; color: #22c55e; }
+      .ap-status-badge.inactive { background: #ef444418; color: #ef4444; }
+
+      /* Roles Grid */
+      .ap-roles-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;
+      }
+      .ap-role-card {
+        border: 1px solid var(--border-default); border-radius: var(--radius-md);
+        background: var(--bg-primary); overflow: hidden; transition: box-shadow 0.15s;
+      }
+      .ap-role-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+      .ap-role-card-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--border-subtle); }
+      .ap-role-card-body { padding: 14px 16px; }
+      .ap-role-card-footer { display: flex; gap: 4px; padding: 8px 16px; border-top: 1px solid var(--border-subtle); background: var(--bg-secondary); }
+      .ap-color-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+      .ap-badge-system { font-size: 0.62rem; padding: 2px 6px; border-radius: 4px; background: var(--bg-tertiary); color: var(--text-muted); font-weight: 600; }
+      .ap-badge-custom { font-size: 0.62rem; padding: 2px 6px; border-radius: 4px; background: #8b5cf618; color: #8b5cf6; font-weight: 600; }
+
+      /* Permission Matrix */
+      .ap-perm-matrix {
+        width: 100%; border-collapse: collapse; font-size: 0.72rem;
+      }
+      .ap-perm-matrix thead tr { border-bottom: 2px solid var(--border-default); }
+      .ap-perm-matrix th {
+        padding: 6px 4px; text-align: center; font-size: 0.65rem;
+        font-weight: 600; color: var(--text-muted);
+      }
+      .ap-perm-sticky-col {
+        position: sticky; left: 0; background: var(--bg-primary);
+        text-align: left; padding: 6px 8px; min-width: 180px; z-index: 2;
+      }
+      .ap-perm-role-col { min-width: 75px; }
+      .ap-perm-cell { text-align: center; padding: 4px; }
+      .ap-perm-cell.pending { background: #f59e0b10; }
+      .ap-perm-checkbox {
+        width: 16px; height: 16px; cursor: pointer;
+        accent-color: var(--brand-primary);
+      }
+      .ap-perm-group-header td {
+        font-weight: 700; font-size: 0.78rem; padding: 10px 8px;
+        background: var(--bg-secondary); border-bottom: 1px solid var(--border-default);
+      }
+
+      /* Filter Bar */
+      .ap-filter-bar {
+        display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;
+      }
+      .ap-filter-input {
+        font-size: 0.75rem; padding: 6px 8px;
+        border: 1px solid var(--border-default); border-radius: var(--radius-sm);
+        background: var(--bg-primary); color: var(--text-primary);
+      }
+
+      /* Pagination */
+      .ap-pagination {
+        display: flex; justify-content: center; align-items: center; gap: 16px;
+        padding: 16px 0; margin-top: 8px;
+      }
+
+      @media (max-width: 768px) {
+        .ap-roles-grid { grid-template-columns: 1fr; }
+        .ap-perm-sticky-col { position: relative; }
+        .ap-filter-bar { flex-direction: column; }
+      }
+    `;
   }
 };

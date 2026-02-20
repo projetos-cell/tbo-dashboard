@@ -21,9 +21,9 @@ const TBO_CONFIGURACOES = {
   // ══════════════════════════════════════════════════════════════════════════
 
   render() {
-    const isFounder = typeof TBO_AUTH !== 'undefined' && TBO_AUTH.getCurrentUser()?.role === 'founder';
-    // Filtra categorias visiveis (usuarios so para founder)
-    const visibleCats = this._categories.filter(c => c.id !== 'usuarios' || isFounder);
+    const canManageUsers = typeof TBO_AUTH !== 'undefined' && TBO_AUTH.canDo('users', 'view');
+    // Filtra categorias visiveis (usuarios so para quem tem permissao)
+    const visibleCats = this._categories.filter(c => c.id !== 'usuarios' || canManageUsers);
 
     return `
       <style>${this._getStyles()}</style>
@@ -687,8 +687,8 @@ const TBO_CONFIGURACOES = {
         </div>
       </div>
 
-      <!-- Card: Configuracoes Financeiras (founder/coo only) -->
-      ${typeof TBO_AUTH !== 'undefined' && ['founder', 'coo'].includes(TBO_AUTH.getCurrentUser()?.role) ? this._renderFinancialConfig() : ''}
+      <!-- Card: Configuracoes Financeiras (permissao finance.view) -->
+      ${typeof TBO_AUTH !== 'undefined' && TBO_AUTH.canDo('finance', 'view') ? this._renderFinancialConfig() : ''}
 
       <!-- Card: Sobre -->
       <div class="card cfg-card">
@@ -1255,8 +1255,8 @@ const TBO_CONFIGURACOES = {
   // ── Bindings: Gestao de Usuarios ─────────────────────────────────────────
 
   _bindUsuarios() {
-    const isFounder = typeof TBO_AUTH !== 'undefined' && TBO_AUTH.getCurrentUser()?.role === 'founder';
-    if (!isFounder) return;
+    const canManageUsers = typeof TBO_AUTH !== 'undefined' && TBO_AUTH.canDo('users', 'view');
+    if (!canManageUsers) return;
 
     this._loadUsers();
 

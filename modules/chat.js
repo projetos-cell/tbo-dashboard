@@ -2061,7 +2061,8 @@ const TBO_CHAT = {
       .chat-reaction-chip.active span { color: var(--accent, #E85102); }
 
       /* ── Mentions ── */
-      .chat-mention { background: var(--accent, #E85102)20; color: var(--accent, #E85102); padding: 1px 4px; border-radius: 3px; font-weight: 600; }
+      .chat-mention { background: rgba(99, 102, 241, 0.15); color: #818cf8; padding: 2px 6px; border-radius: 4px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+      .chat-mention:hover { background: rgba(99, 102, 241, 0.25); }
 
       /* ── Attachments ── */
       .chat-attachment-image { margin-top: 6px; max-width: 320px; }

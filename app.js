@@ -118,7 +118,8 @@ const TBO_APP = {
       'onboarding-wizard': typeof TBO_ONBOARDING_WIZARD !== 'undefined' ? TBO_ONBOARDING_WIZARD : null,
       'academy': typeof TBO_ACADEMY_CATALOGO !== 'undefined' ? TBO_ACADEMY_CATALOGO : null,
       'chat': typeof TBO_CHAT !== 'undefined' ? TBO_CHAT : null,
-      'project-workspace': typeof TBO_PROJECT_WORKSPACE !== 'undefined' ? TBO_PROJECT_WORKSPACE : null
+      'project-workspace': typeof TBO_PROJECT_WORKSPACE !== 'undefined' ? TBO_PROJECT_WORKSPACE : null,
+      'inteligencia-imobiliaria': typeof TBO_INTELIGENCIA_IMOBILIARIA !== 'undefined' ? TBO_INTELIGENCIA_IMOBILIARIA : null
     };
 
     Object.entries(modules).forEach(([name, mod]) => {
@@ -264,8 +265,7 @@ const TBO_APP = {
       if (mod && mod.init) this._safeInit(name, () => mod.init());
     });
 
-    // 16. FAB — Quick Create
-    this._bindFab();
+    // 16. FAB removido em v2.5.1 (solicitacao do Marco)
 
     // 17. Initialize Lucide icons
     if (window.lucide) lucide.createIcons();
@@ -1187,87 +1187,105 @@ const TBO_APP = {
   // ── Placeholder module keys (none remaining — all modules implemented) ──
   _placeholderKeys: [],
 
-  // ── Module labels (all 26 = 9 real + 17 placeholders) ──────────────
+  // ── Module labels (v3 — reorganizado) ──────────────────────────────
   _moduleLabels: {
-    // Real modules
-    'command-center': 'Dashboard',
-    'conteudo': 'Conteúdo & Redação',
-    'comercial': 'Propostas',
+    // Inicio
+    'command-center': 'Página Inicial',
+    'alerts': 'Caixa de Entrada',
+    'chat': 'Chat',
+    // Execucao
     'projetos': 'Projetos',
-    'mercado': 'Inteligência de Mercado',
-    'reunioes': 'Reuniões & Contexto',
-    'financeiro': 'Financeiro',
-    'rh': 'Equipe',
-    'configuracoes': 'Configurações',
-    // BI
-    'inteligencia': 'Inteligência BI',
-    'cultura': 'Manual de Cultura',
-    // Placeholders
-    'alerts': 'Alertas',
-    'pipeline': 'Pipeline',
-    'clientes': 'Clientes',
-    'portal-cliente': 'Portal do Cliente',
-    'contratos': 'Contratos',
-    'entregas': 'Entregas',
     'tarefas': 'Tarefas',
+    'reunioes': 'Calendário',
+    'biblioteca': 'Arquivos',
+    // Producao
+    'entregas': 'QA / Aprovações',
     'revisoes': 'Revisões',
-    'entregas-pendentes': 'Entregas Pendentes',
-    'revisoes-pendentes': 'Revisões Pendentes',
-    'decisoes': 'Decisões',
-    'biblioteca': 'Biblioteca',
-    // carga-trabalho, timesheets, capacidade removidos em v2.2
+    'portal-cliente': 'Portal do Cliente',
+    // Pessoas
+    'rh': 'Equipe',
+    'admin-onboarding': 'Gestão de Onboarding',
+    'trilha-aprendizagem': 'Trilha de Aprendizagem',
+    'cultura': 'Manual de Cultura',
+    'pessoas-avancado': 'Pessoas Avançado',
+    // Financeiro
+    'financeiro': 'Dashboard Financeiro',
     'pagar': 'Contas a Pagar',
     'receber': 'Contas a Receber',
-    'margens': 'Margens',
+    'margens': 'DRE / Margem',
     'conciliacao': 'Conciliação',
-    'templates': 'Templates',
-    'permissoes-config': 'Permissões',
+    // Fornecedores
+    'contratos': 'Contratos',
+    // Comercial
+    'pipeline': 'Pipeline',
+    'comercial': 'Propostas',
+    'clientes': 'Clientes / Contas',
+    'inteligencia': 'Inteligência BI',
+    'inteligencia-imobiliaria': 'Intel. Imobiliária',
+    'mercado': 'Inteligência de Mercado',
+    // Admin
+    'admin-portal': 'Admin Portal',
+    'permissoes-config': 'Segurança',
     'integracoes': 'Integrações',
-    'trilha-aprendizagem': 'Trilha de Aprendizagem',
-    'pessoas-avancado': 'Pessoas Avançado',
-    'admin-onboarding': 'Gestão de Onboarding',
+    'configuracoes': 'Configurações',
     'changelog': 'Changelog',
-    'chat': 'Chat'
+    // Outros (legacy / internos)
+    'conteudo': 'Conteúdo & Redação',
+    'decisoes': 'Decisões',
+    'templates': 'Templates',
+    'workspace': 'Workspace',
+    'entregas-pendentes': 'Entregas Pendentes',
+    'revisoes-pendentes': 'Revisões Pendentes'
   },
 
-  // ── Module icons (Lucide icon names) ────────────────────────────────
+  // ── Module icons (Lucide icon names — v3) ──────────────────────────
   _moduleIcons: {
+    // Inicio
     'command-center': 'layout-dashboard',
-    'inteligencia': 'brain',
-    'alerts': 'bell-ring',
-    'pipeline': 'filter',
-    'comercial': 'file-text',
-    'clientes': 'building-2',
-    'portal-cliente': 'monitor-smartphone',
-    'contratos': 'file-signature',
-    'projetos': 'clipboard-list',
-    'entregas': 'package-check',
+    'alerts': 'inbox',
+    'chat': 'message-circle',
+    // Execucao
+    'projetos': 'folder-kanban',
     'tarefas': 'list-checks',
+    'reunioes': 'calendar',
+    'biblioteca': 'files',
+    // Producao
+    'entregas': 'check-circle-2',
     'revisoes': 'git-pull-request',
-    'conteudo': 'pen-tool',
-    'entregas-pendentes': 'package',
-    'revisoes-pendentes': 'message-circle',
-    'mercado': 'bar-chart-3',
-    'reunioes': 'mic',
-    'decisoes': 'gavel',
-    'biblioteca': 'book-open',
+    'portal-cliente': 'monitor-smartphone',
+    // Pessoas
     'rh': 'users',
-    // carga-trabalho, timesheets, capacidade removidos em v2.2
+    'admin-onboarding': 'user-plus',
+    'trilha-aprendizagem': 'graduation-cap',
+    'cultura': 'book-open-text',
+    'pessoas-avancado': 'heart-pulse',
+    // Financeiro
     'financeiro': 'coins',
     'pagar': 'credit-card',
     'receber': 'receipt',
     'margens': 'trending-up',
     'conciliacao': 'scale',
-    'configuracoes': 'settings',
-    'templates': 'layout-template',
-    'permissoes-config': 'shield-check',
+    // Fornecedores
+    'contratos': 'file-signature',
+    // Comercial
+    'pipeline': 'filter',
+    'comercial': 'file-text',
+    'clientes': 'building-2',
+    'inteligencia': 'brain',
+    'inteligencia-imobiliaria': 'building',
+    'mercado': 'bar-chart-3',
+    // Admin
+    'admin-portal': 'shield',
+    'permissoes-config': 'lock',
     'integracoes': 'plug-zap',
-    'cultura': 'book-open-text',
-    'trilha-aprendizagem': 'graduation-cap',
-    'pessoas-avancado': 'heart-pulse',
-    'admin-onboarding': 'user-check',
+    'configuracoes': 'settings',
     'changelog': 'file-clock',
-    'chat': 'message-circle'
+    // Outros
+    'conteudo': 'pen-tool',
+    'decisoes': 'gavel',
+    'templates': 'layout-template',
+    'entregas-pendentes': 'package',
+    'revisoes-pendentes': 'message-circle'
   },
 
   _updateHeaderTitle(moduleName) {
@@ -1377,11 +1395,7 @@ const TBO_APP = {
       const now = new Date();
       el.textContent = `${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
     }
-    // Update sidebar version from config
-    const verEl = document.getElementById('sidebarVersion');
-    if (verEl && typeof TBO_CONFIG !== 'undefined') {
-      verEl.textContent = `v${TBO_CONFIG.app.version}`;
-    }
+    // v2.5.2: sidebar user widget + version + social removidos do HTML
   },
 
   // ── Search ───────────────────────────────────────────────────────────
@@ -1569,52 +1583,7 @@ const TBO_APP = {
     }, 'Fechar diálogo');
   },
 
-  // ── FAB (Floating Action Button) ───────────────────────────────────────
-  _bindFab() {
-    const fabBtn = document.getElementById('fabBtn');
-    const fabMenu = document.getElementById('fabMenu');
-    if (!fabBtn || !fabMenu) return;
-
-    let isOpen = false;
-
-    fabBtn.addEventListener('click', () => {
-      isOpen = !isOpen;
-      fabBtn.classList.toggle('open', isOpen);
-      fabMenu.style.display = isOpen ? 'flex' : 'none';
-    });
-
-    // Fechar ao clicar fora
-    document.addEventListener('click', (e) => {
-      if (isOpen && !e.target.closest('.fab-container')) {
-        isOpen = false;
-        fabBtn.classList.remove('open');
-        fabMenu.style.display = 'none';
-      }
-    });
-
-    // Acoes do menu
-    fabMenu.addEventListener('click', (e) => {
-      const item = e.target.closest('.fab-menu-item');
-      if (!item) return;
-      const type = item.dataset.create;
-
-      isOpen = false;
-      fabBtn.classList.remove('open');
-      fabMenu.style.display = 'none';
-
-      const moduleMap = { tarefa: 'tarefas', projeto: 'projetos', proposta: 'comercial', reuniao: 'reunioes' };
-      const target = moduleMap[type];
-      if (target) {
-        TBO_ROUTER.navigate(target);
-        // Apos navegar, tentar abrir modal de criacao se o modulo suportar
-        setTimeout(() => {
-          const createBtn = document.querySelector('[data-action="create"], [data-action="new"], #newBtn, .btn-create');
-          if (createBtn) createBtn.click();
-        }, 400);
-      }
-      TBO_TOAST.info('Criação rápida', `Abrindo ${item.querySelector('span')?.textContent || type}...`);
-    });
-  },
+  // ── FAB removido em v2.5.1 ──────────────────────────────────────────
 
   // ── Refresh Data ─────────────────────────────────────────────────────
   async refreshData() {

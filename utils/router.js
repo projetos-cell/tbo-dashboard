@@ -33,16 +33,27 @@ const TBO_ROUTER = {
     this._modules[name] = module;
   },
 
-  // Parseia rota parametrizada: "projeto/p_abc/list" → { module, params }
+  // Parseia rota parametrizada: "projeto/p_abc/list?task=xxx" → { module, params }
   _parseParamRoute(fullHash) {
-    const parts = fullHash.split('/');
+    // Separar query string do hash (ex: "projeto/id/list?task=abc")
+    const [pathPart, queryPart] = fullHash.split('?');
+    const parts = pathPart.split('/');
     const prefix = parts[0];
     if (this._paramRoutes[prefix] && parts.length >= 2) {
+      // Parse query params
+      const query = {};
+      if (queryPart) {
+        queryPart.split('&').forEach(pair => {
+          const [k, v] = pair.split('=');
+          if (k) query[decodeURIComponent(k)] = decodeURIComponent(v || '');
+        });
+      }
       return {
         moduleName: this._paramRoutes[prefix],
         params: {
           id: parts[1],
-          tab: parts[2] || 'list' // default tab = list
+          tab: parts[2] || 'list', // default tab = list
+          query // query params (task, subtask, etc)
         },
         fullRoute: fullHash
       };

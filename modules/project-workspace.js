@@ -56,6 +56,7 @@ const TBO_PROJECT_WORKSPACE = {
   setParams(params) {
     this._projectId = params.id;
     this._activeTab = params.tab || 'list';
+    this._pendingQuery = params.query || {}; // query params para deep link (task, subtask)
   },
 
   async render() {
@@ -122,6 +123,13 @@ const TBO_PROJECT_WORKSPACE = {
 
     // Re-init icons
     if (window.lucide) lucide.createIcons();
+
+    // Deep link: auto-abrir task detail se ?task=xxx na URL
+    if (this._pendingQuery?.task) {
+      const taskId = this._pendingQuery.task;
+      this._pendingQuery = {};
+      setTimeout(() => this._openTaskDetail(taskId), 200);
+    }
   },
 
   destroy() {
@@ -256,6 +264,9 @@ const TBO_PROJECT_WORKSPACE = {
         </div>
         <div class="pw-header-right">
           ${p.owner ? `<span class="pw-owner-tag"><i data-lucide="user" style="width:14px;height:14px;"></i> ${this._esc(p.owner)}</span>` : ''}
+          <button class="btn btn-ghost pw-action-btn" onclick="TBO_PROJECT_WORKSPACE._copyProjectLink()" title="Copiar link do projeto">
+            <i data-lucide="link" style="width:16px;height:16px;"></i>
+          </button>
           <button class="btn btn-secondary pw-action-btn" onclick="TBO_PROJETOS._showProjectModal('${this._esc(p.id)}')" title="Editar projeto">
             <i data-lucide="settings" style="width:16px;height:16px;"></i>
           </button>
@@ -1524,6 +1535,9 @@ const TBO_PROJECT_WORKSPACE = {
         <div style="flex:1;">
           <input type="text" class="pw-detail-input" id="pwDetailTitle" value="${this._esc(task.title || task.name || '')}" style="font-size:1.1rem;font-weight:700;border:none;padding:0;background:transparent;" />
         </div>
+        <button class="btn btn-ghost btn-sm" id="pwDetailCopyLink" style="flex-shrink:0;" title="Copiar link da tarefa">
+          <i data-lucide="link" style="width:16px;height:16px;"></i>
+        </button>
         <button class="btn btn-ghost btn-sm" id="pwDetailClose" style="flex-shrink:0;">
           <i data-lucide="x" style="width:18px;height:18px;"></i>
         </button>
@@ -1669,6 +1683,10 @@ const TBO_PROJECT_WORKSPACE = {
   },
 
   _bindTaskDetailActions(taskId) {
+    // Copiar link da tarefa
+    const copyLinkBtn = document.getElementById('pwDetailCopyLink');
+    if (copyLinkBtn) copyLinkBtn.addEventListener('click', () => this._copyTaskLink(taskId));
+
     // Fechar
     const closeBtn = document.getElementById('pwDetailClose');
     if (closeBtn) closeBtn.addEventListener('click', () => this._closeTaskDetail());
@@ -1890,6 +1908,31 @@ const TBO_PROJECT_WORKSPACE = {
     }
   },
 
+  // ── Deep Links (copiar link compartilhavel) ─────────────────────────
+
+  _getBaseUrl() {
+    return `${window.location.origin}${window.location.pathname}`;
+  },
+
+  _copyProjectLink() {
+    const url = `${this._getBaseUrl()}#projeto/${this._projectId}/${this._activeTab}`;
+    navigator.clipboard.writeText(url).then(() => {
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Link copiado!', 'Link do projeto copiado para a area de transferencia.');
+    }).catch(() => {
+      // Fallback para navegadores que nao suportam clipboard API
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.info('URL do projeto', url);
+    });
+  },
+
+  _copyTaskLink(taskId) {
+    const url = `${this._getBaseUrl()}#projeto/${this._projectId}/${this._activeTab}?task=${taskId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Link copiado!', 'Link da tarefa copiado para a area de transferencia.');
+    }).catch(() => {
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.info('URL da tarefa', url);
+    });
+  },
+
   _refreshListView() {
     this._loadProject();
     const content = document.getElementById('pwTabContent');
@@ -1984,12 +2027,15 @@ const TBO_PROJECT_WORKSPACE = {
         break;
       }
       case 'add_subtask':
-        if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.info('Em desenvolvimento', 'Adicionar subtarefa inline sera implementado em breve.');
+        // Abrir detail e focar no input de subtarefa
+        this._openTaskDetail(taskId);
+        setTimeout(() => {
+          const input = document.getElementById('pwSubtaskInput');
+          if (input) input.focus();
+        }, 400);
         break;
       case 'copy_link':
-        navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}#projeto/${this._projectId}/list?task=${taskId}`).then(() => {
-          if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Link copiado!');
-        });
+        this._copyTaskLink(taskId);
         break;
       case 'delete':
         if (confirm('Excluir esta tarefa?')) {

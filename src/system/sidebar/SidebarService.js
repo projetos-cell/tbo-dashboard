@@ -35,7 +35,7 @@ const TBO_SIDEBAR_SERVICE = (() => {
     // Seção raiz (nível superior) — itens fixos
     { id: 'sys-home',       name: 'Home',             type: 'system',    order_index: 1,  icon: 'home',             route: 'dashboard',  allowed_roles: [] },
     { id: 'sys-search',     name: 'Buscar',           type: 'system',    order_index: 2,  icon: 'search',           route: null,         allowed_roles: [], metadata: { action: 'search' } },
-    { id: 'sys-pagina',     name: 'Página inicial',   type: 'system',    order_index: 3,  icon: 'layout-dashboard', route: 'workspace',  allowed_roles: [] },
+    { id: 'sys-pagina',     name: 'Página inicial',   type: 'system',    order_index: 3,  icon: 'layout-dashboard', route: 'dashboard',  allowed_roles: [] },
     { id: 'sys-reunioes',   name: 'Reuniões',         type: 'system',    order_index: 4,  icon: 'calendar',         route: 'agenda',     allowed_roles: [] },
     { id: 'sys-ia',         name: 'IA TBO',           type: 'system',    order_index: 5,  icon: 'sparkles',         route: null,         allowed_roles: [], metadata: { action: 'ai-assistant' } },
     { id: 'sys-inbox',      name: 'Caixa de entrada', type: 'system',    order_index: 6,  icon: 'inbox',            route: 'alerts',     allowed_roles: [], metadata: { badge_key: 'alerts' } },

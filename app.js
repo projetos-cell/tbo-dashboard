@@ -237,25 +237,20 @@ const TBO_APP = {
       const originalHash = window.location.hash.replace('#', '').replace(/^\//, '');
 
       // Verificar se precisa selecionar workspace (multi-tenant v2)
+      // Auto-seleciona primeiro tenant (TBO) — sem tela intermediária
       if (typeof TBO_WORKSPACE !== 'undefined' && TBO_WORKSPACE.shouldShowSelector()) {
         await TBO_WORKSPACE.loadTenants();
-        // Auto-selecionar se so tem 1 tenant (evita redirect desnecessario no F5)
-        if (TBO_WORKSPACE._tenants && TBO_WORKSPACE._tenants.length === 1) {
+        // Auto-selecionar primeiro tenant disponível (TBO como padrão)
+        if (TBO_WORKSPACE._tenants && TBO_WORKSPACE._tenants.length > 0) {
           const tenant = TBO_WORKSPACE._tenants[0];
           TBO_WORKSPACE._currentTenant = tenant;
-          try { sessionStorage.setItem('tbo_active_tenant', JSON.stringify(tenant)); } catch(e) {}
+          try { sessionStorage.setItem('tbo_active_tenant', JSON.stringify(tenant)); } catch(_e) {}
           // Restaurar hash original se tinha rota antes do F5
           if (originalHash && originalHash !== 'workspace') {
             window.location.hash = originalHash;
           }
-          TBO_ROUTER.initFromHash('dashboard');
-        } else {
-          // Multi-tenant: mostrar selector, mas guardar hash para restaurar depois
-          if (originalHash) {
-            try { sessionStorage.setItem('tbo_pending_hash', originalHash); } catch(e) {}
-          }
-          TBO_ROUTER.navigate('workspace');
         }
+        TBO_ROUTER.initFromHash('dashboard');
       } else {
         // Respeitar hash da URL (F5/deep link) ou ir para command-center
         const defaultMod = 'dashboard';

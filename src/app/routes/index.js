@@ -46,7 +46,6 @@ const TBO_ROUTE_REGISTRY = (() => {
     'inteligencia':           'inteligencia',
     'inteligencia-imobiliaria': 'inteligencia-imobiliaria',
     'portal-cliente':         'portal-cliente',
-    'workspace':              'workspace',
     'permissoes-config':      'permissoes-config'
   };
 
@@ -58,7 +57,8 @@ const TBO_ROUTE_REGISTRY = (() => {
     'reunioes-contexto':      'reunioes',
     'equipe':                 'rh',
     'command-center':         'dashboard',
-    'home':                   'workspace'
+    'home':                   'dashboard',
+    'workspace':              'dashboard'
   };
 
   // Rotas parametrizadas: prefixo → { module, permissionModule }
@@ -125,8 +125,7 @@ const TBO_ROUTE_REGISTRY = (() => {
     // Outros
     'conteudo':               { label: 'Conteúdo & Redação',     icon: 'pen-tool',           group: 'outros',       color: '#64748B' },
     'decisoes':               { label: 'Decisões',               icon: 'gavel',              group: 'outros',       color: '#64748B' },
-    'templates':              { label: 'Templates',              icon: 'layout-template',    group: 'outros',       color: '#64748B' },
-    'workspace':              { label: 'Workspace',              icon: 'layout-grid',        group: 'sistema',      color: '#64748B' }
+    'templates':              { label: 'Templates',              icon: 'layout-template',    group: 'outros',       color: '#64748B' }
   };
 
   return {

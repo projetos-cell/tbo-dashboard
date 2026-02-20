@@ -232,7 +232,16 @@ const TBO_AUTH = {
         role: roleName,
         roleLabel: roleDef?.label || roleName,
         roleColor: roleDef?.color || '#94a3b8',
-        modules: TBO_PERMISSIONS.getModulesForUser(userId, authUser.email) || roleDef?.modules || [],
+        // v2.2.2: Se getModulesForUser retorna [] (user nao encontrado nos mappings),
+        // fallback para roleDef.modules + sharedModules (garante acesso basico para novos membros)
+        modules: (() => {
+          const m = TBO_PERMISSIONS.getModulesForUser(userId, authUser.email);
+          if (m && m.length > 0) return m;
+          // Fallback: role modules + shared modules (mesmo comportamento do getModulesForUser)
+          const base = roleDef?.modules || [];
+          const shared = TBO_PERMISSIONS._sharedModules || [];
+          return [...new Set([...base, ...shared])];
+        })(),
         dashboardVariant: roleDef?.dashboardVariant || 'tasks',
         defaultModule: roleDef?.defaultModule || 'command-center',
         bu: profile.bu || TBO_PERMISSIONS.getUserBU(userId),

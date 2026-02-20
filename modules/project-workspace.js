@@ -1061,17 +1061,38 @@ const TBO_PROJECT_WORKSPACE = {
             </div>
           ` : ''}
 
-          <!-- Detalhes -->
+          <!-- Detalhes (editaveis) -->
           <div class="pw-overview-card">
             <h3>Detalhes</h3>
             <div class="pw-details-grid">
-              ${p.client ? `<div class="pw-detail-item"><span class="pw-detail-label">Cliente</span><span class="pw-detail-value">${this._esc(p.client)}</span></div>` : ''}
-              ${p.owner ? `<div class="pw-detail-item"><span class="pw-detail-label">Responsavel</span><span class="pw-detail-value">${this._esc(p.owner)}</span></div>` : ''}
-              ${p.code ? `<div class="pw-detail-item"><span class="pw-detail-label">Codigo</span><span class="pw-detail-value">${this._esc(p.code)}</span></div>` : ''}
-              ${p.value ? `<div class="pw-detail-item"><span class="pw-detail-label">Valor</span><span class="pw-detail-value">R$ ${Number(p.value).toLocaleString('pt-BR')}</span></div>` : ''}
-              ${p.services?.length ? `<div class="pw-detail-item"><span class="pw-detail-label">BUs</span><span class="pw-detail-value">${p.services.map(s => this._esc(s)).join(', ')}</span></div>` : ''}
-              ${p.start_date ? `<div class="pw-detail-item"><span class="pw-detail-label">Inicio</span><span class="pw-detail-value">${new Date(p.start_date).toLocaleDateString('pt-BR')}</span></div>` : ''}
-              ${p.end_date ? `<div class="pw-detail-item"><span class="pw-detail-label">Entrega</span><span class="pw-detail-value">${new Date(p.end_date).toLocaleDateString('pt-BR')}</span></div>` : ''}
+              <div class="pw-detail-item">
+                <span class="pw-detail-label">Cliente</span>
+                <span class="pw-detail-value pw-detail-editable" contenteditable="true" data-field="client" data-placeholder="Adicionar cliente...">${this._esc(p.client || '')}</span>
+              </div>
+              <div class="pw-detail-item">
+                <span class="pw-detail-label">Responsavel</span>
+                <span class="pw-detail-value pw-detail-editable" contenteditable="true" data-field="owner" data-placeholder="Adicionar responsavel...">${this._esc(p.owner || '')}</span>
+              </div>
+              <div class="pw-detail-item">
+                <span class="pw-detail-label">Codigo</span>
+                <span class="pw-detail-value pw-detail-editable" contenteditable="true" data-field="code" data-placeholder="Adicionar codigo...">${this._esc(p.code || '')}</span>
+              </div>
+              <div class="pw-detail-item">
+                <span class="pw-detail-label">Valor</span>
+                <span class="pw-detail-value pw-detail-editable" contenteditable="true" data-field="value" data-type="currency" data-placeholder="R$ 0,00">${p.value ? 'R$ ' + Number(p.value).toLocaleString('pt-BR') : ''}</span>
+              </div>
+              <div class="pw-detail-item">
+                <span class="pw-detail-label">BUs</span>
+                <span class="pw-detail-value pw-detail-editable" contenteditable="true" data-field="services" data-type="list" data-placeholder="Ex: Digital 3D, Motion...">${p.services?.length ? p.services.map(s => this._esc(s)).join(', ') : ''}</span>
+              </div>
+              <div class="pw-detail-item">
+                <span class="pw-detail-label">Inicio</span>
+                <input type="date" class="pw-detail-date-input" data-field="start_date" value="${p.start_date || ''}" />
+              </div>
+              <div class="pw-detail-item">
+                <span class="pw-detail-label">Entrega</span>
+                <input type="date" class="pw-detail-date-input" data-field="end_date" value="${p.end_date || ''}" />
+              </div>
             </div>
           </div>
 
@@ -1850,6 +1871,52 @@ const TBO_PROJECT_WORKSPACE = {
         if (e.key === 'Escape') {
           field.blur();
         }
+      });
+    });
+
+    // Overview: campos de detalhes editaveis (Cliente, Responsavel, Codigo, etc)
+    document.querySelectorAll('.pw-detail-editable').forEach(field => {
+      const updatePlaceholder = () => {
+        const text = field.textContent.trim();
+        field.classList.toggle('pw-detail-editable--empty', !text);
+      };
+      updatePlaceholder();
+
+      field.addEventListener('focus', () => {
+        field.classList.add('pw-detail-editable--focused');
+      });
+
+      field.addEventListener('blur', () => {
+        field.classList.remove('pw-detail-editable--focused');
+        updatePlaceholder();
+        const fieldName = field.dataset.field;
+        const dataType = field.dataset.type;
+        let value = field.textContent.trim();
+
+        // Tratar tipos especiais
+        if (dataType === 'currency') {
+          // Extrair numero de "R$ 1.234,56"
+          value = value.replace(/[^\d.,]/g, '').replace(/\./g, '').replace(',', '.');
+          value = parseFloat(value) || 0;
+        } else if (dataType === 'list') {
+          // Converter "Digital 3D, Motion" → ["Digital 3D", "Motion"]
+          value = value.split(',').map(s => s.trim()).filter(Boolean);
+        }
+
+        this._saveProjectField(fieldName, value);
+      });
+
+      field.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); field.blur(); }
+        if (e.key === 'Escape') field.blur();
+      });
+    });
+
+    // Overview: campos de data editaveis
+    document.querySelectorAll('.pw-detail-date-input').forEach(input => {
+      input.addEventListener('change', () => {
+        const fieldName = input.dataset.field;
+        this._saveProjectField(fieldName, input.value || null);
       });
     });
 
@@ -3432,6 +3499,14 @@ const TBO_PROJECT_WORKSPACE = {
 .pw-detail-item { display: flex; flex-direction: column; gap: 2px; }
 .pw-detail-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
 .pw-detail-value { font-size: 0.85rem; color: var(--text-primary); font-weight: 500; }
+.pw-detail-editable { outline: none; border-radius: 4px; padding: 2px 6px; margin: -2px -6px; transition: background 0.15s, box-shadow 0.15s; cursor: text; min-height: 1.3em; }
+.pw-detail-editable:hover { background: rgba(232, 81, 2, 0.05); }
+.pw-detail-editable.pw-detail-editable--focused { background: var(--bg-primary); box-shadow: 0 0 0 2px var(--accent-gold); }
+.pw-detail-editable.pw-detail-editable--empty::before { content: attr(data-placeholder); color: var(--text-muted); font-style: italic; font-weight: 400; pointer-events: none; }
+.pw-detail-date-input { font-size: 0.85rem; font-weight: 500; color: var(--text-primary); background: transparent; border: none; border-radius: 4px; padding: 2px 6px; margin: -2px -6px; outline: none; font-family: inherit; cursor: pointer; transition: background 0.15s, box-shadow 0.15s; }
+.pw-detail-date-input:hover { background: rgba(232, 81, 2, 0.05); }
+.pw-detail-date-input:focus { background: var(--bg-primary); box-shadow: 0 0 0 2px var(--accent-gold); }
+.pw-detail-date-input::-webkit-calendar-picker-indicator { filter: invert(0.7); cursor: pointer; }
 .pw-deliverables-list { display: flex; flex-direction: column; gap: 6px; }
 .pw-deliverable-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: var(--bg-tertiary); border-radius: 6px; font-size: 0.82rem; color: var(--text-primary); }
 

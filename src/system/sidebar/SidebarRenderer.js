@@ -105,6 +105,9 @@ const TBO_SIDEBAR_RENDERER = (() => {
         <i data-lucide="chevron-right" class="nsb-ws-chevron"></i>
         <i data-lucide="${_escHtml(item.icon || 'folder')}" class="nsb-ws-icon"></i>
         <span class="nsb-ws-name">${_escHtml(item.name)}</span>
+        <button class="nsb-ws-add" data-ws-add="${_escHtml(item.id)}" data-ws-label="${_escHtml(item.name)}" data-ws-icon="${_escHtml(item.icon || 'folder')}" aria-label="Adicionar a ${_escHtml(item.name)}" aria-haspopup="dialog" aria-expanded="false" title="Adicionar a ${_escHtml(item.name)}">
+          <i data-lucide="plus"></i>
+        </button>
         <button class="nsb-ws-more" data-ws-more="${_escHtml(item.id)}" title="Opções">
           <i data-lucide="more-horizontal"></i>
         </button>
@@ -249,6 +252,27 @@ const TBO_SIDEBAR_RENDERER = (() => {
               content.remove();
             }
           }
+        }
+      });
+    });
+
+    // Botão "+" nos workspaces → abrir AddToSpaceOverlay
+    _container.querySelectorAll('[data-ws-add]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const spaceId = btn.dataset.wsAdd;
+        const spaceLabel = btn.dataset.wsLabel;
+        const spaceIcon = btn.dataset.wsIcon;
+        if (typeof TBO_ADD_TO_SPACE !== 'undefined') {
+          TBO_ADD_TO_SPACE.open({
+            spaceId,
+            spaceLabel,
+            spaceIcon,
+            onCreate: (data) => {
+              console.log('[TBO Sidebar] Criar em', spaceId, data);
+            }
+          });
         }
       });
     });

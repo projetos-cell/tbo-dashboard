@@ -32,6 +32,7 @@
   <link rel="stylesheet" href="src/ui/components/skeleton/Skeleton.css">
   <link rel="stylesheet" href="src/ui/components/sidebar/SidebarEnhancer.css">
   <link rel="stylesheet" href="src/ui/components/feedback/Feedback.css">
+  <link rel="stylesheet" href="src/system/navigation/NotionSidebar.css">
 
   <!-- Leaflet CSS (loaded early for layout, JS deferred below) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
@@ -401,6 +402,11 @@
   <script defer src="src/ui/components/activity-feed/ActivityFeed.js"></script>
   <script defer src="src/ui/components/sidebar/SidebarEnhancer.js"></script>
   <script defer src="src/ui/components/feedback/FeedbackProvider.js"></script>
+
+  <!-- Navigation System (Notion-style — v3.1) -->
+  <script defer src="src/system/navigation/navigation-tree.js"></script>
+  <script defer src="src/system/navigation/navigation-renderer.js"></script>
+  <script defer src="src/system/navigation/navigation-bridge.js"></script>
 
   <!-- ═══════════════════════════════════════════════════════ -->
   <!-- PHASE 3: LEGACY LAYER (utils + modules)                -->

@@ -142,6 +142,13 @@ const TBO_APP = {
     // 4. Bind sidebar navigation
     this._bindSidebar();
 
+    // 4b. Notion-style navigation (se habilitado via config/localStorage)
+    if (typeof TBO_NAV_BRIDGE !== 'undefined') {
+      try { TBO_NAV_BRIDGE.init(); } catch (e) {
+        console.warn('[TBO OS] NavBridge init falhou:', e);
+      }
+    }
+
     // 5. Bind header actions
     this._bindHeader();
 
@@ -212,6 +219,10 @@ const TBO_APP = {
         this._renderSidebar();
         this._bindSectionToggles();
         TBO_AUTH._applyAccess();
+        // Re-aplicar Notion sidebar após re-render com roles corretos
+        if (typeof TBO_NAV_BRIDGE !== 'undefined') {
+          try { TBO_NAV_BRIDGE.init(); } catch (_e) { /* noop */ }
+        }
       }
 
       // Salvar hash original antes de qualquer redirect (para F5 preservar rota)

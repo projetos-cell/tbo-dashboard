@@ -78,6 +78,11 @@ export default [
         TBO_FEEDBACK: "readonly",
         ActivityRepo: "readonly",
 
+        // ─── Navigation System (v3.1) ───
+        TBO_NAV_TREE: "readonly",
+        TBO_NOTION_SIDEBAR: "readonly",
+        TBO_NAV_BRIDGE: "readonly",
+
         // Onboarding globals
         ONBOARDING_CONFIG: "readonly",
         TBO_ONBOARDING_DB: "readonly",

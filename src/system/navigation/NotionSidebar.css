@@ -1,0 +1,267 @@
+/* ============================================================================
+ * TBO OS — Notion-style Sidebar
+ *
+ * Espaços → Páginas colapsáveis
+ * Utiliza design system vars do TBO OS
+ * ============================================================================ */
+
+/* Container dos espaços */
+#sidebarNav.nsb-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 8px;
+}
+
+/* ── Espaço (seção) ────────────────────────────────────────────────────── */
+
+.nsb-space {
+  margin-bottom: 2px;
+}
+
+.nsb-space-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 6px 8px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  color: var(--text-muted, #9f9f9f);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: color 0.1s ease, background 0.1s ease;
+  text-align: left;
+}
+
+.nsb-space-header:hover {
+  color: var(--text-primary, #0f0f0f);
+  background: var(--bg-card-hover, #f8f8f8);
+}
+
+/* Chevron de toggle */
+.nsb-space-chevron {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+  opacity: 0.5;
+}
+
+.nsb-space-header:not(.nsb-space-header--collapsed) .nsb-space-chevron {
+  transform: rotate(90deg);
+}
+
+/* Ícone do espaço */
+.nsb-space-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.nsb-space-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Páginas (filhos colapsáveis) ──────────────────────────────────────── */
+
+.nsb-space-pages {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.2s ease, opacity 0.15s ease, padding 0.15s ease;
+  padding: 0;
+}
+
+.nsb-space-pages--open {
+  max-height: 600px;
+  opacity: 1;
+  padding: 2px 0 4px 0;
+}
+
+/* ── Página (item de navegação) ────────────────────────────────────────── */
+
+.nsb-page {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px 6px 26px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  color: var(--text-secondary, #606060);
+  font-family: var(--font-body);
+  font-size: 13px;
+  transition: color 0.1s ease, background 0.1s ease;
+  text-align: left;
+  position: relative;
+}
+
+.nsb-page:hover {
+  background: var(--bg-card-hover, #f8f8f8);
+  color: var(--text-primary, #0f0f0f);
+}
+
+.nsb-page:focus-visible {
+  outline: 2px solid var(--brand-orange, #E85102);
+  outline-offset: -2px;
+}
+
+/* Ativo */
+.nsb-page--active {
+  background: var(--brand-orange-pale, #FED5C0);
+  color: var(--brand-orange-dark, #BE4202);
+  font-weight: 500;
+}
+
+.nsb-page--active:hover {
+  background: var(--brand-orange-pale, #FED5C0);
+  color: var(--brand-orange-dark, #BE4202);
+}
+
+/* Indicador lateral de ativo */
+.nsb-page--active::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 16px;
+  background: var(--brand-orange, #E85102);
+  border-radius: 2px;
+}
+
+/* Ícone da página */
+.nsb-page-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.nsb-page--active .nsb-page-icon {
+  opacity: 1;
+}
+
+.nsb-page-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Action items (sem rota, ex: Atividade) */
+.nsb-page--action .nsb-page-icon {
+  color: var(--brand-orange, #E85102);
+}
+
+/* ── Espaço com filho ativo: indicador sutil ───────────────────────────── */
+
+.nsb-space--has-active > .nsb-space-header {
+  color: var(--brand-orange-dark, #BE4202);
+}
+
+.nsb-space--has-active > .nsb-space-header .nsb-space-icon {
+  opacity: 1;
+  color: var(--brand-orange, #E85102);
+}
+
+/* ── Sidebar collapsed: esconder labels ────────────────────────────────── */
+
+.sidebar.collapsed .nsb-space-header {
+  padding: 6px 4px;
+  justify-content: center;
+}
+
+.sidebar.collapsed .nsb-space-chevron,
+.sidebar.collapsed .nsb-space-label,
+.sidebar.collapsed .nsb-page-label {
+  display: none;
+}
+
+.sidebar.collapsed .nsb-space-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.sidebar.collapsed .nsb-page {
+  padding: 6px 4px;
+  justify-content: center;
+}
+
+.sidebar.collapsed .nsb-page-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.sidebar.collapsed .nsb-page--active::before {
+  left: 0;
+  width: 2px;
+  height: 12px;
+}
+
+.sidebar.collapsed .nsb-space-pages {
+  padding: 0;
+}
+
+/* ── Scrollbar sutil ───────────────────────────────────────────────────── */
+
+#sidebarNav.nsb-mode::-webkit-scrollbar {
+  width: 3px;
+}
+
+#sidebarNav.nsb-mode::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 2px;
+}
+
+#sidebarNav.nsb-mode:hover::-webkit-scrollbar-thumb {
+  background: var(--brand-gray-400, #9f9f9f);
+}
+
+/* ── Dark mode ─────────────────────────────────────────────────────────── */
+
+body.dark-mode .nsb-page--active {
+  background: rgba(232, 81, 2, 0.15);
+}
+
+body.dark-mode .nsb-space-header:hover,
+body.dark-mode .nsb-page:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Transição suave ao entrar ─────────────────────────────────────────── */
+
+#sidebarNav.nsb-mode .nsb-space {
+  animation: nsb-fade-in 0.15s ease both;
+}
+
+#sidebarNav.nsb-mode .nsb-space:nth-child(2) { animation-delay: 0.02s; }
+#sidebarNav.nsb-mode .nsb-space:nth-child(3) { animation-delay: 0.04s; }
+#sidebarNav.nsb-mode .nsb-space:nth-child(4) { animation-delay: 0.06s; }
+#sidebarNav.nsb-mode .nsb-space:nth-child(5) { animation-delay: 0.08s; }
+#sidebarNav.nsb-mode .nsb-space:nth-child(6) { animation-delay: 0.10s; }
+#sidebarNav.nsb-mode .nsb-space:nth-child(7) { animation-delay: 0.12s; }
+
+@keyframes nsb-fade-in {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

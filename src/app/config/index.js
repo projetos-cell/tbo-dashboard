@@ -38,6 +38,9 @@ const TBO_APP_CONFIG = (() => {
       sessionTimeoutMinutes: 480, // 8 horas
       csrfEnabled: false // Supabase usa JWT, não precisa CSRF
     },
+    ui: {
+      navigationStyle: 'notion' // 'notion' | 'classic'
+    },
     features: {
       realtime: true,
       notifications: true,

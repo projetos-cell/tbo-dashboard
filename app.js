@@ -1578,10 +1578,7 @@ const TBO_APP = {
   },
 
   _updateHeaderTitle(moduleName) {
-    const title = document.getElementById('headerTitle');
-    if (title) {
-      title.textContent = this._moduleLabels[moduleName] || moduleName;
-    }
+    // Titulo removido do header por design — apenas breadcrumb permanece
   },
 
   // ── Status ───────────────────────────────────────────────────────────

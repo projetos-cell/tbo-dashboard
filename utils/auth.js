@@ -43,6 +43,35 @@ const TBO_AUTH = {
   _cachedUser: null,
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // AVATAR — Cadeia de fallback robusta para resolver URL do avatar
+  // Prioridade: 1) profiles.avatar_url  2) user_metadata.avatar_url
+  //             3) provider identity_data.avatar_url  4) null (iniciais)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  _resolveAvatarUrl(profile, authUser) {
+    // 1. Avatar persistido na tabela profiles
+    if (profile?.avatar_url && /^https:\/\//i.test(profile.avatar_url)) {
+      return profile.avatar_url;
+    }
+    // 2. Avatar nos metadados do usuario (Supabase Auth)
+    const metaAvatar = authUser?.user_metadata?.avatar_url || authUser?.user_metadata?.picture;
+    if (metaAvatar && /^https:\/\//i.test(metaAvatar)) {
+      return metaAvatar;
+    }
+    // 3. Avatar nos dados do provider Google (identities array)
+    if (authUser?.identities?.length) {
+      for (const identity of authUser.identities) {
+        const providerAvatar = identity.identity_data?.avatar_url || identity.identity_data?.picture;
+        if (providerAvatar && /^https:\/\//i.test(providerAvatar)) {
+          return providerAvatar;
+        }
+      }
+    }
+    // 4. Nenhum avatar disponivel — UI usara iniciais como fallback
+    return null;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // SESSION — Read current user (synchronous, from cache)
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -228,12 +257,14 @@ const TBO_AUTH = {
       const roleName = isSuperAdmin ? 'founder' : (profile.role || 'artist');
       const roleDef = TBO_PERMISSIONS._roles[roleName];
 
-      // v2.6.1: Sincronizar avatar do Google para profiles (fire-and-forget)
-      const googleAvatar = authUser.user_metadata?.avatar_url || null;
-      if (googleAvatar && googleAvatar !== profile.avatar_url) {
+      // v2.6.2: Resolver avatar com cadeia de fallback completa
+      const resolvedAvatar = this._resolveAvatarUrl(profile, authUser);
+
+      // Sincronizar avatar para profiles se necessario (fire-and-forget)
+      if (resolvedAvatar && resolvedAvatar !== profile.avatar_url) {
         TBO_SUPABASE.getClient()
-          .from('profiles').update({ avatar_url: googleAvatar }).eq('id', authUser.id)
-          .then(() => console.log('[TBO Auth] Avatar sincronizado com Google'))
+          .from('profiles').update({ avatar_url: resolvedAvatar }).eq('id', authUser.id)
+          .then(() => console.log('[TBO Auth] Avatar sincronizado com profiles'))
           .catch(e => console.warn('[TBO Auth] Avatar sync error:', e.message));
       }
 
@@ -269,7 +300,7 @@ const TBO_AUTH = {
         initials: TBO_PERMISSIONS.getInitials(profile.full_name || userId),
         loginAt: new Date().toISOString(),
         authMode: 'supabase',
-        avatarUrl: authUser.user_metadata?.avatar_url || null
+        avatarUrl: resolvedAvatar
       };
     }
 
@@ -294,7 +325,7 @@ const TBO_AUTH = {
         initials: TBO_PERMISSIONS.getInitials(authUser.user_metadata?.full_name || userId),
         loginAt: new Date().toISOString(),
         authMode: 'supabase',
-        avatarUrl: authUser.user_metadata?.avatar_url || null
+        avatarUrl: this._resolveAvatarUrl(null, authUser)
       };
     }
 
@@ -372,7 +403,7 @@ const TBO_AUTH = {
           initials: TBO_PERMISSIONS.getInitials(fullName),
           loginAt: new Date().toISOString(),
           authMode: 'supabase',
-          avatarUrl: authUser.user_metadata?.avatar_url || null,
+          avatarUrl: this._resolveAvatarUrl(null, authUser),
           _isNewMember: true // flag para mostrar boas-vindas
         };
       } catch (e) {
@@ -435,8 +466,21 @@ const TBO_AUTH = {
         if (container) container.innerHTML = '';
         const sidebarWidget = document.getElementById('sidebarUserWidget');
         if (sidebarWidget) sidebarWidget.innerHTML = '';
-      } else if (event === 'TOKEN_REFRESHED') {
-        // Supabase auto-refreshes tokens — no action needed
+      } else if (event === 'TOKEN_REFRESHED' && supaSession?.user) {
+        // v2.6.2: Atualizar avatar se mudou apos refresh de token
+        if (this._cachedUser) {
+          const freshAvatar = this._resolveAvatarUrl(null, supaSession.user);
+          if (freshAvatar && freshAvatar !== this._cachedUser.avatarUrl) {
+            this._cachedUser.avatarUrl = freshAvatar;
+            sessionStorage.setItem('tbo_auth', JSON.stringify(this._cachedUser));
+            this._renderUserMenu(this._cachedUser);
+            this._renderSidebarUser(this._cachedUser);
+            if (typeof TBO_APP !== 'undefined' && TBO_APP._renderSidebarFooter) {
+              TBO_APP._renderSidebarFooter();
+            }
+            if (window.lucide) lucide.createIcons();
+          }
+        }
       }
     });
 
@@ -723,11 +767,58 @@ const TBO_AUTH = {
       this._renderUserMenu(user);
       this._renderSidebarUser(user);
 
+      // v2.6.2: Re-verificar avatar assincronamente no reload
+      // Se sessionStorage nao tem avatar, buscar do Supabase session + profiles
+      this._ensureAvatarAsync(user);
+
       return true;
     }
 
     this._setOverlayState('login');
     return false;
+  },
+
+  /**
+   * v2.6.2: Garante que o avatar esta disponivel apos reload/restauracao de sessao.
+   * Busca do Supabase Auth session + profiles table e atualiza UI se necessario.
+   * Non-blocking — nao impede renderizacao inicial (iniciais aparecem instantaneamente).
+   */
+  async _ensureAvatarAsync(user) {
+    try {
+      if (typeof TBO_SUPABASE === 'undefined') return;
+      const supaSession = await TBO_SUPABASE.getSession();
+      if (!supaSession?.user) return;
+
+      const profile = await TBO_SUPABASE.getProfile();
+      const resolvedAvatar = this._resolveAvatarUrl(profile, supaSession.user);
+
+      // Se avatar mudou (era null e agora existe, ou URL diferente)
+      if (resolvedAvatar && resolvedAvatar !== user.avatarUrl) {
+        user.avatarUrl = resolvedAvatar;
+        this._cachedUser = user;
+        sessionStorage.setItem('tbo_auth', JSON.stringify(user));
+
+        // Re-renderizar UI com avatar atualizado
+        this._renderUserMenu(user);
+        this._renderSidebarUser(user);
+        // Atualizar sidebar footer (app.js)
+        if (typeof TBO_APP !== 'undefined' && TBO_APP._renderSidebarFooter) {
+          TBO_APP._renderSidebarFooter();
+        }
+        if (window.lucide) lucide.createIcons();
+        console.log('[TBO Auth] Avatar restaurado apos reload');
+
+        // Sincronizar com profiles se necessario
+        if (profile && resolvedAvatar !== profile.avatar_url) {
+          TBO_SUPABASE.getClient()
+            .from('profiles').update({ avatar_url: resolvedAvatar }).eq('id', supaSession.user.id)
+            .then(() => console.log('[TBO Auth] Avatar sincronizado com profiles'))
+            .catch(e => console.warn('[TBO Auth] Avatar sync error:', e.message));
+        }
+      }
+    } catch (e) {
+      console.warn('[TBO Auth] _ensureAvatarAsync error:', e);
+    }
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -756,13 +847,13 @@ const TBO_AUTH = {
       sessionInfo = `<div class="user-dropdown-session">Conectado desde ${loginTime}</div>`;
     }
 
-    // Avatar: use Google avatar if available (validated https), else initials
+    // Avatar: usar avatar resolvido com fallback para iniciais + onerror
     const avatarHtml = safeAvatarUrl
-      ? `<img src="${safeAvatarUrl}" class="user-avatar user-avatar--img" alt="${safeName}" style="width:32px;height:32px;border-radius:50%;">`
+      ? `<img src="${safeAvatarUrl}" class="user-avatar user-avatar--img" alt="${safeName}" style="width:32px;height:32px;border-radius:50%;" onerror="this.outerHTML='<div class=\\'user-avatar\\' style=\\'background:${user.roleColor}\\'>${safeInitials}</div>'">`
       : `<div class="user-avatar" style="background:${user.roleColor};">${safeInitials}</div>`;
 
     const avatarLgHtml = safeAvatarUrl
-      ? `<img src="${safeAvatarUrl}" class="user-avatar user-avatar--lg user-avatar--img" alt="${safeName}" style="width:48px;height:48px;border-radius:50%;">`
+      ? `<img src="${safeAvatarUrl}" class="user-avatar user-avatar--lg user-avatar--img" alt="${safeName}" style="width:48px;height:48px;border-radius:50%;" onerror="this.outerHTML='<div class=\\'user-avatar user-avatar--lg\\' style=\\'background:${user.roleColor}\\'>${safeInitials}</div>'">`
       : `<div class="user-avatar user-avatar--lg" style="background:${user.roleColor};">${safeInitials}</div>`;
 
     container.innerHTML = `
@@ -913,7 +1004,7 @@ const TBO_AUTH = {
     const buLabel = user.bu ? ` \u00B7 ${esc(user.bu)}` : '';
 
     const avatarHtml = safeAvatarUrl
-      ? `<img src="${safeAvatarUrl}" class="sidebar-user-avatar" alt="${safeName}" style="width:32px;height:32px;border-radius:50%;">`
+      ? `<img src="${safeAvatarUrl}" class="sidebar-user-avatar" alt="${safeName}" style="width:32px;height:32px;border-radius:50%;" onerror="this.outerHTML='<div class=\\'sidebar-user-avatar\\' style=\\'background:${user.roleColor};color:#fff\\'>${safeInitials}</div>'">`
       : `<div class="sidebar-user-avatar" style="background:${user.roleColor}; color:#fff;">${safeInitials}</div>`;
 
     widget.innerHTML = `

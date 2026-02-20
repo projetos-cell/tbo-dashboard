@@ -28,6 +28,7 @@ const TBO_CHAT = {
   _showMentionSuggestions: false,
   _mentionQuery: '',
   _mentionStartPos: 0,
+  _pendingMentions: [],  // [{id, name, startIdx, endIdx}] — mencoes selecionadas no textarea antes do envio
 
   // ── Emoji / Sticker Sets ─────────────────────────────────────────
   _emojiCategories: {
@@ -388,6 +389,7 @@ const TBO_CHAT = {
         input.style.height = Math.min(input.scrollHeight, 120) + 'px';
         self._sendTypingIndicator();
         self._checkMentionTrigger(input);
+        self._validatePendingMentions(input);
       }
       if (e.target.id === 'chatSearchInput') {
         self._filterChannels(e.target.value);
@@ -1219,6 +1221,15 @@ const TBO_CHAT = {
     list.querySelectorAll('.chat-poll-option-btn').forEach(btn => {
       btn.addEventListener('click', () => this._voteOnPoll(btn.dataset.pollId, btn.dataset.optionId));
     });
+
+    // Bind: clickable mentions (abre user card ao clicar)
+    list.querySelectorAll('.chat-mention[data-user-id]').forEach(mention => {
+      mention.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const userId = mention.dataset.userId;
+        if (userId) this._showUserCard(userId, mention);
+      });
+    });
   },
 
   _processMessageContent(msg) {
@@ -1233,10 +1244,30 @@ const TBO_CHAT = {
         .replace(/`(.+?)`/g, '<code>$1</code>')
         .replace(/\n/g, '<br>');
 
-      // Processar @mencoes
-      content = content.replace(/@(\w+(?:\s\w+)?)/g, (match, name) => {
-        const user = this._allUsers.find(u => u.name.toLowerCase().startsWith(name.toLowerCase()));
-        if (user) return `<span class="chat-mention">@${this._esc(user.name)}</span>`;
+      // Processar @mencoes — formato novo <@user_id> + fallback legacy @Nome
+      const meta = msg.metadata || {};
+      const mentionMap = {};
+      if (meta.mentions?.length) {
+        meta.mentions.forEach(m => { mentionMap[m.id] = m.name; });
+      }
+
+      // Fase 1: tokens <@user_id> (content ja escapado: &lt;@uuid&gt;)
+      content = content.replace(/&lt;@([\w-]+)&gt;/g, (match, userId) => {
+        const name = mentionMap[userId]
+          || this._allUsers.find(u => u.id === userId)?.name
+          || 'Usuario';
+        return `<span class="chat-mention" data-user-id="${userId}">@${this._esc(name)}</span>`;
+      });
+
+      // Fase 2: fallback para mensagens antigas sem tokens (formato @Nome)
+      // Regex Unicode para suportar acentos, hifens, pontos, underscores
+      content = content.replace(/@([\p{L}\p{N}._-]+(?:\s[\p{L}\p{N}._-]+)*)/gu, (match, name) => {
+        // Nao processar se ja esta dentro de um span de mencao
+        const user = this._allUsers.find(u =>
+          u.name.toLowerCase() === name.toLowerCase() ||
+          u.name.toLowerCase().startsWith(name.toLowerCase())
+        );
+        if (user) return `<span class="chat-mention" data-user-id="${user.id}">@${this._esc(user.name)}</span>`;
         return match;
       });
     }
@@ -1453,8 +1484,13 @@ const TBO_CHAT = {
   },
 
   // ══════════════════════════════════════════════════════════════════
-  // MENTIONS (@)
+  // MENTIONS (@) — v2: tokens <@user_id>, persistencia, notificacoes
   // ══════════════════════════════════════════════════════════════════
+
+  // Helper: remover acentos para busca insensivel (joao -> match Joao)
+  _normalizeForSearch(str) {
+    return (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  },
   _insertMentionTrigger() {
     const input = document.getElementById('chatInput');
     if (!input) return;
@@ -1468,6 +1504,10 @@ const TBO_CHAT = {
     this._mentionStartPos = pos + 1;
     this._showMentionSuggestions = true;
     this._mentionQuery = '';
+    // Atualizar indices das mencoes existentes apos insercao do @
+    this._pendingMentions.forEach(m => {
+      if (m.startIdx >= pos) { m.startIdx += 1; m.endIdx += 1; }
+    });
     this._renderMentionSuggestions();
   },
 
@@ -1475,16 +1515,32 @@ const TBO_CHAT = {
     const pos = input.selectionStart;
     const text = input.value;
 
-    // Buscar ultimo @ antes do cursor
+    // Buscar ultimo @ antes do cursor (permite espacos para nomes compostos)
     let atPos = -1;
     for (let i = pos - 1; i >= 0; i--) {
-      if (text[i] === '@') { atPos = i; break; }
-      if (text[i] === ' ' && i < pos - 1) break;
+      if (text[i] === '@') {
+        // Validar que @ esta no inicio ou precedido por espaco/newline
+        if (i === 0 || text[i - 1] === ' ' || text[i - 1] === '\n') {
+          atPos = i;
+        }
+        break; // Parar no primeiro @ encontrado
+      }
+      // Parar se encontrar newline (mencao nao pode cruzar linhas)
+      if (text[i] === '\n') break;
     }
 
-    if (atPos >= 0 && (atPos === 0 || text[atPos - 1] === ' ' || text[atPos - 1] === '\n')) {
+    if (atPos >= 0) {
+      const query = text.slice(atPos + 1, pos);
+      // Se a query corresponde a uma mencao ja selecionada, nao mostrar sugestoes
+      const isCompletedMention = this._pendingMentions.some(m =>
+        m.startIdx === atPos && m.endIdx <= pos
+      );
+      if (isCompletedMention) {
+        this._hideMentionSuggestions();
+        return;
+      }
       this._mentionStartPos = atPos + 1;
-      this._mentionQuery = text.slice(atPos + 1, pos).toLowerCase();
+      this._mentionQuery = query.toLowerCase();
       this._showMentionSuggestions = true;
       this._renderMentionSuggestions();
     } else {
@@ -1496,10 +1552,16 @@ const TBO_CHAT = {
     const el = document.getElementById('chatMentionSuggestions');
     if (!el) return;
 
-    const q = this._mentionQuery;
-    const filtered = this._allUsers.filter(u =>
-      u.name.toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q)
-    ).slice(0, 8);
+    const q = this._normalizeForSearch(this._mentionQuery);
+    const filtered = this._allUsers
+      .filter(u => {
+        if (!q) return true; // Mostrar todos se query vazia (recem digitou @)
+        const normName = this._normalizeForSearch(u.name);
+        const normEmail = this._normalizeForSearch(u.email || '');
+        return normName.includes(q) || normEmail.includes(q);
+      })
+      .filter(u => u.id !== this._currentUser?.id) // Excluir usuario atual
+      .slice(0, 8);
 
     if (!filtered.length) { el.style.display = 'none'; return; }
 
@@ -1543,11 +1605,32 @@ const TBO_CHAT = {
     if (!input) return;
 
     const text = input.value;
-    const before = text.slice(0, this._mentionStartPos - 1); // Antes do @
+    const atPos = this._mentionStartPos - 1; // Posicao do @
+    const before = text.slice(0, atPos);
     const after = text.slice(input.selectionStart);
-    input.value = before + '@' + user.name + ' ' + after;
+    const mentionText = '@' + user.name;
+    const insertedLength = mentionText.length + 1; // +1 para o espaco
+
+    // Recalcular indices de mencoes existentes que estao apos o ponto de insercao
+    const oldLength = input.selectionStart - atPos;
+    const delta = insertedLength - oldLength;
+    this._pendingMentions.forEach(m => {
+      if (m.startIdx > atPos) { m.startIdx += delta; m.endIdx += delta; }
+    });
+
+    input.value = before + mentionText + ' ' + after;
+    const newCursorPos = before.length + mentionText.length + 1;
     input.focus();
-    input.selectionStart = input.selectionEnd = before.length + user.name.length + 2;
+    input.selectionStart = input.selectionEnd = newCursorPos;
+
+    // Registrar a mencao pendente com o ID do usuario
+    this._pendingMentions.push({
+      id: user.id,
+      name: user.name,
+      startIdx: atPos,
+      endIdx: atPos + mentionText.length
+    });
+
     this._hideMentionSuggestions();
   },
 
@@ -1555,6 +1638,68 @@ const TBO_CHAT = {
     this._showMentionSuggestions = false;
     const el = document.getElementById('chatMentionSuggestions');
     if (el) el.style.display = 'none';
+  },
+
+  // Converter texto do textarea com @NomeCompleto para tokens <@user_id>
+  // e construir o array metadata.mentions
+  _buildMentionData(rawContent) {
+    if (!this._pendingMentions.length) {
+      return { content: rawContent, mentions: [] };
+    }
+    // Ordenar mencoes por posicao (do fim para o inicio) para substituicao segura
+    const sorted = [...this._pendingMentions].sort((a, b) => b.startIdx - a.startIdx);
+    let tokenContent = rawContent;
+    const mentionsArray = [];
+    const seenIds = new Set();
+
+    for (const mention of sorted) {
+      const expectedText = '@' + mention.name;
+      const actual = tokenContent.slice(mention.startIdx, mention.endIdx);
+      // Verificar que o texto ainda corresponde (usuario pode ter editado)
+      if (actual === expectedText) {
+        tokenContent = tokenContent.slice(0, mention.startIdx)
+          + '<@' + mention.id + '>'
+          + tokenContent.slice(mention.endIdx);
+        if (!seenIds.has(mention.id)) {
+          mentionsArray.push({ id: mention.id, name: mention.name });
+          seenIds.add(mention.id);
+        }
+      }
+    }
+    return { content: tokenContent, mentions: mentionsArray };
+  },
+
+  // Enviar notificacoes para usuarios mencionados (reutiliza TBO_NOTIFICATIONS)
+  async _notifyMentionedUsers(mentions, messageData, displayContent) {
+    if (typeof TBO_NOTIFICATIONS === 'undefined') return;
+    const currentUserId = this._currentUser?.id;
+    const senderName = this._getUserName(currentUserId);
+    const channelName = this._activeChannel?.name || 'chat';
+    for (const mention of mentions) {
+      if (mention.id === currentUserId) continue; // Nao notificar a si mesmo
+      try {
+        await TBO_NOTIFICATIONS.create(mention.id, {
+          title: `${senderName} mencionou voce`,
+          body: `em #${channelName}: "${(displayContent || '').slice(0, 80)}"`,
+          type: 'mention',
+          entityType: 'chat_message',
+          entityId: messageData.id,
+          actionUrl: '#chat'
+        });
+      } catch (e) {
+        console.warn('[Chat] Erro ao enviar notificacao de mencao:', e.message);
+      }
+    }
+  },
+
+  // Validar mencoes pendentes apos edicao do textarea (remove entradas invalidas)
+  _validatePendingMentions(input) {
+    const text = input.value;
+    this._pendingMentions = this._pendingMentions.filter(m => {
+      if (m.endIdx > text.length) return false;
+      const actual = text.slice(m.startIdx, m.endIdx);
+      return actual === '@' + m.name;
+    });
   },
 
   // ══════════════════════════════════════════════════════════════════
@@ -1850,18 +1995,24 @@ const TBO_CHAT = {
   // ══════════════════════════════════════════════════════════════════
   async _sendMessage() {
     const input = document.getElementById('chatInput');
-    const content = input?.value?.trim();
+    const rawContent = input?.value?.trim();
     const hasFiles = this._pendingFiles?.length > 0;
 
-    if (!content && !hasFiles) return;
+    if (!rawContent && !hasFiles) return;
     if (!this._activeChannel) return;
 
     const client = this._getClient();
     const user = this._currentUser;
     if (!client || !user) return;
 
-    // Limpar input
+    // Construir tokens de mencao e metadata ANTES de limpar input
+    const mentionData = this._buildMentionData(rawContent || '');
+    const mentionContent = mentionData.content;
+    const mentions = mentionData.mentions;
+
+    // Limpar input e mencoes pendentes
     if (input) { input.value = ''; input.style.height = 'auto'; }
+    this._pendingMentions = [];
 
     try {
       let messageType = 'text';
@@ -1877,17 +2028,20 @@ const TBO_CHAT = {
         }
       }
 
+      // Merge mencoes no metadata
+      if (mentions.length) { metadata.mentions = mentions; }
+
       const { data, error } = await client.from('chat_messages').insert({
         channel_id: this._activeChannel.id,
         sender_id: user.id,
-        content: content || (messageType !== 'text' ? '📎 Arquivo anexado' : ''),
+        content: mentionContent || (messageType !== 'text' ? '📎 Arquivo anexado' : ''),
         message_type: messageType,
         metadata
       }).select().single();
 
       if (error) {
         TBO_TOAST.error('Erro ao enviar', error.message);
-        if (input && content) input.value = content;
+        if (input && rawContent) input.value = rawContent;
         return;
       }
 
@@ -1905,6 +2059,11 @@ const TBO_CHAT = {
         }
       }
 
+      // Enviar notificacoes para usuarios mencionados (non-blocking)
+      if (mentions.length && data) {
+        this._notifyMentionedUsers(mentions, data, rawContent);
+      }
+
       if (data && !this._messages.find(m => m.id === data.id)) {
         this._messages.push(data);
         this._renderMessages();
@@ -1913,7 +2072,7 @@ const TBO_CHAT = {
       }
     } catch (e) {
       TBO_TOAST.error('Erro ao enviar', e.message);
-      if (input && content) input.value = content;
+      if (input && rawContent) input.value = rawContent;
     }
   },
 
@@ -2277,8 +2436,8 @@ const TBO_CHAT = {
       .chat-reaction-chip.active span { color: var(--accent, #E85102); }
 
       /* ── Mentions ── */
-      .chat-mention { background: rgba(99, 102, 241, 0.15); color: #818cf8; padding: 2px 6px; border-radius: 4px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
-      .chat-mention:hover { background: rgba(99, 102, 241, 0.25); }
+      .chat-mention { background: rgba(99, 102, 241, 0.15); color: #818cf8; padding: 2px 6px; border-radius: 4px; font-weight: 600; cursor: pointer; transition: background 0.15s; text-decoration: none; }
+      .chat-mention:hover { background: rgba(99, 102, 241, 0.25); text-decoration: underline; }
 
       /* ── Attachments ── */
       .chat-attachment-image { margin-top: 6px; max-width: 320px; }

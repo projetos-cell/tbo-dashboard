@@ -487,20 +487,11 @@ const TBO_APP = {
       });
     }
 
-    // 4. Collapse toggle
+    // 4. Collapse toggle — restaurar estado salvo
     if (sidebar && localStorage.getItem('tbo_sidebar_collapsed') === '1') {
       sidebar.classList.add('collapsed');
     }
-    const toggleBtn = document.getElementById('sidebarToggle');
-    if (toggleBtn) {
-      toggleBtn.addEventListener('click', () => {
-        const sb = document.getElementById('sidebar');
-        if (sb) {
-          sb.classList.toggle('collapsed');
-          localStorage.setItem('tbo_sidebar_collapsed', sb.classList.contains('collapsed') ? '1' : '0');
-        }
-      });
-    }
+    // Bind do botao collapse movido para _renderSidebarFooter()
 
     // 5. Mobile menu
     const mobileBtn = document.getElementById('mobileMenuBtn');
@@ -518,6 +509,12 @@ const TBO_APP = {
 
     // 7. Busca rapida inline
     this._bindSidebarSearch();
+
+    // 7b. Icone de busca no modo colapsado
+    this._addCollapsedSearchBtn();
+
+    // 7c. Footer com avatar do usuario + collapse
+    this._renderSidebarFooter();
 
     // 8. Render favoritos e recentes
     this._renderFavorites();
@@ -539,10 +536,7 @@ const TBO_APP = {
     // 11. Context menu (F28)
     this._bindContextMenu();
 
-    // 12. Mini-preview (F30)
-    this._bindMiniPreview();
-
-    // 13. Keyboard navigation (acessibilidade)
+    // 12. Keyboard navigation (acessibilidade)
     this._bindSidebarKeyboard();
 
     // 14. Badge counts (F27) — atualizar a cada 2min
@@ -947,6 +941,80 @@ const TBO_APP = {
     }
   },
 
+  // ── Icone de busca no modo colapsado ──────────────────────────────────
+  _addCollapsedSearchBtn() {
+    const searchContainer = document.getElementById('sidebarSearch');
+    if (!searchContainer) return;
+    const btn = document.createElement('button');
+    btn.className = 'sidebar-search-collapsed-btn';
+    btn.title = 'Buscar (/)';
+    btn.setAttribute('aria-label', 'Abrir busca rapida');
+    btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
+    btn.addEventListener('click', () => {
+      const sb = document.getElementById('sidebar');
+      if (sb?.classList.contains('collapsed')) {
+        sb.classList.remove('collapsed');
+        sb.style.width = '';
+        localStorage.setItem('tbo_sidebar_collapsed', '0');
+      }
+      setTimeout(() => document.getElementById('sidebarSearchInput')?.focus(), 100);
+    });
+    searchContainer.appendChild(btn);
+  },
+
+  // ── Footer com avatar do usuario + collapse ─────────────────────────
+  _renderSidebarFooter() {
+    const footer = document.querySelector('.sidebar-footer');
+    if (!footer) return;
+
+    const user = TBO_AUTH?.getCurrentUser?.();
+    const fullName = user?.name || user?.full_name || 'Usuario';
+    const initials = fullName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const name = this._escHtml(fullName);
+    const role = this._escHtml(user?.roleLabel || user?.role || '');
+
+    footer.innerHTML = `
+      <div class="sidebar-footer-user" title="${name} — ${role}">
+        <div class="sidebar-user-avatar">${initials}</div>
+        <div class="sidebar-footer-user-info">
+          <span class="sidebar-user-name">${name}</span>
+          <span class="sidebar-user-role">${role}</span>
+        </div>
+      </div>
+      <div class="sidebar-footer-actions">
+        <button class="sidebar-footer-btn" id="sidebarSettingsBtn" title="Configuracoes" aria-label="Abrir configuracoes">
+          <i data-lucide="settings" aria-hidden="true"></i>
+        </button>
+        <button class="sidebar-collapse-btn" id="sidebarToggle" title="Recolher menu" aria-label="Recolher barra lateral">
+          <i data-lucide="chevron-left" aria-hidden="true"></i>
+        </button>
+      </div>
+    `;
+
+    if (window.lucide) lucide.createIcons({ root: footer });
+
+    // Bind collapse button
+    const toggleBtn = document.getElementById('sidebarToggle');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        const sb = document.getElementById('sidebar');
+        if (sb) {
+          sb.classList.toggle('collapsed');
+          sb.style.width = '';
+          localStorage.setItem('tbo_sidebar_collapsed', sb.classList.contains('collapsed') ? '1' : '0');
+        }
+      });
+    }
+
+    // Bind settings button
+    const settingsBtn = document.getElementById('sidebarSettingsBtn');
+    if (settingsBtn) {
+      settingsBtn.addEventListener('click', () => {
+        if (typeof TBO_ROUTER !== 'undefined') TBO_ROUTER.navigate('configuracoes');
+      });
+    }
+  },
+
   // ── Collapsible sidebar sections (B8 — transicao suave) ──────────────
   _bindSectionToggles() {
     document.querySelectorAll('.nav-section-toggle').forEach(toggle => {
@@ -1200,74 +1268,6 @@ const TBO_APP = {
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') menu.classList.remove('visible'); });
   },
 
-  // ── Mini-preview on hover (F30) ───────────────────────────────────────
-  _bindMiniPreview() {
-    const preview = document.getElementById('sidebarMiniPreview');
-    const sidebar = document.getElementById('sidebar');
-    if (!preview || !sidebar) return;
-
-    let hoverTimer = null;
-    let currentHoverMod = null;
-
-    // Dados de preview por modulo (KPIs mockados — em produção viria do Supabase)
-    const previewData = {
-      'command-center': { kpis: [{ v: '—', l: 'Projetos' }, { v: '—', l: 'Tarefas' }, { v: '—', l: 'Deals' }, { v: '—', l: 'Entregas' }] },
-      'projetos': { kpis: [{ v: '—', l: 'Ativos' }, { v: '—', l: 'Atrasados' }, { v: '—', l: 'Finalizados' }, { v: '—', l: 'Este mês' }] },
-      'tarefas': { kpis: [{ v: '—', l: 'Pendentes' }, { v: '—', l: 'Em andamento' }, { v: '—', l: 'Concluídas' }, { v: '—', l: 'Atrasadas' }] },
-      'pipeline': { kpis: [{ v: '—', l: 'Leads' }, { v: '—', l: 'Negociação' }, { v: '—', l: 'Proposta' }, { v: '—', l: 'Fechados' }] },
-      'financeiro': { kpis: [{ v: '—', l: 'Receita' }, { v: '—', l: 'Despesa' }, { v: '—', l: 'Lucro' }, { v: '—', l: 'A receber' }] },
-      'rh': { kpis: [{ v: '—', l: 'Equipe' }, { v: '—', l: 'Ativos' }, { v: '—', l: 'Onboarding' }, { v: '—', l: 'BUs' }] },
-    };
-
-    sidebar.addEventListener('mouseover', (e) => {
-      const btn = e.target.closest('.nav-item[data-module]');
-      if (!btn || sidebar.classList.contains('collapsed')) { clearTimeout(hoverTimer); return; }
-
-      const modKey = btn.dataset.module;
-      if (modKey === currentHoverMod) return;
-      currentHoverMod = modKey;
-
-      clearTimeout(hoverTimer);
-      hoverTimer = setTimeout(() => {
-        const data = previewData[modKey];
-        if (!data) return;
-
-        const label = this._escHtml(this._moduleLabels[modKey] || modKey);
-        const icon = this._escHtml(this._moduleIcons[modKey] || 'file');
-
-        preview.innerHTML = `
-          <div class="sidebar-mini-preview-title">
-            <i data-lucide="${icon}"></i> ${label}
-          </div>
-          <div class="sidebar-mini-preview-kpis">
-            ${data.kpis.map(k => `
-              <div class="sidebar-mini-kpi">
-                <div class="sidebar-mini-kpi-value">${k.v}</div>
-                <div class="sidebar-mini-kpi-label">${k.l}</div>
-              </div>
-            `).join('')}
-          </div>
-        `;
-
-        if (window.lucide) lucide.createIcons({ root: preview });
-
-        const rect = btn.getBoundingClientRect();
-        const sidebarRect = sidebar.getBoundingClientRect();
-        preview.style.left = (sidebarRect.right + 8) + 'px';
-        preview.style.top = Math.min(rect.top, window.innerHeight - 180) + 'px';
-        preview.classList.add('visible');
-      }, 600); // 600ms delay
-    });
-
-    sidebar.addEventListener('mouseout', (e) => {
-      const btn = e.target.closest('.nav-item[data-module]');
-      if (!btn) return;
-      clearTimeout(hoverTimer);
-      currentHoverMod = null;
-      preview.classList.remove('visible');
-    });
-  },
-
   // ── Keyboard navigation sidebar (acessibilidade) ──────────────────────
   _bindSidebarKeyboard() {
     const navEl = document.getElementById('sidebarNav');
@@ -1294,8 +1294,8 @@ const TBO_APP = {
   },
 
   // ── Sidebar resize com snap points (C16 — rAF throttle) ──────────────
-  _SIDEBAR_SNAP_POINTS: [64, 180, 260, 340],
-  _SIDEBAR_SNAP_THRESHOLD: 25,
+  _SIDEBAR_SNAP_POINTS: [64, 260],
+  _SIDEBAR_SNAP_THRESHOLD: 40,
 
   _bindSidebarResize() {
     const handle = document.getElementById('sidebarResizeHandle');
@@ -1305,19 +1305,7 @@ const TBO_APP = {
     let isResizing = false;
     let rafPending = false;
 
-    // Restaurar largura salva
-    const savedWidth = localStorage.getItem('tbo_sidebar_width');
-    if (savedWidth) {
-      const w = parseInt(savedWidth);
-      if (w <= 64) {
-        sidebar.classList.add('collapsed');
-        sidebar.style.width = '';
-      } else {
-        sidebar.classList.remove('collapsed');
-        sidebar.style.width = w + 'px';
-        sidebar.classList.toggle('sidebar-compact', w > 64 && w < 220);
-      }
-    }
+    // Estado restaurado pelo _bindSidebar() via tbo_sidebar_collapsed
 
     // Ghost line + snap indicator
     const ghost = document.createElement('div');
@@ -1334,12 +1322,7 @@ const TBO_APP = {
       return null;
     };
 
-    const getSnapLabel = (w) => {
-      if (w <= 64) return 'Colapsado';
-      if (w <= 180) return 'Compacto';
-      if (w <= 260) return 'Normal';
-      return 'Expandido';
-    };
+    const getSnapLabel = (w) => w <= 64 ? 'Colapsado (64px)' : 'Normal (260px)';
 
     handle.addEventListener('mousedown', (e) => {
       isResizing = true;
@@ -1373,14 +1356,13 @@ const TBO_APP = {
           snapIndicator.style.display = 'none';
         }
 
-        if (finalWidth <= 64) {
+        // Binario: collapsed ou expanded
+        if (finalWidth <= 160) {
           sidebar.classList.add('collapsed');
           sidebar.style.width = '';
-          sidebar.classList.remove('sidebar-compact');
         } else {
           sidebar.classList.remove('collapsed');
-          sidebar.style.width = finalWidth + 'px';
-          sidebar.classList.toggle('sidebar-compact', finalWidth > 64 && finalWidth < 220);
+          sidebar.style.width = '';
         }
       });
     });
@@ -1394,26 +1376,22 @@ const TBO_APP = {
       ghost.style.display = 'none';
       snapIndicator.style.display = 'none';
 
+      // Finalizar: binario collapsed/expanded
       const currentWidth = sidebar.offsetWidth;
-      const snapped = getSnapPoint(currentWidth);
-      if (snapped) {
-        if (snapped <= 64) {
-          sidebar.classList.add('collapsed');
-          sidebar.style.width = '';
-        } else {
-          sidebar.style.width = snapped + 'px';
-        }
+      if (currentWidth <= 160) {
+        sidebar.classList.add('collapsed');
+      } else {
+        sidebar.classList.remove('collapsed');
       }
+      sidebar.style.width = '';
 
-      const w = sidebar.classList.contains('collapsed') ? 64 : sidebar.offsetWidth;
-      localStorage.setItem('tbo_sidebar_width', w);
-      localStorage.setItem('tbo_sidebar_collapsed', w <= 64 ? '1' : '0');
+      const isCollapsed = sidebar.classList.contains('collapsed');
+      localStorage.setItem('tbo_sidebar_collapsed', isCollapsed ? '1' : '0');
     });
 
     handle.addEventListener('dblclick', () => {
-      sidebar.classList.remove('collapsed', 'sidebar-compact');
+      sidebar.classList.remove('collapsed');
       sidebar.style.width = '';
-      localStorage.setItem('tbo_sidebar_width', '260');
       localStorage.setItem('tbo_sidebar_collapsed', '0');
     });
   },
@@ -1892,6 +1870,7 @@ const TBO_APP = {
       const sb = document.getElementById('sidebar');
       if (sb) {
         sb.classList.toggle('collapsed');
+        sb.style.width = '';
         localStorage.setItem('tbo_sidebar_collapsed', sb.classList.contains('collapsed') ? '1' : '0');
       }
     }, 'Recolher/expandir barra lateral');

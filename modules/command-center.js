@@ -216,7 +216,7 @@ const TBO_COMMAND_CENTER = {
     if (h >= 5 && h < 12) greeting = 'Bom dia';
     else if (h >= 12 && h < 18) greeting = 'Boa tarde';
 
-    const firstName = (user.name || '').split(' ')[0];
+    const firstName = this._esc((user.name || '').split(' ')[0]);
     const d = this._getData();
 
     // Count pending items for user
@@ -424,7 +424,21 @@ const TBO_COMMAND_CENTER = {
   // ═══════════════════════════════════════════════════════════════════════════
   // WIDGET RENDERER — Dispatches to the correct render function per widget ID
   // ═══════════════════════════════════════════════════════════════════════════
+  // v2.2.2: Widgets que contem dados financeiros sensiveis (receita, margem, pipeline values)
+  // Apenas founders e finance podem visualizar
+  _financialWidgets: ['business-pulse', 'pipeline-funnel', 'sidebar-commercial'],
+
+  _isFinancialAccessAllowed() {
+    const variant = (typeof TBO_AUTH !== 'undefined') ? TBO_AUTH.getDashboardVariant() : 'full';
+    return variant === 'full' || variant === 'financial';
+  },
+
   _renderWidgetContent(widgetId, d) {
+    // v2.2.2: Bloquear widgets financeiros para roles sem acesso (artists, POs)
+    if (this._financialWidgets.includes(widgetId) && !this._isFinancialAccessAllowed()) {
+      return ''; // Widget oculto — sem dados financeiros para este role
+    }
+
     const erpSummary = TBO_STORAGE.getErpSummary ? TBO_STORAGE.getErpSummary() : null;
     const erpAlerts = (typeof TBO_ERP !== 'undefined') ? TBO_ERP.generateAlerts().slice(0, 8) : [];
     const actionsToday = (typeof TBO_ERP !== 'undefined') ? TBO_ERP.getActionsToday().slice(0, 6) : [];
@@ -485,6 +499,19 @@ const TBO_COMMAND_CENTER = {
         </section>`;
 
       case 'kpis':
+        // v2.2.2: Card de receita so para founders/finance — outros veem entregas do mes
+        const showFinancialKpi = this._isFinancialAccessAllowed();
+        const kpiFinancialCard = showFinancialKpi
+          ? `<div class="kpi-card kpi-card--gold">
+              <div class="kpi-label">Receita YTD 2026</div>
+              <div class="kpi-value gold">${receitaYTD > 0 ? TBO_FORMATTER.currency(receitaYTD) : '\u2014'}</div>
+              <div class="kpi-change ${resultadoYTD >= 0 ? 'positive' : 'negative'}">${resultadoYTD >= 0 ? '+' : ''}${TBO_FORMATTER.currency(resultadoYTD)} resultado</div>
+            </div>`
+          : `<div class="kpi-card">
+              <div class="kpi-label">Entregas no Mes</div>
+              <div class="kpi-value">${erpSummary ? erpSummary.deliverables?.completed || 0 : d.totalFinalizados || 0}</div>
+              <div class="kpi-change neutral">${d.ativos.length} projetos em andamento</div>
+            </div>`;
         return `
         <section class="section">
           <div class="grid-4" style="margin-bottom:12px;">
@@ -493,11 +520,7 @@ const TBO_COMMAND_CENTER = {
               <div class="kpi-value">${erpSummary ? erpSummary.projects.active : d.ativos.length}</div>
               <div class="kpi-change neutral">${erpSummary ? erpSummary.tasks.overdue + ' tarefas atrasadas' : new Set(d.ativos.map(p => p.construtora)).size + ' construtoras'}</div>
             </div>
-            <div class="kpi-card kpi-card--gold">
-              <div class="kpi-label">Receita YTD 2026</div>
-              <div class="kpi-value gold">${receitaYTD > 0 ? TBO_FORMATTER.currency(receitaYTD) : '\u2014'}</div>
-              <div class="kpi-change ${resultadoYTD >= 0 ? 'positive' : 'negative'}">${resultadoYTD >= 0 ? '+' : ''}${TBO_FORMATTER.currency(resultadoYTD)} resultado</div>
-            </div>
+            ${kpiFinancialCard}
             <div class="kpi-card">
               <div class="kpi-label">Reunioes (7 dias)</div>
               <div class="kpi-value">${d.recentMeetings.length}</div>
@@ -1228,7 +1251,7 @@ const TBO_COMMAND_CENTER = {
       }
 
       const now = new Date();
-      const firstName = (user.name || '').split(' ')[0];
+      const firstName = this._esc((user.name || '').split(' ')[0]);
       const upcoming = oneOnOnes.filter(o => {
         return o.status === 'agendado' && new Date(o.data) >= now &&
                (o.colaborador || '').toLowerCase().includes(firstName.toLowerCase());

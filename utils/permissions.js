@@ -46,7 +46,9 @@ const TBO_PERMISSIONS = {
       label: 'Project Owner',
       color: '#8b5cf6',
       // v2.2.1: removido 'comercial' (CRM/pipeline com dados financeiros sigilosos)
-      modules: ['command-center','alerts','clientes','portal-cliente','contratos','conteudo','projetos','mercado','reunioes','rh','cultura','configuracoes','admin-onboarding'],
+      // v2.2.2: removidos clientes/contratos (dados de receita) — PO foca em projetos/entregas
+      // portal-cliente movido para secao PROJETOS (visivel a POs para acompanhar cliente)
+      modules: ['command-center','alerts','portal-cliente','conteudo','projetos','mercado','reunioes','rh','cultura','configuracoes','admin-onboarding'],
       dashboardVariant: 'projects',
       defaultModule: 'command-center'
     },
@@ -122,6 +124,7 @@ const TBO_PERMISSIONS = {
   },
 
   // Fallback hardcoded — usado apenas se Supabase nao estiver disponivel
+  // v2.2.2: removidos usuarios inativos (Erick, Dann, Mari, FinancaAzul) — deletados do Supabase
   _defaultUserRoles: {
     marco:    { role: 'founder',       bu: null,           isCoordinator: false },
     ruy:      { role: 'founder',       bu: null,           isCoordinator: false },
@@ -131,13 +134,10 @@ const TBO_PERMISSIONS = {
     rafa:     { role: 'project_owner', bu: 'Marketing',    isCoordinator: false },
     gustavo:  { role: 'comercial',     bu: 'Vendas',       isCoordinator: false },
     celso:    { role: 'artist',        bu: 'Branding',     isCoordinator: false },
-    erick:    { role: 'artist',        bu: 'Branding',     isCoordinator: false },
-    dann:     { role: 'project_owner', bu: 'Digital 3D',   isCoordinator: false },
     duda:     { role: 'artist',        bu: 'Digital 3D',   isCoordinator: false },
     tiago:    { role: 'artist',        bu: 'Digital 3D',   isCoordinator: false },
-    mari:     { role: 'artist',        bu: 'Digital 3D',   isCoordinator: false },
     lucca:    { role: 'artist',        bu: 'Marketing',    isCoordinator: false },
-    financaazul: { role: 'finance',    bu: null,           isCoordinator: false }
+    lucas:    { role: 'artist',        bu: null,           isCoordinator: false }
   },
 
   // ── Sidebar Section Definitions (organized by operational flow) ───────────
@@ -152,13 +152,15 @@ const TBO_PERMISSIONS = {
       id: 'receita',
       label: 'RECEITA',
       icon: 'trending-up',
-      modules: ['pipeline', 'comercial', 'clientes', 'portal-cliente', 'contratos']
+      // v2.2.2: portal-cliente movido para PROJETOS (e visao do cliente sobre o projeto)
+      modules: ['pipeline', 'comercial', 'clientes', 'contratos']
     },
     {
       id: 'projetos-core',
       label: 'PROJETOS',
       icon: 'clipboard-list',
-      modules: ['projetos', 'entregas', 'tarefas', 'revisoes']
+      // v2.2.2: portal-cliente agora e modulo de projetos (visao do cliente)
+      modules: ['projetos', 'portal-cliente', 'entregas', 'tarefas', 'revisoes']
     },
     {
       id: 'inteligencia',

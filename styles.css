@@ -76,7 +76,7 @@
   /* Layout */
   --sidebar-width: 260px;
   --sidebar-collapsed: 64px;
-  --header-height: 56px;
+  --header-height: 0px;
   --content-max-width: 1400px;
 
   /* Radii */
@@ -1233,16 +1233,10 @@ body.dark-mode .theme-icon-dark { display: flex; }
    HEADER
    =================================================================== */
 .app-header {
-  height: var(--header-height);
-  background: var(--bg-header);
-  border-bottom: 1px solid var(--border-subtle);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  flex-shrink: 0;
-  z-index: var(--z-header);
-  backdrop-filter: blur(12px);
+  display: none !important;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
 }
 
 .header-left {

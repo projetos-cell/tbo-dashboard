@@ -1,6 +1,6 @@
 # Arquivos que NÃO devem ir para o deploy
 archive/
-supabase/
+/supabase/
 database/
 docs/
 scripts/

@@ -1,0 +1,168 @@
+/* ============================================================================
+ * TBO OS — Asana-style Layout System
+ *
+ * Layout de 3 painéis: Sidebar | Main Content | Details Panel
+ * Ativado via classe .asana-layout no body ou #app-container
+ * ============================================================================ */
+
+/* ── Layout Principal ───────────────────────────────────────────────────── */
+
+.main-content.asana-main {
+  display: flex;
+  flex-direction: row;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+
+/* Área central (listas, tabelas) */
+.asana-content {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 24px;
+}
+
+/* ── Toolbar acima do conteúdo ──────────────────────────────────────────── */
+
+.asana-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--border-subtle, #eaeaea);
+  background: var(--bg-card, #ffffff);
+  flex-shrink: 0;
+}
+
+.asana-toolbar-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, #0f0f0f);
+  flex: 1;
+}
+
+.asana-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.asana-toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-family: var(--font-body);
+  color: var(--text-secondary, #606060);
+  background: transparent;
+  border: 1px solid var(--border-default, #dfdfdf);
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.asana-toolbar-btn:hover {
+  background: var(--bg-card-hover, #f8f8f8);
+  border-color: var(--border-hover, #9f9f9f);
+}
+
+.asana-toolbar-btn i {
+  width: 14px;
+  height: 14px;
+}
+
+.asana-toolbar-btn--primary {
+  background: var(--brand-orange, #E85102);
+  border-color: var(--brand-orange, #E85102);
+  color: #fff;
+}
+
+.asana-toolbar-btn--primary:hover {
+  background: var(--brand-orange-dark, #BE4202);
+  border-color: var(--brand-orange-dark, #BE4202);
+}
+
+/* ── View Switcher (List / Board / Calendar) ───────────────────────────── */
+
+.asana-views {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: var(--bg-card-hover, #f8f8f8);
+  border-radius: var(--radius-sm, 6px);
+}
+
+.asana-view-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-family: var(--font-body);
+  color: var(--text-muted, #9f9f9f);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-xs, 3px);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.asana-view-btn:hover {
+  color: var(--text-primary, #0f0f0f);
+}
+
+.asana-view-btn--active {
+  background: var(--bg-card, #ffffff);
+  color: var(--text-primary, #0f0f0f);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.06));
+}
+
+/* ── Empty State ────────────────────────────────────────────────────────── */
+
+.asana-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  text-align: center;
+  color: var(--text-muted, #9f9f9f);
+}
+
+.asana-empty i {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 12px;
+  opacity: 0.4;
+}
+
+.asana-empty-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-secondary, #606060);
+  margin-bottom: 4px;
+}
+
+.asana-empty-text {
+  font-size: 13px;
+}
+
+/* ── Responsivo ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 1024px) {
+  .asana-content {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content.asana-main {
+    flex-direction: column;
+  }
+
+  .asana-content {
+    padding: 12px;
+  }
+}

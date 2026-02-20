@@ -1,0 +1,303 @@
+/* ============================================================================
+ * TBO OS — ListView (Lista estruturada Asana-style)
+ * ============================================================================ */
+
+/* Container da lista */
+.lv-container {
+  width: 100%;
+}
+
+/* Header da lista (colunas) */
+.lv-header {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border-default, #dfdfdf);
+  position: sticky;
+  top: 0;
+  background: var(--bg-card, #ffffff);
+  z-index: 2;
+}
+
+.lv-header-cell {
+  padding: 8px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted, #9f9f9f);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.1s ease;
+  user-select: none;
+}
+
+.lv-header-cell:hover {
+  color: var(--text-primary, #0f0f0f);
+}
+
+.lv-header-cell--sorted {
+  color: var(--brand-orange, #E85102);
+}
+
+.lv-header-cell i {
+  width: 12px;
+  height: 12px;
+}
+
+/* Coluna de drag + checkbox (primeira) */
+.lv-col-select {
+  width: 60px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Coluna de título (flex) */
+.lv-col-title {
+  flex: 1;
+  min-width: 200px;
+}
+
+/* Colunas fixas */
+.lv-col-sm { width: 100px; flex-shrink: 0; }
+.lv-col-md { width: 130px; flex-shrink: 0; }
+.lv-col-lg { width: 160px; flex-shrink: 0; }
+
+/* ── Linhas ─────────────────────────────────────────────────────────────── */
+
+.lv-body {
+  position: relative;
+}
+
+.lv-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border-subtle, #eaeaea);
+  min-height: 40px;
+  cursor: pointer;
+  transition: background 0.08s ease;
+  position: relative;
+}
+
+.lv-row:hover {
+  background: var(--bg-card-hover, #f8f8f8);
+}
+
+.lv-row--selected {
+  background: var(--accent-alpha-08, rgba(232, 81, 2, 0.08));
+}
+
+.lv-row--selected:hover {
+  background: var(--accent-alpha-12, rgba(232, 81, 2, 0.12));
+}
+
+/* Indicador lateral de seleção */
+.lv-row--selected::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--brand-orange, #E85102);
+}
+
+/* Drag handle */
+.lv-drag-handle {
+  width: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  color: transparent;
+  flex-shrink: 0;
+  transition: color 0.1s ease;
+}
+
+.lv-row:hover .lv-drag-handle {
+  color: var(--text-muted, #9f9f9f);
+}
+
+.lv-drag-handle:active {
+  cursor: grabbing;
+}
+
+.lv-drag-handle svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Checkbox */
+.lv-checkbox {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-default, #dfdfdf);
+  border-radius: var(--radius-xs, 3px);
+  cursor: pointer;
+  transition: all 0.1s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.lv-checkbox:hover {
+  border-color: var(--brand-orange, #E85102);
+}
+
+.lv-checkbox--checked {
+  background: var(--brand-orange, #E85102);
+  border-color: var(--brand-orange, #E85102);
+}
+
+.lv-checkbox--checked::after {
+  content: '';
+  width: 6px;
+  height: 3px;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(-45deg) translate(0, -1px);
+}
+
+/* Células */
+.lv-cell {
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--text-primary, #0f0f0f);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lv-cell--title {
+  font-weight: 500;
+}
+
+.lv-cell--muted {
+  color: var(--text-secondary, #606060);
+  font-size: 12px;
+}
+
+/* Status badge inline */
+.lv-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: var(--radius-full, 9999px);
+  white-space: nowrap;
+}
+
+.lv-status--todo       { background: var(--color-danger-dim); color: var(--color-danger); }
+.lv-status--progress   { background: var(--accent-alpha-15, rgba(232,81,2,0.15)); color: var(--brand-orange-dark, #BE4202); }
+.lv-status--review     { background: var(--color-warning-dim); color: var(--color-warning); }
+.lv-status--done       { background: var(--color-success-dim); color: var(--color-success); }
+
+/* Avatar na linha */
+.lv-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--brand-orange-pale, #FED5C0);
+  color: var(--brand-orange-dark, #BE4202);
+  font-size: 10px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.lv-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Seção / Grupo */
+.lv-group {
+  margin-bottom: 4px;
+}
+
+.lv-group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.lv-group-chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted, #9f9f9f);
+  transition: transform 0.15s ease;
+}
+
+.lv-group-header--collapsed .lv-group-chevron {
+  transform: rotate(-90deg);
+}
+
+.lv-group-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #0f0f0f);
+}
+
+.lv-group-count {
+  font-size: 11px;
+  color: var(--text-muted, #9f9f9f);
+  font-weight: 400;
+}
+
+.lv-group-items {
+  overflow: hidden;
+  transition: max-height 0.2s ease;
+}
+
+.lv-group-items--collapsed {
+  max-height: 0;
+}
+
+/* Drag state */
+.lv-row--dragging {
+  opacity: 0.5;
+  background: var(--accent-alpha-08, rgba(232, 81, 2, 0.08));
+}
+
+.lv-row--drop-target {
+  border-top: 2px solid var(--brand-orange, #E85102);
+}
+
+/* Add row */
+.lv-add-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 8px 60px;
+  color: var(--text-muted, #9f9f9f);
+  font-size: 13px;
+  cursor: pointer;
+  transition: color 0.1s ease;
+}
+
+.lv-add-row:hover {
+  color: var(--brand-orange, #E85102);
+}
+
+.lv-add-row i {
+  width: 14px;
+  height: 14px;
+}

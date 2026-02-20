@@ -83,6 +83,12 @@ export default [
         TBO_NOTION_SIDEBAR: "readonly",
         TBO_NAV_BRIDGE: "readonly",
 
+        // ─── Asana-style UI (v3.2) ───
+        TBO_ASANA_LAYOUT: "readonly",
+        TBO_DETAILS_PANEL: "readonly",
+        TBO_LIST_VIEW: "readonly",
+        TBO_INLINE_EDITOR: "readonly",
+
         // Onboarding globals
         ONBOARDING_CONFIG: "readonly",
         TBO_ONBOARDING_DB: "readonly",

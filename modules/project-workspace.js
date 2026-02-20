@@ -295,7 +295,17 @@ const TBO_PROJECT_WORKSPACE = {
           </div>
         </div>
         <div class="pw-header-right">
-          ${p.owner ? `<span class="pw-owner-tag"><i data-lucide="user" style="width:14px;height:14px;"></i> ${this._esc(p.owner)}</span>` : ''}
+          <div class="pw-owner-btn-wrapper" id="pwOwnerWrapper">
+            <button class="pw-owner-btn" id="pwHeaderOwnerBtn" role="button" aria-expanded="false" aria-haspopup="menu" title="Alterar responsavel">
+              <div class="pw-owner-btn-avatar">${p.owner ? this._esc(p.owner.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()) : '?'}</div>
+              <div class="pw-owner-btn-info">
+                <span class="pw-owner-btn-name">${this._esc(p.owner || 'Sem responsavel')}</span>
+                <span class="pw-owner-btn-role">Responsavel do projeto</span>
+              </div>
+              <svg class="pw-owner-btn-chevron" viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="m18.185 7.851-6.186 5.191-6.186-5.191a1.499 1.499 0 1 0-1.928 2.298l7.15 6a1.498 1.498 0 0 0 1.928 0l7.15-6a1.5 1.5 0 0 0-1.928-2.298Z"/></svg>
+            </button>
+            <div class="pw-owner-dropdown" id="pwOwnerDropdown"></div>
+          </div>
           <button class="btn btn-ghost pw-action-btn" onclick="TBO_PROJECT_WORKSPACE._copyProjectLink()" title="Copiar link do projeto">
             <i data-lucide="link" style="width:16px;height:16px;"></i>
           </button>
@@ -862,17 +872,24 @@ const TBO_PROJECT_WORKSPACE = {
                 ${task.is_milestone ? '<span class="pw-milestone-badge" title="Milestone"><i data-lucide="diamond" style="width:12px;height:12px;"></i></span>' : ''}
               </div>`;
             case 'owner': return `
-              <div class="pw-list-col pw-list-col--owner">
-                ${task.owner ? `<span class="pw-owner-chip">${this._esc(task.owner)}</span>` : '<span class="pw-unassigned"><i data-lucide="user-plus" style="width:14px;height:14px;"></i></span>'}
+              <div class="pw-list-col pw-list-col--owner pw-cell-clickable" data-task-id="${this._esc(task.id)}" data-cell="owner">
+                ${task.owner ? `
+                  <div class="pw-cell-assignee">
+                    <div class="pw-cell-avatar">${this._esc(task.owner.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase())}</div>
+                    <span class="pw-owner-chip">${this._esc(task.owner)}</span>
+                  </div>
+                ` : '<span class="pw-unassigned"><i data-lucide="user-plus" style="width:14px;height:14px;"></i></span>'}
               </div>`;
             case 'due_date': return `<div class="pw-list-col pw-list-col--due_date">${formatDate(task.due_date)}</div>`;
             case 'priority': return `
-              <div class="pw-list-col pw-list-col--priority">
+              <div class="pw-list-col pw-list-col--priority pw-cell-clickable" data-task-id="${this._esc(task.id)}" data-cell="priority">
                 <span class="pw-priority-chip" style="background:${priorityColor}15;color:${priorityColor};">${priorityLabel}</span>
+                <svg class="pw-cell-chevron" viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="m18.185 7.851-6.186 5.191-6.186-5.191a1.499 1.499 0 1 0-1.928 2.298l7.15 6a1.498 1.498 0 0 0 1.928 0l7.15-6a1.5 1.5 0 0 0-1.928-2.298Z"/></svg>
               </div>`;
             case 'status': return `
-              <div class="pw-list-col pw-list-col--status">
+              <div class="pw-list-col pw-list-col--status pw-cell-clickable" data-task-id="${this._esc(task.id)}" data-cell="status">
                 <span class="pw-status-chip" style="background:${statusColor}20;color:${statusColor};">${statusLabel}</span>
+                <svg class="pw-cell-chevron" viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="m18.185 7.851-6.186 5.191-6.186-5.191a1.499 1.499 0 1 0-1.928 2.298l7.15 6a1.498 1.498 0 0 0 1.928 0l7.15-6a1.5 1.5 0 0 0-1.928-2.298Z"/></svg>
               </div>`;
             case 'phase': return `<div class="pw-list-col pw-list-col--phase">${this._esc(task.phase || '-')}</div>`;
             case 'start_date': return `<div class="pw-list-col pw-list-col--start_date">${formatDate(task.start_date)}</div>`;
@@ -1067,11 +1084,33 @@ const TBO_PROJECT_WORKSPACE = {
             <div class="pw-details-grid">
               <div class="pw-detail-item">
                 <span class="pw-detail-label">Cliente</span>
-                <span class="pw-detail-value pw-detail-editable" contenteditable="true" data-field="client" data-placeholder="Adicionar cliente...">${this._esc(p.client || '')}</span>
+                <div class="pw-interactive-btn-wrapper" data-field="client" data-type="text-select">
+                  <button class="pw-interactive-btn" data-target="client" role="button" aria-expanded="false" aria-haspopup="menu">
+                    ${p.client ? `
+                      <span class="pw-interactive-btn-text">${this._esc(p.client)}</span>
+                    ` : `
+                      <span class="pw-interactive-btn-text pw-interactive-btn-text--placeholder">Adicionar cliente...</span>
+                    `}
+                    <svg class="pw-interactive-btn-chevron" viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="m18.185 7.851-6.186 5.191-6.186-5.191a1.499 1.499 0 1 0-1.928 2.298l7.15 6a1.498 1.498 0 0 0 1.928 0l7.15-6a1.5 1.5 0 0 0-1.928-2.298Z"/></svg>
+                  </button>
+                  <div class="pw-interactive-dropdown" data-for="client"></div>
+                </div>
               </div>
               <div class="pw-detail-item">
                 <span class="pw-detail-label">Responsavel</span>
-                <span class="pw-detail-value pw-detail-editable" contenteditable="true" data-field="owner" data-placeholder="Adicionar responsavel...">${this._esc(p.owner || '')}</span>
+                <div class="pw-interactive-btn-wrapper" data-field="owner" data-type="member">
+                  <button class="pw-interactive-btn" data-target="owner" role="button" aria-expanded="false" aria-haspopup="menu">
+                    ${p.owner ? `
+                      <div class="pw-interactive-btn-avatar">${this._esc(p.owner.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase())}</div>
+                      <span class="pw-interactive-btn-text">${this._esc(p.owner)}</span>
+                    ` : `
+                      <div class="pw-interactive-btn-avatar pw-interactive-btn-avatar--empty">?</div>
+                      <span class="pw-interactive-btn-text pw-interactive-btn-text--placeholder">Adicionar responsavel...</span>
+                    `}
+                    <svg class="pw-interactive-btn-chevron" viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="m18.185 7.851-6.186 5.191-6.186-5.191a1.499 1.499 0 1 0-1.928 2.298l7.15 6a1.498 1.498 0 0 0 1.928 0l7.15-6a1.5 1.5 0 0 0-1.928-2.298Z"/></svg>
+                  </button>
+                  <div class="pw-interactive-dropdown" data-for="owner"></div>
+                </div>
               </div>
               <div class="pw-detail-item">
                 <span class="pw-detail-label">Codigo</span>
@@ -1083,7 +1122,13 @@ const TBO_PROJECT_WORKSPACE = {
               </div>
               <div class="pw-detail-item">
                 <span class="pw-detail-label">BUs</span>
-                <span class="pw-detail-value pw-detail-editable" contenteditable="true" data-field="services" data-type="list" data-placeholder="Ex: Digital 3D, Motion...">${p.services?.length ? p.services.map(s => this._esc(s)).join(', ') : ''}</span>
+                <div class="pw-interactive-btn-wrapper" data-field="services" data-type="tags">
+                  <button class="pw-interactive-btn pw-interactive-btn--tags" data-target="services" role="button" aria-expanded="false" aria-haspopup="menu">
+                    ${p.services?.length ? p.services.map(s => `<span class="pw-tag-chip">${this._esc(s)}</span>`).join('') : `<span class="pw-interactive-btn-text pw-interactive-btn-text--placeholder">Adicionar BUs...</span>`}
+                    <svg class="pw-interactive-btn-chevron" viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="m18.185 7.851-6.186 5.191-6.186-5.191a1.499 1.499 0 1 0-1.928 2.298l7.15 6a1.498 1.498 0 0 0 1.928 0l7.15-6a1.5 1.5 0 0 0-1.928-2.298Z"/></svg>
+                  </button>
+                  <div class="pw-interactive-dropdown" data-for="services"></div>
+                </div>
               </div>
               <div class="pw-detail-item">
                 <span class="pw-detail-label">Inicio</span>
@@ -1096,26 +1141,33 @@ const TBO_PROJECT_WORKSPACE = {
             </div>
           </div>
 
-          <!-- Equipe / Funcoes -->
+          <!-- Equipe / Funcoes no projeto (estilo Asana) -->
           <div class="pw-overview-card">
-            <h3>Equipe (${members.length})</h3>
-            ${members.length > 0 ? `
-              <div class="pw-ov-members">
-                ${members.map(m => {
-                  const initials = m.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-                  const pct = m.tasks > 0 ? Math.round((m.done / m.tasks) * 100) : 0;
-                  return `
-                    <div class="pw-ov-member">
-                      <div class="pw-ov-member-avatar">${this._esc(initials)}</div>
-                      <div class="pw-ov-member-info">
-                        <div class="pw-ov-member-name">${this._esc(m.name)}</div>
-                        <div class="pw-ov-member-stat">${m.done}/${m.tasks} tarefas · ${pct}%</div>
-                      </div>
-                    </div>
-                  `;
-                }).join('')}
+            <h3>Funcoes no projeto</h3>
+            <div class="pw-team-grid">
+              <div class="pw-team-add-btn" role="button" tabindex="0" id="pwAddTeamMember">
+                <div class="pw-team-add-icon">
+                  <svg viewBox="0 0 32 32" width="20" height="20" fill="currentColor"><path d="M26,14h-8V6c0-1.1-0.9-2-2-2l0,0c-1.1,0-2,0.9-2,2v8H6c-1.1,0-2,0.9-2,2l0,0c0,1.1,0.9,2,2,2h8v8c0,1.1,0.9,2,2,2l0,0c1.1,0,2-0.9,2-2v-8h8c1.1,0,2-0.9,2-2l0,0C28,14.9,27.1,14,26,14z"></path></svg>
+                </div>
+                <span class="pw-team-add-text">Adicionar membro</span>
               </div>
-            ` : '<p style="color:var(--text-muted);font-size:0.82rem;">Nenhum membro com tarefas atribuidas.</p>'}
+              ${members.map(m => {
+                const initials = m.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                const pct = m.tasks > 0 ? Math.round((m.done / m.tasks) * 100) : 0;
+                const roleLabel = m.name === p.owner ? 'Responsavel do projeto' : `${m.done}/${m.tasks} tarefas · ${pct}%`;
+                return `
+                  <div class="pw-team-member-card" role="button" tabindex="0" data-member-name="${this._esc(m.name)}" aria-expanded="false" aria-haspopup="menu">
+                    <div class="pw-team-member-avatar">${this._esc(initials)}</div>
+                    <div class="pw-team-member-info">
+                      <span class="pw-team-member-name">${this._esc(m.name)}</span>
+                      <span class="pw-team-member-role">${roleLabel}</span>
+                    </div>
+                    <svg class="pw-team-member-chevron" viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="m18.185 7.851-6.186 5.191-6.186-5.191a1.499 1.499 0 1 0-1.928 2.298l7.15 6a1.498 1.498 0 0 0 1.928 0l7.15-6a1.5 1.5 0 0 0-1.928-2.298Z"/></svg>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+            <div class="pw-interactive-dropdown pw-team-dropdown" id="pwTeamDropdown"></div>
           </div>
 
           <!-- Entregaveis -->
@@ -1637,6 +1689,489 @@ const TBO_PROJECT_WORKSPACE = {
     }
   },
 
+  // ── Botoes interativos (Responsavel, Cliente, BUs, Equipe) ──────────
+
+  _teamMembersCache: null,
+
+  async _loadTeamMembers() {
+    if (this._teamMembersCache) return this._teamMembersCache;
+    try {
+      const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+      if (client) {
+        const tenantId = TBO_SUPABASE.getCurrentTenantId();
+        const { data } = await client
+          .from('profiles')
+          .select('id, full_name, email, avatar_url, role, bu')
+          .eq('tenant_id', tenantId)
+          .order('full_name');
+        this._teamMembersCache = (data || []).map(p => ({
+          id: p.id,
+          name: p.full_name || p.email || 'Sem nome',
+          email: p.email || '',
+          avatar_url: p.avatar_url,
+          role: p.role || '',
+          bu: p.bu || ''
+        }));
+      }
+    } catch (e) {
+      console.warn('[PW] Erro ao carregar membros:', e);
+    }
+    // Fallback: membros extraidos das tarefas
+    if (!this._teamMembersCache?.length) {
+      const owners = [...new Set(this._tasks.map(t => t.owner).filter(Boolean))];
+      this._teamMembersCache = owners.map(name => ({ id: null, name, email: '', role: '' }));
+    }
+    return this._teamMembersCache;
+  },
+
+  _getUniqueClients() {
+    // Pegar clientes de todos os projetos
+    if (typeof TBO_STORAGE !== 'undefined') {
+      const projects = TBO_STORAGE.getErpEntities('project') || [];
+      return [...new Set(projects.map(p => p.client).filter(Boolean))].sort();
+    }
+    return [];
+  },
+
+  _buOptions: ['Branding', 'Digital 3D', 'Marketing', 'Motion', 'Vendas', 'Tecnologia', 'Estrategia'],
+
+  async _openInteractiveDropdown(target, btnEl) {
+    const wrapper = btnEl.closest('.pw-interactive-btn-wrapper');
+    if (!wrapper) return;
+    const dropdown = wrapper.querySelector('.pw-interactive-dropdown');
+    if (!dropdown) return;
+
+    // Fechar outros dropdowns
+    document.querySelectorAll('.pw-interactive-dropdown.pw-dropdown--open, .pw-team-dropdown.pw-dropdown--open').forEach(d => {
+      if (d !== dropdown) { d.classList.remove('pw-dropdown--open'); d.innerHTML = ''; }
+    });
+
+    // Toggle
+    if (dropdown.classList.contains('pw-dropdown--open')) {
+      dropdown.classList.remove('pw-dropdown--open');
+      dropdown.innerHTML = '';
+      btnEl.setAttribute('aria-expanded', 'false');
+      return;
+    }
+
+    const fieldType = wrapper.dataset.type;
+    let items = [];
+    let searchPlaceholder = 'Buscar...';
+    let multiSelect = false;
+    let currentValues = [];
+
+    if (fieldType === 'member') {
+      items = await this._loadTeamMembers();
+      searchPlaceholder = 'Buscar membro...';
+    } else if (fieldType === 'text-select') {
+      // Clientes
+      const clients = this._getUniqueClients();
+      items = clients.map(c => ({ name: c }));
+      searchPlaceholder = 'Buscar ou digitar cliente...';
+    } else if (fieldType === 'tags') {
+      // BUs — multi-select
+      items = this._buOptions.map(bu => ({ name: bu }));
+      searchPlaceholder = 'Buscar BU...';
+      multiSelect = true;
+      currentValues = this._project?.services || [];
+    }
+
+    const renderItems = (filter = '') => {
+      const f = filter.toLowerCase();
+      const filtered = items.filter(i => i.name.toLowerCase().includes(f));
+      return filtered.map(item => {
+        const initials = item.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+        const isSelected = multiSelect ? currentValues.includes(item.name) : (this._project?.[wrapper.dataset.field] === item.name);
+        return `
+          <div class="pw-dropdown-item ${isSelected ? 'pw-dropdown-item--selected' : ''}" data-value="${this._esc(item.name)}" data-id="${item.id || ''}">
+            ${fieldType === 'member' ? `<div class="pw-dropdown-item-avatar">${this._esc(initials)}</div>` : ''}
+            ${multiSelect ? `<input type="checkbox" class="pw-dropdown-checkbox" ${isSelected ? 'checked' : ''}>` : ''}
+            <div class="pw-dropdown-item-info">
+              <span class="pw-dropdown-item-name">${this._esc(item.name)}</span>
+              ${item.email ? `<span class="pw-dropdown-item-sub">${this._esc(item.email)}</span>` : ''}
+            </div>
+            ${!multiSelect && isSelected ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="var(--accent-gold)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>' : ''}
+          </div>
+        `;
+      }).join('') || '<div class="pw-dropdown-empty">Nenhum resultado</div>';
+    };
+
+    dropdown.innerHTML = `
+      <div class="pw-dropdown-search-wrap">
+        <input type="text" class="pw-dropdown-search" placeholder="${searchPlaceholder}" autofocus>
+      </div>
+      <div class="pw-dropdown-list">${renderItems()}</div>
+      ${fieldType === 'text-select' ? '<div class="pw-dropdown-footer"><button class="pw-dropdown-add-btn">+ Adicionar novo</button></div>' : ''}
+    `;
+    dropdown.classList.add('pw-dropdown--open');
+    btnEl.setAttribute('aria-expanded', 'true');
+
+    // Search handler
+    const searchInput = dropdown.querySelector('.pw-dropdown-search');
+    searchInput?.focus();
+    searchInput?.addEventListener('input', () => {
+      const list = dropdown.querySelector('.pw-dropdown-list');
+      if (list) list.innerHTML = renderItems(searchInput.value);
+      this._bindDropdownItemClicks(dropdown, wrapper, multiSelect);
+    });
+
+    // Enter no search para text-select → usa valor digitado
+    if (fieldType === 'text-select') {
+      searchInput?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && searchInput.value.trim()) {
+          this._selectDropdownValue(wrapper.dataset.field, searchInput.value.trim(), wrapper);
+          dropdown.classList.remove('pw-dropdown--open');
+          dropdown.innerHTML = '';
+        }
+      });
+      // Botao adicionar novo
+      dropdown.querySelector('.pw-dropdown-add-btn')?.addEventListener('click', () => {
+        const val = searchInput?.value?.trim();
+        if (val) {
+          this._selectDropdownValue(wrapper.dataset.field, val, wrapper);
+          dropdown.classList.remove('pw-dropdown--open');
+          dropdown.innerHTML = '';
+        }
+      });
+    }
+
+    this._bindDropdownItemClicks(dropdown, wrapper, multiSelect);
+
+    // Fechar ao clicar fora
+    const closeHandler = (e) => {
+      if (!wrapper.contains(e.target)) {
+        dropdown.classList.remove('pw-dropdown--open');
+        dropdown.innerHTML = '';
+        btnEl.setAttribute('aria-expanded', 'false');
+        document.removeEventListener('mousedown', closeHandler);
+      }
+    };
+    setTimeout(() => document.addEventListener('mousedown', closeHandler), 10);
+  },
+
+  _bindDropdownItemClicks(dropdown, wrapper, multiSelect) {
+    dropdown.querySelectorAll('.pw-dropdown-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const value = item.dataset.value;
+        const field = wrapper.dataset.field;
+
+        if (multiSelect) {
+          // Toggle na lista de valores
+          let current = this._project?.[field] || [];
+          if (!Array.isArray(current)) current = [];
+          if (current.includes(value)) {
+            current = current.filter(v => v !== value);
+          } else {
+            current.push(value);
+          }
+          this._saveProjectField(field, current);
+          // Atualizar checkbox visual
+          const cb = item.querySelector('.pw-dropdown-checkbox');
+          if (cb) cb.checked = current.includes(value);
+          item.classList.toggle('pw-dropdown-item--selected', current.includes(value));
+          // Atualizar botao
+          this._updateInteractiveBtn(wrapper, field);
+        } else {
+          this._selectDropdownValue(field, value, wrapper);
+          dropdown.classList.remove('pw-dropdown--open');
+          dropdown.innerHTML = '';
+        }
+      });
+    });
+  },
+
+  _selectDropdownValue(field, value, wrapper) {
+    this._saveProjectField(field, value);
+    this._updateInteractiveBtn(wrapper, field);
+    // Atualizar header se for owner
+    if (field === 'owner') this._updateHeaderOwner(value);
+  },
+
+  _updateInteractiveBtn(wrapper, field) {
+    const btn = wrapper.querySelector('.pw-interactive-btn');
+    if (!btn) return;
+    const type = wrapper.dataset.type;
+    const value = this._project?.[field];
+
+    if (type === 'member') {
+      if (value) {
+        const initials = value.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+        btn.innerHTML = `
+          <div class="pw-interactive-btn-avatar">${this._esc(initials)}</div>
+          <span class="pw-interactive-btn-text">${this._esc(value)}</span>
+          <svg class="pw-interactive-btn-chevron" viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="m18.185 7.851-6.186 5.191-6.186-5.191a1.499 1.499 0 1 0-1.928 2.298l7.15 6a1.498 1.498 0 0 0 1.928 0l7.15-6a1.5 1.5 0 0 0-1.928-2.298Z"/></svg>
+        `;
+      } else {
+        btn.innerHTML = `
+          <div class="pw-interactive-btn-avatar pw-interactive-btn-avatar--empty">?</div>
+          <span class="pw-interactive-btn-text pw-interactive-btn-text--placeholder">Adicionar responsavel...</span>
+          <svg class="pw-interactive-btn-chevron" viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="m18.185 7.851-6.186 5.191-6.186-5.191a1.499 1.499 0 1 0-1.928 2.298l7.15 6a1.498 1.498 0 0 0 1.928 0l7.15-6a1.5 1.5 0 0 0-1.928-2.298Z"/></svg>
+        `;
+      }
+    } else if (type === 'text-select') {
+      btn.innerHTML = `
+        ${value ? `<span class="pw-interactive-btn-text">${this._esc(value)}</span>` : `<span class="pw-interactive-btn-text pw-interactive-btn-text--placeholder">Adicionar cliente...</span>`}
+        <svg class="pw-interactive-btn-chevron" viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="m18.185 7.851-6.186 5.191-6.186-5.191a1.499 1.499 0 1 0-1.928 2.298l7.15 6a1.498 1.498 0 0 0 1.928 0l7.15-6a1.5 1.5 0 0 0-1.928-2.298Z"/></svg>
+      `;
+    } else if (type === 'tags') {
+      const arr = Array.isArray(value) ? value : [];
+      btn.innerHTML = `
+        ${arr.length ? arr.map(s => `<span class="pw-tag-chip">${this._esc(s)}</span>`).join('') : `<span class="pw-interactive-btn-text pw-interactive-btn-text--placeholder">Adicionar BUs...</span>`}
+        <svg class="pw-interactive-btn-chevron" viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="m18.185 7.851-6.186 5.191-6.186-5.191a1.499 1.499 0 1 0-1.928 2.298l7.15 6a1.498 1.498 0 0 0 1.928 0l7.15-6a1.5 1.5 0 0 0-1.928-2.298Z"/></svg>
+      `;
+    }
+  },
+
+  _updateHeaderOwner(name) {
+    const btn = document.getElementById('pwHeaderOwnerBtn');
+    if (!btn) return;
+    const initials = name ? name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '?';
+    btn.querySelector('.pw-owner-btn-avatar').textContent = initials;
+    btn.querySelector('.pw-owner-btn-name').textContent = name || 'Sem responsavel';
+  },
+
+  async _openHeaderOwnerDropdown() {
+    const dropdown = document.getElementById('pwOwnerDropdown');
+    const btn = document.getElementById('pwHeaderOwnerBtn');
+    if (!dropdown || !btn) return;
+
+    if (dropdown.classList.contains('pw-dropdown--open')) {
+      dropdown.classList.remove('pw-dropdown--open');
+      dropdown.innerHTML = '';
+      btn.setAttribute('aria-expanded', 'false');
+      return;
+    }
+
+    const members = await this._loadTeamMembers();
+    const currentOwner = this._project?.owner || '';
+
+    const renderItems = (filter = '') => {
+      const f = filter.toLowerCase();
+      return members.filter(m => m.name.toLowerCase().includes(f)).map(m => {
+        const initials = m.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+        const selected = m.name === currentOwner;
+        return `
+          <div class="pw-dropdown-item ${selected ? 'pw-dropdown-item--selected' : ''}" data-value="${this._esc(m.name)}">
+            <div class="pw-dropdown-item-avatar">${this._esc(initials)}</div>
+            <div class="pw-dropdown-item-info">
+              <span class="pw-dropdown-item-name">${this._esc(m.name)}</span>
+              ${m.email ? `<span class="pw-dropdown-item-sub">${this._esc(m.email)}</span>` : ''}
+            </div>
+            ${selected ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="var(--accent-gold)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>' : ''}
+          </div>
+        `;
+      }).join('') || '<div class="pw-dropdown-empty">Nenhum membro encontrado</div>';
+    };
+
+    dropdown.innerHTML = `
+      <div class="pw-dropdown-search-wrap"><input type="text" class="pw-dropdown-search" placeholder="Buscar membro..." autofocus></div>
+      <div class="pw-dropdown-list">${renderItems()}</div>
+    `;
+    dropdown.classList.add('pw-dropdown--open');
+    btn.setAttribute('aria-expanded', 'true');
+
+    const search = dropdown.querySelector('.pw-dropdown-search');
+    search?.focus();
+    search?.addEventListener('input', () => {
+      const list = dropdown.querySelector('.pw-dropdown-list');
+      if (list) list.innerHTML = renderItems(search.value);
+      this._bindHeaderOwnerItemClicks(dropdown);
+    });
+
+    this._bindHeaderOwnerItemClicks(dropdown);
+
+    const closeHandler = (e) => {
+      if (!document.getElementById('pwOwnerWrapper')?.contains(e.target)) {
+        dropdown.classList.remove('pw-dropdown--open');
+        dropdown.innerHTML = '';
+        btn.setAttribute('aria-expanded', 'false');
+        document.removeEventListener('mousedown', closeHandler);
+      }
+    };
+    setTimeout(() => document.addEventListener('mousedown', closeHandler), 10);
+  },
+
+  _bindHeaderOwnerItemClicks(dropdown) {
+    dropdown.querySelectorAll('.pw-dropdown-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const value = item.dataset.value;
+        this._saveProjectField('owner', value);
+        this._updateHeaderOwner(value);
+        // Atualizar botao de responsavel no detalhe
+        const detailWrapper = document.querySelector('.pw-interactive-btn-wrapper[data-field="owner"]');
+        if (detailWrapper) this._updateInteractiveBtn(detailWrapper, 'owner');
+        dropdown.classList.remove('pw-dropdown--open');
+        dropdown.innerHTML = '';
+        if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Responsavel', `"${value}" definido como responsavel.`);
+      });
+    });
+  },
+
+  async _openTeamMemberDropdown(context) {
+    const dropdown = document.getElementById('pwTeamDropdown');
+    if (!dropdown) return;
+
+    if (dropdown.classList.contains('pw-dropdown--open')) {
+      dropdown.classList.remove('pw-dropdown--open');
+      dropdown.innerHTML = '';
+      return;
+    }
+
+    const members = await this._loadTeamMembers();
+    // Membros ja no projeto (quem tem tarefas)
+    const projectMembers = [...new Set(this._tasks.map(t => t.owner).filter(Boolean))];
+
+    const renderItems = (filter = '') => {
+      const f = filter.toLowerCase();
+      return members.filter(m => m.name.toLowerCase().includes(f) && !projectMembers.includes(m.name)).map(m => {
+        const initials = m.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+        return `
+          <div class="pw-dropdown-item" data-value="${this._esc(m.name)}">
+            <div class="pw-dropdown-item-avatar">${this._esc(initials)}</div>
+            <div class="pw-dropdown-item-info">
+              <span class="pw-dropdown-item-name">${this._esc(m.name)}</span>
+              ${m.email ? `<span class="pw-dropdown-item-sub">${this._esc(m.email)}</span>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('') || '<div class="pw-dropdown-empty">Todos os membros ja estao no projeto</div>';
+    };
+
+    dropdown.innerHTML = `
+      <div class="pw-dropdown-search-wrap"><input type="text" class="pw-dropdown-search" placeholder="Buscar membro para adicionar..." autofocus></div>
+      <div class="pw-dropdown-list">${renderItems()}</div>
+    `;
+    dropdown.classList.add('pw-dropdown--open');
+
+    const search = dropdown.querySelector('.pw-dropdown-search');
+    search?.focus();
+    search?.addEventListener('input', () => {
+      const list = dropdown.querySelector('.pw-dropdown-list');
+      if (list) list.innerHTML = renderItems(search.value);
+      this._bindTeamDropdownClicks(dropdown);
+    });
+
+    this._bindTeamDropdownClicks(dropdown);
+
+    const closeHandler = (e) => {
+      if (!dropdown.contains(e.target) && !e.target.closest('#pwAddTeamMember')) {
+        dropdown.classList.remove('pw-dropdown--open');
+        dropdown.innerHTML = '';
+        document.removeEventListener('mousedown', closeHandler);
+      }
+    };
+    setTimeout(() => document.addEventListener('mousedown', closeHandler), 10);
+  },
+
+  async _openCellDropdown(taskId, cellType, cellEl) {
+    // Fechar dropdowns anteriores
+    document.querySelectorAll('.pw-cell-dropdown').forEach(d => d.remove());
+
+    const task = this._tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const sm = typeof TBO_ERP !== 'undefined' ? TBO_ERP.stateMachines.task : null;
+    let options = [];
+
+    if (cellType === 'owner') {
+      const members = await this._loadTeamMembers();
+      options = members.map(m => ({ value: m.name, label: m.name, avatar: true }));
+      options.unshift({ value: '', label: 'Sem responsavel', avatar: false });
+    } else if (cellType === 'priority') {
+      options = [
+        { value: 'urgente', label: 'Urgente', color: '#ef4444' },
+        { value: 'alta', label: 'Alta', color: '#f59e0b' },
+        { value: 'media', label: 'Media', color: '#3b82f6' },
+        { value: 'baixa', label: 'Baixa', color: '#6b7280' }
+      ];
+    } else if (cellType === 'status') {
+      const labels = sm?.labels || {};
+      const colors = sm?.colors || {};
+      options = Object.entries(labels).map(([key, label]) => ({
+        value: key, label, color: colors[key] || '#6b7280'
+      }));
+    }
+
+    const rect = cellEl.getBoundingClientRect();
+    const dropdown = document.createElement('div');
+    dropdown.className = 'pw-cell-dropdown';
+    dropdown.style.cssText = `position:fixed;top:${rect.bottom + 2}px;left:${rect.left}px;z-index:1100;min-width:${Math.max(rect.width, 160)}px;`;
+
+    dropdown.innerHTML = `
+      <div class="pw-dropdown-list" style="max-height:200px;">
+        ${options.map(opt => {
+          const isSelected = task[cellType] === opt.value;
+          const initials = opt.avatar && opt.value ? opt.value.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '';
+          return `
+            <div class="pw-dropdown-item ${isSelected ? 'pw-dropdown-item--selected' : ''}" data-value="${this._esc(opt.value)}">
+              ${opt.avatar && opt.value ? `<div class="pw-dropdown-item-avatar" style="width:20px;height:20px;font-size:0.55rem;">${this._esc(initials)}</div>` : ''}
+              ${opt.color ? `<span style="width:8px;height:8px;border-radius:50%;background:${opt.color};flex-shrink:0;"></span>` : ''}
+              <span class="pw-dropdown-item-name" style="font-size:0.78rem;">${this._esc(opt.label)}</span>
+              ${isSelected ? '<svg viewBox="0 0 24 24" width="12" height="12" fill="var(--accent-gold)" style="margin-left:auto;"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>' : ''}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+    document.body.appendChild(dropdown);
+
+    // Bind item clicks
+    dropdown.querySelectorAll('.pw-dropdown-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const value = item.dataset.value;
+        this._updateTaskField(taskId, cellType, value);
+        dropdown.remove();
+      });
+    });
+
+    // Fechar ao clicar fora
+    const closeHandler = (e) => {
+      if (!dropdown.contains(e.target) && !cellEl.contains(e.target)) {
+        dropdown.remove();
+        document.removeEventListener('mousedown', closeHandler);
+      }
+    };
+    setTimeout(() => document.addEventListener('mousedown', closeHandler), 10);
+  },
+
+  _updateTaskField(taskId, field, value) {
+    const task = this._tasks.find(t => t.id === taskId);
+    if (!task) return;
+    task[field] = value;
+    if (typeof TBO_STORAGE !== 'undefined') {
+      TBO_STORAGE.updateErpEntity('task', taskId, { [field]: value });
+    }
+    // Re-render a view
+    const content = document.getElementById('pwTabContent');
+    if (content) {
+      if (this._activeTab === 'list') {
+        content.innerHTML = this._renderListView();
+        this._bindSectionToggles();
+      } else if (this._activeTab === 'board') {
+        content.innerHTML = this._renderBoardView();
+      }
+      this._bindActions();
+      if (window.lucide) lucide.createIcons();
+    }
+  },
+
+  _bindTeamDropdownClicks(dropdown) {
+    dropdown.querySelectorAll('.pw-dropdown-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const name = item.dataset.value;
+        // Criar tarefa placeholder para o membro aparecer na equipe
+        if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Membro adicionado', `"${name}" adicionado ao projeto. Atribua tarefas para ele.`);
+        dropdown.classList.remove('pw-dropdown--open');
+        dropdown.innerHTML = '';
+        // Adicionar o membro a equipe via project_members (se existir)
+        const currentMembers = this._project?.team_members || [];
+        currentMembers.push(name);
+        this._saveProjectField('team_members', [...new Set(currentMembers)]);
+      });
+    });
+  },
+
   _setProjectStatus(status) {
     if (!this._project) return;
     this._project.project_status = status;
@@ -1917,6 +2452,43 @@ const TBO_PROJECT_WORKSPACE = {
       input.addEventListener('change', () => {
         const fieldName = input.dataset.field;
         this._saveProjectField(fieldName, input.value || null);
+      });
+    });
+
+    // Overview: botoes interativos (Responsavel, Cliente, BUs)
+    document.querySelectorAll('.pw-interactive-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._openInteractiveDropdown(btn.dataset.target, btn);
+      });
+    });
+
+    // Header: botao owner
+    document.getElementById('pwHeaderOwnerBtn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._openHeaderOwnerDropdown();
+    });
+
+    // Equipe: adicionar membro
+    document.getElementById('pwAddTeamMember')?.addEventListener('click', () => {
+      this._openTeamMemberDropdown('add');
+    });
+
+    // Equipe: cards de membros (dropdown de opcoes)
+    document.querySelectorAll('.pw-team-member-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const name = card.dataset.memberName;
+        if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.info(name, 'Clique para ver tarefas atribuidas (em breve).');
+      });
+    });
+
+    // Lista: celulas clicaveis (owner, priority, status)
+    document.querySelectorAll('.pw-cell-clickable').forEach(cell => {
+      cell.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const taskId = cell.dataset.taskId;
+        const cellType = cell.dataset.cell;
+        this._openCellDropdown(taskId, cellType, cell);
       });
     });
 
@@ -3711,6 +4283,79 @@ const TBO_PROJECT_WORKSPACE = {
 .pw-ov-member-name { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); }
 .pw-ov-member-stat { font-size: 0.72rem; color: var(--text-muted); }
 .pw-ov-last-update { padding: 10px 12px; background: var(--bg-tertiary); border-radius: 8px; border-left: 3px solid var(--accent-gold); }
+
+/* ── Owner Button (Header) ── */
+.pw-owner-btn-wrapper { position: relative; }
+.pw-owner-btn { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: 8px; cursor: pointer; transition: all 0.15s; color: var(--text-primary); font-family: inherit; }
+.pw-owner-btn:hover { border-color: var(--accent-gold); background: color-mix(in srgb, var(--accent-gold) 6%, var(--bg-tertiary)); }
+.pw-owner-btn-avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--accent-gold); color: #000; font-size: 0.65rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pw-owner-btn-info { display: flex; flex-direction: column; text-align: left; min-width: 0; }
+.pw-owner-btn-name { font-size: 0.78rem; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+.pw-owner-btn-role { font-size: 0.62rem; color: var(--text-muted); }
+.pw-owner-btn-chevron { color: var(--text-muted); flex-shrink: 0; transition: transform 0.2s; }
+.pw-owner-btn[aria-expanded="true"] .pw-owner-btn-chevron { transform: rotate(180deg); }
+.pw-owner-dropdown { position: absolute; top: calc(100% + 4px); right: 0; z-index: 300; min-width: 260px; }
+
+/* ── Interactive Buttons (Detalhes) ── */
+.pw-interactive-btn-wrapper { position: relative; }
+.pw-interactive-btn { display: flex; align-items: center; gap: 6px; padding: 4px 8px; background: none; border: 1px solid transparent; border-radius: 6px; cursor: pointer; transition: all 0.15s; font-family: inherit; color: var(--text-primary); width: 100%; text-align: left; min-height: 30px; }
+.pw-interactive-btn:hover { background: rgba(232, 81, 2, 0.05); border-color: var(--border-subtle); }
+.pw-interactive-btn[aria-expanded="true"] { background: var(--bg-primary); border-color: var(--accent-gold); box-shadow: 0 0 0 2px rgba(212,175,55,0.15); }
+.pw-interactive-btn-avatar { width: 22px; height: 22px; border-radius: 50%; background: var(--accent-gold); color: #000; font-size: 0.6rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pw-interactive-btn-avatar--empty { background: var(--bg-tertiary); color: var(--text-muted); }
+.pw-interactive-btn-text { font-size: 0.82rem; font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pw-interactive-btn-text--placeholder { color: var(--text-muted); font-style: italic; font-weight: 400; }
+.pw-interactive-btn-chevron { color: var(--text-muted); flex-shrink: 0; opacity: 0; transition: opacity 0.15s, transform 0.2s; }
+.pw-interactive-btn:hover .pw-interactive-btn-chevron { opacity: 1; }
+.pw-interactive-btn[aria-expanded="true"] .pw-interactive-btn-chevron { opacity: 1; transform: rotate(180deg); }
+.pw-interactive-btn--tags { flex-wrap: wrap; gap: 4px; }
+.pw-tag-chip { display: inline-flex; align-items: center; font-size: 0.72rem; font-weight: 500; padding: 2px 8px; border-radius: 4px; background: var(--accent-gold)15; color: var(--accent-gold); border: 1px solid var(--accent-gold)30; white-space: nowrap; }
+.pw-interactive-dropdown { position: absolute; top: calc(100% + 4px); left: 0; z-index: 300; min-width: 240px; max-width: 320px; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.25); display: none; overflow: hidden; }
+.pw-interactive-dropdown.pw-dropdown--open { display: block; }
+.pw-dropdown-search-wrap { padding: 8px; border-bottom: 1px solid var(--border-subtle); }
+.pw-dropdown-search { width: 100%; padding: 7px 10px; font-size: 0.82rem; border: 1px solid var(--border-subtle); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary); outline: none; font-family: inherit; }
+.pw-dropdown-search:focus { border-color: var(--accent-gold); box-shadow: 0 0 0 2px rgba(212,175,55,0.1); }
+.pw-dropdown-search::placeholder { color: var(--text-muted); }
+.pw-dropdown-list { max-height: 240px; overflow-y: auto; padding: 4px 0; }
+.pw-dropdown-item { display: flex; align-items: center; gap: 8px; padding: 7px 12px; cursor: pointer; transition: background 0.1s; }
+.pw-dropdown-item:hover { background: var(--bg-tertiary); }
+.pw-dropdown-item--selected { background: rgba(212,175,55,0.06); }
+.pw-dropdown-item-avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--accent-gold); color: #000; font-size: 0.6rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pw-dropdown-item-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pw-dropdown-item-name { font-size: 0.82rem; font-weight: 500; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pw-dropdown-item-sub { font-size: 0.68rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pw-dropdown-checkbox { width: 14px; height: 14px; accent-color: var(--accent-gold); flex-shrink: 0; }
+.pw-dropdown-empty { padding: 16px 12px; text-align: center; font-size: 0.78rem; color: var(--text-muted); }
+.pw-dropdown-footer { padding: 6px 8px; border-top: 1px solid var(--border-subtle); }
+.pw-dropdown-add-btn { width: 100%; padding: 6px 10px; font-size: 0.78rem; color: var(--accent-gold); background: none; border: none; cursor: pointer; text-align: left; border-radius: 4px; font-family: inherit; }
+.pw-dropdown-add-btn:hover { background: rgba(212,175,55,0.08); }
+
+/* ── Team Grid (Equipe estilo Asana) ── */
+.pw-team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.pw-team-add-btn { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: none; border: 2px dashed var(--border-subtle); border-radius: 10px; cursor: pointer; transition: all 0.15s; }
+.pw-team-add-btn:hover { border-color: var(--accent-gold); background: rgba(212,175,55,0.04); }
+.pw-team-add-icon { width: 32px; height: 32px; border-radius: 50%; background: var(--bg-tertiary); display: flex; align-items: center; justify-content: center; color: var(--text-muted); flex-shrink: 0; }
+.pw-team-add-btn:hover .pw-team-add-icon { color: var(--accent-gold); }
+.pw-team-add-text { font-size: 0.78rem; font-weight: 500; color: var(--text-muted); }
+.pw-team-member-card { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: 10px; cursor: pointer; transition: all 0.15s; }
+.pw-team-member-card:hover { border-color: var(--accent-gold); background: color-mix(in srgb, var(--accent-gold) 4%, var(--bg-tertiary)); }
+.pw-team-member-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-gold); color: #000; font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pw-team-member-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pw-team-member-name { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pw-team-member-role { font-size: 0.68rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pw-team-member-chevron { color: var(--text-muted); flex-shrink: 0; opacity: 0; transition: opacity 0.15s; }
+.pw-team-member-card:hover .pw-team-member-chevron { opacity: 1; }
+.pw-team-dropdown { position: relative; margin-top: 8px; min-width: 100%; }
+.pw-team-dropdown.pw-dropdown--open { display: block; position: relative; top: 0; }
+
+/* ── Cell Clickable (Lista interativa) ── */
+.pw-cell-clickable { cursor: pointer; position: relative; border-radius: 4px; transition: background 0.1s; }
+.pw-cell-clickable:hover { background: rgba(212,175,55,0.06); }
+.pw-cell-chevron { color: var(--text-muted); opacity: 0; transition: opacity 0.15s; margin-left: 2px; flex-shrink: 0; }
+.pw-cell-clickable:hover .pw-cell-chevron { opacity: 1; }
+.pw-cell-assignee { display: flex; align-items: center; gap: 6px; }
+.pw-cell-avatar { width: 20px; height: 20px; border-radius: 50%; background: var(--accent-gold); color: #000; font-size: 0.55rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pw-cell-dropdown { background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.25); overflow: hidden; }
 
 /* ── Calendar View ── */
 .pw-calendar { padding: 16px 28px; }

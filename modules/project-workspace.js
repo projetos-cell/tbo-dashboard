@@ -42,6 +42,9 @@ const TBO_PROJECT_WORKSPACE = {
     { id: 'board', label: 'Quadro', icon: 'columns-3' },
     { id: 'timeline', label: 'Cronograma', icon: 'calendar-range' },
     { id: 'dashboard', label: 'Painel', icon: 'bar-chart-3' },
+    { id: 'calendar', label: 'Calendario', icon: 'calendar' },
+    { id: 'messages', label: 'Mensagens', icon: 'message-square' },
+    { id: 'files', label: 'Arquivos', icon: 'paperclip' },
     { id: 'gantt', label: 'Gantt', icon: 'gantt-chart' }
   ],
 
@@ -773,6 +776,9 @@ const TBO_PROJECT_WORKSPACE = {
       case 'board': return this._renderBoardView();
       case 'timeline': return this._renderTimelineView();
       case 'dashboard': return this._renderDashboardView();
+      case 'calendar': return this._renderCalendarView();
+      case 'messages': return this._renderMessagesView();
+      case 'files': return this._renderFilesView();
       case 'gantt': return this._renderGanttView();
       default: return this._renderListView();
     }
@@ -893,7 +899,7 @@ const TBO_PROJECT_WORKSPACE = {
     return colHeaders + sectionsHtml + addSectionBtn;
   },
 
-  // ── Overview Tab ──────────────────────────────────────────────────────────
+  // ── Overview Tab (Asana-style melhorado) ─────────────────────────────────
 
   _renderOverview() {
     const p = this._project;
@@ -904,53 +910,101 @@ const TBO_PROJECT_WORKSPACE = {
     // Stats
     const totalTasks = tasks.length;
     const doneTasks = tasks.filter(t => t.status === 'concluida').length;
+    const inProgress = tasks.filter(t => t.status === 'em_andamento').length;
+    const overdue = tasks.filter(t => {
+      if (!t.due_date || t.status === 'concluida') return false;
+      return new Date(t.due_date) < new Date();
+    }).length;
     const pctDone = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
     // Health
-    let healthHtml = '';
+    let healthScore = 0;
+    let hColor = '#6b7280';
+    let healthReasons = [];
     if (typeof TBO_ERP !== 'undefined') {
       const health = TBO_ERP.calculateHealthScore(p);
-      const hColor = TBO_ERP.getHealthColor(health.score);
-      healthHtml = `
-        <div class="pw-overview-card">
-          <h3>Saude do Projeto</h3>
-          <div style="display:flex;align-items:center;gap:16px;">
-            <div style="font-size:2.5rem;font-weight:800;color:${hColor};">${health.score}</div>
-            <div style="flex:1;">
-              <div style="height:8px;background:var(--bg-tertiary);border-radius:4px;overflow:hidden;">
-                <div style="width:${health.score}%;height:100%;background:${hColor};border-radius:4px;transition:width 0.5s;"></div>
-              </div>
-              ${health.reasons.length > 0 ? `<div style="margin-top:8px;font-size:0.75rem;color:var(--text-muted);">${health.reasons.map(r => `<span style="display:inline-block;margin:2px 4px 2px 0;padding:2px 8px;background:${hColor}10;border-radius:4px;">${this._esc(r)}</span>`).join('')}</div>` : ''}
-            </div>
-          </div>
-        </div>
-      `;
+      healthScore = health.score;
+      hColor = TBO_ERP.getHealthColor(health.score);
+      healthReasons = health.reasons || [];
     }
 
+    // Status do projeto
+    const statusOptions = [
+      { value: 'em_dia', label: 'Em dia', color: '#22c55e', icon: 'check-circle' },
+      { value: 'em_risco', label: 'Em risco', color: '#f59e0b', icon: 'alert-triangle' },
+      { value: 'atrasado', label: 'Atrasado', color: '#ef4444', icon: 'alert-circle' },
+      { value: 'pausado', label: 'Pausado', color: '#6b7280', icon: 'pause-circle' }
+    ];
+    const projStatus = p.project_status || 'em_dia';
+    const statusInfo = statusOptions.find(s => s.value === projStatus) || statusOptions[0];
+
     // Deadline info
-    let deadlineHtml = '';
+    let dlDays = null;
+    let dlUrgency = 'ok';
     if (typeof TBO_ERP !== 'undefined') {
       const dl = TBO_ERP.getDeadlineInfo(p);
-      if (dl) {
-        const urgencyColors = { ok: '#22c55e', warning: '#f59e0b', critical: '#ef4444', overdue: '#ef4444' };
-        deadlineHtml = `
-          <div class="pw-overview-card">
-            <h3>Prazo</h3>
-            <div style="display:flex;align-items:center;gap:12px;">
-              <span style="font-size:1.5rem;font-weight:700;color:${urgencyColors[dl.urgency] || 'var(--text-primary)'};">${dl.daysRemaining ?? '-'}</span>
-              <span style="color:var(--text-muted);">dias restantes</span>
-            </div>
-            ${p.end_date ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">Entrega: ${new Date(p.end_date).toLocaleDateString('pt-BR')}</div>` : ''}
-          </div>
-        `;
-      }
+      if (dl) { dlDays = dl.daysRemaining; dlUrgency = dl.urgency; }
     }
+    const urgencyColors = { ok: '#22c55e', warning: '#f59e0b', critical: '#ef4444', overdue: '#ef4444' };
+
+    // Membros/Funcoes (coletar owners unicos das tarefas)
+    const membersMap = {};
+    tasks.forEach(t => {
+      if (t.owner && t.owner !== 'Sem responsavel') {
+        if (!membersMap[t.owner]) membersMap[t.owner] = { name: t.owner, tasks: 0, done: 0, role: t.owner_role || '' };
+        membersMap[t.owner].tasks++;
+        if (t.status === 'concluida') membersMap[t.owner].done++;
+      }
+    });
+    const members = Object.values(membersMap).sort((a, b) => b.tasks - a.tasks);
+
+    // Resumo gerado (baseado nos dados)
+    const summaryParts = [];
+    if (totalTasks > 0) summaryParts.push(`${totalTasks} tarefas no total, ${doneTasks} concluida${doneTasks !== 1 ? 's' : ''} (${pctDone}%)`);
+    if (inProgress > 0) summaryParts.push(`${inProgress} em andamento`);
+    if (overdue > 0) summaryParts.push(`${overdue} atrasada${overdue !== 1 ? 's' : ''}`);
+    if (dlDays !== null && dlDays >= 0) summaryParts.push(`${dlDays} dias ate a entrega`);
+    if (dlDays !== null && dlDays < 0) summaryParts.push(`${Math.abs(dlDays)} dias de atraso`);
+    if (members.length > 0) summaryParts.push(`${members.length} membro${members.length !== 1 ? 's' : ''} alocado${members.length !== 1 ? 's' : ''}`);
+    const summaryText = summaryParts.join(' · ');
+
+    // Ultima atualizacao de status
+    const lastUpdate = (p.status_updates || []).slice(-1)[0];
 
     return `
       <div class="pw-overview">
-        <div class="pw-overview-grid">
-          ${healthHtml}
+        <!-- Resumo do projeto (Asana-style hero) -->
+        <div class="pw-ov-hero">
+          <div class="pw-ov-hero-left">
+            <div class="pw-ov-status-row">
+              <span class="pw-ov-status-badge" style="background:${statusInfo.color}20;color:${statusInfo.color};">
+                <i data-lucide="${statusInfo.icon}" style="width:14px;height:14px;"></i> ${statusInfo.label}
+              </span>
+              ${dlDays !== null ? `<span class="pw-ov-deadline" style="color:${urgencyColors[dlUrgency]};">
+                <i data-lucide="clock" style="width:14px;height:14px;"></i>
+                ${dlDays >= 0 ? `${dlDays} dias restantes` : `${Math.abs(dlDays)} dias atrasado`}
+              </span>` : ''}
+            </div>
 
+            ${p.description || p.notes ? `
+              <div class="pw-ov-description">
+                <p>${this._esc(p.description || p.notes || '')}</p>
+              </div>
+            ` : `
+              <div class="pw-ov-description pw-ov-description--empty">
+                <p style="color:var(--text-muted);font-style:italic;">Adicione uma descricao ao projeto para que a equipe entenda os objetivos.</p>
+              </div>
+            `}
+
+            <div class="pw-ov-summary">
+              <i data-lucide="sparkles" style="width:14px;height:14px;color:var(--accent-gold);flex-shrink:0;"></i>
+              <span>${summaryText}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="pw-overview-grid">
+          <!-- Progresso + Saude lado a lado -->
           <div class="pw-overview-card">
             <h3>Progresso</h3>
             <div style="display:flex;align-items:center;gap:16px;">
@@ -959,13 +1013,31 @@ const TBO_PROJECT_WORKSPACE = {
                 <div style="height:8px;background:var(--bg-tertiary);border-radius:4px;overflow:hidden;">
                   <div style="width:${pctDone}%;height:100%;background:var(--accent-gold);border-radius:4px;transition:width 0.5s;"></div>
                 </div>
-                <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">${doneTasks} de ${totalTasks} tarefas concluidas</div>
+                <div style="display:flex;gap:12px;margin-top:8px;font-size:0.75rem;">
+                  <span style="color:#22c55e;">${doneTasks} concluidas</span>
+                  <span style="color:#3b82f6;">${inProgress} em andamento</span>
+                  ${overdue > 0 ? `<span style="color:#ef4444;">${overdue} atrasadas</span>` : ''}
+                </div>
               </div>
             </div>
           </div>
 
-          ${deadlineHtml}
+          ${typeof TBO_ERP !== 'undefined' ? `
+            <div class="pw-overview-card">
+              <h3>Saude do Projeto</h3>
+              <div style="display:flex;align-items:center;gap:16px;">
+                <div style="font-size:2.5rem;font-weight:800;color:${hColor};">${healthScore}</div>
+                <div style="flex:1;">
+                  <div style="height:8px;background:var(--bg-tertiary);border-radius:4px;overflow:hidden;">
+                    <div style="width:${healthScore}%;height:100%;background:${hColor};border-radius:4px;transition:width 0.5s;"></div>
+                  </div>
+                  ${healthReasons.length > 0 ? `<div style="margin-top:8px;font-size:0.72rem;color:var(--text-muted);display:flex;flex-wrap:wrap;gap:4px;">${healthReasons.map(r => `<span style="padding:2px 8px;background:${hColor}10;border-radius:4px;">${this._esc(r)}</span>`).join('')}</div>` : ''}
+                </div>
+              </div>
+            </div>
+          ` : ''}
 
+          <!-- Detalhes -->
           <div class="pw-overview-card">
             <h3>Detalhes</h3>
             <div class="pw-details-grid">
@@ -979,6 +1051,29 @@ const TBO_PROJECT_WORKSPACE = {
             </div>
           </div>
 
+          <!-- Equipe / Funcoes -->
+          <div class="pw-overview-card">
+            <h3>Equipe (${members.length})</h3>
+            ${members.length > 0 ? `
+              <div class="pw-ov-members">
+                ${members.map(m => {
+                  const initials = m.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                  const pct = m.tasks > 0 ? Math.round((m.done / m.tasks) * 100) : 0;
+                  return `
+                    <div class="pw-ov-member">
+                      <div class="pw-ov-member-avatar">${this._esc(initials)}</div>
+                      <div class="pw-ov-member-info">
+                        <div class="pw-ov-member-name">${this._esc(m.name)}</div>
+                        <div class="pw-ov-member-stat">${m.done}/${m.tasks} tarefas · ${pct}%</div>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            ` : '<p style="color:var(--text-muted);font-size:0.82rem;">Nenhum membro com tarefas atribuidas.</p>'}
+          </div>
+
+          <!-- Entregaveis -->
           <div class="pw-overview-card">
             <h3>Entregaveis (${deliverables.length})</h3>
             ${deliverables.length > 0 ? `
@@ -996,7 +1091,24 @@ const TBO_PROJECT_WORKSPACE = {
             ` : '<p style="color:var(--text-muted);font-size:0.82rem;">Nenhum entregavel cadastrado.</p>'}
           </div>
 
-          ${p.notes ? `
+          <!-- Ultima atualizacao de status -->
+          ${lastUpdate ? `
+            <div class="pw-overview-card">
+              <h3>Ultima atualizacao</h3>
+              <div class="pw-ov-last-update">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                  <span style="font-size:0.78rem;font-weight:600;color:var(--text-primary);">${this._esc(lastUpdate.author || 'Membro')}</span>
+                  <span style="font-size:0.72rem;color:var(--text-muted);">${lastUpdate.created_at ? new Date(lastUpdate.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : ''}</span>
+                </div>
+                <p style="color:var(--text-secondary);font-size:0.82rem;line-height:1.5;margin:0;">${this._esc(lastUpdate.text || '')}</p>
+              </div>
+              <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="TBO_PROJECT_WORKSPACE.switchTab('messages')">
+                <i data-lucide="message-square" style="width:14px;height:14px;"></i> Ver todas as atualizacoes
+              </button>
+            </div>
+          ` : ''}
+
+          ${p.notes && p.description ? `
             <div class="pw-overview-card">
               <h3>Observacoes</h3>
               <p style="color:var(--text-secondary);font-size:0.85rem;line-height:1.6;white-space:pre-wrap;">${this._esc(p.notes)}</p>
@@ -1240,6 +1352,389 @@ const TBO_PROJECT_WORKSPACE = {
         <p style="color:var(--text-muted);font-size:0.85rem;">Visualizacao Gantt sera disponibilizada em breve.</p>
       </div>
     `;
+  },
+
+  // ── Calendar View (week view com barras de tarefas — Asana-style) ─────────
+
+  _calendarWeekOffset: 0, // 0 = semana atual, -1 = semana anterior, etc.
+
+  _renderCalendarView() {
+    const tasks = this._tasks.filter(t => t.status !== 'cancelada' && (t.start_date || t.due_date));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Calcular inicio da semana (segunda-feira) com offset
+    const startOfWeek = new Date(today);
+    const dayOfWeek = startOfWeek.getDay();
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    startOfWeek.setDate(startOfWeek.getDate() + diffToMonday + (this._calendarWeekOffset * 7));
+
+    // 7 dias da semana
+    const days = [];
+    const dayNames = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'];
+    const monthNames = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(startOfWeek);
+      d.setDate(d.getDate() + i);
+      days.push({
+        date: d,
+        label: dayNames[i],
+        dayNum: d.getDate(),
+        month: monthNames[d.getMonth()],
+        isToday: d.toDateString() === today.toDateString(),
+        isWeekend: i >= 5
+      });
+    }
+
+    // Titulo do periodo
+    const weekStart = days[0].date;
+    const weekEnd = days[6].date;
+    const periodLabel = weekStart.getMonth() === weekEnd.getMonth()
+      ? `${weekStart.getDate()} - ${weekEnd.getDate()} de ${monthNames[weekStart.getMonth()]} ${weekStart.getFullYear()}`
+      : `${weekStart.getDate()} ${monthNames[weekStart.getMonth()]} - ${weekEnd.getDate()} ${monthNames[weekEnd.getMonth()]} ${weekStart.getFullYear()}`;
+
+    // Agrupar tarefas que caem nesta semana
+    const weekStartMs = startOfWeek.getTime();
+    const weekEndMs = days[6].date.getTime() + 86400000; // fim do domingo
+    const weekTasks = tasks.filter(t => {
+      const tStart = new Date(t.start_date || t.due_date).getTime();
+      const tEnd = new Date(t.due_date || t.start_date).getTime() + 86400000;
+      return tStart < weekEndMs && tEnd > weekStartMs;
+    });
+
+    // Posicionar cada tarefa como barra
+    const taskBars = weekTasks.map(t => {
+      const tStart = new Date(t.start_date || t.due_date);
+      tStart.setHours(0, 0, 0, 0);
+      const tEnd = new Date(t.due_date || t.start_date);
+      tEnd.setHours(0, 0, 0, 0);
+
+      const barStart = Math.max(0, Math.floor((tStart.getTime() - weekStartMs) / 86400000));
+      const barEnd = Math.min(6, Math.floor((tEnd.getTime() - weekStartMs) / 86400000));
+      const colStart = barStart; // 0-6
+      const colSpan = Math.max(1, barEnd - barStart + 1);
+
+      const isDone = t.status === 'concluida';
+      const priorityColors = { urgente: '#ef4444', alta: '#f59e0b', media: '#3b82f6', baixa: '#6b7280' };
+      const color = isDone ? '#22c55e' : (priorityColors[t.priority] || '#3b82f6');
+
+      return { task: t, colStart, colSpan, color, isDone };
+    });
+
+    // Organizar em linhas (rows) para evitar sobreposicao
+    const rows = [];
+    taskBars.forEach(bar => {
+      let placed = false;
+      for (const row of rows) {
+        const hasConflict = row.some(b => !(bar.colStart >= b.colStart + b.colSpan || bar.colStart + bar.colSpan <= b.colStart));
+        if (!hasConflict) { row.push(bar); placed = true; break; }
+      }
+      if (!placed) rows.push([bar]);
+    });
+
+    return `
+      <div class="pw-calendar">
+        <div class="pw-cal-nav">
+          <button class="btn btn-ghost btn-sm" onclick="TBO_PROJECT_WORKSPACE._calendarWeekOffset--; TBO_PROJECT_WORKSPACE._refreshCalendar();" title="Semana anterior">
+            <i data-lucide="chevron-left" style="width:16px;height:16px;"></i>
+          </button>
+          <button class="btn btn-ghost btn-sm" onclick="TBO_PROJECT_WORKSPACE._calendarWeekOffset=0; TBO_PROJECT_WORKSPACE._refreshCalendar();">Hoje</button>
+          <button class="btn btn-ghost btn-sm" onclick="TBO_PROJECT_WORKSPACE._calendarWeekOffset++; TBO_PROJECT_WORKSPACE._refreshCalendar();" title="Proxima semana">
+            <i data-lucide="chevron-right" style="width:16px;height:16px;"></i>
+          </button>
+          <span class="pw-cal-period">${periodLabel}</span>
+        </div>
+
+        <div class="pw-cal-grid">
+          <div class="pw-cal-header">
+            ${days.map(d => `
+              <div class="pw-cal-day-header ${d.isToday ? 'pw-cal-today' : ''} ${d.isWeekend ? 'pw-cal-weekend' : ''}">
+                <span class="pw-cal-day-name">${d.label}</span>
+                <span class="pw-cal-day-num ${d.isToday ? 'pw-cal-today-num' : ''}">${d.dayNum}</span>
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="pw-cal-body" style="min-height:${Math.max(200, rows.length * 34 + 60)}px;">
+            ${days.map((d, i) => `<div class="pw-cal-column ${d.isToday ? 'pw-cal-col-today' : ''} ${d.isWeekend ? 'pw-cal-col-weekend' : ''}" style="grid-column:${i + 1};"></div>`).join('')}
+
+            ${rows.map((row, rowIdx) => row.map(bar => {
+              const t = bar.task;
+              const title = this._esc((t.title || t.name || '').slice(0, 40));
+              return `
+                <div class="pw-cal-bar ${bar.isDone ? 'pw-cal-bar--done' : ''}"
+                     style="grid-column: ${bar.colStart + 1} / span ${bar.colSpan}; grid-row: ${rowIdx + 2}; background: ${bar.color}20; border-left: 3px solid ${bar.color};"
+                     onclick="TBO_PROJECT_WORKSPACE._openTaskDetail('${t.id}')"
+                     title="${title}">
+                  <span class="pw-cal-bar-text">${title}</span>
+                </div>
+              `;
+            }).join('')).join('')}
+          </div>
+        </div>
+
+        ${weekTasks.length === 0 ? `
+          <div style="text-align:center;padding:40px;color:var(--text-muted);font-size:0.85rem;">
+            <i data-lucide="calendar-x" style="width:32px;height:32px;opacity:0.4;margin-bottom:8px;display:block;margin:0 auto 8px;"></i>
+            Nenhuma tarefa com datas nesta semana
+          </div>
+        ` : ''}
+      </div>
+    `;
+  },
+
+  _refreshCalendar() {
+    const content = document.getElementById('pwTabContent');
+    if (content) {
+      content.innerHTML = this._renderCalendarView();
+      if (window.lucide) lucide.createIcons();
+    }
+  },
+
+  // ── Messages View (status updates + comunicacao — Asana-style) ───────────
+
+  _renderMessagesView() {
+    // Carregar mensagens do projeto (status updates armazenados)
+    const messages = this._project?.status_updates || [];
+    const currentUser = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.getCurrentUser() : null;
+    const userName = currentUser?.name || currentUser?.email || 'Voce';
+    const userInitials = userName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
+    // Status do projeto
+    const statusOptions = [
+      { value: 'em_dia', label: 'Em dia', color: '#22c55e', icon: 'check-circle' },
+      { value: 'em_risco', label: 'Em risco', color: '#f59e0b', icon: 'alert-triangle' },
+      { value: 'atrasado', label: 'Atrasado', color: '#ef4444', icon: 'alert-circle' },
+      { value: 'pausado', label: 'Pausado', color: '#6b7280', icon: 'pause-circle' }
+    ];
+
+    const currentStatus = this._project?.project_status || 'em_dia';
+    const statusInfo = statusOptions.find(s => s.value === currentStatus) || statusOptions[0];
+
+    return `
+      <div class="pw-messages">
+        <div class="pw-msg-compose">
+          <div class="pw-msg-compose-header">
+            <div class="pw-msg-avatar" style="background:var(--accent-gold);color:#000;">${this._esc(userInitials)}</div>
+            <div style="flex:1;">
+              <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">Atualizar status do projeto</div>
+              <div style="font-size:0.72rem;color:var(--text-muted);">Compartilhe o progresso com a equipe</div>
+            </div>
+            <div class="pw-msg-status-selector">
+              ${statusOptions.map(s => `
+                <button class="pw-msg-status-opt ${s.value === currentStatus ? 'pw-msg-status-opt--active' : ''}"
+                        style="--s-color:${s.color};"
+                        onclick="TBO_PROJECT_WORKSPACE._setProjectStatus('${s.value}')"
+                        title="${s.label}">
+                  <i data-lucide="${s.icon}" style="width:14px;height:14px;"></i>
+                  <span>${s.label}</span>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+          <textarea class="pw-msg-input" id="pwMsgInput" placeholder="O que esta acontecendo no projeto? Resumo, conquistas, bloqueios..." rows="3"></textarea>
+          <div class="pw-msg-compose-footer">
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-ghost btn-sm" title="Anexar arquivo" disabled>
+                <i data-lucide="paperclip" style="width:14px;height:14px;"></i>
+              </button>
+              <button class="btn btn-ghost btn-sm" title="Mencionar" disabled>
+                <i data-lucide="at-sign" style="width:14px;height:14px;"></i>
+              </button>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="TBO_PROJECT_WORKSPACE._postStatusUpdate()">
+              <i data-lucide="send" style="width:14px;height:14px;"></i> Publicar
+            </button>
+          </div>
+        </div>
+
+        <div class="pw-msg-list" id="pwMsgList">
+          ${messages.length > 0 ? messages.slice().reverse().map(msg => {
+            const msgDate = msg.created_at ? new Date(msg.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+            const msgStatus = statusOptions.find(s => s.value === msg.status) || statusOptions[0];
+            const authorInitials = (msg.author || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
+            return `
+              <div class="pw-msg-item">
+                <div class="pw-msg-item-header">
+                  <div class="pw-msg-avatar">${this._esc(authorInitials)}</div>
+                  <div style="flex:1;">
+                    <span class="pw-msg-author">${this._esc(msg.author || 'Membro')}</span>
+                    <span class="pw-msg-time">${msgDate}</span>
+                  </div>
+                  <span class="pw-msg-status-badge" style="background:${msgStatus.color}20;color:${msgStatus.color};">
+                    <i data-lucide="${msgStatus.icon}" style="width:12px;height:12px;"></i> ${msgStatus.label}
+                  </span>
+                </div>
+                <div class="pw-msg-body">${this._esc(msg.text || '')}</div>
+              </div>
+            `;
+          }).join('') : `
+            <div class="pw-msg-empty">
+              <i data-lucide="message-square-plus" style="width:40px;height:40px;color:var(--text-muted);opacity:0.4;"></i>
+              <h4 style="color:var(--text-primary);margin:12px 0 4px;">Nenhuma atualizacao ainda</h4>
+              <p style="color:var(--text-muted);font-size:0.82rem;">Publique a primeira atualizacao de status para manter a equipe informada.</p>
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  },
+
+  _setProjectStatus(status) {
+    if (!this._project) return;
+    this._project.project_status = status;
+    if (typeof TBO_STORAGE !== 'undefined') {
+      TBO_STORAGE.updateErpEntity('project', this._projectId, { project_status: status });
+    }
+    // Re-render messages
+    const content = document.getElementById('pwTabContent');
+    if (content) {
+      content.innerHTML = this._renderMessagesView();
+      if (window.lucide) lucide.createIcons();
+    }
+  },
+
+  _postStatusUpdate() {
+    const input = document.getElementById('pwMsgInput');
+    if (!input || !input.value.trim()) {
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.warning('Mensagem vazia', 'Escreva algo antes de publicar.');
+      return;
+    }
+
+    const currentUser = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.getCurrentUser() : null;
+    const update = {
+      id: 'msg_' + Date.now(),
+      text: input.value.trim(),
+      author: currentUser?.name || currentUser?.email || 'Usuario',
+      status: this._project?.project_status || 'em_dia',
+      created_at: new Date().toISOString()
+    };
+
+    if (!this._project.status_updates) this._project.status_updates = [];
+    this._project.status_updates.push(update);
+
+    if (typeof TBO_STORAGE !== 'undefined') {
+      TBO_STORAGE.updateErpEntity('project', this._projectId, { status_updates: this._project.status_updates });
+    }
+
+    if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Publicado!', 'Atualizacao de status enviada.');
+
+    // Re-render
+    const content = document.getElementById('pwTabContent');
+    if (content) {
+      content.innerHTML = this._renderMessagesView();
+      if (window.lucide) lucide.createIcons();
+    }
+  },
+
+  // ── Files View (galeria de anexos — Asana-style) ─────────────────────────
+
+  _renderFilesView() {
+    // Coletar anexos de tarefas + projeto
+    const allFiles = [];
+
+    // Arquivos do projeto
+    if (this._project?.attachments?.length) {
+      this._project.attachments.forEach(f => {
+        allFiles.push({ ...f, source: 'Projeto', sourceId: this._projectId });
+      });
+    }
+
+    // Arquivos das tarefas
+    this._tasks.forEach(t => {
+      if (t.attachments?.length) {
+        t.attachments.forEach(f => {
+          allFiles.push({ ...f, source: t.title || t.name || 'Tarefa', sourceId: t.id });
+        });
+      }
+    });
+
+    // Agrupar por tipo
+    const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp'];
+    const docExts = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv'];
+
+    const getExt = (name) => (name || '').split('.').pop().toLowerCase();
+    const isImage = (name) => imageExts.includes(getExt(name));
+
+    const getFileIcon = (name) => {
+      const ext = getExt(name);
+      if (imageExts.includes(ext)) return 'image';
+      if (['pdf'].includes(ext)) return 'file-text';
+      if (['doc', 'docx'].includes(ext)) return 'file-text';
+      if (['xls', 'xlsx', 'csv'].includes(ext)) return 'table';
+      if (['ppt', 'pptx'].includes(ext)) return 'presentation';
+      if (['zip', 'rar', '7z'].includes(ext)) return 'archive';
+      return 'file';
+    };
+
+    const getFileColor = (name) => {
+      const ext = getExt(name);
+      if (imageExts.includes(ext)) return '#8b5cf6';
+      if (['pdf'].includes(ext)) return '#ef4444';
+      if (['doc', 'docx'].includes(ext)) return '#3b82f6';
+      if (['xls', 'xlsx', 'csv'].includes(ext)) return '#22c55e';
+      if (['ppt', 'pptx'].includes(ext)) return '#f59e0b';
+      return '#6b7280';
+    };
+
+    if (allFiles.length === 0) {
+      return `
+        <div class="pw-files-empty">
+          <i data-lucide="folder-open" style="width:48px;height:48px;color:var(--text-muted);opacity:0.4;"></i>
+          <h3 style="color:var(--text-primary);margin:16px 0 4px;">Nenhum arquivo</h3>
+          <p style="color:var(--text-muted);font-size:0.82rem;">Arquivos anexados as tarefas aparecerao aqui automaticamente.</p>
+          <p style="color:var(--text-muted);font-size:0.75rem;margin-top:8px;">Adicione arquivos pelo detalhe da tarefa.</p>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="pw-files">
+        <div class="pw-files-header">
+          <span style="font-size:0.85rem;font-weight:600;color:var(--text-primary);">${allFiles.length} arquivo${allFiles.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="pw-files-grid">
+          ${allFiles.map(f => {
+            const fname = f.name || f.filename || 'arquivo';
+            const fIcon = getFileIcon(fname);
+            const fColor = getFileColor(fname);
+            const fSize = f.size ? this._formatFileSize(f.size) : '';
+            const fDate = f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString('pt-BR') : '';
+            const isImg = isImage(fname);
+
+            return `
+              <div class="pw-file-card" ${f.url ? `onclick="window.open('${f.url}', '_blank')"` : ''}>
+                <div class="pw-file-preview" style="background:${fColor}10;">
+                  ${isImg && f.url ? `<img src="${f.url}" alt="${this._esc(fname)}" class="pw-file-thumb" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+                    <div class="pw-file-icon-wrap" style="display:none;">` :
+                    `<div class="pw-file-icon-wrap">`}
+                    <i data-lucide="${fIcon}" style="width:28px;height:28px;color:${fColor};"></i>
+                  </div>
+                </div>
+                <div class="pw-file-info">
+                  <div class="pw-file-name" title="${this._esc(fname)}">${this._esc(fname)}</div>
+                  <div class="pw-file-meta">
+                    ${fSize ? `<span>${fSize}</span>` : ''}
+                    ${fDate ? `<span>${fDate}</span>` : ''}
+                  </div>
+                  <div class="pw-file-source" title="${this._esc(f.source)}">${this._esc(f.source)}</div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  },
+
+  _formatFileSize(bytes) {
+    if (!bytes || bytes === 0) return '';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let i = 0;
+    let size = bytes;
+    while (size >= 1024 && i < units.length - 1) { size /= 1024; i++; }
+    return `${size.toFixed(i > 0 ? 1 : 0)} ${units[i]}`;
   },
 
   // ── Skeleton (loading state) ──────────────────────────────────────────────
@@ -2969,6 +3464,81 @@ const TBO_PROJECT_WORKSPACE = {
 .pw-list-col--add { width: 32px; flex-shrink: 0; color: var(--text-muted); font-size: 0.82rem; }
 .pw-list-col--add:hover { color: var(--accent-gold); }
 
+/* ── Overview Enhanced (Asana-style) ── */
+.pw-ov-hero { padding: 20px 28px; border-bottom: 1px solid var(--border-subtle); }
+.pw-ov-status-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.pw-ov-status-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 600; padding: 4px 12px; border-radius: 16px; }
+.pw-ov-deadline { display: inline-flex; align-items: center; gap: 4px; font-size: 0.78rem; font-weight: 600; }
+.pw-ov-description { margin-bottom: 12px; }
+.pw-ov-description p { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.6; margin: 0; white-space: pre-wrap; }
+.pw-ov-summary { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text-muted); padding: 8px 12px; background: var(--bg-tertiary); border-radius: 8px; }
+.pw-ov-members { display: flex; flex-direction: column; gap: 8px; }
+.pw-ov-member { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 8px; transition: background 0.15s; }
+.pw-ov-member:hover { background: var(--bg-tertiary); }
+.pw-ov-member-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-gold); color: #000; font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pw-ov-member-info { flex: 1; min-width: 0; }
+.pw-ov-member-name { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); }
+.pw-ov-member-stat { font-size: 0.72rem; color: var(--text-muted); }
+.pw-ov-last-update { padding: 10px 12px; background: var(--bg-tertiary); border-radius: 8px; border-left: 3px solid var(--accent-gold); }
+
+/* ── Calendar View ── */
+.pw-calendar { padding: 16px 28px; }
+.pw-cal-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.pw-cal-period { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-left: 8px; }
+.pw-cal-grid { border: 1px solid var(--border-subtle); border-radius: 10px; overflow: hidden; }
+.pw-cal-header { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid var(--border-subtle); }
+.pw-cal-day-header { display: flex; flex-direction: column; align-items: center; padding: 10px 4px; gap: 4px; }
+.pw-cal-day-name { font-size: 0.7rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+.pw-cal-day-num { font-size: 1rem; font-weight: 700; color: var(--text-primary); width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+.pw-cal-today .pw-cal-day-num, .pw-cal-today-num { background: var(--accent-gold); color: #000; }
+.pw-cal-weekend { background: color-mix(in srgb, var(--bg-tertiary) 50%, transparent); }
+.pw-cal-body { display: grid; grid-template-columns: repeat(7, 1fr); position: relative; min-height: 200px; gap: 2px 0; padding: 8px 4px; align-content: start; }
+.pw-cal-column { grid-row: 1 / -1; border-right: 1px solid color-mix(in srgb, var(--border-subtle) 50%, transparent); min-height: 100%; }
+.pw-cal-column:last-child { border-right: none; }
+.pw-cal-col-today { background: rgba(212,175,55,0.04); }
+.pw-cal-col-weekend { background: color-mix(in srgb, var(--bg-tertiary) 30%, transparent); }
+.pw-cal-bar { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; transition: all 0.15s; overflow: hidden; min-height: 24px; display: flex; align-items: center; z-index: 2; }
+.pw-cal-bar:hover { filter: brightness(1.1); box-shadow: 0 2px 8px rgba(0,0,0,0.15); transform: translateY(-1px); }
+.pw-cal-bar--done { opacity: 0.6; }
+.pw-cal-bar-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; color: var(--text-primary); }
+
+/* ── Messages View ── */
+.pw-messages { padding: 20px 28px; max-width: 800px; }
+.pw-msg-compose { background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+.pw-msg-compose-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.pw-msg-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--bg-tertiary); color: var(--text-primary); font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pw-msg-status-selector { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.pw-msg-status-opt { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 16px; font-size: 0.72rem; font-weight: 500; border: 1px solid var(--border-subtle); background: none; color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
+.pw-msg-status-opt:hover { border-color: var(--s-color); color: var(--s-color); }
+.pw-msg-status-opt--active { background: var(--s-color, #22c55e); color: #fff; border-color: var(--s-color, #22c55e); }
+.pw-msg-input { width: 100%; padding: 10px 12px; font-size: 0.85rem; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-primary); color: var(--text-primary); resize: vertical; min-height: 60px; outline: none; font-family: inherit; transition: border-color 0.15s; }
+.pw-msg-input:focus { border-color: var(--accent-gold); box-shadow: 0 0 0 2px rgba(212,175,55,0.1); }
+.pw-msg-compose-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+.pw-msg-list { display: flex; flex-direction: column; gap: 12px; }
+.pw-msg-item { background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 16px; transition: border-color 0.15s; }
+.pw-msg-item:hover { border-color: color-mix(in srgb, var(--accent-gold) 40%, var(--border-subtle)); }
+.pw-msg-item-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.pw-msg-author { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); }
+.pw-msg-time { font-size: 0.72rem; color: var(--text-muted); }
+.pw-msg-status-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.68rem; font-weight: 600; padding: 3px 10px; border-radius: 12px; margin-left: auto; }
+.pw-msg-body { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6; white-space: pre-wrap; }
+.pw-msg-empty { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 48px 20px; }
+
+/* ── Files View ── */
+.pw-files { padding: 20px 28px; }
+.pw-files-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.pw-files-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+.pw-file-card { background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 10px; overflow: hidden; cursor: pointer; transition: all 0.15s; }
+.pw-file-card:hover { border-color: var(--accent-gold); box-shadow: 0 4px 12px rgba(0,0,0,0.1); transform: translateY(-2px); }
+.pw-file-preview { height: 120px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.pw-file-thumb { width: 100%; height: 100%; object-fit: cover; }
+.pw-file-icon-wrap { display: flex; align-items: center; justify-content: center; }
+.pw-file-info { padding: 10px 12px; }
+.pw-file-name { font-size: 0.78rem; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 4px; }
+.pw-file-meta { display: flex; gap: 8px; font-size: 0.68rem; color: var(--text-muted); }
+.pw-file-source { font-size: 0.68rem; color: var(--text-muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pw-files-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; text-align: center; padding: 40px; }
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .pw-header { flex-direction: column; gap: 12px; padding: 16px; }
@@ -2980,6 +3550,14 @@ const TBO_PROJECT_WORKSPACE = {
   .pw-overview-grid { grid-template-columns: 1fr; }
   .pw-board { flex-direction: column; padding: 16px; }
   .pw-board-col { min-width: 100%; max-width: 100%; }
+  .pw-calendar, .pw-messages, .pw-files { padding: 16px; }
+  .pw-cal-grid { font-size: 0.75rem; }
+  .pw-cal-bar-text { font-size: 0.68rem; }
+  .pw-files-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+  .pw-file-preview { height: 80px; }
+  .pw-ov-hero { padding: 16px; }
+  .pw-msg-compose-header { flex-direction: column; }
+  .pw-msg-status-selector { width: 100%; }
 }
 
 /* Skeleton */

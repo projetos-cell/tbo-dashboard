@@ -143,8 +143,13 @@ const TBO_APP = {
     // 4. Bind sidebar navigation
     this._bindSidebar();
 
-    // 4b. Notion-style navigation (se habilitado via config/localStorage)
-    if (typeof TBO_NAV_BRIDGE !== 'undefined') {
+    // 4b. Sidebar Notion v2 (Supabase-driven) — substitui v1 se ativado
+    if (typeof TBO_SIDEBAR_BRIDGE !== 'undefined') {
+      try { TBO_SIDEBAR_BRIDGE.init(); } catch (e) {
+        console.warn('[TBO OS] SidebarBridge v2 init falhou:', e);
+      }
+    } else if (typeof TBO_NAV_BRIDGE !== 'undefined') {
+      // Fallback para v1 (navigation-tree hardcoded)
       try { TBO_NAV_BRIDGE.init(); } catch (e) {
         console.warn('[TBO OS] NavBridge init falhou:', e);
       }
@@ -220,8 +225,10 @@ const TBO_APP = {
         this._renderSidebar();
         this._bindSectionToggles();
         TBO_AUTH._applyAccess();
-        // Re-aplicar Notion sidebar após re-render com roles corretos
-        if (typeof TBO_NAV_BRIDGE !== 'undefined') {
+        // Re-aplicar sidebar Notion v2 após re-render com roles corretos
+        if (typeof TBO_SIDEBAR_BRIDGE !== 'undefined') {
+          try { TBO_SIDEBAR_BRIDGE.init(); } catch (_e) { /* noop */ }
+        } else if (typeof TBO_NAV_BRIDGE !== 'undefined') {
           try { TBO_NAV_BRIDGE.init(); } catch (_e) { /* noop */ }
         }
       }

@@ -41,6 +41,9 @@
   <link rel="stylesheet" href="src/ui/components/inline-editor/InlineEditor.css">
   <link rel="stylesheet" href="modules/agenda.css">
 
+  <!-- Sidebar Notion v2 (Supabase-driven) CSS -->
+  <link rel="stylesheet" href="src/system/sidebar/NotionSidebar.css">
+
   <!-- Leaflet CSS (loaded early for layout, JS deferred below) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
 
@@ -414,6 +417,11 @@
   <script defer src="src/system/navigation/navigation-tree.js"></script>
   <script defer src="src/system/navigation/navigation-renderer.js"></script>
   <script defer src="src/system/navigation/navigation-bridge.js"></script>
+
+  <!-- Sidebar Notion v2 (Supabase-driven — v3.3) -->
+  <script defer src="src/system/sidebar/SidebarService.js"></script>
+  <script defer src="src/system/sidebar/SidebarRenderer.js"></script>
+  <script defer src="src/system/sidebar/SidebarBridge.js"></script>
 
   <!-- Asana-style UI Components (v3.2) -->
   <script defer src="src/ui/layouts/AsanaLayout.js"></script>

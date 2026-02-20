@@ -89,6 +89,11 @@ export default [
         TBO_LIST_VIEW: "readonly",
         TBO_INLINE_EDITOR: "readonly",
 
+        // ─── Sidebar Notion v2 (v3.3) ───
+        TBO_SIDEBAR_SERVICE: "readonly",
+        TBO_SIDEBAR_RENDERER: "readonly",
+        TBO_SIDEBAR_BRIDGE: "readonly",
+
         // Onboarding globals
         ONBOARDING_CONFIG: "readonly",
         TBO_ONBOARDING_DB: "readonly",

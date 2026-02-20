@@ -1,0 +1,368 @@
+/* ============================================================================
+ * TBO OS — Notion-style Sidebar (v2)
+ *
+ * Sidebar baseada em Supabase como fonte de verdade.
+ * Estrutura: System Items → Separador → Workspaces → Mais
+ * ============================================================================ */
+
+/* ── Container ──────────────────────────────────────────────────────────── */
+
+.nsb-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0;
+}
+
+.nsb-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ── Seções ──────────────────────────────────────────────────────────────── */
+
+.nsb-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 8px;
+}
+
+.nsb-section--system {
+  margin-bottom: 4px;
+}
+
+.nsb-section--workspaces {
+  margin-bottom: 4px;
+}
+
+.nsb-section--footer {
+  margin-top: 4px;
+  border-top: 1px solid var(--border-subtle, #eaeaea);
+  padding-top: 8px;
+}
+
+/* ── Item de navegação ──────────────────────────────────────────────────── */
+
+.nsb-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  transition: background 0.08s ease;
+  color: var(--text-secondary, #606060);
+  font-size: 13px;
+  font-weight: 400;
+  user-select: none;
+  position: relative;
+  min-height: 30px;
+}
+
+.nsb-item:hover {
+  background: var(--bg-card-hover, #f5f5f5);
+  color: var(--text-primary, #0f0f0f);
+}
+
+.nsb-item--active {
+  background: var(--accent-alpha-08, rgba(232, 81, 2, 0.08));
+  color: var(--text-primary, #0f0f0f);
+  font-weight: 500;
+}
+
+.nsb-item--active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background: var(--brand-orange, #E85102);
+  border-radius: 0 2px 2px 0;
+}
+
+.nsb-item--more {
+  color: var(--text-muted, #9f9f9f);
+  font-size: 12px;
+}
+
+.nsb-item--more:hover {
+  color: var(--brand-orange, #E85102);
+}
+
+.nsb-item i {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.nsb-item--active i {
+  opacity: 1;
+  color: var(--brand-orange, #E85102);
+}
+
+.nsb-item-label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Badge ──────────────────────────────────────────────────────────────── */
+
+.nsb-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--brand-orange, #E85102);
+  border-radius: var(--radius-full, 9999px);
+  flex-shrink: 0;
+}
+
+/* ── Separador ──────────────────────────────────────────────────────────── */
+
+.nsb-separator {
+  display: flex;
+  align-items: center;
+  padding: 16px 18px 6px;
+}
+
+.nsb-separator-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted, #9f9f9f);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Workspace (espaço de equipe) ───────────────────────────────────────── */
+
+.nsb-workspace {
+  margin-bottom: 2px;
+}
+
+.nsb-ws-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  transition: background 0.08s ease;
+  user-select: none;
+  min-height: 30px;
+}
+
+.nsb-ws-header:hover {
+  background: var(--bg-card-hover, #f5f5f5);
+}
+
+.nsb-ws-chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted, #9f9f9f);
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.nsb-workspace--expanded .nsb-ws-chevron {
+  transform: rotate(90deg);
+}
+
+.nsb-ws-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--text-secondary, #606060);
+}
+
+.nsb-ws-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary, #0f0f0f);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nsb-ws-more {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: var(--radius-xs, 3px);
+  cursor: pointer;
+  color: transparent;
+  transition: all 0.1s ease;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.nsb-ws-header:hover .nsb-ws-more {
+  color: var(--text-muted, #9f9f9f);
+}
+
+.nsb-ws-more:hover {
+  background: var(--border-subtle, #eaeaea);
+  color: var(--text-primary, #0f0f0f) !important;
+}
+
+.nsb-ws-more i {
+  width: 14px;
+  height: 14px;
+}
+
+/* Conteúdo do workspace */
+.nsb-ws-content {
+  padding-left: 26px;
+  overflow: hidden;
+  animation: nsb-expand 0.15s ease;
+}
+
+@keyframes nsb-expand {
+  from { max-height: 0; opacity: 0; }
+  to { max-height: 500px; opacity: 1; }
+}
+
+.nsb-ws-placeholder {
+  padding: 4px 10px 8px;
+}
+
+.nsb-ws-placeholder-text {
+  font-size: 12px;
+  color: var(--text-muted, #9f9f9f);
+  font-style: italic;
+}
+
+/* Itens dentro do workspace (páginas, projetos) */
+.nsb-ws-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: var(--radius-xs, 3px);
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary, #606060);
+  transition: background 0.08s ease;
+}
+
+.nsb-ws-item:hover {
+  background: var(--bg-card-hover, #f5f5f5);
+  color: var(--text-primary, #0f0f0f);
+}
+
+.nsb-ws-item i {
+  width: 14px;
+  height: 14px;
+  opacity: 0.6;
+}
+
+/* ── Skeleton Loading ───────────────────────────────────────────────────── */
+
+.nsb-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+}
+
+.nsb-skeleton-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  height: 30px;
+}
+
+.nsb-skeleton-icon {
+  width: 16px;
+  height: 16px;
+  background: var(--bg-card-hover, #f0f0f0);
+  border-radius: var(--radius-xs, 3px);
+  animation: nsb-pulse 1.2s ease-in-out infinite;
+}
+
+.nsb-skeleton-text {
+  height: 12px;
+  background: var(--bg-card-hover, #f0f0f0);
+  border-radius: var(--radius-xs, 3px);
+  animation: nsb-pulse 1.2s ease-in-out infinite;
+}
+
+.nsb-skeleton-sep {
+  height: 1px;
+  background: var(--border-subtle, #eaeaea);
+  margin: 8px 18px;
+}
+
+@keyframes nsb-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────── */
+
+.nsb-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.nsb-container::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 2px;
+}
+
+.nsb-container:hover::-webkit-scrollbar-thumb {
+  background: var(--brand-gray-400, #9f9f9f);
+}
+
+/* ── Responsivo ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .nsb-item {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+
+  .nsb-ws-header {
+    padding: 7px 12px;
+  }
+}
+
+/* ── Dark mode ──────────────────────────────────────────────────────────── */
+
+body.dark-mode .nsb-item:hover,
+body.dark-mode .nsb-ws-header:hover {
+  background: var(--bg-card-hover, #2a2a2a);
+}
+
+body.dark-mode .nsb-item--active {
+  background: var(--accent-alpha-08, rgba(232, 81, 2, 0.12));
+}
+
+body.dark-mode .nsb-skeleton-icon,
+body.dark-mode .nsb-skeleton-text {
+  background: var(--bg-card-hover, #2a2a2a);
+}
+
+body.dark-mode .nsb-ws-more:hover {
+  background: var(--border-default, #3a3a3a);
+}

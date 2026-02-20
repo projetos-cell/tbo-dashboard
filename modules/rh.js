@@ -1,9 +1,11 @@
-// TBO OS — Module: Pessoas (People Management v2.2)
+// TBO OS — Module: Pessoas (People Management v2.3)
 // 5 tabs: Visao Geral, Performance & PDI, Cultura & Reconhecimento, 1:1s & Rituais, Analytics
+// v2.3: Carrega equipe do Supabase (profiles) + Google avatars + loading skeleton
 const TBO_RH = {
 
-  // ── Team Data (real — Estrutura de Cargos TBO, Notion 2026-02) ──
-  _team: [
+  // ── Team Data — Seed/fallback (quando Supabase indisponivel) ──
+  // v2.3: Fonte de verdade e Supabase profiles table. Este array e fallback.
+  _teamSeed: [
     { id: 'ruy',     nome: 'Ruy Lima',           cargo: 'Diretor Comercial',       area: 'Vendas, Operacao',      bu: 'Vendas',       nivel: 'Senior III', lider: null,    status: 'ativo' },
     { id: 'marco',   nome: 'Marco Andolfato',    cargo: 'Diretor Operacoes',       area: 'Operacao',              bu: '',              nivel: 'Senior III', lider: null,    status: 'ativo' },
     { id: 'carol',   nome: 'Carol',              cargo: 'Coord. Atendimento',      area: 'Pos Vendas, Operacao',  bu: '',              nivel: 'Pleno II',   lider: 'marco', status: 'ativo' },
@@ -12,14 +14,18 @@ const TBO_RH = {
     { id: 'rafa',    nome: 'Rafa',               cargo: 'PO Marketing',            area: 'BU Marketing',          bu: 'Marketing',     nivel: 'Pleno II',   lider: 'marco', status: 'ativo' },
     { id: 'gustavo', nome: 'Gustavo',            cargo: 'Comercial',               area: 'Vendas',                bu: 'Vendas',        nivel: 'Pleno I',    lider: 'ruy',   status: 'ativo' },
     { id: 'celso',   nome: 'Celso',              cargo: 'Designer',                area: 'BU Branding',           bu: 'Branding',      nivel: 'Pleno I',    lider: 'nelson', status: 'ativo' },
-    { id: 'erick',   nome: 'Erick',              cargo: 'Designer',                area: 'BU Branding',           bu: 'Branding',      nivel: 'Jr. III',    lider: 'nelson', status: 'ativo' },
-    { id: 'dann',    nome: 'Danniel',            cargo: 'Lider Tecnico 3D',        area: 'BU Digital 3D',         bu: 'Digital 3D',    nivel: 'Senior I',   lider: 'nath',  status: 'ativo' },
-    { id: 'duda',    nome: 'Duda',               cargo: 'Artista 3D',              area: 'BU Digital 3D',         bu: 'Digital 3D',    nivel: 'Jr. III',    lider: 'dann',  status: 'ativo' },
-    { id: 'tiago',   nome: 'Tiago M.',           cargo: 'Artista 3D',              area: 'BU Digital 3D',         bu: 'Digital 3D',    nivel: 'Pleno I',    lider: 'dann',  status: 'ativo' },
-    { id: 'mari',    nome: 'Mariane',            cargo: 'Artista 3D',              area: 'BU Digital 3D',         bu: 'Digital 3D',    nivel: 'Jr. II',     lider: 'dann',  status: 'ativo' },
+    { id: 'duda',    nome: 'Duda',               cargo: 'Artista 3D',              area: 'BU Digital 3D',         bu: 'Digital 3D',    nivel: 'Jr. III',    lider: 'nath',  status: 'ativo' },
+    { id: 'tiago',   nome: 'Tiago M.',           cargo: 'Artista 3D',              area: 'BU Digital 3D',         bu: 'Digital 3D',    nivel: 'Pleno I',    lider: 'nath',  status: 'ativo' },
     { id: 'lucca',   nome: 'Lucca',              cargo: 'Analista de Marketing',   area: 'BU Marketing',          bu: 'Marketing',     nivel: 'Jr. III',    lider: 'rafa',  status: 'ativo' },
     { id: 'financaazul', nome: 'Financa Azul',   cargo: 'Financeiro (terc.)',      area: 'Financeiro',            bu: '',              nivel: '',           lider: 'ruy',   status: 'ativo', terceirizado: true }
   ],
+
+  // _team e populado por _loadTeamFromSupabase() ou fallback para _teamSeed
+  _team: [],
+  _teamLoaded: false,
+  _teamLoadError: null,
+  // Mapa supabaseId -> dados extras (avatar_url, etc)
+  _profileMap: {},
 
   _competenciasRadar: [
     { id: 'tecnica',       nome: 'Hab. Tecnica' },
@@ -82,6 +88,120 @@ const TBO_RH = {
     const bus = new Set();
     this._getInternalTeam().forEach(t => { if (t.bu) bus.add(t.bu); });
     return [...bus].sort();
+  },
+
+  // ── Carregar equipe do Supabase ────────────────────────────────
+  // v2.3: Fonte de verdade. Fallback para _teamSeed se offline/erro.
+  async _loadTeamFromSupabase() {
+    if (this._teamLoaded) return;
+    this._loading = true;
+    this._teamLoadError = null;
+
+    if (typeof TBO_SUPABASE !== 'undefined') {
+      try {
+        const client = TBO_SUPABASE.getClient();
+        const tenantId = TBO_SUPABASE.getCurrentTenantId();
+        if (client && tenantId) {
+          const { data: profiles, error } = await client
+            .from('profiles')
+            .select('id, username, full_name, email, role, bu, is_coordinator, is_active, tenant_id, avatar_url')
+            .eq('tenant_id', tenantId)
+            .eq('is_active', true)
+            .order('full_name');
+
+          if (!error && profiles && profiles.length > 0) {
+            // Mapear profiles do Supabase para formato _team
+            // Manter dados extras do seed (cargo, area, nivel, lider) via username match
+            const seedMap = {};
+            this._teamSeed.forEach(s => { seedMap[s.id] = s; });
+
+            this._team = profiles
+              .filter(p => !p.email?.includes('financeiro@')) // excluir terceirizado
+              .map(p => {
+                const username = p.username || p.email?.split('@')[0] || '';
+                const seed = seedMap[username] || {};
+                return {
+                  id: username,
+                  supabaseId: p.id,
+                  nome: p.full_name || username,
+                  cargo: seed.cargo || (p.is_coordinator ? 'Coordenador(a)' : p.role || ''),
+                  area: seed.area || (p.bu ? `BU ${p.bu}` : ''),
+                  bu: p.bu || seed.bu || '',
+                  nivel: seed.nivel || '',
+                  lider: seed.lider || null,
+                  status: 'ativo',
+                  avatarUrl: p.avatar_url || null,
+                  email: p.email || ''
+                };
+              });
+
+            // Construir profileMap para acesso rapido por username
+            this._profileMap = {};
+            profiles.forEach(p => {
+              const username = p.username || p.email?.split('@')[0] || '';
+              this._profileMap[username] = {
+                supabaseId: p.id,
+                avatarUrl: p.avatar_url || null,
+                email: p.email,
+                fullName: p.full_name
+              };
+            });
+
+            this._teamLoaded = true;
+            this._loading = false;
+            console.log(`[RH] Equipe carregada do Supabase: ${this._team.length} membros`);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('[RH] Erro ao carregar equipe do Supabase:', e.message);
+        this._teamLoadError = e.message;
+      }
+    }
+
+    // Fallback: usar seed data
+    console.log('[RH] Usando seed data como fallback');
+    this._team = [...this._teamSeed];
+    this._teamLoaded = true;
+    this._loading = false;
+  },
+
+  // ── Avatar helper ──────────────────────────────────────────────
+  _getAvatarHTML(person, size = 40, fontSize = '0.85rem') {
+    const initials = (person.nome || '').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+    const buColors = { 'Branding': '#8b5cf6', 'Digital 3D': '#3a7bd5', 'Marketing': '#f59e0b', 'Vendas': '#2ecc71' };
+    const color = buColors[person.bu] || 'var(--accent-gold)';
+    const avatarUrl = person.avatarUrl || this._profileMap[person.id]?.avatarUrl;
+
+    if (avatarUrl) {
+      return `<img src="${this._esc(avatarUrl)}" alt="${initials}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="rh-avatar" style="width:${size}px;height:${size}px;font-size:${fontSize};background:${color}20;color:${color};display:none;">${initials}</div>`;
+    }
+    return `<div class="rh-avatar" style="width:${size}px;height:${size}px;font-size:${fontSize};background:${color}20;color:${color};">${initials}</div>`;
+  },
+
+  // ── Loading skeleton ───────────────────────────────────────────
+  _renderSkeleton() {
+    const skeletonCard = `
+      <div class="rh-person-card rh-skeleton-card" style="pointer-events:none;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <div class="rh-skeleton" style="width:40px;height:40px;border-radius:50%;"></div>
+          <div style="flex:1;">
+            <div class="rh-skeleton" style="width:70%;height:14px;border-radius:4px;margin-bottom:6px;"></div>
+            <div class="rh-skeleton" style="width:50%;height:10px;border-radius:4px;"></div>
+          </div>
+          <div class="rh-skeleton" style="width:28px;height:24px;border-radius:4px;"></div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <div class="rh-skeleton" style="width:60px;height:16px;border-radius:10px;"></div>
+          <div class="rh-skeleton" style="width:50px;height:16px;border-radius:10px;"></div>
+        </div>
+      </div>`;
+    return Array(8).fill(skeletonCard).join('');
+  },
+
+  _renderKPISkeleton() {
+    const skeletonKPI = `<div class="kpi-card"><div class="rh-skeleton" style="width:60%;height:12px;border-radius:4px;margin-bottom:8px;"></div><div class="rh-skeleton" style="width:40%;height:24px;border-radius:4px;margin-bottom:4px;"></div><div class="rh-skeleton" style="width:80%;height:10px;border-radius:4px;"></div></div>`;
+    return `<div class="grid-4" style="margin-bottom:24px;">${Array(4).fill(skeletonKPI).join('')}</div>`;
   },
 
   // ── Seed Data ───────────────────────────────────────────────────
@@ -216,7 +336,23 @@ const TBO_RH = {
   // RENDER (main entry point)
   // ══════════════════════════════════════════════════════════════════
   render() {
+    // v2.3: Garantir _team preenchido antes do seed data (que referencia _team)
+    if (!this._team.length) this._team = [...this._teamSeed];
+
     this._ensureSeedData();
+
+    // v2.3: Se equipe nao foi carregada do Supabase ainda, iniciar loading assíncrono
+    if (!this._teamLoaded) {
+      this._loadTeamFromSupabase().then(() => {
+        // Re-renderizar conteudo da tab quando dados do Supabase chegarem
+        const tabContent = document.getElementById('rhTabContent');
+        if (tabContent) {
+          tabContent.innerHTML = this._renderActiveTab();
+          this._initActiveTab();
+        }
+      });
+    }
+
     const tab = this._activeTab;
 
     return `
@@ -293,7 +429,6 @@ const TBO_RH = {
       const review = reviews.find(r => r.pessoaId === person.id);
       const score = review ? review.mediaGeral.toFixed(1) : '—';
       const scoreColor = review ? (review.mediaGeral >= 4 ? 'var(--color-success)' : review.mediaGeral >= 3 ? 'var(--accent-gold)' : 'var(--color-danger)') : 'var(--text-muted)';
-      const initials = person.nome.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
       const buLabel = person.bu || 'Geral';
       const buColors = { 'Branding': '#8b5cf6', 'Digital 3D': '#3a7bd5', 'Marketing': '#f59e0b', 'Vendas': '#2ecc71' };
       const buColor = buColors[person.bu] || 'var(--text-muted)';
@@ -301,7 +436,7 @@ const TBO_RH = {
       return `
         <div class="rh-person-card" data-person="${person.id}" data-bu="${person.bu || ''}">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-            <div class="rh-avatar" style="background:${buColor}20;color:${buColor};">${initials}</div>
+            ${this._getAvatarHTML(person, 40, '0.85rem')}
             <div style="flex:1;min-width:0;">
               <div style="font-weight:700;font-size:0.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${this._esc(person.nome)}</div>
               <div style="font-size:0.72rem;color:var(--text-muted);">${this._esc(person.cargo)}</div>
@@ -313,7 +448,7 @@ const TBO_RH = {
           </div>
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <span class="tag" style="font-size:0.62rem;background:${buColor}15;color:${buColor};">${buLabel}</span>
-            <span class="tag" style="font-size:0.62rem;">${this._esc(person.nivel)}</span>
+            ${person.nivel ? `<span class="tag" style="font-size:0.62rem;">${this._esc(person.nivel)}</span>` : ''}
             ${person.lider ? `<span style="font-size:0.62rem;color:var(--text-muted);">lider: ${this._getPersonName(person.lider)}</span>` : '<span class="tag" style="font-size:0.62rem;background:var(--accent-gold)20;color:var(--accent-gold);">Diretor</span>'}
           </div>
         </div>`;
@@ -339,7 +474,7 @@ const TBO_RH = {
 
         <!-- Header -->
         <div style="text-align:center;margin-bottom:20px;">
-          <div class="rh-avatar" style="width:64px;height:64px;font-size:1.4rem;margin:0 auto 10px;background:var(--accent-gold)20;color:var(--accent-gold);">${initials}</div>
+          <div style="display:flex;justify-content:center;margin-bottom:10px;">${this._getAvatarHTML(person, 64, '1.4rem')}</div>
           <div style="font-weight:700;font-size:1.1rem;">${this._esc(person.nome)}</div>
           <div style="font-size:0.8rem;color:var(--text-muted);">${this._esc(person.cargo)} \u2022 ${this._esc(person.area)}</div>
           <div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">${this._esc(person.nivel)}${person.lider ? ' \u2022 Lider: ' + this._getPersonName(person.lider) : ''}</div>
@@ -545,13 +680,12 @@ const TBO_RH = {
     const person = this._getPerson(personId);
     if (!review || !person) return '<div class="empty-state"><div class="empty-state-text">Avaliacao nao encontrada</div></div>';
     const radarSvg = this._renderRadarSVG(review);
-    const initials = person.nome.split(' ').map(n => n[0]).join('').slice(0, 2);
 
     return `
       <button class="btn btn-secondary btn-sm" id="rhBackToList" style="margin-bottom:12px;"><i data-lucide="arrow-left" style="width:14px;height:14px;"></i> Voltar</button>
       <div class="grid-3" style="gap:16px;margin-bottom:20px;align-items:start;">
         <div class="card" style="padding:20px;text-align:center;">
-          <div class="rh-avatar" style="width:56px;height:56px;font-size:1.2rem;margin:0 auto 12px;background:var(--accent-gold)20;color:var(--accent-gold);">${initials}</div>
+          <div style="display:flex;justify-content:center;margin-bottom:12px;">${this._getAvatarHTML(person, 56, '1.2rem')}</div>
           <div style="font-weight:700;">${this._esc(person.nome)}</div>
           <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px;">${this._esc(person.cargo)}</div>
           <div style="font-size:2rem;font-weight:800;color:${review.mediaGeral >= 4 ? 'var(--color-success)' : review.mediaGeral >= 3 ? 'var(--accent-gold)' : 'var(--color-danger)'};">${review.mediaGeral.toFixed(1)}</div>
@@ -913,6 +1047,10 @@ const TBO_RH = {
       .rh-drawer-content { padding: 24px; }
       .subtab-content { display: none; }
       .subtab-content.active { display: block; }
+      /* Skeleton loading animation */
+      .rh-skeleton { background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-elevated) 50%, var(--bg-tertiary) 75%); background-size: 200% 100%; animation: rh-shimmer 1.5s ease-in-out infinite; }
+      @keyframes rh-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+      .rh-skeleton-card { opacity: 0.7; }
     `;
   },
 

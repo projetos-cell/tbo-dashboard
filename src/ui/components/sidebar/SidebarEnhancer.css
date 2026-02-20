@@ -1,0 +1,95 @@
+/* ============================================================================
+ * TBO OS — Sidebar Enhancer Styles
+ * ============================================================================ */
+
+/* Badge de contagem */
+.sidebar-badge {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-body);
+  line-height: 18px;
+  text-align: center;
+  color: #fff;
+  background: var(--brand-orange, #E85102);
+  border-radius: var(--radius-full, 9999px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Sidebar collapsed: badge menor */
+.sidebar.collapsed .sidebar-badge {
+  top: 2px;
+  right: 2px;
+  min-width: 8px;
+  height: 8px;
+  padding: 0;
+  font-size: 0;
+}
+
+/* Favoritos */
+.sidebar-fav-item {
+  display: flex;
+  align-items: center;
+  list-style: none;
+}
+
+.sidebar-fav-link {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  color: var(--text-secondary, #606060);
+  text-decoration: none;
+  font-size: 13px;
+  transition: color 0.1s ease, background 0.1s ease;
+  border-radius: var(--radius-sm, 6px);
+  margin: 0 8px;
+}
+
+.sidebar-fav-link:hover {
+  color: var(--brand-orange, #E85102);
+  background: var(--bg-card-hover, #f8f8f8);
+}
+
+.sidebar-fav-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.sidebar-fav-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-fav-remove {
+  background: none;
+  border: none;
+  color: var(--text-muted, #9f9f9f);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 8px;
+  opacity: 0;
+  transition: opacity 0.1s ease, color 0.1s ease;
+}
+
+.sidebar-fav-item:hover .sidebar-fav-remove {
+  opacity: 1;
+}
+
+.sidebar-fav-remove:hover {
+  color: var(--brand-orange, #E85102);
+}
+
+/* Sidebar collapsed: esconder favoritos */
+.sidebar.collapsed .sidebar-favorites {
+  display: none;
+}

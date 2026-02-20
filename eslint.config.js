@@ -68,6 +68,16 @@ export default [
         TBO_CHAT: "readonly",
         TBO_GOOGLE_CALENDAR: "readonly",
 
+        // ─── UX Components (v3.1) ───
+        TBO_COMMAND_REGISTRY: "readonly",
+        TBO_COMMAND_PALETTE: "readonly",
+        TBO_ACTIVITY: "readonly",
+        TBO_ACTIVITY_FEED: "readonly",
+        TBO_SKELETON: "readonly",
+        TBO_SIDEBAR_ENHANCER: "readonly",
+        TBO_FEEDBACK: "readonly",
+        ActivityRepo: "readonly",
+
         // Onboarding globals
         ONBOARDING_CONFIG: "readonly",
         TBO_ONBOARDING_DB: "readonly",

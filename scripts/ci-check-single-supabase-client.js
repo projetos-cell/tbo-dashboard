@@ -16,7 +16,7 @@ import { readFileSync, readdirSync, statSync } from 'fs';
 import { join, extname } from 'path';
 
 const ROOT = process.cwd();
-const SKIP_DIRS = ['node_modules', 'supabase', 'archive', 'database', 'docs', '.git'];
+const SKIP_DIRS = ['node_modules', 'supabase', 'archive', 'database', 'docs', 'dist', '.git'];
 const SCAN_EXTS = ['.js', '.html', '.htm', '.ts'];
 
 // Arquivos onde createClient() é PERMITIDO

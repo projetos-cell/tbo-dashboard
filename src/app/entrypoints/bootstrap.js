@@ -71,7 +71,17 @@
       console.warn('[BOOT] TBO_ROUTE_REGISTRY ou TBO_ROUTER não disponível');
     }
 
-    // ── 6. Boot completo ──
+    // ── 6. UX Components (opcionais — falham silenciosamente) ──
+    try {
+      if (typeof TBO_SIDEBAR_ENHANCER !== 'undefined') {
+        TBO_SIDEBAR_ENHANCER.init();
+      }
+    } catch (err) {
+      console.warn('[BOOT] SidebarEnhancer init falhou:', err);
+    }
+    _mark('ux_ready');
+
+    // ── 7. Boot completo ──
     _mark('boot_end');
     _measure('bootstrap', 'boot_start', 'boot_end');
 

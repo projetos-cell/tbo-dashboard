@@ -1,0 +1,123 @@
+/* ============================================================================
+ * TBO OS — Skeleton Loading System
+ * ============================================================================ */
+
+/* Base skeleton */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-card-hover, #f8f8f8) 25%,
+    var(--border-subtle, #eaeaea) 50%,
+    var(--bg-card-hover, #f8f8f8) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm, 6px);
+}
+
+@keyframes skeleton-pulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Tipos */
+.skeleton-text {
+  height: 14px;
+  border-radius: var(--radius-xs, 3px);
+}
+
+.skeleton-text--sm {
+  height: 11px;
+}
+
+.skeleton-text--lg {
+  height: 18px;
+}
+
+.skeleton-title {
+  height: 22px;
+  width: 60%;
+  border-radius: var(--radius-xs, 3px);
+}
+
+.skeleton-circle {
+  border-radius: var(--radius-full, 9999px);
+}
+
+.skeleton-rect {
+  border-radius: var(--radius-md, 8px);
+}
+
+/* Card skeleton */
+.skeleton-card {
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-default, #dfdfdf);
+  border-radius: var(--radius-lg, 12px);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeleton-card .skeleton-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.skeleton-card .skeleton-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Table skeleton */
+.skeleton-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.skeleton-table-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle, #eaeaea);
+}
+
+.skeleton-table-row:last-child {
+  border-bottom: none;
+}
+
+.skeleton-table-cell {
+  flex: 1;
+}
+
+/* Grid de cards */
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* KPI skeleton */
+.skeleton-kpi {
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-default, #dfdfdf);
+  border-radius: var(--radius-lg, 12px);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Dark mode */
+body.dark-mode .skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.05) 25%,
+    rgba(255,255,255,0.10) 50%,
+    rgba(255,255,255,0.05) 75%
+  );
+  background-size: 200% 100%;
+}

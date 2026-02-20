@@ -1,0 +1,124 @@
+/* ============================================================================
+ * TBO OS — Feedback Provider Styles
+ * ============================================================================ */
+
+/* Progress bar global (topo da página) */
+.fb-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.fb-progress--active {
+  opacity: 1;
+}
+
+.fb-progress-bar {
+  height: 100%;
+  width: 0;
+  background: var(--brand-orange, #E85102);
+  border-radius: 0 2px 2px 0;
+  box-shadow: 0 0 8px rgba(232, 81, 2, 0.4);
+}
+
+/* Confirm dialog */
+.fb-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-overlay, rgba(15, 4, 0, 0.35));
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+
+.fb-confirm-overlay--visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.fb-confirm-modal {
+  background: var(--bg-card, #ffffff);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-lg, 0 8px 30px rgba(0, 0, 0, 0.12));
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  transform: scale(0.96);
+  transition: transform 0.15s ease;
+}
+
+.fb-confirm-overlay--visible .fb-confirm-modal {
+  transform: scale(1);
+}
+
+.fb-confirm-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, #0f0f0f);
+  margin-bottom: 8px;
+}
+
+.fb-confirm-message {
+  font-size: 14px;
+  color: var(--text-secondary, #606060);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.fb-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.fb-confirm-btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-family: var(--font-body);
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--border-default, #dfdfdf);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.fb-confirm-cancel {
+  background: transparent;
+  color: var(--text-secondary, #606060);
+}
+
+.fb-confirm-cancel:hover {
+  background: var(--bg-card-hover, #f8f8f8);
+}
+
+.fb-confirm-ok {
+  background: var(--brand-orange, #E85102);
+  border-color: var(--brand-orange, #E85102);
+  color: #fff;
+}
+
+.fb-confirm-ok:hover {
+  background: var(--brand-orange-dark, #BE4202);
+  border-color: var(--brand-orange-dark, #BE4202);
+}
+
+.fb-confirm-danger {
+  background: #EF4444;
+  border-color: #EF4444;
+}
+
+.fb-confirm-danger:hover {
+  background: #DC2626;
+  border-color: #DC2626;
+}

@@ -1,0 +1,218 @@
+/* ============================================================================
+ * TBO OS — Activity Feed Styles
+ * ============================================================================ */
+
+.af-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 380px;
+  max-width: 90vw;
+  height: 100vh;
+  z-index: 9998;
+  background: var(--bg-card, #ffffff);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.10);
+  border-left: 1px solid var(--border-default, #dfdfdf);
+  transform: translateX(100%);
+  transition: transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.af-panel--open {
+  transform: translateX(0);
+}
+
+.af-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9997;
+  background: rgba(15, 4, 0, 0.15);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.af-backdrop--visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Header */
+.af-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-subtle, #eaeaea);
+  flex-shrink: 0;
+}
+
+.af-header-title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary, #0f0f0f);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.af-header-title i {
+  width: 18px;
+  height: 18px;
+  color: var(--brand-orange, #E85102);
+}
+
+.af-close-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--text-muted, #9f9f9f);
+  border-radius: var(--radius-sm, 6px);
+  transition: background 0.1s ease, color 0.1s ease;
+}
+
+.af-close-btn:hover {
+  background: var(--bg-card-hover, #f8f8f8);
+  color: var(--text-primary, #0f0f0f);
+}
+
+.af-close-btn i {
+  width: 18px;
+  height: 18px;
+}
+
+/* Filtros */
+.af-filters {
+  display: flex;
+  gap: 6px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border-subtle, #eaeaea);
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+.af-filter {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-family: var(--font-body);
+  border: 1px solid var(--border-default, #dfdfdf);
+  border-radius: var(--radius-full, 9999px);
+  background: transparent;
+  color: var(--text-secondary, #606060);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.1s ease;
+}
+
+.af-filter:hover {
+  border-color: var(--brand-orange, #E85102);
+  color: var(--brand-orange, #E85102);
+}
+
+.af-filter--active {
+  background: var(--brand-orange, #E85102);
+  border-color: var(--brand-orange, #E85102);
+  color: #fff;
+}
+
+/* Lista */
+.af-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.af-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 20px;
+  transition: background 0.1s ease;
+  cursor: default;
+}
+
+.af-item:hover {
+  background: var(--bg-card-hover, #f8f8f8);
+}
+
+.af-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--brand-orange-pale, #FED5C0);
+  color: var(--brand-orange-dark, #BE4202);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.af-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.af-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.af-text {
+  font-size: 13px;
+  color: var(--text-primary, #0f0f0f);
+  line-height: 1.4;
+}
+
+.af-text strong {
+  font-weight: 600;
+}
+
+.af-text .af-entity {
+  color: var(--brand-orange-dark, #BE4202);
+  font-weight: 500;
+}
+
+.af-time {
+  font-size: 11px;
+  color: var(--text-muted, #9f9f9f);
+  margin-top: 2px;
+}
+
+/* Empty */
+.af-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  color: var(--text-muted, #9f9f9f);
+  text-align: center;
+  gap: 8px;
+}
+
+.af-empty i {
+  width: 32px;
+  height: 32px;
+  opacity: 0.5;
+}
+
+/* Loading */
+.af-loading {
+  padding: 20px;
+}
+
+/* Scrollbar */
+.af-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.af-list::-webkit-scrollbar-thumb {
+  background: var(--brand-gray-400, #9f9f9f);
+  border-radius: 2px;
+}

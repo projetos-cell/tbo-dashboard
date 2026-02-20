@@ -211,13 +211,28 @@ const TBO_APP = {
       }
 
       // Salvar hash original antes de qualquer redirect (para F5 preservar rota)
-      const originalHash = window.location.hash.replace('#', '');
+      const originalHash = window.location.hash.replace('#', '').replace(/^\//, '');
 
       // Verificar se precisa selecionar workspace (multi-tenant v2)
       if (typeof TBO_WORKSPACE !== 'undefined' && TBO_WORKSPACE.shouldShowSelector()) {
-        // Carregar tenants e mostrar selector
         await TBO_WORKSPACE.loadTenants();
-        TBO_ROUTER.navigate('workspace');
+        // Auto-selecionar se so tem 1 tenant (evita redirect desnecessario no F5)
+        if (TBO_WORKSPACE._tenants && TBO_WORKSPACE._tenants.length === 1) {
+          const tenant = TBO_WORKSPACE._tenants[0];
+          TBO_WORKSPACE._currentTenant = tenant;
+          try { sessionStorage.setItem('tbo_active_tenant', JSON.stringify(tenant)); } catch(e) {}
+          // Restaurar hash original se tinha rota antes do F5
+          if (originalHash && originalHash !== 'workspace') {
+            window.location.hash = originalHash;
+          }
+          TBO_ROUTER.initFromHash('command-center');
+        } else {
+          // Multi-tenant: mostrar selector, mas guardar hash para restaurar depois
+          if (originalHash) {
+            try { sessionStorage.setItem('tbo_pending_hash', originalHash); } catch(e) {}
+          }
+          TBO_ROUTER.navigate('workspace');
+        }
       } else {
         // Respeitar hash da URL (F5/deep link) ou ir para command-center
         const defaultMod = 'command-center';

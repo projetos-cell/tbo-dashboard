@@ -1337,13 +1337,25 @@ const TBO_PROJECT_WORKSPACE = {
     // Drag and drop para reordenacao
     this._initListDragDrop();
 
-    // Board card clicks (abrir detalhe)
+    // Board card clicks (abrir detalhe) + context menu + drag & drop
     document.querySelectorAll('.pw-board-card').forEach(card => {
-      card.addEventListener('click', () => {
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('.pw-card-check')) return; // Nao abrir se clicou no check
         const taskId = card.dataset.taskId;
         if (taskId) this._openTaskDetail(taskId);
       });
+
+      // Context menu (right-click) nos board cards
+      card.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const taskId = card.dataset.taskId;
+        if (taskId) this._showTaskContextMenu(taskId, e.clientX, e.clientY);
+      });
     });
+
+    // Board drag & drop (mover entre colunas = mudar status)
+    this._initBoardDragDrop();
 
     // Toolbar buttons (filtros, ordenar, agrupar, opcoes)
     this._bindToolbarButtons();
@@ -1563,15 +1575,21 @@ const TBO_PROJECT_WORKSPACE = {
           <textarea class="pw-detail-textarea" id="pwDetailDesc" placeholder="Adicionar descricao...">${this._esc(task.description || task.notes || '')}</textarea>
         </div>
 
-        <!-- Subtarefas -->
+        <!-- Subtarefas (funcional — criar, toggle, excluir) -->
         <div class="pw-detail-field">
-          <div class="pw-detail-label">Subtarefas</div>
-          <div style="padding:8px 0;font-size:0.78rem;color:var(--text-muted);">
-            ${task.subtasks && task.subtasks.length ? task.subtasks.map(st => `
-              <div style="display:flex;align-items:center;gap:8px;padding:4px 0;">
-                <i data-lucide="${st.done ? 'check-circle-2' : 'circle'}" style="width:14px;height:14px;color:${st.done ? 'var(--color-success)' : 'var(--text-muted)'};"></i>
-                <span style="${st.done ? 'text-decoration:line-through;color:var(--text-muted);' : ''}">${this._esc(st.title || st.name || '')}</span>
-              </div>`).join('') : '<span>Nenhuma subtarefa</span>'}
+          <div class="pw-detail-label" style="display:flex;align-items:center;justify-content:space-between;">
+            <span>Subtarefas</span>
+            <span class="pw-subtask-count">${(task.subtasks || []).length}</span>
+          </div>
+          <div class="pw-subtasks-list" id="pwSubtasksList">
+            ${this._renderSubtasks(taskId, task.subtasks || [])}
+          </div>
+          <div class="pw-subtask-add">
+            <button class="pw-card-check" style="opacity:0.3;pointer-events:none;">
+              <i data-lucide="circle" style="width:14px;height:14px;"></i>
+            </button>
+            <input type="text" class="pw-subtask-input" id="pwSubtaskInput" placeholder="Adicionar subtarefa..."
+              onkeydown="if(event.key==='Enter'&&this.value.trim()){TBO_PROJECT_WORKSPACE._addSubtask('${this._esc(taskId)}',this.value);this.value='';}" />
           </div>
         </div>
 
@@ -1727,6 +1745,67 @@ const TBO_PROJECT_WORKSPACE = {
       this._refreshListView();
       if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Tarefa excluida');
     });
+  },
+
+  // ── Subtarefas (criar, toggle, excluir) ──────────────────────────────
+
+  _renderSubtasks(taskId, subtasks) {
+    if (!subtasks || subtasks.length === 0) return '';
+    return subtasks.map((st, idx) => {
+      const isDone = st.done || st.status === 'concluida';
+      return `
+        <div class="pw-subtask-item${isDone ? ' pw-subtask-item--done' : ''}">
+          <button class="pw-card-check${isDone ? ' pw-card-check--done' : ''}" onclick="TBO_PROJECT_WORKSPACE._toggleSubtask('${this._esc(taskId)}',${idx})">
+            <i data-lucide="${isDone ? 'check-circle-2' : 'circle'}" style="width:15px;height:15px;"></i>
+          </button>
+          <span class="pw-subtask-title${isDone ? ' pw-subtask-title--done' : ''}">${this._esc(st.title || st.name || '')}</span>
+          <button class="pw-subtask-delete" onclick="TBO_PROJECT_WORKSPACE._deleteSubtask('${this._esc(taskId)}',${idx})" title="Excluir subtarefa">
+            <i data-lucide="x" style="width:12px;height:12px;"></i>
+          </button>
+        </div>`;
+    }).join('');
+  },
+
+  _addSubtask(taskId, title) {
+    if (!title || !title.trim()) return;
+    const task = this._tasks.find(t => t.id === taskId);
+    if (!task) return;
+    if (!task.subtasks) task.subtasks = [];
+    task.subtasks.push({ title: title.trim(), done: false, id: Date.now().toString(36) });
+    // Persistir
+    if (typeof TBO_STORAGE !== 'undefined') {
+      TBO_STORAGE.updateErpEntity('task', taskId, { subtasks: task.subtasks });
+    }
+    // Atualizar UI
+    const list = document.getElementById('pwSubtasksList');
+    if (list) { list.innerHTML = this._renderSubtasks(taskId, task.subtasks); if (window.lucide) lucide.createIcons(); }
+    // Atualizar contador
+    const countEl = document.querySelector('.pw-subtask-count');
+    if (countEl) countEl.textContent = task.subtasks.length;
+  },
+
+  _toggleSubtask(taskId, idx) {
+    const task = this._tasks.find(t => t.id === taskId);
+    if (!task || !task.subtasks || !task.subtasks[idx]) return;
+    task.subtasks[idx].done = !task.subtasks[idx].done;
+    if (typeof TBO_STORAGE !== 'undefined') {
+      TBO_STORAGE.updateErpEntity('task', taskId, { subtasks: task.subtasks });
+    }
+    const list = document.getElementById('pwSubtasksList');
+    if (list) { list.innerHTML = this._renderSubtasks(taskId, task.subtasks); if (window.lucide) lucide.createIcons(); }
+  },
+
+  _deleteSubtask(taskId, idx) {
+    const task = this._tasks.find(t => t.id === taskId);
+    if (!task || !task.subtasks) return;
+    task.subtasks.splice(idx, 1);
+    if (typeof TBO_STORAGE !== 'undefined') {
+      TBO_STORAGE.updateErpEntity('task', taskId, { subtasks: task.subtasks });
+    }
+    const list = document.getElementById('pwSubtasksList');
+    if (list) { list.innerHTML = this._renderSubtasks(taskId, task.subtasks); if (window.lucide) lucide.createIcons(); }
+    const countEl = document.querySelector('.pw-subtask-count');
+    if (countEl) countEl.textContent = task.subtasks.length;
   },
 
   // ── Comentarios (Asana-style activity feed) ──────────────────────────
@@ -1986,6 +2065,71 @@ const TBO_PROJECT_WORKSPACE = {
           }
         }
         draggedId = null;
+      });
+    });
+  },
+
+  // Board drag & drop: mover cards entre colunas (mudar status)
+  _initBoardDragDrop() {
+    let draggedCardId = null;
+
+    document.querySelectorAll('.pw-board-card').forEach(card => {
+      card.addEventListener('dragstart', (e) => {
+        draggedCardId = card.dataset.taskId;
+        card.classList.add('pw-dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', draggedCardId);
+      });
+
+      card.addEventListener('dragend', () => {
+        card.classList.remove('pw-dragging');
+        document.querySelectorAll('.pw-board-cards--dragover').forEach(el => el.classList.remove('pw-board-cards--dragover'));
+        draggedCardId = null;
+      });
+    });
+
+    // Drop targets: colunas do board
+    document.querySelectorAll('.pw-board-cards').forEach(col => {
+      col.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        col.classList.add('pw-board-cards--dragover');
+      });
+
+      col.addEventListener('dragleave', (e) => {
+        // So remover se saiu da coluna mesmo (nao de filho)
+        if (!col.contains(e.relatedTarget)) {
+          col.classList.remove('pw-board-cards--dragover');
+        }
+      });
+
+      col.addEventListener('drop', (e) => {
+        e.preventDefault();
+        col.classList.remove('pw-board-cards--dragover');
+        const newStatus = col.dataset.status;
+        if (!draggedCardId || !newStatus) return;
+
+        const task = this._tasks.find(t => t.id === draggedCardId);
+        if (!task || task.status === newStatus) return;
+
+        const oldStatus = task.status;
+        task.status = newStatus;
+
+        // Persistir
+        if (typeof TBO_STORAGE !== 'undefined') {
+          TBO_STORAGE.updateErpEntity('task', draggedCardId, { status: newStatus });
+        }
+
+        // Atualizar secao (se agrupado por status)
+        this._refreshListView();
+
+        const sm = typeof TBO_ERP !== 'undefined' ? TBO_ERP.stateMachines.task : null;
+        const lbl = sm?.labels?.[newStatus] || newStatus;
+        if (typeof TBO_TOAST !== 'undefined') {
+          TBO_TOAST.success('Status atualizado', `Tarefa movida para "${lbl}"`);
+        }
+
+        draggedCardId = null;
       });
     });
   },
@@ -2530,21 +2674,23 @@ const TBO_PROJECT_WORKSPACE = {
 .pw-row-menu-btn { opacity: 0; transition: opacity 0.15s; }
 .pw-list-row:hover .pw-row-menu-btn { opacity: 1; }
 
-/* Task detail panel (side drawer) */
-.pw-task-detail { position: fixed; top: 0; right: 0; width: 520px; max-width: 95vw; height: 100vh; background: var(--bg-primary); border-left: 1px solid var(--border-subtle); box-shadow: -6px 0 24px rgba(0,0,0,0.2); z-index: 1000; transform: translateX(100%); transition: transform 0.25s cubic-bezier(0.4,0,0.2,1); overflow-y: auto; }
+/* Task detail panel (side drawer — solid bg, Asana-style) */
+.pw-task-detail { position: fixed; top: 0; right: 0; width: 540px; max-width: 95vw; height: 100vh; background: var(--bg-secondary, #1e1e1e); border-left: 2px solid var(--border-subtle); box-shadow: -8px 0 32px rgba(0,0,0,0.4); z-index: 1000; transform: translateX(100%); transition: transform 0.25s cubic-bezier(0.4,0,0.2,1); overflow-y: auto; display: flex; flex-direction: column; }
 .pw-task-detail.pw-detail-open { transform: translateX(0); }
-.pw-detail-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.35); z-index: 999; opacity: 0; transition: opacity 0.2s; }
+.pw-detail-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; background: var(--bg-tertiary, #252525); border-bottom: 1px solid var(--border-subtle); position: sticky; top: 0; z-index: 2; }
+.pw-detail-body { flex: 1; padding: 20px; overflow-y: auto; }
+.pw-detail-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; opacity: 0; transition: opacity 0.2s; }
 .pw-detail-backdrop.pw-detail-open { opacity: 1; }
 .pw-detail-header { display: flex; align-items: flex-start; gap: 12px; padding: 20px 24px; border-bottom: 1px solid var(--border-subtle); }
 .pw-detail-body { padding: 20px 24px; }
-.pw-detail-field { margin-bottom: 16px; }
+.pw-detail-field { margin-bottom: 12px; }
 .pw-detail-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px; font-weight: 600; }
 .pw-detail-value { font-size: 0.88rem; color: var(--text-primary); }
-.pw-detail-textarea { width: 100%; min-height: 80px; padding: 10px 12px; font-size: 0.82rem; border: 1px solid var(--border-subtle); border-radius: 6px; background: var(--bg-elevated); color: var(--text-primary); resize: vertical; outline: none; }
+.pw-detail-textarea { width: 100%; min-height: 80px; padding: 10px 12px; font-size: 0.82rem; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-primary, #181818); color: var(--text-primary); resize: vertical; outline: none; font-family: inherit; }
 .pw-detail-textarea:focus { border-color: var(--accent-gold); box-shadow: 0 0 0 2px rgba(212,175,55,0.15); }
-.pw-detail-input { width: 100%; padding: 6px 10px; font-size: 0.82rem; border: 1px solid var(--border-subtle); border-radius: 6px; background: var(--bg-elevated); color: var(--text-primary); outline: none; }
-.pw-detail-input:focus { border-color: var(--accent-gold); }
-.pw-detail-select { padding: 6px 10px; font-size: 0.82rem; border: 1px solid var(--border-subtle); border-radius: 6px; background: var(--bg-elevated); color: var(--text-primary); outline: none; }
+.pw-detail-input { width: 100%; padding: 8px 12px; font-size: 0.85rem; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-primary, #181818); color: var(--text-primary); outline: none; font-family: inherit; }
+.pw-detail-input:focus { border-color: var(--accent-gold); box-shadow: 0 0 0 2px rgba(212,175,55,0.1); }
+.pw-detail-select { padding: 8px 12px; font-size: 0.85rem; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-primary, #181818); color: var(--text-primary); outline: none; cursor: pointer; }
 
 /* Context menu (universal) */
 .pw-context-menu { position: fixed; z-index: 1100; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); min-width: 200px; overflow: hidden; }
@@ -2609,6 +2755,8 @@ const TBO_PROJECT_WORKSPACE = {
 .pw-board-card-name { font-size: 0.82rem; font-weight: 500; color: var(--text-primary); margin-bottom: 6px; }
 .pw-board-card-owner, .pw-board-card-date { display: flex; align-items: center; gap: 4px; font-size: 0.72rem; color: var(--text-muted); }
 .pw-board-empty { text-align: center; padding: 20px; font-size: 0.75rem; color: var(--text-muted); }
+.pw-board-cards--dragover { background: rgba(212,175,55,0.08); outline: 2px dashed var(--accent-gold); outline-offset: -2px; border-radius: 0 0 8px 8px; }
+.pw-board-card.pw-dragging { opacity: 0.4; transform: scale(0.95); }
 
 /* ── Board Cards Asana-style ── */
 .pw-card-top { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
@@ -2646,6 +2794,22 @@ const TBO_PROJECT_WORKSPACE = {
 .pw-no-comments { font-size: 0.78rem; color: var(--text-muted); padding: 12px 0; text-align: center; }
 .pw-dep-chip { display: inline-flex; align-items: center; gap: 4px; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 3px 10px; font-size: 0.72rem; color: var(--text-primary); cursor: pointer; transition: border-color 0.15s; }
 .pw-dep-chip:hover { border-color: var(--accent-gold); }
+
+/* ── Subtarefas (Asana-style) ── */
+.pw-subtasks-list { display: flex; flex-direction: column; gap: 2px; margin: 4px 0; }
+.pw-subtask-item { display: flex; align-items: center; gap: 8px; padding: 5px 4px; border-radius: 6px; transition: background 0.1s; }
+.pw-subtask-item:hover { background: var(--bg-tertiary); }
+.pw-subtask-item:hover .pw-subtask-delete { opacity: 1; }
+.pw-subtask-item--done { opacity: 0.6; }
+.pw-subtask-title { flex: 1; font-size: 0.82rem; color: var(--text-primary); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pw-subtask-title--done { text-decoration: line-through; color: var(--text-muted); }
+.pw-subtask-delete { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 2px; border-radius: 4px; opacity: 0; transition: all 0.15s; flex-shrink: 0; }
+.pw-subtask-delete:hover { color: var(--color-danger, #ef4444); background: rgba(239,68,68,0.1); }
+.pw-subtask-count { font-size: 0.65rem; background: var(--bg-tertiary); color: var(--text-muted); padding: 1px 7px; border-radius: 10px; }
+.pw-subtask-add { display: flex; align-items: center; gap: 8px; padding: 4px; margin-top: 4px; }
+.pw-subtask-input { flex: 1; padding: 6px 10px; font-size: 0.82rem; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text-primary); outline: none; transition: all 0.15s; }
+.pw-subtask-input:focus { border-color: var(--accent-gold); background: var(--bg-primary); box-shadow: 0 0 0 2px rgba(212,175,55,0.1); }
+.pw-subtask-input::placeholder { color: var(--text-muted); }
 
 /* ── Dashboard ── */
 .pw-dashboard { padding: 24px 28px; }

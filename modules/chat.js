@@ -128,6 +128,27 @@ const TBO_CHAT = {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   },
 
+  // Helper: bind event por elementId (usado nos modais)
+  _on(elementId, event, handler) {
+    const el = document.getElementById(elementId);
+    if (el) el.addEventListener(event, handler);
+  },
+
+  // Helper: renderizar avatar com foto ou initials
+  _renderAvatar(userId, size = 34) {
+    const name = this._getUserName(userId);
+    const initials = this._getInitials(name);
+    const color = this._getUserColor(userId);
+    const avatar = this._getUserAvatar(userId);
+    if (avatar) {
+      return `<div class="chat-message-avatar" style="width:${size}px;height:${size}px;" data-user-id="${userId}">
+        <img src="${this._esc(avatar)}" alt="${this._esc(name)}" class="chat-avatar-img"
+          onerror="this.style.display='none';this.parentElement.innerHTML='${initials}';this.parentElement.style.background='${color}20';this.parentElement.style.color='${color}';">
+      </div>`;
+    }
+    return `<div class="chat-message-avatar" style="background:${color}20;color:${color};width:${size}px;height:${size}px;" data-user-id="${userId}">${initials}</div>`;
+  },
+
   // ══════════════════════════════════════════════════════════════════
   // RENDER PRINCIPAL
   // ══════════════════════════════════════════════════════════════════
@@ -259,6 +280,20 @@ const TBO_CHAT = {
         <div class="chat-modal-overlay" id="chatSectionModal" style="display:none;">
           <div class="chat-modal" id="chatSectionModalContent"></div>
         </div>
+
+        <!-- User hover card -->
+        <div class="chat-user-card" id="chatUserCard" style="display:none;">
+          <div class="chat-user-card-header">
+            <div class="chat-user-card-avatar" id="chatUserCardAvatar"></div>
+            <div class="chat-user-card-info">
+              <div class="chat-user-card-name" id="chatUserCardName"></div>
+              <div class="chat-user-card-email" id="chatUserCardEmail"></div>
+            </div>
+          </div>
+          <button class="chat-user-card-dm" id="chatUserCardDM">
+            <i data-lucide="message-circle" style="width:14px;height:14px;"></i> Chat privado
+          </button>
+        </div>
       </div>
     `;
   },
@@ -382,12 +417,178 @@ const TBO_CHAT = {
         self._closeAllModals();
       }
     });
+
+    // ── Hover card: mostrar ao passar mouse sobre nome/avatar ──
+    let _hoverCardTimer = null;
+    let _hoverCardHideTimer = null;
+
+    document.addEventListener('mouseover', (e) => {
+      if (!e.target.closest('.chat-module')) return;
+      const author = e.target.closest('.chat-message-author[data-user-id]');
+      const avatar = e.target.closest('.chat-message-avatar[data-user-id]');
+      const target = author || avatar;
+      if (!target) return;
+
+      const userId = target.dataset.userId;
+      if (!userId || userId === self._currentUser?.id) return;
+
+      clearTimeout(_hoverCardHideTimer);
+      clearTimeout(_hoverCardTimer);
+      _hoverCardTimer = setTimeout(() => self._showUserCard(userId, target), 300);
+    });
+
+    document.addEventListener('mouseout', (e) => {
+      const author = e.target.closest('.chat-message-author[data-user-id]');
+      const avatar = e.target.closest('.chat-message-avatar[data-user-id]');
+      const card = e.target.closest('.chat-user-card');
+      if (!author && !avatar && !card) return;
+
+      clearTimeout(_hoverCardTimer);
+      _hoverCardHideTimer = setTimeout(() => self._hideUserCard(), 300);
+    });
+
+    // Manter card visivel ao mover mouse para dentro do card
+    document.addEventListener('mouseover', (e) => {
+      if (e.target.closest('#chatUserCard')) {
+        clearTimeout(_hoverCardHideTimer);
+      }
+    });
+
+    // Clicar no botao DM do user card
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#chatUserCardDM')) {
+        const card = document.getElementById('chatUserCard');
+        const userId = card?.dataset.userId;
+        if (userId) self._openDirectMessage(userId);
+        self._hideUserCard();
+      }
+    });
   },
 
   _closeAllModals() {
     document.querySelectorAll('.chat-modal-overlay').forEach(m => m.style.display = 'none');
     const pickers = ['chatEmojiPicker', 'chatStickerPicker', 'chatMentionSuggestions'];
     pickers.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+    this._hideUserCard();
+  },
+
+  // ══════════════════════════════════════════════════════════════════
+  // USER HOVER CARD
+  // ══════════════════════════════════════════════════════════════════
+  _showUserCard(userId, anchorEl) {
+    const card = document.getElementById('chatUserCard');
+    if (!card) return;
+
+    const user = this._members[userId] || this._allUsers?.find(u => u.id === userId);
+    if (!user) return;
+
+    const name = user.name || 'Usuario';
+    const email = user.email || '';
+    const avatarHtml = this._renderAvatar(userId, 40);
+
+    document.getElementById('chatUserCardAvatar').innerHTML = avatarHtml;
+    document.getElementById('chatUserCardName').textContent = name;
+    document.getElementById('chatUserCardEmail').textContent = email;
+    card.dataset.userId = userId;
+
+    // Posicionar ao lado do anchor
+    const rect = anchorEl.getBoundingClientRect();
+    card.style.display = 'block';
+    const cardRect = card.getBoundingClientRect();
+
+    let left = rect.right + 8;
+    let top = rect.top;
+
+    // Se sai da tela a direita, posicionar a esquerda
+    if (left + cardRect.width > window.innerWidth) {
+      left = rect.left - cardRect.width - 8;
+    }
+    // Se sai da tela embaixo, ajustar para cima
+    if (top + cardRect.height > window.innerHeight) {
+      top = window.innerHeight - cardRect.height - 8;
+    }
+
+    card.style.left = left + 'px';
+    card.style.top = top + 'px';
+
+    if (window.lucide) lucide.createIcons({ root: card });
+  },
+
+  _hideUserCard() {
+    const card = document.getElementById('chatUserCard');
+    if (card) card.style.display = 'none';
+  },
+
+  async _openDirectMessage(targetUserId) {
+    const client = this._getClient();
+    const user = this._currentUser;
+    const tenantId = this._getTenantId();
+    if (!client || !user || !tenantId) return;
+
+    try {
+      // Buscar canal DM existente entre os dois usuarios
+      const { data: myMemberships } = await client
+        .from('chat_channel_members')
+        .select('channel_id')
+        .eq('user_id', user.id);
+
+      const { data: theirMemberships } = await client
+        .from('chat_channel_members')
+        .select('channel_id')
+        .eq('user_id', targetUserId);
+
+      if (myMemberships && theirMemberships) {
+        const myChannelIds = new Set(myMemberships.map(m => m.channel_id));
+        const commonChannelIds = theirMemberships
+          .filter(m => myChannelIds.has(m.channel_id))
+          .map(m => m.channel_id);
+
+        if (commonChannelIds.length) {
+          // Verificar se algum eh do tipo 'direct'
+          const { data: directChannels } = await client
+            .from('chat_channels')
+            .select('*')
+            .in('id', commonChannelIds)
+            .eq('type', 'direct')
+            .eq('is_archived', false);
+
+          if (directChannels?.length) {
+            // Selecionar o DM existente
+            await this._loadChannels();
+            this._selectChannel(directChannels[0]);
+            return;
+          }
+        }
+      }
+
+      // Criar novo canal DM
+      const targetName = this._getUserName(targetUserId);
+      const { data: channel, error } = await client
+        .from('chat_channels')
+        .insert({
+          tenant_id: tenantId,
+          name: `dm-${user.id.slice(0, 8)}-${targetUserId.slice(0, 8)}`,
+          type: 'direct',
+          description: `Chat entre ${this._esc(this._getUserName(user.id))} e ${this._esc(targetName)}`,
+          created_by: user.id
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Adicionar ambos como membros
+      await client.from('chat_channel_members').insert([
+        { channel_id: channel.id, user_id: user.id, role: 'admin' },
+        { channel_id: channel.id, user_id: targetUserId, role: 'member' }
+      ]);
+
+      TBO_TOAST.success('Chat privado aberto', targetName);
+      await this._loadChannels();
+      this._selectChannel(channel);
+    } catch (e) {
+      TBO_TOAST.error('Erro ao abrir DM', e.message);
+    }
   },
 
   // ══════════════════════════════════════════════════════════════════
@@ -789,7 +990,7 @@ const TBO_CHAT = {
       const initials = this._getInitials(m.name);
       html += `
         <div class="chat-member-item">
-          <div class="chat-member-avatar" style="background:${color}20;color:${color};">${initials}</div>
+          ${this._renderAvatar(uid, 32)}
           <div style="flex:1;min-width:0;">
             <div style="font-weight:600;font-size:0.82rem;">${this._esc(m.name)} ${isOwn ? '<span style="opacity:0.5;font-weight:400;">(voce)</span>' : ''}</div>
             <div style="font-size:0.7rem;color:var(--text-muted);">${this._esc(m.email || '')}</div>
@@ -959,13 +1160,11 @@ const TBO_CHAT = {
 
       html += `
         <div class="chat-message ${isOwn ? 'chat-message-own' : ''} ${isSameAuthor ? 'chat-message-grouped' : ''}" data-msg-id="${msg.id}">
-          ${!isSameAuthor ? `
-            <div class="chat-message-avatar" style="background:${color}20;color:${color};">${initials}</div>
-          ` : '<div class="chat-message-avatar-spacer"></div>'}
+          ${!isSameAuthor ? this._renderAvatar(msg.sender_id) : '<div class="chat-message-avatar-spacer"></div>'}
           <div class="chat-message-body">
             ${!isSameAuthor ? `
               <div class="chat-message-header">
-                <span class="chat-message-author" style="color:${color};">${this._esc(name)}</span>
+                <span class="chat-message-author" style="color:${color};cursor:pointer;" data-user-id="${msg.sender_id}">${this._esc(name)}</span>
                 <span class="chat-message-time">${time}</span>
               </div>
             ` : ''}
@@ -1298,7 +1497,7 @@ const TBO_CHAT = {
       const color = this._getUserColor(u.id);
       const initials = this._getInitials(u.name);
       return `<div class="chat-mention-item ${i === 0 ? 'active' : ''}" data-user-id="${u.id}" data-user-name="${this._esc(u.name)}">
-        <div class="chat-mention-avatar" style="background:${color}20;color:${color};">${initials}</div>
+        ${this._renderAvatar(u.id, 28)}
         <div>
           <div style="font-weight:600;font-size:0.8rem;">${this._esc(u.name)}</div>
           <div style="font-size:0.68rem;color:var(--text-muted);">${this._esc(u.email || '')}</div>
@@ -2041,7 +2240,8 @@ const TBO_CHAT = {
       .chat-message:hover { background: var(--bg-elevated); }
       .chat-message:hover .chat-message-actions { opacity: 1; pointer-events: auto; }
       .chat-message-grouped { padding-top: 0; }
-      .chat-message-avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.68rem; font-weight: 700; flex-shrink: 0; }
+      .chat-message-avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.68rem; font-weight: 700; flex-shrink: 0; overflow: hidden; cursor: pointer; }
+      .chat-avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
       .chat-message-avatar-spacer { width: 34px; flex-shrink: 0; }
       .chat-message-body { flex: 1; min-width: 0; }
       .chat-message-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 1px; }
@@ -2141,6 +2341,15 @@ const TBO_CHAT = {
       .chat-modal { background: var(--bg-primary); border-radius: var(--radius-lg, 12px); padding: 24px; width: 90%; max-width: 420px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); max-height: 80vh; overflow-y: auto; }
       .chat-modal-lg { max-width: 520px; }
       .chat-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+
+      /* ── User Hover Card ── */
+      .chat-user-card { position: fixed; z-index: 10001; width: 240px; background: var(--bg-card, #1e1e1e); border: 1px solid var(--border-default, #333); border-radius: var(--radius-md, 8px); box-shadow: var(--shadow-xl, 0 8px 24px rgba(0,0,0,0.3)); padding: 14px; pointer-events: auto; }
+      .chat-user-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+      .chat-user-card-avatar .chat-message-avatar { cursor: default; }
+      .chat-user-card-name { font-size: 0.88rem; font-weight: 600; color: var(--text-primary); }
+      .chat-user-card-email { font-size: 0.72rem; color: var(--text-muted); word-break: break-all; }
+      .chat-user-card-dm { width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 12px; font-size: 0.78rem; font-weight: 500; background: var(--accent-gold-dim, rgba(232,81,2,0.1)); color: var(--accent-gold, #E85102); border: 1px solid var(--accent-gold, #E85102); border-radius: var(--radius-sm, 6px); cursor: pointer; transition: background 0.15s, color 0.15s; }
+      .chat-user-card-dm:hover { background: var(--accent-gold, #E85102); color: #fff; }
 
       /* ── Members List ── */
       .chat-members-list { display: flex; flex-direction: column; gap: 6px; }

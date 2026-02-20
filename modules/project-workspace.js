@@ -407,21 +407,196 @@ const TBO_PROJECT_WORKSPACE = {
 
   // ── Popup: Filtros (criar, editar, salvar) ────────────────────────────────
 
-  _renderFilterPopup() {
-    const fieldOptions = [
-      { value: 'status', label: 'Status' },
-      { value: 'priority', label: 'Prioridade' },
-      { value: 'owner', label: 'Responsavel' },
-      { value: 'phase', label: 'Secao' },
-      { value: 'due_date', label: 'Data' }
-    ];
-    const operatorOptions = [
+  // Mapa de metadados dos campos para filtro — tipo, label, opcoes
+  _filterFieldMeta: {
+    name: { label: 'Nome', type: 'text' },
+    owner: { label: 'Responsavel', type: 'select', optionsFrom: 'owner' },
+    due_date: { label: 'Data de conclusao', type: 'date' },
+    priority: { label: 'Prioridade', type: 'select', options: ['urgente', 'alta', 'media', 'baixa'] },
+    status: { label: 'Status', type: 'select', options: ['pendente', 'em_andamento', 'concluida', 'cancelada'] },
+    phase: { label: 'Secao', type: 'select', optionsFrom: 'phase' },
+    start_date: { label: 'Data de inicio', type: 'date' },
+    estimate: { label: 'Estimativa', type: 'number' },
+    source: { label: 'Origem', type: 'text' },
+    is_milestone: { label: 'Milestone', type: 'boolean' },
+    description: { label: 'Descricao', type: 'text' }
+  },
+
+  // Operadores possiveis por tipo de campo
+  _filterOperatorsByType: {
+    text: [
+      { value: 'contains', label: 'contem' },
+      { value: 'not_contains', label: 'nao contem' },
       { value: 'eq', label: 'e igual a' },
       { value: 'neq', label: 'nao e' },
-      { value: 'contains', label: 'contem' },
+      { value: 'starts_with', label: 'comeca com' },
+      { value: 'ends_with', label: 'termina com' },
       { value: 'empty', label: 'esta vazio' },
       { value: 'not_empty', label: 'nao esta vazio' }
-    ];
+    ],
+    select: [
+      { value: 'eq', label: 'e' },
+      { value: 'neq', label: 'nao e' },
+      { value: 'in', label: 'e um de' },
+      { value: 'not_in', label: 'nao e nenhum de' },
+      { value: 'empty', label: 'esta vazio' },
+      { value: 'not_empty', label: 'nao esta vazio' }
+    ],
+    date: [
+      { value: 'eq', label: 'e igual a' },
+      { value: 'before', label: 'antes de' },
+      { value: 'after', label: 'depois de' },
+      { value: 'between', label: 'entre' },
+      { value: 'this_week', label: 'esta semana' },
+      { value: 'next_week', label: 'proxima semana' },
+      { value: 'this_month', label: 'este mes' },
+      { value: 'overdue', label: 'atrasado' },
+      { value: 'empty', label: 'sem data' },
+      { value: 'not_empty', label: 'com data' }
+    ],
+    number: [
+      { value: 'eq', label: 'igual a' },
+      { value: 'neq', label: 'diferente de' },
+      { value: 'gt', label: 'maior que' },
+      { value: 'lt', label: 'menor que' },
+      { value: 'gte', label: 'maior ou igual' },
+      { value: 'lte', label: 'menor ou igual' },
+      { value: 'empty', label: 'esta vazio' },
+      { value: 'not_empty', label: 'nao esta vazio' }
+    ],
+    boolean: [
+      { value: 'eq', label: 'e' },
+      { value: 'neq', label: 'nao e' }
+    ]
+  },
+
+  // Retorna as opcoes dinamicas extraidas das tarefas existentes
+  _getFieldDynamicOptions(fieldId) {
+    const meta = this._filterFieldMeta[fieldId];
+    if (!meta) return [];
+    // Opcoes estaticas definidas no meta
+    if (meta.options) return meta.options;
+    // Opcoes dinamicas extraidas das tarefas
+    if (meta.optionsFrom) {
+      const vals = new Set();
+      this._tasks.forEach(t => {
+        const v = t[meta.optionsFrom] || t[fieldId];
+        if (v && String(v).trim()) vals.add(String(v).trim());
+      });
+      return [...vals].sort();
+    }
+    // Para booleano
+    if (meta.type === 'boolean') return ['sim', 'nao'];
+    return [];
+  },
+
+  // Retorna o tipo do campo para filtro
+  _getFieldType(fieldId) {
+    return (this._filterFieldMeta[fieldId] || {}).type || 'text';
+  },
+
+  // Renderiza o input de valor do filtro baseado no tipo do campo e operador
+  _renderFilterValueInput(filter, idx) {
+    const fieldType = this._getFieldType(filter.field);
+    const op = filter.operator;
+
+    // Operadores que nao precisam de valor
+    if (['empty', 'not_empty', 'this_week', 'next_week', 'this_month', 'overdue'].includes(op)) {
+      return '<span class="pw-filter-no-value" style="font-size:0.75rem;color:var(--text-muted);padding:4px 8px;">—</span>';
+    }
+
+    // Select (dropdown de opcoes)
+    if (fieldType === 'select') {
+      const options = this._getFieldDynamicOptions(filter.field);
+      if (op === 'in' || op === 'not_in') {
+        // Multi-select com checkboxes inline
+        const selected = (filter.value || '').split(',').filter(Boolean);
+        return `
+          <div class="pw-filter-multi-select">
+            ${options.map(o => `
+              <label class="pw-filter-multi-opt">
+                <input type="checkbox" ${selected.includes(o) ? 'checked' : ''}
+                  onchange="TBO_PROJECT_WORKSPACE._toggleMultiFilterValue(${idx}, '${this._esc(o)}')" />
+                <span>${this._esc(o)}</span>
+              </label>
+            `).join('')}
+          </div>`;
+      }
+      return `
+        <select class="pw-filter-select pw-filter-value-select" onchange="TBO_PROJECT_WORKSPACE._updateFilter(${idx},'value',this.value)">
+          <option value="">Selecionar...</option>
+          ${options.map(o => `<option value="${o}" ${filter.value === o ? 'selected' : ''}>${this._esc(o)}</option>`).join('')}
+        </select>`;
+    }
+
+    // Date
+    if (fieldType === 'date') {
+      if (op === 'between') {
+        const parts = (filter.value || '|').split('|');
+        return `
+          <div class="pw-filter-date-range">
+            <input type="date" class="pw-filter-date-input" value="${this._esc(parts[0] || '')}"
+              onchange="TBO_PROJECT_WORKSPACE._updateFilterDateRange(${idx}, 0, this.value)">
+            <span style="font-size:0.7rem;color:var(--text-muted);">ate</span>
+            <input type="date" class="pw-filter-date-input" value="${this._esc(parts[1] || '')}"
+              onchange="TBO_PROJECT_WORKSPACE._updateFilterDateRange(${idx}, 1, this.value)">
+          </div>`;
+      }
+      return `<input type="date" class="pw-filter-date-input" value="${this._esc(filter.value || '')}"
+        onchange="TBO_PROJECT_WORKSPACE._updateFilter(${idx},'value',this.value)">`;
+    }
+
+    // Number
+    if (fieldType === 'number') {
+      return `<input type="number" class="pw-filter-value pw-filter-num-input" value="${this._esc(filter.value || '')}" placeholder="Valor..."
+        onchange="TBO_PROJECT_WORKSPACE._updateFilter(${idx},'value',this.value)" step="any">`;
+    }
+
+    // Boolean
+    if (fieldType === 'boolean') {
+      return `
+        <select class="pw-filter-select pw-filter-value-select" onchange="TBO_PROJECT_WORKSPACE._updateFilter(${idx},'value',this.value)">
+          <option value="true" ${filter.value === 'true' ? 'selected' : ''}>Sim</option>
+          <option value="false" ${filter.value === 'false' ? 'selected' : ''}>Nao</option>
+        </select>`;
+    }
+
+    // Text (default) — autocomplete com valores existentes
+    const suggestions = this._getTextFieldSuggestions(filter.field);
+    const listId = `pw-flist-${idx}`;
+    return `
+      <input type="text" class="pw-filter-value" value="${this._esc(filter.value || '')}" placeholder="Valor..."
+        list="${listId}"
+        onchange="TBO_PROJECT_WORKSPACE._updateFilter(${idx},'value',this.value)"
+        oninput="TBO_PROJECT_WORKSPACE._updateFilter(${idx},'value',this.value)">
+      ${suggestions.length > 0 ? `<datalist id="${listId}">${suggestions.map(s => `<option value="${this._esc(s)}">`).join('')}</datalist>` : ''}`;
+  },
+
+  // Retorna sugestoes de valores para campos texto (extraidas das tarefas)
+  _getTextFieldSuggestions(fieldId) {
+    const vals = new Set();
+    this._tasks.forEach(t => {
+      const v = t[fieldId];
+      if (v && String(v).trim()) vals.add(String(v).trim());
+    });
+    return [...vals].sort().slice(0, 50);
+  },
+
+  _renderFilterPopup() {
+    // Campos filtráveis: todos os da _columns + extras
+    const fieldOptions = [];
+    // Primeiro adiciona os campos da _columns
+    this._columns.forEach(c => {
+      if (this._filterFieldMeta[c.id]) {
+        fieldOptions.push({ value: c.id, label: this._filterFieldMeta[c.id].label });
+      }
+    });
+    // Adiciona campos extras nao presentes em _columns
+    Object.keys(this._filterFieldMeta).forEach(key => {
+      if (!fieldOptions.find(f => f.value === key)) {
+        fieldOptions.push({ value: key, label: this._filterFieldMeta[key].label });
+      }
+    });
 
     return `
       <div class="pw-popup pw-popup--filters" id="pwPopup">
@@ -433,21 +608,36 @@ const TBO_PROJECT_WORKSPACE = {
           <button class="pw-popup-close" onclick="TBO_PROJECT_WORKSPACE._closePopup()">&times;</button>
         </div>
         <div class="pw-popup-body">
-          ${this._activeFilters.map((f, i) => `
-            <div class="pw-filter-row" data-filter-idx="${i}">
-              <select class="pw-filter-select" onchange="TBO_PROJECT_WORKSPACE._updateFilter(${i},'field',this.value)">
-                ${fieldOptions.map(o => `<option value="${o.value}" ${f.field === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
-              </select>
-              <select class="pw-filter-select" onchange="TBO_PROJECT_WORKSPACE._updateFilter(${i},'operator',this.value)">
-                ${operatorOptions.map(o => `<option value="${o.value}" ${f.operator === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
-              </select>
-              <input type="text" class="pw-filter-value" value="${this._esc(f.value || '')}" placeholder="Valor..."
-                onchange="TBO_PROJECT_WORKSPACE._updateFilter(${i},'value',this.value)">
-              <button class="pw-filter-remove" onclick="TBO_PROJECT_WORKSPACE._removeFilter(${i})" title="Remover">
-                <i data-lucide="x" style="width:14px;height:14px;"></i>
-              </button>
+          ${this._activeFilters.length === 0 ? `
+            <div class="pw-filter-empty" style="text-align:center;padding:16px 0;color:var(--text-muted);font-size:0.8rem;">
+              <i data-lucide="filter" style="width:24px;height:24px;display:block;margin:0 auto 8px;opacity:0.4;"></i>
+              Nenhum filtro ativo.<br>Clique abaixo para adicionar.
             </div>
-          `).join('')}
+          ` : ''}
+
+          ${this._activeFilters.map((f, i) => {
+            const fieldType = this._getFieldType(f.field);
+            const operatorOptions = this._filterOperatorsByType[fieldType] || this._filterOperatorsByType.text;
+            return `
+              <div class="pw-filter-row" data-filter-idx="${i}">
+                <div class="pw-filter-row-top">
+                  ${i > 0 ? '<span class="pw-filter-conjunction">E</span>' : ''}
+                  <select class="pw-filter-select pw-filter-field-select" onchange="TBO_PROJECT_WORKSPACE._updateFilterField(${i}, this.value)">
+                    ${fieldOptions.map(o => `<option value="${o.value}" ${f.field === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
+                  </select>
+                  <select class="pw-filter-select pw-filter-op-select" onchange="TBO_PROJECT_WORKSPACE._updateFilter(${i},'operator',this.value)">
+                    ${operatorOptions.map(o => `<option value="${o.value}" ${f.operator === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
+                  </select>
+                  <button class="pw-filter-remove" onclick="TBO_PROJECT_WORKSPACE._removeFilter(${i})" title="Remover">
+                    <i data-lucide="x" style="width:14px;height:14px;"></i>
+                  </button>
+                </div>
+                <div class="pw-filter-row-value">
+                  ${this._renderFilterValueInput(f, i)}
+                </div>
+              </div>
+            `;
+          }).join('')}
 
           <button class="pw-filter-add" onclick="TBO_PROJECT_WORKSPACE._addFilter()">
             <i data-lucide="plus" style="width:14px;height:14px;"></i> Adicionar filtro
@@ -1242,11 +1432,48 @@ const TBO_PROJECT_WORKSPACE = {
     this._showFilterPopup();
   },
 
+  // Quando troca o campo, reseta operador e valor para o primeiro operador do novo tipo
+  _updateFilterField(idx, newField) {
+    if (!this._activeFilters[idx]) return;
+    const oldField = this._activeFilters[idx].field;
+    const oldType = this._getFieldType(oldField);
+    const newType = this._getFieldType(newField);
+    this._activeFilters[idx].field = newField;
+    // Se mudou de tipo, reseta operador e valor
+    if (oldType !== newType) {
+      const ops = this._filterOperatorsByType[newType] || this._filterOperatorsByType.text;
+      this._activeFilters[idx].operator = ops[0]?.value || 'eq';
+      this._activeFilters[idx].value = '';
+    }
+    this._showFilterPopup(); // re-render para atualizar UI
+    this._refreshListContent();
+  },
+
   _updateFilter(idx, prop, value) {
     if (this._activeFilters[idx]) {
       this._activeFilters[idx][prop] = value;
       this._refreshListContent();
     }
+  },
+
+  // Atualiza uma parte do range de data (para operador 'between')
+  _updateFilterDateRange(idx, partIdx, value) {
+    if (!this._activeFilters[idx]) return;
+    const parts = (this._activeFilters[idx].value || '|').split('|');
+    parts[partIdx] = value;
+    this._activeFilters[idx].value = parts.join('|');
+    this._refreshListContent();
+  },
+
+  // Toggle valor em multi-select (operadores 'in'/'not_in')
+  _toggleMultiFilterValue(idx, option) {
+    if (!this._activeFilters[idx]) return;
+    const current = (this._activeFilters[idx].value || '').split(',').filter(Boolean);
+    const i = current.indexOf(option);
+    if (i >= 0) current.splice(i, 1);
+    else current.push(option);
+    this._activeFilters[idx].value = current.join(',');
+    this._refreshListContent();
   },
 
   _removeFilter(idx) {
@@ -1374,18 +1601,144 @@ const TBO_PROJECT_WORKSPACE = {
   _getFilteredSortedTasks() {
     let tasks = [...this._tasks];
 
+    // Helper: inicio e fim da semana corrente (seg a dom)
+    const _weekRange = (offsetWeeks = 0) => {
+      const now = new Date();
+      const day = now.getDay();
+      const diffToMonday = day === 0 ? -6 : 1 - day;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() + diffToMonday + (offsetWeeks * 7));
+      monday.setHours(0, 0, 0, 0);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
+      return [monday, sunday];
+    };
+
+    // Helper: inicio e fim do mes corrente
+    const _monthRange = () => {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      return [start, end];
+    };
+
     // Aplicar filtros
     this._activeFilters.forEach(f => {
-      if (!f.value && f.operator !== 'empty' && f.operator !== 'not_empty') return;
+      const fieldType = this._getFieldType(f.field);
+      const op = f.operator;
+      // Operadores sem valor — nao pular por falta de value
+      const noValueOps = ['empty', 'not_empty', 'this_week', 'next_week', 'this_month', 'overdue'];
+      if (!f.value && !noValueOps.includes(op)) return;
+
       tasks = tasks.filter(t => {
-        const val = String(t[f.field] || '').toLowerCase();
-        const filterVal = (f.value || '').toLowerCase();
-        switch (f.operator) {
+        const raw = t[f.field];
+        const val = String(raw ?? '').toLowerCase().trim();
+        const filterVal = (f.value || '').toLowerCase().trim();
+
+        // ── Operadores universais ──
+        if (op === 'empty') return !val || val === '' || val === '-';
+        if (op === 'not_empty') return val && val !== '' && val !== '-';
+
+        // ── Texto ──
+        if (fieldType === 'text') {
+          switch (op) {
+            case 'eq': return val === filterVal;
+            case 'neq': return val !== filterVal;
+            case 'contains': return val.includes(filterVal);
+            case 'not_contains': return !val.includes(filterVal);
+            case 'starts_with': return val.startsWith(filterVal);
+            case 'ends_with': return val.endsWith(filterVal);
+            default: return true;
+          }
+        }
+
+        // ── Select ──
+        if (fieldType === 'select') {
+          switch (op) {
+            case 'eq': return val === filterVal;
+            case 'neq': return val !== filterVal;
+            case 'in': {
+              const arr = filterVal.split(',').map(s => s.trim()).filter(Boolean);
+              return arr.length === 0 || arr.includes(val);
+            }
+            case 'not_in': {
+              const arr = filterVal.split(',').map(s => s.trim()).filter(Boolean);
+              return arr.length === 0 || !arr.includes(val);
+            }
+            default: return true;
+          }
+        }
+
+        // ── Date ──
+        if (fieldType === 'date') {
+          const dateVal = raw ? new Date(raw) : null;
+          const now = new Date();
+          switch (op) {
+            case 'eq': return val === filterVal;
+            case 'before': return dateVal && dateVal < new Date(f.value);
+            case 'after': return dateVal && dateVal > new Date(f.value);
+            case 'between': {
+              if (!dateVal) return false;
+              const parts = (f.value || '').split('|');
+              const from = parts[0] ? new Date(parts[0]) : null;
+              const to = parts[1] ? new Date(parts[1]) : null;
+              if (from && dateVal < from) return false;
+              if (to && dateVal > to) return false;
+              return true;
+            }
+            case 'this_week': {
+              if (!dateVal) return false;
+              const [ws, we] = _weekRange(0);
+              return dateVal >= ws && dateVal <= we;
+            }
+            case 'next_week': {
+              if (!dateVal) return false;
+              const [ws, we] = _weekRange(1);
+              return dateVal >= ws && dateVal <= we;
+            }
+            case 'this_month': {
+              if (!dateVal) return false;
+              const [ms, me] = _monthRange();
+              return dateVal >= ms && dateVal <= me;
+            }
+            case 'overdue': {
+              if (!dateVal) return false;
+              const taskStatus = String(t.status || '').toLowerCase();
+              return dateVal < now && taskStatus !== 'concluida' && taskStatus !== 'cancelada';
+            }
+            default: return true;
+          }
+        }
+
+        // ── Number ──
+        if (fieldType === 'number') {
+          const numVal = raw != null ? parseFloat(raw) : NaN;
+          const numFilter = parseFloat(f.value);
+          if (isNaN(numFilter)) return true;
+          switch (op) {
+            case 'eq': return numVal === numFilter;
+            case 'neq': return numVal !== numFilter;
+            case 'gt': return numVal > numFilter;
+            case 'lt': return numVal < numFilter;
+            case 'gte': return numVal >= numFilter;
+            case 'lte': return numVal <= numFilter;
+            default: return true;
+          }
+        }
+
+        // ── Boolean ──
+        if (fieldType === 'boolean') {
+          const boolVal = !!raw;
+          const boolFilter = filterVal === 'true';
+          return op === 'eq' ? boolVal === boolFilter : boolVal !== boolFilter;
+        }
+
+        // Fallback texto simples
+        switch (op) {
           case 'eq': return val === filterVal;
           case 'neq': return val !== filterVal;
           case 'contains': return val.includes(filterVal);
-          case 'empty': return !val || val === '';
-          case 'not_empty': return val && val !== '';
           default: return true;
         }
       });
@@ -1650,13 +2003,30 @@ const TBO_PROJECT_WORKSPACE = {
 .pw-col-toggle input[type="checkbox"] { accent-color: var(--accent-gold); width: 16px; height: 16px; }
 .pw-col-lock { margin-left: auto; color: var(--text-muted); }
 
-/* Filters */
-.pw-filter-row { display: flex; align-items: center; gap: 6px; padding: 6px 16px; }
-.pw-filter-select { flex: 1; padding: 5px 8px; font-size: 0.75rem; border: 1px solid var(--border-subtle); border-radius: 5px; background: var(--bg-primary); color: var(--text-primary); outline: none; }
+/* Filters — layout aprimorado */
+.pw-filter-row { display: flex; flex-direction: column; gap: 4px; padding: 8px 16px; border-bottom: 1px solid var(--border-subtle); }
+.pw-filter-row:last-of-type { border-bottom: none; }
+.pw-filter-row-top { display: flex; align-items: center; gap: 6px; }
+.pw-filter-row-value { display: flex; align-items: center; gap: 6px; padding-left: 2px; }
+.pw-filter-conjunction { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; min-width: 18px; }
+.pw-filter-select { padding: 5px 8px; font-size: 0.75rem; border: 1px solid var(--border-subtle); border-radius: 5px; background: var(--bg-primary); color: var(--text-primary); outline: none; }
+.pw-filter-field-select { flex: 1; max-width: 130px; }
+.pw-filter-op-select { flex: 1; }
 .pw-filter-select:focus { border-color: var(--accent-gold); }
 .pw-filter-value { flex: 1; padding: 5px 8px; font-size: 0.75rem; border: 1px solid var(--border-subtle); border-radius: 5px; background: var(--bg-primary); color: var(--text-primary); outline: none; }
 .pw-filter-value:focus { border-color: var(--accent-gold); }
-.pw-filter-remove { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; border-radius: 4px; }
+.pw-filter-value-select { flex: 1; max-width: 200px; }
+.pw-filter-date-input { padding: 5px 8px; font-size: 0.75rem; border: 1px solid var(--border-subtle); border-radius: 5px; background: var(--bg-primary); color: var(--text-primary); outline: none; }
+.pw-filter-date-input:focus { border-color: var(--accent-gold); }
+.pw-filter-date-range { display: flex; align-items: center; gap: 6px; }
+.pw-filter-num-input { max-width: 120px; }
+.pw-filter-multi-select { display: flex; flex-wrap: wrap; gap: 4px; padding: 2px 0; }
+.pw-filter-multi-opt { display: flex; align-items: center; gap: 4px; font-size: 0.73rem; padding: 3px 8px; border-radius: 4px; cursor: pointer; background: var(--bg-tertiary); color: var(--text-primary); white-space: nowrap; }
+.pw-filter-multi-opt:hover { background: var(--bg-secondary); }
+.pw-filter-multi-opt input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--accent-gold); }
+.pw-filter-no-value { font-style: italic; }
+.pw-filter-empty { padding: 12px 16px; }
+.pw-filter-remove { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; border-radius: 4px; flex-shrink: 0; }
 .pw-filter-remove:hover { color: #ef4444; background: var(--bg-tertiary); }
 .pw-filter-add { display: flex; align-items: center; gap: 6px; padding: 8px 16px; font-size: 0.78rem; color: var(--accent-gold); cursor: pointer; border: none; background: none; width: 100%; text-align: left; }
 .pw-filter-add:hover { background: var(--bg-tertiary); }

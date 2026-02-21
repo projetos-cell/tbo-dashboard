@@ -1886,9 +1886,9 @@ const TBO_RH = {
             Top Investimentos (Maiores Valores)
           </h4>
           <div style="display:flex;flex-direction:column;gap:8px;">
-            ${activeMembers.filter(t => parseFloat(t.custoMensal) > 0).sort((a, b) => (parseFloat(b.salaryPj) || 0) - (parseFloat(a.salaryPj) || 0)).slice(0, 8).map((t, i) => {
+            ${[...activeMembers].filter(t => parseFloat(t.custoMensal) > 0).sort((a, b) => (parseFloat(b.custoMensal) || 0) - (parseFloat(a.custoMensal) || 0)).slice(0, 8).map((t, i) => {
               const salary = parseFloat(t.custoMensal) || 0;
-              const maxSalary = parseFloat(activeMembers.sort((a, b) => (parseFloat(b.salaryPj) || 0) - (parseFloat(a.salaryPj) || 0))[0]?.salaryPj) || 1;
+              const maxSalary = parseFloat([...activeMembers].sort((a, b) => (parseFloat(b.custoMensal) || 0) - (parseFloat(a.custoMensal) || 0))[0]?.custoMensal) || 1;
               const pct = (salary / maxSalary) * 100;
               const buColor = this._buColor(t.bu);
               return `<div style="display:flex;align-items:center;gap:10px;">

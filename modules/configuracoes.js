@@ -94,10 +94,16 @@ const TBO_CONFIGURACOES = {
       <!-- Card: Perfil do Usuario -->
       <div class="card cfg-card">
         <div class="cfg-profile-header">
-          ${avatar
-            ? `<img src="${avatar}" alt="Avatar" class="cfg-avatar" />`
-            : `<div class="cfg-avatar-placeholder" style="background:${roleColor};">${initials}</div>`
-          }
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+            ${avatar
+              ? `<img src="${avatar}" alt="Avatar" class="cfg-avatar" id="cfgAvatarImg" />`
+              : `<div class="cfg-avatar-placeholder" id="cfgAvatarImg" style="background:${roleColor};">${initials}</div>`
+            }
+            <button class="btn btn-sm" id="cfgAvatarUploadBtn" style="font-size:0.68rem;padding:3px 8px;gap:4px;">
+              <i data-lucide="camera" style="width:11px;height:11px;"></i> Alterar foto
+            </button>
+            <input type="file" id="cfgAvatarInput" accept="image/jpeg,image/png,image/webp" style="display:none;">
+          </div>
           <div class="cfg-profile-info">
             <h3 class="cfg-profile-name">${TBO_FORMATTER ? TBO_FORMATTER.escapeHtml(name) : name}</h3>
             <span class="cfg-profile-email">${TBO_FORMATTER ? TBO_FORMATTER.escapeHtml(email) : email}</span>
@@ -1058,6 +1064,88 @@ const TBO_CONFIGURACOES = {
         });
       }
     });
+
+    // ── Avatar Upload ──────────────────────────────────────────────────────
+    const avatarBtn = document.getElementById('cfgAvatarUploadBtn');
+    const avatarInput = document.getElementById('cfgAvatarInput');
+
+    if (avatarBtn && avatarInput) {
+      // Botao abre file picker
+      avatarBtn.addEventListener('click', () => avatarInput.click());
+
+      // File input change → upload para Supabase Storage
+      avatarInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Validacao de tipo
+        if (!file.type.startsWith('image/')) {
+          TBO_TOAST.error('Formato invalido', 'Selecione uma imagem (JPG, PNG ou WebP).');
+          avatarInput.value = '';
+          return;
+        }
+
+        // Validacao de tamanho (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          TBO_TOAST.error('Arquivo muito grande', 'O avatar deve ter no maximo 5MB.');
+          avatarInput.value = '';
+          return;
+        }
+
+        try {
+          avatarBtn.disabled = true;
+          avatarBtn.innerHTML = '<i data-lucide="loader" style="width:11px;height:11px;"></i> Enviando...';
+          if (window.lucide) lucide.createIcons();
+
+          const user = TBO_AUTH.getCurrentUser();
+          if (!user || !user.id) throw new Error('Usuario nao autenticado');
+
+          // 1. Upload para Supabase Storage (bucket avatars)
+          const result = await TBO_FILE_STORAGE.uploadAvatar(user.id, file);
+          const url = result.url || result;
+
+          // 2. Atualizar profiles.avatar_url no banco
+          const client = TBO_SUPABASE.getClient();
+          const { error: dbError } = await client
+            .from('profiles')
+            .update({ avatar_url: url })
+            .eq('id', user.id);
+          if (dbError) throw dbError;
+
+          // 3. Atualizar cache local do auth
+          if (TBO_AUTH._cachedUser) {
+            TBO_AUTH._cachedUser.avatarUrl = url;
+            sessionStorage.setItem('tbo_auth', JSON.stringify(TBO_AUTH._cachedUser));
+          }
+
+          // 4. Re-renderizar sidebar footer (avatar no rodape)
+          if (typeof TBO_APP !== 'undefined' && TBO_APP._renderSidebarFooter) {
+            TBO_APP._renderSidebarFooter();
+          }
+
+          // 5. Atualizar imagem na pagina de configuracoes
+          const imgEl = document.getElementById('cfgAvatarImg');
+          if (imgEl) {
+            const newImg = document.createElement('img');
+            newImg.src = url;
+            newImg.alt = 'Avatar';
+            newImg.className = 'cfg-avatar';
+            newImg.id = 'cfgAvatarImg';
+            imgEl.replaceWith(newImg);
+          }
+
+          TBO_TOAST.success('Avatar atualizado!', 'Sua foto de perfil foi alterada com sucesso.');
+        } catch (err) {
+          console.error('[Configuracoes] Erro ao enviar avatar:', err);
+          TBO_TOAST.error('Erro ao enviar avatar', err.message || 'Tente novamente.');
+        } finally {
+          avatarBtn.disabled = false;
+          avatarBtn.innerHTML = '<i data-lucide="camera" style="width:11px;height:11px;"></i> Alterar foto';
+          if (window.lucide) lucide.createIcons();
+          avatarInput.value = '';
+        }
+      });
+    }
   },
 
   // ── Bindings: Integracoes ────────────────────────────────────────────────

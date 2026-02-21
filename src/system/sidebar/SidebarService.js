@@ -303,7 +303,8 @@ const TBO_SIDEBAR_SERVICE = (() => {
    * @returns {Array}
    */
   function getItems() {
-    const role = _userRole || _getUserRole();
+    // v3.0: Sempre re-checar role — auth pode ter ficado pronto depois do init()
+    const role = _getUserRole();
     const filtered = _filterByRole(_items, role);
     return filtered.sort((a, b) => a.order_index - b.order_index);
   }
@@ -359,6 +360,15 @@ const TBO_SIDEBAR_SERVICE = (() => {
   }
 
   /**
+   * Atualiza a role cacheada do usuario (chamar apos login)
+   */
+  function refreshRole() {
+    _userRole = _getUserRole();
+    _tenantId = _getTenantId();
+    _userId = _getUserId();
+  }
+
+  /**
    * Força re-fetch do Supabase
    */
   async function refresh() {
@@ -392,6 +402,7 @@ const TBO_SIDEBAR_SERVICE = (() => {
     isExpanded,
     toggleExpanded,
     refresh,
+    refreshRole,
     getBadge,
     get loading() { return _loading; },
     get initialized() { return _initialized; },

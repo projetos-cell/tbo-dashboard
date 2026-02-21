@@ -1046,10 +1046,11 @@ const TBO_APP = {
       });
     }
 
-    // Bind logout button
+    // Bind logout button — v3.0: confirmação antes de sair
     const logoutBtn = document.getElementById('sidebarLogout');
     if (logoutBtn) {
       logoutBtn.addEventListener('click', async () => {
+        if (!confirm('Deseja realmente sair do TBO OS?')) return;
         if (typeof TBO_AUTH !== 'undefined') {
           await TBO_AUTH.logout();
           TBO_AUTH._setOverlayState('login');
@@ -1057,6 +1058,8 @@ const TBO_APP = {
           footer.innerHTML = '';
           const sidebarNav = document.getElementById('sidebarNav');
           if (sidebarNav) sidebarNav.innerHTML = '';
+          // Resetar URL para home
+          window.location.hash = '';
         }
       });
     }

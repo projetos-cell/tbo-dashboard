@@ -485,6 +485,8 @@ const TBO_AUTH = {
         if (container) container.innerHTML = '';
         const sidebarWidget = document.getElementById('sidebarUserWidget');
         if (sidebarWidget) sidebarWidget.innerHTML = '';
+        // v3.0: Resetar URL para home após logout
+        window.location.hash = '';
       } else if (event === 'TOKEN_REFRESHED' && supaSession?.user) {
         // v2.6.2: Atualizar avatar se mudou apos refresh de token
         if (this._cachedUser) {

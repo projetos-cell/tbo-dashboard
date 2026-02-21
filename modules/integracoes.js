@@ -87,6 +87,8 @@ const TBO_INTEGRACOES = {
       this._checkFireflies(),
       this._checkRdStation(),
       this._checkGoogleCalendar(),
+      this._checkGoogleDrive(),
+      this._checkZapier(),
       this._checkNotion()
     ];
   },
@@ -184,6 +186,36 @@ const TBO_INTEGRACOES = {
           ? `${status.eventCount} eventos, ${status.todayCount} hoje. Ultimo sync: ${new Date(status.lastSync).toLocaleString('pt-BR')}`
           : 'Habilitado. Faca login via Google para ativar.')
         : 'Requer login via Google OAuth com scope calendar.readonly.'
+    };
+  },
+
+  _checkGoogleDrive() {
+    const isEnabled = typeof TBO_GOOGLE_DRIVE !== 'undefined' && TBO_GOOGLE_DRIVE.isEnabled();
+    const status = typeof TBO_GOOGLE_DRIVE !== 'undefined' ? TBO_GOOGLE_DRIVE.getStatus() : null;
+    const currentUser = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.getCurrentUser() : null;
+    const isGoogleUser = !!currentUser?.supabaseUserId && !!currentUser?.avatarUrl;
+
+    return {
+      name: 'Google Drive',
+      icon: 'folder',
+      status: isEnabled && isGoogleUser ? (status?.lastSync ? 'connected' : 'partial') : 'disconnected',
+      description: 'Sincronizacao de arquivos do Google Drive com projetos.',
+      details: isEnabled && isGoogleUser
+        ? (status?.lastSync
+          ? `Ultimo sync: ${new Date(status.lastSync).toLocaleString('pt-BR')}`
+          : 'Habilitado. Configure google_folder_id nos projetos.')
+        : 'Requer login via Google OAuth com scope drive.readonly.'
+    };
+  },
+
+  _checkZapier() {
+    const webhookUrl = `${window.location.origin}/api/fireflies-webhook`;
+    return {
+      name: 'Zapier (Webhook)',
+      icon: 'zap',
+      status: 'connected',
+      description: 'Webhook para sincronizacao automatica via Zapier.',
+      details: `Endpoint: ${webhookUrl}. Configure no Zapier com X-Webhook-Secret e X-Tenant-Id.`
     };
   },
 

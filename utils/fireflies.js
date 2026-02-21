@@ -1,19 +1,21 @@
 // ============================================================================
-// TBO OS — Fireflies.ai Integration (Real-time Meeting Data)
+// TBO OS — Fireflies.ai Integration (PRD v1.2 — Persistência Supabase)
 // Fetches live meeting transcripts from Fireflies GraphQL API
-// Replaces static meetings-data.json with real-time data
+// Persiste reuniões, participantes e transcrições no Supabase via MeetingsRepo
 // ============================================================================
 
 const TBO_FIREFLIES = {
   _endpoint: 'https://api.fireflies.ai/graphql',
   _cache: null,
-  _cacheTTL: 10 * 60 * 1000, // 10 minutes
+  _cacheTTL: 10 * 60 * 1000, // 10 minutos
   _cacheTime: null,
   _lastSync: null,
   _syncError: null,
   _syncing: false,
+  _autoSyncTimer: null,
+  _autoSyncInterval: 30 * 60 * 1000, // 30 minutos
 
-  // TBO team emails for is_tbo detection
+  // Emails TBO para detecção is_tbo
   _tboEmails: [
     'marco@agenciatbo.com.br', 'ruy@agenciatbo.com.br',
     'carol@agenciatbo.com.br', 'nelson@agenciatbo.com.br',
@@ -26,7 +28,7 @@ const TBO_FIREFLIES = {
     'nathalia@agenciatbo.com.br', 'financeiro@agenciatbo.com.br'
   ],
 
-  // Category detection keywords
+  // Regras de categorização por título
   _categoryRules: [
     { key: 'daily_socios', patterns: ['daily sócios', 'daily socios', 'daily'] },
     { key: 'cliente', patterns: ['alinhamento semanal', 'reunião cliente', 'cliente -', '| cliente'] },
@@ -38,7 +40,7 @@ const TBO_FIREFLIES = {
   ],
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // CONFIG — API Key stored in localStorage
+  // CONFIG — API Key armazenada em localStorage
   // ═══════════════════════════════════════════════════════════════════════════
 
   getApiKey() {
@@ -59,7 +61,6 @@ const TBO_FIREFLIES = {
     localStorage.setItem('tbo_fireflies_enabled', enabled ? 'true' : 'false');
   },
 
-  // How many days of meetings to fetch (default: 30)
   getDaysRange() {
     const stored = localStorage.getItem('tbo_fireflies_days');
     return stored ? parseInt(stored, 10) : 30;
@@ -72,14 +73,13 @@ const TBO_FIREFLIES = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // GRAPHQL — Execute queries against Fireflies API
+  // GRAPHQL — Queries contra a API Fireflies
   // ═══════════════════════════════════════════════════════════════════════════
 
   async _graphql(query, variables = {}) {
     const apiKey = this.getApiKey();
     if (!apiKey) throw new Error('Fireflies API key not configured');
 
-    // v2.1: AbortController com timeout de 10s para prevenir hang infinito
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
 
@@ -116,11 +116,10 @@ const TBO_FIREFLIES = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // FETCH TRANSCRIPTS — Get recent meetings from Fireflies
+  // FETCH — Buscar transcrições da API Fireflies
   // ═══════════════════════════════════════════════════════════════════════════
 
   async fetchTranscripts() {
-    // Check cache
     if (this._cache && this._cacheTime && (Date.now() - this._cacheTime) < this._cacheTTL) {
       return this._cache;
     }
@@ -160,12 +159,34 @@ const TBO_FIREFLIES = {
       limit: 50
     });
 
-    const transcripts = data.transcripts || [];
-    return transcripts;
+    return data.transcripts || [];
+  },
+
+  /**
+   * Busca transcrição completa de uma reunião (sentences) via GraphQL
+   */
+  async fetchTranscript(transcriptId) {
+    const query = `
+      query Transcript($id: String!) {
+        transcript(id: $id) {
+          id
+          sentences {
+            text
+            speaker_name
+            speaker_id
+            start_time
+            end_time
+          }
+        }
+      }
+    `;
+
+    const data = await this._graphql(query, { id: transcriptId });
+    return data.transcript?.sentences || [];
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // TRANSFORM — Convert Fireflies API response to TBO meetings format
+  // TRANSFORM — Converter resposta Fireflies para formato TBO
   // ═══════════════════════════════════════════════════════════════════════════
 
   _detectCategory(title) {
@@ -195,31 +216,21 @@ const TBO_FIREFLIES = {
       const trimmed = line.trim();
       if (!trimmed) continue;
 
-      // Person header: **Name**
       const personMatch = trimmed.match(/^\*\*(.+?)\*\*$/);
       if (personMatch) {
         currentPerson = personMatch[1].trim();
         continue;
       }
 
-      // Action item line (may have timestamp at end)
       if (currentPerson && trimmed.length > 2) {
         const tsMatch = trimmed.match(/\((\d{1,2}:\d{2}(?::\d{2})?)\)\s*$/);
         const timestamp = tsMatch ? tsMatch[1] : null;
         let task = trimmed;
-        if (tsMatch) {
-          task = task.replace(tsMatch[0], '').trim();
-        }
-        // Remove leading bullet/dash
+        if (tsMatch) task = task.replace(tsMatch[0], '').trim();
         task = task.replace(/^[-•*]\s*/, '').trim();
 
         if (task.length > 5) {
-          items.push({
-            person: currentPerson,
-            task,
-            timestamp: timestamp || '',
-            status: 'pending'
-          });
+          items.push({ person: currentPerson, task, timestamp: timestamp || '', status: 'pending' });
         }
       }
     }
@@ -229,7 +240,6 @@ const TBO_FIREFLIES = {
   _detectRelatedProjects(title, summary) {
     if (!title) return [];
     const projects = [];
-    // Try to extract project names from title (before | or - delimiter)
     const parts = title.split(/[|\-–—]/);
     if (parts.length > 1) {
       const projName = parts[0].trim();
@@ -240,6 +250,41 @@ const TBO_FIREFLIES = {
     return projects;
   },
 
+  /**
+   * Extrai participantes de um transcript da API Fireflies
+   */
+  _extractParticipants(transcript) {
+    const participants = [];
+    const attendees = transcript.meeting_attendees || [];
+    const participantEmails = transcript.participants || [];
+
+    if (attendees.length > 0) {
+      for (const a of attendees) {
+        if (a.email) {
+          participants.push({
+            email: a.email,
+            name: a.displayName || null,
+            is_tbo: this._isTboEmail(a.email)
+          });
+        }
+      }
+    } else {
+      for (const email of participantEmails) {
+        if (email) {
+          participants.push({
+            email,
+            name: null,
+            is_tbo: this._isTboEmail(email)
+          });
+        }
+      }
+    }
+    return participants;
+  },
+
+  /**
+   * Transforma array de transcripts no formato TBO (compatibilidade com UI existente)
+   */
   _transformToTboFormat(transcripts) {
     const now = new Date().toISOString();
     const meetings = [];
@@ -249,44 +294,10 @@ const TBO_FIREFLIES = {
       const category = this._detectCategory(t.title);
       categoryCount[category] = (categoryCount[category] || 0) + 1;
 
-      // Build participants list from meeting_attendees
-      const participants = [];
-      const attendees = t.meeting_attendees || [];
-      const participantEmails = t.participants || [];
-
-      // Use meeting_attendees if available (has display names)
-      if (attendees.length > 0) {
-        for (const a of attendees) {
-          if (a.email) {
-            participants.push({
-              email: a.email,
-              name: a.displayName || null,
-              is_tbo: this._isTboEmail(a.email)
-            });
-          }
-        }
-      } else {
-        // Fallback to participants array (just emails)
-        for (const email of participantEmails) {
-          if (email) {
-            participants.push({
-              email,
-              name: null,
-              is_tbo: this._isTboEmail(email)
-            });
-          }
-        }
-      }
-
-      // Parse action items from summary string
-      const actionItems = this._parseActionItems(
-        t.summary?.action_items || ''
-      );
-
-      // Parse keywords
+      const participants = this._extractParticipants(t);
+      const actionItems = this._parseActionItems(t.summary?.action_items || '');
       const keywords = t.summary?.keywords || [];
 
-      // Build meeting object in TBO format
       const meeting = {
         id: t.id,
         title: t.title || 'Sem título',
@@ -303,19 +314,14 @@ const TBO_FIREFLIES = {
         related_clients: [],
         _source: 'fireflies_api'
       };
-
       meetings.push(meeting);
     }
 
-    // Sort by date descending (newest first)
     meetings.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    // Calculate date range
     const dates = meetings.map(m => new Date(m.date)).filter(d => !isNaN(d));
     const minDate = dates.length > 0 ? new Date(Math.min(...dates)).toISOString() : null;
     const maxDate = dates.length > 0 ? new Date(Math.max(...dates)).toISOString() : null;
-
-    // Total minutes
     const totalMinutes = meetings.reduce((sum, m) => sum + (m.duration_minutes || 0), 0);
 
     return {
@@ -323,10 +329,7 @@ const TBO_FIREFLIES = {
         collected_at: now,
         total_meetings: meetings.length,
         total_minutes: Math.round(totalMinutes * 100) / 100,
-        date_range: {
-          from: minDate,
-          to: maxDate
-        },
+        date_range: { from: minDate, to: maxDate },
         account_email: 'marco@agenciatbo.com.br',
         category_distribution: categoryCount,
         _source: 'fireflies_api',
@@ -337,33 +340,191 @@ const TBO_FIREFLIES = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // SYNC — Main sync method (called by TBO_STORAGE)
+  // PERSISTÊNCIA — Salvar no Supabase via MeetingsRepo
   // ═══════════════════════════════════════════════════════════════════════════
 
-  async sync() {
+  /**
+   * Mapeia um transcript da API Fireflies para o formato da tabela meetings
+   */
+  _mapToDbRow(transcript) {
+    const category = this._detectCategory(transcript.title);
+    const keywords = transcript.summary?.keywords || [];
+    return {
+      title: transcript.title || 'Sem título',
+      date: transcript.date ? new Date(transcript.date).toISOString().split('T')[0] : null,
+      time: transcript.date ? new Date(transcript.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : null,
+      duration_minutes: transcript.duration || 0,
+      category,
+      organizer_email: transcript.organizer_email || transcript.host_email || null,
+      host_email: transcript.host_email || null,
+      fireflies_url: transcript.transcript_url || null,
+      audio_url: transcript.audio_url || null,
+      meeting_link: transcript.transcript_url || null,
+      keywords: typeof keywords === 'string' ? keywords.split(',').map(k => k.trim()) : (Array.isArray(keywords) ? keywords : []),
+      overview: transcript.summary?.overview || null,
+      short_summary: transcript.summary?.short_summary || null,
+      summary: transcript.summary?.short_summary || transcript.summary?.overview || null,
+      action_items: this._parseActionItems(transcript.summary?.action_items || ''),
+      status: 'concluida'
+    };
+  },
+
+  /**
+   * Persiste transcripts no Supabase via MeetingsRepo.
+   * Retorna stats { created, updated, errors }.
+   */
+  async _persistToSupabase(transcripts, syncLog, onProgress) {
+    const stats = { created: 0, updated: 0, transcriptsSynced: 0, errors: [] };
+    const hasMeetingsRepo = typeof MeetingsRepo !== 'undefined';
+
+    if (!hasMeetingsRepo) {
+      console.warn('[TBO Fireflies] MeetingsRepo não disponível — persistência desabilitada');
+      return stats;
+    }
+
+    for (let i = 0; i < transcripts.length; i++) {
+      const t = transcripts[i];
+      try {
+        // 1. Upsert meeting
+        const dbRow = this._mapToDbRow(t);
+        const { data: meeting, isNew } = await MeetingsRepo.upsertByFirefliesId(t.id, dbRow);
+
+        if (isNew) {
+          stats.created++;
+        } else {
+          stats.updated++;
+        }
+
+        // 2. Upsert participantes
+        const participants = this._extractParticipants(t);
+        if (participants.length > 0 && meeting?.id) {
+          await MeetingsRepo.upsertParticipants(meeting.id, participants);
+        }
+
+        // 3. Buscar e salvar transcrição completa (apenas para novos)
+        if (isNew && meeting?.id) {
+          try {
+            const sentences = await this.fetchTranscript(t.id);
+            if (sentences.length > 0) {
+              await MeetingsRepo.saveTranscription(meeting.id, sentences);
+              stats.transcriptsSynced++;
+            }
+          } catch (tErr) {
+            console.warn(`[TBO Fireflies] Transcrição ${t.id} falhou:`, tErr.message);
+            stats.errors.push({ fireflies_id: t.id, step: 'transcription', error: tErr.message });
+          }
+        }
+
+        // 4. Auto-associação (apenas para novos)
+        if (isNew && meeting?.id) {
+          try {
+            await MeetingsRepo.autoAssociateProject(meeting.id, t.title);
+            await MeetingsRepo.autoAssociateUsers(meeting.id);
+          } catch (assocErr) {
+            console.warn(`[TBO Fireflies] Auto-associação ${t.id} falhou:`, assocErr.message);
+          }
+        }
+
+        // Progress callback
+        if (onProgress) onProgress(i + 1, transcripts.length);
+      } catch (e) {
+        console.error(`[TBO Fireflies] Persistência ${t.id} falhou:`, e.message);
+        stats.errors.push({ fireflies_id: t.id, step: 'upsert', error: e.message });
+      }
+    }
+
+    return stats;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SYNC — Método principal (fetch API + persistência DB)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Sincronização completa: API Fireflies → cache local + Supabase.
+   * @param {Object} options
+   * @param {Function} options.onProgress - Callback (current, total) para UI
+   * @param {string} options.triggerSource - 'manual' | 'auto' | 'zapier'
+   * @returns {Object|null} Dados transformados no formato TBO
+   */
+  async sync({ onProgress, triggerSource = 'manual' } = {}) {
     if (!this.isEnabled()) return null;
     if (this._syncing) return this._cache;
 
     this._syncing = true;
     this._syncError = null;
+    let syncLog = null;
 
     try {
-      console.log('[TBO Fireflies] Fetching transcripts from API...');
+      console.log('[TBO Fireflies] Iniciando sync...');
+
+      // Criar sync log no DB
+      const hasMeetingsRepo = typeof MeetingsRepo !== 'undefined';
+      if (hasMeetingsRepo) {
+        try {
+          syncLog = await MeetingsRepo.createSyncLog(triggerSource);
+        } catch (logErr) {
+          console.warn('[TBO Fireflies] Sync log creation falhou:', logErr.message);
+        }
+      }
+
+      // 1. Fetch da API
       const transcripts = await this.fetchTranscripts();
+
+      // 2. Transformar para formato TBO (compatibilidade UI)
       const result = this._transformToTboFormat(transcripts);
 
+      // 3. Persistir no Supabase
+      const stats = await this._persistToSupabase(transcripts, syncLog, onProgress);
+
+      // 4. Atualizar cache local
       this._cache = result;
       this._cacheTime = Date.now();
       this._lastSync = new Date().toISOString();
       this._syncError = null;
 
-      console.log(`[TBO Fireflies] Synced ${result.meetings.length} meetings (${Math.round(result.metadata.total_minutes)} min)`);
+      // 5. Atualizar sync log
+      if (syncLog && hasMeetingsRepo) {
+        const logStatus = stats.errors.length > 0 ? 'partial' : 'success';
+        try {
+          await MeetingsRepo.updateSyncLog(syncLog.id, {
+            status: logStatus,
+            meetings_fetched: transcripts.length,
+            meetings_created: stats.created,
+            meetings_updated: stats.updated,
+            transcriptions_synced: stats.transcriptsSynced,
+            errors: stats.errors.length > 0 ? stats.errors : []
+          });
+        } catch { /* ignore */ }
+      }
+
+      console.log(`[TBO Fireflies] Sync OK: ${result.meetings.length} reuniões (${stats.created} novas, ${stats.updated} atualizadas, ${stats.transcriptsSynced} transcrições)`);
+
+      // 6. Toast de resultado
+      if (typeof TBO_TOAST !== 'undefined') {
+        if (stats.created > 0) {
+          TBO_TOAST.success('Fireflies', `${stats.created} reuniões novas sincronizadas`);
+        } else if (stats.updated > 0) {
+          TBO_TOAST.info('Fireflies', `${stats.updated} reuniões atualizadas`);
+        }
+      }
+
       return result;
     } catch (e) {
-      console.warn('[TBO Fireflies] Sync failed:', e.message);
+      console.warn('[TBO Fireflies] Sync falhou:', e.message);
       this._syncError = e.message;
 
-      // Return cached data if available
+      // Atualizar sync log com erro
+      if (syncLog && typeof MeetingsRepo !== 'undefined') {
+        try {
+          await MeetingsRepo.updateSyncLog(syncLog.id, {
+            status: 'error',
+            errors: [{ step: 'fetch', error: e.message }]
+          });
+        } catch { /* ignore */ }
+      }
+
+      // Retornar cache se disponível
       if (this._cache) return this._cache;
       return null;
     } finally {
@@ -372,7 +533,36 @@ const TBO_FIREFLIES = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // STATUS — For UI status indicator
+  // AUTO-SYNC — Scheduler automático (padrão Omie)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Inicia sync automático periódico
+   */
+  scheduleAutoSync(intervalMs) {
+    this.cancelAutoSync();
+    const interval = intervalMs || this._autoSyncInterval;
+    this._autoSyncTimer = setInterval(() => {
+      this.sync({ triggerSource: 'auto' }).catch(e => {
+        console.warn('[TBO Fireflies] Auto-sync falhou:', e.message);
+      });
+    }, interval);
+    console.log(`[TBO Fireflies] Auto-sync agendado a cada ${Math.round(interval / 60000)}min`);
+  },
+
+  /**
+   * Cancela sync automático
+   */
+  cancelAutoSync() {
+    if (this._autoSyncTimer) {
+      clearInterval(this._autoSyncTimer);
+      this._autoSyncTimer = null;
+      console.log('[TBO Fireflies] Auto-sync cancelado');
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STATUS — Para indicador de status na UI
   // ═══════════════════════════════════════════════════════════════════════════
 
   getStatus() {
@@ -389,7 +579,8 @@ const TBO_FIREFLIES = {
       lastSync: this._lastSync,
       error: this._syncError,
       meetingCount: this._cache?.meetings?.length || 0,
-      cacheAge
+      cacheAge,
+      autoSync: !!this._autoSyncTimer
     };
   },
 
@@ -400,12 +591,34 @@ const TBO_FIREFLIES = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // FORCE REFRESH — Clear cache and re-fetch
+  // FORCE REFRESH — Limpa cache e re-sincroniza
   // ═══════════════════════════════════════════════════════════════════════════
 
   async forceRefresh() {
     this._cache = null;
     this._cacheTime = null;
-    return this.sync();
+    return this.sync({ triggerSource: 'manual' });
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DB FETCH — Carrega reuniões do Supabase (para uso pelo módulo reunioes)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Carrega reuniões do Supabase (fonte de verdade).
+   * Fallback para cache em memória se MeetingsRepo não disponível.
+   */
+  async loadFromDb(filters = {}) {
+    if (typeof MeetingsRepo !== 'undefined') {
+      try {
+        return await MeetingsRepo.list(filters);
+      } catch (e) {
+        console.warn('[TBO Fireflies] loadFromDb falhou, usando cache:', e.message);
+      }
+    }
+
+    // Fallback: cache em memória
+    if (this._cache?.meetings) return this._cache.meetings;
+    return [];
   }
 };

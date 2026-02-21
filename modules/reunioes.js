@@ -1,10 +1,15 @@
-// TBO OS — Module: Reunioes & Contexto
+// TBO OS — Module: Reunioes & Contexto (PRD v1.2 — Supabase como fonte de verdade)
 const TBO_REUNIOES = {
+  _meetingsData: null, // Cache local para evitar re-fetch durante render
+  _loading: false,
+
   render() {
-    const meetings = TBO_STORAGE.get('meetings');
-    const meetingsArr = meetings.meetings || meetings.reunioes_recentes || [];
-    const meta = meetings.metadata || meetings._metadata || {};
-    const catDist = meta.category_distribution || meetings.categorias || {};
+    // Usa dados pré-carregados pelo _loadMeetings() ou fallback TBO_STORAGE
+    const cached = this._meetingsData;
+    const meetings = cached || TBO_STORAGE.get('meetings') || {};
+    const meetingsArr = cached ? cached : (meetings.meetings || meetings.reunioes_recentes || []);
+    const meta = cached ? {} : (meetings.metadata || meetings._metadata || {});
+    const catDist = cached ? this._buildCatDist(meetingsArr) : (meta.category_distribution || meetings.categorias || {});
 
     // Extract unique participants
     const participantSet = new Set();
@@ -269,8 +274,7 @@ const TBO_REUNIOES = {
     } else if (out) { out.textContent = 'Buscando...'; }
 
     try {
-      const meetings = TBO_STORAGE.get('meetings');
-      const meetingsArr = meetings.meetings || meetings.reunioes_recentes || [];
+      const meetingsArr = this._getMeetingsArr();
       const ctx = JSON.stringify(meetingsArr);
       const result = await TBO_API.callWithContext('reunioes', query, ctx);
       if (out) out.innerHTML = TBO_FORMATTER.markdownToHtml(result.text);
@@ -293,8 +297,7 @@ const TBO_REUNIOES = {
     } else if (out) { out.textContent = 'Consolidando...'; }
 
     try {
-      const meetings = TBO_STORAGE.get('meetings');
-      const meetingsArr = meetings.meetings || meetings.reunioes_recentes || [];
+      const meetingsArr = this._getMeetingsArr();
       const ctx = JSON.stringify(meetingsArr);
       const result = await TBO_API.callWithContext('reunioes',
         'Consolide TODOS os action items de todas as reunioes. Organize por projeto/cliente. Identifique itens vencidos, pendentes e concluidos. Destaque os mais urgentes.', ctx);
@@ -322,8 +325,7 @@ const TBO_REUNIOES = {
 
     try {
       const ctx = TBO_STORAGE.getClientContext(cliente);
-      const meetings = TBO_STORAGE.get('meetings');
-      const meetingsArr = meetings.meetings || meetings.reunioes_recentes || [];
+      const meetingsArr = this._getMeetingsArr();
       const meetingCtx = JSON.stringify(meetingsArr.filter(r => {
         const title = (r.title || r.titulo || '').toLowerCase();
         const summary = (r.summary || r.resumo || '').toLowerCase();
@@ -574,5 +576,71 @@ const TBO_REUNIOES = {
   _toggleDecisionTask(taskId, completed) {
     if (typeof TBO_ERP === 'undefined') return;
     TBO_ERP.transition('task', taskId, completed ? 'concluida' : 'pendente');
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PRD v1.2 — Carregamento de dados do Supabase
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Carrega reuniões do Supabase (MeetingsRepo) com fallback TBO_STORAGE/Fireflies.
+   * Chamado pelo módulo antes do render para garantir dados atualizados.
+   */
+  async _loadMeetings() {
+    if (this._loading) return;
+    this._loading = true;
+
+    try {
+      // Prioridade 1: MeetingsRepo (Supabase — fonte de verdade)
+      if (typeof MeetingsRepo !== 'undefined') {
+        const dbMeetings = await MeetingsRepo.list({ limit: 200 });
+        if (dbMeetings && dbMeetings.length > 0) {
+          this._meetingsData = dbMeetings;
+          this._loading = false;
+          return;
+        }
+      }
+
+      // Prioridade 2: TBO_FIREFLIES.loadFromDb()
+      if (typeof TBO_FIREFLIES !== 'undefined' && TBO_FIREFLIES.isEnabled()) {
+        const fMeetings = await TBO_FIREFLIES.loadFromDb();
+        if (fMeetings && fMeetings.length > 0) {
+          this._meetingsData = fMeetings;
+          this._loading = false;
+          return;
+        }
+      }
+
+      // Fallback: TBO_STORAGE (dados legacy)
+      this._meetingsData = null; // render() usará TBO_STORAGE
+    } catch (e) {
+      console.warn('[TBO Reuniões] _loadMeetings falhou:', e.message);
+      this._meetingsData = null;
+    } finally {
+      this._loading = false;
+    }
+  },
+
+  /**
+   * Constrói distribuição de categorias a partir de array de reuniões
+   */
+  _buildCatDist(meetingsArr) {
+    const dist = {};
+    for (const m of meetingsArr) {
+      const cat = m.category || m.categoria || 'geral';
+      dist[cat] = (dist[cat] || 0) + 1;
+    }
+    return dist;
+  },
+
+  /**
+   * Retorna meetingsArr normalizado (compatível com tanto DB quanto TBO_STORAGE)
+   */
+  _getMeetingsArr() {
+    if (this._meetingsData && Array.isArray(this._meetingsData)) {
+      return this._meetingsData;
+    }
+    const meetings = TBO_STORAGE.get('meetings') || {};
+    return meetings.meetings || meetings.reunioes_recentes || [];
   }
 };

@@ -81,7 +81,24 @@
     }
     _mark('ux_ready');
 
-    // ── 7. Boot completo ──
+    // ── 7. Integration Sync Orchestrator (PRD v1.2) ──
+    try {
+      if (typeof TBO_INTEGRATION_SYNC !== 'undefined') {
+        // Registrar integrações com retry configurável
+        if (typeof TBO_FIREFLIES !== 'undefined') {
+          TBO_INTEGRATION_SYNC.register('fireflies', () => TBO_FIREFLIES.sync(), { retries: 2, interval: 30 * 60 * 1000 });
+        }
+        if (typeof TBO_GOOGLE_DRIVE !== 'undefined') {
+          TBO_INTEGRATION_SYNC.register('google-drive', () => TBO_GOOGLE_DRIVE.sync(), { retries: 1, interval: 60 * 60 * 1000 });
+        }
+        _mark('integrations_registered');
+        console.log('[BOOT] Integrações registradas no sync orchestrator');
+      }
+    } catch (err) {
+      console.warn('[BOOT] Integration sync registration falhou:', err);
+    }
+
+    // ── 8. Boot completo ──
     _mark('boot_end');
     _measure('bootstrap', 'boot_start', 'boot_end');
 

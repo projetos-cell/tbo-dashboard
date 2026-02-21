@@ -268,6 +268,20 @@ const TBO_AUTH = {
           .catch(e => console.warn('[TBO Auth] Avatar sync error:', e.message));
       }
 
+      // PRD v1.2 — Sync nome/email do Google para profiles (fire-and-forget)
+      // Garante que dados do Google são propagados para o banco mesmo em re-login
+      const googleName = authUser.user_metadata?.full_name;
+      const googleEmail = authUser.email;
+      const profileUpdates = {};
+      if (googleName && googleName !== profile.full_name) profileUpdates.full_name = googleName;
+      if (googleEmail && googleEmail !== profile.email) profileUpdates.email = googleEmail;
+      if (Object.keys(profileUpdates).length > 0) {
+        TBO_SUPABASE.getClient()
+          .from('profiles').update(profileUpdates).eq('id', authUser.id)
+          .then(() => console.log('[TBO Auth] Perfil Google sincronizado:', Object.keys(profileUpdates).join(', ')))
+          .catch(e => console.warn('[TBO Auth] Profile sync error:', e.message));
+      }
+
       // v2.5: Carregar permissoes granulares do Supabase (non-blocking)
       try {
         await TBO_PERMISSIONS.loadPermissionsMatrix(authUser.id);

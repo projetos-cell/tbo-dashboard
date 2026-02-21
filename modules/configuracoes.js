@@ -164,7 +164,9 @@ const TBO_CONFIGURACOES = {
       ${this._renderIntegrationCard_Fireflies()}
       ${this._renderIntegrationCard_RDStation()}
       ${this._renderIntegrationCard_GoogleCalendar()}
+      ${this._renderIntegrationCard_GoogleDrive()}
       ${this._renderIntegrationCard_GoogleSheets()}
+      ${this._renderIntegrationCard_Zapier()}
       ${this._renderIntegrationCard_Notion()}
     `;
   },
@@ -345,6 +347,94 @@ const TBO_CONFIGURACOES = {
             <span>${status.eventCount || 0} eventos | ${status.todayCount || 0} hoje</span>
           </div>` : ''}
           ${status && status.error ? `<div class="cfg-integration-error"><i data-lucide="alert-circle" style="width:12px;height:12px;display:inline;"></i> ${status.error === 'Failed to fetch' ? 'Erro de conexão — verifique a API Key ou tente novamente' : status.error}</div>` : ''}
+        </div>
+      </div>
+    `;
+  },
+
+  _renderIntegrationCard_GoogleDrive() {
+    const isEnabled = typeof TBO_GOOGLE_DRIVE !== 'undefined' && TBO_GOOGLE_DRIVE.isEnabled();
+    const status = typeof TBO_GOOGLE_DRIVE !== 'undefined' ? TBO_GOOGLE_DRIVE.getStatus() : null;
+    const currentUser = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.getCurrentUser() : null;
+    const isGoogleUser = !!currentUser?.supabaseUserId && !!currentUser?.avatarUrl;
+    const connected = isEnabled && isGoogleUser;
+
+    return `
+      <div class="card cfg-card cfg-integration-card">
+        <div class="cfg-integration-header">
+          <div class="cfg-integration-icon" style="background:#4285f422;color:#4285f4;">
+            <i data-lucide="folder"></i>
+          </div>
+          <div class="cfg-integration-meta">
+            <h3>Google Drive</h3>
+            <span class="cfg-integration-desc">Sincronizar arquivos com projetos (PRD v1.2)</span>
+          </div>
+          <span class="cfg-status-badge ${connected ? 'connected' : 'disconnected'}">
+            ${connected ? 'Conectado' : 'Desconectado'}
+          </span>
+        </div>
+
+        <div class="cfg-integration-body">
+          ${!isGoogleUser ? `
+          <div class="cfg-integration-notice">
+            <i data-lucide="info"></i>
+            <span>Faca login via Google (botao na tela de login) para habilitar o Google Drive.</span>
+          </div>` : `
+          <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:12px;">
+            Configure o campo <code>google_folder_id</code> nos projetos para sincronizar arquivos automaticamente.
+          </p>
+          <div class="cfg-integration-actions">
+            <button class="btn btn-secondary btn-sm" id="cfgGdriveSync">
+              <i data-lucide="refresh-cw"></i> Sincronizar Arquivos
+            </button>
+            <label class="cfg-inline-toggle">
+              <input type="checkbox" id="cfgGdriveEnabled" ${isEnabled ? 'checked' : ''}> Habilitado
+            </label>
+          </div>
+          `}
+          ${status && status.lastSync ? `
+          <div class="cfg-integration-status">
+            <span>Ultimo sync: <strong>${new Date(status.lastSync).toLocaleString('pt-BR')}</strong></span>
+          </div>` : ''}
+          ${status && status.error ? `<div class="cfg-integration-error"><i data-lucide="alert-circle" style="width:12px;height:12px;display:inline;"></i> ${status.error}</div>` : ''}
+        </div>
+      </div>
+    `;
+  },
+
+  _renderIntegrationCard_Zapier() {
+    const webhookUrl = `${window.location.origin}/api/fireflies-webhook`;
+
+    return `
+      <div class="card cfg-card cfg-integration-card">
+        <div class="cfg-integration-header">
+          <div class="cfg-integration-icon" style="background:#ff4a0022;color:#ff4a00;">
+            <i data-lucide="zap"></i>
+          </div>
+          <div class="cfg-integration-meta">
+            <h3>Zapier (Webhook Fireflies)</h3>
+            <span class="cfg-integration-desc">Orquestrador de sincronizacao automatica (PRD v1.2)</span>
+          </div>
+          <span class="cfg-status-badge connected">Ativo</span>
+        </div>
+
+        <div class="cfg-integration-body">
+          <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:12px;">
+            Configure o Zapier para enviar notificacoes de novas reunioes para este webhook.
+          </p>
+          <div class="form-group" style="margin-bottom:8px;">
+            <label class="form-label">Webhook URL</label>
+            <div style="display:flex; gap:8px;">
+              <input type="text" class="form-input" value="${webhookUrl}" id="cfgZapierUrl" readonly style="font-size:0.78rem; font-family:monospace;">
+              <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${webhookUrl}'); if(typeof TBO_TOAST!=='undefined') TBO_TOAST.success('URL copiada!');">
+                <i data-lucide="copy"></i>
+              </button>
+            </div>
+          </div>
+          <div class="cfg-integration-notice" style="margin-top:8px;">
+            <i data-lucide="info"></i>
+            <span>Requer headers: <code>X-Webhook-Secret</code> e <code>X-Tenant-Id</code>. Configure as env vars no Vercel.</span>
+          </div>
         </div>
       </div>
     `;
@@ -1156,6 +1246,35 @@ const TBO_CONFIGURACOES = {
         if (typeof TBO_GOOGLE_CALENDAR !== 'undefined') {
           TBO_GOOGLE_CALENDAR.setEnabled(gcalAutoSync.checked);
           TBO_TOAST.info('Google Calendar', gcalAutoSync.checked ? 'Auto-sync ativado.' : 'Auto-sync desativado.');
+        }
+      });
+    }
+
+    // === Google Drive (PRD v1.2) ===
+    this._bind('cfgGdriveSync', async () => {
+      if (typeof TBO_GOOGLE_DRIVE === 'undefined') {
+        TBO_TOAST.warning('Google Drive', 'Modulo nao disponivel.');
+        return;
+      }
+      try {
+        TBO_TOAST.info('Google Drive', 'Sincronizando arquivos...');
+        const result = await TBO_GOOGLE_DRIVE.sync();
+        if (result) {
+          TBO_TOAST.success('Google Drive', `${result.synced} arquivos de ${result.projects} projetos sincronizados.`);
+        } else {
+          TBO_TOAST.info('Google Drive', 'Nenhum projeto com google_folder_id configurado.');
+        }
+      } catch (e) {
+        TBO_TOAST.error('Google Drive', e.message);
+      }
+    });
+
+    const gdriveEnabled = document.getElementById('cfgGdriveEnabled');
+    if (gdriveEnabled) {
+      gdriveEnabled.addEventListener('change', () => {
+        if (typeof TBO_GOOGLE_DRIVE !== 'undefined') {
+          TBO_GOOGLE_DRIVE.setEnabled(gdriveEnabled.checked);
+          TBO_TOAST.info('Google Drive', gdriveEnabled.checked ? 'Habilitado.' : 'Desabilitado.');
         }
       });
     }

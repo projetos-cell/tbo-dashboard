@@ -398,12 +398,15 @@
   <script defer src="src/infra/supabase/queries/audit.js"></script>
   <script defer src="src/infra/supabase/queries/pages.js"></script>
   <script defer src="src/infra/supabase/queries/spaces.js"></script>
+  <script defer src="src/infra/supabase/queries/meetings.js"></script>
+  <script defer src="src/infra/supabase/queries/files.js"></script>
 
   <!-- Infra: Integration Contracts -->
   <script defer src="src/infra/integrations/rdstation/index.js"></script>
   <script defer src="src/infra/integrations/omie/index.js"></script>
   <script defer src="src/infra/integrations/fireflies/index.js"></script>
   <script defer src="src/infra/integrations/google-calendar/index.js"></script>
+  <script defer src="src/infra/integrations/google-drive/index.js"></script>
 
   <!-- App: Route Registry -->
   <script defer src="src/app/routes/index.js"></script>
@@ -473,6 +476,10 @@
 
   <!-- Google Calendar Integration (read-only) -->
   <script defer src="utils/google-calendar.js"></script>
+  <!-- Google Drive Integration (PRD v1.2) -->
+  <script defer src="utils/google-drive.js"></script>
+  <!-- Integration Sync Orchestrator (PRD v1.2) -->
+  <script defer src="utils/integration-sync.js"></script>
   <!-- Parsers financeiros (OFX/CSV) -->
   <script defer src="utils/ofx-parser.js"></script>
   <script defer src="utils/csv-parser.js"></script>

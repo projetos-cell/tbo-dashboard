@@ -32,6 +32,7 @@ const TBO_ROUTE_REGISTRY = (() => {
     'integracoes':            'integracoes',
     'configuracoes':          'configuracoes',
     'admin':                  'admin-portal',
+    'admin-portal':           'admin-portal',
     'entregas':               'entregas',
     'revisoes':               'revisoes',
     'timesheets':             'timesheets',
@@ -58,7 +59,11 @@ const TBO_ROUTE_REGISTRY = (() => {
     'equipe':                 'rh',
     'command-center':         'dashboard',
     'home':                   'dashboard',
-    'workspace':              'dashboard'
+    'workspace':              'dashboard',
+    // Aliases para rotas referenciadas na sidebar que nao existiam
+    'crm':                    'clientes',
+    'pessoas':                'rh',
+    'ia-tbo':                 'inteligencia'
   };
 
   // Rotas parametrizadas: prefixo → { module, permissionModule }

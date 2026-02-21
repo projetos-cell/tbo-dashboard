@@ -115,19 +115,19 @@ const TBO_TAREFAS = {
 
         <!-- Filters -->
         <div class="card" style="padding:12px;margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-          <select class="form-input" id="tfFilterStatus" style="max-width:150px;">
+          <select class="form-input" id="tfFilterStatus" style="max-width:170px;">
             <option value="">Todos status</option>
             ${sm ? sm.states.map(s => `<option value="${s}">${sm.labels[s]}</option>`).join('') : ''}
           </select>
-          <select class="form-input" id="tfFilterOwner" style="max-width:150px;">
-            <option value="">Todos responsaveis</option>
+          <select class="form-input" id="tfFilterOwner" style="max-width:200px;">
+            <option value="">Todos responsáveis</option>
             ${team.map(t => `<option value="${_escapeHtml(t)}">${_escapeHtml(t)}</option>`).join('')}
           </select>
-          <select class="form-input" id="tfFilterProject" style="max-width:180px;">
+          <select class="form-input" id="tfFilterProject" style="max-width:200px;">
             <option value="">Todos projetos</option>
             ${activeProjects.map(p => `<option value="${p.id}">${_escapeHtml(p.name)}</option>`).join('')}
           </select>
-          <select class="form-input" id="tfFilterPriority" style="max-width:130px;">
+          <select class="form-input" id="tfFilterPriority" style="max-width:150px;">
             <option value="">Prioridade</option>
             ${TBO_CONFIG.business.priorities.map(p => `<option value="${p.id}">${p.label}</option>`).join('')}
           </select>

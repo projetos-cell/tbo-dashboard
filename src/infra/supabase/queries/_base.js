@@ -52,7 +52,28 @@ const RepoBase = (() => {
       }
     }
 
-    // 3. Supabase session user_metadata (sync via _currentSession cache interno)
+    // 3. localStorage — workspace selector (TBO_SUPABASE.getCurrentTenantId compatível)
+    try {
+      const wsId = localStorage.getItem('tbo_current_tenant');
+      if (wsId) {
+        _tenantCache = wsId;
+        return wsId;
+      }
+    } catch { /* fallthrough */ }
+
+    // 4. sessionStorage — auth session tenantId
+    try {
+      const raw = sessionStorage.getItem('tbo_auth');
+      if (raw) {
+        const session = JSON.parse(raw);
+        if (session.tenantId) {
+          _tenantCache = session.tenantId;
+          return session.tenantId;
+        }
+      }
+    } catch { /* fallthrough */ }
+
+    // 5. Supabase session user_metadata (sync via _currentSession cache interno)
     try {
       const db = getDb();
       // getSession() é sync no @supabase/supabase-js v2 (retorna session cacheada)
@@ -61,6 +82,17 @@ const RepoBase = (() => {
       if (meta?.tenant_id) {
         _tenantCache = meta.tenant_id;
         return meta.tenant_id;
+      }
+    } catch { /* fallthrough */ }
+
+    // 6. TBO_SUPABASE.getCurrentTenantId() como último fallback
+    try {
+      if (typeof TBO_SUPABASE !== 'undefined' && TBO_SUPABASE.getCurrentTenantId) {
+        const tid = TBO_SUPABASE.getCurrentTenantId();
+        if (tid) {
+          _tenantCache = tid;
+          return tid;
+        }
       }
     } catch { /* fallthrough */ }
 
@@ -79,7 +111,7 @@ const RepoBase = (() => {
     // Se já tem cache, retorna direto
     if (_tenantCache) return _tenantCache;
 
-    // Tenta sync primeiro
+    // Tenta sync primeiro (agora cobre localStorage, sessionStorage, TBO_SUPABASE)
     try {
       return requireTenantId();
     } catch { /* precisa do fallback async */ }
@@ -93,6 +125,8 @@ const RepoBase = (() => {
         const tid = data?.user?.user_metadata?.tenant_id;
         if (tid) {
           _tenantCache = tid;
+          // Persistir para proximas chamadas sync
+          try { localStorage.setItem('tbo_current_tenant', tid); } catch { /* ignore */ }
           return tid;
         }
       }

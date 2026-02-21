@@ -21,6 +21,27 @@ const TBO_PEOPLE_PROFILE = {
   // ── Helpers ──────────────────────────────────────────────────────
   _esc(s) { return typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.escapeHtml(s) : s; },
 
+  // Mapeamento de roles legados → labels amigáveis em PT-BR
+  _roleLabel(role) {
+    const labels = {
+      'founder': 'Fundador', 'owner': 'Proprietário', 'admin': 'Administrador',
+      'project_owner': 'Gestor de Projetos', 'coordinator': 'Coordenador(a)',
+      'artist': 'Colaborador', '3d-artist': 'Artista 3D', 'finance': 'Financeiro',
+      'member': 'Membro', 'viewer': 'Visualizador', 'guest': 'Convidado'
+    };
+    return labels[role] || role || 'Membro';
+  },
+
+  _roleColor(role) {
+    const colors = {
+      'founder': '#E85102', 'owner': '#E85102', 'admin': '#DC2626',
+      'project_owner': '#3B82F6', 'coordinator': '#8B5CF6',
+      'artist': '#10B981', '3d-artist': '#10B981', 'finance': '#F59E0B',
+      'member': '#64748B', 'viewer': '#94A3B8', 'guest': '#CBD5E1'
+    };
+    return colors[role] || '#94a3b8';
+  },
+
   _isAdmin() {
     // v2.1: Fail closed — se TBO_AUTH nao carregou, negar acesso (prevenir privilege escalation)
     if (typeof TBO_AUTH === 'undefined') return false;
@@ -46,14 +67,29 @@ const TBO_PEOPLE_PROFILE = {
     return `<div style="width:${size}px;height:${size}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${fontSize};background:${color}20;color:${color};flex-shrink:0;">${initials}</div>`;
   },
 
+  /**
+   * Normaliza slug para comparacao (ex: "marco-andolfato" → "marcoandolfato")
+   */
+  _normalizeSlug(str) {
+    return (str || '').toLowerCase().replace(/[-_\s.]/g, '');
+  },
+
   // ── Carregar dados da pessoa do Supabase ────────────────────────
   async _loadPerson() {
     if (!this._personId) return null;
     this._loading = true;
 
+    const pid = this._personId;
+    const pidNorm = this._normalizeSlug(pid);
+
     // Tentar encontrar no RH module primeiro (ja carregado)
     if (typeof TBO_RH !== 'undefined' && TBO_RH._teamLoaded) {
-      const person = TBO_RH._team.find(t => t.id === this._personId || t.supabaseId === this._personId);
+      const person = TBO_RH._team.find(t =>
+        t.id === pid ||
+        t.supabaseId === pid ||
+        this._normalizeSlug(t.nome) === pidNorm ||
+        this._normalizeSlug(t.id) === pidNorm
+      );
       if (person) {
         this._personData = person;
         this._personName = person.nome;
@@ -74,14 +110,25 @@ const TBO_PEOPLE_PROFILE = {
             .eq('tenant_id', tenantId);
 
           // UUID format check
-          const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(this._personId);
+          const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pid);
           if (isUUID) {
-            query = query.eq('id', this._personId);
+            query = query.eq('id', pid);
           } else {
-            query = query.eq('username', this._personId);
+            query = query.eq('username', pid);
           }
 
-          const { data, error } = await query.maybeSingle();
+          let { data, error } = await query.maybeSingle();
+
+          // Fallback: buscar por slug no full_name (ex: "marco-andolfato" → "Marco Andolfato")
+          if (!data && !isUUID) {
+            const nameLike = pid.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            const { data: d2 } = await client.from('profiles')
+              .select('id, username, full_name, email, role, bu, is_coordinator, is_active, tenant_id, avatar_url, created_at, last_sign_in_at')
+              .eq('tenant_id', tenantId)
+              .ilike('full_name', `%${nameLike}%`)
+              .maybeSingle();
+            if (d2) { data = d2; error = null; }
+          }
           if (!error && data) {
             // Carregar RBAC role
             let rbacRole = {};
@@ -113,9 +160,9 @@ const TBO_PEOPLE_PROFILE = {
               status: data.is_active ? 'ativo' : 'inativo',
               avatarUrl: data.avatar_url || null,
               email: data.email || '',
-              rbacRole: rbacRole.name || data.role || 'artist',
-              rbacLabel: rbacRole.label || data.role || 'Artista',
-              rbacColor: rbacRole.color || '#94a3b8',
+              rbacRole: rbacRole.name || data.role || 'member',
+              rbacLabel: rbacRole.label || this._roleLabel(data.role) || 'Membro',
+              rbacColor: rbacRole.color || this._roleColor(data.role) || '#94a3b8',
               isCoordinator: data.is_coordinator || false,
               dataEntrada: data.created_at || null,
               ultimoLogin: data.last_sign_in_at || null,

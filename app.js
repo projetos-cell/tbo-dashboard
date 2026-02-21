@@ -319,11 +319,36 @@ const TBO_APP = {
     const saved = localStorage.getItem('tbo_theme');
     // Light is default — only apply dark if explicitly saved
     if (saved === 'dark') {
+      document.body.classList.remove('light-mode');
       document.body.classList.add('dark-mode');
+    } else if (saved === 'system') {
+      // Respeitar preferencia do sistema
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.body.classList.toggle('dark-mode', prefersDark);
+      document.body.classList.toggle('light-mode', !prefersDark);
     } else {
+      document.body.classList.remove('dark-mode');
       document.body.classList.add('light-mode');
     }
-    // Theme toggle is now in the user dropdown (rendered by auth.js)
+  },
+
+  /**
+   * Aplica tema dinamicamente (chamado pelo configuracoes.js)
+   * @param {'light'|'dark'|'system'} theme
+   */
+  setTheme(theme) {
+    if (theme === 'dark') {
+      document.body.classList.remove('light-mode');
+      document.body.classList.add('dark-mode');
+    } else if (theme === 'system') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.body.classList.toggle('dark-mode', prefersDark);
+      document.body.classList.toggle('light-mode', !prefersDark);
+    } else {
+      // light (default)
+      document.body.classList.remove('dark-mode');
+      document.body.classList.add('light-mode');
+    }
   },
 
   // ══════════════════════════════════════════════════════════════════════════

@@ -72,6 +72,26 @@ const TBO_RH = {
   _getPerson(id) { return this._team.find(t => t.id === id); },
   _esc(s) { return typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.escapeHtml(s) : s; },
 
+  // Mapeamento de roles legados → labels amigáveis em PT-BR
+  _roleLabelMap(role) {
+    const labels = {
+      'founder': 'Fundador', 'owner': 'Proprietário', 'admin': 'Administrador',
+      'project_owner': 'Gestor de Projetos', 'coordinator': 'Coordenador(a)',
+      'artist': 'Colaborador', '3d-artist': 'Artista 3D', 'finance': 'Financeiro',
+      'member': 'Membro', 'viewer': 'Visualizador', 'guest': 'Convidado'
+    };
+    return labels[role] || role || 'Membro';
+  },
+  _roleColorMap(role) {
+    const colors = {
+      'founder': '#E85102', 'owner': '#E85102', 'admin': '#DC2626',
+      'project_owner': '#3B82F6', 'coordinator': '#8B5CF6',
+      'artist': '#10B981', '3d-artist': '#10B981', 'finance': '#F59E0B',
+      'member': '#64748B', 'viewer': '#94A3B8', 'guest': '#CBD5E1'
+    };
+    return colors[role] || '#94a3b8';
+  },
+
   _isAdmin() {
     if (typeof TBO_AUTH === 'undefined') return true;
     // RBAC: usa canDo para verificar permissao de gestao de usuarios
@@ -171,9 +191,9 @@ const TBO_RH = {
                 status: p.is_active ? 'ativo' : 'inativo',
                 avatarUrl: p.avatar_url || null,
                 email: p.email || '',
-                rbacRole: rbacRole.name || p.role || 'artist',
-                rbacLabel: rbacRole.label || p.role || 'Artista',
-                rbacColor: rbacRole.color || '#94a3b8',
+                rbacRole: rbacRole.name || p.role || 'member',
+                rbacLabel: rbacRole.label || this._roleLabelMap(p.role) || 'Membro',
+                rbacColor: rbacRole.color || this._roleColorMap(p.role) || '#94a3b8',
                 isCoordinator: p.is_coordinator || false,
                 dataEntrada: p.created_at || null,
                 ultimoLogin: p.last_sign_in_at || null,
@@ -1624,7 +1644,7 @@ const TBO_RH = {
       .rh-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; flex-shrink: 0; }
 
       /* ── Drawer (perfil Asana-style) ── */
-      .rh-drawer { position: fixed; top: 0; right: 0; width: 460px; max-width: 92vw; height: 100vh; background: var(--bg-primary); border-left: 1px solid var(--border-subtle); box-shadow: -4px 0 20px rgba(0,0,0,0.18); z-index: 1000; overflow-y: auto; transform: translateX(100%); transition: transform 0.25s cubic-bezier(0.4,0,0.2,1); }
+      .rh-drawer { position: fixed; top: 0; right: 0; width: 460px; max-width: 92vw; height: 100vh; background: var(--bg-card, var(--bg-primary)); border-left: 1px solid var(--border-subtle); box-shadow: -4px 0 20px rgba(0,0,0,0.18); z-index: 1100; overflow-y: auto; transform: translateX(100%); transition: transform 0.25s cubic-bezier(0.4,0,0.2,1); }
       .rh-drawer.rh-drawer-open { transform: translateX(0); }
       .rh-drawer-content { padding: 24px; }
       .rh-profile-section { background: var(--bg-elevated); border-radius: var(--radius-md, 8px); padding: 16px; }
@@ -1970,7 +1990,7 @@ const TBO_RH = {
     if (!backdrop) {
       backdrop = document.createElement('div');
       backdrop.id = 'rhDrawerBackdrop';
-      backdrop.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:999;opacity:0;transition:opacity 0.2s ease;';
+      backdrop.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:1099;opacity:0;transition:opacity 0.2s ease;';
       drawer.parentElement.appendChild(backdrop);
     }
 

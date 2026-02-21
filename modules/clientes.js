@@ -267,6 +267,18 @@ const TBO_CLIENTES = {
       });
     });
 
+    // Auto-inferir relationship_status quando nao definido
+    Object.values(clientMap).forEach(c => {
+      if (!c.relationship_status) {
+        if (c.activeProjects > 0) {
+          c.relationship_status = 'ativo';
+        } else if (c.completedProjects > 0) {
+          c.relationship_status = 'ativo'; // ja teve projetos, considerar ativo
+        }
+        // Se nao tem projetos, permanece sem status (potencial lead)
+      }
+    });
+
     return Object.values(clientMap).sort((a, b) => b.activeProjects - a.activeProjects);
   },
 

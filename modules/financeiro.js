@@ -3980,10 +3980,19 @@ const TBO_FINANCEIRO = {
   },
 
   _esc(str) {
-    if (typeof TBO_SANITIZE !== 'undefined' && TBO_SANITIZE.html) return TBO_SANITIZE.html(str);
-    if (typeof TBO_FORMATTER !== 'undefined' && TBO_FORMATTER.escapeHtml) return TBO_FORMATTER.escapeHtml(str);
+    if (!str) return '';
+    // Decodificar entidades HTML que podem vir pre-escapadas de APIs externas (Omie)
+    // Ex: "M&amp;N PERFORMANCE" → "M&N PERFORMANCE" antes de re-escapar
+    let clean = String(str);
+    if (clean.includes('&amp;') || clean.includes('&lt;') || clean.includes('&gt;') || clean.includes('&quot;')) {
+      const tmp = document.createElement('textarea');
+      tmp.innerHTML = clean;
+      clean = tmp.value;
+    }
+    if (typeof TBO_SANITIZE !== 'undefined' && TBO_SANITIZE.html) return TBO_SANITIZE.html(clean);
+    if (typeof TBO_FORMATTER !== 'undefined' && TBO_FORMATTER.escapeHtml) return TBO_FORMATTER.escapeHtml(clean);
     const d = document.createElement('div');
-    d.textContent = str || '';
+    d.textContent = clean;
     return d.innerHTML;
   },
 

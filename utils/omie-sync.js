@@ -47,6 +47,21 @@ const TBO_OMIE_SYNC = (() => {
   }
 
   /**
+   * Limpa nome de fornecedor/cliente — remove CPF/CNPJ que vem colado na razao_social
+   * Ex: "JOAO DA SILVA 12345678901" → "JOAO DA SILVA"
+   */
+  function _cleanName(name) {
+    if (!name) return 'Sem nome';
+    // Remove CNPJ (XX.XXX.XXX/XXXX-XX) ou CPF (XXX.XXX.XXX-XX) no final
+    let clean = name
+      .replace(/\s*\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\s*$/, '')  // CNPJ formatado
+      .replace(/\s*\d{3}\.\d{3}\.\d{3}-\d{2}\s*$/, '')          // CPF formatado
+      .replace(/\s+\d{11,14}\s*$/, '')                            // CPF/CNPJ sem formatacao
+      .trim();
+    return clean || name; // Se limpou tudo, volta ao original
+  }
+
+  /**
    * Emite progresso para callback registrado
    */
   function _progress(step, percent, message) {
@@ -87,12 +102,12 @@ const TBO_OMIE_SYNC = (() => {
         if (!omieId) continue;
 
         await FinanceRepo.upsertVendorByOmieId(omieId, {
-          name: item.razao_social || item.nome_fantasia || 'Sem nome',
+          name: _cleanName(item.nome_fantasia || item.razao_social),
           cnpj: item.cnpj_cpf || null,
           email: item.email || null,
           phone: item.telefone1_numero || null,
           category: 'fornecedor',
-          notes: item.nome_fantasia ? `Fantasia: ${item.nome_fantasia}` : null
+          notes: item.razao_social ? `Razão Social: ${item.razao_social}` : null
         });
         synced++;
       } catch (e) {
@@ -141,11 +156,11 @@ const TBO_OMIE_SYNC = (() => {
         if (!omieId) continue;
 
         await FinanceRepo.upsertClientByOmieId(omieId, {
-          name: item.razao_social || item.nome_fantasia || 'Sem nome',
+          name: _cleanName(item.nome_fantasia || item.razao_social),
           cnpj: item.cnpj_cpf || null,
           email: item.email || null,
           phone: item.telefone1_numero || null,
-          contact_name: item.nome_fantasia || null
+          contact_name: item.nome_fantasia ? _cleanName(item.nome_fantasia) : null
         });
         synced++;
       } catch (e) {
@@ -155,6 +170,79 @@ const TBO_OMIE_SYNC = (() => {
 
     _progress('clients', 50, `${synced} clientes sincronizados.`);
     return { synced, errors };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CATEGORY — Resolucao de categorias Omie → fin_categories
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  let _categoryCache = null; // Array de fin_categories carregadas
+
+  /**
+   * Carrega categorias do banco e faz cache local durante o sync.
+   */
+  async function _ensureCategoryCache() {
+    if (_categoryCache) return;
+    try {
+      _categoryCache = await FinanceRepo.listCategories();
+    } catch {
+      _categoryCache = [];
+    }
+  }
+
+  /**
+   * Resolve nome da categoria Omie para ID de fin_categories.
+   * Usa keyword matching (bridge-style) no nome da categoria.
+   * Ex: "Folha de Pagamento" → match "folha" → tipo "pessoas" → fin_categories.slug 'pessoas'
+   */
+  function _resolveCategoryId(omieCategoriaNome) {
+    if (!omieCategoriaNome || !_categoryCache || _categoryCache.length === 0) return null;
+
+    // 1. Tentar match exato por nome
+    const exact = _categoryCache.find(c => c.name && c.name.toLowerCase() === omieCategoriaNome.toLowerCase());
+    if (exact) return exact.id;
+
+    // 2. Keyword matching usando mapeamento do bridge
+    const keywords = {
+      'salario': 'pessoas', 'salarios': 'pessoas', 'folha': 'pessoas',
+      'encargos': 'pessoas', 'pro-labore': 'pessoas', 'prolabore': 'pessoas',
+      'beneficios': 'pessoas', 'vale': 'pessoas', 'ferias': 'pessoas',
+      'rescisao': 'pessoas', '13': 'pessoas', 'inss': 'pessoas', 'fgts': 'pessoas',
+      'aluguel': 'operacionais', 'energia': 'operacionais', 'agua': 'operacionais',
+      'internet': 'operacionais', 'telefone': 'operacionais', 'contabilidade': 'operacionais',
+      'software': 'operacionais', 'escritorio': 'operacionais', 'manutencao': 'operacionais',
+      'seguro': 'operacionais', 'limpeza': 'operacionais', 'material': 'operacionais',
+      'terceiro': 'terceirizacao', 'freelancer': 'terceirizacao', 'prestador': 'terceirizacao',
+      'servico': 'terceirizacao', 'subcontratacao': 'terceirizacao', 'consultoria': 'terceirizacao',
+      'comissao': 'vendas', 'venda': 'vendas', 'comercial': 'vendas',
+      'representante': 'vendas', 'bonificacao': 'vendas',
+      'marketing': 'marketing', 'publicidade': 'marketing', 'propaganda': 'marketing',
+      'midia': 'marketing', 'anuncio': 'marketing', 'evento': 'marketing',
+      'patrocinio': 'marketing', 'brinde': 'marketing',
+      'imposto': 'impostos', 'tributo': 'impostos', 'taxa': 'impostos',
+      'icms': 'impostos', 'iss': 'impostos', 'pis': 'impostos', 'cofins': 'impostos'
+    };
+
+    const lowerName = omieCategoriaNome.toLowerCase();
+    let matchedSlug = null;
+
+    for (const [keyword, slug] of Object.entries(keywords)) {
+      if (lowerName.includes(keyword)) {
+        matchedSlug = slug;
+        break;
+      }
+    }
+
+    if (matchedSlug) {
+      // Buscar categoria por slug ou nome parcial
+      const cat = _categoryCache.find(c =>
+        (c.slug && c.slug.toLowerCase() === matchedSlug) ||
+        (c.name && c.name.toLowerCase().includes(matchedSlug))
+      );
+      if (cat) return cat.id;
+    }
+
+    return null;
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -178,6 +266,9 @@ const TBO_OMIE_SYNC = (() => {
     }
 
     _progress('payables', 55, `Sincronizando ${raw.length} contas a pagar...`);
+
+    // Garantir cache de categorias carregado
+    await _ensureCategoryCache();
 
     let synced = 0;
     const errors = [];
@@ -203,18 +294,28 @@ const TBO_OMIE_SYNC = (() => {
           }
         }
 
+        // Resolver categoria
+        const categoryId = _resolveCategoryId(cp.categoria || cp.categoriaNome || '');
+
         const dueDate = _omieDate(cp.data_vencimento);
         const paidDate = _omieDate(cp.data_pagamento);
         const status = _mapStatus(cp.status_titulo);
+        const amount = parseFloat(cp.valor_documento) || 0;
+        // Omie nem sempre preenche valor_pago — inferir do status
+        let amountPaid = parseFloat(cp.valor_pago) || 0;
+        if (status === 'pago' && amountPaid === 0 && amount > 0) {
+          amountPaid = amount; // Se pago mas sem valor_pago, considerar valor total
+        }
 
         await FinanceRepo.upsertPayableByOmieId(omieId, {
           description: cp.observacao || cp.numero_documento || `Omie #${omieId}`,
-          amount: parseFloat(cp.valor_documento) || 0,
-          amount_paid: parseFloat(cp.valor_pago) || 0,
+          amount: amount,
+          amount_paid: amountPaid,
           due_date: dueDate,
           paid_date: paidDate,
           status: status,
           vendor_id: vendorId,
+          category_id: categoryId,
           notes: cp.numero_documento ? `Doc: ${cp.numero_documento}` : null
         });
         synced++;
@@ -301,11 +402,17 @@ const TBO_OMIE_SYNC = (() => {
         const dueDate = _omieDate(cr.data_vencimento);
         const paidDate = _omieDate(cr.data_pagamento);
         const status = _mapStatus(cr.status_titulo);
+        const amount = parseFloat(cr.valor_documento) || 0;
+        // Omie nem sempre preenche valor_pago — inferir do status
+        let amountPaid = parseFloat(cr.valor_pago) || 0;
+        if (status === 'pago' && amountPaid === 0 && amount > 0) {
+          amountPaid = amount;
+        }
 
         await FinanceRepo.upsertReceivableByOmieId(omieId, {
           description: cr.observacao || cr.numero_documento || `Omie #${omieId}`,
-          amount: parseFloat(cr.valor_documento) || 0,
-          amount_paid: parseFloat(cr.valor_pago) || 0,
+          amount: amount,
+          amount_paid: amountPaid,
           due_date: dueDate,
           paid_date: paidDate,
           status: status,

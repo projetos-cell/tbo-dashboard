@@ -225,7 +225,7 @@ const TBO_CONFIGURACOES = {
             <span>Ultimo sync: <strong>${new Date(status.lastSync).toLocaleString('pt-BR')}</strong></span>
             <span>${status.meetingCount || 0} reunioes</span>
           </div>` : ''}
-          ${status && status.error ? `<div class="cfg-integration-error">Erro: ${status.error}</div>` : ''}
+          ${status && status.error ? `<div class="cfg-integration-error"><i data-lucide="alert-circle" style="width:12px;height:12px;display:inline;"></i> ${status.error === 'Failed to fetch' ? 'Erro de conexão — verifique a API Key ou tente novamente' : status.error}</div>` : ''}
         </div>
       </div>
     `;
@@ -291,7 +291,7 @@ const TBO_CONFIGURACOES = {
               <span class="cfg-counter">${status.taskCount || 0} tarefas</span>
             </div>
           </div>` : ''}
-          ${status && status.error ? `<div class="cfg-integration-error">Erro: ${status.error}</div>` : ''}
+          ${status && status.error ? `<div class="cfg-integration-error"><i data-lucide="alert-circle" style="width:12px;height:12px;display:inline;"></i> ${status.error === 'Failed to fetch' ? 'Erro de conexão — verifique a API Key ou tente novamente' : status.error}</div>` : ''}
         </div>
       </div>
     `;
@@ -344,7 +344,7 @@ const TBO_CONFIGURACOES = {
             <span>Ultimo sync: <strong>${new Date(status.lastSync).toLocaleString('pt-BR')}</strong></span>
             <span>${status.eventCount || 0} eventos | ${status.todayCount || 0} hoje</span>
           </div>` : ''}
-          ${status && status.error ? `<div class="cfg-integration-error">Erro: ${status.error}</div>` : ''}
+          ${status && status.error ? `<div class="cfg-integration-error"><i data-lucide="alert-circle" style="width:12px;height:12px;display:inline;"></i> ${status.error === 'Failed to fetch' ? 'Erro de conexão — verifique a API Key ou tente novamente' : status.error}</div>` : ''}
         </div>
       </div>
     `;

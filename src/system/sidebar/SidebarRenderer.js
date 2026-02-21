@@ -418,6 +418,21 @@ const TBO_SIDEBAR_RENDERER = (() => {
       });
     });
 
+    // Botão "…" nos workspaces → abrir context menu
+    _container.querySelectorAll('[data-ws-more]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const spaceId = btn.dataset.wsMore;
+        const spaceItem = typeof TBO_SIDEBAR_SERVICE !== 'undefined'
+          ? TBO_SIDEBAR_SERVICE.getItems().find(i => i.id === spaceId)
+          : null;
+        if (typeof TBO_WS_CONTEXT_MENU !== 'undefined') {
+          TBO_WS_CONTEXT_MENU.open(btn, spaceId, spaceItem);
+        }
+      });
+    });
+
     // Keyboard navigation
     _container.addEventListener('keydown', (e) => {
       const focusable = [..._container.querySelectorAll('.nsb-item, .nsb-ws-header')];

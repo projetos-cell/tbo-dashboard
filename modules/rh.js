@@ -2728,7 +2728,7 @@ const TBO_RH = {
             </div>
             <div class="grid-2" style="gap:12px;margin-bottom:12px;">
               <div class="form-group" style="margin-bottom:0;"><label class="form-label">Data</label><input type="datetime-local" class="form-input" id="ooData"></div>
-              <div class="form-group" style="margin-bottom:0;"><label class="form-label">Recorrência</label><select class="form-input" id="ooRecurrence"><option value="monthly">Mensal (padrão)</option><option value="biweekly">Quinzenal</option><option value="weekly">Semanal</option><option value="">Única vez</option></select></div>
+              <div class="form-group" style="margin-bottom:0;"><label class="form-label">Recorrência</label><select class="form-input" id="ooRecurrence"><option value="daily">Diária — seg a sex (padrão)</option><option value="weekly">Semanal</option><option value="biweekly">Quinzenal</option><option value="monthly">Mensal</option><option value="">Única vez</option></select></div>
             </div>
             <div style="display:flex;gap:8px;align-items:center;">
               <button class="btn btn-primary btn-sm" id="ooSave"><i data-lucide="calendar-plus" style="width:12px;height:12px;vertical-align:-2px;"></i> Agendar + Google Calendar</button>
@@ -2736,7 +2736,7 @@ const TBO_RH = {
               <span id="oo1on1Status" style="font-size:0.68rem;color:var(--text-muted);margin-left:auto;"></span>
             </div>
           </div>
-          ${filtered.filter(o => (o.status === 'agendada' || o.status === 'scheduled')).sort((a, b) => new Date(getDate(a)) - new Date(getDate(b))).map(o => `<div class="rh-1on1-row" data-id="${o.id}" style="padding:12px 16px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='var(--bg-elevated)'" onmouseout="this.style.background=''"><div><div style="font-size:0.85rem;font-weight:600;">${getName(getLeader(o))} ↔ ${getName(getCollab(o))}</div><div style="font-size:0.72rem;color:var(--text-muted);">${new Date(getDate(o)).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}${o.recurrence ? ` · <i data-lucide="repeat" style="width:10px;height:10px;vertical-align:-1px;"></i> ${o.recurrence === 'monthly' ? 'Mensal' : o.recurrence === 'biweekly' ? 'Quinzenal' : 'Semanal'}` : ''}${o.google_event_id ? ' · <i data-lucide="calendar" style="width:10px;height:10px;vertical-align:-1px;color:var(--color-info);"></i>' : ''}</div></div><span class="tag" style="font-size:0.65rem;background:var(--color-info)20;color:var(--color-info);">Agendada</span></div>`).join('') || '<div style="padding:16px;font-size:0.78rem;color:var(--text-muted);">Nenhuma agendada</div>'}
+          ${filtered.filter(o => (o.status === 'agendada' || o.status === 'scheduled')).sort((a, b) => new Date(getDate(a)) - new Date(getDate(b))).map(o => `<div class="rh-1on1-row" data-id="${o.id}" style="padding:12px 16px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='var(--bg-elevated)'" onmouseout="this.style.background=''"><div><div style="font-size:0.85rem;font-weight:600;">${getName(getLeader(o))} ↔ ${getName(getCollab(o))}</div><div style="font-size:0.72rem;color:var(--text-muted);">${new Date(getDate(o)).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}${o.recurrence ? ` · <i data-lucide="repeat" style="width:10px;height:10px;vertical-align:-1px;"></i> ${o.recurrence === 'daily' ? 'Diária' : o.recurrence === 'monthly' ? 'Mensal' : o.recurrence === 'biweekly' ? 'Quinzenal' : 'Semanal'}` : ''}${o.google_event_id ? ' · <i data-lucide="calendar" style="width:10px;height:10px;vertical-align:-1px;color:var(--color-info);"></i>' : ''}${!o.google_event_id && o.status === 'scheduled' ? ' · <i data-lucide="calendar-x" style="width:10px;height:10px;vertical-align:-1px;color:var(--color-danger);"></i>' : ''}</div></div><span class="tag" style="font-size:0.65rem;background:var(--color-info)20;color:var(--color-info);">Agendada</span></div>`).join('') || '<div style="padding:16px;font-size:0.78rem;color:var(--text-muted);">Nenhuma agendada</div>'}
         </div>
         <div class="card">
           <div class="card-header"><h3 class="card-title">Historico</h3></div>
@@ -4951,13 +4951,27 @@ const TBO_RH = {
       // Tentar salvar no Supabase
       if (typeof OneOnOnesRepo !== 'undefined') {
         try {
-          // Calcular datas recorrentes (6 meses)
+          // Calcular datas recorrentes
           const dates = [dataValue];
           if (recurrence) {
-            const intervalDays = recurrence === 'weekly' ? 7 : recurrence === 'biweekly' ? 14 : 30;
-            for (let i = 1; i <= 5; i++) {
-              const d = new Date(new Date(dataValue).getTime() + i * intervalDays * 24 * 60 * 60 * 1000);
-              dates.push(d.toISOString());
+            if (recurrence === 'daily') {
+              // Diária: seg a sex, gerar ~20 dias úteis (≈1 mês)
+              let current = new Date(dataValue);
+              let count = 0;
+              while (count < 19) {
+                current = new Date(current.getTime() + 24 * 60 * 60 * 1000);
+                const day = current.getDay(); // 0=dom, 6=sáb
+                if (day !== 0 && day !== 6) {
+                  dates.push(current.toISOString());
+                  count++;
+                }
+              }
+            } else {
+              const intervalDays = recurrence === 'weekly' ? 7 : recurrence === 'biweekly' ? 14 : 30;
+              for (let i = 1; i <= 5; i++) {
+                const d = new Date(new Date(dataValue).getTime() + i * intervalDays * 24 * 60 * 60 * 1000);
+                dates.push(d.toISOString());
+              }
             }
           }
 
@@ -4992,12 +5006,15 @@ const TBO_RH = {
                 }
               } catch (gcalErr) {
                 console.warn('[RH] Google Calendar falhou (continuando):', gcalErr.message);
+                TBO_TOAST.warning('Google Calendar', gcalErr.message || 'Falha ao criar evento. Verifique login Google OAuth.');
+                if (statusEl) statusEl.textContent = `⚠ Calendar falhou — ${createdCount + 1}/${dates.length}`;
               }
             }
             createdCount++;
           }
 
-          TBO_TOAST.success(`${createdCount} 1:1(s) agendada(s)!`, recurrence ? `Recorrência ${recurrence} — 6 meses` : '');
+          const recLabel = { daily: 'Diária (seg-sex)', weekly: 'Semanal', biweekly: 'Quinzenal', monthly: 'Mensal' };
+          TBO_TOAST.success(`${createdCount} 1:1(s) agendada(s)!`, recurrence ? `Recorrência ${recLabel[recurrence] || recurrence}` : '');
           if (statusEl) statusEl.textContent = '';
           this._oneOnOnesCache = null;
           this._oneOnOneActionsCache = null;
@@ -5122,15 +5139,15 @@ const TBO_RH = {
       // Modal overlay
       const overlay = document.createElement('div');
       overlay.id = 'rh1on1DetailOverlay';
-      overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:2000;display:flex;justify-content:center;align-items:center;';
+      overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:9999;display:flex;justify-content:center;align-items:center;';
       overlay.innerHTML = `
-        <div style="background:var(--bg-primary);border-radius:16px;width:560px;max-height:80vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,0.25);padding:24px;">
+        <div style="background:var(--bg-primary);border-radius:16px;width:560px;max-width:calc(100vw - 48px);max-height:80vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,0.25);padding:24px;position:relative;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
             <div>
               <h3 style="font-size:1rem;font-weight:700;margin-bottom:2px;">1:1 ${this._esc(leaderName)} ↔ ${this._esc(collabName)}</h3>
               <div style="font-size:0.75rem;color:var(--text-muted);">${data.scheduled_at ? new Date(data.scheduled_at).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
                 ${data.google_event_id ? ' · <i data-lucide="calendar" style="width:10px;height:10px;vertical-align:-1px;color:var(--color-info);"></i> Google Calendar' : ''}
-                ${data.recurrence ? ` · <i data-lucide="repeat" style="width:10px;height:10px;vertical-align:-1px;"></i> ${data.recurrence === 'monthly' ? 'Mensal' : data.recurrence === 'biweekly' ? 'Quinzenal' : 'Semanal'}` : ''}
+                ${data.recurrence ? ` · <i data-lucide="repeat" style="width:10px;height:10px;vertical-align:-1px;"></i> ${data.recurrence === 'daily' ? 'Diária' : data.recurrence === 'monthly' ? 'Mensal' : data.recurrence === 'biweekly' ? 'Quinzenal' : 'Semanal'}` : ''}
               </div>
             </div>
             <div style="display:flex;gap:6px;align-items:center;">

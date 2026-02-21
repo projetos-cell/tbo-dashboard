@@ -231,12 +231,18 @@ const TBO_GOOGLE_CALENDAR = {
    * @returns {Object} { id, htmlLink, hangoutLink }
    */
   async create1on1Event({ leaderName, leaderEmail, collaboratorName, collaboratorEmail, scheduledAt, durationMinutes = 30 }) {
+    // Verificar token antes de tentar criar
+    const token = await this._getAccessToken();
+    if (!token) {
+      throw new Error('Token Google não disponível. Faça login via Google OAuth para agendar no Calendar.');
+    }
+
     const start = new Date(scheduledAt);
     const end = new Date(start.getTime() + durationMinutes * 60 * 1000);
 
     return this.createEvent({
       summary: `1:1 ${leaderName} ↔ ${collaboratorName}`,
-      description: `Reunião 1:1 mensal — TBO OS\n\nLíder: ${leaderName}\nColaborador: ${collaboratorName}\n\nPauta sugerida:\n- PDI e desenvolvimento\n- Feedback bidirecional\n- Ações pendentes\n- Próximos passos`,
+      description: `Reunião 1:1 — TBO OS\n\nLíder: ${leaderName}\nColaborador: ${collaboratorName}\n\nPauta sugerida:\n- PDI e desenvolvimento\n- Feedback bidirecional\n- Ações pendentes\n- Próximos passos`,
       startDateTime: start.toISOString(),
       endDateTime: end.toISOString(),
       attendees: [leaderEmail, collaboratorEmail].filter(Boolean),

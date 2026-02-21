@@ -1007,6 +1007,9 @@ const TBO_APP = {
         </div>
       </div>
       <div class="sidebar-footer-actions">
+        <button class="sidebar-footer-btn" id="sidebarLogout" title="Sair" aria-label="Fazer logout" style="color:var(--color-danger);">
+          <i data-lucide="log-out" aria-hidden="true"></i>
+        </button>
         <button class="sidebar-footer-btn" id="sidebarSettingsBtn" title="Configuracoes" aria-label="Abrir configuracoes">
           <i data-lucide="settings" aria-hidden="true"></i>
         </button>
@@ -1036,6 +1039,21 @@ const TBO_APP = {
     if (settingsBtn) {
       settingsBtn.addEventListener('click', () => {
         if (typeof TBO_ROUTER !== 'undefined') TBO_ROUTER.navigate('configuracoes');
+      });
+    }
+
+    // Bind logout button
+    const logoutBtn = document.getElementById('sidebarLogout');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', async () => {
+        if (typeof TBO_AUTH !== 'undefined') {
+          await TBO_AUTH.logout();
+          TBO_AUTH._setOverlayState('login');
+          // Limpar sidebar e UI
+          footer.innerHTML = '';
+          const sidebarNav = document.getElementById('sidebarNav');
+          if (sidebarNav) sidebarNav.innerHTML = '';
+        }
       });
     }
   },

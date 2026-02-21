@@ -261,14 +261,39 @@ const TBO_OMIE_SYNC = (() => {
         if (!omieId) continue;
 
         // Resolver client FK
+        // Omie usa o mesmo codigo_cliente_fornecedor para clientes E fornecedores.
+        // Primeiro tenta em fin_clients; se nao achar, busca em fin_vendors e
+        // cria automaticamente o registro em fin_clients (entidade pode ser ambos).
         let clientId = null;
         const clientOmieId = String(cr.codigo_cliente_fornecedor || '');
         if (clientOmieId && clientOmieId !== '0') {
           if (clientCache[clientOmieId] !== undefined) {
             clientId = clientCache[clientOmieId];
           } else {
+            // 1. Tentar em fin_clients
             const client = await FinanceRepo.findClientByOmieId(clientOmieId);
-            clientId = client?.id || null;
+            if (client) {
+              clientId = client.id;
+            } else {
+              // 2. Fallback: buscar em fin_vendors (mesmo codigo Omie)
+              const vendor = await FinanceRepo.findVendorByOmieId(clientOmieId);
+              if (vendor) {
+                // Criar/atualizar em fin_clients com os mesmos dados do vendor
+                try {
+                  const newClient = await FinanceRepo.upsertClientByOmieId(clientOmieId, {
+                    name: vendor.name,
+                    cnpj: vendor.cnpj || null,
+                    email: vendor.email || null,
+                    phone: vendor.phone || null,
+                    contact_name: vendor.name
+                  });
+                  clientId = newClient?.id || null;
+                  console.log(`[TBO Omie Sync] Vendor "${vendor.name}" tambem criado como client (omie_id: ${clientOmieId})`);
+                } catch (e) {
+                  console.warn(`[TBO Omie Sync] Falha ao criar client a partir de vendor ${clientOmieId}:`, e.message);
+                }
+              }
+            }
             clientCache[clientOmieId] = clientId;
           }
         }

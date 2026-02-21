@@ -1764,7 +1764,7 @@ const TBO_RH = {
 
     // Dados locais para render imediato
     const activeMembers = team.filter(t => t.status === 'ativo' || t.status === 'active' || (!t.status && t.id));
-    const totalSalary = activeMembers.reduce((sum, t) => sum + (parseFloat(t.salaryPj) || 0), 0);
+    const totalSalary = activeMembers.reduce((sum, t) => sum + (parseFloat(t.custoMensal) || 0), 0);
 
     // Agrupar por BU
     const buGroups = {};
@@ -1772,7 +1772,7 @@ const TBO_RH = {
       const bu = t.bu || 'Sem BU';
       if (!buGroups[bu]) buGroups[bu] = { count: 0, custo: 0, color: this._buColor(bu) };
       buGroups[bu].count++;
-      buGroups[bu].custo += parseFloat(t.salaryPj) || 0;
+      buGroups[bu].custo += parseFloat(t.custoMensal) || 0;
     });
 
     // Agrupar por status
@@ -1886,8 +1886,8 @@ const TBO_RH = {
             Top Investimentos (Maiores Valores)
           </h4>
           <div style="display:flex;flex-direction:column;gap:8px;">
-            ${activeMembers.filter(t => parseFloat(t.salaryPj) > 0).sort((a, b) => (parseFloat(b.salaryPj) || 0) - (parseFloat(a.salaryPj) || 0)).slice(0, 8).map((t, i) => {
-              const salary = parseFloat(t.salaryPj) || 0;
+            ${activeMembers.filter(t => parseFloat(t.custoMensal) > 0).sort((a, b) => (parseFloat(b.salaryPj) || 0) - (parseFloat(a.salaryPj) || 0)).slice(0, 8).map((t, i) => {
+              const salary = parseFloat(t.custoMensal) || 0;
               const maxSalary = parseFloat(activeMembers.sort((a, b) => (parseFloat(b.salaryPj) || 0) - (parseFloat(a.salaryPj) || 0))[0]?.salaryPj) || 1;
               const pct = (salary / maxSalary) * 100;
               const buColor = this._buColor(t.bu);
@@ -1969,7 +1969,7 @@ const TBO_RH = {
       const bu = t.bu || 'Sem BU';
       if (!buGroups[bu]) buGroups[bu] = { count: 0, custo: 0, color: this._buColor(bu) };
       buGroups[bu].count++;
-      buGroups[bu].custo += parseFloat(t.salaryPj) || 0;
+      buGroups[bu].custo += parseFloat(t.custoMensal) || 0;
     });
 
     const buEntries = Object.entries(buGroups).sort((a, b) => b[1].custo - a[1].custo);

@@ -1754,94 +1754,343 @@ const TBO_RH = {
   // ══════════════════════════════════════════════════════════════════
   // TAB 5: ANALYTICS
   // ══════════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════════════
+  // TAB 5: ANALYTICS (P3 — Dados reais Supabase + Chart.js)
+  // ══════════════════════════════════════════════════════════════════
+
   _renderAnalytics() {
-    const reviews = this._getStore('avaliacoes_people');
-    const pulse = this._getStore('pulse');
-    const elogios = this._getStore('elogios');
     const team = this._getInternalTeam();
+    const fmt = typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER : { currency: v => `R$ ${Number(v || 0).toLocaleString('pt-BR', {minimumFractionDigits:0})}` };
 
-    // Pulse chart (bar chart per week)
-    const pulseAvgs = pulse.map(p => {
-      const vals = Object.values(p.respostas);
-      return { data: p.data, avg: vals.length ? +(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : 0 };
-    }).reverse();
+    // Dados locais para render imediato
+    const activeMembers = team.filter(t => t.status === 'ativo' || t.status === 'active' || (!t.status && t.id));
+    const totalSalary = activeMembers.reduce((sum, t) => sum + (parseFloat(t.salaryPj) || 0), 0);
 
-    // BU performance
-    const buPerf = {};
-    reviews.forEach(r => {
-      const p = this._getPerson(r.pessoaId);
-      if (p && p.bu) {
-        if (!buPerf[p.bu]) buPerf[p.bu] = [];
-        buPerf[p.bu].push(r.mediaGeral);
-      }
+    // Agrupar por BU
+    const buGroups = {};
+    activeMembers.forEach(t => {
+      const bu = t.bu || 'Sem BU';
+      if (!buGroups[bu]) buGroups[bu] = { count: 0, custo: 0, color: this._buColor(bu) };
+      buGroups[bu].count++;
+      buGroups[bu].custo += parseFloat(t.salaryPj) || 0;
     });
 
-    // Turnover risk (low perf + low pulse = higher risk)
-    const riskData = team.filter(t => t.lider).map(t => {
-      const rev = reviews.find(r => r.pessoaId === t.id);
-      const lastPulse = pulse[0]?.respostas[t.id];
-      const perf = rev ? rev.mediaGeral : 3;
-      const mood = lastPulse || 3;
-      const risk = perf < 2.5 && mood <= 3 ? 'alto' : perf < 3 && mood <= 3 ? 'medio' : 'baixo';
-      return { person: t, perf, mood, risk };
+    // Agrupar por status
+    const statusGroups = {};
+    const statusColors = { 'active': '#10B981', 'ativo': '#10B981', 'inactive': '#6B7280', 'inativo': '#6B7280', 'vacation': '#F59E0B', 'ferias': '#F59E0B', 'away': '#8B5CF6', 'ausente': '#8B5CF6', 'onboarding': '#3B82F6', 'suspended': '#DC2626', 'suspenso': '#DC2626' };
+    team.forEach(t => {
+      const s = t.status || 'ativo';
+      if (!statusGroups[s]) statusGroups[s] = 0;
+      statusGroups[s]++;
     });
+
+    // Custo medio por pessoa
+    const custoMedio = activeMembers.length ? totalSalary / activeMembers.length : 0;
 
     return `
+      <!-- KPIs Analytics -->
+      <div class="grid-4" style="gap:12px;margin-bottom:20px;">
+        <div class="card" style="padding:16px;text-align:center;">
+          <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Headcount Total</div>
+          <div style="font-size:1.8rem;font-weight:800;color:var(--text-primary);margin:4px 0;">${team.length}</div>
+          <div style="font-size:0.72rem;color:var(--color-success);">${activeMembers.length} ativos</div>
+        </div>
+        <div class="card" style="padding:16px;text-align:center;">
+          <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Custo Mensal Total</div>
+          <div style="font-size:1.8rem;font-weight:800;color:var(--brand-primary);margin:4px 0;" id="rhAnalyticsCusto">${fmt.currency(totalSalary)}</div>
+          <div style="font-size:0.72rem;color:var(--text-muted);">PJ ativos</div>
+        </div>
+        <div class="card" style="padding:16px;text-align:center;">
+          <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Custo Medio / Pessoa</div>
+          <div style="font-size:1.8rem;font-weight:800;color:var(--text-primary);margin:4px 0;">${fmt.currency(custoMedio)}</div>
+          <div style="font-size:0.72rem;color:var(--text-muted);">media mensal</div>
+        </div>
+        <div class="card" style="padding:16px;text-align:center;">
+          <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">BUs Ativas</div>
+          <div style="font-size:1.8rem;font-weight:800;color:var(--text-primary);margin:4px 0;">${Object.keys(buGroups).length}</div>
+          <div style="font-size:0.72rem;color:var(--text-muted);">equipes</div>
+        </div>
+      </div>
+
+      <!-- Graficos Row 1: Custo por BU + Distribuicao por Status -->
       <div class="grid-2" style="gap:16px;margin-bottom:16px;">
-        <!-- Pulse Survey -->
-        <div class="card" style="padding:16px;">
-          <h4 style="font-size:0.85rem;margin-bottom:12px;">Pulse Survey (Humor do Time)</h4>
-          <div style="display:flex;align-items:flex-end;gap:8px;height:100px;">
-            ${pulseAvgs.map(p => {
-              const pct = (p.avg / 5) * 100;
-              const color = p.avg >= 4 ? 'var(--color-success)' : p.avg >= 3 ? 'var(--accent-gold)' : 'var(--color-danger)';
-              return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;"><div style="width:100%;background:${color};border-radius:4px 4px 0 0;height:${pct}%;min-height:4px;"></div><div style="font-size:0.6rem;color:var(--text-muted);margin-top:4px;">${new Date(p.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</div><div style="font-size:0.68rem;font-weight:600;">${p.avg}</div></div>`;
-            }).join('')}
+        <div class="card" style="padding:20px;">
+          <h4 style="font-size:0.85rem;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+            <i data-lucide="bar-chart-3" style="width:16px;height:16px;color:var(--brand-primary);"></i>
+            Custo Mensal por Equipe
+          </h4>
+          <div style="height:280px;position:relative;">
+            <canvas id="rhChartCustoBU"></canvas>
           </div>
         </div>
-
-        <!-- BU Performance -->
-        <div class="card" style="padding:16px;">
-          <h4 style="font-size:0.85rem;margin-bottom:12px;">Performance por BU</h4>
-          ${Object.entries(buPerf).sort((a, b) => { const avgA = a[1].reduce((s, v) => s + v, 0) / a[1].length; const avgB = b[1].reduce((s, v) => s + v, 0) / b[1].length; return avgB - avgA; }).map(([bu, scores]) => {
-            const avg = (scores.reduce((s, v) => s + v, 0) / scores.length).toFixed(1);
-            const color = avg >= 4 ? 'var(--color-success)' : avg >= 3 ? 'var(--accent-gold)' : 'var(--color-danger)';
-            return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;"><span style="font-size:0.82rem;width:80px;font-weight:600;">${bu}</span><div style="flex:1;height:8px;background:var(--bg-tertiary);border-radius:4px;overflow:hidden;"><div style="height:100%;width:${(avg / 5) * 100}%;background:${color};border-radius:4px;"></div></div><span style="font-size:0.85rem;font-weight:700;color:${color};">${avg}</span><span style="font-size:0.68rem;color:var(--text-muted);">(${scores.length}p)</span></div>`;
-          }).join('')}
+        <div class="card" style="padding:20px;">
+          <h4 style="font-size:0.85rem;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+            <i data-lucide="pie-chart" style="width:16px;height:16px;color:var(--brand-primary);"></i>
+            Distribuicao por Status
+          </h4>
+          <div style="height:280px;position:relative;">
+            <canvas id="rhChartStatus"></canvas>
+          </div>
         </div>
       </div>
 
-      <!-- Turnover Risk -->
-      <div class="card" style="margin-bottom:16px;">
-        <div class="card-header"><h3 class="card-title">Risco de Turnover</h3></div>
-        <table class="data-table"><thead><tr><th>Pessoa</th><th>BU</th><th style="text-align:center;">Performance</th><th style="text-align:center;">Humor</th><th style="text-align:center;">Risco</th></tr></thead>
-        <tbody>${riskData.filter(d => d.risk !== 'baixo').map(d => `<tr>
-          <td><strong style="font-size:0.85rem;">${d.person.nome}</strong></td>
-          <td style="font-size:0.78rem;color:var(--text-muted);">${d.person.bu || 'Geral'}</td>
-          <td style="text-align:center;font-weight:600;color:${d.perf >= 3 ? 'var(--accent-gold)' : 'var(--color-danger)'};">${d.perf.toFixed(1)}</td>
-          <td style="text-align:center;">${d.mood}/5</td>
-          <td style="text-align:center;"><span class="tag" style="font-size:0.65rem;background:${d.risk === 'alto' ? 'var(--color-danger-dim)' : 'var(--color-warning-dim)'};color:${d.risk === 'alto' ? 'var(--color-danger)' : 'var(--color-warning)'};">${d.risk}</span></td>
-        </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;font-size:0.78rem;color:var(--text-muted);">Nenhum risco identificado</td></tr>'}</tbody></table>
+      <!-- Graficos Row 2: Headcount por BU + Tabela Custo Detalhado -->
+      <div class="grid-2" style="gap:16px;margin-bottom:16px;">
+        <div class="card" style="padding:20px;">
+          <h4 style="font-size:0.85rem;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+            <i data-lucide="users" style="width:16px;height:16px;color:var(--brand-primary);"></i>
+            Headcount por BU
+          </h4>
+          <div style="height:280px;position:relative;">
+            <canvas id="rhChartHeadcount"></canvas>
+          </div>
+        </div>
+        <div class="card" style="padding:20px;">
+          <h4 style="font-size:0.85rem;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+            <i data-lucide="table" style="width:16px;height:16px;color:var(--brand-primary);"></i>
+            Breakdown por Equipe
+          </h4>
+          <table class="data-table" style="font-size:0.8rem;">
+            <thead><tr>
+              <th>Equipe</th>
+              <th style="text-align:center;">Pessoas</th>
+              <th style="text-align:right;">Custo Mensal</th>
+              <th style="text-align:right;">% do Total</th>
+            </tr></thead>
+            <tbody>
+              ${Object.entries(buGroups).sort((a, b) => b[1].custo - a[1].custo).map(([bu, data]) => {
+                const pct = totalSalary ? ((data.custo / totalSalary) * 100).toFixed(1) : '0.0';
+                return `<tr>
+                  <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${data.color};margin-right:6px;"></span><strong>${this._esc(bu)}</strong></td>
+                  <td style="text-align:center;">${data.count}</td>
+                  <td style="text-align:right;font-weight:600;">${fmt.currency(data.custo)}</td>
+                  <td style="text-align:right;color:var(--text-muted);">${pct}%</td>
+                </tr>`;
+              }).join('')}
+              <tr style="border-top:2px solid var(--border-subtle);font-weight:700;">
+                <td>Total</td>
+                <td style="text-align:center;">${activeMembers.length}</td>
+                <td style="text-align:right;color:var(--brand-primary);">${fmt.currency(totalSalary)}</td>
+                <td style="text-align:right;">100%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <!-- Culture Score -->
-      <div class="card">
-        <div class="card-header"><h3 class="card-title">Engajamento Cultural</h3></div>
-        <div style="padding:16px;">
-          <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px;">Baseado em elogios recebidos, feedbacks positivos e participacao em rituais</div>
-          <div class="grid-4" style="gap:8px;">
-            ${team.filter(t => t.lider).sort((a, b) => {
-              const scoreA = (elogios.filter(e => e.para === a.id).length * 2) + reviews.filter(r => r.pessoaId === a.id).reduce((s, r) => s + r.mediaGeral, 0);
-              const scoreB = (elogios.filter(e => e.para === b.id).length * 2) + reviews.filter(r => r.pessoaId === b.id).reduce((s, r) => s + r.mediaGeral, 0);
-              return scoreB - scoreA;
-            }).slice(0, 8).map(t => {
-              const eCount = elogios.filter(e => e.para === t.id).length;
-              return `<div style="text-align:center;padding:12px;background:var(--bg-elevated);border-radius:8px;"><div style="font-weight:600;font-size:0.82rem;">${t.nome}</div><div style="font-size:0.68rem;color:var(--text-muted);margin-bottom:4px;">${t.bu || 'Geral'}</div><div style="font-size:1.2rem;font-weight:800;color:var(--accent-gold);">${eCount}</div><div style="font-size:0.6rem;color:var(--text-muted);">elogios</div></div>`;
+      <!-- Row 3: Top salarios + Performance por BU -->
+      <div class="grid-2" style="gap:16px;">
+        <div class="card" style="padding:20px;">
+          <h4 style="font-size:0.85rem;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+            <i data-lucide="trending-up" style="width:16px;height:16px;color:var(--brand-primary);"></i>
+            Top Investimentos (Maiores Valores)
+          </h4>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            ${activeMembers.filter(t => parseFloat(t.salaryPj) > 0).sort((a, b) => (parseFloat(b.salaryPj) || 0) - (parseFloat(a.salaryPj) || 0)).slice(0, 8).map((t, i) => {
+              const salary = parseFloat(t.salaryPj) || 0;
+              const maxSalary = parseFloat(activeMembers.sort((a, b) => (parseFloat(b.salaryPj) || 0) - (parseFloat(a.salaryPj) || 0))[0]?.salaryPj) || 1;
+              const pct = (salary / maxSalary) * 100;
+              const buColor = this._buColor(t.bu);
+              return `<div style="display:flex;align-items:center;gap:10px;">
+                <span style="width:18px;font-size:0.7rem;color:var(--text-muted);text-align:right;">${i + 1}.</span>
+                <span style="width:120px;font-size:0.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" data-person-id="${t.supabaseId || ''}">${this._esc(t.nome)}</span>
+                <div style="flex:1;height:6px;background:var(--bg-tertiary);border-radius:3px;overflow:hidden;">
+                  <div style="height:100%;width:${pct}%;background:${buColor};border-radius:3px;transition:width 0.6s ease;"></div>
+                </div>
+                <span style="font-size:0.78rem;font-weight:700;min-width:70px;text-align:right;">${fmt.currency(salary)}</span>
+              </div>`;
             }).join('')}
           </div>
+        </div>
+        <div class="card" style="padding:20px;">
+          <h4 style="font-size:0.85rem;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+            <i data-lucide="award" style="width:16px;height:16px;color:var(--brand-primary);"></i>
+            Performance por BU
+          </h4>
+          ${(() => {
+            const reviews = this._getStore('avaliacoes_people');
+            const buPerf = {};
+            reviews.forEach(r => {
+              const p = this._getPerson(r.pessoaId);
+              if (p && p.bu) {
+                if (!buPerf[p.bu]) buPerf[p.bu] = [];
+                buPerf[p.bu].push(r.mediaGeral);
+              }
+            });
+            if (!Object.keys(buPerf).length) {
+              return '<div style="text-align:center;color:var(--text-muted);padding:40px 0;font-size:0.82rem;">Sem dados de avaliacao ainda</div>';
+            }
+            return Object.entries(buPerf).sort((a, b) => {
+              const avgA = a[1].reduce((s, v) => s + v, 0) / a[1].length;
+              const avgB = b[1].reduce((s, v) => s + v, 0) / b[1].length;
+              return avgB - avgA;
+            }).map(([bu, scores]) => {
+              const avg = (scores.reduce((s, v) => s + v, 0) / scores.length).toFixed(1);
+              const color = avg >= 4 ? '#10B981' : avg >= 3 ? '#F59E0B' : '#EF4444';
+              return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                <span style="font-size:0.82rem;width:80px;font-weight:600;">${this._esc(bu)}</span>
+                <div style="flex:1;height:8px;background:var(--bg-tertiary);border-radius:4px;overflow:hidden;">
+                  <div style="height:100%;width:${(avg / 5) * 100}%;background:${color};border-radius:4px;transition:width 0.6s ease;"></div>
+                </div>
+                <span style="font-size:0.85rem;font-weight:700;color:${color};">${avg}</span>
+                <span style="font-size:0.68rem;color:var(--text-muted);">(${scores.length}p)</span>
+              </div>`;
+            }).join('');
+          })()}
         </div>
       </div>
     `;
+  },
+
+  // Helper: cor por BU
+  _buColor(bu) {
+    const colors = { 'Branding': '#8B5CF6', 'Digital 3D': '#3A7BD5', 'Marketing': '#F59E0B', 'Vendas': '#2ECC71', 'Operacao': '#E85102', 'Operação': '#E85102', 'Pós Vendas': '#EC4899' };
+    return colors[bu] || '#64748B';
+  },
+
+  // Inicializar graficos Chart.js na tab Analytics
+  async _initAnalytics() {
+    if (typeof Chart === 'undefined') {
+      console.warn('[RH] Chart.js nao carregado');
+      return;
+    }
+
+    const team = this._getInternalTeam();
+    const activeMembers = team.filter(t => t.status === 'ativo' || t.status === 'active' || (!t.status && t.id));
+
+    // Configuracao global do Chart.js para dark mode
+    const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#E2E8F0';
+    const mutedColor = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#64748B';
+    const gridColor = 'rgba(148, 163, 184, 0.1)';
+
+    // ── Grafico 1: Custo Mensal por BU (bar chart horizontal) ──
+    const buGroups = {};
+    activeMembers.forEach(t => {
+      const bu = t.bu || 'Sem BU';
+      if (!buGroups[bu]) buGroups[bu] = { count: 0, custo: 0, color: this._buColor(bu) };
+      buGroups[bu].count++;
+      buGroups[bu].custo += parseFloat(t.salaryPj) || 0;
+    });
+
+    const buEntries = Object.entries(buGroups).sort((a, b) => b[1].custo - a[1].custo);
+    const custoBUCanvas = document.getElementById('rhChartCustoBU');
+    if (custoBUCanvas) {
+      new Chart(custoBUCanvas, {
+        type: 'bar',
+        data: {
+          labels: buEntries.map(([bu]) => bu),
+          datasets: [{
+            label: 'Custo Mensal (R$)',
+            data: buEntries.map(([, d]) => d.custo),
+            backgroundColor: buEntries.map(([, d]) => d.color + 'CC'),
+            borderColor: buEntries.map(([, d]) => d.color),
+            borderWidth: 1,
+            borderRadius: 6,
+            barPercentage: 0.7
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => `R$ ${ctx.parsed.x.toLocaleString('pt-BR', {minimumFractionDigits:0})}`
+              }
+            }
+          },
+          scales: {
+            x: { grid: { color: gridColor }, ticks: { color: mutedColor, font: { size: 11 }, callback: v => `R$ ${(v/1000).toFixed(0)}k` } },
+            y: { grid: { display: false }, ticks: { color: textColor, font: { size: 12, weight: '600' } } }
+          }
+        }
+      });
+    }
+
+    // ── Grafico 2: Distribuicao por Status (doughnut) ──
+    const statusGroups = {};
+    const statusLabels = { 'active': 'Ativo', 'ativo': 'Ativo', 'inactive': 'Inativo', 'inativo': 'Inativo', 'vacation': 'Ferias', 'ferias': 'Ferias', 'away': 'Ausente', 'ausente': 'Ausente', 'onboarding': 'Onboarding', 'suspended': 'Suspenso', 'suspenso': 'Suspenso' };
+    const statusColors = { 'active': '#10B981', 'ativo': '#10B981', 'inactive': '#6B7280', 'inativo': '#6B7280', 'vacation': '#F59E0B', 'ferias': '#F59E0B', 'away': '#8B5CF6', 'ausente': '#8B5CF6', 'onboarding': '#3B82F6', 'suspended': '#DC2626', 'suspenso': '#DC2626' };
+    team.forEach(t => {
+      const s = t.status || 'ativo';
+      if (!statusGroups[s]) statusGroups[s] = 0;
+      statusGroups[s]++;
+    });
+
+    const statusCanvas = document.getElementById('rhChartStatus');
+    if (statusCanvas) {
+      const sEntries = Object.entries(statusGroups).sort((a, b) => b[1] - a[1]);
+      new Chart(statusCanvas, {
+        type: 'doughnut',
+        data: {
+          labels: sEntries.map(([s]) => statusLabels[s] || s),
+          datasets: [{
+            data: sEntries.map(([, c]) => c),
+            backgroundColor: sEntries.map(([s]) => (statusColors[s] || '#64748B') + 'CC'),
+            borderColor: sEntries.map(([s]) => statusColors[s] || '#64748B'),
+            borderWidth: 2,
+            hoverOffset: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '60%',
+          plugins: {
+            legend: { position: 'bottom', labels: { color: textColor, font: { size: 11 }, padding: 16, usePointStyle: true, pointStyle: 'circle' } },
+            tooltip: {
+              callbacks: {
+                label: ctx => `${ctx.label}: ${ctx.parsed} (${((ctx.parsed / team.length) * 100).toFixed(0)}%)`
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // ── Grafico 3: Headcount por BU (bar chart vertical) ──
+    const headcountCanvas = document.getElementById('rhChartHeadcount');
+    if (headcountCanvas) {
+      new Chart(headcountCanvas, {
+        type: 'bar',
+        data: {
+          labels: buEntries.map(([bu]) => bu),
+          datasets: [{
+            label: 'Pessoas',
+            data: buEntries.map(([, d]) => d.count),
+            backgroundColor: buEntries.map(([, d]) => d.color + '99'),
+            borderColor: buEntries.map(([, d]) => d.color),
+            borderWidth: 1,
+            borderRadius: 6,
+            barPercentage: 0.6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => `${ctx.parsed.y} pessoa${ctx.parsed.y !== 1 ? 's' : ''}`
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: textColor, font: { size: 11, weight: '600' } } },
+            y: { grid: { color: gridColor }, ticks: { color: mutedColor, font: { size: 11 }, stepSize: 1 }, beginAtZero: true }
+          }
+        }
+      });
+    }
+
+    // Bind hover cards nos nomes
+    if (typeof TBO_HOVER_CARD !== 'undefined') {
+      const container = document.getElementById('rhTabContent');
+      if (container) TBO_HOVER_CARD.bind(container);
+    }
   },
 
   // ══════════════════════════════════════════════════════════════════
@@ -2152,6 +2401,11 @@ const TBO_RH = {
     this._loadDashboardKPIs();
     this._loadProjectCounts();
     this._loadBirthdayWidget();
+
+    // Inicializar graficos da tab Analytics (P3)
+    if (this._activeTab === 'analytics') {
+      this._initAnalytics();
+    }
 
     // Lucide icons
     if (window.lucide) lucide.createIcons();

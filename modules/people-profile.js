@@ -144,7 +144,7 @@ const TBO_PEOPLE_PROFILE = {
             rbacColor: rbacRole.color || this._roleColor(data.role) || '#94a3b8',
             isCoordinator: data.is_coordinator || false,
             dataEntrada: data.start_date || data.created_at || null,
-            ultimoLogin: data.last_sign_in_at || null,
+            ultimoLogin: null,
             terceirizado: seedData.terceirizado || false,
             // Novos campos P0
             custoMensal: data.salary_pj || null,
@@ -170,7 +170,7 @@ const TBO_PEOPLE_PROFILE = {
         const client = TBO_SUPABASE.getClient();
         const tenantId = TBO_SUPABASE.getCurrentTenantId();
         if (client && tenantId) {
-          const _select = 'id, username, full_name, email, role, bu, is_coordinator, is_active, tenant_id, avatar_url, created_at, last_sign_in_at, salary_pj, contract_type, phone, manager_id, status, team_id, cargo, start_date, department, teams(id, name, color, icon)';
+          const _select = 'id, username, full_name, email, role, bu, is_coordinator, is_active, tenant_id, avatar_url, created_at, salary_pj, contract_type, phone, manager_id, status, team_id, cargo, start_date, department, teams(id, name, color, icon)';
           let query = client.from('profiles').select(_select).eq('tenant_id', tenantId);
 
           const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pid);
@@ -227,7 +227,7 @@ const TBO_PEOPLE_PROFILE = {
               rbacColor: rbacRole.color || this._roleColor(data.role) || '#94a3b8',
               isCoordinator: data.is_coordinator || false,
               dataEntrada: data.start_date || data.created_at || null,
-              ultimoLogin: data.last_sign_in_at || null,
+              ultimoLogin: null,
               terceirizado: seedData.terceirizado || false,
               custoMensal: data.salary_pj || null,
               contractType: data.contract_type || null,

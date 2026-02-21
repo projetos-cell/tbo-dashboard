@@ -108,6 +108,10 @@ const TBO_RH = {
   _getInternalTeam() { return this._team.filter(t => !t.terceirizado); },
 
   _getBUs() {
+    // Preferir _teamsCache (fonte de verdade) quando disponível
+    if (this._teamsCache && this._teamsCache.length) {
+      return this._teamsCache.filter(t => t.is_active !== false).map(t => t.name).sort();
+    }
     const bus = new Set();
     this._getInternalTeam().forEach(t => { if (t.bu) bus.add(t.bu); });
     return [...bus].sort();
@@ -171,8 +175,21 @@ const TBO_RH = {
         // Construir mapa de gestores (manager_id -> nome) para exibicao
         const managerIds = [...new Set(profiles.filter(p => p.manager_id).map(p => p.manager_id))];
         const managerMap = {};
-        // Tentar resolver nomes dos gestores a partir dos proprios profiles carregados
+        // Resolver nomes dos gestores a partir dos proprios profiles carregados
         profiles.forEach(p => { managerMap[p.id] = p.full_name || p.username || ''; });
+        // Buscar nomes de gestores que nao estao na pagina atual
+        const missingIds = managerIds.filter(id => !managerMap[id]);
+        if (missingIds.length) {
+          try {
+            const db = typeof RepoBase !== 'undefined' ? RepoBase.getDb() : null;
+            if (db) {
+              const { data: mgrs } = await db.from('profiles')
+                .select('id, full_name, username')
+                .in('id', missingIds);
+              (mgrs || []).forEach(m => { managerMap[m.id] = m.full_name || m.username || ''; });
+            }
+          } catch (e) { /* fallback silencioso */ }
+        }
 
         this._team = profiles.map(p => {
           const username = p.username || p.email?.split('@')[0] || '';
@@ -196,7 +213,7 @@ const TBO_RH = {
             rbacColor: rbacRole.color || this._roleColorMap(p.role) || '#94a3b8',
             isCoordinator: p.is_coordinator || false,
             dataEntrada: p.start_date || p.created_at || null,
-            ultimoLogin: p.last_sign_in_at || null,
+            ultimoLogin: null, // last_sign_in_at não existe em profiles
             terceirizado: seed.terceirizado || false,
             custoMensal: p.salary_pj || null,
             gestorId: p.manager_id || null,
@@ -216,7 +233,7 @@ const TBO_RH = {
             avatarUrl: p.avatar_url || null,
             email: p.email,
             fullName: p.full_name,
-            lastSignIn: p.last_sign_in_at
+            lastSignIn: null
           };
         });
 
@@ -415,7 +432,17 @@ const TBO_RH = {
 
     // Carregar cache de teams (para filtros e resolucao de nomes)
     if (!this._teamsCache && typeof PeopleRepo !== 'undefined') {
-      PeopleRepo.listTeams().then(teams => { this._teamsCache = teams; }).catch(() => {});
+      PeopleRepo.listTeams().then(teams => {
+        this._teamsCache = teams;
+        // Atualizar dropdown de BU se já renderizado
+        const filterBu = document.querySelector('.rh-filter-bu');
+        if (filterBu && teams.length) {
+          const current = filterBu.value;
+          const options = teams.filter(t => t.is_active !== false).map(t => t.name).sort();
+          filterBu.innerHTML = '<option value="">Todas BUs</option>' +
+            options.map(name => `<option value="${name}" ${current === name ? 'selected' : ''}>${name}</option>`).join('');
+        }
+      }).catch(() => {});
     }
 
     // v2.3: Se equipe nao foi carregada do Supabase ainda, iniciar loading assíncrono
@@ -694,8 +721,8 @@ const TBO_RH = {
                 </th>
                 <th style="min-width:95px;">Gestor</th>
                 <th style="min-width:75px;text-align:center;">Status</th>
-                <th class="rh-sort-header" data-sort="last_sign_in_at" style="min-width:85px;cursor:pointer;">
-                  <div style="display:flex;align-items:center;gap:4px;">Ultimo Login ${sortIcon('last_sign_in_at')}</div>
+                <th class="rh-sort-header" data-sort="updated_at" style="min-width:85px;cursor:pointer;">
+                  <div style="display:flex;align-items:center;gap:4px;">Atividade ${sortIcon('updated_at')}</div>
                 </th>
                 ${isAdmin ? '<th style="width:40px;text-align:center;"></th>' : ''}
               </tr>
@@ -703,7 +730,7 @@ const TBO_RH = {
             <tbody>
               ${sortedGroups.map(([groupName, members]) => {
                 const color = buColors[groupName] || 'var(--accent-gold)';
-                const colSpan = isAdmin ? 12 : 10;
+                const colSpan = isAdmin ? 11 : 9;
                 return `
                   <tr class="rh-bu-group-header" data-group="${groupName}">
                     <td colspan="${colSpan}" style="background:${color}08;padding:8px 16px;cursor:pointer;">
@@ -719,7 +746,6 @@ const TBO_RH = {
                     const st = statusConfig[p.status] || statusConfig['ativo'];
                     const rbacColor = p.rbacColor || '#94a3b8';
                     const gestorNome = p.gestorNome || (p.lider ? this._getPersonName(p.lider) : '\u2014');
-                    const ultimoLogin = p.ultimoLogin ? new Date(p.ultimoLogin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : '\u2014';
                     const custoFmt = p.custoMensal ? (typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.currency(p.custoMensal) : `R$ ${Number(p.custoMensal).toLocaleString('pt-BR', {minimumFractionDigits:0})}`) : '\u2014';
                     return `
                     <tr class="rh-bu-row rh-person-row" data-person="${p.id}" data-group="${groupName}" data-bu="${p.bu || ''}" style="cursor:pointer;">
@@ -748,7 +774,7 @@ const TBO_RH = {
                           ${st.label}
                         </span>
                       </td>
-                      <td style="font-size:0.72rem;color:var(--text-muted);">${ultimoLogin}</td>
+                      <td style="font-size:0.72rem;color:var(--text-muted);">${p.dataEntrada ? new Date(p.dataEntrada).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : '\u2014'}</td>
                       ${isAdmin ? `
                       <td style="text-align:center;">
                         <button class="btn btn-ghost btn-sm rh-action-menu-btn" data-person="${p.id}" data-name="${this._esc(p.nome)}" style="padding:2px 6px;" title="Acoes" onclick="event.stopPropagation();">

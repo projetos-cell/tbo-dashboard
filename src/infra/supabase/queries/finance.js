@@ -1,5 +1,5 @@
 /**
- * TBO OS — Repository: Finance (v2 — MVP Financeiro)
+ * TBO OS — Repository: Finance (v3 — MVP Financeiro Entrega 3)
  *
  * CRUD completo para módulo financeiro.
  * Tabelas reais: fin_payables, fin_receivables, fin_transactions,
@@ -532,6 +532,149 @@ const FinanceRepo = (() => {
 
       if (error) throw error;
       return { created: data.length, message: `${data.length} contas a pagar criadas para ${dedupeTag}.`, existing: false };
+    },
+
+    // ═══════════════════════════════════════════════════════════
+    // CAIXA — Fluxo de Caixa projetado (30 dias)
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Retorna entradas e saídas agrupadas por dia para os próximos N dias.
+     * Usado pela tab Caixa para montar a projeção de fluxo.
+     * @param {number} days - Número de dias a projetar (padrão: 30)
+     */
+    async getCashFlow(days = 30) {
+      const tid = _tid();
+      const today = new Date().toISOString().split('T')[0];
+      const endDate = new Date(Date.now() + days * 86400000).toISOString().split('T')[0];
+
+      const [payablesRes, receivablesRes, balanceRes] = await Promise.all([
+        // Saídas previstas (a pagar não quitadas)
+        _db().from('fin_payables')
+          .select('due_date, amount, amount_paid, description, status, vendor:fin_vendors(name)')
+          .eq('tenant_id', tid)
+          .in('status', ['rascunho', 'aguardando_aprovacao', 'aprovado', 'aberto', 'parcial'])
+          .gte('due_date', today)
+          .lte('due_date', endDate)
+          .order('due_date', { ascending: true }),
+
+        // Entradas previstas (a receber não quitadas)
+        _db().from('fin_receivables')
+          .select('due_date, amount, amount_paid, description, status, client:fin_clients(name)')
+          .eq('tenant_id', tid)
+          .in('status', ['previsto', 'emitido', 'aberto', 'parcial'])
+          .gte('due_date', today)
+          .lte('due_date', endDate)
+          .order('due_date', { ascending: true }),
+
+        // Saldo atual
+        _db().from('fin_balance_snapshots')
+          .select('balance, recorded_at')
+          .eq('tenant_id', tid)
+          .order('recorded_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      ]);
+
+      if (payablesRes.error) throw payablesRes.error;
+      if (receivablesRes.error) throw receivablesRes.error;
+
+      return {
+        saldoInicial: balanceRes.data?.balance || 0,
+        saldoDate: balanceRes.data?.recorded_at || null,
+        saidas: payablesRes.data || [],
+        entradas: receivablesRes.data || []
+      };
+    },
+
+    // ═══════════════════════════════════════════════════════════
+    // INBOX — Pendências automáticas
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Retorna lista de pendências financeiras agrupadas por tipo.
+     * Tipos: sem_cc (payables sem centro de custo), vencidas_pagar,
+     *        vencidas_receber, aguardando_aprovacao, sem_projeto.
+     */
+    async getInboxItems() {
+      const tid = _tid();
+      const today = new Date().toISOString().split('T')[0];
+
+      const [semCCRes, vencidasPagarRes, vencidasReceberRes, aguardandoRes, semProjetoRes] = await Promise.all([
+        // Payables sem centro de custo
+        _db().from('fin_payables')
+          .select('id, description, amount, due_date, status, vendor:fin_vendors(name)')
+          .eq('tenant_id', tid)
+          .is('cost_center_id', null)
+          .not('status', 'in', '("pago","cancelado")')
+          .order('due_date', { ascending: true })
+          .limit(20),
+
+        // Payables vencidas
+        _db().from('fin_payables')
+          .select('id, description, amount, amount_paid, due_date, status, vendor:fin_vendors(name)')
+          .eq('tenant_id', tid)
+          .in('status', ['aberto', 'parcial', 'aprovado'])
+          .lt('due_date', today)
+          .order('due_date', { ascending: true })
+          .limit(20),
+
+        // Receivables vencidas
+        _db().from('fin_receivables')
+          .select('id, description, amount, amount_paid, due_date, status, client:fin_clients(name)')
+          .eq('tenant_id', tid)
+          .in('status', ['aberto', 'parcial', 'emitido'])
+          .lt('due_date', today)
+          .order('due_date', { ascending: true })
+          .limit(20),
+
+        // Payables aguardando aprovação
+        _db().from('fin_payables')
+          .select('id, description, amount, due_date, status, vendor:fin_vendors(name), created_by')
+          .eq('tenant_id', tid)
+          .eq('status', 'aguardando_aprovacao')
+          .order('created_at', { ascending: false })
+          .limit(20),
+
+        // Payables de CC que requer projeto, mas sem project_id
+        _db().from('fin_payables')
+          .select('id, description, amount, due_date, status, cost_center:fin_cost_centers(name, requires_project)')
+          .eq('tenant_id', tid)
+          .is('project_id', null)
+          .not('status', 'in', '("pago","cancelado")')
+          .not('cost_center_id', 'is', null)
+          .order('due_date', { ascending: true })
+          .limit(30)
+      ]);
+
+      // Filtrar sem_projeto: somente se o CC requer projeto
+      const semProjeto = (semProjetoRes.data || []).filter(
+        p => p.cost_center?.requires_project === true
+      );
+
+      return {
+        sem_cc: semCCRes.data || [],
+        vencidas_pagar: vencidasPagarRes.data || [],
+        vencidas_receber: vencidasReceberRes.data || [],
+        aguardando_aprovacao: aguardandoRes.data || [],
+        sem_projeto: semProjeto
+      };
+    },
+
+    // ═══════════════════════════════════════════════════════════
+    // CADASTROS — Deactivar (soft delete)
+    // ═══════════════════════════════════════════════════════════
+
+    async deactivateVendor(id) {
+      return this.updateVendor(id, { is_active: false });
+    },
+
+    async deactivateClient(id) {
+      return this.updateClient(id, { is_active: false });
+    },
+
+    async deactivateCostCenter(id) {
+      return this.updateCostCenter(id, { is_active: false });
     }
   };
 })();

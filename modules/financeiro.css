@@ -1,6 +1,7 @@
 /**
- * TBO OS — Financeiro Module CSS (v2 — Entrega 2)
- * Estilos para: Dashboard, Tabelas CRUD, Drawer lateral, Filtros, Timeline.
+ * TBO OS — Financeiro Module CSS (v3 — Entrega 3)
+ * Estilos para: Dashboard, Tabelas CRUD, Drawer lateral, Filtros, Timeline,
+ *               Caixa (fluxo), Inbox (pendências), Cadastros (CRUD).
  * Reutiliza variáveis e classes existentes do design system.
  */
 
@@ -543,6 +544,322 @@
 .fn-timeline-date {
   font-size: 0.68rem;
   color: var(--text-muted);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ENTREGA 3 — Caixa, Inbox, Cadastros
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Caixa: Fluxo de Caixa ──────────────────────────────────────────── */
+
+.fn-caixa-header {
+  margin-bottom: 16px;
+}
+
+.fn-caixa-table {
+  min-width: 600px;
+}
+
+.fn-caixa-row {
+  transition: background 0.15s;
+}
+
+.fn-caixa-row:hover {
+  background: rgba(232, 81, 2, 0.03) !important;
+}
+
+.fn-caixa-row--negative {
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.fn-caixa-row--negative:hover {
+  background: rgba(239, 68, 68, 0.07) !important;
+}
+
+.fn-caixa-row--empty td {
+  opacity: 0.5;
+}
+
+.fn-caixa-dayname {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+.fn-caixa-zero {
+  color: var(--text-muted);
+  opacity: 0.4;
+}
+
+/* ── Inbox: Pendências ──────────────────────────────────────────────── */
+
+.fn-inbox-summary {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.fn-inbox-stat {
+  flex: 1;
+  min-width: 120px;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md, 8px);
+  text-align: center;
+}
+
+.fn-inbox-stat--danger {
+  border-left: 3px solid var(--color-danger);
+}
+
+.fn-inbox-stat--warning {
+  border-left: 3px solid var(--color-warning);
+}
+
+.fn-inbox-stat--blue {
+  border-left: 3px solid var(--color-info, #3a7bd5);
+}
+
+.fn-inbox-stat--muted {
+  border-left: 3px solid var(--text-muted);
+}
+
+.fn-inbox-stat-number {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.fn-inbox-stat-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.fn-inbox-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 250px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.fn-inbox-empty h3 {
+  margin: 0 0 4px;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+}
+
+.fn-inbox-empty p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.fn-inbox-section {
+  margin-bottom: 20px;
+}
+
+.fn-inbox-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 8px;
+}
+
+.fn-inbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fn-inbox-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-left: 3px solid var(--text-muted);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.fn-inbox-item:hover {
+  transform: translateX(3px);
+  border-color: var(--border-hover);
+}
+
+.fn-inbox-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.fn-inbox-item-title {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fn-inbox-item-subtitle {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.fn-inbox-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.fn-inbox-item-valor {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.fn-inbox-action {
+  flex-shrink: 0;
+}
+
+/* ── Cadastros ──────────────────────────────────────────────────────── */
+
+.fn-cadastro-subtabs {
+  margin-bottom: 16px;
+}
+
+.fn-cad-table {
+  min-width: 700px;
+}
+
+.fn-cad-row {
+  transition: background 0.15s;
+}
+
+.fn-cad-row:hover {
+  background: rgba(232, 81, 2, 0.03) !important;
+}
+
+/* Centros de Custo — Grupos */
+
+.fn-cc-group {
+  margin-bottom: 20px;
+}
+
+.fn-cc-group-header {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 0 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 6px;
+}
+
+.fn-cc-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fn-cc-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  transition: border-color 0.15s;
+}
+
+.fn-cc-item:hover {
+  border-color: var(--border-hover);
+}
+
+.fn-cc-item-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+}
+
+.fn-cc-item-info strong {
+  color: var(--text-primary);
+}
+
+.fn-cc-item-slug {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+.fn-cc-item-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* ── Responsivo Inbox ───────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .fn-inbox-summary {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .fn-inbox-stat {
+    min-width: 100px;
+  }
+  .fn-inbox-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .fn-inbox-item-meta {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 640px) {
+  .fn-inbox-summary {
+    gap: 6px;
+  }
+  .fn-inbox-stat {
+    min-width: 80px;
+    padding: 8px 10px;
+  }
+  .fn-inbox-stat-number {
+    font-size: 1.1rem;
+  }
+  .fn-inbox-stat-label {
+    font-size: 0.6rem;
+  }
+  .fn-cc-item-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
 }
 
 /* ── Sidebar: child items dentro de workspaces ────────────────────── */

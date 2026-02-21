@@ -1,12 +1,12 @@
 /**
- * TBO OS — Módulo Financeiro (v3 — Entrega 2: CRUD A Pagar + A Receber)
+ * TBO OS — Módulo Financeiro (v4 — Entrega 3: Caixa + Inbox + Cadastros)
  *
  * Dashboard financeiro integrado ao Supabase via FinanceRepo.
  * Tabs: Dashboard | A Pagar | A Receber | Caixa | Inbox | Cadastros
  *
  * Entrega 1: Dashboard com KPIs reais ✓
- * Entrega 2: CRUD completo A Pagar + A Receber + Drawer + Workflow + Folha PJ
- * Entrega 3: Caixa, Inbox, Cadastros (placeholder)
+ * Entrega 2: CRUD completo A Pagar + A Receber + Drawer + Workflow + Folha PJ ✓
+ * Entrega 3: Caixa (fluxo 30d), Inbox (pendências), Cadastros (CRUD) ✓
  *
  * Rota: #financeiro
  * Global: TBO_FINANCEIRO
@@ -35,6 +35,10 @@ const TBO_FINANCEIRO = {
   _drawerType: null,   // 'pagar' | 'receber'
   _drawerMode: null,   // 'view' | 'create' | 'edit'
   _drawerItem: null,
+
+  // Cadastros state
+  _cadastroSubTab: 'fornecedores',  // 'fornecedores' | 'clientes' | 'centros-custo'
+  _cadastroSearch: '',
 
   // ═══════════════════════════════════════════════════════════════════════
   // FORMATTER HELPER
@@ -111,32 +115,27 @@ const TBO_FINANCEIRO = {
 
         <!-- ══════════ Tab: Caixa ══════════ -->
         <div class="tab-panel" id="tab-fn-caixa" style="display:none;">
-          <div class="fn-placeholder">
-            <i data-lucide="trending-up" style="width:48px;height:48px;color:var(--text-muted);margin-bottom:12px;"></i>
-            <h3>Fluxo de Caixa (30 dias)</h3>
-            <p>Módulo em desenvolvimento — Entrega 3</p>
-            <span class="tag">Em breve: Projeção dia-a-dia com saldo acumulado</span>
+          <div id="fnCaixaContent">
+            <div class="fn-loading">
+              <div class="loading-spinner"></div>
+              <p class="loading-text">Carregando fluxo de caixa...</p>
+            </div>
           </div>
         </div>
 
         <!-- ══════════ Tab: Inbox ══════════ -->
         <div class="tab-panel" id="tab-fn-inbox" style="display:none;">
-          <div class="fn-placeholder">
-            <i data-lucide="bell" style="width:48px;height:48px;color:var(--text-muted);margin-bottom:12px;"></i>
-            <h3>Pendências Financeiras</h3>
-            <p>Módulo em desenvolvimento — Entrega 3</p>
-            <span class="tag">Em breve: Lista automática de contas sem CC, vencidas, aguardando aprovação</span>
+          <div id="fnInboxContent">
+            <div class="fn-loading">
+              <div class="loading-spinner"></div>
+              <p class="loading-text">Carregando pendências...</p>
+            </div>
           </div>
         </div>
 
         <!-- ══════════ Tab: Cadastros ══════════ -->
         <div class="tab-panel" id="tab-fn-cadastros" style="display:none;">
-          <div class="fn-placeholder">
-            <i data-lucide="database" style="width:48px;height:48px;color:var(--text-muted);margin-bottom:12px;"></i>
-            <h3>Cadastros</h3>
-            <p>Módulo em desenvolvimento — Entrega 3</p>
-            <span class="tag">Em breve: Clientes, Fornecedores, Centros de Custo</span>
-          </div>
+          <div id="fnCadastrosContent"></div>
         </div>
       </div>
 
@@ -215,6 +214,9 @@ const TBO_FINANCEIRO = {
     if (tabId === 'fn-dashboard') this._loadDashboard();
     else if (tabId === 'fn-pagar') this._loadPagar();
     else if (tabId === 'fn-receber') this._loadReceber();
+    else if (tabId === 'fn-caixa') this._loadCaixa();
+    else if (tabId === 'fn-inbox') this._loadInbox();
+    else if (tabId === 'fn-cadastros') this._loadCadastros();
   },
 
   _onRefresh() {
@@ -1232,6 +1234,930 @@ const TBO_FINANCEIRO = {
     } catch (err) {
       console.error('[Financeiro] Erro ao gerar folha PJ:', err);
       this._toast('error', `Erro ao gerar folha PJ: ${err.message}`);
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // CAIXA — Fluxo de Caixa Projetado (30 dias)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  async _loadCaixa() {
+    const container = document.getElementById('fnCaixaContent');
+    if (!container) return;
+
+    container.innerHTML = '<div class="fn-loading"><div class="loading-spinner"></div><p class="loading-text">Carregando fluxo de caixa...</p></div>';
+
+    try {
+      if (typeof FinanceRepo === 'undefined') throw new Error('FinanceRepo não está disponível');
+      const data = await FinanceRepo.getCashFlow(30);
+      this._renderCaixa(container, data);
+    } catch (err) {
+      console.error('[Financeiro] Erro ao carregar caixa:', err);
+      container.innerHTML = this._renderError(err.message);
+    }
+  },
+
+  _renderCaixa(container, data) {
+    const fmt = this._fmt();
+    let html = '';
+
+    // ── Saldo inicial card ─────────────────────────────────────────
+    const saldoDateStr = data.saldoDate
+      ? new Date(data.saldoDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+      : 'Sem registro';
+
+    html += `<div class="fn-caixa-header">
+      <div class="kpi-card" style="max-width:280px;">
+        <div class="kpi-label">Saldo Inicial</div>
+        <div class="kpi-value" style="color:${data.saldoInicial >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${fmt.currency(data.saldoInicial)}</div>
+        <div class="kpi-change neutral">Atualizado: ${saldoDateStr}</div>
+      </div>
+    </div>`;
+
+    // ── Montar projeção dia a dia ──────────────────────────────────
+    const dayMap = {};
+    const startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
+
+    // Inicializar 30 dias
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(startDate.getTime() + i * 86400000);
+      const key = d.toISOString().split('T')[0];
+      dayMap[key] = { date: key, entradas: 0, saidas: 0, detalhesEntrada: [], detalhesSaida: [] };
+    }
+
+    // Agregar entradas
+    (data.entradas || []).forEach(item => {
+      const key = item.due_date;
+      if (dayMap[key]) {
+        const remaining = (item.amount || 0) - (item.amount_paid || 0);
+        dayMap[key].entradas += remaining;
+        dayMap[key].detalhesEntrada.push({ desc: item.description, valor: remaining, nome: item.client?.name });
+      }
+    });
+
+    // Agregar saídas
+    (data.saidas || []).forEach(item => {
+      const key = item.due_date;
+      if (dayMap[key]) {
+        const remaining = (item.amount || 0) - (item.amount_paid || 0);
+        dayMap[key].saidas += remaining;
+        dayMap[key].detalhesSaida.push({ desc: item.description, valor: remaining, nome: item.vendor?.name });
+      }
+    });
+
+    const days = Object.values(dayMap);
+    let saldoAcumulado = data.saldoInicial;
+    let saldoMinimo = saldoAcumulado;
+    let haMovimentos = false;
+
+    // Calcular saldo acumulado
+    days.forEach(day => {
+      saldoAcumulado += day.entradas - day.saidas;
+      day.saldo = saldoAcumulado;
+      if (saldoAcumulado < saldoMinimo) saldoMinimo = saldoAcumulado;
+      if (day.entradas > 0 || day.saidas > 0) haMovimentos = true;
+    });
+
+    // ── KPIs rápidos ───────────────────────────────────────────────
+    const totalEntradas = days.reduce((s, d) => s + d.entradas, 0);
+    const totalSaidas = days.reduce((s, d) => s + d.saidas, 0);
+    const saldoFinal = data.saldoInicial + totalEntradas - totalSaidas;
+
+    html += `<div class="grid-4 fn-kpi-grid" style="margin-bottom:16px;">
+      <div class="kpi-card">
+        <div class="kpi-label">Entradas (30d)</div>
+        <div class="kpi-value" style="color:var(--color-success);">${fmt.currency(totalEntradas)}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Saídas (30d)</div>
+        <div class="kpi-value" style="color:var(--color-danger);">${fmt.currency(totalSaidas)}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Saldo Final Projetado</div>
+        <div class="kpi-value" style="color:${saldoFinal >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${fmt.currency(saldoFinal)}</div>
+      </div>
+      <div class="kpi-card ${saldoMinimo < 0 ? 'fn-kpi-alert' : ''}">
+        <div class="kpi-label">Saldo Mínimo</div>
+        <div class="kpi-value" style="color:${saldoMinimo >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${fmt.currency(saldoMinimo)}</div>
+        <div class="kpi-change ${saldoMinimo < 0 ? 'negative' : 'positive'}">${saldoMinimo < 0 ? 'Atenção: saldo negativo' : 'Saldo positivo no período'}</div>
+      </div>
+    </div>`;
+
+    // ── Tabela dia a dia ───────────────────────────────────────────
+    if (!haMovimentos) {
+      html += '<div class="fn-empty-chart" style="min-height:200px;"><span>Nenhum movimento previsto nos próximos 30 dias</span></div>';
+    } else {
+      html += `<div class="card" style="overflow:hidden;">
+        <div class="card-header"><h3 class="card-title">Projeção Diária (30 dias)</h3></div>
+        <div style="overflow-x:auto;">
+          <table class="data-table fn-table fn-caixa-table">
+            <thead><tr>
+              <th>Data</th>
+              <th>Dia</th>
+              <th style="text-align:right;">Entradas</th>
+              <th style="text-align:right;">Saídas</th>
+              <th style="text-align:right;">Saldo</th>
+            </tr></thead>
+            <tbody>`;
+
+      // Filtrar: mostrar somente dias com movimento OU semanas para contexto
+      const daysToShow = days.filter((day, idx) => {
+        if (day.entradas > 0 || day.saidas > 0) return true;
+        // Mostrar segundas-feiras e dia 1 de cada mês como referência
+        const d = new Date(day.date + 'T00:00:00');
+        return d.getDay() === 1 || d.getDate() === 1 || idx === 0 || idx === days.length - 1;
+      });
+
+      daysToShow.forEach(day => {
+        const d = new Date(day.date + 'T00:00:00');
+        const dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        const dayName = d.toLocaleDateString('pt-BR', { weekday: 'short' });
+        const hasMove = day.entradas > 0 || day.saidas > 0;
+        const isNeg = day.saldo < 0;
+        const rowClass = isNeg ? 'fn-caixa-row--negative' : (hasMove ? '' : 'fn-caixa-row--empty');
+
+        // Tooltip com detalhes
+        let titleParts = [];
+        day.detalhesEntrada.forEach(d => titleParts.push(`+ ${d.desc}${d.nome ? ' (' + d.nome + ')' : ''}`));
+        day.detalhesSaida.forEach(d => titleParts.push(`- ${d.desc}${d.nome ? ' (' + d.nome + ')' : ''}`));
+        const rowTitle = titleParts.length > 0 ? ` title="${this._esc(titleParts.join('\n'))}"` : '';
+
+        html += `<tr class="fn-caixa-row ${rowClass}"${rowTitle}>
+          <td><strong>${dateStr}</strong></td>
+          <td class="fn-caixa-dayname">${dayName}</td>
+          <td style="text-align:right;">${day.entradas > 0 ? `<span style="color:var(--color-success);">+${fmt.currency(day.entradas)}</span>` : '<span class="fn-caixa-zero">—</span>'}</td>
+          <td style="text-align:right;">${day.saidas > 0 ? `<span style="color:var(--color-danger);">-${fmt.currency(day.saidas)}</span>` : '<span class="fn-caixa-zero">—</span>'}</td>
+          <td style="text-align:right;"><strong style="color:${isNeg ? 'var(--color-danger)' : 'var(--text-primary)'};">${fmt.currency(day.saldo)}</strong></td>
+        </tr>`;
+      });
+
+      html += '</tbody></table></div></div>';
+    }
+
+    container.innerHTML = html;
+    if (window.lucide) lucide.createIcons();
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // INBOX — Pendências Financeiras Automáticas
+  // ═══════════════════════════════════════════════════════════════════════
+
+  async _loadInbox() {
+    const container = document.getElementById('fnInboxContent');
+    if (!container) return;
+
+    container.innerHTML = '<div class="fn-loading"><div class="loading-spinner"></div><p class="loading-text">Carregando pendências...</p></div>';
+
+    try {
+      if (typeof FinanceRepo === 'undefined') throw new Error('FinanceRepo não está disponível');
+      const items = await FinanceRepo.getInboxItems();
+      this._renderInbox(container, items);
+    } catch (err) {
+      console.error('[Financeiro] Erro ao carregar inbox:', err);
+      container.innerHTML = this._renderError(err.message);
+    }
+  },
+
+  _renderInbox(container, items) {
+    const fmt = this._fmt();
+    const totalPendencias = items.vencidas_pagar.length + items.vencidas_receber.length +
+      items.aguardando_aprovacao.length + items.sem_cc.length + items.sem_projeto.length;
+
+    let html = '';
+
+    // ── Summary cards ──────────────────────────────────────────────
+    html += `<div class="fn-inbox-summary">
+      <div class="fn-inbox-stat fn-inbox-stat--danger">
+        <div class="fn-inbox-stat-number">${items.vencidas_pagar.length}</div>
+        <div class="fn-inbox-stat-label">Vencidas (Pagar)</div>
+      </div>
+      <div class="fn-inbox-stat fn-inbox-stat--warning">
+        <div class="fn-inbox-stat-number">${items.vencidas_receber.length}</div>
+        <div class="fn-inbox-stat-label">Vencidas (Receber)</div>
+      </div>
+      <div class="fn-inbox-stat fn-inbox-stat--blue">
+        <div class="fn-inbox-stat-number">${items.aguardando_aprovacao.length}</div>
+        <div class="fn-inbox-stat-label">Aguardando Aprovação</div>
+      </div>
+      <div class="fn-inbox-stat fn-inbox-stat--muted">
+        <div class="fn-inbox-stat-number">${items.sem_cc.length}</div>
+        <div class="fn-inbox-stat-label">Sem Centro Custo</div>
+      </div>
+      <div class="fn-inbox-stat fn-inbox-stat--muted">
+        <div class="fn-inbox-stat-number">${items.sem_projeto.length}</div>
+        <div class="fn-inbox-stat-label">Sem Projeto</div>
+      </div>
+    </div>`;
+
+    if (totalPendencias === 0) {
+      html += `<div class="fn-inbox-empty">
+        <i data-lucide="check-circle" style="width:48px;height:48px;color:var(--color-success);margin-bottom:12px;"></i>
+        <h3>Tudo em dia!</h3>
+        <p>Não há pendências financeiras no momento.</p>
+      </div>`;
+      container.innerHTML = html;
+      if (window.lucide) lucide.createIcons();
+      return;
+    }
+
+    // ── Seções de pendências ───────────────────────────────────────
+
+    // 1. Contas Vencidas (Pagar)
+    if (items.vencidas_pagar.length > 0) {
+      html += this._renderInboxSection(
+        'Contas Vencidas (Pagar)', 'alert-circle', 'danger',
+        items.vencidas_pagar.map(item => {
+          const dias = Math.floor((Date.now() - new Date(item.due_date + 'T00:00:00').getTime()) / 86400000);
+          const remaining = (item.amount || 0) - (item.amount_paid || 0);
+          return {
+            id: item.id,
+            type: 'pagar',
+            title: item.description || 'Sem descrição',
+            subtitle: item.vendor?.name || '',
+            valor: fmt.currency(remaining),
+            badge: `${dias}d atraso`,
+            badgeClass: 'badge--danger',
+            action: 'pagar',
+            actionLabel: 'Pagar'
+          };
+        })
+      );
+    }
+
+    // 2. Contas Vencidas (Receber)
+    if (items.vencidas_receber.length > 0) {
+      html += this._renderInboxSection(
+        'Contas Vencidas (Receber)', 'alert-triangle', 'warning',
+        items.vencidas_receber.map(item => {
+          const dias = Math.floor((Date.now() - new Date(item.due_date + 'T00:00:00').getTime()) / 86400000);
+          const remaining = (item.amount || 0) - (item.amount_paid || 0);
+          return {
+            id: item.id,
+            type: 'receber',
+            title: item.description || 'Sem descrição',
+            subtitle: item.client?.name || '',
+            valor: fmt.currency(remaining),
+            badge: `${dias}d atraso`,
+            badgeClass: 'badge--warning',
+            action: 'receber',
+            actionLabel: 'Receber'
+          };
+        })
+      );
+    }
+
+    // 3. Aguardando Aprovação
+    if (items.aguardando_aprovacao.length > 0) {
+      html += this._renderInboxSection(
+        'Aguardando Aprovação', 'clock', 'blue',
+        items.aguardando_aprovacao.map(item => ({
+          id: item.id,
+          type: 'pagar',
+          title: item.description || 'Sem descrição',
+          subtitle: item.vendor?.name || '',
+          valor: fmt.currency(item.amount || 0),
+          badge: 'Aprovar',
+          badgeClass: 'badge--blue',
+          action: 'aprovar',
+          actionLabel: 'Aprovar'
+        }))
+      );
+    }
+
+    // 4. Sem Centro de Custo
+    if (items.sem_cc.length > 0) {
+      html += this._renderInboxSection(
+        'Sem Centro de Custo', 'folder-x', 'muted',
+        items.sem_cc.map(item => ({
+          id: item.id,
+          type: 'pagar',
+          title: item.description || 'Sem descrição',
+          subtitle: item.vendor?.name || '',
+          valor: fmt.currency(item.amount || 0),
+          badge: 'Sem CC',
+          badgeClass: 'badge--default',
+          action: 'edit',
+          actionLabel: 'Completar'
+        }))
+      );
+    }
+
+    // 5. Sem Projeto (em CC que exige)
+    if (items.sem_projeto.length > 0) {
+      html += this._renderInboxSection(
+        'Sem Projeto (CC exige)', 'folder-x', 'muted',
+        items.sem_projeto.map(item => ({
+          id: item.id,
+          type: 'pagar',
+          title: item.description || 'Sem descrição',
+          subtitle: item.cost_center?.name || '',
+          valor: fmt.currency(item.amount || 0),
+          badge: 'Sem Projeto',
+          badgeClass: 'badge--default',
+          action: 'edit',
+          actionLabel: 'Completar'
+        }))
+      );
+    }
+
+    container.innerHTML = html;
+    if (window.lucide) lucide.createIcons();
+    this._bindInboxEvents(container);
+  },
+
+  _renderInboxSection(title, icon, color, items) {
+    const borderColors = { danger: 'var(--color-danger)', warning: 'var(--color-warning)', blue: 'var(--color-info)', muted: 'var(--text-muted)' };
+    const borderColor = borderColors[color] || 'var(--text-muted)';
+
+    return `<div class="fn-inbox-section">
+      <div class="fn-inbox-section-header">
+        <i data-lucide="${icon}" style="width:16px;height:16px;color:${borderColor};"></i>
+        <span>${title}</span>
+        <span class="badge badge--default">${items.length}</span>
+      </div>
+      <div class="fn-inbox-list">
+        ${items.map(item => `
+          <div class="fn-inbox-item" style="border-left-color:${borderColor};" data-inbox-id="${item.id}" data-inbox-type="${item.type}">
+            <div class="fn-inbox-item-body">
+              <div class="fn-inbox-item-title">${this._esc(item.title)}</div>
+              ${item.subtitle ? `<div class="fn-inbox-item-subtitle">${this._esc(item.subtitle)}</div>` : ''}
+            </div>
+            <div class="fn-inbox-item-meta">
+              <span class="fn-inbox-item-valor">${item.valor}</span>
+              <span class="badge ${item.badgeClass}">${item.badge}</span>
+            </div>
+            <button class="btn btn-primary btn-sm fn-inbox-action" data-inbox-action="${item.action}" data-inbox-id="${item.id}" data-inbox-type="${item.type}">
+              ${item.actionLabel}
+            </button>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+  },
+
+  _bindInboxEvents(container) {
+    // Ação rápida nos itens
+    container.querySelectorAll('.fn-inbox-action').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.inboxId;
+        const type = btn.dataset.inboxType;
+        const action = btn.dataset.inboxAction;
+
+        if (action === 'aprovar') {
+          try {
+            await FinanceRepo.updatePayable(id, { status: 'aprovado', approved_at: new Date().toISOString() });
+            this._toast('success', 'Conta aprovada!');
+            this._loadInbox();
+          } catch (err) {
+            this._toast('error', err.message);
+          }
+        } else if (action === 'pagar' || action === 'receber') {
+          this._openDrawer(type, 'view', id);
+        } else if (action === 'edit') {
+          this._openDrawer(type, 'view', id);
+        }
+      });
+    });
+
+    // Click no item abre drawer
+    container.querySelectorAll('.fn-inbox-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const id = item.dataset.inboxId;
+        const type = item.dataset.inboxType;
+        this._openDrawer(type, 'view', id);
+      });
+    });
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // CADASTROS — Clientes, Fornecedores, Centros de Custo
+  // ═══════════════════════════════════════════════════════════════════════
+
+  async _loadCadastros() {
+    const container = document.getElementById('fnCadastrosContent');
+    if (!container) return;
+
+    await this._ensureLookups();
+    this._renderCadastrosShell(container);
+    this._loadCadastroSubTab();
+  },
+
+  _renderCadastrosShell(container) {
+    container.innerHTML = `
+      <div class="tab-bar tab-bar--sub fn-cadastro-subtabs" id="fnCadastroSubtabs">
+        <button class="tab tab--sub ${this._cadastroSubTab === 'fornecedores' ? 'active' : ''}" data-subtab="fornecedores">Fornecedores</button>
+        <button class="tab tab--sub ${this._cadastroSubTab === 'clientes' ? 'active' : ''}" data-subtab="clientes">Clientes</button>
+        <button class="tab tab--sub ${this._cadastroSubTab === 'centros-custo' ? 'active' : ''}" data-subtab="centros-custo">Centros de Custo</button>
+      </div>
+      <div id="fnCadastroSubContent">
+        <div class="fn-loading"><div class="loading-spinner"></div></div>
+      </div>`;
+
+    // Bind subtab clicks
+    container.querySelectorAll('#fnCadastroSubtabs .tab--sub').forEach(tab => {
+      tab.addEventListener('click', () => {
+        container.querySelectorAll('#fnCadastroSubtabs .tab--sub').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        this._cadastroSubTab = tab.dataset.subtab;
+        this._cadastroSearch = '';
+        this._loadCadastroSubTab();
+      });
+    });
+  },
+
+  async _loadCadastroSubTab() {
+    const subContainer = document.getElementById('fnCadastroSubContent');
+    if (!subContainer) return;
+
+    subContainer.innerHTML = '<div class="fn-loading" style="min-height:150px;"><div class="loading-spinner"></div></div>';
+
+    try {
+      if (typeof FinanceRepo === 'undefined') throw new Error('FinanceRepo não está disponível');
+
+      if (this._cadastroSubTab === 'fornecedores') {
+        const items = await FinanceRepo.listVendors({ search: this._cadastroSearch || undefined, limit: 200 });
+        this._renderCadastroFornecedores(subContainer, items);
+      } else if (this._cadastroSubTab === 'clientes') {
+        const items = await FinanceRepo.listClients({ search: this._cadastroSearch || undefined, limit: 200 });
+        this._renderCadastroClientes(subContainer, items);
+      } else if (this._cadastroSubTab === 'centros-custo') {
+        const items = await FinanceRepo.listCostCenters();
+        this._renderCadastroCCs(subContainer, items);
+      }
+    } catch (err) {
+      subContainer.innerHTML = this._renderError(err.message);
+    }
+  },
+
+  // ── Fornecedores ─────────────────────────────────────────────────
+
+  _renderCadastroFornecedores(container, items) {
+    let html = `<div class="fn-filter-bar" style="margin-top:12px;">
+      <div class="fn-filter-group">
+        <input type="text" class="form-input fn-filter-search" id="fnCadSearchVendor" placeholder="Buscar fornecedor..." value="${this._esc(this._cadastroSearch)}" style="max-width:280px;">
+      </div>
+      <div class="fn-filter-actions">
+        <button class="btn btn-primary btn-sm" id="fnCadNewVendor">
+          <i data-lucide="plus" style="width:14px;height:14px;"></i> Novo Fornecedor
+        </button>
+      </div>
+    </div>`;
+
+    if (!items || items.length === 0) {
+      html += '<div class="fn-empty-chart" style="min-height:150px;"><span>Nenhum fornecedor encontrado</span></div>';
+    } else {
+      html += `<div class="card" style="overflow:hidden;">
+        <div style="overflow-x:auto;">
+          <table class="data-table fn-cad-table">
+            <thead><tr>
+              <th>Nome</th>
+              <th>CNPJ</th>
+              <th>Email</th>
+              <th>Telefone</th>
+              <th>Categoria</th>
+              <th style="width:80px;">Ações</th>
+            </tr></thead>
+            <tbody>
+              ${items.map(v => `<tr class="fn-cad-row" data-cad-id="${v.id}" data-cad-type="vendor">
+                <td><strong class="fn-cell-desc">${this._esc(v.name)}</strong></td>
+                <td class="fn-cell-cc">${this._esc(v.cnpj || '—')}</td>
+                <td class="fn-cell-cc">${this._esc(v.email || '—')}</td>
+                <td class="fn-cell-cc">${this._esc(v.phone || '—')}</td>
+                <td>${v.category ? `<span class="tag">${this._esc(v.category)}</span>` : '—'}</td>
+                <td>
+                  <div style="display:flex;gap:4px;">
+                    <button class="btn btn-ghost btn-sm fn-cad-edit" data-cad-id="${v.id}" title="Editar"><i data-lucide="edit-3" style="width:13px;height:13px;"></i></button>
+                    <button class="btn btn-ghost btn-sm fn-cad-deactivate" data-cad-id="${v.id}" title="Desativar"><i data-lucide="trash-2" style="width:13px;height:13px;color:var(--color-danger);"></i></button>
+                  </div>
+                </td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+      html += `<div class="fn-table-count" style="padding:8px 0;">${items.length} fornecedor${items.length !== 1 ? 'es' : ''}</div>`;
+    }
+
+    container.innerHTML = html;
+    if (window.lucide) lucide.createIcons();
+    this._bindCadastroVendorEvents(container);
+  },
+
+  _bindCadastroVendorEvents(container) {
+    // Busca
+    const searchInput = container.querySelector('#fnCadSearchVendor');
+    if (searchInput) {
+      let _debounce = null;
+      searchInput.addEventListener('input', () => {
+        clearTimeout(_debounce);
+        _debounce = setTimeout(() => { this._cadastroSearch = searchInput.value; this._loadCadastroSubTab(); }, 400);
+      });
+    }
+
+    // Novo
+    container.querySelector('#fnCadNewVendor')?.addEventListener('click', () => {
+      this._openCadastroDrawer('vendor', null);
+    });
+
+    // Editar
+    container.querySelectorAll('.fn-cad-edit').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const item = this._vendors.find(v => v.id === btn.dataset.cadId);
+        if (item) this._openCadastroDrawer('vendor', item);
+      });
+    });
+
+    // Desativar
+    container.querySelectorAll('.fn-cad-deactivate').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (!confirm('Desativar este fornecedor?')) return;
+        try {
+          await FinanceRepo.deactivateVendor(btn.dataset.cadId);
+          this._toast('warning', 'Fornecedor desativado');
+          this._lookupsLoaded = false;
+          await this._ensureLookups();
+          this._loadCadastroSubTab();
+        } catch (err) { this._toast('error', err.message); }
+      });
+    });
+  },
+
+  // ── Clientes ─────────────────────────────────────────────────────
+
+  _renderCadastroClientes(container, items) {
+    let html = `<div class="fn-filter-bar" style="margin-top:12px;">
+      <div class="fn-filter-group">
+        <input type="text" class="form-input fn-filter-search" id="fnCadSearchClient" placeholder="Buscar cliente..." value="${this._esc(this._cadastroSearch)}" style="max-width:280px;">
+      </div>
+      <div class="fn-filter-actions">
+        <button class="btn btn-primary btn-sm" id="fnCadNewClient">
+          <i data-lucide="plus" style="width:14px;height:14px;"></i> Novo Cliente
+        </button>
+      </div>
+    </div>`;
+
+    if (!items || items.length === 0) {
+      html += '<div class="fn-empty-chart" style="min-height:150px;"><span>Nenhum cliente encontrado</span></div>';
+    } else {
+      html += `<div class="card" style="overflow:hidden;">
+        <div style="overflow-x:auto;">
+          <table class="data-table fn-cad-table">
+            <thead><tr>
+              <th>Nome</th>
+              <th>CNPJ</th>
+              <th>Contato</th>
+              <th>Email</th>
+              <th>Telefone</th>
+              <th style="width:80px;">Ações</th>
+            </tr></thead>
+            <tbody>
+              ${items.map(c => `<tr class="fn-cad-row" data-cad-id="${c.id}" data-cad-type="client">
+                <td><strong class="fn-cell-desc">${this._esc(c.name)}</strong></td>
+                <td class="fn-cell-cc">${this._esc(c.cnpj || '—')}</td>
+                <td class="fn-cell-cc">${this._esc(c.contact_name || '—')}</td>
+                <td class="fn-cell-cc">${this._esc(c.email || '—')}</td>
+                <td class="fn-cell-cc">${this._esc(c.phone || '—')}</td>
+                <td>
+                  <div style="display:flex;gap:4px;">
+                    <button class="btn btn-ghost btn-sm fn-cad-edit" data-cad-id="${c.id}" title="Editar"><i data-lucide="edit-3" style="width:13px;height:13px;"></i></button>
+                    <button class="btn btn-ghost btn-sm fn-cad-deactivate" data-cad-id="${c.id}" title="Desativar"><i data-lucide="trash-2" style="width:13px;height:13px;color:var(--color-danger);"></i></button>
+                  </div>
+                </td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+      html += `<div class="fn-table-count" style="padding:8px 0;">${items.length} cliente${items.length !== 1 ? 's' : ''}</div>`;
+    }
+
+    container.innerHTML = html;
+    if (window.lucide) lucide.createIcons();
+    this._bindCadastroClientEvents(container);
+  },
+
+  _bindCadastroClientEvents(container) {
+    const searchInput = container.querySelector('#fnCadSearchClient');
+    if (searchInput) {
+      let _debounce = null;
+      searchInput.addEventListener('input', () => {
+        clearTimeout(_debounce);
+        _debounce = setTimeout(() => { this._cadastroSearch = searchInput.value; this._loadCadastroSubTab(); }, 400);
+      });
+    }
+
+    container.querySelector('#fnCadNewClient')?.addEventListener('click', () => {
+      this._openCadastroDrawer('client', null);
+    });
+
+    container.querySelectorAll('.fn-cad-edit').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const item = this._clients.find(c => c.id === btn.dataset.cadId);
+        if (item) this._openCadastroDrawer('client', item);
+      });
+    });
+
+    container.querySelectorAll('.fn-cad-deactivate').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (!confirm('Desativar este cliente?')) return;
+        try {
+          await FinanceRepo.deactivateClient(btn.dataset.cadId);
+          this._toast('warning', 'Cliente desativado');
+          this._lookupsLoaded = false;
+          await this._ensureLookups();
+          this._loadCadastroSubTab();
+        } catch (err) { this._toast('error', err.message); }
+      });
+    });
+  },
+
+  // ── Centros de Custo ─────────────────────────────────────────────
+
+  _renderCadastroCCs(container, items) {
+    let html = `<div class="fn-filter-bar" style="margin-top:12px;">
+      <div class="fn-filter-group"></div>
+      <div class="fn-filter-actions">
+        <button class="btn btn-primary btn-sm" id="fnCadNewCC">
+          <i data-lucide="plus" style="width:14px;height:14px;"></i> Novo Centro de Custo
+        </button>
+      </div>
+    </div>`;
+
+    if (!items || items.length === 0) {
+      html += '<div class="fn-empty-chart" style="min-height:150px;"><span>Nenhum centro de custo encontrado</span></div>';
+    } else {
+      // Agrupar por categoria
+      const groups = {};
+      items.forEach(cc => {
+        const cat = cc.category || 'Outros';
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push(cc);
+      });
+
+      Object.entries(groups).forEach(([catName, ccItems]) => {
+        html += `<div class="fn-cc-group">
+          <div class="fn-cc-group-header">${this._esc(catName)}</div>
+          <div class="fn-cc-group-items">
+            ${ccItems.map(cc => `
+              <div class="fn-cc-item" data-cc-id="${cc.id}">
+                <div class="fn-cc-item-info">
+                  <strong>${this._esc(cc.name)}</strong>
+                  <span class="fn-cc-item-slug">${this._esc(cc.slug)}</span>
+                  ${cc.requires_project ? '<span class="badge badge--blue" style="font-size:0.6rem;">Requer Projeto</span>' : ''}
+                </div>
+                <div class="fn-cc-item-actions">
+                  <button class="btn btn-ghost btn-sm fn-cc-edit" data-cc-id="${cc.id}" title="Editar"><i data-lucide="edit-3" style="width:13px;height:13px;"></i></button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>`;
+      });
+
+      html += `<div class="fn-table-count" style="padding:8px 0;">${items.length} centro${items.length !== 1 ? 's' : ''} de custo</div>`;
+    }
+
+    container.innerHTML = html;
+    if (window.lucide) lucide.createIcons();
+    this._bindCadastroCCEvents(container);
+  },
+
+  _bindCadastroCCEvents(container) {
+    container.querySelector('#fnCadNewCC')?.addEventListener('click', () => {
+      this._openCadastroDrawer('cost_center', null);
+    });
+
+    container.querySelectorAll('.fn-cc-edit').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const item = this._costCenters.find(cc => cc.id === btn.dataset.ccId);
+        if (item) this._openCadastroDrawer('cost_center', item);
+      });
+    });
+  },
+
+  // ── Cadastros: Drawer genérico para criar/editar ─────────────────
+
+  _openCadastroDrawer(entityType, item) {
+    const isEdit = !!item;
+    const drawer = document.getElementById('fnDrawer');
+    const backdrop = document.getElementById('fnDrawerBackdrop');
+    if (!drawer || !backdrop) return;
+
+    drawer.classList.add('fn-drawer--open');
+    backdrop.classList.add('fn-drawer-backdrop--open');
+    this._drawerOpen = true;
+
+    const header = document.getElementById('fnDrawerHeader');
+    const body = document.getElementById('fnDrawerBody');
+    const footer = document.getElementById('fnDrawerFooter');
+
+    const titles = {
+      vendor: isEdit ? 'Editar Fornecedor' : 'Novo Fornecedor',
+      client: isEdit ? 'Editar Cliente' : 'Novo Cliente',
+      cost_center: isEdit ? 'Editar Centro de Custo' : 'Novo Centro de Custo'
+    };
+    const icons = { vendor: 'truck', client: 'building-2', cost_center: 'folder' };
+
+    header.innerHTML = `
+      <div class="fn-drawer-title">
+        <i data-lucide="${icons[entityType]}" style="width:18px;height:18px;"></i>
+        ${titles[entityType]}
+      </div>
+      <button class="btn btn-ghost btn-sm fn-drawer-close" id="fnDrawerClose">
+        <i data-lucide="x" style="width:16px;height:16px;"></i>
+      </button>`;
+
+    body.innerHTML = this._renderCadastroForm(entityType, item);
+
+    footer.innerHTML = `
+      <button class="btn btn-secondary" id="fnDrawerCancel">Cancelar</button>
+      <button class="btn btn-primary" id="fnCadSave">
+        <i data-lucide="save" style="width:14px;height:14px;"></i> Salvar
+      </button>`;
+
+    if (window.lucide) lucide.createIcons();
+
+    document.getElementById('fnDrawerClose')?.addEventListener('click', () => this._closeDrawer());
+    document.getElementById('fnDrawerCancel')?.addEventListener('click', () => this._closeDrawer());
+    document.getElementById('fnCadSave')?.addEventListener('click', async () => {
+      await this._saveCadastroForm(entityType, item);
+    });
+
+    this._drawerEscHandler = (e) => { if (e.key === 'Escape') this._closeDrawer(); };
+    document.addEventListener('keydown', this._drawerEscHandler);
+  },
+
+  _renderCadastroForm(entityType, item) {
+    const val = (field) => item ? (item[field] || '') : '';
+
+    if (entityType === 'vendor') {
+      return `<div class="fn-drawer-form">
+        <div class="form-group">
+          <label class="form-label">Nome <span class="required">*</span></label>
+          <input type="text" class="form-input" id="fnCadFormName" value="${this._esc(val('name'))}" placeholder="Razão social ou nome fantasia">
+        </div>
+        <div class="fn-drawer-grid">
+          <div class="form-group">
+            <label class="form-label">CNPJ</label>
+            <input type="text" class="form-input" id="fnCadFormCnpj" value="${this._esc(val('cnpj'))}" placeholder="00.000.000/0000-00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Categoria</label>
+            <input type="text" class="form-input" id="fnCadFormCategory" value="${this._esc(val('category'))}" placeholder="Ex: Serviços, Software">
+          </div>
+        </div>
+        <div class="fn-drawer-grid">
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-input" id="fnCadFormEmail" value="${this._esc(val('email'))}" placeholder="contato@empresa.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Telefone</label>
+            <input type="text" class="form-input" id="fnCadFormPhone" value="${this._esc(val('phone'))}" placeholder="(00) 00000-0000">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Observações</label>
+          <textarea class="form-input" id="fnCadFormNotes" rows="3" placeholder="Notas sobre este fornecedor...">${this._esc(val('notes'))}</textarea>
+        </div>
+      </div>`;
+    }
+
+    if (entityType === 'client') {
+      return `<div class="fn-drawer-form">
+        <div class="form-group">
+          <label class="form-label">Nome <span class="required">*</span></label>
+          <input type="text" class="form-input" id="fnCadFormName" value="${this._esc(val('name'))}" placeholder="Razão social ou nome fantasia">
+        </div>
+        <div class="fn-drawer-grid">
+          <div class="form-group">
+            <label class="form-label">CNPJ</label>
+            <input type="text" class="form-input" id="fnCadFormCnpj" value="${this._esc(val('cnpj'))}" placeholder="00.000.000/0000-00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Contato</label>
+            <input type="text" class="form-input" id="fnCadFormContact" value="${this._esc(val('contact_name'))}" placeholder="Nome do contato">
+          </div>
+        </div>
+        <div class="fn-drawer-grid">
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-input" id="fnCadFormEmail" value="${this._esc(val('email'))}" placeholder="contato@empresa.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Telefone</label>
+            <input type="text" class="form-input" id="fnCadFormPhone" value="${this._esc(val('phone'))}" placeholder="(00) 00000-0000">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Observações</label>
+          <textarea class="form-input" id="fnCadFormNotes" rows="3" placeholder="Notas sobre este cliente...">${this._esc(val('notes'))}</textarea>
+        </div>
+      </div>`;
+    }
+
+    if (entityType === 'cost_center') {
+      return `<div class="fn-drawer-form">
+        <div class="form-group">
+          <label class="form-label">Nome <span class="required">*</span></label>
+          <input type="text" class="form-input" id="fnCadFormName" value="${this._esc(val('name'))}" placeholder="Ex: Digital 3D">
+        </div>
+        <div class="fn-drawer-grid">
+          <div class="form-group">
+            <label class="form-label">Slug <span class="required">*</span></label>
+            <input type="text" class="form-input" id="fnCadFormSlug" value="${this._esc(val('slug'))}" placeholder="ex: digital-3d">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Categoria</label>
+            <select class="form-input" id="fnCadFormCategory">
+              <option value="">Selecione...</option>
+              <option value="Projetos & Produção" ${val('category') === 'Projetos & Produção' ? 'selected' : ''}>Projetos & Produção</option>
+              <option value="Infraestrutura & Operação" ${val('category') === 'Infraestrutura & Operação' ? 'selected' : ''}>Infraestrutura & Operação</option>
+              <option value="Financeiro & Encargos" ${val('category') === 'Financeiro & Encargos' ? 'selected' : ''}>Financeiro & Encargos</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="display:flex;align-items:center;gap:8px;">
+            <input type="checkbox" id="fnCadFormReqProject" ${val('requires_project') ? 'checked' : ''}>
+            Requer projeto vinculado
+          </label>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descrição</label>
+          <textarea class="form-input" id="fnCadFormNotes" rows="2" placeholder="Descrição do centro de custo...">${this._esc(val('description'))}</textarea>
+        </div>
+      </div>`;
+    }
+
+    return '<p>Tipo de cadastro não suportado.</p>';
+  },
+
+  async _saveCadastroForm(entityType, existingItem) {
+    const name = document.getElementById('fnCadFormName')?.value?.trim();
+    if (!name) { this._toast('warning', 'Preencha o nome.'); return; }
+
+    try {
+      if (entityType === 'vendor') {
+        const data = {
+          name,
+          cnpj: document.getElementById('fnCadFormCnpj')?.value?.trim() || null,
+          category: document.getElementById('fnCadFormCategory')?.value?.trim() || null,
+          email: document.getElementById('fnCadFormEmail')?.value?.trim() || null,
+          phone: document.getElementById('fnCadFormPhone')?.value?.trim() || null,
+          notes: document.getElementById('fnCadFormNotes')?.value?.trim() || null
+        };
+        if (existingItem) {
+          await FinanceRepo.updateVendor(existingItem.id, data);
+        } else {
+          await FinanceRepo.createVendor(data);
+        }
+      } else if (entityType === 'client') {
+        const data = {
+          name,
+          cnpj: document.getElementById('fnCadFormCnpj')?.value?.trim() || null,
+          contact_name: document.getElementById('fnCadFormContact')?.value?.trim() || null,
+          email: document.getElementById('fnCadFormEmail')?.value?.trim() || null,
+          phone: document.getElementById('fnCadFormPhone')?.value?.trim() || null,
+          notes: document.getElementById('fnCadFormNotes')?.value?.trim() || null
+        };
+        if (existingItem) {
+          await FinanceRepo.updateClient(existingItem.id, data);
+        } else {
+          await FinanceRepo.createClient(data);
+        }
+      } else if (entityType === 'cost_center') {
+        const slug = document.getElementById('fnCadFormSlug')?.value?.trim();
+        if (!slug) { this._toast('warning', 'Preencha o slug.'); return; }
+        const data = {
+          name,
+          slug,
+          category: document.getElementById('fnCadFormCategory')?.value || null,
+          requires_project: document.getElementById('fnCadFormReqProject')?.checked || false,
+          description: document.getElementById('fnCadFormNotes')?.value?.trim() || null
+        };
+        if (existingItem) {
+          await FinanceRepo.updateCostCenter(existingItem.id, data);
+        } else {
+          await FinanceRepo.createCostCenter(data);
+        }
+      }
+
+      this._toast('success', existingItem ? 'Atualizado com sucesso!' : 'Criado com sucesso!');
+      this._closeDrawer();
+      this._lookupsLoaded = false;
+      await this._ensureLookups();
+      this._loadCadastroSubTab();
+    } catch (err) {
+      console.error('[Financeiro] Erro ao salvar cadastro:', err);
+      this._toast('error', err.message);
     }
   },
 

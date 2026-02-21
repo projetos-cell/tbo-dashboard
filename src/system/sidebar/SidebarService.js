@@ -57,10 +57,13 @@ const TBO_SIDEBAR_SERVICE = (() => {
     { id: 'dir-financeiro', name: 'Financeiro',       type: 'child',     order_index: 15.1, icon: 'coins',  route: 'financeiro', parent_id: 'ws-diretoria', allowed_roles: ['owner', 'admin', 'diretor', 'financeiro'] },
 
     // Sub-items do workspace Pessoas (RH) — deep link: rh/{tab}
-    { id: 'rh-equipe',      name: 'Equipe',            type: 'child', order_index: 14.51, icon: 'users',           route: 'rh',                parent_id: 'ws-pessoas', allowed_roles: [] },
-    { id: 'rh-performance', name: 'Performance & PDI', type: 'child', order_index: 14.52, icon: 'target',          route: 'rh/performance',    parent_id: 'ws-pessoas', allowed_roles: [] },
-    { id: 'rh-1on1s',       name: '1:1s & Rituais',   type: 'child', order_index: 14.53, icon: 'message-circle',  route: 'rh/one-on-ones',    parent_id: 'ws-pessoas', allowed_roles: ['owner', 'admin', 'diretor', 'project_owner', 'coordinator'] },
-    { id: 'rh-analytics',   name: 'Analytics',         type: 'child', order_index: 14.54, icon: 'bar-chart-3',     route: 'rh/analytics',      parent_id: 'ws-pessoas', allowed_roles: ['owner', 'admin', 'diretor'] },
+    { id: 'rh-equipe',      name: 'Equipe',            type: 'child', order_index: 14.51,  icon: 'users',           route: 'rh',                parent_id: 'ws-pessoas', allowed_roles: [] },
+    { id: 'rh-talentos',    name: 'Banco de Talentos', type: 'child', order_index: 14.515, icon: 'user-plus',       route: 'rh/banco-talentos', parent_id: 'ws-pessoas', allowed_roles: [] },
+    { id: 'rh-vagas',       name: 'Vagas',             type: 'child', order_index: 14.52,  icon: 'briefcase',       route: 'rh/vagas',          parent_id: 'ws-pessoas', allowed_roles: [] },
+    { id: 'rh-contratos',   name: 'Contratos',         type: 'child', order_index: 14.525, icon: 'file-text',       route: 'rh/contratos',      parent_id: 'ws-pessoas', allowed_roles: ['owner', 'admin', 'diretor', 'financeiro'] },
+    { id: 'rh-performance', name: 'Performance & PDI', type: 'child', order_index: 14.53,  icon: 'target',          route: 'rh/performance',    parent_id: 'ws-pessoas', allowed_roles: [] },
+    { id: 'rh-1on1s',       name: '1:1s & Rituais',   type: 'child', order_index: 14.54,  icon: 'message-circle',  route: 'rh/one-on-ones',    parent_id: 'ws-pessoas', allowed_roles: ['owner', 'admin', 'diretor', 'project_owner', 'coordinator'] },
+    { id: 'rh-analytics',   name: 'Analytics',         type: 'child', order_index: 14.55,  icon: 'bar-chart-3',     route: 'rh/analytics',      parent_id: 'ws-pessoas', allowed_roles: ['owner', 'admin', 'diretor'] },
 
     // Workspace Cultura — visivel para todos
     { id: 'ws-cultura',     name: 'Cultura',           type: 'workspace', order_index: 14.6, icon: 'flame', route: null, parent_id: 'sep-equipe', allowed_roles: [] },

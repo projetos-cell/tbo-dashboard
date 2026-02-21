@@ -295,47 +295,10 @@ const TBO_WS_CONTEXT_MENU = (() => {
     const nameEl = wsEl.querySelector('.nsb-ws-name');
     if (!nameEl) return;
 
-    // Usar TBO_INLINE_EDITOR se disponível
-    if (typeof TBO_INLINE_EDITOR !== 'undefined') {
-      TBO_INLINE_EDITOR.attach(nameEl, {
-        key: 'name',
-        type: 'text',
-        value: spaceData?.name || nameEl.textContent,
-        placeholder: 'Nome do espaço',
-        onSave: async (_key, newValue, _oldValue) => {
-          const trimmed = (newValue || '').trim();
-          if (!trimmed) return;
-          if (trimmed.length > 60) {
-            if (typeof TBO_TOAST !== 'undefined') {
-              TBO_TOAST.warning('Limite', 'Nome deve ter no máximo 60 caracteres');
-            }
-            return;
-          }
-          try {
-            await SpaceRepo.rename(spaceId, trimmed);
-            // Atualizar nome no DOM
-            nameEl.textContent = trimmed;
-            // Refresh sidebar service cache
-            if (typeof TBO_SIDEBAR_SERVICE !== 'undefined') {
-              TBO_SIDEBAR_SERVICE.refresh();
-            }
-            if (typeof TBO_TOAST !== 'undefined') {
-              TBO_TOAST.success('Renomeado', `Espaço renomeado para "${trimmed}"`);
-            }
-          } catch (err) {
-            console.error('[WS Context Menu] Erro ao renomear:', err);
-            // Reverter no DOM
-            nameEl.textContent = spaceData?.name || 'Espaço';
-            if (typeof TBO_TOAST !== 'undefined') {
-              TBO_TOAST.error('Erro', 'Não foi possível renomear o espaço');
-            }
-          }
-        }
-      });
-    } else {
-      // Fallback: inline input manual
-      _inlineRename(nameEl, spaceId, spaceData);
-    }
+    // Usar fallback direto — cria input imediatamente (o InlineEditor.attach
+    // apenas registra listener de click, exigindo um segundo clique, então
+    // preferimos o input inline que já foca no campo de texto)
+    _inlineRename(nameEl, spaceId, spaceData);
   }
 
   /**

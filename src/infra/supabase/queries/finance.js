@@ -14,7 +14,8 @@ const FinanceRepo = (() => {
   function _uid() {
     if (typeof TBO_AUTH !== 'undefined') {
       const u = TBO_AUTH.getCurrentUser();
-      return u?.id || null;
+      // supabaseId e o UUID real; id pode ser slug (ex: "marco")
+      return u?.supabaseId || u?.id || null;
     }
     return null;
   }
@@ -823,6 +824,391 @@ const FinanceRepo = (() => {
         .limit(limit);
       if (error) throw error;
       return data || [];
+    },
+
+    // ═══════════════════════════════════════════════════════════
+    // ANALYTICS — Relatorios avancados do Dashboard
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Composicao de custos: despesas agrupadas por categoria e centro de custo.
+     * Retorna totais por categoria + por centro de custo para donut chart + tabela.
+     */
+    async getCostComposition() {
+      const tid = _tid();
+
+      const [byCatRes, byCCRes] = await Promise.all([
+        // Despesas por categoria (todas nao canceladas)
+        _db().from('fin_payables')
+          .select('category_id, amount, status, category:fin_categories(name, color)')
+          .eq('tenant_id', tid)
+          .not('status', 'eq', 'cancelado'),
+
+        // Despesas por centro de custo
+        _db().from('fin_payables')
+          .select('cost_center_id, amount, status, cost_center:fin_cost_centers(name, slug, category)')
+          .eq('tenant_id', tid)
+          .not('status', 'eq', 'cancelado')
+      ]);
+
+      if (byCatRes.error) throw byCatRes.error;
+      if (byCCRes.error) throw byCCRes.error;
+
+      // Agregar por categoria
+      const catMap = {};
+      (byCatRes.data || []).forEach(p => {
+        const name = p.category?.name || 'Sem Categoria';
+        const color = p.category?.color || '#6b7280';
+        if (!catMap[name]) catMap[name] = { name, color, total: 0, count: 0, pago: 0 };
+        catMap[name].total += p.amount || 0;
+        catMap[name].count++;
+        if (p.status === 'pago') catMap[name].pago += p.amount || 0;
+      });
+      const byCategory = Object.values(catMap).sort((a, b) => b.total - a.total);
+
+      // Agregar por centro de custo
+      const ccMap = {};
+      (byCCRes.data || []).forEach(p => {
+        const name = p.cost_center?.name || 'Sem Centro de Custo';
+        const group = p.cost_center?.category || 'outros';
+        if (!ccMap[name]) ccMap[name] = { name, group, total: 0, count: 0, pago: 0 };
+        ccMap[name].total += p.amount || 0;
+        ccMap[name].count++;
+        if (p.status === 'pago') ccMap[name].pago += p.amount || 0;
+      });
+      const byCostCenter = Object.values(ccMap).sort((a, b) => b.total - a.total);
+
+      const totalDespesas = byCategory.reduce((s, c) => s + c.total, 0);
+
+      return { byCategory, byCostCenter, totalDespesas };
+    },
+
+    /**
+     * Inadimplencia detalhada por cliente.
+     * Retorna lista de clientes com parcelas atrasadas, valores e aging.
+     */
+    async getDelinquencyByClient() {
+      const tid = _tid();
+      const today = new Date().toISOString().split('T')[0];
+
+      // Todas as recebiveis vencidas (nao pagas/canceladas)
+      const { data, error } = await _db().from('fin_receivables')
+        .select('id, description, amount, amount_paid, due_date, status, client_id, client:fin_clients(name, cnpj, email, phone)')
+        .eq('tenant_id', tid)
+        .in('status', ['aberto', 'parcial', 'emitido'])
+        .lt('due_date', today)
+        .order('due_date', { ascending: true });
+
+      if (error) throw error;
+
+      // Agregar por cliente
+      const clientMap = {};
+      (data || []).forEach(r => {
+        const clientId = r.client_id || 'sem_cliente';
+        const clientName = r.client?.name || 'Sem Cliente';
+        if (!clientMap[clientId]) {
+          clientMap[clientId] = {
+            clientId,
+            clientName,
+            cnpj: r.client?.cnpj || '',
+            email: r.client?.email || '',
+            phone: r.client?.phone || '',
+            totalOverdue: 0,
+            count: 0,
+            oldestDueDate: r.due_date,
+            items: []
+          };
+        }
+        const saldo = (r.amount || 0) - (r.amount_paid || 0);
+        clientMap[clientId].totalOverdue += saldo;
+        clientMap[clientId].count++;
+        if (r.due_date < clientMap[clientId].oldestDueDate) {
+          clientMap[clientId].oldestDueDate = r.due_date;
+        }
+        clientMap[clientId].items.push({
+          id: r.id,
+          description: r.description,
+          amount: r.amount,
+          amountPaid: r.amount_paid || 0,
+          saldo,
+          dueDate: r.due_date,
+          status: r.status
+        });
+      });
+
+      // Calcular dias de atraso e ordenar por total
+      const clients = Object.values(clientMap).map(c => {
+        const daysOverdue = Math.ceil((new Date(today) - new Date(c.oldestDueDate)) / 86400000);
+        return { ...c, daysOverdue };
+      }).sort((a, b) => b.totalOverdue - a.totalOverdue);
+
+      const totalOverdue = clients.reduce((s, c) => s + c.totalOverdue, 0);
+      const totalCount = clients.reduce((s, c) => s + c.count, 0);
+
+      return { clients, totalOverdue, totalCount };
+    },
+
+    /**
+     * Dados consolidados para calculo de saude financeira.
+     * Retorna receita total, despesa total, resultado, inadimplencia, etc.
+     */
+    async getFinancialHealthData() {
+      const tid = _tid();
+      const today = new Date().toISOString().split('T')[0];
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
+      const in30d = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+
+      const [
+        allPayablesRes,
+        allReceivablesRes,
+        overduePayRes,
+        overdueRecRes,
+        paidPayRes,
+        paidRecRes,
+        recentPayRes,
+        balanceRes
+      ] = await Promise.all([
+        // Total despesas (nao cancelado)
+        _db().from('fin_payables')
+          .select('amount, status')
+          .eq('tenant_id', tid)
+          .not('status', 'eq', 'cancelado'),
+
+        // Total receitas (nao cancelado)
+        _db().from('fin_receivables')
+          .select('amount, status')
+          .eq('tenant_id', tid)
+          .not('status', 'eq', 'cancelado'),
+
+        // Despesas atrasadas
+        _db().from('fin_payables')
+          .select('amount, amount_paid')
+          .eq('tenant_id', tid)
+          .in('status', ['aberto', 'parcial', 'aprovado'])
+          .lt('due_date', today),
+
+        // Receitas atrasadas
+        _db().from('fin_receivables')
+          .select('amount, amount_paid')
+          .eq('tenant_id', tid)
+          .in('status', ['aberto', 'parcial', 'emitido'])
+          .lt('due_date', today),
+
+        // Despesas pagas (ultimos 90 dias para tendencia)
+        _db().from('fin_payables')
+          .select('amount, paid_date, due_date')
+          .eq('tenant_id', tid)
+          .eq('status', 'pago')
+          .gte('paid_date', new Date(Date.now() - 90 * 86400000).toISOString().split('T')[0]),
+
+        // Receitas pagas (ultimos 90 dias)
+        _db().from('fin_receivables')
+          .select('amount, paid_date, due_date')
+          .eq('tenant_id', tid)
+          .eq('status', 'pago')
+          .gte('paid_date', new Date(Date.now() - 90 * 86400000).toISOString().split('T')[0]),
+
+        // Contas a pagar proximos 30 dias
+        _db().from('fin_payables')
+          .select('amount, amount_paid')
+          .eq('tenant_id', tid)
+          .in('status', ['aberto', 'parcial', 'aprovado', 'rascunho', 'aguardando_aprovacao'])
+          .gte('due_date', today)
+          .lte('due_date', in30d),
+
+        // Saldo
+        _db().from('fin_balance_snapshots')
+          .select('balance')
+          .eq('tenant_id', tid)
+          .order('recorded_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      ]);
+
+      // Totais gerais
+      const receitaTotal = (allReceivablesRes.data || []).reduce((s, r) => s + (r.amount || 0), 0);
+      const despesaTotal = (allPayablesRes.data || []).reduce((s, p) => s + (p.amount || 0), 0);
+      const resultado = receitaTotal - despesaTotal;
+      const margem = receitaTotal > 0 ? ((resultado / receitaTotal) * 100) : 0;
+
+      // Inadimplencia
+      const overduePayTotal = (overduePayRes.data || []).reduce((s, p) => s + ((p.amount || 0) - (p.amount_paid || 0)), 0);
+      const overdueRecTotal = (overdueRecRes.data || []).reduce((s, r) => s + ((r.amount || 0) - (r.amount_paid || 0)), 0);
+
+      // Pagamentos em dia (ratio)
+      const totalPaid = (paidPayRes.data || []).length;
+      const paidOnTime = (paidPayRes.data || []).filter(p => p.paid_date && p.due_date && p.paid_date <= p.due_date).length;
+      const paymentOnTimeRatio = totalPaid > 0 ? (paidOnTime / totalPaid) : 1;
+
+      // Recebimentos em dia
+      const totalReceived = (paidRecRes.data || []).length;
+      const receivedOnTime = (paidRecRes.data || []).filter(r => r.paid_date && r.due_date && r.paid_date <= r.due_date).length;
+      const collectionOnTimeRatio = totalReceived > 0 ? (receivedOnTime / totalReceived) : 1;
+
+      // Compromissos proximos 30d
+      const upcoming30d = (recentPayRes.data || []).reduce((s, p) => s + ((p.amount || 0) - (p.amount_paid || 0)), 0);
+
+      // Saldo
+      const saldoAtual = balanceRes.data?.balance || 0;
+
+      // Cobertura: saldo / compromissos 30d
+      const cobertura30d = upcoming30d > 0 ? saldoAtual / upcoming30d : 999;
+
+      // Contadores de status
+      const statusCount = {};
+      (allPayablesRes.data || []).forEach(p => {
+        statusCount[p.status] = (statusCount[p.status] || 0) + 1;
+      });
+
+      return {
+        receitaTotal,
+        despesaTotal,
+        resultado,
+        margem,
+        overduePayTotal,
+        overdueRecTotal,
+        paymentOnTimeRatio,
+        collectionOnTimeRatio,
+        upcoming30d,
+        saldoAtual,
+        cobertura30d,
+        statusCount,
+        totalPayables: (allPayablesRes.data || []).length,
+        totalReceivables: (allReceivablesRes.data || []).length
+      };
+    },
+
+    /**
+     * Receita e Despesa mensais (para grafico temporal).
+     * Agrupa por mes de vencimento.
+     */
+    async getMonthlyRevenueCost() {
+      const tid = _tid();
+
+      const [payRes, recRes] = await Promise.all([
+        _db().from('fin_payables')
+          .select('amount, due_date, status')
+          .eq('tenant_id', tid)
+          .not('status', 'eq', 'cancelado')
+          .order('due_date', { ascending: true }),
+
+        _db().from('fin_receivables')
+          .select('amount, due_date, status')
+          .eq('tenant_id', tid)
+          .not('status', 'eq', 'cancelado')
+          .order('due_date', { ascending: true })
+      ]);
+
+      if (payRes.error) throw payRes.error;
+      if (recRes.error) throw recRes.error;
+
+      // Agrupar por YYYY-MM
+      const months = {};
+      (recRes.data || []).forEach(r => {
+        if (!r.due_date) return;
+        const key = r.due_date.substring(0, 7); // YYYY-MM
+        if (!months[key]) months[key] = { receita: 0, despesa: 0 };
+        months[key].receita += r.amount || 0;
+      });
+      (payRes.data || []).forEach(p => {
+        if (!p.due_date) return;
+        const key = p.due_date.substring(0, 7);
+        if (!months[key]) months[key] = { receita: 0, despesa: 0 };
+        months[key].despesa += p.amount || 0;
+      });
+
+      // Ordenar por mes e retornar array
+      const sorted = Object.entries(months)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([month, data]) => ({
+          month,
+          label: new Date(month + '-01').toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
+          receita: data.receita,
+          despesa: data.despesa,
+          resultado: data.receita - data.despesa
+        }));
+
+      return sorted;
+    },
+
+    /**
+     * Detalhamento por cliente: receita, parcelas, % pago, status.
+     */
+    async getClientBreakdown() {
+      const tid = _tid();
+      const today = new Date().toISOString().split('T')[0];
+
+      const { data, error } = await _db().from('fin_receivables')
+        .select('client_id, amount, amount_paid, status, due_date, client:fin_clients(name)')
+        .eq('tenant_id', tid)
+        .not('status', 'eq', 'cancelado');
+
+      if (error) throw error;
+
+      const clientMap = {};
+      (data || []).forEach(r => {
+        const clientId = r.client_id || 'sem_cliente';
+        const name = r.client?.name || 'Sem Cliente';
+        if (!clientMap[clientId]) {
+          clientMap[clientId] = {
+            clientId,
+            name,
+            receita: 0,
+            parcelas: 0,
+            pago: 0,
+            emAberto: 0,
+            atrasado: 0,
+            atrasadoCount: 0
+          };
+        }
+        clientMap[clientId].receita += r.amount || 0;
+        clientMap[clientId].parcelas++;
+        clientMap[clientId].pago += r.amount_paid || 0;
+        if (r.status === 'pago') {
+          clientMap[clientId].pago += (r.amount || 0) - (r.amount_paid || 0);
+        }
+        if (['aberto', 'parcial', 'emitido'].includes(r.status) && r.due_date < today) {
+          clientMap[clientId].atrasado += (r.amount || 0) - (r.amount_paid || 0);
+          clientMap[clientId].atrasadoCount++;
+        } else if (['aberto', 'parcial', 'emitido', 'previsto'].includes(r.status)) {
+          clientMap[clientId].emAberto += (r.amount || 0) - (r.amount_paid || 0);
+        }
+      });
+
+      const clients = Object.values(clientMap).map(c => {
+        const pctPago = c.receita > 0 ? Math.round((c.pago / c.receita) * 100) : 0;
+        let statusLabel = 'Excelente';
+        let statusColor = '#22c55e';
+        if (c.atrasadoCount > 0) {
+          statusLabel = 'Inadimplente';
+          statusColor = '#ef4444';
+        } else if (pctPago < 50) {
+          statusLabel = 'Atencao';
+          statusColor = '#f59e0b';
+        } else if (pctPago >= 90) {
+          statusLabel = 'Excelente';
+          statusColor = '#22c55e';
+        } else {
+          statusLabel = 'Regular';
+          statusColor = '#3b82f6';
+        }
+        return { ...c, pctPago, statusLabel, statusColor };
+      }).sort((a, b) => b.receita - a.receita);
+
+      const receitaTotal = clients.reduce((s, c) => s + c.receita, 0);
+      const top5 = clients.slice(0, 5);
+      const top5Total = top5.reduce((s, c) => s + c.receita, 0);
+      const concentracaoTop5 = receitaTotal > 0 ? ((top5Total / receitaTotal) * 100).toFixed(1) : '0.0';
+      const totalClientes = clients.filter(c => c.receita > 0).length;
+      const ticketMedio = totalClientes > 0 ? receitaTotal / totalClientes : 0;
+
+      return {
+        clients,
+        receitaTotal,
+        concentracaoTop5,
+        totalClientes,
+        ticketMedio
+      };
     }
   };
 })();

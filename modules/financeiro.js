@@ -201,8 +201,13 @@ const TBO_FINANCEIRO = {
       clearInterval(this._refreshTimer);
       this._refreshTimer = null;
     }
+    // Destruir instancias Chart.js
+    if (this._chartRecDes) { this._chartRecDes.destroy(); this._chartRecDes = null; }
+    if (this._chartResultado) { this._chartResultado.destroy(); this._chartResultado = null; }
+    if (this._chartDonut) { this._chartDonut.destroy(); this._chartDonut = null; }
     this._closeDrawer();
     this._data = null;
+    this._dashData = null;
     this._lookupsLoaded = false;
   },
 
@@ -2458,16 +2463,28 @@ const TBO_FINANCEIRO = {
 
     try {
       if (typeof FinanceRepo === 'undefined') throw new Error('FinanceRepo não está disponível');
-      const kpis = await FinanceRepo.getDashboardKPIs();
+
+      // Carregar todos os dados em paralelo
+      const [kpis, costComp, delinquency, healthData, monthlyData, clientBreakdown] = await Promise.all([
+        FinanceRepo.getDashboardKPIs(),
+        FinanceRepo.getCostComposition(),
+        FinanceRepo.getDelinquencyByClient(),
+        FinanceRepo.getFinancialHealthData(),
+        FinanceRepo.getMonthlyRevenueCost(),
+        FinanceRepo.getClientBreakdown()
+      ]);
+
       this._data = kpis;
-      this._renderDashboard(container, kpis);
+      this._dashData = { kpis, costComp, delinquency, healthData, monthlyData, clientBreakdown };
+      this._renderDashboard(container);
     } catch (err) {
       console.error('[Financeiro] Erro ao carregar dashboard:', err);
       container.innerHTML = this._renderError(err.message);
     }
   },
 
-  _renderDashboard(container, kpis) {
+  _renderDashboard(container) {
+    const { kpis, costComp, delinquency, healthData, monthlyData, clientBreakdown } = this._dashData;
     const fmt = this._fmt();
     const saldoColor = kpis.saldoAtual >= 0 ? 'var(--color-success)' : 'var(--color-danger)';
     const projetadoColor = kpis.saldoProjetado >= 0 ? 'var(--color-success)' : 'var(--color-danger)';
@@ -2514,51 +2531,112 @@ const TBO_FINANCEIRO = {
       </div>`;
     }
 
+    // ══════════════════════════════════════════════════════════════════════
+    // SEÇÃO 1 — SAÚDE FINANCEIRA (Score Gauge)
+    // ══════════════════════════════════════════════════════════════════════
+    html += this._renderFinHealthSection(healthData, fmt);
+
     // ── KPI Cards Row 1 (grid-4) ────────────────────────────────────────
     html += `<div class="grid-4 fn-kpi-grid" style="margin-bottom:16px;">
       <div class="kpi-card">
-        <div class="kpi-label">Saldo Atual</div>
-        <div class="kpi-value" style="color:${saldoColor};">${fmt.currency(kpis.saldoAtual)}</div>
-        <div class="kpi-change neutral">Atualizado: ${saldoDateStr}</div>
+        <div class="kpi-label">Receita Total</div>
+        <div class="kpi-value" style="color:var(--color-success);">${fmt.currency(healthData.receitaTotal)}</div>
+        <div class="kpi-change neutral">${healthData.totalReceivables} parcelas</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Despesa Total</div>
+        <div class="kpi-value" style="color:var(--color-danger);">${fmt.currency(healthData.despesaTotal)}</div>
+        <div class="kpi-change neutral">${healthData.totalPayables} contas</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Resultado</div>
+        <div class="kpi-value" style="color:${healthData.resultado >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${fmt.currency(healthData.resultado)}</div>
+        <div class="kpi-change ${healthData.margem >= 0 ? 'positive' : 'negative'}">Margem ${healthData.margem.toFixed(1)}%</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">A Receber (30d)</div>
         <div class="kpi-value" style="color:var(--color-success);">${fmt.currency(kpis.aReceber30d)}</div>
-        <div class="kpi-change positive">Entradas previstas</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">A Pagar (30d)</div>
-        <div class="kpi-value" style="color:var(--color-danger);">${fmt.currency(kpis.aPagar30d)}</div>
-        <div class="kpi-change negative">Saídas previstas</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Saldo Projetado (30d)</div>
-        <div class="kpi-value" style="color:${projetadoColor};">${fmt.currency(kpis.saldoProjetado)}</div>
-        <div class="kpi-change ${parseFloat(margemProj) >= 0 ? 'positive' : 'negative'}">Margem: ${margemProj}%</div>
+        <div class="kpi-change neutral">${kpis.vencidasReceber > 0 ? kpis.vencidasReceber + ' atrasadas' : 'Tudo em dia'}</div>
       </div>
     </div>`;
 
-    // ── KPI Cards Row 2 (grid-3) ────────────────────────────────────────
-    html += `<div class="grid-3 fn-kpi-grid" style="margin-bottom:24px;">
-      <div class="kpi-card ${kpis.vencidasPagar > 0 ? 'fn-kpi-alert' : ''}">
-        <div class="kpi-label">Contas Vencidas (Pagar)</div>
-        <div class="kpi-value" style="color:${kpis.vencidasPagar > 0 ? 'var(--color-danger)' : 'var(--color-success)'};">${kpis.vencidasPagar}</div>
-        <div class="kpi-change ${kpis.vencidasPagar > 0 ? 'negative' : 'positive'}">${kpis.vencidasPagar > 0 ? 'Ação necessária' : 'Tudo em dia'}</div>
-      </div>
-      <div class="kpi-card ${kpis.vencidasReceber > 0 ? 'fn-kpi-alert' : ''}">
-        <div class="kpi-label">Contas Vencidas (Receber)</div>
-        <div class="kpi-value" style="color:${kpis.vencidasReceber > 0 ? '#f59e0b' : 'var(--color-success)'};">${kpis.vencidasReceber}</div>
-        <div class="kpi-change ${kpis.vencidasReceber > 0 ? 'negative' : 'positive'}">${kpis.vencidasReceber > 0 ? 'Cobrança pendente' : 'Tudo em dia'}</div>
+    // ── KPI Cards Row 2 (grid-4) ────────────────────────────────────────
+    html += `<div class="grid-4 fn-kpi-grid" style="margin-bottom:24px;">
+      <div class="kpi-card">
+        <div class="kpi-label">Atrasados (Receber)</div>
+        <div class="kpi-value" style="color:${healthData.overdueRecTotal > 0 ? '#f59e0b' : 'var(--color-success)'};">${fmt.currency(healthData.overdueRecTotal)}</div>
+        <div class="kpi-change ${delinquency.totalCount > 0 ? 'negative' : 'positive'}">${delinquency.totalCount} parcelas</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-label">Margem Projetada</div>
-        <div class="kpi-value" style="color:${parseFloat(margemProj) >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${margemProj}%</div>
-        <div class="kpi-change neutral">Receitas vs Despesas 30d</div>
+        <div class="kpi-label">Clientes</div>
+        <div class="kpi-value">${clientBreakdown.totalClientes}</div>
+        <div class="kpi-change neutral">Ticket medio ${fmt.currency(clientBreakdown.ticketMedio)}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Concentracao Top 5</div>
+        <div class="kpi-value" style="color:${parseFloat(clientBreakdown.concentracaoTop5) > 60 ? '#f59e0b' : '#22c55e'};">${clientBreakdown.concentracaoTop5}%</div>
+        <div class="kpi-change ${parseFloat(clientBreakdown.concentracaoTop5) > 60 ? 'negative' : 'positive'}">${parseFloat(clientBreakdown.concentracaoTop5) > 60 ? 'Risco de dependencia' : 'Diversificado'}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Saldo Atual</div>
+        <div class="kpi-value" style="color:${saldoColor};">${fmt.currency(kpis.saldoAtual)}</div>
+        <div class="kpi-change neutral">${saldoDateStr}</div>
       </div>
     </div>`;
+
+    // ══════════════════════════════════════════════════════════════════════
+    // SEÇÃO 2 — INSIGHTS & ALERTAS
+    // ══════════════════════════════════════════════════════════════════════
+    html += this._renderInsightsSection(healthData, delinquency, clientBreakdown, kpis, fmt);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // SEÇÃO 3 — RECEITA × DESPESA MENSAL (gráfico Chart.js)
+    // ══════════════════════════════════════════════════════════════════════
+    html += `<div class="card" style="margin-bottom:16px;padding:16px;">
+      <div class="card-header" style="margin-bottom:12px;"><h3 class="card-title">
+        <i data-lucide="bar-chart-3" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:var(--accent);"></i>
+        Receita × Despesa Mensal
+      </h3></div>
+      <div style="position:relative;height:300px;">
+        <canvas id="fnChartRecDes"></canvas>
+      </div>
+    </div>`;
+
+    // ══════════════════════════════════════════════════════════════════════
+    // SEÇÃO 4 — RESULTADO MENSAL (gráfico Chart.js)
+    // ══════════════════════════════════════════════════════════════════════
+    html += `<div class="card" style="margin-bottom:16px;padding:16px;">
+      <div class="card-header" style="margin-bottom:12px;"><h3 class="card-title">
+        <i data-lucide="trending-up" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:var(--accent);"></i>
+        Resultado Mensal
+      </h3></div>
+      <div style="position:relative;height:280px;">
+        <canvas id="fnChartResultado"></canvas>
+      </div>
+    </div>`;
+
+    // ══════════════════════════════════════════════════════════════════════
+    // SEÇÃO 5 — COMPOSIÇÃO DE CUSTOS (donut + tabela)
+    // ══════════════════════════════════════════════════════════════════════
+    html += this._renderCostCompositionSection(costComp, fmt);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // SEÇÃO 6 — INADIMPLÊNCIA POR CLIENTE
+    // ══════════════════════════════════════════════════════════════════════
+    html += this._renderDelinquencySection(delinquency, fmt);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // SEÇÃO 7 — RANKING DE CLIENTES + DETALHAMENTO
+    // ══════════════════════════════════════════════════════════════════════
+    html += this._renderClientRankingSection(clientBreakdown, fmt);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // SEÇÃO 8 — AÇÕES RECOMENDADAS
+    // ══════════════════════════════════════════════════════════════════════
+    html += this._renderRecommendedActions(healthData, delinquency, clientBreakdown, kpis, fmt);
 
     // ── Seções: Top Centro de Custo + Top Projetos ──────────────────────
-    html += '<div class="grid-2" style="gap:16px;">';
+    html += '<div class="grid-2" style="gap:16px;margin-bottom:16px;">';
     html += `<div class="card">
       <div class="card-header"><h3 class="card-title">Top Centros de Custo (mês)</h3></div>
       ${this._renderBarChart(kpis.topCostCenters, fmt)}
@@ -2588,10 +2666,726 @@ const TBO_FINANCEIRO = {
 
     container.innerHTML = html;
 
+    // ── Event listeners ─────────────────────────────────────────────────
     const saveBalanceBtn = document.getElementById('fnSaveBalanceBtn');
     if (saveBalanceBtn) saveBalanceBtn.addEventListener('click', () => this._saveBalance());
 
     if (window.lucide) lucide.createIcons();
+
+    // ── Inicializar graficos Chart.js ────────────────────────────────────
+    this._initDashboardCharts(monthlyData);
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // SAÚDE FINANCEIRA — Score Gauge
+  // ═══════════════════════════════════════════════════════════════════════
+
+  _calcHealthScore(h) {
+    // Pontuacao de 0 a 100 baseada em 5 indicadores
+    let score = 0;
+
+    // 1. Margem operacional (peso 25) — margem > 10% = bom
+    const margemScore = Math.min(h.margem / 20 * 25, 25);
+    score += Math.max(margemScore, 0);
+
+    // 2. Inadimplencia (peso 25) — quanto menor melhor
+    const inadRate = h.receitaTotal > 0 ? (h.overdueRecTotal / h.receitaTotal) : 0;
+    score += Math.max(25 - (inadRate * 100), 0);
+
+    // 3. Pontualidade de pagamento (peso 20)
+    score += h.paymentOnTimeRatio * 20;
+
+    // 4. Pontualidade de recebimento (peso 15)
+    score += h.collectionOnTimeRatio * 15;
+
+    // 5. Cobertura de caixa 30d (peso 15) — saldo cobre compromissos
+    const cobScore = Math.min(h.cobertura30d, 2) / 2 * 15;
+    score += cobScore;
+
+    return Math.round(Math.max(0, Math.min(100, score)));
+  },
+
+  _renderFinHealthSection(healthData, fmt) {
+    const score = this._calcHealthScore(healthData);
+    let label, color, bgColor, icon;
+
+    if (score >= 80) {
+      label = 'Excelente'; color = '#22c55e'; bgColor = 'rgba(34,197,94,0.08)'; icon = 'shield-check';
+    } else if (score >= 60) {
+      label = 'Bom'; color = '#3b82f6'; bgColor = 'rgba(59,130,246,0.08)'; icon = 'shield';
+    } else if (score >= 40) {
+      label = 'Atencao'; color = '#f59e0b'; bgColor = 'rgba(245,158,11,0.08)'; icon = 'alert-triangle';
+    } else {
+      label = 'Critico'; color = '#ef4444'; bgColor = 'rgba(239,68,68,0.08)'; icon = 'shield-alert';
+    }
+
+    // SVG gauge arc
+    const radius = 54;
+    const circumference = Math.PI * radius; // semicirculo
+    const offset = circumference - (score / 100) * circumference;
+
+    return `
+    <div class="card" style="margin-bottom:16px;padding:20px;background:${bgColor};border:1px solid ${color}22;">
+      <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+        <!-- Gauge SVG -->
+        <div style="position:relative;width:130px;height:80px;flex-shrink:0;">
+          <svg viewBox="0 0 120 70" style="width:130px;height:80px;">
+            <!-- Track -->
+            <path d="M 6 64 A 54 54 0 0 1 114 64" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="8" stroke-linecap="round"/>
+            <!-- Fill -->
+            <path d="M 6 64 A 54 54 0 0 1 114 64" fill="none" stroke="${color}" stroke-width="8" stroke-linecap="round"
+              stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" style="transition:stroke-dashoffset 1s ease;"/>
+          </svg>
+          <div style="position:absolute;bottom:2px;left:50%;transform:translateX(-50%);text-align:center;">
+            <div style="font-size:1.5rem;font-weight:800;color:${color};">${score}</div>
+          </div>
+        </div>
+        <!-- Info -->
+        <div style="flex:1;min-width:200px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <i data-lucide="${icon}" style="width:20px;height:20px;color:${color};"></i>
+            <span style="font-size:1.1rem;font-weight:700;color:${color};">Saude Financeira: ${label}</span>
+          </div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:0.78rem;color:var(--text-secondary);">
+            <span>Margem: <strong style="color:${healthData.margem >= 0 ? '#22c55e' : '#ef4444'};">${healthData.margem.toFixed(1)}%</strong></span>
+            <span>Inadimplencia: <strong style="color:${healthData.overdueRecTotal > 0 ? '#ef4444' : '#22c55e'};">${fmt.currency(healthData.overdueRecTotal)}</strong></span>
+            <span>Pag. em dia: <strong>${Math.round(healthData.paymentOnTimeRatio * 100)}%</strong></span>
+            <span>Receb. em dia: <strong>${Math.round(healthData.collectionOnTimeRatio * 100)}%</strong></span>
+            <span>Cobertura 30d: <strong style="color:${healthData.cobertura30d >= 1 ? '#22c55e' : '#ef4444'};">${healthData.cobertura30d >= 100 ? '∞' : (healthData.cobertura30d * 100).toFixed(0) + '%'}</strong></span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // INSIGHTS & ALERTAS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  _renderInsightsSection(healthData, delinquency, clientBreakdown, kpis, fmt) {
+    const insights = [];
+
+    // ── Gerar insights automaticos ──────────────────────────────────────
+
+    // 1. Inadimplencia alta
+    if (delinquency.totalOverdue > 0) {
+      const pctInad = healthData.receitaTotal > 0
+        ? ((delinquency.totalOverdue / healthData.receitaTotal) * 100).toFixed(1)
+        : '0';
+      const topClient = delinquency.clients[0];
+      insights.push({
+        type: 'danger',
+        icon: 'alert-circle',
+        title: `Inadimplencia: ${fmt.currency(delinquency.totalOverdue)}`,
+        desc: `${delinquency.totalCount} parcelas atrasadas de ${delinquency.clients.length} clientes (${pctInad}% da receita). Maior devedor: ${topClient ? this._esc(topClient.clientName) + ' (' + fmt.currency(topClient.totalOverdue) + ')' : 'N/A'}.`
+      });
+    }
+
+    // 2. Margem apertada
+    if (healthData.margem < 5 && healthData.margem >= 0) {
+      insights.push({
+        type: 'warning',
+        icon: 'alert-triangle',
+        title: `Margem muito apertada: ${healthData.margem.toFixed(1)}%`,
+        desc: `O resultado esta positivo mas a margem e inferior a 5%. Qualquer imprevisto pode gerar prejuizo. Revise custos operacionais.`
+      });
+    } else if (healthData.margem < 0) {
+      insights.push({
+        type: 'danger',
+        icon: 'trending-down',
+        title: `Resultado negativo: margem ${healthData.margem.toFixed(1)}%`,
+        desc: `As despesas (${fmt.currency(healthData.despesaTotal)}) superam as receitas (${fmt.currency(healthData.receitaTotal)}). Deficit de ${fmt.currency(Math.abs(healthData.resultado))}.`
+      });
+    }
+
+    // 3. Concentracao de clientes
+    const concPct = parseFloat(clientBreakdown.concentracaoTop5);
+    if (concPct > 60) {
+      insights.push({
+        type: 'warning',
+        icon: 'users',
+        title: `Alta concentracao: Top 5 = ${clientBreakdown.concentracaoTop5}%`,
+        desc: `Mais de 60% da receita depende de apenas 5 clientes. Risco elevado caso algum deles rescinda contratos.`
+      });
+    }
+
+    // 4. Cobertura de caixa baixa
+    if (healthData.cobertura30d < 1 && healthData.upcoming30d > 0) {
+      insights.push({
+        type: 'danger',
+        icon: 'wallet',
+        title: 'Saldo insuficiente para 30 dias',
+        desc: `Saldo atual (${fmt.currency(healthData.saldoAtual)}) nao cobre compromissos dos proximos 30 dias (${fmt.currency(healthData.upcoming30d)}). Gap de ${fmt.currency(healthData.upcoming30d - healthData.saldoAtual)}.`
+      });
+    }
+
+    // 5. Contas vencidas a pagar
+    if (healthData.overduePayTotal > 0) {
+      insights.push({
+        type: 'warning',
+        icon: 'clock',
+        title: `Contas a pagar vencidas: ${fmt.currency(healthData.overduePayTotal)}`,
+        desc: `Existem ${kpis.vencidasPagar} contas a pagar com vencimento ultrapassado. Risco de juros e multa.`
+      });
+    }
+
+    // 6. Boa performance
+    if (healthData.margem >= 10 && delinquency.totalCount === 0 && healthData.paymentOnTimeRatio >= 0.9) {
+      insights.push({
+        type: 'success',
+        icon: 'check-circle',
+        title: 'Performance financeira excelente',
+        desc: `Margem de ${healthData.margem.toFixed(1)}%, zero inadimplencia e ${Math.round(healthData.paymentOnTimeRatio * 100)}% dos pagamentos em dia. Continue assim!`
+      });
+    }
+
+    // 7. Pontualidade de recebimento baixa
+    if (healthData.collectionOnTimeRatio < 0.7 && healthData.totalReceivables > 5) {
+      insights.push({
+        type: 'warning',
+        icon: 'calendar-x',
+        title: `Recebimentos atrasados frequentes`,
+        desc: `Apenas ${Math.round(healthData.collectionOnTimeRatio * 100)}% dos recebimentos dos ultimos 90 dias foram pontuais. Considere rever politica de cobranca.`
+      });
+    }
+
+    if (insights.length === 0) {
+      insights.push({
+        type: 'info',
+        icon: 'info',
+        title: 'Sem alertas no momento',
+        desc: 'Todos os indicadores financeiros estao dentro dos parametros normais.'
+      });
+    }
+
+    const typeColors = {
+      danger:  { bg: 'rgba(239,68,68,0.06)', border: 'rgba(239,68,68,0.2)', color: '#ef4444' },
+      warning: { bg: 'rgba(245,158,11,0.06)', border: 'rgba(245,158,11,0.2)', color: '#f59e0b' },
+      success: { bg: 'rgba(34,197,94,0.06)',  border: 'rgba(34,197,94,0.2)',  color: '#22c55e' },
+      info:    { bg: 'rgba(59,130,246,0.06)',  border: 'rgba(59,130,246,0.2)', color: '#3b82f6' }
+    };
+
+    let html = `<div class="card" style="margin-bottom:16px;padding:16px;">
+      <div class="card-header" style="margin-bottom:12px;"><h3 class="card-title">
+        <i data-lucide="sparkles" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:var(--accent);"></i>
+        Insights & Alertas
+      </h3></div>
+      <div style="display:flex;flex-direction:column;gap:8px;">`;
+
+    insights.forEach(ins => {
+      const tc = typeColors[ins.type] || typeColors.info;
+      html += `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;background:${tc.bg};border:1px solid ${tc.border};border-radius:8px;">
+        <i data-lucide="${ins.icon}" style="width:18px;height:18px;color:${tc.color};flex-shrink:0;margin-top:1px;"></i>
+        <div>
+          <div style="font-weight:600;font-size:0.85rem;color:${tc.color};margin-bottom:2px;">${ins.title}</div>
+          <div style="font-size:0.78rem;color:var(--text-secondary);line-height:1.4;">${ins.desc}</div>
+        </div>
+      </div>`;
+    });
+
+    html += '</div></div>';
+    return html;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // COMPOSIÇÃO DE CUSTOS (Donut + Tabela)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  _renderCostCompositionSection(costComp, fmt) {
+    const { byCategory, byCostCenter, totalDespesas } = costComp;
+
+    // Cores para donut
+    const donutColors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1', '#14b8a6', '#e11d48'];
+
+    let html = `<div class="card" style="margin-bottom:16px;padding:16px;">
+      <div class="card-header" style="margin-bottom:12px;"><h3 class="card-title">
+        <i data-lucide="pie-chart" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:var(--accent);"></i>
+        Composicao de Custos
+      </h3>
+      <span style="font-size:0.78rem;color:var(--text-secondary);margin-left:auto;">Total: ${fmt.currency(totalDespesas)}</span>
+      </div>`;
+
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">';
+
+    // ── Donut chart (canvas) ──
+    html += `<div style="position:relative;display:flex;align-items:center;justify-content:center;">
+      <canvas id="fnChartDonut" style="max-height:260px;"></canvas>
+    </div>`;
+
+    // ── Tabela de categorias ──
+    html += '<div style="overflow-x:auto;"><table style="width:100%;font-size:0.8rem;border-collapse:collapse;">';
+    html += '<thead><tr style="border-bottom:1px solid var(--border-color);">';
+    html += '<th style="text-align:left;padding:6px 8px;font-weight:600;">Categoria</th>';
+    html += '<th style="text-align:right;padding:6px 8px;font-weight:600;">Valor</th>';
+    html += '<th style="text-align:right;padding:6px 8px;font-weight:600;">%</th>';
+    html += '<th style="text-align:right;padding:6px 8px;font-weight:600;">Qtd</th>';
+    html += '</tr></thead><tbody>';
+
+    byCategory.slice(0, 12).forEach((cat, i) => {
+      const pct = totalDespesas > 0 ? ((cat.total / totalDespesas) * 100).toFixed(1) : '0.0';
+      const color = donutColors[i % donutColors.length];
+      html += `<tr style="border-bottom:1px solid var(--border-color-light);">
+        <td style="padding:5px 8px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:6px;vertical-align:middle;"></span>${this._esc(cat.name)}</td>
+        <td style="text-align:right;padding:5px 8px;font-weight:500;">${fmt.currency(cat.total)}</td>
+        <td style="text-align:right;padding:5px 8px;color:var(--text-secondary);">${pct}%</td>
+        <td style="text-align:right;padding:5px 8px;color:var(--text-secondary);">${cat.count}</td>
+      </tr>`;
+    });
+
+    html += '</tbody></table></div>';
+    html += '</div>'; // grid
+
+    // ── Centro de Custo breakdown ──
+    if (byCostCenter.length > 0) {
+      html += `<div style="margin-top:16px;">
+        <div style="font-weight:600;font-size:0.82rem;margin-bottom:8px;color:var(--text-primary);">Por Centro de Custo</div>`;
+      const maxCC = Math.max(...byCostCenter.map(c => c.total), 1);
+      byCostCenter.slice(0, 8).forEach(cc => {
+        const pct = Math.max(Math.round((cc.total / maxCC) * 100), 3);
+        const pctTotal = totalDespesas > 0 ? ((cc.total / totalDespesas) * 100).toFixed(1) : '0';
+        html += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:5px;font-size:0.78rem;">
+          <span style="width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${this._esc(cc.name)}">${this._esc(cc.name)}</span>
+          <div style="flex:1;height:14px;background:var(--bg-tertiary);border-radius:4px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:linear-gradient(90deg, #3b82f6, #8b5cf6);border-radius:4px;transition:width 0.3s;"></div>
+          </div>
+          <span style="width:90px;text-align:right;font-weight:500;">${fmt.currency(cc.total)}</span>
+          <span style="width:40px;text-align:right;color:var(--text-secondary);">${pctTotal}%</span>
+        </div>`;
+      });
+      html += '</div>';
+    }
+
+    html += '</div>';
+    return html;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // INADIMPLÊNCIA POR CLIENTE
+  // ═══════════════════════════════════════════════════════════════════════
+
+  _renderDelinquencySection(delinquency, fmt) {
+    if (delinquency.clients.length === 0) {
+      return `<div class="card" style="margin-bottom:16px;padding:16px;">
+        <div class="card-header"><h3 class="card-title">
+          <i data-lucide="user-x" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:var(--accent);"></i>
+          Inadimplencia por Cliente
+        </h3></div>
+        <div style="text-align:center;padding:24px;color:var(--text-secondary);font-size:0.85rem;">
+          <i data-lucide="check-circle" style="width:32px;height:32px;color:#22c55e;margin-bottom:8px;"></i>
+          <p>Nenhuma inadimplencia! Todos os clientes estao em dia.</p>
+        </div>
+      </div>`;
+    }
+
+    let html = `<div class="card" style="margin-bottom:16px;padding:16px;">
+      <div class="card-header" style="margin-bottom:12px;">
+        <h3 class="card-title">
+          <i data-lucide="user-x" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:#ef4444;"></i>
+          Inadimplencia por Cliente
+        </h3>
+        <span style="font-size:0.78rem;color:#ef4444;font-weight:600;margin-left:auto;">${fmt.currency(delinquency.totalOverdue)} em atraso</span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;font-size:0.8rem;border-collapse:collapse;">
+          <thead><tr style="border-bottom:2px solid var(--border-color);">
+            <th style="text-align:left;padding:8px;">Cliente</th>
+            <th style="text-align:right;padding:8px;">Valor em Atraso</th>
+            <th style="text-align:center;padding:8px;">Parcelas</th>
+            <th style="text-align:center;padding:8px;">Dias Atraso</th>
+            <th style="text-align:center;padding:8px;">Gravidade</th>
+          </tr></thead>
+          <tbody>`;
+
+    delinquency.clients.forEach(c => {
+      let severity, sevColor;
+      if (c.daysOverdue > 60) { severity = 'Critico'; sevColor = '#ef4444'; }
+      else if (c.daysOverdue > 30) { severity = 'Alto'; sevColor = '#f97316'; }
+      else if (c.daysOverdue > 15) { severity = 'Medio'; sevColor = '#f59e0b'; }
+      else { severity = 'Baixo'; sevColor = '#eab308'; }
+
+      html += `<tr style="border-bottom:1px solid var(--border-color-light);">
+        <td style="padding:8px;">
+          <div style="font-weight:600;">${this._esc(c.clientName)}</div>
+          ${c.email ? `<div style="font-size:0.72rem;color:var(--text-secondary);">${this._esc(c.email)}</div>` : ''}
+        </td>
+        <td style="text-align:right;padding:8px;font-weight:600;color:#ef4444;">${fmt.currency(c.totalOverdue)}</td>
+        <td style="text-align:center;padding:8px;">${c.count}</td>
+        <td style="text-align:center;padding:8px;font-weight:500;">${c.daysOverdue}d</td>
+        <td style="text-align:center;padding:8px;">
+          <span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:600;background:${sevColor}18;color:${sevColor};">${severity}</span>
+        </td>
+      </tr>`;
+    });
+
+    html += '</tbody></table></div></div>';
+    return html;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // RANKING DE CLIENTES + DETALHAMENTO
+  // ═══════════════════════════════════════════════════════════════════════
+
+  _renderClientRankingSection(clientBreakdown, fmt) {
+    const { clients, receitaTotal } = clientBreakdown;
+
+    if (clients.length === 0) {
+      return `<div class="card" style="margin-bottom:16px;padding:16px;">
+        <div class="card-header"><h3 class="card-title">Ranking de Clientes por Receita</h3></div>
+        <div style="text-align:center;padding:24px;color:var(--text-secondary);">Sem dados de clientes.</div>
+      </div>`;
+    }
+
+    // ── Ranking visual (top 10 barras) ──
+    let html = `<div class="card" style="margin-bottom:16px;padding:16px;">
+      <div class="card-header" style="margin-bottom:12px;"><h3 class="card-title">
+        <i data-lucide="trophy" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:var(--accent);"></i>
+        Ranking de Clientes por Receita
+      </h3></div>`;
+
+    const maxRev = clients.length > 0 ? clients[0].receita : 1;
+    clients.slice(0, 10).forEach((c, i) => {
+      const pct = Math.max(Math.round((c.receita / maxRev) * 100), 3);
+      const pctTotal = receitaTotal > 0 ? ((c.receita / receitaTotal) * 100).toFixed(1) : '0';
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
+      html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:0.8rem;">
+        <span style="width:28px;text-align:center;font-size:${i < 3 ? '1rem' : '0.75rem'};font-weight:600;color:var(--text-secondary);">${medal}</span>
+        <span style="width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;" title="${this._esc(c.name)}">${this._esc(c.name)}</span>
+        <div style="flex:1;height:16px;background:var(--bg-tertiary);border-radius:4px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:linear-gradient(90deg, #22c55e, #3b82f6);border-radius:4px;transition:width 0.3s;"></div>
+        </div>
+        <span style="width:90px;text-align:right;font-weight:600;">${fmt.currency(c.receita)}</span>
+        <span style="width:40px;text-align:right;color:var(--text-secondary);font-size:0.75rem;">${pctTotal}%</span>
+      </div>`;
+    });
+
+    html += '</div>';
+
+    // ── Tabela detalhada ──
+    html += `<div class="card" style="margin-bottom:16px;padding:16px;">
+      <div class="card-header" style="margin-bottom:12px;"><h3 class="card-title">
+        <i data-lucide="table" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:var(--accent);"></i>
+        Detalhamento por Cliente
+      </h3></div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;font-size:0.8rem;border-collapse:collapse;">
+          <thead><tr style="border-bottom:2px solid var(--border-color);">
+            <th style="text-align:center;padding:8px;width:30px;">#</th>
+            <th style="text-align:left;padding:8px;">Cliente</th>
+            <th style="text-align:right;padding:8px;">Receita</th>
+            <th style="text-align:center;padding:8px;">Parcelas</th>
+            <th style="text-align:center;padding:8px;">% Pago</th>
+            <th style="text-align:right;padding:8px;">Em Atraso</th>
+            <th style="text-align:center;padding:8px;">Status</th>
+          </tr></thead>
+          <tbody>`;
+
+    clients.forEach((c, i) => {
+      html += `<tr style="border-bottom:1px solid var(--border-color-light);">
+        <td style="text-align:center;padding:6px 8px;color:var(--text-secondary);font-weight:500;">${i + 1}</td>
+        <td style="padding:6px 8px;font-weight:500;">${this._esc(c.name)}</td>
+        <td style="text-align:right;padding:6px 8px;font-weight:600;">${fmt.currency(c.receita)}</td>
+        <td style="text-align:center;padding:6px 8px;">${c.parcelas}</td>
+        <td style="text-align:center;padding:6px 8px;">
+          <div style="display:flex;align-items:center;gap:6px;justify-content:center;">
+            <div style="width:50px;height:6px;background:var(--bg-tertiary);border-radius:3px;overflow:hidden;">
+              <div style="height:100%;width:${c.pctPago}%;background:${c.pctPago >= 90 ? '#22c55e' : c.pctPago >= 50 ? '#3b82f6' : '#f59e0b'};border-radius:3px;"></div>
+            </div>
+            <span style="font-size:0.75rem;font-weight:500;">${c.pctPago}%</span>
+          </div>
+        </td>
+        <td style="text-align:right;padding:6px 8px;color:${c.atrasado > 0 ? '#ef4444' : 'var(--text-secondary)'};">${c.atrasado > 0 ? fmt.currency(c.atrasado) : '—'}</td>
+        <td style="text-align:center;padding:6px 8px;">
+          <span style="display:inline-block;padding:2px 10px;border-radius:10px;font-size:0.72rem;font-weight:600;background:${c.statusColor}18;color:${c.statusColor};">${c.statusLabel}</span>
+        </td>
+      </tr>`;
+    });
+
+    html += '</tbody></table></div></div>';
+    return html;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // AÇÕES RECOMENDADAS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  _renderRecommendedActions(healthData, delinquency, clientBreakdown, kpis, fmt) {
+    const actions = [];
+
+    // 1. Cobrar inadimplentes
+    if (delinquency.clients.length > 0) {
+      const topDelinquent = delinquency.clients[0];
+      actions.push({
+        icon: 'phone-call',
+        color: '#ef4444',
+        priority: 'Urgente',
+        title: 'Cobrar clientes inadimplentes',
+        desc: `${delinquency.clients.length} cliente(s) com parcelas atrasadas. Priorizar ${this._esc(topDelinquent.clientName)} (${fmt.currency(topDelinquent.totalOverdue)}, ${topDelinquent.daysOverdue} dias).`,
+        action: 'Enviar cobranca'
+      });
+    }
+
+    // 2. Regularizar contas vencidas a pagar
+    if (healthData.overduePayTotal > 0) {
+      actions.push({
+        icon: 'credit-card',
+        color: '#f59e0b',
+        priority: 'Alta',
+        title: 'Regularizar contas a pagar vencidas',
+        desc: `${fmt.currency(healthData.overduePayTotal)} em contas a pagar com vencimento ultrapassado. Evitar juros e multas.`,
+        action: 'Ver contas vencidas'
+      });
+    }
+
+    // 3. Registrar saldo
+    if (!kpis.saldoDate || (Date.now() - new Date(kpis.saldoDate).getTime()) > 7 * 86400000) {
+      actions.push({
+        icon: 'landmark',
+        color: '#3b82f6',
+        priority: 'Media',
+        title: 'Atualizar saldo bancario',
+        desc: kpis.saldoDate
+          ? `Ultimo registro de saldo foi ${new Date(kpis.saldoDate).toLocaleDateString('pt-BR')}. Mantenha atualizado para projecoes precisas.`
+          : 'Nenhum saldo registrado. Registre o saldo bancario atual para habilitar projecoes de caixa.',
+        action: 'Registrar saldo'
+      });
+    }
+
+    // 4. Diversificar base de clientes
+    const conc = parseFloat(clientBreakdown.concentracaoTop5);
+    if (conc > 60) {
+      actions.push({
+        icon: 'users',
+        color: '#8b5cf6',
+        priority: 'Estrategica',
+        title: 'Diversificar base de clientes',
+        desc: `Top 5 clientes representam ${clientBreakdown.concentracaoTop5}% da receita. Busque novos clientes para reduzir risco de concentracao.`,
+        action: 'Ver pipeline CRM'
+      });
+    }
+
+    // 5. Revisar custos
+    if (healthData.margem < 10 && healthData.margem >= 0) {
+      actions.push({
+        icon: 'scissors',
+        color: '#f97316',
+        priority: 'Media',
+        title: 'Revisar estrutura de custos',
+        desc: `Margem de ${healthData.margem.toFixed(1)}% esta abaixo do ideal (>10%). Analise a composicao de custos e identifique oportunidades de reducao.`,
+        action: 'Ver custos'
+      });
+    }
+
+    // 6. Melhorar pontualidade de recebimento
+    if (healthData.collectionOnTimeRatio < 0.8 && healthData.totalReceivables > 5) {
+      actions.push({
+        icon: 'calendar-check',
+        color: '#06b6d4',
+        priority: 'Media',
+        title: 'Melhorar pontualidade de recebimentos',
+        desc: `Apenas ${Math.round(healthData.collectionOnTimeRatio * 100)}% dos recebimentos foram pontuais. Considere enviar lembretes automaticos antes do vencimento.`,
+        action: 'Configurar lembretes'
+      });
+    }
+
+    if (actions.length === 0) {
+      return `<div class="card" style="margin-bottom:16px;padding:16px;">
+        <div class="card-header"><h3 class="card-title">
+          <i data-lucide="lightbulb" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:var(--accent);"></i>
+          Acoes Recomendadas
+        </h3></div>
+        <div style="text-align:center;padding:20px;color:var(--text-secondary);font-size:0.85rem;">
+          <i data-lucide="thumbs-up" style="width:28px;height:28px;color:#22c55e;margin-bottom:8px;"></i>
+          <p>Tudo em ordem! Nenhuma acao urgente no momento.</p>
+        </div>
+      </div>`;
+    }
+
+    let html = `<div class="card" style="margin-bottom:16px;padding:16px;">
+      <div class="card-header" style="margin-bottom:12px;"><h3 class="card-title">
+        <i data-lucide="lightbulb" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:var(--accent);"></i>
+        Acoes Recomendadas
+      </h3></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:12px;">`;
+
+    actions.forEach(a => {
+      const prioColors = {
+        'Urgente': '#ef4444', 'Alta': '#f59e0b', 'Media': '#3b82f6', 'Estrategica': '#8b5cf6'
+      };
+      const prioColor = prioColors[a.priority] || '#6b7280';
+
+      html += `<div style="border:1px solid ${a.color}22;border-radius:10px;padding:14px;background:${a.color}06;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <i data-lucide="${a.icon}" style="width:16px;height:16px;color:${a.color};"></i>
+          <span style="font-weight:600;font-size:0.85rem;color:var(--text-primary);flex:1;">${a.title}</span>
+          <span style="font-size:0.68rem;font-weight:600;padding:2px 6px;border-radius:6px;background:${prioColor}18;color:${prioColor};">${a.priority}</span>
+        </div>
+        <div style="font-size:0.78rem;color:var(--text-secondary);line-height:1.4;margin-bottom:10px;">${a.desc}</div>
+      </div>`;
+    });
+
+    html += '</div></div>';
+    return html;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // CHARTS — Inicialização Chart.js
+  // ═══════════════════════════════════════════════════════════════════════
+
+  _initDashboardCharts(monthlyData) {
+    if (typeof Chart === 'undefined') {
+      console.warn('[Financeiro] Chart.js nao disponivel, graficos desabilitados.');
+      return;
+    }
+
+    // Destruir charts anteriores
+    if (this._chartRecDes) { this._chartRecDes.destroy(); this._chartRecDes = null; }
+    if (this._chartResultado) { this._chartResultado.destroy(); this._chartResultado = null; }
+    if (this._chartDonut) { this._chartDonut.destroy(); this._chartDonut = null; }
+
+    const labels = monthlyData.map(m => m.label);
+    const receitas = monthlyData.map(m => m.receita);
+    const despesas = monthlyData.map(m => m.despesa);
+    const resultados = monthlyData.map(m => m.resultado);
+
+    // Acumulado
+    let acum = 0;
+    const acumulado = monthlyData.map(m => { acum += m.resultado; return acum; });
+
+    const chartDefaults = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#94a3b8', font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${ctx.dataset.label}: R$ ${(ctx.raw || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: {
+          ticks: {
+            color: '#64748b', font: { size: 10 },
+            callback: (v) => 'R$ ' + (v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v)
+          },
+          grid: { color: 'rgba(255,255,255,0.04)' }
+        }
+      }
+    };
+
+    // ── Grafico Receita × Despesa ──
+    const ctxRD = document.getElementById('fnChartRecDes');
+    if (ctxRD) {
+      this._chartRecDes = new Chart(ctxRD, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Receita',
+              data: receitas,
+              backgroundColor: 'rgba(34,197,94,0.7)',
+              borderColor: '#22c55e',
+              borderWidth: 1,
+              borderRadius: 4,
+              barPercentage: 0.4,
+              categoryPercentage: 0.8
+            },
+            {
+              label: 'Despesa',
+              data: despesas,
+              backgroundColor: 'rgba(239,68,68,0.7)',
+              borderColor: '#ef4444',
+              borderWidth: 1,
+              borderRadius: 4,
+              barPercentage: 0.4,
+              categoryPercentage: 0.8
+            },
+            {
+              label: 'Acumulado',
+              data: acumulado,
+              type: 'line',
+              borderColor: '#3b82f6',
+              backgroundColor: 'rgba(59,130,246,0.1)',
+              borderWidth: 2,
+              pointRadius: 3,
+              pointBackgroundColor: '#3b82f6',
+              fill: true,
+              tension: 0.3,
+              yAxisID: 'y'
+            }
+          ]
+        },
+        options: chartDefaults
+      });
+    }
+
+    // ── Grafico Resultado Mensal ──
+    const ctxRes = document.getElementById('fnChartResultado');
+    if (ctxRes) {
+      this._chartResultado = new Chart(ctxRes, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Resultado',
+            data: resultados,
+            backgroundColor: resultados.map(v => v >= 0 ? 'rgba(34,197,94,0.7)' : 'rgba(239,68,68,0.7)'),
+            borderColor: resultados.map(v => v >= 0 ? '#22c55e' : '#ef4444'),
+            borderWidth: 1,
+            borderRadius: 4
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          plugins: {
+            ...chartDefaults.plugins,
+            legend: { display: false }
+          }
+        }
+      });
+    }
+
+    // ── Donut Composicao de Custos ──
+    const ctxDonut = document.getElementById('fnChartDonut');
+    if (ctxDonut && this._dashData) {
+      const cats = this._dashData.costComp.byCategory.slice(0, 10);
+      const donutColors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1'];
+
+      this._chartDonut = new Chart(ctxDonut, {
+        type: 'doughnut',
+        data: {
+          labels: cats.map(c => c.name),
+          datasets: [{
+            data: cats.map(c => c.total),
+            backgroundColor: donutColors.slice(0, cats.length),
+            borderColor: 'rgba(0,0,0,0.2)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          cutout: '55%',
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: '#94a3b8', font: { size: 10 }, padding: 8, boxWidth: 12 }
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const total = ctx.dataset.data.reduce((s, v) => s + v, 0);
+                  const pct = total > 0 ? ((ctx.raw / total) * 100).toFixed(1) : '0';
+                  return `${ctx.label}: R$ ${ctx.raw.toLocaleString('pt-BR')} (${pct}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
   },
 
   // ═══════════════════════════════════════════════════════════════════════

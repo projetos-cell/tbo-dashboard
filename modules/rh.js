@@ -99,6 +99,22 @@ const TBO_RH = {
     // RBAC: usa canDo para verificar permissao de gestao de usuarios
     return TBO_AUTH.canDo('users', 'edit') || TBO_AUTH.getCurrentUser()?.isCoordinator;
   },
+
+  // Diretoria: founder, owner, admin (co-CEOs + admins)
+  _isDiretoria() {
+    if (typeof TBO_AUTH === 'undefined') return true;
+    return TBO_AUTH.isAdmin(); // founder || owner || admin
+  },
+
+  // PO, Coordenador ou Diretoria — pode ver 1:1s & Rituais
+  _canSee1on1s() {
+    if (typeof TBO_AUTH === 'undefined') return true;
+    if (this._isDiretoria()) return true;
+    const u = TBO_AUTH.getCurrentUser();
+    if (!u) return false;
+    return u.role === 'project_owner' || u.role === 'coordinator' || u.isCoordinator;
+  },
+
   _currentUserId() {
     if (typeof TBO_AUTH === 'undefined') return 'marco';
     const u = TBO_AUTH.getCurrentUser();
@@ -425,6 +441,16 @@ const TBO_RH = {
   // RENDER (main entry point)
   // ══════════════════════════════════════════════════════════════════
   render() {
+    // Deep link: ler tab da URL (ex: #rh/performance → _activeTab = 'performance')
+    const hash = (window.location.hash || '').replace('#', '');
+    if (hash.startsWith('rh/')) {
+      const tabFromUrl = hash.split('/')[1];
+      const validTabs = ['visao-geral', 'performance', 'cultura', 'one-on-ones', 'analytics'];
+      if (validTabs.includes(tabFromUrl)) {
+        this._activeTab = tabFromUrl;
+      }
+    }
+
     // v2.3: Garantir _team preenchido antes do seed data (que referencia _team)
     if (!this._team.length) this._team = [...this._teamSeed];
 
@@ -467,8 +493,8 @@ const TBO_RH = {
           <button class="tab ${tab === 'visao-geral' ? 'active' : ''}" data-tab="visao-geral">Visao Geral</button>
           <button class="tab ${tab === 'performance' ? 'active' : ''}" data-tab="performance">Performance & PDI</button>
           <button class="tab ${tab === 'cultura' ? 'active' : ''}" data-tab="cultura">Cultura & Reconhecimento</button>
-          <button class="tab ${tab === 'one-on-ones' ? 'active' : ''}" data-tab="one-on-ones">1:1s & Rituais</button>
-          <button class="tab ${tab === 'analytics' ? 'active' : ''}" data-tab="analytics">Analytics</button>
+          ${this._canSee1on1s() ? `<button class="tab ${tab === 'one-on-ones' ? 'active' : ''}" data-tab="one-on-ones">1:1s & Rituais</button>` : ''}
+          ${this._isDiretoria() ? `<button class="tab ${tab === 'analytics' ? 'active' : ''}" data-tab="analytics">Analytics</button>` : ''}
         </div>
 
         <div id="rhTabContent">
@@ -479,6 +505,14 @@ const TBO_RH = {
   },
 
   _renderActiveTab() {
+    // Guard: impedir acesso a tabs restritas via estado direto
+    if (this._activeTab === 'one-on-ones' && !this._canSee1on1s()) {
+      this._activeTab = 'visao-geral';
+    }
+    if (this._activeTab === 'analytics' && !this._isDiretoria()) {
+      this._activeTab = 'visao-geral';
+    }
+
     switch (this._activeTab) {
       case 'visao-geral':  return this._renderVisaoGeral();
       case 'performance':  return this._renderPerformance();
@@ -2174,6 +2208,10 @@ const TBO_RH = {
 
         this._activeTab = tab.dataset.tab;
 
+        // Atualizar URL hash para deep link (sem re-renderizar modulo)
+        const newHash = this._activeTab === 'visao-geral' ? 'rh' : `rh/${this._activeTab}`;
+        history.replaceState(null, '', '#' + newHash);
+
         // Atualizar visual da tab bar sem re-renderizar
         document.querySelectorAll('#rhMainTabs .tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
@@ -2185,11 +2223,41 @@ const TBO_RH = {
           this._initActiveTab();
         }
         if (typeof TBO_UX !== 'undefined') TBO_UX.updateBreadcrumb('rh', tab.textContent.trim());
+
+        // Atualizar item ativo na sidebar
+        if (typeof TBO_SIDEBAR_RENDERER !== 'undefined') {
+          TBO_SIDEBAR_RENDERER.setActive(newHash);
+        }
       });
     });
 
+    // Deep link: hashchange para navegar entre tabs via sidebar sem re-render completo
+    this._hashChangeHandler = () => {
+      const hash = (window.location.hash || '').replace('#', '');
+      if (!hash.startsWith('rh')) return; // so processar rotas do RH
+
+      const validTabs = ['visao-geral', 'performance', 'cultura', 'one-on-ones', 'analytics'];
+      const tabFromUrl = hash.includes('/') ? hash.split('/')[1] : 'visao-geral';
+      if (!validTabs.includes(tabFromUrl) || tabFromUrl === this._activeTab) return;
+
+      // Simular click na tab correspondente
+      const tabBtn = document.querySelector(`#rhMainTabs .tab[data-tab="${tabFromUrl}"]`);
+      if (tabBtn) {
+        tabBtn.click();
+      }
+    };
+    window.addEventListener('hashchange', this._hashChangeHandler);
+
     // Inicializar bindings da tab ativa
     this._initActiveTab();
+  },
+
+  // Cleanup: remover listener ao sair do modulo
+  destroy() {
+    if (this._hashChangeHandler) {
+      window.removeEventListener('hashchange', this._hashChangeHandler);
+      this._hashChangeHandler = null;
+    }
   },
 
   // ── Init bindings para a tab ativa (chamado no init e ao trocar tab) ──

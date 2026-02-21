@@ -59,7 +59,11 @@ const TBO_SIDEBAR_RENDERER = (() => {
   // ── Render: Item do sistema ─────────────────────────────────────────────
 
   function _renderSystemItem(item) {
-    const isActive = _activeRoute && item.route === _activeRoute;
+    // Match exato ou base (rh/performance matcheia item.route='rh')
+    const isActive = _activeRoute && (
+      item.route === _activeRoute ||
+      (_activeRoute.includes('/') && item.route === _activeRoute.split('/')[0])
+    );
     const badge = typeof TBO_SIDEBAR_SERVICE !== 'undefined'
       ? TBO_SIDEBAR_SERVICE.getBadge(item.id)
       : 0;
@@ -168,7 +172,11 @@ const TBO_SIDEBAR_RENDERER = (() => {
   function _renderChildItem(child) {
     const icon = child.icon || 'file';
     const title = _escHtml(child.name);
-    const isActive = _activeRoute && child.route === _activeRoute;
+    // Match exato ou rota base (ex: _activeRoute='rh/performance' matcheia child.route='rh/performance' OU 'rh')
+    const isActive = _activeRoute && (
+      child.route === _activeRoute ||
+      (_activeRoute.includes('/') && child.route === _activeRoute.split('/')[0])
+    );
     return `<div class="nsb-ws-item nsb-ws-child${isActive ? ' nsb-item--active' : ''}" data-child-route="${_escHtml(child.route)}" title="${title}">
       <i data-lucide="${_escHtml(icon)}"></i>
       <span class="nsb-ws-item-label">${title}</span>
@@ -543,8 +551,8 @@ const TBO_SIDEBAR_RENDERER = (() => {
     _container.innerHTML = _renderSkeleton();
     _container.classList.add('nsb-container');
 
-    // Detectar rota atual
-    _activeRoute = (window.location.hash || '#dashboard').replace('#', '').split('/')[0];
+    // Detectar rota atual (full route para deep links como rh/performance)
+    _activeRoute = (window.location.hash || '#dashboard').replace('#', '');
 
     // Inicializar service
     if (typeof TBO_SIDEBAR_SERVICE !== 'undefined') {
@@ -559,7 +567,7 @@ const TBO_SIDEBAR_RENDERER = (() => {
 
     // Escutar mudanças de rota
     window.addEventListener('hashchange', () => {
-      const newRoute = (window.location.hash || '#dashboard').replace('#', '').split('/')[0];
+      const newRoute = (window.location.hash || '#dashboard').replace('#', '');
       setActive(newRoute);
     });
   }
@@ -580,8 +588,17 @@ const TBO_SIDEBAR_RENDERER = (() => {
       el.classList.remove('nsb-item--active');
     });
 
-    // Adicionar active ao item correspondente
-    const activeItem = _container.querySelector(`[data-route="${route}"]`);
+    // Tentar match exato primeiro (deep link: rh/performance)
+    let activeItem = _container.querySelector(`[data-route="${route}"]`) ||
+                     _container.querySelector(`[data-child-route="${route}"]`);
+
+    // Fallback: match pela rota base (rh/performance → rh)
+    if (!activeItem && route.includes('/')) {
+      const base = route.split('/')[0];
+      activeItem = _container.querySelector(`[data-route="${base}"]`) ||
+                   _container.querySelector(`[data-child-route="${base}"]`);
+    }
+
     if (activeItem) {
       activeItem.classList.add('nsb-item--active');
     }

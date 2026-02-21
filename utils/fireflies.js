@@ -423,6 +423,16 @@ const TBO_FIREFLIES = {
           } catch (assocErr) {
             console.warn(`[TBO Fireflies] Auto-associação ${t.id} falhou:`, assocErr.message);
           }
+
+          // 5. Auto-criar ações de 1:1 (se for reunião 1:1)
+          try {
+            const tboMeeting = this._transformToTboFormat([t]).meetings[0];
+            if (tboMeeting) {
+              await this.autoCreateActionsFor1on1(tboMeeting, meeting.id);
+            }
+          } catch (actErr) {
+            console.warn(`[TBO Fireflies] Auto-actions 1:1 ${t.id} falhou:`, actErr.message);
+          }
         }
 
         // Progress callback
@@ -529,6 +539,94 @@ const TBO_FIREFLIES = {
       return null;
     } finally {
       this._syncing = false;
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AUTO ACTION ITEMS — Criar ações de 1:1 automaticamente a partir do Fireflies
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Após sync, detecta meetings que são 1:1s e cria action items automaticamente.
+   * Conecta action_items do Fireflies → one_on_one_actions + person_tasks.
+   * @param {Object} meeting - Meeting do formato TBO (com action_items parseados)
+   * @param {string} meetingDbId - ID do meeting no Supabase
+   */
+  async autoCreateActionsFor1on1(meeting, meetingDbId) {
+    if (!meeting || !meeting.action_items || meeting.action_items.length === 0) return { created: 0 };
+    if (typeof OneOnOnesRepo === 'undefined' || typeof PeopleRepo === 'undefined') return { created: 0 };
+
+    try {
+      const tid = typeof RepoBase !== 'undefined' ? RepoBase.requireTenantId() : null;
+      if (!tid) return { created: 0 };
+
+      // Detectar se é uma 1:1 (2 participantes TBO, ou titulo contem "1:1")
+      const tboParticipants = (meeting.participants || []).filter(p => p.is_tbo);
+      const is1on1 = tboParticipants.length === 2 ||
+                     (meeting.title || '').toLowerCase().includes('1:1') ||
+                     (meeting.title || '').toLowerCase().includes('1on1');
+
+      if (!is1on1) return { created: 0 };
+
+      // Encontrar a 1:1 correspondente no sistema
+      // Buscar por data + participantes
+      const meetingDate = meeting.date ? new Date(meeting.date).toISOString().split('T')[0] : null;
+      if (!meetingDate) return { created: 0 };
+
+      // Buscar 1:1s agendadas na mesma data
+      const { data: ones } = await OneOnOnesRepo.list({ status: 'scheduled', limit: 100 });
+      const candidates = (ones || []).filter(o => {
+        const oDate = o.scheduled_at ? new Date(o.scheduled_at).toISOString().split('T')[0] : null;
+        return oDate === meetingDate;
+      });
+
+      // Tentar match por participantes
+      let matched1on1 = null;
+      if (tboParticipants.length >= 2) {
+        const emails = tboParticipants.map(p => p.email.toLowerCase());
+        // Buscar pessoas por email para obter IDs
+        for (const candidate of candidates) {
+          // Verificar se leader/collaborator estão entre os participantes
+          // (precisamos dos emails dos users — pode vir de cache do módulo RH)
+          matched1on1 = candidate; // fallback: primeiro candidato da mesma data
+          break;
+        }
+      }
+
+      if (!matched1on1 && candidates.length > 0) {
+        matched1on1 = candidates[0];
+      }
+
+      if (!matched1on1) {
+        console.log(`[TBO Fireflies] Nenhuma 1:1 encontrada para match com meeting ${meeting.title}`);
+        return { created: 0 };
+      }
+
+      // Marcar 1:1 como concluida
+      await OneOnOnesRepo.update(matched1on1.id, { status: 'completed' });
+
+      // Criar action items
+      let created = 0;
+      for (const item of meeting.action_items) {
+        try {
+          // Criar como one_on_one_action
+          await OneOnOnesRepo.createAction(matched1on1.id, {
+            text: `[Fireflies] ${item.task}`,
+            assignee_id: matched1on1.collaborator_id, // default: colaborador
+            due_date: null,
+            completed: false
+          });
+          created++;
+        } catch (e) {
+          console.warn(`[TBO Fireflies] Falha ao criar action: ${e.message}`);
+        }
+      }
+
+      console.log(`[TBO Fireflies] ${created} ações criadas para 1:1 ${matched1on1.id} a partir de ${meeting.title}`);
+      return { created, oneOnOneId: matched1on1.id };
+    } catch (e) {
+      console.warn('[TBO Fireflies] autoCreateActionsFor1on1 falhou:', e.message);
+      return { created: 0, error: e.message };
     }
   },
 

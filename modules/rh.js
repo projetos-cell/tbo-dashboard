@@ -173,7 +173,7 @@ const TBO_RH = {
     this._teamLoadError = null;
 
     // Mapear status do filtro local para status do DB
-    const statusMap = { 'ativo': 'active', 'inativo': 'inactive', 'ferias': 'vacation', 'ausente': 'away', 'onboarding': 'onboarding', 'suspenso': 'suspended' };
+    const statusMap = { 'ativo': 'active', 'inativo': 'inactive', 'ferias': 'vacation', 'ausente': 'away', 'onboarding': 'onboarding', 'offboarding': 'offboarding', 'desligado': 'desligado', 'suspenso': 'suspended' };
 
     // Tentar PeopleRepo primeiro (v3.0), fallback para query direta
     if (typeof PeopleRepo !== 'undefined') {
@@ -683,7 +683,7 @@ const TBO_RH = {
   _renderOrganograma(team) {
     // P2: Construir árvore hierárquica usando gestorId (manager_id UUID) com fallback para lider (slug)
     const buColors = { 'Branding': '#8b5cf6', 'Digital 3D': '#3a7bd5', 'Marketing': '#f59e0b', 'Vendas': '#2ecc71' };
-    const statusDot = { 'active': '#10B981', 'inactive': '#6B7280', 'vacation': '#F59E0B', 'away': '#8B5CF6', 'onboarding': '#3B82F6', 'suspended': '#DC2626' };
+    const statusDot = { 'active': '#10B981', 'inactive': '#6B7280', 'vacation': '#F59E0B', 'away': '#8B5CF6', 'onboarding': '#3B82F6', 'offboarding': '#F97316', 'desligado': '#9CA3AF', 'suspended': '#DC2626' };
 
     // Identificar raízes: quem não tem gestor (nem gestorId nem lider)
     const roots = team.filter(t => !t.gestorId && !t.lider);
@@ -1257,23 +1257,15 @@ const TBO_RH = {
     // Colaboradores frequentes: quem esta na mesma BU ou compartilha 1:1s
     const colleagues = this._getInternalTeam().filter(t => t.id !== person.id && (t.bu === person.bu || t.lider === person.id || person.lider === t.id)).slice(0, 6);
 
-    // Metas simuladas (baseadas no PDI/gaps)
-    const metas = [];
-    if (review) {
-      (review.gaps || []).forEach((g, i) => {
-        const progress = Math.floor(Math.random() * 60) + 20;
-        metas.push({ id: i, nome: `Desenvolver ${g}`, progresso: progress, prazo: '2026-06-30' });
-      });
-      if (!metas.length) {
-        metas.push({ id: 0, nome: 'Manter excelencia nas entregas', progresso: 85, prazo: '2026-06-30' });
-      }
-    }
+    // Metas reais do PDI (person_tasks category='pdi') — carregadas async
+    // Placeholder: sera preenchido por _loadPersonPDI()
+    const metas = this._personPDICache?.[personId] || [];
 
-    // Projetos recentes simulados (baseado na BU)
-    const projetos = [
-      { nome: `Projeto ${person.bu || 'Geral'} Q1`, status: 'em_andamento', cor: 'var(--color-info)' },
-      { nome: `Campanha ${person.area || 'Interna'}`, status: 'concluido', cor: 'var(--color-success)' }
-    ];
+    // Projetos reais — carregados async via _loadPersonProjects()
+    const projetos = this._personProjectsCache?.[personId] || [];
+
+    // Skills da pessoa — carregadas async via _loadPersonSkills()
+    const skills = this._personSkillsCache?.[personId] || [];
 
     return `
       <div class="rh-drawer-content rh-profile-asana">
@@ -1330,7 +1322,9 @@ const TBO_RH = {
                 <option value="vacation" ${person.status === 'vacation' ? 'selected' : ''}>Ferias</option>
                 <option value="away" ${person.status === 'away' ? 'selected' : ''}>Ausente</option>
                 <option value="onboarding" ${person.status === 'onboarding' ? 'selected' : ''}>Onboarding</option>
+                <option value="offboarding" ${person.status === 'offboarding' ? 'selected' : ''}>Offboarding</option>
                 <option value="suspended" ${person.status === 'suspended' ? 'selected' : ''}>Suspenso</option>
+                <option value="desligado" ${person.status === 'desligado' ? 'selected' : ''}>Desligado</option>
               </select>
             </div>
           </div>
@@ -1395,36 +1389,44 @@ const TBO_RH = {
             </div>
           </div>
 
-          <!-- Meus Projetos Recentes -->
+          <!-- Meus Projetos Recentes (carregado async) -->
           <div class="rh-profile-section">
             <div style="font-weight:700;font-size:0.88rem;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
               <i data-lucide="folder" style="width:16px;height:16px;color:var(--color-info);"></i> Projetos Recentes
             </div>
-            ${projetos.map(pj => `
-              <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--bg-elevated);border-radius:6px;margin-bottom:6px;">
-                <div style="width:8px;height:8px;border-radius:50%;background:${pj.cor};flex-shrink:0;"></div>
-                <div style="flex:1;font-size:0.8rem;font-weight:500;">${pj.nome}</div>
-                <span class="tag" style="font-size:0.6rem;background:${pj.cor}20;color:${pj.cor};">${pj.status === 'concluido' ? 'Concluido' : 'Em andamento'}</span>
-              </div>
-            `).join('')}
+            <div id="rhDrawerProjects" data-person="${personId}">
+              <div style="font-size:0.72rem;color:var(--text-muted);"><i data-lucide="loader" style="width:12px;height:12px;animation:spin 1s linear infinite;vertical-align:-2px;"></i> Carregando projetos...</div>
+            </div>
           </div>
 
-          <!-- Minhas Metas -->
+          <!-- Skills & Competências (carregado async) -->
           <div class="rh-profile-section">
             <div style="font-weight:700;font-size:0.88rem;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
-              <i data-lucide="target" style="width:16px;height:16px;color:var(--accent-gold);"></i> Metas
+              <i data-lucide="zap" style="width:16px;height:16px;color:var(--color-purple, #8b5cf6);"></i> Competências
             </div>
-            ${metas.map(m => `
-              <div style="margin-bottom:10px;">
-                <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px;">
-                  <span>${m.nome}</span>
-                  <span style="font-weight:600;color:${m.progresso >= 75 ? 'var(--color-success)' : m.progresso >= 40 ? 'var(--accent-gold)' : 'var(--color-danger)'};">${m.progresso}%</span>
-                </div>
-                <div style="height:6px;background:var(--bg-tertiary);border-radius:3px;overflow:hidden;">
-                  <div style="height:100%;width:${m.progresso}%;background:${m.progresso >= 75 ? 'var(--color-success)' : m.progresso >= 40 ? 'var(--accent-gold)' : 'var(--color-danger)'};border-radius:3px;transition:width 0.3s;"></div>
-                </div>
-              </div>
-            `).join('') || '<div style="font-size:0.72rem;color:var(--text-muted);">Sem metas definidas</div>'}
+            <div id="rhDrawerSkills" data-person="${personId}">
+              <div style="font-size:0.72rem;color:var(--text-muted);"><i data-lucide="loader" style="width:12px;height:12px;animation:spin 1s linear infinite;vertical-align:-2px;"></i> Carregando skills...</div>
+            </div>
+          </div>
+
+          <!-- Metas / PDI (carregado async) -->
+          <div class="rh-profile-section">
+            <div style="font-weight:700;font-size:0.88rem;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+              <i data-lucide="target" style="width:16px;height:16px;color:var(--accent-gold);"></i> Metas & PDI
+            </div>
+            <div id="rhDrawerMetas" data-person="${personId}">
+              <div style="font-size:0.72rem;color:var(--text-muted);"><i data-lucide="loader" style="width:12px;height:12px;animation:spin 1s linear infinite;vertical-align:-2px;"></i> Carregando metas...</div>
+            </div>
+          </div>
+
+          <!-- Historico de Compensacao (carregado async) -->
+          <div class="rh-profile-section">
+            <div style="font-weight:700;font-size:0.88rem;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+              <i data-lucide="trending-up" style="width:16px;height:16px;color:var(--color-success);"></i> Histórico
+            </div>
+            <div id="rhDrawerHistory" data-person="${personId}">
+              <div style="font-size:0.72rem;color:var(--text-muted);"><i data-lucide="loader" style="width:12px;height:12px;animation:spin 1s linear infinite;vertical-align:-2px;"></i> Carregando histórico...</div>
+            </div>
           </div>
 
           ${review ? `
@@ -1777,6 +1779,7 @@ const TBO_RH = {
           content.innerHTML = this._renderCulturaSubTab(sub);
           if (window.lucide) lucide.createIcons({ root: content });
           this._bindCulturaContent();
+          if (sub === 'onboarding') this._loadOnboardingData();
         }
       }
     } catch (e) {
@@ -1814,7 +1817,7 @@ const TBO_RH = {
       case 'rituais': return this._renderCulturaRituais();
       case 'feedbacks': return this._renderCulturaFeedbacks(feedbacks, userId, isAdmin);
       case 'historico': return this._renderCulturaHistorico(elogios, feedbacks);
-      case 'onboarding': return this._renderCulturaOnboarding();
+      case 'onboarding': return this._renderCulturaOnboarding(userId);
       default: return this._renderCulturaValores(elogios);
     }
   },
@@ -2025,50 +2028,485 @@ const TBO_RH = {
     `;
   },
 
-  // ── Sub: Onboarding Cultural ──
-  _renderCulturaOnboarding() {
-    const steps = [
-      { step: 1, title: 'Conheca os Valores', desc: 'Leia e entenda os 6 valores que guiam tudo o que fazemos na TBO.', icon: 'gem', done: true },
-      { step: 2, title: 'Mural de Reconhecimento', desc: 'Veja como reconhecemos colegas. Voce tambem pode elogiar desde o dia 1!', icon: 'award', done: true },
-      { step: 3, title: 'Participe dos Rituais', desc: 'Dailys, reviews semanais e retrospectivas — sua presenca faz a diferenca.', icon: 'repeat', done: false },
-      { step: 4, title: 'Primeira 1:1 com seu Gestor', desc: 'Conversa para alinhar expectativas, PDI e como voce pode crescer aqui.', icon: 'users', done: false },
-      { step: 5, title: 'De seu Primeiro Feedback', desc: 'Cultura de feedback comeca no dia 1. Positivo ou construtivo, sua voz importa.', icon: 'message-square', done: false },
-      { step: 6, title: 'Celebre uma Conquista', desc: 'Quando terminar seu primeiro projeto, celebrate no mural. Voce merece!', icon: 'party-popper', done: false }
-    ];
-    const completed = steps.filter(s => s.done).length;
-    const pct = Math.round((completed / steps.length) * 100);
-
+  // ── Sub: Onboarding Cultural (dinamico via OnboardingRepo) ──
+  _renderCulturaOnboarding(userId) {
+    // Container placeholder — dados carregados async
     return `
-      <div class="card" style="padding:20px;margin-bottom:16px;">
-        <h3 style="font-size:1rem;margin-bottom:8px;">Bem-vindo(a) a Cultura TBO</h3>
-        <p style="font-size:0.82rem;color:var(--text-secondary);line-height:1.5;margin-bottom:16px;">
-          A TBO e movida por pessoas que se importam com qualidade, colaboracao e inovacao.
-          Este guia te ajuda a entender e viver nossa cultura desde o primeiro dia.
-        </p>
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-          <div style="flex:1;height:8px;background:var(--bg-tertiary);border-radius:4px;overflow:hidden;">
-            <div style="height:100%;width:${pct}%;background:var(--accent-gold);border-radius:4px;transition:width 0.5s;"></div>
+      <div id="rhOnboardingContainer">
+        <div class="card" style="padding:20px;margin-bottom:16px;">
+          <h3 style="font-size:1rem;margin-bottom:8px;">Bem-vindo(a) a Cultura TBO</h3>
+          <p style="font-size:0.82rem;color:var(--text-secondary);line-height:1.5;margin-bottom:16px;">
+            A TBO e movida por pessoas que se importam com qualidade, colaboracao e inovacao.
+            Este guia te ajuda a entender e viver nossa cultura desde o primeiro dia.
+          </p>
+          <div id="rhOnboardingProgress" style="margin-bottom:8px;">
+            <div style="font-size:0.72rem;color:var(--text-muted);">Carregando etapas...</div>
           </div>
-          <span style="font-size:0.78rem;font-weight:600;color:var(--accent-gold);">${pct}%</span>
         </div>
-        <div style="font-size:0.72rem;color:var(--text-muted);">${completed} de ${steps.length} etapas concluidas</div>
-      </div>
+        <div id="rhOnboardingSteps" class="card" style="padding:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h4 style="font-size:0.9rem;">Jornada de Onboarding</h4>
+            ${this._isAdmin() ? '<button id="rhOnboardingManage" class="btn-secondary" style="font-size:0.72rem;padding:4px 10px;"><i data-lucide="settings" style="width:12px;height:12px;"></i> Gerenciar Templates</button>' : ''}
+          </div>
+          <div id="rhOnboardingStepsList" style="display:grid;gap:12px;">
+            <div style="font-size:0.82rem;color:var(--text-muted);text-align:center;padding:20px;">
+              <i data-lucide="loader" style="width:20px;height:20px;animation:spin 1s linear infinite;"></i>
+              <div style="margin-top:8px;">Carregando etapas de onboarding...</div>
+            </div>
+          </div>
+        </div>
 
-      <div class="card" style="padding:20px;">
-        <h4 style="font-size:0.9rem;margin-bottom:16px;">Jornada Cultural</h4>
-        <div style="display:grid;gap:12px;">
-          ${steps.map(s => `<div style="display:flex;gap:14px;align-items:flex-start;padding:14px;background:${s.done ? 'var(--color-success-dim)' : 'var(--bg-elevated)'};border-radius:10px;border:1px solid ${s.done ? 'var(--color-success)30' : 'var(--border-subtle)'};">
-            <div style="width:36px;height:36px;border-radius:50%;background:${s.done ? 'var(--color-success)' : 'var(--bg-tertiary)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              ${s.done ? '<i data-lucide="check" style="width:18px;height:18px;color:white;"></i>' : `<span style="font-size:0.85rem;font-weight:700;color:var(--text-muted);">${s.step}</span>`}
-            </div>
+        <!-- Offboarding Section (admin only) -->
+        ${this._isAdmin() ? `
+        <div class="card" style="padding:20px;margin-top:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h4 style="font-size:0.9rem;"><i data-lucide="user-minus" style="width:16px;height:16px;"></i> Offboarding Ativo</h4>
+          </div>
+          <div id="rhOffboardingList" style="display:grid;gap:12px;">
+            <div style="font-size:0.82rem;color:var(--text-muted);text-align:center;padding:10px;">Carregando...</div>
+          </div>
+        </div>
+        ` : ''}
+      </div>
+    `;
+  },
+
+  // ── Carregar dados de onboarding async apos render ──
+  async _loadOnboardingData() {
+    if (typeof OnboardingRepo === 'undefined') {
+      const container = document.getElementById('rhOnboardingStepsList');
+      if (container) container.innerHTML = '<div style="font-size:0.82rem;color:var(--text-muted);text-align:center;padding:20px;">OnboardingRepo nao disponivel</div>';
+      return;
+    }
+
+    try {
+      // Buscar pessoas em onboarding
+      const onboardingPeople = this._team.filter(p => p.status === 'onboarding');
+      const offboardingPeople = this._team.filter(p => p.status === 'offboarding');
+
+      // Se nao ha ninguem em onboarding, mostrar template de preview
+      if (!onboardingPeople.length) {
+        await this._renderOnboardingTemplate();
+      } else {
+        // Mostrar progresso real de cada pessoa em onboarding
+        await this._renderOnboardingActive(onboardingPeople);
+      }
+
+      // Offboarding (admin)
+      if (this._isAdmin() && offboardingPeople.length) {
+        await this._renderOffboardingActive(offboardingPeople);
+      } else {
+        const offList = document.getElementById('rhOffboardingList');
+        if (offList) offList.innerHTML = '<div style="font-size:0.82rem;color:var(--text-muted);text-align:center;padding:10px;">Nenhum offboarding ativo</div>';
+      }
+
+      // Progresso geral
+      await this._renderOnboardingKPIs();
+
+      // Bind: Gerenciar Templates
+      this._bind('rhOnboardingManage', () => this._openOnboardingTemplateEditor());
+
+    } catch (e) {
+      console.warn('[RH Onboarding] Erro ao carregar:', e.message);
+    }
+
+    if (window.lucide) lucide.createIcons();
+  },
+
+  // ── Renderizar template de preview (quando ninguem esta em onboarding) ──
+  async _renderOnboardingTemplate() {
+    const stepsList = document.getElementById('rhOnboardingStepsList');
+    if (!stepsList) return;
+
+    let template = null;
+    try {
+      template = await OnboardingRepo.getDefaultTemplate('onboarding');
+    } catch { /* sem template */ }
+
+    if (!template || !template.steps?.length) {
+      // Fallback: steps culturais estaticos
+      const fallbackSteps = [
+        { title: 'Conheca os Valores', description: 'Leia e entenda os 6 valores que guiam tudo na TBO.', order: 1 },
+        { title: 'Mural de Reconhecimento', description: 'Veja como reconhecemos colegas. Voce tambem pode elogiar desde o dia 1!', order: 2 },
+        { title: 'Participe dos Rituais', description: 'Dailys, reviews e retrospectivas — sua presenca faz a diferenca.', order: 3 },
+        { title: 'Primeira 1:1 com seu Gestor', description: 'Conversa para alinhar expectativas, PDI e crescimento.', order: 4 },
+        { title: 'De seu Primeiro Feedback', description: 'Cultura de feedback comeca no dia 1.', order: 5 },
+        { title: 'Celebre uma Conquista', description: 'Quando terminar seu primeiro projeto, celebrate!', order: 6 }
+      ];
+      template = { steps: fallbackSteps, name: 'Onboarding Padrao' };
+    }
+
+    const steps = (template.steps || []).sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    // Progress
+    const progEl = document.getElementById('rhOnboardingProgress');
+    if (progEl) {
+      progEl.innerHTML = `
+        <div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:8px;">
+          <i data-lucide="info" style="width:14px;height:14px;vertical-align:-2px;"></i>
+          Nenhuma pessoa em onboarding no momento. Preview do template "${this._esc(template.name)}":
+        </div>
+      `;
+    }
+
+    stepsList.innerHTML = steps.map((s, i) => `
+      <div style="display:flex;gap:14px;align-items:flex-start;padding:14px;background:var(--bg-elevated);border-radius:10px;border:1px solid var(--border-subtle);opacity:0.7;">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--bg-tertiary);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <span style="font-size:0.85rem;font-weight:700;color:var(--text-muted);">${i + 1}</span>
+        </div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:0.85rem;margin-bottom:2px;">${this._esc(s.title)}</div>
+          <div style="font-size:0.78rem;color:var(--text-secondary);line-height:1.5;">${this._esc(s.description || '')}</div>
+          ${s.default_role ? `<div style="font-size:0.68rem;color:var(--text-muted);margin-top:4px;">Responsavel: ${this._esc(s.default_role)}</div>` : ''}
+        </div>
+      </div>
+    `).join('');
+  },
+
+  // ── Renderizar onboarding ativo (pessoas em onboarding com progresso real) ──
+  async _renderOnboardingActive(people) {
+    const stepsList = document.getElementById('rhOnboardingStepsList');
+    if (!stepsList) return;
+
+    let html = '';
+    for (const person of people) {
+      const uid = person.supabaseId || person.id;
+      let progress = { tasks: [], total: 0, completed: 0, percentage: 0 };
+
+      try {
+        progress = await OnboardingRepo.getProgress(uid, 'onboarding');
+      } catch { /* sem dados */ }
+
+      // Se nao tem tasks, disparar automacao
+      if (!progress.tasks.length) {
+        try {
+          await OnboardingRepo.triggerAutomation(uid, 'onboarding');
+          progress = await OnboardingRepo.getProgress(uid, 'onboarding');
+        } catch (e) {
+          console.warn(`[RH Onboarding] Falha ao disparar automacao para ${person.nome}:`, e.message);
+        }
+      }
+
+      const pct = progress.percentage || 0;
+      const tasks = progress.tasks || [];
+
+      html += `
+        <div class="card" style="padding:16px;margin-bottom:12px;border-left:4px solid ${pct === 100 ? 'var(--color-success)' : 'var(--accent-gold)'};">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <div>
-              <div style="font-weight:700;font-size:0.85rem;margin-bottom:2px;${s.done ? 'text-decoration:line-through;opacity:0.7;' : ''}">${s.title}</div>
-              <div style="font-size:0.78rem;color:var(--text-secondary);line-height:1.5;">${s.desc}</div>
+              <div style="font-weight:700;font-size:0.9rem;">${this._esc(person.nome)}</div>
+              <div style="font-size:0.72rem;color:var(--text-secondary);">${this._esc(person.cargo || '')} — ${this._esc(person.bu || '')}</div>
             </div>
-          </div>`).join('')}
+            <span style="font-size:0.78rem;font-weight:700;color:${pct === 100 ? 'var(--color-success)' : 'var(--accent-gold)'};">${pct}%</span>
+          </div>
+          <div style="height:6px;background:var(--bg-tertiary);border-radius:3px;overflow:hidden;margin-bottom:12px;">
+            <div style="height:100%;width:${pct}%;background:${pct === 100 ? 'var(--color-success)' : 'var(--accent-gold)'};border-radius:3px;transition:width 0.5s;"></div>
+          </div>
+          <div style="display:grid;gap:8px;">
+            ${tasks.sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).map(t => `
+              <div style="display:flex;gap:10px;align-items:center;padding:8px;background:${t.completed ? 'var(--color-success-dim)' : 'var(--bg-elevated)'};border-radius:8px;cursor:pointer;"
+                   onclick="TBO_RH._toggleOnboardingTask('${t.id}', ${!t.completed}, '${uid}')">
+                <div style="width:20px;height:20px;border-radius:50%;border:2px solid ${t.completed ? 'var(--color-success)' : 'var(--border-muted)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;background:${t.completed ? 'var(--color-success)' : 'transparent'};">
+                  ${t.completed ? '<i data-lucide="check" style="width:12px;height:12px;color:white;"></i>' : ''}
+                </div>
+                <div style="flex:1;">
+                  <div style="font-size:0.82rem;font-weight:500;${t.completed ? 'text-decoration:line-through;opacity:0.6;' : ''}">${this._esc(t.text || t.title || '')}</div>
+                  ${t.due_date ? `<div style="font-size:0.68rem;color:var(--text-muted);">Prazo: ${new Date(t.due_date).toLocaleDateString('pt-BR')}</div>` : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          ${pct === 100 ? `<div style="margin-top:12px;padding:10px;background:var(--color-success-dim);border-radius:8px;text-align:center;">
+            <i data-lucide="check-circle-2" style="width:16px;height:16px;color:var(--color-success);vertical-align:-3px;"></i>
+            <span style="font-size:0.82rem;font-weight:600;color:var(--color-success);margin-left:6px;">Onboarding completo!</span>
+            <button class="btn-primary" style="font-size:0.72rem;padding:4px 12px;margin-left:12px;" onclick="TBO_RH._activatePerson('${uid}')">Ativar Pessoa</button>
+          </div>` : ''}
+        </div>
+      `;
+    }
+
+    stepsList.innerHTML = html || '<div style="font-size:0.82rem;color:var(--text-muted);text-align:center;padding:20px;">Nenhuma pessoa em onboarding</div>';
+  },
+
+  // ── Renderizar offboarding ativo ──
+  async _renderOffboardingActive(people) {
+    const container = document.getElementById('rhOffboardingList');
+    if (!container) return;
+
+    let html = '';
+    for (const person of people) {
+      const uid = person.supabaseId || person.id;
+      let progress = { tasks: [], total: 0, completed: 0, percentage: 0 };
+
+      try {
+        progress = await OnboardingRepo.getProgress(uid, 'offboarding');
+      } catch { /* sem dados */ }
+
+      // Se nao tem tasks, disparar automacao
+      if (!progress.tasks.length) {
+        try {
+          await OnboardingRepo.triggerAutomation(uid, 'offboarding');
+          progress = await OnboardingRepo.getProgress(uid, 'offboarding');
+        } catch (e) {
+          console.warn(`[RH Offboarding] Falha ao disparar automacao para ${person.nome}:`, e.message);
+        }
+      }
+
+      const pct = progress.percentage || 0;
+      const tasks = progress.tasks || [];
+
+      html += `
+        <div style="padding:14px;background:var(--bg-elevated);border-radius:10px;border-left:4px solid ${pct === 100 ? 'var(--color-success)' : 'var(--color-danger)'};">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div>
+              <div style="font-weight:700;font-size:0.85rem;">${this._esc(person.nome)}</div>
+              <div style="font-size:0.68rem;color:var(--text-secondary);">${this._esc(person.cargo || '')}</div>
+            </div>
+            <span style="font-size:0.75rem;font-weight:700;color:${pct === 100 ? 'var(--color-success)' : 'var(--color-danger)'};">${pct}%</span>
+          </div>
+          <div style="height:4px;background:var(--bg-tertiary);border-radius:2px;overflow:hidden;margin-bottom:10px;">
+            <div style="height:100%;width:${pct}%;background:${pct === 100 ? 'var(--color-success)' : 'var(--color-danger)'};border-radius:2px;"></div>
+          </div>
+          <div style="display:grid;gap:6px;">
+            ${tasks.map(t => `
+              <div style="display:flex;gap:8px;align-items:center;padding:6px;cursor:pointer;" onclick="TBO_RH._toggleOnboardingTask('${t.id}', ${!t.completed}, '${uid}', 'offboarding')">
+                <div style="width:16px;height:16px;border-radius:50%;border:2px solid ${t.completed ? 'var(--color-success)' : 'var(--border-muted)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;background:${t.completed ? 'var(--color-success)' : 'transparent'};">
+                  ${t.completed ? '<i data-lucide="check" style="width:10px;height:10px;color:white;"></i>' : ''}
+                </div>
+                <span style="font-size:0.78rem;${t.completed ? 'text-decoration:line-through;opacity:0.6;' : ''}">${this._esc(t.text || t.title || '')}</span>
+              </div>
+            `).join('')}
+          </div>
+          ${pct === 100 ? `
+            <div style="margin-top:10px;display:flex;gap:8px;">
+              <button class="btn-secondary" style="font-size:0.72rem;padding:4px 10px;" onclick="TBO_RH._openExitInterview('${uid}')">
+                <i data-lucide="clipboard-list" style="width:12px;height:12px;"></i> Entrevista de Saida
+              </button>
+              <button class="btn-primary" style="font-size:0.72rem;padding:4px 10px;background:var(--color-danger);" onclick="TBO_RH._finishOffboarding('${uid}')">
+                <i data-lucide="user-x" style="width:12px;height:12px;"></i> Finalizar Desligamento
+              </button>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    container.innerHTML = html || '<div style="font-size:0.82rem;color:var(--text-muted);text-align:center;padding:10px;">Nenhum offboarding ativo</div>';
+  },
+
+  // ── KPIs de Onboarding/Offboarding ──
+  async _renderOnboardingKPIs() {
+    const progEl = document.getElementById('rhOnboardingProgress');
+    if (!progEl) return;
+
+    try {
+      const onbPeople = this._team.filter(p => p.status === 'onboarding');
+      const offPeople = this._team.filter(p => p.status === 'offboarding');
+
+      if (!onbPeople.length && !offPeople.length) return; // preview mode, nao mostrar KPIs
+
+      const kpis = [];
+      if (onbPeople.length) kpis.push(`<span style="color:var(--accent-gold);font-weight:700;">${onbPeople.length}</span> em onboarding`);
+      if (offPeople.length) kpis.push(`<span style="color:var(--color-danger);font-weight:700;">${offPeople.length}</span> em offboarding`);
+
+      progEl.innerHTML = `
+        <div style="display:flex;gap:16px;font-size:0.82rem;color:var(--text-secondary);">
+          ${kpis.join(' | ')}
+        </div>
+      `;
+    } catch { /* silencioso */ }
+  },
+
+  // ── Toggle task de onboarding/offboarding ──
+  async _toggleOnboardingTask(taskId, completed, personId, type = 'onboarding') {
+    if (typeof OnboardingRepo === 'undefined') return;
+    try {
+      if (completed) {
+        await OnboardingRepo.completeTask(taskId);
+      } else {
+        await OnboardingRepo.reopenTask(taskId);
+      }
+
+      // Verificar auto-complete
+      await OnboardingRepo.checkAndAutoComplete(personId, type);
+
+      // Re-renderizar
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success(completed ? 'Etapa concluida!' : 'Etapa reaberta');
+      await this._loadOnboardingData();
+    } catch (e) {
+      console.warn('[RH Onboarding] Erro ao toggle task:', e.message);
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro ao atualizar etapa');
+    }
+  },
+
+  // ── Ativar pessoa (conclusao do onboarding) ──
+  async _activatePerson(personId) {
+    try {
+      if (typeof PeopleRepo !== 'undefined') {
+        await PeopleRepo.update(personId, { status: 'ativo' });
+      }
+      // Atualizar cache local
+      const person = this._team.find(p => p.supabaseId === personId || p.id === personId);
+      if (person) person.status = 'ativo';
+
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Pessoa ativada com sucesso!');
+      await this._loadOnboardingData();
+    } catch (e) {
+      console.warn('[RH Onboarding] Erro ao ativar pessoa:', e.message);
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro ao ativar pessoa');
+    }
+  },
+
+  // ── Finalizar offboarding (mudar status para desligado) ──
+  async _finishOffboarding(personId) {
+    try {
+      if (typeof PeopleRepo !== 'undefined') {
+        await PeopleRepo.update(personId, {
+          status: 'desligado',
+          exit_date: new Date().toISOString().split('T')[0]
+        });
+      }
+      const person = this._team.find(p => p.supabaseId === personId || p.id === personId);
+      if (person) person.status = 'desligado';
+
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Desligamento finalizado');
+      await this._loadOnboardingData();
+    } catch (e) {
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro ao finalizar offboarding');
+    }
+  },
+
+  // ── Entrevista de Saida modal ──
+  _openExitInterview(personId) {
+    const person = this._team.find(p => p.supabaseId === personId || p.id === personId);
+    const name = person?.nome || 'Colaborador';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'rhExitInterviewOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    overlay.innerHTML = `
+      <div style="background:var(--bg-primary);border-radius:12px;padding:24px;max-width:520px;width:95%;max-height:80vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <h3 style="font-size:1rem;">Entrevista de Saida — ${this._esc(name)}</h3>
+          <button onclick="document.getElementById('rhExitInterviewOverlay')?.remove()" style="background:none;border:none;cursor:pointer;font-size:1.2rem;">✕</button>
+        </div>
+
+        <div style="display:grid;gap:16px;">
+          <div>
+            <label style="font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;">Motivo da Saida</label>
+            <select id="exitMotivo" class="input" style="width:100%;">
+              <option value="">Selecione...</option>
+              <option value="voluntario_mercado">Voluntario — Proposta de mercado</option>
+              <option value="voluntario_pessoal">Voluntario — Motivos pessoais</option>
+              <option value="voluntario_insatisfacao">Voluntario — Insatisfacao</option>
+              <option value="involuntario_performance">Involuntario — Performance</option>
+              <option value="involuntario_reestruturacao">Involuntario — Reestruturacao</option>
+              <option value="contrato_encerrado">Encerramento de contrato</option>
+              <option value="outro">Outro</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;">Satisfacao Geral (1-5)</label>
+            <div id="exitSatisfacao" style="display:flex;gap:8px;">
+              ${[1, 2, 3, 4, 5].map(n => `<button class="btn-secondary exitSatBtn" data-val="${n}" style="width:36px;height:36px;font-size:0.9rem;" onclick="document.querySelectorAll('.exitSatBtn').forEach(b=>b.style.background='');this.style.background='var(--accent-gold)';this.style.color='white';">${n}</button>`).join('')}
+            </div>
+          </div>
+          <div>
+            <label style="font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;">Feedback / Comentarios</label>
+            <textarea id="exitFeedback" class="input" rows="4" placeholder="O que poderiamos ter feito melhor?" style="width:100%;resize:vertical;"></textarea>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="checkbox" id="exitRecomendaria">
+            <label for="exitRecomendaria" style="font-size:0.82rem;">Recomendaria a TBO como lugar para trabalhar?</label>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;">
+          <button class="btn-secondary" onclick="document.getElementById('rhExitInterviewOverlay')?.remove()">Cancelar</button>
+          <button class="btn-primary" onclick="TBO_RH._saveExitInterview('${personId}')">Salvar Entrevista</button>
         </div>
       </div>
     `;
+    document.body.appendChild(overlay);
+  },
+
+  async _saveExitInterview(personId) {
+    const motivo = document.getElementById('exitMotivo')?.value;
+    const satisfacaoBtn = document.querySelector('.exitSatBtn[style*="accent-gold"]');
+    const satisfacao = satisfacaoBtn ? parseInt(satisfacaoBtn.dataset.val) : null;
+    const feedback = document.getElementById('exitFeedback')?.value || '';
+    const recomendaria = document.getElementById('exitRecomendaria')?.checked || false;
+
+    if (!motivo) {
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.warning('Selecione o motivo da saida');
+      return;
+    }
+
+    try {
+      if (typeof OnboardingRepo !== 'undefined') {
+        await OnboardingRepo.saveExitInterview(personId, {
+          motivo,
+          satisfacao,
+          feedback,
+          recomendaria,
+          data: new Date().toISOString()
+        });
+      }
+      document.getElementById('rhExitInterviewOverlay')?.remove();
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Entrevista de saida salva!');
+    } catch (e) {
+      console.warn('[RH] Erro ao salvar entrevista:', e.message);
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro ao salvar entrevista');
+    }
+  },
+
+  // ── Editor de Templates de Onboarding ──
+  async _openOnboardingTemplateEditor() {
+    if (typeof OnboardingRepo === 'undefined') return;
+
+    let templates = [];
+    try {
+      templates = await OnboardingRepo.listTemplates();
+    } catch { /* sem templates */ }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'rhTemplateEditorOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    overlay.innerHTML = `
+      <div style="background:var(--bg-primary);border-radius:12px;padding:24px;max-width:700px;width:95%;max-height:85vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <h3 style="font-size:1rem;"><i data-lucide="layout-template" style="width:18px;height:18px;vertical-align:-3px;"></i> Templates de Onboarding/Offboarding</h3>
+          <button onclick="document.getElementById('rhTemplateEditorOverlay')?.remove()" style="background:none;border:none;cursor:pointer;font-size:1.2rem;">✕</button>
+        </div>
+        <div style="display:grid;gap:16px;">
+          ${templates.map(t => `
+            <div class="card" style="padding:16px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <div>
+                  <span style="font-weight:700;font-size:0.9rem;">${this._esc(t.name)}</span>
+                  <span class="tag" style="font-size:0.6rem;margin-left:8px;background:${t.type === 'onboarding' ? 'var(--accent-gold)20' : 'var(--color-danger)20'};color:${t.type === 'onboarding' ? 'var(--accent-gold)' : 'var(--color-danger)'};">${t.type}</span>
+                  ${t.is_default ? '<span class="tag" style="font-size:0.6rem;margin-left:4px;">Padrao</span>' : ''}
+                </div>
+                <span style="font-size:0.72rem;color:var(--text-muted);">${(t.steps || []).length} etapas</span>
+              </div>
+              <div style="display:grid;gap:4px;">
+                ${(t.steps || []).sort((a, b) => (a.order || 0) - (b.order || 0)).map((s, i) => `
+                  <div style="font-size:0.78rem;color:var(--text-secondary);padding:4px 0;border-bottom:1px solid var(--border-subtle);">
+                    ${i + 1}. ${this._esc(s.title)} ${s.default_role ? `<span style="color:var(--text-muted);font-size:0.68rem;">(${this._esc(s.default_role)})</span>` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `).join('')}
+          ${!templates.length ? '<div style="text-align:center;color:var(--text-muted);padding:20px;">Nenhum template encontrado. Execute a migration 027 para criar os templates padrao.</div>' : ''}
+        </div>
+        <div style="margin-top:16px;text-align:right;">
+          <button class="btn-secondary" onclick="document.getElementById('rhTemplateEditorOverlay')?.remove()">Fechar</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    if (window.lucide) lucide.createIcons();
   },
 
   // Bind interacoes da subtab ativa de Cultura (elogios, feedbacks)
@@ -2288,14 +2726,25 @@ const TBO_RH = {
               <div class="form-group" style="margin-bottom:0;"><label class="form-label">Lider</label><select class="form-input" id="ooLider">${this._team.filter(t => !t.lider || t.cargo.includes('Coord') || t.cargo.includes('PO') || t.cargo.includes('Lider') || t.cargo.includes('Diretor')).map(t => `<option value="${t.supabaseId || t.id}">${t.nome}</option>`).join('')}</select></div>
               <div class="form-group" style="margin-bottom:0;"><label class="form-label">Colaborador</label><select class="form-input" id="ooColab">${this._team.filter(t => !t.terceirizado).map(t => `<option value="${t.supabaseId || t.id}">${t.nome}</option>`).join('')}</select></div>
             </div>
-            <div class="form-group" style="margin-bottom:12px;"><label class="form-label">Data</label><input type="datetime-local" class="form-input" id="ooData"></div>
-            <div style="display:flex;gap:8px;"><button class="btn btn-primary btn-sm" id="ooSave">Agendar</button><button class="btn btn-secondary btn-sm" id="ooCancel">Cancelar</button></div>
+            <div class="grid-2" style="gap:12px;margin-bottom:12px;">
+              <div class="form-group" style="margin-bottom:0;"><label class="form-label">Data</label><input type="datetime-local" class="form-input" id="ooData"></div>
+              <div class="form-group" style="margin-bottom:0;"><label class="form-label">Recorrência</label><select class="form-input" id="ooRecurrence"><option value="monthly">Mensal (padrão)</option><option value="biweekly">Quinzenal</option><option value="weekly">Semanal</option><option value="">Única vez</option></select></div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button class="btn btn-primary btn-sm" id="ooSave"><i data-lucide="calendar-plus" style="width:12px;height:12px;vertical-align:-2px;"></i> Agendar + Google Calendar</button>
+              <button class="btn btn-secondary btn-sm" id="ooCancel">Cancelar</button>
+              <span id="oo1on1Status" style="font-size:0.68rem;color:var(--text-muted);margin-left:auto;"></span>
+            </div>
           </div>
-          ${filtered.filter(o => (o.status === 'agendada' || o.status === 'scheduled')).sort((a, b) => new Date(getDate(a)) - new Date(getDate(b))).map(o => `<div style="padding:12px 16px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;"><div><div style="font-size:0.85rem;font-weight:600;">${getName(getLeader(o))} \u2194 ${getName(getCollab(o))}</div><div style="font-size:0.72rem;color:var(--text-muted);">${new Date(getDate(o)).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div></div><span class="tag" style="font-size:0.65rem;background:var(--color-info-dim);color:var(--color-info);">Agendada</span></div>`).join('') || '<div style="padding:16px;font-size:0.78rem;color:var(--text-muted);">Nenhuma agendada</div>'}
+          ${filtered.filter(o => (o.status === 'agendada' || o.status === 'scheduled')).sort((a, b) => new Date(getDate(a)) - new Date(getDate(b))).map(o => `<div class="rh-1on1-row" data-id="${o.id}" style="padding:12px 16px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='var(--bg-elevated)'" onmouseout="this.style.background=''"><div><div style="font-size:0.85rem;font-weight:600;">${getName(getLeader(o))} ↔ ${getName(getCollab(o))}</div><div style="font-size:0.72rem;color:var(--text-muted);">${new Date(getDate(o)).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}${o.recurrence ? ` · <i data-lucide="repeat" style="width:10px;height:10px;vertical-align:-1px;"></i> ${o.recurrence === 'monthly' ? 'Mensal' : o.recurrence === 'biweekly' ? 'Quinzenal' : 'Semanal'}` : ''}${o.google_event_id ? ' · <i data-lucide="calendar" style="width:10px;height:10px;vertical-align:-1px;color:var(--color-info);"></i>' : ''}</div></div><span class="tag" style="font-size:0.65rem;background:var(--color-info)20;color:var(--color-info);">Agendada</span></div>`).join('') || '<div style="padding:16px;font-size:0.78rem;color:var(--text-muted);">Nenhuma agendada</div>'}
         </div>
         <div class="card">
           <div class="card-header"><h3 class="card-title">Historico</h3></div>
-          ${filtered.filter(o => (o.status === 'concluida' || o.status === 'completed')).sort((a, b) => new Date(getDate(b)) - new Date(getDate(a))).map(o => `<div style="padding:12px 16px;border-bottom:1px solid var(--border-subtle);"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><div style="font-size:0.85rem;font-weight:600;">${getName(getLeader(o))} \u2194 ${getName(getCollab(o))}</div><span style="font-size:0.72rem;color:var(--text-muted);">${new Date(getDate(o)).toLocaleDateString('pt-BR')}</span></div></div>`).join('') || '<div style="padding:16px;font-size:0.78rem;color:var(--text-muted);">Nenhuma no historico</div>'}
+          ${filtered.filter(o => (o.status !== 'agendada' && o.status !== 'scheduled')).sort((a, b) => new Date(getDate(b)) - new Date(getDate(a))).slice(0, 15).map(o => {
+            const statusMap = { completed: { label: 'Concluída', bg: 'var(--color-success)20', color: 'var(--color-success)' }, concluida: { label: 'Concluída', bg: 'var(--color-success)20', color: 'var(--color-success)' }, cancelled: { label: 'Cancelada', bg: 'var(--bg-tertiary)', color: 'var(--text-muted)' }, no_show: { label: 'No-show', bg: 'var(--color-danger)20', color: 'var(--color-danger)' } };
+            const st = statusMap[o.status] || statusMap.completed;
+            return `<div class="rh-1on1-row" data-id="${o.id}" style="padding:12px 16px;border-bottom:1px solid var(--border-subtle);cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='var(--bg-elevated)'" onmouseout="this.style.background=''"><div style="display:flex;justify-content:space-between;align-items:center;"><div><div style="font-size:0.85rem;font-weight:600;">${getName(getLeader(o))} ↔ ${getName(getCollab(o))}</div><div style="font-size:0.72rem;color:var(--text-muted);">${new Date(getDate(o)).toLocaleDateString('pt-BR')}</div></div><span class="tag" style="font-size:0.65rem;background:${st.bg};color:${st.color};">${st.label}</span></div>${o.notes ? `<div style="font-size:0.72rem;color:var(--text-secondary);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px;">${this._esc((o.notes || '').slice(0, 80))}${(o.notes || '').length > 80 ? '...' : ''}</div>` : ''}</div>`;
+          }).join('') || '<div style="padding:16px;font-size:0.78rem;color:var(--text-muted);">Nenhuma no historico</div>'}
         </div>
       </div>
 
@@ -2361,7 +2810,7 @@ const TBO_RH = {
 
     // Agrupar por status
     const statusGroups = {};
-    const statusColors = { 'active': '#10B981', 'ativo': '#10B981', 'inactive': '#6B7280', 'inativo': '#6B7280', 'vacation': '#F59E0B', 'ferias': '#F59E0B', 'away': '#8B5CF6', 'ausente': '#8B5CF6', 'onboarding': '#3B82F6', 'suspended': '#DC2626', 'suspenso': '#DC2626' };
+    const statusColors = { 'active': '#10B981', 'ativo': '#10B981', 'inactive': '#6B7280', 'inativo': '#6B7280', 'vacation': '#F59E0B', 'ferias': '#F59E0B', 'away': '#8B5CF6', 'ausente': '#8B5CF6', 'onboarding': '#3B82F6', 'offboarding': '#F97316', 'desligado': '#9CA3AF', 'suspended': '#DC2626', 'suspenso': '#DC2626' };
     team.forEach(t => {
       const s = t.status || 'ativo';
       if (!statusGroups[s]) statusGroups[s] = 0;
@@ -2524,6 +2973,88 @@ const TBO_RH = {
           })()}
         </div>
       </div>
+
+      <!-- Row 4: Metricas avancadas (Fase E) -->
+      <div class="grid-3" style="gap:16px;margin-top:16px;margin-bottom:16px;">
+        <!-- Turnover -->
+        <div class="card" style="padding:16px;">
+          <h4 style="font-size:0.82rem;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+            <i data-lucide="user-minus" style="width:14px;height:14px;color:var(--color-danger);"></i> Turnover
+          </h4>
+          ${(() => {
+            const inativos = team.filter(t => t.status === 'inactive' || t.status === 'inativo' || t.status === 'desligado').length;
+            const taxa = team.length ? ((inativos / team.length) * 100).toFixed(1) : '0.0';
+            return '<div style="text-align:center;"><div style="font-size:2rem;font-weight:800;color:' + (parseFloat(taxa) > 15 ? 'var(--color-danger)' : parseFloat(taxa) > 8 ? 'var(--accent-gold)' : 'var(--color-success)') + ';">' + taxa + '%</div><div style="font-size:0.72rem;color:var(--text-muted);">' + inativos + ' inativos / ' + team.length + ' total</div></div>';
+          })()}
+        </div>
+
+        <!-- Diversidade por Cidade -->
+        <div class="card" style="padding:16px;">
+          <h4 style="font-size:0.82rem;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+            <i data-lucide="map-pin" style="width:14px;height:14px;color:var(--color-info);"></i> Diversidade Regional
+          </h4>
+          ${(() => {
+            const byCidade = {};
+            activeMembers.forEach(t => {
+              const c = t.cidade || t.city || 'Não informado';
+              byCidade[c] = (byCidade[c] || 0) + 1;
+            });
+            return Object.entries(byCidade).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([c, n]) =>
+              '<div style="display:flex;justify-content:space-between;font-size:0.75rem;margin-bottom:4px;"><span>' + c + '</span><strong>' + n + '</strong></div>'
+            ).join('') || '<div style="font-size:0.72rem;color:var(--text-muted);">Sem dados</div>';
+          })()}
+        </div>
+
+        <!-- Tipo de Contrato -->
+        <div class="card" style="padding:16px;">
+          <h4 style="font-size:0.82rem;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+            <i data-lucide="file-text" style="width:14px;height:14px;color:var(--accent-gold);"></i> Tipo de Contrato
+          </h4>
+          ${(() => {
+            const byTipo = {};
+            activeMembers.forEach(t => {
+              const tipo = t.tipoContrato || t.tipo_contrato || 'PJ';
+              byTipo[tipo] = (byTipo[tipo] || 0) + 1;
+            });
+            return Object.entries(byTipo).sort((a, b) => b[1] - a[1]).map(([tipo, n]) =>
+              '<div style="display:flex;justify-content:space-between;font-size:0.75rem;margin-bottom:4px;"><span>' + tipo.toUpperCase() + '</span><strong>' + n + '</strong></div>'
+            ).join('') || '<div style="font-size:0.72rem;color:var(--text-muted);">Sem dados</div>';
+          })()}
+        </div>
+      </div>
+
+      <!-- Row 5: 1:1 Compliance + Recognition Index + Headcount Evolution -->
+      <div class="grid-2" style="gap:16px;margin-bottom:16px;">
+        <div class="card" style="padding:20px;">
+          <h4 style="font-size:0.85rem;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+            <i data-lucide="calendar-check" style="width:16px;height:16px;color:var(--color-success);"></i>
+            1:1 Compliance
+          </h4>
+          <div id="rhAnalytics1on1Compliance">
+            <div style="font-size:0.72rem;color:var(--text-muted);"><i data-lucide="loader" style="width:12px;height:12px;animation:spin 1s linear infinite;"></i> Carregando...</div>
+          </div>
+        </div>
+        <div class="card" style="padding:20px;">
+          <h4 style="font-size:0.85rem;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+            <i data-lucide="trophy" style="width:16px;height:16px;color:var(--accent-gold);"></i>
+            Índice de Reconhecimento
+          </h4>
+          <div id="rhAnalyticsRecognition">
+            <div style="font-size:0.72rem;color:var(--text-muted);"><i data-lucide="loader" style="width:12px;height:12px;animation:spin 1s linear infinite;"></i> Carregando...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 6: Headcount Evolution (Chart) -->
+      <div class="card" style="padding:20px;margin-bottom:16px;">
+        <h4 style="font-size:0.85rem;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+          <i data-lucide="line-chart" style="width:16px;height:16px;color:var(--brand-primary);"></i>
+          Evolução do Headcount
+        </h4>
+        <div style="height:250px;position:relative;">
+          <canvas id="rhChartHeadcountEvolution"></canvas>
+        </div>
+      </div>
     `;
   },
 
@@ -2596,8 +3127,8 @@ const TBO_RH = {
 
     // ── Grafico 2: Distribuicao por Status (doughnut) ──
     const statusGroups = {};
-    const statusLabels = { 'active': 'Ativo', 'ativo': 'Ativo', 'inactive': 'Inativo', 'inativo': 'Inativo', 'vacation': 'Ferias', 'ferias': 'Ferias', 'away': 'Ausente', 'ausente': 'Ausente', 'onboarding': 'Onboarding', 'suspended': 'Suspenso', 'suspenso': 'Suspenso' };
-    const statusColors = { 'active': '#10B981', 'ativo': '#10B981', 'inactive': '#6B7280', 'inativo': '#6B7280', 'vacation': '#F59E0B', 'ferias': '#F59E0B', 'away': '#8B5CF6', 'ausente': '#8B5CF6', 'onboarding': '#3B82F6', 'suspended': '#DC2626', 'suspenso': '#DC2626' };
+    const statusLabels = { 'active': 'Ativo', 'ativo': 'Ativo', 'inactive': 'Inativo', 'inativo': 'Inativo', 'vacation': 'Ferias', 'ferias': 'Ferias', 'away': 'Ausente', 'ausente': 'Ausente', 'onboarding': 'Onboarding', 'offboarding': 'Offboarding', 'desligado': 'Desligado', 'suspended': 'Suspenso', 'suspenso': 'Suspenso' };
+    const statusColors = { 'active': '#10B981', 'ativo': '#10B981', 'inactive': '#6B7280', 'inativo': '#6B7280', 'vacation': '#F59E0B', 'ferias': '#F59E0B', 'away': '#8B5CF6', 'ausente': '#8B5CF6', 'onboarding': '#3B82F6', 'offboarding': '#F97316', 'desligado': '#9CA3AF', 'suspended': '#DC2626', 'suspenso': '#DC2626' };
     team.forEach(t => {
       const s = t.status || 'ativo';
       if (!statusGroups[s]) statusGroups[s] = 0;
@@ -2671,11 +3202,123 @@ const TBO_RH = {
       });
     }
 
+    // ── Grafico 4: Headcount Evolution (line chart) — Fase E ──
+    const hcEvoCanvas = document.getElementById('rhChartHeadcountEvolution');
+    if (hcEvoCanvas) {
+      // Calcular headcount mensal baseado em start_date
+      const months = [];
+      const now = new Date();
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push(d);
+      }
+      const hcData = months.map(m => {
+        const endOfMonth = new Date(m.getFullYear(), m.getMonth() + 1, 0);
+        return team.filter(t => {
+          const start = t.inicio || t.start_date;
+          if (!start) return true;
+          return new Date(start) <= endOfMonth;
+        }).length;
+      });
+
+      new Chart(hcEvoCanvas, {
+        type: 'line',
+        data: {
+          labels: months.map(m => m.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })),
+          datasets: [{
+            label: 'Headcount',
+            data: hcData,
+            borderColor: '#3A7BD5',
+            backgroundColor: 'rgba(58, 123, 213, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: mutedColor, font: { size: 10 } } },
+            y: { grid: { color: gridColor }, ticks: { color: mutedColor, stepSize: 1 }, beginAtZero: true }
+          }
+        }
+      });
+    }
+
+    // ── Analytics async: 1:1 Compliance + Recognition Index ──
+    this._loadAnalytics1on1Compliance();
+    this._loadAnalyticsRecognition();
+
     // Bind hover cards nos nomes
     if (typeof TBO_HOVER_CARD !== 'undefined') {
       const container = document.getElementById('rhTabContent');
       if (container) TBO_HOVER_CARD.bind(container);
     }
+  },
+
+  // ── Analytics: 1:1 Compliance (async) ──
+  async _loadAnalytics1on1Compliance() {
+    const container = document.getElementById('rhAnalytics1on1Compliance');
+    if (!container) return;
+    try {
+      if (typeof OneOnOnesRepo === 'undefined') { container.innerHTML = '<div style="font-size:0.72rem;color:var(--text-muted);">Sem dados</div>'; return; }
+      const kpis = await OneOnOnesRepo.getKPIs();
+      const total = kpis.total || 0;
+      const completed = kpis.byStatus?.completed || 0;
+      const scheduled = kpis.byStatus?.scheduled || 0;
+      const noShow = kpis.byStatus?.no_show || 0;
+      const compliance = total > 0 ? Math.round(((completed) / total) * 100) : 0;
+
+      container.innerHTML = `
+        <div style="text-align:center;margin-bottom:12px;">
+          <div style="font-size:2.2rem;font-weight:800;color:${compliance >= 75 ? 'var(--color-success)' : compliance >= 50 ? 'var(--accent-gold)' : 'var(--color-danger)'};">${compliance}%</div>
+          <div style="font-size:0.72rem;color:var(--text-muted);">taxa de conclusão</div>
+        </div>
+        <div style="display:flex;gap:12px;justify-content:center;">
+          <div style="text-align:center;"><div style="font-size:1rem;font-weight:700;color:var(--color-success);">${completed}</div><div style="font-size:0.62rem;color:var(--text-muted);">Concluídas</div></div>
+          <div style="text-align:center;"><div style="font-size:1rem;font-weight:700;color:var(--color-info);">${scheduled}</div><div style="font-size:0.62rem;color:var(--text-muted);">Agendadas</div></div>
+          <div style="text-align:center;"><div style="font-size:1rem;font-weight:700;color:var(--color-danger);">${noShow}</div><div style="font-size:0.62rem;color:var(--text-muted);">No-show</div></div>
+          <div style="text-align:center;"><div style="font-size:1rem;font-weight:700;color:var(--accent-gold);">${kpis.pendingActions || 0}</div><div style="font-size:0.62rem;color:var(--text-muted);">Ações pend.</div></div>
+        </div>
+      `;
+    } catch (e) { container.innerHTML = '<div style="font-size:0.72rem;color:var(--text-muted);">Erro ao carregar</div>'; }
+  },
+
+  // ── Analytics: Recognition Index (async) ──
+  async _loadAnalyticsRecognition() {
+    const container = document.getElementById('rhAnalyticsRecognition');
+    if (!container) return;
+    try {
+      if (typeof RecognitionsRepo === 'undefined') { container.innerHTML = '<div style="font-size:0.72rem;color:var(--text-muted);">Sem dados</div>'; return; }
+      const kpis = await RecognitionsRepo.getKPIs();
+      const getName = (uid) => { const p = this._team.find(t => t.supabaseId === uid); return p ? p.nome.split(' ')[0] : uid?.slice(0, 8) || '?'; };
+
+      container.innerHTML = `
+        <div style="display:flex;gap:16px;margin-bottom:12px;">
+          <div style="text-align:center;flex:1;"><div style="font-size:1.5rem;font-weight:800;color:var(--accent-gold);">${kpis.total}</div><div style="font-size:0.62rem;color:var(--text-muted);">Total</div></div>
+          <div style="text-align:center;flex:1;"><div style="font-size:1.5rem;font-weight:800;color:var(--color-success);">${kpis.thisMonth}</div><div style="font-size:0.62rem;color:var(--text-muted);">Este mês</div></div>
+        </div>
+        ${kpis.topPeople && kpis.topPeople.length ? `
+          <div style="font-size:0.72rem;font-weight:600;margin-bottom:6px;color:var(--text-muted);">Top Reconhecidos:</div>
+          ${kpis.topPeople.slice(0, 5).map(([uid, count], i) => `
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <span style="font-size:0.68rem;color:var(--text-muted);width:14px;">${i + 1}.</span>
+              <span style="font-size:0.78rem;font-weight:500;flex:1;">${this._esc(getName(uid))}</span>
+              <span style="font-size:0.72rem;font-weight:700;color:var(--accent-gold);">${count}</span>
+            </div>
+          `).join('')}
+        ` : '<div style="font-size:0.72rem;color:var(--text-muted);">Sem reconhecimentos</div>'}
+        ${kpis.byValue && Object.keys(kpis.byValue).length ? `
+          <div style="font-size:0.72rem;font-weight:600;margin-top:10px;margin-bottom:6px;color:var(--text-muted);">Por Valor:</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;">
+            ${Object.entries(kpis.byValue).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([v, n]) => `<span class="tag" style="font-size:0.6rem;">${this._esc(v)} (${n})</span>`).join('')}
+          </div>
+        ` : ''}
+      `;
+    } catch (e) { container.innerHTML = '<div style="font-size:0.72rem;color:var(--text-muted);">Erro ao carregar</div>'; }
   },
 
   // ══════════════════════════════════════════════════════════════════
@@ -4100,6 +4743,8 @@ const TBO_RH = {
           content.innerHTML = this._renderCulturaSubTab(subTab);
           if (window.lucide) lucide.createIcons({ root: content });
           this._bindCulturaContent();
+          // Carregar dados async de onboarding se subtab onboarding
+          if (subTab === 'onboarding') this._loadOnboardingData();
         }
         // Atualizar hash para deep link do sidebar
         const newHash = `rh/cultura/${subTab}`;
@@ -4159,7 +4804,7 @@ const TBO_RH = {
       const status = filterStatus ? filterStatus.value : '';
 
       // Mapa de status filtro local → status do DB
-      const statusLocalMap = { 'ativo': 'active', 'inativo': 'inactive', 'ferias': 'vacation', 'ausente': 'away', 'onboarding': 'onboarding', 'suspenso': 'suspended' };
+      const statusLocalMap = { 'ativo': 'active', 'inativo': 'inactive', 'ferias': 'vacation', 'ausente': 'away', 'onboarding': 'onboarding', 'offboarding': 'offboarding', 'desligado': 'desligado', 'suspenso': 'suspended' };
       const statusDb = status ? statusLocalMap[status] || status : '';
 
       // Cards
@@ -4295,23 +4940,72 @@ const TBO_RH = {
       const leaderId = document.getElementById('ooLider')?.value;
       const collabId = document.getElementById('ooColab')?.value;
       const dataValue = document.getElementById('ooData')?.value || new Date().toISOString();
+      const recurrence = document.getElementById('ooRecurrence')?.value || '';
+      const statusEl = document.getElementById('oo1on1Status');
+
+      const leaderPerson = this._team.find(t => (t.supabaseId || t.id) === leaderId);
+      const collabPerson = this._team.find(t => (t.supabaseId || t.id) === collabId);
+
+      if (statusEl) statusEl.textContent = 'Salvando...';
 
       // Tentar salvar no Supabase
       if (typeof OneOnOnesRepo !== 'undefined') {
         try {
-          await OneOnOnesRepo.create({
-            leader_id: leaderId,
-            collaborator_id: collabId,
-            scheduled_at: dataValue,
-            status: 'scheduled'
-          });
-          TBO_TOAST.success('1:1 agendada!');
+          // Calcular datas recorrentes (6 meses)
+          const dates = [dataValue];
+          if (recurrence) {
+            const intervalDays = recurrence === 'weekly' ? 7 : recurrence === 'biweekly' ? 14 : 30;
+            for (let i = 1; i <= 5; i++) {
+              const d = new Date(new Date(dataValue).getTime() + i * intervalDays * 24 * 60 * 60 * 1000);
+              dates.push(d.toISOString());
+            }
+          }
+
+          let createdCount = 0;
+          for (const dt of dates) {
+            if (statusEl) statusEl.textContent = `Criando ${createdCount + 1}/${dates.length}...`;
+
+            const oneOnOne = await OneOnOnesRepo.create({
+              leader_id: leaderId,
+              collaborator_id: collabId,
+              scheduled_at: dt,
+              status: 'scheduled',
+              recurrence: recurrence || null
+            });
+
+            // Criar evento no Google Calendar automaticamente
+            if (typeof TBO_GOOGLE_CALENDAR !== 'undefined') {
+              try {
+                if (statusEl) statusEl.textContent = `Google Calendar ${createdCount + 1}/${dates.length}...`;
+                const gcalResult = await TBO_GOOGLE_CALENDAR.create1on1Event({
+                  leaderName: leaderPerson?.nome || 'Líder',
+                  leaderEmail: leaderPerson?.email || '',
+                  collaboratorName: collabPerson?.nome || 'Colaborador',
+                  collaboratorEmail: collabPerson?.email || '',
+                  scheduledAt: dt,
+                  durationMinutes: 30
+                });
+
+                // Salvar google_event_id na 1:1
+                if (gcalResult?.id && oneOnOne?.id) {
+                  await OneOnOnesRepo.update(oneOnOne.id, { google_event_id: gcalResult.id });
+                }
+              } catch (gcalErr) {
+                console.warn('[RH] Google Calendar falhou (continuando):', gcalErr.message);
+              }
+            }
+            createdCount++;
+          }
+
+          TBO_TOAST.success(`${createdCount} 1:1(s) agendada(s)!`, recurrence ? `Recorrência ${recurrence} — 6 meses` : '');
+          if (statusEl) statusEl.textContent = '';
           this._oneOnOnesCache = null;
           this._oneOnOneActionsCache = null;
           await this._load1on1sFromSupabase();
           return;
         } catch (e) {
           console.warn('[RH] Erro ao salvar 1:1 no Supabase:', e.message);
+          if (statusEl) statusEl.textContent = 'Erro!';
         }
       }
 
@@ -4321,6 +5015,15 @@ const TBO_RH = {
       TBO_TOAST.success('1:1 agendada!');
       const tabContent = document.getElementById('rhTabContent');
       if (tabContent) { tabContent.innerHTML = this._renderActiveTab(); this._initActiveTab(); }
+    });
+
+    // 1:1 detail panel (click to expand)
+    document.querySelectorAll('.rh-1on1-row').forEach(row => {
+      row.addEventListener('click', async () => {
+        const id = row.dataset.id;
+        if (!id) return;
+        await this._open1on1Detail(id);
+      });
     });
 
     // Action checkboxes
@@ -4346,8 +5049,8 @@ const TBO_RH = {
     if (window.lucide) lucide.createIcons();
   },
 
-  // ── Carregar dados do onboarding (tabela colaboradores) ──
-  async _loadOnboardingData(personId) {
+  // ── Drawer: Carregar dados do onboarding da pessoa (tabela colaboradores) ──
+  async _loadDrawerOnboardingData(personId) {
     const container = document.getElementById('rhOnboardingData');
     if (!container) return;
 
@@ -4402,6 +5105,444 @@ const TBO_RH = {
     }
   },
 
+  // ── 1:1 Detail Panel (Fase C) — abre modal com notas + acoes ──
+  async _open1on1Detail(oneOnOneId) {
+    if (typeof OneOnOnesRepo === 'undefined') return;
+
+    try {
+      const data = await OneOnOnesRepo.getById(oneOnOneId);
+      if (!data) { TBO_TOAST.warning('1:1 não encontrada'); return; }
+
+      const leaderName = this._getPersonNameByUid(data.leader_id);
+      const collabName = this._getPersonNameByUid(data.collaborator_id);
+      const actions = data.one_on_one_actions || [];
+      const statusColors = { scheduled: 'var(--color-info)', completed: 'var(--color-success)', cancelled: 'var(--text-muted)', no_show: 'var(--color-danger)' };
+      const statusLabels = { scheduled: 'Agendada', completed: 'Concluída', cancelled: 'Cancelada', no_show: 'No-show' };
+
+      // Modal overlay
+      const overlay = document.createElement('div');
+      overlay.id = 'rh1on1DetailOverlay';
+      overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:2000;display:flex;justify-content:center;align-items:center;';
+      overlay.innerHTML = `
+        <div style="background:var(--bg-primary);border-radius:16px;width:560px;max-height:80vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,0.25);padding:24px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div>
+              <h3 style="font-size:1rem;font-weight:700;margin-bottom:2px;">1:1 ${this._esc(leaderName)} ↔ ${this._esc(collabName)}</h3>
+              <div style="font-size:0.75rem;color:var(--text-muted);">${data.scheduled_at ? new Date(data.scheduled_at).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                ${data.google_event_id ? ' · <i data-lucide="calendar" style="width:10px;height:10px;vertical-align:-1px;color:var(--color-info);"></i> Google Calendar' : ''}
+                ${data.recurrence ? ` · <i data-lucide="repeat" style="width:10px;height:10px;vertical-align:-1px;"></i> ${data.recurrence === 'monthly' ? 'Mensal' : data.recurrence === 'biweekly' ? 'Quinzenal' : 'Semanal'}` : ''}
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <span class="tag" style="font-size:0.65rem;background:${statusColors[data.status] || 'var(--text-muted)'}20;color:${statusColors[data.status] || 'var(--text-muted)'};">${statusLabels[data.status] || data.status}</span>
+              <button id="rh1on1Close" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px;"><i data-lucide="x" style="width:18px;height:18px;"></i></button>
+            </div>
+          </div>
+
+          <!-- Status buttons -->
+          <div style="display:flex;gap:6px;margin-bottom:16px;">
+            ${data.status === 'scheduled' ? `
+              <button class="btn btn-sm btn-primary" id="rh1on1Complete"><i data-lucide="check" style="width:12px;height:12px;"></i> Marcar Concluída</button>
+              <button class="btn btn-sm btn-secondary" id="rh1on1Cancel">Cancelar</button>
+            ` : ''}
+          </div>
+
+          <!-- Notas -->
+          <div style="margin-bottom:16px;">
+            <label style="font-weight:600;font-size:0.82rem;display:block;margin-bottom:6px;"><i data-lucide="file-text" style="width:14px;height:14px;vertical-align:-2px;color:var(--accent-gold);"></i> Notas da Reunião</label>
+            <textarea id="rh1on1Notes" class="form-input" rows="4" placeholder="Escreva notas sobre a reunião..." style="font-size:0.8rem;resize:vertical;">${this._esc(data.notes || '')}</textarea>
+            <button class="btn btn-sm btn-secondary" id="rh1on1SaveNotes" style="margin-top:6px;font-size:0.68rem;">Salvar Notas</button>
+          </div>
+
+          <!-- Ações -->
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <label style="font-weight:600;font-size:0.82rem;"><i data-lucide="check-square" style="width:14px;height:14px;vertical-align:-2px;color:var(--color-info);"></i> Ações (${actions.length})</label>
+              <button class="btn btn-sm btn-secondary" id="rh1on1AddAction" style="font-size:0.66rem;padding:2px 8px;"><i data-lucide="plus" style="width:10px;height:10px;"></i> Ação</button>
+            </div>
+            <div id="rh1on1ActionForm" style="display:none;margin-bottom:8px;padding:8px;background:var(--bg-elevated);border-radius:8px;">
+              <input type="text" class="form-input" id="rh1on1ActionText" placeholder="Descreva a ação..." style="font-size:0.78rem;margin-bottom:6px;">
+              <div style="display:flex;gap:6px;">
+                <input type="date" class="form-input" id="rh1on1ActionDue" style="font-size:0.72rem;flex:1;">
+                <button class="btn btn-primary btn-sm" id="rh1on1ActionSave" style="font-size:0.66rem;">Criar</button>
+              </div>
+            </div>
+            <div id="rh1on1ActionList">
+              ${actions.length ? actions.map(a => `
+                <div style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--border-subtle);">
+                  <input type="checkbox" class="rh1on1-action-toggle" data-id="${a.id}" ${a.completed ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--accent-gold);">
+                  <div style="flex:1;">
+                    <div style="font-size:0.78rem;${a.completed ? 'text-decoration:line-through;opacity:0.6;' : ''}">${this._esc(a.text)}</div>
+                    ${a.due_date ? `<div style="font-size:0.65rem;color:${new Date(a.due_date) < new Date() && !a.completed ? 'var(--color-danger)' : 'var(--text-muted)'};">Prazo: ${new Date(a.due_date + 'T12:00').toLocaleDateString('pt-BR')}</div>` : ''}
+                  </div>
+                  <button class="rh1on1-action-delete" data-id="${a.id}" style="background:none;border:none;cursor:pointer;color:var(--color-danger);padding:2px;"><i data-lucide="trash-2" style="width:12px;height:12px;"></i></button>
+                </div>
+              `).join('') : '<div style="font-size:0.72rem;color:var(--text-muted);padding:8px;">Nenhuma ação registrada</div>'}
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+      if (window.lucide) lucide.createIcons({ root: overlay });
+
+      // Binds
+      overlay.querySelector('#rh1on1Close')?.addEventListener('click', () => overlay.remove());
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+      // Salvar notas
+      overlay.querySelector('#rh1on1SaveNotes')?.addEventListener('click', async () => {
+        const notes = overlay.querySelector('#rh1on1Notes')?.value || '';
+        try {
+          await OneOnOnesRepo.update(oneOnOneId, { notes });
+          TBO_TOAST.success('Notas salvas!');
+        } catch (e) { TBO_TOAST.error('Erro ao salvar notas'); }
+      });
+
+      // Marcar concluida
+      overlay.querySelector('#rh1on1Complete')?.addEventListener('click', async () => {
+        const notes = overlay.querySelector('#rh1on1Notes')?.value || '';
+        try {
+          await OneOnOnesRepo.complete(oneOnOneId, notes);
+          TBO_TOAST.success('1:1 concluída!');
+          overlay.remove();
+          this._oneOnOnesCache = null;
+          await this._load1on1sFromSupabase();
+        } catch (e) { TBO_TOAST.error('Erro ao concluir'); }
+      });
+
+      // Cancelar 1:1
+      overlay.querySelector('#rh1on1Cancel')?.addEventListener('click', async () => {
+        try {
+          await OneOnOnesRepo.cancel(oneOnOneId);
+          // Deletar evento do Google Calendar
+          if (data.google_event_id && typeof TBO_GOOGLE_CALENDAR !== 'undefined') {
+            try { await TBO_GOOGLE_CALENDAR.deleteEvent(data.google_event_id); } catch { /* ignore */ }
+          }
+          TBO_TOAST.info('1:1 cancelada');
+          overlay.remove();
+          this._oneOnOnesCache = null;
+          await this._load1on1sFromSupabase();
+        } catch (e) { TBO_TOAST.error('Erro ao cancelar'); }
+      });
+
+      // Toggle acoes
+      overlay.querySelectorAll('.rh1on1-action-toggle').forEach(chk => {
+        chk.addEventListener('change', async () => {
+          try {
+            await OneOnOnesRepo.toggleAction(chk.dataset.id, chk.checked);
+          } catch (e) { TBO_TOAST.error('Erro ao atualizar ação'); }
+        });
+      });
+
+      // Delete acoes
+      overlay.querySelectorAll('.rh1on1-action-delete').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          try {
+            await OneOnOnesRepo.removeAction(btn.dataset.id);
+            btn.closest('div[style*="border-bottom"]')?.remove();
+          } catch (err) { TBO_TOAST.error('Erro ao remover ação'); }
+        });
+      });
+
+      // Adicionar acao
+      overlay.querySelector('#rh1on1AddAction')?.addEventListener('click', () => {
+        const form = overlay.querySelector('#rh1on1ActionForm');
+        if (form) form.style.display = form.style.display === 'none' ? 'block' : 'none';
+      });
+      overlay.querySelector('#rh1on1ActionSave')?.addEventListener('click', async () => {
+        const text = overlay.querySelector('#rh1on1ActionText')?.value;
+        const dueDate = overlay.querySelector('#rh1on1ActionDue')?.value;
+        if (!text) return;
+        try {
+          const action = await OneOnOnesRepo.createAction(oneOnOneId, {
+            text,
+            assignee_id: data.collaborator_id,
+            due_date: dueDate || null,
+            completed: false
+          });
+          TBO_TOAST.success('Ação criada!');
+          // Reload detail
+          overlay.remove();
+          await this._open1on1Detail(oneOnOneId);
+        } catch (e) { TBO_TOAST.error('Erro ao criar ação'); }
+      });
+    } catch (e) {
+      console.error('[RH] Erro ao abrir detalhe 1:1:', e);
+      TBO_TOAST.error('Erro ao carregar detalhe da 1:1');
+    }
+  },
+
+  // Helper: buscar nome de pessoa por supabase uid
+  _getPersonNameByUid(uid) {
+    if (!uid) return 'Desconhecido';
+    const person = this._team.find(t => t.supabaseId === uid || t.id === uid);
+    return person ? person.nome : uid.slice(0, 8);
+  },
+
+  // ── Drawer: Carregar projetos reais da pessoa (Fase B + Notion) ──
+  async _loadDrawerProjects(personId) {
+    const container = document.getElementById('rhDrawerProjects');
+    if (!container) return;
+    try {
+      const person = this._getPerson(personId);
+      if (!person) { container.innerHTML = '<div style="font-size:0.72rem;color:var(--text-muted);">Sem dados</div>'; return; }
+
+      let projects = [];
+
+      // 1. Tentar buscar projetos do Notion (fonte primaria — BD Projetos TBO)
+      if (typeof NotionIntegration !== 'undefined') {
+        try {
+          const notionProjects = NotionIntegration.getProjectsByBU(person.bu || person.area || '');
+          if (notionProjects.length) {
+            projects = notionProjects.slice(0, 6).map(p => ({
+              nome: p.nome,
+              cliente: p.construtora,
+              status: p.status || 'Em Andamento',
+              cor: p.status === 'Concluído' ? 'var(--color-success)' : p.status === 'Parado' ? 'var(--color-warning)' : 'var(--color-info)',
+              url: p.url,
+              _source: 'notion'
+            }));
+          }
+        } catch { /* fallback abaixo */ }
+      }
+
+      // 2. Fallback: buscar via ProjectsRepo (Supabase)
+      if (!projects.length && typeof ProjectsRepo !== 'undefined') {
+        try {
+          const { data } = await ProjectsRepo.list({ limit: 50 });
+          projects = (data || []).filter(p =>
+            (p.members || []).some(m => m.user_id === person.supabaseId) ||
+            p.team === person.bu
+          ).slice(0, 6).map(p => ({
+            nome: p.name || p.title,
+            cliente: p.client || '',
+            status: p.status || 'em_andamento',
+            cor: p.status === 'concluido' || p.status === 'completed' ? 'var(--color-success)' : 'var(--color-info)',
+            _source: 'supabase'
+          }));
+        } catch { /* fallback abaixo */ }
+      }
+
+      // 3. Tambem buscar demandas da pessoa no Notion
+      let demandas = [];
+      if (typeof NotionIntegration !== 'undefined') {
+        try {
+          demandas = NotionIntegration.getDemandasByPerson(person.nome || person.email || '').slice(0, 4);
+        } catch { /* sem demandas */ }
+      }
+
+      if (!projects.length && !demandas.length) {
+        container.innerHTML = '<div style="font-size:0.72rem;color:var(--text-muted);">Nenhum projeto vinculado</div>';
+        return;
+      }
+
+      let html = '';
+
+      // Projetos
+      if (projects.length) {
+        html += projects.map(pj => `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--bg-elevated);border-radius:6px;margin-bottom:6px;${pj.url ? 'cursor:pointer;' : ''}" ${pj.url ? `onclick="window.open('${pj.url}','_blank')"` : ''}>
+            <div style="width:8px;height:8px;border-radius:50%;background:${pj.cor};flex-shrink:0;"></div>
+            <div style="flex:1;">
+              <div style="font-size:0.8rem;font-weight:500;">${this._esc(pj.nome)}</div>
+              ${pj.cliente ? `<div style="font-size:0.65rem;color:var(--text-muted);">${this._esc(pj.cliente)}</div>` : ''}
+            </div>
+            <span class="tag" style="font-size:0.6rem;background:${pj.cor}20;color:${pj.cor};">${this._esc(pj.status)}</span>
+          </div>
+        `).join('');
+      }
+
+      // Demandas ativas
+      if (demandas.length) {
+        html += `<div style="font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-top:10px;margin-bottom:6px;">Demandas Ativas</div>`;
+        html += demandas.map(d => {
+          const statusColor = d.status === 'Desenvolvimento' ? 'var(--color-info)' : d.status === 'Revisão Interna' ? 'var(--color-warning)' : 'var(--text-muted)';
+          return `
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg-elevated);border-radius:6px;margin-bottom:4px;${d.url ? 'cursor:pointer;' : ''}" ${d.url ? `onclick="window.open('${d.url}','_blank')"` : ''}>
+              <i data-lucide="file-text" style="width:12px;height:12px;color:var(--text-muted);flex-shrink:0;"></i>
+              <div style="flex:1;font-size:0.75rem;">${this._esc(d.demanda)}</div>
+              <span style="font-size:0.58rem;color:${statusColor};">${this._esc(d.status)}</span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      container.innerHTML = html;
+      if (window.lucide) lucide.createIcons();
+    } catch (e) {
+      console.warn('[RH] Erro ao carregar projetos:', e.message);
+      container.innerHTML = '<div style="font-size:0.72rem;color:var(--text-muted);">Erro ao carregar</div>';
+    }
+  },
+
+  // ── Drawer: Carregar skills da pessoa (Fase G) ──
+  async _loadDrawerSkills(personId) {
+    const container = document.getElementById('rhDrawerSkills');
+    if (!container) return;
+    try {
+      const person = this._getPerson(personId);
+      const uid = person?.supabaseId || personId;
+
+      let skills = [];
+      if (typeof SkillsRepo !== 'undefined') {
+        try { skills = await SkillsRepo.getForPerson(uid); } catch { /* sem skills */ }
+      }
+
+      if (!skills.length) {
+        container.innerHTML = `
+          <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:8px;">Nenhuma competência registrada</div>
+          ${this._isAdmin() ? `<button class="btn btn-secondary btn-sm rh-add-skill" data-person="${personId}" style="font-size:0.66rem;padding:2px 8px;"><i data-lucide="plus" style="width:10px;height:10px;"></i> Adicionar</button>` : ''}
+        `;
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      const levelLabels = ['', 'Básico', 'Intermediário', 'Avançado', 'Expert', 'Master'];
+      const levelColors = ['', 'var(--text-muted)', 'var(--color-info)', 'var(--accent-gold)', 'var(--color-success)', 'var(--color-purple, #8b5cf6)'];
+
+      container.innerHTML = `
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">
+          ${skills.map(s => `
+            <span class="tag" style="font-size:0.62rem;background:${levelColors[s.proficiency_level] || 'var(--text-muted)'}15;color:${levelColors[s.proficiency_level] || 'var(--text-muted)'};">
+              ${this._esc(s.skill_name)} · ${levelLabels[s.proficiency_level] || 'Nv' + s.proficiency_level}
+              ${s.certification_name ? ' 📜' : ''}
+            </span>
+          `).join('')}
+        </div>
+        ${this._isAdmin() ? `<button class="btn btn-secondary btn-sm rh-add-skill" data-person="${personId}" style="font-size:0.66rem;padding:2px 8px;"><i data-lucide="plus" style="width:10px;height:10px;"></i> Adicionar</button>` : ''}
+      `;
+      if (window.lucide) lucide.createIcons();
+    } catch (e) {
+      console.warn('[RH] Erro ao carregar skills:', e.message);
+      container.innerHTML = '<div style="font-size:0.72rem;color:var(--text-muted);">Erro ao carregar</div>';
+    }
+  },
+
+  // ── Drawer: Carregar metas/PDI reais (Fase D) ──
+  async _loadDrawerMetas(personId) {
+    const container = document.getElementById('rhDrawerMetas');
+    if (!container) return;
+    try {
+      const person = this._getPerson(personId);
+      const uid = person?.supabaseId || personId;
+
+      // Buscar person_tasks com category='pdi'
+      let metas = [];
+      if (typeof RepoBase !== 'undefined') {
+        try {
+          const db = RepoBase.getDb();
+          const tid = RepoBase.requireTenantId();
+          const { data } = await db.from('person_tasks')
+            .select('id, title, status, description, category, due_date, completed_at')
+            .eq('tenant_id', tid)
+            .eq('person_id', uid)
+            .eq('category', 'pdi')
+            .order('created_at', { ascending: false });
+
+          metas = (data || []).map(t => {
+            const progresso = t.status === 'completed' ? 100 : t.status === 'in_progress' ? 50 : 10;
+            return { id: t.id, nome: t.title, progresso, prazo: t.due_date || '', status: t.status };
+          });
+        } catch { /* sem metas */ }
+      }
+
+      // Fallback: metas dos gaps da review
+      if (!metas.length) {
+        const reviews = this._getStore('avaliacoes_people');
+        const review = reviews.find(r => r.pessoaId === personId);
+        if (review && review.gaps) {
+          metas = review.gaps.map((g, i) => ({
+            id: `gap-${i}`, nome: `Desenvolver ${g}`, progresso: 20, prazo: '2026-06-30', status: 'pending'
+          }));
+        }
+      }
+
+      if (!metas.length) {
+        container.innerHTML = '<div style="font-size:0.72rem;color:var(--text-muted);">Sem metas / PDI definidos</div>';
+        return;
+      }
+
+      container.innerHTML = metas.map(m => `
+        <div style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px;">
+            <span>${this._esc(m.nome)}</span>
+            <span style="font-weight:600;color:${m.progresso >= 75 ? 'var(--color-success)' : m.progresso >= 40 ? 'var(--accent-gold)' : 'var(--color-danger)'};">${m.progresso}%</span>
+          </div>
+          <div style="height:6px;background:var(--bg-tertiary);border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:${m.progresso}%;background:${m.progresso >= 75 ? 'var(--color-success)' : m.progresso >= 40 ? 'var(--accent-gold)' : 'var(--color-danger)'};border-radius:3px;transition:width 0.3s;"></div>
+          </div>
+        </div>
+      `).join('');
+    } catch (e) {
+      console.warn('[RH] Erro ao carregar metas:', e.message);
+      container.innerHTML = '<div style="font-size:0.72rem;color:var(--text-muted);">Erro ao carregar</div>';
+    }
+  },
+
+  // ── Drawer: Carregar historico de compensacao/promocoes (Fase H) ──
+  async _loadDrawerHistory(personId) {
+    const container = document.getElementById('rhDrawerHistory');
+    if (!container) return;
+    try {
+      const person = this._getPerson(personId);
+      const uid = person?.supabaseId || personId;
+
+      let history = [];
+      if (typeof PeopleRepo !== 'undefined') {
+        try { history = await PeopleRepo.getHistory(uid); } catch { /* sem historico */ }
+      }
+
+      if (!history || !history.length) {
+        // Mostrar info basica
+        const startDate = person?.inicio || person?.start_date;
+        const salary = person?.custoMensal;
+        if (startDate || salary) {
+          container.innerHTML = `
+            <div style="display:flex;gap:12px;flex-wrap:wrap;">
+              ${startDate ? `<div style="font-size:0.72rem;"><span style="color:var(--text-muted);">Inicio:</span> <strong>${new Date(startDate + 'T12:00').toLocaleDateString('pt-BR')}</strong></div>` : ''}
+              ${salary ? `<div style="font-size:0.72rem;"><span style="color:var(--text-muted);">Remuneracao:</span> <strong>R$ ${Number(salary).toLocaleString('pt-BR')}</strong></div>` : ''}
+            </div>
+          `;
+        } else {
+          container.innerHTML = '<div style="font-size:0.72rem;color:var(--text-muted);">Sem historico registrado</div>';
+        }
+        return;
+      }
+
+      // Renderizar timeline
+      const importantFields = ['salary_pj', 'nivel_atual', 'cargo', 'bu', 'status'];
+      const relevant = history.filter(h => importantFields.includes(h.field_changed)).slice(0, 10);
+
+      if (!relevant.length) {
+        container.innerHTML = '<div style="font-size:0.72rem;color:var(--text-muted);">Sem alteracoes significativas</div>';
+        return;
+      }
+
+      const fieldLabels = { salary_pj: '💰 Remuneração', nivel_atual: '📈 Nível', cargo: '💼 Cargo', bu: '🏢 Equipe', status: '🔄 Status' };
+
+      container.innerHTML = `
+        <div style="border-left:2px solid var(--border-subtle);padding-left:12px;">
+          ${relevant.map(h => `
+            <div style="margin-bottom:10px;position:relative;">
+              <div style="position:absolute;left:-17px;top:2px;width:8px;height:8px;border-radius:50%;background:var(--accent-gold);border:2px solid var(--bg-primary);"></div>
+              <div style="font-size:0.68rem;color:var(--text-muted);">${h.changed_at ? new Date(h.changed_at).toLocaleDateString('pt-BR') : ''}</div>
+              <div style="font-size:0.76rem;font-weight:500;">${fieldLabels[h.field_changed] || h.field_changed}</div>
+              <div style="font-size:0.7rem;color:var(--text-secondary);">
+                ${h.old_value ? `<span style="text-decoration:line-through;opacity:0.6;">${this._esc(String(h.old_value).slice(0, 30))}</span> → ` : ''}
+                <strong>${this._esc(String(h.new_value).slice(0, 30))}</strong>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } catch (e) {
+      console.warn('[RH] Erro ao carregar historico:', e.message);
+      container.innerHTML = '<div style="font-size:0.72rem;color:var(--text-muted);">Erro ao carregar</div>';
+    }
+  },
+
   // ── Abrir drawer com backdrop (fechar com click fora, Escape) ──
   _openPersonDrawer(personId) {
     const drawer = document.getElementById('rhPersonDrawer');
@@ -4424,7 +5565,11 @@ const TBO_RH = {
 
     // Carregar tarefas da pessoa e dados do onboarding (async)
     this._loadPersonTasks(personId);
-    this._loadOnboardingData(personId);
+    this._loadDrawerOnboardingData(personId);
+    this._loadDrawerProjects(personId);
+    this._loadDrawerSkills(personId);
+    this._loadDrawerMetas(personId);
+    this._loadDrawerHistory(personId);
 
     // Abrir perfil completo
     this._bind('rhOpenFullProfile', () => {
@@ -4497,6 +5642,22 @@ const TBO_RH = {
       if (window.lucide) lucide.createIcons();
       try {
         await PeopleRepo.update(supabaseId, updates);
+
+        // Auto-trigger onboarding/offboarding se status mudou
+        if (typeof OnboardingRepo !== 'undefined') {
+          if (status === 'onboarding') {
+            try {
+              await OnboardingRepo.triggerAutomation(supabaseId, 'onboarding');
+              console.log(`[RH] Onboarding automatico disparado para ${fullName || supabaseId}`);
+            } catch (e) { console.warn('[RH] Erro ao disparar onboarding:', e.message); }
+          } else if (status === 'offboarding') {
+            try {
+              await OnboardingRepo.triggerAutomation(supabaseId, 'offboarding');
+              console.log(`[RH] Offboarding automatico disparado para ${fullName || supabaseId}`);
+            } catch (e) { console.warn('[RH] Erro ao disparar offboarding:', e.message); }
+          }
+        }
+
         if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Perfil atualizado!', fullName || '');
         // Recarregar equipe e reabrir drawer
         this._teamLoaded = false;

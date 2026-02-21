@@ -66,13 +66,16 @@ export default async function handler(req, res) {
 
   const supabaseUrl = process.env.SUPABASE_URL || 'https://olnndpultyllyhzxuyxh.supabase.co';
   const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
+  // O Bearer token do usuario serve como apikey quando SUPABASE_ANON_KEY nao esta definida
+  const bearerToken = authHeader.replace('Bearer ', '');
+  const apiKey = supabaseKey || bearerToken;
 
   let user;
   try {
     const authRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
       headers: {
         'Authorization': authHeader,
-        'apikey': supabaseKey
+        'apikey': apiKey
       }
     });
     if (!authRes.ok) {

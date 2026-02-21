@@ -317,13 +317,15 @@ const TBO_OMIE_SYNC = (() => {
     _lastResult = null;
 
     let syncLog = null;
+    let _syncLogAvailable = true;
 
     try {
-      // Criar registro de sync log
+      // Criar registro de sync log (tolera tabela inexistente)
       try {
         syncLog = await FinanceRepo.createSyncLog({ status: 'running' });
       } catch (e) {
         console.warn('[TBO Omie Sync] Nao foi possivel criar sync log:', e.message);
+        _syncLogAvailable = false;
       }
 
       _progress('start', 0, 'Iniciando sincronizacao Omie → Supabase...');
@@ -372,7 +374,7 @@ const TBO_OMIE_SYNC = (() => {
                      result.total > 0 ? 'partial' : 'error';
 
       // Atualizar sync log
-      if (syncLog) {
+      if (syncLog && _syncLogAvailable) {
         try {
           await FinanceRepo.updateSyncLog(syncLog.id, {
             finished_at: new Date().toISOString(),
@@ -406,7 +408,7 @@ const TBO_OMIE_SYNC = (() => {
       _error = e.message;
 
       // Atualizar sync log com erro
-      if (syncLog) {
+      if (syncLog && _syncLogAvailable) {
         try {
           await FinanceRepo.updateSyncLog(syncLog.id, {
             finished_at: new Date().toISOString(),

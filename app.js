@@ -760,6 +760,10 @@ const TBO_APP = {
 
   // ── Dynamic Sidebar Renderer (C14 XSS safe, C18 preload states) ───────
   _renderSidebar() {
+    // v3.0: Guard — não sobrescrever se Notion v2 está ativo
+    if (typeof TBO_SIDEBAR_BRIDGE !== 'undefined' && TBO_SIDEBAR_BRIDGE.currentStyle === 'notion-v2') {
+      return;
+    }
     const navEl = document.getElementById('sidebarNav');
     if (!navEl) return;
 

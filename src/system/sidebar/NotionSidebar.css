@@ -385,3 +385,10 @@ body.dark-mode .nsb-ws-add:hover,
 body.dark-mode .nsb-ws-more:hover {
   background: var(--border-default, #3a3a3a);
 }
+
+/* ── v3.0: Esconder elementos clássicos quando Notion v2 está ativo ──── */
+#sidebar:has(.nsb-container) .sidebar-create,
+#sidebar:has(.nsb-container) .sidebar-search,
+#sidebar:has(.nsb-container) .sidebar-favorites {
+  display: none !important;
+}

@@ -670,6 +670,14 @@ const TBO_RH = {
 
       <!-- Context menu (acoes por 1:1) -->
       <div id="rh1on1ContextMenu" class="rh-context-menu" style="display:none;"></div>
+
+      <!-- Bulk actions bar (multi-selecao 1:1) -->
+      <div id="rh1on1BulkBar" style="display:none;position:fixed;bottom:0;left:50%;transform:translateX(-50%);background:var(--bg-primary);border:1px solid var(--border-subtle);border-bottom:none;border-radius:12px 12px 0 0;padding:10px 20px;align-items:center;gap:12px;z-index:100;box-shadow:0 -4px 16px rgba(0,0,0,0.12);">
+        <span id="rh1on1BulkCount" style="font-size:0.8rem;font-weight:600;">0 selecionados</span>
+        <button class="btn btn-sm" id="rh1on1BulkDelete" style="color:var(--color-danger);border:1px solid var(--color-danger);"><i data-lucide="trash-2" style="width:12px;height:12px;vertical-align:-2px;"></i> Excluir selecionados</button>
+        <button class="btn btn-sm" id="rh1on1BulkSelectAll">Selecionar todos</button>
+        <button class="btn btn-sm" id="rh1on1BulkCancel">Cancelar</button>
+      </div>
     `;
   },
 
@@ -2739,14 +2747,14 @@ const TBO_RH = {
               <span id="oo1on1Status" style="font-size:0.68rem;color:var(--text-muted);margin-left:auto;"></span>
             </div>
           </div>
-          ${filtered.filter(o => (o.status === 'agendada' || o.status === 'scheduled')).sort((a, b) => new Date(getDate(a)) - new Date(getDate(b))).map(o => `<div class="rh-1on1-row" data-id="${o.id}" style="padding:12px 16px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='var(--bg-elevated)'" onmouseout="this.style.background=''"><div><div style="font-size:0.85rem;font-weight:600;">${getName(getLeader(o))} ↔ ${getName(getCollab(o))}</div><div style="font-size:0.72rem;color:var(--text-muted);">${new Date(getDate(o)).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}${o.recurrence ? ` · <i data-lucide="repeat" style="width:10px;height:10px;vertical-align:-1px;"></i> ${o.recurrence === 'daily' ? 'Diária' : o.recurrence === 'monthly' ? 'Mensal' : o.recurrence === 'biweekly' ? 'Quinzenal' : 'Semanal'}` : ''}${o.google_event_id ? ' · <i data-lucide="calendar" style="width:10px;height:10px;vertical-align:-1px;color:var(--color-info);"></i>' : ''}${!o.google_event_id && o.status === 'scheduled' ? ' · <i data-lucide="calendar-x" style="width:10px;height:10px;vertical-align:-1px;color:var(--color-danger);"></i>' : ''}</div></div><span class="tag" style="font-size:0.65rem;background:var(--color-info)20;color:var(--color-info);">Agendada</span></div>`).join('') || '<div style="padding:16px;font-size:0.78rem;color:var(--text-muted);">Nenhuma agendada</div>'}
+          ${filtered.filter(o => (o.status === 'agendada' || o.status === 'scheduled')).sort((a, b) => new Date(getDate(a)) - new Date(getDate(b))).map(o => `<div class="rh-1on1-row" data-id="${o.id}" style="padding:12px 16px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:10px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='var(--bg-elevated)'" onmouseout="this.style.background=''"><input type="checkbox" class="rh-1on1-select" data-id="${o.id}" style="width:16px;height:16px;accent-color:var(--accent-gold);cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();"><div style="flex:1;"><div style="font-size:0.85rem;font-weight:600;">${getName(getLeader(o))} ↔ ${getName(getCollab(o))}</div><div style="font-size:0.72rem;color:var(--text-muted);">${new Date(getDate(o)).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}${o.recurrence ? ` · <i data-lucide="repeat" style="width:10px;height:10px;vertical-align:-1px;"></i> ${o.recurrence === 'daily' ? 'Diária' : o.recurrence === 'monthly' ? 'Mensal' : o.recurrence === 'biweekly' ? 'Quinzenal' : 'Semanal'}` : ''}${o.google_event_id ? ' · <i data-lucide="calendar" style="width:10px;height:10px;vertical-align:-1px;color:var(--color-info);"></i>' : ''}${!o.google_event_id && o.status === 'scheduled' ? ' · <i data-lucide="calendar-x" style="width:10px;height:10px;vertical-align:-1px;color:var(--color-danger);"></i>' : ''}</div></div><span class="tag" style="font-size:0.65rem;background:var(--color-info)20;color:var(--color-info);">Agendada</span></div>`).join('') || '<div style="padding:16px;font-size:0.78rem;color:var(--text-muted);">Nenhuma agendada</div>'}
         </div>
         <div class="card">
           <div class="card-header"><h3 class="card-title">Historico</h3></div>
           ${filtered.filter(o => (o.status !== 'agendada' && o.status !== 'scheduled')).sort((a, b) => new Date(getDate(b)) - new Date(getDate(a))).slice(0, 15).map(o => {
             const statusMap = { completed: { label: 'Concluída', bg: 'var(--color-success)20', color: 'var(--color-success)' }, concluida: { label: 'Concluída', bg: 'var(--color-success)20', color: 'var(--color-success)' }, cancelled: { label: 'Cancelada', bg: 'var(--bg-tertiary)', color: 'var(--text-muted)' }, no_show: { label: 'No-show', bg: 'var(--color-danger)20', color: 'var(--color-danger)' } };
             const st = statusMap[o.status] || statusMap.completed;
-            return `<div class="rh-1on1-row" data-id="${o.id}" style="padding:12px 16px;border-bottom:1px solid var(--border-subtle);cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='var(--bg-elevated)'" onmouseout="this.style.background=''"><div style="display:flex;justify-content:space-between;align-items:center;"><div><div style="font-size:0.85rem;font-weight:600;">${getName(getLeader(o))} ↔ ${getName(getCollab(o))}</div><div style="font-size:0.72rem;color:var(--text-muted);">${new Date(getDate(o)).toLocaleDateString('pt-BR')}</div></div><span class="tag" style="font-size:0.65rem;background:${st.bg};color:${st.color};">${st.label}</span></div>${o.notes ? `<div style="font-size:0.72rem;color:var(--text-secondary);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px;">${this._esc((o.notes || '').slice(0, 80))}${(o.notes || '').length > 80 ? '...' : ''}</div>` : ''}</div>`;
+            return `<div class="rh-1on1-row" data-id="${o.id}" style="padding:12px 16px;border-bottom:1px solid var(--border-subtle);cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='var(--bg-elevated)'" onmouseout="this.style.background=''"><div style="display:flex;align-items:center;gap:10px;"><input type="checkbox" class="rh-1on1-select" data-id="${o.id}" style="width:16px;height:16px;accent-color:var(--accent-gold);cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();"><div style="flex:1;"><div style="display:flex;justify-content:space-between;align-items:center;"><div><div style="font-size:0.85rem;font-weight:600;">${getName(getLeader(o))} ↔ ${getName(getCollab(o))}</div><div style="font-size:0.72rem;color:var(--text-muted);">${new Date(getDate(o)).toLocaleDateString('pt-BR')}</div></div><span class="tag" style="font-size:0.65rem;background:${st.bg};color:${st.color};">${st.label}</span></div>${o.notes ? `<div style="font-size:0.72rem;color:var(--text-secondary);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px;">${this._esc((o.notes || '').slice(0, 80))}${(o.notes || '').length > 80 ? '...' : ''}</div>` : ''}</div></div></div>`;
           }).join('') || '<div style="padding:16px;font-size:0.78rem;color:var(--text-muted);">Nenhuma no historico</div>'}
         </div>
       </div>
@@ -5056,6 +5064,9 @@ const TBO_RH = {
       });
     });
 
+    // v3.0: Multi-selecao de 1:1s (checkboxes + bulk bar)
+    this._bind1on1BulkActions();
+
     // Action checkboxes
     this._bindActionChecks();
 
@@ -5332,6 +5343,65 @@ const TBO_RH = {
     return person ? person.nome : uid.slice(0, 8);
   },
 
+  // ── Multi-seleção e delete em massa de 1:1s ─────────────────────────
+  _bind1on1BulkActions() {
+    // Checkbox change → atualizar bulk bar
+    document.querySelectorAll('.rh-1on1-select').forEach(cb => {
+      cb.addEventListener('change', () => this._update1on1BulkBar());
+    });
+
+    // Selecionar todos
+    document.getElementById('rh1on1BulkSelectAll')?.addEventListener('click', () => {
+      document.querySelectorAll('.rh-1on1-select').forEach(cb => { cb.checked = true; });
+      this._update1on1BulkBar();
+    });
+
+    // Cancelar seleção
+    document.getElementById('rh1on1BulkCancel')?.addEventListener('click', () => {
+      document.querySelectorAll('.rh-1on1-select').forEach(cb => { cb.checked = false; });
+      this._update1on1BulkBar();
+    });
+
+    // Excluir selecionados em massa
+    document.getElementById('rh1on1BulkDelete')?.addEventListener('click', async () => {
+      const selected = [...document.querySelectorAll('.rh-1on1-select:checked')].map(cb => cb.dataset.id);
+      if (selected.length === 0) return;
+      if (!confirm(`Excluir ${selected.length} reunião(ões) permanentemente? Esta ação não pode ser desfeita.`)) return;
+
+      let errors = 0;
+      for (const id of selected) {
+        try {
+          const data = await OneOnOnesRepo.getById(id);
+          if (data?.google_event_id && typeof TBO_GOOGLE_CALENDAR !== 'undefined') {
+            try { await TBO_GOOGLE_CALENDAR.deleteEvent(data.google_event_id); } catch { /* ignore */ }
+          }
+          await OneOnOnesRepo.remove(id);
+        } catch { errors++; }
+      }
+
+      const ok = selected.length - errors;
+      if (ok > 0) TBO_TOAST.success(`${ok} reunião(ões) excluída(s)`);
+      if (errors > 0) TBO_TOAST.warning(`${errors} erro(s) ao excluir`);
+      this._oneOnOnesCache = null;
+      await this._load1on1sFromSupabase();
+    });
+  },
+
+  _update1on1BulkBar() {
+    const selected = document.querySelectorAll('.rh-1on1-select:checked');
+    const bar = document.getElementById('rh1on1BulkBar');
+    const countEl = document.getElementById('rh1on1BulkCount');
+    if (!bar) return;
+
+    if (selected.length > 0) {
+      bar.style.display = 'flex';
+      countEl.textContent = `${selected.length} selecionado${selected.length > 1 ? 's' : ''}`;
+      if (window.lucide) lucide.createIcons({ root: bar });
+    } else {
+      bar.style.display = 'none';
+    }
+  },
+
   // ── Context Menu: 1:1 (botão direito) ─────────────────────────────
   _show1on1ContextMenu(oneOnOneId, x, y) {
     const items = this._oneOnOnesCache || [];
@@ -5365,6 +5435,15 @@ const TBO_RH = {
       return true;
     });
 
+    // v3.0: Backdrop transparente para capturar cliques fora do menu
+    let backdrop = document.getElementById('rh1on1ContextBackdrop');
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.id = 'rh1on1ContextBackdrop';
+      document.body.appendChild(backdrop);
+    }
+    backdrop.style.cssText = 'position:fixed;inset:0;z-index:9998;background:transparent;display:block;';
+
     let menu = document.getElementById('rh1on1ContextMenu');
     if (!menu) {
       menu = document.createElement('div');
@@ -5389,50 +5468,38 @@ const TBO_RH = {
       }).join('')}
     `;
 
-    // Posicionamento viewport-aware
+    // Posicionamento viewport-aware (z-index alto para ficar acima de tudo)
     const menuW = 240, menuH = clean.length * 38 + 44;
     const vw = window.innerWidth, vh = window.innerHeight;
     const posX = x + menuW > vw ? x - menuW : x;
     const posY = y + menuH > vh ? Math.max(8, y - menuH) : y;
 
-    menu.style.cssText = `display:block;position:fixed;top:${posY}px;left:${posX}px;z-index:1100;min-width:${menuW}px;`;
+    menu.style.cssText = `display:block;position:fixed;top:${posY}px;left:${posX}px;z-index:9999;min-width:${menuW}px;`;
     if (window.lucide) lucide.createIcons({ root: menu });
+
+    // Funcao centralizada para fechar menu + backdrop + remover listeners
+    const closeMenu = () => {
+      menu.style.display = 'none';
+      backdrop.style.display = 'none';
+      document.removeEventListener('keydown', escHandler);
+    };
 
     // Bind acoes do menu
     menu.querySelectorAll('.rh-ctx-item').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        menu.style.display = 'none';
+        closeMenu();
         this._handle1on1ContextAction(btn.dataset.action, btn.dataset['1on1']);
       });
     });
 
-    // Fechar ao clicar fora
-    const closeMenu = (e) => {
-      if (!menu.contains(e.target)) {
-        menu.style.display = 'none';
-        document.removeEventListener('click', closeMenu);
-        document.removeEventListener('contextmenu', closeOnContext);
-      }
-    };
-    const closeOnContext = (e) => {
-      if (!menu.contains(e.target)) {
-        menu.style.display = 'none';
-        document.removeEventListener('click', closeMenu);
-        document.removeEventListener('contextmenu', closeOnContext);
-      }
-    };
-    setTimeout(() => {
-      document.addEventListener('click', closeMenu);
-      document.addEventListener('contextmenu', closeOnContext);
-    }, 10);
+    // Fechar ao clicar no backdrop (fora do menu)
+    backdrop.onclick = () => closeMenu();
+    backdrop.oncontextmenu = (e) => { e.preventDefault(); closeMenu(); };
 
     // Fechar com ESC
     const escHandler = (e) => {
-      if (e.key === 'Escape') {
-        menu.style.display = 'none';
-        document.removeEventListener('keydown', escHandler);
-      }
+      if (e.key === 'Escape') closeMenu();
     };
     document.addEventListener('keydown', escHandler);
   },

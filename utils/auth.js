@@ -459,7 +459,10 @@ const TBO_AUTH = {
             this._renderUserMenu(session);
             this._renderSidebarUser(session);
             // Re-render sidebar navigation items (now that user is logged in)
-            if (typeof TBO_APP !== 'undefined' && TBO_APP._renderSidebar) {
+            // v3.0: Respeitar sidebar Notion v2 — re-init ao invés de sobrescrever com clássica
+            if (typeof TBO_SIDEBAR_BRIDGE !== 'undefined' && TBO_SIDEBAR_BRIDGE.currentStyle === 'notion-v2') {
+              TBO_SIDEBAR_BRIDGE.init();
+            } else if (typeof TBO_APP !== 'undefined' && TBO_APP._renderSidebar) {
               TBO_APP._renderSidebar();
               TBO_APP._bindSectionToggles();
             }

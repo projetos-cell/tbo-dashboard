@@ -320,6 +320,11 @@ const TBO_OMIE_SYNC = (() => {
     let _syncLogAvailable = true;
 
     try {
+      // Garantir que tenant_id esteja resolvido (async) antes de qualquer operacao
+      if (typeof RepoBase !== 'undefined' && RepoBase.resolveTenantId) {
+        await RepoBase.resolveTenantId();
+      }
+
       // Criar registro de sync log (tolera tabela inexistente)
       try {
         syncLog = await FinanceRepo.createSyncLog({ status: 'running' });

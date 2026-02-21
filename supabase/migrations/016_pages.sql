@@ -9,7 +9,7 @@
 -- Tabela pages
 CREATE TABLE IF NOT EXISTS pages (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id     UUID NOT NULL REFERENCES tenants(id),
+  tenant_id     UUID NOT NULL,
   space_id      TEXT NOT NULL,
   title         TEXT NOT NULL DEFAULT 'Nova página',
   content       JSONB DEFAULT '{}',
@@ -37,45 +37,31 @@ CREATE INDEX IF NOT EXISTS idx_pages_created_by
 -- RLS
 ALTER TABLE pages ENABLE ROW LEVEL SECURITY;
 
--- SELECT: membros do mesmo tenant podem ler paginas
+-- SELECT: usuarios do mesmo tenant podem ler paginas
+-- Usa JWT user_metadata.tenant_id (populado no signup/login)
 CREATE POLICY pages_select ON pages
   FOR SELECT USING (
-    tenant_id IN (
-      SELECT tenant_id FROM tenant_members
-      WHERE user_id = auth.uid() AND is_active = TRUE
-    )
+    tenant_id = (auth.jwt() -> 'user_metadata' ->> 'tenant_id')::uuid
   );
 
--- INSERT: membros do tenant podem criar paginas
+-- INSERT: usuarios do tenant podem criar paginas (created_by = auth.uid())
 CREATE POLICY pages_insert ON pages
   FOR INSERT WITH CHECK (
-    tenant_id IN (
-      SELECT tenant_id FROM tenant_members
-      WHERE user_id = auth.uid() AND is_active = TRUE
-    )
+    tenant_id = (auth.jwt() -> 'user_metadata' ->> 'tenant_id')::uuid
     AND created_by = auth.uid()
   );
 
--- UPDATE: membros do tenant podem editar paginas
+-- UPDATE: usuarios do tenant podem editar paginas
 CREATE POLICY pages_update ON pages
   FOR UPDATE USING (
-    tenant_id IN (
-      SELECT tenant_id FROM tenant_members
-      WHERE user_id = auth.uid() AND is_active = TRUE
-    )
+    tenant_id = (auth.jwt() -> 'user_metadata' ->> 'tenant_id')::uuid
   );
 
--- DELETE: apenas criador ou admin/owner
+-- DELETE: apenas o criador da pagina
 CREATE POLICY pages_delete ON pages
   FOR DELETE USING (
-    created_by = auth.uid()
-    OR tenant_id IN (
-      SELECT tm.tenant_id FROM tenant_members tm
-      JOIN roles r ON r.id = tm.role_id
-      WHERE tm.user_id = auth.uid()
-        AND tm.is_active = TRUE
-        AND r.slug IN ('owner', 'admin')
-    )
+    tenant_id = (auth.jwt() -> 'user_metadata' ->> 'tenant_id')::uuid
+    AND created_by = auth.uid()
   );
 
 -- Trigger para atualizar updated_at automaticamente

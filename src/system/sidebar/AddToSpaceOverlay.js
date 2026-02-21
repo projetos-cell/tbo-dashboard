@@ -404,7 +404,12 @@ const TBO_ADD_TO_SPACE = (() => {
         });
 
         close();
-        window.location.hash = 'page/' + page.id;
+        // Usa TBO_ROUTER.navigate() para garantir renderização do módulo
+        if (typeof TBO_ROUTER !== 'undefined') {
+          TBO_ROUTER.navigate('page/' + page.id);
+        } else {
+          window.location.hash = 'page/' + page.id;
+        }
 
         if (typeof TBO_TOAST !== 'undefined') {
           TBO_TOAST.success('Página criada', `Página criada em ${_currentSpace?.spaceLabel || 'espaço'}`);

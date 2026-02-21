@@ -5435,15 +5435,6 @@ const TBO_RH = {
       return true;
     });
 
-    // v3.0: Backdrop transparente para capturar cliques fora do menu
-    let backdrop = document.getElementById('rh1on1ContextBackdrop');
-    if (!backdrop) {
-      backdrop = document.createElement('div');
-      backdrop.id = 'rh1on1ContextBackdrop';
-      document.body.appendChild(backdrop);
-    }
-    backdrop.style.cssText = 'position:fixed;inset:0;z-index:9998;background:transparent;display:block;';
-
     let menu = document.getElementById('rh1on1ContextMenu');
     if (!menu) {
       menu = document.createElement('div');
@@ -5451,6 +5442,10 @@ const TBO_RH = {
       menu.className = 'rh-context-menu';
       document.body.appendChild(menu);
     }
+
+    // Remover backdrop legado se existir (v3.0.1 — backdrop bloqueava right-click)
+    const oldBackdrop = document.getElementById('rh1on1ContextBackdrop');
+    if (oldBackdrop) oldBackdrop.remove();
 
     const leaderName = this._getPersonNameByUid(oneOnOne.leader_id);
     const collabName = this._getPersonNameByUid(oneOnOne.collaborator_id);
@@ -5474,13 +5469,14 @@ const TBO_RH = {
     const posX = x + menuW > vw ? x - menuW : x;
     const posY = y + menuH > vh ? Math.max(8, y - menuH) : y;
 
-    menu.style.cssText = `display:block;position:fixed;top:${posY}px;left:${posX}px;z-index:9999;min-width:${menuW}px;`;
+    menu.style.cssText = `display:block;position:fixed;top:${posY}px;left:${posX}px;z-index:9999;min-width:${menuW}px;background:#fff;border-radius:8px;border:1px solid #e5e5e5;box-shadow:0 8px 24px rgba(0,0,0,0.18);overflow:hidden;`;
     if (window.lucide) lucide.createIcons({ root: menu });
 
-    // Funcao centralizada para fechar menu + backdrop + remover listeners
+    // Funcao centralizada para fechar menu + remover listeners
     const closeMenu = () => {
       menu.style.display = 'none';
-      backdrop.style.display = 'none';
+      document.removeEventListener('click', onClickOutside);
+      document.removeEventListener('contextmenu', onRightClickOutside);
       document.removeEventListener('keydown', escHandler);
     };
 
@@ -5493,9 +5489,18 @@ const TBO_RH = {
       });
     });
 
-    // Fechar ao clicar no backdrop (fora do menu)
-    backdrop.onclick = () => closeMenu();
-    backdrop.oncontextmenu = (e) => { e.preventDefault(); closeMenu(); };
+    // Fechar ao clicar fora (sem bloquear propagacao — permite right-click em outra row)
+    const onClickOutside = (e) => {
+      if (!menu.contains(e.target)) closeMenu();
+    };
+    const onRightClickOutside = (e) => {
+      if (!menu.contains(e.target)) closeMenu();
+      // NAO chama preventDefault — permite que o novo right-click chegue à row
+    };
+    setTimeout(() => {
+      document.addEventListener('click', onClickOutside);
+      document.addEventListener('contextmenu', onRightClickOutside);
+    }, 10);
 
     // Fechar com ESC
     const escHandler = (e) => {

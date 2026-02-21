@@ -5403,7 +5403,17 @@ const TBO_RH = {
   },
 
   // ── Context Menu: 1:1 (botão direito) ─────────────────────────────
+  _close1on1ContextMenu() {
+    const menu = document.getElementById('rh1on1ContextMenu');
+    if (menu) menu.style.display = 'none';
+    // Remover listeners antigos
+    if (this._ctxCleanup) { this._ctxCleanup(); this._ctxCleanup = null; }
+  },
+
   _show1on1ContextMenu(oneOnOneId, x, y) {
+    // Fechar menu anterior antes de abrir novo
+    this._close1on1ContextMenu();
+
     const items = this._oneOnOnesCache || [];
     const oneOnOne = items.find(o => o.id === oneOnOneId);
     if (!oneOnOne) return;
@@ -5472,41 +5482,41 @@ const TBO_RH = {
     menu.style.cssText = `display:block;position:fixed;top:${posY}px;left:${posX}px;z-index:9999;min-width:${menuW}px;background:#fff;border-radius:8px;border:1px solid #e5e5e5;box-shadow:0 8px 24px rgba(0,0,0,0.18);overflow:hidden;`;
     if (window.lucide) lucide.createIcons({ root: menu });
 
-    // Funcao centralizada para fechar menu + remover listeners
-    const closeMenu = () => {
-      menu.style.display = 'none';
+    // Bind acoes do menu
+    menu.querySelectorAll('.rh-ctx-item').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._close1on1ContextMenu();
+        this._handle1on1ContextAction(btn.dataset.action, btn.dataset['1on1']);
+      });
+    });
+
+    // Listeners para fechar ao clicar fora / ESC
+    const onClickOutside = (e) => {
+      if (!menu.contains(e.target)) this._close1on1ContextMenu();
+    };
+    const onRightClickOutside = (e) => {
+      // Não fechar se clicou numa row (o handler da row vai reabrir com novo menu)
+      if (menu.contains(e.target)) return;
+      if (e.target.closest('.rh-1on1-row')) return; // deixar o row handler cuidar
+      this._close1on1ContextMenu();
+    };
+    const escHandler = (e) => {
+      if (e.key === 'Escape') this._close1on1ContextMenu();
+    };
+
+    // Registrar cleanup para remover listeners quando menu fechar
+    this._ctxCleanup = () => {
       document.removeEventListener('click', onClickOutside);
       document.removeEventListener('contextmenu', onRightClickOutside);
       document.removeEventListener('keydown', escHandler);
     };
 
-    // Bind acoes do menu
-    menu.querySelectorAll('.rh-ctx-item').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        closeMenu();
-        this._handle1on1ContextAction(btn.dataset.action, btn.dataset['1on1']);
-      });
-    });
-
-    // Fechar ao clicar fora (sem bloquear propagacao — permite right-click em outra row)
-    const onClickOutside = (e) => {
-      if (!menu.contains(e.target)) closeMenu();
-    };
-    const onRightClickOutside = (e) => {
-      if (!menu.contains(e.target)) closeMenu();
-      // NAO chama preventDefault — permite que o novo right-click chegue à row
-    };
     setTimeout(() => {
       document.addEventListener('click', onClickOutside);
       document.addEventListener('contextmenu', onRightClickOutside);
+      document.addEventListener('keydown', escHandler);
     }, 10);
-
-    // Fechar com ESC
-    const escHandler = (e) => {
-      if (e.key === 'Escape') closeMenu();
-    };
-    document.addEventListener('keydown', escHandler);
   },
 
   async _handle1on1ContextAction(action, oneOnOneId) {

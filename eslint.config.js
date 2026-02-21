@@ -22,6 +22,7 @@ export default [
         TBO_RBAC: "readonly",
         TBO_HTTP: "readonly",
         TBO_STORAGE: "readonly",
+        TBO_FILE_STORAGE: "readonly",
         TBO_ROUTE_REGISTRY: "readonly",
 
         // Repositories (Data Access Layer)

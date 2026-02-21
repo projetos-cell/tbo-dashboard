@@ -5,7 +5,7 @@
  * Buckets: onboarding-files, avatars, project-files, chat-attachments
  */
 
-const TBO_STORAGE = (() => {
+const TBO_FILE_STORAGE = (() => {
   const BUCKETS = {
     ONBOARDING: 'onboarding-files',
     AVATARS: 'avatars',
@@ -18,7 +18,7 @@ const TBO_STORAGE = (() => {
   function _storage() {
     if (typeof TBO_DB !== 'undefined') return TBO_DB.storage;
     if (typeof TBO_SUPABASE !== 'undefined') return TBO_SUPABASE.getClient().storage;
-    throw new Error('[TBO_STORAGE] Nenhum client Supabase disponível');
+    throw new Error('[TBO_FILE_STORAGE] Nenhum client Supabase disponível');
   }
 
   return {
@@ -106,5 +106,5 @@ const TBO_STORAGE = (() => {
 })();
 
 if (typeof window !== 'undefined') {
-  window.TBO_STORAGE = TBO_STORAGE;
+  window.TBO_FILE_STORAGE = TBO_FILE_STORAGE;
 }

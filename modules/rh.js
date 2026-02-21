@@ -3610,12 +3610,20 @@ const TBO_RH = {
     if (!modal || !content) return;
     content.innerHTML = this._renderTalentoModalContent(talent);
     modal.style.display = 'flex';
+    // Ativar transicao CSS (opacity + visibility)
+    requestAnimationFrame(() => modal.classList.add('active'));
     if (window.lucide) lucide.createIcons({ root: modal });
 
+    // Helper para fechar modal com animacao
+    const closeModal = () => {
+      modal.classList.remove('active');
+      setTimeout(() => { modal.style.display = 'none'; }, 200);
+    };
+
     // Bind modal events
-    document.getElementById('rhTalentoModalClose')?.addEventListener('click', () => { modal.style.display = 'none'; });
-    document.getElementById('rhTalentoCancel')?.addEventListener('click', () => { modal.style.display = 'none'; });
-    modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+    document.getElementById('rhTalentoModalClose')?.addEventListener('click', closeModal);
+    document.getElementById('rhTalentoCancel')?.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
     document.getElementById('rhTalentoForm')?.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -3643,7 +3651,7 @@ const TBO_RH = {
       try {
         if (id) { await TalentsRepo.update(id, payload); TBO_TOAST.success('Talento atualizado!'); }
         else { await TalentsRepo.create(payload); TBO_TOAST.success('Talento cadastrado!'); }
-        modal.style.display = 'none';
+        closeModal();
         this._loadTalentos();
       } catch (err) {
         console.error('[RH] Erro ao salvar talento:', err);

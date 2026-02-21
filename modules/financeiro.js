@@ -1,10 +1,12 @@
 /**
- * TBO OS — Módulo Financeiro (v2 — MVP Supabase)
+ * TBO OS — Módulo Financeiro (v3 — Entrega 2: CRUD A Pagar + A Receber)
  *
  * Dashboard financeiro integrado ao Supabase via FinanceRepo.
  * Tabs: Dashboard | A Pagar | A Receber | Caixa | Inbox | Cadastros
- * Entrega 1: Dashboard com KPIs reais.
- * Entregas 2-3: CRUD completo (placeholder por enquanto).
+ *
+ * Entrega 1: Dashboard com KPIs reais ✓
+ * Entrega 2: CRUD completo A Pagar + A Receber + Drawer + Workflow + Folha PJ
+ * Entrega 3: Caixa, Inbox, Cadastros (placeholder)
  *
  * Rota: #financeiro
  * Global: TBO_FINANCEIRO
@@ -15,6 +17,34 @@ const TBO_FINANCEIRO = {
   _data: null,
   _activeTab: 'fn-dashboard',
   _refreshTimer: null,
+
+  // Cache de lookups (fornecedores, clientes, centros de custo, projetos)
+  _vendors: [],
+  _clients: [],
+  _costCenters: [],
+  _projects: [],
+  _categories: [],
+  _lookupsLoaded: false,
+
+  // Filtros ativos
+  _pagarFilters: { status: '', cost_center_id: '', search: '' },
+  _receberFilters: { status: '', client_id: '', search: '' },
+
+  // Drawer state
+  _drawerOpen: false,
+  _drawerType: null,   // 'pagar' | 'receber'
+  _drawerMode: null,   // 'view' | 'create' | 'edit'
+  _drawerItem: null,
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // FORMATTER HELPER
+  // ═══════════════════════════════════════════════════════════════════════
+
+  _fmt() {
+    return typeof TBO_FORMATTER !== 'undefined'
+      ? TBO_FORMATTER
+      : { currency: v => `R$ ${(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` };
+  },
 
   // ═══════════════════════════════════════════════════════════════════════
   // RENDER
@@ -61,21 +91,21 @@ const TBO_FINANCEIRO = {
 
         <!-- ══════════ Tab: A Pagar ══════════ -->
         <div class="tab-panel" id="tab-fn-pagar" style="display:none;">
-          <div class="fn-placeholder">
-            <i data-lucide="credit-card" style="width:48px;height:48px;color:var(--text-muted);margin-bottom:12px;"></i>
-            <h3>Contas a Pagar</h3>
-            <p>Módulo em desenvolvimento — Entrega 2</p>
-            <span class="tag">Em breve: CRUD completo com workflow de aprovação</span>
+          <div id="fnPagarContent">
+            <div class="fn-loading">
+              <div class="loading-spinner"></div>
+              <p class="loading-text">Carregando contas a pagar...</p>
+            </div>
           </div>
         </div>
 
         <!-- ══════════ Tab: A Receber ══════════ -->
         <div class="tab-panel" id="tab-fn-receber" style="display:none;">
-          <div class="fn-placeholder">
-            <i data-lucide="wallet" style="width:48px;height:48px;color:var(--text-muted);margin-bottom:12px;"></i>
-            <h3>Contas a Receber</h3>
-            <p>Módulo em desenvolvimento — Entrega 2</p>
-            <span class="tag">Em breve: CRUD com status previsto → emitido → pago</span>
+          <div id="fnReceberContent">
+            <div class="fn-loading">
+              <div class="loading-spinner"></div>
+              <p class="loading-text">Carregando contas a receber...</p>
+            </div>
           </div>
         </div>
 
@@ -109,6 +139,15 @@ const TBO_FINANCEIRO = {
           </div>
         </div>
       </div>
+
+      <!-- Drawer Backdrop -->
+      <div class="fn-drawer-backdrop" id="fnDrawerBackdrop"></div>
+      <!-- Drawer Panel -->
+      <div class="fn-drawer" id="fnDrawer">
+        <div class="fn-drawer-header" id="fnDrawerHeader"></div>
+        <div class="fn-drawer-body" id="fnDrawerBody"></div>
+        <div class="fn-drawer-footer" id="fnDrawerFooter"></div>
+      </div>
     `;
   },
 
@@ -117,7 +156,7 @@ const TBO_FINANCEIRO = {
   // ═══════════════════════════════════════════════════════════════════════
 
   init() {
-    // Tabs
+    // Tabs — agora com carregamento de dados ao trocar tab
     document.querySelectorAll('.fn-tabs .tab').forEach(tab => {
       tab.addEventListener('click', () => {
         document.querySelectorAll('.fn-tabs .tab').forEach(t => t.classList.remove('active'));
@@ -130,13 +169,21 @@ const TBO_FINANCEIRO = {
           TBO_UX.updateBreadcrumb('financeiro', tab.textContent.trim());
           TBO_UX.setTabHash('financeiro', tab.dataset.tab);
         }
+        // Carregar dados da tab
+        this._onTabChange(tab.dataset.tab);
       });
     });
 
     // Botão refresh
     const refreshBtn = document.getElementById('fnRefreshBtn');
     if (refreshBtn) {
-      refreshBtn.addEventListener('click', () => this._loadDashboard());
+      refreshBtn.addEventListener('click', () => this._onRefresh());
+    }
+
+    // Drawer backdrop click
+    const backdrop = document.getElementById('fnDrawerBackdrop');
+    if (backdrop) {
+      backdrop.addEventListener('click', () => this._closeDrawer());
     }
 
     // Carregar dashboard
@@ -155,29 +202,1051 @@ const TBO_FINANCEIRO = {
       clearInterval(this._refreshTimer);
       this._refreshTimer = null;
     }
+    this._closeDrawer();
     this._data = null;
+    this._lookupsLoaded = false;
   },
 
   // ═══════════════════════════════════════════════════════════════════════
-  // LOAD DASHBOARD
+  // TAB CHANGE + REFRESH
+  // ═══════════════════════════════════════════════════════════════════════
+
+  _onTabChange(tabId) {
+    if (tabId === 'fn-dashboard') this._loadDashboard();
+    else if (tabId === 'fn-pagar') this._loadPagar();
+    else if (tabId === 'fn-receber') this._loadReceber();
+  },
+
+  _onRefresh() {
+    this._onTabChange(this._activeTab);
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // LOOKUPS (carregamento único de fornecedores, CCs, projetos, etc.)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  async _ensureLookups() {
+    if (this._lookupsLoaded) return;
+    if (typeof FinanceRepo === 'undefined') return;
+
+    try {
+      const [vendors, clients, costCenters, categories] = await Promise.all([
+        FinanceRepo.listVendors({ limit: 500 }),
+        FinanceRepo.listClients({ limit: 500 }),
+        FinanceRepo.listCostCenters(),
+        FinanceRepo.listCategories()
+      ]);
+      this._vendors = vendors || [];
+      this._clients = clients || [];
+      this._costCenters = costCenters || [];
+      this._categories = categories || [];
+
+      // Projetos — via ProjectsRepo se disponível
+      if (typeof ProjectsRepo !== 'undefined') {
+        const projs = await ProjectsRepo.list({ limit: 200 });
+        this._projects = projs || [];
+      }
+
+      this._lookupsLoaded = true;
+    } catch (err) {
+      console.warn('[Financeiro] Erro ao carregar lookups:', err);
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // STATUS MAPS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  _statusPagar: {
+    rascunho:              { label: 'Rascunho',     badge: 'badge--default', icon: 'file-edit' },
+    aguardando_aprovacao:  { label: 'Aguardando',   badge: 'badge--warning', icon: 'clock' },
+    aprovado:              { label: 'Aprovado',     badge: 'badge--blue',    icon: 'check' },
+    aberto:                { label: 'Aberto',       badge: 'badge--gold',    icon: 'circle' },
+    parcial:               { label: 'Parcial',      badge: 'badge--warning', icon: 'pie-chart' },
+    pago:                  { label: 'Pago',         badge: 'badge--success', icon: 'check-circle' },
+    atrasado:              { label: 'Atrasado',     badge: 'badge--danger',  icon: 'alert-circle' },
+    cancelado:             { label: 'Cancelado',    badge: 'badge--default', icon: 'x-circle' }
+  },
+
+  _statusReceber: {
+    previsto:   { label: 'Previsto',   badge: 'badge--default', icon: 'calendar' },
+    emitido:    { label: 'Emitido',    badge: 'badge--blue',    icon: 'send' },
+    aberto:     { label: 'Aberto',     badge: 'badge--gold',    icon: 'circle' },
+    parcial:    { label: 'Parcial',    badge: 'badge--warning', icon: 'pie-chart' },
+    pago:       { label: 'Pago',       badge: 'badge--success', icon: 'check-circle' },
+    atrasado:   { label: 'Atrasado',   badge: 'badge--danger',  icon: 'alert-circle' },
+    cancelado:  { label: 'Cancelado',  badge: 'badge--default', icon: 'x-circle' }
+  },
+
+  _renderStatusBadge(status, map) {
+    const s = map[status] || { label: status, badge: 'badge--default' };
+    return `<span class="badge ${s.badge}">${this._esc(s.label)}</span>`;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // A PAGAR — TAB
+  // ═══════════════════════════════════════════════════════════════════════
+
+  async _loadPagar() {
+    const container = document.getElementById('fnPagarContent');
+    if (!container) return;
+
+    container.innerHTML = '<div class="fn-loading"><div class="loading-spinner"></div><p class="loading-text">Carregando contas a pagar...</p></div>';
+
+    try {
+      if (typeof FinanceRepo === 'undefined') throw new Error('FinanceRepo não está disponível');
+      await this._ensureLookups();
+
+      const filters = this._pagarFilters;
+      const params = {};
+      if (filters.status) params.status = filters.status;
+      if (filters.cost_center_id) params.cost_center_id = filters.cost_center_id;
+      if (filters.search) params.search = filters.search;
+
+      const items = await FinanceRepo.listPayables(params);
+      this._renderPagarTab(container, items);
+    } catch (err) {
+      console.error('[Financeiro] Erro ao carregar A Pagar:', err);
+      container.innerHTML = this._renderError(err.message);
+    }
+  },
+
+  _renderPagarTab(container, items) {
+    const fmt = this._fmt();
+    let html = '';
+
+    // ── Barra de filtros + ações ──────────────────────────────────────
+    html += `<div class="fn-filter-bar">
+      <div class="fn-filter-group">
+        <select class="form-input fn-filter-select" id="fnPagarStatusFilter">
+          <option value="">Todos status</option>
+          ${Object.entries(this._statusPagar).filter(([k]) => k !== 'cancelado').map(([k, v]) =>
+            `<option value="${k}" ${this._pagarFilters.status === k ? 'selected' : ''}>${v.label}</option>`
+          ).join('')}
+        </select>
+        <select class="form-input fn-filter-select" id="fnPagarCCFilter">
+          <option value="">Todos centros de custo</option>
+          ${this._costCenters.map(cc =>
+            `<option value="${cc.id}" ${this._pagarFilters.cost_center_id === cc.id ? 'selected' : ''}>${this._esc(cc.name)}</option>`
+          ).join('')}
+        </select>
+        <input type="text" class="form-input fn-filter-search" id="fnPagarSearch"
+               placeholder="Buscar descrição..." value="${this._esc(this._pagarFilters.search)}">
+      </div>
+      <div class="fn-filter-actions">
+        <button class="btn btn-secondary btn-sm" id="fnPagarGerarPJ" title="Gerar Folha PJ do mês">
+          <i data-lucide="users" style="width:14px;height:14px;"></i>
+          Gerar Folha PJ
+        </button>
+        <button class="btn btn-primary btn-sm" id="fnPagarNew">
+          <i data-lucide="plus" style="width:14px;height:14px;"></i>
+          Nova Conta
+        </button>
+      </div>
+    </div>`;
+
+    // ── Tabela ────────────────────────────────────────────────────────
+    if (!items || items.length === 0) {
+      html += '<div class="fn-empty-chart" style="min-height:200px;"><span>Nenhuma conta a pagar encontrada</span></div>';
+    } else {
+      html += `<div class="card" style="overflow:hidden;">
+        <div style="overflow-x:auto;">
+          <table class="data-table fn-table">
+            <thead><tr>
+              <th>Descrição</th>
+              <th>Fornecedor</th>
+              <th>Centro Custo</th>
+              <th>Projeto</th>
+              <th style="text-align:right;">Valor</th>
+              <th>Vencimento</th>
+              <th>Status</th>
+              <th style="width:40px;"></th>
+            </tr></thead>
+            <tbody>
+              ${items.map(item => this._renderPagarRow(item, fmt)).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+
+      // Resumo
+      const totalAberto = items.filter(i => !['pago', 'cancelado'].includes(i.status))
+        .reduce((s, i) => s + ((i.amount || 0) - (i.amount_paid || 0)), 0);
+      const totalPago = items.filter(i => i.status === 'pago')
+        .reduce((s, i) => s + (i.amount || 0), 0);
+      html += `<div class="fn-table-summary">
+        <span>Total em aberto: <strong style="color:var(--color-danger);">${fmt.currency(totalAberto)}</strong></span>
+        <span>Total pago: <strong style="color:var(--color-success);">${fmt.currency(totalPago)}</strong></span>
+        <span class="fn-table-count">${items.length} registro${items.length !== 1 ? 's' : ''}</span>
+      </div>`;
+    }
+
+    container.innerHTML = html;
+    if (window.lucide) lucide.createIcons();
+    this._bindPagarEvents(container);
+  },
+
+  _renderPagarRow(item, fmt) {
+    const vendorName = item.vendor?.name || '—';
+    const ccName = item.cost_center?.name || '—';
+    const projName = item.project?.name || '—';
+    const dueDate = item.due_date ? new Date(item.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : '—';
+    const remaining = (item.amount || 0) - (item.amount_paid || 0);
+    const isOverdue = item.due_date && new Date(item.due_date) < new Date() && !['pago', 'cancelado'].includes(item.status);
+
+    return `<tr class="fn-row ${isOverdue ? 'fn-row--overdue' : ''}" data-id="${item.id}" data-type="pagar">
+      <td style="max-width:220px;">
+        <div class="fn-cell-desc">${this._esc(item.description || 'Sem descrição')}</div>
+        ${item.notes ? `<div class="fn-cell-note">${this._esc(item.notes).substring(0, 60)}</div>` : ''}
+      </td>
+      <td>${this._esc(vendorName)}</td>
+      <td><span class="fn-cell-cc">${this._esc(ccName)}</span></td>
+      <td>${this._esc(projName)}</td>
+      <td style="text-align:right;white-space:nowrap;">
+        <div class="fn-cell-amount">${fmt.currency(item.amount || 0)}</div>
+        ${item.amount_paid > 0 ? `<div class="fn-cell-paid">Pago: ${fmt.currency(item.amount_paid)}</div>` : ''}
+      </td>
+      <td style="white-space:nowrap;" class="${isOverdue ? 'fn-cell-overdue' : ''}">${dueDate}</td>
+      <td>${this._renderStatusBadge(item.status, this._statusPagar)}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm fn-row-action" data-id="${item.id}" data-type="pagar" title="Detalhes">
+          <i data-lucide="chevron-right" style="width:14px;height:14px;"></i>
+        </button>
+      </td>
+    </tr>`;
+  },
+
+  _bindPagarEvents(container) {
+    // Filtros
+    const statusSel = container.querySelector('#fnPagarStatusFilter');
+    const ccSel = container.querySelector('#fnPagarCCFilter');
+    const searchInput = container.querySelector('#fnPagarSearch');
+
+    if (statusSel) statusSel.addEventListener('change', () => { this._pagarFilters.status = statusSel.value; this._loadPagar(); });
+    if (ccSel) ccSel.addEventListener('change', () => { this._pagarFilters.cost_center_id = ccSel.value; this._loadPagar(); });
+    if (searchInput) {
+      let _debounce = null;
+      searchInput.addEventListener('input', () => {
+        clearTimeout(_debounce);
+        _debounce = setTimeout(() => { this._pagarFilters.search = searchInput.value; this._loadPagar(); }, 400);
+      });
+    }
+
+    // Nova conta
+    const newBtn = container.querySelector('#fnPagarNew');
+    if (newBtn) newBtn.addEventListener('click', () => this._openDrawer('pagar', 'create', null));
+
+    // Gerar Folha PJ
+    const pjBtn = container.querySelector('#fnPagarGerarPJ');
+    if (pjBtn) pjBtn.addEventListener('click', () => this._gerarFolhaPJ());
+
+    // Click nas linhas
+    container.querySelectorAll('.fn-row[data-type="pagar"]').forEach(row => {
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('.fn-row-action')) return;
+        this._openDrawer('pagar', 'view', row.dataset.id);
+      });
+    });
+    container.querySelectorAll('.fn-row-action[data-type="pagar"]').forEach(btn => {
+      btn.addEventListener('click', () => this._openDrawer('pagar', 'view', btn.dataset.id));
+    });
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // A RECEBER — TAB
+  // ═══════════════════════════════════════════════════════════════════════
+
+  async _loadReceber() {
+    const container = document.getElementById('fnReceberContent');
+    if (!container) return;
+
+    container.innerHTML = '<div class="fn-loading"><div class="loading-spinner"></div><p class="loading-text">Carregando contas a receber...</p></div>';
+
+    try {
+      if (typeof FinanceRepo === 'undefined') throw new Error('FinanceRepo não está disponível');
+      await this._ensureLookups();
+
+      const filters = this._receberFilters;
+      const params = {};
+      if (filters.status) params.status = filters.status;
+      if (filters.client_id) params.client_id = filters.client_id;
+      if (filters.search) params.search = filters.search;
+
+      const items = await FinanceRepo.listReceivables(params);
+      this._renderReceberTab(container, items);
+    } catch (err) {
+      console.error('[Financeiro] Erro ao carregar A Receber:', err);
+      container.innerHTML = this._renderError(err.message);
+    }
+  },
+
+  _renderReceberTab(container, items) {
+    const fmt = this._fmt();
+    let html = '';
+
+    // ── Barra de filtros + ações ──────────────────────────────────────
+    html += `<div class="fn-filter-bar">
+      <div class="fn-filter-group">
+        <select class="form-input fn-filter-select" id="fnReceberStatusFilter">
+          <option value="">Todos status</option>
+          ${Object.entries(this._statusReceber).filter(([k]) => k !== 'cancelado').map(([k, v]) =>
+            `<option value="${k}" ${this._receberFilters.status === k ? 'selected' : ''}>${v.label}</option>`
+          ).join('')}
+        </select>
+        <select class="form-input fn-filter-select" id="fnReceberClientFilter">
+          <option value="">Todos clientes</option>
+          ${this._clients.map(c =>
+            `<option value="${c.id}" ${this._receberFilters.client_id === c.id ? 'selected' : ''}>${this._esc(c.name)}</option>`
+          ).join('')}
+        </select>
+        <input type="text" class="form-input fn-filter-search" id="fnReceberSearch"
+               placeholder="Buscar descrição..." value="${this._esc(this._receberFilters.search)}">
+      </div>
+      <div class="fn-filter-actions">
+        <button class="btn btn-primary btn-sm" id="fnReceberNew">
+          <i data-lucide="plus" style="width:14px;height:14px;"></i>
+          Novo Recebível
+        </button>
+      </div>
+    </div>`;
+
+    // ── Tabela ────────────────────────────────────────────────────────
+    if (!items || items.length === 0) {
+      html += '<div class="fn-empty-chart" style="min-height:200px;"><span>Nenhuma conta a receber encontrada</span></div>';
+    } else {
+      html += `<div class="card" style="overflow:hidden;">
+        <div style="overflow-x:auto;">
+          <table class="data-table fn-table">
+            <thead><tr>
+              <th>Descrição</th>
+              <th>Cliente</th>
+              <th>Projeto</th>
+              <th style="text-align:right;">Valor</th>
+              <th>Vencimento</th>
+              <th>Status</th>
+              <th style="width:40px;"></th>
+            </tr></thead>
+            <tbody>
+              ${items.map(item => this._renderReceberRow(item, fmt)).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+
+      const totalAberto = items.filter(i => !['pago', 'cancelado'].includes(i.status))
+        .reduce((s, i) => s + ((i.amount || 0) - (i.amount_paid || 0)), 0);
+      const totalPago = items.filter(i => i.status === 'pago')
+        .reduce((s, i) => s + (i.amount || 0), 0);
+      html += `<div class="fn-table-summary">
+        <span>Total a receber: <strong style="color:var(--color-success);">${fmt.currency(totalAberto)}</strong></span>
+        <span>Total recebido: <strong style="color:var(--accent);">${fmt.currency(totalPago)}</strong></span>
+        <span class="fn-table-count">${items.length} registro${items.length !== 1 ? 's' : ''}</span>
+      </div>`;
+    }
+
+    container.innerHTML = html;
+    if (window.lucide) lucide.createIcons();
+    this._bindReceberEvents(container);
+  },
+
+  _renderReceberRow(item, fmt) {
+    const clientName = item.client?.name || '—';
+    const projName = item.project?.name || '—';
+    const dueDate = item.due_date ? new Date(item.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : '—';
+    const isOverdue = item.due_date && new Date(item.due_date) < new Date() && !['pago', 'cancelado'].includes(item.status);
+
+    return `<tr class="fn-row ${isOverdue ? 'fn-row--overdue' : ''}" data-id="${item.id}" data-type="receber">
+      <td style="max-width:250px;">
+        <div class="fn-cell-desc">${this._esc(item.description || 'Sem descrição')}</div>
+        ${item.notes ? `<div class="fn-cell-note">${this._esc(item.notes).substring(0, 60)}</div>` : ''}
+      </td>
+      <td>${this._esc(clientName)}</td>
+      <td>${this._esc(projName)}</td>
+      <td style="text-align:right;white-space:nowrap;">
+        <div class="fn-cell-amount">${fmt.currency(item.amount || 0)}</div>
+        ${item.amount_paid > 0 ? `<div class="fn-cell-paid">Recebido: ${fmt.currency(item.amount_paid)}</div>` : ''}
+      </td>
+      <td style="white-space:nowrap;" class="${isOverdue ? 'fn-cell-overdue' : ''}">${dueDate}</td>
+      <td>${this._renderStatusBadge(item.status, this._statusReceber)}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm fn-row-action" data-id="${item.id}" data-type="receber" title="Detalhes">
+          <i data-lucide="chevron-right" style="width:14px;height:14px;"></i>
+        </button>
+      </td>
+    </tr>`;
+  },
+
+  _bindReceberEvents(container) {
+    const statusSel = container.querySelector('#fnReceberStatusFilter');
+    const clientSel = container.querySelector('#fnReceberClientFilter');
+    const searchInput = container.querySelector('#fnReceberSearch');
+
+    if (statusSel) statusSel.addEventListener('change', () => { this._receberFilters.status = statusSel.value; this._loadReceber(); });
+    if (clientSel) clientSel.addEventListener('change', () => { this._receberFilters.client_id = clientSel.value; this._loadReceber(); });
+    if (searchInput) {
+      let _debounce = null;
+      searchInput.addEventListener('input', () => {
+        clearTimeout(_debounce);
+        _debounce = setTimeout(() => { this._receberFilters.search = searchInput.value; this._loadReceber(); }, 400);
+      });
+    }
+
+    const newBtn = container.querySelector('#fnReceberNew');
+    if (newBtn) newBtn.addEventListener('click', () => this._openDrawer('receber', 'create', null));
+
+    container.querySelectorAll('.fn-row[data-type="receber"]').forEach(row => {
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('.fn-row-action')) return;
+        this._openDrawer('receber', 'view', row.dataset.id);
+      });
+    });
+    container.querySelectorAll('.fn-row-action[data-type="receber"]').forEach(btn => {
+      btn.addEventListener('click', () => this._openDrawer('receber', 'view', btn.dataset.id));
+    });
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // DRAWER — Painel lateral (detalhes / criar / editar)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  async _openDrawer(type, mode, id) {
+    this._drawerType = type;
+    this._drawerMode = mode;
+    this._drawerItem = null;
+
+    const drawer = document.getElementById('fnDrawer');
+    const backdrop = document.getElementById('fnDrawerBackdrop');
+    if (!drawer || !backdrop) return;
+
+    // Mostrar drawer com loading
+    drawer.classList.add('fn-drawer--open');
+    backdrop.classList.add('fn-drawer-backdrop--open');
+    this._drawerOpen = true;
+
+    const header = document.getElementById('fnDrawerHeader');
+    const body = document.getElementById('fnDrawerBody');
+    const footer = document.getElementById('fnDrawerFooter');
+
+    if (mode === 'create') {
+      header.innerHTML = `
+        <div class="fn-drawer-title">
+          <i data-lucide="plus-circle" style="width:18px;height:18px;"></i>
+          ${type === 'pagar' ? 'Nova Conta a Pagar' : 'Novo Recebível'}
+        </div>
+        <button class="btn btn-ghost btn-sm fn-drawer-close" id="fnDrawerClose">
+          <i data-lucide="x" style="width:16px;height:16px;"></i>
+        </button>`;
+      body.innerHTML = this._renderDrawerForm(type, null);
+      footer.innerHTML = `
+        <button class="btn btn-secondary" id="fnDrawerCancel">Cancelar</button>
+        <button class="btn btn-primary" id="fnDrawerSave">
+          <i data-lucide="save" style="width:14px;height:14px;"></i> Salvar
+        </button>`;
+      if (window.lucide) lucide.createIcons();
+      this._bindDrawerFormEvents(type, 'create');
+    } else {
+      // View/Edit — carregar dados
+      body.innerHTML = '<div class="fn-loading" style="min-height:200px;"><div class="loading-spinner"></div></div>';
+      header.innerHTML = '';
+      footer.innerHTML = '';
+
+      try {
+        const item = type === 'pagar'
+          ? await FinanceRepo.getPayable(id)
+          : await FinanceRepo.getReceivable(id);
+
+        this._drawerItem = item;
+        this._renderDrawerView(type, item);
+      } catch (err) {
+        body.innerHTML = `<div class="fn-error"><p>${this._esc(err.message)}</p></div>`;
+      }
+    }
+
+    // Bind close
+    document.getElementById('fnDrawerClose')?.addEventListener('click', () => this._closeDrawer());
+    // ESC key
+    this._drawerEscHandler = (e) => { if (e.key === 'Escape') this._closeDrawer(); };
+    document.addEventListener('keydown', this._drawerEscHandler);
+  },
+
+  _closeDrawer() {
+    const drawer = document.getElementById('fnDrawer');
+    const backdrop = document.getElementById('fnDrawerBackdrop');
+    if (drawer) drawer.classList.remove('fn-drawer--open');
+    if (backdrop) backdrop.classList.remove('fn-drawer-backdrop--open');
+    this._drawerOpen = false;
+    this._drawerItem = null;
+    if (this._drawerEscHandler) {
+      document.removeEventListener('keydown', this._drawerEscHandler);
+      this._drawerEscHandler = null;
+    }
+  },
+
+  // ── Drawer: View Mode ──────────────────────────────────────────────
+
+  _renderDrawerView(type, item) {
+    const header = document.getElementById('fnDrawerHeader');
+    const body = document.getElementById('fnDrawerBody');
+    const footer = document.getElementById('fnDrawerFooter');
+    const fmt = this._fmt();
+    const statusMap = type === 'pagar' ? this._statusPagar : this._statusReceber;
+    const isOverdue = item.due_date && new Date(item.due_date) < new Date() && !['pago', 'cancelado'].includes(item.status);
+
+    header.innerHTML = `
+      <div class="fn-drawer-title">
+        ${this._renderStatusBadge(item.status, statusMap)}
+        <span style="margin-left:8px;">${type === 'pagar' ? 'Conta a Pagar' : 'Recebível'}</span>
+      </div>
+      <button class="btn btn-ghost btn-sm fn-drawer-close" id="fnDrawerClose">
+        <i data-lucide="x" style="width:16px;height:16px;"></i>
+      </button>`;
+
+    const remaining = (item.amount || 0) - (item.amount_paid || 0);
+
+    let bodyHtml = `
+      <div class="fn-drawer-section">
+        <div class="fn-drawer-field">
+          <label class="fn-drawer-label">Descrição</label>
+          <div class="fn-drawer-value">${this._esc(item.description || '—')}</div>
+        </div>
+        ${item.notes ? `<div class="fn-drawer-field">
+          <label class="fn-drawer-label">Observações</label>
+          <div class="fn-drawer-value fn-drawer-note">${this._esc(item.notes)}</div>
+        </div>` : ''}
+      </div>
+
+      <div class="fn-drawer-section fn-drawer-grid">
+        <div class="fn-drawer-field">
+          <label class="fn-drawer-label">Valor Total</label>
+          <div class="fn-drawer-value fn-drawer-amount">${fmt.currency(item.amount || 0)}</div>
+        </div>
+        <div class="fn-drawer-field">
+          <label class="fn-drawer-label">${type === 'pagar' ? 'Valor Pago' : 'Valor Recebido'}</label>
+          <div class="fn-drawer-value">${fmt.currency(item.amount_paid || 0)}</div>
+        </div>
+        <div class="fn-drawer-field">
+          <label class="fn-drawer-label">Restante</label>
+          <div class="fn-drawer-value" style="color:${remaining > 0 ? 'var(--color-danger)' : 'var(--color-success)'};">${fmt.currency(remaining)}</div>
+        </div>
+        <div class="fn-drawer-field">
+          <label class="fn-drawer-label">Vencimento</label>
+          <div class="fn-drawer-value ${isOverdue ? 'fn-cell-overdue' : ''}">${item.due_date ? new Date(item.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}</div>
+        </div>
+      </div>
+
+      <div class="fn-drawer-section fn-drawer-grid">`;
+
+    if (type === 'pagar') {
+      bodyHtml += `
+        <div class="fn-drawer-field">
+          <label class="fn-drawer-label">Fornecedor</label>
+          <div class="fn-drawer-value">${this._esc(item.vendor?.name || '—')}</div>
+        </div>
+        <div class="fn-drawer-field">
+          <label class="fn-drawer-label">Centro de Custo</label>
+          <div class="fn-drawer-value">${this._esc(item.cost_center?.name || '—')}</div>
+        </div>
+        <div class="fn-drawer-field">
+          <label class="fn-drawer-label">Projeto</label>
+          <div class="fn-drawer-value">${this._esc(item.project?.name || '—')}</div>
+        </div>
+        <div class="fn-drawer-field">
+          <label class="fn-drawer-label">Categoria</label>
+          <div class="fn-drawer-value">${this._esc(item.category?.name || '—')}</div>
+        </div>`;
+    } else {
+      bodyHtml += `
+        <div class="fn-drawer-field">
+          <label class="fn-drawer-label">Cliente</label>
+          <div class="fn-drawer-value">${this._esc(item.client?.name || '—')}</div>
+        </div>
+        <div class="fn-drawer-field">
+          <label class="fn-drawer-label">Projeto</label>
+          <div class="fn-drawer-value">${this._esc(item.project?.name || '—')}</div>
+        </div>`;
+    }
+
+    bodyHtml += '</div>';
+
+    // ── Timeline simplificada ────────────────────────────────────────
+    bodyHtml += `<div class="fn-drawer-section">
+      <label class="fn-drawer-label" style="margin-bottom:8px;">Histórico</label>
+      <div class="fn-timeline">`;
+
+    if (item.created_at) {
+      bodyHtml += `<div class="fn-timeline-item">
+        <div class="fn-timeline-dot"></div>
+        <div class="fn-timeline-content">
+          <span>Criado</span>
+          <span class="fn-timeline-date">${new Date(item.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+        </div>
+      </div>`;
+    }
+    if (item.approved_at) {
+      bodyHtml += `<div class="fn-timeline-item">
+        <div class="fn-timeline-dot fn-timeline-dot--success"></div>
+        <div class="fn-timeline-content">
+          <span>Aprovado</span>
+          <span class="fn-timeline-date">${new Date(item.approved_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+        </div>
+      </div>`;
+    }
+    if (item.paid_at) {
+      bodyHtml += `<div class="fn-timeline-item">
+        <div class="fn-timeline-dot fn-timeline-dot--success"></div>
+        <div class="fn-timeline-content">
+          <span>Pago</span>
+          <span class="fn-timeline-date">${new Date(item.paid_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+        </div>
+      </div>`;
+    }
+    if (item.updated_at && item.updated_at !== item.created_at) {
+      bodyHtml += `<div class="fn-timeline-item">
+        <div class="fn-timeline-dot fn-timeline-dot--muted"></div>
+        <div class="fn-timeline-content">
+          <span>Atualizado</span>
+          <span class="fn-timeline-date">${new Date(item.updated_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+        </div>
+      </div>`;
+    }
+
+    bodyHtml += '</div></div>';
+
+    body.innerHTML = bodyHtml;
+
+    // ── Footer: Ações de workflow ────────────────────────────────────
+    footer.innerHTML = this._renderDrawerActions(type, item);
+
+    if (window.lucide) lucide.createIcons();
+    document.getElementById('fnDrawerClose')?.addEventListener('click', () => this._closeDrawer());
+    this._bindDrawerActionEvents(type, item);
+  },
+
+  // ── Drawer: Ações de workflow ──────────────────────────────────────
+
+  _renderDrawerActions(type, item) {
+    const actions = [];
+
+    if (type === 'pagar') {
+      const s = item.status;
+      if (s === 'rascunho') {
+        actions.push(`<button class="btn btn-primary btn-sm" data-action="enviar_aprovacao"><i data-lucide="send" style="width:13px;height:13px;"></i> Enviar p/ Aprovação</button>`);
+        actions.push(`<button class="btn btn-secondary btn-sm" data-action="edit"><i data-lucide="edit-3" style="width:13px;height:13px;"></i> Editar</button>`);
+      }
+      if (s === 'aguardando_aprovacao') {
+        actions.push(`<button class="btn btn-primary btn-sm" data-action="aprovar"><i data-lucide="check" style="width:13px;height:13px;"></i> Aprovar</button>`);
+        actions.push(`<button class="btn btn-secondary btn-sm" data-action="devolver"><i data-lucide="undo-2" style="width:13px;height:13px;"></i> Devolver</button>`);
+      }
+      if (['aprovado', 'aberto', 'parcial'].includes(s)) {
+        actions.push(`<button class="btn btn-primary btn-sm" data-action="pagar"><i data-lucide="banknote" style="width:13px;height:13px;"></i> Registrar Pagamento</button>`);
+      }
+      if (!['pago', 'cancelado'].includes(s)) {
+        actions.push(`<button class="btn btn-danger btn-sm" data-action="cancelar" style="margin-left:auto;"><i data-lucide="x-circle" style="width:13px;height:13px;"></i> Cancelar</button>`);
+      }
+    } else {
+      const s = item.status;
+      if (s === 'previsto') {
+        actions.push(`<button class="btn btn-primary btn-sm" data-action="emitir"><i data-lucide="send" style="width:13px;height:13px;"></i> Marcar como Emitido</button>`);
+        actions.push(`<button class="btn btn-secondary btn-sm" data-action="edit"><i data-lucide="edit-3" style="width:13px;height:13px;"></i> Editar</button>`);
+      }
+      if (['emitido', 'aberto', 'parcial'].includes(s)) {
+        actions.push(`<button class="btn btn-primary btn-sm" data-action="receber"><i data-lucide="banknote" style="width:13px;height:13px;"></i> Registrar Recebimento</button>`);
+      }
+      if (!['pago', 'cancelado'].includes(s)) {
+        actions.push(`<button class="btn btn-danger btn-sm" data-action="cancelar" style="margin-left:auto;"><i data-lucide="x-circle" style="width:13px;height:13px;"></i> Cancelar</button>`);
+      }
+    }
+
+    if (actions.length === 0) return '';
+    return `<div class="fn-drawer-actions">${actions.join('')}</div>`;
+  },
+
+  _bindDrawerActionEvents(type, item) {
+    const footer = document.getElementById('fnDrawerFooter');
+    if (!footer) return;
+
+    footer.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const action = btn.dataset.action;
+        await this._executeAction(type, item, action);
+      });
+    });
+  },
+
+  async _executeAction(type, item, action) {
+    try {
+      if (type === 'pagar') {
+        switch (action) {
+          case 'enviar_aprovacao':
+            await FinanceRepo.updatePayable(item.id, { status: 'aguardando_aprovacao' });
+            this._toast('success', 'Enviado para aprovação');
+            break;
+          case 'aprovar':
+            await FinanceRepo.updatePayable(item.id, { status: 'aprovado', approved_at: new Date().toISOString() });
+            this._toast('success', 'Conta aprovada');
+            break;
+          case 'devolver':
+            await FinanceRepo.updatePayable(item.id, { status: 'rascunho' });
+            this._toast('info', 'Devolvido para rascunho');
+            break;
+          case 'pagar':
+            await this._openPaymentPrompt(type, item);
+            return; // Não fechar drawer
+          case 'cancelar':
+            await FinanceRepo.deletePayable(item.id);
+            this._toast('warning', 'Conta cancelada');
+            break;
+          case 'edit':
+            this._switchToEditMode(type, item);
+            return;
+        }
+      } else {
+        switch (action) {
+          case 'emitir':
+            await FinanceRepo.updateReceivable(item.id, { status: 'emitido' });
+            this._toast('success', 'Marcado como emitido');
+            break;
+          case 'receber':
+            await this._openPaymentPrompt(type, item);
+            return;
+          case 'cancelar':
+            await FinanceRepo.deleteReceivable(item.id);
+            this._toast('warning', 'Recebível cancelado');
+            break;
+          case 'edit':
+            this._switchToEditMode(type, item);
+            return;
+        }
+      }
+
+      this._closeDrawer();
+      if (type === 'pagar') this._loadPagar();
+      else this._loadReceber();
+    } catch (err) {
+      console.error('[Financeiro] Erro na ação:', err);
+      this._toast('error', err.message);
+    }
+  },
+
+  // ── Prompt de pagamento inline no drawer ──────────────────────────
+
+  async _openPaymentPrompt(type, item) {
+    const body = document.getElementById('fnDrawerBody');
+    if (!body) return;
+    const fmt = this._fmt();
+    const remaining = (item.amount || 0) - (item.amount_paid || 0);
+    const label = type === 'pagar' ? 'Pagamento' : 'Recebimento';
+
+    // Inserir form de pagamento no final do body
+    let payForm = body.querySelector('#fnPaymentForm');
+    if (payForm) payForm.remove();
+
+    const formHtml = `<div id="fnPaymentForm" class="fn-drawer-section fn-payment-form">
+      <label class="fn-drawer-label" style="margin-bottom:8px;color:var(--accent);">Registrar ${label}</label>
+      <div class="fn-drawer-grid">
+        <div class="form-group" style="margin-bottom:8px;">
+          <label class="form-label">Valor (restante: ${fmt.currency(remaining)})</label>
+          <input type="number" class="form-input" id="fnPayAmount" value="${remaining.toFixed(2)}" step="0.01" min="0.01">
+        </div>
+        <div class="form-group" style="margin-bottom:8px;">
+          <label class="form-label">Data</label>
+          <input type="date" class="form-input" id="fnPayDate" value="${new Date().toISOString().split('T')[0]}">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:8px;">
+        <label class="form-label">Método</label>
+        <select class="form-input" id="fnPayMethod">
+          <option value="pix">PIX</option>
+          <option value="boleto">Boleto</option>
+          <option value="transferencia">Transferência</option>
+          <option value="cartao">Cartão</option>
+          <option value="dinheiro">Dinheiro</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn btn-secondary btn-sm" id="fnPayCancel">Cancelar</button>
+        <button class="btn btn-primary btn-sm" id="fnPayConfirm">
+          <i data-lucide="check" style="width:13px;height:13px;"></i> Confirmar ${label}
+        </button>
+      </div>
+    </div>`;
+
+    body.insertAdjacentHTML('beforeend', formHtml);
+    if (window.lucide) lucide.createIcons();
+
+    // Scroll ao form
+    body.querySelector('#fnPaymentForm')?.scrollIntoView({ behavior: 'smooth' });
+
+    // Bind
+    document.getElementById('fnPayCancel')?.addEventListener('click', () => {
+      document.getElementById('fnPaymentForm')?.remove();
+    });
+
+    document.getElementById('fnPayConfirm')?.addEventListener('click', async () => {
+      const payAmount = parseFloat(document.getElementById('fnPayAmount')?.value);
+      if (isNaN(payAmount) || payAmount <= 0) {
+        this._toast('warning', 'Informe um valor válido.');
+        return;
+      }
+
+      const newAmountPaid = (item.amount_paid || 0) + payAmount;
+      const newStatus = newAmountPaid >= item.amount ? 'pago' : 'parcial';
+
+      try {
+        if (type === 'pagar') {
+          await FinanceRepo.updatePayable(item.id, {
+            amount_paid: newAmountPaid,
+            status: newStatus,
+            payment_method: document.getElementById('fnPayMethod')?.value,
+            paid_at: document.getElementById('fnPayDate')?.value
+          });
+        } else {
+          await FinanceRepo.updateReceivable(item.id, {
+            amount_paid: newAmountPaid,
+            status: newStatus,
+            paid_at: document.getElementById('fnPayDate')?.value
+          });
+        }
+        this._toast('success', `${label} registrado com sucesso!`);
+        this._closeDrawer();
+        if (type === 'pagar') this._loadPagar();
+        else this._loadReceber();
+      } catch (err) {
+        this._toast('error', err.message);
+      }
+    });
+  },
+
+  // ── Drawer: Form Mode (criar/editar) ──────────────────────────────
+
+  _renderDrawerForm(type, item) {
+    const isEdit = !!item;
+    const val = (field) => item ? (item[field] || '') : '';
+
+    if (type === 'pagar') {
+      return `<div class="fn-drawer-form">
+        <div class="form-group">
+          <label class="form-label">Descrição <span class="required">*</span></label>
+          <input type="text" class="form-input" id="fnFormDesc" value="${this._esc(val('description'))}" placeholder="Ex: Aluguel escritório jan/2026">
+        </div>
+        <div class="fn-drawer-grid">
+          <div class="form-group">
+            <label class="form-label">Valor (R$) <span class="required">*</span></label>
+            <input type="number" class="form-input" id="fnFormAmount" value="${val('amount') || ''}" step="0.01" min="0.01" placeholder="0.00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Vencimento <span class="required">*</span></label>
+            <input type="date" class="form-input" id="fnFormDueDate" value="${val('due_date') || ''}">
+          </div>
+        </div>
+        <div class="fn-drawer-grid">
+          <div class="form-group">
+            <label class="form-label">Fornecedor</label>
+            <select class="form-input" id="fnFormVendor">
+              <option value="">Selecione...</option>
+              ${this._vendors.map(v => `<option value="${v.id}" ${val('vendor_id') === v.id ? 'selected' : ''}>${this._esc(v.name)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Centro de Custo</label>
+            <select class="form-input" id="fnFormCC">
+              <option value="">Selecione...</option>
+              ${this._costCenters.map(cc => `<option value="${cc.id}" ${val('cost_center_id') === cc.id ? 'selected' : ''}>${this._esc(cc.name)}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="fn-drawer-grid">
+          <div class="form-group">
+            <label class="form-label">Projeto</label>
+            <select class="form-input" id="fnFormProject">
+              <option value="">Selecione...</option>
+              ${this._projects.map(p => `<option value="${p.id}" ${val('project_id') === p.id ? 'selected' : ''}>${this._esc(p.name)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Categoria</label>
+            <select class="form-input" id="fnFormCategory">
+              <option value="">Selecione...</option>
+              ${this._categories.filter(c => c.type === 'despesa' || !c.type).map(c => `<option value="${c.id}" ${val('category_id') === c.id ? 'selected' : ''}>${this._esc(c.name)}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Observações</label>
+          <textarea class="form-input" id="fnFormNotes" rows="3" placeholder="Notas adicionais...">${this._esc(val('notes'))}</textarea>
+        </div>
+      </div>`;
+    } else {
+      return `<div class="fn-drawer-form">
+        <div class="form-group">
+          <label class="form-label">Descrição <span class="required">*</span></label>
+          <input type="text" class="form-input" id="fnFormDesc" value="${this._esc(val('description'))}" placeholder="Ex: NF #1234 - Projeto XYZ">
+        </div>
+        <div class="fn-drawer-grid">
+          <div class="form-group">
+            <label class="form-label">Valor (R$) <span class="required">*</span></label>
+            <input type="number" class="form-input" id="fnFormAmount" value="${val('amount') || ''}" step="0.01" min="0.01" placeholder="0.00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Vencimento <span class="required">*</span></label>
+            <input type="date" class="form-input" id="fnFormDueDate" value="${val('due_date') || ''}">
+          </div>
+        </div>
+        <div class="fn-drawer-grid">
+          <div class="form-group">
+            <label class="form-label">Cliente</label>
+            <select class="form-input" id="fnFormClient">
+              <option value="">Selecione...</option>
+              ${this._clients.map(c => `<option value="${c.id}" ${val('client_id') === c.id ? 'selected' : ''}>${this._esc(c.name)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Projeto</label>
+            <select class="form-input" id="fnFormProject">
+              <option value="">Selecione...</option>
+              ${this._projects.map(p => `<option value="${p.id}" ${val('project_id') === p.id ? 'selected' : ''}>${this._esc(p.name)}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Observações</label>
+          <textarea class="form-input" id="fnFormNotes" rows="3" placeholder="Notas adicionais...">${this._esc(val('notes'))}</textarea>
+        </div>
+      </div>`;
+    }
+  },
+
+  _switchToEditMode(type, item) {
+    this._drawerMode = 'edit';
+    const header = document.getElementById('fnDrawerHeader');
+    const body = document.getElementById('fnDrawerBody');
+    const footer = document.getElementById('fnDrawerFooter');
+
+    header.innerHTML = `
+      <div class="fn-drawer-title">
+        <i data-lucide="edit-3" style="width:18px;height:18px;"></i>
+        Editar ${type === 'pagar' ? 'Conta a Pagar' : 'Recebível'}
+      </div>
+      <button class="btn btn-ghost btn-sm fn-drawer-close" id="fnDrawerClose">
+        <i data-lucide="x" style="width:16px;height:16px;"></i>
+      </button>`;
+    body.innerHTML = this._renderDrawerForm(type, item);
+    footer.innerHTML = `
+      <button class="btn btn-secondary" id="fnDrawerCancel">Cancelar</button>
+      <button class="btn btn-primary" id="fnDrawerSave">
+        <i data-lucide="save" style="width:14px;height:14px;"></i> Salvar
+      </button>`;
+
+    if (window.lucide) lucide.createIcons();
+    document.getElementById('fnDrawerClose')?.addEventListener('click', () => this._closeDrawer());
+    this._bindDrawerFormEvents(type, 'edit', item);
+  },
+
+  _bindDrawerFormEvents(type, mode, existingItem = null) {
+    const cancelBtn = document.getElementById('fnDrawerCancel');
+    const saveBtn = document.getElementById('fnDrawerSave');
+
+    if (cancelBtn) cancelBtn.addEventListener('click', () => this._closeDrawer());
+    if (saveBtn) saveBtn.addEventListener('click', async () => {
+      await this._saveDrawerForm(type, mode, existingItem);
+    });
+  },
+
+  async _saveDrawerForm(type, mode, existingItem) {
+    // Validação
+    const desc = document.getElementById('fnFormDesc')?.value?.trim();
+    const amount = parseFloat(document.getElementById('fnFormAmount')?.value);
+    const dueDate = document.getElementById('fnFormDueDate')?.value;
+
+    if (!desc) { this._toast('warning', 'Preencha a descrição.'); return; }
+    if (isNaN(amount) || amount <= 0) { this._toast('warning', 'Informe um valor válido.'); return; }
+    if (!dueDate) { this._toast('warning', 'Informe a data de vencimento.'); return; }
+
+    const data = {
+      description: desc,
+      amount,
+      due_date: dueDate,
+      notes: document.getElementById('fnFormNotes')?.value || ''
+    };
+
+    if (type === 'pagar') {
+      data.vendor_id = document.getElementById('fnFormVendor')?.value || null;
+      data.cost_center_id = document.getElementById('fnFormCC')?.value || null;
+      data.project_id = document.getElementById('fnFormProject')?.value || null;
+      data.category_id = document.getElementById('fnFormCategory')?.value || null;
+    } else {
+      data.client_id = document.getElementById('fnFormClient')?.value || null;
+      data.project_id = document.getElementById('fnFormProject')?.value || null;
+    }
+
+    try {
+      if (mode === 'create') {
+        if (type === 'pagar') {
+          data.status = 'rascunho';
+          data.amount_paid = 0;
+          await FinanceRepo.createPayable(data);
+        } else {
+          data.status = 'previsto';
+          data.amount_paid = 0;
+          await FinanceRepo.createReceivable(data);
+        }
+        this._toast('success', `${type === 'pagar' ? 'Conta a pagar' : 'Recebível'} criado!`);
+      } else {
+        if (type === 'pagar') {
+          await FinanceRepo.updatePayable(existingItem.id, data);
+        } else {
+          await FinanceRepo.updateReceivable(existingItem.id, data);
+        }
+        this._toast('success', 'Atualizado com sucesso!');
+      }
+
+      this._closeDrawer();
+      if (type === 'pagar') this._loadPagar();
+      else this._loadReceber();
+    } catch (err) {
+      console.error('[Financeiro] Erro ao salvar:', err);
+      this._toast('error', err.message);
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // GERAR FOLHA PJ
+  // ═══════════════════════════════════════════════════════════════════════
+
+  async _gerarFolhaPJ() {
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+
+    try {
+      const result = await FinanceRepo.generatePayroll(month, year);
+      if (result.existing) {
+        this._toast('info', result.message);
+      } else if (result.created > 0) {
+        this._toast('success', result.message);
+        this._loadPagar();
+      } else {
+        this._toast('warning', result.message);
+      }
+    } catch (err) {
+      console.error('[Financeiro] Erro ao gerar folha PJ:', err);
+      this._toast('error', `Erro ao gerar folha PJ: ${err.message}`);
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // LOAD DASHBOARD (mantido da Entrega 1)
   // ═══════════════════════════════════════════════════════════════════════
 
   async _loadDashboard() {
     const container = document.getElementById('fnDashboardContent');
     if (!container) return;
 
-    // Loading state
-    container.innerHTML = `
-      <div class="fn-loading">
-        <div class="loading-spinner"></div>
-        <p class="loading-text">Carregando dados financeiros...</p>
-      </div>`;
+    container.innerHTML = '<div class="fn-loading"><div class="loading-spinner"></div><p class="loading-text">Carregando dados financeiros...</p></div>';
 
     try {
-      if (typeof FinanceRepo === 'undefined') {
-        throw new Error('FinanceRepo não está disponível');
-      }
-
+      if (typeof FinanceRepo === 'undefined') throw new Error('FinanceRepo não está disponível');
       const kpis = await FinanceRepo.getDashboardKPIs();
       this._data = kpis;
       this._renderDashboard(container, kpis);
@@ -187,17 +1256,12 @@ const TBO_FINANCEIRO = {
     }
   },
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // RENDER DASHBOARD
-  // ═══════════════════════════════════════════════════════════════════════
-
   _renderDashboard(container, kpis) {
-    const fmt = typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER : { currency: v => `R$ ${(v||0).toLocaleString('pt-BR', {minimumFractionDigits:2})}` };
+    const fmt = this._fmt();
     const saldoColor = kpis.saldoAtual >= 0 ? 'var(--color-success)' : 'var(--color-danger)';
     const projetadoColor = kpis.saldoProjetado >= 0 ? 'var(--color-success)' : 'var(--color-danger)';
     const margemProj = kpis.aReceber30d > 0 ? (((kpis.aReceber30d - kpis.aPagar30d) / kpis.aReceber30d) * 100).toFixed(1) : '0.0';
 
-    // Data do saldo
     const saldoDateStr = kpis.saldoDate
       ? new Date(kpis.saldoDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
       : 'Sem registro';
@@ -249,27 +1313,20 @@ const TBO_FINANCEIRO = {
 
     // ── Seções: Top Centro de Custo + Top Projetos ──────────────────────
     html += '<div class="grid-2" style="gap:16px;">';
-
-    // Top Centros de Custo
     html += `<div class="card">
       <div class="card-header"><h3 class="card-title">Top Centros de Custo (mês)</h3></div>
       ${this._renderBarChart(kpis.topCostCenters, fmt)}
     </div>`;
-
-    // Top Projetos
     html += `<div class="card">
       <div class="card-header"><h3 class="card-title">Top Projetos (mês)</h3></div>
       ${this._renderBarChart(kpis.topProjects, fmt)}
     </div>`;
-
     html += '</div>';
 
     // ── Ação rápida: Registrar saldo ────────────────────────────────────
     html += `
     <div class="card" style="margin-top:16px;">
-      <div class="card-header">
-        <h3 class="card-title">Registrar Saldo Atual</h3>
-      </div>
+      <div class="card-header"><h3 class="card-title">Registrar Saldo Atual</h3></div>
       <div style="display:flex;gap:12px;align-items:flex-end;padding:0 0 4px;">
         <div class="form-group" style="flex:1;margin-bottom:0;">
           <label class="form-label">Saldo (R$)</label>
@@ -285,11 +1342,8 @@ const TBO_FINANCEIRO = {
 
     container.innerHTML = html;
 
-    // Bind botão de saldo
     const saveBalanceBtn = document.getElementById('fnSaveBalanceBtn');
-    if (saveBalanceBtn) {
-      saveBalanceBtn.addEventListener('click', () => this._saveBalance());
-    }
+    if (saveBalanceBtn) saveBalanceBtn.addEventListener('click', () => this._saveBalance());
 
     if (window.lucide) lucide.createIcons();
   },
@@ -298,16 +1352,11 @@ const TBO_FINANCEIRO = {
   // RENDER HELPERS
   // ═══════════════════════════════════════════════════════════════════════
 
-  /**
-   * Renderiza bar chart horizontal CSS puro
-   */
   _renderBarChart(items, fmt) {
     if (!items || items.length === 0) {
       return '<div class="fn-empty-chart"><span>Sem dados para o mês atual</span></div>';
     }
-
     const maxVal = Math.max(...items.map(i => i.total), 1);
-
     return `<div class="fn-bar-chart">
       ${items.map(item => {
         const pct = Math.max(Math.round((item.total / maxVal) * 100), 3);
@@ -322,29 +1371,29 @@ const TBO_FINANCEIRO = {
     </div>`;
   },
 
-  /**
-   * Renderiza estado de erro
-   */
   _renderError(msg) {
     return `
       <div class="fn-error">
         <i data-lucide="alert-triangle" style="width:40px;height:40px;color:var(--color-danger);margin-bottom:12px;"></i>
         <h3>Erro ao carregar dados financeiros</h3>
         <p>${this._esc(msg)}</p>
-        <button class="btn btn-primary" id="fnRetryBtn" style="margin-top:12px;">Tentar novamente</button>
+        <button class="btn btn-primary" id="fnRetryBtn" style="margin-top:12px;" onclick="TBO_FINANCEIRO._onRefresh()">Tentar novamente</button>
       </div>`;
   },
 
-  /**
-   * Escape HTML
-   */
   _esc(str) {
-    if (typeof TBO_FORMATTER !== 'undefined' && TBO_FORMATTER.escapeHtml) {
-      return TBO_FORMATTER.escapeHtml(str);
-    }
+    if (typeof TBO_SANITIZE !== 'undefined' && TBO_SANITIZE.html) return TBO_SANITIZE.html(str);
+    if (typeof TBO_FORMATTER !== 'undefined' && TBO_FORMATTER.escapeHtml) return TBO_FORMATTER.escapeHtml(str);
     const d = document.createElement('div');
     d.textContent = str || '';
     return d.innerHTML;
+  },
+
+  _toast(type, msg) {
+    if (typeof TBO_TOAST !== 'undefined') {
+      const titles = { success: 'Sucesso', error: 'Erro', warning: 'Atenção', info: 'Info' };
+      TBO_TOAST[type]?.(titles[type] || '', msg);
+    }
   },
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -358,25 +1407,20 @@ const TBO_FINANCEIRO = {
     const note = noteInput?.value || '';
 
     if (isNaN(balance)) {
-      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.warning('Valor inválido', 'Informe o saldo atual.');
+      this._toast('warning', 'Informe o saldo atual.');
       return;
     }
 
     try {
       await FinanceRepo.recordBalance(balance, note);
-      if (typeof TBO_TOAST !== 'undefined') {
-        TBO_TOAST.success('Saldo registrado', `Saldo de ${TBO_FORMATTER.currency(balance)} salvo com sucesso.`);
-      }
-      // Limpar campos
+      const fmt = this._fmt();
+      this._toast('success', `Saldo de ${fmt.currency(balance)} salvo com sucesso.`);
       if (input) input.value = '';
       if (noteInput) noteInput.value = '';
-      // Recarregar dashboard
       this._loadDashboard();
     } catch (err) {
       console.error('[Financeiro] Erro ao salvar saldo:', err);
-      if (typeof TBO_TOAST !== 'undefined') {
-        TBO_TOAST.error('Erro ao salvar', err.message);
-      }
+      this._toast('error', err.message);
     }
   }
 };

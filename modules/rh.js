@@ -2766,6 +2766,14 @@ const TBO_RH = {
           ${rituais.map(r => `<div style="padding:12px;background:var(--bg-elevated);border-radius:8px;"><div style="font-weight:600;font-size:0.85rem;margin-bottom:4px;">${r.nome}</div><div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">${r.desc}</div><span class="tag" style="font-size:0.62rem;">${r.freq}</span></div>`).join('')}
         </div>
       </div>
+
+      <!-- Bulk actions bar (multi-selecao 1:1) -->
+      <div id="rh1on1BulkBar" style="display:none;position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:10px 20px;align-items:center;gap:12px;z-index:100;box-shadow:0 4px 24px rgba(0,0,0,0.18);">
+        <span id="rh1on1BulkCount" style="font-size:0.8rem;font-weight:600;">0 selecionados</span>
+        <button class="btn btn-sm" id="rh1on1BulkDelete" style="color:var(--color-danger);border:1px solid var(--color-danger);"><i data-lucide="trash-2" style="width:12px;height:12px;vertical-align:-2px;"></i> Excluir selecionados</button>
+        <button class="btn btn-sm" id="rh1on1BulkSelectAll">Selecionar todos</button>
+        <button class="btn btn-sm" id="rh1on1BulkCancel">Cancelar</button>
+      </div>
     `;
   },
 

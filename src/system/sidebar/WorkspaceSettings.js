@@ -2,7 +2,7 @@
  * TBO OS — Workspace Settings Overlay
  *
  * Overlay full-screen para configurações de workspace (espaço de equipe).
- * Duas tabs: Geral (nome, descrição, ícone) + Membros (lista, roles, convites).
+ * Três tabs: Geral (nome, descrição, ícone) + Membros (lista, roles, convites) + Segurança.
  * Segue padrão de AddToSpaceOverlay: focus trap, ESC, backdrop, ARIA.
  *
  * API:
@@ -147,6 +147,13 @@ const TBO_WS_SETTINGS = (() => {
               <i data-lucide="users"></i>
               Membros
             </button>
+            ${_isAdmin() ? `
+            <button class="wss-tab${_activeTab === 'seguranca' ? ' wss-tab--active' : ''}"
+                    role="tab" aria-selected="${_activeTab === 'seguranca'}"
+                    data-wss-tab="seguranca">
+              <i data-lucide="shield"></i>
+              Segurança
+            </button>` : ''}
           </nav>
 
           <!-- Body -->
@@ -159,7 +166,10 @@ const TBO_WS_SETTINGS = (() => {
   }
 
   function _renderTabContent() {
-    return _activeTab === 'geral' ? _renderTabGeral() : _renderTabMembros();
+    if (_activeTab === 'geral') return _renderTabGeral();
+    if (_activeTab === 'membros') return _renderTabMembros();
+    if (_activeTab === 'seguranca') return _renderTabSeguranca();
+    return _renderTabGeral();
   }
 
   // ── Tab Geral ───────────────────────────────────────────────────────────
@@ -171,19 +181,24 @@ const TBO_WS_SETTINGS = (() => {
     const iconType = _spaceData?.icon_type || 'lucide';
     const canEdit = _isAdmin();
 
-    const iconDisplay = iconType === 'emoji'
-      ? `<span>${_esc(iconValue)}</span>`
-      : `<i data-lucide="${_esc(iconValue)}"></i>`;
+    let iconDisplay;
+    if (iconType === 'upload' && (_spaceData?.icon_url)) {
+      iconDisplay = `<img src="${_esc(_spaceData.icon_url)}" alt="Ícone" style="width:100%;height:100%;object-fit:cover;border-radius:6px" />`;
+    } else if (iconType === 'emoji') {
+      iconDisplay = `<span>${_esc(iconValue)}</span>`;
+    } else {
+      iconDisplay = `<i data-lucide="${_esc(iconValue)}"></i>`;
+    }
 
     return `
       <!-- Ícone -->
       <div class="wss-field">
         <label class="wss-field-label">Ícone</label>
         <div class="wss-icon-preview">
-          <div class="wss-icon-display" data-wss-icon-trigger title="${canEdit ? 'Alterar ícone (em breve)' : ''}" style="${canEdit ? 'cursor:pointer' : ''}">
+          <div class="wss-icon-display" data-wss-icon-trigger title="${canEdit ? 'Clique para alterar o ícone' : ''}" style="${canEdit ? 'cursor:pointer' : ''}">
             ${iconDisplay}
           </div>
-          <span class="wss-icon-hint">${canEdit ? 'Clique para alterar (em breve)' : 'Somente admins podem alterar'}</span>
+          <span class="wss-icon-hint">${canEdit ? 'Clique para alterar' : 'Somente admins podem alterar'}</span>
         </div>
       </div>
 
@@ -212,9 +227,9 @@ const TBO_WS_SETTINGS = (() => {
           Sair do espaço
         </button>
         ${canEdit ? `
-          <button class="wss-btn" data-wss-action="archive" title="Em breve">
+          <button class="wss-btn" data-wss-action="archive">
             <i data-lucide="archive"></i>
-            Arquivar
+            Arquivar espaço
           </button>
         ` : ''}
       </div>
@@ -371,6 +386,114 @@ const TBO_WS_SETTINGS = (() => {
     return html;
   }
 
+  // ── Tab Segurança ─────────────────────────────────────────────────────
+
+  function _renderTabSeguranca() {
+    const spaceName = _esc(_spaceData?.name || 'Espaço');
+
+    return `
+      <!-- Política de entrada -->
+      <div class="wss-field">
+        <label class="wss-field-label">Política de entrada</label>
+        <p class="wss-field-description">
+          Defina quem pode acessar este espaço de equipe.
+        </p>
+        <div class="wss-security-options">
+          <label class="wss-radio-option">
+            <input type="radio" name="wss-entry-policy" value="invite" checked data-wss-entry-policy />
+            <div class="wss-radio-content">
+              <i data-lucide="lock" class="wss-radio-icon"></i>
+              <div>
+                <div class="wss-radio-label">Somente por convite</div>
+                <div class="wss-radio-desc">Apenas membros convidados por admins podem acessar</div>
+              </div>
+            </div>
+          </label>
+          <label class="wss-radio-option">
+            <input type="radio" name="wss-entry-policy" value="request" data-wss-entry-policy />
+            <div class="wss-radio-content">
+              <i data-lucide="hand" class="wss-radio-icon"></i>
+              <div>
+                <div class="wss-radio-label">Solicitar acesso</div>
+                <div class="wss-radio-desc">Membros do tenant podem solicitar entrada (admin aprova)</div>
+              </div>
+            </div>
+          </label>
+          <label class="wss-radio-option">
+            <input type="radio" name="wss-entry-policy" value="open" data-wss-entry-policy />
+            <div class="wss-radio-content">
+              <i data-lucide="globe" class="wss-radio-icon"></i>
+              <div>
+                <div class="wss-radio-label">Aberto</div>
+                <div class="wss-radio-desc">Qualquer membro do tenant pode entrar livremente</div>
+              </div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Permissões de membro -->
+      <div class="wss-field">
+        <label class="wss-field-label">Permissões de membros</label>
+        <div class="wss-checkbox-group">
+          <label class="wss-checkbox-option">
+            <input type="checkbox" checked data-wss-perm="create-pages" />
+            <span>Membros podem criar páginas</span>
+          </label>
+          <label class="wss-checkbox-option">
+            <input type="checkbox" checked data-wss-perm="invite-members" />
+            <span>Admins podem convidar membros</span>
+          </label>
+          <label class="wss-checkbox-option">
+            <input type="checkbox" data-wss-perm="export-data" />
+            <span>Membros podem exportar dados</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Registro de atividades -->
+      <div class="wss-field">
+        <label class="wss-field-label">Registro de atividades</label>
+        <p class="wss-field-description">
+          Últimas alterações neste espaço.
+        </p>
+        <div class="wss-audit-log" data-wss-audit-log>
+          <div class="wss-audit-loading">
+            <i data-lucide="loader" class="wss-spin"></i>
+            Carregando registro de atividades...
+          </div>
+        </div>
+      </div>
+
+      <!-- Zona de perigo -->
+      <div class="wss-field wss-danger-zone">
+        <label class="wss-field-label wss-field-label--danger">Zona de perigo</label>
+        <div class="wss-danger-actions">
+          <div class="wss-danger-item">
+            <div>
+              <div class="wss-danger-item-title">Arquivar espaço</div>
+              <div class="wss-danger-item-desc">Ocultar o espaço "${spaceName}" da sidebar. Pode ser revertido.</div>
+            </div>
+            <button class="wss-btn wss-btn--outline" data-wss-action="archive">
+              <i data-lucide="archive"></i>
+              Arquivar
+            </button>
+          </div>
+          <div class="wss-danger-item">
+            <div>
+              <div class="wss-danger-item-title">Excluir espaço</div>
+              <div class="wss-danger-item-desc">Excluir permanentemente "${spaceName}" e todo seu conteúdo.</div>
+            </div>
+            <button class="wss-btn wss-btn--danger" data-wss-action="delete">
+              <i data-lucide="trash-2"></i>
+              Excluir
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   // ── Refresh ─────────────────────────────────────────────────────────────
 
   function _refreshBody() {
@@ -487,12 +610,69 @@ const TBO_WS_SETTINGS = (() => {
       el.addEventListener('click', () => _handleInlineEdit(el));
     });
 
-    // ── Tab Geral: ícone (Entrega 2) ──
+    // ── Tab Geral: ícone (Icon Picker) ──
     const iconTrigger = body.querySelector('[data-wss-icon-trigger]');
     if (iconTrigger && _isAdmin()) {
       iconTrigger.addEventListener('click', () => {
-        if (typeof TBO_TOAST !== 'undefined') {
-          TBO_TOAST.info('Em breve', 'Seletor de ícones será implementado na próxima fase');
+        if (typeof TBO_ICON_PICKER !== 'undefined') {
+          TBO_ICON_PICKER.open(iconTrigger, {
+            currentIcon: _spaceData?.icon_value || _spaceData?.icon || 'folder',
+            iconType: _spaceData?.icon_type || 'lucide',
+            onSelect: async (icon) => {
+              // icon = { type: 'lucide'|'emoji'|'upload', value: string, url?: string }
+              try {
+                await SpaceRepo.updateIcon(_spaceId, {
+                  icon_type: icon.type,
+                  icon_value: icon.value,
+                  icon_url: icon.url || null
+                });
+                // Atualizar cache local
+                _spaceData.icon_type = icon.type;
+                _spaceData.icon_value = icon.value;
+                _spaceData.icon_url = icon.url || null;
+                // Atualizar header do overlay
+                _updateHeaderIcon();
+                // Atualizar sidebar
+                _updateSidebarIcon(_spaceId, icon);
+                _refreshBody();
+                if (typeof TBO_TOAST !== 'undefined') {
+                  TBO_TOAST.success('Ícone atualizado', 'Novo ícone salvo com sucesso');
+                }
+              } catch (err) {
+                console.error('[WS Settings] Erro ao atualizar ícone:', err);
+                if (typeof TBO_TOAST !== 'undefined') {
+                  TBO_TOAST.error('Erro', 'Não foi possível atualizar o ícone');
+                }
+              }
+            },
+            onRemove: async () => {
+              try {
+                await SpaceRepo.updateIcon(_spaceId, {
+                  icon_type: 'lucide',
+                  icon_value: 'folder',
+                  icon_url: null
+                });
+                _spaceData.icon_type = 'lucide';
+                _spaceData.icon_value = 'folder';
+                _spaceData.icon_url = null;
+                _updateHeaderIcon();
+                _updateSidebarIcon(_spaceId, { type: 'lucide', value: 'folder' });
+                _refreshBody();
+                if (typeof TBO_TOAST !== 'undefined') {
+                  TBO_TOAST.success('Ícone removido', 'Ícone padrão restaurado');
+                }
+              } catch (err) {
+                console.error('[WS Settings] Erro ao remover ícone:', err);
+                if (typeof TBO_TOAST !== 'undefined') {
+                  TBO_TOAST.error('Erro', 'Não foi possível remover o ícone');
+                }
+              }
+            }
+          });
+        } else {
+          if (typeof TBO_TOAST !== 'undefined') {
+            TBO_TOAST.info('Em breve', 'Seletor de ícones não disponível');
+          }
         }
       });
     }
@@ -635,6 +815,98 @@ const TBO_WS_SETTINGS = (() => {
         await _handleRevokeInvitation(invId);
       });
     });
+
+    // ── Tab Segurança: carregar audit log ──
+    if (_activeTab === 'seguranca') {
+      _loadAuditLog();
+
+      // Salvar política de entrada ao mudar
+      body.querySelectorAll('[data-wss-entry-policy]').forEach(radio => {
+        radio.addEventListener('change', async (e) => {
+          const policy = e.target.value;
+          try {
+            await SpaceRepo.update(_spaceId, { entry_policy: policy });
+            if (typeof TBO_TOAST !== 'undefined') {
+              const labels = { invite: 'Somente por convite', request: 'Solicitar acesso', open: 'Aberto' };
+              TBO_TOAST.success('Política atualizada', labels[policy] || policy);
+            }
+          } catch (err) {
+            console.error('[WS Settings] Erro ao salvar política:', err);
+            if (typeof TBO_TOAST !== 'undefined') {
+              TBO_TOAST.error('Erro', 'Não foi possível salvar a política');
+            }
+          }
+        });
+      });
+
+      // Salvar permissões ao mudar
+      body.querySelectorAll('[data-wss-perm]').forEach(cb => {
+        cb.addEventListener('change', () => {
+          // Coletar todas as permissões ativas
+          const perms = {};
+          body.querySelectorAll('[data-wss-perm]').forEach(el => {
+            perms[el.dataset.wssPerm] = el.checked;
+          });
+          // Salvar (fire-and-forget)
+          SpaceRepo.update(_spaceId, { permissions: perms }).catch(err => {
+            console.error('[WS Settings] Erro ao salvar permissões:', err);
+          });
+        });
+      });
+    }
+  }
+
+  // ── Audit Log ──────────────────────────────────────────────────────────
+
+  async function _loadAuditLog() {
+    const logContainer = _overlay?.querySelector('[data-wss-audit-log]');
+    if (!logContainer) return;
+
+    try {
+      let logs = [];
+      // Usar AuditRepo se disponível
+      if (typeof AuditRepo !== 'undefined' && typeof AuditRepo.getByTarget === 'function') {
+        logs = await AuditRepo.getByTarget(_spaceId, 20);
+      }
+
+      if (logs.length === 0) {
+        logContainer.innerHTML = `
+          <div class="wss-audit-empty">
+            <i data-lucide="file-text"></i>
+            <span>Nenhuma atividade registrada</span>
+          </div>
+        `;
+      } else {
+        let html = '';
+        logs.forEach(log => {
+          const date = log.created_at ? new Date(log.created_at).toLocaleDateString('pt-BR', {
+            day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+          }) : '';
+          const userName = log.user_name || log.actor_name || 'Usuário';
+          const action = log.action || log.event || 'ação';
+          html += `<div class="wss-audit-entry">
+            <div class="wss-audit-entry-icon"><i data-lucide="activity"></i></div>
+            <div class="wss-audit-entry-content">
+              <span class="wss-audit-entry-actor">${_esc(userName)}</span>
+              <span class="wss-audit-entry-action">${_esc(action)}</span>
+            </div>
+            <div class="wss-audit-entry-time">${_esc(date)}</div>
+          </div>`;
+        });
+        logContainer.innerHTML = html;
+      }
+
+      if (window.lucide) lucide.createIcons({ root: logContainer });
+    } catch (err) {
+      console.error('[WS Settings] Erro ao carregar audit log:', err);
+      logContainer.innerHTML = `
+        <div class="wss-audit-empty">
+          <i data-lucide="alert-circle"></i>
+          <span>Erro ao carregar registro</span>
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons({ root: logContainer });
+    }
   }
 
   // ── Ações ───────────────────────────────────────────────────────────────
@@ -645,9 +917,10 @@ const TBO_WS_SETTINGS = (() => {
       _handleLeave();
       break;
     case 'archive':
-      if (typeof TBO_TOAST !== 'undefined') {
-        TBO_TOAST.info('Em breve', 'Arquivamento será implementado na próxima fase');
-      }
+      _handleArchive();
+      break;
+    case 'delete':
+      _handleDeleteFromSettings();
       break;
     case 'toggle-add-member':
       _showAddMember = !_showAddMember;
@@ -655,6 +928,123 @@ const TBO_WS_SETTINGS = (() => {
       _autocompleteResults = [];
       _refreshBody();
       break;
+    }
+  }
+
+  // ── Delete via Settings (Segurança tab) ────────────────────────────────
+
+  function _handleDeleteFromSettings() {
+    const spaceName = _spaceData?.name || 'Espaço';
+
+    if (typeof TBO_DELETE_CONFIRM !== 'undefined') {
+      TBO_DELETE_CONFIRM.open({
+        name: spaceName,
+        onConfirm: async () => {
+          try {
+            const uid = _uid();
+            await SpaceRepo.softDelete(_spaceId, uid);
+            close();
+            if (typeof TBO_SIDEBAR_SERVICE !== 'undefined') await TBO_SIDEBAR_SERVICE.refresh();
+            if (typeof TBO_SIDEBAR_RENDERER !== 'undefined') TBO_SIDEBAR_RENDERER.render();
+            if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Excluído', `"${spaceName}" foi removido`);
+          } catch (err) {
+            console.error('[WS Settings] Erro ao excluir:', err);
+            if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro', err.message || 'Não foi possível excluir');
+          }
+        }
+      });
+    } else {
+      // Fallback
+      const input = window.prompt(`Para excluir "${spaceName}", digite o nome:`);
+      if (!input || input.trim() !== spaceName) return;
+      (async () => {
+        try {
+          const uid = _uid();
+          await SpaceRepo.softDelete(_spaceId, uid);
+          close();
+          if (typeof TBO_SIDEBAR_SERVICE !== 'undefined') await TBO_SIDEBAR_SERVICE.refresh();
+          if (typeof TBO_SIDEBAR_RENDERER !== 'undefined') TBO_SIDEBAR_RENDERER.render();
+          if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Excluído', `"${spaceName}" foi removido`);
+        } catch (err) {
+          console.error('[WS Settings] Erro ao excluir:', err);
+          if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro', err.message || 'Não foi possível excluir');
+        }
+      })();
+    }
+  }
+
+  // ── Atualizar ícone no header do overlay ────────────────────────────────
+
+  function _updateHeaderIcon() {
+    if (!_overlay) return;
+    const iconEl = _overlay.querySelector('.wss-header-icon');
+    if (!iconEl) return;
+    const iconType = _spaceData?.icon_type || 'lucide';
+    const iconValue = _spaceData?.icon_value || 'folder';
+    if (iconType === 'emoji') {
+      iconEl.innerHTML = _esc(iconValue);
+      iconEl.className = 'wss-header-icon';
+    } else if (iconType === 'upload' && _spaceData?.icon_url) {
+      iconEl.innerHTML = `<img src="${_esc(_spaceData.icon_url)}" alt="Ícone" style="width:100%;height:100%;object-fit:cover;border-radius:6px" />`;
+      iconEl.className = 'wss-header-icon';
+    } else {
+      iconEl.innerHTML = `<i data-lucide="${_esc(iconValue)}"></i>`;
+      iconEl.className = 'wss-header-icon';
+      if (window.lucide) lucide.createIcons({ root: iconEl });
+    }
+  }
+
+  // ── Atualizar ícone na sidebar ─────────────────────────────────────────
+
+  function _updateSidebarIcon(spaceId, icon) {
+    const wsEl = document.querySelector(`.nsb-workspace[data-item-id="${spaceId}"]`);
+    if (!wsEl) return;
+    const iconContainer = wsEl.querySelector('.nsb-ws-icon');
+    if (!iconContainer) return;
+
+    if (icon.type === 'emoji') {
+      iconContainer.innerHTML = `<span>${_esc(icon.value)}</span>`;
+    } else if (icon.type === 'upload' && icon.url) {
+      iconContainer.innerHTML = `<img src="${_esc(icon.url)}" alt="" style="width:18px;height:18px;object-fit:cover;border-radius:3px" />`;
+    } else {
+      iconContainer.innerHTML = `<i data-lucide="${_esc(icon.value)}"></i>`;
+      if (window.lucide) lucide.createIcons({ root: iconContainer });
+    }
+
+    // Refresh sidebar service cache
+    if (typeof TBO_SIDEBAR_SERVICE !== 'undefined') {
+      TBO_SIDEBAR_SERVICE.refresh();
+    }
+  }
+
+  // ── Archive ────────────────────────────────────────────────────────────
+
+  async function _handleArchive() {
+    const spaceName = _spaceData?.name || 'Espaço';
+    if (!window.confirm(`Deseja arquivar o espaço "${spaceName}"? Ele ficará oculto na sidebar.`)) {
+      return;
+    }
+
+    try {
+      const uid = _uid();
+      await SpaceRepo.archive(_spaceId, uid);
+      close();
+
+      // Refresh sidebar
+      if (typeof TBO_SIDEBAR_SERVICE !== 'undefined') {
+        await TBO_SIDEBAR_SERVICE.refresh();
+      }
+      if (typeof TBO_SIDEBAR_RENDERER !== 'undefined') {
+        TBO_SIDEBAR_RENDERER.render();
+      }
+      if (typeof TBO_TOAST !== 'undefined') {
+        TBO_TOAST.success('Arquivado', `"${spaceName}" foi arquivado`);
+      }
+    } catch (err) {
+      console.error('[WS Settings] Erro ao arquivar:', err);
+      if (typeof TBO_TOAST !== 'undefined') {
+        TBO_TOAST.error('Erro', err.message || 'Não foi possível arquivar o espaço');
+      }
     }
   }
 

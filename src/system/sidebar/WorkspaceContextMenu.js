@@ -508,42 +508,59 @@ const TBO_WS_CONTEXT_MENU = (() => {
     }
   }
 
-  // ── Delete (Entrega 2 — stub com confirmação dupla) ─────────────────────
+  // ── Delete (confirmação dupla via modal nativo) ─────────────────────────
 
-  async function _handleDelete(spaceId, spaceData) {
+  function _handleDelete(spaceId, spaceData) {
     const spaceName = spaceData?.name || 'Espaço';
 
-    // Confirmação dupla: digitar nome do espaço
-    const input = window.prompt(
-      `Esta ação é irreversível.\n\nPara excluir o espaço "${spaceName}", digite o nome do espaço:`
-    );
-
-    if (!input || input.trim() !== spaceName) {
-      if (input !== null) {
-        if (typeof TBO_TOAST !== 'undefined') {
+    // Usar modal nativo TBO_DELETE_CONFIRM se disponível
+    if (typeof TBO_DELETE_CONFIRM !== 'undefined') {
+      TBO_DELETE_CONFIRM.open({
+        name: spaceName,
+        onConfirm: async () => {
+          try {
+            const uid = _getCurrentUserId();
+            await SpaceRepo.softDelete(spaceId, uid);
+            if (typeof TBO_SIDEBAR_SERVICE !== 'undefined') {
+              await TBO_SIDEBAR_SERVICE.refresh();
+            }
+            if (typeof TBO_SIDEBAR_RENDERER !== 'undefined') {
+              TBO_SIDEBAR_RENDERER.render();
+            }
+            if (typeof TBO_TOAST !== 'undefined') {
+              TBO_TOAST.success('Excluído', `"${spaceName}" foi removido`);
+            }
+          } catch (err) {
+            console.error('[WS Context Menu] Erro ao excluir:', err);
+            if (typeof TBO_TOAST !== 'undefined') {
+              TBO_TOAST.error('Erro', err.message || 'Não foi possível excluir');
+            }
+          }
+        }
+      });
+    } else {
+      // Fallback: window.prompt caso o modal não esteja carregado
+      const input = window.prompt(
+        `Esta ação é irreversível.\n\nPara excluir o espaço "${spaceName}", digite o nome do espaço:`
+      );
+      if (!input || input.trim() !== spaceName) {
+        if (input !== null && typeof TBO_TOAST !== 'undefined') {
           TBO_TOAST.warning('Cancelado', 'O nome digitado não confere');
         }
+        return;
       }
-      return;
-    }
-
-    try {
-      const uid = _getCurrentUserId();
-      await SpaceRepo.softDelete(spaceId, uid);
-      if (typeof TBO_SIDEBAR_SERVICE !== 'undefined') {
-        await TBO_SIDEBAR_SERVICE.refresh();
-      }
-      if (typeof TBO_SIDEBAR_RENDERER !== 'undefined') {
-        TBO_SIDEBAR_RENDERER.render();
-      }
-      if (typeof TBO_TOAST !== 'undefined') {
-        TBO_TOAST.success('Excluído', `"${spaceName}" foi removido`);
-      }
-    } catch (err) {
-      console.error('[WS Context Menu] Erro ao excluir:', err);
-      if (typeof TBO_TOAST !== 'undefined') {
-        TBO_TOAST.error('Erro', err.message || 'Não foi possível excluir');
-      }
+      (async () => {
+        try {
+          const uid = _getCurrentUserId();
+          await SpaceRepo.softDelete(spaceId, uid);
+          if (typeof TBO_SIDEBAR_SERVICE !== 'undefined') await TBO_SIDEBAR_SERVICE.refresh();
+          if (typeof TBO_SIDEBAR_RENDERER !== 'undefined') TBO_SIDEBAR_RENDERER.render();
+          if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Excluído', `"${spaceName}" foi removido`);
+        } catch (err) {
+          console.error('[WS Context Menu] Erro ao excluir:', err);
+          if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro', err.message || 'Não foi possível excluir');
+        }
+      })();
     }
   }
 

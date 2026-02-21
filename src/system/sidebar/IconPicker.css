@@ -1,0 +1,294 @@
+/* ============================================================================
+ * TBO OS — Icon Picker Popover
+ * Seletor de ícones para workspaces (Lucide + Emoji + Upload + Remover)
+ * Prefix: .ipk-*
+ * ============================================================================ */
+
+/* ── Popover container ─────────────────────────────────────────────────── */
+
+.ipk-popover {
+  position: fixed;
+  z-index: 10005;
+  width: 340px;
+  max-height: 420px;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-default, #dfdfdf);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-lg, 0 8px 30px rgba(0,0,0,0.12));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  opacity: 0;
+  transform: scale(0.95) translateY(-4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.ipk-popover--open {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+.ipk-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10004;
+}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+
+.ipk-tabs {
+  display: flex;
+  gap: 0;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border-subtle, #eaeaea);
+  flex-shrink: 0;
+}
+
+.ipk-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted, #9f9f9f);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  white-space: nowrap;
+}
+
+.ipk-tab:hover {
+  color: var(--text-primary, #0f0f0f);
+}
+
+.ipk-tab--active {
+  color: var(--brand-orange, #E85102);
+  border-bottom-color: var(--brand-orange, #E85102);
+}
+
+.ipk-tab i {
+  width: 13px;
+  height: 13px;
+}
+
+/* ── Search ──────────────────────────────────────────────────────────────── */
+
+.ipk-search-wrap {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-subtle, #eaeaea);
+  flex-shrink: 0;
+}
+
+.ipk-search {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 12px;
+  border: 1px solid var(--border-default, #dfdfdf);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-card, #ffffff);
+  color: var(--text-primary, #0f0f0f);
+  outline: none;
+  font-family: inherit;
+}
+
+.ipk-search:focus {
+  border-color: var(--brand-orange, #E85102);
+}
+
+.ipk-search::placeholder {
+  color: var(--text-muted, #9f9f9f);
+}
+
+/* ── Recents section ─────────────────────────────────────────────────────── */
+
+.ipk-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted, #9f9f9f);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 8px 12px 4px;
+}
+
+/* ── Grid de ícones ──────────────────────────────────────────────────────── */
+
+.ipk-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 8px 8px;
+}
+
+.ipk-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.ipk-body::-webkit-scrollbar-thumb {
+  background: var(--brand-gray-400, #9f9f9f);
+  border-radius: 2px;
+}
+
+.ipk-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+}
+
+.ipk-grid--emoji {
+  grid-template-columns: repeat(8, 1fr);
+}
+
+.ipk-icon-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  transition: all 0.08s ease;
+  padding: 0;
+  color: var(--text-secondary, #606060);
+}
+
+.ipk-icon-btn:hover {
+  background: var(--bg-card-hover, #f5f5f5);
+  color: var(--text-primary, #0f0f0f);
+}
+
+.ipk-icon-btn--selected {
+  background: rgba(232, 81, 2, 0.1);
+  color: var(--brand-orange, #E85102);
+}
+
+.ipk-icon-btn i {
+  width: 18px;
+  height: 18px;
+}
+
+.ipk-icon-btn--emoji {
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* ── Upload section ──────────────────────────────────────────────────────── */
+
+.ipk-upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 16px;
+  margin: 8px;
+  border: 2px dashed var(--border-default, #dfdfdf);
+  border-radius: var(--radius-md, 8px);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.ipk-upload-zone:hover {
+  border-color: var(--brand-orange, #E85102);
+  background: rgba(232, 81, 2, 0.04);
+}
+
+.ipk-upload-zone i {
+  width: 24px;
+  height: 24px;
+  color: var(--text-muted, #9f9f9f);
+}
+
+.ipk-upload-text {
+  font-size: 12px;
+  color: var(--text-muted, #9f9f9f);
+  text-align: center;
+}
+
+.ipk-upload-hint {
+  font-size: 10px;
+  color: var(--text-muted, #9f9f9f);
+  opacity: 0.6;
+}
+
+.ipk-upload-input {
+  display: none;
+}
+
+/* ── Remove option ───────────────────────────────────────────────────────── */
+
+.ipk-remove-section {
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-subtle, #eaeaea);
+  flex-shrink: 0;
+}
+
+.ipk-remove-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-danger, #e74c3c);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  transition: all 0.08s ease;
+}
+
+.ipk-remove-btn:hover {
+  background: var(--color-danger-dim, rgba(231, 76, 60, 0.1));
+}
+
+.ipk-remove-btn i {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+
+.ipk-empty {
+  text-align: center;
+  padding: 24px 16px;
+  color: var(--text-muted, #9f9f9f);
+  font-size: 12px;
+}
+
+/* ── Emoji category label ────────────────────────────────────────────────── */
+
+.ipk-emoji-category {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted, #9f9f9f);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 8px 4px 4px;
+  grid-column: 1 / -1;
+}
+
+/* ── Responsivo ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 400px) {
+  .ipk-popover {
+    width: 300px;
+  }
+
+  .ipk-grid {
+    grid-template-columns: repeat(7, 1fr);
+  }
+}
+
+/* ── Dark mode ───────────────────────────────────────────────────────────── */
+
+body.dark-mode .ipk-icon-btn:hover {
+  background: var(--bg-card-hover, #2a2a2a);
+}
+
+body.dark-mode .ipk-upload-zone:hover {
+  background: rgba(232, 81, 2, 0.08);
+}

@@ -284,7 +284,14 @@
 .nsb-ws-item i {
   width: 14px;
   height: 14px;
+  flex-shrink: 0;
   opacity: 0.6;
+}
+
+.nsb-ws-item-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ── Skeleton Loading ───────────────────────────────────────────────────── */

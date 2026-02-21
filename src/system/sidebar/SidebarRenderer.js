@@ -91,11 +91,11 @@ const TBO_SIDEBAR_RENDERER = (() => {
       ? TBO_SIDEBAR_SERVICE.isExpanded(item.id)
       : true;
 
-    // Conteúdo interno do workspace — será carregado dinamicamente
+    // Conteúdo interno — placeholder inicial, preenchido por _loadWorkspacePages
     const innerHtml = expanded
       ? `<div class="nsb-ws-content" id="nsbWsContent_${_escHtml(item.id)}">
            <div class="nsb-ws-placeholder">
-             <span class="nsb-ws-placeholder-text">Nenhum conteúdo ainda</span>
+             <span class="nsb-ws-placeholder-text">Carregando...</span>
            </div>
          </div>`
       : '';
@@ -114,6 +114,90 @@ const TBO_SIDEBAR_RENDERER = (() => {
       </div>
       ${innerHtml}
     </div>`;
+  }
+
+  // ── Carregar páginas de um workspace ──────────────────────────────────
+
+  /**
+   * Busca páginas do Supabase e renderiza dentro do workspace na sidebar.
+   * @param {string} spaceId - ID do workspace (ex: 'ws-geral')
+   */
+  async function _loadWorkspacePages(spaceId) {
+    const contentEl = document.getElementById(`nsbWsContent_${spaceId}`);
+    if (!contentEl) return;
+
+    // Se PagesRepo não existe, mostra placeholder vazio
+    if (typeof PagesRepo === 'undefined') {
+      contentEl.innerHTML = '<div class="nsb-ws-placeholder"><span class="nsb-ws-placeholder-text">Nenhum conteúdo ainda</span></div>';
+      return;
+    }
+
+    try {
+      const pages = await PagesRepo.listBySpace(spaceId, { limit: 30 });
+      if (!pages || pages.length === 0) {
+        contentEl.innerHTML = '<div class="nsb-ws-placeholder"><span class="nsb-ws-placeholder-text">Nenhum conteúdo ainda</span></div>';
+        return;
+      }
+      contentEl.innerHTML = pages.map(p => _renderPageItem(p)).join('');
+      if (window.lucide) lucide.createIcons({ root: contentEl });
+      _bindPageItemEvents(contentEl);
+    } catch (err) {
+      console.warn('[TBO Sidebar] Erro ao carregar páginas:', err);
+      contentEl.innerHTML = '<div class="nsb-ws-placeholder"><span class="nsb-ws-placeholder-text">Nenhum conteúdo ainda</span></div>';
+    }
+  }
+
+  /**
+   * Renderiza HTML de um item de página na sidebar
+   */
+  function _renderPageItem(page) {
+    const icon = page.icon || 'file-text';
+    const title = _escHtml(page.title || 'Sem título');
+    return `<div class="nsb-ws-item" data-page-route="page/${page.id}" data-page-id="${page.id}" title="${title}">
+      <i data-lucide="${_escHtml(icon)}"></i>
+      <span class="nsb-ws-item-label">${title}</span>
+    </div>`;
+  }
+
+  /**
+   * Bind click events nos itens de página dentro de um container
+   */
+  function _bindPageItemEvents(container) {
+    container.querySelectorAll('[data-page-route]').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        const route = el.dataset.pageRoute;
+        if (route && typeof TBO_ROUTER !== 'undefined') {
+          TBO_ROUTER.navigate(route);
+        } else if (route) {
+          window.location.hash = route;
+        }
+      });
+    });
+  }
+
+  /**
+   * Adiciona uma página recém-criada ao workspace na sidebar (sem reload).
+   * @param {string} spaceId - ID do workspace
+   * @param {Object} page - Objeto da página ({ id, title, icon })
+   */
+  function addPageToWorkspace(spaceId, page) {
+    const contentEl = document.getElementById(`nsbWsContent_${spaceId}`);
+    if (!contentEl) return;
+
+    // Remove placeholder "Nenhum conteúdo" / "Carregando" se existir
+    const placeholder = contentEl.querySelector('.nsb-ws-placeholder');
+    if (placeholder) placeholder.remove();
+
+    // Cria elemento do item
+    const temp = document.createElement('div');
+    temp.innerHTML = _renderPageItem(page);
+    const itemEl = temp.firstElementChild;
+
+    // Insere no topo da lista
+    contentEl.insertBefore(itemEl, contentEl.firstChild);
+    if (window.lucide) lucide.createIcons({ root: itemEl });
+    _bindPageItemEvents(contentEl);
   }
 
   // ── Render: "Mais" botão ────────────────────────────────────────────────
@@ -198,6 +282,16 @@ const TBO_SIDEBAR_RENDERER = (() => {
     _container.innerHTML = html;
     if (window.lucide) lucide.createIcons({ root: _container });
     _bindEvents();
+
+    // Carregar páginas dos workspaces que já estão expandidos
+    workspaces.forEach(item => {
+      const expanded = typeof TBO_SIDEBAR_SERVICE !== 'undefined'
+        ? TBO_SIDEBAR_SERVICE.isExpanded(item.id)
+        : true;
+      if (expanded) {
+        _loadWorkspacePages(item.id);
+      }
+    });
   }
 
   // ── Bind Eventos ────────────────────────────────────────────────────────
@@ -241,13 +335,13 @@ const TBO_SIDEBAR_RENDERER = (() => {
             // Animar conteúdo
             const content = ws.querySelector('.nsb-ws-content');
             if (newState && !content) {
-              // Criar conteúdo
+              // Criar container e carregar páginas do Supabase
               const contentDiv = document.createElement('div');
               contentDiv.className = 'nsb-ws-content';
               contentDiv.id = `nsbWsContent_${itemId}`;
-              contentDiv.innerHTML = '<div class="nsb-ws-placeholder"><span class="nsb-ws-placeholder-text">Nenhum conteúdo ainda</span></div>';
+              contentDiv.innerHTML = '<div class="nsb-ws-placeholder"><span class="nsb-ws-placeholder-text">Carregando...</span></div>';
               ws.appendChild(contentDiv);
-              if (window.lucide) lucide.createIcons({ root: contentDiv });
+              _loadWorkspacePages(itemId);
             } else if (!newState && content) {
               content.remove();
             }
@@ -448,6 +542,7 @@ const TBO_SIDEBAR_RENDERER = (() => {
     render,
     setActive,
     destroy,
+    addPageToWorkspace,
     get activeRoute() { return _activeRoute; }
   };
 })();

@@ -405,10 +405,20 @@ const TBO_ADD_TO_SPACE = (() => {
 
         close();
 
+        // Inserir página na sidebar instantaneamente
+        const spaceId = _currentSpace?.spaceId || 'ws-geral';
+        const spaceLabel = _currentSpace?.spaceLabel || 'espaço';
+        if (typeof TBO_SIDEBAR_RENDERER !== 'undefined') {
+          TBO_SIDEBAR_RENDERER.addPageToWorkspace(spaceId, {
+            id: page.id,
+            title: page.title || 'Nova página',
+            icon: page.icon || 'file-text'
+          });
+        }
+
         // Pequeno delay para overlay fechar antes de navegar
         // (evita race condition com animação de transição do router)
         const pageId = page.id;
-        const spaceLabel = _currentSpace?.spaceLabel || 'espaço';
         setTimeout(() => {
           if (typeof TBO_ROUTER !== 'undefined') {
             TBO_ROUTER.navigate('page/' + pageId);

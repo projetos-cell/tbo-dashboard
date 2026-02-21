@@ -74,7 +74,7 @@ export default async function handler(req, res) {
     const authRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
       headers: {
         'Authorization': authHeader,
-        'apikey': apiKey
+        'apikey': supabaseKey
       }
     });
     if (!authRes.ok) {
@@ -85,7 +85,8 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Usuario nao encontrado' });
     }
   } catch (e) {
-    return res.status(401).json({ error: 'Erro ao validar autenticacao' });
+    console.error('[API Proxy] Auth validation error:', e.message);
+    return res.status(401).json({ error: 'Erro ao validar autenticacao', detail: e.message });
   }
 
   // ── Rate limiting por usuario ──

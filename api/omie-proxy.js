@@ -65,10 +65,9 @@ export default async function handler(req, res) {
   }
 
   const supabaseUrl = process.env.SUPABASE_URL || 'https://olnndpultyllyhzxuyxh.supabase.co';
-  const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
-  // O Bearer token do usuario serve como apikey quando SUPABASE_ANON_KEY nao esta definida
-  const bearerToken = authHeader.replace('Bearer ', '');
-  const apiKey = supabaseKey || bearerToken;
+  // Anon key e publica por design — fallback hardcoded para quando env var nao esta definida
+  const supabaseKey = process.env.SUPABASE_ANON_KEY
+    || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sbm5kcHVsdHlsbHloenh1eXhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyOTUxNjMsImV4cCI6MjA4Njg3MTE2M30.PPhMqKsYKcRB6GFmWxogcc0HIggkojK0DumiB1NDAXU';
 
   let user;
   try {

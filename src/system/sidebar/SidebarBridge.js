@@ -40,8 +40,8 @@ const TBO_SIDEBAR_BRIDGE = (() => {
       if (cfgStyle === 'notion-v2') return 'notion-v2';
     }
 
-    // Default: notion-v2 (novo padrão)
-    return 'notion-v2';
+    // Default: classic (sidebar funcional com módulos)
+    return 'classic';
   }
 
   /**

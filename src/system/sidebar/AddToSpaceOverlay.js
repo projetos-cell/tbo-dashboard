@@ -404,16 +404,21 @@ const TBO_ADD_TO_SPACE = (() => {
         });
 
         close();
-        // Usa TBO_ROUTER.navigate() para garantir renderização do módulo
-        if (typeof TBO_ROUTER !== 'undefined') {
-          TBO_ROUTER.navigate('page/' + page.id);
-        } else {
-          window.location.hash = 'page/' + page.id;
-        }
 
-        if (typeof TBO_TOAST !== 'undefined') {
-          TBO_TOAST.success('Página criada', `Página criada em ${_currentSpace?.spaceLabel || 'espaço'}`);
-        }
+        // Pequeno delay para overlay fechar antes de navegar
+        // (evita race condition com animação de transição do router)
+        const pageId = page.id;
+        const spaceLabel = _currentSpace?.spaceLabel || 'espaço';
+        setTimeout(() => {
+          if (typeof TBO_ROUTER !== 'undefined') {
+            TBO_ROUTER.navigate('page/' + pageId);
+          } else {
+            window.location.hash = 'page/' + pageId;
+          }
+          if (typeof TBO_TOAST !== 'undefined') {
+            TBO_TOAST.success('Página criada', `Página criada em ${spaceLabel}`);
+          }
+        }, 180);
       } catch (err) {
         console.error('[TBO AddToSpace] Erro ao criar página:', err);
         btn.disabled = false;

@@ -359,7 +359,7 @@ const FinanceRepo = (() => {
         _db().from('fin_receivables')
           .select('amount, amount_paid')
           .eq('tenant_id', tid)
-          .in('status', ['previsto', 'emitido', 'aberto', 'parcial'])
+          .in('status', ['previsto', 'emitido', 'aberto', 'parcial', 'atrasado'])
           .gte('due_date', today)
           .lte('due_date', in30d),
 
@@ -367,7 +367,7 @@ const FinanceRepo = (() => {
         _db().from('fin_payables')
           .select('amount, amount_paid')
           .eq('tenant_id', tid)
-          .in('status', ['rascunho', 'aguardando_aprovacao', 'aprovado', 'aberto', 'parcial'])
+          .in('status', ['rascunho', 'aguardando_aprovacao', 'aprovado', 'aberto', 'parcial', 'atrasado'])
           .gte('due_date', today)
           .lte('due_date', in30d),
 
@@ -375,14 +375,14 @@ const FinanceRepo = (() => {
         _db().from('fin_payables')
           .select('id', { count: 'exact', head: true })
           .eq('tenant_id', tid)
-          .in('status', ['aberto', 'parcial', 'aprovado'])
+          .in('status', ['aberto', 'parcial', 'aprovado', 'atrasado'])
           .lt('due_date', today),
 
         // Contas a receber vencidas
         _db().from('fin_receivables')
           .select('id', { count: 'exact', head: true })
           .eq('tenant_id', tid)
-          .in('status', ['aberto', 'parcial', 'emitido'])
+          .in('status', ['aberto', 'parcial', 'emitido', 'atrasado'])
           .lt('due_date', today),
 
         // Top centros de custo (mês atual) — via payables
@@ -554,7 +554,7 @@ const FinanceRepo = (() => {
         _db().from('fin_payables')
           .select('due_date, amount, amount_paid, description, status, vendor:fin_vendors(name)')
           .eq('tenant_id', tid)
-          .in('status', ['rascunho', 'aguardando_aprovacao', 'aprovado', 'aberto', 'parcial'])
+          .in('status', ['rascunho', 'aguardando_aprovacao', 'aprovado', 'aberto', 'parcial', 'atrasado'])
           .gte('due_date', today)
           .lte('due_date', endDate)
           .order('due_date', { ascending: true }),
@@ -563,7 +563,7 @@ const FinanceRepo = (() => {
         _db().from('fin_receivables')
           .select('due_date, amount, amount_paid, description, status, client:fin_clients(name)')
           .eq('tenant_id', tid)
-          .in('status', ['previsto', 'emitido', 'aberto', 'parcial'])
+          .in('status', ['previsto', 'emitido', 'aberto', 'parcial', 'atrasado'])
           .gte('due_date', today)
           .lte('due_date', endDate)
           .order('due_date', { ascending: true }),
@@ -615,7 +615,7 @@ const FinanceRepo = (() => {
         _db().from('fin_payables')
           .select('id, description, amount, amount_paid, due_date, status, vendor:fin_vendors(name)')
           .eq('tenant_id', tid)
-          .in('status', ['aberto', 'parcial', 'aprovado'])
+          .in('status', ['aberto', 'parcial', 'aprovado', 'atrasado'])
           .lt('due_date', today)
           .order('due_date', { ascending: true })
           .limit(20),
@@ -624,7 +624,7 @@ const FinanceRepo = (() => {
         _db().from('fin_receivables')
           .select('id, description, amount, amount_paid, due_date, status, client:fin_clients(name)')
           .eq('tenant_id', tid)
-          .in('status', ['aberto', 'parcial', 'emitido'])
+          .in('status', ['aberto', 'parcial', 'emitido', 'atrasado'])
           .lt('due_date', today)
           .order('due_date', { ascending: true })
           .limit(20),
@@ -895,7 +895,7 @@ const FinanceRepo = (() => {
       const { data, error } = await _db().from('fin_receivables')
         .select('id, description, amount, amount_paid, due_date, status, client_id, client:fin_clients(name, cnpj, email, phone)')
         .eq('tenant_id', tid)
-        .in('status', ['aberto', 'parcial', 'emitido'])
+        .in('status', ['aberto', 'parcial', 'emitido', 'atrasado'])
         .lt('due_date', today)
         .order('due_date', { ascending: true });
 
@@ -984,14 +984,14 @@ const FinanceRepo = (() => {
         _db().from('fin_payables')
           .select('amount, amount_paid')
           .eq('tenant_id', tid)
-          .in('status', ['aberto', 'parcial', 'aprovado'])
+          .in('status', ['aberto', 'parcial', 'aprovado', 'atrasado'])
           .lt('due_date', today),
 
         // Receitas atrasadas
         _db().from('fin_receivables')
           .select('amount, amount_paid')
           .eq('tenant_id', tid)
-          .in('status', ['aberto', 'parcial', 'emitido'])
+          .in('status', ['aberto', 'parcial', 'emitido', 'atrasado'])
           .lt('due_date', today),
 
         // Despesas pagas (ultimos 90 dias para tendencia)
@@ -1012,7 +1012,7 @@ const FinanceRepo = (() => {
         _db().from('fin_payables')
           .select('amount, amount_paid')
           .eq('tenant_id', tid)
-          .in('status', ['aberto', 'parcial', 'aprovado', 'rascunho', 'aguardando_aprovacao'])
+          .in('status', ['aberto', 'parcial', 'aprovado', 'atrasado', 'rascunho', 'aguardando_aprovacao'])
           .gte('due_date', today)
           .lte('due_date', in30d),
 
@@ -1167,10 +1167,10 @@ const FinanceRepo = (() => {
         if (r.status === 'pago') {
           clientMap[clientId].pago += (r.amount || 0) - (r.amount_paid || 0);
         }
-        if (['aberto', 'parcial', 'emitido'].includes(r.status) && r.due_date < today) {
+        if (['aberto', 'parcial', 'emitido', 'atrasado'].includes(r.status) && r.due_date < today) {
           clientMap[clientId].atrasado += (r.amount || 0) - (r.amount_paid || 0);
           clientMap[clientId].atrasadoCount++;
-        } else if (['aberto', 'parcial', 'emitido', 'previsto'].includes(r.status)) {
+        } else if (['aberto', 'parcial', 'emitido', 'previsto', 'atrasado'].includes(r.status)) {
           clientMap[clientId].emAberto += (r.amount || 0) - (r.amount_paid || 0);
         }
       });

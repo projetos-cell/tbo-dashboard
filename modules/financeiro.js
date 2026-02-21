@@ -847,7 +847,7 @@ const TBO_FINANCEIRO = {
         actions.push(`<button class="btn btn-primary btn-sm" data-action="aprovar"><i data-lucide="check" style="width:13px;height:13px;"></i> Aprovar</button>`);
         actions.push(`<button class="btn btn-secondary btn-sm" data-action="devolver"><i data-lucide="undo-2" style="width:13px;height:13px;"></i> Devolver</button>`);
       }
-      if (['aprovado', 'aberto', 'parcial'].includes(s)) {
+      if (['aprovado', 'aberto', 'parcial', 'atrasado'].includes(s)) {
         actions.push(`<button class="btn btn-primary btn-sm" data-action="pagar"><i data-lucide="banknote" style="width:13px;height:13px;"></i> Registrar Pagamento</button>`);
       }
       if (!['pago', 'cancelado'].includes(s)) {
@@ -859,7 +859,7 @@ const TBO_FINANCEIRO = {
         actions.push(`<button class="btn btn-primary btn-sm" data-action="emitir"><i data-lucide="send" style="width:13px;height:13px;"></i> Marcar como Emitido</button>`);
         actions.push(`<button class="btn btn-secondary btn-sm" data-action="edit"><i data-lucide="edit-3" style="width:13px;height:13px;"></i> Editar</button>`);
       }
-      if (['emitido', 'aberto', 'parcial'].includes(s)) {
+      if (['emitido', 'aberto', 'parcial', 'atrasado'].includes(s)) {
         actions.push(`<button class="btn btn-primary btn-sm" data-action="receber"><i data-lucide="banknote" style="width:13px;height:13px;"></i> Registrar Recebimento</button>`);
       }
       if (!['pago', 'cancelado'].includes(s)) {

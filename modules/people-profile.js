@@ -19,7 +19,7 @@ const TBO_PEOPLE_PROFILE = {
   },
 
   // ── Helpers ──────────────────────────────────────────────────────
-  _esc(s) { return typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.escapeHtml(s) : s; },
+  _esc(s) { return typeof TBO_SANITIZE !== 'undefined' ? TBO_SANITIZE.html(s) : (typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.escapeHtml(s) : String(s || '')); },
 
   // Mapeamento de roles legados → labels amigáveis em PT-BR
   _roleLabel(role) {
@@ -98,18 +98,81 @@ const TBO_PEOPLE_PROFILE = {
       }
     }
 
-    // Carregar do Supabase diretamente
+    // Tentar PeopleRepo (v3.0) — retorna perfil completo com teams JOIN
+    if (typeof PeopleRepo !== 'undefined') {
+      try {
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pid);
+        let data = null;
+
+        if (isUUID) {
+          data = await PeopleRepo.getById(pid);
+        } else {
+          // Buscar por username ou nome
+          const results = await PeopleRepo.search(pid.replace(/-/g, ' '), 1);
+          if (results && results.length) {
+            data = await PeopleRepo.getById(results[0].id);
+          }
+        }
+
+        if (data) {
+          // Carregar RBAC role via PeopleRepo
+          let rbacRole = {};
+          try { rbacRole = await PeopleRepo.getUserRole(data.id) || {}; } catch (e) { /* silencioso */ }
+
+          // Buscar seed data para campos extras legados
+          let seedData = {};
+          if (typeof TBO_RH !== 'undefined') {
+            seedData = TBO_RH._teamSeed.find(s => s.id === (data.username || data.email?.split('@')[0])) || {};
+          }
+
+          const teamName = data.teams?.name || data.bu || seedData.bu || '';
+
+          this._personData = {
+            id: data.username || data.email?.split('@')[0] || data.id,
+            supabaseId: data.id,
+            nome: data.full_name || data.username || '',
+            cargo: data.cargo || seedData.cargo || (data.is_coordinator ? 'Coordenador(a)' : data.role || ''),
+            area: seedData.area || (teamName ? `BU ${teamName}` : ''),
+            bu: teamName,
+            nivel: seedData.nivel || '',
+            lider: seedData.lider || null,
+            status: data.status || (data.is_active ? 'active' : 'inactive'),
+            avatarUrl: data.avatar_url || null,
+            email: data.email || '',
+            rbacRole: rbacRole.name || data.role || 'member',
+            rbacLabel: rbacRole.label || this._roleLabel(data.role) || 'Membro',
+            rbacColor: rbacRole.color || this._roleColor(data.role) || '#94a3b8',
+            isCoordinator: data.is_coordinator || false,
+            dataEntrada: data.start_date || data.created_at || null,
+            ultimoLogin: data.last_sign_in_at || null,
+            terceirizado: seedData.terceirizado || false,
+            // Novos campos P0
+            custoMensal: data.salary_pj || null,
+            contractType: data.contract_type || null,
+            phone: data.phone || null,
+            managerId: data.manager_id || null,
+            teamId: data.team_id || null,
+            teamColor: data.teams?.color || null,
+            department: data.department || null
+          };
+          this._personName = this._personData.nome;
+          this._loading = false;
+          return this._personData;
+        }
+      } catch (e) {
+        console.warn('[People Profile] Erro ao carregar perfil via PeopleRepo:', e.message);
+      }
+    }
+
+    // Fallback: carregar do Supabase diretamente (legado)
     if (typeof TBO_SUPABASE !== 'undefined') {
       try {
         const client = TBO_SUPABASE.getClient();
         const tenantId = TBO_SUPABASE.getCurrentTenantId();
         if (client && tenantId) {
-          // Tentar por ID ou username
-          let query = client.from('profiles')
-            .select('id, username, full_name, email, role, bu, is_coordinator, is_active, tenant_id, avatar_url, created_at, last_sign_in_at')
-            .eq('tenant_id', tenantId);
+          const _select = 'id, username, full_name, email, role, bu, is_coordinator, is_active, tenant_id, avatar_url, created_at, last_sign_in_at, salary_pj, contract_type, phone, manager_id, status, team_id, cargo, start_date, department, teams(id, name, color, icon)';
+          let query = client.from('profiles').select(_select).eq('tenant_id', tenantId);
 
-          // UUID format check
           const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pid);
           if (isUUID) {
             query = query.eq('id', pid);
@@ -119,18 +182,16 @@ const TBO_PEOPLE_PROFILE = {
 
           let { data, error } = await query.maybeSingle();
 
-          // Fallback: buscar por slug no full_name (ex: "marco-andolfato" → "Marco Andolfato")
+          // Fallback: buscar por slug no full_name
           if (!data && !isUUID) {
             const nameLike = pid.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-            const { data: d2 } = await client.from('profiles')
-              .select('id, username, full_name, email, role, bu, is_coordinator, is_active, tenant_id, avatar_url, created_at, last_sign_in_at')
+            const { data: d2 } = await client.from('profiles').select(_select)
               .eq('tenant_id', tenantId)
               .ilike('full_name', `%${nameLike}%`)
               .maybeSingle();
             if (d2) { data = d2; error = null; }
           }
           if (!error && data) {
-            // Carregar RBAC role
             let rbacRole = {};
             try {
               const { data: member } = await client
@@ -142,31 +203,39 @@ const TBO_PEOPLE_PROFILE = {
               if (member) rbacRole = member.roles || {};
             } catch (e) { /* silencioso */ }
 
-            // Buscar seed data para campos extras
             let seedData = {};
             if (typeof TBO_RH !== 'undefined') {
               seedData = TBO_RH._teamSeed.find(s => s.id === (data.username || data.email?.split('@')[0])) || {};
             }
 
+            const teamName = data.teams?.name || data.bu || seedData.bu || '';
+
             this._personData = {
               id: data.username || data.email?.split('@')[0] || data.id,
               supabaseId: data.id,
               nome: data.full_name || data.username || '',
-              cargo: seedData.cargo || (data.is_coordinator ? 'Coordenador(a)' : data.role || ''),
-              area: seedData.area || (data.bu ? `BU ${data.bu}` : ''),
-              bu: data.bu || seedData.bu || '',
+              cargo: data.cargo || seedData.cargo || (data.is_coordinator ? 'Coordenador(a)' : data.role || ''),
+              area: seedData.area || (teamName ? `BU ${teamName}` : ''),
+              bu: teamName,
               nivel: seedData.nivel || '',
               lider: seedData.lider || null,
-              status: data.is_active ? 'ativo' : 'inativo',
+              status: data.status || (data.is_active ? 'active' : 'inactive'),
               avatarUrl: data.avatar_url || null,
               email: data.email || '',
               rbacRole: rbacRole.name || data.role || 'member',
               rbacLabel: rbacRole.label || this._roleLabel(data.role) || 'Membro',
               rbacColor: rbacRole.color || this._roleColor(data.role) || '#94a3b8',
               isCoordinator: data.is_coordinator || false,
-              dataEntrada: data.created_at || null,
+              dataEntrada: data.start_date || data.created_at || null,
               ultimoLogin: data.last_sign_in_at || null,
-              terceirizado: seedData.terceirizado || false
+              terceirizado: seedData.terceirizado || false,
+              custoMensal: data.salary_pj || null,
+              contractType: data.contract_type || null,
+              phone: data.phone || null,
+              managerId: data.manager_id || null,
+              teamId: data.team_id || null,
+              teamColor: data.teams?.color || null,
+              department: data.department || null
             };
             this._personName = this._personData.nome;
             this._loading = false;
@@ -259,7 +328,7 @@ const TBO_PEOPLE_PROFILE = {
           </div>
         </div>
 
-        <!-- Tab bar (5 tabs) -->
+        <!-- Tab bar -->
         <div class="tab-bar pp-tabs" id="ppTabs" style="margin-bottom:20px;">
           <button class="tab ${tab === 'overview' ? 'active' : ''}" data-tab="overview">
             <i data-lucide="layout-dashboard" style="width:14px;height:14px;"></i> Visao Geral
@@ -276,6 +345,14 @@ const TBO_PEOPLE_PROFILE = {
           <button class="tab ${tab === 'activity' ? 'active' : ''}" data-tab="activity">
             <i data-lucide="activity" style="width:14px;height:14px;"></i> Atividade
           </button>
+          ${this._isAdmin() ? `
+          <button class="tab ${tab === 'custos' ? 'active' : ''}" data-tab="custos">
+            <i data-lucide="dollar-sign" style="width:14px;height:14px;"></i> Custos
+          </button>
+          <button class="tab ${tab === 'acesso' ? 'active' : ''}" data-tab="acesso">
+            <i data-lucide="shield" style="width:14px;height:14px;"></i> Acesso
+          </button>
+          ` : ''}
         </div>
 
         <!-- Tab content -->
@@ -307,6 +384,8 @@ const TBO_PEOPLE_PROFILE = {
       case 'tasks':       return this._renderTasks();
       case 'development': return this._renderDevelopment();
       case 'activity':    return this._renderActivity();
+      case 'custos':      return this._isAdmin() ? this._renderCustos() : this._renderOverview();
+      case 'acesso':      return this._isAdmin() ? this._renderAcesso() : this._renderOverview();
       default:            return this._renderOverview();
     }
   },
@@ -783,6 +862,257 @@ const TBO_PEOPLE_PROFILE = {
   },
 
   // ══════════════════════════════════════════════════════════════════
+  // TAB 6: CUSTOS (admin-only)
+  // ══════════════════════════════════════════════════════════════════
+  _renderCustos() {
+    const p = this._personData;
+    const fmt = typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER : { currency: v => `R$ ${Number(v || 0).toLocaleString('pt-BR', {minimumFractionDigits:2})}` };
+
+    // Calcular tempo de casa
+    let tenure = '\u2014';
+    if (p.dataEntrada) {
+      const start = new Date(p.dataEntrada);
+      const now = new Date();
+      const months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+      const years = Math.floor(months / 12);
+      const remainMonths = months % 12;
+      tenure = years > 0 ? `${years}a ${remainMonths}m` : `${remainMonths}m`;
+    }
+
+    const contractLabel = { 'pj': 'PJ (Pessoa Juridica)', 'clt': 'CLT', 'freelancer': 'Freelancer', 'estagio': 'Estagio', 'socio': 'Socio' };
+    const contractBadge = p.contractType
+      ? `<span class="tag" style="font-size:0.72rem;background:var(--color-info)15;color:var(--color-info);">${contractLabel[p.contractType] || p.contractType}</span>`
+      : '<span style="color:var(--text-muted);font-size:0.78rem;">\u2014</span>';
+
+    return `
+      <div class="grid-2" style="gap:16px;">
+        <!-- Resumo de Custos -->
+        <div class="card" style="padding:20px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
+            <i data-lucide="dollar-sign" style="width:18px;height:18px;color:var(--color-success);"></i>
+            <h3 style="font-size:0.95rem;margin:0;">Remuneracao</h3>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div>
+              <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">Valor Mensal</div>
+              <div style="font-size:1.5rem;font-weight:800;color:var(--color-success);">${p.custoMensal ? fmt.currency(p.custoMensal) : '\u2014'}</div>
+            </div>
+            <div>
+              <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">Valor Anual (est.)</div>
+              <div style="font-size:1.1rem;font-weight:600;color:var(--text-primary);">${p.custoMensal ? fmt.currency(p.custoMensal * 12) : '\u2014'}</div>
+            </div>
+            <div>
+              <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">Tipo de Contrato</div>
+              <div style="margin-top:4px;">${contractBadge}</div>
+            </div>
+            <div>
+              <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">Tempo de Casa</div>
+              <div style="font-size:1.1rem;font-weight:600;">${tenure}</div>
+            </div>
+          </div>
+          ${p.dataEntrada ? `
+          <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border-subtle);">
+            <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">Data de Inicio</div>
+            <div style="font-size:0.85rem;">${new Date(p.dataEntrada).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+          </div>` : ''}
+        </div>
+
+        <!-- Historico de Custos -->
+        <div class="card" style="padding:20px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
+            <i data-lucide="history" style="width:18px;height:18px;color:var(--accent-gold);"></i>
+            <h3 style="font-size:0.95rem;margin:0;">Historico de Alteracoes</h3>
+          </div>
+          <div id="ppCostHistory">
+            <div style="text-align:center;padding:30px;color:var(--text-muted);font-size:0.78rem;">
+              <i data-lucide="loader" style="width:20px;height:20px;animation:spin 1s linear infinite;"></i>
+              <div style="margin-top:8px;">Carregando historico...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  // Carrega historico de custos async
+  async _loadCostHistory() {
+    const container = document.getElementById('ppCostHistory');
+    if (!container || !this._personData?.supabaseId) return;
+
+    try {
+      if (typeof PeopleRepo === 'undefined') throw new Error('PeopleRepo indisponivel');
+      const history = await PeopleRepo.getHistory(this._personData.supabaseId, { field: 'salary_pj', limit: 20 });
+
+      if (!history.length) {
+        container.innerHTML = `
+          <div style="text-align:center;padding:30px;color:var(--text-muted);font-size:0.78rem;">
+            <i data-lucide="file-text" style="width:24px;height:24px;"></i>
+            <div style="margin-top:8px;">Nenhuma alteracao de custo registrada</div>
+          </div>`;
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      const fmt = typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER : { currency: v => `R$ ${Number(v || 0).toLocaleString('pt-BR', {minimumFractionDigits:2})}` };
+
+      container.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${history.map(h => `
+            <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:var(--bg-elevated);border-radius:8px;">
+              <i data-lucide="arrow-right" style="width:14px;height:14px;color:var(--accent-gold);flex-shrink:0;"></i>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:0.78rem;">
+                  ${h.old_value ? `<span style="color:var(--text-muted);text-decoration:line-through;">${fmt.currency(h.old_value)}</span> →` : ''}
+                  <span style="font-weight:600;color:var(--color-success);">${fmt.currency(h.new_value)}</span>
+                </div>
+              </div>
+              <div style="font-size:0.68rem;color:var(--text-muted);flex-shrink:0;">
+                ${new Date(h.changed_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </div>
+            </div>
+          `).join('')}
+        </div>`;
+      if (window.lucide) lucide.createIcons();
+    } catch (e) {
+      container.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:0.78rem;">Historico indisponivel</div>`;
+    }
+  },
+
+  // ══════════════════════════════════════════════════════════════════
+  // TAB 7: ACESSO / PERMISSOES (admin-only)
+  // ══════════════════════════════════════════════════════════════════
+  _renderAcesso() {
+    const p = this._personData;
+    const rbacColor = p.rbacColor || '#94a3b8';
+
+    // Modulos do sistema para matrix de permissoes
+    const modules = [
+      { key: 'projects', label: 'Projetos', icon: 'folder' },
+      { key: 'tasks', label: 'Tarefas', icon: 'check-square' },
+      { key: 'users', label: 'Pessoas', icon: 'users' },
+      { key: 'finance', label: 'Financeiro', icon: 'dollar-sign' },
+      { key: 'crm', label: 'CRM', icon: 'briefcase' },
+      { key: 'meetings', label: 'Reunioes', icon: 'video' },
+      { key: 'reports', label: 'Relatorios', icon: 'bar-chart-3' },
+      { key: 'settings', label: 'Configuracoes', icon: 'settings' }
+    ];
+
+    const actions = ['view', 'create', 'edit', 'delete'];
+    const actionLabels = { view: 'Ver', create: 'Criar', edit: 'Editar', delete: 'Excluir' };
+
+    return `
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <!-- Role RBAC atual -->
+        <div class="card" style="padding:20px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+            <i data-lucide="shield" style="width:18px;height:18px;color:${rbacColor};"></i>
+            <h3 style="font-size:0.95rem;margin:0;">Papel de Acesso (RBAC)</h3>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div style="padding:12px 20px;border-radius:12px;background:${rbacColor}12;border:2px solid ${rbacColor}30;">
+              <div style="font-size:1.1rem;font-weight:800;color:${rbacColor};">${this._esc(p.rbacLabel || p.rbacRole || 'Membro')}</div>
+              <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">slug: ${this._esc(p.rbacRole || 'member')}</div>
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:0.78rem;color:var(--text-secondary);line-height:1.5;">
+                ${p.isCoordinator ? '<i data-lucide="star" style="width:12px;height:12px;color:var(--accent-gold);vertical-align:-2px;"></i> Coordenador de equipe<br>' : ''}
+                Este papel define as permissoes de acesso ao sistema. Alteracoes requerem role admin ou superior.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Matrix de Permissoes -->
+        <div class="card" style="padding:20px;overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+            <i data-lucide="lock" style="width:18px;height:18px;color:var(--color-info);"></i>
+            <h3 style="font-size:0.95rem;margin:0;">Matriz de Permissoes</h3>
+            <span style="font-size:0.68rem;color:var(--text-muted);margin-left:auto;">Baseado no role: ${this._esc(p.rbacLabel || p.rbacRole)}</span>
+          </div>
+          <div id="ppPermMatrix">
+            <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:0.78rem;">
+              <i data-lucide="loader" style="width:20px;height:20px;animation:spin 1s linear infinite;"></i>
+              <div style="margin-top:8px;">Carregando permissoes...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  // Carrega permissoes async e popula matrix
+  async _loadPermissions() {
+    const container = document.getElementById('ppPermMatrix');
+    if (!container || !this._personData?.supabaseId) return;
+
+    const modules = [
+      { key: 'projects', label: 'Projetos', icon: 'folder' },
+      { key: 'tasks', label: 'Tarefas', icon: 'check-square' },
+      { key: 'users', label: 'Pessoas', icon: 'users' },
+      { key: 'finance', label: 'Financeiro', icon: 'dollar-sign' },
+      { key: 'crm', label: 'CRM', icon: 'briefcase' },
+      { key: 'meetings', label: 'Reunioes', icon: 'video' },
+      { key: 'reports', label: 'Relatorios', icon: 'bar-chart-3' },
+      { key: 'settings', label: 'Configuracoes', icon: 'settings' }
+    ];
+    const actions = ['view', 'create', 'edit', 'delete'];
+    const actionLabels = { view: 'Ver', create: 'Criar', edit: 'Editar', delete: 'Excluir' };
+
+    try {
+      // Tentar carregar permissoes via TBO_AUTH (check canDo para cada combo)
+      const perms = {};
+      modules.forEach(m => {
+        perms[m.key] = {};
+        actions.forEach(a => {
+          // Usar TBO_PERMISSIONS se disponivel (resolve para o usuario target)
+          if (typeof TBO_PERMISSIONS !== 'undefined') {
+            perms[m.key][a] = TBO_PERMISSIONS.canDo(m.key, a, this._personData.rbacRole);
+          } else {
+            // Fallback: roles admin tem tudo, artist tem view
+            const r = this._personData.rbacRole;
+            if (['owner', 'admin', 'founder', 'diretor'].includes(r)) perms[m.key][a] = true;
+            else if (['coordinator', 'project_owner'].includes(r)) perms[m.key][a] = (a !== 'delete' || m.key === 'tasks');
+            else perms[m.key][a] = (a === 'view');
+          }
+        });
+      });
+
+      container.innerHTML = `
+        <div style="overflow-x:auto;">
+          <table class="data-table" style="min-width:500px;font-size:0.78rem;">
+            <thead>
+              <tr>
+                <th style="min-width:140px;">Modulo</th>
+                ${actions.map(a => `<th style="text-align:center;min-width:65px;">${actionLabels[a]}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${modules.map(m => `
+                <tr>
+                  <td style="font-weight:500;">
+                    <div style="display:flex;align-items:center;gap:6px;">
+                      <i data-lucide="${m.icon}" style="width:13px;height:13px;color:var(--text-muted);"></i>
+                      ${m.label}
+                    </div>
+                  </td>
+                  ${actions.map(a => {
+                    const allowed = perms[m.key][a];
+                    return `<td style="text-align:center;">
+                      <i data-lucide="${allowed ? 'check-circle' : 'x-circle'}" style="width:16px;height:16px;color:${allowed ? 'var(--color-success)' : 'var(--text-muted)'};"></i>
+                    </td>`;
+                  }).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>`;
+      if (window.lucide) lucide.createIcons();
+    } catch (e) {
+      container.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:0.78rem;">Erro ao carregar permissoes</div>`;
+    }
+  },
+
+  // ══════════════════════════════════════════════════════════════════
   // SCOPED CSS
   // ══════════════════════════════════════════════════════════════════
   _getScopedCSS() {
@@ -836,6 +1166,19 @@ const TBO_PEOPLE_PROFILE = {
     // Carregar tarefas se na tab tasks
     if (this._activeTab === 'tasks') {
       await this._loadTasks();
+    }
+    // Carregar historico de custos async
+    if (this._activeTab === 'custos') {
+      this._loadCostHistory();
+    }
+    // Carregar permissoes async
+    if (this._activeTab === 'acesso') {
+      this._loadPermissions();
+    }
+    // Hover Card — bind em data-person-id
+    if (typeof TBO_HOVER_CARD !== 'undefined') {
+      const ppModule = document.querySelector('.pp-module');
+      if (ppModule) TBO_HOVER_CARD.bind(ppModule);
     }
     // Lucide icons
     if (window.lucide) lucide.createIcons();

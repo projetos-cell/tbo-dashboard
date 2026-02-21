@@ -1,0 +1,120 @@
+/* TBO OS — Hover Card de Pessoa */
+.tbo-hover-card {
+  position: fixed;
+  z-index: 1200;
+  width: 280px;
+  background: var(--bg-card, #1a1a2e);
+  border: 1px solid var(--border-subtle, rgba(255,255,255,0.08));
+  border-radius: var(--radius-md, 10px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
+  padding: 16px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: none;
+}
+.tbo-hover-card.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.tbo-hover-card__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.tbo-hover-card__avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.tbo-hover-card__avatar-initials {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+.tbo-hover-card__info {
+  flex: 1;
+  min-width: 0;
+}
+.tbo-hover-card__name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary, #fff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tbo-hover-card__role {
+  font-size: 0.78rem;
+  color: var(--text-secondary, rgba(255,255,255,0.6));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tbo-hover-card__tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.tbo-hover-card__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+.tbo-hover-card__email {
+  font-size: 0.75rem;
+  color: var(--text-secondary, rgba(255,255,255,0.5));
+  margin-bottom: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tbo-hover-card__actions {
+  display: flex;
+  gap: 8px;
+}
+.tbo-hover-card__actions .btn {
+  flex: 1;
+  font-size: 0.75rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: background 0.15s;
+}
+.tbo-hover-card__actions .btn-primary {
+  background: var(--brand-primary, #E85102);
+  color: #fff;
+  border: none;
+}
+.tbo-hover-card__actions .btn-primary:hover {
+  background: var(--brand-primary-hover, #c94400);
+}
+.tbo-hover-card__actions .btn-secondary {
+  background: transparent;
+  color: var(--text-secondary, rgba(255,255,255,0.7));
+  border: 1px solid var(--border-subtle, rgba(255,255,255,0.12));
+}
+.tbo-hover-card__actions .btn-secondary:hover {
+  background: rgba(255,255,255,0.05);
+}

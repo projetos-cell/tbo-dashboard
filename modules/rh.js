@@ -27,6 +27,8 @@ const TBO_RH = {
   _teamLoadError: null,
   // Mapa supabaseId -> dados extras (avatar_url, etc)
   _profileMap: {},
+  // Cache de teams do PeopleRepo para filtros e resolucao de nomes
+  _teamsCache: null,
 
   _competenciasRadar: [
     { id: 'tecnica',       nome: 'Hab. Tecnica' },
@@ -70,7 +72,7 @@ const TBO_RH = {
   _setStore(key, data) { localStorage.setItem('tbo_rh_' + key, JSON.stringify(data)); },
   _getPersonName(id) { const p = this._team.find(t => t.id === id); return p ? p.nome : id || '\u2014'; },
   _getPerson(id) { return this._team.find(t => t.id === id); },
-  _esc(s) { return typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.escapeHtml(s) : s; },
+  _esc(s) { return typeof TBO_SANITIZE !== 'undefined' ? TBO_SANITIZE.html(s) : String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); },
 
   // Mapeamento de roles legados → labels amigáveis em PT-BR
   _roleLabelMap(role) {
@@ -128,100 +130,102 @@ const TBO_RH = {
     this._loading = true;
     this._teamLoadError = null;
 
-    if (typeof TBO_SUPABASE !== 'undefined') {
+    // Mapear status do filtro local para status do DB
+    const statusMap = { 'ativo': 'active', 'inativo': 'inactive', 'ferias': 'vacation', 'ausente': 'away', 'onboarding': 'onboarding', 'suspenso': 'suspended' };
+
+    // Tentar PeopleRepo primeiro (v3.0), fallback para query direta
+    if (typeof PeopleRepo !== 'undefined') {
       try {
-        const client = TBO_SUPABASE.getClient();
-        const tenantId = TBO_SUPABASE.getCurrentTenantId();
-        if (client && tenantId) {
-          // Montar query com filtros
-          let query = client
-            .from('profiles')
-            .select('id, username, full_name, email, role, bu, is_coordinator, is_active, tenant_id, avatar_url, created_at, last_sign_in_at', { count: 'exact' })
-            .eq('tenant_id', tenantId);
+        const filterStatusDb = this._filterStatus ? (statusMap[this._filterStatus] || this._filterStatus) : null;
 
-          // Filtros server-side
-          if (this._filterStatus === 'ativo') query = query.eq('is_active', true);
-          else if (this._filterStatus === 'inativo' || this._filterStatus === 'suspenso' || this._filterStatus === 'removido') query = query.eq('is_active', false);
-
-          if (this._filterSquad) query = query.eq('bu', this._filterSquad);
-          if (this._filterSearch) {
-            // Busca por nome OU email — sanitizar contra caracteres especiais do PostgREST
-            const safeSearch = this._filterSearch.replace(/[%(),.]/g, '');
-            query = query.or(`full_name.ilike.%${safeSearch}%,email.ilike.%${safeSearch}%`);
-          }
-
-          // Ordenacao e paginacao
-          query = query.order(this._sortBy, { ascending: this._sortDir === 'asc' })
-            .range(this._page * this._pageSize, (this._page + 1) * this._pageSize - 1);
-
-          const { data: profiles, error, count } = await query;
-
-          if (!error && profiles) {
-            this._totalCount = count || profiles.length;
-
-            // Mapear profiles do Supabase para formato _team
-            const seedMap = {};
-            this._teamSeed.forEach(s => { seedMap[s.id] = s; });
-
-            // Carregar roles RBAC dos tenant_members
-            let roleMap = {};
-            try {
-              const { data: members } = await client
-                .from('tenant_members')
-                .select('user_id, role_id, roles(name, label, color)')
-                .eq('tenant_id', tenantId);
-              if (members) {
-                members.forEach(m => { roleMap[m.user_id] = m.roles || {}; });
-              }
-            } catch (e) { /* fallback silencioso */ }
-
-            this._team = profiles.map(p => {
-              const username = p.username || p.email?.split('@')[0] || '';
-              const seed = seedMap[username] || {};
-              const rbacRole = roleMap[p.id] || {};
-              return {
-                id: username,
-                supabaseId: p.id,
-                nome: p.full_name || username,
-                cargo: seed.cargo || (p.is_coordinator ? 'Coordenador(a)' : p.role || ''),
-                area: seed.area || (p.bu ? `BU ${p.bu}` : ''),
-                bu: p.bu || seed.bu || '',
-                nivel: seed.nivel || '',
-                lider: seed.lider || null,
-                status: p.is_active ? 'ativo' : 'inativo',
-                avatarUrl: p.avatar_url || null,
-                email: p.email || '',
-                rbacRole: rbacRole.name || p.role || 'member',
-                rbacLabel: rbacRole.label || this._roleLabelMap(p.role) || 'Membro',
-                rbacColor: rbacRole.color || this._roleColorMap(p.role) || '#94a3b8',
-                isCoordinator: p.is_coordinator || false,
-                dataEntrada: p.created_at || null,
-                ultimoLogin: p.last_sign_in_at || null,
-                terceirizado: seed.terceirizado || false
-              };
-            });
-
-            // Construir profileMap para acesso rapido por username
-            this._profileMap = {};
-            profiles.forEach(p => {
-              const username = p.username || p.email?.split('@')[0] || '';
-              this._profileMap[username] = {
-                supabaseId: p.id,
-                avatarUrl: p.avatar_url || null,
-                email: p.email,
-                fullName: p.full_name,
-                lastSignIn: p.last_sign_in_at
-              };
-            });
-
-            this._teamLoaded = true;
-            this._loading = false;
-            console.log(`[RH] Equipe carregada do Supabase: ${this._team.length}/${this._totalCount} membros`);
-            return;
-          }
+        // Resolver BU name → team_id para filtro server-side
+        let filterTeamId = null;
+        if (this._filterSquad && this._teamsCache) {
+          const team = this._teamsCache.find(t => t.name === this._filterSquad);
+          if (team) filterTeamId = team.id;
         }
+
+        const { data: profiles, count } = await PeopleRepo.listPaginated({
+          page: this._page,
+          pageSize: this._pageSize,
+          sortBy: this._sortBy,
+          sortDir: this._sortDir,
+          filterStatus: filterStatusDb || undefined,
+          filterTeamId: filterTeamId || undefined,
+          filterSearch: this._filterSearch || undefined
+        });
+
+        this._totalCount = count || profiles.length;
+
+        // Mapear profiles do Supabase para formato _team
+        const seedMap = {};
+        this._teamSeed.forEach(s => { seedMap[s.id] = s; });
+
+        // Carregar roles RBAC via PeopleRepo
+        let roleMap = {};
+        try {
+          const userIds = profiles.map(p => p.id);
+          if (userIds.length) roleMap = await PeopleRepo.getUserRoles(userIds);
+        } catch (e) { /* fallback silencioso */ }
+
+        // Construir mapa de gestores (manager_id -> nome) para exibicao
+        const managerIds = [...new Set(profiles.filter(p => p.manager_id).map(p => p.manager_id))];
+        const managerMap = {};
+        // Tentar resolver nomes dos gestores a partir dos proprios profiles carregados
+        profiles.forEach(p => { managerMap[p.id] = p.full_name || p.username || ''; });
+
+        this._team = profiles.map(p => {
+          const username = p.username || p.email?.split('@')[0] || '';
+          const seed = seedMap[username] || {};
+          const rbacRole = roleMap[p.id] || {};
+          const teamName = p.teams?.name || p.bu || seed.bu || '';
+          return {
+            id: username,
+            supabaseId: p.id,
+            nome: p.full_name || username,
+            cargo: p.cargo || seed.cargo || (p.is_coordinator ? 'Coordenador(a)' : p.role || ''),
+            area: seed.area || (teamName ? `BU ${teamName}` : ''),
+            bu: teamName,
+            nivel: seed.nivel || '',
+            lider: seed.lider || null,
+            status: p.status || (p.is_active ? 'active' : 'inactive'),
+            avatarUrl: p.avatar_url || null,
+            email: p.email || '',
+            rbacRole: rbacRole.name || p.role || 'member',
+            rbacLabel: rbacRole.label || this._roleLabelMap(p.role) || 'Membro',
+            rbacColor: rbacRole.color || this._roleColorMap(p.role) || '#94a3b8',
+            isCoordinator: p.is_coordinator || false,
+            dataEntrada: p.start_date || p.created_at || null,
+            ultimoLogin: p.last_sign_in_at || null,
+            terceirizado: seed.terceirizado || false,
+            custoMensal: p.salary_pj || null,
+            gestorId: p.manager_id || null,
+            gestorNome: p.manager_id ? (managerMap[p.manager_id] || '\u2014') : '\u2014',
+            teamId: p.team_id || null,
+            contractType: p.contract_type || null,
+            phone: p.phone || null
+          };
+        });
+
+        // Construir profileMap para acesso rapido por username
+        this._profileMap = {};
+        profiles.forEach(p => {
+          const username = p.username || p.email?.split('@')[0] || '';
+          this._profileMap[username] = {
+            supabaseId: p.id,
+            avatarUrl: p.avatar_url || null,
+            email: p.email,
+            fullName: p.full_name,
+            lastSignIn: p.last_sign_in_at
+          };
+        });
+
+        this._teamLoaded = true;
+        this._loading = false;
+        console.log(`[RH] Equipe carregada via PeopleRepo: ${this._team.length}/${this._totalCount} membros`);
+        return;
       } catch (e) {
-        console.warn('[RH] Erro ao carregar equipe do Supabase:', e.message);
+        console.warn('[RH] Erro ao carregar equipe via PeopleRepo:', e.message);
         this._teamLoadError = e.message;
       }
     }
@@ -409,6 +413,11 @@ const TBO_RH = {
 
     this._ensureSeedData();
 
+    // Carregar cache de teams (para filtros e resolucao de nomes)
+    if (!this._teamsCache && typeof PeopleRepo !== 'undefined') {
+      PeopleRepo.listTeams().then(teams => { this._teamsCache = teams; }).catch(() => {});
+    }
+
     // v2.3: Se equipe nao foi carregada do Supabase ainda, iniciar loading assíncrono
     if (!this._teamLoaded) {
       this._loadTeamFromSupabase().then(() => {
@@ -483,11 +492,17 @@ const TBO_RH = {
     // Paginacao info
     const totalPages = Math.ceil(this._totalCount / this._pageSize) || 1;
 
+    // KPIs: container com skeleton, carregamento async
+    const ativos = team.filter(t => t.status === 'ativo' || t.status === 'active').length;
+    const ferias = team.filter(t => t.status === 'ferias' || t.status === 'vacation').length;
+    const ausentes = team.filter(t => t.status === 'away' || t.status === 'ausente').length;
+    const fmt = typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER : { currency: v => `R$ ${Number(v).toLocaleString('pt-BR', {minimumFractionDigits:0})}` };
+
     return `
-      <div class="grid-4" style="margin-bottom:24px;">
+      <div id="rhKPIContainer" class="grid-4" style="margin-bottom:24px;">
         <div class="kpi-card"><div class="kpi-label">Total Pessoas</div><div class="kpi-value">${this._totalCount || team.length}</div><div class="kpi-sub">${coordinators} coordenadores</div></div>
-        <div class="kpi-card kpi-card--success"><div class="kpi-label">Ativos</div><div class="kpi-value">${team.filter(t => t.status === 'ativo').length}</div><div class="kpi-sub">em operacao</div></div>
-        <div class="kpi-card kpi-card--blue"><div class="kpi-label">BUs</div><div class="kpi-value">${bus.length}</div><div class="kpi-sub">${bus.join(', ')}</div></div>
+        <div class="kpi-card kpi-card--success"><div class="kpi-label">Ativos</div><div class="kpi-value">${ativos}</div><div class="kpi-sub">${ferias ? ferias + ' ferias' : ''}${ferias && ausentes ? ' · ' : ''}${ausentes ? ausentes + ' ausentes' : ''}${!ferias && !ausentes ? 'em operacao' : ''}</div></div>
+        ${this._isAdmin() ? `<div class="kpi-card kpi-card--blue"><div class="kpi-label">Custo Mensal</div><div class="kpi-value" id="rhKPICusto"><span class="rh-skeleton" style="width:80px;height:20px;display:inline-block;border-radius:4px;"></span></div><div class="kpi-sub" id="rhKPICustoSub">carregando...</div></div>` : `<div class="kpi-card kpi-card--blue"><div class="kpi-label">BUs</div><div class="kpi-value">${bus.length}</div><div class="kpi-sub">${bus.join(', ')}</div></div>`}
         <div class="kpi-card kpi-card--gold"><div class="kpi-label">Media Performance</div><div class="kpi-value">${mediaGeral}</div><div class="kpi-sub">escala 1-5</div></div>
       </div>
 
@@ -521,6 +536,8 @@ const TBO_RH = {
             <select class="form-input rh-filter-status" style="width:auto;min-width:100px;padding:5px 10px;font-size:0.76rem;">
               <option value="">Todos Status</option>
               <option value="ativo" ${this._filterStatus === 'ativo' ? 'selected' : ''}>Ativo</option>
+              <option value="ferias" ${this._filterStatus === 'ferias' ? 'selected' : ''}>Ferias</option>
+              <option value="ausente" ${this._filterStatus === 'ausente' ? 'selected' : ''}>Ausente</option>
               <option value="inativo" ${this._filterStatus === 'inativo' ? 'selected' : ''}>Inativo</option>
               <option value="onboarding" ${this._filterStatus === 'onboarding' ? 'selected' : ''}>Onboarding</option>
             </select>
@@ -621,11 +638,17 @@ const TBO_RH = {
     const buColors = { 'Branding': '#8b5cf6', 'Digital 3D': '#3a7bd5', 'Marketing': '#f59e0b', 'Vendas': '#2ecc71' };
     const statusConfig = {
       'ativo':      { label: 'Ativo',      color: 'var(--color-success)', icon: 'check-circle' },
+      'active':     { label: 'Ativo',      color: 'var(--color-success)', icon: 'check-circle' },
       'onboarding': { label: 'Onboarding', color: 'var(--color-info)',    icon: 'compass' },
       'convidado':  { label: 'Convidado',  color: 'var(--color-purple, #8b5cf6)', icon: 'mail' },
       'ferias':     { label: 'Ferias',     color: 'var(--color-warning)', icon: 'sun' },
+      'vacation':   { label: 'Ferias',     color: 'var(--color-warning)', icon: 'sun' },
+      'ausente':    { label: 'Ausente',    color: 'var(--color-warning)', icon: 'moon' },
+      'away':       { label: 'Ausente',    color: 'var(--color-warning)', icon: 'moon' },
       'suspenso':   { label: 'Suspenso',   color: 'var(--color-warning)', icon: 'pause-circle' },
+      'suspended':  { label: 'Suspenso',   color: 'var(--color-warning)', icon: 'pause-circle' },
       'inativo':    { label: 'Inativo',    color: 'var(--text-muted)',    icon: 'x-circle' },
+      'inactive':   { label: 'Inativo',    color: 'var(--text-muted)',    icon: 'x-circle' },
       'removido':   { label: 'Removido',   color: 'var(--color-danger)',  icon: 'user-x' }
     };
 
@@ -664,10 +687,12 @@ const TBO_RH = {
                 <th style="min-width:130px;">Cargo</th>
                 <th style="min-width:100px;">Papel RBAC</th>
                 <th style="min-width:90px;">Squad/BU</th>
+                ${isAdmin ? '<th style="min-width:95px;">Custo Mensal</th>' : ''}
+                <th style="min-width:60px;text-align:center;">Projetos</th>
                 <th class="rh-sort-header" data-sort="created_at" style="min-width:85px;cursor:pointer;">
                   <div style="display:flex;align-items:center;gap:4px;">Entrada ${sortIcon('created_at')}</div>
                 </th>
-                <th style="min-width:95px;">Lider</th>
+                <th style="min-width:95px;">Gestor</th>
                 <th style="min-width:75px;text-align:center;">Status</th>
                 <th class="rh-sort-header" data-sort="last_sign_in_at" style="min-width:85px;cursor:pointer;">
                   <div style="display:flex;align-items:center;gap:4px;">Ultimo Login ${sortIcon('last_sign_in_at')}</div>
@@ -678,7 +703,7 @@ const TBO_RH = {
             <tbody>
               ${sortedGroups.map(([groupName, members]) => {
                 const color = buColors[groupName] || 'var(--accent-gold)';
-                const colSpan = isAdmin ? 9 : 8;
+                const colSpan = isAdmin ? 12 : 10;
                 return `
                   <tr class="rh-bu-group-header" data-group="${groupName}">
                     <td colspan="${colSpan}" style="background:${color}08;padding:8px 16px;cursor:pointer;">
@@ -693,14 +718,15 @@ const TBO_RH = {
                     const dataEntrada = p.dataEntrada || p.dataInicio || (p.id === 'marco' || p.id === 'ruy' ? '2021-03-01' : '2024-06-01');
                     const st = statusConfig[p.status] || statusConfig['ativo'];
                     const rbacColor = p.rbacColor || '#94a3b8';
-                    const liderNome = p.lider ? this._getPersonName(p.lider) : '\u2014';
+                    const gestorNome = p.gestorNome || (p.lider ? this._getPersonName(p.lider) : '\u2014');
                     const ultimoLogin = p.ultimoLogin ? new Date(p.ultimoLogin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : '\u2014';
+                    const custoFmt = p.custoMensal ? (typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.currency(p.custoMensal) : `R$ ${Number(p.custoMensal).toLocaleString('pt-BR', {minimumFractionDigits:0})}`) : '\u2014';
                     return `
                     <tr class="rh-bu-row rh-person-row" data-person="${p.id}" data-group="${groupName}" data-bu="${p.bu || ''}" style="cursor:pointer;">
                       <td>
                         <div style="display:flex;align-items:center;gap:10px;">
                           ${this._getAvatarHTML(p, 32, '0.72rem')}
-                          <div style="min-width:0;">
+                          <div style="min-width:0;" data-person-id="${p.supabaseId || p.id}">
                             <div style="font-weight:600;font-size:0.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${this._esc(p.nome)}</div>
                             ${p.email ? `<div style="font-size:0.66rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${this._esc(p.email)}</div>` : ''}
                           </div>
@@ -713,8 +739,10 @@ const TBO_RH = {
                         </span>
                       </td>
                       <td style="font-size:0.78rem;">${this._esc(p.bu || 'Geral')}</td>
+                      ${isAdmin ? `<td style="font-size:0.75rem;font-weight:500;color:var(--text-secondary);">${custoFmt}</td>` : ''}
+                      <td style="text-align:center;font-size:0.75rem;" data-user-projects="${p.supabaseId || p.id}"><span class="rh-skeleton" style="width:20px;height:14px;display:inline-block;border-radius:3px;"></span></td>
                       <td style="font-size:0.75rem;color:var(--text-secondary);">${new Date(dataEntrada).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}</td>
-                      <td style="font-size:0.75rem;">${liderNome !== '\u2014' ? `<span style="color:var(--text-secondary);">${this._esc(liderNome)}</span>` : '<span style="color:var(--text-muted);">\u2014</span>'}</td>
+                      <td style="font-size:0.75rem;">${gestorNome !== '\u2014' ? `<span style="color:var(--text-secondary);" data-person-id="${p.gestorId || ''}">${this._esc(gestorNome)}</span>` : '<span style="color:var(--text-muted);">\u2014</span>'}</td>
                       <td style="text-align:center;">
                         <span class="tag" style="font-size:0.62rem;background:${st.color}18;color:${st.color};">
                           ${st.label}
@@ -930,6 +958,51 @@ const TBO_RH = {
     if (tabContent) {
       tabContent.innerHTML = this._renderVisaoGeral();
       this._initActiveTab();
+    }
+  },
+
+  // ── KPIs async (custo mensal, projetos ativos) ──────────────────────
+  async _loadDashboardKPIs() {
+    if (!this._isAdmin() || typeof PeopleRepo === 'undefined') return;
+    try {
+      const kpis = await PeopleRepo.getDashboardKPIs();
+      const fmt = typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER : { currency: v => `R$ ${Number(v).toLocaleString('pt-BR', {minimumFractionDigits:0})}` };
+
+      // Atualizar KPI Custo Mensal
+      const custoEl = document.getElementById('rhKPICusto');
+      const custoSubEl = document.getElementById('rhKPICustoSub');
+      if (custoEl) custoEl.textContent = fmt.currency(kpis.custoMensalTotal);
+      if (custoSubEl) {
+        const equipes = kpis.custoEquipe.sort((a, b) => b.custo - a.custo).slice(0, 3);
+        custoSubEl.textContent = equipes.map(e => `${e.name}: ${fmt.currency(e.custo)}`).join(' · ');
+      }
+    } catch (e) {
+      console.warn('[RH] Erro ao carregar KPIs:', e.message);
+      const custoEl = document.getElementById('rhKPICusto');
+      if (custoEl) custoEl.textContent = '\u2014';
+    }
+  },
+
+  // ── Projetos ativos por pessoa (async, preenche placeholders na tabela) ──
+  async _loadProjectCounts() {
+    if (typeof PeopleRepo === 'undefined') return;
+    try {
+      const userIds = this._team.map(p => p.supabaseId).filter(Boolean);
+      if (!userIds.length) return;
+      const counts = await PeopleRepo.getActiveProjectCounts(userIds);
+      // Preencher placeholders na tabela
+      document.querySelectorAll('[data-user-projects]').forEach(td => {
+        const uid = td.dataset.userProjects;
+        const count = counts[uid] || 0;
+        td.innerHTML = count > 0
+          ? `<span style="font-weight:600;color:var(--brand-primary);">${count}</span>`
+          : '<span style="color:var(--text-muted);">0</span>';
+      });
+    } catch (e) {
+      console.warn('[RH] Erro ao carregar contagem de projetos:', e.message);
+      document.querySelectorAll('[data-user-projects]').forEach(td => {
+        td.innerHTML = '<span style="color:var(--text-muted);">—</span>';
+      });
     }
   },
 
@@ -1919,6 +1992,16 @@ const TBO_RH = {
 
     // Action checkboxes
     this._bindActionChecks();
+
+    // Hover Card — bind em elementos com data-person-id
+    if (typeof TBO_HOVER_CARD !== 'undefined') {
+      const rhModule = document.querySelector('.rh-module');
+      if (rhModule) TBO_HOVER_CARD.bind(rhModule);
+    }
+
+    // Carregar KPIs e projetos async (nao bloqueia render)
+    this._loadDashboardKPIs();
+    this._loadProjectCounts();
 
     // Lucide icons
     if (window.lucide) lucide.createIcons();

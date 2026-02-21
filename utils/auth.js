@@ -166,7 +166,7 @@ const TBO_AUTH = {
         provider: 'google',
         options: {
           redirectTo: window.location.origin + '/',
-          scopes: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/calendar.readonly'
+          scopes: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/calendar.events'
         }
       });
 

@@ -667,6 +667,9 @@ const TBO_RH = {
 
       <!-- Context menu (acoes por usuario) -->
       <div id="rhContextMenu" class="rh-context-menu" style="display:none;"></div>
+
+      <!-- Context menu (acoes por 1:1) -->
+      <div id="rh1on1ContextMenu" class="rh-context-menu" style="display:none;"></div>
     `;
   },
 
@@ -5006,7 +5009,11 @@ const TBO_RH = {
                 }
               } catch (gcalErr) {
                 console.warn('[RH] Google Calendar falhou (continuando):', gcalErr.message);
-                TBO_TOAST.warning('Google Calendar', gcalErr.message || 'Falha ao criar evento. Verifique login Google OAuth.');
+                if (gcalErr.message?.includes('403') || gcalErr.message?.includes('insufficient')) {
+                  TBO_TOAST.warning('Google Calendar', 'Permissão insuficiente. Faça logout e login via Google para atualizar permissões.');
+                } else {
+                  TBO_TOAST.warning('Google Calendar', gcalErr.message || 'Falha ao criar evento. Verifique login Google OAuth.');
+                }
                 if (statusEl) statusEl.textContent = `⚠ Calendar falhou — ${createdCount + 1}/${dates.length}`;
               }
             }
@@ -5034,12 +5041,18 @@ const TBO_RH = {
       if (tabContent) { tabContent.innerHTML = this._renderActiveTab(); this._initActiveTab(); }
     });
 
-    // 1:1 detail panel (click to expand)
+    // 1:1 detail panel (click to expand) + context menu (right-click)
     document.querySelectorAll('.rh-1on1-row').forEach(row => {
       row.addEventListener('click', async () => {
         const id = row.dataset.id;
         if (!id) return;
         await this._open1on1Detail(id);
+      });
+      row.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        const id = row.dataset.id;
+        if (!id) return;
+        this._show1on1ContextMenu(id, e.clientX, e.clientY);
       });
     });
 
@@ -5157,11 +5170,12 @@ const TBO_RH = {
           </div>
 
           <!-- Status buttons -->
-          <div style="display:flex;gap:6px;margin-bottom:16px;">
+          <div style="display:flex;gap:6px;margin-bottom:16px;align-items:center;">
             ${data.status === 'scheduled' ? `
               <button class="btn btn-sm btn-primary" id="rh1on1Complete"><i data-lucide="check" style="width:12px;height:12px;"></i> Marcar Concluída</button>
               <button class="btn btn-sm btn-secondary" id="rh1on1Cancel">Cancelar</button>
             ` : ''}
+            <button class="btn btn-sm" style="margin-left:auto;color:var(--color-danger);border:1px solid var(--color-danger);" id="rh1on1Delete"><i data-lucide="trash-2" style="width:12px;height:12px;"></i> Excluir</button>
           </div>
 
           <!-- Notas -->
@@ -5243,6 +5257,26 @@ const TBO_RH = {
         } catch (e) { TBO_TOAST.error('Erro ao cancelar'); }
       });
 
+      // Excluir 1:1 (hard delete)
+      overlay.querySelector('#rh1on1Delete')?.addEventListener('click', async () => {
+        if (!confirm('Excluir esta 1:1 permanentemente? Esta ação não pode ser desfeita.')) return;
+        try {
+          // Deletar evento do Google Calendar primeiro
+          if (data.google_event_id && typeof TBO_GOOGLE_CALENDAR !== 'undefined') {
+            try { await TBO_GOOGLE_CALENDAR.deleteEvent(data.google_event_id); } catch { /* ignore */ }
+          }
+          // Deletar do banco
+          await OneOnOnesRepo.remove(oneOnOneId);
+          TBO_TOAST.success('1:1 excluída');
+          overlay.remove();
+          this._oneOnOnesCache = null;
+          await this._load1on1sFromSupabase();
+        } catch (e) {
+          console.error('[RH] Erro ao excluir 1:1:', e);
+          TBO_TOAST.error('Erro ao excluir 1:1');
+        }
+      });
+
       // Toggle acoes
       overlay.querySelectorAll('.rh1on1-action-toggle').forEach(chk => {
         chk.addEventListener('change', async () => {
@@ -5296,6 +5330,174 @@ const TBO_RH = {
     if (!uid) return 'Desconhecido';
     const person = this._team.find(t => t.supabaseId === uid || t.id === uid);
     return person ? person.nome : uid.slice(0, 8);
+  },
+
+  // ── Context Menu: 1:1 (botão direito) ─────────────────────────────
+  _show1on1ContextMenu(oneOnOneId, x, y) {
+    const items = this._oneOnOnesCache || [];
+    const oneOnOne = items.find(o => o.id === oneOnOneId);
+    if (!oneOnOne) return;
+
+    const isScheduled = oneOnOne.status === 'scheduled' || oneOnOne.status === 'agendada';
+    const hasGcalEvent = !!oneOnOne.google_event_id;
+
+    const menuItems = [
+      { icon: 'eye', label: 'Ver detalhes', action: 'view_detail' },
+      { icon: 'check-circle', label: 'Marcar concluída', action: 'complete', condition: isScheduled },
+      { icon: 'calendar-clock', label: 'Reagendar', action: 'reschedule', condition: isScheduled },
+      { icon: 'external-link', label: 'Abrir no Google Calendar', action: 'open_gcal', condition: hasGcalEvent },
+      { divider: true },
+      { icon: 'x-circle', label: 'Cancelar', action: 'cancel', condition: isScheduled },
+      { icon: 'trash-2', label: 'Excluir', action: 'delete', danger: true }
+    ];
+
+    const filtered = menuItems.filter(item => {
+      if (item.divider) return true;
+      return item.condition !== false;
+    });
+
+    // Remover dividers consecutivos ou no final
+    const clean = filtered.filter((item, idx, arr) => {
+      if (!item.divider) return true;
+      if (idx === arr.length - 1) return false;
+      if (idx === 0) return false;
+      if (arr[idx - 1]?.divider) return false;
+      return true;
+    });
+
+    let menu = document.getElementById('rh1on1ContextMenu');
+    if (!menu) {
+      menu = document.createElement('div');
+      menu.id = 'rh1on1ContextMenu';
+      menu.className = 'rh-context-menu';
+      document.body.appendChild(menu);
+    }
+
+    const leaderName = this._getPersonNameByUid(oneOnOne.leader_id);
+    const collabName = this._getPersonNameByUid(oneOnOne.collaborator_id);
+
+    menu.innerHTML = `
+      <div style="padding:8px 14px;border-bottom:1px solid var(--border-subtle);font-size:0.72rem;color:var(--text-muted);font-weight:600;">
+        1:1 ${this._esc(leaderName)} ↔ ${this._esc(collabName)}
+      </div>
+      ${clean.map(item => {
+        if (item.divider) return '<div style="height:1px;background:var(--border-subtle);margin:4px 0;"></div>';
+        return `<button class="rh-ctx-item${item.danger ? ' rh-ctx-danger' : ''}" data-action="${item.action}" data-1on1="${oneOnOneId}" style="display:flex;align-items:center;gap:10px;width:100%;padding:8px 14px;border:none;background:none;cursor:pointer;font-size:0.8rem;color:${item.danger ? 'var(--color-danger)' : 'var(--text-primary)'};text-align:left;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''">
+          <i data-lucide="${item.icon}" style="width:14px;height:14px;flex-shrink:0;"></i>
+          <span>${item.label}</span>
+        </button>`;
+      }).join('')}
+    `;
+
+    // Posicionamento viewport-aware
+    const menuW = 240, menuH = clean.length * 38 + 44;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const posX = x + menuW > vw ? x - menuW : x;
+    const posY = y + menuH > vh ? Math.max(8, y - menuH) : y;
+
+    menu.style.cssText = `display:block;position:fixed;top:${posY}px;left:${posX}px;z-index:1100;min-width:${menuW}px;`;
+    if (window.lucide) lucide.createIcons({ root: menu });
+
+    // Bind acoes do menu
+    menu.querySelectorAll('.rh-ctx-item').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.style.display = 'none';
+        this._handle1on1ContextAction(btn.dataset.action, btn.dataset['1on1']);
+      });
+    });
+
+    // Fechar ao clicar fora
+    const closeMenu = (e) => {
+      if (!menu.contains(e.target)) {
+        menu.style.display = 'none';
+        document.removeEventListener('click', closeMenu);
+        document.removeEventListener('contextmenu', closeOnContext);
+      }
+    };
+    const closeOnContext = (e) => {
+      if (!menu.contains(e.target)) {
+        menu.style.display = 'none';
+        document.removeEventListener('click', closeMenu);
+        document.removeEventListener('contextmenu', closeOnContext);
+      }
+    };
+    setTimeout(() => {
+      document.addEventListener('click', closeMenu);
+      document.addEventListener('contextmenu', closeOnContext);
+    }, 10);
+
+    // Fechar com ESC
+    const escHandler = (e) => {
+      if (e.key === 'Escape') {
+        menu.style.display = 'none';
+        document.removeEventListener('keydown', escHandler);
+      }
+    };
+    document.addEventListener('keydown', escHandler);
+  },
+
+  async _handle1on1ContextAction(action, oneOnOneId) {
+    switch (action) {
+      case 'view_detail':
+        await this._open1on1Detail(oneOnOneId);
+        break;
+
+      case 'complete': {
+        try {
+          await OneOnOnesRepo.complete(oneOnOneId);
+          TBO_TOAST.success('1:1 concluída!');
+          this._oneOnOnesCache = null;
+          await this._load1on1sFromSupabase();
+        } catch (e) { TBO_TOAST.error('Erro ao concluir'); }
+        break;
+      }
+
+      case 'reschedule': {
+        // Fase 1: abrir detail para editar (modal de data pode vir depois)
+        await this._open1on1Detail(oneOnOneId);
+        break;
+      }
+
+      case 'open_gcal': {
+        const items = this._oneOnOnesCache || [];
+        const o = items.find(i => i.id === oneOnOneId);
+        if (o?.google_event_id) {
+          window.open(`https://calendar.google.com/calendar/event?eid=${btoa(o.google_event_id + ' ' + (o.collaborator_id || ''))}`, '_blank');
+        }
+        break;
+      }
+
+      case 'cancel': {
+        if (!confirm('Cancelar esta 1:1?')) return;
+        try {
+          const data = await OneOnOnesRepo.getById(oneOnOneId);
+          await OneOnOnesRepo.cancel(oneOnOneId);
+          if (data?.google_event_id && typeof TBO_GOOGLE_CALENDAR !== 'undefined') {
+            try { await TBO_GOOGLE_CALENDAR.deleteEvent(data.google_event_id); } catch { /* ignore */ }
+          }
+          TBO_TOAST.info('1:1 cancelada');
+          this._oneOnOnesCache = null;
+          await this._load1on1sFromSupabase();
+        } catch (e) { TBO_TOAST.error('Erro ao cancelar'); }
+        break;
+      }
+
+      case 'delete': {
+        if (!confirm('Excluir esta 1:1 permanentemente? Esta ação não pode ser desfeita.')) return;
+        try {
+          const data = await OneOnOnesRepo.getById(oneOnOneId);
+          if (data?.google_event_id && typeof TBO_GOOGLE_CALENDAR !== 'undefined') {
+            try { await TBO_GOOGLE_CALENDAR.deleteEvent(data.google_event_id); } catch { /* ignore */ }
+          }
+          await OneOnOnesRepo.remove(oneOnOneId);
+          TBO_TOAST.success('1:1 excluída');
+          this._oneOnOnesCache = null;
+          await this._load1on1sFromSupabase();
+        } catch (e) { TBO_TOAST.error('Erro ao excluir'); }
+        break;
+      }
+    }
   },
 
   // ── Drawer: Carregar projetos reais da pessoa (Fase B + Notion) ──

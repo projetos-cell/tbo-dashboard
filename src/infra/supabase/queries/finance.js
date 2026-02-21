@@ -1,10 +1,10 @@
 /**
- * TBO OS — Repository: Finance (v3 — MVP Financeiro Entrega 3)
+ * TBO OS — Repository: Finance (v3.1 — Integracao Omie)
  *
- * CRUD completo para módulo financeiro.
+ * CRUD completo para módulo financeiro + upserts Omie.
  * Tabelas reais: fin_payables, fin_receivables, fin_transactions,
  *                fin_categories, fin_cost_centers, fin_vendors,
- *                fin_clients, fin_balance_snapshots.
+ *                fin_clients, fin_balance_snapshots, omie_sync_log.
  * tenant_id é OBRIGATÓRIO — lança erro se ausente.
  */
 
@@ -675,6 +675,154 @@ const FinanceRepo = (() => {
 
     async deactivateCostCenter(id) {
       return this.updateCostCenter(id, { is_active: false });
+    },
+
+    // ═══════════════════════════════════════════════════════════
+    // OMIE — Upserts por omie_id (Integracao Omie ERP)
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Upsert fornecedor pelo omie_id.
+     * Se ja existe com mesmo tenant_id+omie_id, atualiza. Senao, insere.
+     */
+    async upsertVendorByOmieId(omieId, vendorData) {
+      const tid = _tid();
+      const row = {
+        ...vendorData,
+        tenant_id: tid,
+        omie_id: String(omieId),
+        omie_synced_at: new Date().toISOString(),
+        is_active: true
+      };
+      const { data, error } = await _db().from('fin_vendors')
+        .upsert(row, { onConflict: 'tenant_id,omie_id', ignoreDuplicates: false })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+
+    /**
+     * Upsert cliente pelo omie_id.
+     */
+    async upsertClientByOmieId(omieId, clientData) {
+      const tid = _tid();
+      const row = {
+        ...clientData,
+        tenant_id: tid,
+        omie_id: String(omieId),
+        omie_synced_at: new Date().toISOString(),
+        is_active: true
+      };
+      const { data, error } = await _db().from('fin_clients')
+        .upsert(row, { onConflict: 'tenant_id,omie_id', ignoreDuplicates: false })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+
+    /**
+     * Upsert conta a pagar pelo omie_id.
+     */
+    async upsertPayableByOmieId(omieId, payData) {
+      const tid = _tid();
+      const row = {
+        ...payData,
+        tenant_id: tid,
+        omie_id: String(omieId),
+        omie_synced_at: new Date().toISOString()
+      };
+      const { data, error } = await _db().from('fin_payables')
+        .upsert(row, { onConflict: 'tenant_id,omie_id', ignoreDuplicates: false })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+
+    /**
+     * Upsert conta a receber pelo omie_id.
+     */
+    async upsertReceivableByOmieId(omieId, recData) {
+      const tid = _tid();
+      const row = {
+        ...recData,
+        tenant_id: tid,
+        omie_id: String(omieId),
+        omie_synced_at: new Date().toISOString()
+      };
+      const { data, error } = await _db().from('fin_receivables')
+        .upsert(row, { onConflict: 'tenant_id,omie_id', ignoreDuplicates: false })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+
+    // ── Lookups por omie_id ──
+
+    async findVendorByOmieId(omieId) {
+      const { data, error } = await _db().from('fin_vendors')
+        .select('id, name, omie_id')
+        .eq('tenant_id', _tid())
+        .eq('omie_id', String(omieId))
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+
+    async findClientByOmieId(omieId) {
+      const { data, error } = await _db().from('fin_clients')
+        .select('id, name, omie_id')
+        .eq('tenant_id', _tid())
+        .eq('omie_id', String(omieId))
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+
+    // ── Omie Sync Log ──
+
+    async createSyncLog(logData = {}) {
+      const { data, error } = await _db().from('omie_sync_log')
+        .insert({ ...logData, tenant_id: _tid(), triggered_by: _uid() })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+
+    async updateSyncLog(id, updates) {
+      const { data, error } = await _db().from('omie_sync_log')
+        .update(updates)
+        .eq('id', id)
+        .eq('tenant_id', _tid())
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+
+    async getLatestSyncLog() {
+      const { data, error } = await _db().from('omie_sync_log')
+        .select('*')
+        .eq('tenant_id', _tid())
+        .order('started_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+
+    async listSyncLogs(limit = 10) {
+      const { data, error } = await _db().from('omie_sync_log')
+        .select('*')
+        .eq('tenant_id', _tid())
+        .order('started_at', { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      return data || [];
     }
   };
 })();

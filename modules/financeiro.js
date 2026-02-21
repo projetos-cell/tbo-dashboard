@@ -396,9 +396,11 @@ const TBO_FINANCEIRO = {
     const remaining = (item.amount || 0) - (item.amount_paid || 0);
     const isOverdue = item.due_date && new Date(item.due_date) < new Date() && !['pago', 'cancelado'].includes(item.status);
 
+    const omieBadge = item.omie_id ? ' <span class="fn-badge fn-badge--omie" title="Importado do Omie"><i data-lucide="cloud" style="width:10px;height:10px;"></i> Omie</span>' : '';
+
     return `<tr class="fn-row ${isOverdue ? 'fn-row--overdue' : ''}" data-id="${item.id}" data-type="pagar">
-      <td style="max-width:220px;">
-        <div class="fn-cell-desc">${this._esc(item.description || 'Sem descrição')}</div>
+      <td style="max-width:240px;">
+        <div class="fn-cell-desc">${this._esc(item.description || 'Sem descrição')}${omieBadge}</div>
         ${item.notes ? `<div class="fn-cell-note">${this._esc(item.notes).substring(0, 60)}</div>` : ''}
       </td>
       <td>${this._esc(vendorName)}</td>
@@ -556,10 +558,11 @@ const TBO_FINANCEIRO = {
     const projName = item.project?.name || '—';
     const dueDate = item.due_date ? new Date(item.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : '—';
     const isOverdue = item.due_date && new Date(item.due_date) < new Date() && !['pago', 'cancelado'].includes(item.status);
+    const omieBadge = item.omie_id ? ' <span class="fn-badge fn-badge--omie" title="Importado do Omie"><i data-lucide="cloud" style="width:10px;height:10px;"></i> Omie</span>' : '';
 
     return `<tr class="fn-row ${isOverdue ? 'fn-row--overdue' : ''}" data-id="${item.id}" data-type="receber">
       <td style="max-width:250px;">
-        <div class="fn-cell-desc">${this._esc(item.description || 'Sem descrição')}</div>
+        <div class="fn-cell-desc">${this._esc(item.description || 'Sem descrição')}${omieBadge}</div>
         ${item.notes ? `<div class="fn-cell-note">${this._esc(item.notes).substring(0, 60)}</div>` : ''}
       </td>
       <td>${this._esc(clientName)}</td>
@@ -895,6 +898,10 @@ const TBO_FINANCEIRO = {
             await this._openPaymentPrompt(type, item);
             return; // Não fechar drawer
           case 'cancelar':
+            if (item.omie_id) {
+              this._toast('warning', 'Este registro vem do Omie. Para remove-lo, exclua no Omie e sincronize novamente.');
+              return;
+            }
             await FinanceRepo.deletePayable(item.id);
             this._toast('warning', 'Conta cancelada');
             break;
@@ -912,6 +919,10 @@ const TBO_FINANCEIRO = {
             await this._openPaymentPrompt(type, item);
             return;
           case 'cancelar':
+            if (item.omie_id) {
+              this._toast('warning', 'Este registro vem do Omie. Para remove-lo, exclua no Omie e sincronize novamente.');
+              return;
+            }
             await FinanceRepo.deleteReceivable(item.id);
             this._toast('warning', 'Recebível cancelado');
             break;
@@ -1650,6 +1661,9 @@ const TBO_FINANCEIRO = {
         <button class="tab tab--sub ${this._cadastroSubTab === 'fornecedores' ? 'active' : ''}" data-subtab="fornecedores">Fornecedores</button>
         <button class="tab tab--sub ${this._cadastroSubTab === 'clientes' ? 'active' : ''}" data-subtab="clientes">Clientes</button>
         <button class="tab tab--sub ${this._cadastroSubTab === 'centros-custo' ? 'active' : ''}" data-subtab="centros-custo">Centros de Custo</button>
+        <button class="tab tab--sub ${this._cadastroSubTab === 'omie' ? 'active' : ''}" data-subtab="omie" style="display:flex;align-items:center;gap:4px;">
+          <i data-lucide="cloud" style="width:13px;height:13px;"></i> Omie
+        </button>
       </div>
       <div id="fnCadastroSubContent">
         <div class="fn-loading"><div class="loading-spinner"></div></div>
@@ -1685,6 +1699,8 @@ const TBO_FINANCEIRO = {
       } else if (this._cadastroSubTab === 'centros-custo') {
         const items = await FinanceRepo.listCostCenters();
         this._renderCadastroCCs(subContainer, items);
+      } else if (this._cadastroSubTab === 'omie') {
+        this._renderCadastroOmie(subContainer);
       }
     } catch (err) {
       subContainer.innerHTML = this._renderError(err.message);
@@ -1942,6 +1958,275 @@ const TBO_FINANCEIRO = {
     });
   },
 
+  // ── Omie — Configuracao e Sync ───────────────────────────────────
+
+  _renderCadastroOmie(container) {
+    const omieEnabled = typeof TBO_OMIE !== 'undefined' && TBO_OMIE.isEnabled();
+    const appKey = typeof TBO_OMIE !== 'undefined' ? TBO_OMIE.getAppKey() : '';
+    const appSecret = typeof TBO_OMIE !== 'undefined' ? TBO_OMIE.getAppSecret() : '';
+    const lastSync = localStorage.getItem('tbo_omie_last_sync');
+    const autoSync = typeof TBO_OMIE_SYNC !== 'undefined' && TBO_OMIE_SYNC.isAutoSyncEnabled();
+    const status = typeof TBO_OMIE_SYNC !== 'undefined' ? TBO_OMIE_SYNC.getStatus() : {};
+
+    let lastSyncStr = '—';
+    if (lastSync) {
+      try {
+        const d = new Date(lastSync);
+        lastSyncStr = d.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+      } catch(e) { lastSyncStr = lastSync; }
+    }
+
+    const html = `
+      <div style="max-width:680px;margin:16px auto 0;">
+        <!-- Titulo -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+          <div style="width:36px;height:36px;border-radius:8px;background:rgba(59,130,246,0.1);display:flex;align-items:center;justify-content:center;">
+            <i data-lucide="cloud" style="width:20px;height:20px;color:#3b82f6;"></i>
+          </div>
+          <div>
+            <h3 style="margin:0;font-size:16px;font-weight:600;">Integracao Omie ERP</h3>
+            <p style="margin:0;font-size:12px;color:var(--text-secondary);">Sincronize fornecedores, clientes e lancamentos financeiros.</p>
+          </div>
+        </div>
+
+        <!-- Card Credenciais -->
+        <div class="card" style="padding:20px;margin-bottom:16px;">
+          <h4 style="margin:0 0 12px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;">
+            <i data-lucide="key" style="width:14px;height:14px;color:var(--text-secondary);"></i> Credenciais
+          </h4>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div>
+              <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">App Key</label>
+              <div style="display:flex;gap:6px;">
+                <input type="password" class="form-input" id="fnOmieAppKey" value="${this._esc(appKey)}" placeholder="Insira o App Key" style="flex:1;font-family:monospace;font-size:13px;">
+                <button class="btn btn-ghost btn-sm" id="fnOmieToggleKey" title="Mostrar/ocultar" style="min-width:34px;">
+                  <i data-lucide="eye" style="width:14px;height:14px;"></i>
+                </button>
+              </div>
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">App Secret</label>
+              <div style="display:flex;gap:6px;">
+                <input type="password" class="form-input" id="fnOmieAppSecret" value="${this._esc(appSecret)}" placeholder="Insira o App Secret" style="flex:1;font-family:monospace;font-size:13px;">
+                <button class="btn btn-ghost btn-sm" id="fnOmieToggleSecret" title="Mostrar/ocultar" style="min-width:34px;">
+                  <i data-lucide="eye" style="width:14px;height:14px;"></i>
+                </button>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:4px;">
+              <button class="btn btn-sm" id="fnOmieTestConn" style="display:flex;align-items:center;gap:5px;">
+                <i data-lucide="wifi" style="width:13px;height:13px;"></i> Testar Conexao
+              </button>
+              <button class="btn btn-primary btn-sm" id="fnOmieSaveCreds" style="display:flex;align-items:center;gap:5px;">
+                <i data-lucide="save" style="width:13px;height:13px;"></i> Salvar
+              </button>
+            </div>
+            <div id="fnOmieConnStatus" style="font-size:12px;"></div>
+          </div>
+        </div>
+
+        <!-- Card Sincronizacao -->
+        <div class="card" style="padding:20px;margin-bottom:16px;">
+          <h4 style="margin:0 0 12px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;">
+            <i data-lucide="refresh-cw" style="width:14px;height:14px;color:var(--text-secondary);"></i> Sincronizacao
+          </h4>
+          <div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:12px;">
+            <div style="font-size:12px;color:var(--text-secondary);">
+              Ultima sync: <strong style="color:var(--text-primary);">${lastSyncStr}</strong>
+            </div>
+            ${status.lastResult ? `
+            <div style="font-size:12px;color:var(--text-secondary);display:flex;gap:12px;">
+              <span>Fornec: <strong>${status.lastResult.vendors_synced || 0}</strong></span>
+              <span>Clientes: <strong>${status.lastResult.clients_synced || 0}</strong></span>
+              <span>A Pagar: <strong>${status.lastResult.payables_synced || 0}</strong></span>
+              <span>A Receber: <strong>${status.lastResult.receivables_synced || 0}</strong></span>
+            </div>` : ''}
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+            <button class="btn btn-primary btn-sm" id="fnOmieSyncNow" ${!omieEnabled ? 'disabled' : ''} style="display:flex;align-items:center;gap:5px;">
+              <i data-lucide="play" style="width:13px;height:13px;"></i> Sincronizar Agora
+            </button>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+              <input type="checkbox" id="fnOmieAutoSync" ${autoSync ? 'checked' : ''} ${!omieEnabled ? 'disabled' : ''}>
+              Auto-sync a cada 30 min
+            </label>
+          </div>
+          <!-- Progress bar (hidden by default) -->
+          <div id="fnOmieSyncProgress" style="display:none;">
+            <div style="background:var(--bg-secondary);border-radius:6px;height:6px;overflow:hidden;margin-bottom:6px;">
+              <div id="fnOmieSyncBar" style="height:100%;background:var(--brand-primary);border-radius:6px;width:0%;transition:width 0.3s;"></div>
+            </div>
+            <div id="fnOmieSyncMsg" style="font-size:11px;color:var(--text-secondary);"></div>
+          </div>
+        </div>
+
+        <!-- Card Historico -->
+        <div class="card" style="padding:20px;">
+          <h4 style="margin:0 0 12px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;">
+            <i data-lucide="history" style="width:14px;height:14px;color:var(--text-secondary);"></i> Historico de Sincronizacao
+          </h4>
+          <div id="fnOmieSyncHistory">
+            <div class="fn-loading" style="min-height:60px;"><div class="loading-spinner"></div></div>
+          </div>
+        </div>
+      </div>`;
+
+    container.innerHTML = html;
+    if (window.lucide) lucide.createIcons();
+
+    // Carregar historico
+    this._loadOmieSyncHistory();
+
+    // Bind eventos
+    this._bindCadastroOmieEvents(container);
+  },
+
+  async _loadOmieSyncHistory() {
+    const histEl = document.getElementById('fnOmieSyncHistory');
+    if (!histEl) return;
+
+    try {
+      if (typeof FinanceRepo === 'undefined') throw new Error('FinanceRepo indisponivel');
+      const logs = await FinanceRepo.listSyncLogs(10);
+
+      if (!logs || logs.length === 0) {
+        histEl.innerHTML = '<div style="font-size:12px;color:var(--text-secondary);padding:8px 0;">Nenhuma sincronizacao realizada ainda.</div>';
+        return;
+      }
+
+      const statusIcons = {
+        success: '<span style="color:#22c55e;">✓</span>',
+        partial: '<span style="color:#f59e0b;">⚠</span>',
+        error: '<span style="color:#ef4444;">✗</span>',
+        running: '<span class="fn-omie-spin" style="color:#3b82f6;">⟳</span>'
+      };
+
+      let rows = logs.map(log => {
+        const d = new Date(log.started_at);
+        const dateStr = d.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+        const total = (log.vendors_synced || 0) + (log.clients_synced || 0) +
+                      (log.payables_synced || 0) + (log.receivables_synced || 0);
+        const dur = log.finished_at ? ((new Date(log.finished_at) - new Date(log.started_at)) / 1000).toFixed(0) + 's' : '...';
+        const errCount = Array.isArray(log.errors) ? log.errors.length : 0;
+        const icon = statusIcons[log.status] || '?';
+
+        return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-primary);font-size:12px;">
+          <span style="min-width:16px;text-align:center;">${icon}</span>
+          <span style="min-width:90px;color:var(--text-secondary);">${dateStr}</span>
+          <span style="flex:1;"><strong>${total}</strong> registros (${dur})</span>
+          ${errCount > 0 ? `<span style="color:#ef4444;font-size:11px;">${errCount} erro${errCount > 1 ? 's' : ''}</span>` : ''}
+        </div>`;
+      }).join('');
+
+      histEl.innerHTML = rows;
+    } catch (e) {
+      histEl.innerHTML = `<div style="font-size:12px;color:var(--text-secondary);">Erro ao carregar historico: ${this._esc(e.message)}</div>`;
+    }
+  },
+
+  _bindCadastroOmieEvents(container) {
+    // Toggle mostrar/ocultar credenciais
+    const toggleVisibility = (inputId, btnId) => {
+      const btn = container.querySelector(`#${btnId}`);
+      if (btn) {
+        btn.addEventListener('click', () => {
+          const input = container.querySelector(`#${inputId}`);
+          if (input) {
+            input.type = input.type === 'password' ? 'text' : 'password';
+          }
+        });
+      }
+    };
+    toggleVisibility('fnOmieAppKey', 'fnOmieToggleKey');
+    toggleVisibility('fnOmieAppSecret', 'fnOmieToggleSecret');
+
+    // Salvar credenciais
+    container.querySelector('#fnOmieSaveCreds')?.addEventListener('click', () => {
+      const key = container.querySelector('#fnOmieAppKey')?.value?.trim();
+      const secret = container.querySelector('#fnOmieAppSecret')?.value?.trim();
+      if (!key || !secret) {
+        this._toast('warning', 'Preencha App Key e App Secret.');
+        return;
+      }
+      TBO_OMIE.setCredentials(key, secret);
+      TBO_OMIE.setEnabled(true);
+      this._toast('success', 'Credenciais salvas com sucesso!');
+    });
+
+    // Testar conexao
+    container.querySelector('#fnOmieTestConn')?.addEventListener('click', async () => {
+      const statusEl = container.querySelector('#fnOmieConnStatus');
+      if (statusEl) statusEl.innerHTML = '<span style="color:var(--text-secondary);">Testando conexao...</span>';
+
+      // Salvar credenciais temporariamente para o teste
+      const key = container.querySelector('#fnOmieAppKey')?.value?.trim();
+      const secret = container.querySelector('#fnOmieAppSecret')?.value?.trim();
+      if (key && secret) {
+        TBO_OMIE.setCredentials(key, secret);
+      }
+
+      try {
+        const result = await TBO_OMIE.testConnection();
+        if (statusEl) statusEl.innerHTML = `<span style="color:#22c55e;">✓ Conectado — ${result.total} categorias encontradas.</span>`;
+        this._toast('success', 'Conexao com Omie OK!');
+      } catch (e) {
+        if (statusEl) statusEl.innerHTML = `<span style="color:#ef4444;">✗ Falha: ${this._esc(e.message)}</span>`;
+        this._toast('error', `Falha na conexao: ${e.message}`);
+      }
+    });
+
+    // Sincronizar agora
+    container.querySelector('#fnOmieSyncNow')?.addEventListener('click', async () => {
+      if (typeof TBO_OMIE_SYNC === 'undefined') {
+        this._toast('error', 'TBO_OMIE_SYNC nao esta carregado.');
+        return;
+      }
+
+      const btn = container.querySelector('#fnOmieSyncNow');
+      const progressEl = container.querySelector('#fnOmieSyncProgress');
+      const barEl = container.querySelector('#fnOmieSyncBar');
+      const msgEl = container.querySelector('#fnOmieSyncMsg');
+
+      if (btn) btn.disabled = true;
+      if (progressEl) progressEl.style.display = 'block';
+
+      // Registrar callback de progresso
+      TBO_OMIE_SYNC.onProgress((step, percent, message) => {
+        if (barEl) barEl.style.width = percent + '%';
+        if (msgEl) msgEl.textContent = message;
+      });
+
+      try {
+        const result = await TBO_OMIE_SYNC.sync();
+        if (result) {
+          this._toast('success', `Sync completo: ${result.total} registros em ${(result.duration_ms / 1000).toFixed(1)}s`);
+          // Recarregar lookups para refletir novos dados
+          this._lookupsLoaded = false;
+          await this._ensureLookups();
+        } else {
+          this._toast('warning', 'Sync retornou sem resultado.');
+        }
+      } catch (e) {
+        this._toast('error', `Sync falhou: ${e.message}`);
+      } finally {
+        if (btn) btn.disabled = false;
+        // Atualizar historico e progress
+        setTimeout(() => {
+          if (progressEl) progressEl.style.display = 'none';
+          this._loadOmieSyncHistory();
+        }, 1500);
+      }
+    });
+
+    // Auto-sync toggle
+    container.querySelector('#fnOmieAutoSync')?.addEventListener('change', (e) => {
+      if (typeof TBO_OMIE_SYNC !== 'undefined') {
+        TBO_OMIE_SYNC.setAutoSync(e.target.checked);
+        this._toast('info', e.target.checked ? 'Auto-sync ativado (30 min)' : 'Auto-sync desativado');
+      }
+    });
+  },
+
   // ── Cadastros: Drawer genérico para criar/editar ─────────────────
 
   _openCadastroDrawer(entityType, item) {
@@ -2193,6 +2478,41 @@ const TBO_FINANCEIRO = {
       : 'Sem registro';
 
     let html = '';
+
+    // ── Omie Status Bar ──────────────────────────────────────────────────
+    if (typeof TBO_OMIE !== 'undefined' && TBO_OMIE.isEnabled()) {
+      const omieStatus = typeof TBO_OMIE_SYNC !== 'undefined' ? TBO_OMIE_SYNC.getStatus() : {};
+      const lastSync = omieStatus.lastSync || localStorage.getItem('tbo_omie_last_sync');
+      let syncLabel = 'Nao sincronizado';
+      let syncColor = 'var(--text-secondary)';
+      let syncIcon = 'cloud-off';
+
+      if (omieStatus.syncing) {
+        syncLabel = 'Sincronizando...';
+        syncColor = '#3b82f6';
+        syncIcon = 'loader';
+      } else if (omieStatus.error) {
+        syncLabel = 'Erro na sync';
+        syncColor = '#ef4444';
+        syncIcon = 'alert-triangle';
+      } else if (lastSync) {
+        const ago = Math.round((Date.now() - new Date(lastSync).getTime()) / 60000);
+        syncLabel = ago < 60 ? `Sincronizado ha ${ago} min` : `Sincronizado ha ${Math.round(ago / 60)}h`;
+        syncColor = '#22c55e';
+        syncIcon = 'cloud';
+      }
+
+      const totalRegs = omieStatus.lastResult
+        ? omieStatus.lastResult.total
+        : '';
+
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 14px;margin-bottom:12px;background:rgba(59,130,246,0.05);border:1px solid rgba(59,130,246,0.12);border-radius:8px;font-size:12px;">
+        <i data-lucide="${syncIcon}" style="width:14px;height:14px;color:${syncColor};${omieStatus.syncing ? 'animation:spin 1s linear infinite;' : ''}"></i>
+        <span style="font-weight:500;color:${syncColor};">Omie</span>
+        <span style="color:var(--text-secondary);">${syncLabel}</span>
+        ${totalRegs ? `<span style="color:var(--text-secondary);margin-left:auto;">${totalRegs} registros</span>` : ''}
+      </div>`;
+    }
 
     // ── KPI Cards Row 1 (grid-4) ────────────────────────────────────────
     html += `<div class="grid-4 fn-kpi-grid" style="margin-bottom:16px;">

@@ -163,6 +163,15 @@ CREATE POLICY fireflies_sync_log_update ON fireflies_sync_log
     )
   );
 
+-- 8b. DELETE policy para meeting_transcriptions (necessária para re-sync)
+CREATE POLICY meeting_transcriptions_delete ON meeting_transcriptions
+  FOR DELETE USING (
+    tenant_id IN (
+      SELECT tenant_id FROM tenant_members
+      WHERE user_id = auth.uid() AND is_active = TRUE
+    )
+  );
+
 -- 9. Audit trigger para meetings (reutiliza fn_audit_trigger existente)
 -- A função fn_audit_trigger já existe da migration 006_v7_rbac_audit.sql
 DO $$

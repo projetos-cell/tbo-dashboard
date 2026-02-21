@@ -211,7 +211,29 @@ const TBO_REUNIOES = {
     return html;
   },
 
-  init() {
+  async init() {
+    // PRD v1.2 — Carregar reuniões do Supabase e re-renderizar se necessário
+    if (!this._meetingsData) {
+      await this._loadMeetings();
+      if (this._meetingsData) {
+        // Re-render com dados do Supabase (substitui fallback TBO_STORAGE)
+        const container = document.getElementById('main-content');
+        if (container) {
+          container.innerHTML = this.render();
+          if (window.lucide) lucide.createIcons();
+        }
+      }
+    }
+
+    // Vincular eventos de UI
+    this._initEventBindings();
+  },
+
+  /**
+   * Vincula eventos de UI (tabs, filtros, botões).
+   * Extraído do init() para permitir re-bind após re-render com dados do Supabase.
+   */
+  _initEventBindings() {
     // Tab switching with breadcrumb + deep link
     document.querySelectorAll('.tabs .tab').forEach(tab => {
       tab.addEventListener('click', () => {

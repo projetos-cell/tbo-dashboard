@@ -161,10 +161,12 @@ const TBO_AUTH = {
     if (!client) return { ok: false, msg: 'Supabase client nao inicializado.' };
 
     try {
+      // PRD v1.2 — Solicitar scopes Drive + Calendar para provider_token
       const { error } = await client.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin + '/'
+          redirectTo: window.location.origin + '/',
+          scopes: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/calendar.readonly'
         }
       });
 

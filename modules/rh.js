@@ -533,6 +533,9 @@ const TBO_RH = {
         <div class="kpi-card kpi-card--gold"><div class="kpi-label">Media Performance</div><div class="kpi-value">${mediaGeral}</div><div class="kpi-sub">escala 1-5</div></div>
       </div>
 
+      <!-- Widget Aniversariantes do Mês (P2) -->
+      <div id="rhBirthdayWidget"></div>
+
       <!-- Toolbar: view switcher + filtros avancados -->
       <div class="card" style="margin-bottom:16px;padding:10px 16px;">
         <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between;">
@@ -567,6 +570,7 @@ const TBO_RH = {
               <option value="ausente" ${this._filterStatus === 'ausente' ? 'selected' : ''}>Ausente</option>
               <option value="inativo" ${this._filterStatus === 'inativo' ? 'selected' : ''}>Inativo</option>
               <option value="onboarding" ${this._filterStatus === 'onboarding' ? 'selected' : ''}>Onboarding</option>
+              <option value="suspenso" ${this._filterStatus === 'suspenso' ? 'selected' : ''}>Suspenso</option>
             </select>
           </div>
         </div>
@@ -613,45 +617,79 @@ const TBO_RH = {
 
   // ── Organograma (Org Chart) ──────────────────────────────────────
   _renderOrganograma(team) {
-    // Construir arvore hierarquica baseada no campo 'lider'
-    const roots = team.filter(t => !t.lider);
-    const getChildren = (parentId) => team.filter(t => t.lider === parentId);
+    // P2: Construir árvore hierárquica usando gestorId (manager_id UUID) com fallback para lider (slug)
     const buColors = { 'Branding': '#8b5cf6', 'Digital 3D': '#3a7bd5', 'Marketing': '#f59e0b', 'Vendas': '#2ecc71' };
+    const statusDot = { 'active': '#10B981', 'inactive': '#6B7280', 'vacation': '#F59E0B', 'away': '#8B5CF6', 'onboarding': '#3B82F6', 'suspended': '#DC2626' };
+
+    // Identificar raízes: quem não tem gestor (nem gestorId nem lider)
+    const roots = team.filter(t => !t.gestorId && !t.lider);
+
+    // getChildren: prioriza gestorId (UUID match via supabaseId), fallback para lider (slug match via id)
+    const getChildren = (person) => {
+      return team.filter(t => {
+        if (t.gestorId && person.supabaseId) return t.gestorId === person.supabaseId;
+        if (t.lider) return t.lider === person.id;
+        return false;
+      });
+    };
 
     const renderNode = (person, level = 0) => {
-      const children = getChildren(person.id);
+      const children = getChildren(person);
       const color = buColors[person.bu] || 'var(--accent-gold)';
       const review = this._getStore('avaliacoes_people').find(r => r.pessoaId === person.id);
       const score = review ? review.mediaGeral.toFixed(1) : '';
-      const isLeader = children.length > 0;
+      const dotColor = statusDot[person.status] || statusDot['active'];
+      const isExpanded = level < 2; // Expandir primeiros 2 níveis
 
       return `
-        <div class="rh-org-node" data-person="${person.id}" style="cursor:pointer;">
-          <div class="rh-org-card" style="border-left:3px solid ${color};">
+        <div class="rh-org-node" style="cursor:pointer;">
+          <div class="rh-org-card" data-person="${person.id}" style="border-left:3px solid ${color};position:relative;">
+            <div style="position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:${dotColor};" title="${person.status || 'active'}"></div>
             <div style="display:flex;align-items:center;gap:10px;">
               ${this._getAvatarHTML(person, 36, '0.8rem')}
               <div style="flex:1;min-width:0;">
-                <div style="font-weight:700;font-size:0.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${this._esc(person.nome)}</div>
+                <div style="font-weight:700;font-size:0.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" data-person-id="${person.supabaseId || ''}">${this._esc(person.nome)}</div>
                 <div style="font-size:0.68rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${this._esc(person.cargo)}</div>
               </div>
               ${score ? `<div style="font-size:0.72rem;font-weight:700;color:${review.mediaGeral >= 4 ? 'var(--color-success)' : review.mediaGeral >= 3 ? 'var(--accent-gold)' : 'var(--color-danger)'};">${score}</div>` : ''}
             </div>
-            ${person.bu ? `<span class="tag" style="font-size:0.58rem;margin-top:6px;background:${color}15;color:${color};">${person.bu}</span>` : ''}
+            <div style="display:flex;gap:4px;align-items:center;margin-top:6px;">
+              ${person.bu ? `<span class="tag" style="font-size:0.58rem;background:${color}15;color:${color};">${person.bu}</span>` : ''}
+              ${children.length ? `<span style="font-size:0.58rem;color:var(--text-muted);margin-left:auto;">${children.length} report${children.length > 1 ? 's' : ''}</span>` : ''}
+            </div>
           </div>
           ${children.length ? `
-            <div class="rh-org-children">
+            <div class="rh-org-children ${isExpanded ? '' : 'rh-org-collapsed'}" data-parent="${person.id}">
+              ${children.length ? `<div class="rh-org-connector"></div>` : ''}
               ${children.map(c => renderNode(c, level + 1)).join('')}
             </div>
+            ${!isExpanded ? `<button class="btn btn-ghost btn-sm rh-org-toggle" data-toggle="${person.id}" style="font-size:0.65rem;padding:2px 8px;margin-top:4px;color:var(--text-muted);">
+              <i data-lucide="chevron-down" style="width:12px;height:12px;"></i> ${children.length} reports
+            </button>` : ''}
           ` : ''}
         </div>`;
     };
+
+    // Totais para legenda
+    const totalReports = team.filter(t => t.gestorId || t.lider).length;
+    const maxDepth = (nodes, depth = 0) => {
+      let max = depth;
+      nodes.forEach(n => { const ch = getChildren(n); if (ch.length) max = Math.max(max, maxDepth(ch, depth + 1)); });
+      return max;
+    };
+    const treeDepth = maxDepth(roots);
 
     return `
       <div class="card" style="padding:24px;overflow-x:auto;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
           <i data-lucide="git-branch" style="width:18px;height:18px;color:var(--accent-gold);"></i>
           <h3 style="font-size:0.95rem;margin:0;">Organograma TBO</h3>
-          <span style="font-size:0.72rem;color:var(--text-muted);margin-left:auto;">${team.length} pessoas</span>
+          <div style="display:flex;gap:12px;margin-left:auto;align-items:center;">
+            <span style="font-size:0.68rem;color:var(--text-muted);">${team.length} pessoas · ${treeDepth + 1} níveis</span>
+            <div style="display:flex;gap:8px;font-size:0.62rem;">
+              ${Object.entries(statusDot).slice(0, 4).map(([k, c]) => `<span style="display:flex;align-items:center;gap:3px;"><span style="width:6px;height:6px;border-radius:50%;background:${c};"></span>${k === 'active' ? 'Ativo' : k === 'vacation' ? 'Férias' : k === 'away' ? 'Ausente' : 'Inativo'}</span>`).join('')}
+            </div>
+          </div>
         </div>
         <div class="rh-org-tree">
           ${roots.map(r => renderNode(r)).join('')}
@@ -748,7 +786,7 @@ const TBO_RH = {
                     const gestorNome = p.gestorNome || (p.lider ? this._getPersonName(p.lider) : '\u2014');
                     const custoFmt = p.custoMensal ? (typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.currency(p.custoMensal) : `R$ ${Number(p.custoMensal).toLocaleString('pt-BR', {minimumFractionDigits:0})}`) : '\u2014';
                     return `
-                    <tr class="rh-bu-row rh-person-row" data-person="${p.id}" data-group="${groupName}" data-bu="${p.bu || ''}" style="cursor:pointer;">
+                    <tr class="rh-bu-row rh-person-row" data-person="${p.id}" data-group="${groupName}" data-bu="${p.bu || ''}" data-status="${p.status || 'active'}" style="cursor:pointer;">
                       <td>
                         <div style="display:flex;align-items:center;gap:10px;">
                           ${this._getAvatarHTML(p, 32, '0.72rem')}
@@ -1032,6 +1070,81 @@ const TBO_RH = {
     }
   },
 
+  // ── Widget Aniversariantes do Mês (P2) ─────────────────────────────
+  async _loadBirthdayWidget() {
+    const container = document.getElementById('rhBirthdayWidget');
+    if (!container) return;
+
+    try {
+      // Buscar todas as pessoas com birth_date do tenant
+      const team = this._team;
+      const now = new Date();
+      const currentMonth = now.getMonth(); // 0-based
+      const currentDay = now.getDate();
+
+      // Filtrar aniversariantes do mês (usar birth_date dos dados carregados ou buscar)
+      let birthdays = [];
+
+      if (typeof PeopleRepo !== 'undefined') {
+        // Buscar todos os profiles com birth_date
+        const { data: profiles } = await PeopleRepo.listPaginated({ pageSize: 100, filterStatus: 'active' });
+        birthdays = (profiles || [])
+          .filter(p => p.birth_date)
+          .map(p => {
+            const bd = new Date(p.birth_date + 'T12:00:00');
+            return { ...p, birthMonth: bd.getMonth(), birthDay: bd.getDate() };
+          })
+          .filter(p => p.birthMonth === currentMonth)
+          .sort((a, b) => a.birthDay - b.birthDay);
+      }
+
+      if (!birthdays.length) {
+        container.innerHTML = ''; // Sem aniversariantes, não mostrar widget
+        return;
+      }
+
+      const buColors = { 'Branding': '#8b5cf6', 'Digital 3D': '#3a7bd5', 'Marketing': '#f59e0b', 'Vendas': '#2ecc71' };
+      const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+      container.innerHTML = `
+        <div class="card" style="margin-bottom:16px;padding:16px 20px;background:linear-gradient(135deg, rgba(245,158,11,0.06) 0%, rgba(59,130,246,0.04) 100%);border:1px solid rgba(245,158,11,0.15);">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <span style="font-size:1.2rem;">🎂</span>
+            <h3 style="font-size:0.88rem;margin:0;font-weight:700;">Aniversariantes de ${monthNames[currentMonth]}</h3>
+            <span class="tag" style="font-size:0.65rem;background:var(--accent-gold)15;color:var(--accent-gold);">${birthdays.length}</span>
+          </div>
+          <div style="display:flex;gap:12px;overflow-x:auto;padding:4px 0;">
+            ${birthdays.map(p => {
+              const teamName = p.teams?.name || p.bu || '';
+              const color = buColors[teamName] || 'var(--accent-gold)';
+              const initials = (p.full_name || '').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+              const isToday = p.birthDay === currentDay;
+              const isPast = p.birthDay < currentDay;
+
+              return `
+                <div style="flex-shrink:0;text-align:center;padding:10px 14px;background:${isToday ? 'var(--accent-gold)10' : 'var(--bg-elevated)'};border:1px solid ${isToday ? 'var(--accent-gold)30' : 'var(--border-subtle)'};border-radius:10px;min-width:80px;cursor:pointer;transition:border-color 0.15s;${isPast ? 'opacity:0.6;' : ''}" data-person-id="${p.id}">
+                  ${p.avatar_url
+                    ? `<img src="${this._esc(p.avatar_url)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;margin-bottom:6px;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+                      + `<div style="width:36px;height:36px;border-radius:50%;background:${color}20;color:${color};display:none;align-items:center;justify-content:center;font-weight:700;font-size:0.7rem;margin:0 auto 6px;">${initials}</div>`
+                    : `<div style="width:36px;height:36px;border-radius:50%;background:${color}20;color:${color};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.7rem;margin:0 auto 6px;">${initials}</div>`
+                  }
+                  <div style="font-size:0.72rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;">${this._esc((p.full_name || '').split(' ')[0])}</div>
+                  <div style="font-size:0.85rem;font-weight:800;color:${isToday ? 'var(--accent-gold)' : 'var(--text-secondary)'};">${p.birthDay}/${String(currentMonth + 1).padStart(2, '0')}</div>
+                  ${isToday ? '<div style="font-size:0.58rem;color:var(--accent-gold);font-weight:700;margin-top:2px;">HOJE! 🎉</div>' : ''}
+                </div>`;
+            }).join('')}
+          </div>
+        </div>`;
+
+      // Bind hover card nos aniversariantes
+      if (typeof TBO_HOVER_CARD !== 'undefined') TBO_HOVER_CARD.bind(container);
+      if (window.lucide) lucide.createIcons();
+    } catch (e) {
+      console.warn('[RH] Erro ao carregar aniversariantes:', e.message);
+      container.innerHTML = '';
+    }
+  },
+
   // ── Cards Grid (view original) ────────────────────────────────────
   _renderPeopleCards(team, reviews) {
     const cards = team.map(person => {
@@ -1043,7 +1156,7 @@ const TBO_RH = {
       const buColor = buColors[person.bu] || 'var(--text-muted)';
 
       return `
-        <div class="rh-person-card" data-person="${person.id}" data-bu="${person.bu || ''}">
+        <div class="rh-person-card" data-person="${person.id}" data-bu="${person.bu || ''}" data-status="${person.status || 'active'}">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
             ${this._getAvatarHTML(person, 40, '0.85rem')}
             <div style="flex:1;min-width:0;">
@@ -1755,6 +1868,10 @@ const TBO_RH = {
       .rh-org-card { background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 10px 14px; margin: 3px 0; transition: border-color 0.2s, box-shadow 0.2s; }
       .rh-org-card:hover { border-color: var(--accent-gold); box-shadow: 0 2px 8px rgba(232,81,2,0.08); }
       .rh-org-children { margin-left: 32px; padding-left: 16px; border-left: 2px solid var(--border-subtle); }
+      .rh-org-collapsed { display: none; }
+      .rh-org-connector { display: none; }
+      .rh-org-toggle { opacity: 0.7; transition: opacity 0.15s; }
+      .rh-org-toggle:hover { opacity: 1; }
 
       /* ── Tabela por BU (estilo Notion) ── */
       .rh-bu-table { width: 100%; border-collapse: collapse; }
@@ -1880,11 +1997,16 @@ const TBO_RH = {
       const role = filterRole ? filterRole.value : '';
       const status = filterStatus ? filterStatus.value : '';
 
+      // Mapa de status filtro local → status do DB
+      const statusLocalMap = { 'ativo': 'active', 'inativo': 'inactive', 'ferias': 'vacation', 'ausente': 'away', 'onboarding': 'onboarding', 'suspenso': 'suspended' };
+      const statusDb = status ? statusLocalMap[status] || status : '';
+
       // Cards
       document.querySelectorAll('.rh-person-card').forEach(card => {
         const matchBu = !bu || card.dataset.bu === bu;
         const matchSearch = !search || card.textContent.toLowerCase().includes(search);
-        card.style.display = (matchBu && matchSearch) ? '' : 'none';
+        const matchStatus = !statusDb || card.dataset.status === statusDb;
+        card.style.display = (matchBu && matchSearch && matchStatus) ? '' : 'none';
       });
       // Organograma nodes
       document.querySelectorAll('.rh-org-node').forEach(node => {
@@ -1895,7 +2017,8 @@ const TBO_RH = {
       document.querySelectorAll('.rh-bu-row').forEach(row => {
         const matchBu = !bu || row.dataset.bu === bu || row.dataset.group === bu;
         const matchSearch = !search || row.textContent.toLowerCase().includes(search);
-        row.style.display = (matchBu && matchSearch) ? '' : 'none';
+        const matchStatus = !statusDb || row.dataset.status === statusDb;
+        row.style.display = (matchBu && matchSearch && matchStatus) ? '' : 'none';
       });
     };
 
@@ -2025,9 +2148,10 @@ const TBO_RH = {
       if (rhModule) TBO_HOVER_CARD.bind(rhModule);
     }
 
-    // Carregar KPIs e projetos async (nao bloqueia render)
+    // Carregar KPIs, projetos e aniversariantes async (nao bloqueia render)
     this._loadDashboardKPIs();
     this._loadProjectCounts();
+    this._loadBirthdayWidget();
 
     // Lucide icons
     if (window.lucide) lucide.createIcons();
@@ -2288,12 +2412,24 @@ const TBO_RH = {
     document.querySelectorAll('.rh-person-row').forEach(row => {
       row.addEventListener('click', () => this._openPersonDrawer(row.dataset.person));
     });
-    // Organograma: click no node abre drawer
-    document.querySelectorAll('.rh-org-node > .rh-org-card').forEach(card => {
+    // Organograma: click no card abre drawer
+    document.querySelectorAll('.rh-org-card[data-person]').forEach(card => {
       card.addEventListener('click', (e) => {
         e.stopPropagation();
-        const node = card.closest('.rh-org-node');
-        if (node) this._openPersonDrawer(node.dataset.person);
+        this._openPersonDrawer(card.dataset.person);
+      });
+    });
+    // Organograma: toggle expand/collapse de reports
+    document.querySelectorAll('.rh-org-toggle').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const parentId = btn.dataset.toggle;
+        const children = document.querySelector(`.rh-org-children[data-parent="${parentId}"]`);
+        if (children) {
+          children.classList.toggle('rh-org-collapsed');
+          const icon = btn.querySelector('[data-lucide]');
+          if (icon) icon.style.transform = children.classList.contains('rh-org-collapsed') ? '' : 'rotate(180deg)';
+        }
       });
     });
     // Tabela BU: toggle de grupo (colapsar/expandir)

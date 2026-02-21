@@ -91,6 +91,9 @@ const TBO_PEOPLE_PROFILE = {
         this._normalizeSlug(t.id) === pidNorm
       );
       if (person) {
+        // P2: Garantir campos managerId/managerName (rh.js usa gestorId/gestorNome)
+        if (!person.managerId && person.gestorId) person.managerId = person.gestorId;
+        if (!person.managerName && person.gestorNome && person.gestorNome !== '—') person.managerName = person.gestorNome;
         this._personData = person;
         this._personName = person.nome;
         this._loading = false;
@@ -127,6 +130,23 @@ const TBO_PEOPLE_PROFILE = {
 
           const teamName = data.teams?.name || data.bu || seedData.bu || '';
 
+          // P2: Resolver nome do gestor (managerId UUID → nome legível)
+          let managerName = null;
+          if (data.manager_id) {
+            // 1. Tentar no cache do RH (rápido)
+            if (typeof TBO_RH !== 'undefined' && TBO_RH._teamLoaded) {
+              const mgr = TBO_RH._team.find(t => t.supabaseId === data.manager_id);
+              if (mgr) managerName = mgr.nome;
+            }
+            // 2. Fallback: buscar via PeopleRepo
+            if (!managerName) {
+              try {
+                const mgrData = await PeopleRepo.getById(data.manager_id);
+                if (mgrData) managerName = mgrData.full_name || mgrData.username || null;
+              } catch (e) { /* silencioso */ }
+            }
+          }
+
           this._personData = {
             id: data.username || data.email?.split('@')[0] || data.id,
             supabaseId: data.id,
@@ -153,6 +173,7 @@ const TBO_PEOPLE_PROFILE = {
             contractType: data.contract_type || null,
             phone: data.phone || null,
             managerId: data.manager_id || null,
+            managerName: managerName,
             teamId: data.team_id || null,
             teamColor: data.teams?.color || null,
             department: data.department || null,
@@ -216,6 +237,22 @@ const TBO_PEOPLE_PROFILE = {
 
             const teamName = data.teams?.name || data.bu || seedData.bu || '';
 
+            // P2: Resolver nome do gestor no fallback path
+            let managerName = null;
+            if (data.manager_id) {
+              if (typeof TBO_RH !== 'undefined' && TBO_RH._teamLoaded) {
+                const mgr = TBO_RH._team.find(t => t.supabaseId === data.manager_id);
+                if (mgr) managerName = mgr.nome;
+              }
+              if (!managerName) {
+                try {
+                  const { data: mgrData } = await client.from('profiles')
+                    .select('full_name, username').eq('id', data.manager_id).maybeSingle();
+                  if (mgrData) managerName = mgrData.full_name || mgrData.username || null;
+                } catch (e) { /* silencioso */ }
+              }
+            }
+
             this._personData = {
               id: data.username || data.email?.split('@')[0] || data.id,
               supabaseId: data.id,
@@ -223,7 +260,9 @@ const TBO_PEOPLE_PROFILE = {
               cargo: data.cargo || seedData.cargo || (data.is_coordinator ? 'Coordenador(a)' : data.role || ''),
               area: seedData.area || (teamName ? `BU ${teamName}` : ''),
               bu: teamName,
-              nivel: seedData.nivel || '',
+              nivel: data.nivel_atual || seedData.nivel || '',
+              proximoNivel: data.proximo_nivel || '',
+              mediaAvaliacao: data.media_avaliacao || null,
               lider: seedData.lider || null,
               status: data.status || (data.is_active ? 'active' : 'inactive'),
               avatarUrl: data.avatar_url || null,
@@ -239,9 +278,14 @@ const TBO_PEOPLE_PROFILE = {
               contractType: data.contract_type || null,
               phone: data.phone || null,
               managerId: data.manager_id || null,
+              managerName: managerName,
               teamId: data.team_id || null,
               teamColor: data.teams?.color || null,
-              department: data.department || null
+              department: data.department || null,
+              // P1: Dados de endereço e nascimento (fallback path)
+              birthDate: data.birth_date || null,
+              addressCity: data.address_city || null,
+              addressState: data.address_state || null
             };
             this._personName = this._personData.nome;
             this._loading = false;
@@ -329,7 +373,7 @@ const TBO_PEOPLE_PROFILE = {
           <div style="display:flex;gap:20px;margin-top:16px;padding-top:12px;border-top:1px solid var(--border-subtle);flex-wrap:wrap;">
             ${person.email ? `<div class="pp-info-item"><i data-lucide="mail" style="width:13px;height:13px;"></i><span>${this._esc(person.email)}</span></div>` : ''}
             ${person.phone ? `<div class="pp-info-item"><i data-lucide="phone" style="width:13px;height:13px;"></i><span>${this._esc(person.phone)}</span></div>` : ''}
-            ${person.lider ? `<div class="pp-info-item"><i data-lucide="user" style="width:13px;height:13px;"></i><span>Reporta a: <a href="#people/${person.lider}/overview" style="color:var(--accent-gold);text-decoration:none;font-weight:500;">${typeof TBO_RH !== 'undefined' ? TBO_RH._getPersonName(person.lider) : person.lider}</a></span></div>` : ''}
+            ${person.managerId ? `<div class="pp-info-item"><i data-lucide="user" style="width:13px;height:13px;"></i><span>Reporta a: <a href="#people/${person.managerId}/overview" style="color:var(--accent-gold);text-decoration:none;font-weight:500;" data-person-id="${person.managerId}">${this._esc(person.managerName || 'Gestor')}</a></span></div>` : (person.lider ? `<div class="pp-info-item"><i data-lucide="user" style="width:13px;height:13px;"></i><span>Reporta a: <a href="#people/${person.lider}/overview" style="color:var(--accent-gold);text-decoration:none;font-weight:500;">${typeof TBO_RH !== 'undefined' ? TBO_RH._getPersonName(person.lider) : person.lider}</a></span></div>` : '')}
             ${person.dataEntrada ? `<div class="pp-info-item"><i data-lucide="calendar" style="width:13px;height:13px;"></i><span>Desde ${new Date(person.dataEntrada).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span></div>` : ''}
             ${person.addressCity ? `<div class="pp-info-item"><i data-lucide="map-pin" style="width:13px;height:13px;"></i><span>${this._esc(person.addressCity)}${person.addressState ? ' / ' + this._esc(person.addressState) : ''}</span></div>` : ''}
             ${person.birthDate ? `<div class="pp-info-item"><i data-lucide="cake" style="width:13px;height:13px;"></i><span>${new Date(person.birthDate + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</span></div>` : ''}
@@ -1138,6 +1182,210 @@ const TBO_PEOPLE_PROFILE = {
   },
 
   // ══════════════════════════════════════════════════════════════════
+  // EDITAR PERFIL (Modal inline — P2)
+  // ══════════════════════════════════════════════════════════════════
+
+  _showEditModal() {
+    const p = this._personData;
+    if (!p) return;
+
+    // Buscar lista de teams para o select
+    const teamsOptions = (typeof TBO_RH !== 'undefined' && TBO_RH._teamsCache)
+      ? TBO_RH._teamsCache.filter(t => t.is_active !== false)
+      : [];
+
+    const statusOptions = [
+      { value: 'active', label: 'Ativo' }, { value: 'inactive', label: 'Inativo' },
+      { value: 'vacation', label: 'Férias' }, { value: 'away', label: 'Ausente' },
+      { value: 'onboarding', label: 'Onboarding' }, { value: 'suspended', label: 'Suspenso' }
+    ];
+
+    const contractOptions = [
+      { value: '', label: '— Selecione —' }, { value: 'pj', label: 'PJ' },
+      { value: 'clt', label: 'CLT' }, { value: 'freelancer', label: 'Freelancer' },
+      { value: 'estagio', label: 'Estágio' }, { value: 'socio', label: 'Sócio' }
+    ];
+
+    // Criar overlay modal
+    const overlay = document.createElement('div');
+    overlay.id = 'ppEditOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:1100;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;animation:fadeIn 0.15s ease;';
+
+    overlay.innerHTML = `
+      <div style="background:var(--bg-card,#1a1a2e);border:1px solid var(--border-subtle,rgba(255,255,255,0.08));border-radius:12px;width:95%;max-width:560px;max-height:85vh;overflow-y:auto;padding:28px;box-shadow:0 16px 48px rgba(0,0,0,0.4);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <h2 style="font-size:1.05rem;font-weight:700;margin:0;">Editar Perfil</h2>
+          <button id="ppEditClose" style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px;">
+            <i data-lucide="x" style="width:20px;height:20px;"></i>
+          </button>
+        </div>
+
+        <form id="ppEditForm" style="display:flex;flex-direction:column;gap:14px;">
+          <!-- Nome Completo -->
+          <div>
+            <label style="font-size:0.72rem;color:var(--text-muted);display:block;margin-bottom:4px;">Nome Completo</label>
+            <input type="text" name="full_name" value="${this._esc(p.nome)}" style="width:100%;padding:8px 12px;background:var(--bg-elevated,#0f0f1e);border:1px solid var(--border-subtle);border-radius:6px;color:var(--text-primary);font-size:0.85rem;" />
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <!-- Cargo -->
+            <div>
+              <label style="font-size:0.72rem;color:var(--text-muted);display:block;margin-bottom:4px;">Cargo</label>
+              <input type="text" name="cargo" value="${this._esc(p.cargo)}" style="width:100%;padding:8px 12px;background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:6px;color:var(--text-primary);font-size:0.85rem;" />
+            </div>
+            <!-- Departamento / BU -->
+            <div>
+              <label style="font-size:0.72rem;color:var(--text-muted);display:block;margin-bottom:4px;">BU / Equipe</label>
+              <select name="team_id" style="width:100%;padding:8px 12px;background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:6px;color:var(--text-primary);font-size:0.85rem;">
+                <option value="">— Sem equipe —</option>
+                ${teamsOptions.map(t => `<option value="${t.id}" ${t.id === p.teamId ? 'selected' : ''}>${this._esc(t.name)}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <!-- Status -->
+            <div>
+              <label style="font-size:0.72rem;color:var(--text-muted);display:block;margin-bottom:4px;">Status</label>
+              <select name="status" style="width:100%;padding:8px 12px;background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:6px;color:var(--text-primary);font-size:0.85rem;">
+                ${statusOptions.map(o => `<option value="${o.value}" ${p.status === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
+              </select>
+            </div>
+            <!-- Tipo Contrato -->
+            <div>
+              <label style="font-size:0.72rem;color:var(--text-muted);display:block;margin-bottom:4px;">Tipo de Contrato</label>
+              <select name="contract_type" style="width:100%;padding:8px 12px;background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:6px;color:var(--text-primary);font-size:0.85rem;">
+                ${contractOptions.map(o => `<option value="${o.value}" ${p.contractType === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <!-- Telefone -->
+            <div>
+              <label style="font-size:0.72rem;color:var(--text-muted);display:block;margin-bottom:4px;">Telefone</label>
+              <input type="text" name="phone" value="${this._esc(p.phone || '')}" placeholder="(11) 99999-9999" style="width:100%;padding:8px 12px;background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:6px;color:var(--text-primary);font-size:0.85rem;" />
+            </div>
+            <!-- Email -->
+            <div>
+              <label style="font-size:0.72rem;color:var(--text-muted);display:block;margin-bottom:4px;">Email</label>
+              <input type="email" name="email" value="${this._esc(p.email)}" style="width:100%;padding:8px 12px;background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:6px;color:var(--text-primary);font-size:0.85rem;" disabled />
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <!-- Cidade -->
+            <div>
+              <label style="font-size:0.72rem;color:var(--text-muted);display:block;margin-bottom:4px;">Cidade</label>
+              <input type="text" name="address_city" value="${this._esc(p.addressCity || '')}" style="width:100%;padding:8px 12px;background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:6px;color:var(--text-primary);font-size:0.85rem;" />
+            </div>
+            <!-- Estado -->
+            <div>
+              <label style="font-size:0.72rem;color:var(--text-muted);display:block;margin-bottom:4px;">Estado</label>
+              <input type="text" name="address_state" value="${this._esc(p.addressState || '')}" placeholder="SP" maxlength="2" style="width:100%;padding:8px 12px;background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:6px;color:var(--text-primary);font-size:0.85rem;" />
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <!-- Data Nascimento -->
+            <div>
+              <label style="font-size:0.72rem;color:var(--text-muted);display:block;margin-bottom:4px;">Data de Nascimento</label>
+              <input type="date" name="birth_date" value="${p.birthDate || ''}" style="width:100%;padding:8px 12px;background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:6px;color:var(--text-primary);font-size:0.85rem;" />
+            </div>
+            <!-- Salário (admin-only) -->
+            ${this._isAdmin() ? `
+            <div>
+              <label style="font-size:0.72rem;color:var(--text-muted);display:block;margin-bottom:4px;">Valor Mensal (R$)</label>
+              <input type="number" name="salary_pj" value="${p.custoMensal || ''}" step="100" min="0" style="width:100%;padding:8px 12px;background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:6px;color:var(--text-primary);font-size:0.85rem;" />
+            </div>` : ''}
+          </div>
+
+          <!-- Botões -->
+          <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;padding-top:16px;border-top:1px solid var(--border-subtle);">
+            <button type="button" id="ppEditCancel" class="btn btn-secondary" style="padding:8px 20px;font-size:0.82rem;">Cancelar</button>
+            <button type="submit" class="btn btn-primary" style="padding:8px 20px;font-size:0.82rem;" id="ppEditSave">
+              <i data-lucide="save" style="width:14px;height:14px;"></i> Salvar
+            </button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    if (window.lucide) lucide.createIcons();
+
+    // Fechar modal
+    const closeModal = () => { overlay.remove(); };
+    document.getElementById('ppEditClose').addEventListener('click', closeModal);
+    document.getElementById('ppEditCancel').addEventListener('click', closeModal);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+
+    // Salvar
+    document.getElementById('ppEditForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const saveBtn = document.getElementById('ppEditSave');
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<i data-lucide="loader" style="width:14px;height:14px;animation:spin 1s linear infinite;"></i> Salvando...';
+      if (window.lucide) lucide.createIcons();
+
+      try {
+        const form = e.target;
+        const updates = {
+          full_name: form.full_name.value.trim(),
+          cargo: form.cargo.value.trim(),
+          status: form.status.value,
+          contract_type: form.contract_type.value || null,
+          phone: form.phone.value.trim() || null,
+          address_city: form.address_city.value.trim() || null,
+          address_state: form.address_state.value.trim().toUpperCase() || null,
+          birth_date: form.birth_date.value || null,
+          team_id: form.team_id.value || null
+        };
+
+        // Salary (admin-only)
+        if (form.salary_pj) {
+          updates.salary_pj = form.salary_pj.value ? parseFloat(form.salary_pj.value) : null;
+        }
+
+        // Validar nome
+        if (!updates.full_name) {
+          if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro', 'Nome é obrigatório');
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Salvar';
+          return;
+        }
+
+        // Salvar via PeopleRepo
+        if (typeof PeopleRepo !== 'undefined' && p.supabaseId) {
+          await PeopleRepo.update(p.supabaseId, updates);
+        } else {
+          throw new Error('PeopleRepo indisponível');
+        }
+
+        if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Perfil Atualizado', `${updates.full_name} foi atualizado com sucesso.`);
+
+        closeModal();
+
+        // Forçar reload do perfil
+        this._personData = null;
+        if (typeof TBO_RH !== 'undefined') TBO_RH._teamLoaded = false;
+        const mainArea = document.getElementById('main-area');
+        if (mainArea) {
+          const html = await this.render();
+          mainArea.innerHTML = html;
+          await this.init();
+        }
+      } catch (err) {
+        console.error('[People Profile] Erro ao salvar:', err);
+        if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro', err.message || 'Falha ao salvar perfil');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i data-lucide="save" style="width:14px;height:14px;"></i> Salvar';
+        if (window.lucide) lucide.createIcons();
+      }
+    });
+  },
+
+  // ══════════════════════════════════════════════════════════════════
   // SCOPED CSS
   // ══════════════════════════════════════════════════════════════════
   _getScopedCSS() {
@@ -1160,6 +1408,9 @@ const TBO_PEOPLE_PROFILE = {
   async init() {
     // Voltar para equipe
     this._bind('ppBackBtn', () => TBO_ROUTER.navigate('rh'));
+
+    // Editar perfil (admin-only)
+    this._bind('ppEditProfile', () => this._showEditModal());
 
     // Tab switching
     document.querySelectorAll('#ppTabs .tab').forEach(tab => {

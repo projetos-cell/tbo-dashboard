@@ -5141,7 +5141,7 @@ const TBO_RH = {
       overlay.id = 'rh1on1DetailOverlay';
       overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:9999;display:flex;justify-content:center;align-items:center;';
       overlay.innerHTML = `
-        <div style="background:var(--bg-primary);border-radius:16px;width:560px;max-width:calc(100vw - 48px);max-height:80vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,0.25);padding:24px;position:relative;">
+        <div style="background:var(--bg-card, #ffffff);border-radius:16px;width:560px;max-width:calc(100vw - 48px);max-height:80vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,0.25);padding:24px;position:relative;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
             <div>
               <h3 style="font-size:1rem;font-weight:700;margin-bottom:2px;">1:1 ${this._esc(leaderName)} ↔ ${this._esc(collabName)}</h3>

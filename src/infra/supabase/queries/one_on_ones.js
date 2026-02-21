@@ -1,0 +1,236 @@
+/**
+ * TBO OS — Repository: OneOnOnes (Reunioes 1:1)
+ *
+ * CRUD para 1:1s entre lider e colaborador, com acoes vinculadas.
+ * UI NUNCA chama supabase.from('one_on_ones') diretamente.
+ * tenant_id é OBRIGATÓRIO — lança erro se ausente.
+ */
+
+const OneOnOnesRepo = (() => {
+  function _db() { return RepoBase.getDb(); }
+  function _tid() { return RepoBase.requireTenantId(); }
+  function _uid() {
+    if (typeof TBO_AUTH !== 'undefined') {
+      const u = TBO_AUTH.getCurrentUser();
+      return u?.supabaseId || u?.id || null;
+    }
+    return null;
+  }
+
+  const _SELECT = 'id, leader_id, collaborator_id, scheduled_at, status, notes, created_by, created_at, updated_at';
+
+  return {
+
+    /**
+     * Lista 1:1s com filtros opcionais
+     */
+    async list({ status, limit = 50, offset = 0 } = {}) {
+      const tid = _tid();
+      let query = _db().from('one_on_ones')
+        .select(_SELECT, { count: 'exact' })
+        .eq('tenant_id', tid)
+        .order('scheduled_at', { ascending: false });
+
+      if (status) query = query.eq('status', status);
+
+      query = query.range(offset, offset + limit - 1);
+
+      const { data, error, count } = await query;
+      if (error) throw error;
+      return { data: data || [], count: count || 0 };
+    },
+
+    /**
+     * Busca 1:1 por ID com acoes vinculadas
+     */
+    async getById(id) {
+      const { data, error } = await _db().from('one_on_ones')
+        .select('*, one_on_one_actions(id, text, assignee_id, due_date, completed, completed_at, created_at)')
+        .eq('id', id)
+        .eq('tenant_id', _tid())
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    /**
+     * Cria nova 1:1
+     */
+    async create(oneOnOne) {
+      const uid = _uid();
+      const { data, error } = await _db().from('one_on_ones')
+        .insert({
+          ...oneOnOne,
+          tenant_id: _tid(),
+          created_by: uid,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    /**
+     * Atualiza 1:1 (status, notes)
+     */
+    async update(id, updates) {
+      const { data, error } = await _db().from('one_on_ones')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .eq('tenant_id', _tid())
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    /**
+     * Marca 1:1 como concluida
+     */
+    async complete(id, notes) {
+      const updates = { status: 'completed' };
+      if (notes !== undefined) updates.notes = notes;
+      return this.update(id, updates);
+    },
+
+    /**
+     * Cancela 1:1
+     */
+    async cancel(id) {
+      return this.update(id, { status: 'cancelled' });
+    },
+
+    /**
+     * Remove 1:1 (admin only — RLS)
+     */
+    async remove(id) {
+      const { error } = await _db().from('one_on_ones')
+        .delete()
+        .eq('id', id)
+        .eq('tenant_id', _tid());
+
+      if (error) throw error;
+      return true;
+    },
+
+    // ════════════════════════════════════════
+    // ACOES de 1:1
+    // ════════════════════════════════════════
+
+    /**
+     * Lista acoes de uma 1:1
+     */
+    async listActions(oneOnOneId) {
+      const { data, error } = await _db().from('one_on_one_actions')
+        .select('id, one_on_one_id, text, assignee_id, due_date, completed, completed_at, created_at')
+        .eq('tenant_id', _tid())
+        .eq('one_on_one_id', oneOnOneId)
+        .order('created_at');
+
+      if (error) throw error;
+      return data || [];
+    },
+
+    /**
+     * Lista todas as acoes pendentes do tenant
+     */
+    async listPendingActions() {
+      const { data, error } = await _db().from('one_on_one_actions')
+        .select('id, one_on_one_id, text, assignee_id, due_date, completed, created_at')
+        .eq('tenant_id', _tid())
+        .eq('completed', false)
+        .order('due_date', { ascending: true, nullsFirst: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+
+    /**
+     * Cria acao numa 1:1
+     */
+    async createAction(oneOnOneId, action) {
+      const { data, error } = await _db().from('one_on_one_actions')
+        .insert({
+          ...action,
+          tenant_id: _tid(),
+          one_on_one_id: oneOnOneId,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    /**
+     * Marca acao como concluida/pendente
+     */
+    async toggleAction(actionId, completed) {
+      const updates = { completed };
+      if (completed) updates.completed_at = new Date().toISOString();
+      else updates.completed_at = null;
+
+      const { data, error } = await _db().from('one_on_one_actions')
+        .update(updates)
+        .eq('id', actionId)
+        .eq('tenant_id', _tid())
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    /**
+     * Remove acao
+     */
+    async removeAction(actionId) {
+      const { error } = await _db().from('one_on_one_actions')
+        .delete()
+        .eq('id', actionId)
+        .eq('tenant_id', _tid());
+
+      if (error) throw error;
+      return true;
+    },
+
+    /**
+     * KPIs: total, agendadas, concluidas, acoes pendentes
+     */
+    async getKPIs() {
+      const tid = _tid();
+      const { data: ones, error: oErr } = await _db().from('one_on_ones')
+        .select('id, status, scheduled_at')
+        .eq('tenant_id', tid);
+
+      if (oErr) throw oErr;
+      const all = ones || [];
+
+      const byStatus = { scheduled: 0, completed: 0, cancelled: 0, no_show: 0 };
+      all.forEach(o => { byStatus[o.status || 'scheduled']++; });
+
+      // Acoes pendentes
+      const { data: actions, error: aErr } = await _db().from('one_on_one_actions')
+        .select('id, completed')
+        .eq('tenant_id', tid)
+        .eq('completed', false);
+
+      if (aErr) throw aErr;
+
+      return {
+        total: all.length,
+        byStatus,
+        pendingActions: (actions || []).length
+      };
+    }
+  };
+})();
+
+if (typeof window !== 'undefined') {
+  window.OneOnOnesRepo = OneOnOnesRepo;
+}

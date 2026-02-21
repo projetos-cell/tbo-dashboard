@@ -1293,6 +1293,9 @@ const TBO_RH = {
               </div>
             </div>
             <div style="display:flex;gap:6px;flex-shrink:0;">
+              ${this._isAdmin() ? `<button class="btn btn-secondary btn-sm" id="rhEditPerson" data-person="${personId}" title="Editar pessoa" style="font-size:0.68rem;padding:3px 10px;">
+                <i data-lucide="pencil" style="width:12px;height:12px;"></i> Editar
+              </button>` : ''}
               <button class="btn btn-primary btn-sm" id="rhOpenFullProfile" data-person="${personId}" title="Ver perfil completo" style="font-size:0.68rem;padding:3px 10px;">
                 <i data-lucide="external-link" style="width:12px;height:12px;"></i> Perfil
               </button>
@@ -1306,8 +1309,60 @@ const TBO_RH = {
         <!-- Dados do Onboarding (carrega async do Supabase) -->
         <div id="rhOnboardingData" style="margin-top:16px;"></div>
 
+        <!-- Formulario de edicao (hidden por default) -->
+        <div id="rhEditPersonForm" style="display:none;margin-top:16px;padding:20px;background:var(--bg-elevated);border-radius:12px;border:1px solid var(--border-subtle);">
+          <h4 style="font-size:0.9rem;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:6px;"><i data-lucide="pencil" style="width:16px;height:16px;color:var(--accent-gold);"></i> Editar Dados</h4>
+          <div class="grid-2" style="gap:12px;margin-bottom:12px;">
+            <div class="form-group" style="margin-bottom:0;"><label class="form-label">Nome Completo</label><input type="text" class="form-input" id="editFullName" value="${this._esc(person.nome || '')}" style="font-size:0.8rem;padding:8px 12px;"></div>
+            <div class="form-group" style="margin-bottom:0;"><label class="form-label">Cargo</label><input type="text" class="form-input" id="editCargo" value="${this._esc(person.cargo || '')}" style="font-size:0.8rem;padding:8px 12px;"></div>
+          </div>
+          <div class="grid-2" style="gap:12px;margin-bottom:12px;">
+            <div class="form-group" style="margin-bottom:0;"><label class="form-label">BU / Equipe</label>
+              <select class="form-input" id="editBU" style="font-size:0.8rem;padding:8px 12px;">
+                <option value="">Sem equipe</option>
+                ${(this._teamsCache || []).filter(t => t.is_active !== false).map(t => `<option value="${t.id}" ${t.name === person.bu ? 'selected' : ''}>${t.name}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom:0;"><label class="form-label">Status</label>
+              <select class="form-input" id="editStatus" style="font-size:0.8rem;padding:8px 12px;">
+                <option value="active" ${person.status === 'active' ? 'selected' : ''}>Ativo</option>
+                <option value="inactive" ${person.status === 'inactive' ? 'selected' : ''}>Inativo</option>
+                <option value="vacation" ${person.status === 'vacation' ? 'selected' : ''}>Ferias</option>
+                <option value="away" ${person.status === 'away' ? 'selected' : ''}>Ausente</option>
+                <option value="onboarding" ${person.status === 'onboarding' ? 'selected' : ''}>Onboarding</option>
+                <option value="suspended" ${person.status === 'suspended' ? 'selected' : ''}>Suspenso</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid-2" style="gap:12px;margin-bottom:12px;">
+            <div class="form-group" style="margin-bottom:0;"><label class="form-label">Salario PJ (R$)</label><input type="number" class="form-input" id="editSalary" value="${person.custoMensal || ''}" step="0.01" min="0" style="font-size:0.8rem;padding:8px 12px;"></div>
+            <div class="form-group" style="margin-bottom:0;"><label class="form-label">Telefone</label><input type="text" class="form-input" id="editPhone" value="${this._esc(person.phone || '')}" style="font-size:0.8rem;padding:8px 12px;"></div>
+          </div>
+          <div class="grid-2" style="gap:12px;margin-bottom:12px;">
+            <div class="form-group" style="margin-bottom:0;"><label class="form-label">Gestor</label>
+              <select class="form-input" id="editManager" style="font-size:0.8rem;padding:8px 12px;">
+                <option value="">Sem gestor</option>
+                ${this._getInternalTeam().filter(t => t.id !== person.id).map(t => `<option value="${t.supabaseId}" ${t.supabaseId === person.gestorId ? 'selected' : ''}>${t.nome}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom:0;"><label class="form-label">Tipo de Contrato</label>
+              <select class="form-input" id="editContractType" style="font-size:0.8rem;padding:8px 12px;">
+                <option value="">Nao definido</option>
+                <option value="pj" ${person.contractType === 'pj' ? 'selected' : ''}>PJ</option>
+                <option value="clt" ${person.contractType === 'clt' ? 'selected' : ''}>CLT</option>
+                <option value="freelancer" ${person.contractType === 'freelancer' ? 'selected' : ''}>Freelancer</option>
+                <option value="estagio" ${person.contractType === 'estagio' ? 'selected' : ''}>Estagio</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:16px;">
+            <button class="btn btn-primary btn-sm" id="rhSavePersonEdit" data-supabase-id="${person.supabaseId}" style="font-size:0.78rem;padding:6px 16px;"><i data-lucide="check" style="width:14px;height:14px;"></i> Salvar</button>
+            <button class="btn btn-secondary btn-sm" id="rhCancelPersonEdit" style="font-size:0.78rem;padding:6px 16px;">Cancelar</button>
+          </div>
+        </div>
+
         <!-- Layout 2 colunas estilo Asana -->
-        <div style="display:grid;grid-template-columns:1fr;gap:16px;margin-top:16px;">
+        <div id="rhDrawerReadOnly" style="display:grid;grid-template-columns:1fr;gap:16px;margin-top:16px;">
 
           <!-- Minhas Tarefas -->
           <div class="rh-profile-section">
@@ -1629,7 +1684,7 @@ const TBO_RH = {
     if (!cycle || cycle.status === 'finalizado') return '<div class="empty-state"><div class="empty-state-text">Ciclo finalizado.</div></div>';
     const targets = this._isAdmin() ? this._team.filter(t => t.lider && !t.terceirizado) : this._team.filter(t => t.lider && !t.terceirizado && t.lider === this._currentUserId());
     return `<div class="card"><div class="card-header"><h3 class="card-title">Formulario de Avaliacao</h3></div><div style="padding:16px;">
-      <div class="form-group" style="max-width:400px;margin-bottom:16px;"><label class="form-label">Colaborador(a)</label><select class="form-input" id="avalTarget"><option value="">Selecione...</option>${targets.map(t => `<option value="${t.id}">${t.nome} \u2014 ${t.cargo}</option>`).join('')}</select></div>
+      <div class="form-group" style="max-width:400px;margin-bottom:16px;"><label class="form-label">Colaborador(a)</label><select class="form-input" id="avalTarget"><option value="">Selecione...</option>${targets.map(t => `<option value="${t.supabaseId || t.id}" data-username="${t.id}">${t.nome} \u2014 ${t.cargo}</option>`).join('')}</select></div>
       <div id="avalFormFields" style="display:none;">
         <div style="font-size:0.82rem;font-weight:600;margin-bottom:12px;">Notas por Competencia (1 a 5)</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:16px;">
@@ -1647,12 +1702,19 @@ const TBO_RH = {
   // Sub-view ativa na tab Cultura (para deep link via sidebar)
   _culturaSubTab: 'valores',
 
+  // Cache de dados Supabase para Cultura (evita re-fetch durante subtab switch)
+  _culturaElogiosCache: null,
+  _culturaFeedbacksCache: null,
+
   _renderCultura() {
-    const elogios = this._getStore('elogios');
-    const feedbacks = this._getStore('feedbacks');
+    const elogios = this._culturaElogiosCache || this._getStore('elogios');
+    const feedbacks = this._culturaFeedbacksCache || this._getStore('feedbacks');
     const userId = this._currentUserId();
     const isAdmin = this._isAdmin();
     const sub = this._culturaSubTab || 'valores';
+
+    // Carregar dados do Supabase async (atualiza cache e re-renderiza)
+    this._loadCulturaFromSupabase();
 
     return `
       ${this._pageHeader('Cultura & Reconhecimento', 'Valores, reconhecimentos, rituais e feedbacks')}
@@ -1670,10 +1732,79 @@ const TBO_RH = {
     `;
   },
 
+  /**
+   * Carrega elogios e feedbacks do Supabase e atualiza cache.
+   * Re-renderiza conteudo Cultura quando dados chegam.
+   */
+  async _loadCulturaFromSupabase() {
+    try {
+      // Carregar elogios do Supabase
+      if (typeof RecognitionsRepo !== 'undefined') {
+        const { data: recs } = await RecognitionsRepo.list({ limit: 200 });
+        // Mapear para formato compativel com render existente
+        this._culturaElogiosCache = (recs || []).map(r => ({
+          id: r.id,
+          de: this._findUsernameBySupabaseId(r.from_user) || r.from_user,
+          para: this._findUsernameBySupabaseId(r.to_user) || r.to_user,
+          valor: r.value_id,
+          mensagem: r.message,
+          curtidas: r.likes || 0,
+          data: r.created_at,
+          _supabase: true
+        }));
+      }
+
+      // Carregar feedbacks do Supabase
+      if (typeof FeedbacksRepo !== 'undefined') {
+        const { data: fbs } = await FeedbacksRepo.list({ limit: 200 });
+        this._culturaFeedbacksCache = (fbs || []).map(f => ({
+          id: f.id,
+          de: this._findUsernameBySupabaseId(f.from_user) || f.from_user,
+          para: this._findUsernameBySupabaseId(f.to_user) || f.to_user,
+          tipo: f.type,
+          visibilidade: f.visibility === 'public' ? 'publico' : 'privado',
+          mensagem: f.message,
+          data: f.created_at,
+          _supabase: true
+        }));
+      }
+
+      // Re-renderizar conteudo se estiver na tab cultura
+      if (this._activeTab === 'cultura') {
+        const content = document.getElementById('rhCulturaContent');
+        if (content) {
+          const sub = this._culturaSubTab || 'valores';
+          content.innerHTML = this._renderCulturaSubTab(sub);
+          if (window.lucide) lucide.createIcons({ root: content });
+          this._bindCulturaContent();
+        }
+      }
+    } catch (e) {
+      console.warn('[RH] Erro ao carregar dados de Cultura do Supabase:', e.message);
+      // Fallback silencioso — usa localStorage
+    }
+  },
+
+  /**
+   * Helper: encontra username a partir de supabaseId
+   */
+  _findUsernameBySupabaseId(supabaseId) {
+    const person = this._team.find(t => t.supabaseId === supabaseId);
+    return person ? person.id : null;
+  },
+
+  /**
+   * Helper: encontra supabaseId a partir de username
+   */
+  _findSupabaseIdByUsername(username) {
+    const person = this._team.find(t => t.id === username);
+    return person ? person.supabaseId : null;
+  },
+
   _renderCulturaSubTab(sub, elogios, feedbacks, userId, isAdmin) {
-    // Carregar dados se nao fornecidos (para re-render parcial)
-    if (!elogios) elogios = this._getStore('elogios');
-    if (!feedbacks) feedbacks = this._getStore('feedbacks');
+    // Carregar dados: preferir cache Supabase, fallback localStorage
+    if (!elogios) elogios = this._culturaElogiosCache || this._getStore('elogios');
+    if (!feedbacks) feedbacks = this._culturaFeedbacksCache || this._getStore('feedbacks');
     if (!userId) userId = this._currentUserId();
     if (isAdmin === undefined) isAdmin = this._isAdmin();
 
@@ -1759,7 +1890,7 @@ const TBO_RH = {
         <div class="card-header"><h3 class="card-title">Mural de Elogios</h3><button class="btn btn-primary btn-sm" id="rhNewElogio">+ Elogiar</button></div>
         <div id="rhElogioForm" style="display:none;padding:16px;border-bottom:1px solid var(--border-subtle);">
           <div class="grid-2" style="gap:12px;margin-bottom:12px;">
-            <div class="form-group" style="margin-bottom:0;"><label class="form-label">Para</label><select class="form-input" id="elPara">${this._team.filter(t => !t.terceirizado).map(t => `<option value="${t.id}">${t.nome}</option>`).join('')}</select></div>
+            <div class="form-group" style="margin-bottom:0;"><label class="form-label">Para</label><select class="form-input" id="elPara">${this._team.filter(t => !t.terceirizado).map(t => `<option value="${t.supabaseId || t.id}" data-username="${t.id}">${t.nome}</option>`).join('')}</select></div>
             <div class="form-group" style="margin-bottom:0;"><label class="form-label">Valor TBO</label><select class="form-input" id="elValor">${this._valores.map(v => `<option value="${v.id}">${v.emoji} ${v.nome}</option>`).join('')}</select></div>
           </div>
           <div class="form-group" style="margin-bottom:12px;"><label class="form-label">Mensagem</label><textarea class="form-input" id="elTexto" rows="2" placeholder="Por que esta pessoa merece reconhecimento?"></textarea></div>
@@ -1826,7 +1957,7 @@ const TBO_RH = {
         <div class="card-header"><h3 class="card-title">Feedbacks</h3><button class="btn btn-primary btn-sm" id="rhNewFeedback">+ Feedback</button></div>
         <div id="rhFeedbackForm" style="display:none;padding:16px;border-bottom:1px solid var(--border-subtle);">
           <div class="grid-2" style="gap:12px;margin-bottom:12px;">
-            <div class="form-group" style="margin-bottom:0;"><label class="form-label">Para</label><select class="form-input" id="fbPara">${this._team.filter(t => !t.terceirizado).map(t => `<option value="${t.id}">${t.nome}</option>`).join('')}</select></div>
+            <div class="form-group" style="margin-bottom:0;"><label class="form-label">Para</label><select class="form-input" id="fbPara">${this._team.filter(t => !t.terceirizado).map(t => `<option value="${t.supabaseId || t.id}" data-username="${t.id}">${t.nome}</option>`).join('')}</select></div>
             <div class="form-group" style="margin-bottom:0;"><label class="form-label">Tipo</label><select class="form-input" id="fbTipo"><option value="positivo">Positivo</option><option value="construtivo">Construtivo</option></select></div>
           </div>
           <div class="form-group" style="margin-bottom:12px;"><label class="form-label">Mensagem</label><textarea class="form-input" id="fbTexto" rows="2" placeholder="Descreva o feedback..."></textarea></div>
@@ -1945,9 +2076,42 @@ const TBO_RH = {
     // Elogios CRUD — bind apenas se os elementos existem na subtab ativa
     this._bindToggle('rhNewElogio', 'rhElogioForm');
     this._bindToggle('elCancel', 'rhElogioForm', false);
-    this._bind('elSave', () => {
-      const el = { id: this._genId(), de: this._currentUserId(), para: document.getElementById('elPara')?.value, valor: document.getElementById('elValor')?.value, mensagem: document.getElementById('elTexto')?.value, curtidas: 0, data: new Date().toISOString() };
-      if (!el.mensagem) { if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.warning('Escreva uma mensagem'); return; }
+    this._bind('elSave', async () => {
+      const paraValue = document.getElementById('elPara')?.value;
+      const valorId = document.getElementById('elValor')?.value;
+      const mensagem = document.getElementById('elTexto')?.value;
+      if (!mensagem) { if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.warning('Escreva uma mensagem'); return; }
+
+      // Resolver valor TBO
+      const valorObj = this._valores.find(v => v.id === valorId);
+
+      // Tentar salvar no Supabase
+      if (typeof RecognitionsRepo !== 'undefined') {
+        try {
+          await RecognitionsRepo.create({
+            to_user: paraValue,
+            value_id: valorId,
+            value_name: valorObj?.nome || '',
+            value_emoji: valorObj?.emoji || '',
+            message: mensagem
+          });
+          if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Elogio publicado!');
+          // Recarregar dados e re-renderizar
+          this._culturaElogiosCache = null;
+          await this._loadCulturaFromSupabase();
+          const form = document.getElementById('rhElogioForm');
+          if (form) form.style.display = 'none';
+          const txt = document.getElementById('elTexto');
+          if (txt) txt.value = '';
+          return;
+        } catch (e) {
+          console.warn('[RH] Erro ao salvar elogio no Supabase:', e.message);
+        }
+      }
+
+      // Fallback: localStorage
+      const paraUsername = document.getElementById('elPara')?.selectedOptions?.[0]?.dataset?.username || paraValue;
+      const el = { id: this._genId(), de: this._currentUserId(), para: paraUsername, valor: valorId, mensagem, curtidas: 0, data: new Date().toISOString() };
       const items = this._getStore('elogios'); items.push(el); this._setStore('elogios', items);
       const list = document.getElementById('rhElogioList');
       if (list) list.innerHTML = this._renderElogioItems(items);
@@ -1963,9 +2127,37 @@ const TBO_RH = {
     // Feedbacks CRUD
     this._bindToggle('rhNewFeedback', 'rhFeedbackForm');
     this._bindToggle('fbCancel', 'rhFeedbackForm', false);
-    this._bind('fbSave', () => {
-      const fb = { id: this._genId(), de: this._currentUserId(), para: document.getElementById('fbPara')?.value, tipo: document.getElementById('fbTipo')?.value, visibilidade: 'publico', mensagem: document.getElementById('fbTexto')?.value, data: new Date().toISOString() };
-      if (!fb.mensagem) { if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.warning('Preencha a mensagem'); return; }
+    this._bind('fbSave', async () => {
+      const paraValue = document.getElementById('fbPara')?.value;
+      const tipo = document.getElementById('fbTipo')?.value;
+      const mensagem = document.getElementById('fbTexto')?.value;
+      if (!mensagem) { if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.warning('Preencha a mensagem'); return; }
+
+      // Tentar salvar no Supabase
+      if (typeof FeedbacksRepo !== 'undefined') {
+        try {
+          await FeedbacksRepo.create({
+            to_user: paraValue,
+            type: tipo,
+            visibility: 'public',
+            message: mensagem
+          });
+          if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Feedback enviado!');
+          this._culturaFeedbacksCache = null;
+          await this._loadCulturaFromSupabase();
+          const form = document.getElementById('rhFeedbackForm');
+          if (form) form.style.display = 'none';
+          const txt = document.getElementById('fbTexto');
+          if (txt) txt.value = '';
+          return;
+        } catch (e) {
+          console.warn('[RH] Erro ao salvar feedback no Supabase:', e.message);
+        }
+      }
+
+      // Fallback: localStorage
+      const paraUsername = document.getElementById('fbPara')?.selectedOptions?.[0]?.dataset?.username || paraValue;
+      const fb = { id: this._genId(), de: this._currentUserId(), para: paraUsername, tipo, visibilidade: 'publico', mensagem, data: new Date().toISOString() };
       const items = this._getStore('feedbacks'); items.push(fb); this._setStore('feedbacks', items);
       const list = document.getElementById('rhFeedbackList');
       if (list) list.innerHTML = this._renderFeedbackItems(items);
@@ -2009,17 +2201,58 @@ const TBO_RH = {
   // ══════════════════════════════════════════════════════════════════
   // TAB 4: 1:1s & RITUAIS
   // ══════════════════════════════════════════════════════════════════
+  // Cache de 1:1s do Supabase
+  _oneOnOnesCache: null,
+  _oneOnOneActionsCache: null,
+
   _render1on1s() {
-    const items = this._getStore('1on1s');
+    // Usar cache Supabase ou fallback localStorage
+    const fromSupabase = this._oneOnOnesCache !== null;
+    const items = fromSupabase ? this._oneOnOnesCache : this._getStore('1on1s');
     const isAdmin = this._isAdmin();
     const userId = this._currentUserId();
-    const filtered = isAdmin ? items : items.filter(o => o.lider === userId || o.colaborador === userId);
-    const concluidas = filtered.filter(o => o.status === 'concluida').length;
-    const agendadas = filtered.filter(o => o.status === 'agendada').length;
-    const allActions = filtered.flatMap(o => o.items || []);
-    const pendingActions = allActions.filter(i => !i.concluido);
 
-    // Rituais da empresa (do manual de cultura)
+    // Filtrar por participante (admin ve tudo)
+    let filtered;
+    if (fromSupabase) {
+      filtered = isAdmin ? items : items.filter(o => o.leader_id === userId || o.collaborator_id === userId);
+    } else {
+      filtered = isAdmin ? items : items.filter(o => o.lider === userId || o.colaborador === userId);
+    }
+
+    // Contagens
+    const concluidas = filtered.filter(o => (o.status === 'concluida' || o.status === 'completed')).length;
+    const agendadas = filtered.filter(o => (o.status === 'agendada' || o.status === 'scheduled')).length;
+
+    // Acoes pendentes
+    let pendingActions = [];
+    if (fromSupabase) {
+      pendingActions = this._oneOnOneActionsCache || [];
+    } else {
+      const allActions = filtered.flatMap(o => o.items || []);
+      pendingActions = allActions.filter(i => !i.concluido);
+    }
+
+    // Helper para nome pela id (Supabase usa UUID, localStorage usa username)
+    const getName = (id) => {
+      if (fromSupabase) {
+        const p = this._team.find(t => t.supabaseId === id);
+        return p ? p.nome : this._getPersonName(id);
+      }
+      return this._getPersonName(id);
+    };
+
+    // Helper para data
+    const getDate = (o) => fromSupabase ? (o.scheduled_at || o.created_at) : o.data;
+    const getLeader = (o) => fromSupabase ? o.leader_id : o.lider;
+    const getCollab = (o) => fromSupabase ? o.collaborator_id : o.colaborador;
+    const getActionText = (a) => fromSupabase ? a.text : a.texto;
+    const getActionAssignee = (a) => fromSupabase ? a.assignee_id : a.responsavel;
+    const getActionDue = (a) => fromSupabase ? a.due_date : a.prazo;
+
+    // Carregar dados do Supabase async
+    if (!fromSupabase) this._load1on1sFromSupabase();
+
     const rituais = [
       { nome: 'Daily Socios', freq: 'Diaria', desc: 'Alinhamento rapido entre fundadores' },
       { nome: '1:1 Mensal', freq: 'Mensal', desc: 'PDI + feedback bidirecional' },
@@ -2039,10 +2272,10 @@ const TBO_RH = {
 
       ${pendingActions.length ? `<div class="card" style="margin-bottom:16px;"><div class="card-header"><h3 class="card-title">Acoes Pendentes</h3></div><div style="max-height:200px;overflow-y:auto;">
         ${pendingActions.map(a => `<div style="padding:10px 16px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:10px;">
-          <input type="checkbox" class="rh-action-check" data-id="${a.id}" style="width:16px;height:16px;accent-color:var(--accent-gold);">
-          <div style="flex:1;font-size:0.82rem;">${a.texto}</div>
-          <span style="font-size:0.72rem;color:var(--text-muted);">${this._getPersonName(a.responsavel)}</span>
-          <span style="font-size:0.68rem;color:${a.prazo && new Date(a.prazo) < new Date() ? 'var(--color-danger)' : 'var(--text-muted)'};">${a.prazo ? new Date(a.prazo + 'T12:00').toLocaleDateString('pt-BR') : ''}</span>
+          <input type="checkbox" class="rh-action-check" data-id="${a.id}" ${(fromSupabase ? a.completed : a.concluido) ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--accent-gold);">
+          <div style="flex:1;font-size:0.82rem;">${getActionText(a)}</div>
+          <span style="font-size:0.72rem;color:var(--text-muted);">${getName(getActionAssignee(a))}</span>
+          <span style="font-size:0.68rem;color:${getActionDue(a) && new Date(getActionDue(a)) < new Date() ? 'var(--color-danger)' : 'var(--text-muted)'};">${getActionDue(a) ? new Date(getActionDue(a) + (getActionDue(a).includes('T') ? '' : 'T12:00')).toLocaleDateString('pt-BR') : ''}</span>
           <button class="btn btn-ghost btn-sm rh-action-delete" data-id="${a.id}" title="Excluir acao" style="color:var(--color-danger);padding:2px 6px;"><i data-lucide="trash-2" style="width:12px;height:12px;"></i></button>
         </div>`).join('')}
       </div></div>` : ''}
@@ -2052,17 +2285,17 @@ const TBO_RH = {
           <div class="card-header"><h3 class="card-title">Proximas 1:1s</h3><button class="btn btn-primary btn-sm" id="rhNew1on1">+ Nova</button></div>
           <div id="rh1on1Form" style="display:none;padding:16px;border-bottom:1px solid var(--border-subtle);">
             <div class="grid-2" style="gap:12px;margin-bottom:12px;">
-              <div class="form-group" style="margin-bottom:0;"><label class="form-label">Lider</label><select class="form-input" id="ooLider">${this._team.filter(t => !t.lider || t.cargo.includes('Coord') || t.cargo.includes('PO') || t.cargo.includes('Lider') || t.cargo.includes('Diretor')).map(t => `<option value="${t.id}">${t.nome}</option>`).join('')}</select></div>
-              <div class="form-group" style="margin-bottom:0;"><label class="form-label">Colaborador</label><select class="form-input" id="ooColab">${this._team.filter(t => t.lider && !t.terceirizado).map(t => `<option value="${t.id}">${t.nome}</option>`).join('')}</select></div>
+              <div class="form-group" style="margin-bottom:0;"><label class="form-label">Lider</label><select class="form-input" id="ooLider">${this._team.filter(t => !t.lider || t.cargo.includes('Coord') || t.cargo.includes('PO') || t.cargo.includes('Lider') || t.cargo.includes('Diretor')).map(t => `<option value="${t.supabaseId || t.id}">${t.nome}</option>`).join('')}</select></div>
+              <div class="form-group" style="margin-bottom:0;"><label class="form-label">Colaborador</label><select class="form-input" id="ooColab">${this._team.filter(t => !t.terceirizado).map(t => `<option value="${t.supabaseId || t.id}">${t.nome}</option>`).join('')}</select></div>
             </div>
             <div class="form-group" style="margin-bottom:12px;"><label class="form-label">Data</label><input type="datetime-local" class="form-input" id="ooData"></div>
             <div style="display:flex;gap:8px;"><button class="btn btn-primary btn-sm" id="ooSave">Agendar</button><button class="btn btn-secondary btn-sm" id="ooCancel">Cancelar</button></div>
           </div>
-          ${filtered.filter(o => o.status === 'agendada').sort((a, b) => new Date(a.data) - new Date(b.data)).map(o => `<div style="padding:12px 16px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;"><div><div style="font-size:0.85rem;font-weight:600;">${this._getPersonName(o.lider)} \u2194 ${this._getPersonName(o.colaborador)}</div><div style="font-size:0.72rem;color:var(--text-muted);">${new Date(o.data).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div></div><span class="tag" style="font-size:0.65rem;background:var(--color-info-dim);color:var(--color-info);">Agendada</span></div>`).join('') || '<div style="padding:16px;font-size:0.78rem;color:var(--text-muted);">Nenhuma agendada</div>'}
+          ${filtered.filter(o => (o.status === 'agendada' || o.status === 'scheduled')).sort((a, b) => new Date(getDate(a)) - new Date(getDate(b))).map(o => `<div style="padding:12px 16px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;"><div><div style="font-size:0.85rem;font-weight:600;">${getName(getLeader(o))} \u2194 ${getName(getCollab(o))}</div><div style="font-size:0.72rem;color:var(--text-muted);">${new Date(getDate(o)).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div></div><span class="tag" style="font-size:0.65rem;background:var(--color-info-dim);color:var(--color-info);">Agendada</span></div>`).join('') || '<div style="padding:16px;font-size:0.78rem;color:var(--text-muted);">Nenhuma agendada</div>'}
         </div>
         <div class="card">
           <div class="card-header"><h3 class="card-title">Historico</h3></div>
-          ${filtered.filter(o => o.status === 'concluida').sort((a, b) => new Date(b.data) - new Date(a.data)).map(o => `<div style="padding:12px 16px;border-bottom:1px solid var(--border-subtle);"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><div style="font-size:0.85rem;font-weight:600;">${this._getPersonName(o.lider)} \u2194 ${this._getPersonName(o.colaborador)}</div><span style="font-size:0.72rem;color:var(--text-muted);">${new Date(o.data).toLocaleDateString('pt-BR')}</span></div>${(o.items || []).length ? `<div style="font-size:0.72rem;color:var(--text-muted);">${o.items.length} items \u2022 ${o.items.filter(i => i.concluido).length} ok</div>` : ''}</div>`).join('') || '<div style="padding:16px;font-size:0.78rem;color:var(--text-muted);">Nenhuma no historico</div>'}
+          ${filtered.filter(o => (o.status === 'concluida' || o.status === 'completed')).sort((a, b) => new Date(getDate(b)) - new Date(getDate(a))).map(o => `<div style="padding:12px 16px;border-bottom:1px solid var(--border-subtle);"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><div style="font-size:0.85rem;font-weight:600;">${getName(getLeader(o))} \u2194 ${getName(getCollab(o))}</div><span style="font-size:0.72rem;color:var(--text-muted);">${new Date(getDate(o)).toLocaleDateString('pt-BR')}</span></div></div>`).join('') || '<div style="padding:16px;font-size:0.78rem;color:var(--text-muted);">Nenhuma no historico</div>'}
         </div>
       </div>
 
@@ -2074,6 +2307,32 @@ const TBO_RH = {
         </div>
       </div>
     `;
+  },
+
+  /**
+   * Carrega 1:1s e acoes do Supabase
+   */
+  async _load1on1sFromSupabase() {
+    try {
+      if (typeof OneOnOnesRepo === 'undefined') return;
+      const { data: ones } = await OneOnOnesRepo.list({ limit: 100 });
+      this._oneOnOnesCache = ones || [];
+
+      // Carregar acoes pendentes
+      const actions = await OneOnOnesRepo.listPendingActions();
+      this._oneOnOneActionsCache = actions || [];
+
+      // Re-renderizar se estiver na tab 1on1
+      if (this._activeTab === 'one-on-ones') {
+        const tabContent = document.getElementById('rhTabContent');
+        if (tabContent) {
+          tabContent.innerHTML = this._renderActiveTab();
+          this._initActiveTab();
+        }
+      }
+    } catch (e) {
+      console.warn('[RH] Erro ao carregar 1:1s do Supabase:', e.message);
+    }
   },
 
   // ══════════════════════════════════════════════════════════════════
@@ -4032,11 +4291,34 @@ const TBO_RH = {
     // 1:1 CRUD
     this._bindToggle('rhNew1on1', 'rh1on1Form');
     this._bindToggle('ooCancel', 'rh1on1Form', false);
-    this._bind('ooSave', () => {
-      const oo = { id: this._genId(), lider: document.getElementById('ooLider')?.value, colaborador: document.getElementById('ooColab')?.value, data: document.getElementById('ooData')?.value || new Date().toISOString(), status: 'agendada', items: [] };
+    this._bind('ooSave', async () => {
+      const leaderId = document.getElementById('ooLider')?.value;
+      const collabId = document.getElementById('ooColab')?.value;
+      const dataValue = document.getElementById('ooData')?.value || new Date().toISOString();
+
+      // Tentar salvar no Supabase
+      if (typeof OneOnOnesRepo !== 'undefined') {
+        try {
+          await OneOnOnesRepo.create({
+            leader_id: leaderId,
+            collaborator_id: collabId,
+            scheduled_at: dataValue,
+            status: 'scheduled'
+          });
+          TBO_TOAST.success('1:1 agendada!');
+          this._oneOnOnesCache = null;
+          this._oneOnOneActionsCache = null;
+          await this._load1on1sFromSupabase();
+          return;
+        } catch (e) {
+          console.warn('[RH] Erro ao salvar 1:1 no Supabase:', e.message);
+        }
+      }
+
+      // Fallback: localStorage
+      const oo = { id: this._genId(), lider: leaderId, colaborador: collabId, data: dataValue, status: 'agendada', items: [] };
       const items = this._getStore('1on1s'); items.push(oo); this._setStore('1on1s', items);
       TBO_TOAST.success('1:1 agendada!');
-      // Re-renderizar apenas a tab ao inves do modulo inteiro
       const tabContent = document.getElementById('rhTabContent');
       if (tabContent) { tabContent.innerHTML = this._renderActiveTab(); this._initActiveTab(); }
     });
@@ -4156,6 +4438,82 @@ const TBO_RH = {
     // Fechar por Escape
     this._drawerEscHandler = (e) => { if (e.key === 'Escape') this._closePersonDrawer(); };
     document.addEventListener('keydown', this._drawerEscHandler);
+
+    // ── Edicao de pessoa ──
+    this._bind('rhEditPerson', () => {
+      const editForm = document.getElementById('rhEditPersonForm');
+      const readOnly = document.getElementById('rhDrawerReadOnly');
+      if (editForm && readOnly) {
+        const isEditing = editForm.style.display !== 'none';
+        editForm.style.display = isEditing ? 'none' : 'block';
+        readOnly.style.display = isEditing ? 'grid' : 'none';
+        // Atualizar botao
+        const btn = document.getElementById('rhEditPerson');
+        if (btn) btn.innerHTML = isEditing
+          ? '<i data-lucide="pencil" style="width:12px;height:12px;"></i> Editar'
+          : '<i data-lucide="x" style="width:12px;height:12px;"></i> Cancelar';
+        if (window.lucide) lucide.createIcons();
+      }
+    });
+    this._bind('rhCancelPersonEdit', () => {
+      const editForm = document.getElementById('rhEditPersonForm');
+      const readOnly = document.getElementById('rhDrawerReadOnly');
+      if (editForm) editForm.style.display = 'none';
+      if (readOnly) readOnly.style.display = 'grid';
+      const btn = document.getElementById('rhEditPerson');
+      if (btn) { btn.innerHTML = '<i data-lucide="pencil" style="width:12px;height:12px;"></i> Editar'; if (window.lucide) lucide.createIcons(); }
+    });
+    this._bind('rhSavePersonEdit', async () => {
+      const saveBtn = document.getElementById('rhSavePersonEdit');
+      const supabaseId = saveBtn?.dataset.supabaseId;
+      if (!supabaseId || typeof PeopleRepo === 'undefined') {
+        if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro', 'Repositorio nao disponivel');
+        return;
+      }
+      // Coletar valores do formulario
+      const updates = {};
+      const fullName = document.getElementById('editFullName')?.value?.trim();
+      const cargo = document.getElementById('editCargo')?.value?.trim();
+      const teamId = document.getElementById('editBU')?.value || null;
+      const status = document.getElementById('editStatus')?.value || 'active';
+      const salary = document.getElementById('editSalary')?.value;
+      const phone = document.getElementById('editPhone')?.value?.trim() || null;
+      const managerId = document.getElementById('editManager')?.value || null;
+      const contractType = document.getElementById('editContractType')?.value || null;
+
+      if (fullName) updates.full_name = fullName;
+      if (cargo !== undefined) updates.cargo = cargo;
+      updates.team_id = teamId;
+      updates.status = status;
+      updates.is_active = (status === 'active' || status === 'vacation' || status === 'away' || status === 'onboarding');
+      if (salary !== '' && salary !== undefined) updates.salary_pj = parseFloat(salary) || 0;
+      updates.phone = phone;
+      updates.manager_id = managerId;
+      if (contractType !== undefined) updates.contract_type = contractType;
+
+      // Salvar via PeopleRepo
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<i data-lucide="loader" style="width:14px;height:14px;animation:spin 1s linear infinite;"></i> Salvando...';
+      if (window.lucide) lucide.createIcons();
+      try {
+        await PeopleRepo.update(supabaseId, updates);
+        if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Perfil atualizado!', fullName || '');
+        // Recarregar equipe e reabrir drawer
+        this._teamLoaded = false;
+        await this._loadTeamFromSupabase({ force: true });
+        // Re-renderizar lista e drawer
+        const tabContent = document.getElementById('rhTabContent');
+        if (tabContent) { tabContent.innerHTML = this._renderActiveTab(); this._initActiveTab(); }
+        // Reabrir drawer com dados atualizados
+        this._openPersonDrawer(personId);
+      } catch (err) {
+        console.error('[RH] Erro ao atualizar perfil:', err);
+        if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro ao salvar', err.message || 'Tente novamente');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i data-lucide="check" style="width:14px;height:14px;"></i> Salvar';
+        if (window.lucide) lucide.createIcons();
+      }
+    });
   },
 
   _closePersonDrawer() {
@@ -4422,18 +4780,39 @@ const TBO_RH = {
 
   _bindActionChecks() {
     document.querySelectorAll('.rh-action-check').forEach(chk => {
-      chk.addEventListener('change', () => {
+      chk.addEventListener('change', async () => {
+        const actionId = chk.dataset.id;
+        // Tentar Supabase primeiro
+        if (typeof OneOnOnesRepo !== 'undefined' && this._oneOnOnesCache !== null) {
+          try {
+            await OneOnOnesRepo.toggleAction(actionId, chk.checked);
+            TBO_TOAST.success('Acao atualizada!');
+            return;
+          } catch (e) { console.warn('[RH] Erro toggle action Supabase:', e.message); }
+        }
+        // Fallback localStorage
         const items = this._getStore('1on1s');
-        items.forEach(o => { (o.items || []).forEach(a => { if (a.id === chk.dataset.id) a.concluido = chk.checked; }); });
+        items.forEach(o => { (o.items || []).forEach(a => { if (a.id === actionId) a.concluido = chk.checked; }); });
         this._setStore('1on1s', items);
         TBO_TOAST.success('Acao atualizada!');
       });
     });
 
-    // v2.5.1: Delete de acoes pendentes
+    // Delete de acoes pendentes
     document.querySelectorAll('.rh-action-delete').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const actionId = btn.dataset.id;
+        // Tentar Supabase primeiro
+        if (typeof OneOnOnesRepo !== 'undefined' && this._oneOnOnesCache !== null) {
+          try {
+            await OneOnOnesRepo.removeAction(actionId);
+            TBO_TOAST.success('Acao removida');
+            this._oneOnOneActionsCache = null;
+            await this._load1on1sFromSupabase();
+            return;
+          } catch (e) { console.warn('[RH] Erro delete action Supabase:', e.message); }
+        }
+        // Fallback localStorage
         const items = this._getStore('1on1s');
         items.forEach(o => {
           if (o.items) o.items = o.items.filter(a => a.id !== actionId);
@@ -4447,8 +4826,9 @@ const TBO_RH = {
     });
   },
 
-  _submitAvaliacao(cycleId) {
+  async _submitAvaliacao(cycleId) {
     const targetId = document.getElementById('avalTarget')?.value;
+    const targetUsername = document.getElementById('avalTarget')?.selectedOptions?.[0]?.dataset?.username;
     if (!targetId) { TBO_TOAST.warning('Selecione um colaborador'); return; }
     const scores = this._competenciasRadar.map(c => {
       const active = document.querySelector(`.aval-score-btn[data-comp="${c.id}"].active`);
@@ -4456,20 +4836,50 @@ const TBO_RH = {
     });
     if (!scores.some(s => document.querySelector(`.aval-score-btn[data-comp="${s.comp}"].active`))) { TBO_TOAST.warning('Avalie pelo menos uma competencia'); return; }
     const parecer = document.getElementById('avalParecer')?.value || '';
+    const avg = (arr) => arr.length ? +(arr.reduce((s, x) => s + x.nota, 0) / arr.length).toFixed(2) : 0;
+    const gestorAvg = avg(scores);
+
+    // Tentar salvar no Supabase
+    if (typeof PerformanceRepo !== 'undefined') {
+      try {
+        // Buscar ciclo ativo
+        const cycle = await PerformanceRepo.getActiveCycle();
+        if (cycle) {
+          await PerformanceRepo.submitReview({
+            cycle_id: cycle.id,
+            target_user: targetId,
+            review_type: 'manager',
+            scores: scores,
+            average: gestorAvg,
+            highlights: [],
+            gaps: [],
+            comment: parecer
+          });
+          const personName = targetUsername ? this._getPersonName(targetUsername) : targetId;
+          TBO_TOAST.success('Avaliacao submetida!', `${personName} — ${gestorAvg.toFixed(1)}`);
+          const tabContent = document.getElementById('rhTabContent');
+          if (tabContent) { tabContent.innerHTML = this._renderActiveTab(); this._initActiveTab(); }
+          return;
+        }
+      } catch (e) {
+        console.warn('[RH] Erro ao salvar avaliacao no Supabase:', e.message);
+      }
+    }
+
+    // Fallback: localStorage
+    const localTargetId = targetUsername || targetId;
     const reviews = this._getStore('avaliacoes_people');
-    let review = reviews.find(r => r.pessoaId === targetId && r.cicloId === cycleId);
+    let review = reviews.find(r => r.pessoaId === localTargetId && r.cicloId === cycleId);
     if (review) { review.gestorScores = scores; if (parecer) review.parecer = parecer; }
     else {
       const def = this._competenciasRadar.map(c => ({ comp: c.id, nota: 3 }));
-      review = { id: this._genId(), cicloId, pessoaId: targetId, autoScores: def.map(s => ({ ...s })), gestorScores: scores, paresScores: def.map(s => ({ ...s })), destaques: [], gaps: [], parecer };
+      review = { id: this._genId(), cicloId: cycleId, pessoaId: localTargetId, autoScores: def.map(s => ({ ...s })), gestorScores: scores, paresScores: def.map(s => ({ ...s })), destaques: [], gaps: [], parecer };
       reviews.push(review);
     }
-    const avg = (arr) => arr.length ? +(arr.reduce((s, x) => s + x.nota, 0) / arr.length).toFixed(2) : 0;
     review.autoMedia = avg(review.autoScores); review.gestorMedia = avg(review.gestorScores); review.paresMedia = avg(review.paresScores);
     review.mediaGeral = +((review.autoMedia * 0.2 + review.gestorMedia * 0.5 + review.paresMedia * 0.3)).toFixed(2);
     this._setStore('avaliacoes_people', reviews);
-    TBO_TOAST.success('Avaliacao submetida!', `${this._getPersonName(targetId)} — ${review.mediaGeral.toFixed(1)}`);
-    // Re-renderizar apenas a tab ao inves do modulo inteiro
+    TBO_TOAST.success('Avaliacao submetida!', `${this._getPersonName(localTargetId)} — ${review.mediaGeral.toFixed(1)}`);
     const tabContent = document.getElementById('rhTabContent');
     if (tabContent) { tabContent.innerHTML = this._renderActiveTab(); this._initActiveTab(); }
   }

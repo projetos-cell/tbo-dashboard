@@ -1209,6 +1209,743 @@ const FinanceRepo = (() => {
         totalClientes,
         ticketMedio
       };
+    },
+
+    // ═══════════════════════════════════════════════════════════
+    // ANALYTICS — DRE Gerencial
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * DRE Gerencial: receita bruta/liquida, COGS, margem bruta,
+     * despesas operacionais por categoria, EBITDA, lucro liquido.
+     * Periodo: mes especifico ou acumulado.
+     */
+    async getDREGerencial({ month, year } = {}) {
+      const tid = _tid();
+      const now = new Date();
+      const m = month ?? now.getMonth();
+      const y = year ?? now.getFullYear();
+      const startDate = `${y}-${String(m + 1).padStart(2, '0')}-01`;
+      const endDate = new Date(y, m + 1, 0).toISOString().split('T')[0];
+
+      const [recRes, payRes] = await Promise.all([
+        _db().from('fin_receivables')
+          .select('amount, amount_paid, status, due_date, client_id, category_id, category:fin_categories(name)')
+          .eq('tenant_id', tid)
+          .not('status', 'eq', 'cancelado')
+          .gte('due_date', startDate)
+          .lte('due_date', endDate),
+
+        _db().from('fin_payables')
+          .select('amount, amount_paid, status, due_date, vendor_id, category_id, cost_center_id, category:fin_categories(name), cost_center:fin_cost_centers(name, category)')
+          .eq('tenant_id', tid)
+          .not('status', 'eq', 'cancelado')
+          .gte('due_date', startDate)
+          .lte('due_date', endDate)
+      ]);
+
+      if (recRes.error) throw recRes.error;
+      if (payRes.error) throw payRes.error;
+
+      const receivables = recRes.data || [];
+      const payables = payRes.data || [];
+
+      // Receita bruta = soma de todas as recebiveis do periodo
+      const receitaBruta = receivables.reduce((s, r) => s + (r.amount || 0), 0);
+      // Receita liquida = receita efetivamente recebida (pago)
+      const receitaLiquida = receivables
+        .filter(r => r.status === 'pago')
+        .reduce((s, r) => s + (r.amount || 0), 0);
+
+      // Separar custos diretos (COGS) vs despesas operacionais
+      // COGS = payables com centro de custo categoria 'producao'|'projeto'|'direto'
+      const cogsKeywords = ['producao', 'projeto', 'direto', 'freelancer', 'terceiro', 'material', 'insumo'];
+      const cogs = [];
+      const despesasOp = [];
+
+      payables.forEach(p => {
+        const ccCat = (p.cost_center?.category || '').toLowerCase();
+        const catName = (p.category?.name || '').toLowerCase();
+        const isCogs = cogsKeywords.some(k => ccCat.includes(k) || catName.includes(k));
+        if (isCogs) {
+          cogs.push(p);
+        } else {
+          despesasOp.push(p);
+        }
+      });
+
+      const totalCogs = cogs.reduce((s, p) => s + (p.amount || 0), 0);
+      const margemBruta = receitaBruta - totalCogs;
+      const margemBrutaPct = receitaBruta > 0 ? (margemBruta / receitaBruta) * 100 : 0;
+
+      // Despesas operacionais por categoria
+      const despCatMap = {};
+      despesasOp.forEach(p => {
+        const name = p.category?.name || 'Sem Categoria';
+        if (!despCatMap[name]) despCatMap[name] = { name, total: 0, count: 0 };
+        despCatMap[name].total += p.amount || 0;
+        despCatMap[name].count++;
+      });
+      const despesasPorCategoria = Object.values(despCatMap).sort((a, b) => b.total - a.total);
+      const totalDespesasOp = despesasOp.reduce((s, p) => s + (p.amount || 0), 0);
+
+      // EBITDA = Margem Bruta - Despesas Operacionais (sem depreciacao/amortizacao)
+      const ebitda = margemBruta - totalDespesasOp;
+      const ebitdaPct = receitaBruta > 0 ? (ebitda / receitaBruta) * 100 : 0;
+
+      // Lucro liquido = EBITDA (sem impostos no modelo atual)
+      const lucroLiquido = ebitda;
+      const margemLiquida = receitaBruta > 0 ? (lucroLiquido / receitaBruta) * 100 : 0;
+
+      return {
+        periodo: { month: m, year: y, startDate, endDate },
+        receitaBruta,
+        receitaLiquida,
+        totalCogs,
+        margemBruta,
+        margemBrutaPct,
+        despesasPorCategoria,
+        totalDespesasOp,
+        ebitda,
+        ebitdaPct,
+        lucroLiquido,
+        margemLiquida,
+        totalPayables: payables.length,
+        totalReceivables: receivables.length
+      };
+    },
+
+    // ═══════════════════════════════════════════════════════════
+    // ANALYTICS — Saude Fiscal (PMR, PMP, Ciclo Financeiro)
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * PMR (Prazo Medio de Recebimento), PMP (Prazo Medio de Pagamento),
+     * Ciclo Financeiro, Indice de Endividamento.
+     */
+    async getSaudeFiscal() {
+      const tid = _tid();
+      const today = new Date().toISOString().split('T')[0];
+      const ninetyDaysAgo = new Date(Date.now() - 90 * 86400000).toISOString().split('T')[0];
+
+      const [paidRecRes, paidPayRes, overdueRecRes, overduePayRes, allOpenPayRes] = await Promise.all([
+        // Receivables pagos (ultimos 90d) com datas
+        _db().from('fin_receivables')
+          .select('amount, due_date, paid_date')
+          .eq('tenant_id', tid)
+          .eq('status', 'pago')
+          .gte('paid_date', ninetyDaysAgo),
+
+        // Payables pagos (ultimos 90d) com datas
+        _db().from('fin_payables')
+          .select('amount, due_date, paid_date')
+          .eq('tenant_id', tid)
+          .eq('status', 'pago')
+          .gte('paid_date', ninetyDaysAgo),
+
+        // Receivables em atraso (inadimplencia)
+        _db().from('fin_receivables')
+          .select('amount, amount_paid, due_date')
+          .eq('tenant_id', tid)
+          .in('status', ['aberto', 'parcial', 'emitido', 'atrasado'])
+          .lt('due_date', today),
+
+        // Payables em atraso
+        _db().from('fin_payables')
+          .select('amount, amount_paid, due_date')
+          .eq('tenant_id', tid)
+          .in('status', ['aberto', 'parcial', 'aprovado', 'atrasado'])
+          .lt('due_date', today),
+
+        // Todas payables em aberto (endividamento)
+        _db().from('fin_payables')
+          .select('amount, amount_paid')
+          .eq('tenant_id', tid)
+          .in('status', ['aberto', 'parcial', 'aprovado', 'atrasado', 'aguardando_aprovacao'])
+      ]);
+
+      // PMR — Prazo Medio de Recebimento (dias entre vencimento e pagamento)
+      const recPaid = paidRecRes.data || [];
+      let pmrSum = 0, pmrCount = 0;
+      recPaid.forEach(r => {
+        if (r.paid_date && r.due_date) {
+          const diff = Math.max(0, (new Date(r.paid_date) - new Date(r.due_date)) / 86400000);
+          pmrSum += diff;
+          pmrCount++;
+        }
+      });
+      const pmr = pmrCount > 0 ? Math.round(pmrSum / pmrCount) : 0;
+
+      // PMP — Prazo Medio de Pagamento
+      const payPaid = paidPayRes.data || [];
+      let pmpSum = 0, pmpCount = 0;
+      payPaid.forEach(p => {
+        if (p.paid_date && p.due_date) {
+          const diff = Math.max(0, (new Date(p.paid_date) - new Date(p.due_date)) / 86400000);
+          pmpSum += diff;
+          pmpCount++;
+        }
+      });
+      const pmp = pmpCount > 0 ? Math.round(pmpSum / pmpCount) : 0;
+
+      // Ciclo Financeiro = PMR - PMP (positivo = precisa de capital de giro)
+      const cicloFinanceiro = pmr - pmp;
+
+      // Inadimplencia
+      const inadimplencia = (overdueRecRes.data || [])
+        .reduce((s, r) => s + ((r.amount || 0) - (r.amount_paid || 0)), 0);
+      const inadimplenciaCount = (overdueRecRes.data || []).length;
+
+      // Payables em atraso
+      const payablesAtrasados = (overduePayRes.data || [])
+        .reduce((s, p) => s + ((p.amount || 0) - (p.amount_paid || 0)), 0);
+
+      // Endividamento total (tudo que deve, nao pago)
+      const endividamento = (allOpenPayRes.data || [])
+        .reduce((s, p) => s + ((p.amount || 0) - (p.amount_paid || 0)), 0);
+
+      // Receita media mensal (ultimos 90d / 3)
+      const receitaMedia90d = recPaid.reduce((s, r) => s + (r.amount || 0), 0) / 3;
+      const indiceEndividamento = receitaMedia90d > 0 ? endividamento / receitaMedia90d : 0;
+
+      return {
+        pmr,
+        pmp,
+        cicloFinanceiro,
+        inadimplencia,
+        inadimplenciaCount,
+        payablesAtrasados,
+        endividamento,
+        indiceEndividamento,
+        receitaMedia90d
+      };
+    },
+
+    // ═══════════════════════════════════════════════════════════
+    // ANALYTICS — Custos Fixos vs Variaveis
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Breakdown custos fixos vs variaveis com evolucao temporal.
+     * Fixos: salarios, ferramentas, estrutura, assinaturas
+     * Variaveis: freelancers, materiais, licencas por projeto
+     */
+    async getCustosFixosVsVariaveis() {
+      const tid = _tid();
+
+      const { data, error } = await _db().from('fin_payables')
+        .select('amount, due_date, status, cost_center_id, category_id, category:fin_categories(name), cost_center:fin_cost_centers(name, category)')
+        .eq('tenant_id', tid)
+        .not('status', 'eq', 'cancelado')
+        .order('due_date', { ascending: true });
+
+      if (error) throw error;
+
+      const fixoKeywords = ['salario', 'salário', 'folha', 'aluguel', 'ferramenta', 'software', 'assinatura', 'internet', 'telefone', 'energia', 'agua', 'contador', 'contabil', 'estrutura', 'sede', 'escritorio', 'plano'];
+      const variavelKeywords = ['freelancer', 'freelance', 'terceiro', 'projeto', 'material', 'insumo', 'licenca', 'viagem', 'evento', 'campanha', 'midia', 'comissao', 'bonus'];
+
+      let totalFixo = 0, totalVariavel = 0, totalOutros = 0;
+      const fixoByCategory = {};
+      const variavelByCategory = {};
+      const monthlyEvolution = {};
+
+      (data || []).forEach(p => {
+        const catName = (p.category?.name || '').toLowerCase();
+        const ccCat = (p.cost_center?.category || '').toLowerCase();
+        const ccName = (p.cost_center?.name || '').toLowerCase();
+        const combined = `${catName} ${ccCat} ${ccName}`;
+        const amount = p.amount || 0;
+
+        let tipo = 'outros';
+        if (fixoKeywords.some(k => combined.includes(k))) {
+          tipo = 'fixo';
+          totalFixo += amount;
+          const cat = p.category?.name || 'Sem Categoria';
+          fixoByCategory[cat] = (fixoByCategory[cat] || 0) + amount;
+        } else if (variavelKeywords.some(k => combined.includes(k))) {
+          tipo = 'variavel';
+          totalVariavel += amount;
+          const cat = p.category?.name || 'Sem Categoria';
+          variavelByCategory[cat] = (variavelByCategory[cat] || 0) + amount;
+        } else {
+          totalOutros += amount;
+        }
+
+        // Evolucao mensal
+        if (p.due_date) {
+          const key = p.due_date.substring(0, 7);
+          if (!monthlyEvolution[key]) monthlyEvolution[key] = { fixo: 0, variavel: 0, outros: 0 };
+          monthlyEvolution[key][tipo] += amount;
+        }
+      });
+
+      const evolucao = Object.entries(monthlyEvolution)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([month, d]) => ({
+          month,
+          label: new Date(month + '-01').toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
+          fixo: d.fixo,
+          variavel: d.variavel,
+          outros: d.outros,
+          total: d.fixo + d.variavel + d.outros
+        }));
+
+      const totalGeral = totalFixo + totalVariavel + totalOutros;
+
+      return {
+        totalFixo,
+        totalVariavel,
+        totalOutros,
+        totalGeral,
+        pctFixo: totalGeral > 0 ? (totalFixo / totalGeral * 100).toFixed(1) : '0.0',
+        pctVariavel: totalGeral > 0 ? (totalVariavel / totalGeral * 100).toFixed(1) : '0.0',
+        fixoByCategory: Object.entries(fixoByCategory).sort((a, b) => b[1] - a[1]).map(([name, total]) => ({ name, total })),
+        variavelByCategory: Object.entries(variavelByCategory).sort((a, b) => b[1] - a[1]).map(([name, total]) => ({ name, total })),
+        evolucao
+      };
+    },
+
+    // ═══════════════════════════════════════════════════════════
+    // ANALYTICS — Camada Comparativa
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Comparativos: mes atual vs anterior, acumulado YTD vs ano anterior.
+     */
+    async getComparativo() {
+      const tid = _tid();
+      const now = new Date();
+      const curMonth = now.getMonth();
+      const curYear = now.getFullYear();
+
+      // Periodos
+      const curStart = `${curYear}-${String(curMonth + 1).padStart(2, '0')}-01`;
+      const curEnd = new Date(curYear, curMonth + 1, 0).toISOString().split('T')[0];
+      const prevStart = curMonth === 0
+        ? `${curYear - 1}-12-01`
+        : `${curYear}-${String(curMonth).padStart(2, '0')}-01`;
+      const prevEnd = curMonth === 0
+        ? `${curYear - 1}-12-31`
+        : new Date(curYear, curMonth, 0).toISOString().split('T')[0];
+      const ytdStart = `${curYear}-01-01`;
+      const prevYtdStart = `${curYear - 1}-01-01`;
+      const prevYtdEnd = `${curYear - 1}-${String(curMonth + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+      const [curRecRes, curPayRes, prevRecRes, prevPayRes, ytdRecRes, ytdPayRes, prevYtdRecRes, prevYtdPayRes] = await Promise.all([
+        // Mes atual - receivables
+        _db().from('fin_receivables').select('amount, status').eq('tenant_id', tid)
+          .not('status', 'eq', 'cancelado').gte('due_date', curStart).lte('due_date', curEnd),
+        // Mes atual - payables
+        _db().from('fin_payables').select('amount, status').eq('tenant_id', tid)
+          .not('status', 'eq', 'cancelado').gte('due_date', curStart).lte('due_date', curEnd),
+        // Mes anterior - receivables
+        _db().from('fin_receivables').select('amount, status').eq('tenant_id', tid)
+          .not('status', 'eq', 'cancelado').gte('due_date', prevStart).lte('due_date', prevEnd),
+        // Mes anterior - payables
+        _db().from('fin_payables').select('amount, status').eq('tenant_id', tid)
+          .not('status', 'eq', 'cancelado').gte('due_date', prevStart).lte('due_date', prevEnd),
+        // YTD - receivables
+        _db().from('fin_receivables').select('amount, status').eq('tenant_id', tid)
+          .not('status', 'eq', 'cancelado').gte('due_date', ytdStart).lte('due_date', curEnd),
+        // YTD - payables
+        _db().from('fin_payables').select('amount, status').eq('tenant_id', tid)
+          .not('status', 'eq', 'cancelado').gte('due_date', ytdStart).lte('due_date', curEnd),
+        // YTD ano anterior - receivables
+        _db().from('fin_receivables').select('amount, status').eq('tenant_id', tid)
+          .not('status', 'eq', 'cancelado').gte('due_date', prevYtdStart).lte('due_date', prevYtdEnd),
+        // YTD ano anterior - payables
+        _db().from('fin_payables').select('amount, status').eq('tenant_id', tid)
+          .not('status', 'eq', 'cancelado').gte('due_date', prevYtdStart).lte('due_date', prevYtdEnd)
+      ]);
+
+      const sum = arr => (arr?.data || []).reduce((s, r) => s + (r.amount || 0), 0);
+      const sumPago = arr => (arr?.data || []).filter(r => r.status === 'pago').reduce((s, r) => s + (r.amount || 0), 0);
+
+      const curReceita = sum(curRecRes);
+      const curDespesa = sum(curPayRes);
+      const curResultado = curReceita - curDespesa;
+
+      const prevReceita = sum(prevRecRes);
+      const prevDespesa = sum(prevPayRes);
+      const prevResultado = prevReceita - prevDespesa;
+
+      const ytdReceita = sum(ytdRecRes);
+      const ytdDespesa = sum(ytdPayRes);
+      const ytdResultado = ytdReceita - ytdDespesa;
+
+      const prevYtdReceita = sum(prevYtdRecRes);
+      const prevYtdDespesa = sum(prevYtdPayRes);
+      const prevYtdResultado = prevYtdReceita - prevYtdDespesa;
+
+      const varReceita = prevReceita > 0 ? ((curReceita - prevReceita) / prevReceita * 100) : 0;
+      const varDespesa = prevDespesa > 0 ? ((curDespesa - prevDespesa) / prevDespesa * 100) : 0;
+
+      const varYtdReceita = prevYtdReceita > 0 ? ((ytdReceita - prevYtdReceita) / prevYtdReceita * 100) : 0;
+      const varYtdDespesa = prevYtdDespesa > 0 ? ((ytdDespesa - prevYtdDespesa) / prevYtdDespesa * 100) : 0;
+
+      const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+      return {
+        mesAtual: {
+          label: `${monthNames[curMonth]}/${curYear}`,
+          receita: curReceita,
+          despesa: curDespesa,
+          resultado: curResultado
+        },
+        mesAnterior: {
+          label: curMonth === 0 ? `Dez/${curYear - 1}` : `${monthNames[curMonth - 1]}/${curYear}`,
+          receita: prevReceita,
+          despesa: prevDespesa,
+          resultado: prevResultado
+        },
+        variacao: { receita: varReceita, despesa: varDespesa },
+        ytd: {
+          label: `Jan-${monthNames[curMonth]}/${curYear}`,
+          receita: ytdReceita,
+          despesa: ytdDespesa,
+          resultado: ytdResultado
+        },
+        ytdAnterior: {
+          label: `Jan-${monthNames[curMonth]}/${curYear - 1}`,
+          receita: prevYtdReceita,
+          despesa: prevYtdDespesa,
+          resultado: prevYtdResultado
+        },
+        variacaoYtd: { receita: varYtdReceita, despesa: varYtdDespesa }
+      };
+    },
+
+    // ═══════════════════════════════════════════════════════════
+    // ANALYTICS — Visao de Caixa e Liquidez (Runway)
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Calcula runway (meses de operacao), fluxo realizado vs projetado,
+     * contas por vencimento agrupadas.
+     */
+    async getVisaoCaixa() {
+      const tid = _tid();
+      const today = new Date().toISOString().split('T')[0];
+      const now = new Date();
+
+      const [balanceRes, payablesByWeek, receivablesByWeek, avgMonthlyPayRes] = await Promise.all([
+        // Saldo atual
+        _db().from('fin_balance_snapshots')
+          .select('balance, recorded_at')
+          .eq('tenant_id', tid)
+          .order('recorded_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+
+        // Payables proximos 90 dias (para agrupar por semana/vencimento)
+        _db().from('fin_payables')
+          .select('amount, amount_paid, due_date, status, vendor:fin_vendors(name)')
+          .eq('tenant_id', tid)
+          .in('status', ['aberto', 'parcial', 'aprovado', 'atrasado', 'aguardando_aprovacao'])
+          .gte('due_date', today)
+          .lte('due_date', new Date(Date.now() + 90 * 86400000).toISOString().split('T')[0])
+          .order('due_date', { ascending: true }),
+
+        // Receivables proximos 90 dias
+        _db().from('fin_receivables')
+          .select('amount, amount_paid, due_date, status, client:fin_clients(name)')
+          .eq('tenant_id', tid)
+          .in('status', ['aberto', 'parcial', 'emitido', 'atrasado', 'previsto'])
+          .gte('due_date', today)
+          .lte('due_date', new Date(Date.now() + 90 * 86400000).toISOString().split('T')[0])
+          .order('due_date', { ascending: true }),
+
+        // Media mensal de pagamentos (ultimos 6 meses)
+        _db().from('fin_payables')
+          .select('amount, paid_date')
+          .eq('tenant_id', tid)
+          .eq('status', 'pago')
+          .gte('paid_date', new Date(now.getFullYear(), now.getMonth() - 6, 1).toISOString().split('T')[0])
+      ]);
+
+      const saldo = balanceRes.data?.balance || 0;
+
+      // Agrupar payables por semana
+      const payByWeek = {};
+      (payablesByWeek.data || []).forEach(p => {
+        const d = new Date(p.due_date);
+        const weekStart = new Date(d);
+        weekStart.setDate(d.getDate() - d.getDay());
+        const key = weekStart.toISOString().split('T')[0];
+        if (!payByWeek[key]) payByWeek[key] = { total: 0, items: [] };
+        const saldo_item = (p.amount || 0) - (p.amount_paid || 0);
+        payByWeek[key].total += saldo_item;
+        payByWeek[key].items.push({ vendor: p.vendor?.name, amount: saldo_item, due: p.due_date });
+      });
+
+      // Agrupar receivables por semana
+      const recByWeek = {};
+      (receivablesByWeek.data || []).forEach(r => {
+        const d = new Date(r.due_date);
+        const weekStart = new Date(d);
+        weekStart.setDate(d.getDate() - d.getDay());
+        const key = weekStart.toISOString().split('T')[0];
+        if (!recByWeek[key]) recByWeek[key] = { total: 0, items: [] };
+        const saldo_item = (r.amount || 0) - (r.amount_paid || 0);
+        recByWeek[key].total += saldo_item;
+        recByWeek[key].items.push({ client: r.client?.name, amount: saldo_item, due: r.due_date });
+      });
+
+      // Runway = saldo / media mensal de despesas
+      const totalPago6m = (avgMonthlyPayRes.data || []).reduce((s, p) => s + (p.amount || 0), 0);
+      const mediaMensal = totalPago6m / 6;
+      const runway = mediaMensal > 0 ? saldo / mediaMensal : 99;
+
+      // Totais proximos 30/60/90 dias
+      const in30d = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+      const in60d = new Date(Date.now() + 60 * 86400000).toISOString().split('T')[0];
+
+      const aPagar30d = (payablesByWeek.data || []).filter(p => p.due_date <= in30d).reduce((s, p) => s + ((p.amount || 0) - (p.amount_paid || 0)), 0);
+      const aPagar60d = (payablesByWeek.data || []).filter(p => p.due_date <= in60d).reduce((s, p) => s + ((p.amount || 0) - (p.amount_paid || 0)), 0);
+      const aPagar90d = (payablesByWeek.data || []).reduce((s, p) => s + ((p.amount || 0) - (p.amount_paid || 0)), 0);
+
+      const aReceber30d = (receivablesByWeek.data || []).filter(r => r.due_date <= in30d).reduce((s, r) => s + ((r.amount || 0) - (r.amount_paid || 0)), 0);
+      const aReceber60d = (receivablesByWeek.data || []).filter(r => r.due_date <= in60d).reduce((s, r) => s + ((r.amount || 0) - (r.amount_paid || 0)), 0);
+      const aReceber90d = (receivablesByWeek.data || []).reduce((s, r) => s + ((r.amount || 0) - (r.amount_paid || 0)), 0);
+
+      return {
+        saldo,
+        runway: Math.round(runway * 10) / 10,
+        mediaMensalDespesa: mediaMensal,
+        aPagar: { d30: aPagar30d, d60: aPagar60d, d90: aPagar90d },
+        aReceber: { d30: aReceber30d, d60: aReceber60d, d90: aReceber90d },
+        saldoProjetado30d: saldo + aReceber30d - aPagar30d,
+        payByWeek,
+        recByWeek
+      };
+    },
+
+    // ═══════════════════════════════════════════════════════════
+    // ANALYTICS — Eficiencia e Rentabilidade
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Margem por cliente, ticket medio, concentracao top 5,
+     * ranking de clientes por rentabilidade.
+     */
+    async getEficienciaRentabilidade() {
+      const tid = _tid();
+      const now = new Date();
+      const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, 1).toISOString().split('T')[0];
+      const today = now.toISOString().split('T')[0];
+
+      const [recRes, payRes] = await Promise.all([
+        // Receivables pagos ou em aberto (ultimos 6 meses) com client info
+        _db().from('fin_receivables')
+          .select('amount, amount_paid, status, client_id, due_date, paid_date, client:fin_clients(name)')
+          .eq('tenant_id', tid)
+          .not('status', 'eq', 'cancelado')
+          .gte('due_date', sixMonthsAgo),
+
+        // Payables dos mesmos 6 meses com project_id para vincular custos a clientes
+        _db().from('fin_payables')
+          .select('amount, status, project_id, vendor_id, due_date, cost_center_id, category:fin_categories(name), cost_center:fin_cost_centers(name, category)')
+          .eq('tenant_id', tid)
+          .not('status', 'eq', 'cancelado')
+          .gte('due_date', sixMonthsAgo)
+      ]);
+
+      const receivables = recRes.data || [];
+      const payables = payRes.data || [];
+
+      // Receita por cliente
+      const receitaPorCliente = {};
+      let receitaTotal = 0;
+      let countParcelas = 0;
+      let clientesSemId = 0;
+
+      receivables.forEach(r => {
+        const valor = r.status === 'pago' ? (r.amount || 0) : (r.amount_paid || 0);
+        receitaTotal += (r.amount || 0);
+        countParcelas++;
+
+        const clientKey = r.client_id || '__sem_cliente__';
+        const clientName = r.client?.name || 'Sem Cliente';
+
+        if (!r.client_id) clientesSemId++;
+
+        if (!receitaPorCliente[clientKey]) {
+          receitaPorCliente[clientKey] = { name: clientName, receita: 0, recebido: 0, count: 0 };
+        }
+        receitaPorCliente[clientKey].receita += (r.amount || 0);
+        receitaPorCliente[clientKey].recebido += valor;
+        receitaPorCliente[clientKey].count++;
+      });
+
+      // Ranking de clientes por receita
+      const clienteRanking = Object.entries(receitaPorCliente)
+        .map(([id, data]) => ({
+          id,
+          name: data.name,
+          receita: data.receita,
+          recebido: data.recebido,
+          parcelas: data.count,
+          pctReceita: receitaTotal > 0 ? (data.receita / receitaTotal * 100) : 0,
+          ticketMedio: data.count > 0 ? data.receita / data.count : 0
+        }))
+        .sort((a, b) => b.receita - a.receita);
+
+      // Concentracao top 5
+      const top5Receita = clienteRanking.slice(0, 5).reduce((s, c) => s + c.receita, 0);
+      const concentracaoTop5 = receitaTotal > 0 ? (top5Receita / receitaTotal * 100) : 0;
+
+      // Ticket medio geral
+      const ticketMedioGeral = countParcelas > 0 ? receitaTotal / countParcelas : 0;
+
+      // Total de custos (para calcular margem geral)
+      const totalCustos = payables.reduce((s, p) => s + (p.amount || 0), 0);
+      const margemGeral = receitaTotal > 0 ? ((receitaTotal - totalCustos) / receitaTotal * 100) : 0;
+
+      // Custos diretos vs indiretos (COGS keywords)
+      const cogsKeywords = ['produção', 'producao', 'execução', 'execucao', 'material', 'freelancer', 'terceiro', 'direto', 'entrega', 'obra', 'servico prestado', 'custo direto', 'cogs'];
+      let totalCustoDireto = 0;
+      payables.forEach(p => {
+        const catName = (p.category?.name || '').toLowerCase();
+        const ccCat = (p.cost_center?.category || '').toLowerCase();
+        const ccName = (p.cost_center?.name || '').toLowerCase();
+        const combined = `${catName} ${ccCat} ${ccName}`;
+        if (cogsKeywords.some(k => combined.includes(k))) {
+          totalCustoDireto += (p.amount || 0);
+        }
+      });
+      const margemBruta = receitaTotal > 0 ? ((receitaTotal - totalCustoDireto) / receitaTotal * 100) : 0;
+
+      return {
+        receitaTotal,
+        totalCustos,
+        margemGeral: Math.round(margemGeral * 10) / 10,
+        margemBruta: Math.round(margemBruta * 10) / 10,
+        ticketMedioGeral: Math.round(ticketMedioGeral * 100) / 100,
+        concentracaoTop5: Math.round(concentracaoTop5 * 10) / 10,
+        totalClientes: Object.keys(receitaPorCliente).filter(k => k !== '__sem_cliente__').length,
+        clientesSemId,
+        clienteRanking: clienteRanking.slice(0, 15),
+        top5: clienteRanking.slice(0, 5)
+      };
+    },
+
+    // ═══════════════════════════════════════════════════════════
+    // ANALYTICS — Receita e Pipeline Comercial
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Receita recorrente vs pontual, projecao de faturamento,
+     * evolucao mensal de receita, taxa de recebimento.
+     */
+    async getReceitaPipeline() {
+      const tid = _tid();
+      const now = new Date();
+      const twelveMonthsAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1).toISOString().split('T')[0];
+      const today = now.toISOString().split('T')[0];
+
+      const { data, error } = await _db().from('fin_receivables')
+        .select('amount, amount_paid, status, due_date, paid_date, client_id, description, client:fin_clients(name)')
+        .eq('tenant_id', tid)
+        .not('status', 'eq', 'cancelado')
+        .gte('due_date', twelveMonthsAgo)
+        .order('due_date', { ascending: true });
+
+      if (error) throw error;
+
+      const receivables = data || [];
+
+      // Classificar receita: recorrente (mesmo cliente aparece em 3+ meses) vs pontual
+      const clientMeses = {};
+      receivables.forEach(r => {
+        const clientKey = r.client_id || '__sem__';
+        const mesKey = r.due_date ? r.due_date.substring(0, 7) : 'unknown';
+        if (!clientMeses[clientKey]) clientMeses[clientKey] = new Set();
+        clientMeses[clientKey].add(mesKey);
+      });
+
+      const clienteRecorrente = new Set();
+      Object.entries(clientMeses).forEach(([clientId, meses]) => {
+        if (meses.size >= 3) clienteRecorrente.add(clientId);
+      });
+
+      let receitaRecorrente = 0, receitaPontual = 0;
+      let recebidoTotal = 0, faturadoTotal = 0;
+
+      // Evolucao mensal
+      const mensal = {};
+      const ultimosMeses = [];
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        ultimosMeses.push(key);
+        mensal[key] = { faturado: 0, recebido: 0, recorrente: 0, pontual: 0 };
+      }
+
+      receivables.forEach(r => {
+        const clientKey = r.client_id || '__sem__';
+        const valor = r.amount || 0;
+        const recebido = r.status === 'pago' ? valor : (r.amount_paid || 0);
+        const mesKey = r.due_date ? r.due_date.substring(0, 7) : null;
+
+        faturadoTotal += valor;
+        recebidoTotal += recebido;
+
+        if (clienteRecorrente.has(clientKey)) {
+          receitaRecorrente += valor;
+        } else {
+          receitaPontual += valor;
+        }
+
+        if (mesKey && mensal[mesKey]) {
+          mensal[mesKey].faturado += valor;
+          mensal[mesKey].recebido += recebido;
+          if (clienteRecorrente.has(clientKey)) {
+            mensal[mesKey].recorrente += valor;
+          } else {
+            mensal[mesKey].pontual += valor;
+          }
+        }
+      });
+
+      // Taxa de recebimento
+      const taxaRecebimento = faturadoTotal > 0 ? (recebidoTotal / faturadoTotal * 100) : 0;
+
+      // Projecao de faturamento (media dos ultimos 3 meses completos)
+      const mesesCompletos = ultimosMeses.slice(-4, -1);
+      const somaUltimos3 = mesesCompletos.reduce((s, m) => s + (mensal[m]?.faturado || 0), 0);
+      const mediaUltimos3 = somaUltimos3 / 3;
+
+      // Pipeline futuro (receivables com due_date > today em status aberto/previsto/emitido)
+      const pipeline = receivables.filter(r =>
+        r.due_date > today &&
+        ['aberto', 'previsto', 'emitido', 'parcial', 'atrasado'].includes(r.status)
+      );
+      const totalPipeline = pipeline.reduce((s, r) => s + ((r.amount || 0) - (r.amount_paid || 0)), 0);
+
+      // Pct recorrente vs pontual
+      const totalReceita = receitaRecorrente + receitaPontual;
+      const pctRecorrente = totalReceita > 0 ? (receitaRecorrente / totalReceita * 100) : 0;
+
+      const evolucao = ultimosMeses.map(m => ({
+        month: m,
+        label: new Date(m + '-01').toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
+        ...mensal[m]
+      }));
+
+      return {
+        receitaRecorrente,
+        receitaPontual,
+        pctRecorrente: Math.round(pctRecorrente * 10) / 10,
+        pctPontual: Math.round((100 - pctRecorrente) * 10) / 10,
+        clientesRecorrentes: clienteRecorrente.size - (clienteRecorrente.has('__sem__') ? 1 : 0),
+        taxaRecebimento: Math.round(taxaRecebimento * 10) / 10,
+        faturadoTotal,
+        recebidoTotal,
+        projecaoProximoMes: Math.round(mediaUltimos3 * 100) / 100,
+        totalPipeline,
+        countPipeline: pipeline.length,
+        evolucao
+      };
     }
   };
 })();

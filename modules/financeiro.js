@@ -2464,18 +2464,25 @@ const TBO_FINANCEIRO = {
     try {
       if (typeof FinanceRepo === 'undefined') throw new Error('FinanceRepo não está disponível');
 
-      // Carregar todos os dados em paralelo
-      const [kpis, costComp, delinquency, healthData, monthlyData, clientBreakdown] = await Promise.all([
+      // Carregar todos os dados em paralelo (incluindo novos blocos)
+      const [kpis, costComp, delinquency, healthData, monthlyData, clientBreakdown, dreData, saudeFiscal, custosFixVar, comparativo, visaoCaixa, eficiencia, receitaPipeline] = await Promise.all([
         FinanceRepo.getDashboardKPIs(),
         FinanceRepo.getCostComposition(),
         FinanceRepo.getDelinquencyByClient(),
         FinanceRepo.getFinancialHealthData(),
         FinanceRepo.getMonthlyRevenueCost(),
-        FinanceRepo.getClientBreakdown()
+        FinanceRepo.getClientBreakdown(),
+        FinanceRepo.getDREGerencial().catch(e => { console.warn('[Fin] DRE falhou:', e.message); return null; }),
+        FinanceRepo.getSaudeFiscal().catch(e => { console.warn('[Fin] SaudeFiscal falhou:', e.message); return null; }),
+        FinanceRepo.getCustosFixosVsVariaveis().catch(e => { console.warn('[Fin] CustosFixVar falhou:', e.message); return null; }),
+        FinanceRepo.getComparativo().catch(e => { console.warn('[Fin] Comparativo falhou:', e.message); return null; }),
+        FinanceRepo.getVisaoCaixa().catch(e => { console.warn('[Fin] VisaoCaixa falhou:', e.message); return null; }),
+        FinanceRepo.getEficienciaRentabilidade().catch(e => { console.warn('[Fin] Eficiencia falhou:', e.message); return null; }),
+        FinanceRepo.getReceitaPipeline().catch(e => { console.warn('[Fin] ReceitaPipeline falhou:', e.message); return null; })
       ]);
 
       this._data = kpis;
-      this._dashData = { kpis, costComp, delinquency, healthData, monthlyData, clientBreakdown };
+      this._dashData = { kpis, costComp, delinquency, healthData, monthlyData, clientBreakdown, dreData, saudeFiscal, custosFixVar, comparativo, visaoCaixa, eficiencia, receitaPipeline };
       this._renderDashboard(container);
     } catch (err) {
       console.error('[Financeiro] Erro ao carregar dashboard:', err);
@@ -2484,7 +2491,7 @@ const TBO_FINANCEIRO = {
   },
 
   _renderDashboard(container) {
-    const { kpis, costComp, delinquency, healthData, monthlyData, clientBreakdown } = this._dashData;
+    const { kpis, costComp, delinquency, healthData, monthlyData, clientBreakdown, dreData, saudeFiscal, custosFixVar, comparativo, visaoCaixa, eficiencia, receitaPipeline } = this._dashData;
     const fmt = this._fmt();
     const saldoColor = kpis.saldoAtual >= 0 ? 'var(--color-success)' : 'var(--color-danger)';
     const projetadoColor = kpis.saldoProjetado >= 0 ? 'var(--color-success)' : 'var(--color-danger)';
@@ -2634,6 +2641,41 @@ const TBO_FINANCEIRO = {
     // SEÇÃO 8 — AÇÕES RECOMENDADAS
     // ══════════════════════════════════════════════════════════════════════
     html += this._renderRecommendedActions(healthData, delinquency, clientBreakdown, kpis, fmt);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // SEÇÃO 9 — VISÃO DE CAIXA E LIQUIDEZ
+    // ══════════════════════════════════════════════════════════════════════
+    if (visaoCaixa) html += this._renderVisaoCaixaSection(visaoCaixa, fmt);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // SEÇÃO 10 — DRE GERENCIAL (Resultado Operacional)
+    // ══════════════════════════════════════════════════════════════════════
+    if (dreData) html += this._renderDRESection(dreData, fmt);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // SEÇÃO 11 — CUSTOS FIXOS vs VARIÁVEIS
+    // ══════════════════════════════════════════════════════════════════════
+    if (custosFixVar) html += this._renderCustosFixVarSection(custosFixVar, fmt);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // SEÇÃO 12 — SAÚDE FISCAL (PMR, PMP, Ciclo)
+    // ══════════════════════════════════════════════════════════════════════
+    if (saudeFiscal) html += this._renderSaudeFiscalSection(saudeFiscal, fmt);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // SEÇÃO 13 — CAMADA COMPARATIVA
+    // ══════════════════════════════════════════════════════════════════════
+    if (comparativo) html += this._renderComparativoSection(comparativo, fmt);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // SEÇÃO 14 — EFICIÊNCIA E RENTABILIDADE
+    // ══════════════════════════════════════════════════════════════════════
+    if (eficiencia) html += this._renderEficienciaSection(eficiencia, fmt);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // SEÇÃO 15 — RECEITA E PIPELINE COMERCIAL
+    // ══════════════════════════════════════════════════════════════════════
+    if (receitaPipeline) html += this._renderReceitaPipelineSection(receitaPipeline, fmt);
 
     // ── Seções: Top Centro de Custo + Top Projetos ──────────────────────
     html += '<div class="grid-2" style="gap:16px;margin-bottom:16px;">';
@@ -3386,6 +3428,522 @@ const TBO_FINANCEIRO = {
         }
       });
     }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // SEÇÃO: VISÃO DE CAIXA E LIQUIDEZ
+  // ═══════════════════════════════════════════════════════════════════════
+
+  _renderVisaoCaixaSection(data, fmt) {
+    const runwayColor = data.runway >= 6 ? '#22c55e' : data.runway >= 3 ? '#f59e0b' : '#ef4444';
+    const runwayLabel = data.runway >= 12 ? 'Excelente' : data.runway >= 6 ? 'Saudavel' : data.runway >= 3 ? 'Atencao' : 'Critico';
+    const projColor = data.saldoProjetado30d >= 0 ? '#22c55e' : '#ef4444';
+
+    return `<div class="card" style="margin-bottom:16px;padding:16px;">
+      <div class="card-header" style="margin-bottom:12px;"><h3 class="card-title">
+        <i data-lucide="droplets" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:#3b82f6;"></i>
+        Visao de Caixa e Liquidez
+      </h3></div>
+
+      <div class="grid-4 fn-kpi-grid" style="margin-bottom:16px;">
+        <div class="kpi-card">
+          <div class="kpi-label">Saldo Atual</div>
+          <div class="kpi-value" style="color:${data.saldo >= 0 ? '#22c55e' : '#ef4444'};">${fmt.currency(data.saldo)}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Runway</div>
+          <div class="kpi-value" style="color:${runwayColor};">${data.runway} meses</div>
+          <div class="kpi-change" style="color:${runwayColor};">${runwayLabel}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Projetado 30d</div>
+          <div class="kpi-value" style="color:${projColor};">${fmt.currency(data.saldoProjetado30d)}</div>
+          <div class="kpi-change neutral">Saldo + receber - pagar</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Desp. Media Mensal</div>
+          <div class="kpi-value" style="color:#ef4444;">${fmt.currency(data.mediaMensalDespesa)}</div>
+          <div class="kpi-change neutral">Ultimos 6 meses</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div>
+          <h4 style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">
+            <i data-lucide="arrow-up-circle" style="width:13px;height:13px;color:#ef4444;vertical-align:middle;margin-right:4px;"></i>
+            A Pagar por Periodo
+          </h4>
+          <table style="width:100%;font-size:12px;">
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">Proximos 30 dias</td><td style="text-align:right;padding:4px 8px;font-weight:600;color:#ef4444;">${fmt.currency(data.aPagar.d30)}</td></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">Proximos 60 dias</td><td style="text-align:right;padding:4px 8px;font-weight:600;color:#ef4444;">${fmt.currency(data.aPagar.d60)}</td></tr>
+            <tr><td style="padding:4px 8px;">Proximos 90 dias</td><td style="text-align:right;padding:4px 8px;font-weight:600;color:#ef4444;">${fmt.currency(data.aPagar.d90)}</td></tr>
+          </table>
+        </div>
+        <div>
+          <h4 style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">
+            <i data-lucide="arrow-down-circle" style="width:13px;height:13px;color:#22c55e;vertical-align:middle;margin-right:4px;"></i>
+            A Receber por Periodo
+          </h4>
+          <table style="width:100%;font-size:12px;">
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">Proximos 30 dias</td><td style="text-align:right;padding:4px 8px;font-weight:600;color:#22c55e;">${fmt.currency(data.aReceber.d30)}</td></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">Proximos 60 dias</td><td style="text-align:right;padding:4px 8px;font-weight:600;color:#22c55e;">${fmt.currency(data.aReceber.d60)}</td></tr>
+            <tr><td style="padding:4px 8px;">Proximos 90 dias</td><td style="text-align:right;padding:4px 8px;font-weight:600;color:#22c55e;">${fmt.currency(data.aReceber.d90)}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>`;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // SEÇÃO: DRE GERENCIAL
+  // ═══════════════════════════════════════════════════════════════════════
+
+  _renderDRESection(dre, fmt) {
+    const periodo = dre.periodo;
+    const monthNames = ['Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const periodoLabel = `${monthNames[periodo.month]} ${periodo.year}`;
+
+    // Linhas da DRE
+    const lines = [
+      { label: 'Receita Bruta', value: dre.receitaBruta, bold: true, color: '#22c55e' },
+      { label: 'Receita Liquida (efetiva)', value: dre.receitaLiquida, indent: true, color: '#22c55e' },
+      { label: '(-) Custos Diretos (COGS)', value: -dre.totalCogs, indent: false, color: '#ef4444' },
+      { label: '= Margem Bruta', value: dre.margemBruta, bold: true, color: dre.margemBruta >= 0 ? '#22c55e' : '#ef4444', pct: dre.margemBrutaPct },
+      { label: '(-) Despesas Operacionais', value: -dre.totalDespesasOp, indent: false, color: '#ef4444' },
+      { label: '= EBITDA', value: dre.ebitda, bold: true, color: dre.ebitda >= 0 ? '#22c55e' : '#ef4444', pct: dre.ebitdaPct },
+      { label: '= Lucro Liquido', value: dre.lucroLiquido, bold: true, color: dre.lucroLiquido >= 0 ? '#22c55e' : '#ef4444', pct: dre.margemLiquida }
+    ];
+
+    let dreRows = '';
+    lines.forEach(l => {
+      const fw = l.bold ? 'font-weight:600;' : '';
+      const indent = l.indent ? 'padding-left:20px;' : '';
+      const bg = l.bold ? 'background:rgba(255,255,255,0.03);' : '';
+      const pctLabel = l.pct !== undefined ? ` <span style="font-size:11px;color:var(--text-secondary);">(${l.pct.toFixed(1)}%)</span>` : '';
+      dreRows += `<tr style="border-bottom:1px solid var(--border);${bg}">
+        <td style="padding:6px 10px;${indent}${fw}">${l.label}</td>
+        <td style="text-align:right;padding:6px 10px;${fw}color:${l.color};">${fmt.currency(Math.abs(l.value))}${l.value < 0 ? '' : ''}${pctLabel}</td>
+      </tr>`;
+    });
+
+    // Despesas por categoria (top 5)
+    let catRows = '';
+    dre.despesasPorCategoria.slice(0, 8).forEach(c => {
+      const pct = dre.totalDespesasOp > 0 ? ((c.total / dre.totalDespesasOp) * 100).toFixed(1) : '0.0';
+      catRows += `<tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:4px 8px;font-size:12px;">${this._esc(c.name)}</td>
+        <td style="text-align:right;padding:4px 8px;font-size:12px;font-weight:500;">${fmt.currency(c.total)}</td>
+        <td style="text-align:right;padding:4px 8px;font-size:11px;color:var(--text-secondary);">${pct}%</td>
+      </tr>`;
+    });
+
+    return `<div class="card" style="margin-bottom:16px;padding:16px;">
+      <div class="card-header" style="margin-bottom:12px;"><h3 class="card-title">
+        <i data-lucide="file-spreadsheet" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:#8b5cf6;"></i>
+        DRE Gerencial — ${periodoLabel}
+      </h3></div>
+
+      <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:20px;">
+        <div>
+          <table style="width:100%;font-size:13px;">${dreRows}</table>
+        </div>
+        <div>
+          <h4 style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">Despesas Operacionais por Categoria</h4>
+          <table style="width:100%;">${catRows || '<tr><td style="padding:8px;font-size:12px;color:var(--text-secondary);">Sem dados</td></tr>'}</table>
+        </div>
+      </div>
+    </div>`;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // SEÇÃO: CUSTOS FIXOS vs VARIÁVEIS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  _renderCustosFixVarSection(data, fmt) {
+    const total = data.totalGeral || 1;
+
+    // Barra visual
+    const pctF = parseFloat(data.pctFixo) || 0;
+    const pctV = parseFloat(data.pctVariavel) || 0;
+    const pctO = 100 - pctF - pctV;
+
+    // Top categorias fixos
+    let fixoRows = '';
+    data.fixoByCategory.slice(0, 5).forEach(c => {
+      fixoRows += `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;">
+        <span>${this._esc(c.name)}</span><span style="font-weight:500;">${fmt.currency(c.total)}</span>
+      </div>`;
+    });
+
+    let varRows = '';
+    data.variavelByCategory.slice(0, 5).forEach(c => {
+      varRows += `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;">
+        <span>${this._esc(c.name)}</span><span style="font-weight:500;">${fmt.currency(c.total)}</span>
+      </div>`;
+    });
+
+    return `<div class="card" style="margin-bottom:16px;padding:16px;">
+      <div class="card-header" style="margin-bottom:12px;"><h3 class="card-title">
+        <i data-lucide="pie-chart" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:#f59e0b;"></i>
+        Custos Fixos vs Variaveis
+      </h3></div>
+
+      <div class="grid-4 fn-kpi-grid" style="margin-bottom:12px;">
+        <div class="kpi-card"><div class="kpi-label">Total Geral</div><div class="kpi-value">${fmt.currency(data.totalGeral)}</div></div>
+        <div class="kpi-card"><div class="kpi-label">Fixos</div><div class="kpi-value" style="color:#3b82f6;">${fmt.currency(data.totalFixo)}</div><div class="kpi-change neutral">${data.pctFixo}%</div></div>
+        <div class="kpi-card"><div class="kpi-label">Variaveis</div><div class="kpi-value" style="color:#f59e0b;">${fmt.currency(data.totalVariavel)}</div><div class="kpi-change neutral">${data.pctVariavel}%</div></div>
+        <div class="kpi-card"><div class="kpi-label">Outros</div><div class="kpi-value" style="color:#6b7280;">${fmt.currency(data.totalOutros)}</div><div class="kpi-change neutral">${pctO.toFixed(1)}%</div></div>
+      </div>
+
+      <!-- Barra visual proporcional -->
+      <div style="display:flex;height:24px;border-radius:6px;overflow:hidden;margin-bottom:16px;">
+        <div style="width:${pctF}%;background:#3b82f6;" title="Fixos ${data.pctFixo}%"></div>
+        <div style="width:${pctV}%;background:#f59e0b;" title="Variaveis ${data.pctVariavel}%"></div>
+        <div style="width:${pctO}%;background:#6b7280;" title="Outros ${pctO.toFixed(1)}%"></div>
+      </div>
+      <div style="display:flex;gap:16px;font-size:11px;margin-bottom:16px;">
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#3b82f6;margin-right:4px;"></span>Fixos</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#f59e0b;margin-right:4px;"></span>Variaveis</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#6b7280;margin-right:4px;"></span>Outros</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div>
+          <h4 style="font-size:13px;font-weight:600;margin-bottom:6px;color:#3b82f6;">Custos Fixos</h4>
+          ${fixoRows || '<div style="font-size:12px;color:var(--text-secondary);">Nenhum classificado</div>'}
+        </div>
+        <div>
+          <h4 style="font-size:13px;font-weight:600;margin-bottom:6px;color:#f59e0b;">Custos Variaveis</h4>
+          ${varRows || '<div style="font-size:12px;color:var(--text-secondary);">Nenhum classificado</div>'}
+        </div>
+      </div>
+    </div>`;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // SEÇÃO: SAÚDE FISCAL
+  // ═══════════════════════════════════════════════════════════════════════
+
+  _renderSaudeFiscalSection(sf, fmt) {
+    const cicloColor = sf.cicloFinanceiro <= 0 ? '#22c55e' : sf.cicloFinanceiro <= 15 ? '#f59e0b' : '#ef4444';
+    const cicloLabel = sf.cicloFinanceiro <= 0 ? 'Favoravel' : sf.cicloFinanceiro <= 15 ? 'Moderado' : 'Desfavoravel';
+    const endivColor = sf.indiceEndividamento <= 1 ? '#22c55e' : sf.indiceEndividamento <= 2 ? '#f59e0b' : '#ef4444';
+
+    return `<div class="card" style="margin-bottom:16px;padding:16px;">
+      <div class="card-header" style="margin-bottom:12px;"><h3 class="card-title">
+        <i data-lucide="heart-pulse" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:#ef4444;"></i>
+        Saude Fiscal
+      </h3></div>
+
+      <div class="grid-4 fn-kpi-grid" style="margin-bottom:12px;">
+        <div class="kpi-card">
+          <div class="kpi-label">PMR (Prazo Medio Receb.)</div>
+          <div class="kpi-value">${sf.pmr} dias</div>
+          <div class="kpi-change neutral">Apos vencimento</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">PMP (Prazo Medio Pgto.)</div>
+          <div class="kpi-value">${sf.pmp} dias</div>
+          <div class="kpi-change neutral">Apos vencimento</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Ciclo Financeiro</div>
+          <div class="kpi-value" style="color:${cicloColor};">${sf.cicloFinanceiro} dias</div>
+          <div class="kpi-change" style="color:${cicloColor};">${cicloLabel}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Indice Endividamento</div>
+          <div class="kpi-value" style="color:${endivColor};">${sf.indiceEndividamento.toFixed(2)}x</div>
+          <div class="kpi-change neutral">Divida / Receita mensal</div>
+        </div>
+      </div>
+
+      <div class="grid-2" style="gap:16px;">
+        <div style="padding:10px;border-radius:8px;background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.1);">
+          <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Inadimplencia (Receber em atraso)</div>
+          <div style="font-size:20px;font-weight:700;color:#ef4444;">${fmt.currency(sf.inadimplencia)}</div>
+          <div style="font-size:11px;color:var(--text-secondary);">${sf.inadimplenciaCount} parcelas vencidas</div>
+        </div>
+        <div style="padding:10px;border-radius:8px;background:rgba(249,115,22,0.05);border:1px solid rgba(249,115,22,0.1);">
+          <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Endividamento Total (A pagar em aberto)</div>
+          <div style="font-size:20px;font-weight:700;color:#f97316;">${fmt.currency(sf.endividamento)}</div>
+          <div style="font-size:11px;color:var(--text-secondary);">Payables vencidos: ${fmt.currency(sf.payablesAtrasados)}</div>
+        </div>
+      </div>
+    </div>`;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // SEÇÃO: CAMADA COMPARATIVA
+  // ═══════════════════════════════════════════════════════════════════════
+
+  _renderComparativoSection(comp, fmt) {
+    const varRecColor = comp.variacao.receita >= 0 ? '#22c55e' : '#ef4444';
+    const varDespColor = comp.variacao.despesa <= 0 ? '#22c55e' : '#ef4444';
+    const varRecIcon = comp.variacao.receita >= 0 ? 'trending-up' : 'trending-down';
+    const varDespIcon = comp.variacao.despesa <= 0 ? 'trending-down' : 'trending-up';
+
+    const varYtdRecColor = comp.variacaoYtd.receita >= 0 ? '#22c55e' : '#ef4444';
+    const varYtdDespColor = comp.variacaoYtd.despesa <= 0 ? '#22c55e' : '#ef4444';
+
+    return `<div class="card" style="margin-bottom:16px;padding:16px;">
+      <div class="card-header" style="margin-bottom:12px;"><h3 class="card-title">
+        <i data-lucide="git-compare" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:#6366f1;"></i>
+        Camada Comparativa
+      </h3></div>
+
+      <!-- Mes atual vs anterior -->
+      <h4 style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text-secondary);">Mes Atual vs Anterior</h4>
+      <div style="overflow-x:auto;margin-bottom:20px;">
+        <table style="width:100%;font-size:13px;border-collapse:collapse;">
+          <thead>
+            <tr style="border-bottom:2px solid var(--border);">
+              <th style="text-align:left;padding:6px 10px;font-weight:600;"></th>
+              <th style="text-align:right;padding:6px 10px;font-weight:600;">${this._esc(comp.mesAtual.label)}</th>
+              <th style="text-align:right;padding:6px 10px;font-weight:600;">${this._esc(comp.mesAnterior.label)}</th>
+              <th style="text-align:right;padding:6px 10px;font-weight:600;">Variacao</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:6px 10px;font-weight:500;">Receita</td>
+              <td style="text-align:right;padding:6px 10px;color:#22c55e;">${fmt.currency(comp.mesAtual.receita)}</td>
+              <td style="text-align:right;padding:6px 10px;color:var(--text-secondary);">${fmt.currency(comp.mesAnterior.receita)}</td>
+              <td style="text-align:right;padding:6px 10px;"><span style="color:${varRecColor};font-weight:500;"><i data-lucide="${varRecIcon}" style="width:12px;height:12px;vertical-align:middle;"></i> ${comp.variacao.receita.toFixed(1)}%</span></td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:6px 10px;font-weight:500;">Despesa</td>
+              <td style="text-align:right;padding:6px 10px;color:#ef4444;">${fmt.currency(comp.mesAtual.despesa)}</td>
+              <td style="text-align:right;padding:6px 10px;color:var(--text-secondary);">${fmt.currency(comp.mesAnterior.despesa)}</td>
+              <td style="text-align:right;padding:6px 10px;"><span style="color:${varDespColor};font-weight:500;"><i data-lucide="${varDespIcon}" style="width:12px;height:12px;vertical-align:middle;"></i> ${comp.variacao.despesa.toFixed(1)}%</span></td>
+            </tr>
+            <tr style="background:rgba(255,255,255,0.03);">
+              <td style="padding:6px 10px;font-weight:600;">Resultado</td>
+              <td style="text-align:right;padding:6px 10px;font-weight:600;color:${comp.mesAtual.resultado >= 0 ? '#22c55e' : '#ef4444'};">${fmt.currency(comp.mesAtual.resultado)}</td>
+              <td style="text-align:right;padding:6px 10px;font-weight:600;color:${comp.mesAnterior.resultado >= 0 ? '#22c55e' : '#ef4444'};">${fmt.currency(comp.mesAnterior.resultado)}</td>
+              <td style="text-align:right;padding:6px 10px;"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Acumulado YTD -->
+      <h4 style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text-secondary);">Acumulado do Ano (YTD)</h4>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;font-size:13px;border-collapse:collapse;">
+          <thead>
+            <tr style="border-bottom:2px solid var(--border);">
+              <th style="text-align:left;padding:6px 10px;font-weight:600;"></th>
+              <th style="text-align:right;padding:6px 10px;font-weight:600;">${this._esc(comp.ytd.label)}</th>
+              <th style="text-align:right;padding:6px 10px;font-weight:600;">${this._esc(comp.ytdAnterior.label)}</th>
+              <th style="text-align:right;padding:6px 10px;font-weight:600;">Variacao</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:6px 10px;font-weight:500;">Receita</td>
+              <td style="text-align:right;padding:6px 10px;color:#22c55e;">${fmt.currency(comp.ytd.receita)}</td>
+              <td style="text-align:right;padding:6px 10px;color:var(--text-secondary);">${fmt.currency(comp.ytdAnterior.receita)}</td>
+              <td style="text-align:right;padding:6px 10px;"><span style="color:${varYtdRecColor};font-weight:500;">${comp.variacaoYtd.receita.toFixed(1)}%</span></td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:6px 10px;font-weight:500;">Despesa</td>
+              <td style="text-align:right;padding:6px 10px;color:#ef4444;">${fmt.currency(comp.ytd.despesa)}</td>
+              <td style="text-align:right;padding:6px 10px;color:var(--text-secondary);">${fmt.currency(comp.ytdAnterior.despesa)}</td>
+              <td style="text-align:right;padding:6px 10px;"><span style="color:${varYtdDespColor};font-weight:500;">${comp.variacaoYtd.despesa.toFixed(1)}%</span></td>
+            </tr>
+            <tr style="background:rgba(255,255,255,0.03);">
+              <td style="padding:6px 10px;font-weight:600;">Resultado</td>
+              <td style="text-align:right;padding:6px 10px;font-weight:600;color:${comp.ytd.resultado >= 0 ? '#22c55e' : '#ef4444'};">${fmt.currency(comp.ytd.resultado)}</td>
+              <td style="text-align:right;padding:6px 10px;font-weight:600;color:${comp.ytdAnterior.resultado >= 0 ? '#22c55e' : '#ef4444'};">${fmt.currency(comp.ytdAnterior.resultado)}</td>
+              <td style="text-align:right;padding:6px 10px;"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // SEÇÃO: EFICIÊNCIA E RENTABILIDADE
+  // ═══════════════════════════════════════════════════════════════════════
+
+  _renderEficienciaSection(data, fmt) {
+    const margemColor = data.margemGeral >= 20 ? '#22c55e' : data.margemGeral >= 10 ? '#f59e0b' : '#ef4444';
+    const concColor = data.concentracaoTop5 > 70 ? '#ef4444' : data.concentracaoTop5 > 50 ? '#f59e0b' : '#22c55e';
+    const concLabel = data.concentracaoTop5 > 70 ? 'Alta concentracao' : data.concentracaoTop5 > 50 ? 'Moderada' : 'Diversificada';
+
+    // Top 10 clientes por receita
+    let clienteRows = '';
+    data.clienteRanking.slice(0, 10).forEach((c, i) => {
+      const barWidth = data.clienteRanking[0]?.receita > 0 ? Math.max(3, (c.receita / data.clienteRanking[0].receita) * 100) : 0;
+      clienteRows += `<tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:5px 8px;font-size:12px;white-space:nowrap;">${i + 1}. ${this._esc(c.name)}</td>
+        <td style="padding:5px 8px;width:40%;">
+          <div style="background:rgba(59,130,246,0.1);border-radius:4px;height:16px;position:relative;">
+            <div style="background:#3b82f6;border-radius:4px;height:100%;width:${barWidth}%;"></div>
+          </div>
+        </td>
+        <td style="text-align:right;padding:5px 8px;font-size:12px;font-weight:500;">${fmt.currency(c.receita)}</td>
+        <td style="text-align:right;padding:5px 8px;font-size:11px;color:var(--text-secondary);">${c.pctReceita.toFixed(1)}%</td>
+        <td style="text-align:right;padding:5px 8px;font-size:11px;color:var(--text-secondary);">${c.parcelas}x</td>
+      </tr>`;
+    });
+
+    return `<div class="card" style="margin-bottom:16px;padding:16px;">
+      <div class="card-header" style="margin-bottom:12px;"><h3 class="card-title">
+        <i data-lucide="target" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:#10b981;"></i>
+        Eficiencia e Rentabilidade
+      </h3><span style="font-size:11px;color:var(--text-secondary);">Ultimos 6 meses</span></div>
+
+      <div class="grid-4 fn-kpi-grid" style="margin-bottom:16px;">
+        <div class="kpi-card">
+          <div class="kpi-label">Margem Operacional</div>
+          <div class="kpi-value" style="color:${margemColor};">${data.margemGeral}%</div>
+          <div class="kpi-change neutral">Receita vs Custos</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Margem Bruta</div>
+          <div class="kpi-value" style="color:${data.margemBruta >= 30 ? '#22c55e' : '#f59e0b'};">${data.margemBruta}%</div>
+          <div class="kpi-change neutral">Receita vs COGS</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Ticket Medio</div>
+          <div class="kpi-value">${fmt.currency(data.ticketMedioGeral)}</div>
+          <div class="kpi-change neutral">Por parcela</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Concentracao Top 5</div>
+          <div class="kpi-value" style="color:${concColor};">${data.concentracaoTop5}%</div>
+          <div class="kpi-change" style="color:${concColor};">${concLabel}</div>
+        </div>
+      </div>
+
+      <!-- Ranking de clientes -->
+      <h4 style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">
+        <i data-lucide="users" style="width:13px;height:13px;vertical-align:middle;margin-right:4px;"></i>
+        Ranking de Clientes por Receita (${data.totalClientes} clientes)
+      </h4>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="border-bottom:2px solid var(--border);">
+              <th style="text-align:left;padding:5px 8px;font-size:11px;font-weight:600;">Cliente</th>
+              <th style="padding:5px 8px;font-size:11px;font-weight:600;"></th>
+              <th style="text-align:right;padding:5px 8px;font-size:11px;font-weight:600;">Receita</th>
+              <th style="text-align:right;padding:5px 8px;font-size:11px;font-weight:600;">%</th>
+              <th style="text-align:right;padding:5px 8px;font-size:11px;font-weight:600;">Parcelas</th>
+            </tr>
+          </thead>
+          <tbody>${clienteRows || '<tr><td colspan="5" style="padding:8px;font-size:12px;color:var(--text-secondary);">Sem dados</td></tr>'}</tbody>
+        </table>
+      </div>
+      ${data.clientesSemId > 0 ? `<div style="margin-top:8px;font-size:11px;color:var(--text-secondary);"><i data-lucide="info" style="width:11px;height:11px;vertical-align:middle;margin-right:3px;"></i>${data.clientesSemId} recebiveis sem cliente vinculado</div>` : ''}
+    </div>`;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // SEÇÃO: RECEITA E PIPELINE COMERCIAL
+  // ═══════════════════════════════════════════════════════════════════════
+
+  _renderReceitaPipelineSection(data, fmt) {
+    const recorrenteColor = data.pctRecorrente >= 50 ? '#22c55e' : '#f59e0b';
+    const taxaRecColor = data.taxaRecebimento >= 80 ? '#22c55e' : data.taxaRecebimento >= 60 ? '#f59e0b' : '#ef4444';
+
+    // Barra recorrente vs pontual
+    const pctR = data.pctRecorrente || 0;
+    const pctP = data.pctPontual || 0;
+
+    // Evolucao mensal — ultimos 6 meses (para nao poluir)
+    let evolRows = '';
+    const ultimos6 = data.evolucao.slice(-6);
+    ultimos6.forEach(m => {
+      const maxBar = Math.max(...data.evolucao.map(e => e.faturado), 1);
+      const barW = Math.max(3, (m.faturado / maxBar) * 100);
+      evolRows += `<tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:4px 8px;font-size:12px;white-space:nowrap;">${m.label}</td>
+        <td style="padding:4px 8px;width:35%;">
+          <div style="display:flex;height:14px;border-radius:3px;overflow:hidden;background:rgba(255,255,255,0.05);">
+            ${m.recorrente > 0 ? `<div style="width:${m.faturado > 0 ? (m.recorrente / m.faturado * 100) : 0}%;background:#22c55e;" title="Recorrente: ${fmt.currency(m.recorrente)}"></div>` : ''}
+            ${m.pontual > 0 ? `<div style="width:${m.faturado > 0 ? (m.pontual / m.faturado * 100) : 0}%;background:#3b82f6;" title="Pontual: ${fmt.currency(m.pontual)}"></div>` : ''}
+          </div>
+        </td>
+        <td style="text-align:right;padding:4px 8px;font-size:12px;font-weight:500;">${fmt.currency(m.faturado)}</td>
+        <td style="text-align:right;padding:4px 8px;font-size:12px;color:${m.recebido >= m.faturado ? '#22c55e' : '#f59e0b'};">${fmt.currency(m.recebido)}</td>
+      </tr>`;
+    });
+
+    return `<div class="card" style="margin-bottom:16px;padding:16px;">
+      <div class="card-header" style="margin-bottom:12px;"><h3 class="card-title">
+        <i data-lucide="trending-up" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:#6366f1;"></i>
+        Receita e Pipeline Comercial
+      </h3><span style="font-size:11px;color:var(--text-secondary);">Ultimos 12 meses</span></div>
+
+      <div class="grid-4 fn-kpi-grid" style="margin-bottom:12px;">
+        <div class="kpi-card">
+          <div class="kpi-label">Receita Recorrente</div>
+          <div class="kpi-value" style="color:#22c55e;">${fmt.currency(data.receitaRecorrente)}</div>
+          <div class="kpi-change" style="color:${recorrenteColor};">${data.pctRecorrente}% do total</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Receita Pontual</div>
+          <div class="kpi-value" style="color:#3b82f6;">${fmt.currency(data.receitaPontual)}</div>
+          <div class="kpi-change neutral">${data.pctPontual}% do total</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Taxa de Recebimento</div>
+          <div class="kpi-value" style="color:${taxaRecColor};">${data.taxaRecebimento}%</div>
+          <div class="kpi-change neutral">Recebido / Faturado</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Projecao Prox. Mes</div>
+          <div class="kpi-value">${fmt.currency(data.projecaoProximoMes)}</div>
+          <div class="kpi-change neutral">Media ultimos 3 meses</div>
+        </div>
+      </div>
+
+      <!-- Barra recorrente vs pontual -->
+      <div style="margin-bottom:16px;">
+        <div style="font-size:12px;font-weight:500;margin-bottom:6px;color:var(--text-secondary);">Composicao da Receita</div>
+        <div style="display:flex;height:22px;border-radius:6px;overflow:hidden;">
+          <div style="width:${pctR}%;background:#22c55e;" title="Recorrente ${data.pctRecorrente}%"></div>
+          <div style="width:${pctP}%;background:#3b82f6;" title="Pontual ${data.pctPontual}%"></div>
+        </div>
+        <div style="display:flex;gap:16px;font-size:11px;margin-top:4px;">
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#22c55e;margin-right:4px;"></span>Recorrente (${data.clientesRecorrentes} clientes)</span>
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#3b82f6;margin-right:4px;"></span>Pontual</span>
+        </div>
+      </div>
+
+      <!-- Pipeline -->
+      <div style="padding:10px;border-radius:8px;background:rgba(99,102,241,0.05);border:1px solid rgba(99,102,241,0.1);margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:12px;color:var(--text-secondary);">Pipeline Futuro (A Receber em aberto)</div>
+            <div style="font-size:22px;font-weight:700;color:#6366f1;">${fmt.currency(data.totalPipeline)}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px;color:var(--text-secondary);">${data.countPipeline} parcelas</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Evolucao mensal -->
+      <h4 style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">Evolucao Mensal</h4>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="border-bottom:2px solid var(--border);">
+              <th style="text-align:left;padding:4px 8px;font-size:11px;font-weight:600;">Mes</th>
+              <th style="padding:4px 8px;font-size:11px;font-weight:600;">Composicao</th>
+              <th style="text-align:right;padding:4px 8px;font-size:11px;font-weight:600;">Faturado</th>
+              <th style="text-align:right;padding:4px 8px;font-size:11px;font-weight:600;">Recebido</th>
+            </tr>
+          </thead>
+          <tbody>${evolRows || '<tr><td colspan="4" style="padding:8px;font-size:12px;color:var(--text-secondary);">Sem dados</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>`;
   },
 
   // ═══════════════════════════════════════════════════════════════════════

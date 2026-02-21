@@ -130,6 +130,19 @@ const TBO_RH = {
     return u ? u.id : 'marco';
   },
 
+  // Helper: gera page header funcional (titulo + descricao + acoes)
+  _pageHeader(title, description, actionsHtml = '') {
+    return `
+      <div class="rh-page-header" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid var(--border-color, #e5e7eb);">
+        <div>
+          <h2 style="margin:0; font-size:1.5rem; font-weight:700; color:var(--text-primary, #111827);">${title}</h2>
+          ${description ? `<p style="margin:4px 0 0; font-size:0.875rem; color:var(--text-secondary, #6b7280);">${description}</p>` : ''}
+        </div>
+        ${actionsHtml ? `<div style="display:flex; gap:8px; align-items:center;">${actionsHtml}</div>` : ''}
+      </div>
+    `;
+  },
+
   _getInternalTeam() { return this._team.filter(t => !t.terceirizado); },
 
   _getBUs() {
@@ -506,18 +519,6 @@ const TBO_RH = {
     return `
       <div class="rh-module">
         <style>${this._getScopedCSS()}</style>
-
-        <div class="tab-bar" id="rhMainTabs" style="margin-bottom:20px; flex-wrap: wrap;">
-          <button class="tab ${tab === 'visao-geral' ? 'active' : ''}" data-tab="visao-geral">Visao Geral</button>
-          <button class="tab ${tab === 'banco-talentos' ? 'active' : ''}" data-tab="banco-talentos">Banco de Talentos</button>
-          <button class="tab ${tab === 'vagas' ? 'active' : ''}" data-tab="vagas">Vagas</button>
-          ${this._canSeeContracts() ? `<button class="tab ${tab === 'contratos' ? 'active' : ''}" data-tab="contratos">Contratos</button>` : ''}
-          <button class="tab ${tab === 'performance' ? 'active' : ''}" data-tab="performance">Performance & PDI</button>
-          <button class="tab ${tab === 'cultura' ? 'active' : ''}" data-tab="cultura">Cultura & Reconhecimento</button>
-          ${this._canSee1on1s() ? `<button class="tab ${tab === 'one-on-ones' ? 'active' : ''}" data-tab="one-on-ones">1:1s & Rituais</button>` : ''}
-          ${this._isDiretoria() ? `<button class="tab ${tab === 'analytics' ? 'active' : ''}" data-tab="analytics">Analytics</button>` : ''}
-        </div>
-
         <div id="rhTabContent">
           ${this._renderActiveTab()}
         </div>
@@ -587,6 +588,8 @@ const TBO_RH = {
     const fmt = typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER : { currency: v => `R$ ${Number(v).toLocaleString('pt-BR', {minimumFractionDigits:0})}` };
 
     return `
+      ${this._pageHeader('Equipe', 'Visão geral da equipe, estrutura e indicadores')}
+
       <div id="rhKPIContainer" class="grid-4" style="margin-bottom:24px;">
         <div class="kpi-card"><div class="kpi-label">Total Pessoas</div><div class="kpi-value">${this._totalCount || team.length}</div><div class="kpi-sub">${coordinators} coordenadores</div></div>
         <div class="kpi-card kpi-card--success"><div class="kpi-label">Ativos</div><div class="kpi-value">${ativos}</div><div class="kpi-sub">${ferias ? ferias + ' ferias' : ''}${ferias && ausentes ? ' · ' : ''}${ausentes ? ausentes + ' ausentes' : ''}${!ferias && !ausentes ? 'em operacao' : ''}</div></div>
@@ -1460,6 +1463,7 @@ const TBO_RH = {
     const activeCycle = ciclos.find(c => c.status === 'em_andamento') || ciclos[0];
 
     return `
+      ${this._pageHeader('Performance & PDI', 'Ciclos de avaliação, ranking e planos de desenvolvimento')}
       <div class="tab-bar tab-bar--sub" id="rhPerfSubtabs" style="margin-bottom:16px;">
         <button class="tab tab--sub active" data-subtab="perf-ciclo">Ciclo</button>
         <button class="tab tab--sub" data-subtab="perf-ranking">Ranking</button>
@@ -1651,6 +1655,7 @@ const TBO_RH = {
     const sub = this._culturaSubTab || 'valores';
 
     return `
+      ${this._pageHeader('Cultura & Reconhecimento', 'Valores, reconhecimentos, rituais e feedbacks')}
       <div class="tab-bar tab-bar--sub" id="rhCulturaSubtabs" style="margin-bottom:16px;">
         <button class="tab tab--sub ${sub === 'valores' ? 'active' : ''}" data-cultura-tab="valores"><i data-lucide="gem" style="width:14px;height:14px;"></i> Valores TBO</button>
         <button class="tab tab--sub ${sub === 'reconhecimentos' ? 'active' : ''}" data-cultura-tab="reconhecimentos"><i data-lucide="award" style="width:14px;height:14px;"></i> Reconhecimentos</button>
@@ -2024,6 +2029,7 @@ const TBO_RH = {
     ];
 
     return `
+      ${this._pageHeader('1:1s & Rituais', 'Reuniões individuais, ações e rituais da equipe')}
       <div class="grid-4" style="margin-bottom:16px;">
         <div class="kpi-card"><div class="kpi-label">Total 1:1s</div><div class="kpi-value">${filtered.length}</div></div>
         <div class="kpi-card kpi-card--blue"><div class="kpi-label">Agendadas</div><div class="kpi-value">${agendadas}</div></div>
@@ -2107,6 +2113,7 @@ const TBO_RH = {
     const custoMedio = activeMembers.length ? totalSalary / activeMembers.length : 0;
 
     return `
+      ${this._pageHeader('Analytics', 'Indicadores avançados, distribuição de custos e métricas de pessoas')}
       <!-- KPIs Analytics -->
       <div class="grid-4" style="gap:12px;margin-bottom:20px;">
         <div class="card" style="padding:16px;text-align:center;">
@@ -2427,6 +2434,7 @@ const TBO_RH = {
   _renderBancoTalentos() {
     const f = this._talentsFilter;
     return `
+      ${this._pageHeader('Banco de Talentos', 'Candidatos, freelancers e parceiros externos')}
       <div class="rh-talentos-section">
         <!-- KPIs -->
         <div id="rhTalentosKPIs" class="grid-4" style="margin-bottom:20px;">
@@ -2774,11 +2782,12 @@ const TBO_RH = {
   _renderVagas() {
     // Se estiver mostrando detalhe de uma vaga, renderizar detalhe
     if (this._vagaDetalheId) {
-      return this._renderVagaDetalhe();
+      return this._pageHeader('Detalhe da Vaga', 'Pipeline de candidatos e informações da vaga') + this._renderVagaDetalhe();
     }
 
     const f = this._vagasFilter;
     return `
+      ${this._pageHeader('Vagas', 'Gestão de vagas abertas e processo seletivo')}
       <div class="rh-vagas-section">
         <!-- KPIs -->
         <div id="rhVagasKPIs" class="grid-4" style="margin-bottom:20px;">
@@ -3328,6 +3337,7 @@ const TBO_RH = {
 
     const f = this._contratosFilter;
     return `
+      ${this._pageHeader('Contratos', 'Gestão de contratos PJ, NDA, aditivos e freelancers')}
       <div class="rh-contratos-section">
         <!-- KPIs -->
         <div id="rhContratosKPIs" class="grid-4" style="margin-bottom:20px;">
@@ -3748,45 +3758,10 @@ const TBO_RH = {
   // INIT (Event Bindings)
   // ══════════════════════════════════════════════════════════════════
   init() {
-    // Main tab switching — otimizado: so re-renderiza conteudo da tab, nao o modulo inteiro
-    document.querySelectorAll('#rhMainTabs .tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        // Salvar filtros antes de trocar
-        const filterBuEl = document.querySelector('.rh-filter-bu');
-        const filterSearchEl = document.querySelector('.rh-filter-search');
-        if (filterBuEl) this._filterBU = filterBuEl.value;
-        if (filterSearchEl) this._filterSearch = filterSearchEl.value;
-
-        this._activeTab = tab.dataset.tab;
-
-        // Atualizar URL hash para deep link (sem re-renderizar modulo)
-        const newHash = this._activeTab === 'visao-geral' ? 'rh' : `rh/${this._activeTab}`;
-        history.replaceState(null, '', '#' + newHash);
-
-        // Atualizar visual da tab bar sem re-renderizar
-        document.querySelectorAll('#rhMainTabs .tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-
-        // Re-renderizar apenas o conteudo da tab
-        const tabContent = document.getElementById('rhTabContent');
-        if (tabContent) {
-          tabContent.innerHTML = this._renderActiveTab();
-          this._initActiveTab();
-        }
-        if (typeof TBO_UX !== 'undefined') TBO_UX.updateBreadcrumb('rh', tab.textContent.trim());
-
-        // Atualizar item ativo na sidebar
-        if (typeof TBO_SIDEBAR_RENDERER !== 'undefined') {
-          TBO_SIDEBAR_RENDERER.setActive(newHash);
-        }
-      });
-    });
-
-    // Deep link: hashchange para navegar entre tabs via sidebar sem re-render completo
-    // Suporta: rh/{tab} e rh/cultura/{subtab}
+    // Navegacao via sidebar (hashchange) — sem tab bar horizontal
     this._hashChangeHandler = () => {
       const hash = (window.location.hash || '').replace('#', '');
-      if (!hash.startsWith('rh')) return; // so processar rotas do RH
+      if (!hash.startsWith('rh')) return;
 
       const parts = hash.split('/');
       const validTabs = ['visao-geral', 'performance', 'cultura', 'one-on-ones', 'analytics', 'banco-talentos', 'vagas', 'contratos'];
@@ -3794,13 +3769,28 @@ const TBO_RH = {
 
       if (!validTabs.includes(tabFromUrl)) return;
 
-      // Se mudou a tab principal, simular click
+      // Se mudou a view principal, re-renderizar conteudo
       if (tabFromUrl !== this._activeTab) {
-        const tabBtn = document.querySelector(`#rhMainTabs .tab[data-tab="${tabFromUrl}"]`);
-        if (tabBtn) tabBtn.click();
+        // Salvar filtros antes de trocar
+        const filterBuEl = document.querySelector('.rh-filter-bu');
+        const filterSearchEl = document.querySelector('.rh-filter-search');
+        if (filterBuEl) this._filterBU = filterBuEl.value;
+        if (filterSearchEl) this._filterSearch = filterSearchEl.value;
+
+        this._activeTab = tabFromUrl;
+
+        const tabContent = document.getElementById('rhTabContent');
+        if (tabContent) {
+          tabContent.innerHTML = this._renderActiveTab();
+          this._initActiveTab();
+        }
+
+        if (typeof TBO_SIDEBAR_RENDERER !== 'undefined') {
+          TBO_SIDEBAR_RENDERER.setActive(hash);
+        }
       }
 
-      // Se e deep link de cultura (rh/cultura/rituais), trocar subtab
+      // Deep link de cultura (rh/cultura/rituais), trocar subtab
       if (tabFromUrl === 'cultura' && parts[2]) {
         const validCulturaSubs = ['valores', 'reconhecimentos', 'rituais', 'feedbacks', 'historico', 'onboarding'];
         if (validCulturaSubs.includes(parts[2]) && parts[2] !== this._culturaSubTab) {

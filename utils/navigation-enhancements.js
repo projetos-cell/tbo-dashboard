@@ -343,6 +343,10 @@ const TBO_NAVIGATION = {
     // Listen for route changes to update hash
     if (typeof TBO_ROUTER !== 'undefined') {
       TBO_ROUTER.onChange((moduleName) => {
+        // Rotas parametrizadas (ex: #page/{uuid}, #projeto/{id}) já definem
+        // o hash corretamente em _navigateParam — não sobrescrever aqui
+        if (TBO_ROUTER.getCurrentRoute()) return;
+
         const current = this._parseHash();
         if (current.module !== moduleName) {
           const newHash = '#/' + moduleName;

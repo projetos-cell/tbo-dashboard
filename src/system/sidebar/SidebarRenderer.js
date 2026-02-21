@@ -172,10 +172,14 @@ const TBO_SIDEBAR_RENDERER = (() => {
   function _renderChildItem(child) {
     const icon = child.icon || 'file';
     const title = _escHtml(child.name);
-    // Match exato ou rota base (ex: _activeRoute='rh/performance' matcheia child.route='rh/performance' OU 'rh')
+    // Match: exato, rota base, ou rota ativa comeca com a rota do child
+    // Ex: activeRoute='rh/cultura/rituais' matcheia child.route='rh/cultura/rituais' (exato)
+    //     activeRoute='rh/performance' matcheia child.route='rh' (base)
+    //     activeRoute='rh/cultura/rituais' matcheia child.route='rh/cultura' (prefixo — NAO, queremos match exato no child)
     const isActive = _activeRoute && (
       child.route === _activeRoute ||
-      (_activeRoute.includes('/') && child.route === _activeRoute.split('/')[0])
+      (_activeRoute.includes('/') && child.route === _activeRoute.split('/')[0]) ||
+      (_activeRoute.startsWith(child.route + '/'))
     );
     return `<div class="nsb-ws-item nsb-ws-child${isActive ? ' nsb-item--active' : ''}" data-child-route="${_escHtml(child.route)}" title="${title}">
       <i data-lucide="${_escHtml(icon)}"></i>

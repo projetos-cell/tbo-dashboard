@@ -59,9 +59,19 @@ const TBO_SIDEBAR_SERVICE = (() => {
     // Sub-items do workspace Pessoas (RH) — deep link: rh/{tab}
     { id: 'rh-equipe',      name: 'Equipe',            type: 'child', order_index: 14.51, icon: 'users',           route: 'rh',                parent_id: 'ws-pessoas', allowed_roles: [] },
     { id: 'rh-performance', name: 'Performance & PDI', type: 'child', order_index: 14.52, icon: 'target',          route: 'rh/performance',    parent_id: 'ws-pessoas', allowed_roles: [] },
-    { id: 'rh-cultura',     name: 'Cultura',           type: 'child', order_index: 14.53, icon: 'sparkles',        route: 'rh/cultura',        parent_id: 'ws-pessoas', allowed_roles: [] },
-    { id: 'rh-1on1s',       name: '1:1s & Rituais',   type: 'child', order_index: 14.54, icon: 'message-circle',  route: 'rh/one-on-ones',    parent_id: 'ws-pessoas', allowed_roles: ['owner', 'admin', 'diretor', 'project_owner', 'coordinator'] },
-    { id: 'rh-analytics',   name: 'Analytics',         type: 'child', order_index: 14.55, icon: 'bar-chart-3',     route: 'rh/analytics',      parent_id: 'ws-pessoas', allowed_roles: ['owner', 'admin', 'diretor'] },
+    { id: 'rh-1on1s',       name: '1:1s & Rituais',   type: 'child', order_index: 14.53, icon: 'message-circle',  route: 'rh/one-on-ones',    parent_id: 'ws-pessoas', allowed_roles: ['owner', 'admin', 'diretor', 'project_owner', 'coordinator'] },
+    { id: 'rh-analytics',   name: 'Analytics',         type: 'child', order_index: 14.54, icon: 'bar-chart-3',     route: 'rh/analytics',      parent_id: 'ws-pessoas', allowed_roles: ['owner', 'admin', 'diretor'] },
+
+    // Workspace Cultura — visivel para todos
+    { id: 'ws-cultura',     name: 'Cultura',           type: 'workspace', order_index: 14.6, icon: 'flame', route: null, parent_id: 'sep-equipe', allowed_roles: [] },
+
+    // Sub-items do workspace Cultura — deep link: rh/cultura/{subtab}
+    { id: 'cult-valores',       name: 'Valores TBO',          type: 'child', order_index: 14.61, icon: 'gem',             route: 'rh/cultura/valores',          parent_id: 'ws-cultura', allowed_roles: [] },
+    { id: 'cult-reconhecimentos', name: 'Reconhecimentos',    type: 'child', order_index: 14.62, icon: 'award',           route: 'rh/cultura/reconhecimentos',  parent_id: 'ws-cultura', allowed_roles: [] },
+    { id: 'cult-rituais',       name: 'Rituais',              type: 'child', order_index: 14.63, icon: 'repeat',          route: 'rh/cultura/rituais',          parent_id: 'ws-cultura', allowed_roles: [] },
+    { id: 'cult-feedbacks',     name: 'Feedbacks',            type: 'child', order_index: 14.64, icon: 'message-square',  route: 'rh/cultura/feedbacks',        parent_id: 'ws-cultura', allowed_roles: [] },
+    { id: 'cult-historico',     name: 'Historico cultural',   type: 'child', order_index: 14.65, icon: 'clock',           route: 'rh/cultura/historico',         parent_id: 'ws-cultura', allowed_roles: [] },
+    { id: 'cult-onboarding',    name: 'Onboarding cultural',  type: 'child', order_index: 14.66, icon: 'book-open',       route: 'rh/cultura/onboarding',       parent_id: 'ws-cultura', allowed_roles: [] },
 
     // Mais
     { id: 'sys-mais',       name: 'Mais',             type: 'system',    order_index: 16, icon: 'plus',     route: null, allowed_roles: [], metadata: { action: 'show-more-workspaces' } }

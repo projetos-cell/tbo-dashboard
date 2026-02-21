@@ -442,12 +442,21 @@ const TBO_RH = {
   // ══════════════════════════════════════════════════════════════════
   render() {
     // Deep link: ler tab da URL (ex: #rh/performance → _activeTab = 'performance')
+    // Suporta subtabs: #rh/cultura/rituais → _activeTab = 'cultura', _culturaSubTab = 'rituais'
     const hash = (window.location.hash || '').replace('#', '');
     if (hash.startsWith('rh/')) {
-      const tabFromUrl = hash.split('/')[1];
+      const parts = hash.split('/');
+      const tabFromUrl = parts[1];
       const validTabs = ['visao-geral', 'performance', 'cultura', 'one-on-ones', 'analytics'];
       if (validTabs.includes(tabFromUrl)) {
         this._activeTab = tabFromUrl;
+      }
+      // Subtab de cultura (ex: rh/cultura/rituais)
+      if (tabFromUrl === 'cultura' && parts[2]) {
+        const validCulturaSubs = ['valores', 'reconhecimentos', 'rituais', 'feedbacks', 'historico', 'onboarding'];
+        if (validCulturaSubs.includes(parts[2])) {
+          this._culturaSubTab = parts[2];
+        }
       }
     }
 
@@ -1613,48 +1622,117 @@ const TBO_RH = {
   // ══════════════════════════════════════════════════════════════════
   // TAB 3: CULTURA & RECONHECIMENTO
   // ══════════════════════════════════════════════════════════════════
+  // Sub-view ativa na tab Cultura (para deep link via sidebar)
+  _culturaSubTab: 'valores',
+
   _renderCultura() {
     const elogios = this._getStore('elogios');
     const feedbacks = this._getStore('feedbacks');
     const userId = this._currentUserId();
     const isAdmin = this._isAdmin();
+    const sub = this._culturaSubTab || 'valores';
 
-    // Valor ranking
+    return `
+      <div class="tab-bar tab-bar--sub" id="rhCulturaSubtabs" style="margin-bottom:16px;">
+        <button class="tab tab--sub ${sub === 'valores' ? 'active' : ''}" data-cultura-tab="valores"><i data-lucide="gem" style="width:14px;height:14px;"></i> Valores TBO</button>
+        <button class="tab tab--sub ${sub === 'reconhecimentos' ? 'active' : ''}" data-cultura-tab="reconhecimentos"><i data-lucide="award" style="width:14px;height:14px;"></i> Reconhecimentos</button>
+        <button class="tab tab--sub ${sub === 'rituais' ? 'active' : ''}" data-cultura-tab="rituais"><i data-lucide="repeat" style="width:14px;height:14px;"></i> Rituais</button>
+        <button class="tab tab--sub ${sub === 'feedbacks' ? 'active' : ''}" data-cultura-tab="feedbacks"><i data-lucide="message-square" style="width:14px;height:14px;"></i> Feedbacks</button>
+        <button class="tab tab--sub ${sub === 'historico' ? 'active' : ''}" data-cultura-tab="historico"><i data-lucide="clock" style="width:14px;height:14px;"></i> Historico</button>
+        <button class="tab tab--sub ${sub === 'onboarding' ? 'active' : ''}" data-cultura-tab="onboarding"><i data-lucide="book-open" style="width:14px;height:14px;"></i> Onboarding</button>
+      </div>
+      <div id="rhCulturaContent">
+        ${this._renderCulturaSubTab(sub, elogios, feedbacks, userId, isAdmin)}
+      </div>
+    `;
+  },
+
+  _renderCulturaSubTab(sub, elogios, feedbacks, userId, isAdmin) {
+    // Carregar dados se nao fornecidos (para re-render parcial)
+    if (!elogios) elogios = this._getStore('elogios');
+    if (!feedbacks) feedbacks = this._getStore('feedbacks');
+    if (!userId) userId = this._currentUserId();
+    if (isAdmin === undefined) isAdmin = this._isAdmin();
+
+    switch (sub) {
+      case 'valores': return this._renderCulturaValores(elogios);
+      case 'reconhecimentos': return this._renderCulturaReconhecimentos(elogios);
+      case 'rituais': return this._renderCulturaRituais();
+      case 'feedbacks': return this._renderCulturaFeedbacks(feedbacks, userId, isAdmin);
+      case 'historico': return this._renderCulturaHistorico(elogios, feedbacks);
+      case 'onboarding': return this._renderCulturaOnboarding();
+      default: return this._renderCulturaValores(elogios);
+    }
+  },
+
+  // ── Sub: Valores TBO ──
+  _renderCulturaValores(elogios) {
     const valorCount = {};
     elogios.forEach(e => { valorCount[e.valor] = (valorCount[e.valor] || 0) + 1; });
+    const totalElogios = elogios.length;
+
+    return `
+      <div class="card" style="padding:20px;margin-bottom:16px;">
+        <h3 style="font-size:1rem;margin-bottom:16px;">Nossos Valores</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;">
+          ${this._valores.map(v => {
+            const count = valorCount[v.id] || 0;
+            const pct = totalElogios ? Math.round((count / totalElogios) * 100) : 0;
+            return `<div style="background:var(--bg-elevated);border-radius:12px;padding:16px;text-align:center;border:1px solid var(--border-subtle);">
+              <div style="font-size:2.2rem;margin-bottom:8px;">${v.emoji}</div>
+              <div style="font-weight:700;font-size:0.9rem;margin-bottom:4px;">${v.nome}</div>
+              <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:8px;">${count} reconhecimento${count !== 1 ? 's' : ''}</div>
+              <div style="height:4px;background:var(--bg-tertiary);border-radius:2px;overflow:hidden;">
+                <div style="height:100%;width:${pct}%;background:var(--accent-gold);border-radius:2px;transition:width 0.5s;"></div>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+      <div class="card" style="padding:20px;">
+        <h4 style="font-size:0.9rem;margin-bottom:12px;">O que cada valor significa</h4>
+        <div style="display:grid;gap:12px;">
+          ${[
+            { v: this._valores[0], desc: 'Buscamos a melhor qualidade em cada entrega. Detalhes importam.' },
+            { v: this._valores[1], desc: 'O sucesso do cliente e o nosso sucesso. Entendemos antes de executar.' },
+            { v: this._valores[2], desc: 'Trabalhamos juntos, compartilhamos conhecimento e celebramos conquistas.' },
+            { v: this._valores[3], desc: 'Experimentamos, erramos rapido e melhoramos. Status quo e nosso inimigo.' },
+            { v: this._valores[4], desc: 'Cada um e dono do seu trabalho. Assumimos responsabilidades com orgulho.' },
+            { v: this._valores[5], desc: 'Vamos alem do esperado. Entregamos mais do que foi pedido.' }
+          ].map(({ v, desc }) => `<div style="display:flex;gap:12px;align-items:flex-start;padding:12px;background:var(--bg-elevated);border-radius:8px;">
+            <span style="font-size:1.4rem;">${v.emoji}</span>
+            <div><div style="font-weight:600;font-size:0.85rem;margin-bottom:2px;">${v.nome}</div><div style="font-size:0.78rem;color:var(--text-secondary);line-height:1.5;">${desc}</div></div>
+          </div>`).join('')}
+        </div>
+      </div>
+    `;
+  },
+
+  // ── Sub: Reconhecimentos (mural de elogios) ──
+  _renderCulturaReconhecimentos(elogios) {
     const personCount = {};
     elogios.forEach(e => { personCount[e.para] = (personCount[e.para] || 0) + 1; });
     const topPeople = Object.entries(personCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
-    // Culture score per person (elogios + feedbacks positivos)
-    const cultureScores = {};
-    elogios.forEach(e => { cultureScores[e.para] = (cultureScores[e.para] || 0) + 2; });
-    feedbacks.filter(f => f.tipo === 'positivo').forEach(f => { cultureScores[f.para] = (cultureScores[f.para] || 0) + 1; });
-
-    let filteredFb = feedbacks;
-    if (!isAdmin) filteredFb = feedbacks.filter(f => f.de === userId || f.para === userId || f.visibilidade === 'publico');
-
     return `
-      <div class="grid-2" style="gap:16px;margin-bottom:16px;">
-        <div class="card" style="padding:16px;">
-          <h4 style="font-size:0.85rem;margin-bottom:10px;">Valores Mais Reconhecidos</h4>
-          ${this._valores.map(v => {
-            const count = valorCount[v.id] || 0;
-            const max = Math.max(...Object.values(valorCount), 1);
-            return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:1.1rem;">${v.emoji}</span><span style="font-size:0.78rem;width:100px;">${v.nome}</span><div style="flex:1;height:6px;background:var(--bg-tertiary);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${(count / max) * 100}%;background:var(--accent-gold);border-radius:3px;"></div></div><span style="font-size:0.72rem;color:var(--text-muted);width:20px;text-align:right;">${count}</span></div>`;
-          }).join('')}
-        </div>
-        <div class="card" style="padding:16px;">
-          <h4 style="font-size:0.85rem;margin-bottom:10px;">Mais Reconhecidos</h4>
+      <div class="card" style="padding:16px;margin-bottom:16px;">
+        <h4 style="font-size:0.85rem;margin-bottom:10px;">Mais Reconhecidos</h4>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;">
           ${topPeople.map(([id, count], i) => {
             const medals = ['\u{1F947}', '\u{1F948}', '\u{1F949}'];
-            return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:1.1rem;width:24px;text-align:center;">${medals[i] || (i + 1) + '.'}</span><span style="font-size:0.85rem;flex:1;font-weight:${i === 0 ? 700 : 400};">${this._getPersonName(id)}</span><span style="font-size:0.78rem;color:var(--accent-gold);font-weight:600;">${count}</span></div>`;
+            const p = this._getPerson(id);
+            const avatar = this._profileMap[p?.supabaseId]?.avatar_url;
+            return `<div style="text-align:center;min-width:80px;">
+              <div style="width:48px;height:48px;border-radius:50%;background:var(--bg-tertiary);margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;overflow:hidden;">
+                ${avatar ? `<img src="${avatar}" style="width:100%;height:100%;object-fit:cover;">` : medals[i] || (i + 1)}
+              </div>
+              <div style="font-size:0.78rem;font-weight:600;">${this._getPersonName(id)}</div>
+              <div style="font-size:0.68rem;color:var(--accent-gold);">${count} elogio${count !== 1 ? 's' : ''}</div>
+            </div>`;
           }).join('') || '<div style="font-size:0.78rem;color:var(--text-muted);">Nenhum elogio ainda</div>'}
         </div>
       </div>
-
-      <!-- Feed de Elogios -->
-      <div class="card" style="margin-bottom:16px;">
+      <div class="card">
         <div class="card-header"><h3 class="card-title">Mural de Elogios</h3><button class="btn btn-primary btn-sm" id="rhNewElogio">+ Elogiar</button></div>
         <div id="rhElogioForm" style="display:none;padding:16px;border-bottom:1px solid var(--border-subtle);">
           <div class="grid-2" style="gap:12px;margin-bottom:12px;">
@@ -1664,12 +1742,63 @@ const TBO_RH = {
           <div class="form-group" style="margin-bottom:12px;"><label class="form-label">Mensagem</label><textarea class="form-input" id="elTexto" rows="2" placeholder="Por que esta pessoa merece reconhecimento?"></textarea></div>
           <div style="display:flex;gap:8px;"><button class="btn btn-primary btn-sm" id="elSave">Publicar</button><button class="btn btn-secondary btn-sm" id="elCancel">Cancelar</button></div>
         </div>
-        <div id="rhElogioList" style="max-height:400px;overflow-y:auto;">
+        <div id="rhElogioList" style="max-height:500px;overflow-y:auto;">
           ${this._renderElogioItems(elogios)}
         </div>
       </div>
+    `;
+  },
 
-      <!-- Feedbacks -->
+  // ── Sub: Rituais ──
+  _renderCulturaRituais() {
+    const rituais = [
+      { nome: 'Daily Socios', freq: 'Diaria', desc: 'Alinhamento rapido entre fundadores sobre prioridades do dia.', icon: 'sun', color: '#F59E0B' },
+      { nome: '1:1 Mensal', freq: 'Mensal', desc: 'Conversa individual de PDI e feedback bidirecional entre gestor e liderado.', icon: 'users', color: '#3B82F6' },
+      { nome: 'Review Semanal', freq: 'Semanal', desc: 'Revisao de entregas por BU com alinhamento de qualidade e prazos.', icon: 'check-circle', color: '#10B981' },
+      { nome: 'Retrospectiva', freq: 'Mensal', desc: 'O que foi bem, o que melhorar e acoes concretas para o proximo ciclo.', icon: 'refresh-ccw', color: '#8B5CF6' },
+      { nome: 'All Hands', freq: 'Trimestral', desc: 'Reuniao geral: resultados do trimestre, visao e proximos passos.', icon: 'megaphone', color: '#EC4899' },
+      { nome: 'Celebracao de Entregas', freq: 'Semanal', desc: 'Reconhecimento publico das melhores entregas da semana.', icon: 'party-popper', color: '#F59E0B' },
+      { nome: 'Cafe com a Diretoria', freq: 'Mensal', desc: 'Conversa informal entre qualquer membro e os co-CEOs, sem pauta fixa.', icon: 'coffee', color: '#92400E' }
+    ];
+
+    return `
+      <div class="card" style="padding:20px;">
+        <h3 style="font-size:1rem;margin-bottom:16px;">Rituais da TBO</h3>
+        <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:20px;line-height:1.5;">
+          Rituais sao a espinha dorsal da nossa cultura. Eles garantem alinhamento, feedback continuo e celebracao de conquistas.
+        </p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+          ${rituais.map(r => `<div style="padding:16px;background:var(--bg-elevated);border-radius:12px;border-left:4px solid ${r.color};">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+              <div style="width:36px;height:36px;border-radius:8px;background:${r.color}15;display:flex;align-items:center;justify-content:center;">
+                <i data-lucide="${r.icon}" style="width:18px;height:18px;color:${r.color};"></i>
+              </div>
+              <div>
+                <div style="font-weight:700;font-size:0.88rem;">${r.nome}</div>
+                <span class="tag" style="font-size:0.62rem;background:${r.color}20;color:${r.color};">${r.freq}</span>
+              </div>
+            </div>
+            <div style="font-size:0.78rem;color:var(--text-secondary);line-height:1.5;">${r.desc}</div>
+          </div>`).join('')}
+        </div>
+      </div>
+    `;
+  },
+
+  // ── Sub: Feedbacks ──
+  _renderCulturaFeedbacks(feedbacks, userId, isAdmin) {
+    let filteredFb = feedbacks;
+    if (!isAdmin) filteredFb = feedbacks.filter(f => f.de === userId || f.para === userId || f.visibilidade === 'publico');
+
+    const positivos = filteredFb.filter(f => f.tipo === 'positivo').length;
+    const construtivos = filteredFb.filter(f => f.tipo === 'construtivo').length;
+
+    return `
+      <div class="grid-3" style="gap:12px;margin-bottom:16px;">
+        <div class="kpi-card"><div class="kpi-label">Total Feedbacks</div><div class="kpi-value">${filteredFb.length}</div></div>
+        <div class="kpi-card kpi-card--success"><div class="kpi-label">Positivos</div><div class="kpi-value">${positivos}</div></div>
+        <div class="kpi-card kpi-card--warning"><div class="kpi-label">Construtivos</div><div class="kpi-value">${construtivos}</div></div>
+      </div>
       <div class="card">
         <div class="card-header"><h3 class="card-title">Feedbacks</h3><button class="btn btn-primary btn-sm" id="rhNewFeedback">+ Feedback</button></div>
         <div id="rhFeedbackForm" style="display:none;padding:16px;border-bottom:1px solid var(--border-subtle);">
@@ -1680,11 +1809,149 @@ const TBO_RH = {
           <div class="form-group" style="margin-bottom:12px;"><label class="form-label">Mensagem</label><textarea class="form-input" id="fbTexto" rows="2" placeholder="Descreva o feedback..."></textarea></div>
           <div style="display:flex;gap:8px;"><button class="btn btn-primary btn-sm" id="fbSave">Enviar</button><button class="btn btn-secondary btn-sm" id="fbCancel">Cancelar</button></div>
         </div>
-        <div id="rhFeedbackList" style="max-height:400px;overflow-y:auto;">
+        <div id="rhFeedbackList" style="max-height:500px;overflow-y:auto;">
           ${this._renderFeedbackItems(filteredFb)}
         </div>
       </div>
     `;
+  },
+
+  // ── Sub: Historico Cultural ──
+  _renderCulturaHistorico(elogios, feedbacks) {
+    // Unificar elogios e feedbacks em timeline
+    const events = [];
+    elogios.forEach(e => {
+      const v = this._valores.find(v2 => v2.id === e.valor);
+      events.push({
+        type: 'elogio',
+        date: new Date(e.data),
+        emoji: v?.emoji || '\u2B50',
+        title: `${this._getPersonName(e.de)} reconheceu ${this._getPersonName(e.para)}`,
+        detail: `${v?.nome || 'Valor'}: ${this._esc(e.mensagem)}`,
+        color: '#F59E0B'
+      });
+    });
+    feedbacks.forEach(f => {
+      events.push({
+        type: 'feedback',
+        date: new Date(f.data),
+        emoji: f.tipo === 'positivo' ? '\u{1F44D}' : '\u{1F4AC}',
+        title: `Feedback ${f.tipo} de ${this._getPersonName(f.de)} para ${this._getPersonName(f.para)}`,
+        detail: this._esc(f.mensagem),
+        color: f.tipo === 'positivo' ? '#10B981' : '#F59E0B'
+      });
+    });
+    events.sort((a, b) => b.date - a.date);
+
+    // Agrupar por mes
+    const byMonth = {};
+    events.forEach(ev => {
+      const key = ev.date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      if (!byMonth[key]) byMonth[key] = [];
+      byMonth[key].push(ev);
+    });
+
+    return `
+      <div class="card" style="padding:20px;">
+        <h3 style="font-size:1rem;margin-bottom:16px;">Timeline Cultural</h3>
+        ${Object.entries(byMonth).length ? Object.entries(byMonth).map(([month, items]) => `
+          <div style="margin-bottom:20px;">
+            <div style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:12px;letter-spacing:0.5px;">${month}</div>
+            ${items.map(ev => `<div style="display:flex;gap:12px;margin-bottom:12px;padding-left:8px;border-left:3px solid ${ev.color};">
+              <div style="font-size:1.2rem;flex-shrink:0;margin-top:2px;">${ev.emoji}</div>
+              <div style="flex:1;">
+                <div style="font-size:0.82rem;font-weight:600;">${ev.title}</div>
+                <div style="font-size:0.75rem;color:var(--text-secondary);line-height:1.5;margin-top:2px;">${ev.detail}</div>
+                <div style="font-size:0.68rem;color:var(--text-muted);margin-top:4px;">${ev.date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+              </div>
+            </div>`).join('')}
+          </div>
+        `).join('') : '<div style="font-size:0.82rem;color:var(--text-muted);padding:20px;text-align:center;">Nenhum evento cultural registrado ainda.</div>'}
+      </div>
+    `;
+  },
+
+  // ── Sub: Onboarding Cultural ──
+  _renderCulturaOnboarding() {
+    const steps = [
+      { step: 1, title: 'Conheca os Valores', desc: 'Leia e entenda os 6 valores que guiam tudo o que fazemos na TBO.', icon: 'gem', done: true },
+      { step: 2, title: 'Mural de Reconhecimento', desc: 'Veja como reconhecemos colegas. Voce tambem pode elogiar desde o dia 1!', icon: 'award', done: true },
+      { step: 3, title: 'Participe dos Rituais', desc: 'Dailys, reviews semanais e retrospectivas — sua presenca faz a diferenca.', icon: 'repeat', done: false },
+      { step: 4, title: 'Primeira 1:1 com seu Gestor', desc: 'Conversa para alinhar expectativas, PDI e como voce pode crescer aqui.', icon: 'users', done: false },
+      { step: 5, title: 'De seu Primeiro Feedback', desc: 'Cultura de feedback comeca no dia 1. Positivo ou construtivo, sua voz importa.', icon: 'message-square', done: false },
+      { step: 6, title: 'Celebre uma Conquista', desc: 'Quando terminar seu primeiro projeto, celebrate no mural. Voce merece!', icon: 'party-popper', done: false }
+    ];
+    const completed = steps.filter(s => s.done).length;
+    const pct = Math.round((completed / steps.length) * 100);
+
+    return `
+      <div class="card" style="padding:20px;margin-bottom:16px;">
+        <h3 style="font-size:1rem;margin-bottom:8px;">Bem-vindo(a) a Cultura TBO</h3>
+        <p style="font-size:0.82rem;color:var(--text-secondary);line-height:1.5;margin-bottom:16px;">
+          A TBO e movida por pessoas que se importam com qualidade, colaboracao e inovacao.
+          Este guia te ajuda a entender e viver nossa cultura desde o primeiro dia.
+        </p>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+          <div style="flex:1;height:8px;background:var(--bg-tertiary);border-radius:4px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:var(--accent-gold);border-radius:4px;transition:width 0.5s;"></div>
+          </div>
+          <span style="font-size:0.78rem;font-weight:600;color:var(--accent-gold);">${pct}%</span>
+        </div>
+        <div style="font-size:0.72rem;color:var(--text-muted);">${completed} de ${steps.length} etapas concluidas</div>
+      </div>
+
+      <div class="card" style="padding:20px;">
+        <h4 style="font-size:0.9rem;margin-bottom:16px;">Jornada Cultural</h4>
+        <div style="display:grid;gap:12px;">
+          ${steps.map(s => `<div style="display:flex;gap:14px;align-items:flex-start;padding:14px;background:${s.done ? 'var(--color-success-dim)' : 'var(--bg-elevated)'};border-radius:10px;border:1px solid ${s.done ? 'var(--color-success)30' : 'var(--border-subtle)'};">
+            <div style="width:36px;height:36px;border-radius:50%;background:${s.done ? 'var(--color-success)' : 'var(--bg-tertiary)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              ${s.done ? '<i data-lucide="check" style="width:18px;height:18px;color:white;"></i>' : `<span style="font-size:0.85rem;font-weight:700;color:var(--text-muted);">${s.step}</span>`}
+            </div>
+            <div>
+              <div style="font-weight:700;font-size:0.85rem;margin-bottom:2px;${s.done ? 'text-decoration:line-through;opacity:0.7;' : ''}">${s.title}</div>
+              <div style="font-size:0.78rem;color:var(--text-secondary);line-height:1.5;">${s.desc}</div>
+            </div>
+          </div>`).join('')}
+        </div>
+      </div>
+    `;
+  },
+
+  // Bind interacoes da subtab ativa de Cultura (elogios, feedbacks)
+  _bindCulturaContent() {
+    // Elogios CRUD — bind apenas se os elementos existem na subtab ativa
+    this._bindToggle('rhNewElogio', 'rhElogioForm');
+    this._bindToggle('elCancel', 'rhElogioForm', false);
+    this._bind('elSave', () => {
+      const el = { id: this._genId(), de: this._currentUserId(), para: document.getElementById('elPara')?.value, valor: document.getElementById('elValor')?.value, mensagem: document.getElementById('elTexto')?.value, curtidas: 0, data: new Date().toISOString() };
+      if (!el.mensagem) { if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.warning('Escreva uma mensagem'); return; }
+      const items = this._getStore('elogios'); items.push(el); this._setStore('elogios', items);
+      const list = document.getElementById('rhElogioList');
+      if (list) list.innerHTML = this._renderElogioItems(items);
+      const form = document.getElementById('rhElogioForm');
+      if (form) form.style.display = 'none';
+      const txt = document.getElementById('elTexto');
+      if (txt) txt.value = '';
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Elogio publicado!');
+      this._bindCurtirElogios();
+    });
+    this._bindCurtirElogios();
+
+    // Feedbacks CRUD
+    this._bindToggle('rhNewFeedback', 'rhFeedbackForm');
+    this._bindToggle('fbCancel', 'rhFeedbackForm', false);
+    this._bind('fbSave', () => {
+      const fb = { id: this._genId(), de: this._currentUserId(), para: document.getElementById('fbPara')?.value, tipo: document.getElementById('fbTipo')?.value, visibilidade: 'publico', mensagem: document.getElementById('fbTexto')?.value, data: new Date().toISOString() };
+      if (!fb.mensagem) { if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.warning('Preencha a mensagem'); return; }
+      const items = this._getStore('feedbacks'); items.push(fb); this._setStore('feedbacks', items);
+      const list = document.getElementById('rhFeedbackList');
+      if (list) list.innerHTML = this._renderFeedbackItems(items);
+      const form = document.getElementById('rhFeedbackForm');
+      if (form) form.style.display = 'none';
+      const txt = document.getElementById('fbTexto');
+      if (txt) txt.value = '';
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Feedback enviado!');
+    });
   },
 
   _renderElogioItems(elogios) {
@@ -2232,18 +2499,31 @@ const TBO_RH = {
     });
 
     // Deep link: hashchange para navegar entre tabs via sidebar sem re-render completo
+    // Suporta: rh/{tab} e rh/cultura/{subtab}
     this._hashChangeHandler = () => {
       const hash = (window.location.hash || '').replace('#', '');
       if (!hash.startsWith('rh')) return; // so processar rotas do RH
 
+      const parts = hash.split('/');
       const validTabs = ['visao-geral', 'performance', 'cultura', 'one-on-ones', 'analytics'];
-      const tabFromUrl = hash.includes('/') ? hash.split('/')[1] : 'visao-geral';
-      if (!validTabs.includes(tabFromUrl) || tabFromUrl === this._activeTab) return;
+      const tabFromUrl = parts[1] || 'visao-geral';
 
-      // Simular click na tab correspondente
-      const tabBtn = document.querySelector(`#rhMainTabs .tab[data-tab="${tabFromUrl}"]`);
-      if (tabBtn) {
-        tabBtn.click();
+      if (!validTabs.includes(tabFromUrl)) return;
+
+      // Se mudou a tab principal, simular click
+      if (tabFromUrl !== this._activeTab) {
+        const tabBtn = document.querySelector(`#rhMainTabs .tab[data-tab="${tabFromUrl}"]`);
+        if (tabBtn) tabBtn.click();
+      }
+
+      // Se e deep link de cultura (rh/cultura/rituais), trocar subtab
+      if (tabFromUrl === 'cultura' && parts[2]) {
+        const validCulturaSubs = ['valores', 'reconhecimentos', 'rituais', 'feedbacks', 'historico', 'onboarding'];
+        if (validCulturaSubs.includes(parts[2]) && parts[2] !== this._culturaSubTab) {
+          this._culturaSubTab = parts[2];
+          const subTabBtn = document.querySelector(`#rhCulturaSubtabs .tab--sub[data-cultura-tab="${parts[2]}"]`);
+          if (subTabBtn) subTabBtn.click();
+        }
       }
     };
     window.addEventListener('hashchange', this._hashChangeHandler);
@@ -2272,6 +2552,32 @@ const TBO_RH = {
         if (target) target.classList.add('active');
       });
     });
+
+    // Cultura subtab switching
+    document.querySelectorAll('#rhCulturaSubtabs .tab--sub').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const subTab = tab.dataset.culturaTab;
+        this._culturaSubTab = subTab;
+        // Atualizar visual das subtabs
+        document.querySelectorAll('#rhCulturaSubtabs .tab--sub').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        // Re-renderizar conteudo da subtab
+        const content = document.getElementById('rhCulturaContent');
+        if (content) {
+          content.innerHTML = this._renderCulturaSubTab(subTab);
+          if (window.lucide) lucide.createIcons({ root: content });
+          this._bindCulturaContent();
+        }
+        // Atualizar hash para deep link do sidebar
+        const newHash = `rh/cultura/${subTab}`;
+        history.replaceState(null, '', '#' + newHash);
+        if (typeof TBO_SIDEBAR_RENDERER !== 'undefined') {
+          TBO_SIDEBAR_RENDERER.setActive(newHash);
+        }
+      });
+    });
+    // Bind interacoes da tab Cultura (elogios, feedbacks)
+    this._bindCulturaContent();
 
     // ── Visao Geral: View Switcher (organograma / tabela / cards) ──
     document.querySelectorAll('.rh-view-btn').forEach(btn => {

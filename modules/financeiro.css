@@ -1,0 +1,206 @@
+/**
+ * TBO OS — Financeiro Module CSS
+ * Estilos específicos para o módulo financeiro MVP.
+ * Reutiliza variáveis e classes existentes do design system.
+ */
+
+/* ── Layout geral ─────────────────────────────────────────────────── */
+
+.financeiro-module {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ── Tabs customizados ────────────────────────────────────────────── */
+
+.fn-tabs {
+  margin-bottom: 20px;
+}
+
+/* ── Loading state ────────────────────────────────────────────────── */
+
+.fn-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 12px;
+}
+
+/* ── Error state ──────────────────────────────────────────────────── */
+
+.fn-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.fn-error h3 {
+  margin: 0 0 8px;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+}
+
+.fn-error p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* ── Placeholder (tabs em desenvolvimento) ────────────────────────── */
+
+.fn-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 350px;
+  text-align: center;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 40px;
+}
+
+.fn-placeholder h3 {
+  margin: 0 0 8px;
+  color: var(--text-primary);
+  font-size: 1.15rem;
+}
+
+.fn-placeholder p {
+  margin: 0 0 12px;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+/* ── KPI Grid responsivo ──────────────────────────────────────────── */
+
+.fn-kpi-grid {
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .fn-kpi-grid.grid-4 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .fn-kpi-grid.grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── KPI Alert (borda vermelha para contas vencidas) ──────────────── */
+
+.fn-kpi-alert {
+  border-left: 3px solid var(--color-danger) !important;
+  animation: fn-pulse 2s ease-in-out infinite;
+}
+
+@keyframes fn-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1); }
+}
+
+/* ── Bar Chart horizontal ─────────────────────────────────────────── */
+
+.fn-bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.fn-bar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fn-bar-label {
+  width: 120px;
+  min-width: 120px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fn-bar-track {
+  flex: 1;
+  height: 20px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.fn-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 0.4s ease;
+  min-width: 4px;
+}
+
+.fn-bar-value {
+  width: 100px;
+  min-width: 100px;
+  text-align: right;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+@media (max-width: 640px) {
+  .fn-bar-label {
+    width: 80px;
+    min-width: 80px;
+    font-size: 0.72rem;
+  }
+  .fn-bar-value {
+    width: 80px;
+    min-width: 80px;
+    font-size: 0.72rem;
+  }
+}
+
+/* ── Empty chart ──────────────────────────────────────────────────── */
+
+.fn-empty-chart {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* ── Sidebar: child items dentro de workspaces ────────────────────── */
+
+.nsb-ws-child {
+  font-weight: 500;
+}
+
+.nsb-ws-child i {
+  color: var(--accent);
+  opacity: 0.85;
+}
+
+.nsb-ws-child:hover i {
+  opacity: 1;
+}
+
+.nsb-ws-child.nsb-item--active {
+  background: var(--bg-active, rgba(232, 81, 2, 0.08));
+  color: var(--accent);
+}
+
+.nsb-ws-child.nsb-item--active i {
+  color: var(--accent);
+  opacity: 1;
+}

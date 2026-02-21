@@ -52,6 +52,9 @@ const TBO_SIDEBAR_SERVICE = (() => {
     { id: 'ws-comercial',   name: 'Comercial',        type: 'workspace', order_index: 14, icon: 'briefcase',route: null, parent_id: 'sep-equipe', allowed_roles: ['owner', 'admin', 'diretor', 'comercial', 'cs', 'financeiro'] },
     { id: 'ws-diretoria',   name: 'Diretoria TBO',    type: 'workspace', order_index: 15, icon: 'shield',   route: null, parent_id: 'sep-equipe', allowed_roles: ['owner', 'admin', 'diretor'] },
 
+    // Sub-items de workspaces (módulos fixos dentro de workspaces)
+    { id: 'dir-financeiro', name: 'Financeiro',       type: 'child',     order_index: 15.1, icon: 'coins',  route: 'financeiro', parent_id: 'ws-diretoria', allowed_roles: ['owner', 'admin', 'diretor', 'financeiro'] },
+
     // Mais
     { id: 'sys-mais',       name: 'Mais',             type: 'system',    order_index: 16, icon: 'plus',     route: null, allowed_roles: [], metadata: { action: 'show-more-workspaces' } }
   ];
@@ -306,6 +309,14 @@ const TBO_SIDEBAR_SERVICE = (() => {
   }
 
   /**
+   * Retorna sub-items (children) de um workspace específico
+   * Usados para módulos fixos dentro de workspaces (ex: Financeiro dentro de Diretoria)
+   */
+  function getChildItems(parentId) {
+    return getItems().filter(i => i.type === 'child' && i.parent_id === parentId);
+  }
+
+  /**
    * Retorna estado de expansão de um item
    */
   function isExpanded(itemId) {
@@ -356,6 +367,7 @@ const TBO_SIDEBAR_SERVICE = (() => {
     getSystemItems,
     getSeparators,
     getWorkspaces,
+    getChildItems,
     isExpanded,
     toggleExpanded,
     refresh,

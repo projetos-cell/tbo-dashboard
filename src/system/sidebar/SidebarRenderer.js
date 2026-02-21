@@ -91,7 +91,7 @@ const TBO_SIDEBAR_RENDERER = (() => {
       ? TBO_SIDEBAR_SERVICE.isExpanded(item.id)
       : true;
 
-    // Conteúdo interno — placeholder inicial, preenchido por _loadWorkspacePages
+    // Conteúdo interno — placeholder inicial, preenchido por _loadWorkspaceContent
     const innerHtml = expanded
       ? `<div class="nsb-ws-content" id="nsbWsContent_${_escHtml(item.id)}">
            <div class="nsb-ws-placeholder">
@@ -116,35 +116,79 @@ const TBO_SIDEBAR_RENDERER = (() => {
     </div>`;
   }
 
-  // ── Carregar páginas de um workspace ──────────────────────────────────
+  // ── Carregar conteúdo de um workspace (children fixos + páginas) ─────
 
   /**
-   * Busca páginas do Supabase e renderiza dentro do workspace na sidebar.
+   * Renderiza conteúdo completo de um workspace:
+   * 1. Children fixos (módulos como Financeiro) via SidebarService
+   * 2. Páginas do Supabase via PagesRepo
    * @param {string} spaceId - ID do workspace (ex: 'ws-geral')
    */
-  async function _loadWorkspacePages(spaceId) {
+  async function _loadWorkspaceContent(spaceId) {
     const contentEl = document.getElementById(`nsbWsContent_${spaceId}`);
     if (!contentEl) return;
 
-    // Se PagesRepo não existe, mostra placeholder vazio
-    if (typeof PagesRepo === 'undefined') {
+    let html = '';
+
+    // 1. Renderizar children fixos (módulos) do SidebarService
+    if (typeof TBO_SIDEBAR_SERVICE !== 'undefined') {
+      const children = TBO_SIDEBAR_SERVICE.getChildItems(spaceId);
+      if (children && children.length > 0) {
+        html += children.map(child => _renderChildItem(child)).join('');
+      }
+    }
+
+    // 2. Renderizar páginas do Supabase
+    if (typeof PagesRepo !== 'undefined') {
+      try {
+        const pages = await PagesRepo.listBySpace(spaceId, { limit: 30 });
+        if (pages && pages.length > 0) {
+          html += pages.map(p => _renderPageItem(p)).join('');
+        }
+      } catch (err) {
+        console.warn('[TBO Sidebar] Erro ao carregar páginas:', err);
+      }
+    }
+
+    // Se nenhum conteúdo, mostrar placeholder
+    if (!html) {
       contentEl.innerHTML = '<div class="nsb-ws-placeholder"><span class="nsb-ws-placeholder-text">Nenhum conteúdo ainda</span></div>';
       return;
     }
 
-    try {
-      const pages = await PagesRepo.listBySpace(spaceId, { limit: 30 });
-      if (!pages || pages.length === 0) {
-        contentEl.innerHTML = '<div class="nsb-ws-placeholder"><span class="nsb-ws-placeholder-text">Nenhum conteúdo ainda</span></div>';
-        return;
-      }
-      contentEl.innerHTML = pages.map(p => _renderPageItem(p)).join('');
-      if (window.lucide) lucide.createIcons({ root: contentEl });
-      _bindPageItemEvents(contentEl);
-    } catch (err) {
-      console.warn('[TBO Sidebar] Erro ao carregar páginas:', err);
-      contentEl.innerHTML = '<div class="nsb-ws-placeholder"><span class="nsb-ws-placeholder-text">Nenhum conteúdo ainda</span></div>';
-    }
+    contentEl.innerHTML = html;
+    if (window.lucide) lucide.createIcons({ root: contentEl });
+    _bindPageItemEvents(contentEl);
+    _bindChildItemEvents(contentEl);
+  }
+
+  /**
+   * Renderiza HTML de um child item fixo (módulo dentro de workspace)
+   */
+  function _renderChildItem(child) {
+    const icon = child.icon || 'file';
+    const title = _escHtml(child.name);
+    const isActive = _activeRoute && child.route === _activeRoute;
+    return `<div class="nsb-ws-item nsb-ws-child${isActive ? ' nsb-item--active' : ''}" data-child-route="${_escHtml(child.route)}" title="${title}">
+      <i data-lucide="${_escHtml(icon)}"></i>
+      <span class="nsb-ws-item-label">${title}</span>
+    </div>`;
+  }
+
+  /**
+   * Bind click events nos children fixos
+   */
+  function _bindChildItemEvents(container) {
+    container.querySelectorAll('[data-child-route]').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        const route = el.dataset.childRoute;
+        if (route) {
+          window.location.hash = route;
+          setActive(route);
+        }
+      });
+    });
   }
 
   /**
@@ -235,6 +279,9 @@ const TBO_SIDEBAR_RENDERER = (() => {
     let foundSeparator = false;
 
     items.forEach(item => {
+      // Children são renderizados dentro dos workspaces, não no nível raiz
+      if (item.type === 'child') return;
+
       if (item.type === 'separator') {
         foundSeparator = true;
         separators.push(item);
@@ -289,7 +336,7 @@ const TBO_SIDEBAR_RENDERER = (() => {
         ? TBO_SIDEBAR_SERVICE.isExpanded(item.id)
         : true;
       if (expanded) {
-        _loadWorkspacePages(item.id);
+        _loadWorkspaceContent(item.id);
       }
     });
   }
@@ -341,7 +388,7 @@ const TBO_SIDEBAR_RENDERER = (() => {
               contentDiv.id = `nsbWsContent_${itemId}`;
               contentDiv.innerHTML = '<div class="nsb-ws-placeholder"><span class="nsb-ws-placeholder-text">Carregando...</span></div>';
               ws.appendChild(contentDiv);
-              _loadWorkspacePages(itemId);
+              _loadWorkspaceContent(itemId);
             } else if (!newState && content) {
               content.remove();
             }

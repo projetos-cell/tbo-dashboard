@@ -134,7 +134,9 @@ const TBO_PEOPLE_PROFILE = {
             cargo: data.cargo || seedData.cargo || (data.is_coordinator ? 'Coordenador(a)' : data.role || ''),
             area: seedData.area || (teamName ? `BU ${teamName}` : ''),
             bu: teamName,
-            nivel: seedData.nivel || '',
+            nivel: data.nivel_atual || seedData.nivel || '',
+            proximoNivel: data.proximo_nivel || '',
+            mediaAvaliacao: data.media_avaliacao || null,
             lider: seedData.lider || null,
             status: data.status || (data.is_active ? 'active' : 'inactive'),
             avatarUrl: data.avatar_url || null,
@@ -146,14 +148,18 @@ const TBO_PEOPLE_PROFILE = {
             dataEntrada: data.start_date || data.created_at || null,
             ultimoLogin: null,
             terceirizado: seedData.terceirizado || false,
-            // Novos campos P0
+            // Novos campos P0 + P1
             custoMensal: data.salary_pj || null,
             contractType: data.contract_type || null,
             phone: data.phone || null,
             managerId: data.manager_id || null,
             teamId: data.team_id || null,
             teamColor: data.teams?.color || null,
-            department: data.department || null
+            department: data.department || null,
+            // P1: Dados de endereço e nascimento
+            birthDate: data.birth_date || null,
+            addressCity: data.address_city || null,
+            addressState: data.address_state || null
           };
           this._personName = this._personData.nome;
           this._loading = false;
@@ -170,7 +176,7 @@ const TBO_PEOPLE_PROFILE = {
         const client = TBO_SUPABASE.getClient();
         const tenantId = TBO_SUPABASE.getCurrentTenantId();
         if (client && tenantId) {
-          const _select = 'id, username, full_name, email, role, bu, is_coordinator, is_active, tenant_id, avatar_url, created_at, salary_pj, contract_type, phone, manager_id, status, team_id, cargo, start_date, department, teams(id, name, color, icon)';
+          const _select = 'id, username, full_name, email, role, bu, is_coordinator, is_active, tenant_id, avatar_url, created_at, salary_pj, contract_type, phone, manager_id, status, team_id, cargo, start_date, department, birth_date, address_city, address_state, nivel_atual, proximo_nivel, media_avaliacao, teams(id, name, color, icon)';
           let query = client.from('profiles').select(_select).eq('tenant_id', tenantId);
 
           const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pid);
@@ -322,9 +328,11 @@ const TBO_PEOPLE_PROFILE = {
           <!-- Info row -->
           <div style="display:flex;gap:20px;margin-top:16px;padding-top:12px;border-top:1px solid var(--border-subtle);flex-wrap:wrap;">
             ${person.email ? `<div class="pp-info-item"><i data-lucide="mail" style="width:13px;height:13px;"></i><span>${this._esc(person.email)}</span></div>` : ''}
+            ${person.phone ? `<div class="pp-info-item"><i data-lucide="phone" style="width:13px;height:13px;"></i><span>${this._esc(person.phone)}</span></div>` : ''}
             ${person.lider ? `<div class="pp-info-item"><i data-lucide="user" style="width:13px;height:13px;"></i><span>Reporta a: <a href="#people/${person.lider}/overview" style="color:var(--accent-gold);text-decoration:none;font-weight:500;">${typeof TBO_RH !== 'undefined' ? TBO_RH._getPersonName(person.lider) : person.lider}</a></span></div>` : ''}
             ${person.dataEntrada ? `<div class="pp-info-item"><i data-lucide="calendar" style="width:13px;height:13px;"></i><span>Desde ${new Date(person.dataEntrada).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span></div>` : ''}
-            ${person.ultimoLogin ? `<div class="pp-info-item"><i data-lucide="clock" style="width:13px;height:13px;"></i><span>Ultimo acesso: ${new Date(person.ultimoLogin).toLocaleDateString('pt-BR')}</span></div>` : ''}
+            ${person.addressCity ? `<div class="pp-info-item"><i data-lucide="map-pin" style="width:13px;height:13px;"></i><span>${this._esc(person.addressCity)}${person.addressState ? ' / ' + this._esc(person.addressState) : ''}</span></div>` : ''}
+            ${person.birthDate ? `<div class="pp-info-item"><i data-lucide="cake" style="width:13px;height:13px;"></i><span>${new Date(person.birthDate + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</span></div>` : ''}
           </div>
         </div>
 
@@ -914,6 +922,23 @@ const TBO_PEOPLE_PROFILE = {
           <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border-subtle);">
             <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">Data de Inicio</div>
             <div style="font-size:0.85rem;">${new Date(p.dataEntrada).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+          </div>` : ''}
+          ${p.nivel || p.proximoNivel || p.mediaAvaliacao ? `
+          <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border-subtle);">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+              ${p.nivel ? `<div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">Nivel Atual</div>
+                <div style="font-size:0.85rem;font-weight:600;">${this._esc(p.nivel)}</div>
+              </div>` : ''}
+              ${p.proximoNivel ? `<div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">Proximo Nivel</div>
+                <div style="font-size:0.85rem;color:var(--color-info);">${this._esc(p.proximoNivel)}</div>
+              </div>` : ''}
+              ${p.mediaAvaliacao ? `<div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">Media Avaliacao</div>
+                <div style="font-size:0.85rem;font-weight:600;color:${p.mediaAvaliacao >= 50 ? 'var(--color-success)' : 'var(--accent-gold)'};">${p.mediaAvaliacao}%</div>
+              </div>` : ''}
+            </div>
           </div>` : ''}
         </div>
 

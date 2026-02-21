@@ -20,7 +20,7 @@ const PeopleRepo = (() => {
   }
 
   // Campos completos para listagens
-  const _PROFILE_SELECT = 'id, username, full_name, email, role, avatar_url, is_active, status, department, cargo, bu, is_coordinator, salary_pj, contract_type, start_date, phone, manager_id, team_id, created_at, teams(id, name, color, icon)';
+  const _PROFILE_SELECT = 'id, username, full_name, email, role, avatar_url, is_active, status, department, cargo, bu, is_coordinator, salary_pj, contract_type, start_date, phone, manager_id, team_id, birth_date, address_city, address_state, nivel_atual, proximo_nivel, media_avaliacao, created_at, teams(id, name, color, icon)';
 
   // Campos resumidos para buscas rápidas
   const _PROFILE_BRIEF = 'id, full_name, email, avatar_url, role, bu, cargo, status, team_id';

@@ -510,6 +510,7 @@ const TBO_RH = {
         if (tabContent) {
           tabContent.innerHTML = this._renderActiveTab();
           this._initActiveTab();
+          if (window.lucide) lucide.createIcons();
         }
       });
     }
@@ -4103,16 +4104,35 @@ const TBO_RH = {
   },
 
   _openVagaModal(vaga) {
-    const modal = document.getElementById('rhVagaModal');
+    let modal = document.getElementById('rhVagaModal');
     const content = document.getElementById('rhVagaModalContent');
-    if (!modal || !content) return;
-    content.innerHTML = this._renderVagaModalContent(vaga);
+
+    // Fallback: se modal nao existe no DOM (re-render destruiu), criar dinamicamente
+    if (!modal) {
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = `<div id="rhVagaModal" class="modal-overlay" style="display:none;">
+        <div class="modal" style="max-width:600px;"><div id="rhVagaModalContent"></div></div>
+      </div>`;
+      document.body.appendChild(wrapper.firstElementChild);
+      modal = document.getElementById('rhVagaModal');
+    }
+    const modalContent = document.getElementById('rhVagaModalContent');
+    if (!modal || !modalContent) return;
+
+    modalContent.innerHTML = this._renderVagaModalContent(vaga);
     modal.style.display = 'flex';
     if (window.lucide) lucide.createIcons({ root: modal });
 
-    document.getElementById('rhVagaModalClose')?.addEventListener('click', () => { modal.style.display = 'none'; });
-    document.getElementById('rhVagaCancel')?.addEventListener('click', () => { modal.style.display = 'none'; });
-    modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+    // Fechar modal: close btn, cancel btn, click no backdrop, ESC
+    const closeModal = () => { modal.style.display = 'none'; };
+    document.getElementById('rhVagaModalClose')?.addEventListener('click', closeModal);
+    document.getElementById('rhVagaCancel')?.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+    const escHandler = (e) => { if (e.key === 'Escape' && modal.style.display === 'flex') { closeModal(); document.removeEventListener('keydown', escHandler); } };
+    document.addEventListener('keydown', escHandler);
+
+    // Focus no primeiro campo para UX
+    setTimeout(() => document.getElementById('rhVagaTitulo')?.focus(), 100);
 
     document.getElementById('rhVagaForm')?.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -4132,7 +4152,7 @@ const TBO_RH = {
       try {
         if (id) { await VacanciesRepo.update(id, payload); TBO_TOAST.success('Vaga atualizada!'); }
         else { await VacanciesRepo.create(payload); TBO_TOAST.success('Vaga criada!'); }
-        modal.style.display = 'none';
+        closeModal();
         this._loadVagas();
       } catch (err) {
         console.error('[RH] Erro ao salvar vaga:', err);
@@ -4142,7 +4162,7 @@ const TBO_RH = {
   },
 
   _initVagas() {
-    // Botao nova vaga
+    // Botao nova vaga (backup — delegation principal no init())
     document.getElementById('rhBtnNovaVaga')?.addEventListener('click', () => {
       this._openVagaModal(null);
     });
@@ -4509,16 +4529,34 @@ const TBO_RH = {
   },
 
   _openContratoModal(contract) {
-    const modal = document.getElementById('rhContratoModal');
+    let modal = document.getElementById('rhContratoModal');
+
+    // Fallback: se modal nao existe no DOM (re-render destruiu), criar dinamicamente
+    if (!modal) {
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = `<div id="rhContratoModal" class="modal-overlay" style="display:none;">
+        <div class="modal" style="max-width:600px;"><div id="rhContratoModalContent"></div></div>
+      </div>`;
+      document.body.appendChild(wrapper.firstElementChild);
+      modal = document.getElementById('rhContratoModal');
+    }
     const content = document.getElementById('rhContratoModalContent');
     if (!modal || !content) return;
+
     content.innerHTML = this._renderContratoModalContent(contract);
     modal.style.display = 'flex';
     if (window.lucide) lucide.createIcons({ root: modal });
 
-    document.getElementById('rhContratoModalClose')?.addEventListener('click', () => { modal.style.display = 'none'; });
-    document.getElementById('rhContratoCancel')?.addEventListener('click', () => { modal.style.display = 'none'; });
-    modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+    // Fechar modal: close btn, cancel btn, click no backdrop, ESC
+    const closeModal = () => { modal.style.display = 'none'; };
+    document.getElementById('rhContratoModalClose')?.addEventListener('click', closeModal);
+    document.getElementById('rhContratoCancel')?.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+    const escHandler = (e) => { if (e.key === 'Escape' && modal.style.display === 'flex') { closeModal(); document.removeEventListener('keydown', escHandler); } };
+    document.addEventListener('keydown', escHandler);
+
+    // Focus no primeiro campo para UX
+    setTimeout(() => document.getElementById('rhContratoTitulo')?.focus(), 100);
 
     document.getElementById('rhContratoForm')?.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -4567,7 +4605,7 @@ const TBO_RH = {
         }
 
         TBO_TOAST.success(id ? 'Contrato atualizado!' : 'Contrato criado!');
-        modal.style.display = 'none';
+        closeModal();
         this._loadContratos();
       } catch (err) {
         console.error('[RH] Erro ao salvar contrato:', err);
@@ -4578,7 +4616,7 @@ const TBO_RH = {
   },
 
   _initContratos() {
-    // Botao novo contrato
+    // Botao novo contrato (backup — delegation principal no init())
     document.getElementById('rhBtnNovoContrato')?.addEventListener('click', () => {
       this._openContratoModal(null);
     });
@@ -4687,6 +4725,20 @@ const TBO_RH = {
   // INIT (Event Bindings)
   // ══════════════════════════════════════════════════════════════════
   init() {
+    // ── Event Delegation: listeners persistentes que sobrevivem a re-renders ──
+    // Resolve race condition onde _loadTeamFromSupabase() recria o DOM
+    // e destroi os bindings feitos por _initVagas()/_initContratos()
+    const moduleRoot = document.querySelector('.rh-module') || document.getElementById('moduleContainer');
+    if (moduleRoot && !moduleRoot.__rhDelegated) {
+      moduleRoot.__rhDelegated = true;
+      moduleRoot.addEventListener('click', (e) => {
+        const btn = e.target.closest('#rhBtnNovaVaga');
+        if (btn) { e.preventDefault(); e.stopPropagation(); this._openVagaModal(null); return; }
+        const btn2 = e.target.closest('#rhBtnNovoContrato');
+        if (btn2) { e.preventDefault(); e.stopPropagation(); this._openContratoModal(null); return; }
+      });
+    }
+
     // Navegacao via sidebar (hashchange) — sem tab bar horizontal
     this._hashChangeHandler = () => {
       const hash = (window.location.hash || '').replace('#', '');
@@ -4712,6 +4764,7 @@ const TBO_RH = {
         if (tabContent) {
           tabContent.innerHTML = this._renderActiveTab();
           this._initActiveTab();
+          if (window.lucide) lucide.createIcons();
         }
 
         if (typeof TBO_SIDEBAR_RENDERER !== 'undefined') {
@@ -4741,6 +4794,9 @@ const TBO_RH = {
       window.removeEventListener('hashchange', this._hashChangeHandler);
       this._hashChangeHandler = null;
     }
+    // Limpar flag de delegation para re-init correto
+    const moduleRoot = document.querySelector('.rh-module');
+    if (moduleRoot) moduleRoot.__rhDelegated = false;
   },
 
   // ── Init bindings para a tab ativa (chamado no init e ao trocar tab) ──

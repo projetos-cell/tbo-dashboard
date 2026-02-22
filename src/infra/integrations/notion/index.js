@@ -6,7 +6,7 @@
  *
  * IDs dos bancos Notion (BD Projetos, BD Demandas, BD Pessoas):
  *   - Projetos:  1f3b27ff29e381d9ba39ea23ea3d87e3
- *   - Demandas:  1e5b27ff29e3808aaf3af18ea6c80996
+ *   - Demandas:  1fab27ff29e380ce908ddc792f29dae9
  *   - Pessoas:   2c5b27ff29e380359361d0145f2bda2c
  */
 
@@ -20,7 +20,7 @@ const NotionIntegration = (() => {
   // IDs dos databases Notion
   const DB_IDS = {
     projetos: '1f3b27ff29e381d9ba39ea23ea3d87e3',
-    demandas: '1e5b27ff29e3808aaf3af18ea6c80996',
+    demandas: '1fab27ff29e380ce908ddc792f29dae9',
     pessoas:  '2c5b27ff29e380359361d0145f2bda2c'
   };
 

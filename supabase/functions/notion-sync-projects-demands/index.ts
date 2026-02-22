@@ -20,7 +20,7 @@ const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const NOTION_API_KEY = Deno.env.get("NOTION_API_KEY")!;
 
 const NOTION_DB_PROJETOS = "1f3b27ff29e381d9ba39ea23ea3d87e3";
-const NOTION_DB_DEMANDAS = "1e5b27ff29e3808aaf3af18ea6c80996";
+const NOTION_DB_DEMANDAS = "1fab27ff29e380ce908ddc792f29dae9";
 const NOTION_API_VERSION = "2022-06-28";
 
 // ── Notion API helpers ───────────────────────────────────────────────────────

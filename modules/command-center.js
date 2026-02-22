@@ -1659,50 +1659,73 @@ const TBO_COMMAND_CENTER = {
   // BUSINESS PULSE — Quick BI preview for founder dashboard
   // ═══════════════════════════════════════════════════════════════════════════
   _renderBusinessPulse(d) {
-    const ctx = TBO_STORAGE.get('context');
+    const ctx = TBO_STORAGE.get('context') || {};
     const dc24 = ctx.dados_comerciais?.['2024'] || {};
     const dc25 = ctx.dados_comerciais?.['2025'] || {};
-    const dc26 = ctx.dados_comerciais?.[TBO_CONFIG.app.fiscalYear] || {};
+    const fy = TBO_CONFIG?.app?.fiscalYear || '2026';
+    const dc26 = ctx.dados_comerciais?.[fy] || {};
     const fc = dc26.fluxo_caixa || {};
-    const projAtivos = ctx.projetos_ativos || [];
+
+    // Use ERP projects (aligned with KPI card above) — fallback to context
+    const erpProjects = TBO_STORAGE.getAllErpEntities ? TBO_STORAGE.getAllErpEntities('project') : [];
+    const erpAtivos = erpProjects.filter(p => !['finalizado', 'cancelado'].includes(p.status));
+    const projAtivos = erpAtivos.length > 0 ? erpAtivos : (ctx.projetos_ativos || []);
+
     const finalizados = ctx.projetos_finalizados || {};
     const clientes = ctx.clientes_construtoras || [];
-    const deals = TBO_STORAGE.getCrmDeals();
+    const deals = TBO_STORAGE.getCrmDeals ? TBO_STORAGE.getCrmDeals() : [];
 
-    // Churn: clients active in 2024/2025 not active now
-    const activeConstrutoras = new Set(projAtivos.map(p => p.construtora));
+    // Churn: clients from 2024/2025 not active now
+    const activeConstrutoras = new Set(projAtivos.map(p => (p.construtora || '')).filter(Boolean));
     const prevClients = new Set();
     ['2024','2025'].forEach(y => {
       (finalizados[y] || []).forEach(p => {
-        clientes.forEach(c => { if (p.toLowerCase().includes(c.toLowerCase())) prevClients.add(c); });
+        if (!p) return;
+        const pLow = (typeof p === 'string' ? p : (p.nome || '')).toLowerCase();
+        clientes.forEach(c => { if (c && pLow.includes(c.toLowerCase())) prevClients.add(c); });
       });
     });
     projAtivos.forEach(p => { if (p.construtora) prevClients.add(p.construtora); });
     const churned = [...prevClients].filter(c => !activeConstrutoras.has(c));
     const churnRate = prevClients.size > 0 ? Math.round((churned.length / prevClients.size) * 100) : 0;
 
-    // LTV simple
-    const ticket = dc25.ticket_medio || dc24.ticket_medio || 0;
+    // LTV (ticket medio x avg repeat rate)
+    const ticket = dc26.ticket_medio || dc25.ticket_medio || dc24.ticket_medio || 0;
     const clientYears = {};
     Object.entries(finalizados).forEach(([y, list]) => {
-      list.forEach(p => { clientes.forEach(c => { if (p.toLowerCase().includes(c.toLowerCase())) { if (!clientYears[c]) clientYears[c] = new Set(); clientYears[c].add(y); } }); });
+      if (!Array.isArray(list)) return;
+      list.forEach(p => {
+        if (!p) return;
+        const pLow = (typeof p === 'string' ? p : (p.nome || '')).toLowerCase();
+        clientes.forEach(c => {
+          if (c && pLow.includes(c.toLowerCase())) {
+            if (!clientYears[c]) clientYears[c] = new Set();
+            clientYears[c].add(y);
+          }
+        });
+      });
     });
-    const avgRepeat = Object.values(clientYears).length > 0 ? Object.values(clientYears).reduce((s,v) => s + v.size, 0) / Object.values(clientYears).length : 1;
+    const clientYearsArr = Object.values(clientYears);
+    const avgRepeat = clientYearsArr.length > 0 ? clientYearsArr.reduce((s,v) => s + v.size, 0) / clientYearsArr.length : 1;
     const ltv = Math.round(ticket * avgRepeat);
 
-    // Win rate
-    const winRate = parseFloat(dc25.conversao_proposta) || 0;
+    // Win rate — prefer current fiscal year, fallback to 2025
+    const winRate = parseFloat(dc26.conversao_proposta) || parseFloat(dc25.conversao_proposta) || 0;
 
-    // Top5 concentration
+    // Top5 concentration (use ERP-aligned data)
     const projPerClient = {};
-    projAtivos.forEach(p => { projPerClient[p.construtora] = (projPerClient[p.construtora] || 0) + 1; });
+    projAtivos.forEach(p => {
+      const c = p.construtora || 'Sem cliente';
+      projPerClient[c] = (projPerClient[c] || 0) + 1;
+    });
     const top5 = Object.entries(projPerClient).sort((a,b) => b[1] - a[1]).slice(0, 5);
     const top5Conc = projAtivos.length > 0 ? Math.round((top5.reduce((s,[,c]) => s+c, 0) / projAtivos.length) * 100) : 0;
 
     // Pipeline coverage
-    const activeDeals = deals.filter(d2 => !['fechado_ganho','fechado_perdido'].includes(d2.stage));
+    const safeDeals = Array.isArray(deals) ? deals : [];
+    const activeDeals = safeDeals.filter(d2 => !['fechado_ganho','fechado_perdido'].includes(d2.stage));
     const pipelineVal = activeDeals.reduce((s,d2) => s + (d2.value||0), 0);
-    const meta = fc.meta_vendas_mensal || TBO_CONFIG.business.financial.monthlyTarget;
+    const meta = fc.meta_vendas_mensal || TBO_CONFIG?.business?.financial?.monthlyTarget || 1;
     const coverage = meta > 0 ? (pipelineVal / meta).toFixed(1) : '0';
 
     // Margin YTD

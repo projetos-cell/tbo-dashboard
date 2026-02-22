@@ -133,7 +133,8 @@ const TBO_APP = {
       'relatorios': typeof TBO_RELATORIOS !== 'undefined' ? TBO_RELATORIOS : null,
       'rsm': typeof TBO_RSM !== 'undefined' ? TBO_RSM : null,
       'page-editor': typeof TBO_PAGE_EDITOR !== 'undefined' ? TBO_PAGE_EDITOR : null,
-      'notion-embed': typeof TBO_NOTION_EMBED !== 'undefined' ? TBO_NOTION_EMBED : null
+      'notion-embed': typeof TBO_NOTION_EMBED !== 'undefined' ? TBO_NOTION_EMBED : null,
+      'system-health': typeof TBO_SYSTEM_HEALTH !== 'undefined' ? TBO_SYSTEM_HEALTH : null
     };
 
     Object.entries(modules).forEach(([name, mod]) => {
@@ -1626,7 +1627,8 @@ const TBO_APP = {
     'relatorios': 'Relatórios',
     'entregas-pendentes': 'Entregas Pendentes',
     'revisoes-pendentes': 'Revisões Pendentes',
-    'project-system': 'Projetos v2'
+    'project-system': 'Projetos v2',
+    'system-health': 'System Health'
   },
 
   // ── Module icons (Lucide icon names — v3) ──────────────────────────
@@ -1680,7 +1682,8 @@ const TBO_APP = {
     'relatorios': 'file-bar-chart',
     'entregas-pendentes': 'package',
     'revisoes-pendentes': 'message-circle',
-    'project-system': 'kanban'
+    'project-system': 'kanban',
+    'system-health': 'heart-pulse'
   },
 
   _updateHeaderTitle(moduleName) {

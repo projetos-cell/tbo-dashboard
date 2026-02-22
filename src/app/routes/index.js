@@ -53,7 +53,8 @@ const TBO_ROUTE_REGISTRY = (() => {
     'portal-cliente':         'portal-cliente',
     'relatorios':             'relatorios',
     'rsm':                    'rsm',
-    'permissoes-config':      'permissoes-config'
+    'permissoes-config':      'permissoes-config',
+    'system-health':          'system-health'
   };
 
   // Aliases: rotas antigas → module key
@@ -155,7 +156,9 @@ const TBO_ROUTE_REGISTRY = (() => {
     // Pages (editor Notion-style)
     'page-editor':            { label: 'Página',                 icon: 'file-text',          group: 'outros',       color: '#E85102' },
     // Notion Embed (inline iframe)
-    'notion-embed':           { label: 'Notion',                 icon: 'layout-dashboard',   group: 'outros',       color: '#000000' }
+    'notion-embed':           { label: 'Notion',                 icon: 'layout-dashboard',   group: 'outros',       color: '#000000' },
+    // System Health (production readiness)
+    'system-health':          { label: 'System Health',          icon: 'heart-pulse',        group: 'sistema',      color: '#22C55E' }
   };
 
   return {

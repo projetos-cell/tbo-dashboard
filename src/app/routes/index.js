@@ -39,10 +39,11 @@ const TBO_ROUTE_REGISTRY = (() => {
     'admin-portal':           'admin-portal',
     'entregas':               'entregas',
     'revisoes':               'revisoes',
-    'timesheets':             'timesheets',
-    'timeline':               'timeline',
-    'capacidade':             'capacidade',
-    'carga-trabalho':         'carga-trabalho',
+    // Removidos em v2.2 (módulos desativados — manter comentado para referência):
+    // 'timesheets':          'timesheets',
+    // 'timeline':            'timeline',
+    // 'capacidade':          'capacidade',
+    // 'carga-trabalho':      'carga-trabalho',
     'templates':              'templates',
     'decisoes':               'decisoes',
     'cultura':                'cultura',
@@ -136,11 +137,12 @@ const TBO_ROUTE_REGISTRY = (() => {
     'inteligencia-imobiliaria': { label: 'Intel. Imobiliária',   icon: 'building',           group: 'comercial',    color: '#6366F1' },
     'mercado':                { label: 'Intel. de Mercado',      icon: 'bar-chart-3',        group: 'comercial',    color: '#64748B' },
     // Gestão
-    'timesheets':             { label: 'Timesheets',             icon: 'clock',              group: 'gestao',       color: '#64748B' },
-    'timeline':               { label: 'Timeline',               icon: 'gantt-chart',        group: 'gestao',       color: '#3B82F6' },
-    'capacidade':             { label: 'Capacidade',             icon: 'bar-chart-2',        group: 'gestao',       color: '#F59E0B' },
-    'carga-trabalho':         { label: 'Carga de Trabalho',      icon: 'activity',           group: 'gestao',       color: '#EF4444' },
     'relatorios':             { label: 'Relatórios',             icon: 'file-bar-chart',     group: 'gestao',       color: '#8B5CF6' },
+    // Desativados v2.2:
+    // 'timesheets':          { label: 'Timesheets', icon: 'clock', group: 'gestao', color: '#64748B' },
+    // 'timeline':            { label: 'Timeline', icon: 'gantt-chart', group: 'gestao', color: '#3B82F6' },
+    // 'capacidade':          { label: 'Capacidade', icon: 'bar-chart-2', group: 'gestao', color: '#F59E0B' },
+    // 'carga-trabalho':      { label: 'Carga de Trabalho', icon: 'activity', group: 'gestao', color: '#EF4444' },
     // Admin / Sistema
     'admin-portal':           { label: 'Admin Portal',           icon: 'shield',             group: 'sistema',      color: '#DC2626' },
     'permissoes-config':      { label: 'Segurança',              icon: 'lock',               group: 'sistema',      color: '#DC2626' },

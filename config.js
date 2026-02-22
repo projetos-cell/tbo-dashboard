@@ -852,7 +852,7 @@ Este modulo e para configuracoes do sistema. Nao requer interacao com IA.`
 
       // Also cache to localStorage for instant load next time
       localStorage.setItem('tbo_business_config', JSON.stringify(config));
-      console.log('[TBO_CONFIG] Business config loaded from Supabase');
+      if (typeof TBO_LOGGER !== 'undefined') TBO_LOGGER.info('Business config loaded from Supabase');
       return true;
     } catch (e) {
       console.warn('[TBO_CONFIG] Supabase config load failed:', e.message);
@@ -881,7 +881,7 @@ Este modulo e para configuracoes do sistema. Nao requer interacao com IA.`
     // Save to Supabase (async, non-blocking)
     if (typeof TBO_SUPABASE !== 'undefined') {
       const ok = await TBO_SUPABASE.saveBusinessConfigKey(sectionKey, value);
-      if (ok) console.log(`[TBO_CONFIG] '${sectionKey}' saved to Supabase`);
+      if (ok && typeof TBO_LOGGER !== 'undefined') TBO_LOGGER.info(`'${sectionKey}' saved to Supabase`);
       return ok;
     }
     return true;

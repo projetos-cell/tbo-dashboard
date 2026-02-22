@@ -25,7 +25,8 @@ const TBO_APP = {
   },
 
   async init() {
-    console.log('[TBO OS] Initializing...');
+    if (typeof TBO_LOGGER !== 'undefined') TBO_LOGGER.info('Initializing...');
+    else console.log('[TBO OS] Initializing...');
 
     // 0-pre. Limpar chaves legadas do localStorage (v2.6.1 — evitar bugs de sidebar)
     localStorage.removeItem('tbo_sidebar_width');
@@ -69,7 +70,7 @@ const TBO_APP = {
           resolve();
         }, 10000))
       ]);
-      console.log('[TBO OS] Critical data loaded');
+      if (typeof TBO_LOGGER !== 'undefined') TBO_LOGGER.info('Critical data loaded');
     } catch (e) {
       console.warn('[TBO OS] Data load error:', e);
     }
@@ -319,7 +320,7 @@ const TBO_APP = {
     // 17. Initialize Lucide icons
     if (window.lucide) lucide.createIcons();
 
-    console.log('[TBO OS] Ready — 100 enhancements loaded');
+    if (typeof TBO_LOGGER !== 'undefined') TBO_LOGGER.info('Ready — all modules loaded');
   },
 
   // ── Theme ──────────────────────────────────────────────────────────
@@ -1628,7 +1629,17 @@ const TBO_APP = {
     'entregas-pendentes': 'Entregas Pendentes',
     'revisoes-pendentes': 'Revisões Pendentes',
     'project-system': 'Projetos v2',
-    'system-health': 'System Health'
+    'system-health': 'System Health',
+    // Módulos parametrizados / embeds
+    'projetos-notion': 'Projetos (Notion)',
+    'project-workspace': 'Workspace do Projeto',
+    'people-profile': 'Perfil do Colaborador',
+    'page-editor': 'Página',
+    'notion-embed': 'Notion',
+    'database-notion': 'Database',
+    'conciliacao-bancaria': 'Conciliação Bancária',
+    'rsm': 'Social Media',
+    'onboarding-wizard': 'Onboarding'
   },
 
   // ── Module icons (Lucide icon names — v3) ──────────────────────────
@@ -1683,7 +1694,17 @@ const TBO_APP = {
     'entregas-pendentes': 'package',
     'revisoes-pendentes': 'message-circle',
     'project-system': 'kanban',
-    'system-health': 'heart-pulse'
+    'system-health': 'heart-pulse',
+    // Módulos parametrizados / embeds
+    'projetos-notion': 'database',
+    'project-workspace': 'folder-open',
+    'people-profile': 'user',
+    'page-editor': 'file-text',
+    'notion-embed': 'layout-dashboard',
+    'database-notion': 'database',
+    'conciliacao-bancaria': 'scale',
+    'rsm': 'share-2',
+    'onboarding-wizard': 'user-plus'
   },
 
   _updateHeaderTitle(moduleName) {

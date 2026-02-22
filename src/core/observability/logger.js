@@ -8,7 +8,18 @@
 
 const TBO_LOGGER = (() => {
   const LOG_LEVELS = { debug: 0, info: 1, warn: 2, error: 3, fatal: 4 };
-  let _level = LOG_LEVELS.info;
+
+  // Auto-detect environment: production = Vercel deploy, dev = localhost/127.0.0.1
+  const _isProduction = (() => {
+    try {
+      const h = window.location.hostname;
+      return h !== 'localhost' && h !== '127.0.0.1' && !h.startsWith('192.168.');
+    } catch { return false; }
+  })();
+
+  // Em produção: apenas warn+ (silencia debug/info)
+  // Em dev: info+ (mostra tudo exceto debug)
+  let _level = _isProduction ? LOG_LEVELS.warn : LOG_LEVELS.info;
   let _context = {};
   const _transports = []; // [{name, fn}]
   let _buffer = [];
@@ -142,6 +153,12 @@ const TBO_LOGGER = (() => {
     exportJSON() {
       return JSON.stringify(_buffer, null, 2);
     },
+
+    /**
+     * Retorna se está em ambiente de produção
+     * @returns {boolean}
+     */
+    isProduction() { return _isProduction; },
 
     /**
      * Performance mark wrapper

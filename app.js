@@ -1506,6 +1506,15 @@ const TBO_APP = {
   _listenHashWithAuth() {
     window.addEventListener('hashchange', () => {
       const hash = window.location.hash.replace('#', '');
+      if (!hash) return;
+
+      // Parametric routes (notion-embed/xxx, projeto/xxx, people/xxx, page/xxx)
+      // — permission is handled inside _navigateParam, skip redundant check here
+      const paramRoute = TBO_ROUTER._parseParamRoute?.(hash);
+      if (paramRoute && TBO_ROUTER._modules[paramRoute.moduleName]) {
+        return; // Let the router's own hashchange handler deal with it
+      }
+
       const rawName = hash.split('/')[0];
       const resolved = TBO_ROUTER._resolveAlias(rawName);
       if (resolved && TBO_ROUTER._modules[resolved]) {

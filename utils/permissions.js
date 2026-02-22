@@ -31,7 +31,8 @@ const TBO_PERMISSIONS = {
     'entregas','tarefas','revisoes',
     'decisoes','biblioteca',
     'trilha-aprendizagem',
-    'changelog','chat','carga-trabalho'
+    'changelog','chat','carga-trabalho',
+    'notion-embed'
   ],
 
   // Finance-restricted modules (founders + finance only)

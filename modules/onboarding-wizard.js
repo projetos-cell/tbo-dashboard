@@ -12,13 +12,17 @@ const TBO_ONBOARDING_WIZARD = {
 
   /**
    * Verifica se o wizard deve ser exibido
+   * Checa: 1) flag no Supabase profile, 2) localStorage fallback
    */
   shouldShow() {
     try {
       const user = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.getCurrentUser() : null;
       if (!user) return false;
 
-      // Verificar flag no profile
+      // 1. Verificar flag no profile Supabase (se disponivel)
+      if (user.onboarding_wizard_completed === true || user.first_login_completed === true) return false;
+
+      // 2. Fallback: verificar localStorage
       const profileFlag = localStorage.getItem('tbo_onboarding_wizard_completed');
       if (profileFlag === 'true') return false;
 
@@ -115,6 +119,20 @@ const TBO_ONBOARDING_WIZARD = {
             <option value="comercial" ${this._formData.department === 'comercial' ? 'selected' : ''}>Comercial</option>
             <option value="financeiro" ${this._formData.department === 'financeiro' ? 'selected' : ''}>Financeiro</option>
             <option value="marketing" ${this._formData.department === 'marketing' ? 'selected' : ''}>Marketing</option>
+          </select>
+        </label>
+
+        <label style="font-size:0.82rem;font-weight:500;">
+          BU Principal (Unidade de Negocio)
+          <select id="owBU" style="width:100%;margin-top:4px;padding:10px 12px;border:1px solid var(--border-default);border-radius:var(--radius-md);font-size:0.88rem;background:var(--bg-primary);">
+            <option value="">Selecione...</option>
+            <option value="Branding" ${this._formData.bu === 'Branding' ? 'selected' : ''}>Branding</option>
+            <option value="Digital 3D" ${this._formData.bu === 'Digital 3D' ? 'selected' : ''}>Digital 3D</option>
+            <option value="Audiovisual" ${this._formData.bu === 'Audiovisual' ? 'selected' : ''}>Audiovisual</option>
+            <option value="Marketing" ${this._formData.bu === 'Marketing' ? 'selected' : ''}>Marketing</option>
+            <option value="Vendas" ${this._formData.bu === 'Vendas' ? 'selected' : ''}>Vendas / Comercial</option>
+            <option value="Financeiro" ${this._formData.bu === 'Financeiro' ? 'selected' : ''}>Financeiro</option>
+            <option value="Geral" ${this._formData.bu === 'Geral' ? 'selected' : ''}>Geral (todas)</option>
           </select>
         </label>
       </div>
@@ -216,6 +234,7 @@ const TBO_ONBOARDING_WIZARD = {
             ${this._formData.name ? `<div>Nome: <strong>${this._esc(this._formData.name)}</strong></div>` : ''}
             ${this._formData.cargo ? `<div>Cargo: <strong>${this._esc(this._formData.cargo)}</strong></div>` : ''}
             ${this._formData.department ? `<div>Departamento: <strong>${this._esc(this._formData.department)}</strong></div>` : ''}
+            ${this._formData.bu ? `<div>BU Principal: <strong>${this._esc(this._formData.bu)}</strong></div>` : ''}
             ${this._formData.contractType ? `<div>Contrato: <strong>${this._esc(this._formData.contractType)}</strong></div>` : ''}
             ${this._formData.theme ? `<div>Tema: <strong>${this._formData.theme === 'dark' ? 'Escuro' : 'Claro'}</strong></div>` : ''}
           </div>
@@ -265,6 +284,7 @@ const TBO_ONBOARDING_WIZARD = {
         this._formData.name = document.getElementById('owName')?.value || '';
         this._formData.cargo = document.getElementById('owCargo')?.value || '';
         this._formData.department = document.getElementById('owDepartment')?.value || '';
+        this._formData.bu = document.getElementById('owBU')?.value || '';
         break;
       case 1:
         this._formData.cnpj = document.getElementById('owCnpj')?.value || '';
@@ -300,6 +320,7 @@ const TBO_ONBOARDING_WIZARD = {
             full_name: this._formData.name || undefined,
             cargo: this._formData.cargo || undefined,
             department: this._formData.department || undefined,
+            bu: this._formData.bu || undefined,
             document_cnpj: this._formData.cnpj || undefined,
             contract_type: this._formData.contractType || undefined,
             start_date: this._formData.startDate || undefined,

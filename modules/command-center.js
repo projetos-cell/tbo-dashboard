@@ -153,6 +153,11 @@ const TBO_COMMAND_CENTER = {
 
   // ── Dispatch to role-specific dashboard ──────────────────────────────────
   render() {
+    const user = (typeof TBO_AUTH !== 'undefined') ? TBO_AUTH.getCurrentUser() : null;
+    // Guard: user without role or not activated
+    if (user && !user.role) {
+      return this._renderPendingActivation(user);
+    }
     const variant = (typeof TBO_AUTH !== 'undefined') ? TBO_AUTH.getDashboardVariant() : 'full';
     switch (variant) {
       case 'projects':  return this._renderProjectsDashboard();
@@ -161,6 +166,91 @@ const TBO_COMMAND_CENTER = {
       case 'full':
       default:          return this._renderFullDashboard();
     }
+  },
+
+  // ── Awaiting Activation screen (user has no role) ─────────────────────
+  _renderPendingActivation(user) {
+    const name = user ? this._esc((user.name || '').split(' ')[0]) : '';
+    return `
+      <div class="command-center" style="display:flex;align-items:center;justify-content:center;min-height:60vh;">
+        <div style="text-align:center;max-width:480px;">
+          <div style="width:72px;height:72px;border-radius:50%;background:var(--color-warning);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+            <i data-lucide="clock" style="width:36px;height:36px;color:#fff;"></i>
+          </div>
+          <h2 style="margin:0 0 8px;font-size:1.3rem;">Aguardando Ativacao</h2>
+          <p style="color:var(--text-secondary);font-size:0.92rem;margin:0 0 20px;">
+            ${name ? `Ola, ${name}! ` : ''}Sua conta foi criada com sucesso, mas ainda nao possui um papel (role) atribuido.
+          </p>
+          <div style="background:var(--bg-elevated);border-radius:var(--radius-lg);padding:20px;text-align:left;margin-bottom:20px;">
+            <p style="font-size:0.82rem;font-weight:600;margin:0 0 8px;">Proximos passos:</p>
+            <ol style="font-size:0.78rem;color:var(--text-secondary);line-height:1.8;margin:0;padding-left:20px;">
+              <li>Avise um administrador (Fundador ou Admin) que voce precisa de acesso</li>
+              <li>O admin configurara seu papel e BU no painel Admin Portal</li>
+              <li>Apos a configuracao, faca logout e login novamente</li>
+            </ol>
+          </div>
+          <button class="btn btn-secondary" onclick="TBO_AUTH.logout().then(() => TBO_AUTH._setOverlayState('login'))">
+            <i data-lucide="log-out" style="width:14px;height:14px;"></i> Sair e tentar novamente
+          </button>
+        </div>
+      </div>
+    `;
+  },
+
+  // ── Quick Actions bar (role-aware) ────────────────────────────────────
+  _renderQuickActions() {
+    const user = (typeof TBO_AUTH !== 'undefined') ? TBO_AUTH.getCurrentUser() : null;
+    if (!user) return '';
+    const role = user.role || 'artist';
+    const isAdmin = ['founder', 'admin', 'owner'].includes(role);
+    const isManager = ['project_owner', 'coordinator'].includes(role) || user.isCoordinator;
+    const isFinance = role === 'finance';
+
+    let actions = [];
+    if (isAdmin) {
+      actions = [
+        { icon: 'folder-kanban', label: 'Projetos', route: 'projetos' },
+        { icon: 'coins', label: 'Financeiro', route: 'financeiro' },
+        { icon: 'users', label: 'Equipe', route: 'rh' },
+        { icon: 'filter', label: 'Pipeline', route: 'pipeline' },
+        { icon: 'inbox', label: 'Caixa de Entrada', route: 'inbox' },
+        { icon: 'shield', label: 'Admin', route: 'admin-portal' }
+      ];
+    } else if (isFinance) {
+      actions = [
+        { icon: 'coins', label: 'Financeiro', route: 'financeiro' },
+        { icon: 'credit-card', label: 'A Pagar', route: 'pagar' },
+        { icon: 'receipt', label: 'A Receber', route: 'receber' },
+        { icon: 'trending-up', label: 'DRE', route: 'margens' },
+        { icon: 'filter', label: 'Pipeline', route: 'pipeline' }
+      ];
+    } else if (isManager) {
+      actions = [
+        { icon: 'folder-kanban', label: 'Projetos', route: 'projetos' },
+        { icon: 'list-checks', label: 'Tarefas', route: 'tarefas' },
+        { icon: 'calendar', label: 'Agenda', route: 'agenda' },
+        { icon: 'check-circle-2', label: 'Entregas', route: 'entregas' },
+        { icon: 'users', label: 'Equipe', route: 'rh' }
+      ];
+    } else {
+      // Colaborador / Artist
+      actions = [
+        { icon: 'list-checks', label: 'Minhas Tarefas', route: 'tarefas' },
+        { icon: 'folder-kanban', label: 'Projetos', route: 'projetos' },
+        { icon: 'calendar', label: 'Agenda', route: 'agenda' },
+        { icon: 'check-circle-2', label: 'Entregas', route: 'entregas' }
+      ];
+    }
+
+    return `
+      <div class="cc-quick-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+        ${actions.map(a => `
+          <button class="btn btn-sm btn-secondary cc-quick-action-btn" onclick="TBO_ROUTER.navigate('${a.route}')" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;font-size:0.78rem;">
+            <i data-lucide="${a.icon}" style="width:14px;height:14px;"></i> ${this._esc(a.label)}
+          </button>
+        `).join('')}
+      </div>
+    `;
   },
 
   // ── Shared data helpers ──────────────────────────────────────────────────
@@ -680,6 +770,9 @@ const TBO_COMMAND_CENTER = {
         <!-- Greeting with Personalizar button -->
         ${this._renderGreeting()}
 
+        <!-- Quick Actions -->
+        ${this._renderQuickActions()}
+
         <!-- Above-layout widgets (tasks, summary, ERP, actions, KPIs, pulse) -->
         ${aboveHtml}
 
@@ -735,6 +828,7 @@ const TBO_COMMAND_CENTER = {
     return `
       <div class="command-center">
         ${this._renderGreeting()}
+        ${this._renderQuickActions()}
 
         <!-- KPIs -->
         <section class="section">
@@ -836,6 +930,7 @@ const TBO_COMMAND_CENTER = {
     return `
       <div class="command-center">
         ${this._renderGreeting()}
+        ${this._renderQuickActions()}
 
         <!-- KPIs -->
         <section class="section">
@@ -929,6 +1024,7 @@ const TBO_COMMAND_CENTER = {
     return `
       <div class="command-center">
         ${this._renderGreeting()}
+        ${this._renderQuickActions()}
 
         <!-- KPIs — prioritize 2026 -->
         <section class="section">

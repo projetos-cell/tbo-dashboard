@@ -42,6 +42,52 @@ async function notionRequest(endpoint: string, body?: Record<string, unknown>) {
   return res.json();
 }
 
+/**
+ * Resolve um ID que pode ser de database ou de page que contem um inline database.
+ * Tenta databases/${rawId}/query primeiro. Se a API retornar erro "is a page, not a database",
+ * busca blocks/${rawId}/children e retorna o ID do primeiro child_database encontrado.
+ */
+async function resolveDbId(rawId: string): Promise<string> {
+  const res = await fetch(`https://api.notion.com/v1/databases/${rawId}/query`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${NOTION_API_KEY}`,
+      "Notion-Version": NOTION_API_VERSION,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ page_size: 1 }),
+  });
+
+  if (res.ok) {
+    // rawId ja e um database valido
+    return rawId;
+  }
+
+  const errorText = await res.text();
+
+  // Verificar se o erro indica que o ID e uma page, nao database
+  if (!errorText.includes("is a page, not a database")) {
+    throw new Error(`Notion ${res.status}: ${errorText.slice(0, 500)}`);
+  }
+
+  console.log(`[resolveDbId] ID ${rawId} e uma page, buscando child_database...`);
+
+  // Buscar blocos filhos da page para encontrar o inline database
+  const children = await notionRequest(`blocks/${rawId}/children?page_size=100`);
+  const childDb = (children.results || []).find(
+    (block: any) => block.type === "child_database"
+  );
+
+  if (!childDb) {
+    throw new Error(
+      `Page ${rawId} nao contem nenhum child_database. Verifique o ID no Notion.`
+    );
+  }
+
+  console.log(`[resolveDbId] child_database encontrado: ${childDb.id}`);
+  return childDb.id;
+}
+
 /** Pagina automaticamente ate trazer todos os resultados de um database query */
 async function fetchAllPages(databaseId: string, filter?: Record<string, unknown>) {
   const allPages: any[] = [];
@@ -111,6 +157,20 @@ function getRelationIds(page: any, prop: string): string[] {
   return (page.properties?.[prop]?.relation || []).map((r: any) => r.id);
 }
 
+function getCheckbox(page: any, prop: string): boolean {
+  return page.properties?.[prop]?.checkbox === true;
+}
+
+function getPeopleJson(page: any, prop: string): object | null {
+  const person = page.properties?.[prop]?.people?.[0];
+  if (!person) return null;
+  return {
+    name: person.name || "",
+    email: person.person?.email || "",
+    avatar_url: person.avatar_url || "",
+  };
+}
+
 // ── Main handler ─────────────────────────────────────────────────────────────
 
 serve(async (req: Request) => {
@@ -152,11 +212,21 @@ serve(async (req: Request) => {
 
   try {
     // ════════════════════════════════════════════════════════════════════════
+    // PASSO 0: Resolver IDs reais dos databases (suporta pages com inline DB)
+    // ════════════════════════════════════════════════════════════════════════
+
+    console.log("[Sync] Resolvendo IDs dos databases...");
+    const resolvedDbProjetos = await resolveDbId(NOTION_DB_PROJETOS);
+    const resolvedDbDemandas = await resolveDbId(NOTION_DB_DEMANDAS);
+    console.log(`[Sync] DB Projetos: ${resolvedDbProjetos}`);
+    console.log(`[Sync] DB Demandas: ${resolvedDbDemandas}`);
+
+    // ════════════════════════════════════════════════════════════════════════
     // PASSO 1: Buscar todos os projetos do Notion
     // ════════════════════════════════════════════════════════════════════════
 
     console.log("[Sync] Buscando projetos do Notion...");
-    const notionProjects = await fetchAllPages(NOTION_DB_PROJETOS);
+    const notionProjects = await fetchAllPages(resolvedDbProjetos);
     console.log(`[Sync] ${notionProjects.length} projetos encontrados`);
 
     // Salvar staging (bruto)
@@ -164,7 +234,7 @@ serve(async (req: Request) => {
       await supabase.from("notion_pages_raw").upsert(
         {
           notion_page_id: page.id,
-          database_id: NOTION_DB_PROJETOS,
+          database_id: resolvedDbProjetos,
           payload: page,
           synced_at: new Date().toISOString(),
         },
@@ -214,7 +284,7 @@ serve(async (req: Request) => {
     // ════════════════════════════════════════════════════════════════════════
 
     console.log("[Sync] Buscando demandas do Notion...");
-    const notionDemandas = await fetchAllPages(NOTION_DB_DEMANDAS);
+    const notionDemandas = await fetchAllPages(resolvedDbDemandas);
     console.log(`[Sync] ${notionDemandas.length} demandas encontradas`);
 
     // Salvar staging
@@ -222,7 +292,7 @@ serve(async (req: Request) => {
       await supabase.from("notion_pages_raw").upsert(
         {
           notion_page_id: page.id,
-          database_id: NOTION_DB_DEMANDAS,
+          database_id: resolvedDbDemandas,
           payload: page,
           synced_at: new Date().toISOString(),
         },
@@ -250,6 +320,9 @@ serve(async (req: Request) => {
         parentRelations.push({ notionId: page.id, parentNotionId: parentIds[0] });
       }
 
+      // Extract subitem relation IDs for storing
+      const subitemRelIds = getRelationIds(page, "Subitem");
+
       const demandData = {
         notion_page_id: page.id,
         title: getTitle(page, "Demanda") || "(sem titulo)",
@@ -257,11 +330,16 @@ serve(async (req: Request) => {
         due_date: getDateStart(page, "Prazo"),
         responsible: person?.name || "",
         responsible_email: person?.email || "",
+        responsavel_json: getPeopleJson(page, "Responsável") || getPeopleJson(page, "Responsavel") || null,
         bus: getMultiSelect(page, "BUs Envolvidas"),
         priority: getSelect(page, "Prioridade") || null,
         media_type: getMultiSelect(page, "Tipo Midia"),
         info: getRichText(page, "Info"),
+        milestones: getRichText(page, "Milestones"),
+        feito: getCheckbox(page, "Feito"),
         formalization_url: getUrl(page, "Formalizacao") || getUrl(page, "Formalização"),
+        subitem_ids: subitemRelIds.length > 0 ? subitemRelIds : [],
+        item_principal_id: parentIds.length > 0 ? parentIds[0] : null,
         notion_url: page.url || "",
         project_id: projectId,
         notion_synced_at: new Date().toISOString(),

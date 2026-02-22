@@ -1510,6 +1510,19 @@ const TBO_APP = {
       const hash = window.location.hash.replace('#', '');
       if (!hash) return;
 
+      // Guard: users without role can only see dashboard (Aguardando Ativacao screen)
+      const currentUser = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.getCurrentUser() : null;
+      if (currentUser && !currentUser.role) {
+        const target = hash.split('/')[0];
+        if (target !== 'dashboard' && target !== 'configuracoes') {
+          if (typeof TBO_TOAST !== 'undefined') {
+            TBO_TOAST.warning('Aguardando ativacao', 'Seu perfil ainda nao foi configurado. Aguarde o administrador atribuir seu cargo.');
+          }
+          window.location.hash = '#dashboard';
+          return;
+        }
+      }
+
       // Parametric routes (notion-embed/xxx, projeto/xxx, people/xxx, page/xxx)
       // — permission is handled inside _navigateParam, skip redundant check here
       const paramRoute = TBO_ROUTER._parseParamRoute?.(hash);

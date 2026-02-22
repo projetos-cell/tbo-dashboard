@@ -713,26 +713,27 @@ const TBO_AUTH = {
       });
     }
 
-    // Magic Link button
+    // "Esqueci minha senha" link — sends password recovery via Magic Link
     const magicBtn = document.getElementById('loginMagicBtn');
     if (magicBtn) {
-      magicBtn.addEventListener('click', async () => {
+      magicBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
         const email = document.getElementById('loginEmail')?.value?.trim();
         if (!email) {
-          this._showLoginError(errorEl, 'Informe o email para receber o Magic Link.');
+          this._showLoginError(errorEl, 'Informe seu email acima para recuperar a senha.');
           return;
         }
-        magicBtn.disabled = true;
+        magicBtn.style.pointerEvents = 'none';
         magicBtn.textContent = 'Enviando...';
         const result = await this.loginWithMagicLink(email);
-        magicBtn.disabled = false;
-        magicBtn.textContent = 'Enviar Magic Link por e-mail';
+        magicBtn.style.pointerEvents = '';
+        magicBtn.textContent = 'Esqueci minha senha';
         if (result.ok && result.magicLinkSent) {
           if (typeof TBO_TOAST !== 'undefined') {
-            TBO_TOAST.success('Magic Link enviado', `Verifique seu e-mail (${email}) e clique no link para entrar.`);
+            TBO_TOAST.success('Link enviado!', `Verifique seu e-mail (${email}) e clique no link para redefinir sua senha.`);
           }
         } else {
-          this._showLoginError(errorEl, result.msg || 'Erro ao enviar Magic Link.');
+          this._showLoginError(errorEl, result.msg || 'Erro ao enviar link de recuperacao.');
         }
       });
     }

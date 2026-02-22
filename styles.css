@@ -1012,6 +1012,17 @@ body.dark-mode .theme-icon-dark { display: flex; }
 }
 .login-legacy-group { margin-top: 8px; }
 .login-submit-btn { width: 100%; margin-top: 16px; }
+.login-forgot-link {
+  display: block;
+  text-align: center;
+  margin-top: 12px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.login-forgot-link:hover { color: var(--brand-primary); text-decoration: underline; }
 
 /* -- User menu in header (dropdown) -- */
 .user-menu {
@@ -11163,4 +11174,260 @@ body.dark-mode .sidebar-context-separator {
 .ws-version {
   font-size: 0.75rem;
   color: var(--text-muted);
+}
+
+
+/* ===================================================================
+   UI/UX AUDIT FIXES (Agent 1 — 2026-02-22)
+   High-impact, low-risk improvements for consistency, accessibility,
+   feedback, and transitions.
+   =================================================================== */
+
+/* ── FIX 1: Missing :active states on secondary/danger/ghost buttons ── */
+.btn-secondary:active {
+  transform: scale(0.98);
+  background: var(--bg-elevated);
+}
+
+.btn-danger:active {
+  transform: scale(0.98);
+}
+
+.btn-ghost:active {
+  transform: scale(0.97);
+  background: var(--bg-elevated);
+}
+
+.btn-gold-ghost:active {
+  transform: scale(0.97);
+}
+
+/* ── FIX 2: Card clickable feedback — cards with onclick/role=button ── */
+.card[onclick],
+.card[role="button"],
+.card.clickable {
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+.card[onclick]:active,
+.card[role="button"]:active,
+.card.clickable:active {
+  transform: scale(0.995);
+}
+
+/* ── FIX 3: Improved focus-visible styles for interactive elements ── */
+.btn:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--accent-gold-dim);
+}
+
+.nav-item:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
+
+.tab-btn:focus-visible,
+.search-filter-chip:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+/* ── FIX 4: Consistent tag/badge transitions ── */
+.tag,
+.badge,
+.status-pill {
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+/* ── FIX 5: Improve header action button hover/active feedback ── */
+.header-action-btn {
+  transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+
+.header-action-btn:active {
+  transform: scale(0.92);
+}
+
+/* ── FIX 6: Sidebar nav item transition smoothness ── */
+.nav-item {
+  transition: background var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
+}
+
+/* ── FIX 7: Modal open/close transition improvement ── */
+.modal-overlay {
+  transition: opacity var(--transition-base), visibility var(--transition-base);
+}
+
+.modal {
+  transition: transform var(--transition-base), opacity var(--transition-base);
+}
+
+/* ── FIX 8: KPI card hover effect for consistency ── */
+.kpi-card {
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.kpi-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── FIX 9: Tab button active state ── */
+.tab-btn:active {
+  transform: scale(0.97);
+}
+
+/* ── FIX 10: Consistent empty-state styling utility ── */
+.empty-state {
+  text-align: center;
+  padding: 40px 24px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.empty-state-icon {
+  font-size: 2rem;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.empty-state-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.empty-state-description {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* ── FIX 11: Consistent loading overlay for modules ── */
+.module-loading-inline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* ── FIX 12: Dropdown/select hover state ── */
+.form-select:hover,
+.form-input:hover {
+  border-color: var(--border-hover);
+}
+
+/* ── FIX 13: Status dot animation for "connected" state ── */
+.status-dot[data-status="connected"] {
+  animation: status-pulse 2s infinite;
+}
+
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* ── FIX 14: Improved link underline on hover for better affordance ── */
+.main-content a:not(.btn):not(.nav-item):not(.card):not(.tag):hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ── FIX 15: Sidebar search input focus ring consistency ── */
+.sidebar-search-input:focus-visible {
+  outline: none; /* already has custom focus style */
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 0 2px var(--accent-gold-dim);
+}
+
+/* ── FIX 16: prefers-reduced-motion — ensure all new transitions respect ── */
+@media (prefers-reduced-motion: reduce) {
+  .card[onclick],
+  .card[role="button"],
+  .card.clickable,
+  .btn,
+  .header-action-btn,
+  .nav-item,
+  .kpi-card,
+  .tab-btn,
+  .tag,
+  .badge,
+  .status-pill,
+  .modal,
+  .modal-overlay {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .status-dot[data-status="connected"] {
+    animation: none !important;
+  }
+}
+
+/* ── FIX 17: Mobile sidebar close-on-backdrop-click affordance ── */
+@media (max-width: 768px) {
+  .sidebar.mobile-open ~ .sidebar-backdrop,
+  .sidebar-backdrop.active {
+    cursor: pointer;
+  }
+}
+
+/* ── FIX 18: Consistent disabled state for interactive elements ── */
+[disabled],
+[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  pointer-events: none;
+}
+
+/* ── FIX 19: Utility classes for semantic status colors (reduce inline styles) ── */
+.text-color-success { color: var(--color-success) !important; }
+.text-color-warning { color: var(--color-warning) !important; }
+.text-color-danger  { color: var(--color-danger) !important; }
+.text-color-info    { color: var(--color-info) !important; }
+.text-color-purple  { color: var(--color-purple) !important; }
+.text-color-accent  { color: var(--accent-gold) !important; }
+
+.bg-success-dim { background: var(--color-success-dim) !important; }
+.bg-warning-dim { background: var(--color-warning-dim) !important; }
+.bg-danger-dim  { background: var(--color-danger-dim) !important; }
+.bg-info-dim    { background: var(--color-info-dim) !important; }
+.bg-purple-dim  { background: var(--color-purple-dim) !important; }
+.bg-accent-dim  { background: var(--accent-gold-dim) !important; }
+
+/* ── FIX 20: Inbox header badge — extracted from inline styles ── */
+.inbox-header-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  line-height: 16px;
+}
+
+/* ── FIX 21: Sidebar resize handle accessibility ── */
+.sidebar-resize-handle {
+  cursor: col-resize;
+}
+
+.sidebar-resize-handle:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: -1px;
 }

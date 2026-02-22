@@ -50,7 +50,7 @@ const TBO_SIDEBAR_SERVICE = (() => {
     { id: 'ws-3d',          name: 'Digital 3D',       type: 'workspace', order_index: 11, icon: 'box',      route: null, parent_id: 'sep-equipe', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'creative-dir', '3d-lead', '3d-artist', 'qa'] },
     { id: 'ws-av',          name: 'Audiovisual',      type: 'workspace', order_index: 12, icon: 'video',    route: null, parent_id: 'sep-equipe', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'creative-dir', 'motion', 'qa', '3d-lead', '3d-artist'] },
     { id: 'ws-marketing',   name: 'Marketing',        type: 'workspace', order_index: 13, icon: 'megaphone',route: null, parent_id: 'sep-equipe', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'copy', 'design', 'qa'] },
-    { id: 'ws-comercial',   name: 'Comercial',        type: 'workspace', order_index: 14, icon: 'briefcase',route: null, parent_id: 'sep-equipe', allowed_roles: ['owner', 'admin', 'diretor', 'comercial', 'cs', 'financeiro'] },
+    { id: 'ws-comercial',   name: 'Comercial',        type: 'workspace', order_index: 14, icon: 'briefcase',route: null, parent_id: 'sep-equipe', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'comercial', 'cs', 'financeiro'] },
     { id: 'ws-pessoas',     name: 'Pessoas',          type: 'workspace', order_index: 14.5, icon: 'heart-handshake', route: null, parent_id: 'sep-equipe', allowed_roles: [] },
     { id: 'ws-diretoria',   name: 'Diretoria TBO',    type: 'workspace', order_index: 15, icon: 'shield',   route: null, parent_id: 'sep-equipe', allowed_roles: ['owner', 'admin', 'diretor'] },
 
@@ -84,10 +84,10 @@ const TBO_SIDEBAR_SERVICE = (() => {
     { id: 'mkt-rsm',           name: 'Social Media (RSM)',    type: 'child', order_index: 13.05, icon: 'share-2',         route: 'rsm', parent_id: 'ws-marketing', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'copy', 'design', 'qa'] },
 
     // ── Sub-items: Comercial ────────────────────────────────────────────
-    { id: 'com-pipeline',      name: 'Pipeline',              type: 'child', order_index: 14.01, icon: 'filter',          route: 'pipeline', parent_id: 'ws-comercial', allowed_roles: ['owner', 'admin', 'diretor', 'comercial', 'cs', 'financeiro'] },
-    { id: 'com-clientes',      name: 'Clientes',              type: 'child', order_index: 14.02, icon: 'building-2',      route: 'clientes', parent_id: 'ws-comercial', allowed_roles: ['owner', 'admin', 'diretor', 'comercial', 'cs', 'financeiro'] },
-    { id: 'com-propostas',     name: 'Propostas',             type: 'child', order_index: 14.03, icon: 'file-text',       route: 'comercial', parent_id: 'ws-comercial', allowed_roles: ['owner', 'admin', 'diretor', 'comercial', 'cs', 'financeiro'] },
-    { id: 'com-gestao',        name: 'Gestão Comercial',      type: 'child', order_index: 14.05, icon: 'chart-bar',       route: 'notion-embed/com-gestao', parent_id: 'ws-comercial', allowed_roles: ['owner', 'admin', 'diretor', 'comercial', 'cs', 'financeiro'] },
+    { id: 'com-pipeline',      name: 'Pipeline',              type: 'child', order_index: 14.01, icon: 'filter',          route: 'pipeline', parent_id: 'ws-comercial', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'comercial', 'cs', 'financeiro'] },
+    { id: 'com-clientes',      name: 'Clientes',              type: 'child', order_index: 14.02, icon: 'building-2',      route: 'clientes', parent_id: 'ws-comercial', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'comercial', 'cs', 'financeiro'] },
+    { id: 'com-propostas',     name: 'Propostas',             type: 'child', order_index: 14.03, icon: 'file-text',       route: 'comercial', parent_id: 'ws-comercial', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'comercial', 'cs', 'financeiro'] },
+    { id: 'com-gestao',        name: 'Gestão Comercial',      type: 'child', order_index: 14.05, icon: 'chart-bar',       route: 'notion-embed/com-gestao', parent_id: 'ws-comercial', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'comercial', 'cs', 'financeiro'] },
 
     // ── Sub-items: Diretoria ────────────────────────────────────────────
     { id: 'dir-financeiro', name: 'Financeiro',       type: 'child',     order_index: 15.1, icon: 'coins',  route: 'financeiro', parent_id: 'ws-diretoria', allowed_roles: ['owner', 'admin', 'diretor', 'financeiro'] },
@@ -100,7 +100,7 @@ const TBO_SIDEBAR_SERVICE = (() => {
     { id: 'rh-vagas',       name: 'Vagas',             type: 'child', order_index: 14.52,  icon: 'briefcase',       route: 'rh/vagas',          parent_id: 'ws-pessoas', allowed_roles: [] },
     { id: 'rh-contratos',   name: 'Contratos',         type: 'child', order_index: 14.525, icon: 'file-text',       route: 'rh/contratos',      parent_id: 'ws-pessoas', allowed_roles: ['owner', 'admin', 'diretor', 'financeiro'] },
     { id: 'rh-performance', name: 'Performance & PDI', type: 'child', order_index: 14.53,  icon: 'target',          route: 'rh/performance',    parent_id: 'ws-pessoas', allowed_roles: [] },
-    { id: 'rh-1on1s',       name: '1:1s & Rituais',   type: 'child', order_index: 14.54,  icon: 'message-circle',  route: 'rh/one-on-ones',    parent_id: 'ws-pessoas', allowed_roles: ['owner', 'admin', 'diretor', 'project_owner', 'coordinator'] },
+    { id: 'rh-1on1s',       name: '1:1s & Rituais',   type: 'child', order_index: 14.54,  icon: 'message-circle',  route: 'rh/one-on-ones',    parent_id: 'ws-pessoas', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm'] },
     { id: 'rh-analytics',   name: 'Analytics',         type: 'child', order_index: 14.55,  icon: 'bar-chart-3',     route: 'rh/analytics',      parent_id: 'ws-pessoas', allowed_roles: ['owner', 'admin', 'diretor'] },
 
     // Workspace Cultura — visivel para todos
@@ -139,9 +139,16 @@ const TBO_SIDEBAR_SERVICE = (() => {
     if (typeof TBO_AUTH !== 'undefined') {
       const user = TBO_AUTH.getCurrentUser();
       if (user) {
-        // Mapear roles legadas
-        const roleMap = { 'socio': 'owner', 'founder': 'owner', 'artista': '3d-artist' };
+        // Mapear roles legadas para roles da sidebar
+        const roleMap = {
+          'socio': 'owner', 'founder': 'owner',
+          'artista': '3d-artist', 'artist': '3d-artist',
+          'project_owner': 'po', 'coordinator': 'pm',
+          'finance': 'financeiro', 'comercial': 'comercial'
+        };
         const role = user.role || user.role_slug || 'viewer';
+        // Super admins always get owner role
+        if (typeof TBO_PERMISSIONS !== 'undefined' && TBO_PERMISSIONS.isSuperAdmin(user.email)) return 'owner';
         return roleMap[role] || role;
       }
     }

@@ -153,56 +153,71 @@ const TBO_PERMISSIONS = {
     lucas:    { role: 'artist',        bu: null,           isCoordinator: false }
   },
 
-  // ── Sidebar Section Definitions (v3 — reorganizado por area operacional) ──
+  // ── Sidebar Section Definitions (v3.1 — reorganizado por area operacional + RBAC) ──
   // Ordem: Inicio > Execucao > Producao > Pessoas > Financeiro > Fornecedores > Comercial > Admin
+  // _roles: [] = visivel para todos | ['role1','role2'] = restrito a essas roles
+  // Roles validas: founder, project_owner, artist, comercial, finance
+  // Obs: founder/admin/owner SEMPRE veem tudo (bypass em getSectionsForUser)
   _sections: [
     {
       id: 'inicio',
       label: 'INÍCIO',
       icon: 'home',
+      _roles: [],  // visivel para todos
       modules: ['dashboard', 'inbox', 'alerts', 'chat']
     },
     {
       id: 'execucao',
       label: 'EXECUÇÃO',
       icon: 'clipboard-list',
+      _roles: [],  // visivel para todos
       modules: ['projetos', 'projetos-notion', 'project-system', 'tarefas', 'reunioes', 'biblioteca', 'database-notion']
     },
     {
       id: 'producao',
       label: 'PRODUÇÃO',
       icon: 'cog',
+      _roles: [],  // visivel para todos
       modules: ['entregas', 'revisoes', 'portal-cliente']
     },
     {
       id: 'pessoas',
       label: 'PESSOAS',
       icon: 'users',
-      modules: ['rh', 'admin-onboarding', 'trilha-aprendizagem', 'cultura', 'pessoas-avancado']
+      _roles: [],  // visivel para todos (pessoas-avancado e decisoes restritos abaixo)
+      modules: ['rh', 'admin-onboarding', 'trilha-aprendizagem', 'cultura'],
+      // pessoas-avancado e decisoes: somente founder, admin, owner, coordinator
+      _restrictedModules: {
+        'pessoas-avancado': ['founder', 'project_owner'],
+        'decisoes': ['founder', 'project_owner']
+      }
     },
     {
       id: 'financeiro-section',
       label: 'FINANCEIRO',
       icon: 'coins',
+      _roles: ['founder', 'finance'],  // somente founder, admin, owner, finance
       modules: ['financeiro', 'pagar', 'receber', 'margens', 'conciliacao', 'conciliacao-bancaria']
     },
     {
       id: 'fornecedores',
       label: 'FORNECEDORES',
       icon: 'truck',
+      _roles: [],  // visivel para todos
       modules: ['contratos']
     },
     {
       id: 'comercial',
       label: 'COMERCIAL',
       icon: 'trending-up',
+      _roles: ['founder', 'project_owner', 'comercial'],  // founder, admin, owner, coordinator, comercial
       modules: ['pipeline', 'comercial', 'clientes', 'inteligencia', 'inteligencia-imobiliaria', 'mercado', 'rsm']
     },
     {
       id: 'admin',
       label: 'ADMINISTRAÇÃO',
       icon: 'shield',
-      // Somente Owner/Admin — controle via RBAC em getModulesForUser
+      _roles: ['founder'],  // somente founder, admin, owner
       modules: ['admin-portal', 'permissoes-config', 'integracoes', 'configuracoes', 'changelog', 'relatorios']
     }
   ],
@@ -447,11 +462,48 @@ const TBO_PERMISSIONS = {
 
   getSectionsForUser(userId, email) {
     const allowed = this.getModulesForUser(userId, email);
+
+    // Obter role do usuario para filtro de secao
+    const mapping = this._userRoles[userId] || this._defaultUserRoles[userId];
+    const userRole = mapping?.role || null;
+    const isCoord = mapping?.isCoordinator || false;
+    const isSuperAdmin = email && this.isSuperAdmin(email);
+
+    // Roles que sempre veem tudo (bypass de _roles da secao)
+    const bypassRoles = ['founder'];
+    const hasBypass = isSuperAdmin || bypassRoles.includes(userRole);
+
     return this._sections
-      .map(section => ({
-        ...section,
-        modules: section.modules.filter(m => allowed.includes(m))
-      }))
+      .filter(section => {
+        // Se _roles vazio ou ausente → visivel para todos
+        if (!section._roles || section._roles.length === 0) return true;
+        // Super admins e founders sempre veem tudo
+        if (hasBypass) return true;
+        // Coordinators (project_owner com isCoordinator) veem secoes que incluem project_owner
+        if (isCoord && section._roles.includes('project_owner')) return true;
+        // Verificar se a role do usuario esta na lista de _roles da secao
+        return section._roles.includes(userRole);
+      })
+      .map(section => {
+        // Filtrar modulos permitidos pelo RBAC de modulos
+        let sectionModules = section.modules.filter(m => allowed.includes(m));
+
+        // Adicionar modulos restritos dentro da secao (pessoas-avancado, decisoes)
+        if (section._restrictedModules) {
+          Object.entries(section._restrictedModules).forEach(([mod, roles]) => {
+            if (!allowed.includes(mod)) return; // modulo nao permitido pelo RBAC global
+            const canSee = hasBypass || roles.includes(userRole) || (isCoord && roles.includes('project_owner'));
+            if (canSee && !sectionModules.includes(mod)) {
+              sectionModules.push(mod);
+            }
+          });
+        }
+
+        return {
+          ...section,
+          modules: sectionModules
+        };
+      })
       .filter(section => section.modules.length > 0);
   },
 

@@ -119,7 +119,7 @@
   <!-- ═══════════════════════════════════════════════════════ -->
   <!-- SIDEBAR NAVIGATION                                      -->
   <!-- ═══════════════════════════════════════════════════════ -->
-  <aside id="sidebar" class="sidebar" role="complementary" aria-label="Barra lateral">
+  <aside id="sidebar" class="sidebar" role="navigation" aria-label="Navegacao principal">
     <!-- Brand — click to return to Dashboard -->
     <a href="#dashboard" class="sidebar-brand" id="brandLink" aria-label="Voltar ao Dashboard">
       <img class="brand-logo-svg" src="assets/logo-dark.svg" alt="TBO - think. build. own" draggable="false">
@@ -128,25 +128,25 @@
 
     <!-- Botao Criar (Asana-style) -->
     <div class="sidebar-create" id="sidebarCreate">
-      <button class="sidebar-create-btn" id="sidebarCreateBtn" title="Criar novo">
+      <button class="sidebar-create-btn" id="sidebarCreateBtn" title="Criar novo" aria-expanded="false" aria-haspopup="true" aria-label="Criar novo item">
         <i data-lucide="plus" aria-hidden="true"></i>
         <span class="sidebar-create-label">Criar</span>
       </button>
-      <div class="sidebar-create-dropdown" id="sidebarCreateDropdown">
-        <button class="sidebar-create-option" data-create="projeto">
-          <i data-lucide="folder-plus"></i>
+      <div class="sidebar-create-dropdown" id="sidebarCreateDropdown" role="menu" aria-label="Opcoes de criacao">
+        <button class="sidebar-create-option" data-create="projeto" role="menuitem">
+          <i data-lucide="folder-plus" aria-hidden="true"></i>
           <span>Novo Projeto</span>
         </button>
-        <button class="sidebar-create-option" data-create="tarefa">
-          <i data-lucide="check-square"></i>
+        <button class="sidebar-create-option" data-create="tarefa" role="menuitem">
+          <i data-lucide="check-square" aria-hidden="true"></i>
           <span>Nova Tarefa</span>
         </button>
-        <button class="sidebar-create-option" data-create="contato">
-          <i data-lucide="user-plus"></i>
+        <button class="sidebar-create-option" data-create="contato" role="menuitem">
+          <i data-lucide="user-plus" aria-hidden="true"></i>
           <span>Novo Contato</span>
         </button>
-        <button class="sidebar-create-option" data-create="deal">
-          <i data-lucide="handshake"></i>
+        <button class="sidebar-create-option" data-create="deal" role="menuitem">
+          <i data-lucide="handshake" aria-hidden="true"></i>
           <span>Novo Deal</span>
         </button>
       </div>
@@ -154,16 +154,16 @@
 
     <!-- Busca rapida inline -->
     <div class="sidebar-search" id="sidebarSearch">
-      <input type="text" class="sidebar-search-input" id="sidebarSearchInput" placeholder="Buscar..." autocomplete="off" spellcheck="false">
-      <svg class="sidebar-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <button class="sidebar-search-clear" id="sidebarSearchClear" title="Limpar busca">&times;</button>
+      <input type="text" class="sidebar-search-input" id="sidebarSearchInput" placeholder="Buscar..." autocomplete="off" spellcheck="false" aria-label="Buscar modulos e paginas">
+      <svg class="sidebar-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <button class="sidebar-search-clear" id="sidebarSearchClear" title="Limpar busca" aria-label="Limpar busca">&times;</button>
       <span class="sidebar-search-kbd">/</span>
     </div>
 
     <!-- Favoritos (pinned) -->
     <div class="sidebar-favorites" id="sidebarFavorites" data-count="0">
       <div class="sidebar-favorites-header">
-        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="12" height="12"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="12" height="12" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
         <span>FAVORITOS</span>
       </div>
       <ul class="sidebar-favorites-list" id="sidebarFavoritesList"></ul>
@@ -185,7 +185,7 @@
 
     <!-- Sidebar Footer (preenchido dinamicamente por _renderSidebarFooter) -->
     <div class="sidebar-footer">
-      <button class="sidebar-collapse-btn" id="sidebarToggle" title="Recolher menu" aria-label="Recolher barra lateral">
+      <button class="sidebar-collapse-btn" id="sidebarToggle" title="Recolher menu" aria-label="Recolher barra lateral" aria-expanded="true">
         <i data-lucide="chevron-left" aria-hidden="true"></i>
       </button>
     </div>
@@ -243,7 +243,7 @@
         </button>
         <button class="header-action-btn" id="inboxBtn" title="Caixa de Entrada" aria-label="Abrir caixa de entrada" style="position:relative;">
           <i data-lucide="inbox" aria-hidden="true"></i>
-          <span id="inboxBadge" class="inbox-header-badge" style="display:none;position:absolute;top:2px;right:2px;min-width:16px;height:16px;border-radius:8px;background:#EF4444;color:#fff;font-size:0.6rem;font-weight:700;align-items:center;justify-content:center;padding:0 4px;line-height:16px;"></span>
+          <span id="inboxBadge" class="inbox-header-badge" style="display:none;"></span>
         </button>
         <button class="header-action-btn" id="searchBtn" title="Busca rápida" aria-label="Abrir busca rápida">
           <i data-lucide="search" aria-hidden="true"></i>
@@ -297,12 +297,12 @@
           >
           <kbd class="search-dismiss-hint">Esc</kbd>
         </div>
-        <div class="search-filters" id="searchFilters">
-          <button class="search-filter-chip active" data-filter="all">Tudo</button>
-          <button class="search-filter-chip" data-filter="projeto_ativo">Projetos</button>
-          <button class="search-filter-chip" data-filter="cliente">Clientes</button>
-          <button class="search-filter-chip" data-filter="reuniao">Reuniões</button>
-          <button class="search-filter-chip" data-filter="modulo">Módulos</button>
+        <div class="search-filters" id="searchFilters" role="tablist" aria-label="Filtros de busca">
+          <button class="search-filter-chip active" data-filter="all" role="tab" aria-selected="true">Tudo</button>
+          <button class="search-filter-chip" data-filter="projeto_ativo" role="tab" aria-selected="false">Projetos</button>
+          <button class="search-filter-chip" data-filter="cliente" role="tab" aria-selected="false">Clientes</button>
+          <button class="search-filter-chip" data-filter="reuniao" role="tab" aria-selected="false">Reuniões</button>
+          <button class="search-filter-chip" data-filter="modulo" role="tab" aria-selected="false">Módulos</button>
         </div>
         <div class="search-results" id="searchResults">
           <div class="search-hint">
@@ -372,9 +372,7 @@
         <input type="password" class="form-input" id="loginPass" placeholder="Digite sua senha" autocomplete="current-password">
       </div>
       <button class="btn btn-primary login-submit-btn" id="loginBtn">Entrar</button>
-      <button class="btn btn-ghost login-magic-btn" id="loginMagicBtn" style="width:100%;margin-top:8px;font-size:0.85rem;opacity:0.8;">
-        Enviar Magic Link por e-mail
-      </button>
+      <a href="#" class="login-forgot-link" id="loginMagicBtn">Esqueci minha senha</a>
       <p class="login-error" id="loginError"></p>
     </div>
   </div>

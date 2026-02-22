@@ -98,7 +98,6 @@ const TBO_APP = {
       'alerts': typeof TBO_ALERTS !== 'undefined' ? TBO_ALERTS : null,
       'inbox': typeof TBO_INBOX !== 'undefined' ? TBO_INBOX : null,
       'database-notion': typeof TBO_DATABASE_NOTION !== 'undefined' ? TBO_DATABASE_NOTION : null,
-      'project-system': typeof TBO_PROJECT_SYSTEM !== 'undefined' ? TBO_PROJECT_SYSTEM : null,
       'pipeline': typeof TBO_PIPELINE !== 'undefined' ? TBO_PIPELINE : null,
       'clientes': typeof TBO_CLIENTES !== 'undefined' ? TBO_CLIENTES : null,
       'portal-cliente': typeof TBO_PORTAL_CLIENTE !== 'undefined' ? TBO_PORTAL_CLIENTE : null,
@@ -1641,7 +1640,6 @@ const TBO_APP = {
     'relatorios': 'Relatórios',
     'entregas-pendentes': 'Entregas Pendentes',
     'revisoes-pendentes': 'Revisões Pendentes',
-    'project-system': 'Projetos v2',
     'system-health': 'System Health',
     // Módulos parametrizados / embeds
     'projetos-notion': 'Projetos (Notion)',
@@ -1706,7 +1704,6 @@ const TBO_APP = {
     'relatorios': 'file-bar-chart',
     'entregas-pendentes': 'package',
     'revisoes-pendentes': 'message-circle',
-    'project-system': 'kanban',
     'system-health': 'heart-pulse',
     // Módulos parametrizados / embeds
     'projetos-notion': 'database',

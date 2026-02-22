@@ -38,7 +38,6 @@
 |--------|-------|------------------|
 | Projetos | `#/projetos` | Todos |
 | Projetos (Notion) | `#/projetos-notion` | Todos (filtrado por BU) |
-| Projetos v2 | `#/project-system` | Todos |
 | Tarefas | `#/tarefas` | Todos |
 | Calendario | `#/reunioes` | Todos |
 | Agenda | `#/agenda` | Todos |

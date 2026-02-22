@@ -118,9 +118,6 @@ const TBO_SIDEBAR_SERVICE = (() => {
     { id: 'ws-database',    name: 'Database',          type: 'workspace', order_index: 14.7, icon: 'database', route: null, parent_id: 'sep-equipe', allowed_roles: [] },
     { id: 'db-databases',   name: 'Todos os Databases', type: 'child',   order_index: 14.71, icon: 'table',   route: 'database-notion', parent_id: 'ws-database', allowed_roles: [] },
 
-    // Workspace Projetos v2
-    { id: 'ws-projetos-v2', name: 'Projetos v2',       type: 'workspace', order_index: 9.5,  icon: 'kanban',   route: null, parent_id: 'sep-equipe', allowed_roles: [] },
-    { id: 'pv2-kanban',     name: 'Kanban',            type: 'child',     order_index: 9.51, icon: 'columns',  route: 'project-system', parent_id: 'ws-projetos-v2', allowed_roles: [] },
 
     // Mais
     { id: 'sys-mais',       name: 'Mais',             type: 'system',    order_index: 16, icon: 'plus',     route: null, allowed_roles: [], metadata: { action: 'show-more-workspaces' } }

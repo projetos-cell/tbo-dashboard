@@ -81,6 +81,7 @@ const TBO_SIDEBAR_SERVICE = (() => {
     { id: 'mkt-calendario',    name: 'Calendário Redes Sociais', type: 'child', order_index: 13.02, icon: 'calendar',    route: null, parent_id: 'ws-marketing', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'copy', 'design', 'qa'], metadata: { external_url: 'https://www.notion.so/12ab27ff29e3818eab6acab66f4e292b' } },
     { id: 'mkt-demandas',      name: 'Gestão de Demandas',    type: 'child', order_index: 13.03, icon: 'list-checks',     route: null, parent_id: 'ws-marketing', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'copy', 'design', 'qa'], metadata: { external_url: 'https://www.notion.so/18ab27ff29e380a6aec4e1d71bff18d5' } },
     { id: 'mkt-conteudo',      name: 'Conteúdo & Redação',    type: 'child', order_index: 13.04, icon: 'pen-tool',        route: 'conteudo', parent_id: 'ws-marketing', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'copy', 'design', 'qa'] },
+    { id: 'mkt-rsm',           name: 'Social Media (RSM)',    type: 'child', order_index: 13.05, icon: 'share-2',         route: 'rsm', parent_id: 'ws-marketing', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'copy', 'design', 'qa'] },
 
     // ── Sub-items: Comercial ────────────────────────────────────────────
     { id: 'com-pipeline',      name: 'Pipeline',              type: 'child', order_index: 14.01, icon: 'filter',          route: 'pipeline', parent_id: 'ws-comercial', allowed_roles: ['owner', 'admin', 'diretor', 'comercial', 'cs', 'financeiro'] },
@@ -90,6 +91,8 @@ const TBO_SIDEBAR_SERVICE = (() => {
 
     // ── Sub-items: Diretoria ────────────────────────────────────────────
     { id: 'dir-financeiro', name: 'Financeiro',       type: 'child',     order_index: 15.1, icon: 'coins',  route: 'financeiro', parent_id: 'ws-diretoria', allowed_roles: ['owner', 'admin', 'diretor', 'financeiro'] },
+    { id: 'dir-relatorios', name: 'Relatórios',      type: 'child',     order_index: 15.2, icon: 'file-bar-chart', route: 'relatorios', parent_id: 'ws-diretoria', allowed_roles: ['owner', 'admin', 'diretor'] },
+    { id: 'dir-portal',     name: 'Portal do Cliente', type: 'child',     order_index: 15.3, icon: 'monitor-smartphone', route: 'portal-cliente', parent_id: 'ws-diretoria', allowed_roles: ['owner', 'admin', 'diretor'] },
 
     // Sub-items do workspace Pessoas (RH) — deep link: rh/{tab}
     { id: 'rh-equipe',      name: 'Equipe',            type: 'child', order_index: 14.51,  icon: 'users',           route: 'rh',                parent_id: 'ws-pessoas', allowed_roles: [] },
@@ -110,6 +113,14 @@ const TBO_SIDEBAR_SERVICE = (() => {
     { id: 'cult-feedbacks',     name: 'Feedbacks',            type: 'child', order_index: 14.64, icon: 'message-square',  route: 'rh/cultura/feedbacks',        parent_id: 'ws-cultura', allowed_roles: [] },
     { id: 'cult-historico',     name: 'Historico cultural',   type: 'child', order_index: 14.65, icon: 'clock',           route: 'rh/cultura/historico',         parent_id: 'ws-cultura', allowed_roles: [] },
     { id: 'cult-onboarding',    name: 'Onboarding cultural',  type: 'child', order_index: 14.66, icon: 'book-open',       route: 'rh/cultura/onboarding',       parent_id: 'ws-cultura', allowed_roles: [] },
+
+    // Workspace Database
+    { id: 'ws-database',    name: 'Database',          type: 'workspace', order_index: 14.7, icon: 'database', route: null, parent_id: 'sep-equipe', allowed_roles: [] },
+    { id: 'db-databases',   name: 'Todos os Databases', type: 'child',   order_index: 14.71, icon: 'table',   route: 'database-notion', parent_id: 'ws-database', allowed_roles: [] },
+
+    // Workspace Projetos v2
+    { id: 'ws-projetos-v2', name: 'Projetos v2',       type: 'workspace', order_index: 9.5,  icon: 'kanban',   route: null, parent_id: 'sep-equipe', allowed_roles: [] },
+    { id: 'pv2-kanban',     name: 'Kanban',            type: 'child',     order_index: 9.51, icon: 'columns',  route: 'project-system', parent_id: 'ws-projetos-v2', allowed_roles: [] },
 
     // Mais
     { id: 'sys-mais',       name: 'Mais',             type: 'system',    order_index: 16, icon: 'plus',     route: null, allowed_roles: [], metadata: { action: 'show-more-workspaces' } }

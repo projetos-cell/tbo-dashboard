@@ -27,6 +27,8 @@ const TBO_ROUTE_REGISTRY = (() => {
     'chat':                   'chat',
     'alerts':                 'alerts',
     'inbox':                  'inbox',
+    'database-notion':        'database-notion',
+    'project-system':         'project-system',
     'conteudo':               'conteudo',
     'mercado':                'mercado',
     'reunioes':               'reunioes',
@@ -49,6 +51,8 @@ const TBO_ROUTE_REGISTRY = (() => {
     'inteligencia':           'inteligencia',
     'inteligencia-imobiliaria': 'inteligencia-imobiliaria',
     'portal-cliente':         'portal-cliente',
+    'relatorios':             'relatorios',
+    'rsm':                    'rsm',
     'permissoes-config':      'permissoes-config'
   };
 
@@ -90,6 +94,8 @@ const TBO_ROUTE_REGISTRY = (() => {
     'dashboard':              { label: 'Dashboard',              icon: 'layout-dashboard',   group: 'inicio',       color: '#E85102' },
     'alerts':                 { label: 'Alertas',                icon: 'alert-triangle',     group: 'inicio',       color: '#EF4444' },
     'inbox':                  { label: 'Caixa de Entrada',       icon: 'inbox',              group: 'inicio',       color: '#3B82F6' },
+    'database-notion':        { label: 'Database',               icon: 'database',           group: 'execucao',     color: '#6366F1' },
+    'project-system':         { label: 'Projetos v2',            icon: 'kanban',             group: 'execucao',     color: '#3B82F6' },
     'chat':                   { label: 'Chat',                   icon: 'message-circle',     group: 'inicio',       color: '#6366F1' },
     // Execução
     'projetos':               { label: 'Projetos',               icon: 'folder-kanban',      group: 'execucao',     color: '#3B82F6' },
@@ -129,6 +135,7 @@ const TBO_ROUTE_REGISTRY = (() => {
     'timeline':               { label: 'Timeline',               icon: 'gantt-chart',        group: 'gestao',       color: '#3B82F6' },
     'capacidade':             { label: 'Capacidade',             icon: 'bar-chart-2',        group: 'gestao',       color: '#F59E0B' },
     'carga-trabalho':         { label: 'Carga de Trabalho',      icon: 'activity',           group: 'gestao',       color: '#EF4444' },
+    'relatorios':             { label: 'Relatórios',             icon: 'file-bar-chart',     group: 'gestao',       color: '#8B5CF6' },
     // Admin / Sistema
     'admin-portal':           { label: 'Admin Portal',           icon: 'shield',             group: 'sistema',      color: '#DC2626' },
     'permissoes-config':      { label: 'Segurança',              icon: 'lock',               group: 'sistema',      color: '#DC2626' },
@@ -139,6 +146,8 @@ const TBO_ROUTE_REGISTRY = (() => {
     'conteudo':               { label: 'Conteúdo & Redação',     icon: 'pen-tool',           group: 'outros',       color: '#64748B' },
     'decisoes':               { label: 'Decisões',               icon: 'gavel',              group: 'outros',       color: '#64748B' },
     'templates':              { label: 'Templates',              icon: 'layout-template',    group: 'outros',       color: '#64748B' },
+    // Marketing
+    'rsm':                    { label: 'Social Media',            icon: 'share-2',            group: 'outros',       color: '#EC4899' },
     // Pages (editor Notion-style)
     'page-editor':            { label: 'Página',                 icon: 'file-text',          group: 'outros',       color: '#E85102' }
   };

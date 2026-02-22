@@ -1,0 +1,715 @@
+/* ============================================================
+   TBO OS — Database Notion-style Module Styles
+   Task #23 — Fase 4
+   ============================================================ */
+
+/* ── Container Layout ─────────────────────────────────────── */
+.ntdb-container {
+  display: flex;
+  height: calc(100vh - 64px);
+  background: var(--bg-primary, #fff);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ntdb-sidebar-panel {
+  width: 240px;
+  min-width: 200px;
+  border-right: 1px solid var(--border-primary, #e5e5e5);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary, #fafafa);
+}
+
+.ntdb-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-primary, #e5e5e5);
+}
+
+.ntdb-sidebar-header h3 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary, #333);
+}
+
+.ntdb-sidebar-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.ntdb-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-primary, #333);
+  transition: background 0.15s;
+}
+
+.ntdb-sidebar-item:hover {
+  background: var(--bg-hover, #f0f0f0);
+}
+
+.ntdb-sidebar-item.active {
+  background: var(--accent-bg, #E85102);
+  color: #fff;
+}
+
+.ntdb-sidebar-item.active i { color: #fff !important; }
+
+.ntdb-sidebar-item-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ntdb-sidebar-item-count {
+  font-size: 0.7rem;
+  opacity: 0.6;
+}
+
+/* ── Main Content ─────────────────────────────────────────── */
+.ntdb-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ntdb-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 40px;
+}
+
+.ntdb-database-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── Header ───────────────────────────────────────────────── */
+.ntdb-db-header {
+  padding: 16px 24px 8px;
+}
+
+.ntdb-db-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ntdb-db-title-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: transparent;
+  color: var(--text-primary, #333);
+  padding: 0;
+}
+
+.ntdb-db-title-input:focus {
+  border-bottom: 2px solid var(--accent-primary, #E85102);
+}
+
+.ntdb-db-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #666);
+  margin: 4px 0 0;
+  padding: 2px 0;
+  outline: none;
+  min-height: 20px;
+}
+
+.ntdb-db-desc:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-tertiary, #999);
+}
+
+.ntdb-db-actions { display: flex; gap: 4px; }
+
+/* ── Toolbar ──────────────────────────────────────────────── */
+.ntdb-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 24px;
+  border-bottom: 1px solid var(--border-primary, #e5e5e5);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ntdb-views-tabs {
+  display: flex;
+  gap: 2px;
+}
+
+.ntdb-view-tab {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ntdb-view-tab:hover { background: var(--bg-hover, #f0f0f0); }
+
+.ntdb-view-tab.active {
+  background: var(--accent-bg, #E85102);
+  color: #fff;
+}
+
+.ntdb-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ntdb-toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border-primary, #e5e5e5);
+  margin: 0 4px;
+}
+
+.ntdb-search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--bg-secondary, #fafafa);
+  border: 1px solid var(--border-primary, #e5e5e5);
+}
+
+.ntdb-search-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.8rem;
+  width: 150px;
+  color: var(--text-primary, #333);
+}
+
+/* ── Filter Bar ───────────────────────────────────────────── */
+.ntdb-filter-bar {
+  padding: 8px 24px;
+  background: var(--bg-secondary, #fafafa);
+  border-bottom: 1px solid var(--border-primary, #e5e5e5);
+}
+
+/* ── Buttons ──────────────────────────────────────────────── */
+.ntdb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary, #333);
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background 0.15s;
+}
+
+.ntdb-btn:hover { background: var(--bg-hover, #f0f0f0); }
+
+.ntdb-btn-sm { padding: 4px 8px; font-size: 0.75rem; }
+.ntdb-btn-icon { padding: 4px; border-radius: 4px; }
+.ntdb-btn-danger { color: #EF4444 !important; }
+.ntdb-btn-danger:hover { background: #FEE2E2 !important; }
+
+.ntdb-btn-add-row {
+  width: 100%;
+  justify-content: flex-start;
+  padding: 8px 24px;
+  border-radius: 0;
+  color: var(--text-tertiary, #999);
+  font-size: 0.85rem;
+}
+
+.ntdb-btn-add-row:hover { background: var(--bg-hover, #f0f0f0); color: var(--text-primary, #333); }
+
+.ntdb-add-row { border-top: 1px solid var(--border-primary, #e5e5e5); }
+
+/* ── Table View ───────────────────────────────────────────── */
+.ntdb-table-wrapper {
+  flex: 1;
+  overflow: auto;
+}
+
+.ntdb-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.ntdb-th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-secondary, #fafafa);
+  border-bottom: 1px solid var(--border-primary, #e5e5e5);
+  padding: 0;
+  z-index: 2;
+  text-align: left;
+}
+
+.ntdb-th-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.ntdb-th-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ntdb-col-menu-btn {
+  opacity: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  color: var(--text-tertiary, #999);
+  transition: opacity 0.15s;
+}
+
+.ntdb-th:hover .ntdb-col-menu-btn { opacity: 1; }
+.ntdb-col-menu-btn:hover { background: var(--bg-hover, #f0f0f0); }
+
+.ntdb-th-checkbox { width: 32px; min-width: 32px; }
+.ntdb-th-add { width: 32px; min-width: 32px; }
+
+.ntdb-td {
+  padding: 0;
+  border-bottom: 1px solid var(--border-subtle, #f0f0f0);
+  height: 34px;
+  vertical-align: middle;
+}
+
+.ntdb-td-checkbox { width: 32px; text-align: center; }
+
+.ntdb-cell-content {
+  padding: 4px 12px;
+  font-size: 0.85rem;
+  min-height: 26px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  overflow: hidden;
+}
+
+.ntdb-td:hover { background: var(--bg-hover, rgba(0,0,0,0.02)); }
+.ntdb-td.ntdb-editing { background: var(--bg-hover, #f0f0f0); }
+
+.ntdb-cell-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.85rem;
+  padding: 0;
+  color: var(--text-primary, #333);
+}
+
+.ntdb-cell-empty { opacity: 0; }
+.ntdb-row:hover .ntdb-cell-empty { opacity: 0.3; }
+.ntdb-row:hover .ntdb-cell-empty::after { content: 'Vazio'; font-size: 0.75rem; }
+
+.ntdb-table-footer {
+  padding: 8px 24px;
+  font-size: 0.75rem;
+  color: var(--text-tertiary, #999);
+  border-top: 1px solid var(--border-primary, #e5e5e5);
+}
+
+.ntdb-row-count { font-variant-numeric: tabular-nums; }
+
+/* ── Cell Type Styles ─────────────────────────────────────── */
+.ntdb-select-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.ntdb-checkbox { cursor: pointer; }
+.ntdb-checkbox.checked { color: #3B82F6; }
+
+.ntdb-url-val, .ntdb-email-val {
+  color: #3B82F6;
+  text-decoration: none;
+  font-size: 0.8rem;
+}
+
+.ntdb-url-val:hover, .ntdb-email-val:hover { text-decoration: underline; }
+
+.ntdb-number-val { font-variant-numeric: tabular-nums; }
+
+.ntdb-person-val {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+}
+
+/* ── Dropdown ─────────────────────────────────────────────── */
+.ntdb-dropdown {
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-primary, #e5e5e5);
+  border-radius: 8px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+  padding: 4px;
+  overflow-y: auto;
+  max-height: 320px;
+}
+
+.ntdb-dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-primary, #333);
+  transition: background 0.1s;
+}
+
+.ntdb-dropdown-item:hover { background: var(--bg-hover, #f0f0f0); }
+.ntdb-dropdown-item.active { background: var(--accent-subtle, #FFF3ED); }
+.ntdb-dropdown-item.ntdb-danger { color: #EF4444; }
+.ntdb-dropdown-item.ntdb-danger:hover { background: #FEE2E2; }
+
+.ntdb-dropdown-divider {
+  height: 1px;
+  background: var(--border-primary, #e5e5e5);
+  margin: 4px 0;
+}
+
+/* ── Kanban View ──────────────────────────────────────────── */
+.ntdb-kanban-board {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px;
+  overflow-x: auto;
+  flex: 1;
+}
+
+.ntdb-kanban-col {
+  min-width: 260px;
+  max-width: 300px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary, #fafafa);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.ntdb-kanban-col-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  margin-bottom: 8px;
+}
+
+.ntdb-kanban-count {
+  font-size: 0.7rem;
+  color: var(--text-tertiary, #999);
+  background: var(--bg-hover, #e5e5e5);
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+.ntdb-kanban-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.ntdb-kanban-card {
+  padding: 10px 12px;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-subtle, #f0f0f0);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+
+.ntdb-kanban-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+
+.ntdb-kanban-card-title {
+  font-size: 0.85rem;
+  color: var(--text-primary, #333);
+}
+
+.ntdb-kanban-empty {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-secondary, #666);
+}
+
+/* ── Gallery View ─────────────────────────────────────────── */
+.ntdb-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  padding: 16px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.ntdb-gallery-card {
+  border: 1px solid var(--border-primary, #e5e5e5);
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+  background: var(--bg-primary, #fff);
+}
+
+.ntdb-gallery-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+
+.ntdb-gallery-card-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+  color: var(--text-primary, #333);
+}
+
+.ntdb-gallery-prop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.ntdb-gallery-prop-label {
+  font-size: 0.7rem;
+  color: var(--text-tertiary, #999);
+  min-width: 60px;
+}
+
+.ntdb-gallery-prop-value { font-size: 0.8rem; }
+
+/* ── List View ────────────────────────────────────────────── */
+.ntdb-list-view {
+  padding: 8px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.ntdb-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-subtle, #f0f0f0);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.ntdb-list-item:hover { background: var(--bg-hover, #f0f0f0); }
+
+.ntdb-list-item-title { font-size: 0.85rem; color: var(--text-primary, #333); }
+.ntdb-list-item-date { font-size: 0.75rem; color: var(--text-tertiary, #999); }
+.ntdb-empty-list { text-align: center; color: var(--text-tertiary, #999); padding: 40px; }
+
+/* ── Calendar View ────────────────────────────────────────── */
+.ntdb-calendar { padding: 16px 24px; overflow-y: auto; flex: 1; }
+
+.ntdb-cal-header { margin-bottom: 12px; }
+.ntdb-cal-header h3 { font-size: 1rem; font-weight: 600; color: var(--text-primary, #333); margin: 0; }
+
+.ntdb-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-tertiary, #999);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-primary, #e5e5e5);
+}
+
+.ntdb-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+}
+
+.ntdb-cal-cell {
+  min-height: 80px;
+  padding: 4px;
+  border: 1px solid var(--border-subtle, #f0f0f0);
+}
+
+.ntdb-cal-empty { background: var(--bg-secondary, #fafafa); }
+
+.ntdb-cal-day {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #666);
+  margin-bottom: 4px;
+}
+
+.ntdb-cal-today { background: #FFF3ED; }
+.ntdb-cal-today .ntdb-cal-day { color: #E85102; font-weight: 700; }
+
+.ntdb-cal-event {
+  font-size: 0.65rem;
+  padding: 1px 4px;
+  background: #DBEAFE;
+  color: #1E40AF;
+  border-radius: 3px;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ntdb-cal-more { font-size: 0.65rem; color: var(--text-tertiary, #999); }
+
+/* ── Modal ────────────────────────────────────────────────── */
+.ntdb-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.ntdb-modal {
+  background: var(--bg-primary, #fff);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+}
+
+.ntdb-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-primary, #e5e5e5);
+}
+
+.ntdb-modal-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary, #333);
+}
+
+.ntdb-modal-close {
+  font-size: 1.5rem;
+  line-height: 1;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-tertiary, #999);
+}
+
+.ntdb-modal-body { padding: 16px 20px; }
+
+.ntdb-detail-prop {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-subtle, #f0f0f0);
+}
+
+.ntdb-detail-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 140px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary, #666);
+}
+
+.ntdb-detail-value { font-size: 0.85rem; flex: 1; }
+
+.ntdb-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-primary, #e5e5e5);
+}
+
+/* ── Content area ─────────────────────────────────────────── */
+.ntdb-content {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Dark Mode ────────────────────────────────────────────── */
+[data-theme="dark"] .ntdb-container { background: var(--bg-primary, #1a1a1a); }
+[data-theme="dark"] .ntdb-sidebar-panel { background: var(--bg-secondary, #222); }
+[data-theme="dark"] .ntdb-th { background: var(--bg-secondary, #222); }
+[data-theme="dark"] .ntdb-dropdown { background: var(--bg-primary, #1a1a1a); border-color: var(--border-primary, #333); }
+[data-theme="dark"] .ntdb-kanban-col { background: var(--bg-secondary, #222); }
+[data-theme="dark"] .ntdb-kanban-card { background: var(--bg-primary, #1a1a1a); border-color: var(--border-primary, #333); }
+[data-theme="dark"] .ntdb-gallery-card { background: var(--bg-primary, #1a1a1a); border-color: var(--border-primary, #333); }
+[data-theme="dark"] .ntdb-modal { background: var(--bg-primary, #1a1a1a); }
+[data-theme="dark"] .ntdb-cal-today { background: rgba(232, 81, 2, 0.15); }
+[data-theme="dark"] .ntdb-cal-event { background: #1E3A5F; color: #60A5FA; }
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .ntdb-sidebar-panel { display: none; }
+  .ntdb-toolbar { padding: 4px 12px; }
+  .ntdb-db-header { padding: 12px 16px 8px; }
+  .ntdb-kanban-board { padding: 12px; }
+  .ntdb-gallery-grid { padding: 12px; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+}

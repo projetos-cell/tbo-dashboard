@@ -96,6 +96,8 @@ const TBO_APP = {
       // timeline removido em v2.1
       'alerts': typeof TBO_ALERTS !== 'undefined' ? TBO_ALERTS : null,
       'inbox': typeof TBO_INBOX !== 'undefined' ? TBO_INBOX : null,
+      'database-notion': typeof TBO_DATABASE_NOTION !== 'undefined' ? TBO_DATABASE_NOTION : null,
+      'project-system': typeof TBO_PROJECT_SYSTEM !== 'undefined' ? TBO_PROJECT_SYSTEM : null,
       'pipeline': typeof TBO_PIPELINE !== 'undefined' ? TBO_PIPELINE : null,
       'clientes': typeof TBO_CLIENTES !== 'undefined' ? TBO_CLIENTES : null,
       'portal-cliente': typeof TBO_PORTAL_CLIENTE !== 'undefined' ? TBO_PORTAL_CLIENTE : null,
@@ -128,6 +130,8 @@ const TBO_APP = {
       'project-workspace': typeof TBO_PROJECT_WORKSPACE !== 'undefined' ? TBO_PROJECT_WORKSPACE : null,
       'inteligencia-imobiliaria': typeof TBO_INTELIGENCIA_IMOBILIARIA !== 'undefined' ? TBO_INTELIGENCIA_IMOBILIARIA : null,
       'people-profile': typeof TBO_PEOPLE_PROFILE !== 'undefined' ? TBO_PEOPLE_PROFILE : null,
+      'relatorios': typeof TBO_RELATORIOS !== 'undefined' ? TBO_RELATORIOS : null,
+      'rsm': typeof TBO_RSM !== 'undefined' ? TBO_RSM : null,
       'page-editor': typeof TBO_PAGE_EDITOR !== 'undefined' ? TBO_PAGE_EDITOR : null
     };
 
@@ -1609,8 +1613,10 @@ const TBO_APP = {
     'decisoes': 'Decisões',
     'templates': 'Templates',
     'workspace': 'Workspace',
+    'relatorios': 'Relatórios',
     'entregas-pendentes': 'Entregas Pendentes',
-    'revisoes-pendentes': 'Revisões Pendentes'
+    'revisoes-pendentes': 'Revisões Pendentes',
+    'project-system': 'Projetos v2'
   },
 
   // ── Module icons (Lucide icon names — v3) ──────────────────────────
@@ -1661,8 +1667,10 @@ const TBO_APP = {
     'conteudo': 'pen-tool',
     'decisoes': 'gavel',
     'templates': 'layout-template',
+    'relatorios': 'file-bar-chart',
     'entregas-pendentes': 'package',
-    'revisoes-pendentes': 'message-circle'
+    'revisoes-pendentes': 'message-circle',
+    'project-system': 'kanban'
   },
 
   _updateHeaderTitle(moduleName) {

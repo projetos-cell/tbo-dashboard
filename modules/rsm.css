@@ -1,0 +1,1039 @@
+/* ============================================================
+ * RSM — Report Social Media (Task #24)
+ * Dashboard, Calendar, Ideas Kanban, Accounts
+ * Dark mode support
+ * ============================================================ */
+
+/* ── Module Container ────────────────────────────────────── */
+.rsm-module {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* ── Header ──────────────────────────────────────────────── */
+.rsm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.rsm-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rsm-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary, #111827);
+}
+
+.rsm-title-icon {
+  width: 24px;
+  height: 24px;
+  color: #EC4899;
+}
+
+.rsm-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted, #6B7280);
+  margin: 0;
+}
+
+.rsm-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rsm-client-filter {
+  padding: 6px 12px;
+  border: 1px solid var(--border-color, #E5E7EB);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  background: var(--bg-primary, #FFFFFF);
+  color: var(--text-primary, #111827);
+  min-width: 180px;
+}
+
+/* ── Tabs ─────────────────────────────────────────────────── */
+.rsm-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border-color, #E5E7EB);
+  margin-bottom: 24px;
+  overflow-x: auto;
+}
+
+.rsm-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  color: var(--text-muted, #6B7280);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.rsm-tab:hover {
+  color: var(--text-primary, #111827);
+  background: var(--bg-secondary, #F9FAFB);
+  border-radius: 8px 8px 0 0;
+}
+
+.rsm-tab.active {
+  color: #EC4899;
+  border-bottom-color: #EC4899;
+}
+
+.rsm-tab svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ── Loading ──────────────────────────────────────────────── */
+.rsm-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  color: var(--text-muted, #6B7280);
+}
+
+/* ── Empty State ──────────────────────────────────────────── */
+.rsm-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  text-align: center;
+  color: var(--text-muted, #6B7280);
+}
+
+.rsm-empty h3 {
+  margin: 16px 0 8px;
+  color: var(--text-primary, #111827);
+  font-size: 1.1rem;
+}
+
+.rsm-empty p {
+  max-width: 400px;
+  font-size: 0.875rem;
+}
+
+/* ── KPI Grid ─────────────────────────────────────────────── */
+.rsm-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.rsm-kpi-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  background: var(--bg-primary, #FFFFFF);
+  border: 1px solid var(--border-color, #E5E7EB);
+  border-radius: 12px;
+  transition: box-shadow 0.15s ease;
+}
+
+.rsm-kpi-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.rsm-kpi-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.rsm-kpi-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.rsm-kpi-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.rsm-kpi-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+  line-height: 1.2;
+}
+
+.rsm-kpi-label {
+  font-size: 0.75rem;
+  color: var(--text-muted, #6B7280);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* ── Account Cards Grid (Dashboard) ──────────────────────── */
+.rsm-accounts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.rsm-account-card {
+  background: var(--bg-primary, #FFFFFF);
+  border: 1px solid var(--border-color, #E5E7EB);
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rsm-account-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border-color: #EC4899;
+}
+
+.rsm-account-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.rsm-account-platform {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.rsm-account-platform svg {
+  width: 20px;
+  height: 20px;
+}
+
+.rsm-account-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.rsm-account-handle {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-primary, #111827);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rsm-account-platform-label {
+  font-size: 0.75rem;
+  color: var(--text-muted, #6B7280);
+  text-transform: capitalize;
+}
+
+.rsm-account-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.rsm-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  background: var(--bg-secondary, #F9FAFB);
+  border-radius: 8px;
+}
+
+.rsm-metric-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+}
+
+.rsm-metric-label {
+  font-size: 0.68rem;
+  color: var(--text-muted, #6B7280);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.rsm-account-card-sparkline {
+  margin-top: 12px;
+}
+
+.rsm-sparkline-placeholder {
+  height: 32px;
+  background: linear-gradient(90deg, var(--bg-secondary, #F9FAFB) 0%, var(--border-color, #E5E7EB) 50%, var(--bg-secondary, #F9FAFB) 100%);
+  border-radius: 4px;
+  opacity: 0.5;
+}
+
+/* ── Badges ───────────────────────────────────────────────── */
+.rsm-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.rsm-badge--active {
+  background: #22C55E18;
+  color: #22C55E;
+}
+
+.rsm-badge--inactive {
+  background: #9CA3AF18;
+  color: #9CA3AF;
+}
+
+/* ── Status Pills ─────────────────────────────────────────── */
+.rsm-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.rsm-pill--type {
+  background: var(--bg-secondary, #F3F4F6);
+  color: var(--text-muted, #6B7280);
+  text-transform: capitalize;
+}
+
+/* ── Calendar ─────────────────────────────────────────────── */
+.rsm-calendar {
+  background: var(--bg-primary, #FFFFFF);
+  border: 1px solid var(--border-color, #E5E7EB);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.rsm-cal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.rsm-cal-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary, #111827);
+}
+
+.rsm-cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border-color, #E5E7EB);
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+  color: var(--text-primary, #111827);
+  transition: background 0.15s;
+}
+
+.rsm-cal-nav:hover {
+  background: var(--bg-secondary, #F9FAFB);
+}
+
+.rsm-cal-nav svg {
+  width: 16px;
+  height: 16px;
+}
+
+.rsm-cal-legend {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.rsm-cal-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--text-muted, #6B7280);
+}
+
+.rsm-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.rsm-cal-weekday {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted, #6B7280);
+  padding: 8px 0;
+}
+
+.rsm-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.rsm-cal-cell {
+  position: relative;
+  min-height: 80px;
+  padding: 6px;
+  border: 1px solid var(--border-color, #E5E7EB);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.rsm-cal-cell:hover {
+  background: var(--bg-secondary, #F9FAFB);
+  border-color: #EC4899;
+}
+
+.rsm-cal-cell--empty {
+  background: transparent;
+  border-color: transparent;
+  cursor: default;
+}
+
+.rsm-cal-cell--empty:hover {
+  background: transparent;
+  border-color: transparent;
+}
+
+.rsm-cal-cell--today {
+  border-color: #EC4899;
+  background: #EC489908;
+}
+
+.rsm-cal-cell--has-posts {
+  background: var(--bg-secondary, #F9FAFB);
+}
+
+.rsm-cal-day {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-primary, #111827);
+}
+
+.rsm-cal-cell--today .rsm-cal-day {
+  color: #EC4899;
+  font-weight: 700;
+}
+
+.rsm-cal-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 4px;
+}
+
+.rsm-cal-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.rsm-cal-count {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #EC4899;
+  background: #EC489918;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Calendar Detail Panel ────────────────────────────────── */
+.rsm-cal-detail {
+  margin-top: 16px;
+  background: var(--bg-primary, #FFFFFF);
+  border: 1px solid var(--border-color, #E5E7EB);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.rsm-cal-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.rsm-cal-detail-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.rsm-cal-detail-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted, #6B7280);
+  padding: 4px;
+}
+
+.rsm-cal-detail-item {
+  padding: 12px;
+  border: 1px solid var(--border-color, #E5E7EB);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.rsm-cal-detail-item-header {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.rsm-cal-detail-item-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary, #111827);
+}
+
+.rsm-cal-detail-item-content {
+  font-size: 0.8rem;
+  color: var(--text-muted, #6B7280);
+  margin-top: 4px;
+}
+
+/* ── Kanban Board ─────────────────────────────────────────── */
+.rsm-kanban {
+  background: var(--bg-primary, #FFFFFF);
+  border: 1px solid var(--border-color, #E5E7EB);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.rsm-kanban-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.rsm-kanban-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.rsm-kanban-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  min-height: 300px;
+}
+
+.rsm-kanban-col {
+  background: var(--bg-secondary, #F9FAFB);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.rsm-kanban-col-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color, #E5E7EB);
+  margin-bottom: 12px;
+}
+
+.rsm-kanban-col-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.rsm-kanban-col-label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-primary, #111827);
+}
+
+.rsm-kanban-col-count {
+  margin-left: auto;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: var(--bg-primary, #FFFFFF);
+  color: var(--text-muted, #6B7280);
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+
+.rsm-kanban-col-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 100px;
+  transition: background 0.15s;
+}
+
+.rsm-kanban-col-body--dragover {
+  background: #EC489910;
+  border-radius: 8px;
+}
+
+.rsm-kanban-card {
+  background: var(--bg-primary, #FFFFFF);
+  border: 1px solid var(--border-color, #E5E7EB);
+  border-radius: 8px;
+  padding: 12px;
+  cursor: grab;
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+
+.rsm-kanban-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.rsm-kanban-card--dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+}
+
+.rsm-kanban-card-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-primary, #111827);
+  margin-bottom: 4px;
+}
+
+.rsm-kanban-card-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted, #6B7280);
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.rsm-kanban-card-footer {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.rsm-kanban-empty {
+  text-align: center;
+  padding: 24px 12px;
+  font-size: 0.8rem;
+  color: var(--text-muted, #9CA3AF);
+}
+
+/* ── Accounts Tab ─────────────────────────────────────────── */
+.rsm-accounts-tab {}
+
+.rsm-accounts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.rsm-accounts-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.rsm-accounts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rsm-account-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: var(--bg-primary, #FFFFFF);
+  border: 1px solid var(--border-color, #E5E7EB);
+  border-radius: 10px;
+  transition: border-color 0.15s;
+  gap: 12px;
+}
+
+.rsm-account-row:hover {
+  border-color: #EC4899;
+}
+
+.rsm-account-row-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.rsm-account-row-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.rsm-account-row-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.rsm-account-row-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rsm-account-row-handle {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary, #111827);
+}
+
+.rsm-account-row-platform {
+  font-size: 0.75rem;
+  color: var(--text-muted, #6B7280);
+}
+
+.rsm-account-row-platform a {
+  color: #EC4899;
+  text-decoration: none;
+}
+
+.rsm-account-row-platform a:hover {
+  text-decoration: underline;
+}
+
+.rsm-account-row-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.rsm-account-row-followers {
+  font-size: 0.8rem;
+  color: var(--text-muted, #6B7280);
+  white-space: nowrap;
+}
+
+/* ── Modal ─────────────────────────────────────────────────── */
+.rsm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+
+.rsm-modal {
+  background: var(--bg-primary, #FFFFFF);
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.rsm-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.rsm-modal-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.rsm-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted, #6B7280);
+  padding: 4px;
+}
+
+.rsm-modal-close:hover {
+  color: var(--text-primary, #111827);
+}
+
+.rsm-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.rsm-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rsm-form-group label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+}
+
+.rsm-form-group input,
+.rsm-form-group select,
+.rsm-form-group textarea {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #E5E7EB);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  background: var(--bg-primary, #FFFFFF);
+  color: var(--text-primary, #111827);
+  transition: border-color 0.15s;
+}
+
+.rsm-form-group input:focus,
+.rsm-form-group select:focus,
+.rsm-form-group textarea:focus {
+  outline: none;
+  border-color: #EC4899;
+  box-shadow: 0 0 0 3px #EC489920;
+}
+
+.rsm-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+/* ── Dark Mode ────────────────────────────────────────────── */
+.dark-mode .rsm-title,
+.dark-mode .rsm-kpi-value,
+.dark-mode .rsm-account-handle,
+.dark-mode .rsm-account-row-handle,
+.dark-mode .rsm-cal-day,
+.dark-mode .rsm-kanban-card-title,
+.dark-mode .rsm-kanban-col-label,
+.dark-mode .rsm-metric-value,
+.dark-mode .rsm-modal-header h3,
+.dark-mode .rsm-accounts-header h3,
+.dark-mode .rsm-kanban-header h3,
+.dark-mode .rsm-cal-title,
+.dark-mode .rsm-cal-detail-item-title,
+.dark-mode .rsm-form-group label {
+  color: #F3F4F6;
+}
+
+.dark-mode .rsm-subtitle,
+.dark-mode .rsm-kpi-label,
+.dark-mode .rsm-metric-label,
+.dark-mode .rsm-account-platform-label,
+.dark-mode .rsm-account-row-platform,
+.dark-mode .rsm-account-row-followers,
+.dark-mode .rsm-kanban-card-desc,
+.dark-mode .rsm-cal-detail-item-content,
+.dark-mode .rsm-cal-weekday,
+.dark-mode .rsm-cal-legend-item {
+  color: #9CA3AF;
+}
+
+.dark-mode .rsm-kpi-card,
+.dark-mode .rsm-account-card,
+.dark-mode .rsm-calendar,
+.dark-mode .rsm-kanban,
+.dark-mode .rsm-account-row,
+.dark-mode .rsm-cal-detail,
+.dark-mode .rsm-kanban-card,
+.dark-mode .rsm-modal,
+.dark-mode .rsm-cal-detail-item {
+  background: var(--bg-primary, #1F2937);
+  border-color: var(--border-color, #374151);
+}
+
+.dark-mode .rsm-kanban-col {
+  background: var(--bg-secondary, #111827);
+}
+
+.dark-mode .rsm-metric {
+  background: var(--bg-secondary, #111827);
+}
+
+.dark-mode .rsm-client-filter,
+.dark-mode .rsm-form-group input,
+.dark-mode .rsm-form-group select,
+.dark-mode .rsm-form-group textarea {
+  background: var(--bg-secondary, #111827);
+  border-color: var(--border-color, #374151);
+  color: #F3F4F6;
+}
+
+.dark-mode .rsm-tabs {
+  border-bottom-color: var(--border-color, #374151);
+}
+
+.dark-mode .rsm-tab:hover {
+  background: var(--bg-secondary, #111827);
+}
+
+.dark-mode .rsm-cal-cell {
+  border-color: var(--border-color, #374151);
+}
+
+.dark-mode .rsm-cal-cell:hover {
+  background: var(--bg-secondary, #111827);
+}
+
+.dark-mode .rsm-cal-cell--today {
+  background: #EC489910;
+}
+
+.dark-mode .rsm-cal-cell--has-posts {
+  background: var(--bg-secondary, #111827);
+}
+
+.dark-mode .rsm-cal-nav {
+  border-color: var(--border-color, #374151);
+  color: #F3F4F6;
+}
+
+.dark-mode .rsm-cal-nav:hover {
+  background: var(--bg-secondary, #111827);
+}
+
+.dark-mode .rsm-kanban-col-header {
+  border-bottom-color: var(--border-color, #374151);
+}
+
+.dark-mode .rsm-kanban-col-count {
+  background: var(--bg-primary, #1F2937);
+  color: #9CA3AF;
+}
+
+.dark-mode .rsm-modal-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .rsm-kanban-board {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .rsm-module {
+    padding: 16px;
+  }
+
+  .rsm-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .rsm-header-actions {
+    width: 100%;
+  }
+
+  .rsm-client-filter {
+    flex: 1;
+  }
+
+  .rsm-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .rsm-accounts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rsm-kanban-board {
+    grid-template-columns: 1fr;
+  }
+
+  .rsm-cal-grid {
+    gap: 1px;
+  }
+
+  .rsm-cal-cell {
+    min-height: 60px;
+    padding: 4px;
+  }
+
+  .rsm-account-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .rsm-account-row-right {
+    width: 100%;
+    justify-content: flex-end;
+    margin-top: 8px;
+  }
+
+  .rsm-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

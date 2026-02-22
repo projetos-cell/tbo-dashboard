@@ -63,6 +63,12 @@ const TBO_WS_SETTINGS = (() => {
   // ── Resolver role do usuário ────────────────────────────────────────────
 
   async function _resolveUserRole(spaceId) {
+    // Super admins SEMPRE são owners (acesso total irrestrito)
+    if (typeof TBO_PERMISSIONS !== 'undefined' && typeof TBO_AUTH !== 'undefined') {
+      const user = TBO_AUTH.getCurrentUser();
+      if (user && TBO_PERMISSIONS.isSuperAdmin(user.email)) return 'owner';
+    }
+
     if (typeof TBO_SIDEBAR_SERVICE !== 'undefined') {
       const tenantRole = TBO_SIDEBAR_SERVICE.userRole;
       if (tenantRole === 'owner' || tenantRole === 'admin') return 'owner';
@@ -242,10 +248,11 @@ const TBO_WS_SETTINGS = (() => {
     const canEdit = _isAdmin();
     const currentUid = _uid();
 
-    // Filtrar membros pela busca
-    const filtered = _searchFilter
+    // Filtrar membros pela busca (só filtra se não estiver adicionando)
+    const filterQuery = _showAddMember ? '' : _searchFilter;
+    const filtered = filterQuery
       ? _members.filter(m => {
-        const q = _searchFilter.toLowerCase();
+        const q = filterQuery.toLowerCase();
         return (m.full_name || '').toLowerCase().includes(q) ||
                (m.email || '').toLowerCase().includes(q);
       })
@@ -253,27 +260,34 @@ const TBO_WS_SETTINGS = (() => {
 
     let html = '';
 
-    // Toolbar
-    html += `<div class="wss-members-toolbar">
-      <input type="text" class="wss-members-search" placeholder="Filtrar membros..." data-wss-member-search value="${_esc(_searchFilter)}" />
-      ${canEdit ? `<button class="wss-btn wss-btn--primary" data-wss-action="toggle-add-member">
-        <i data-lucide="user-plus"></i>
-        Adicionar
-      </button>` : ''}
-    </div>`;
-
-    // Formulário de adicionar membro
-    if (_showAddMember && canEdit) {
+    // ── Seção de adicionar membro (sempre visível para admins, como Notion) ──
+    if (canEdit) {
       html += _renderAddMemberForm();
     }
 
-    // Lista de membros
-    if (filtered.length === 0) {
+    // ── Toolbar de filtro (aparece quando há membros) ──
+    if (_members.length > 0) {
+      html += `<div class="wss-members-toolbar">
+        <div class="wss-members-section-title">
+          <span>Membros</span>
+          <span class="wss-members-count">${_members.length}</span>
+        </div>
+        ${_members.length > 3 ? `<input type="text" class="wss-members-search" placeholder="Filtrar por nome ou email..." data-wss-member-search value="${_esc(filterQuery)}" />` : ''}
+      </div>`;
+    }
+
+    // ── Lista de membros ──
+    if (_members.length === 0 && !canEdit) {
       html += `<div class="wss-empty">
         <i data-lucide="users"></i>
-        <div class="wss-empty-text">${_searchFilter ? 'Nenhum membro encontrado' : 'Nenhum membro neste espaço'}</div>
+        <div class="wss-empty-text">Nenhum membro neste espaço</div>
       </div>`;
-    } else {
+    } else if (filtered.length === 0 && filterQuery) {
+      html += `<div class="wss-empty">
+        <i data-lucide="search"></i>
+        <div class="wss-empty-text">Nenhum membro encontrado para "${_esc(filterQuery)}"</div>
+      </div>`;
+    } else if (filtered.length > 0) {
       html += '<div class="wss-member-list">';
       filtered.forEach(member => {
         const isMe = member.user_id === currentUid;
@@ -316,7 +330,7 @@ const TBO_WS_SETTINGS = (() => {
       html += '</div>';
     }
 
-    // Convites pendentes
+    // ── Convites pendentes ──
     if (_invitations.length > 0 && canEdit) {
       html += `<div class="wss-invitations-section">
         <div class="wss-invitations-title">Convites pendentes (${_invitations.length})</div>`;
@@ -343,44 +357,71 @@ const TBO_WS_SETTINGS = (() => {
 
   function _renderAddMemberForm() {
     const selectedName = _selectedUser ? _esc(_selectedUser.full_name || _selectedUser.email) : '';
+    const inputValue = _showAddMember ? selectedName : '';
 
     let html = `<div class="wss-add-member">
-      <div class="wss-add-member-title">Adicionar membro</div>
       <div class="wss-add-member-form">
         <div class="wss-add-member-input-wrap">
+          <i data-lucide="user-plus" class="wss-add-member-icon"></i>
           <input type="text"
             class="wss-add-member-input"
-            placeholder="Buscar por nome ou email..."
+            placeholder="Adicionar membros por nome ou email..."
             data-wss-add-input
-            value="${selectedName}"
+            value="${inputValue}"
             autocomplete="off"
             spellcheck="false" />`;
 
     // Autocomplete dropdown
-    if (_autocompleteResults.length > 0) {
-      html += '<div class="wss-autocomplete">';
-      _autocompleteResults.forEach(user => {
-        const avatarContent = user.avatar_url
-          ? `<img src="${_esc(user.avatar_url)}" alt="${_esc(user.full_name)}" />`
-          : _initials(user.full_name);
-        html += `<button class="wss-autocomplete-item" data-wss-select-user="${_esc(user.id)}">
-          <div class="wss-autocomplete-avatar">${avatarContent}</div>
-          <span class="wss-autocomplete-name">${_esc(user.full_name || 'Sem nome')}</span>
-          <span class="wss-autocomplete-email">${_esc(user.email)}</span>
-        </button>`;
-      });
+    if (_autocompleteResults.length > 0 || _showAddMember) {
+      const hasResults = _autocompleteResults.length > 0;
+
+      if (hasResults) {
+        html += '<div class="wss-autocomplete">';
+        _autocompleteResults.forEach(user => {
+          const avatarContent = user.avatar_url
+            ? `<img src="${_esc(user.avatar_url)}" alt="${_esc(user.full_name)}" />`
+            : _initials(user.full_name);
+          html += `<button class="wss-autocomplete-item" data-wss-select-user="${_esc(user.id)}">
+            <div class="wss-autocomplete-avatar">${avatarContent}</div>
+            <div class="wss-autocomplete-info">
+              <span class="wss-autocomplete-name">${_esc(user.full_name || 'Sem nome')}</span>
+              <span class="wss-autocomplete-email">${_esc(user.email)}</span>
+            </div>
+            <span class="wss-autocomplete-action">Adicionar</span>
+          </button>`;
+        });
+        html += '</div>';
+      }
+    }
+
+    // Mostrar controles de role + submit quando um usuário foi selecionado
+    if (_selectedUser) {
+      const avatarContent = _selectedUser.avatar_url
+        ? `<img src="${_esc(_selectedUser.avatar_url)}" alt="${_esc(_selectedUser.full_name)}" />`
+        : _initials(_selectedUser.full_name);
+
+      html += `</div>
+        <div class="wss-add-member-selected">
+          <div class="wss-add-member-selected-user">
+            <div class="wss-autocomplete-avatar">${avatarContent}</div>
+            <span>${_esc(_selectedUser.full_name || _selectedUser.email)}</span>
+            <button class="wss-add-member-clear" data-wss-clear-selection title="Limpar">
+              <i data-lucide="x"></i>
+            </button>
+          </div>
+          <select class="wss-add-member-role-select" data-wss-add-role>
+            <option value="member">Membro</option>
+            <option value="admin">Administrador</option>
+          </select>
+          <button class="wss-add-member-submit" data-wss-add-submit>
+            Adicionar
+          </button>
+        </div>`;
+    } else {
       html += '</div>';
     }
 
     html += `</div>
-        <select class="wss-add-member-role-select" data-wss-add-role>
-          <option value="member">Membro</option>
-          <option value="admin">Administrador</option>
-        </select>
-        <button class="wss-add-member-submit" data-wss-add-submit ${!_selectedUser ? 'disabled' : ''}>
-          Adicionar
-        </button>
-      </div>
     </div>`;
 
     return html;
@@ -700,30 +741,32 @@ const TBO_WS_SETTINGS = (() => {
       });
     }
 
-    // ── Tab Membros: toggle add member ──
-    const toggleAdd = body.querySelector('[data-wss-action="toggle-add-member"]');
-    if (toggleAdd) {
-      toggleAdd.addEventListener('click', () => {
-        _showAddMember = !_showAddMember;
+    // ── Tab Membros: clear selection ──
+    const clearBtn = body.querySelector('[data-wss-clear-selection]');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
         _selectedUser = null;
         _autocompleteResults = [];
+        _showAddMember = false;
         _refreshBody();
-        // Focar no input de adicionar
-        if (_showAddMember) {
-          setTimeout(() => {
-            const addInput = _overlay?.querySelector('[data-wss-add-input]');
-            if (addInput) addInput.focus();
-          }, 50);
-        }
+        setTimeout(() => {
+          const addInput = _overlay?.querySelector('[data-wss-add-input]');
+          if (addInput) addInput.focus();
+        }, 50);
       });
     }
 
     // ── Tab Membros: adicionar membro input (autocomplete) ──
     const addInput = body.querySelector('[data-wss-add-input]');
     if (addInput) {
+      addInput.addEventListener('focus', () => {
+        _showAddMember = true;
+      });
+
       addInput.addEventListener('input', (e) => {
         const query = e.target.value.trim();
         _selectedUser = null;
+        _showAddMember = true;
         if (_autocompleteTimer) clearTimeout(_autocompleteTimer);
 
         if (query.length < 2) {
@@ -923,10 +966,14 @@ const TBO_WS_SETTINGS = (() => {
       _handleDeleteFromSettings();
       break;
     case 'toggle-add-member':
-      _showAddMember = !_showAddMember;
+      _showAddMember = true;
       _selectedUser = null;
       _autocompleteResults = [];
       _refreshBody();
+      setTimeout(() => {
+        const addInput = _overlay?.querySelector('[data-wss-add-input]');
+        if (addInput) addInput.focus();
+      }, 50);
       break;
     }
   }
@@ -1351,10 +1398,7 @@ const TBO_WS_SETTINGS = (() => {
     _members = members;
     _invitations = invitations;
 
-    // Se abriu com initialTab='membros' e é admin, mostrar add-member aberto
-    if (initialTab === 'membros' && _isAdmin()) {
-      _showAddMember = true;
-    }
+    // Se abriu com initialTab='membros', o form de add já é visível por padrão
 
     // Criar DOM
     const wrapper = document.createElement('div');

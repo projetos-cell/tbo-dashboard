@@ -49,6 +49,18 @@ const SpaceRepo = (() => {
     return null;
   }
 
+  /**
+   * Verifica se o usuário atual é super admin (acesso total irrestrito)
+   * @private
+   */
+  function _isSuperAdmin() {
+    if (typeof TBO_PERMISSIONS !== 'undefined') {
+      const user = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.getCurrentUser() : null;
+      return user && TBO_PERMISSIONS.isSuperAdmin(user.email);
+    }
+    return false;
+  }
+
   // ── Workspace CRUD ──────────────────────────────────────────────────────
 
   /**
@@ -222,21 +234,9 @@ const SpaceRepo = (() => {
    * @returns {Array}
    */
   async function listMembers(spaceId) {
-    const { data, error } = await _db().from('space_members')
-      .select(`
-        id,
-        space_id,
-        user_id,
-        role,
-        joined_at,
-        created_at,
-        profiles:user_id (
-          id,
-          full_name,
-          email,
-          avatar_url
-        )
-      `)
+    // 1) Buscar membros do espaço
+    const { data: members, error } = await _db().from('space_members')
+      .select('id, space_id, user_id, role, joined_at, created_at')
       .eq('space_id', spaceId)
       .eq('tenant_id', _tid())
       .order('role', { ascending: true })
@@ -247,17 +247,36 @@ const SpaceRepo = (() => {
       return [];
     }
 
-    // Achatar dados do perfil
-    return (data || []).map(m => ({
-      id: m.id,
-      space_id: m.space_id,
-      user_id: m.user_id,
-      role: m.role,
-      joined_at: m.joined_at,
-      full_name: m.profiles?.full_name || 'Sem nome',
-      email: m.profiles?.email || '',
-      avatar_url: m.profiles?.avatar_url || null
-    }));
+    if (!members || members.length === 0) return [];
+
+    // 2) Buscar perfis dos membros separadamente (sem FK join)
+    const userIds = members.map(m => m.user_id).filter(Boolean);
+    let profilesMap = {};
+
+    if (userIds.length > 0) {
+      const { data: profiles, error: profError } = await _db().from('profiles')
+        .select('id, full_name, email, avatar_url')
+        .in('id', userIds);
+
+      if (!profError && profiles) {
+        profiles.forEach(p => { profilesMap[p.id] = p; });
+      }
+    }
+
+    // 3) Combinar dados
+    return members.map(m => {
+      const profile = profilesMap[m.user_id];
+      return {
+        id: m.id,
+        space_id: m.space_id,
+        user_id: m.user_id,
+        role: m.role,
+        joined_at: m.joined_at,
+        full_name: profile?.full_name || 'Sem nome',
+        email: profile?.email || '',
+        avatar_url: profile?.avatar_url || null
+      };
+    });
   }
 
   /**
@@ -350,6 +369,9 @@ const SpaceRepo = (() => {
     const uid = _uid();
     if (!uid) return null;
 
+    // Super admins SEMPRE são owners em qualquer workspace
+    if (_isSuperAdmin()) return 'owner';
+
     // Verificar se é owner/admin do tenant (bypass)
     const userRole = _getTenantRole();
     if (userRole === 'owner' || userRole === 'admin') {
@@ -404,6 +426,8 @@ const SpaceRepo = (() => {
     if (typeof TBO_AUTH !== 'undefined') {
       const user = TBO_AUTH.getCurrentUser();
       if (user) {
+        // Super admins sempre retornam 'owner'
+        if (_isSuperAdmin()) return 'owner';
         const roleMap = { 'socio': 'owner', 'founder': 'owner' };
         const role = user.role || user.role_slug || 'viewer';
         return roleMap[role] || role;

@@ -1,10 +1,8 @@
-// TBO OS — Permissions & RBAC Definitions (v2.5 — RBAC Completo)
+// TBO OS — Permissions & RBAC Definitions (v3.0 — Founder Only)
 // Central authority for roles, module access, sidebar sections, and user-role mapping.
 // Loaded BEFORE auth.js — no dependencies on other TBO modules.
 //
-// v2.5: Suporte a permissoes granulares (module.action) via Supabase.
-//       canDo() para checks granulares, canDoInProject() para overrides por projeto.
-//       Backwards compatible: canAccess() e getModulesForUser() continuam funcionando.
+// v3.0: Simplificado para role unico: founder com acesso total a tudo.
 
 const TBO_PERMISSIONS = {
 
@@ -16,81 +14,41 @@ const TBO_PERMISSIONS = {
   },
 
   // ── v2.5: RBAC Granular — dados carregados do Supabase ─────────────────
-  _permissionsMatrix: {},   // { 'module.action': true } — flat map para o usuario logado
-  _dbRoles: [],             // roles[] completos do Supabase (substituem _roles para UI)
-  _dbPermissions: [],       // permissions[] catalogo do Supabase
-  _projectOverrides: {},    // { projectId: { 'module.action': true } }
+  _permissionsMatrix: {},
+  _dbRoles: [],
+  _dbPermissions: [],
+  _projectOverrides: {},
   _matrixLoaded: false,
 
   // ── Role Definitions ──────────────────────────────────────────────────────
 
-  // Modules visible to ALL roles (operational basics)
-  // v2.2.1: Removidos modulos admin que estavam acessiveis a todos os roles
-  // integracoes, templates, workspace, pessoas-avancado → movidos para _adminModules
-  _sharedModules: [
-    'entregas','tarefas','revisoes',
-    'decisoes','biblioteca',
-    'trilha-aprendizagem',
-    'changelog','chat','carga-trabalho',
-    'notion-embed'
-  ],
+  // v3.0: Todos os modulos disponiveis — founder acessa tudo
+  _sharedModules: [],
+  _financeModules: [],
+  _adminModules: [],
 
-  // Finance-restricted modules (founders + finance only)
-  _financeModules: [
-    'pagar','receber','margens','conciliacao','conciliacao-bancaria'
-  ],
-
-  // Admin modules (founders + project_owners com coordenacao)
-  // v3: admin-portal, configuracoes, inteligencia-imobiliaria adicionados
-  _adminModules: [
-    'permissoes-config','integracoes','templates','workspace','pessoas-avancado',
-    'admin-portal','configuracoes','inteligencia-imobiliaria','system-health'
-  ],
-
+  // v3.0: Unico role ativo — founder com acesso total
   _roles: {
     founder: {
       label: 'Fundador',
       color: '#E85102',
-      modules: ['dashboard','alerts','inteligencia','pipeline','comercial','clientes','portal-cliente','contratos','conteudo','projetos','projetos-notion','mercado','reunioes','financeiro','rh','cultura','configuracoes','admin-onboarding','database-notion','project-system','relatorios','rsm','system-health'],
+      modules: [
+        'dashboard','alerts','inteligencia','pipeline','comercial','clientes',
+        'portal-cliente','contratos','conteudo','projetos','projetos-notion',
+        'mercado','reunioes','financeiro','rh','cultura','configuracoes',
+        'admin-onboarding','database-notion','project-system','relatorios','rsm',
+        'system-health','entregas','tarefas','revisoes','decisoes','biblioteca',
+        'trilha-aprendizagem','changelog','chat','carga-trabalho','notion-embed',
+        'pagar','receber','margens','conciliacao','conciliacao-bancaria',
+        'permissoes-config','integracoes','templates','workspace','pessoas-avancado',
+        'admin-portal','configuracoes','inteligencia-imobiliaria','agenda','inbox'
+      ],
       dashboardVariant: 'full',
-      defaultModule: 'dashboard'
-    },
-    project_owner: {
-      label: 'Project Owner',
-      color: '#8b5cf6',
-      // v2.2.1: removido 'comercial' (CRM/pipeline com dados financeiros sigilosos)
-      // v2.2.2: removidos clientes/contratos (dados de receita) — PO foca em projetos/entregas
-      // portal-cliente movido para secao PROJETOS (visivel a POs para acompanhar cliente)
-      modules: ['dashboard','alerts','portal-cliente','conteudo','projetos','projetos-notion','mercado','reunioes','rh','cultura','configuracoes','admin-onboarding','database-notion','project-system'],
-      dashboardVariant: 'projects',
-      defaultModule: 'dashboard'
-    },
-    artist: {
-      label: 'Artista',
-      color: '#3a7bd5',
-      modules: ['dashboard','alerts','projetos','projetos-notion','mercado','reunioes','cultura','configuracoes','database-notion','project-system'],
-      dashboardVariant: 'tasks',
-      defaultModule: 'dashboard'
-    },
-    comercial: {
-      label: 'Comercial',
-      color: '#f59e0b',
-      modules: ['dashboard','alerts','pipeline','comercial','clientes','portal-cliente','contratos','projetos','mercado','reunioes','cultura','configuracoes','database-notion','rsm'],
-      dashboardVariant: 'full',
-      defaultModule: 'dashboard'
-    },
-    finance: {
-      label: 'Financeiro',
-      color: '#2ecc71',
-      modules: ['dashboard','alerts','inteligencia','pipeline','financeiro','comercial','clientes','portal-cliente','contratos','mercado','reunioes','cultura','configuracoes','database-notion','relatorios'],
-      dashboardVariant: 'financial',
       defaultModule: 'dashboard'
     }
   },
 
   // ── User → Role Mapping ──────────────────────────────────────────────────
-  // v2.1: fonte de verdade e Supabase (profiles + tenant_members + roles)
-  // Fallback hardcoded mantido apenas para bootstrap inicial / offline
   _userRoles: {},
   _userRolesLoaded: false,
 
@@ -104,7 +62,6 @@ const TBO_PERMISSIONS = {
       const tenantId = TBO_SUPABASE.getCurrentTenantId();
       if (!tenantId) return;
 
-      // Buscar profiles com role do tenant_members
       const { data: members, error } = await client
         .from('tenant_members')
         .select('user_id, role_id, roles(name), profiles(username, bu, is_coordinator)')
@@ -119,8 +76,9 @@ const TBO_PERMISSIONS = {
       members.forEach(m => {
         const username = m.profiles?.username;
         if (!username) return;
+        // v3.0: todos os usuarios sao tratados como founder
         newRoles[username] = {
-          role: m.roles?.name || 'artist',
+          role: 'founder',
           bu: m.profiles?.bu || null,
           isCoordinator: m.profiles?.is_coordinator || false
         };
@@ -136,88 +94,78 @@ const TBO_PERMISSIONS = {
     }
   },
 
-  // Fallback hardcoded — usado apenas se Supabase nao estiver disponivel
-  // v2.2.2: removidos usuarios inativos (Erick, Dann, Mari, FinancaAzul) — deletados do Supabase
+  // v3.0: Fallback — todos os usuarios conhecidos sao founder
   _defaultUserRoles: {
-    marco:    { role: 'founder',       bu: null,           isCoordinator: false },
-    ruy:      { role: 'founder',       bu: null,           isCoordinator: false },
-    carol:    { role: 'project_owner', bu: null,           isCoordinator: true  },
-    nelson:   { role: 'project_owner', bu: 'Branding',     isCoordinator: false },
-    nath:     { role: 'project_owner', bu: 'Digital 3D',   isCoordinator: true  },
-    rafa:     { role: 'project_owner', bu: 'Marketing',    isCoordinator: false },
-    gustavo:  { role: 'comercial',     bu: 'Vendas',       isCoordinator: false },
-    celso:    { role: 'artist',        bu: 'Branding',     isCoordinator: false },
-    duda:     { role: 'artist',        bu: 'Digital 3D',   isCoordinator: false },
-    tiago:    { role: 'artist',        bu: 'Digital 3D',   isCoordinator: false },
-    lucca:    { role: 'artist',        bu: 'Marketing',    isCoordinator: false },
-    lucas:    { role: 'artist',        bu: null,           isCoordinator: false }
+    marco:    { role: 'founder', bu: null, isCoordinator: false },
+    ruy:      { role: 'founder', bu: null, isCoordinator: false },
+    carol:    { role: 'founder', bu: null, isCoordinator: false },
+    nelson:   { role: 'founder', bu: null, isCoordinator: false },
+    nath:     { role: 'founder', bu: null, isCoordinator: false },
+    rafa:     { role: 'founder', bu: null, isCoordinator: false },
+    gustavo:  { role: 'founder', bu: null, isCoordinator: false },
+    celso:    { role: 'founder', bu: null, isCoordinator: false },
+    duda:     { role: 'founder', bu: null, isCoordinator: false },
+    tiago:    { role: 'founder', bu: null, isCoordinator: false },
+    lucca:    { role: 'founder', bu: null, isCoordinator: false },
+    lucas:    { role: 'founder', bu: null, isCoordinator: false }
   },
 
-  // ── Sidebar Section Definitions (v3.1 — reorganizado por area operacional + RBAC) ──
-  // Ordem: Inicio > Execucao > Producao > Pessoas > Financeiro > Fornecedores > Comercial > Admin
-  // _roles: [] = visivel para todos | ['role1','role2'] = restrito a essas roles
-  // Roles validas: founder, project_owner, artist, comercial, finance
-  // Obs: founder/admin/owner SEMPRE veem tudo (bypass em getSectionsForUser)
+  // ── Sidebar Section Definitions (v3.0 — todas as secoes visiveis para founder) ──
   _sections: [
     {
       id: 'inicio',
       label: 'INÍCIO',
       icon: 'home',
-      _roles: [],  // visivel para todos
+      _roles: [],
       modules: ['dashboard', 'inbox', 'alerts', 'chat']
     },
     {
       id: 'execucao',
       label: 'EXECUÇÃO',
       icon: 'clipboard-list',
-      _roles: [],  // visivel para todos
+      _roles: [],
       modules: ['projetos', 'projetos-notion', 'project-system', 'tarefas', 'reunioes', 'biblioteca', 'database-notion']
     },
     {
       id: 'producao',
       label: 'PRODUÇÃO',
       icon: 'cog',
-      _roles: [],  // visivel para todos
+      _roles: [],
       modules: ['entregas', 'revisoes', 'portal-cliente']
     },
     {
       id: 'pessoas',
       label: 'PESSOAS',
       icon: 'users',
-      _roles: [],  // visivel para todos (pessoas-avancado e decisoes restritos abaixo)
-      modules: ['rh', 'admin-onboarding', 'trilha-aprendizagem', 'cultura'],
-      // pessoas-avancado e decisoes: somente founder, admin, owner, coordinator
-      _restrictedModules: {
-        'pessoas-avancado': ['founder', 'project_owner'],
-        'decisoes': ['founder', 'project_owner']
-      }
+      _roles: [],
+      modules: ['rh', 'admin-onboarding', 'trilha-aprendizagem', 'cultura', 'pessoas-avancado', 'decisoes']
     },
     {
       id: 'financeiro-section',
       label: 'FINANCEIRO',
       icon: 'coins',
-      _roles: ['founder', 'finance'],  // somente founder, admin, owner, finance
+      _roles: [],
       modules: ['financeiro', 'pagar', 'receber', 'margens', 'conciliacao', 'conciliacao-bancaria']
     },
     {
       id: 'fornecedores',
       label: 'FORNECEDORES',
       icon: 'truck',
-      _roles: [],  // visivel para todos
+      _roles: [],
       modules: ['contratos']
     },
     {
       id: 'comercial',
       label: 'COMERCIAL',
       icon: 'trending-up',
-      _roles: ['founder', 'project_owner', 'comercial'],  // founder, admin, owner, coordinator, comercial
+      _roles: [],
       modules: ['pipeline', 'comercial', 'clientes', 'inteligencia', 'inteligencia-imobiliaria', 'mercado', 'rsm']
     },
     {
       id: 'admin',
       label: 'ADMINISTRAÇÃO',
       icon: 'shield',
-      _roles: ['founder'],  // somente founder, admin, owner
+      _roles: [],
       modules: ['admin-portal', 'permissoes-config', 'integracoes', 'configuracoes', 'changelog', 'relatorios']
     }
   ],

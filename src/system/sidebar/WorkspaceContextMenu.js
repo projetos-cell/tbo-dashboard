@@ -55,6 +55,14 @@ const TBO_WS_CONTEXT_MENU = (() => {
   // ── Determinar role do usuário no workspace ─────────────────────────────
 
   async function _resolveUserRole(spaceId) {
+    // 0. Super admins SEMPRE são owners (acesso total irrestrito)
+    if (typeof TBO_PERMISSIONS !== 'undefined' && typeof TBO_AUTH !== 'undefined') {
+      const user = TBO_AUTH.getCurrentUser();
+      if (user && TBO_PERMISSIONS.isSuperAdmin(user.email)) {
+        return 'owner';
+      }
+    }
+
     // 1. Tenant-level: owner/admin do tenant = owner do espaço
     if (typeof TBO_SIDEBAR_SERVICE !== 'undefined') {
       const tenantRole = TBO_SIDEBAR_SERVICE.userRole;

@@ -26,6 +26,84 @@ const TBO_BLOCK_EDITOR = (() => {
   let _statusInterval = null;
   let _focusedBlockId = null;
 
+  // ── Undo / Redo ────────────────────────────────────────────────────────
+  const MAX_HISTORY = 50;
+  let _undoStack = [];   // array of snapshots
+  let _redoStack = [];
+  let _undoTimer = null; // debounce para agrupar edições rápidas
+
+  function _snapshotBlocks() {
+    return _blocks.map(b => ({
+      id: b.id,
+      type: b.type,
+      content: JSON.parse(JSON.stringify(b.content)),
+      props: JSON.parse(JSON.stringify(b.props)),
+      position: b.position
+    }));
+  }
+
+  function _pushUndo() {
+    _undoStack.push(_snapshotBlocks());
+    if (_undoStack.length > MAX_HISTORY) _undoStack.shift();
+    _redoStack = []; // limpar redo ao fazer nova ação
+  }
+
+  function _pushUndoDebounced() {
+    if (_undoTimer) clearTimeout(_undoTimer);
+    _undoTimer = setTimeout(() => {
+      _pushUndo();
+    }, 800);
+  }
+
+  function _undo() {
+    if (_undoStack.length === 0) return;
+    // Salvar estado atual no redo
+    _redoStack.push(_snapshotBlocks());
+    // Restaurar último snapshot
+    const snapshot = _undoStack.pop();
+    _applySnapshot(snapshot);
+  }
+
+  function _redo() {
+    if (_redoStack.length === 0) return;
+    _undoStack.push(_snapshotBlocks());
+    const snapshot = _redoStack.pop();
+    _applySnapshot(snapshot);
+  }
+
+  function _applySnapshot(snapshot) {
+    // Restaurar dados em memória
+    snapshot.forEach(snap => {
+      const block = _blocks.find(b => b.id === snap.id);
+      if (block) {
+        block.type = snap.type;
+        block.content = snap.content;
+        block.props = snap.props;
+        block.position = snap.position;
+      }
+    });
+
+    // Blocos que existiam no snapshot mas não em _blocks (foram deletados) — restaurar
+    snapshot.forEach(snap => {
+      if (!_blocks.find(b => b.id === snap.id)) {
+        _blocks.push({ ...snap, tenant_id: _blocks[0]?.tenant_id, page_id: _pageId });
+      }
+    });
+
+    // Blocos que existem em _blocks mas não no snapshot (foram criados) — remover
+    const snapIds = new Set(snapshot.map(s => s.id));
+    _blocks = _blocks.filter(b => snapIds.has(b.id));
+
+    // Reordenar por position
+    _blocks.sort((a, b) => a.position - b.position);
+
+    // Re-render completo
+    _render();
+
+    // Salvar todos os blocos alterados
+    _blocks.forEach(b => _scheduleSave(b.id));
+  }
+
   // ── Helpers ─────────────────────────────────────────────────────────────
 
   function _esc(str) {
@@ -122,6 +200,11 @@ const TBO_BLOCK_EDITOR = (() => {
         console.error('[BlockEditor] Erro ao criar bloco inicial:', err);
       }
     }
+
+    // Snapshot inicial para undo
+    _undoStack = [];
+    _redoStack = [];
+    _pushUndo();
 
     // Render
     _render();
@@ -246,6 +329,7 @@ const TBO_BLOCK_EDITOR = (() => {
   // ── Block operations ─────────────────────────────────────────────────────
 
   async function _insertBlockAfter(afterBlockId, type, initialText) {
+    _pushUndo();
     const afterIndex = _getBlockIndex(afterBlockId);
     const afterBlock = _blocks[afterIndex];
     const newPosition = afterBlock ? afterBlock.position + 0.5 : _blocks.length + 1;
@@ -289,6 +373,7 @@ const TBO_BLOCK_EDITOR = (() => {
   }
 
   async function _deleteBlock(blockId) {
+    _pushUndo();
     const index = _getBlockIndex(blockId);
     if (index === -1) return;
 
@@ -318,6 +403,7 @@ const TBO_BLOCK_EDITOR = (() => {
   }
 
   async function _duplicateBlock(blockId) {
+    _pushUndo();
     try {
       const duplicated = await PageBlocksRepo.duplicate(blockId);
       const index = _getBlockIndex(blockId);
@@ -340,6 +426,7 @@ const TBO_BLOCK_EDITOR = (() => {
   }
 
   function _transformBlock(blockId, newType) {
+    _pushUndo();
     const block = _blocks.find(b => b.id === blockId);
     if (!block) return;
 
@@ -461,7 +548,7 @@ const TBO_BLOCK_EDITOR = (() => {
     _containerEl.addEventListener('input', _onInput);
     _containerEl.addEventListener('keydown', _onKeydown);
     _containerEl.addEventListener('click', _onClick);
-    _containerEl.addEventListener('contextmenu', _onContextMenu);
+    _containerEl.addEventListener('contextmenu', _onContextMenu, true);
     _containerEl.addEventListener('focusin', _onFocusIn);
 
     // Checkbox changes
@@ -479,7 +566,7 @@ const TBO_BLOCK_EDITOR = (() => {
       _containerEl.removeEventListener('input', _onInput);
       _containerEl.removeEventListener('keydown', _onKeydown);
       _containerEl.removeEventListener('click', _onClick);
-      _containerEl.removeEventListener('contextmenu', _onContextMenu);
+      _containerEl.removeEventListener('contextmenu', _onContextMenu, true);
       _containerEl.removeEventListener('focusin', _onFocusIn);
       _containerEl.removeEventListener('change', _onChange);
       _containerEl.removeEventListener('paste', _onPaste);
@@ -528,6 +615,7 @@ const TBO_BLOCK_EDITOR = (() => {
       }
     }
 
+    _pushUndoDebounced();
     _scheduleSave(blockId);
   }
 
@@ -647,6 +735,20 @@ const TBO_BLOCK_EDITOR = (() => {
   function _onGlobalKeydown(e) {
     if (!_mounted) return;
 
+    // Ctrl/Cmd + Z → Undo
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      e.preventDefault();
+      _undo();
+      return;
+    }
+
+    // Ctrl/Cmd + Shift+Z or Ctrl+Y → Redo
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+      e.preventDefault();
+      _redo();
+      return;
+    }
+
     // Ctrl/Cmd + D → duplicar bloco focado
     if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
       if (_focusedBlockId) {
@@ -702,11 +804,15 @@ const TBO_BLOCK_EDITOR = (() => {
   }
 
   function _onContextMenu(e) {
-    const contentEl = e.target.closest('.be-block-content');
-    if (!contentEl) return;
+    // Aceitar clique direito em qualquer parte do bloco (content, gutter, etc)
+    const blockEl = e.target.closest('[data-block-id]');
+    if (!blockEl) return;
 
     e.preventDefault();
-    const blockId = _getBlockIdFromEl(contentEl);
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+
+    const blockId = blockEl.dataset.blockId;
     if (blockId && typeof BlockContextMenu !== 'undefined') {
       BlockContextMenu.open({
         x: e.clientX,

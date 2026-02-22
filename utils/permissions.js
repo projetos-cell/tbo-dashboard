@@ -51,7 +51,7 @@ const TBO_PERMISSIONS = {
     founder: {
       label: 'Fundador',
       color: '#E85102',
-      modules: ['dashboard','alerts','inteligencia','pipeline','comercial','clientes','portal-cliente','contratos','conteudo','projetos','projetos-notion','mercado','reunioes','financeiro','rh','cultura','configuracoes','admin-onboarding','database-notion','project-system','relatorios','rsm'],
+      modules: ['dashboard','alerts','inteligencia','pipeline','comercial','clientes','portal-cliente','contratos','conteudo','projetos','projetos-notion','mercado','reunioes','financeiro','rh','cultura','configuracoes','admin-onboarding','database-notion','project-system','relatorios','rsm','system-health'],
       dashboardVariant: 'full',
       defaultModule: 'dashboard'
     },

@@ -54,6 +54,9 @@
   <!-- Page Editor (Notion-style) CSS -->
   <link rel="stylesheet" href="modules/page-editor.css">
 
+  <!-- Block Editor CSS -->
+  <link rel="stylesheet" href="modules/block-editor/block-editor.css">
+
   <!-- Financeiro Module CSS -->
   <link rel="stylesheet" href="modules/financeiro.css">
 
@@ -412,6 +415,8 @@
   <script defer src="src/infra/supabase/queries/crm.js"></script>
   <script defer src="src/infra/supabase/queries/audit.js"></script>
   <script defer src="src/infra/supabase/queries/pages.js"></script>
+  <script defer src="src/infra/supabase/queries/page-blocks.js"></script>
+  <script defer src="src/infra/supabase/queries/block-links.js"></script>
   <script defer src="src/infra/supabase/queries/spaces.js"></script>
   <script defer src="src/infra/supabase/queries/meetings.js"></script>
   <script defer src="src/infra/supabase/queries/files.js"></script>
@@ -578,6 +583,19 @@
   <script defer src="modules/trilha-aprendizagem.js"></script>
   <script defer src="modules/pessoas-avancado.js"></script>
   <script defer src="modules/portal-cliente.js"></script>
+  <!-- Page Service (must load before block-editor modules) -->
+  <script defer src="src/services/page-service.js"></script>
+
+  <!-- Block Editor modules (load before page-editor.js) -->
+  <script defer src="modules/block-editor/block-renderer.js"></script>
+  <script defer src="modules/block-editor/block-colors.js"></script>
+  <script defer src="modules/block-editor/slash-command-palette.js"></script>
+  <script defer src="modules/block-editor/block-context-menu.js"></script>
+  <script defer src="modules/block-editor/block-drag.js"></script>
+  <script defer src="modules/block-editor/block-move-to.js"></script>
+  <script defer src="modules/block-editor/block-ai-panel.js"></script>
+  <script defer src="modules/block-editor/block-editor.js"></script>
+
   <script defer src="modules/page-editor.js"></script>
 
   <!-- Admin Portal — sub-modulos (carregar ANTES do orquestrador) -->

@@ -1,8 +1,11 @@
 /**
  * TBO OS — Module: Page Editor (Notion-style)
  *
- * Editor de página com título editável, conteúdo contenteditable e autosave.
+ * Editor de pagina com titulo editavel e editor de blocos.
  * Rota parametrizada: #page/{pageId}
+ *
+ * Se page.has_blocks = true → delega para TBO_BLOCK_EDITOR (blocos)
+ * Se page.has_blocks = false → fallback legado (contenteditable simples)
  *
  * Lifecycle: setParams → render → init → destroy
  *
@@ -25,6 +28,7 @@ const TBO_PAGE_EDITOR = {
   _contentDebounce: null,
   _statusInterval: null,
   _breadcrumbLabel: 'Página',
+  _useBlockEditor: false,
 
   // ── Lifecycle ───────────────────────────────────────────────────────────
 
@@ -38,7 +42,7 @@ const TBO_PAGE_EDITOR = {
     try {
       this._page = await PagesRepo.getById(this._pageId);
     } catch (err) {
-      console.error('[TBO PageEditor] Erro ao carregar página:', err);
+      console.error('[TBO PageEditor] Erro ao carregar pagina:', err);
       this._page = null;
     }
 
@@ -47,16 +51,32 @@ const TBO_PAGE_EDITOR = {
     this._loading = false;
     this._lastSavedAt = new Date(this._page.updated_at);
     this._breadcrumbLabel = this._page.title || 'Página';
+    this._useBlockEditor = !!this._page.has_blocks;
 
     return this._renderEditor();
   },
 
   async init() {
     if (!this._page) return;
-    this._bindEditorEvents();
-    this._enhanceContent();
 
-    // Se título padrão, selecionar para facilitar edição
+    // Bind titulo e meta actions (sempre)
+    this._bindTitleEvents();
+    this._bindMetaActions();
+    this._bindNavigation();
+
+    // Se tem blocos → montar editor de blocos
+    if (this._useBlockEditor && typeof TBO_BLOCK_EDITOR !== 'undefined') {
+      const container = document.getElementById('peBlocksContainer');
+      if (container) {
+        await TBO_BLOCK_EDITOR.mount(container, this._pageId, this._page);
+      }
+    } else {
+      // Fallback legado
+      this._bindLegacyContentEvents();
+      this._enhanceContent();
+    }
+
+    // Se titulo padrao, selecionar para facilitar edicao
     if (this._page.title === 'Nova página') {
       requestAnimationFrame(() => {
         const titleEl = document.getElementById('peTitle');
@@ -71,23 +91,38 @@ const TBO_PAGE_EDITOR = {
       });
     }
 
-    // Atualizar status "Editada há X min" a cada 30s
-    this._statusInterval = setInterval(() => {
-      if (this._lastSavedAt && !this._saving) {
-        this._updateStatus('Editada ' + this._formatTimeAgo(this._lastSavedAt));
-      }
-    }, 30000);
+    // Atualizar status "Editada ha X min" a cada 30s (para legado; blocos tem proprio)
+    if (!this._useBlockEditor) {
+      this._statusInterval = setInterval(() => {
+        if (this._lastSavedAt && !this._saving) {
+          this._updateStatus('Editada ' + this._formatTimeAgo(this._lastSavedAt));
+        }
+      }, 30000);
+    }
+
+    // Bind botao de migrar (se legado)
+    const migrateBtn = document.getElementById('peMigrateBtn');
+    if (migrateBtn) {
+      migrateBtn.addEventListener('click', () => this._migrateToBlocks());
+    }
   },
 
   destroy() {
     clearTimeout(this._titleDebounce);
     clearTimeout(this._contentDebounce);
     clearInterval(this._statusInterval);
+
+    // Desmontar editor de blocos
+    if (typeof TBO_BLOCK_EDITOR !== 'undefined' && TBO_BLOCK_EDITOR.mounted) {
+      TBO_BLOCK_EDITOR.unmount();
+    }
+
     this._pageId = null;
     this._page = null;
     this._loading = true;
     this._saving = false;
     this._lastSavedAt = null;
+    this._useBlockEditor = false;
   },
 
   // ── Skeleton ────────────────────────────────────────────────────────────
@@ -112,7 +147,7 @@ const TBO_PAGE_EDITOR = {
     `;
   },
 
-  // ── Render: Página não encontrada ───────────────────────────────────────
+  // ── Render: Pagina nao encontrada ───────────────────────────────────────
 
   _renderNotFound() {
     return `
@@ -137,7 +172,28 @@ const TBO_PAGE_EDITOR = {
     const spaceName = this._resolveSpaceName(page.space_id);
     const timeAgo = this._formatTimeAgo(page.updated_at);
     const titleText = page.title === 'Nova página' ? '' : this._esc(page.title);
-    const contentHtml = (page.content && page.content.html) ? page.content.html : '';
+
+    let contentArea = '';
+
+    if (this._useBlockEditor) {
+      // Container para o editor de blocos (montado via JS no init)
+      contentArea = `<div id="peBlocksContainer" class="be-container"></div>`;
+    } else {
+      // Fallback legado: contenteditable simples
+      const contentHtml = (page.content && page.content.html) ? page.content.html : '';
+      contentArea = `
+        <div class="pe-legacy-banner" id="peLegacyBanner">
+          <i data-lucide="info" style="width:14px;height:14px"></i>
+          <span>Esta pagina usa o editor antigo.</span>
+          <button class="pe-migrate-btn" id="peMigrateBtn">Migrar para blocos</button>
+        </div>
+        <div class="pe-content"
+             contenteditable="true"
+             data-placeholder="Comece a escrever ou pressione '/' para comandos..."
+             id="peContent"
+             spellcheck="true">${contentHtml}</div>
+      `;
+    }
 
     return `
       <div class="pe-container">
@@ -159,85 +215,78 @@ const TBO_PAGE_EDITOR = {
           </div>
         </div>
 
-        <!-- Área do editor -->
+        <!-- Area do editor -->
         <div class="pe-editor-area">
           <!-- Capa (se existir) -->
           ${page.cover_url ? `<div class="pe-cover" style="background-image:url(${this._esc(page.cover_url)})"></div>` : ''}
 
-          <!-- Ações de meta (ícone, capa) — aparecem no hover -->
+          <!-- Acoes de meta (icone, capa) — aparecem no hover -->
           <div class="pe-meta-actions" id="peMetaActions">
             ${!page.icon ? '<button class="pe-meta-btn" data-pe-action="add-icon"><i data-lucide="smile-plus"></i><span>Adicionar ícone</span></button>' : ''}
             ${!page.cover_url ? '<button class="pe-meta-btn" data-pe-action="add-cover"><i data-lucide="image-plus"></i><span>Adicionar capa</span></button>' : ''}
           </div>
 
-          <!-- Ícone da página (se existir) -->
-          ${page.icon ? `<div class="pe-icon" id="peIcon" data-pe-action="change-icon" title="Trocar ícone">${page.icon}</div>` : ''}
+          <!-- Icone da pagina (se existir) -->
+          ${page.icon ? `<div class="pe-icon" id="peIcon" data-pe-action="change-icon" title="Trocar icone">${page.icon}</div>` : ''}
 
-          <!-- Título editável -->
+          <!-- Titulo editavel -->
           <h1 class="pe-title"
               contenteditable="true"
               data-placeholder="Nova página"
               id="peTitle"
               spellcheck="false">${titleText}</h1>
 
-          <!-- Conteúdo editável -->
-          <div class="pe-content"
-               contenteditable="true"
-               data-placeholder="Comece a escrever ou pressione '/' para comandos..."
-               id="peContent"
-               spellcheck="true">${contentHtml}</div>
+          <!-- Conteudo (blocos ou legado) -->
+          ${contentArea}
         </div>
       </div>
     `;
   },
 
-  // ── Bind de eventos ─────────────────────────────────────────────────────
+  // ── Bind: Titulo ────────────────────────────────────────────────────────
 
-  _bindEditorEvents() {
+  _bindTitleEvents() {
     const titleEl = document.getElementById('peTitle');
-    const contentEl = document.getElementById('peContent');
+    if (!titleEl) return;
 
-    // Autosave título (debounce 800ms)
-    if (titleEl) {
-      titleEl.addEventListener('input', () => {
-        clearTimeout(this._titleDebounce);
-        this._titleDebounce = setTimeout(() => {
-          const newTitle = titleEl.textContent.trim() || 'Nova página';
-          this._saveField('title', newTitle);
-          // Atualizar breadcrumb
-          const bc = document.getElementById('peBreadcrumbTitle');
-          if (bc) bc.textContent = newTitle;
-        }, 800);
-      });
+    titleEl.addEventListener('input', () => {
+      clearTimeout(this._titleDebounce);
+      this._titleDebounce = setTimeout(() => {
+        const newTitle = titleEl.textContent.trim() || 'Nova página';
+        this._saveField('title', newTitle);
+        const bc = document.getElementById('peBreadcrumbTitle');
+        if (bc) bc.textContent = newTitle;
+      }, 800);
+    });
 
-      // Enter no título → focar no conteúdo
-      titleEl.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
+    // Enter no titulo → focar no conteudo (blocos ou legado)
+    titleEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (this._useBlockEditor) {
+          // Focus primeiro bloco
+          const blocks = typeof TBO_BLOCK_EDITOR !== 'undefined' ? TBO_BLOCK_EDITOR.blocks : [];
+          if (blocks.length > 0) {
+            TBO_BLOCK_EDITOR.focusBlock(blocks[0].id, 'start');
+          }
+        } else {
+          const contentEl = document.getElementById('peContent');
           if (contentEl) contentEl.focus();
         }
-      });
+      }
+    });
 
-      // Colar como texto puro no título
-      titleEl.addEventListener('paste', (e) => {
-        e.preventDefault();
-        const text = (e.clipboardData || window.clipboardData).getData('text/plain');
-        document.execCommand('insertText', false, text.replace(/\n/g, ' '));
-      });
-    }
+    // Colar como texto puro
+    titleEl.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+      document.execCommand('insertText', false, text.replace(/\n/g, ' '));
+    });
+  },
 
-    // Autosave conteúdo (debounce 1200ms)
-    if (contentEl) {
-      contentEl.addEventListener('input', () => {
-        clearTimeout(this._contentDebounce);
-        this._contentDebounce = setTimeout(() => {
-          const html = contentEl.innerHTML;
-          this._saveField('content', { html });
-        }, 1200);
-      });
-    }
+  // ── Bind: Meta Actions ──────────────────────────────────────────────────
 
-    // Botões de meta ações
+  _bindMetaActions() {
     document.querySelectorAll('[data-pe-action]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -245,13 +294,48 @@ const TBO_PAGE_EDITOR = {
         this._handleMetaAction(action);
       });
     });
+  },
 
-    // Botão voltar
+  // ── Bind: Navigation ────────────────────────────────────────────────────
+
+  _bindNavigation() {
     document.querySelectorAll('[data-pe-nav="back"]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        window.history.back();
-      });
+      btn.addEventListener('click', () => window.history.back());
     });
+  },
+
+  // ── Bind: Legacy content (fallback) ─────────────────────────────────────
+
+  _bindLegacyContentEvents() {
+    const contentEl = document.getElementById('peContent');
+    if (!contentEl) return;
+
+    contentEl.addEventListener('input', () => {
+      clearTimeout(this._contentDebounce);
+      this._contentDebounce = setTimeout(() => {
+        const html = contentEl.innerHTML;
+        this._saveField('content', { html });
+      }, 1200);
+    });
+  },
+
+  // ── Migrate to blocks ───────────────────────────────────────────────────
+
+  async _migrateToBlocks() {
+    if (!this._pageId) return;
+    try {
+      if (typeof TBO_TOAST !== 'undefined') {
+        TBO_TOAST.info('Migrando...', 'Convertendo pagina para editor de blocos');
+      }
+      await PageService.migrateToBlocks(this._pageId);
+      // Recarregar pagina
+      window.location.reload();
+    } catch (err) {
+      console.error('[TBO PageEditor] Erro ao migrar:', err);
+      if (typeof TBO_TOAST !== 'undefined') {
+        TBO_TOAST.error('Erro', 'Nao foi possivel migrar a pagina');
+      }
+    }
   },
 
   // ── Salvar campo ────────────────────────────────────────────────────────
@@ -265,7 +349,6 @@ const TBO_PAGE_EDITOR = {
       this._lastSavedAt = new Date();
       this._saving = false;
       this._updateStatus('Salvo', 'check-circle');
-      // Atualizar para "Editada agora" após um momento
       setTimeout(() => {
         if (!this._saving) {
           this._updateStatus('Editada ' + this._formatTimeAgo(this._lastSavedAt), 'check-circle');
@@ -290,7 +373,7 @@ const TBO_PAGE_EDITOR = {
     if (window.lucide) lucide.createIcons({ root: el });
   },
 
-  // ── Meta ações ──────────────────────────────────────────────────────────
+  // ── Meta acoes ──────────────────────────────────────────────────────────
 
   _handleMetaAction(action) {
     switch (action) {
@@ -306,25 +389,23 @@ const TBO_PAGE_EDITOR = {
       }
       break;
     default:
-      console.log('[TBO PageEditor] Ação desconhecida:', action);
+      console.log('[TBO PageEditor] Acao desconhecida:', action);
     }
   },
 
-  // ── Content Enhancements (grid, copy, placeholders) ────────────────────
+  // ── Content Enhancements (legacy fallback) ──────────────────────────────
 
   _enhanceContent() {
     const contentEl = document.getElementById('peContent');
     if (!contentEl) return;
 
-    // 1. Detectar layout grid via comment marker
     if (contentEl.innerHTML.includes('<!-- pe-layout:grid -->')) {
       const container = contentEl.closest('.pe-container');
       if (container) container.setAttribute('data-pe-layout', 'grid');
     }
 
-    // 2. Injetar botões de copiar em cada <details>
     contentEl.querySelectorAll('details').forEach(det => {
-      if (det.querySelector('.pe-copy-btn')) return; // já tem
+      if (det.querySelector('.pe-copy-btn')) return;
       const btn = document.createElement('button');
       btn.className = 'pe-copy-btn';
       btn.setAttribute('contenteditable', 'false');
@@ -337,16 +418,12 @@ const TBO_PAGE_EDITOR = {
       det.appendChild(btn);
     });
 
-    // 3. Highlight placeholders {Nome}, {Empresa}, etc.
     this._highlightPlaceholders(contentEl);
   },
 
   _copyCardText(detailsEl, btn) {
-    // Extrair texto apenas dos parágrafos (excluindo summary e botão)
     const paragraphs = detailsEl.querySelectorAll('p');
-    const text = Array.from(paragraphs)
-      .map(p => p.innerText)
-      .join('\n\n');
+    const text = Array.from(paragraphs).map(p => p.innerText).join('\n\n');
 
     navigator.clipboard.writeText(text).then(() => {
       btn.classList.add('pe-copy-btn--copied');
@@ -356,7 +433,6 @@ const TBO_PAGE_EDITOR = {
         btn.querySelector('span').textContent = 'Copiar';
       }, 2000);
     }).catch(() => {
-      // Fallback para navegadores sem clipboard API
       const ta = document.createElement('textarea');
       ta.value = text;
       ta.style.position = 'fixed';
@@ -366,37 +442,26 @@ const TBO_PAGE_EDITOR = {
       document.execCommand('copy');
       document.body.removeChild(ta);
       btn.querySelector('span').textContent = 'Copiado!';
-      setTimeout(() => {
-        btn.querySelector('span').textContent = 'Copiar';
-      }, 2000);
+      setTimeout(() => { btn.querySelector('span').textContent = 'Copiar'; }, 2000);
     });
   },
 
   _highlightPlaceholders(container) {
-    // Destacar {Nome}, {Empresa}, {Incorporadora}, etc.
-    const walker = document.createTreeWalker(
-      container,
-      NodeFilter.SHOW_TEXT,
-      {
-        acceptNode(node) {
-          // Ignorar nodes dentro de summary, botões ou já highlightados
-          if (node.parentElement.closest('summary, button, .pe-copy-btn, .pe-placeholder')) {
-            return NodeFilter.FILTER_REJECT;
-          }
-          return node.textContent.match(/\{[^}]+\}/)
-            ? NodeFilter.FILTER_ACCEPT
-            : NodeFilter.FILTER_REJECT;
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        if (node.parentElement.closest('summary, button, .pe-copy-btn, .pe-placeholder')) {
+          return NodeFilter.FILTER_REJECT;
         }
+        return node.textContent.match(/\{[^}]+\}/) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
       }
-    );
+    });
 
     const nodes = [];
     while (walker.nextNode()) nodes.push(walker.currentNode);
 
     nodes.forEach(textNode => {
       const frag = document.createDocumentFragment();
-      const parts = textNode.textContent.split(/(\{[^}]+\})/g);
-      parts.forEach(part => {
+      textNode.textContent.split(/(\{[^}]+\})/g).forEach(part => {
         if (part.match(/^\{[^}]+\}$/)) {
           const span = document.createElement('span');
           span.className = 'pe-placeholder';
@@ -413,13 +478,11 @@ const TBO_PAGE_EDITOR = {
   // ── Helpers ─────────────────────────────────────────────────────────────
 
   _resolveSpaceName(spaceId) {
-    // Tentar resolver via SidebarService
     if (typeof TBO_SIDEBAR_SERVICE !== 'undefined' && TBO_SIDEBAR_SERVICE.initialized) {
       const items = TBO_SIDEBAR_SERVICE.getItems();
       const ws = items.find(i => i.id === spaceId);
       if (ws) return ws.name;
     }
-    // Fallback: extrair nome do ID
     if (spaceId && spaceId.startsWith('ws-')) {
       const name = spaceId.replace('ws-', '').replace(/-/g, ' ');
       return name.charAt(0).toUpperCase() + name.slice(1);
@@ -433,7 +496,6 @@ const TBO_PAGE_EDITOR = {
     const min = Math.floor(diff / 60000);
     const hr = Math.floor(diff / 3600000);
     const d = Math.floor(diff / 86400000);
-
     if (min < 1) return 'agora';
     if (min < 60) return `há ${min} min`;
     if (hr < 24) return `há ${hr}h`;

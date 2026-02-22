@@ -396,10 +396,14 @@ const TBO_ADD_TO_SPACE = (() => {
         const user = typeof TBO_AUTH !== 'undefined' ? TBO_AUTH.getCurrentUser() : null;
         if (!user) throw new Error('Usuário não autenticado');
 
-        const page = await PagesRepo.create({
+        // Usar PageService para criar pagina com bloco inicial automaticamente
+        const createFn = (typeof PageService !== 'undefined' && PageService.createPage)
+          ? PageService.createPage.bind(PageService)
+          : async (opts) => PagesRepo.create(opts);
+
+        const page = await createFn({
           space_id: _currentSpace?.spaceId || 'ws-geral',
           title: 'Nova página',
-          content: {},
           created_by: user.supabaseId || user.id
         });
 

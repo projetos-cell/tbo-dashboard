@@ -960,16 +960,17 @@ const TBO_SYSTEM_HEALTH = (() => {
       checks.push({ name: 'Projetos com BU', status: 'fail', detail: e.message });
     }
 
-    // 2. Client portals configured
+    // 2. Client portals — check unique clients (construtoras) with active projects
     try {
-      const { count } = await db.from('client_portals').select('id', { count: 'exact', head: true }).eq('tenant_id', tid);
+      const { data: projClients } = await db.from('projects').select('construtora').eq('tenant_id', tid).not('status', 'eq', 'cancelado');
+      const uniqueClients = [...new Set((projClients || []).map(p => p.construtora).filter(Boolean))];
       checks.push({
-        name: 'Portais de clientes',
-        status: (count || 0) >= 5 ? 'pass' : (count > 0 ? 'warn' : 'fail'),
-        detail: `${count || 0} portais configurados`
+        name: 'Clientes com projetos ativos',
+        status: uniqueClients.length >= 5 ? 'pass' : (uniqueClients.length > 0 ? 'warn' : 'fail'),
+        detail: `${uniqueClients.length} clientes ativos`
       });
     } catch (e) {
-      checks.push({ name: 'Portais de clientes', status: 'fail', detail: e.message });
+      checks.push({ name: 'Clientes com projetos', status: 'fail', detail: e.message });
     }
 
     // 3. RSM accounts with metrics
@@ -1024,13 +1025,20 @@ const TBO_SYSTEM_HEALTH = (() => {
 
     // 7. Sidebar consistency
     try {
-      const sidebarItems = typeof TBO_SIDEBAR_SERVICE !== 'undefined' ? TBO_SIDEBAR_SERVICE._workspaces : [];
-      let totalChildren = 0;
-      (sidebarItems || []).forEach(w => { totalChildren += (w.children || []).length; });
+      const hasSidebar = typeof TBO_SIDEBAR_SERVICE !== 'undefined';
+      let wsCount = 0, itemCount = 0;
+      if (hasSidebar) {
+        if (typeof TBO_SIDEBAR_SERVICE.getWorkspaces === 'function') {
+          wsCount = (TBO_SIDEBAR_SERVICE.getWorkspaces() || []).length;
+        }
+        if (typeof TBO_SIDEBAR_SERVICE.getItems === 'function') {
+          itemCount = (TBO_SIDEBAR_SERVICE.getItems() || []).length;
+        }
+      }
       checks.push({
         name: 'Sidebar: consistência',
-        status: totalChildren > 15 ? 'pass' : (totalChildren > 5 ? 'warn' : 'fail'),
-        detail: `${(sidebarItems || []).length} workspaces, ${totalChildren} children`
+        status: (wsCount > 5 && itemCount > 15) ? 'pass' : (wsCount > 0 ? 'warn' : 'fail'),
+        detail: `${wsCount} workspaces, ${itemCount} itens`
       });
     } catch (e) {
       checks.push({ name: 'Sidebar: consistência', status: 'fail', detail: e.message });

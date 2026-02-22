@@ -50,6 +50,9 @@ const TBO_RSM = {
         <button class="rsm-tab" data-tab="contas">
           <i data-lucide="at-sign"></i> Contas
         </button>
+        <button class="rsm-tab" data-tab="relatorios">
+          <i data-lucide="file-bar-chart"></i> Relatorios
+        </button>
       </div>
 
       <div class="rsm-content" id="rsmContent">
@@ -161,6 +164,7 @@ const TBO_RSM = {
       case 'calendario': content.innerHTML = this._renderCalendar(); break;
       case 'ideias': content.innerHTML = this._renderIdeas(); break;
       case 'contas': content.innerHTML = this._renderAccounts(); break;
+      case 'relatorios': content.innerHTML = this._renderReports(); break;
       default: content.innerHTML = this._renderDashboard();
     }
 
@@ -600,6 +604,7 @@ const TBO_RSM = {
       case 'calendario': this._bindCalendarEvents(); break;
       case 'ideias': this._bindIdeasEvents(); break;
       case 'contas': this._bindAccountsEvents(); break;
+      case 'relatorios': this._bindReportsEvents(); break;
     }
   },
 
@@ -1058,7 +1063,357 @@ const TBO_RSM = {
     }
   },
 
-  // ── PDF Export ──────────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════
+  // REPORTS TAB
+  // ════════════════════════════════════════════════════════════
+  _reportAccount: null,
+  _reportFrom: null,
+  _reportTo: null,
+  _reportData: null,
+
+  _renderReports() {
+    const today = new Date();
+    const defaultTo = today.toISOString().split('T')[0];
+    const defaultFrom = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate()).toISOString().split('T')[0];
+
+    const activeAccounts = this._accounts.filter(a => a.is_active);
+
+    return `
+      <div class="rsm-reports-tab">
+        <div class="rsm-reports-header">
+          <h3><i data-lucide="file-bar-chart" style="width:20px;height:20px;"></i> Gerador de Relatorios</h3>
+          <p class="rsm-reports-desc">Gere relatorios profissionais de performance de redes sociais para seus clientes.</p>
+        </div>
+
+        <!-- Report Config -->
+        <div class="rsm-report-config">
+          <div class="rsm-report-config-grid">
+            <div class="rsm-form-group">
+              <label>Conta</label>
+              <select id="rsmReportAccount">
+                ${activeAccounts.length === 0
+                  ? '<option value="">Nenhuma conta ativa</option>'
+                  : activeAccounts.map(a => `<option value="${a.id}">@${this._esc(a.handle)} (${a.platform})</option>`).join('')}
+              </select>
+            </div>
+            <div class="rsm-form-group">
+              <label>Data Inicial</label>
+              <input type="date" id="rsmReportFrom" value="${defaultFrom}">
+            </div>
+            <div class="rsm-form-group">
+              <label>Data Final</label>
+              <input type="date" id="rsmReportTo" value="${defaultTo}">
+            </div>
+            <div class="rsm-form-group" style="align-self: end;">
+              <button class="btn btn-sm btn-primary" id="rsmGenerateReport" ${activeAccounts.length === 0 ? 'disabled' : ''}>
+                <i data-lucide="sparkles"></i> Gerar Relatorio
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Report Preview Area -->
+        <div class="rsm-report-preview" id="rsmReportPreview">
+          <div class="rsm-report-placeholder">
+            <i data-lucide="file-bar-chart" style="width:56px;height:56px;opacity:0.15;"></i>
+            <h4>Selecione a conta e periodo</h4>
+            <p>Configure os parametros acima e clique em "Gerar Relatorio" para visualizar o preview.</p>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  _bindReportsEvents() {
+    document.getElementById('rsmGenerateReport')?.addEventListener('click', () => {
+      this._handleGenerateReport();
+    });
+  },
+
+  async _handleGenerateReport() {
+    const accountId = document.getElementById('rsmReportAccount')?.value;
+    const dateFrom = document.getElementById('rsmReportFrom')?.value;
+    const dateTo = document.getElementById('rsmReportTo')?.value;
+    const preview = document.getElementById('rsmReportPreview');
+
+    if (!accountId || !dateFrom || !dateTo) {
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro', 'Preencha todos os campos');
+      return;
+    }
+
+    if (preview) {
+      preview.innerHTML = `
+        <div class="rsm-report-loading">
+          <div class="loading-spinner"></div>
+          <p>Gerando relatorio...</p>
+        </div>`;
+    }
+
+    try {
+      const account = this._accounts.find(a => a.id === accountId);
+      const metrics = await RSMRepo.listMetrics(accountId, { from: dateFrom, to: dateTo });
+      const posts = await RSMRepo.listPosts({ account_id: accountId, from: dateFrom, to: dateTo });
+      const sortedMetrics = [...metrics].sort((a, b) => new Date(a.date) - new Date(b.date));
+      const periodData = this._calcPeriodData(sortedMetrics, posts, account);
+
+      // Previous period for comparison
+      const daysDiff = Math.ceil((new Date(dateTo) - new Date(dateFrom)) / (1000 * 60 * 60 * 24));
+      const prevTo = new Date(new Date(dateFrom).getTime() - 86400000).toISOString().split('T')[0];
+      const prevFrom = new Date(new Date(prevTo).getTime() - daysDiff * 86400000).toISOString().split('T')[0];
+      const prevMetrics = await RSMRepo.listMetrics(accountId, { from: prevFrom, to: prevTo });
+      const prevSorted = [...prevMetrics].sort((a, b) => new Date(a.date) - new Date(b.date));
+      const prevPosts = await RSMRepo.listPosts({ account_id: accountId, from: prevFrom, to: prevTo });
+      const prevData = this._calcPeriodData(prevSorted, prevPosts, account);
+
+      this._reportData = { account, periodData, prevData, metrics: sortedMetrics, posts, dateFrom, dateTo };
+
+      const reportHtml = this._buildReportHTML(this._reportData);
+      if (preview) {
+        preview.innerHTML = `
+          <div class="rsm-report-actions-bar">
+            <button class="btn btn-sm btn-primary" id="rsmExportReportPDF">
+              <i data-lucide="download"></i> Exportar PDF
+            </button>
+            <button class="btn btn-sm" id="rsmPrintReport">
+              <i data-lucide="printer"></i> Imprimir
+            </button>
+          </div>
+          <div class="rsm-report-frame" id="rsmReportFrame">${reportHtml}</div>
+        `;
+        if (window.lucide) lucide.createIcons({ root: preview });
+        document.getElementById('rsmExportReportPDF')?.addEventListener('click', () => this._exportReportPDF());
+        document.getElementById('rsmPrintReport')?.addEventListener('click', () => this._exportReportPDF());
+      }
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Relatorio gerado');
+    } catch (err) {
+      console.error('[RSM] Report error:', err);
+      if (preview) {
+        preview.innerHTML = `<div class="rsm-report-placeholder" style="color:#EF4444;">
+          <i data-lucide="alert-circle" style="width:48px;height:48px;opacity:0.4;"></i>
+          <h4>Erro ao gerar relatorio</h4><p>${this._esc(err.message)}</p></div>`;
+        if (window.lucide) lucide.createIcons({ root: preview });
+      }
+    }
+  },
+
+  _calcPeriodData(metrics, posts, account) {
+    if (!metrics || metrics.length === 0) {
+      return {
+        followers: { start: account?.followers_count || 0, end: account?.followers_count || 0, change: 0, pct: 0 },
+        reach: { total: 0, avg: 0 }, impressions: { total: 0, avg: 0 },
+        engagement: { avg: 0, best: 0 },
+        posts: { total: posts?.length || 0, types: {} },
+        interactions: { likes: 0, comments: 0, saves: 0, shares: 0 },
+        profileVisits: 0, websiteClicks: 0
+      };
+    }
+    const first = metrics[0], last = metrics[metrics.length - 1];
+    const fStart = first.followers || 0, fEnd = last.followers || 0;
+    const fChange = fEnd - fStart;
+    const fPct = fStart > 0 ? ((fChange / fStart) * 100).toFixed(1) : 0;
+
+    let tReach = 0, tImp = 0, engSum = 0, engCnt = 0, bestEng = 0;
+    let tLikes = 0, tComments = 0, tSaves = 0, tShares = 0, tVisits = 0, tClicks = 0;
+
+    metrics.forEach(m => {
+      tReach += m.reach || 0;
+      tImp += m.impressions || 0;
+      const eng = parseFloat(m.engagement_rate) || 0;
+      if (eng > 0) { engSum += eng; engCnt++; }
+      if (eng > bestEng) bestEng = eng;
+      const meta = m.metadata || {};
+      tLikes += meta.likes || 0; tComments += meta.comments || 0;
+      tSaves += meta.saves || 0; tShares += meta.shares || 0;
+      tVisits += meta.profile_visits || 0; tClicks += meta.website_clicks || 0;
+    });
+
+    const postTypes = {};
+    (posts || []).forEach(p => { const t = p.type || 'other'; postTypes[t] = (postTypes[t] || 0) + 1; });
+
+    return {
+      followers: { start: fStart, end: fEnd, change: fChange, pct: parseFloat(fPct) },
+      reach: { total: tReach, avg: metrics.length > 0 ? Math.round(tReach / metrics.length) : 0 },
+      impressions: { total: tImp, avg: metrics.length > 0 ? Math.round(tImp / metrics.length) : 0 },
+      engagement: { avg: engCnt > 0 ? (engSum / engCnt).toFixed(2) : 0, best: bestEng.toFixed(2) },
+      posts: { total: (posts || []).length, types: postTypes },
+      interactions: { likes: tLikes, comments: tComments, saves: tSaves, shares: tShares },
+      profileVisits: tVisits, websiteClicks: tClicks
+    };
+  },
+
+  _buildReportHTML(data) {
+    const { account, periodData: d, prevData: prev, metrics, posts, dateFrom, dateTo } = data;
+
+    const fmtDate = (s) => { if (!s) return '--'; const dt = new Date(s + 'T00:00:00'); return dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }); };
+    const pctDiff = (c, p) => { if (!p || p === 0) return c > 0 ? '+100' : '0'; return ((c - p) / Math.abs(p) * 100).toFixed(1); };
+    const arrow = (v) => { const n = parseFloat(v); if (n > 0) return `<span style="color:#22C55E;">&#9650; +${v}%</span>`; if (n < 0) return `<span style="color:#EF4444;">&#9660; ${v}%</span>`; return `<span style="color:#9CA3AF;">&#9654; 0%</span>`; };
+
+    const reachDiff = pctDiff(d.reach.total, prev.reach.total);
+    const impDiff = pctDiff(d.impressions.total, prev.impressions.total);
+    const engDiff = pctDiff(parseFloat(d.engagement.avg), parseFloat(prev.engagement.avg));
+    const follDiff = d.followers.pct;
+    const postsDiff = pctDiff(d.posts.total, prev.posts.total);
+
+    const postsWithMetrics = (posts || []).map(p => {
+      const pm = p.metrics || {};
+      return { ...p, totalInt: (pm.likes || 0) + (pm.comments || 0) + (pm.saves || 0) + (pm.shares || 0) };
+    }).sort((a, b) => b.totalInt - a.totalInt);
+    const topPosts = postsWithMetrics.slice(0, 5);
+
+    const maxReach = Math.max(...metrics.map(m => m.reach || 0), 1);
+    const chartBars = metrics.map(m => {
+      const h = Math.max(((m.reach || 0) / maxReach) * 100, 2);
+      const dt = new Date(m.date + 'T00:00:00');
+      return `<div class="rpt-bar-col" title="${dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}: ${this._fmtNum(m.reach || 0)}"><div class="rpt-bar" style="height:${h}%;"></div><span class="rpt-bar-label">${dt.getDate()}</span></div>`;
+    }).join('');
+
+    const typeLabels = { feed: 'Feed', story: 'Story', reel: 'Reel', carousel: 'Carousel', video: 'Video' };
+
+    return `
+    <div class="rpt-container">
+      <div class="rpt-header">
+        <div class="rpt-header-left">
+          <div class="rpt-logo">TBO</div>
+          <div class="rpt-header-info"><h1 class="rpt-main-title">Relatorio de Performance</h1><p class="rpt-main-sub">Social Media Report</p></div>
+        </div>
+        <div class="rpt-header-right">
+          <div class="rpt-header-meta"><span class="rpt-meta-label">Conta</span><span class="rpt-meta-value">@${this._esc(account.handle)}</span></div>
+          <div class="rpt-header-meta"><span class="rpt-meta-label">Plataforma</span><span class="rpt-meta-value" style="text-transform:capitalize;">${account.platform}</span></div>
+          <div class="rpt-header-meta"><span class="rpt-meta-label">Periodo</span><span class="rpt-meta-value">${fmtDate(dateFrom)} — ${fmtDate(dateTo)}</span></div>
+        </div>
+      </div>
+
+      <div class="rpt-section">
+        <h2 class="rpt-section-title">Resumo Executivo</h2>
+        <div class="rpt-kpi-grid">
+          <div class="rpt-kpi"><span class="rpt-kpi-value">${this._fmtNum(d.followers.end)}</span><span class="rpt-kpi-label">Seguidores</span><span class="rpt-kpi-change">${d.followers.change >= 0 ? '+' : ''}${this._fmtNum(d.followers.change)} ${arrow(follDiff)}</span></div>
+          <div class="rpt-kpi"><span class="rpt-kpi-value">${this._fmtNum(d.reach.total)}</span><span class="rpt-kpi-label">Alcance Total</span><span class="rpt-kpi-change">${arrow(reachDiff)}</span></div>
+          <div class="rpt-kpi"><span class="rpt-kpi-value">${d.engagement.avg}%</span><span class="rpt-kpi-label">Engajamento Medio</span><span class="rpt-kpi-change">${arrow(engDiff)}</span></div>
+          <div class="rpt-kpi"><span class="rpt-kpi-value">${this._fmtNum(d.impressions.total)}</span><span class="rpt-kpi-label">Impressoes</span><span class="rpt-kpi-change">${arrow(impDiff)}</span></div>
+        </div>
+      </div>
+
+      <div class="rpt-section">
+        <h2 class="rpt-section-title">Interacoes no Periodo</h2>
+        <div class="rpt-kpi-grid rpt-kpi-grid--6">
+          <div class="rpt-kpi rpt-kpi--sm"><span class="rpt-kpi-value">${this._fmtNum(d.interactions.likes)}</span><span class="rpt-kpi-label">Curtidas</span></div>
+          <div class="rpt-kpi rpt-kpi--sm"><span class="rpt-kpi-value">${this._fmtNum(d.interactions.comments)}</span><span class="rpt-kpi-label">Comentarios</span></div>
+          <div class="rpt-kpi rpt-kpi--sm"><span class="rpt-kpi-value">${this._fmtNum(d.interactions.saves)}</span><span class="rpt-kpi-label">Salvos</span></div>
+          <div class="rpt-kpi rpt-kpi--sm"><span class="rpt-kpi-value">${this._fmtNum(d.interactions.shares)}</span><span class="rpt-kpi-label">Compartilhamentos</span></div>
+          <div class="rpt-kpi rpt-kpi--sm"><span class="rpt-kpi-value">${this._fmtNum(d.profileVisits)}</span><span class="rpt-kpi-label">Visitas Perfil</span></div>
+          <div class="rpt-kpi rpt-kpi--sm"><span class="rpt-kpi-value">${this._fmtNum(d.websiteClicks)}</span><span class="rpt-kpi-label">Cliques Site</span></div>
+        </div>
+      </div>
+
+      <div class="rpt-section">
+        <h2 class="rpt-section-title">Evolucao do Alcance</h2>
+        <div class="rpt-chart-container">
+          <div class="rpt-bar-chart">${chartBars}</div>
+          <div class="rpt-chart-footer"><span>Media diaria: <strong>${this._fmtNum(d.reach.avg)}</strong></span><span>Melhor engajamento: <strong>${d.engagement.best}%</strong></span></div>
+        </div>
+      </div>
+
+      <div class="rpt-section">
+        <h2 class="rpt-section-title">Publicacoes (${d.posts.total} posts)</h2>
+        ${d.posts.total > 0 ? `<div class="rpt-post-types">${Object.entries(d.posts.types).map(([t, c]) => `<span class="rpt-type-pill">${typeLabels[t] || t}: <strong>${c}</strong></span>`).join('')}</div>` : ''}
+        ${topPosts.length > 0 ? `
+          <h3 class="rpt-subsection-title">Top Posts por Engajamento</h3>
+          <table class="rpt-table"><thead><tr><th>Post</th><th>Tipo</th><th>Data</th><th>Curtidas</th><th>Coment.</th><th>Salvos</th><th>Alcance</th><th>Total</th></tr></thead><tbody>
+          ${topPosts.map(p => {
+            const pm = p.metrics || {};
+            const pd = p.published_date || p.scheduled_date;
+            return `<tr><td class="rpt-td-title">${this._esc(p.title || p.content?.substring(0, 40) || 'Sem titulo')}</td><td><span class="rpt-type-pill rpt-type-pill--sm">${typeLabels[p.type] || p.type}</span></td><td>${pd ? fmtDate(pd.split('T')[0]) : '--'}</td><td>${this._fmtNum(pm.likes || 0)}</td><td>${this._fmtNum(pm.comments || 0)}</td><td>${this._fmtNum(pm.saves || 0)}</td><td>${this._fmtNum(pm.reach || 0)}</td><td><strong>${this._fmtNum(p.totalInt)}</strong></td></tr>`;
+          }).join('')}
+          </tbody></table>
+        ` : '<p style="color:#6B7280;text-align:center;padding:16px;">Nenhum post no periodo.</p>'}
+      </div>
+
+      <div class="rpt-section">
+        <h2 class="rpt-section-title">Comparativo com Periodo Anterior</h2>
+        <table class="rpt-table rpt-table--compare"><thead><tr><th>Metrica</th><th>Anterior</th><th>Atual</th><th>Variacao</th></tr></thead><tbody>
+          <tr><td>Alcance Total</td><td>${this._fmtNum(prev.reach.total)}</td><td>${this._fmtNum(d.reach.total)}</td><td>${arrow(reachDiff)}</td></tr>
+          <tr><td>Impressoes</td><td>${this._fmtNum(prev.impressions.total)}</td><td>${this._fmtNum(d.impressions.total)}</td><td>${arrow(impDiff)}</td></tr>
+          <tr><td>Engajamento</td><td>${prev.engagement.avg}%</td><td>${d.engagement.avg}%</td><td>${arrow(engDiff)}</td></tr>
+          <tr><td>Posts</td><td>${prev.posts.total}</td><td>${d.posts.total}</td><td>${arrow(postsDiff)}</td></tr>
+          <tr><td>Seguidores</td><td>${this._fmtNum(prev.followers.end)}</td><td>${this._fmtNum(d.followers.end)}</td><td>${d.followers.change >= 0 ? '+' : ''}${this._fmtNum(d.followers.change)}</td></tr>
+        </tbody></table>
+      </div>
+
+      <div class="rpt-footer">
+        <div class="rpt-footer-left"><span class="rpt-footer-brand">TBO OS</span><span class="rpt-footer-sep">&bull;</span><span>Gerado em ${new Date().toLocaleDateString('pt-BR')} as ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span></div>
+        <div class="rpt-footer-right"><span>agenciatbo.com.br</span></div>
+      </div>
+    </div>`;
+  },
+
+  _exportReportPDF() {
+    if (!this._reportData) {
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro', 'Gere um relatorio primeiro.');
+      return;
+    }
+    if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.info('Exportando', 'Preparando PDF...');
+
+    const reportFrame = document.getElementById('rsmReportFrame');
+    if (!reportFrame) return;
+
+    const printWin = window.open('', '_blank');
+    if (!printWin) {
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro', 'Pop-up bloqueado.');
+      return;
+    }
+
+    printWin.document.write(`<!DOCTYPE html><html><head>
+<title>Relatorio Social Media - @${this._esc(this._reportData.account.handle)}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a;background:#fff}
+.rpt-container{max-width:900px;margin:0 auto;padding:32px}
+.rpt-header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:3px solid #E85102;margin-bottom:24px}
+.rpt-header-left{display:flex;align-items:center;gap:16px}
+.rpt-logo{font-size:28px;font-weight:900;color:#E85102;letter-spacing:-1px}
+.rpt-main-title{font-size:20px;font-weight:700}
+.rpt-main-sub{font-size:12px;color:#6B7280}
+.rpt-header-right{display:flex;gap:24px}
+.rpt-header-meta{display:flex;flex-direction:column}
+.rpt-meta-label{font-size:10px;text-transform:uppercase;color:#9CA3AF;font-weight:600;letter-spacing:.05em}
+.rpt-meta-value{font-size:13px;font-weight:600}
+.rpt-section{margin-bottom:28px}
+.rpt-section-title{font-size:15px;font-weight:700;margin-bottom:14px;padding-bottom:6px;border-bottom:1px solid #E5E7EB;color:#111827;text-transform:uppercase;letter-spacing:.03em}
+.rpt-subsection-title{font-size:13px;font-weight:600;margin:16px 0 10px;color:#374151}
+.rpt-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.rpt-kpi-grid--6{grid-template-columns:repeat(6,1fr)}
+.rpt-kpi{background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;padding:16px;text-align:center}
+.rpt-kpi--sm{padding:12px 8px}
+.rpt-kpi-value{display:block;font-size:22px;font-weight:800;color:#111827;line-height:1.1}
+.rpt-kpi--sm .rpt-kpi-value{font-size:16px}
+.rpt-kpi-label{display:block;font-size:10px;color:#6B7280;text-transform:uppercase;letter-spacing:.04em;margin-top:4px}
+.rpt-kpi-change{display:block;font-size:11px;margin-top:4px}
+.rpt-chart-container{background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;padding:16px}
+.rpt-bar-chart{display:flex;align-items:flex-end;gap:2px;height:120px;padding:0 4px}
+.rpt-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;min-width:0}
+.rpt-bar{width:100%;max-width:20px;background:linear-gradient(180deg,#E85102 0%,#EC4899 100%);border-radius:3px 3px 0 0;min-height:2px}
+.rpt-bar-label{font-size:8px;color:#9CA3AF;margin-top:4px;white-space:nowrap}
+.rpt-chart-footer{display:flex;justify-content:space-between;font-size:11px;color:#6B7280;margin-top:10px;padding-top:8px;border-top:1px solid #E5E7EB}
+.rpt-post-types{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.rpt-type-pill{display:inline-flex;padding:4px 10px;background:#F3F4F6;border-radius:6px;font-size:12px;color:#374151}
+.rpt-type-pill--sm{font-size:11px;padding:2px 6px}
+.rpt-table{width:100%;border-collapse:collapse;font-size:12px}
+.rpt-table th{background:#F3F4F6;padding:8px 10px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#374151;border-bottom:2px solid #E5E7EB}
+.rpt-table td{padding:8px 10px;border-bottom:1px solid #F3F4F6}
+.rpt-td-title{font-weight:500;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rpt-table--compare td:first-child{font-weight:600}
+.rpt-footer{display:flex;justify-content:space-between;align-items:center;padding-top:16px;border-top:1px solid #E5E7EB;margin-top:24px;font-size:11px;color:#9CA3AF}
+.rpt-footer-brand{font-weight:700;color:#E85102}
+.rpt-footer-sep{margin:0 6px}
+@media print{body{padding:0}.rpt-container{padding:16px;max-width:100%}.rpt-kpi,.rpt-section{page-break-inside:avoid}}
+</style></head><body>${reportFrame.innerHTML}</body></html>`);
+    printWin.document.close();
+    printWin.focus();
+    setTimeout(() => printWin.print(), 500);
+    if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('PDF pronto');
+  },
+
+  // ── PDF Export (legacy — dashboard quick export) ────────
   _exportPDF() {
     if (typeof TBO_TOAST !== 'undefined') {
       TBO_TOAST.info('Exportando', 'Gerando relatorio PDF...');

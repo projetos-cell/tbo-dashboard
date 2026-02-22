@@ -100,6 +100,17 @@ const TBO_FILE_STORAGE = (() => {
     async uploadAvatar(userId, file) {
       const ext = file.name.split('.').pop();
       const path = `${userId}/avatar.${ext}`;
+      // Ensure avatars bucket exists before uploading
+      try {
+        const { error: bucketErr } = await _storage().createBucket(BUCKETS.AVATARS, {
+          public: true,
+          fileSizeLimit: MAX_FILE_SIZE
+        });
+        // Ignore "already exists" errors
+        if (bucketErr && !bucketErr.message?.includes('already exists')) {
+          console.warn('[TBO_FILE_STORAGE] Bucket create warning:', bucketErr.message);
+        }
+      } catch (_e) { /* bucket may already exist */ }
       return this.upload(BUCKETS.AVATARS, path, file, { upsert: true });
     }
   };

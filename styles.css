@@ -320,6 +320,7 @@ strong {
    SIDEBAR
    =================================================================== */
 .sidebar {
+  position: relative;
   width: var(--sidebar-width);
   height: 100vh;
   background: var(--bg-sidebar);
@@ -10721,6 +10722,44 @@ body.focus-mode .focus-exit-btn {
   height: 1px;
   background: var(--border-subtle);
   margin: 4px 8px;
+}
+
+.sidebar-context-item--danger {
+  color: var(--color-danger, #e74c3c);
+}
+
+.sidebar-context-item--danger:hover {
+  background: var(--color-danger-dim, rgba(231,76,60,0.15));
+  color: var(--color-danger, #e74c3c);
+}
+
+/* Dark mode overrides for context menus */
+body.dark-mode .sidebar-context-menu {
+  background: var(--bg-card);
+  border-color: var(--border-default);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3);
+}
+
+body.dark-mode .sidebar-context-item {
+  color: var(--text-secondary);
+}
+
+body.dark-mode .sidebar-context-item:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+body.dark-mode .sidebar-context-item--danger {
+  color: var(--color-danger, #e74c3c);
+}
+
+body.dark-mode .sidebar-context-item--danger:hover {
+  background: rgba(231,76,60,0.2);
+  color: #ff6b6b;
+}
+
+body.dark-mode .sidebar-context-separator {
+  background: var(--border-subtle);
 }
 
 /* ── 29. DRAG & DROP REORDER ────────────────────────────────────────────── */

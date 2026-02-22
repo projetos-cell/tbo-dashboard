@@ -180,7 +180,7 @@ const TBO_NOTION_SIDEBAR = (() => {
     if (visiblePages.length === 0) return '';
 
     // Estado expandido/colapsado
-    const isExpanded = _state[space.id] !== false; // default: expandido
+    const isExpanded = _state[space.id] === true; // default: recolhido
 
     // Verificar se alguma página ativa está neste espaço
     const hasActiveChild = visiblePages.some(p => p.route === currentRoute);

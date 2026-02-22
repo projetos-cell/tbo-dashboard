@@ -95,6 +95,7 @@ const TBO_APP = {
       'changelog': typeof TBO_CHANGELOG !== 'undefined' ? TBO_CHANGELOG : null,
       // timeline removido em v2.1
       'alerts': typeof TBO_ALERTS !== 'undefined' ? TBO_ALERTS : null,
+      'inbox': typeof TBO_INBOX !== 'undefined' ? TBO_INBOX : null,
       'pipeline': typeof TBO_PIPELINE !== 'undefined' ? TBO_PIPELINE : null,
       'clientes': typeof TBO_CLIENTES !== 'undefined' ? TBO_CLIENTES : null,
       'portal-cliente': typeof TBO_PORTAL_CLIENTE !== 'undefined' ? TBO_PORTAL_CLIENTE : null,
@@ -1528,14 +1529,31 @@ const TBO_APP = {
       searchBtn.addEventListener('click', () => this.toggleSearch(true));
     }
 
-    // v2.1: Handler do Sheets status badge (removido onclick inline do HTML para CSP)
-    const sheetsBtn = document.getElementById('statusSheets');
-    if (sheetsBtn) {
-      sheetsBtn.addEventListener('click', () => {
-        if (typeof TBO_SHEETS !== 'undefined' && TBO_SHEETS.forceRefresh) {
-          TBO_SHEETS.forceRefresh().then(() => location.reload());
-        }
+    // Inbox button — navigate to inbox + load badge
+    const inboxBtn = document.getElementById('inboxBtn');
+    if (inboxBtn) {
+      inboxBtn.addEventListener('click', () => {
+        if (typeof TBO_ROUTER !== 'undefined') TBO_ROUTER.navigate('inbox');
       });
+    }
+    // Load inbox unread count for badge
+    this._loadInboxBadge();
+  },
+
+  /**
+   * Carrega contagem de nao lidas e atualiza badge no header
+   */
+  async _loadInboxBadge() {
+    try {
+      if (typeof InboxRepo === 'undefined') return;
+      const count = await InboxRepo.unreadCount();
+      const badge = document.getElementById('inboxBadge');
+      if (badge) {
+        badge.textContent = count > 0 ? (count > 99 ? '99+' : count) : '';
+        badge.style.display = count > 0 ? 'flex' : 'none';
+      }
+    } catch (e) {
+      console.warn('[TBO OS] Inbox badge load error:', e);
     }
   },
 
@@ -1546,7 +1564,8 @@ const TBO_APP = {
   _moduleLabels: {
     // Inicio
     'dashboard': 'Dashboard',
-    'alerts': 'Caixa de Entrada',
+    'alerts': 'Alertas',
+    'inbox': 'Caixa de Entrada',
     'chat': 'Chat',
     // Execucao
     'projetos': 'Projetos',
@@ -1598,7 +1617,8 @@ const TBO_APP = {
   _moduleIcons: {
     // Inicio
     'dashboard': 'layout-dashboard',
-    'alerts': 'inbox',
+    'alerts': 'alert-triangle',
+    'inbox': 'inbox',
     'chat': 'message-circle',
     // Execucao
     'projetos': 'folder-kanban',
@@ -1719,28 +1739,6 @@ const TBO_APP = {
       mktDot.dataset.status = market.indicadores_curitiba ? 'connected' : 'stale';
     }
 
-    // Google Sheets status
-    const sheetsDot = document.querySelector('#statusSheets .status-dot');
-    const sheetsLabel = document.querySelector('#statusSheets .status-label');
-    if (sheetsDot && typeof TBO_SHEETS !== 'undefined') {
-      const status = TBO_SHEETS.getStatus();
-      if (status.syncing) {
-        sheetsDot.dataset.status = 'stale';
-        if (sheetsLabel) sheetsLabel.textContent = 'Sync...';
-      } else if (status.error) {
-        sheetsDot.dataset.status = 'disconnected';
-        if (sheetsLabel) sheetsLabel.textContent = 'Sheets';
-      } else if (status.lastSync) {
-        sheetsDot.dataset.status = 'connected';
-        if (sheetsLabel) sheetsLabel.textContent = 'Sheets';
-        // Update title with cache age
-        const badge = document.getElementById('statusSheets');
-        if (badge) badge.title = `Google Sheets — ${status.cacheAge || 'sincronizado'}`;
-      } else if (!status.enabled) {
-        sheetsDot.dataset.status = 'disconnected';
-        if (sheetsLabel) sheetsLabel.textContent = 'Sheets';
-      }
-    }
   },
 
   _updateFreshness() {
@@ -1946,7 +1944,6 @@ const TBO_APP = {
 
     try {
       // Clear caches to force fresh fetch
-      if (typeof TBO_SHEETS !== 'undefined') { TBO_SHEETS._cache = {}; }
       if (typeof TBO_FIREFLIES !== 'undefined') { TBO_FIREFLIES._cache = null; TBO_FIREFLIES._cacheTime = null; }
       await TBO_STORAGE.loadAll();
       this._updateStatus();

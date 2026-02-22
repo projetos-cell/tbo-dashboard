@@ -33,14 +33,31 @@ const TBO_REUNIOES = {
       totalMin += r.duration_minutes || r.duracao_min || 0;
     });
 
+    // Weekly count — meetings in current week (Mon-Sun)
+    const _now = new Date();
+    const _dayOfWeek = _now.getDay(); // 0=Sun, 1=Mon...
+    const _mondayOffset = _dayOfWeek === 0 ? -6 : 1 - _dayOfWeek;
+    const _weekStart = new Date(_now.getFullYear(), _now.getMonth(), _now.getDate() + _mondayOffset);
+    const _weekEnd = new Date(_weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const weeklyCount = meetingsArr.filter(r => {
+      const d = r.date || r.data || '';
+      if (!d) return false;
+      const dt = new Date(d);
+      return dt >= _weekStart && dt < _weekEnd;
+    }).length;
+
     return `
       <div class="reunioes-module">
         <!-- KPIs -->
         <section class="section">
-          <div class="grid-4">
+          <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:12px;">
             <div class="kpi-card">
               <div class="kpi-label">Reunioes Registradas</div>
               <div class="kpi-value">${meetingsArr.length}</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Esta Semana</div>
+              <div class="kpi-value" style="color:var(--accent-gold);">${weeklyCount}</div>
             </div>
             <div class="kpi-card">
               <div class="kpi-label">Minutos Totais</div>
@@ -88,11 +105,19 @@ const TBO_REUNIOES = {
               const summary = r.summary || r.resumo || '';
               const actionItems = r.action_items || [];
               const dateFormatted = date ? new Date(date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+              const source = r._source || 'manual';
+              const sourceBadge = source === 'google_calendar'
+                ? '<span style="font-size:0.65rem;padding:1px 6px;border-radius:4px;background:#4285f4;color:#fff;margin-left:6px;">Google Calendar</span>'
+                : source === 'fireflies'
+                ? '<span style="font-size:0.65rem;padding:1px 6px;border-radius:4px;background:#a855f7;color:#fff;margin-left:6px;">Fireflies</span>'
+                : source === 'supabase'
+                ? '<span style="font-size:0.65rem;padding:1px 6px;border-radius:4px;background:#22c55e;color:#fff;margin-left:6px;">Supabase</span>'
+                : '<span style="font-size:0.65rem;padding:1px 6px;border-radius:4px;background:#94a3b8;color:#fff;margin-left:6px;">Manual</span>';
               return `
               <div class="card rn-meeting-card" style="margin-bottom:8px; padding:14px;" data-title="${title.toLowerCase()}" data-cat="${category.toLowerCase()}">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                   <div style="flex:1;">
-                    <div style="font-weight:600; font-size:0.9rem;">${title}</div>
+                    <div style="font-weight:600; font-size:0.9rem;">${title}${sourceBadge}</div>
                     <div style="font-size:0.75rem; color:var(--text-tertiary); margin-top:2px;">
                       ${dateFormatted} &bull; <span class="tag" style="font-size:0.7rem; padding:1px 6px;">${category}</span> &bull; ${Math.round(duration)} min
                     </div>
@@ -613,34 +638,87 @@ const TBO_REUNIOES = {
     this._loading = true;
 
     try {
+      let baseMeetings = null;
+
       // Prioridade 1: MeetingsRepo (Supabase — fonte de verdade)
       if (typeof MeetingsRepo !== 'undefined') {
         const dbMeetings = await MeetingsRepo.list({ limit: 200 });
         if (dbMeetings && dbMeetings.length > 0) {
-          this._meetingsData = dbMeetings;
-          this._loading = false;
-          return;
+          baseMeetings = dbMeetings.map(m => ({ ...m, _source: m._source || 'supabase' }));
         }
       }
 
       // Prioridade 2: TBO_FIREFLIES.loadFromDb()
-      if (typeof TBO_FIREFLIES !== 'undefined' && TBO_FIREFLIES.isEnabled()) {
+      if (!baseMeetings && typeof TBO_FIREFLIES !== 'undefined' && TBO_FIREFLIES.isEnabled()) {
         const fMeetings = await TBO_FIREFLIES.loadFromDb();
         if (fMeetings && fMeetings.length > 0) {
-          this._meetingsData = fMeetings;
-          this._loading = false;
-          return;
+          baseMeetings = fMeetings.map(m => ({ ...m, _source: m._source || 'fireflies' }));
         }
       }
 
-      // Fallback: TBO_STORAGE (dados legacy)
-      this._meetingsData = null; // render() usará TBO_STORAGE
+      // Merge Google Calendar events (se disponivel)
+      const gcalEvents = this._getGoogleCalendarMeetings();
+      if (gcalEvents.length > 0) {
+        baseMeetings = (baseMeetings || []).concat(gcalEvents);
+        // Ordenar por data desc (mais recentes primeiro)
+        baseMeetings.sort((a, b) => {
+          const da = a.date || a.data || a.startAt || '';
+          const db = b.date || b.data || b.startAt || '';
+          return db.localeCompare(da);
+        });
+      }
+
+      this._meetingsData = baseMeetings || null; // null = render() usará TBO_STORAGE
     } catch (e) {
       console.warn('[TBO Reuniões] _loadMeetings falhou:', e.message);
       this._meetingsData = null;
     } finally {
       this._loading = false;
     }
+  },
+
+  /**
+   * Converte eventos do Google Calendar para o formato de reuniao do TBO.
+   * Filtra apenas eventos confirmados com 2+ participantes (reunioes reais).
+   */
+  _getGoogleCalendarMeetings() {
+    if (typeof TBO_GOOGLE_CALENDAR === 'undefined' || !TBO_GOOGLE_CALENDAR.isEnabled()) return [];
+    try {
+      const events = TBO_GOOGLE_CALENDAR.getEvents();
+      if (!events || events.length === 0) return [];
+
+      return events
+        .filter(e => e.status !== 'cancelled')
+        .map(e => ({
+          title: e.title || '(sem titulo)',
+          date: e.startAt || '',
+          data: e.startAt || '',
+          category: 'Google Calendar',
+          categoria: 'Google Calendar',
+          duration_minutes: this._calcDurationMin(e.startAt, e.endAt),
+          summary: e.description || '',
+          resumo: e.description || '',
+          participants: (e.attendees || []).map(a => ({ name: a.name || a.email, email: a.email })),
+          participantes: (e.attendees || []).map(a => ({ name: a.name || a.email, email: a.email })),
+          action_items: [],
+          _source: 'google_calendar',
+          _googleEventId: e.googleEventId || '',
+          _htmlLink: e.htmlLink || ''
+        }));
+    } catch (e) {
+      console.warn('[TBO Reuniões] Google Calendar merge falhou:', e.message);
+      return [];
+    }
+  },
+
+  /**
+   * Calcula duracao em minutos entre dois ISO datetimes.
+   */
+  _calcDurationMin(start, end) {
+    if (!start || !end) return 0;
+    try {
+      return Math.round((new Date(end) - new Date(start)) / 60000);
+    } catch { return 0; }
   },
 
   /**

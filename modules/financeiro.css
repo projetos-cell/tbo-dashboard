@@ -934,6 +934,27 @@
   animation: fn-omie-spin 1s linear infinite;
 }
 
+/* Info icon for KPI tooltips */
+.kpi-info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+  color: var(--text-muted, #999);
+  transition: color 0.2s ease;
+}
+
+.kpi-info-icon:hover {
+  color: var(--accent, #3b82f6);
+}
+
+.kpi-card [data-tooltip]::after {
+  white-space: normal;
+  max-width: 220px;
+  line-height: 1.4;
+  text-align: left;
+}
+
 /* Dark mode ajustes */
 [data-theme="dark"] .fn-badge--omie {
   background: rgba(59, 130, 246, 0.15);

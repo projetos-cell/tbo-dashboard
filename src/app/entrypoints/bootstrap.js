@@ -91,6 +91,11 @@
         if (typeof TBO_GOOGLE_DRIVE !== 'undefined') {
           TBO_INTEGRATION_SYNC.register('google-drive', () => TBO_GOOGLE_DRIVE.sync(), { retries: 1, interval: 60 * 60 * 1000 });
         }
+        // Start auto-sync every 30 minutes for Fireflies
+        if (typeof TBO_FIREFLIES !== 'undefined') {
+          TBO_INTEGRATION_SYNC.scheduleAutoSync('fireflies', 30 * 60 * 1000);
+          console.log('[BOOT] Fireflies auto-sync iniciado (30min)');
+        }
         _mark('integrations_registered');
         console.log('[BOOT] Integrações registradas no sync orchestrator');
       }

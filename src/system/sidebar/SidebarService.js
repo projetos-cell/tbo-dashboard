@@ -28,6 +28,7 @@ const TBO_SIDEBAR_SERVICE = (() => {
 
   const CACHE_KEY = 'tbo_sidebar_items_cache';
   const STATE_KEY = 'tbo_sidebar_user_state';
+  const ORDER_KEY = 'tbo_sidebar_custom_order';
   const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 
   // ── Estrutura padrão (fallback quando Supabase indisponível) ────────────
@@ -58,7 +59,7 @@ const TBO_SIDEBAR_SERVICE = (() => {
     { id: 'geral-quadro-v2',   name: 'Quadro Geral v2',      type: 'child', order_index: 9.02, icon: 'layout-grid',      route: null, parent_id: 'ws-geral', allowed_roles: [], metadata: { external_url: 'https://www.notion.so/2c5b27ff29e3807d8658fca89047002f' } },
     { id: 'geral-cultura',     name: 'Manual de Cultura',     type: 'child', order_index: 9.03, icon: 'book-open',        route: null, parent_id: 'ws-geral', allowed_roles: [], metadata: { external_url: 'https://www.notion.so/2193782e356143e5b41756c78e230cec' } },
     { id: 'geral-docs',        name: 'Documentos & Padrões',  type: 'child', order_index: 9.04, icon: 'file-text',        route: null, parent_id: 'ws-geral', allowed_roles: [], metadata: { external_url: 'https://www.notion.so/1c58ac19b4de401bacc051dba890f357' } },
-    { id: 'geral-okrs',        name: 'OKRs TBO — 2026',      type: 'child', order_index: 9.05, icon: 'target',           route: null, parent_id: 'ws-geral', allowed_roles: [], metadata: { external_url: 'https://www.notion.so/2e0b27ff29e38020bf63e8cf9b3714d5' } },
+    { id: 'geral-okrs',        name: 'OKRs TBO — 2026',      type: 'child', order_index: 14.56, icon: 'target',           route: null, parent_id: 'ws-pessoas', allowed_roles: [], metadata: { external_url: 'https://www.notion.so/2e0b27ff29e38020bf63e8cf9b3714d5' } },
     { id: 'geral-bds',         name: 'BDs | TBO',             type: 'child', order_index: 9.06, icon: 'database',         route: null, parent_id: 'ws-geral', allowed_roles: [], metadata: { external_url: 'https://www.notion.so/1fab27ff29e380d9b152d288ecd5b2da' } },
 
     // ── Sub-items: Branding ─────────────────────────────────────────────
@@ -329,7 +330,10 @@ const TBO_SIDEBAR_SERVICE = (() => {
       _saveCache(DEFAULT_ITEMS);
     }
 
-    // 4. Fetch estado do usuário do Supabase
+    // 4. Aplicar ordem customizada do drag & drop (localStorage)
+    _applyCustomOrder();
+
+    // 5. Fetch estado do usuário do Supabase
     await _fetchUserState();
 
     _loading = false;
@@ -384,8 +388,8 @@ const TBO_SIDEBAR_SERVICE = (() => {
     if (state && typeof state.is_expanded === 'boolean') {
       return state.is_expanded;
     }
-    // Default: expandido
-    return true;
+    // Default: recolhido (collapsed)
+    return false;
   }
 
   /**
@@ -416,6 +420,99 @@ const TBO_SIDEBAR_SERVICE = (() => {
     await init();
   }
 
+  // ── Custom Order (drag & drop persistence) ──────────────────────────────
+
+  function _loadCustomOrder() {
+    try {
+      const raw = localStorage.getItem(ORDER_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (_e) {
+      return null;
+    }
+  }
+
+  function _saveCustomOrder(orderMap) {
+    try {
+      localStorage.setItem(ORDER_KEY, JSON.stringify(orderMap));
+    } catch (_e) {
+      // noop
+    }
+  }
+
+  /**
+   * Aplica ordem customizada (do localStorage) sobre os items carregados.
+   * orderMap: { itemId: newOrderIndex, ... }
+   */
+  function _applyCustomOrder() {
+    const orderMap = _loadCustomOrder();
+    if (!orderMap) return;
+    _items.forEach(item => {
+      if (orderMap[item.id] !== undefined) {
+        item.order_index = orderMap[item.id];
+      }
+    });
+  }
+
+  /**
+   * Reordena workspaces: recebe lista ordenada de workspace IDs na nova posição.
+   * Recalcula order_index para cada workspace mantendo a sequência.
+   * @param {string[]} orderedIds - IDs dos workspaces na ordem desejada
+   */
+  function reorderWorkspaces(orderedIds) {
+    const orderMap = _loadCustomOrder() || {};
+
+    // Pegar workspaces atuais com seus order_index para referência
+    const workspaces = _items.filter(i => i.type === 'workspace').sort((a, b) => a.order_index - b.order_index);
+    if (workspaces.length === 0) return;
+
+    // Usar o menor order_index dos workspaces como base
+    const baseIndex = workspaces[0].order_index;
+
+    // Atribuir novos order_index sequenciais
+    orderedIds.forEach((id, idx) => {
+      const item = _items.find(i => i.id === id);
+      if (item) {
+        const newIndex = baseIndex + idx;
+        item.order_index = newIndex;
+        orderMap[id] = newIndex;
+      }
+    });
+
+    _saveCustomOrder(orderMap);
+    _saveCache(_items);
+  }
+
+  /**
+   * Reordena children dentro de um workspace: recebe lista ordenada de child IDs.
+   * @param {string} parentId - ID do workspace pai
+   * @param {string[]} orderedIds - IDs dos children na ordem desejada
+   */
+  function reorderChildren(parentId, orderedIds) {
+    const orderMap = _loadCustomOrder() || {};
+
+    // Pegar children atuais do workspace
+    const children = _items
+      .filter(i => i.type === 'child' && i.parent_id === parentId)
+      .sort((a, b) => a.order_index - b.order_index);
+    if (children.length === 0) return;
+
+    // Usar o menor order_index dos children como base
+    const baseIndex = children[0].order_index;
+    const step = 0.01; // step entre children
+
+    orderedIds.forEach((id, idx) => {
+      const item = _items.find(i => i.id === id);
+      if (item) {
+        const newIndex = baseIndex + (idx * step);
+        item.order_index = newIndex;
+        orderMap[id] = newIndex;
+      }
+    });
+
+    _saveCustomOrder(orderMap);
+    _saveCache(_items);
+  }
+
   /**
    * Retorna badge count para um item
    */
@@ -442,6 +539,8 @@ const TBO_SIDEBAR_SERVICE = (() => {
     refresh,
     refreshRole,
     getBadge,
+    reorderWorkspaces,
+    reorderChildren,
     get loading() { return _loading; },
     get initialized() { return _initialized; },
     get userRole() { return _userRole; }

@@ -159,7 +159,7 @@ const TBO_PERMISSIONS = {
       id: 'inicio',
       label: 'INÍCIO',
       icon: 'home',
-      modules: ['dashboard', 'alerts', 'chat']
+      modules: ['dashboard', 'inbox', 'alerts', 'chat']
     },
     {
       id: 'execucao',

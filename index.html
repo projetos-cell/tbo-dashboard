@@ -209,10 +209,6 @@
             <span class="status-dot" data-status="disconnected"></span>
             <span class="status-label">API</span>
           </div>
-          <div class="status-badge" id="statusSheets" title="Google Sheets (Financeiro)" style="cursor:pointer;">
-            <span class="status-dot" data-status="disconnected"></span>
-            <span class="status-label">Sheets</span>
-          </div>
         </div>
 
         <!-- Data Freshness -->
@@ -224,6 +220,10 @@
         <!-- Quick Actions -->
         <button class="header-action-btn" id="refreshBtn" title="Atualizar dados" aria-label="Atualizar dados">
           <i data-lucide="refresh-cw" aria-hidden="true"></i>
+        </button>
+        <button class="header-action-btn" id="inboxBtn" title="Caixa de Entrada" aria-label="Abrir caixa de entrada" style="position:relative;">
+          <i data-lucide="inbox" aria-hidden="true"></i>
+          <span id="inboxBadge" class="inbox-header-badge" style="display:none;position:absolute;top:2px;right:2px;min-width:16px;height:16px;border-radius:8px;background:#EF4444;color:#fff;font-size:0.6rem;font-weight:700;align-items:center;justify-content:center;padding:0 4px;line-height:16px;"></span>
         </button>
         <button class="header-action-btn" id="searchBtn" title="Busca rápida" aria-label="Abrir busca rápida">
           <i data-lucide="search" aria-hidden="true"></i>
@@ -420,6 +420,7 @@
   <script defer src="src/infra/supabase/queries/spaces.js"></script>
   <script defer src="src/infra/supabase/queries/meetings.js"></script>
   <script defer src="src/infra/supabase/queries/files.js"></script>
+  <script defer src="src/infra/supabase/queries/inbox.js"></script>
 
   <!-- Infra: Integration Contracts -->
   <script defer src="src/infra/integrations/rdstation/index.js"></script>
@@ -487,8 +488,6 @@
   <!-- Supabase Wrapper (must load after CDN, before storage) -->
   <script defer src="utils/supabase.js"></script>
 
-  <!-- Google Sheets Integration (live financial data) -->
-  <script defer src="utils/google-sheets.js"></script>
 
   <!-- Fireflies.ai Integration (live meeting data) -->
   <script defer src="utils/fireflies.js"></script>
@@ -539,6 +538,7 @@
   <!-- Module Scripts -->
   <script defer src="modules/placeholder.js"></script>
   <script defer src="modules/alerts.js"></script>
+  <script defer src="modules/inbox.js"></script>
   <script defer src="modules/pipeline.js"></script>
   <script defer src="modules/clientes.js"></script>
   <script defer src="data/contratos-data.js"></script>

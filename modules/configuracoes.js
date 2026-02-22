@@ -171,7 +171,6 @@ const TBO_CONFIGURACOES = {
       ${this._renderIntegrationCard_RDStation()}
       ${this._renderIntegrationCard_GoogleCalendar()}
       ${this._renderIntegrationCard_GoogleDrive()}
-      ${this._renderIntegrationCard_GoogleSheets()}
       ${this._renderIntegrationCard_Zapier()}
       ${this._renderIntegrationCard_Notion()}
     `;
@@ -446,54 +445,6 @@ const TBO_CONFIGURACOES = {
     `;
   },
 
-  _renderIntegrationCard_GoogleSheets() {
-    const available = typeof TBO_SHEETS !== 'undefined';
-    const sheetId = localStorage.getItem('tbo_sheets_id') || '';
-    const lastSync = localStorage.getItem('tbo_sheets_last_sync');
-    const connected = available && !!sheetId;
-
-    return `
-      <div class="card cfg-card cfg-integration-card">
-        <div class="cfg-integration-header">
-          <div class="cfg-integration-icon" style="background:#0f9d5822;color:#0f9d58;">
-            <i data-lucide="table"></i>
-          </div>
-          <div class="cfg-integration-meta">
-            <h3>Google Sheets</h3>
-            <span class="cfg-integration-desc">Planilhas financeiras e fluxo de caixa</span>
-          </div>
-          <span class="cfg-status-badge ${connected ? 'connected' : 'disconnected'}">
-            ${connected ? 'Conectado' : 'Desconectado'}
-          </span>
-        </div>
-
-        <div class="cfg-integration-body">
-          <div class="cfg-field-row">
-            <label class="form-label">Spreadsheet ID</label>
-            <div class="cfg-field-input-group">
-              <input type="text" class="form-input" id="cfgSheetsId"
-                     value="${sheetId}"
-                     placeholder="ID da planilha Google Sheets...">
-              <button class="btn btn-primary btn-sm" id="cfgSaveSheetsId">Salvar</button>
-            </div>
-            <span class="cfg-field-hint">O ID esta na URL: docs.google.com/spreadsheets/d/<strong>[ID]</strong>/edit</span>
-          </div>
-
-          <div class="cfg-integration-actions">
-            <button class="btn btn-secondary btn-sm" id="cfgSyncSheets" ${!connected ? 'disabled' : ''}>
-              <i data-lucide="refresh-cw"></i> Sincronizar Dados
-            </button>
-          </div>
-
-          ${lastSync ? `
-          <div class="cfg-integration-status">
-            <span>Ultimo sync: <strong>${new Date(lastSync).toLocaleString('pt-BR')}</strong></span>
-          </div>` : ''}
-        </div>
-      </div>
-    `;
-  },
-
   _renderIntegrationCard_Notion() {
     return `
       <div class="card cfg-card cfg-integration-card cfg-integration-disabled">
@@ -750,7 +701,6 @@ const TBO_CONFIGURACOES = {
       { name: 'Fireflies', icon: 'flame', ok: typeof TBO_FIREFLIES !== 'undefined' && TBO_FIREFLIES.isEnabled(), detail: `${meetingsArr.length} reunioes` },
       { name: 'RD Station', icon: 'target', ok: typeof TBO_RD_STATION !== 'undefined' && TBO_RD_STATION.isEnabled() },
       { name: 'Google Calendar', icon: 'calendar', ok: typeof TBO_GOOGLE_CALENDAR !== 'undefined' && TBO_GOOGLE_CALENDAR.isEnabled() },
-      { name: 'Google Sheets', icon: 'table', ok: typeof TBO_SHEETS !== 'undefined' && !!localStorage.getItem('tbo_sheets_id') },
       { name: 'Supabase', icon: 'database', ok: typeof TBO_SUPABASE !== 'undefined' && !!TBO_SUPABASE.getClient() }
     ];
 
@@ -873,9 +823,6 @@ const TBO_CONFIGURACOES = {
         <div class="cfg-fin-actions">
           <button class="btn btn-primary" id="cfgSaveFinancial" style="flex:1;">
             <i data-lucide="save"></i> Salvar no Supabase
-          </button>
-          <button class="btn btn-secondary" id="cfgSyncFromSheets" style="flex:1;">
-            <i data-lucide="table"></i> Sync Google Sheets
           </button>
         </div>
         <div id="cfgFinSaveResult" class="cfg-test-result" style="display:none;"></div>
@@ -1367,33 +1314,6 @@ const TBO_CONFIGURACOES = {
       });
     }
 
-    // === Google Sheets ===
-    this._bind('cfgSaveSheetsId', () => {
-      const input = document.getElementById('cfgSheetsId');
-      if (!input) return;
-      const id = input.value.trim();
-      if (!id) {
-        TBO_TOAST.warning('Google Sheets', 'Informe o ID da planilha.');
-        return;
-      }
-      localStorage.setItem('tbo_sheets_id', id);
-      TBO_TOAST.success('Google Sheets', 'Spreadsheet ID salvo!');
-    });
-
-    this._bind('cfgSyncSheets', async () => {
-      if (typeof TBO_SHEETS === 'undefined') {
-        TBO_TOAST.warning('Google Sheets', 'Modulo de Google Sheets nao disponivel.');
-        return;
-      }
-      TBO_TOAST.info('Google Sheets', 'Sincronizando dados...');
-      try {
-        await TBO_SHEETS.syncFluxoCaixa();
-        localStorage.setItem('tbo_sheets_last_sync', new Date().toISOString());
-        TBO_TOAST.success('Google Sheets', 'Dados sincronizados com sucesso!');
-      } catch (e) {
-        TBO_TOAST.error('Google Sheets', `Erro: ${e.message}`);
-      }
-    });
   },
 
   // ── Bindings: Inteligencia Artificial ────────────────────────────────────
@@ -1615,20 +1535,6 @@ const TBO_CONFIGURACOES = {
           resultEl.innerHTML = '<span style="color:#f59e0b;">&#9888; Salvo localmente. Supabase indisponivel.</span>';
           TBO_TOAST.info('Configuracoes financeiras', 'Salvo localmente. Execute "Criar Tabelas" se o Supabase nao esta configurado.');
         }
-      }
-    });
-
-    this._bind('cfgSyncFromSheets', async () => {
-      if (typeof TBO_SHEETS === 'undefined') {
-        TBO_TOAST.warning('Google Sheets', 'Modulo de Google Sheets nao disponivel.');
-        return;
-      }
-      TBO_TOAST.info('Google Sheets', 'Sincronizando dados financeiros...');
-      try {
-        await TBO_SHEETS.syncFluxoCaixa();
-        TBO_TOAST.success('Google Sheets', 'Fluxo de caixa atualizado da planilha!');
-      } catch (e) {
-        TBO_TOAST.error('Google Sheets', `Erro: ${e.message}`);
       }
     });
 

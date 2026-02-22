@@ -24,15 +24,6 @@ const TBO_CULTURA = {
         </div>
       </div>
 
-      <!-- Tabs -->
-      <div style="display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border-default);">
-        <button class="btn btn-ghost cultura-tab-btn" data-tab="manual" style="border-radius:var(--radius-md) var(--radius-md) 0 0;border-bottom:2px solid ${this._tab === 'manual' ? 'var(--brand-primary)' : 'transparent'};font-weight:${this._tab === 'manual' ? '600' : '400'};font-size:0.82rem;padding:8px 16px;">Manual Notion</button>
-        <button class="btn btn-ghost cultura-tab-btn" data-tab="paginas" style="border-radius:var(--radius-md) var(--radius-md) 0 0;border-bottom:2px solid ${this._tab === 'paginas' ? 'var(--brand-primary)' : 'transparent'};font-weight:${this._tab === 'paginas' ? '600' : '400'};font-size:0.82rem;padding:8px 16px;">Paginas (${this._customPages.length})</button>
-        <button class="btn btn-ghost cultura-tab-btn" data-tab="editor" style="border-radius:var(--radius-md) var(--radius-md) 0 0;border-bottom:2px solid ${this._tab === 'editor' ? 'var(--brand-primary)' : 'transparent'};font-weight:${this._tab === 'editor' ? '600' : '400'};font-size:0.82rem;padding:8px 16px;">+ Nova Pagina</button>
-      </div>
-
-      ${this._tab === 'paginas' ? this._renderCustomPages() : this._tab === 'editor' ? this._renderEditor() : ''}
-
       <div class="cultura-grid">
         ${sections.map(s => `
           <button class="cultura-card" data-section="${s.id}">
@@ -111,14 +102,6 @@ const TBO_CULTURA = {
   },
 
   init() {
-    // Tab navigation
-    document.querySelectorAll('.cultura-tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        this._tab = btn.dataset.tab;
-        this._rerender();
-      });
-    });
-
     document.querySelectorAll('.cultura-card').forEach(card => {
       card.addEventListener('click', () => {
         const sectionId = card.dataset.section;

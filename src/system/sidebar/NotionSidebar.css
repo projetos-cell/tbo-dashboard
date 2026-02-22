@@ -400,6 +400,68 @@ body.dark-mode .nsb-ws-more:hover {
   background: var(--border-default, #3a3a3a);
 }
 
+/* ── Drag & Drop ───────────────────────────────────────────────────────── */
+
+.nsb-dragging {
+  opacity: 0.4;
+  background: var(--bg-card-hover, #f5f5f5);
+  border-radius: var(--radius-sm, 6px);
+}
+
+.nsb-drag-over {
+  background: var(--accent-alpha-08, rgba(232, 81, 2, 0.06));
+  border-radius: var(--radius-sm, 6px);
+}
+
+.nsb-drop-indicator {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  background: var(--brand-orange, #E85102);
+  border-radius: 1px;
+  pointer-events: none;
+  z-index: 10;
+  transition: top 0.05s ease;
+}
+
+.nsb-drop-indicator::before,
+.nsb-drop-indicator::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: var(--brand-orange, #E85102);
+  border-radius: 50%;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.nsb-drop-indicator::before {
+  left: -3px;
+}
+
+.nsb-drop-indicator::after {
+  right: -3px;
+}
+
+/* During drag, disable pointer events on nested elements to avoid flicker */
+.nsb-workspace.nsb-dragging * {
+  pointer-events: none;
+}
+
+.nsb-ws-child.nsb-dragging * {
+  pointer-events: none;
+}
+
+body.dark-mode .nsb-dragging {
+  background: var(--bg-card-hover, #2a2a2a);
+}
+
+body.dark-mode .nsb-drag-over {
+  background: var(--accent-alpha-08, rgba(232, 81, 2, 0.10));
+}
+
 /* ── v3.0: Esconder elementos clássicos quando Notion v2 está ativo ──── */
 #sidebar:has(.nsb-container) .sidebar-create,
 #sidebar:has(.nsb-container) .sidebar-search,

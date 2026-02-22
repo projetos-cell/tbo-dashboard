@@ -17,6 +17,7 @@ const TBO_FINANCEIRO = {
   _data: null,
   _activeTab: 'fn-dashboard',
   _refreshTimer: null,
+  _expandedClientList: false,
 
   // Cache de lookups (fornecedores, clientes, centros de custo, projetos)
   _vendors: [],
@@ -2546,22 +2547,22 @@ const TBO_FINANCEIRO = {
     // ── KPI Cards Row 1 (grid-4) ────────────────────────────────────────
     html += `<div class="grid-4 fn-kpi-grid" style="margin-bottom:16px;">
       <div class="kpi-card">
-        <div class="kpi-label">Receita Total</div>
+        <div style="display:flex;align-items:center;gap:6px;"><div class="kpi-label">Receita Total</div><span class="kpi-info-icon" data-tooltip="Soma de todos os recebiveis nao cancelados. Inclui valores em aberto, parciais e pagos."><i data-lucide="info" style="width:12px;height:12px;"></i></span></div>
         <div class="kpi-value" style="color:var(--color-success);">${fmt.currency(healthData.receitaTotal)}</div>
         <div class="kpi-change neutral">${healthData.totalReceivables} parcelas</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-label">Despesa Total</div>
+        <div style="display:flex;align-items:center;gap:6px;"><div class="kpi-label">Despesa Total</div><span class="kpi-info-icon" data-tooltip="Soma de todas as contas a pagar nao canceladas. Inclui valores em aberto, parciais e pagos."><i data-lucide="info" style="width:12px;height:12px;"></i></span></div>
         <div class="kpi-value" style="color:var(--color-danger);">${fmt.currency(healthData.despesaTotal)}</div>
         <div class="kpi-change neutral">${healthData.totalPayables} contas</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-label">Resultado</div>
+        <div style="display:flex;align-items:center;gap:6px;"><div class="kpi-label">Resultado</div><span class="kpi-info-icon" data-tooltip="Receita total menos despesa total. Indica se o periodo foi lucrativo."><i data-lucide="info" style="width:12px;height:12px;"></i></span></div>
         <div class="kpi-value" style="color:${healthData.resultado >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${fmt.currency(healthData.resultado)}</div>
         <div class="kpi-change ${healthData.margem >= 0 ? 'positive' : 'negative'}">Margem ${healthData.margem.toFixed(1)}%</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-label">A Receber (30d)</div>
+        <div style="display:flex;align-items:center;gap:6px;"><div class="kpi-label">A Receber (30d)</div><span class="kpi-info-icon" data-tooltip="Contas a receber vencendo nos proximos 30 dias. Nao inclui valores ja atrasados."><i data-lucide="info" style="width:12px;height:12px;"></i></span></div>
         <div class="kpi-value" style="color:var(--color-success);">${fmt.currency(kpis.aReceber30d)}</div>
         <div class="kpi-change neutral">${kpis.vencidasReceber > 0 ? kpis.vencidasReceber + ' atrasadas' : 'Tudo em dia'}</div>
       </div>
@@ -2570,22 +2571,22 @@ const TBO_FINANCEIRO = {
     // ── KPI Cards Row 2 (grid-4) ────────────────────────────────────────
     html += `<div class="grid-4 fn-kpi-grid" style="margin-bottom:24px;">
       <div class="kpi-card">
-        <div class="kpi-label">Atrasados (Receber)</div>
+        <div style="display:flex;align-items:center;gap:6px;"><div class="kpi-label">Atrasados (Receber)</div><span class="kpi-info-icon" data-tooltip="Contas a receber com vencimento ja expirado. Indica inadimplencia de clientes."><i data-lucide="info" style="width:12px;height:12px;"></i></span></div>
         <div class="kpi-value" style="color:${healthData.overdueRecTotal > 0 ? '#f59e0b' : 'var(--color-success)'};">${fmt.currency(healthData.overdueRecTotal)}</div>
         <div class="kpi-change ${delinquency.totalCount > 0 ? 'negative' : 'positive'}">${delinquency.totalCount} parcelas</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-label">Clientes</div>
+        <div style="display:flex;align-items:center;gap:6px;"><div class="kpi-label">Clientes</div><span class="kpi-info-icon" data-tooltip="Total de clientes com pelo menos uma conta a receber registrada."><i data-lucide="info" style="width:12px;height:12px;"></i></span></div>
         <div class="kpi-value">${clientBreakdown.totalClientes}</div>
         <div class="kpi-change neutral">Ticket medio ${fmt.currency(clientBreakdown.ticketMedio)}</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-label">Concentracao Top 5</div>
+        <div style="display:flex;align-items:center;gap:6px;"><div class="kpi-label">Concentracao Top 5</div><span class="kpi-info-icon" data-tooltip="Percentual da receita concentrado nos 5 maiores clientes. Acima de 60% indica risco de dependencia."><i data-lucide="info" style="width:12px;height:12px;"></i></span></div>
         <div class="kpi-value" style="color:${parseFloat(clientBreakdown.concentracaoTop5) > 60 ? '#f59e0b' : '#22c55e'};">${clientBreakdown.concentracaoTop5}%</div>
         <div class="kpi-change ${parseFloat(clientBreakdown.concentracaoTop5) > 60 ? 'negative' : 'positive'}">${parseFloat(clientBreakdown.concentracaoTop5) > 60 ? 'Risco de dependencia' : 'Diversificado'}</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-label">Saldo Atual</div>
+        <div style="display:flex;align-items:center;gap:6px;"><div class="kpi-label">Saldo Atual</div><span class="kpi-info-icon" data-tooltip="Saldo bancario registrado no sistema. Atualizado via formulario de saldo."><i data-lucide="info" style="width:12px;height:12px;"></i></span></div>
         <div class="kpi-value" style="color:${saldoColor};">${fmt.currency(kpis.saldoAtual)}</div>
         <div class="kpi-change neutral">${saldoDateStr}</div>
       </div>
@@ -2711,6 +2712,13 @@ const TBO_FINANCEIRO = {
     // ── Event listeners ─────────────────────────────────────────────────
     const saveBalanceBtn = document.getElementById('fnSaveBalanceBtn');
     if (saveBalanceBtn) saveBalanceBtn.addEventListener('click', () => this._saveBalance());
+
+    // Toggle client list expand/collapse
+    const toggleClientBtn = document.getElementById('fnToggleClientList');
+    if (toggleClientBtn) toggleClientBtn.addEventListener('click', () => {
+      this._expandedClientList = !this._expandedClientList;
+      this._renderDashboard(container);
+    });
 
     if (window.lucide) lucide.createIcons();
 
@@ -3435,8 +3443,9 @@ const TBO_FINANCEIRO = {
   // ═══════════════════════════════════════════════════════════════════════
 
   _renderVisaoCaixaSection(data, fmt) {
-    const runwayColor = data.runway >= 6 ? '#22c55e' : data.runway >= 3 ? '#f59e0b' : '#ef4444';
-    const runwayLabel = data.runway >= 12 ? 'Excelente' : data.runway >= 6 ? 'Saudavel' : data.runway >= 3 ? 'Atencao' : 'Critico';
+    const runwayVal = data.runway != null ? data.runway : null;
+    const runwayColor = runwayVal == null ? 'var(--text-secondary)' : runwayVal >= 6 ? '#22c55e' : runwayVal >= 3 ? '#f59e0b' : '#ef4444';
+    const runwayLabel = runwayVal == null ? 'Sem dados de despesas' : runwayVal >= 12 ? 'Excelente' : runwayVal >= 6 ? 'Saudavel' : runwayVal >= 3 ? 'Atencao' : 'Critico';
     const projColor = data.saldoProjetado30d >= 0 ? '#22c55e' : '#ef4444';
 
     return `<div class="card" style="margin-bottom:16px;padding:16px;">
@@ -3452,7 +3461,7 @@ const TBO_FINANCEIRO = {
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Runway</div>
-          <div class="kpi-value" style="color:${runwayColor};">${data.runway} meses</div>
+          <div class="kpi-value" style="color:${runwayColor};">${runwayVal != null ? runwayVal + ' meses' : 'N/D'}</div>
           <div class="kpi-change" style="color:${runwayColor};">${runwayLabel}</div>
         </div>
         <div class="kpi-card">
@@ -3773,9 +3782,10 @@ const TBO_FINANCEIRO = {
     const concColor = data.concentracaoTop5 > 70 ? '#ef4444' : data.concentracaoTop5 > 50 ? '#f59e0b' : '#22c55e';
     const concLabel = data.concentracaoTop5 > 70 ? 'Alta concentracao' : data.concentracaoTop5 > 50 ? 'Moderada' : 'Diversificada';
 
-    // Top 10 clientes por receita
+    // Clientes por receita (limit 10, expand on click)
+    const maxClientes = this._expandedClientList ? data.clienteRanking.length : 10;
     let clienteRows = '';
-    data.clienteRanking.slice(0, 10).forEach((c, i) => {
+    data.clienteRanking.slice(0, maxClientes).forEach((c, i) => {
       const barWidth = data.clienteRanking[0]?.receita > 0 ? Math.max(3, (c.receita / data.clienteRanking[0].receita) * 100) : 0;
       clienteRows += `<tr style="border-bottom:1px solid var(--border);">
         <td style="padding:5px 8px;font-size:12px;white-space:nowrap;">${i + 1}. ${this._esc(c.name)}</td>
@@ -3838,6 +3848,13 @@ const TBO_FINANCEIRO = {
           <tbody>${clienteRows || '<tr><td colspan="5" style="padding:8px;font-size:12px;color:var(--text-secondary);">Sem dados</td></tr>'}</tbody>
         </table>
       </div>
+      ${data.clienteRanking.length > 10 ? `
+        <div style="margin-top:12px;text-align:center;">
+          <button class="btn btn-secondary btn-sm" id="fnToggleClientList" style="font-size:11px;">
+            <i data-lucide="${this._expandedClientList ? 'chevron-up' : 'chevron-down'}" style="width:14px;height:14px;margin-right:4px;"></i>
+            ${this._expandedClientList ? 'Ver menos' : 'Ver mais (' + (data.clienteRanking.length - 10) + ' clientes)'}
+          </button>
+        </div>` : ''}
       ${data.clientesSemId > 0 ? `<div style="margin-top:8px;font-size:11px;color:var(--text-secondary);"><i data-lucide="info" style="width:11px;height:11px;vertical-align:middle;margin-right:3px;"></i>${data.clientesSemId} recebiveis sem cliente vinculado</div>` : ''}
     </div>`;
   },

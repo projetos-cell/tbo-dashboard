@@ -105,7 +105,6 @@ const TBO_STORAGE = {
     const t0 = performance.now();
 
     const apis = [
-      { name: 'Google Sheets', fn: () => this._loadFromGoogleSheets() },
       { name: 'Fireflies', fn: () => this._loadFromFireflies() },
       { name: 'RD Station', fn: () => this._loadFromRdStation() },
       { name: 'Google Calendar', fn: () => this._loadFromGoogleCalendar() }
@@ -164,42 +163,6 @@ const TBO_STORAGE = {
     } catch (e) {
       console.warn('[TBO Storage] Company context load failed:', e);
     }
-  },
-
-  async _loadFromGoogleSheets() {
-    if (typeof TBO_SHEETS === 'undefined' || !TBO_SHEETS.isEnabled()) return;
-    const sheetsData = await TBO_SHEETS.syncAll();
-    if (!sheetsData) return;
-
-    // Merge fluxo_caixa into context.dados_comerciais[fiscalYear]
-    const ctx = this._data.context || {};
-    const fy = TBO_CONFIG.app.fiscalYear;
-    if (!ctx.dados_comerciais) ctx.dados_comerciais = {};
-    if (!ctx.dados_comerciais[fy]) ctx.dados_comerciais[fy] = {};
-
-    if (sheetsData.fluxo_caixa) {
-      // Preserve meta_vendas and budget fields from static JSON if Sheets doesn't have them
-      const existingFC = ctx.dados_comerciais[fy].fluxo_caixa || {};
-      const merged = {
-        ...existingFC,        // Static JSON as base
-        ...sheetsData.fluxo_caixa  // Sheets data overrides
-      };
-      // Keep contas_a_receber from Sheets if available, otherwise keep static
-      if (sheetsData.fluxo_caixa.contas_a_receber) {
-        merged.contas_a_receber = sheetsData.fluxo_caixa.contas_a_receber;
-      }
-      ctx.dados_comerciais[fy].fluxo_caixa = merged;
-    }
-
-    if (sheetsData.custos_por_bu && Object.keys(sheetsData.custos_por_bu).length > 0) {
-      ctx.dados_comerciais[fy].custos_por_bu = {
-        ...(ctx.dados_comerciais[fy].custos_por_bu || {}),
-        ...sheetsData.custos_por_bu
-      };
-    }
-
-    this._data.context = ctx;
-    console.log('[TBO Storage] Financial data merged from Google Sheets');
   },
 
   async _loadFromFireflies() {

@@ -26,6 +26,7 @@ const TBO_ROUTE_REGISTRY = (() => {
     'rh':                     'rh',
     'chat':                   'chat',
     'alerts':                 'alerts',
+    'inbox':                  'inbox',
     'conteudo':               'conteudo',
     'mercado':                'mercado',
     'reunioes':               'reunioes',
@@ -87,7 +88,8 @@ const TBO_ROUTE_REGISTRY = (() => {
   const MODULE_META = {
     // Inicio
     'dashboard':              { label: 'Dashboard',              icon: 'layout-dashboard',   group: 'inicio',       color: '#E85102' },
-    'alerts':                 { label: 'Caixa de Entrada',       icon: 'inbox',              group: 'inicio',       color: '#EF4444' },
+    'alerts':                 { label: 'Alertas',                icon: 'alert-triangle',     group: 'inicio',       color: '#EF4444' },
+    'inbox':                  { label: 'Caixa de Entrada',       icon: 'inbox',              group: 'inicio',       color: '#3B82F6' },
     'chat':                   { label: 'Chat',                   icon: 'message-circle',     group: 'inicio',       color: '#6366F1' },
     // Execução
     'projetos':               { label: 'Projetos',               icon: 'folder-kanban',      group: 'execucao',     color: '#3B82F6' },

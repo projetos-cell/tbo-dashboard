@@ -1694,7 +1694,7 @@ const FinanceRepo = (() => {
       // Runway = saldo / media mensal de despesas
       const totalPago6m = (avgMonthlyPayRes.data || []).reduce((s, p) => s + (p.amount || 0), 0);
       const mediaMensal = totalPago6m / 6;
-      const runway = mediaMensal > 0 ? saldo / mediaMensal : 99;
+      const runway = mediaMensal > 0 ? Math.min(saldo / mediaMensal, 60) : null;
 
       // Totais proximos 30/60/90 dias
       const in30d = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
@@ -1710,7 +1710,7 @@ const FinanceRepo = (() => {
 
       return {
         saldo,
-        runway: Math.round(runway * 10) / 10,
+        runway: runway != null ? Math.round(runway * 10) / 10 : null,
         mediaMensalDespesa: mediaMensal,
         aPagar: { d30: aPagar30d, d60: aPagar60d, d90: aPagar90d },
         aReceber: { d30: aReceber30d, d60: aReceber60d, d90: aReceber90d },

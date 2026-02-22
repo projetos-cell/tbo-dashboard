@@ -85,7 +85,6 @@ const TBO_SIDEBAR_SERVICE = (() => {
     { id: 'com-pipeline',      name: 'Pipeline',              type: 'child', order_index: 14.01, icon: 'filter',          route: 'pipeline', parent_id: 'ws-comercial', allowed_roles: ['owner', 'admin', 'diretor', 'comercial', 'cs', 'financeiro'] },
     { id: 'com-clientes',      name: 'Clientes',              type: 'child', order_index: 14.02, icon: 'building-2',      route: 'clientes', parent_id: 'ws-comercial', allowed_roles: ['owner', 'admin', 'diretor', 'comercial', 'cs', 'financeiro'] },
     { id: 'com-propostas',     name: 'Propostas',             type: 'child', order_index: 14.03, icon: 'file-text',       route: 'comercial', parent_id: 'ws-comercial', allowed_roles: ['owner', 'admin', 'diretor', 'comercial', 'cs', 'financeiro'] },
-    { id: 'com-abordagens',    name: 'Biblioteca de Abordagens', type: 'child', order_index: 14.04, icon: 'book-open',   route: null, parent_id: 'ws-comercial', allowed_roles: ['owner', 'admin', 'diretor', 'comercial', 'cs', 'financeiro'], metadata: { external_url: 'https://www.notion.so/832d494e9f2a4539a3ba7cca7646ed75' } },
     { id: 'com-gestao',        name: 'Gestão Comercial',      type: 'child', order_index: 14.05, icon: 'chart-bar',       route: null, parent_id: 'ws-comercial', allowed_roles: ['owner', 'admin', 'diretor', 'comercial', 'cs', 'financeiro'], metadata: { external_url: 'https://www.notion.so/237083f5f949400a907f04cb07bf5e55' } },
 
     // ── Sub-items: Diretoria ────────────────────────────────────────────

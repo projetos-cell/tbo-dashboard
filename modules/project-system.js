@@ -355,26 +355,45 @@ const TBO_PROJECT_SYSTEM = (() => {
 
   // ── Table View ────────────────────────────────────────────────────────
   function _renderTable(container) {
+    // Sort by status group then order_index within each status
+    const columns = _getBoardColumns();
     const parentTasks = _tasks.filter(t => !t.parent_task_id);
+
+    // Group tasks by status, preserving column order
+    const groups = columns.map(col => ({
+      col,
+      tasks: parentTasks
+        .filter(t => t.status === col.id)
+        .sort((a, b) => (a.order_index || 0) - (b.order_index || 0)),
+    })).filter(g => g.tasks.length > 0);
+
+    // Flat ordered list respecting column groups and order_index
+    const sortedTasks = groups.flatMap(g => g.tasks);
 
     container.innerHTML = `
       <div class="ps-table-wrap">
-        <table class="ps-table">
+        <table class="ps-table" id="psTableList">
           <thead>
             <tr>
+              <th class="ps-table__th ps-table__th--handle"></th>
               <th class="ps-table__th">Tarefa</th>
               <th class="ps-table__th">Status</th>
               <th class="ps-table__th">Prioridade</th>
               <th class="ps-table__th">Responsavel</th>
               <th class="ps-table__th">Prazo</th>
-              <th class="ps-table__th" style="width:60px"></th>
+              <th class="ps-table__th" style="width:48px"></th>
             </tr>
           </thead>
-          <tbody>
-            ${parentTasks.length === 0 ? `
-              <tr><td colspan="6" class="ps-table__empty">Nenhuma tarefa encontrada</td></tr>
-            ` : parentTasks.map(t => `
-              <tr class="ps-table__row" data-task-id="${t.id}">
+          <tbody id="psTableBody">
+            ${sortedTasks.length === 0 ? `
+              <tr><td colspan="7" class="ps-table__empty">Nenhuma tarefa encontrada</td></tr>
+            ` : sortedTasks.map(t => `
+              <tr class="ps-table__row" data-task-id="${t.id}" data-status="${_esc(t.status)}" draggable="true">
+                <td class="ps-table__td ps-table__td--handle">
+                  <span class="ps-table__drag-handle" title="Arrastar para reordenar">
+                    <i data-lucide="grip-vertical" style="width:14px;height:14px"></i>
+                  </span>
+                </td>
                 <td class="ps-table__td ps-table__td--title">
                   <span class="ps-table__task-title">${_esc(t.title)}</span>
                 </td>
@@ -404,6 +423,171 @@ const TBO_PROJECT_SYSTEM = (() => {
         </table>
       </div>
     `;
+
+    _initTableDragDrop();
+  }
+
+  // ── Table (List) Drag & Drop ──────────────────────────────────────────
+  //
+  // Rows are draggable. Dropping reorders within status group when
+  // status matches, or moves to a different status group when dropped
+  // on a row of a different status.
+  //
+  let _tDnd = {
+    id: null,         // taskId being dragged
+    srcStatus: null,  // original status of dragged row
+    ghost: null,      // ghost element
+  };
+
+  function _initTableDragDrop() {
+    const tbody = document.getElementById('psTableBody');
+    if (!tbody) return;
+
+    tbody.addEventListener('dragstart', (e) => {
+      const row = e.target.closest('tr.ps-table__row[data-task-id]');
+      if (!row) { e.preventDefault(); return; }
+
+      _tDnd.id = row.dataset.taskId;
+      _tDnd.srcStatus = row.dataset.status;
+
+      row.classList.add('ps-table__row--dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', _tDnd.id);
+
+      // Ghost: a slim pill showing the task title
+      const title = row.querySelector('.ps-table__task-title')?.textContent || '';
+      const ghost = document.createElement('div');
+      ghost.className = 'ps-table__drag-ghost';
+      ghost.textContent = title;
+      ghost.style.cssText = [
+        'position:fixed', 'top:-200px', 'left:-200px',
+        'padding:6px 14px',
+        'background:#3B82F6',
+        'color:#fff',
+        'border-radius:6px',
+        'font-size:13px',
+        'font-weight:600',
+        'box-shadow:0 4px 16px rgba(0,0,0,0.18)',
+        'pointer-events:none',
+        'z-index:99999',
+        'white-space:nowrap',
+        'max-width:300px',
+        'overflow:hidden',
+        'text-overflow:ellipsis',
+      ].join(';');
+      document.body.appendChild(ghost);
+      _tDnd.ghost = ghost;
+      e.dataTransfer.setDragImage(ghost, 0, 14);
+    });
+
+    tbody.addEventListener('dragover', (e) => {
+      if (!_tDnd.id) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      _tableShowPlaceholder(e, tbody);
+    });
+
+    tbody.addEventListener('dragleave', (e) => {
+      if (!tbody.contains(e.relatedTarget)) {
+        tbody.querySelectorAll('.ps-table__row--drop-above, .ps-table__row--drop-below')
+          .forEach(r => r.classList.remove('ps-table__row--drop-above', 'ps-table__row--drop-below'));
+      }
+    });
+
+    tbody.addEventListener('dragend', () => {
+      _tableDndCleanup(tbody);
+    });
+
+    tbody.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      await _tableHandleDrop(e, tbody);
+      _tableDndCleanup(tbody);
+    });
+  }
+
+  function _tableShowPlaceholder(e, tbody) {
+    tbody.querySelectorAll('.ps-table__row--drop-above, .ps-table__row--drop-below')
+      .forEach(r => r.classList.remove('ps-table__row--drop-above', 'ps-table__row--drop-below'));
+
+    const targetRow = e.target.closest('tr.ps-table__row[data-task-id]');
+    if (!targetRow || targetRow.dataset.taskId === _tDnd.id) return;
+
+    const rect = targetRow.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    targetRow.classList.add(e.clientY < midY ? 'ps-table__row--drop-above' : 'ps-table__row--drop-below');
+  }
+
+  async function _tableHandleDrop(e, tbody) {
+    if (!_tDnd.id) return;
+
+    const targetRow = e.target.closest('tr.ps-table__row[data-task-id]');
+    const draggedRow = tbody.querySelector(`tr[data-task-id="${_tDnd.id}"]`);
+    if (!draggedRow) return;
+
+    // If dropped on itself, do nothing
+    if (!targetRow || targetRow.dataset.taskId === _tDnd.id) return;
+
+    const rect = targetRow.getBoundingClientRect();
+    const insertBefore = e.clientY < rect.top + rect.height / 2;
+
+    // New status = target row's status (allows cross-status drag)
+    const newStatus = targetRow.dataset.status;
+
+    // Build the current visible order from DOM (reflects user's intent)
+    const allRows = Array.from(tbody.querySelectorAll('tr.ps-table__row[data-task-id]'));
+    const draggedIdx = allRows.indexOf(draggedRow);
+    const targetIdx = allRows.indexOf(targetRow);
+
+    // Remove dragged from list, insert at new position
+    const reordered = allRows.filter(r => r !== draggedRow);
+    const insertAt = reordered.indexOf(targetRow) + (insertBefore ? 0 : 1);
+    reordered.splice(insertAt, 0, draggedRow);
+
+    // Optimistic DOM update: reorder rows visually
+    reordered.forEach(r => tbody.appendChild(r));
+
+    // Collect tasks that changed status or order, grouped by status
+    const taskMap = {}; // status -> [{id, newIdx}]
+    reordered.forEach((r, i) => {
+      const st = r === draggedRow ? newStatus : r.dataset.status;
+      if (!taskMap[st]) taskMap[st] = [];
+      taskMap[st].push({ id: r.dataset.taskId, newIdx: taskMap[st].length });
+    });
+
+    // Persist: update dragged task status+order, then re-index siblings
+    try {
+      const draggedNewIdx = taskMap[newStatus].find(t => t.id === _tDnd.id)?.newIdx ?? 0;
+      await ProjectSystemRepo.updateTaskOrder(_tDnd.id, newStatus, draggedNewIdx);
+
+      // Re-index all rows in affected statuses
+      const updatePromises = [];
+      for (const [status, items] of Object.entries(taskMap)) {
+        items.forEach(({ id, newIdx }) => {
+          if (id !== _tDnd.id) {
+            updatePromises.push(ProjectSystemRepo.updateTaskOrder(id, status, newIdx));
+          }
+        });
+      }
+      await Promise.all(updatePromises);
+
+      await _loadTasks();
+      _renderContent();
+    } catch (err) {
+      console.error('[ProjectSystem] table drop error:', err);
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro', 'Falha ao reordenar tarefa.');
+      await _loadTasks();
+      _renderContent();
+    }
+  }
+
+  function _tableDndCleanup(tbody) {
+    if (tbody) {
+      tbody.querySelectorAll('.ps-table__row--dragging').forEach(r => r.classList.remove('ps-table__row--dragging'));
+      tbody.querySelectorAll('.ps-table__row--drop-above, .ps-table__row--drop-below')
+        .forEach(r => r.classList.remove('ps-table__row--drop-above', 'ps-table__row--drop-below'));
+    }
+    if (_tDnd.ghost && _tDnd.ghost.parentNode) _tDnd.ghost.parentNode.removeChild(_tDnd.ghost);
+    _tDnd = { id: null, srcStatus: null, ghost: null };
   }
 
   function _getColColor(colId) {

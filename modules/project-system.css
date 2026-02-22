@@ -463,6 +463,12 @@
   white-space: nowrap;
 }
 
+/* Narrow column for the drag handle */
+.ps-table__th--handle {
+  width: 32px;
+  padding: 10px 6px 10px 12px;
+}
+
 .ps-table__row {
   cursor: pointer;
   transition: background 0.1s ease;
@@ -472,11 +478,52 @@
   background: var(--bg-hover, rgba(0,0,0,0.02));
 }
 
+/* Row being dragged: transparent in-place */
+.ps-table__row--dragging {
+  opacity: 0.3;
+  background: var(--bg-hover, rgba(59,130,246,0.04)) !important;
+  pointer-events: none;
+}
+
+/* Blue line above target row */
+.ps-table__row--drop-above td {
+  border-top: 2px solid #3B82F6;
+}
+
+/* Blue line below target row */
+.ps-table__row--drop-below td {
+  border-bottom: 2px solid #3B82F6;
+}
+
 .ps-table__td {
   padding: 10px 14px;
   border-bottom: 1px solid var(--border-color, #e2e8f0);
   color: var(--text-primary, #1e293b);
   vertical-align: middle;
+}
+
+/* Drag handle cell */
+.ps-table__td--handle {
+  padding: 10px 4px 10px 12px;
+  width: 32px;
+  cursor: grab;
+  color: var(--text-muted, #94a3b8);
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.ps-table__row:hover .ps-table__td--handle {
+  opacity: 1;
+}
+
+.ps-table__drag-handle {
+  display: flex;
+  align-items: center;
+  cursor: grab;
+}
+
+.ps-table__drag-handle:active {
+  cursor: grabbing;
 }
 
 .ps-table__td--title {

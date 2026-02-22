@@ -8,12 +8,14 @@ const TBO_PROJETOS_NOTION = {
   _state: {
     projects: [],
     demands: [],
+    allDemands: [],
     selectedProjectId: null,
     filters: { status: '', search: '' },
     demandFilters: { status: '', search: '' },
     loading: false,
     syncing: false,
     view: 'list', // 'list' | 'detail'
+    kpi: { activeProjects: 0, pendingDemands: 0, completedDemands: 0, hoursMonth: 0 },
   },
 
   // ── Lifecycle ──────────────────────────────────────────────────────────
@@ -22,6 +24,7 @@ const TBO_PROJETOS_NOTION = {
     this._state.view = 'list';
     this._state.selectedProjectId = null;
     this._loadProjects();
+    this._loadKpiData();
 
     return `
       <div class="projetos-notion-module">
@@ -47,6 +50,30 @@ const TBO_PROJETOS_NOTION = {
               <i data-lucide="refresh-cw" style="width:14px;height:14px"></i>
               Sync Notion
             </button>
+          </div>
+        </div>
+        <div id="pn-kpi-area" class="pn-kpi-area">
+          <div class="grid-4">
+            <div class="kpi-card kpi-card--blue">
+              <div class="kpi-label">Projetos Ativos</div>
+              <div class="kpi-value" id="pn-kpi-active">—</div>
+              <div class="kpi-change neutral" id="pn-kpi-active-sub">carregando...</div>
+            </div>
+            <div class="kpi-card kpi-card--warning">
+              <div class="kpi-label">Demandas Pendentes</div>
+              <div class="kpi-value" id="pn-kpi-pending">—</div>
+              <div class="kpi-change neutral" id="pn-kpi-pending-sub">carregando...</div>
+            </div>
+            <div class="kpi-card kpi-card--success">
+              <div class="kpi-label">Demandas Concluidas</div>
+              <div class="kpi-value" id="pn-kpi-completed">—</div>
+              <div class="kpi-change neutral" id="pn-kpi-completed-sub">carregando...</div>
+            </div>
+            <div class="kpi-card kpi-card--gold">
+              <div class="kpi-label">Horas Registradas</div>
+              <div class="kpi-value" id="pn-kpi-hours">—</div>
+              <div class="kpi-change neutral" id="pn-kpi-hours-sub">carregando...</div>
+            </div>
           </div>
         </div>
         <div id="pn-content" class="pn-content">
@@ -129,6 +156,69 @@ const TBO_PROJETOS_NOTION = {
       this._showError('Erro ao carregar projetos. Verifique sua conexao.');
     } finally {
       this._state.loading = false;
+    }
+  },
+
+  async _loadKpiData() {
+    try {
+      // 1) Projects: count active (em_andamento + producao) vs total
+      const projResult = await ProjectsRepo.listNotion({ limit: 500 });
+      const allProjects = projResult.data || [];
+      const activeStatuses = ['em_andamento', 'producao'];
+      const activeProjects = allProjects.filter(p => activeStatuses.includes(p.status));
+      const totalProjects = allProjects.length;
+
+      // 2) Demands: count pending vs completed
+      const demResult = await DemandsRepo.list({ limit: 1000 });
+      const allDemands = (demResult.data || demResult) || [];
+      this._state.allDemands = allDemands;
+      const completedStatuses = ['Concluido', 'Aprovado'];
+      const pendingStatuses = ['Briefing', 'Desenvolvimento', 'Revisao Interna', 'Cronograma', 'Apresentacao'];
+      const completedDemands = allDemands.filter(d => completedStatuses.includes(d.status));
+      const pendingDemands = allDemands.filter(d => pendingStatuses.includes(d.status));
+      const totalDemands = allDemands.length;
+
+      // 3) Hours: from TBO_WORKLOAD (current month)
+      let hoursMonth = 0;
+      let hoursLabel = 'este mes';
+      if (typeof TBO_WORKLOAD !== 'undefined') {
+        const now = new Date();
+        const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+        const monthEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()).padStart(2, '0')}`;
+        const entries = TBO_WORKLOAD.getTimeEntries({ dateFrom: monthStart, dateTo: monthEnd });
+        hoursMonth = entries.reduce((s, e) => s + (e.duration_minutes || 0), 0);
+      }
+
+      // Update state
+      this._state.kpi = { activeProjects: activeProjects.length, pendingDemands: pendingDemands.length, completedDemands: completedDemands.length, hoursMonth };
+
+      // Update DOM
+      const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+      setEl('pn-kpi-active', activeProjects.length);
+      setEl('pn-kpi-active-sub', `${totalProjects} projetos no total`);
+
+      setEl('pn-kpi-pending', pendingDemands.length);
+      setEl('pn-kpi-pending-sub', `${totalDemands} demandas no total`);
+
+      setEl('pn-kpi-completed', completedDemands.length);
+      const pctCompleted = totalDemands > 0 ? Math.round(completedDemands.length / totalDemands * 100) : 0;
+      setEl('pn-kpi-completed-sub', `${pctCompleted}% do total`);
+      const completedSubEl = document.getElementById('pn-kpi-completed-sub');
+      if (completedSubEl) {
+        completedSubEl.className = `kpi-change ${pctCompleted >= 50 ? 'positive' : 'neutral'}`;
+      }
+
+      if (typeof TBO_WORKLOAD !== 'undefined' && hoursMonth > 0) {
+        setEl('pn-kpi-hours', TBO_WORKLOAD.formatHoursMinutes(hoursMonth));
+      } else {
+        setEl('pn-kpi-hours', `${Math.round(hoursMonth / 60)}h`);
+      }
+      setEl('pn-kpi-hours-sub', hoursLabel);
+
+    } catch (err) {
+      console.error('[ProjetosNotion] Erro ao carregar KPIs:', err);
+      // Silently fail — KPIs show "—" if data unavailable
     }
   },
 

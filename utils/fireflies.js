@@ -534,9 +534,8 @@ const TBO_FIREFLIES = {
         } catch { /* ignore */ }
       }
 
-      // Retornar cache se disponível
-      if (this._cache) return this._cache;
-      return null;
+      // Re-lancar erro para que o backoff do storage.js funcione
+      throw e;
     } finally {
       this._syncing = false;
     }

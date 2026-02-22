@@ -289,9 +289,9 @@ const TBO_UI = {
 
     this._autoRefreshInterval = setInterval(async () => {
       try {
-        // Recarregar dados silenciosamente
+        // Recarregar apenas APIs externas (loadAll recarrega tudo, causando duplicacao)
         if (typeof TBO_STORAGE !== 'undefined') {
-          await TBO_STORAGE.loadAll();
+          TBO_STORAGE.loadExternalAPIs();
         }
         const newHash = this._computeDataHash();
         if (newHash !== this._autoRefreshHash) {

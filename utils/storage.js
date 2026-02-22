@@ -168,56 +168,48 @@ const TBO_STORAGE = {
 
   async _loadFromGoogleSheets() {
     if (typeof TBO_SHEETS === 'undefined' || !TBO_SHEETS.isEnabled()) return;
-    try {
-      const sheetsData = await TBO_SHEETS.syncAll();
-      if (!sheetsData) return;
+    const sheetsData = await TBO_SHEETS.syncAll();
+    if (!sheetsData) return;
 
-      // Merge fluxo_caixa into context.dados_comerciais[fiscalYear]
-      const ctx = this._data.context || {};
-      const fy = TBO_CONFIG.app.fiscalYear;
-      if (!ctx.dados_comerciais) ctx.dados_comerciais = {};
-      if (!ctx.dados_comerciais[fy]) ctx.dados_comerciais[fy] = {};
+    // Merge fluxo_caixa into context.dados_comerciais[fiscalYear]
+    const ctx = this._data.context || {};
+    const fy = TBO_CONFIG.app.fiscalYear;
+    if (!ctx.dados_comerciais) ctx.dados_comerciais = {};
+    if (!ctx.dados_comerciais[fy]) ctx.dados_comerciais[fy] = {};
 
-      if (sheetsData.fluxo_caixa) {
-        // Preserve meta_vendas and budget fields from static JSON if Sheets doesn't have them
-        const existingFC = ctx.dados_comerciais[fy].fluxo_caixa || {};
-        const merged = {
-          ...existingFC,        // Static JSON as base
-          ...sheetsData.fluxo_caixa  // Sheets data overrides
-        };
-        // Keep contas_a_receber from Sheets if available, otherwise keep static
-        if (sheetsData.fluxo_caixa.contas_a_receber) {
-          merged.contas_a_receber = sheetsData.fluxo_caixa.contas_a_receber;
-        }
-        ctx.dados_comerciais[fy].fluxo_caixa = merged;
+    if (sheetsData.fluxo_caixa) {
+      // Preserve meta_vendas and budget fields from static JSON if Sheets doesn't have them
+      const existingFC = ctx.dados_comerciais[fy].fluxo_caixa || {};
+      const merged = {
+        ...existingFC,        // Static JSON as base
+        ...sheetsData.fluxo_caixa  // Sheets data overrides
+      };
+      // Keep contas_a_receber from Sheets if available, otherwise keep static
+      if (sheetsData.fluxo_caixa.contas_a_receber) {
+        merged.contas_a_receber = sheetsData.fluxo_caixa.contas_a_receber;
       }
-
-      if (sheetsData.custos_por_bu && Object.keys(sheetsData.custos_por_bu).length > 0) {
-        ctx.dados_comerciais[fy].custos_por_bu = {
-          ...(ctx.dados_comerciais[fy].custos_por_bu || {}),
-          ...sheetsData.custos_por_bu
-        };
-      }
-
-      this._data.context = ctx;
-      console.log('[TBO Storage] Financial data merged from Google Sheets');
-    } catch (e) {
-      console.warn('[TBO Storage] Google Sheets load failed, using static data:', e.message);
+      ctx.dados_comerciais[fy].fluxo_caixa = merged;
     }
+
+    if (sheetsData.custos_por_bu && Object.keys(sheetsData.custos_por_bu).length > 0) {
+      ctx.dados_comerciais[fy].custos_por_bu = {
+        ...(ctx.dados_comerciais[fy].custos_por_bu || {}),
+        ...sheetsData.custos_por_bu
+      };
+    }
+
+    this._data.context = ctx;
+    console.log('[TBO Storage] Financial data merged from Google Sheets');
   },
 
   async _loadFromFireflies() {
     if (typeof TBO_FIREFLIES === 'undefined' || !TBO_FIREFLIES.isEnabled()) return;
-    try {
-      const ffData = await TBO_FIREFLIES.sync();
-      if (!ffData || !ffData.meetings || ffData.meetings.length === 0) return;
+    const ffData = await TBO_FIREFLIES.sync();
+    if (!ffData || !ffData.meetings || ffData.meetings.length === 0) return;
 
-      // Replace meetings data entirely (Fireflies is source of truth when available)
-      this._data.meetings = ffData;
-      console.log(`[TBO Storage] Meetings loaded from Fireflies API: ${ffData.meetings.length} meetings`);
-    } catch (e) {
-      console.warn('[TBO Storage] Fireflies load failed, using static data:', e.message);
-    }
+    // Replace meetings data entirely (Fireflies is source of truth when available)
+    this._data.meetings = ffData;
+    console.log(`[TBO Storage] Meetings loaded from Fireflies API: ${ffData.meetings.length} meetings`);
   },
 
   async _loadFromRdStation() {

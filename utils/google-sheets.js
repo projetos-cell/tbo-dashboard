@@ -494,12 +494,22 @@ const TBO_SHEETS = {
       console.log('[TBO Sheets] Syncing financial data from Google Sheets...');
       const startTime = Date.now();
 
-      // Fetch all tabs in parallel
+      // Fetch all tabs in parallel — erros individuais nao bloqueiam as demais
+      const errors = [];
       const [fluxoCaixa, contasReceber, custosBU] = await Promise.all([
-        this.fetchFluxoCaixa().catch(e => { console.warn('[TBO Sheets] Fluxo de Caixa fetch failed:', e); return null; }),
-        this.fetchContasReceber().catch(e => { console.warn('[TBO Sheets] A Receber fetch failed:', e); return null; }),
-        this.fetchCustosPorBU().catch(e => { console.warn('[TBO Sheets] Custos BU fetch failed:', e); return null; })
+        this.fetchFluxoCaixa().catch(e => { errors.push('Fluxo de Caixa'); return null; }),
+        this.fetchContasReceber().catch(e => { errors.push('A Receber'); return null; }),
+        this.fetchCustosPorBU().catch(e => { errors.push('Custos BU'); return null; })
       ]);
+
+      // Se TODAS falharam, propagar erro para que o backoff do storage.js funcione
+      if (errors.length === 3) {
+        this._syncing = false;
+        throw new Error(`Todas as abas falharam: ${errors.join(', ')}`);
+      }
+      if (errors.length > 0) {
+        console.warn(`[TBO Sheets] ${errors.length}/3 abas falharam: ${errors.join(', ')}`);
+      }
 
       const elapsed = Date.now() - startTime;
       this._lastSync = new Date().toISOString();

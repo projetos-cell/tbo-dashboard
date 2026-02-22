@@ -366,11 +366,12 @@ const TBO_SUPABASE = {
       const client = this.getClient();
       if (!client || !tenantId) return;
 
+      // Colunas reais da migration v3: provider, api_key_encrypted, api_secret_encrypted, is_active
       const { data, error } = await client
         .from('integration_configs')
-        .select('integration_type, api_key, api_secret, active')
+        .select('provider, api_key_encrypted, api_secret_encrypted, is_active')
         .eq('tenant_id', tenantId)
-        .eq('active', true);
+        .eq('is_active', true);
 
       if (error) {
         console.warn('[TBO Supabase] loadIntegrationKeys error:', error.message);
@@ -381,18 +382,20 @@ const TBO_SUPABASE = {
 
       // Persistir em localStorage para uso pelas integracoes existentes
       data.forEach(config => {
-        if (config.integration_type === 'fireflies' && config.api_key) {
-          localStorage.setItem('tbo_fireflies_api_key', config.api_key);
+        const apiKey = config.api_key_encrypted;
+        const apiSecret = config.api_secret_encrypted;
+        if (config.provider === 'fireflies' && apiKey) {
+          localStorage.setItem('tbo_fireflies_api_key', apiKey);
           localStorage.setItem('tbo_fireflies_enabled', 'true');
-        } else if (config.integration_type === 'omie' && config.api_key) {
-          localStorage.setItem('tbo_omie_app_key', config.api_key);
-          if (config.api_secret) localStorage.setItem('tbo_omie_app_secret', config.api_secret);
+        } else if (config.provider === 'omie' && apiKey) {
+          localStorage.setItem('tbo_omie_app_key', apiKey);
+          if (apiSecret) localStorage.setItem('tbo_omie_app_secret', apiSecret);
           localStorage.setItem('tbo_omie_enabled', 'true');
-        } else if (config.integration_type === 'rd_station' && config.api_key) {
-          localStorage.setItem('tbo_rd_api_token', config.api_key);
+        } else if (config.provider === 'rd_station' && apiKey) {
+          localStorage.setItem('tbo_rd_api_token', apiKey);
           localStorage.setItem('tbo_rd_enabled', 'true');
-        } else if (config.integration_type === 'google_calendar') {
-          localStorage.setItem('tbo_gcal_enabled', config.active ? 'true' : 'false');
+        } else if (config.provider === 'google_calendar') {
+          localStorage.setItem('tbo_gcal_enabled', config.is_active ? 'true' : 'false');
         }
       });
 

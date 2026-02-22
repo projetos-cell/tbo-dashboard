@@ -274,7 +274,7 @@ const TBO_SYSTEM_HEALTH = (() => {
         <i data-lucide="${expanded ? 'chevron-up' : 'chevron-down'}" style="width:18px;height:18px;color:#94A3B8;"></i>
       </div>
       ${expanded ? `
-      <div class="system-health-section-body">
+      <div class="system-health-section-body open">
         <table class="system-health-table">
           <thead>
             <tr>

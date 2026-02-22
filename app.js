@@ -132,7 +132,8 @@ const TBO_APP = {
       'people-profile': typeof TBO_PEOPLE_PROFILE !== 'undefined' ? TBO_PEOPLE_PROFILE : null,
       'relatorios': typeof TBO_RELATORIOS !== 'undefined' ? TBO_RELATORIOS : null,
       'rsm': typeof TBO_RSM !== 'undefined' ? TBO_RSM : null,
-      'page-editor': typeof TBO_PAGE_EDITOR !== 'undefined' ? TBO_PAGE_EDITOR : null
+      'page-editor': typeof TBO_PAGE_EDITOR !== 'undefined' ? TBO_PAGE_EDITOR : null,
+      'notion-embed': typeof TBO_NOTION_EMBED !== 'undefined' ? TBO_NOTION_EMBED : null
     };
 
     Object.entries(modules).forEach(([name, mod]) => {

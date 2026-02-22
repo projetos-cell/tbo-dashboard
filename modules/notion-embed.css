@@ -1,0 +1,208 @@
+/* ══════════════════════════════════════════════════════════════
+   TBO OS — Notion Embed Module CSS
+   Styles for inline Notion page embedding via iframe
+   ══════════════════════════════════════════════════════════════ */
+
+.notion-embed-module {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: calc(100vh - 64px);
+  background: var(--bg-primary, #fff);
+}
+
+/* ── Toolbar ────────────────────────────────────────────────── */
+
+.notion-embed-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-secondary, #f9fafb);
+  min-height: 44px;
+  flex-shrink: 0;
+}
+
+/* Breadcrumb */
+.notion-embed-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary, #6b7280);
+}
+
+.notion-embed-bc-parent {
+  opacity: 0.7;
+  font-weight: 500;
+}
+
+.notion-embed-bc-current {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+}
+
+/* Actions */
+.notion-embed-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.notion-embed-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-primary, #fff);
+  color: var(--text-secondary, #6b7280);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.notion-embed-actions .btn:hover {
+  background: var(--bg-hover, #f3f4f6);
+  color: var(--text-primary, #111827);
+  border-color: var(--border-hover, #d1d5db);
+}
+
+.notion-embed-actions .btn svg,
+.notion-embed-actions .btn i {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── Iframe Container ───────────────────────────────────────── */
+
+.notion-embed-frame-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.notion-embed-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #fff;
+}
+
+/* ── Loading Overlay ────────────────────────────────────────── */
+
+.notion-embed-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: var(--bg-primary, #fff);
+  z-index: 10;
+}
+
+.notion-embed-loading .loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-color, #e5e7eb);
+  border-top-color: var(--accent, #E85102);
+  border-radius: 50%;
+  animation: notion-embed-spin 0.8s linear infinite;
+}
+
+.notion-embed-loading p {
+  font-size: 13px;
+  color: var(--text-secondary, #6b7280);
+  margin: 0;
+}
+
+@keyframes notion-embed-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Error State ────────────────────────────────────────────── */
+
+.notion-embed-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 20px;
+  text-align: center;
+  height: 100%;
+  min-height: 400px;
+}
+
+.notion-embed-error h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+}
+
+.notion-embed-error p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary, #6b7280);
+  max-width: 400px;
+}
+
+.notion-embed-error .btn {
+  margin-top: 8px;
+}
+
+/* ── Dark Mode ──────────────────────────────────────────────── */
+
+[data-theme="dark"] .notion-embed-toolbar {
+  background: var(--bg-secondary, #1e1e2e);
+  border-color: var(--border-color, #374151);
+}
+
+[data-theme="dark"] .notion-embed-actions .btn {
+  background: var(--bg-tertiary, #2a2a3e);
+  border-color: var(--border-color, #374151);
+  color: var(--text-secondary, #9ca3af);
+}
+
+[data-theme="dark"] .notion-embed-actions .btn:hover {
+  background: var(--bg-hover, #374151);
+  color: var(--text-primary, #e5e7eb);
+}
+
+[data-theme="dark"] .notion-embed-loading {
+  background: var(--bg-primary, #111827);
+}
+
+[data-theme="dark"] .notion-embed-iframe {
+  background: #191919;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .notion-embed-toolbar {
+    padding: 6px 10px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .notion-embed-bc-parent {
+    display: none;
+  }
+
+  .notion-embed-breadcrumb i[data-lucide="chevron-right"] {
+    display: none;
+  }
+
+  .notion-embed-actions .btn span {
+    display: none;
+  }
+}

@@ -176,10 +176,11 @@ const TBO_SIDEBAR_RENDERER = (() => {
     const icon = child.icon || 'file';
     const title = _escHtml(child.name);
     const childId = child.id ? `data-child-id="${_escHtml(child.id)}"` : '';
+    const route = child.route || '';
     const extUrl = child.metadata?.external_url || null;
 
-    // Link externo (Notion) — abre em nova aba
-    if (extUrl) {
+    // Link externo (Notion) — abre em nova aba (somente se NAO tem rota interna)
+    if (extUrl && !route) {
       return `<div class="nsb-ws-item nsb-ws-child" ${childId} data-external-url="${_escHtml(extUrl)}" title="${title}">
         <i data-lucide="${_escHtml(icon)}"></i>
         <span class="nsb-ws-item-label">${title}</span>
@@ -187,8 +188,7 @@ const TBO_SIDEBAR_RENDERER = (() => {
       </div>`;
     }
 
-    // Rota interna — match de rota ativa
-    const route = child.route || '';
+    // Rota interna — match de rota ativa (suporta notion-embed/{id} deep links)
     const isActive = route && _activeRoute && (
       route === _activeRoute ||
       (_activeRoute.includes('/') && route === _activeRoute.split('/')[0]) ||

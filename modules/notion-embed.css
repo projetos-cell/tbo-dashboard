@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════════════════════
    TBO OS — Notion Embed Module CSS
-   Styles for inline Notion page embedding via iframe
+   Styles for inline Notion page embedding / landing pages
    ══════════════════════════════════════════════════════════════ */
 
 .notion-embed-module {
@@ -88,6 +88,9 @@
 }
 
 .notion-embed-iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   border: none;
@@ -159,6 +162,132 @@
   margin-top: 8px;
 }
 
+/* ══════════════════════════════════════════════════════════════
+   Landing Page (fallback when iframe isn't available)
+   ══════════════════════════════════════════════════════════════ */
+
+.notion-embed-landing {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: linear-gradient(180deg, var(--bg-secondary, #f9fafb) 0%, var(--bg-primary, #fff) 100%);
+}
+
+.notion-embed-landing-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 480px;
+  gap: 16px;
+}
+
+/* Icon circle */
+.notion-embed-landing-icon {
+  width: 96px;
+  height: 96px;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid;
+  margin-bottom: 4px;
+}
+
+/* Workspace badge */
+.notion-embed-landing-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Title */
+.notion-embed-landing-title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+  line-height: 1.2;
+}
+
+/* Description */
+.notion-embed-landing-desc {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text-secondary, #6b7280);
+  line-height: 1.6;
+  max-width: 400px;
+}
+
+/* CTA Button */
+.notion-embed-landing-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 28px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.notion-embed-landing-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  filter: brightness(1.08);
+}
+
+.notion-embed-landing-cta:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+
+.notion-embed-landing-cta svg {
+  flex-shrink: 0;
+}
+
+/* Meta info */
+.notion-embed-landing-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.notion-embed-landing-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+/* Tip */
+.notion-embed-landing-tip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0 0;
+  padding: 8px 16px;
+  font-size: 12px;
+  color: var(--text-tertiary, #9ca3af);
+  background: var(--bg-secondary, #f3f4f6);
+  border-radius: 8px;
+}
+
 /* ── Dark Mode ──────────────────────────────────────────────── */
 
 [data-theme="dark"] .notion-embed-toolbar {
@@ -185,6 +314,22 @@
   background: #191919;
 }
 
+[data-theme="dark"] .notion-embed-landing {
+  background: linear-gradient(180deg, var(--bg-secondary, #1e1e2e) 0%, var(--bg-primary, #111827) 100%);
+}
+
+[data-theme="dark"] .notion-embed-landing-title {
+  color: var(--text-primary, #e5e7eb);
+}
+
+[data-theme="dark"] .notion-embed-landing-tip {
+  background: var(--bg-tertiary, #1e1e2e);
+}
+
+[data-theme="dark"] .notion-embed-landing-cta svg path:first-child {
+  fill: #333;
+}
+
 /* ── Responsive ─────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
@@ -204,5 +349,24 @@
 
   .notion-embed-actions .btn span {
     display: none;
+  }
+
+  .notion-embed-landing-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 18px;
+  }
+
+  .notion-embed-landing-icon i {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .notion-embed-landing-title {
+    font-size: 22px;
+  }
+
+  .notion-embed-landing-meta {
+    gap: 10px;
   }
 }

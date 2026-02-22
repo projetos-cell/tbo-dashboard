@@ -44,7 +44,7 @@ const TBO_PERMISSIONS = {
   // v3: admin-portal, configuracoes, inteligencia-imobiliaria adicionados
   _adminModules: [
     'permissoes-config','integracoes','templates','workspace','pessoas-avancado',
-    'admin-portal','configuracoes','inteligencia-imobiliaria'
+    'admin-portal','configuracoes','inteligencia-imobiliaria','system-health'
   ],
 
   _roles: {

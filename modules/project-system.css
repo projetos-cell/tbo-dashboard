@@ -247,7 +247,8 @@
   flex-direction: column;
   gap: 8px;
   overflow-y: auto;
-  min-height: 60px;
+  /* Min height large enough to be a valid drop target even when empty */
+  min-height: 80px;
 }
 
 .ps-kanban__add-btn {
@@ -567,6 +568,17 @@
 }
 
 /* ── Column Drag ─────────────────────────────────────────────────────── */
+
+/* The entire col-header is draggable — show grab cursor */
+.ps-kanban__col-header[draggable="true"] {
+  cursor: grab;
+  user-select: none;
+}
+
+.ps-kanban__col-header[draggable="true"]:active {
+  cursor: grabbing;
+}
+
 .ps-kanban__col-drag-handle {
   display: flex;
   align-items: center;
@@ -586,16 +598,33 @@
   cursor: grabbing;
 }
 
+/* Column being dragged: fade out in-place */
 .ps-kanban__col--col-dragging {
-  opacity: 0.5;
-  outline: 2px dashed #3B82F6;
-  outline-offset: -2px;
+  opacity: 0.35;
+  transform: scale(0.98);
+  transition: opacity 0.15s, transform 0.15s;
 }
 
-.ps-kanban__col--col-dragover {
-  background: rgba(59, 130, 246, 0.06);
-  outline: 2px dashed #3B82F6;
-  outline-offset: -2px;
+/* Column drop target — left edge indicator */
+.ps-kanban__col--col-dragover-left {
+  box-shadow: -3px 0 0 0 #3B82F6;
+}
+
+/* Column drop target — right edge indicator */
+.ps-kanban__col--col-dragover-right {
+  box-shadow: 3px 0 0 0 #3B82F6;
+}
+
+/* Vertical placeholder between columns */
+.ps-dnd-col-placeholder {
+  flex: 0 0 4px;
+  min-width: 4px;
+  background: #3B82F6;
+  border-radius: 2px;
+  align-self: stretch;
+  margin: 0 2px;
+  pointer-events: none;
+  animation: ps-ph-pulse 0.6s ease-in-out infinite alternate;
 }
 
 .ps-kanban__col-name {
@@ -603,7 +632,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  cursor: pointer;
+  cursor: text;
   padding: 2px 4px;
   border-radius: 4px;
   transition: background 0.1s ease;
@@ -611,17 +640,53 @@
 
 .ps-kanban__col-name:hover {
   background: var(--bg-hover, rgba(0,0,0,0.06));
+  cursor: text;
 }
 
-/* ── Card drop position indicators ──────────────────────────────────── */
-.ps-card--drop-above {
-  border-top: 2px solid #3B82F6;
-  margin-top: -1px;
+/* ── Task drag states ────────────────────────────────────────────────── */
+
+/* The card being dragged fades in place */
+.ps-card--dragging {
+  opacity: 0.25 !important;
+  transform: none !important;
+  box-shadow: none !important;
+  cursor: grabbing !important;
+  pointer-events: none;
 }
 
-.ps-card--drop-below {
-  border-bottom: 2px solid #3B82F6;
-  margin-bottom: -1px;
+/* Column highlighted as drop target */
+.ps-kanban__col--dragover {
+  background: rgba(59, 130, 246, 0.05);
+  outline: 2px dashed rgba(59, 130, 246, 0.5);
+  outline-offset: -2px;
+  transition: background 0.1s, outline 0.1s;
+}
+
+/* Drop-zone at bottom of cards list (always present, invisible until needed) */
+.ps-kanban__drop-zone {
+  min-height: 40px;
+  flex: 1;
+  border-radius: 6px;
+  transition: background 0.1s;
+}
+
+.ps-kanban__col--dragover .ps-kanban__drop-zone {
+  background: rgba(59, 130, 246, 0.04);
+}
+
+/* Blue-line placeholder shown between cards during drag */
+.ps-dnd-placeholder {
+  height: 4px;
+  background: #3B82F6;
+  border-radius: 2px;
+  margin: 2px 0;
+  pointer-events: none;
+  animation: ps-ph-pulse 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes ps-ph-pulse {
+  from { opacity: 0.7; }
+  to   { opacity: 1; }
 }
 
 /* ── Modal ───────────────────────────────────────────────────────────── */

@@ -16,7 +16,6 @@ const TBO_PROJECT_SYSTEM = (() => {
   let _activeView = 'kanban'; // kanban | tabela | timeline
   let _filters = { status: '', priority: '', assignee_id: '', client_id: '', due_from: '', due_to: '' };
   let _teamMembers = [];
-  let _draggedTaskId = null;
   let _detailTask = null;
   let _comments = [];
   let _subtasks = [];
@@ -301,17 +300,18 @@ const TBO_PROJECT_SYSTEM = (() => {
           const colTasks = parentTasks.filter(t => t.status === col.id)
             .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
           return `
-            <div class="ps-kanban__col" data-col-id="${_esc(col.id)}" data-col-idx="${idx}" draggable="true">
-              <div class="ps-kanban__col-header" style="--col-color: ${col.color || '#64748B'}">
-                <span class="ps-kanban__col-drag-handle" title="Arrastar seção">
+            <div class="ps-kanban__col" data-col-id="${_esc(col.id)}" data-col-idx="${idx}">
+              <div class="ps-kanban__col-header" style="--col-color: ${col.color || '#64748B'}" data-col-drag="${_esc(col.id)}" draggable="true">
+                <span class="ps-kanban__col-drag-handle" data-col-drag="${_esc(col.id)}" title="Arrastar seção">
                   <i data-lucide="grip-vertical" style="width:14px;height:14px;opacity:0.4"></i>
                 </span>
                 <span class="ps-kanban__col-dot" style="background:${col.color || '#64748B'}"></span>
-                <span class="ps-kanban__col-name" data-col-id="${_esc(col.id)}" title="Clique para editar">${_esc(col.name)}</span>
+                <span class="ps-kanban__col-name" data-col-id="${_esc(col.id)}" title="Clique para editar" draggable="false">${_esc(col.name)}</span>
                 <span class="ps-kanban__col-count">${colTasks.length}</span>
               </div>
               <div class="ps-kanban__cards" data-col-id="${_esc(col.id)}">
                 ${colTasks.map(t => _renderCard(t)).join('')}
+                <div class="ps-kanban__drop-zone" data-col-id="${_esc(col.id)}"></div>
               </div>
               <button class="ps-kanban__add-btn" data-col-id="${_esc(col.id)}">
                 <i data-lucide="plus" style="width:14px;height:14px"></i> Adicionar
@@ -322,8 +322,7 @@ const TBO_PROJECT_SYSTEM = (() => {
       </div>
     `;
 
-    _bindKanbanDragDrop();
-    _bindColumnDragDrop();
+    _initDragDrop();
     _bindColumnTitleEdit();
   }
 
@@ -452,176 +451,334 @@ const TBO_PROJECT_SYSTEM = (() => {
     `;
   }
 
-  // ── Kanban Drag & Drop (tasks) ────────────────────────────────────────
-  function _bindKanbanDragDrop() {
-    const kanban = document.querySelector('.ps-kanban');
+  // ── Drag & Drop — unified, Asana-style ───────────────────────────────
+  //
+  // Two independent modes:
+  //   TASK mode  — dragging a .ps-card   (started anywhere on card)
+  //   COLUMN mode — dragging a column    (started only on header/handle)
+  //
+  // A single _dnd state object tracks which mode is active so the two
+  // never conflict.
+  //
+  let _dnd = {
+    mode: null,          // 'task' | 'col' | null
+    id: null,            // taskId or colId being dragged
+    ghost: null,         // ghost element for setDragImage
+    placeholder: null,   // blue-line placeholder shown between cards
+    srcColId: null,      // column the card started in
+    overColId: null,     // column currently hovered
+    overColEl: null,     // DOM element of hovered column
+  };
+
+  function _dndCleanup() {
+    const kanban = document.getElementById('psKanbanContainer');
+    if (kanban) {
+      kanban.querySelectorAll('.ps-kanban__col--dragover').forEach(c => c.classList.remove('ps-kanban__col--dragover'));
+      kanban.querySelectorAll('.ps-kanban__col--col-dragging').forEach(c => c.classList.remove('ps-kanban__col--col-dragging'));
+      kanban.querySelectorAll('.ps-kanban__col--col-dragover-left').forEach(c => c.classList.remove('ps-kanban__col--col-dragover-left'));
+      kanban.querySelectorAll('.ps-kanban__col--col-dragover-right').forEach(c => c.classList.remove('ps-kanban__col--col-dragover-right'));
+      kanban.querySelectorAll('.ps-card--dragging').forEach(c => c.classList.remove('ps-card--dragging'));
+      kanban.querySelectorAll('.ps-dnd-placeholder').forEach(p => p.remove());
+      kanban.querySelectorAll('.ps-dnd-col-placeholder').forEach(p => p.remove());
+    }
+    if (_dnd.ghost && _dnd.ghost.parentNode) _dnd.ghost.parentNode.removeChild(_dnd.ghost);
+    _dnd = { mode: null, id: null, ghost: null, placeholder: null, srcColId: null, overColId: null, overColEl: null };
+  }
+
+  // Insert a blue-line placeholder before/after a reference element inside a cards container.
+  function _dndShowPlaceholder(cardsContainer, refCard, insertBefore) {
+    // Remove any existing placeholder in the whole kanban first
+    document.querySelectorAll('.ps-dnd-placeholder').forEach(p => p.remove());
+
+    const ph = document.createElement('div');
+    ph.className = 'ps-dnd-placeholder';
+    _dnd.placeholder = ph;
+
+    if (refCard) {
+      cardsContainer.insertBefore(ph, insertBefore ? refCard : refCard.nextSibling);
+    } else {
+      // Drop zone at bottom of column — insert before the drop-zone div
+      const dropZone = cardsContainer.querySelector('.ps-kanban__drop-zone');
+      cardsContainer.insertBefore(ph, dropZone || null);
+    }
+  }
+
+  // Show a vertical line placeholder between columns.
+  function _dndShowColPlaceholder(kanban, refCol, insertBefore) {
+    document.querySelectorAll('.ps-dnd-col-placeholder').forEach(p => p.remove());
+    const ph = document.createElement('div');
+    ph.className = 'ps-dnd-col-placeholder';
+    if (refCol) {
+      kanban.insertBefore(ph, insertBefore ? refCol : refCol.nextSibling);
+    }
+  }
+
+  function _initDragDrop() {
+    const kanban = document.getElementById('psKanbanContainer');
     if (!kanban) return;
 
+    // ── dragstart ────────────────────────────────────────────────────
+    // Priority: card > column-header.
+    // Cards have draggable="true" on the .ps-card element.
+    // Column headers have draggable="true" on .ps-kanban__col-header.
+    // Since cards are INSIDE the cards container (not inside the header),
+    // there is no nesting conflict — the two draggable elements are siblings
+    // inside the column, not parent-child.
     kanban.addEventListener('dragstart', (e) => {
-      // Don't handle column drags here
-      if (_draggedColId) return;
+      // Check if we are dragging a card (highest priority)
       const card = e.target.closest('.ps-card[data-task-id]');
-      if (!card) return;
-      _draggedTaskId = card.dataset.taskId;
-      card.classList.add('ps-card--dragging');
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', _draggedTaskId);
-    });
+      if (card) {
+        // TASK drag
+        _dnd.mode = 'task';
+        _dnd.id = card.dataset.taskId;
+        _dnd.srcColId = card.closest('.ps-kanban__col')?.dataset.colId || null;
 
-    kanban.addEventListener('dragend', (e) => {
-      if (_draggedColId) return;
-      const card = e.target.closest('.ps-card');
-      if (card) card.classList.remove('ps-card--dragging');
-      _draggedTaskId = null;
-      kanban.querySelectorAll('.ps-kanban__col--dragover').forEach(c => c.classList.remove('ps-kanban__col--dragover'));
-      kanban.querySelectorAll('.ps-card--drop-above, .ps-card--drop-below').forEach(c => {
-        c.classList.remove('ps-card--drop-above', 'ps-card--drop-below');
-      });
-    });
+        card.classList.add('ps-card--dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', _dnd.id);
 
-    kanban.addEventListener('dragover', (e) => {
-      if (!_draggedTaskId || _draggedColId) return;
+        // Custom ghost: clone card with slight rotation, blue border
+        const ghost = card.cloneNode(true);
+        ghost.style.cssText = [
+          'position:fixed', 'top:-500px', 'left:-500px',
+          `width:${card.offsetWidth}px`,
+          'opacity:0.96',
+          'pointer-events:none',
+          'border-radius:8px',
+          'box-shadow:0 8px 24px rgba(0,0,0,0.18)',
+          'transform:rotate(2deg) scale(0.97)',
+          'background:var(--bg-card,#fff)',
+          'border:2px solid #3B82F6',
+          'z-index:99999',
+          'padding:12px',
+        ].join(';');
+        document.body.appendChild(ghost);
+        _dnd.ghost = ghost;
+        // Offset so the grab point is near the top of the card
+        e.dataTransfer.setDragImage(ghost, Math.min(card.offsetWidth / 2, 100), 24);
+        return;
+      }
+
+      // Check if we are dragging a column header
+      const colHeader = e.target.closest('.ps-kanban__col-header[data-col-drag]');
+      if (colHeader) {
+        const colId = colHeader.dataset.colDrag;
+        const col = Array.from(kanban.querySelectorAll('.ps-kanban__col[data-col-id]')).find(c => c.dataset.colId === colId);
+        if (!col) { e.preventDefault(); return; }
+
+        _dnd.mode = 'col';
+        _dnd.id = colId;
+
+        col.classList.add('ps-kanban__col--col-dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('application/x-col-id', colId);
+
+        // Ghost: the header itself, positioned off-screen
+        const ghost = colHeader.cloneNode(true);
+        ghost.style.cssText = [
+          'position:fixed', 'top:-500px', 'left:-500px',
+          `width:${col.offsetWidth}px`,
+          'opacity:0.96',
+          'pointer-events:none',
+          'border-radius:8px 8px 0 0',
+          'box-shadow:0 8px 24px rgba(0,0,0,0.22)',
+          'background:var(--bg-surface,#f8fafc)',
+          'padding:12px 14px',
+          'z-index:99999',
+          'border-bottom:2px solid #3B82F6',
+        ].join(';');
+        document.body.appendChild(ghost);
+        _dnd.ghost = ghost;
+        e.dataTransfer.setDragImage(ghost, Math.min(col.offsetWidth / 2, 120), 20);
+        return;
+      }
+
+      // Not a valid drag target — cancel
       e.preventDefault();
+    });
 
-      // Highlight column
-      const col = e.target.closest('.ps-kanban__col');
-      if (!col) return;
-      kanban.querySelectorAll('.ps-kanban__col--dragover').forEach(c => c.classList.remove('ps-kanban__col--dragover'));
-      col.classList.add('ps-kanban__col--dragover');
+    // ── dragover ─────────────────────────────────────────────────────
+    kanban.addEventListener('dragover', (e) => {
+      if (!_dnd.mode) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
 
-      // Show drop position indicator between cards
-      kanban.querySelectorAll('.ps-card--drop-above, .ps-card--drop-below').forEach(c => {
-        c.classList.remove('ps-card--drop-above', 'ps-card--drop-below');
-      });
-      const targetCard = e.target.closest('.ps-card[data-task-id]');
-      if (targetCard && targetCard.dataset.taskId !== _draggedTaskId) {
-        const rect = targetCard.getBoundingClientRect();
-        const midY = rect.top + rect.height / 2;
-        if (e.clientY < midY) {
-          targetCard.classList.add('ps-card--drop-above');
-        } else {
-          targetCard.classList.add('ps-card--drop-below');
-        }
+      if (_dnd.mode === 'task') {
+        _dndTaskDragover(e, kanban);
+      } else if (_dnd.mode === 'col') {
+        _dndColDragover(e, kanban);
       }
     });
 
+    // ── dragleave ────────────────────────────────────────────────────
     kanban.addEventListener('dragleave', (e) => {
-      if (_draggedColId) return;
+      // Only remove column highlight when truly leaving the column
+      if (_dnd.mode !== 'task') return;
       const col = e.target.closest('.ps-kanban__col');
       if (col && !col.contains(e.relatedTarget)) {
         col.classList.remove('ps-kanban__col--dragover');
       }
     });
 
+    // ── dragend ──────────────────────────────────────────────────────
+    kanban.addEventListener('dragend', () => {
+      _dndCleanup();
+    });
+
+    // ── drop ─────────────────────────────────────────────────────────
     kanban.addEventListener('drop', async (e) => {
-      if (_draggedColId) return; // let column handler take care
       e.preventDefault();
-      const col = e.target.closest('.ps-kanban__col');
-      if (!col || !_draggedTaskId) return;
-      col.classList.remove('ps-kanban__col--dragover');
-      kanban.querySelectorAll('.ps-card--drop-above, .ps-card--drop-below').forEach(c => {
-        c.classList.remove('ps-card--drop-above', 'ps-card--drop-below');
-      });
-
-      const newStatus = col.dataset.colId;
-      const cardsContainer = col.querySelector('.ps-kanban__cards');
-      const allCards = cardsContainer ? Array.from(cardsContainer.querySelectorAll('.ps-card[data-task-id]')) : [];
-
-      // Calculate insertion index
-      let newOrder = allCards.length;
-      const targetCard = e.target.closest('.ps-card[data-task-id]');
-      if (targetCard && targetCard.dataset.taskId !== _draggedTaskId) {
-        const targetIdx = allCards.indexOf(targetCard);
-        const rect = targetCard.getBoundingClientRect();
-        const midY = rect.top + rect.height / 2;
-        newOrder = e.clientY < midY ? targetIdx : targetIdx + 1;
+      if (_dnd.mode === 'task') {
+        await _dndTaskDrop(e, kanban);
+      } else if (_dnd.mode === 'col') {
+        await _dndColDrop(e, kanban);
       }
-
-      try {
-        await ProjectSystemRepo.updateTaskOrder(_draggedTaskId, newStatus, newOrder);
-        // Reindex all cards in the target column for clean ordering
-        const colTasks = _tasks.filter(t => t.status === newStatus && !t.parent_task_id && t.id !== _draggedTaskId)
-          .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
-        colTasks.splice(newOrder, 0, { id: _draggedTaskId });
-        for (let i = 0; i < colTasks.length; i++) {
-          if (colTasks[i].id !== _draggedTaskId) {
-            await ProjectSystemRepo.updateTaskOrder(colTasks[i].id, newStatus, i);
-          }
-        }
-        await _loadTasks();
-        _renderContent();
-        if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Movido', 'Tarefa atualizada.');
-      } catch (err) {
-        console.error('[ProjectSystem] Drop error:', err);
-        if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro', 'Falha ao mover tarefa.');
-      }
+      _dndCleanup();
     });
   }
 
-  // ── Column Drag & Drop (reorder sections) ────────────────────────────
-  let _draggedColId = null;
+  // ── Task dragover logic ───────────────────────────────────────────────
+  function _dndTaskDragover(e, kanban) {
+    const col = e.target.closest('.ps-kanban__col');
+    if (!col) return;
 
-  function _bindColumnDragDrop() {
-    const kanban = document.getElementById('psKanbanContainer');
-    if (!kanban) return;
-
-    kanban.addEventListener('dragstart', (e) => {
-      const col = e.target.closest('.ps-kanban__col[data-col-id]');
-      if (!col) return;
-      // Only drag columns when starting from the header/handle area
-      const handle = e.target.closest('.ps-kanban__col-drag-handle');
-      const header = e.target.closest('.ps-kanban__col-header');
-      if (!handle && !header) return;
-      // Don't drag if it's a card being dragged
-      if (e.target.closest('.ps-card')) return;
-
-      _draggedColId = col.dataset.colId;
-      col.classList.add('ps-kanban__col--col-dragging');
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('application/x-col-id', _draggedColId);
+    // Highlight target column
+    kanban.querySelectorAll('.ps-kanban__col--dragover').forEach(c => {
+      if (c !== col) c.classList.remove('ps-kanban__col--dragover');
     });
+    col.classList.add('ps-kanban__col--dragover');
 
-    kanban.addEventListener('dragend', (e) => {
-      const col = e.target.closest('.ps-kanban__col');
-      if (col) col.classList.remove('ps-kanban__col--col-dragging');
-      _draggedColId = null;
-      kanban.querySelectorAll('.ps-kanban__col--col-dragover').forEach(c => c.classList.remove('ps-kanban__col--col-dragover'));
-    });
+    const cardsContainer = col.querySelector('.ps-kanban__cards');
+    if (!cardsContainer) return;
 
-    kanban.addEventListener('dragover', (e) => {
-      if (!_draggedColId) return;
-      e.preventDefault();
-      const col = e.target.closest('.ps-kanban__col[data-col-id]');
-      if (!col || col.dataset.colId === _draggedColId) return;
-      kanban.querySelectorAll('.ps-kanban__col--col-dragover').forEach(c => c.classList.remove('ps-kanban__col--col-dragover'));
-      col.classList.add('ps-kanban__col--col-dragover');
-    });
+    // Find which card (if any) the cursor is hovering
+    const cards = Array.from(cardsContainer.querySelectorAll('.ps-card[data-task-id]'))
+      .filter(c => c.dataset.taskId !== _dnd.id); // exclude the dragged card itself
 
-    kanban.addEventListener('drop', async (e) => {
-      if (!_draggedColId) return;
-      e.preventDefault();
-      const targetCol = e.target.closest('.ps-kanban__col[data-col-id]');
-      if (!targetCol || targetCol.dataset.colId === _draggedColId) return;
-      targetCol.classList.remove('ps-kanban__col--col-dragover');
+    let refCard = null;
+    let insertBefore = true;
 
-      const columns = _getBoardColumns();
-      const fromIdx = columns.findIndex(c => c.id === _draggedColId);
-      const toIdx = columns.findIndex(c => c.id === targetCol.dataset.colId);
-      if (fromIdx < 0 || toIdx < 0) return;
-
-      const [moved] = columns.splice(fromIdx, 1);
-      columns.splice(toIdx, 0, moved);
-
-      try {
-        await ProjectSystemRepo.updateBoard(_currentBoard.id, { columns });
-        _currentBoard.columns = columns;
-        _renderContent();
-        if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Reordenado', 'Seções atualizadas.');
-      } catch (err) {
-        console.error('[ProjectSystem] reorder columns error:', err);
-        if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro', 'Falha ao reordenar seções.');
+    for (const c of cards) {
+      const rect = c.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      if (e.clientY < midY) {
+        refCard = c;
+        insertBefore = true;
+        break;
       }
-    });
+      // if cursor is past mid, it becomes a candidate for "insert after"
+      refCard = c;
+      insertBefore = false;
+    }
+
+    _dndShowPlaceholder(cardsContainer, refCard, insertBefore);
+  }
+
+  // ── Task drop logic ───────────────────────────────────────────────────
+  async function _dndTaskDrop(e, kanban) {
+    const col = e.target.closest('.ps-kanban__col');
+    if (!col || !_dnd.id) return;
+
+    const newStatus = col.dataset.colId;
+    const cardsContainer = col.querySelector('.ps-kanban__cards');
+    if (!cardsContainer) return;
+
+    // Determine insertion index from placeholder position
+    const ph = cardsContainer.querySelector('.ps-dnd-placeholder');
+    const allCards = Array.from(cardsContainer.querySelectorAll('.ps-card[data-task-id]'));
+    let insertIdx = allCards.length; // default: end of column
+
+    if (ph) {
+      // Count how many cards come before the placeholder
+      let count = 0;
+      let node = ph.previousElementSibling;
+      while (node) {
+        if (node.matches('.ps-card[data-task-id]')) count++;
+        node = node.previousElementSibling;
+      }
+      insertIdx = count;
+    }
+
+    // Optimistic UI: move card in local state before async call
+    const taskIdx = _tasks.findIndex(t => t.id === _dnd.id);
+    if (taskIdx !== -1) {
+      _tasks[taskIdx].status = newStatus;
+      _tasks[taskIdx].order_index = insertIdx;
+    }
+
+    try {
+      // Update the moved task
+      await ProjectSystemRepo.updateTaskOrder(_dnd.id, newStatus, insertIdx);
+
+      // Re-index all tasks in destination column to avoid order_index gaps
+      const colTasks = _tasks
+        .filter(t => t.status === newStatus && !t.parent_task_id)
+        .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+
+      // Assign clean integer indices
+      const updatePromises = [];
+      colTasks.forEach((t, i) => {
+        if (t.id !== _dnd.id && t.order_index !== i) {
+          updatePromises.push(ProjectSystemRepo.updateTaskOrder(t.id, newStatus, i));
+        }
+      });
+      await Promise.all(updatePromises);
+
+      await _loadTasks();
+      _renderContent();
+    } catch (err) {
+      console.error('[ProjectSystem] task drop error:', err);
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro', 'Falha ao mover tarefa.');
+      await _loadTasks();
+      _renderContent();
+    }
+  }
+
+  // ── Column dragover logic ─────────────────────────────────────────────
+  function _dndColDragover(e, kanban) {
+    const targetCol = e.target.closest('.ps-kanban__col[data-col-id]');
+    if (!targetCol || targetCol.dataset.colId === _dnd.id) return;
+
+    kanban.querySelectorAll('.ps-kanban__col--col-dragover-left, .ps-kanban__col--col-dragover-right')
+      .forEach(c => {
+        c.classList.remove('ps-kanban__col--col-dragover-left', 'ps-kanban__col--col-dragover-right');
+      });
+
+    const rect = targetCol.getBoundingClientRect();
+    const insertBefore = e.clientX < rect.left + rect.width / 2;
+    targetCol.classList.add(insertBefore ? 'ps-kanban__col--col-dragover-left' : 'ps-kanban__col--col-dragover-right');
+    _dndShowColPlaceholder(kanban, targetCol, insertBefore);
+  }
+
+  // ── Column drop logic ─────────────────────────────────────────────────
+  async function _dndColDrop(e, kanban) {
+    const targetCol = e.target.closest('.ps-kanban__col[data-col-id]');
+    if (!targetCol || targetCol.dataset.colId === _dnd.id) return;
+
+    const columns = _getBoardColumns();
+    const fromIdx = columns.findIndex(c => c.id === _dnd.id);
+    const toColId = targetCol.dataset.colId;
+    const toIdx = columns.findIndex(c => c.id === toColId);
+    if (fromIdx < 0 || toIdx < 0) return;
+
+    const rect = targetCol.getBoundingClientRect();
+    const insertBefore = e.clientX < rect.left + rect.width / 2;
+    const adjustedToIdx = insertBefore ? toIdx : toIdx + 1;
+
+    const [moved] = columns.splice(fromIdx, 1);
+    // Re-find insertion point after removal
+    const finalToIdx = adjustedToIdx > fromIdx ? adjustedToIdx - 1 : adjustedToIdx;
+    columns.splice(Math.max(0, finalToIdx), 0, moved);
+
+    try {
+      await ProjectSystemRepo.updateBoard(_currentBoard.id, { columns });
+      _currentBoard.columns = columns;
+      _renderContent();
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Reordenado', 'Seções atualizadas.');
+    } catch (err) {
+      console.error('[ProjectSystem] reorder columns error:', err);
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro', 'Falha ao reordenar seções.');
+    }
   }
 
   // ── Column Title Editing ────────────────────────────────────────────

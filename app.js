@@ -85,6 +85,7 @@ const TBO_APP = {
       'conteudo': typeof TBO_CONTEUDO !== 'undefined' ? TBO_CONTEUDO : null,
       'comercial': typeof TBO_COMERCIAL !== 'undefined' ? TBO_COMERCIAL : null,
       'projetos': typeof TBO_PROJETOS !== 'undefined' ? TBO_PROJETOS : null,
+      'projetos-notion': typeof TBO_PROJETOS_NOTION !== 'undefined' ? TBO_PROJETOS_NOTION : null,
       'mercado': typeof TBO_MERCADO !== 'undefined' ? TBO_MERCADO : null,
       'reunioes': typeof TBO_REUNIOES !== 'undefined' ? TBO_REUNIOES : null,
       'agenda': typeof TBO_AGENDA !== 'undefined' ? TBO_AGENDA : null,

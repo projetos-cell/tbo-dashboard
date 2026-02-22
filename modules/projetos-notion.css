@@ -1,0 +1,326 @@
+/* ============================================================================
+   TBO OS — Projetos Notion Module Styles
+   ============================================================================ */
+
+.projetos-notion-module {
+  padding: 0;
+  max-width: 1200px;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+
+.pn-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-primary, #e5e7eb);
+  flex-wrap: wrap;
+}
+
+.pn-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pn-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pn-count {
+  font-size: 13px;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.pn-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pn-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-secondary, #f9fafb);
+  border: 1px solid var(--border-primary, #e5e7eb);
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+
+.pn-search-input {
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  outline: none;
+  color: var(--text-primary, #1f2937);
+  width: 180px;
+}
+
+.pn-search-input::placeholder {
+  color: var(--text-quaternary, #d1d5db);
+}
+
+.pn-select {
+  font-size: 13px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-primary, #e5e7eb);
+  border-radius: 6px;
+  background: var(--bg-secondary, #f9fafb);
+  color: var(--text-primary, #1f2937);
+  cursor: pointer;
+}
+
+/* ── Content ────────────────────────────────────────────────────────────── */
+
+.pn-content {
+  padding: 16px 24px;
+}
+
+/* ── Table ──────────────────────────────────────────────────────────────── */
+
+.pn-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.pn-table thead th {
+  text-align: left;
+  padding: 8px 12px;
+  font-weight: 500;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-tertiary, #9ca3af);
+  border-bottom: 1px solid var(--border-primary, #e5e7eb);
+  white-space: nowrap;
+}
+
+.pn-row {
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.pn-row:hover {
+  background-color: var(--bg-secondary, #f9fafb);
+}
+
+.pn-row td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-light, #f3f4f6);
+  vertical-align: middle;
+}
+
+.pn-cell-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pn-project-name {
+  font-weight: 500;
+  color: var(--text-primary, #1f2937);
+}
+
+.pn-construtora {
+  font-size: 11px;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+/* ── Demands table ──────────────────────────────────────────────────────── */
+
+.pn-demands-table .pn-cell-name {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.pn-subcount {
+  font-size: 10px;
+  color: var(--text-tertiary, #9ca3af);
+  background: var(--bg-tertiary, #f3f4f6);
+  padding: 1px 6px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.pn-subitem-row {
+  background-color: var(--bg-secondary, #fafafa);
+}
+
+.pn-subitem-row:hover {
+  background-color: var(--bg-tertiary, #f3f4f6) !important;
+}
+
+.pn-subitem-indent {
+  padding-left: 28px !important;
+}
+
+.pn-subitem-indent {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Badge ──────────────────────────────────────────────────────────────── */
+
+.pn-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ── BU Tags ────────────────────────────────────────────────────────────── */
+
+.pn-bu-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 500;
+  margin-right: 4px;
+  white-space: nowrap;
+}
+
+.pn-bu-pink    { color: #be185d; background: #fce7f3; }
+.pn-bu-purple  { color: #7c3aed; background: #f5f3ff; }
+.pn-bu-blue    { color: #2563eb; background: #eff6ff; }
+.pn-bu-green   { color: #16a34a; background: #f0fdf4; }
+.pn-bu-orange  { color: #ea580c; background: #fff7ed; }
+.pn-bu-gray    { color: #6b7280; background: #f3f4f6; }
+
+/* ── Prazo Classes ──────────────────────────────────────────────────────── */
+
+.pn-prazo-overdue {
+  color: #ef4444 !important;
+  font-weight: 600;
+}
+
+.pn-prazo-soon {
+  color: #f59e0b !important;
+  font-weight: 500;
+}
+
+/* ── Empty State ────────────────────────────────────────────────────────── */
+
+.pn-empty {
+  text-align: center;
+  padding: 64px 24px;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.pn-empty p {
+  margin: 12px 0 0;
+  font-size: 14px;
+}
+
+.pn-empty-hint {
+  font-size: 12px !important;
+  color: var(--text-quaternary, #d1d5db) !important;
+}
+
+.pn-empty-cell {
+  color: var(--text-quaternary, #d1d5db);
+}
+
+/* ── Project Summary (detail view) ──────────────────────────────────────── */
+
+.pn-project-summary {
+  display: flex;
+  gap: 24px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border-primary, #e5e7eb);
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.pn-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pn-summary-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-tertiary, #9ca3af);
+  font-weight: 500;
+}
+
+.pn-summary-value {
+  font-size: 13px;
+  color: var(--text-primary, #1f2937);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pn-notion-link {
+  font-size: 12px;
+  color: var(--text-tertiary, #9ca3af);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.pn-notion-link:hover {
+  color: var(--accent, #E85102);
+}
+
+/* ── Back Button ────────────────────────────────────────────────────────── */
+
+.pn-back-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  color: var(--text-secondary, #6b7280);
+  display: flex;
+  align-items: center;
+}
+
+.pn-back-btn:hover {
+  background: var(--bg-secondary, #f3f4f6);
+  color: var(--text-primary, #1f2937);
+}
+
+/* ── Loading Skeleton ───────────────────────────────────────────────────── */
+
+.pn-loading .skeleton-block {
+  background: linear-gradient(90deg, var(--bg-secondary, #f3f4f6) 25%, var(--bg-tertiary, #e5e7eb) 50%, var(--bg-secondary, #f3f4f6) 75%);
+  background-size: 200% 100%;
+  animation: pn-shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+@keyframes pn-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Spin animation ─────────────────────────────────────────────────────── */
+
+.spin {
+  animation: pn-spin 1s linear infinite;
+}
+
+@keyframes pn-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

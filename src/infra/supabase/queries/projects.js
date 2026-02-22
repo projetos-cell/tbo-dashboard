@@ -13,9 +13,27 @@ const ProjectsRepo = (() => {
   return {
     async list({ status, limit = 50, offset = 0 } = {}) {
       let query = _db().from('projects')
-        .select('*, client:clients(name)')
+        .select('*, client:clients(name)', { count: 'exact' })
         .eq('tenant_id', _tid())
         .order('updated_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (status) query = query.eq('status', status);
+
+      const { data, error, count } = await query;
+      if (error) throw error;
+      return { data, count };
+    },
+
+    /**
+     * Lista projetos importados do Notion (com campos extras)
+     */
+    async listNotion({ status, limit = 100, offset = 0 } = {}) {
+      let query = _db().from('projects')
+        .select('id, name, status, construtora, bus, due_date_start, due_date_end, notion_url, notion_synced_at, updated_at', { count: 'exact' })
+        .eq('tenant_id', _tid())
+        .not('notion_page_id', 'is', null)
+        .order('name', { ascending: true })
         .range(offset, offset + limit - 1);
 
       if (status) query = query.eq('status', status);

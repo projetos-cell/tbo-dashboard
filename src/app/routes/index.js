@@ -11,6 +11,7 @@ const TBO_ROUTE_REGISTRY = (() => {
   const MODULE_ROUTES = {
     'dashboard':              'dashboard',
     'projetos':               'projetos',
+    'projetos-notion':        'projetos-notion',
     'tarefas':                'tarefas',
     'financeiro':             'financeiro',
     'pagar':                  'pagar',
@@ -90,6 +91,7 @@ const TBO_ROUTE_REGISTRY = (() => {
     'chat':                   { label: 'Chat',                   icon: 'message-circle',     group: 'inicio',       color: '#6366F1' },
     // Execução
     'projetos':               { label: 'Projetos',               icon: 'folder-kanban',      group: 'execucao',     color: '#3B82F6' },
+    'projetos-notion':        { label: 'Projetos (Notion)',       icon: 'database',           group: 'execucao',     color: '#3B82F6' },
     'tarefas':                { label: 'Tarefas',                icon: 'list-checks',        group: 'execucao',     color: '#22C55E' },
     'reunioes':               { label: 'Calendário',             icon: 'calendar',           group: 'execucao',     color: '#0EA5E9' },
     'agenda':                 { label: 'Agenda',                 icon: 'calendar-days',      group: 'execucao',     color: '#0EA5E9' },

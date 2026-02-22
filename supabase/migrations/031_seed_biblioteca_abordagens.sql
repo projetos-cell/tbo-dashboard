@@ -12,26 +12,22 @@ DECLARE
   v_user_id   UUID;
 BEGIN
   -- Buscar o primeiro tenant (TBO e unico tenant)
-  SELECT id INTO v_tenant_id FROM tenants LIMIT 1;
+  SELECT id INTO v_tenant_id FROM public.tenants LIMIT 1;
   IF v_tenant_id IS NULL THEN
     RAISE NOTICE 'Nenhum tenant encontrado — pulando seed.';
     RETURN;
   END IF;
 
-  -- Buscar um usuario owner/admin para created_by
-  SELECT p.supabase_user_id INTO v_user_id
-  FROM people p
-  WHERE p.tenant_id = v_tenant_id
-    AND p.role_slug IN ('owner', 'admin', 'socio', 'founder')
-    AND p.supabase_user_id IS NOT NULL
+  -- Buscar um usuario para created_by (via auth.users -> user_metadata)
+  SELECT au.id INTO v_user_id
+  FROM auth.users au
+  WHERE (au.raw_user_meta_data ->> 'tenant_id')::uuid = v_tenant_id
   LIMIT 1;
 
   IF v_user_id IS NULL THEN
-    -- Fallback: qualquer usuario do tenant
-    SELECT p.supabase_user_id INTO v_user_id
-    FROM people p
-    WHERE p.tenant_id = v_tenant_id
-      AND p.supabase_user_id IS NOT NULL
+    -- Fallback: qualquer usuario autenticado
+    SELECT au.id INTO v_user_id
+    FROM auth.users au
     LIMIT 1;
   END IF;
 
@@ -41,7 +37,7 @@ BEGIN
   END IF;
 
   -- Inserir pagina (idempotente: verifica se ja existe pelo titulo + space)
-  INSERT INTO pages (tenant_id, space_id, title, icon, content, created_by, updated_by)
+  INSERT INTO public.pages (tenant_id, space_id, title, icon, content, created_by, updated_by)
   SELECT
     v_tenant_id,
     'ws-comercial',
@@ -51,7 +47,7 @@ BEGIN
     v_user_id,
     v_user_id
   WHERE NOT EXISTS (
-    SELECT 1 FROM pages
+    SELECT 1 FROM public.pages
     WHERE tenant_id = v_tenant_id
       AND space_id = 'ws-comercial'
       AND title = 'Biblioteca de Abordagens'

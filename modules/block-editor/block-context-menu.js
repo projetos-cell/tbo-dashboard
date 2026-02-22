@@ -173,8 +173,10 @@ const BlockContextMenu = (() => {
         e.preventDefault();
         e.stopPropagation();
         const newType = item.dataset.transformType;
+        const callback = _onAction;
+        const bId = _blockId;
         close();
-        if (_onAction) _onAction('transform', _blockId, { type: newType });
+        if (callback) callback('transform', bId, { type: newType });
       });
     });
 
@@ -200,8 +202,10 @@ const BlockContextMenu = (() => {
           e.stopPropagation();
           const colorType = item.dataset.colorType;
           const colorName = item.dataset.colorName;
+          const callback = _onAction;
+          const bId = _blockId;
           close();
-          if (_onAction) _onAction('color', _blockId, { colorType, colorName });
+          if (callback) callback('color', bId, { colorType, colorName });
         });
       });
 
@@ -243,8 +247,10 @@ const BlockContextMenu = (() => {
   function _handleItemClick(action) {
     if (action === 'transform-sub' || action === 'color-sub') return;
 
+    const callback = _onAction;
+    const bId = _blockId;
     close();
-    if (_onAction) _onAction(action, _blockId);
+    if (callback) callback(action, bId);
   }
 
   // ── Position ───────────────────────────────────────────────────────────

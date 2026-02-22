@@ -109,8 +109,9 @@ const BlockMoveToModal = (() => {
     listEl.querySelectorAll('.be-moveto-item').forEach(item => {
       item.addEventListener('click', () => {
         const pageId = item.dataset.pageId;
+        const callback = _onSelect;
         close();
-        if (_onSelect) _onSelect(pageId);
+        if (callback) callback(pageId);
       });
     });
   }

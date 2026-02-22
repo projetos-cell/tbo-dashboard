@@ -123,8 +123,9 @@ const SlashCommandPalette = (() => {
     if (!item || item.disabled) return;
 
     const type = item.type;
+    const callback = _onSelect; // Salvar referencia antes de close() limpar
     close();
-    if (_onSelect) _onSelect(type);
+    if (callback) callback(type);
   }
 
   // ── Posicionamento ─────────────────────────────────────────────────────

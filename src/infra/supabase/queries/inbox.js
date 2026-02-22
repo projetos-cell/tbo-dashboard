@@ -22,13 +22,14 @@ const InboxRepo = (() => {
   }
 
   /**
-   * Retorna user_id do usuario autenticado
+   * Retorna user_id (UUID) do usuario autenticado
+   * Prioridade: supabaseId (UUID real) > Supabase session > null
    */
   function _uid() {
-    // Via TBO_AUTH (preferencial)
+    // Via TBO_AUTH (preferencial) — supabaseId e o UUID real; id pode ser slug (ex: "marco")
     if (typeof TBO_AUTH !== 'undefined') {
-      const user = TBO_AUTH.getCurrentUser();
-      if (user?.id) return user.id;
+      const u = TBO_AUTH.getCurrentUser();
+      return u?.supabaseId || u?.id || null;
     }
     // Via Supabase session
     try {

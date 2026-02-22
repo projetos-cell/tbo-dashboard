@@ -198,7 +198,7 @@ const TBO_TAREFAS = {
               ? '<span style="color:var(--text-muted);font-size:0.78rem;margin-right:6px;font-family:monospace;">\u2514\u2500</span>'
               : '';
             const rowIndent = isSubtask ? 'padding-left:28px;' : '';
-            const rowBg = isSubtask ? 'background:var(--bg-secondary);' : '';
+            const rowBg = isSubtask ? 'background:var(--bg-card-hover);' : '';
 
             return `<tr class="tf-task-row" style="border-bottom:1px solid var(--border-subtle);${rowBg}cursor:pointer;" data-task-id="${t.id}">
               <td style="padding:6px 4px;vertical-align:middle;">
@@ -240,7 +240,7 @@ const TBO_TAREFAS = {
     return `<div class="tf-board" style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;">
       ${columns.map(state => {
         const stateTasks = this._applyFilters(activeTasks.filter(t => t.status === state), 'all');
-        return `<div class="tf-board-col" data-status="${state}" style="min-width:260px;flex:1;background:var(--bg-secondary);border-radius:8px;padding:12px;">
+        return `<div class="tf-board-col" data-status="${state}" style="min-width:260px;flex:1;background:var(--bg-card-hover);border-radius:8px;padding:12px;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
             <div style="width:10px;height:10px;border-radius:50%;background:${sm.colors[state]};"></div>
             <span style="font-weight:600;font-size:0.82rem;">${sm.labels[state]}</span>
@@ -895,7 +895,7 @@ const TBO_TAREFAS = {
       /* Task detail panel */
       .tf-task-detail {
         display:none; position:fixed; top:0; right:-520px; width:520px; max-width:100vw;
-        height:100vh; background:var(--bg-primary); border-left:1px solid var(--border-default);
+        height:100vh; background:var(--bg-card); border-left:1px solid var(--border-default);
         box-shadow:-8px 0 32px rgba(0,0,0,0.12); z-index:1050; overflow-y:auto;
         transition:right 0.25s cubic-bezier(0.4,0,0.2,1);
       }
@@ -907,7 +907,7 @@ const TBO_TAREFAS = {
       .tf-detail-backdrop.tf-detail-open { opacity:1; }
       .tf-detail-header {
         display:flex; align-items:center; gap:12px; padding:20px 24px 12px;
-        border-bottom:1px solid var(--border-subtle); position:sticky; top:0; background:var(--bg-primary); z-index:2;
+        border-bottom:1px solid var(--border-subtle); position:sticky; top:0; background:var(--bg-card); z-index:2;
       }
       .tf-detail-body { padding:20px 24px; }
       .tf-detail-field { margin-bottom:16px; }
@@ -915,23 +915,23 @@ const TBO_TAREFAS = {
       .tf-detail-value { font-size:0.85rem; color:var(--text-primary); padding:6px 0; }
       .tf-detail-input {
         width:100%; padding:6px 8px; border:1px solid var(--border-default); border-radius:6px;
-        font-size:0.85rem; color:var(--text-primary); background:var(--bg-primary);
+        font-size:0.85rem; color:var(--text-primary); background:var(--bg-card);
       }
       .tf-detail-input:focus { border-color:var(--brand-primary); outline:none; box-shadow:0 0 0 2px var(--brand-primary)20; }
       .tf-detail-select {
         width:100%; padding:6px 8px; border:1px solid var(--border-default); border-radius:6px;
-        font-size:0.85rem; color:var(--text-primary); background:var(--bg-primary);
+        font-size:0.85rem; color:var(--text-primary); background:var(--bg-card);
       }
       .tf-detail-textarea {
         width:100%; min-height:100px; padding:8px; border:1px solid var(--border-default); border-radius:6px;
-        font-size:0.82rem; color:var(--text-primary); background:var(--bg-primary); resize:vertical;
+        font-size:0.82rem; color:var(--text-primary); background:var(--bg-card); resize:vertical;
       }
       .tf-check-btn { background:none; border:none; cursor:pointer; color:var(--text-muted); padding:0; }
       .tf-check-btn--done { color:var(--color-success); }
 
       /* Context menu */
       .tf-context-menu {
-        display:none; background:var(--bg-primary); border:1px solid var(--border-default);
+        display:none; background:var(--bg-card); border:1px solid var(--border-default);
         border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.15); padding:4px 0;
         min-width:200px; z-index:1100;
       }
@@ -940,7 +940,7 @@ const TBO_TAREFAS = {
         font-size:0.8rem; color:var(--text-primary); border:none; background:none;
         cursor:pointer; text-align:left;
       }
-      .tf-ctx-item:hover { background:var(--bg-secondary); }
+      .tf-ctx-item:hover { background:var(--bg-card-hover); }
       .tf-ctx-item--danger { color:var(--color-danger); }
       .tf-ctx-item--danger:hover { background:#ef444412; }
       .tf-ctx-divider { height:1px; background:var(--border-subtle); margin:4px 8px; }

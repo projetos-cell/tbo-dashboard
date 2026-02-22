@@ -296,16 +296,18 @@ const TBO_PROJECT_SYSTEM = (() => {
     const parentTasks = _tasks.filter(t => !t.parent_task_id);
 
     container.innerHTML = `
-      <div class="ps-kanban">
-        ${columns.map(col => {
+      <div class="ps-kanban" id="psKanbanContainer">
+        ${columns.map((col, idx) => {
           const colTasks = parentTasks.filter(t => t.status === col.id)
             .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
           return `
-            <div class="ps-kanban__col" data-col-id="${_esc(col.id)}"
-                 ondragover="event.preventDefault()" ondrop="event.preventDefault()">
+            <div class="ps-kanban__col" data-col-id="${_esc(col.id)}" data-col-idx="${idx}" draggable="true">
               <div class="ps-kanban__col-header" style="--col-color: ${col.color || '#64748B'}">
+                <span class="ps-kanban__col-drag-handle" title="Arrastar seção">
+                  <i data-lucide="grip-vertical" style="width:14px;height:14px;opacity:0.4"></i>
+                </span>
                 <span class="ps-kanban__col-dot" style="background:${col.color || '#64748B'}"></span>
-                <span class="ps-kanban__col-name">${_esc(col.name)}</span>
+                <span class="ps-kanban__col-name" data-col-id="${_esc(col.id)}" title="Clique para editar">${_esc(col.name)}</span>
                 <span class="ps-kanban__col-count">${colTasks.length}</span>
               </div>
               <div class="ps-kanban__cards" data-col-id="${_esc(col.id)}">
@@ -321,6 +323,8 @@ const TBO_PROJECT_SYSTEM = (() => {
     `;
 
     _bindKanbanDragDrop();
+    _bindColumnDragDrop();
+    _bindColumnTitleEdit();
   }
 
   function _renderCard(task) {
@@ -448,12 +452,14 @@ const TBO_PROJECT_SYSTEM = (() => {
     `;
   }
 
-  // ── Kanban Drag & Drop ────────────────────────────────────────────────
+  // ── Kanban Drag & Drop (tasks) ────────────────────────────────────────
   function _bindKanbanDragDrop() {
     const kanban = document.querySelector('.ps-kanban');
     if (!kanban) return;
 
     kanban.addEventListener('dragstart', (e) => {
+      // Don't handle column drags here
+      if (_draggedColId) return;
       const card = e.target.closest('.ps-card[data-task-id]');
       if (!card) return;
       _draggedTaskId = card.dataset.taskId;
@@ -463,21 +469,44 @@ const TBO_PROJECT_SYSTEM = (() => {
     });
 
     kanban.addEventListener('dragend', (e) => {
+      if (_draggedColId) return;
       const card = e.target.closest('.ps-card');
       if (card) card.classList.remove('ps-card--dragging');
       _draggedTaskId = null;
       kanban.querySelectorAll('.ps-kanban__col--dragover').forEach(c => c.classList.remove('ps-kanban__col--dragover'));
+      kanban.querySelectorAll('.ps-card--drop-above, .ps-card--drop-below').forEach(c => {
+        c.classList.remove('ps-card--drop-above', 'ps-card--drop-below');
+      });
     });
 
     kanban.addEventListener('dragover', (e) => {
+      if (!_draggedTaskId || _draggedColId) return;
       e.preventDefault();
+
+      // Highlight column
       const col = e.target.closest('.ps-kanban__col');
       if (!col) return;
       kanban.querySelectorAll('.ps-kanban__col--dragover').forEach(c => c.classList.remove('ps-kanban__col--dragover'));
       col.classList.add('ps-kanban__col--dragover');
+
+      // Show drop position indicator between cards
+      kanban.querySelectorAll('.ps-card--drop-above, .ps-card--drop-below').forEach(c => {
+        c.classList.remove('ps-card--drop-above', 'ps-card--drop-below');
+      });
+      const targetCard = e.target.closest('.ps-card[data-task-id]');
+      if (targetCard && targetCard.dataset.taskId !== _draggedTaskId) {
+        const rect = targetCard.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        if (e.clientY < midY) {
+          targetCard.classList.add('ps-card--drop-above');
+        } else {
+          targetCard.classList.add('ps-card--drop-below');
+        }
+      }
     });
 
     kanban.addEventListener('dragleave', (e) => {
+      if (_draggedColId) return;
       const col = e.target.closest('.ps-kanban__col');
       if (col && !col.contains(e.relatedTarget)) {
         col.classList.remove('ps-kanban__col--dragover');
@@ -485,18 +514,40 @@ const TBO_PROJECT_SYSTEM = (() => {
     });
 
     kanban.addEventListener('drop', async (e) => {
+      if (_draggedColId) return; // let column handler take care
       e.preventDefault();
       const col = e.target.closest('.ps-kanban__col');
       if (!col || !_draggedTaskId) return;
       col.classList.remove('ps-kanban__col--dragover');
+      kanban.querySelectorAll('.ps-card--drop-above, .ps-card--drop-below').forEach(c => {
+        c.classList.remove('ps-card--drop-above', 'ps-card--drop-below');
+      });
 
       const newStatus = col.dataset.colId;
-      const cards = col.querySelector('.ps-kanban__cards');
-      const existingCards = cards ? cards.querySelectorAll('.ps-card') : [];
-      const newOrder = existingCards.length;
+      const cardsContainer = col.querySelector('.ps-kanban__cards');
+      const allCards = cardsContainer ? Array.from(cardsContainer.querySelectorAll('.ps-card[data-task-id]')) : [];
+
+      // Calculate insertion index
+      let newOrder = allCards.length;
+      const targetCard = e.target.closest('.ps-card[data-task-id]');
+      if (targetCard && targetCard.dataset.taskId !== _draggedTaskId) {
+        const targetIdx = allCards.indexOf(targetCard);
+        const rect = targetCard.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        newOrder = e.clientY < midY ? targetIdx : targetIdx + 1;
+      }
 
       try {
         await ProjectSystemRepo.updateTaskOrder(_draggedTaskId, newStatus, newOrder);
+        // Reindex all cards in the target column for clean ordering
+        const colTasks = _tasks.filter(t => t.status === newStatus && !t.parent_task_id && t.id !== _draggedTaskId)
+          .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+        colTasks.splice(newOrder, 0, { id: _draggedTaskId });
+        for (let i = 0; i < colTasks.length; i++) {
+          if (colTasks[i].id !== _draggedTaskId) {
+            await ProjectSystemRepo.updateTaskOrder(colTasks[i].id, newStatus, i);
+          }
+        }
         await _loadTasks();
         _renderContent();
         if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Movido', 'Tarefa atualizada.');
@@ -504,6 +555,137 @@ const TBO_PROJECT_SYSTEM = (() => {
         console.error('[ProjectSystem] Drop error:', err);
         if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro', 'Falha ao mover tarefa.');
       }
+    });
+  }
+
+  // ── Column Drag & Drop (reorder sections) ────────────────────────────
+  let _draggedColId = null;
+
+  function _bindColumnDragDrop() {
+    const kanban = document.getElementById('psKanbanContainer');
+    if (!kanban) return;
+
+    kanban.addEventListener('dragstart', (e) => {
+      const col = e.target.closest('.ps-kanban__col[data-col-id]');
+      if (!col) return;
+      // Only drag columns when starting from the header/handle area
+      const handle = e.target.closest('.ps-kanban__col-drag-handle');
+      const header = e.target.closest('.ps-kanban__col-header');
+      if (!handle && !header) return;
+      // Don't drag if it's a card being dragged
+      if (e.target.closest('.ps-card')) return;
+
+      _draggedColId = col.dataset.colId;
+      col.classList.add('ps-kanban__col--col-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('application/x-col-id', _draggedColId);
+    });
+
+    kanban.addEventListener('dragend', (e) => {
+      const col = e.target.closest('.ps-kanban__col');
+      if (col) col.classList.remove('ps-kanban__col--col-dragging');
+      _draggedColId = null;
+      kanban.querySelectorAll('.ps-kanban__col--col-dragover').forEach(c => c.classList.remove('ps-kanban__col--col-dragover'));
+    });
+
+    kanban.addEventListener('dragover', (e) => {
+      if (!_draggedColId) return;
+      e.preventDefault();
+      const col = e.target.closest('.ps-kanban__col[data-col-id]');
+      if (!col || col.dataset.colId === _draggedColId) return;
+      kanban.querySelectorAll('.ps-kanban__col--col-dragover').forEach(c => c.classList.remove('ps-kanban__col--col-dragover'));
+      col.classList.add('ps-kanban__col--col-dragover');
+    });
+
+    kanban.addEventListener('drop', async (e) => {
+      if (!_draggedColId) return;
+      e.preventDefault();
+      const targetCol = e.target.closest('.ps-kanban__col[data-col-id]');
+      if (!targetCol || targetCol.dataset.colId === _draggedColId) return;
+      targetCol.classList.remove('ps-kanban__col--col-dragover');
+
+      const columns = _getBoardColumns();
+      const fromIdx = columns.findIndex(c => c.id === _draggedColId);
+      const toIdx = columns.findIndex(c => c.id === targetCol.dataset.colId);
+      if (fromIdx < 0 || toIdx < 0) return;
+
+      const [moved] = columns.splice(fromIdx, 1);
+      columns.splice(toIdx, 0, moved);
+
+      try {
+        await ProjectSystemRepo.updateBoard(_currentBoard.id, { columns });
+        _currentBoard.columns = columns;
+        _renderContent();
+        if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Reordenado', 'Seções atualizadas.');
+      } catch (err) {
+        console.error('[ProjectSystem] reorder columns error:', err);
+        if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro', 'Falha ao reordenar seções.');
+      }
+    });
+  }
+
+  // ── Column Title Editing ────────────────────────────────────────────
+  function _bindColumnTitleEdit() {
+    document.querySelectorAll('.ps-kanban__col-name[data-col-id]').forEach(el => {
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        _startColumnTitleEdit(el);
+      });
+    });
+  }
+
+  function _startColumnTitleEdit(el) {
+    if (el.querySelector('input')) return; // already editing
+    const colId = el.dataset.colId;
+    const currentName = el.textContent.trim();
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = currentName;
+    input.className = 'ps-col-name-input';
+    input.style.cssText = 'width:100%;padding:2px 4px;font-size:13px;font-weight:600;border:1px solid #3B82F6;border-radius:4px;outline:none;background:var(--bg-card,#fff);color:var(--text-primary,#1e293b);font-family:inherit;';
+
+    el.textContent = '';
+    el.appendChild(input);
+    input.focus();
+    input.select();
+
+    const _save = async () => {
+      const newName = input.value.trim();
+      if (!newName || newName === currentName) {
+        el.textContent = currentName;
+        return;
+      }
+      el.textContent = newName;
+
+      const columns = _getBoardColumns();
+      const col = columns.find(c => c.id === colId);
+      if (col) {
+        col.name = newName;
+        try {
+          await ProjectSystemRepo.updateBoard(_currentBoard.id, { columns });
+          _currentBoard.columns = columns;
+          if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Renomeado', `Seção: ${newName}`);
+        } catch (err) {
+          console.error('[ProjectSystem] rename column error:', err);
+          el.textContent = currentName;
+          if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro', 'Falha ao renomear seção.');
+        }
+      }
+    };
+
+    let _finished = false;
+    const _finish = () => {
+      if (_finished) return;
+      _finished = true;
+      _save();
+    };
+
+    input.addEventListener('blur', _finish);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+      if (e.key === 'Escape') { e.preventDefault(); input.value = currentName; input.blur(); }
     });
   }
 
@@ -569,13 +751,30 @@ const TBO_PROJECT_SYSTEM = (() => {
       }
     });
 
-    // Modal close
-    document.getElementById('psModalOverlay')?.addEventListener('click', (e) => {
+    // Modal close + focus trap
+    const overlay = document.getElementById('psModalOverlay');
+    overlay?.addEventListener('click', (e) => {
       if (e.target.id === 'psModalOverlay') _closeModal();
     });
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') _closeModal();
+      // Focus trap: keep Tab inside modal when open
+      if (e.key === 'Tab' && overlay && overlay.style.display !== 'none') {
+        const modal = document.getElementById('psModal');
+        if (!modal) return;
+        const focusable = modal.querySelectorAll('input, select, textarea, button, [tabindex]:not([tabindex="-1"])');
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     });
   }
 

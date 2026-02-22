@@ -230,13 +230,6 @@
   flex-shrink: 0;
 }
 
-.ps-kanban__col-name {
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .ps-kanban__col-count {
   background: var(--bg-hover, rgba(0,0,0,0.06));
   color: var(--text-muted, #94a3b8);
@@ -573,17 +566,76 @@
   flex-wrap: wrap;
 }
 
+/* ── Column Drag ─────────────────────────────────────────────────────── */
+.ps-kanban__col-drag-handle {
+  display: flex;
+  align-items: center;
+  cursor: grab;
+  padding: 2px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  color: var(--text-muted, #94a3b8);
+  transition: color 0.15s ease;
+}
+
+.ps-kanban__col-drag-handle:hover {
+  color: var(--text-primary, #1e293b);
+}
+
+.ps-kanban__col-drag-handle:active {
+  cursor: grabbing;
+}
+
+.ps-kanban__col--col-dragging {
+  opacity: 0.5;
+  outline: 2px dashed #3B82F6;
+  outline-offset: -2px;
+}
+
+.ps-kanban__col--col-dragover {
+  background: rgba(59, 130, 246, 0.06);
+  outline: 2px dashed #3B82F6;
+  outline-offset: -2px;
+}
+
+.ps-kanban__col-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background 0.1s ease;
+}
+
+.ps-kanban__col-name:hover {
+  background: var(--bg-hover, rgba(0,0,0,0.06));
+}
+
+/* ── Card drop position indicators ──────────────────────────────────── */
+.ps-card--drop-above {
+  border-top: 2px solid #3B82F6;
+  margin-top: -1px;
+}
+
+.ps-card--drop-below {
+  border-bottom: 2px solid #3B82F6;
+  margin-bottom: -1px;
+}
+
 /* ── Modal ───────────────────────────────────────────────────────────── */
 .ps-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.5);
   z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(4px);
+  isolation: isolate;
 }
 
 .ps-modal {
@@ -595,8 +647,10 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
   animation: ps-modal-in 0.2s ease;
+  position: relative;
+  z-index: 1;
 }
 
 @keyframes ps-modal-in {
@@ -979,6 +1033,17 @@
 .dark-mode .ps-kanban__add-btn:hover {
   border-color: #3B82F6;
   background: rgba(59, 130, 246, 0.08);
+}
+
+.dark-mode .ps-kanban__col-name:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+.dark-mode .ps-col-name-input,
+.dark-mode .ps-kanban__col-name input {
+  background: var(--bg-surface, #0f172a);
+  color: var(--text-primary, #e2e8f0);
+  border-color: #3B82F6;
 }
 
 .dark-mode .ps-filter-select {

@@ -548,7 +548,12 @@
   <script defer src="modules/reunioes.js"></script>
   <script defer src="modules/agenda.js"></script>
   <script defer src="modules/financeiro.js"></script>
-  <script defer src="modules/rh.js?v=2026022113"></script>
+  <!-- People Module (lazy-loaded architecture v4.0) -->
+  <!-- Shell + shared state carregam no boot; tabs sob demanda via TBO_MODULE_LOADER -->
+  <script defer src="utils/module-loader.js"></script>
+  <script defer src="modules/people/_shared.js?v=2026022200"></script>
+  <script defer src="modules/people/index.js?v=2026022200"></script>
+  <!-- tabs (tab-equipe, tab-vagas, etc.) sao carregadas sob demanda -->
   <script defer src="modules/configuracoes.js"></script>
   <script defer src="modules/changelog.js"></script>
   <script defer src="modules/tarefas.js"></script>

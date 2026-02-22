@@ -54,6 +54,7 @@ const TBO_PAGE_EDITOR = {
   async init() {
     if (!this._page) return;
     this._bindEditorEvents();
+    this._enhanceContent();
 
     // Se título padrão, selecionar para facilitar edição
     if (this._page.title === 'Nova página') {
@@ -307,6 +308,106 @@ const TBO_PAGE_EDITOR = {
     default:
       console.log('[TBO PageEditor] Ação desconhecida:', action);
     }
+  },
+
+  // ── Content Enhancements (grid, copy, placeholders) ────────────────────
+
+  _enhanceContent() {
+    const contentEl = document.getElementById('peContent');
+    if (!contentEl) return;
+
+    // 1. Detectar layout grid via comment marker
+    if (contentEl.innerHTML.includes('<!-- pe-layout:grid -->')) {
+      const container = contentEl.closest('.pe-container');
+      if (container) container.setAttribute('data-pe-layout', 'grid');
+    }
+
+    // 2. Injetar botões de copiar em cada <details>
+    contentEl.querySelectorAll('details').forEach(det => {
+      if (det.querySelector('.pe-copy-btn')) return; // já tem
+      const btn = document.createElement('button');
+      btn.className = 'pe-copy-btn';
+      btn.setAttribute('contenteditable', 'false');
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>Copiar</span>';
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this._copyCardText(det, btn);
+      });
+      det.appendChild(btn);
+    });
+
+    // 3. Highlight placeholders {Nome}, {Empresa}, etc.
+    this._highlightPlaceholders(contentEl);
+  },
+
+  _copyCardText(detailsEl, btn) {
+    // Extrair texto apenas dos parágrafos (excluindo summary e botão)
+    const paragraphs = detailsEl.querySelectorAll('p');
+    const text = Array.from(paragraphs)
+      .map(p => p.innerText)
+      .join('\n\n');
+
+    navigator.clipboard.writeText(text).then(() => {
+      btn.classList.add('pe-copy-btn--copied');
+      btn.querySelector('span').textContent = 'Copiado!';
+      setTimeout(() => {
+        btn.classList.remove('pe-copy-btn--copied');
+        btn.querySelector('span').textContent = 'Copiar';
+      }, 2000);
+    }).catch(() => {
+      // Fallback para navegadores sem clipboard API
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      btn.querySelector('span').textContent = 'Copiado!';
+      setTimeout(() => {
+        btn.querySelector('span').textContent = 'Copiar';
+      }, 2000);
+    });
+  },
+
+  _highlightPlaceholders(container) {
+    // Destacar {Nome}, {Empresa}, {Incorporadora}, etc.
+    const walker = document.createTreeWalker(
+      container,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode(node) {
+          // Ignorar nodes dentro de summary, botões ou já highlightados
+          if (node.parentElement.closest('summary, button, .pe-copy-btn, .pe-placeholder')) {
+            return NodeFilter.FILTER_REJECT;
+          }
+          return node.textContent.match(/\{[^}]+\}/)
+            ? NodeFilter.FILTER_ACCEPT
+            : NodeFilter.FILTER_REJECT;
+        }
+      }
+    );
+
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+
+    nodes.forEach(textNode => {
+      const frag = document.createDocumentFragment();
+      const parts = textNode.textContent.split(/(\{[^}]+\})/g);
+      parts.forEach(part => {
+        if (part.match(/^\{[^}]+\}$/)) {
+          const span = document.createElement('span');
+          span.className = 'pe-placeholder';
+          span.textContent = part;
+          frag.appendChild(span);
+        } else {
+          frag.appendChild(document.createTextNode(part));
+        }
+      });
+      textNode.parentNode.replaceChild(frag, textNode);
+    });
   },
 
   // ── Helpers ─────────────────────────────────────────────────────────────

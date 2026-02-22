@@ -4121,14 +4121,24 @@ const TBO_RH = {
 
     modalContent.innerHTML = this._renderVagaModalContent(vaga);
     modal.style.display = 'flex';
+    // Ativar transicao CSS (opacity + visibility)
+    requestAnimationFrame(() => modal.classList.add('active'));
     if (window.lucide) lucide.createIcons({ root: modal });
 
-    // Fechar modal: close btn, cancel btn, click no backdrop, ESC
-    const closeModal = () => { modal.style.display = 'none'; };
+    // Helper para fechar modal com animacao
+    const closeModal = () => {
+      modal.classList.remove('active');
+      setTimeout(() => { modal.style.display = 'none'; }, 200);
+    };
     document.getElementById('rhVagaModalClose')?.addEventListener('click', closeModal);
     document.getElementById('rhVagaCancel')?.addEventListener('click', closeModal);
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-    const escHandler = (e) => { if (e.key === 'Escape' && modal.style.display === 'flex') { closeModal(); document.removeEventListener('keydown', escHandler); } };
+    const escHandler = (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('active')) {
+        closeModal();
+        document.removeEventListener('keydown', escHandler);
+      }
+    };
     document.addEventListener('keydown', escHandler);
 
     // Focus no primeiro campo para UX
@@ -4183,12 +4193,16 @@ const TBO_RH = {
       const modal = document.getElementById('rhVinculaTalentoModal');
       if (modal) {
         modal.style.display = 'flex';
+        requestAnimationFrame(() => modal.classList.add('active'));
         if (window.lucide) lucide.createIcons({ root: modal });
       }
     });
     document.getElementById('rhVinculaTalentoClose')?.addEventListener('click', () => {
       const modal = document.getElementById('rhVinculaTalentoModal');
-      if (modal) modal.style.display = 'none';
+      if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => { modal.style.display = 'none'; }, 200);
+      }
     });
 
     // Busca de talentos para vincular
@@ -4545,14 +4559,24 @@ const TBO_RH = {
 
     content.innerHTML = this._renderContratoModalContent(contract);
     modal.style.display = 'flex';
+    // Ativar transicao CSS (opacity + visibility)
+    requestAnimationFrame(() => modal.classList.add('active'));
     if (window.lucide) lucide.createIcons({ root: modal });
 
-    // Fechar modal: close btn, cancel btn, click no backdrop, ESC
-    const closeModal = () => { modal.style.display = 'none'; };
+    // Helper para fechar modal com animacao
+    const closeModal = () => {
+      modal.classList.remove('active');
+      setTimeout(() => { modal.style.display = 'none'; }, 200);
+    };
     document.getElementById('rhContratoModalClose')?.addEventListener('click', closeModal);
     document.getElementById('rhContratoCancel')?.addEventListener('click', closeModal);
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-    const escHandler = (e) => { if (e.key === 'Escape' && modal.style.display === 'flex') { closeModal(); document.removeEventListener('keydown', escHandler); } };
+    const escHandler = (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('active')) {
+        closeModal();
+        document.removeEventListener('keydown', escHandler);
+      }
+    };
     document.addEventListener('keydown', escHandler);
 
     // Focus no primeiro campo para UX

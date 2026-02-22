@@ -53,7 +53,42 @@ const TBO_SIDEBAR_SERVICE = (() => {
     { id: 'ws-pessoas',     name: 'Pessoas',          type: 'workspace', order_index: 14.5, icon: 'heart-handshake', route: null, parent_id: 'sep-equipe', allowed_roles: [] },
     { id: 'ws-diretoria',   name: 'Diretoria TBO',    type: 'workspace', order_index: 15, icon: 'shield',   route: null, parent_id: 'sep-equipe', allowed_roles: ['owner', 'admin', 'diretor'] },
 
-    // Sub-items de workspaces (módulos fixos dentro de workspaces)
+    // ── Sub-items: Geral ──────────────────────────────────────────────────
+    { id: 'geral-quadro',      name: 'Quadro Geral',         type: 'child', order_index: 9.01, icon: 'layout-dashboard', route: null, parent_id: 'ws-geral', allowed_roles: [], metadata: { external_url: 'https://www.notion.so/1f3b27ff29e3802b8269dff2957eeb1f' } },
+    { id: 'geral-quadro-v2',   name: 'Quadro Geral v2',      type: 'child', order_index: 9.02, icon: 'layout-grid',      route: null, parent_id: 'ws-geral', allowed_roles: [], metadata: { external_url: 'https://www.notion.so/2c5b27ff29e3807d8658fca89047002f' } },
+    { id: 'geral-cultura',     name: 'Manual de Cultura',     type: 'child', order_index: 9.03, icon: 'book-open',        route: null, parent_id: 'ws-geral', allowed_roles: [], metadata: { external_url: 'https://www.notion.so/2193782e356143e5b41756c78e230cec' } },
+    { id: 'geral-docs',        name: 'Documentos & Padrões',  type: 'child', order_index: 9.04, icon: 'file-text',        route: null, parent_id: 'ws-geral', allowed_roles: [], metadata: { external_url: 'https://www.notion.so/1c58ac19b4de401bacc051dba890f357' } },
+    { id: 'geral-okrs',        name: 'OKRs TBO — 2026',      type: 'child', order_index: 9.05, icon: 'target',           route: null, parent_id: 'ws-geral', allowed_roles: [], metadata: { external_url: 'https://www.notion.so/2e0b27ff29e38020bf63e8cf9b3714d5' } },
+    { id: 'geral-bds',         name: 'BDs | TBO',             type: 'child', order_index: 9.06, icon: 'database',         route: null, parent_id: 'ws-geral', allowed_roles: [], metadata: { external_url: 'https://www.notion.so/1fab27ff29e380d9b152d288ecd5b2da' } },
+
+    // ── Sub-items: Branding ─────────────────────────────────────────────
+    { id: 'brand-projetos',    name: 'Quadro de Projetos',    type: 'child', order_index: 10.01, icon: 'kanban',          route: 'projetos', parent_id: 'ws-branding', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'creative-dir', 'design', 'copy', 'qa'] },
+    { id: 'brand-linhas',      name: 'Linhas Editoriais',     type: 'child', order_index: 10.02, icon: 'pen-tool',        route: null, parent_id: 'ws-branding', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'creative-dir', 'design', 'copy', 'qa'], metadata: { external_url: 'https://www.notion.so/24fb27ff29e3804db856e6a2c22d9fb0' } },
+    { id: 'brand-links',       name: 'Links Educacionais',    type: 'child', order_index: 10.03, icon: 'link',            route: null, parent_id: 'ws-branding', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'creative-dir', 'design', 'copy', 'qa'], metadata: { external_url: 'https://www.notion.so/1f8b27ff29e38043b77bf330385eac7d' } },
+    { id: 'brand-atendimento', name: 'Atendimento & Gestão',  type: 'child', order_index: 10.04, icon: 'headphones',      route: null, parent_id: 'ws-branding', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'creative-dir', 'design', 'copy', 'qa'], metadata: { external_url: 'https://www.notion.so/646495112ac24518926e664f5ff07164' } },
+
+    // ── Sub-items: Digital 3D ───────────────────────────────────────────
+    { id: '3d-projetos',       name: 'Quadro de Projetos',    type: 'child', order_index: 11.01, icon: 'kanban',          route: 'projetos', parent_id: 'ws-3d', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'creative-dir', '3d-lead', '3d-artist', 'qa'] },
+    { id: '3d-cronograma',     name: 'Cronograma',            type: 'child', order_index: 11.02, icon: 'calendar-range',  route: null, parent_id: 'ws-3d', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'creative-dir', '3d-lead', '3d-artist', 'qa'], metadata: { external_url: 'https://www.notion.so/1fab27ff29e380d496a7cdb3721336ba' } },
+
+    // ── Sub-items: Audiovisual ──────────────────────────────────────────
+    { id: 'av-projetos',       name: 'Quadro de Projetos',    type: 'child', order_index: 12.01, icon: 'kanban',          route: 'projetos', parent_id: 'ws-av', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'creative-dir', 'motion', 'qa', '3d-lead', '3d-artist'] },
+    { id: 'av-cronograma',     name: 'Cronograma',            type: 'child', order_index: 12.02, icon: 'calendar-range',  route: null, parent_id: 'ws-av', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'creative-dir', 'motion', 'qa', '3d-lead', '3d-artist'], metadata: { external_url: 'https://www.notion.so/1fab27ff29e380988600ee817de6ba00' } },
+
+    // ── Sub-items: Marketing ────────────────────────────────────────────
+    { id: 'mkt-guia',          name: 'Guia da Marca',         type: 'child', order_index: 13.01, icon: 'book-marked',     route: null, parent_id: 'ws-marketing', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'copy', 'design', 'qa'], metadata: { external_url: 'https://www.notion.so/12ab27ff29e381c3b452c6acf15cdf52' } },
+    { id: 'mkt-calendario',    name: 'Calendário Redes Sociais', type: 'child', order_index: 13.02, icon: 'calendar',    route: null, parent_id: 'ws-marketing', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'copy', 'design', 'qa'], metadata: { external_url: 'https://www.notion.so/12ab27ff29e3818eab6acab66f4e292b' } },
+    { id: 'mkt-demandas',      name: 'Gestão de Demandas',    type: 'child', order_index: 13.03, icon: 'list-checks',     route: null, parent_id: 'ws-marketing', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'copy', 'design', 'qa'], metadata: { external_url: 'https://www.notion.so/18ab27ff29e380a6aec4e1d71bff18d5' } },
+    { id: 'mkt-conteudo',      name: 'Conteúdo & Redação',    type: 'child', order_index: 13.04, icon: 'pen-tool',        route: 'conteudo', parent_id: 'ws-marketing', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'copy', 'design', 'qa'] },
+
+    // ── Sub-items: Comercial ────────────────────────────────────────────
+    { id: 'com-pipeline',      name: 'Pipeline',              type: 'child', order_index: 14.01, icon: 'filter',          route: 'pipeline', parent_id: 'ws-comercial', allowed_roles: ['owner', 'admin', 'diretor', 'comercial', 'cs', 'financeiro'] },
+    { id: 'com-clientes',      name: 'Clientes',              type: 'child', order_index: 14.02, icon: 'building-2',      route: 'clientes', parent_id: 'ws-comercial', allowed_roles: ['owner', 'admin', 'diretor', 'comercial', 'cs', 'financeiro'] },
+    { id: 'com-propostas',     name: 'Propostas',             type: 'child', order_index: 14.03, icon: 'file-text',       route: 'comercial', parent_id: 'ws-comercial', allowed_roles: ['owner', 'admin', 'diretor', 'comercial', 'cs', 'financeiro'] },
+    { id: 'com-abordagens',    name: 'Biblioteca de Abordagens', type: 'child', order_index: 14.04, icon: 'book-open',   route: null, parent_id: 'ws-comercial', allowed_roles: ['owner', 'admin', 'diretor', 'comercial', 'cs', 'financeiro'], metadata: { external_url: 'https://www.notion.so/832d494e9f2a4539a3ba7cca7646ed75' } },
+    { id: 'com-gestao',        name: 'Gestão Comercial',      type: 'child', order_index: 14.05, icon: 'chart-bar',       route: null, parent_id: 'ws-comercial', allowed_roles: ['owner', 'admin', 'diretor', 'comercial', 'cs', 'financeiro'], metadata: { external_url: 'https://www.notion.so/237083f5f949400a907f04cb07bf5e55' } },
+
+    // ── Sub-items: Diretoria ────────────────────────────────────────────
     { id: 'dir-financeiro', name: 'Financeiro',       type: 'child',     order_index: 15.1, icon: 'coins',  route: 'financeiro', parent_id: 'ws-diretoria', allowed_roles: ['owner', 'admin', 'diretor', 'financeiro'] },
 
     // Sub-items do workspace Pessoas (RH) — deep link: rh/{tab}
@@ -283,8 +318,12 @@ const TBO_SIDEBAR_SERVICE = (() => {
     // 3. Fetch do Supabase em background
     const supabaseItems = await _fetchFromSupabase();
     if (supabaseItems && supabaseItems.length > 0) {
-      _items = supabaseItems;
-      _saveCache(supabaseItems);
+      // Mesclar child items do DEFAULT que não existem no Supabase
+      // (garante que novos items hardcoded apareçam mesmo com dados no DB)
+      const supabaseIds = new Set(supabaseItems.map(i => i.id));
+      const missingDefaults = DEFAULT_ITEMS.filter(d => d.type === 'child' && !supabaseIds.has(d.id));
+      _items = [...supabaseItems, ...missingDefaults];
+      _saveCache(_items);
     } else if (_items.length === 0) {
       // Fallback para estrutura padrão
       _items = DEFAULT_ITEMS;

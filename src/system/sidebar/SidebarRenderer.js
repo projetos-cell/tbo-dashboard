@@ -172,16 +172,26 @@ const TBO_SIDEBAR_RENDERER = (() => {
   function _renderChildItem(child) {
     const icon = child.icon || 'file';
     const title = _escHtml(child.name);
-    // Match: exato, rota base, ou rota ativa comeca com a rota do child
-    // Ex: activeRoute='rh/cultura/rituais' matcheia child.route='rh/cultura/rituais' (exato)
-    //     activeRoute='rh/performance' matcheia child.route='rh' (base)
-    //     activeRoute='rh/cultura/rituais' matcheia child.route='rh/cultura' (prefixo — NAO, queremos match exato no child)
-    const isActive = _activeRoute && (
-      child.route === _activeRoute ||
-      (_activeRoute.includes('/') && child.route === _activeRoute.split('/')[0]) ||
-      (_activeRoute.startsWith(child.route + '/'))
+    const extUrl = child.metadata?.external_url || null;
+
+    // Link externo (Notion) — abre em nova aba
+    if (extUrl) {
+      return `<div class="nsb-ws-item nsb-ws-child" data-external-url="${_escHtml(extUrl)}" title="${title}">
+        <i data-lucide="${_escHtml(icon)}"></i>
+        <span class="nsb-ws-item-label">${title}</span>
+        <i data-lucide="external-link" class="nsb-ws-external-icon"></i>
+      </div>`;
+    }
+
+    // Rota interna — match de rota ativa
+    const route = child.route || '';
+    const isActive = route && _activeRoute && (
+      route === _activeRoute ||
+      (_activeRoute.includes('/') && route === _activeRoute.split('/')[0]) ||
+      (_activeRoute.startsWith(route + '/'))
     );
-    return `<div class="nsb-ws-item nsb-ws-child${isActive ? ' nsb-item--active' : ''}" data-child-route="${_escHtml(child.route)}" title="${title}">
+
+    return `<div class="nsb-ws-item nsb-ws-child${isActive ? ' nsb-item--active' : ''}" data-child-route="${_escHtml(route)}" title="${title}">
       <i data-lucide="${_escHtml(icon)}"></i>
       <span class="nsb-ws-item-label">${title}</span>
     </div>`;
@@ -199,6 +209,13 @@ const TBO_SIDEBAR_RENDERER = (() => {
           window.location.hash = route;
           setActive(route);
         }
+      });
+    });
+    container.querySelectorAll('[data-external-url]').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        const url = el.dataset.externalUrl;
+        if (url) window.open(url, '_blank', 'noopener');
       });
     });
   }

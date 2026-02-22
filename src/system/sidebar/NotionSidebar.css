@@ -294,6 +294,20 @@
   white-space: nowrap;
 }
 
+.nsb-ws-external-icon {
+  width: 12px;
+  height: 12px;
+  opacity: 0;
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--text-tertiary, #999);
+  transition: opacity 0.15s;
+}
+
+.nsb-ws-item:hover .nsb-ws-external-icon {
+  opacity: 0.6;
+}
+
 /* ── Skeleton Loading ───────────────────────────────────────────────────── */
 
 .nsb-skeleton {

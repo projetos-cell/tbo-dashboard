@@ -4,7 +4,7 @@
 // Salary Benchmarking, Onboarding Checklist Generator
 // ============================================================================
 
-const TBO_PEOPLE = {
+const TBO_PEOPLE_ENHANCEMENTS = {
 
   // ═══════════════════════════════════════════════════════════════════════════
   // HELPERS

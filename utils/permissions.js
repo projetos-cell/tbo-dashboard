@@ -50,7 +50,7 @@ const TBO_PERMISSIONS = {
     founder: {
       label: 'Fundador',
       color: '#E85102',
-      modules: ['dashboard','alerts','inteligencia','pipeline','comercial','clientes','portal-cliente','contratos','conteudo','projetos','mercado','reunioes','financeiro','rh','cultura','configuracoes','admin-onboarding'],
+      modules: ['dashboard','alerts','inteligencia','pipeline','comercial','clientes','portal-cliente','contratos','conteudo','projetos','mercado','reunioes','financeiro','rh','cultura','configuracoes','admin-onboarding','database-notion','project-system','relatorios','rsm'],
       dashboardVariant: 'full',
       defaultModule: 'dashboard'
     },
@@ -60,28 +60,28 @@ const TBO_PERMISSIONS = {
       // v2.2.1: removido 'comercial' (CRM/pipeline com dados financeiros sigilosos)
       // v2.2.2: removidos clientes/contratos (dados de receita) — PO foca em projetos/entregas
       // portal-cliente movido para secao PROJETOS (visivel a POs para acompanhar cliente)
-      modules: ['dashboard','alerts','portal-cliente','conteudo','projetos','mercado','reunioes','rh','cultura','configuracoes','admin-onboarding'],
+      modules: ['dashboard','alerts','portal-cliente','conteudo','projetos','mercado','reunioes','rh','cultura','configuracoes','admin-onboarding','database-notion','project-system'],
       dashboardVariant: 'projects',
       defaultModule: 'dashboard'
     },
     artist: {
       label: 'Artista',
       color: '#3a7bd5',
-      modules: ['dashboard','alerts','projetos','mercado','reunioes','cultura','configuracoes'],
+      modules: ['dashboard','alerts','projetos','mercado','reunioes','cultura','configuracoes','database-notion','project-system'],
       dashboardVariant: 'tasks',
       defaultModule: 'dashboard'
     },
     comercial: {
       label: 'Comercial',
       color: '#f59e0b',
-      modules: ['dashboard','alerts','pipeline','comercial','clientes','portal-cliente','contratos','projetos','mercado','reunioes','cultura','configuracoes'],
+      modules: ['dashboard','alerts','pipeline','comercial','clientes','portal-cliente','contratos','projetos','mercado','reunioes','cultura','configuracoes','database-notion','rsm'],
       dashboardVariant: 'full',
       defaultModule: 'dashboard'
     },
     finance: {
       label: 'Financeiro',
       color: '#2ecc71',
-      modules: ['dashboard','alerts','inteligencia','pipeline','financeiro','comercial','clientes','portal-cliente','contratos','mercado','reunioes','cultura','configuracoes'],
+      modules: ['dashboard','alerts','inteligencia','pipeline','financeiro','comercial','clientes','portal-cliente','contratos','mercado','reunioes','cultura','configuracoes','database-notion','relatorios'],
       dashboardVariant: 'financial',
       defaultModule: 'dashboard'
     }
@@ -165,7 +165,7 @@ const TBO_PERMISSIONS = {
       id: 'execucao',
       label: 'EXECUÇÃO',
       icon: 'clipboard-list',
-      modules: ['projetos', 'tarefas', 'reunioes', 'biblioteca']
+      modules: ['projetos', 'project-system', 'tarefas', 'reunioes', 'biblioteca', 'database-notion']
     },
     {
       id: 'producao',
@@ -195,14 +195,14 @@ const TBO_PERMISSIONS = {
       id: 'comercial',
       label: 'COMERCIAL',
       icon: 'trending-up',
-      modules: ['pipeline', 'comercial', 'clientes', 'inteligencia', 'inteligencia-imobiliaria', 'mercado']
+      modules: ['pipeline', 'comercial', 'clientes', 'inteligencia', 'inteligencia-imobiliaria', 'mercado', 'rsm']
     },
     {
       id: 'admin',
       label: 'ADMINISTRAÇÃO',
       icon: 'shield',
       // Somente Owner/Admin — controle via RBAC em getModulesForUser
-      modules: ['admin-portal', 'permissoes-config', 'integracoes', 'configuracoes', 'changelog']
+      modules: ['admin-portal', 'permissoes-config', 'integracoes', 'configuracoes', 'changelog', 'relatorios']
     }
   ],
 

@@ -828,9 +828,17 @@
 }
 
 /* ── Drag & Drop visual states ─────────────────── */
+
+/* Tasks container: positioning context for drop indicator */
+.pd-tasks {
+  position: relative;
+}
+
+/* Task row being dragged — faded, no pointer events */
 .pd-task-row.pd-dragging {
   opacity: 0.35;
   background: var(--bg-card-hover);
+  pointer-events: none;
 }
 
 .pd-section.pd-dragging {
@@ -838,14 +846,7 @@
   background: var(--bg-card-hover);
 }
 
-.pd-task-row.pd-drop-above {
-  box-shadow: 0 -2px 0 0 var(--accent, #E85102);
-}
-
-.pd-task-row.pd-drop-below {
-  box-shadow: 0 2px 0 0 var(--accent, #E85102);
-}
-
+/* Section drag drop indicators (still HTML5 Drag) */
 .pd-section.pd-drop-above {
   box-shadow: 0 -2px 0 0 var(--accent, #E85102);
 }
@@ -861,6 +862,37 @@
   outline-offset: -2px;
   border-radius: 4px;
   min-height: 40px;
+}
+
+/* ── Task drag ghost (follows pointer) ──────────── */
+.pd-drag-ghost {
+  position: fixed;
+  z-index: 10000;
+  pointer-events: none;
+  padding: 6px 14px;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--accent, #E85102);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  font-size: 13px;
+  color: var(--text-primary, #374151);
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.92;
+}
+
+/* ── Task drop indicator line ────────────────────── */
+.pd-drop-indicator-line {
+  position: absolute;
+  left: 24px;
+  right: 8px;
+  height: 2px;
+  background: var(--accent, #E85102);
+  border-radius: 1px;
+  z-index: 9999;
+  pointer-events: none;
 }
 
 /* ── Collapse state ────────────────────────────── */

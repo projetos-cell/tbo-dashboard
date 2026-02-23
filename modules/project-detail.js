@@ -14,12 +14,13 @@ const TBO_PROJECT_DETAIL = {
   _secCtxKey: null,     // section key for active section menu
   _hideEmptyGroups: false, // persistent toggle for hiding empty groups
   _sectionOverrides: {}, // manual section assignments { demandId: sectionKey }
-  _dragEl: null,        // element being dragged
+  _dragEl: null,        // element being dragged (section/column drag)
   _dragType: null,      // 'task', 'section', or 'column'
   _dragColKey: null,    // column key being dragged
   _globalsBound: false, // track global listeners to avoid duplicates
-  _dragMouseUpBound: false, // track drag mouseup listener
   _dragActive: false,       // true while a drag operation is in progress
+  _taskDragState: null,     // pointer-event task drag state object
+  _taskDragBound: false,    // flag: task drag delegation bound once
 
   // ═══════════════════════════════════════════════════
   // COLUMN CONFIGURATION
@@ -594,9 +595,13 @@ const TBO_PROJECT_DETAIL = {
       }
     });
 
-    // Close context menus on Escape
+    // Close context menus on Escape + cancel task drag
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
+        if (self._taskDragState && self._taskDragState.started) {
+          self._taskDragCleanup(self._taskDragState);
+          self._taskDragState = null;
+        }
         self._closeContextMenu();
         self._closeColContextMenu();
         self._closeSectionContextMenu();
@@ -1773,95 +1778,315 @@ const TBO_PROJECT_DETAIL = {
   // ═══════════════════════════════════════════════════
   // DRAG & DROP (Tasks + Sections) — vertical
   // ═══════════════════════════════════════════════════
-  //
-  // Strategy: Elements are NOT draggable by default.
-  // We set draggable="true" on mousedown of the drag handle,
-  // and remove it on mouseup/dragend.
 
   _bindDragHandles() {
-    const self = this;
+    this._bindTaskDragDelegation();   // tasks: Pointer Events, bound ONCE
+    this._bindSectionDragHandles();   // sections: HTML5 Drag, re-bound each render
+  },
 
-    // ── Task row drag handles ────────────────────────
-    document.querySelectorAll('.pd-task-drag').forEach(handle => {
+  // ── Task drag via Pointer Events (event delegation) ──
+
+  _bindTaskDragDelegation() {
+    if (this._taskDragBound) return;
+    this._taskDragBound = true;
+    const self = this;
+    const container = document.querySelector('.pd-tasks');
+    if (!container) return;
+
+    container.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      const handle = e.target.closest('.pd-task-drag');
+      if (!handle) return;
       const row = handle.closest('.pd-task-row');
       if (!row) return;
 
-      // Always set draggable on the row so the browser drag system works
-      // We gate actual drag logic in dragstart via _dragType
-      handle.addEventListener('mousedown', (e) => {
-        e.stopPropagation();
-        self._dragType = 'task';
-        row.setAttribute('draggable', 'true');
-      });
+      e.preventDefault();
+      container.setPointerCapture(e.pointerId);
 
-      row.addEventListener('dragstart', (e) => {
-        if (self._dragType !== 'task') { e.preventDefault(); return; }
-        self._dragActive = true;
-        self._dragEl = row;
-        row.classList.add('pd-dragging');
-        e.dataTransfer.effectAllowed = 'move';
-        try { e.dataTransfer.setData('text/plain', row.dataset.demandId || ''); } catch (_) {}
-      });
-
-      row.addEventListener('dragend', () => {
-        row.classList.remove('pd-dragging');
-        row.removeAttribute('draggable');
-        self._clearDropIndicators();
-        document.querySelectorAll('.pd-section.pd-drop-target').forEach(s => s.classList.remove('pd-drop-target'));
-        self._dragActive = false;
-        self._dragEl = null;
-        self._dragType = null;
-      });
-
-      row.addEventListener('dragover', (e) => {
-        if (self._dragType !== 'task' || self._dragEl === row) return;
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        self._clearDropIndicators();
-        const rect = row.getBoundingClientRect();
-        const midY = rect.top + rect.height / 2;
-        row.classList.add(e.clientY < midY ? 'pd-drop-above' : 'pd-drop-below');
-      });
-
-      row.addEventListener('dragleave', () => {
-        row.classList.remove('pd-drop-above', 'pd-drop-below');
-      });
-
-      row.addEventListener('drop', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        document.querySelectorAll('.pd-section.pd-drop-target').forEach(s => s.classList.remove('pd-drop-target'));
-        if (self._dragType !== 'task' || !self._dragEl || self._dragEl === row) {
-          self._clearDropIndicators();
-          return;
-        }
-        const rect = row.getBoundingClientRect();
-        const midY = rect.top + rect.height / 2;
-        const parent = row.parentNode;
-        if (e.clientY < midY) {
-          parent.insertBefore(self._dragEl, row);
-        } else {
-          parent.insertBefore(self._dragEl, row.nextSibling);
-        }
-        self._clearDropIndicators();
-        self._syncDemandOrderFromDOM();
-        self._reRenderTasks();
-      });
+      const sectionEl = row.closest('.pd-section');
+      self._taskDragState = {
+        demandId: row.dataset.demandId,
+        originSection: sectionEl ? sectionEl.dataset.section : null,
+        rowEl: row,
+        ghostEl: null,
+        indicatorEl: null,
+        startX: e.clientX,
+        startY: e.clientY,
+        pointerId: e.pointerId,
+        started: false,
+        dropTargetBody: null,
+        dropInsertBefore: null,
+        dropTargetSection: null,
+      };
     });
 
-    // Cleanup draggable on mouseup — only if NOT in an active drag
-    // Use a single handler bound via a flag to avoid stacking
-    if (!this._dragMouseUpBound) {
-      this._dragMouseUpBound = true;
-      document.addEventListener('mouseup', () => {
-        if (self._dragActive) return; // don't interfere with active drag
-        document.querySelectorAll('.pd-task-row[draggable]').forEach(r => r.removeAttribute('draggable'));
-        document.querySelectorAll('.pd-section[draggable]').forEach(s => s.removeAttribute('draggable'));
-        self._dragType = null;
-      });
+    container.addEventListener('pointermove', (e) => {
+      const state = self._taskDragState;
+      if (!state) return;
+
+      if (!state.started) {
+        const dx = e.clientX - state.startX;
+        const dy = e.clientY - state.startY;
+        if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+        state.started = true;
+        self._taskDragStart(state);
+      }
+
+      self._taskDragMoveGhost(state, e.clientX, e.clientY);
+      self._taskDragUpdateIndicator(state, e.clientX, e.clientY);
+    });
+
+    container.addEventListener('pointerup', (e) => {
+      const state = self._taskDragState;
+      if (!state) return;
+      try { container.releasePointerCapture(e.pointerId); } catch (_) {}
+      if (state.started) self._taskDragDrop(state);
+      self._taskDragCleanup(state);
+      self._taskDragState = null;
+    });
+
+    container.addEventListener('pointercancel', () => {
+      const state = self._taskDragState;
+      if (!state) return;
+      self._taskDragCleanup(state);
+      self._taskDragState = null;
+    });
+  },
+
+  _taskDragStart(state) {
+    const row = state.rowEl;
+    row.classList.add('pd-dragging');
+    this._dragActive = true;
+    this._dragType = 'task';
+
+    // Ghost element — lightweight label following the pointer
+    const ghost = document.createElement('div');
+    ghost.className = 'pd-drag-ghost';
+    const nameEl = row.querySelector('.pd-task-title');
+    ghost.textContent = nameEl ? nameEl.textContent : 'Tarefa';
+    document.body.appendChild(ghost);
+    state.ghostEl = ghost;
+
+    // Drop indicator line
+    const indicator = document.createElement('div');
+    indicator.className = 'pd-drop-indicator-line';
+    indicator.style.display = 'none';
+    const container = document.querySelector('.pd-tasks');
+    if (container) container.appendChild(indicator);
+    state.indicatorEl = indicator;
+  },
+
+  _taskDragMoveGhost(state, clientX, clientY) {
+    if (!state.ghostEl) return;
+    state.ghostEl.style.left = clientX + 'px';
+    state.ghostEl.style.top = (clientY - 32) + 'px';
+  },
+
+  _taskDragUpdateIndicator(state, clientX, clientY) {
+    const indicator = state.indicatorEl;
+    if (!indicator) return;
+
+    // Clear previous section highlights
+    document.querySelectorAll('.pd-section.pd-drop-target').forEach(s =>
+      s.classList.remove('pd-drop-target')
+    );
+
+    // Find which section body the pointer is over
+    let targetBody = null;
+    let targetSection = null;
+
+    for (const body of document.querySelectorAll('.pd-section-body')) {
+      const rect = body.getBoundingClientRect();
+      if (clientY >= rect.top && clientY <= rect.bottom &&
+          clientX >= rect.left && clientX <= rect.right) {
+        targetBody = body;
+        targetSection = body.closest('.pd-section');
+        break;
+      }
     }
 
-    // ── Section drag handles ─────────────────────────
+    // Also check section headers (for dropping at the top of a section)
+    if (!targetBody) {
+      for (const header of document.querySelectorAll('.pd-section-header')) {
+        const rect = header.getBoundingClientRect();
+        if (clientY >= rect.top && clientY <= rect.bottom &&
+            clientX >= rect.left && clientX <= rect.right) {
+          targetSection = header.closest('.pd-section');
+          targetBody = targetSection ? targetSection.querySelector('.pd-section-body') : null;
+          break;
+        }
+      }
+    }
+
+    if (!targetBody) {
+      indicator.style.display = 'none';
+      state.dropTargetBody = null;
+      state.dropInsertBefore = null;
+      state.dropTargetSection = null;
+      return;
+    }
+
+    // Highlight target section if different from origin
+    if (targetSection && targetSection.dataset.section !== state.originSection) {
+      targetSection.classList.add('pd-drop-target');
+    }
+
+    // Find the closest row within this section body
+    const rows = targetBody.querySelectorAll('.pd-task-row');
+    let insertBefore = null;
+
+    for (const row of rows) {
+      if (row === state.rowEl) continue;
+      const rect = row.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      if (clientY < midY) {
+        insertBefore = row;
+        break;
+      }
+    }
+
+    // Position the indicator
+    const container = document.querySelector('.pd-tasks');
+    if (!container) return;
+    const containerRect = container.getBoundingClientRect();
+    const scrollTop = container.scrollTop || 0;
+
+    if (insertBefore) {
+      const rowRect = insertBefore.getBoundingClientRect();
+      indicator.style.top = (rowRect.top - containerRect.top + scrollTop) + 'px';
+    } else {
+      // After the last visible row, or top of empty section
+      let lastVisibleRow = null;
+      for (const row of rows) {
+        if (row !== state.rowEl) lastVisibleRow = row;
+      }
+      if (lastVisibleRow) {
+        const rowRect = lastVisibleRow.getBoundingClientRect();
+        indicator.style.top = (rowRect.bottom - containerRect.top + scrollTop) + 'px';
+      } else {
+        const bodyRect = targetBody.getBoundingClientRect();
+        indicator.style.top = (bodyRect.top - containerRect.top + scrollTop) + 'px';
+      }
+    }
+    indicator.style.display = 'block';
+
+    state.dropTargetBody = targetBody;
+    state.dropInsertBefore = insertBefore;
+    state.dropTargetSection = targetSection;
+  },
+
+  _taskDragDrop(state) {
+    const { rowEl, dropTargetBody, dropInsertBefore, dropTargetSection, demandId, originSection } = state;
+    if (!dropTargetBody) return;
+
+    // 1. Move the row in the DOM
+    if (dropInsertBefore) {
+      dropTargetBody.insertBefore(rowEl, dropInsertBefore);
+    } else {
+      dropTargetBody.appendChild(rowEl);
+    }
+
+    // 2. Handle cross-section status change
+    const newSectionKey = dropTargetSection ? dropTargetSection.dataset.section : null;
+    if (newSectionKey && newSectionKey !== originSection) {
+      const demand = this._demands.find(d => d.id === demandId);
+      if (demand) {
+        const section = this._SECTIONS.find(s => s.key === newSectionKey);
+        if (section && section.statuses.length > 0) {
+          const newStatus = section.statuses[0];
+          demand.status = newStatus;
+          delete this._sectionOverrides[demand.id];
+
+          // Update status badge in the moved row (no full re-render)
+          const statusCell = rowEl.querySelector('.pd-demand-status');
+          if (statusCell) {
+            const colors = this._DEMAND_STATUS_COLORS[newStatus] || { color: '#6b7280', bg: 'rgba(107,114,128,0.10)' };
+            statusCell.textContent = newStatus;
+            statusCell.style.background = colors.bg;
+            statusCell.style.color = colors.color;
+          }
+
+          // Persist to Supabase
+          if (!String(demandId).startsWith('temp_')) {
+            this._persistStatusChange(demandId, newStatus);
+          }
+        } else if (newSectionKey === 'outros') {
+          this._sectionOverrides[demandId] = 'outros';
+        }
+      }
+    }
+
+    // 3. Sync in-memory _demands array with new DOM order
+    this._syncDemandsArrayFromDOM();
+
+    // 4. Update section counts
+    this._updateSectionCounts();
+  },
+
+  _taskDragCleanup(state) {
+    if (state.ghostEl && state.ghostEl.parentNode) {
+      state.ghostEl.parentNode.removeChild(state.ghostEl);
+    }
+    if (state.indicatorEl && state.indicatorEl.parentNode) {
+      state.indicatorEl.parentNode.removeChild(state.indicatorEl);
+    }
+    if (state.rowEl) {
+      state.rowEl.classList.remove('pd-dragging');
+    }
+    document.querySelectorAll('.pd-section.pd-drop-target').forEach(s =>
+      s.classList.remove('pd-drop-target')
+    );
+    this._dragActive = false;
+    this._dragType = null;
+  },
+
+  _syncDemandsArrayFromDOM() {
+    const rows = document.querySelectorAll('.pd-task-row[data-demand-id]');
+    const ordered = [];
+    const seen = new Set();
+
+    rows.forEach(row => {
+      const d = this._demands.find(dd => dd.id === row.dataset.demandId);
+      if (d && !seen.has(d.id)) {
+        ordered.push(d);
+        seen.add(d.id);
+      }
+    });
+
+    // Append any demands not found in DOM (edge case safety)
+    this._demands.forEach(d => {
+      if (!seen.has(d.id)) ordered.push(d);
+    });
+
+    this._demands = ordered;
+  },
+
+  async _persistStatusChange(demandId, newStatus) {
+    try {
+      const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+      if (!client) return;
+      await client.from('demands').update({ status: newStatus }).eq('id', demandId);
+    } catch (e) {
+      console.error('[PD] drag status update error:', e);
+    }
+  },
+
+  _updateSectionCounts() {
+    document.querySelectorAll('.pd-section').forEach(sectionEl => {
+      const body = sectionEl.querySelector('.pd-section-body');
+      const countEl = sectionEl.querySelector('.pd-section-count');
+      if (body && countEl) {
+        const rowCount = body.querySelectorAll('.pd-task-row').length;
+        countEl.textContent = rowCount;
+      }
+    });
+  },
+
+  // ── Section drag handles (HTML5 Drag, re-bound each render) ──
+
+  _bindSectionDragHandles() {
+    const self = this;
+
     document.querySelectorAll('.pd-section-drag').forEach(handle => {
       const section = handle.closest('.pd-section');
       if (!section) return;
@@ -1923,40 +2148,12 @@ const TBO_PROJECT_DETAIL = {
       });
     });
 
-    // ── Drop on section body (empty area) ──
-    document.querySelectorAll('.pd-section-body').forEach(body => {
-      body.addEventListener('dragover', (e) => {
-        if (self._dragType !== 'task') return;
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        const sectionEl = body.closest('.pd-section');
-        if (sectionEl) {
-          document.querySelectorAll('.pd-section.pd-drop-target').forEach(s => {
-            if (s !== sectionEl) s.classList.remove('pd-drop-target');
-          });
-          sectionEl.classList.add('pd-drop-target');
-        }
-      });
-
-      body.addEventListener('dragleave', (e) => {
-        if (!body.contains(e.relatedTarget)) {
-          const sectionEl = body.closest('.pd-section');
-          if (sectionEl) sectionEl.classList.remove('pd-drop-target');
-        }
-      });
-
-      body.addEventListener('drop', (e) => {
-        if (self._dragType !== 'task' || !self._dragEl) return;
-        e.preventDefault();
-        document.querySelectorAll('.pd-section.pd-drop-target').forEach(s => s.classList.remove('pd-drop-target'));
-        if (!e.target.closest('.pd-task-row')) {
-          body.appendChild(self._dragEl);
-          self._clearDropIndicators();
-          self._syncDemandOrderFromDOM();
-          self._reRenderTasks();
-        }
-      });
-    });
+    // Cleanup draggable on sections after mouseup
+    document.addEventListener('mouseup', () => {
+      if (self._dragActive) return;
+      document.querySelectorAll('.pd-section[draggable]').forEach(s => s.removeAttribute('draggable'));
+      if (self._dragType === 'section') self._dragType = null;
+    }, { once: true });
   },
 
   // ═══════════════════════════════════════════════════
@@ -2104,65 +2301,18 @@ const TBO_PROJECT_DETAIL = {
     });
   },
 
-  _syncDemandOrderFromDOM() {
-    const self = this;
-    const rows = document.querySelectorAll('.pd-task-row[data-demand-id]');
-    const newOrder = [];
-    const statusUpdates = []; // { id, status } for DB persistence
-
-    rows.forEach(row => {
-      const d = this._demands.find(dd => dd.id === row.dataset.demandId);
-      if (!d) return;
-      newOrder.push(d);
-
-      // Determine which section this row is now in
-      const sectionEl = row.closest('.pd-section');
-      if (!sectionEl) return;
-      const sectionKey = sectionEl.dataset.section;
-      const section = this._SECTIONS.find(s => s.key === sectionKey);
-
-      if (section && section.statuses.length > 0) {
-        // Check if the demand's current status already matches this section
-        const alreadyInSection = section.statuses.some(s => (d.status || '').toLowerCase() === s.toLowerCase());
-        if (!alreadyInSection) {
-          // Move demand to this section's first status
-          const newStatus = section.statuses[0];
-          d.status = newStatus;
-          // Remove any section override since it now belongs by status
-          delete self._sectionOverrides[d.id];
-          if (!String(d.id).startsWith('temp_')) {
-            statusUpdates.push({ id: d.id, status: newStatus });
-          }
-        }
-      } else if (sectionKey === 'outros' || (section && section.statuses.length === 0)) {
-        // Dropped into "Outros" or a custom section with no statuses → set override
-        self._sectionOverrides[d.id] = sectionKey;
-      }
-    });
-
-    this._demands.forEach(d => {
-      if (!newOrder.find(nd => nd.id === d.id)) newOrder.push(d);
-    });
-    this._demands = newOrder;
-
-    // Persist status changes to DB
-    if (statusUpdates.length > 0) {
-      const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
-      if (client) {
-        statusUpdates.forEach(async (u) => {
-          try {
-            await client.from('demands').update({ status: u.status }).eq('id', u.id);
-          } catch (e) { console.error('[PD] drag status update error:', e); }
-        });
-      }
-    }
-  },
+  // _syncDemandOrderFromDOM — replaced by _syncDemandsArrayFromDOM + _persistStatusChange
 
   // ═══════════════════════════════════════════════════
   // RE-RENDER TASKS (partial)
   // ═══════════════════════════════════════════════════
 
   _reRenderTasks() {
+    // Abort any active task drag before re-rendering
+    if (this._taskDragState && this._taskDragState.started) {
+      this._taskDragCleanup(this._taskDragState);
+      this._taskDragState = null;
+    }
     const tasksContainer = document.querySelector('.pd-tasks');
     if (!tasksContainer) return;
 
@@ -2267,6 +2417,8 @@ const TBO_PROJECT_DETAIL = {
     this._dragActive = false;
     this._columnOrder = null;
     this._sectionOverrides = {};
+    this._taskDragState = null;
+    this._taskDragBound = false;
     // Reset hidden state to defaults
     this._COLUMNS.forEach(c => c.hidden = false);
   },

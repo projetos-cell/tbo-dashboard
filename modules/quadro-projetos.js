@@ -86,24 +86,44 @@ const TBO_QUADRO_PROJETOS = {
       return;
     }
 
-    // Obter tenant_id — mesmo padrão dos outros módulos
+    // Obter tenant_id via async para garantir resolução (mesmo padrão de outros módulos)
     let tid = null;
     try {
-      if (typeof RepoBase !== 'undefined' && RepoBase.requireTenantId) {
+      if (typeof RepoBase !== 'undefined' && RepoBase.resolveTenantId) {
+        tid = await RepoBase.resolveTenantId();
+      } else if (typeof RepoBase !== 'undefined' && RepoBase.requireTenantId) {
         tid = RepoBase.requireTenantId();
-      } else if (typeof TBO_SUPABASE !== 'undefined' && TBO_SUPABASE.getTenantId) {
-        tid = TBO_SUPABASE.getTenantId();
+      } else if (typeof TBO_SUPABASE !== 'undefined' && TBO_SUPABASE.getCurrentTenantId) {
+        tid = TBO_SUPABASE.getCurrentTenantId();
       }
     } catch (_e) { /* sem tenant_id — RLS vai filtrar pelo auth */ }
 
     try {
-      // Projetos — obrigatório
-      let projQuery = client.from('projects')
-        .select('id,name,status,construtora,bus,owner_name,due_date_start,due_date_end,notion_url,code,notion_page_id')
-        .order('name');
-      if (tid) projQuery = projQuery.eq('tenant_id', tid);
+      // Projetos — tenta com colunas completas (pós-migration 028)
+      // Se falhar por coluna inexistente, cai no fallback com colunas básicas
+      const FULL_COLS   = 'id,name,status,construtora,bus,owner_name,due_date_start,due_date_end,notion_url,code,notion_page_id,tenant_id';
+      const BASIC_COLS  = 'id,name,status,owner_name,tenant_id';
 
-      const projRes = await projQuery;
+      let projRes = null;
+
+      // Tentativa 1: colunas completas
+      let q1 = client.from('projects').select(FULL_COLS).order('name');
+      if (tid) q1 = q1.eq('tenant_id', tid);
+      projRes = await q1;
+
+      // Se der erro de schema/coluna, tenta colunas básicas
+      if (projRes.error && (
+        projRes.error.code === 'PGRST204' ||
+        projRes.error.message?.includes('schema cache') ||
+        projRes.error.message?.includes('column') ||
+        projRes.error.message?.includes('does not exist')
+      )) {
+        console.warn('[TBO QP] Colunas completas indisponíveis, usando básicas:', projRes.error.message);
+        let q2 = client.from('projects').select(BASIC_COLS).order('name');
+        if (tid) q2 = q2.eq('tenant_id', tid);
+        projRes = await q2;
+      }
+
       if (projRes.error) throw projRes.error;
       this._data.projects = projRes.data || [];
 

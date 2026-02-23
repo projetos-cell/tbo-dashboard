@@ -4,7 +4,8 @@ const TBO_QUADRO_PROJETOS = {
 
   _data: { projects: [], demands: [] },
   _filters: { status: 'all', construtora: '', bus: '', search: '' },
-  _view: 'board', // 'board' | 'list'
+  _view: 'board',   // 'board' | 'list' | 'gantt'
+  _listSort: { col: 'name', dir: 'asc' },
   _loaded: false,
 
   // ── Status config ──────────────────────────────────────────────────────────
@@ -64,6 +65,9 @@ const TBO_QUADRO_PROJETOS = {
               <button class="qp-view-btn" id="qpViewList" title="Lista">
                 <i data-lucide="list" style="width:15px;height:15px;"></i>
               </button>
+              <button class="qp-view-btn" id="qpViewGantt" title="Gantt / Timeline">
+                <i data-lucide="gantt-chart" style="width:15px;height:15px;"></i>
+              </button>
             </div>
           </div>
         </div>
@@ -99,19 +103,14 @@ const TBO_QUADRO_PROJETOS = {
     } catch (_e) { /* sem tenant_id — RLS vai filtrar pelo auth */ }
 
     try {
-      // Projetos — tenta com colunas completas (pós-migration 028)
-      // Se falhar por coluna inexistente, cai no fallback com colunas básicas
-      const FULL_COLS   = 'id,name,status,construtora,bus,owner_name,due_date_start,due_date_end,notion_url,code,notion_page_id,tenant_id';
-      const BASIC_COLS  = 'id,name,status,owner_name,tenant_id';
+      const FULL_COLS  = 'id,name,status,construtora,bus,owner_name,due_date_start,due_date_end,notion_url,code,notion_page_id,tenant_id';
+      const BASIC_COLS = 'id,name,status,owner_name,tenant_id';
 
       let projRes = null;
-
-      // Tentativa 1: colunas completas
       let q1 = client.from('projects').select(FULL_COLS).order('name');
       if (tid) q1 = q1.eq('tenant_id', tid);
       projRes = await q1;
 
-      // Se der erro de schema/coluna, tenta colunas básicas
       if (projRes.error && (
         projRes.error.code === 'PGRST204' ||
         projRes.error.message?.includes('schema cache') ||
@@ -127,19 +126,16 @@ const TBO_QUADRO_PROJETOS = {
       if (projRes.error) throw projRes.error;
       this._data.projects = projRes.data || [];
 
-      // Demandas — opcional (tabela pode não existir em todos os tenants)
       try {
         let demQuery = client.from('demands')
           .select('id,title,status,due_date,responsible,bus,project_id,notion_url')
           .order('due_date', { ascending: true });
         if (tid) demQuery = demQuery.eq('tenant_id', tid);
-
         const demRes = await demQuery;
         this._data.demands = demRes.error ? [] : (demRes.data || []);
         if (demRes.error) console.warn('[TBO QP] demands não disponível:', demRes.error.message);
       } catch (_e) {
         this._data.demands = [];
-        console.warn('[TBO QP] demands indisponível:', _e.message);
       }
 
       this._loaded = true;
@@ -147,7 +143,6 @@ const TBO_QUADRO_PROJETOS = {
       this._renderKpis();
       this._renderContent();
       this._bindEvents();
-
       if (typeof lucide !== 'undefined') lucide.createIcons();
     } catch (err) {
       console.error('[TBO QP] Load error:', err);
@@ -162,7 +157,7 @@ const TBO_QUADRO_PROJETOS = {
       if (status !== 'all' && p.status !== status) return false;
       if (construtora && p.construtora !== construtora) return false;
       if (bus) {
-        const pBus = Array.isArray(p.bus) ? p.bus : (p.bus ? JSON.parse(p.bus) : []);
+        const pBus = this._parseBus(p.bus);
         if (!pBus.includes(bus)) return false;
       }
       if (search) {
@@ -191,11 +186,12 @@ const TBO_QUADRO_PROJETOS = {
   _populateConstrutoraFilter() {
     const sel = document.getElementById('qpFilterConstrutora');
     if (!sel) return;
+    // preserve existing options (avoid duplicates on re-render)
+    if (sel.options.length > 1) return;
     const unique = [...new Set(this._data.projects.map(p => p.construtora).filter(Boolean))].sort();
     unique.forEach(c => {
       const opt = document.createElement('option');
-      opt.value = c;
-      opt.textContent = c;
+      opt.value = c; opt.textContent = c;
       sel.appendChild(opt);
     });
   },
@@ -215,12 +211,12 @@ const TBO_QUADRO_PROJETOS = {
     const demandas_abertas = d.filter(x => x.status !== 'Concluído' && x.status !== 'Cancelado').length;
 
     const kpis = [
-      { label: 'Total Projetos', value: counts.total, icon: 'folder', color: '#6b7280' },
-      { label: 'Em Andamento', value: counts.em_andamento, icon: 'play-circle', color: '#3b82f6' },
-      { label: 'Em Produção', value: counts.producao, icon: 'zap', color: '#8b5cf6' },
-      { label: 'Finalizados', value: counts.finalizado, icon: 'check-circle-2', color: '#22c55e' },
-      { label: 'Parados/Pausados', value: counts.parado, icon: 'pause-circle', color: '#f59e0b' },
-      { label: 'Demandas Abertas', value: demandas_abertas, icon: 'clipboard-list', color: '#ec4899', sub: `de ${demandas_total}` },
+      { label: 'Total Projetos',   value: counts.total,        icon: 'folder',         color: '#6b7280' },
+      { label: 'Em Andamento',     value: counts.em_andamento, icon: 'play-circle',     color: '#3b82f6' },
+      { label: 'Em Produção',      value: counts.producao,     icon: 'zap',             color: '#8b5cf6' },
+      { label: 'Finalizados',      value: counts.finalizado,   icon: 'check-circle-2',  color: '#22c55e' },
+      { label: 'Parados/Pausados', value: counts.parado,       icon: 'pause-circle',    color: '#f59e0b' },
+      { label: 'Demandas Abertas', value: demandas_abertas,    icon: 'clipboard-list',  color: '#ec4899', sub: `de ${demandas_total}` },
     ];
 
     const el = document.getElementById('qpKpis');
@@ -243,21 +239,22 @@ const TBO_QUADRO_PROJETOS = {
   _renderContent() {
     const el = document.getElementById('qpContent');
     if (!el) return;
-    el.innerHTML = this._view === 'board' ? this._renderBoard() : this._renderList();
+    if (this._view === 'board')       el.innerHTML = this._renderBoard();
+    else if (this._view === 'list')   el.innerHTML = this._renderList();
+    else if (this._view === 'gantt')  el.innerHTML = this._renderGantt();
     if (typeof lucide !== 'undefined') lucide.createIcons();
+    if (this._view === 'gantt') this._bindGanttScroll();
   },
 
   // ── BOARD VIEW ─────────────────────────────────────────────────────────────
   _renderBoard() {
     const statusOrder = ['em_andamento', 'producao', 'pausado', 'parado', 'finalizado'];
     const filtered = this._filtered();
-
     const columns = statusOrder.map(s => {
       const info = this._statusInfo(s);
       const cards = filtered.filter(p => p.status === s);
       return { status: s, info, cards };
     });
-
     return `
       <div class="qp-board">
         ${columns.map(col => `
@@ -284,9 +281,7 @@ const TBO_QUADRO_PROJETOS = {
     const bus = this._parseBus(p.bus);
     const demands = this._demandsForProject(p.id);
     const openDemands = demands.filter(d => d.status !== 'Concluído' && d.status !== 'Cancelado');
-    const info = this._statusInfo(p.status);
     const due = p.due_date_start ? this._fmtDate(p.due_date_start) : (p.due_date_end ? this._fmtDate(p.due_date_end) : null);
-
     return `
       <div class="qp-card" data-id="${p.id}" onclick="TBO_QUADRO_PROJETOS._openDetail('${p.id}')">
         <div class="qp-card-header">
@@ -320,20 +315,30 @@ const TBO_QUADRO_PROJETOS = {
 
   // ── LIST VIEW ──────────────────────────────────────────────────────────────
   _renderList() {
-    const filtered = this._filtered();
+    const filtered = this._sortedList(this._filtered());
     if (filtered.length === 0) return `<div class="qp-empty">Nenhum projeto encontrado.</div>`;
+
+    const th = (col, label) => {
+      const active = this._listSort.col === col;
+      const dir = active ? this._listSort.dir : 'none';
+      const arrow = dir === 'asc' ? '↑' : dir === 'desc' ? '↓' : '';
+      return `<th class="qp-th-sortable ${active ? 'qp-th-active' : ''}"
+                  onclick="TBO_QUADRO_PROJETOS._sortList('${col}')">
+                ${label} <span class="qp-sort-arrow">${arrow}</span>
+              </th>`;
+    };
 
     return `
       <div class="qp-list">
         <table class="qp-table">
           <thead>
             <tr>
-              <th>Projeto</th>
-              <th>Construtora</th>
-              <th>Status</th>
-              <th>BUs</th>
-              <th>Responsável</th>
-              <th>Prazo</th>
+              ${th('name',        'Projeto')}
+              ${th('construtora', 'Construtora')}
+              ${th('status',      'Status')}
+              ${th('bus',         'BUs')}
+              ${th('owner_name',  'Responsável')}
+              ${th('due_date_end','Prazo')}
               <th>Demandas</th>
               <th></th>
             </tr>
@@ -346,12 +351,43 @@ const TBO_QUADRO_PROJETOS = {
     `;
   },
 
+  _sortList(col) {
+    if (this._listSort.col === col) {
+      this._listSort.dir = this._listSort.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      this._listSort.col = col;
+      this._listSort.dir = 'asc';
+    }
+    this._renderContent();
+  },
+
+  _sortedList(projects) {
+    const { col, dir } = this._listSort;
+    return [...projects].sort((a, b) => {
+      let va = a[col] ?? '';
+      let vb = b[col] ?? '';
+      if (col === 'bus') {
+        va = this._parseBus(va).join(',');
+        vb = this._parseBus(vb).join(',');
+      }
+      if (col === 'status') {
+        const order = ['em_andamento','producao','pausado','parado','finalizado'];
+        va = order.indexOf(va); vb = order.indexOf(vb);
+      }
+      const cmp = typeof va === 'number' && typeof vb === 'number'
+        ? va - vb
+        : String(va).localeCompare(String(vb), 'pt-BR', { sensitivity: 'base' });
+      return dir === 'asc' ? cmp : -cmp;
+    });
+  },
+
   _renderListRow(p) {
     const bus = this._parseBus(p.bus);
     const demands = this._demandsForProject(p.id);
     const openDemands = demands.filter(d => d.status !== 'Concluído' && d.status !== 'Cancelado');
     const info = this._statusInfo(p.status);
-    const due = p.due_date_start ? this._fmtDate(p.due_date_start) : (p.due_date_end ? this._fmtDate(p.due_date_end) : '—');
+    const dueEnd = p.due_date_end ? this._fmtDate(p.due_date_end) : '—';
+    const isLate = p.due_date_end && new Date(p.due_date_end) < new Date() && p.status !== 'finalizado';
 
     return `
       <tr class="qp-row" onclick="TBO_QUADRO_PROJETOS._openDetail('${p.id}')" style="cursor:pointer;">
@@ -375,10 +411,10 @@ const TBO_QUADRO_PROJETOS = {
           </div>
         </td>
         <td>${this._esc(p.owner_name || '—')}</td>
-        <td>${due}</td>
+        <td class="${isLate ? 'qp-late' : ''}">${isLate ? '⚠ ' : ''}${dueEnd}</td>
         <td>
           ${demands.length > 0
-            ? `<span class="qp-demands-pill">${openDemands.length} abertas / ${demands.length}</span>`
+            ? `<span class="qp-demands-pill">${openDemands.length}/${demands.length}</span>`
             : '<span style="color:var(--text-muted);">—</span>'}
         </td>
         <td>
@@ -390,6 +426,170 @@ const TBO_QUADRO_PROJETOS = {
     `;
   },
 
+  // ── GANTT VIEW ─────────────────────────────────────────────────────────────
+  _renderGantt() {
+    const filtered = this._filtered();
+
+    // Separate projects with and without dates
+    const withDates = filtered.filter(p => p.due_date_start || p.due_date_end);
+    const noDates   = filtered.filter(p => !p.due_date_start && !p.due_date_end);
+
+    if (withDates.length === 0) {
+      return `<div class="qp-empty">
+        <i data-lucide="gantt-chart" style="width:32px;height:32px;opacity:.3;"></i>
+        <p>Nenhum projeto com datas definidas para exibir no Gantt.</p>
+        <p style="font-size:0.78rem;margin-top:4px;">Preencha <code>due_date_start</code> e <code>due_date_end</code> nos projetos.</p>
+      </div>`;
+    }
+
+    // Calculate timeline range
+    const allDates = withDates.flatMap(p => [p.due_date_start, p.due_date_end].filter(Boolean));
+    const minDate = new Date(allDates.reduce((a, b) => a < b ? a : b));
+    const maxDate = new Date(allDates.reduce((a, b) => a > b ? a : b));
+
+    // Pad range by 2 weeks on each side
+    minDate.setDate(minDate.getDate() - 14);
+    maxDate.setDate(maxDate.getDate() + 14);
+
+    const totalDays = Math.ceil((maxDate - minDate) / 86400000);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Generate month headers
+    const months = this._ganttMonths(minDate, maxDate);
+
+    // Today marker position
+    const todayOffset = Math.max(0, Math.ceil((today - minDate) / 86400000));
+    const todayPct = (todayOffset / totalDays * 100).toFixed(2);
+
+    // Sort projects by start date
+    const sorted = [...withDates].sort((a, b) => {
+      const da = a.due_date_start || a.due_date_end;
+      const db = b.due_date_start || b.due_date_end;
+      return da < db ? -1 : da > db ? 1 : 0;
+    });
+
+    const ROW_H = 36;
+    const LABEL_W = 200;
+
+    const rows = sorted.map((p, i) => {
+      const start = p.due_date_start ? new Date(p.due_date_start + 'T00:00:00') : new Date(p.due_date_end + 'T00:00:00');
+      const end   = p.due_date_end   ? new Date(p.due_date_end   + 'T23:59:59') : new Date(p.due_date_start + 'T23:59:59');
+      const info  = this._statusInfo(p.status);
+      const bus   = this._parseBus(p.bus);
+
+      const left  = ((start - minDate) / 86400000 / totalDays * 100).toFixed(2);
+      const width = Math.max(0.4, ((end - start) / 86400000 / totalDays * 100)).toFixed(2);
+
+      const isLate = end < today && p.status !== 'finalizado';
+      const barColor = isLate ? '#ef4444' : info.color;
+      const barBg    = isLate ? 'rgba(239,68,68,0.15)' : info.bg;
+
+      const buBadges = bus.slice(0, 2).map(b => {
+        const bc = this._BU_COLORS[b] || { bg: '#f3f4f6', color: '#374151' };
+        return `<span class="qp-bu-tag" style="background:${bc.bg};color:${bc.color};font-size:0.6rem;">${b}</span>`;
+      }).join('');
+
+      return `
+        <div class="qp-gantt-row ${i % 2 === 1 ? 'qp-gantt-row-alt' : ''}"
+             style="height:${ROW_H}px;" onclick="TBO_QUADRO_PROJETOS._openDetail('${p.id}')">
+          <div class="qp-gantt-label" style="width:${LABEL_W}px;min-width:${LABEL_W}px;">
+            <div class="qp-gantt-label-name" title="${this._esc(p.name)}">${this._esc(p.name)}</div>
+            <div class="qp-gantt-label-meta">
+              <span class="qp-status-dot" style="background:${info.color};"></span>
+              ${buBadges}
+            </div>
+          </div>
+          <div class="qp-gantt-track">
+            <div class="qp-gantt-bar"
+                 style="left:${left}%;width:${width}%;background:${barColor};opacity:0.85;"
+                 title="${this._esc(p.name)} · ${this._fmtDate(p.due_date_start)} → ${this._fmtDate(p.due_date_end)}">
+              <span class="qp-gantt-bar-label">${this._esc(p.name)}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const monthHeaders = months.map(m => `
+      <div class="qp-gantt-month" style="left:${m.left.toFixed(2)}%;width:${m.width.toFixed(2)}%;">
+        ${m.label}
+      </div>
+    `).join('');
+
+    // Day tick lines (every 7 days)
+    const ticks = [];
+    for (let d = 7; d < totalDays; d += 7) {
+      ticks.push(`<div class="qp-gantt-tick" style="left:${(d / totalDays * 100).toFixed(2)}%;"></div>`);
+    }
+
+    return `
+      <div class="qp-gantt-wrap">
+        <div class="qp-gantt-header-row">
+          <div class="qp-gantt-header-label" style="width:${LABEL_W}px;min-width:${LABEL_W}px;">
+            Projeto
+          </div>
+          <div class="qp-gantt-header-track">
+            ${monthHeaders}
+            ${ticks.join('')}
+            ${todayOffset > 0 && todayOffset < totalDays
+              ? `<div class="qp-gantt-today" style="left:${todayPct}%;" title="Hoje"></div>` : ''}
+          </div>
+        </div>
+        <div class="qp-gantt-body" id="qpGanttBody">
+          ${rows}
+          ${noDates.length > 0 ? `
+            <div class="qp-gantt-no-dates">
+              <i data-lucide="info" style="width:13px;height:13px;"></i>
+              ${noDates.length} projeto(s) sem datas não exibidos
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  },
+
+  _ganttMonths(minDate, maxDate) {
+    const months = [];
+    const totalDays = (maxDate - minDate) / 86400000;
+    let cur = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+    while (cur <= maxDate) {
+      const mStart = new Date(Math.max(cur, minDate));
+      const mEnd   = new Date(Math.min(new Date(cur.getFullYear(), cur.getMonth() + 1, 0), maxDate));
+      const left  = (mStart - minDate) / 86400000 / totalDays * 100;
+      const width = (mEnd - mStart + 86400000) / 86400000 / totalDays * 100;
+      months.push({
+        label: cur.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
+        left, width
+      });
+      cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+    }
+    return months;
+  },
+
+  _bindGanttScroll() {
+    // Sync horizontal scroll between header track and body tracks
+    const header = document.querySelector('.qp-gantt-header-track');
+    const body   = document.getElementById('qpGanttBody');
+    if (!header || !body) return;
+
+    // Scroll today into view
+    const todayEl = document.querySelector('.qp-gantt-today');
+    if (todayEl) {
+      setTimeout(() => {
+        const track = todayEl.closest('.qp-gantt-header-track') || todayEl.parentElement;
+        if (track) {
+          const pct = parseFloat(todayEl.style.left) / 100;
+          const wrap = document.querySelector('.qp-gantt-wrap');
+          if (wrap) {
+            const scrollTo = pct * wrap.scrollWidth - wrap.clientWidth / 2;
+            wrap.scrollLeft = Math.max(0, scrollTo);
+          }
+        }
+      }, 50);
+    }
+  },
+
   // ── Detail panel ───────────────────────────────────────────────────────────
   _openDetail(projectId) {
     const p = this._data.projects.find(x => x.id === projectId);
@@ -399,7 +599,6 @@ const TBO_QUADRO_PROJETOS = {
     const bus = this._parseBus(p.bus);
     const info = this._statusInfo(p.status);
 
-    // Remove existing panel
     document.getElementById('qpDetailPanel')?.remove();
 
     const panel = document.createElement('div');
@@ -420,7 +619,6 @@ const TBO_QUADRO_PROJETOS = {
             <i data-lucide="x" style="width:18px;height:18px;"></i>
           </button>
         </div>
-
         <div class="qp-detail-body">
           <div class="qp-detail-section">
             <div class="qp-detail-row">
@@ -446,7 +644,11 @@ const TBO_QUADRO_PROJETOS = {
             </div>
             ${(p.due_date_start || p.due_date_end) ? `<div class="qp-detail-row">
               <span class="qp-detail-label">Período</span>
-              <span class="qp-detail-value">${p.due_date_start ? this._fmtDate(p.due_date_start) : '?'} → ${p.due_date_end ? this._fmtDate(p.due_date_end) : '?'}</span>
+              <span class="qp-detail-value">
+                ${p.due_date_start ? this._fmtDate(p.due_date_start) : '?'}
+                <span style="margin:0 4px;color:var(--text-muted);">→</span>
+                ${p.due_date_end ? this._fmtDate(p.due_date_end) : '?'}
+              </span>
             </div>` : ''}
             ${p.notion_url ? `<div class="qp-detail-row">
               <span class="qp-detail-label">Notion</span>
@@ -502,53 +704,30 @@ const TBO_QUADRO_PROJETOS = {
 
   // ── Event bindings ─────────────────────────────────────────────────────────
   _bindEvents() {
-    const search = document.getElementById('qpSearch');
-    const filterStatus = document.getElementById('qpFilterStatus');
-    const filterBU = document.getElementById('qpFilterBU');
+    const search      = document.getElementById('qpSearch');
+    const filterSt    = document.getElementById('qpFilterStatus');
+    const filterBU    = document.getElementById('qpFilterBU');
     const filterConst = document.getElementById('qpFilterConstrutora');
-    const btnBoard = document.getElementById('qpViewBoard');
-    const btnList = document.getElementById('qpViewList');
+    const btnBoard    = document.getElementById('qpViewBoard');
+    const btnList     = document.getElementById('qpViewList');
+    const btnGantt    = document.getElementById('qpViewGantt');
 
-    if (search) {
-      search.addEventListener('input', e => {
-        this._filters.search = e.target.value.trim();
-        this._renderContent();
-      });
-    }
-    if (filterStatus) {
-      filterStatus.addEventListener('change', e => {
-        this._filters.status = e.target.value;
-        this._renderContent();
-      });
-    }
-    if (filterBU) {
-      filterBU.addEventListener('change', e => {
-        this._filters.bus = e.target.value;
-        this._renderContent();
-      });
-    }
-    if (filterConst) {
-      filterConst.addEventListener('change', e => {
-        this._filters.construtora = e.target.value;
-        this._renderContent();
-      });
-    }
-    if (btnBoard) {
-      btnBoard.addEventListener('click', () => {
-        this._view = 'board';
-        btnBoard.classList.add('active');
-        btnList?.classList.remove('active');
-        this._renderContent();
-      });
-    }
-    if (btnList) {
-      btnList.addEventListener('click', () => {
-        this._view = 'list';
-        btnList.classList.add('active');
-        btnBoard?.classList.remove('active');
-        this._renderContent();
-      });
-    }
+    const setView = (v) => {
+      this._view = v;
+      btnBoard?.classList.toggle('active', v === 'board');
+      btnList?.classList.toggle('active',  v === 'list');
+      btnGantt?.classList.toggle('active', v === 'gantt');
+      this._renderContent();
+    };
+
+    search?.addEventListener('input',  e => { this._filters.search      = e.target.value.trim(); this._renderContent(); });
+    filterSt?.addEventListener('change', e => { this._filters.status    = e.target.value;        this._renderContent(); });
+    filterBU?.addEventListener('change', e => { this._filters.bus       = e.target.value;        this._renderContent(); });
+    filterConst?.addEventListener('change', e => { this._filters.construtora = e.target.value;   this._renderContent(); });
+
+    btnBoard?.addEventListener('click', () => setView('board'));
+    btnList?.addEventListener('click',  () => setView('list'));
+    btnGantt?.addEventListener('click', () => setView('gantt'));
   },
 
   // ── Skeletons / error ──────────────────────────────────────────────────────
@@ -588,10 +767,8 @@ const TBO_QUADRO_PROJETOS = {
   _esc(str) {
     if (str == null) return '';
     return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   },
 
   _fmtDate(iso) {

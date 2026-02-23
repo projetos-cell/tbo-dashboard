@@ -18,6 +18,8 @@ const TBO_PROJECT_DETAIL = {
   _dragType: null,      // 'task', 'section', or 'column'
   _dragColKey: null,    // column key being dragged
   _globalsBound: false, // track global listeners to avoid duplicates
+  _dragMouseUpBound: false, // track drag mouseup listener
+  _dragActive: false,       // true while a drag operation is in progress
 
   // ═══════════════════════════════════════════════════
   // COLUMN CONFIGURATION
@@ -1670,27 +1672,29 @@ const TBO_PROJECT_DETAIL = {
       const row = handle.closest('.pd-task-row');
       if (!row) return;
 
+      // Always set draggable on the row so the browser drag system works
+      // We gate actual drag logic in dragstart via _dragType
       handle.addEventListener('mousedown', (e) => {
         e.stopPropagation();
-        row.setAttribute('draggable', 'true');
         self._dragType = 'task';
+        row.setAttribute('draggable', 'true');
       });
 
       row.addEventListener('dragstart', (e) => {
         if (self._dragType !== 'task') { e.preventDefault(); return; }
+        self._dragActive = true;
         self._dragEl = row;
         row.classList.add('pd-dragging');
         e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', row.dataset.demandId || '');
-        if (e.dataTransfer.setDragImage) {
-          e.dataTransfer.setDragImage(row, 20, 20);
-        }
+        try { e.dataTransfer.setData('text/plain', row.dataset.demandId || ''); } catch (_) {}
       });
 
       row.addEventListener('dragend', () => {
         row.classList.remove('pd-dragging');
         row.removeAttribute('draggable');
         self._clearDropIndicators();
+        document.querySelectorAll('.pd-section.pd-drop-target').forEach(s => s.classList.remove('pd-drop-target'));
+        self._dragActive = false;
         self._dragEl = null;
         self._dragType = null;
       });
@@ -1727,16 +1731,21 @@ const TBO_PROJECT_DETAIL = {
         }
         self._clearDropIndicators();
         self._syncDemandOrderFromDOM();
-        // Re-render to update statuses and section counts
         self._reRenderTasks();
       });
     });
 
-    // Cleanup draggable on mouseup
-    document.addEventListener('mouseup', () => {
-      document.querySelectorAll('.pd-task-row[draggable]').forEach(r => r.removeAttribute('draggable'));
-      document.querySelectorAll('.pd-section[draggable]').forEach(s => s.removeAttribute('draggable'));
-    });
+    // Cleanup draggable on mouseup — only if NOT in an active drag
+    // Use a single handler bound via a flag to avoid stacking
+    if (!this._dragMouseUpBound) {
+      this._dragMouseUpBound = true;
+      document.addEventListener('mouseup', () => {
+        if (self._dragActive) return; // don't interfere with active drag
+        document.querySelectorAll('.pd-task-row[draggable]').forEach(r => r.removeAttribute('draggable'));
+        document.querySelectorAll('.pd-section[draggable]').forEach(s => s.removeAttribute('draggable'));
+        self._dragType = null;
+      });
+    }
 
     // ── Section drag handles ─────────────────────────
     document.querySelectorAll('.pd-section-drag').forEach(handle => {
@@ -1745,22 +1754,24 @@ const TBO_PROJECT_DETAIL = {
 
       handle.addEventListener('mousedown', (e) => {
         e.stopPropagation();
-        section.setAttribute('draggable', 'true');
         self._dragType = 'section';
+        section.setAttribute('draggable', 'true');
       });
 
       section.addEventListener('dragstart', (e) => {
         if (self._dragType !== 'section') { e.preventDefault(); return; }
+        self._dragActive = true;
         self._dragEl = section;
         section.classList.add('pd-dragging');
         e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', section.dataset.section || '');
+        try { e.dataTransfer.setData('text/plain', section.dataset.section || ''); } catch (_) {}
       });
 
       section.addEventListener('dragend', () => {
         section.classList.remove('pd-dragging');
         section.removeAttribute('draggable');
         self._clearDropIndicators();
+        self._dragActive = false;
         self._dragEl = null;
         self._dragType = null;
       });
@@ -1798,24 +1809,25 @@ const TBO_PROJECT_DETAIL = {
       });
     });
 
-    // ── Drop on section body ──
+    // ── Drop on section body (empty area) ──
     document.querySelectorAll('.pd-section-body').forEach(body => {
       body.addEventListener('dragover', (e) => {
         if (self._dragType !== 'task') return;
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
-        // Highlight the section as drop target
         const sectionEl = body.closest('.pd-section');
-        if (sectionEl && !sectionEl.classList.contains('pd-drop-target')) {
-          document.querySelectorAll('.pd-section.pd-drop-target').forEach(s => s.classList.remove('pd-drop-target'));
+        if (sectionEl) {
+          document.querySelectorAll('.pd-section.pd-drop-target').forEach(s => {
+            if (s !== sectionEl) s.classList.remove('pd-drop-target');
+          });
           sectionEl.classList.add('pd-drop-target');
         }
       });
 
       body.addEventListener('dragleave', (e) => {
-        const sectionEl = body.closest('.pd-section');
-        if (sectionEl && !body.contains(e.relatedTarget)) {
-          sectionEl.classList.remove('pd-drop-target');
+        if (!body.contains(e.relatedTarget)) {
+          const sectionEl = body.closest('.pd-section');
+          if (sectionEl) sectionEl.classList.remove('pd-drop-target');
         }
       });
 
@@ -1827,7 +1839,6 @@ const TBO_PROJECT_DETAIL = {
           body.appendChild(self._dragEl);
           self._clearDropIndicators();
           self._syncDemandOrderFromDOM();
-          // Re-render to update statuses and section counts
           self._reRenderTasks();
         }
       });
@@ -2145,6 +2156,7 @@ const TBO_PROJECT_DETAIL = {
     this._dragEl = null;
     this._dragType = null;
     this._dragColKey = null;
+    this._dragActive = false;
     this._columnOrder = null;
     this._sectionOverrides = {};
     // Reset hidden state to defaults

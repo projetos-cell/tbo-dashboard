@@ -595,17 +595,16 @@ const TBO_QUADRO_PROJETOS = {
     const p = this._data.projects.find(x => x.id === projectId);
     if (!p) return;
 
-    const demands = this._demandsForProject(projectId);
-    const bus = this._parseBus(p.bus);
+    const bus  = this._parseBus(p.bus);
     const info = this._statusInfo(p.status);
 
-    document.getElementById('qpDetailPanel')?.remove();
+    // Remove painel anterior e listener de fechar-ao-clicar-fora
+    this._closeDetail();
 
     const panel = document.createElement('div');
     panel.id = 'qpDetailPanel';
     panel.className = 'qp-detail-panel';
     panel.innerHTML = `
-      <div class="qp-detail-overlay" onclick="document.getElementById('qpDetailPanel')?.remove()"></div>
       <div class="qp-detail-drawer">
         <div class="qp-detail-header">
           <div class="qp-detail-title">
@@ -615,7 +614,7 @@ const TBO_QUADRO_PROJETOS = {
             </span>
             <h2>${this._esc(p.name)}</h2>
           </div>
-          <button class="qp-detail-close" onclick="document.getElementById('qpDetailPanel')?.remove()">
+          <button class="qp-detail-close" onclick="TBO_QUADRO_PROJETOS._closeDetail()">
             <i data-lucide="x" style="width:18px;height:18px;"></i>
           </button>
         </div>
@@ -662,44 +661,118 @@ const TBO_QUADRO_PROJETOS = {
           <div class="qp-detail-demands">
             <div class="qp-detail-section-title">
               <i data-lucide="clipboard-list" style="width:14px;height:14px;"></i>
-              Demandas (${demands.length})
+              Demandas
             </div>
-            ${demands.length === 0
-              ? `<div class="qp-empty" style="padding:12px 0;font-size:0.8rem;">Nenhuma demanda registrada.</div>`
-              : `<div class="qp-demands-list">
-                  ${demands.map(d => {
-                    const dinfo = d.status === 'Concluído'
-                      ? { color: '#22c55e', bg: 'rgba(34,197,94,0.1)' }
-                      : d.status === 'Em andamento'
-                      ? { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)' }
-                      : d.status === 'Cancelado'
-                      ? { color: '#9ca3af', bg: 'rgba(156,163,175,0.1)' }
-                      : { color: '#6b7280', bg: 'rgba(107,114,128,0.1)' };
-                    return `
-                      <div class="qp-demand-item">
-                        <div class="qp-demand-info">
-                          <span class="qp-demand-title">${this._esc(d.title)}</span>
-                          <span class="qp-demand-status" style="background:${dinfo.bg};color:${dinfo.color};">${this._esc(d.status || '—')}</span>
-                        </div>
-                        <div class="qp-demand-meta">
-                          ${d.responsible ? `<span><i data-lucide="user" style="width:10px;height:10px;"></i>${this._esc(d.responsible)}</span>` : ''}
-                          ${d.due_date ? `<span><i data-lucide="calendar" style="width:10px;height:10px;"></i>${this._fmtDate(d.due_date)}</span>` : ''}
-                          ${d.notion_url ? `<a href="${d.notion_url}" target="_blank" onclick="event.stopPropagation()" class="qp-notion-link">
-                            <i data-lucide="external-link" style="width:10px;height:10px;"></i>
-                          </a>` : ''}
-                        </div>
-                      </div>
-                    `;
-                  }).join('')}
-                </div>`
-            }
+            <div id="qpDetailDemandsList" class="qp-demands-loading">
+              <span class="qp-demands-spinner"></span> Carregando...
+            </div>
           </div>
         </div>
       </div>
     `;
 
-    document.body.appendChild(panel);
+    document.getElementById('quadroProjetos')?.appendChild(panel);
     if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    // Fecha ao clicar fora do drawer
+    this._detailOutsideHandler = (e) => {
+      const drawer = panel.querySelector('.qp-detail-drawer');
+      if (drawer && !drawer.contains(e.target)) this._closeDetail();
+    };
+    setTimeout(() => document.addEventListener('click', this._detailOutsideHandler), 50);
+
+    // Busca demandas diretamente do Supabase por project_id
+    this._loadDetailDemands(projectId);
+  },
+
+  _closeDetail() {
+    document.getElementById('qpDetailPanel')?.remove();
+    if (this._detailOutsideHandler) {
+      document.removeEventListener('click', this._detailOutsideHandler);
+      this._detailOutsideHandler = null;
+    }
+  },
+
+  async _loadDetailDemands(projectId) {
+    const el = document.getElementById('qpDetailDemandsList');
+    if (!el) return;
+
+    const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+    if (!client) {
+      el.innerHTML = `<div class="qp-empty" style="padding:12px 0;font-size:0.8rem;">Supabase indisponível.</div>`;
+      return;
+    }
+
+    try {
+      let tid = null;
+      try {
+        if (typeof RepoBase !== 'undefined' && RepoBase.resolveTenantId) tid = await RepoBase.resolveTenantId();
+        else if (typeof TBO_SUPABASE !== 'undefined' && TBO_SUPABASE.getCurrentTenantId) tid = TBO_SUPABASE.getCurrentTenantId();
+      } catch (_e) {}
+
+      let q = client.from('demands')
+        .select('id,title,status,due_date,responsible,bus,project_id,notion_url')
+        .eq('project_id', projectId)
+        .order('due_date', { ascending: true });
+      if (tid) q = q.eq('tenant_id', tid);
+
+      const { data, error } = await q;
+
+      if (!document.getElementById('qpDetailDemandsList')) return; // painel fechado
+
+      if (error) {
+        el.innerHTML = `<div class="qp-empty" style="padding:12px 0;font-size:0.8rem;color:#ef4444;">Erro ao carregar demandas.</div>`;
+        console.warn('[TBO QP] demands error:', error.message);
+        return;
+      }
+
+      const demands = data || [];
+
+      // Atualiza título com contagem
+      const titleEl = el.closest('.qp-detail-demands')?.querySelector('.qp-detail-section-title');
+      if (titleEl) titleEl.innerHTML = `
+        <i data-lucide="clipboard-list" style="width:14px;height:14px;"></i>
+        Demandas (${demands.length})
+      `;
+
+      if (demands.length === 0) {
+        el.className = '';
+        el.innerHTML = `<div class="qp-empty" style="padding:12px 0;font-size:0.8rem;">Nenhuma demanda registrada.</div>`;
+        return;
+      }
+
+      el.className = 'qp-demands-list';
+      el.innerHTML = demands.map(d => {
+        const dinfo = d.status === 'Concluído'
+          ? { color: '#22c55e', bg: 'rgba(34,197,94,0.1)' }
+          : d.status === 'Em andamento'
+          ? { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)' }
+          : d.status === 'Cancelado'
+          ? { color: '#9ca3af', bg: 'rgba(156,163,175,0.1)' }
+          : { color: '#6b7280', bg: 'rgba(107,114,128,0.1)' };
+        return `
+          <div class="qp-demand-item">
+            <div class="qp-demand-info">
+              <span class="qp-demand-title">${this._esc(d.title)}</span>
+              <span class="qp-demand-status" style="background:${dinfo.bg};color:${dinfo.color};">${this._esc(d.status || '—')}</span>
+            </div>
+            <div class="qp-demand-meta">
+              ${d.responsible ? `<span><i data-lucide="user" style="width:10px;height:10px;"></i>${this._esc(d.responsible)}</span>` : ''}
+              ${d.due_date ? `<span><i data-lucide="calendar" style="width:10px;height:10px;"></i>${this._fmtDate(d.due_date)}</span>` : ''}
+              ${d.notion_url ? `<a href="${d.notion_url}" target="_blank" onclick="event.stopPropagation()" class="qp-notion-link" title="Abrir no Notion">
+                <i data-lucide="external-link" style="width:10px;height:10px;"></i>
+              </a>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    } catch (err) {
+      const el2 = document.getElementById('qpDetailDemandsList');
+      if (el2) el2.innerHTML = `<div class="qp-empty" style="padding:12px 0;font-size:0.8rem;color:#ef4444;">Erro inesperado.</div>`;
+      console.error('[TBO QP] _loadDetailDemands:', err);
+    }
   },
 
   // ── Event bindings ─────────────────────────────────────────────────────────

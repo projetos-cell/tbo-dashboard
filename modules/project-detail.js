@@ -230,6 +230,18 @@ const TBO_PROJECT_DETAIL = {
   // RENDER
   // ═══════════════════════════════════════════════════
 
+  // Active view tab key
+  _activeTab: 'lista',
+
+  _TABS: [
+    { key: 'visao-geral', label: 'Visao geral', icon: 'layout-dashboard' },
+    { key: 'lista',       label: 'Lista',        icon: 'list' },
+    { key: 'quadro',      label: 'Quadro',       icon: 'columns-3' },
+    { key: 'cronograma',  label: 'Cronograma',   icon: 'calendar-range' },
+    { key: 'painel',      label: 'Painel',       icon: 'bar-chart-3' },
+    { key: 'gantt',       label: 'Gantt',        icon: 'gantt-chart' },
+  ],
+
   _renderPage() {
     const p = this._project;
     if (!p) return '';
@@ -239,59 +251,123 @@ const TBO_PROJECT_DETAIL = {
     const doneDemands = this._demands.filter(d => this._isDone(d)).length;
     const progressPct = totalDemands > 0 ? Math.round((doneDemands / totalDemands) * 100) : 0;
 
+    // Build member avatars (unique responsibles)
+    const members = [...new Set(this._demands.map(d => d.responsible).filter(Boolean))].slice(0, 5);
+    const extraMembers = [...new Set(this._demands.map(d => d.responsible).filter(Boolean))].length - 5;
+
     return `
-      <div class="pd-topbar">
-        <button class="pd-back-btn" onclick="TBO_ROUTER.navigate('quadro-projetos')">
-          <i data-lucide="arrow-left" style="width:16px;height:16px;"></i>
-          <span>Quadro de Projetos</span>
-        </button>
-      </div>
+      <!-- ═══ ASANA-STYLE STICKY TOP BAR ═══ -->
+      <div class="pd-topbar-sticky">
 
-      <div class="pd-header">
-        <div class="pd-header-main">
-          <div class="pd-header-top">
-            <span class="pd-status-pill" style="background:${info.bg};color:${info.color};">
-              <i data-lucide="${info.icon}" style="width:13px;height:13px;"></i>
-              ${info.label}
-            </span>
+        <!-- LINE 1: Project header -->
+        <div class="pd-topbar-line1">
+          <div class="pd-topbar-left">
+            <button class="pd-back-arrow" onclick="TBO_ROUTER.navigate('quadro-projetos')" title="Voltar ao Quadro">
+              <i data-lucide="arrow-left" style="width:16px;height:16px;"></i>
+            </button>
+            <h1 class="pd-project-name">${this._esc(p.name)}</h1>
+            <button class="pd-star-btn" title="Favoritar" data-action="star">
+              <i data-lucide="star" style="width:16px;height:16px;"></i>
+            </button>
             ${p.code ? `<span class="pd-code">${this._esc(p.code)}</span>` : ''}
+            <button class="pd-status-dropdown" data-action="status-dropdown" style="background:${info.bg};color:${info.color};">
+              <i data-lucide="${info.icon}" style="width:13px;height:13px;"></i>
+              <span>${info.label}</span>
+              <i data-lucide="chevron-down" style="width:12px;height:12px;opacity:0.6;"></i>
+            </button>
           </div>
-          <h1 class="pd-title">${this._esc(p.name)}</h1>
-          <div class="pd-header-meta">
-            ${p.construtora ? `<div class="pd-meta-item"><i data-lucide="building-2" style="width:13px;height:13px;"></i><span>${this._esc(p.construtora)}</span></div>` : ''}
-            ${p.owner_name ? `<div class="pd-meta-item"><i data-lucide="user" style="width:13px;height:13px;"></i><span>${this._esc(p.owner_name)}</span></div>` : ''}
-            ${(p.due_date_start || p.due_date_end) ? `<div class="pd-meta-item"><i data-lucide="calendar" style="width:13px;height:13px;"></i><span>${p.due_date_start ? this._fmtDate(p.due_date_start) : '?'} &rarr; ${p.due_date_end ? this._fmtDate(p.due_date_end) : '?'}</span></div>` : ''}
-            ${bus.length > 0 ? `<div class="pd-meta-item pd-meta-bus">${bus.map(b => { const bc = this._BU_COLORS[b] || { bg: '#f3f4f6', color: '#374151' }; return `<span class="pd-bu-tag" style="background:${bc.bg};color:${bc.color};">${b}</span>`; }).join('')}</div>` : ''}
-            ${p.notion_url ? `<a href="${p.notion_url}" target="_blank" class="pd-meta-item pd-notion-link" onclick="event.stopPropagation()"><i data-lucide="external-link" style="width:13px;height:13px;"></i><span>Notion</span></a>` : ''}
+          <div class="pd-topbar-right">
+            <div class="pd-topbar-progress" title="${doneDemands}/${totalDemands} concluidas (${progressPct}%)">
+              <div class="pd-progress-bar-track">
+                <div class="pd-progress-bar-fill" style="width:${progressPct}%;background:${info.color};"></div>
+              </div>
+              <span class="pd-progress-label">${progressPct}%</span>
+            </div>
+            <div class="pd-topbar-members">
+              ${members.map(m => `<div class="pd-member-avatar" title="${this._esc(m)}">${this._initials(m)}</div>`).join('')}
+              ${extraMembers > 0 ? `<div class="pd-member-avatar pd-member-extra">+${extraMembers}</div>` : ''}
+            </div>
+            ${p.notion_url ? `<a href="${p.notion_url}" target="_blank" class="pd-topbar-icon-btn" title="Abrir no Notion" onclick="event.stopPropagation()"><i data-lucide="external-link" style="width:15px;height:15px;"></i></a>` : ''}
+            <button class="pd-topbar-btn pd-btn-share" title="Compartilhar">
+              <i data-lucide="share-2" style="width:14px;height:14px;"></i>
+              <span>Compartilhar</span>
+            </button>
+            <button class="pd-topbar-icon-btn" title="Personalizar" data-action="customize">
+              <i data-lucide="sliders-horizontal" style="width:15px;height:15px;"></i>
+            </button>
           </div>
         </div>
-        <div class="pd-header-stats">
-          <div class="pd-progress-ring">
-            <svg viewBox="0 0 36 36" class="pd-ring-svg">
-              <path class="pd-ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-              <path class="pd-ring-fill" stroke="${info.color}" stroke-dasharray="${progressPct}, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-            </svg>
-            <div class="pd-ring-text">${progressPct}%</div>
+
+        <!-- LINE 2: View tabs -->
+        <div class="pd-topbar-line2">
+          <div class="pd-tabs-scroll">
+            ${this._TABS.map(t => `
+              <button class="pd-tab ${t.key === this._activeTab ? 'pd-tab-active' : ''}" data-tab="${t.key}">
+                <i data-lucide="${t.icon}" style="width:14px;height:14px;"></i>
+                <span>${t.label}</span>
+              </button>
+            `).join('')}
+            <button class="pd-tab pd-tab-add" data-action="add-tab" title="Adicionar aba">
+              <i data-lucide="plus" style="width:14px;height:14px;"></i>
+            </button>
           </div>
-          <div class="pd-stats-text">
-            <span class="pd-stats-done">${doneDemands}/${totalDemands}</span>
-            <span class="pd-stats-label">concluidas</span>
+        </div>
+
+        <!-- LINE 3: Action bar (filter/sort/group controls) -->
+        <div class="pd-action-bar">
+          <div class="pd-action-left">
+            <button class="pd-action-btn pd-action-add-task" data-action="add-task-top">
+              <i data-lucide="plus" style="width:14px;height:14px;"></i>
+              <span>Adicionar tarefa</span>
+            </button>
+          </div>
+          <div class="pd-action-right">
+            <button class="pd-action-btn" data-action="filter">
+              <i data-lucide="filter" style="width:14px;height:14px;"></i>
+              <span>Filtrar</span>
+            </button>
+            <button class="pd-action-btn" data-action="sort">
+              <i data-lucide="arrow-up-down" style="width:14px;height:14px;"></i>
+              <span>Ordenar</span>
+            </button>
+            <button class="pd-action-btn" data-action="group">
+              <i data-lucide="layers" style="width:14px;height:14px;"></i>
+              <span>Agrupar</span>
+            </button>
+            <div class="pd-action-separator"></div>
+            <button class="pd-action-btn pd-action-icon-only" data-action="search-toggle" title="Buscar">
+              <i data-lucide="search" style="width:14px;height:14px;"></i>
+            </button>
+            <button class="pd-action-btn pd-action-icon-only" data-action="more-options" title="Mais opcoes">
+              <i data-lucide="more-horizontal" style="width:14px;height:14px;"></i>
+            </button>
           </div>
         </div>
       </div>
 
-      ${p.notes ? `<div class="pd-description"><div class="pd-description-label"><i data-lucide="file-text" style="width:14px;height:14px;"></i> Descricao</div><div class="pd-description-text">${this._esc(p.notes)}</div></div>` : ''}
+      <!-- ═══ META BAR (collapsible project info) ═══ -->
+      ${this._renderMetaBar(p, info, bus)}
 
+      <!-- ═══ TASKS CONTENT ═══ -->
       <div class="pd-tasks">
-        <div class="pd-tasks-header">
-          <div class="pd-tasks-title">
-            <i data-lucide="list-checks" style="width:16px;height:16px;"></i>
-            Tarefas
-            <span class="pd-tasks-count">${totalDemands}</span>
-          </div>
-        </div>
         ${this._renderTableHeader()}
         ${this._renderSections()}
+      </div>
+    `;
+  },
+
+  _renderMetaBar(p, info, bus) {
+    const hasAnyMeta = p.construtora || p.owner_name || p.due_date_start || p.due_date_end || bus.length || p.notes;
+    if (!hasAnyMeta) return '';
+    return `
+      <div class="pd-meta-bar">
+        <div class="pd-meta-items">
+          ${p.construtora ? `<div class="pd-meta-chip"><i data-lucide="building-2" style="width:13px;height:13px;"></i><span>${this._esc(p.construtora)}</span></div>` : ''}
+          ${p.owner_name ? `<div class="pd-meta-chip"><i data-lucide="user" style="width:13px;height:13px;"></i><span>${this._esc(p.owner_name)}</span></div>` : ''}
+          ${(p.due_date_start || p.due_date_end) ? `<div class="pd-meta-chip"><i data-lucide="calendar" style="width:13px;height:13px;"></i><span>${p.due_date_start ? this._fmtDate(p.due_date_start) : '?'} &rarr; ${p.due_date_end ? this._fmtDate(p.due_date_end) : '?'}</span></div>` : ''}
+          ${bus.length > 0 ? bus.map(b => { const bc = this._BU_COLORS[b] || { bg: '#f3f4f6', color: '#374151' }; return `<span class="pd-bu-tag" style="background:${bc.bg};color:${bc.color};">${b}</span>`; }).join('') : ''}
+        </div>
+        ${p.notes ? `<div class="pd-meta-notes"><i data-lucide="file-text" style="width:13px;height:13px;flex-shrink:0;"></i><span>${this._esc(p.notes).substring(0, 150)}${p.notes.length > 150 ? '...' : ''}</span></div>` : ''}
       </div>
     `;
   },
@@ -538,6 +614,44 @@ const TBO_PROJECT_DETAIL = {
   /** Local per-render listeners on task/section elements */
   _bindLocalEvents() {
     const self = this;
+
+    // ── Top bar: Tab clicks ──
+    document.querySelectorAll('.pd-tab[data-tab]').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const key = tab.dataset.tab;
+        self._activeTab = key;
+        document.querySelectorAll('.pd-tab[data-tab]').forEach(t => t.classList.remove('pd-tab-active'));
+        tab.classList.add('pd-tab-active');
+      });
+    });
+
+    // ── Top bar: Add task from action bar ──
+    const addTaskTop = document.querySelector('[data-action="add-task-top"]');
+    if (addTaskTop) {
+      addTaskTop.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Open inline task input on first section
+        const firstSection = self._SECTIONS[0];
+        if (firstSection) self._showInlineTaskInput(firstSection.key);
+      });
+    }
+
+    // ── Top bar: Star button toggle ──
+    const starBtn = document.querySelector('.pd-star-btn');
+    if (starBtn) {
+      starBtn.addEventListener('click', () => {
+        starBtn.classList.toggle('pd-starred');
+        const icon = starBtn.querySelector('i');
+        if (icon) {
+          icon.setAttribute('data-lucide', starBtn.classList.contains('pd-starred') ? 'star' : 'star');
+          if (starBtn.classList.contains('pd-starred')) {
+            icon.style.fill = '#f59e0b';
+          } else {
+            icon.style.fill = 'none';
+          }
+        }
+      });
+    }
 
     // Section chevron toggles (expand / collapse)
     document.querySelectorAll('.pd-section-toggle').forEach(btn => {
@@ -2056,13 +2170,6 @@ const TBO_PROJECT_DETAIL = {
     const doneDemands = this._demands.filter(d => this._isDone(d)).length;
 
     tasksContainer.innerHTML = `
-      <div class="pd-tasks-header">
-        <div class="pd-tasks-title">
-          <i data-lucide="list-checks" style="width:16px;height:16px;"></i>
-          Tarefas
-          <span class="pd-tasks-count">${totalDemands}</span>
-        </div>
-      </div>
       ${this._renderTableHeader()}
       ${this._renderSections()}
     `;
@@ -2070,14 +2177,15 @@ const TBO_PROJECT_DETAIL = {
     this._bindLocalEvents();
     if (typeof lucide !== 'undefined') lucide.createIcons();
 
-    // Update progress ring
+    // Update progress bar in top bar
     const progressPct = totalDemands > 0 ? Math.round((doneDemands / totalDemands) * 100) : 0;
-    const ringFill = document.querySelector('.pd-ring-fill');
-    if (ringFill) ringFill.setAttribute('stroke-dasharray', `${progressPct}, 100`);
-    const ringText = document.querySelector('.pd-ring-text');
-    if (ringText) ringText.textContent = progressPct + '%';
-    const statsDone = document.querySelector('.pd-stats-done');
-    if (statsDone) statsDone.textContent = `${doneDemands}/${totalDemands}`;
+    const info = this._statusInfo(this._project?.status);
+    const barFill = document.querySelector('.pd-progress-bar-fill');
+    if (barFill) { barFill.style.width = progressPct + '%'; barFill.style.background = info.color; }
+    const progressLabel = document.querySelector('.pd-progress-label');
+    if (progressLabel) progressLabel.textContent = progressPct + '%';
+    const progressWrapper = document.querySelector('.pd-topbar-progress');
+    if (progressWrapper) progressWrapper.title = `${doneDemands}/${totalDemands} concluidas (${progressPct}%)`;
   },
 
   // ═══════════════════════════════════════════════════

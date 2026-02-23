@@ -28,11 +28,411 @@
   gap: 8px;
 }
 
-/* ── Top bar (back button) ───────────────────────── */
-.pd-topbar {
-  padding: 12px 24px 0;
+/* ═══════════════════════════════════════════════════
+   ASANA-STYLE STICKY TOP BAR
+   ═══════════════════════════════════════════════════ */
+
+.pd-topbar-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--bg-primary, #fff);
+  border-bottom: 1px solid var(--border, #e5e7eb);
 }
 
+/* ── LINE 1: Project header row ───────────────────── */
+.pd-topbar-line1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 20px;
+  min-height: 48px;
+}
+
+.pd-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pd-back-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s;
+}
+.pd-back-arrow:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+.pd-project-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 360px;
+}
+
+.pd-star-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: color 0.15s, background 0.12s;
+}
+.pd-star-btn:hover {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+}
+.pd-star-btn.pd-starred {
+  color: #f59e0b;
+}
+
+.pd-code {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: monospace;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.pd-status-dropdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s, box-shadow 0.15s;
+  flex-shrink: 0;
+}
+.pd-status-dropdown:hover {
+  opacity: 0.85;
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.06);
+}
+
+.pd-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ── Progress bar (inline) ────────────────────────── */
+.pd-topbar-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.pd-progress-bar-track {
+  width: 60px;
+  height: 6px;
+  background: var(--border, #e5e7eb);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.pd-progress-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.pd-progress-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 28px;
+}
+
+/* ── Member avatars ───────────────────────────────── */
+.pd-topbar-members {
+  display: flex;
+  align-items: center;
+  margin-left: 4px;
+}
+
+.pd-member-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent, #E85102);
+  color: #fff;
+  font-size: 0.55rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: -6px;
+  border: 2px solid var(--bg-primary, #fff);
+  flex-shrink: 0;
+  cursor: default;
+}
+.pd-member-avatar:first-child {
+  margin-left: 0;
+}
+
+.pd-member-extra {
+  background: var(--bg-card-hover, #f3f4f6);
+  color: var(--text-muted);
+  font-size: 0.6rem;
+}
+
+/* ── Top bar buttons ──────────────────────────────── */
+.pd-topbar-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s;
+  text-decoration: none;
+}
+.pd-topbar-icon-btn:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+.pd-topbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid var(--border, #e5e7eb);
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  white-space: nowrap;
+}
+.pd-topbar-btn:hover {
+  background: var(--bg-card-hover);
+}
+
+.pd-btn-share {
+  background: var(--accent, #E85102);
+  color: #fff;
+  border-color: var(--accent, #E85102);
+}
+.pd-btn-share:hover {
+  opacity: 0.9;
+  background: var(--accent, #E85102);
+}
+
+/* ── LINE 2: View tabs ────────────────────────────── */
+.pd-topbar-line2 {
+  padding: 0 20px;
+  overflow: hidden;
+}
+
+.pd-tabs-scroll {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.pd-tabs-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.pd-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 14px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+  flex-shrink: 0;
+}
+.pd-tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-card-hover);
+}
+
+.pd-tab-active {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent, #E85102);
+  font-weight: 600;
+}
+
+.pd-tab-add {
+  color: var(--text-muted);
+  opacity: 0.6;
+  padding: 8px 10px;
+}
+.pd-tab-add:hover {
+  opacity: 1;
+  color: var(--text-primary);
+}
+
+/* ── LINE 3: Action bar ───────────────────────────── */
+.pd-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 20px;
+  border-top: 1px solid var(--border, #e5e7eb);
+  background: var(--bg-primary, #fff);
+}
+
+.pd-action-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pd-action-right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.pd-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s;
+}
+.pd-action-btn:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+.pd-action-add-task {
+  color: var(--accent, #E85102);
+  font-weight: 600;
+}
+.pd-action-add-task:hover {
+  background: rgba(232, 81, 2, 0.06);
+  color: var(--accent, #E85102);
+}
+
+.pd-action-icon-only {
+  padding: 4px 6px;
+}
+
+.pd-action-separator {
+  width: 1px;
+  height: 16px;
+  background: var(--border, #e5e7eb);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════════
+   META BAR (collapsible project info)
+   ═══════════════════════════════════════════════════ */
+
+.pd-meta-bar {
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+  background: var(--bg-card-hover, rgba(0,0,0,0.015));
+}
+
+.pd-meta-items {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pd-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: 3px 8px;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 6px;
+}
+
+.pd-bu-tag {
+  font-size: 0.65rem;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.pd-meta-notes {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ── Tasks ─────────────────────────────────────────── */
+.pd-tasks {
+  padding: 0 20px;
+}
+
+/* Legacy back-btn for error state */
 .pd-back-btn {
   display: inline-flex;
   align-items: center;
@@ -51,212 +451,6 @@
   color: var(--text-primary);
 }
 
-/* ── Header ──────────────────────────────────────── */
-.pd-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 12px 24px 20px;
-  border-bottom: 1px solid var(--border);
-}
-
-.pd-header-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.pd-header-top {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.pd-status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 20px;
-  white-space: nowrap;
-}
-
-.pd-code {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  background: var(--bg-card-hover);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-family: monospace;
-}
-
-.pd-title {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0 0 10px;
-  line-height: 1.3;
-}
-
-.pd-header-meta {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.pd-meta-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.78rem;
-  color: var(--text-muted);
-}
-
-.pd-meta-bus {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.pd-bu-tag {
-  font-size: 0.65rem;
-  font-weight: 500;
-  padding: 2px 7px;
-  border-radius: 4px;
-  white-space: nowrap;
-}
-
-.pd-notion-link {
-  color: var(--accent);
-  text-decoration: none;
-  font-weight: 500;
-  transition: opacity 0.15s;
-}
-.pd-notion-link:hover {
-  opacity: 0.8;
-  text-decoration: underline;
-}
-
-/* ── Progress ring ───────────────────────────────── */
-.pd-header-stats {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
-}
-
-.pd-progress-ring {
-  position: relative;
-  width: 56px;
-  height: 56px;
-}
-
-.pd-ring-svg {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-}
-
-.pd-ring-bg {
-  fill: none;
-  stroke: var(--border);
-  stroke-width: 3;
-}
-
-.pd-ring-fill {
-  fill: none;
-  stroke-width: 3;
-  stroke-linecap: round;
-  transition: stroke-dasharray 0.6s ease;
-}
-
-.pd-ring-text {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.pd-stats-text {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.pd-stats-done {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.pd-stats-label {
-  font-size: 0.68rem;
-  color: var(--text-muted);
-}
-
-/* ── Description ──────────────────────────────────── */
-.pd-description {
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--border);
-}
-
-.pd-description-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-}
-
-.pd-description-text {
-  font-size: 0.85rem;
-  color: var(--text-primary);
-  line-height: 1.6;
-  white-space: pre-wrap;
-}
-
-/* ── Tasks ─────────────────────────────────────────── */
-.pd-tasks {
-  padding: 0 24px;
-}
-
-.pd-tasks-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 0 8px;
-}
-
-.pd-tasks-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.pd-tasks-count {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  background: var(--bg-card-hover);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1px 8px;
-}
-
 /* ═══════════════════════════════════════════════════
    TABLE HEADER — Notion-style
    ═══════════════════════════════════════════════════ */
@@ -267,8 +461,6 @@
   gap: 0;
   padding: 0;
   border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
   background: var(--bg-primary, #fff);
   z-index: 5;
 }
@@ -1177,6 +1369,57 @@
    DARK MODE
    ═══════════════════════════════════════════════════ */
 
+body.dark-mode .pd-topbar-sticky {
+  border-bottom-color: var(--border);
+}
+
+body.dark-mode .pd-back-arrow:hover,
+body.dark-mode .pd-topbar-icon-btn:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+body.dark-mode .pd-topbar-btn {
+  border-color: var(--border);
+  background: transparent;
+}
+body.dark-mode .pd-topbar-btn:hover {
+  background: rgba(255,255,255,0.04);
+}
+
+body.dark-mode .pd-btn-share {
+  background: var(--accent, #E85102);
+  border-color: var(--accent, #E85102);
+}
+
+body.dark-mode .pd-tab:hover {
+  background: rgba(255,255,255,0.04);
+}
+
+body.dark-mode .pd-action-btn:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+body.dark-mode .pd-action-add-task:hover {
+  background: rgba(232, 81, 2, 0.1);
+}
+
+body.dark-mode .pd-meta-bar {
+  background: rgba(255,255,255,0.02);
+}
+
+body.dark-mode .pd-meta-chip {
+  background: rgba(255,255,255,0.04);
+  border-color: var(--border);
+}
+
+body.dark-mode .pd-member-avatar {
+  border-color: var(--bg-primary);
+}
+
+body.dark-mode .pd-member-extra {
+  background: rgba(255,255,255,0.08);
+}
+
 body.dark-mode .pd-col-context-menu {
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
 }
@@ -1216,27 +1459,63 @@ body.dark-mode .pd-section-header:hover {
   background: rgba(255,255,255,0.03);
 }
 
+body.dark-mode .pd-star-btn:hover {
+  background: rgba(245, 158, 11, 0.12);
+}
+
+body.dark-mode .pd-status-dropdown:hover {
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.08);
+}
+
 /* ═══════════════════════════════════════════════════
    RESPONSIVE
    ═══════════════════════════════════════════════════ */
 
+@media (max-width: 1024px) {
+  .pd-topbar-btn span {
+    display: none;
+  }
+  .pd-topbar-btn {
+    padding: 5px 8px;
+  }
+  .pd-action-btn span {
+    display: none;
+  }
+  .pd-action-btn {
+    padding: 4px 6px;
+  }
+  .pd-project-name {
+    max-width: 240px;
+  }
+}
+
 @media (max-width: 768px) {
-  .pd-header {
-    flex-direction: column;
-    gap: 16px;
-    padding: 12px 16px 16px;
+  .pd-topbar-line1 {
+    padding: 8px 12px;
+    gap: 6px;
   }
-  .pd-header-stats {
-    align-self: flex-start;
+  .pd-topbar-line2 {
+    padding: 0 12px;
   }
-  .pd-title {
-    font-size: 1.15rem;
+  .pd-action-bar {
+    padding: 4px 12px;
+  }
+  .pd-project-name {
+    font-size: 1rem;
+    max-width: 160px;
+  }
+  .pd-topbar-members,
+  .pd-topbar-progress {
+    display: none;
+  }
+  .pd-code {
+    display: none;
+  }
+  .pd-meta-bar {
+    padding: 8px 12px;
   }
   .pd-tasks {
-    padding: 0 16px;
-  }
-  .pd-topbar {
-    padding: 8px 16px 0;
+    padding: 0 12px;
   }
   .pd-th-responsible,
   .pd-td-responsible,
@@ -1256,7 +1535,6 @@ body.dark-mode .pd-section-header:hover {
   .pd-td-status {
     width: 90px;
   }
-  /* Hide column drag handles, chevrons, and add btn on mobile */
   .pd-col-drag-handle,
   .pd-th-chevron,
   .pd-th-add {

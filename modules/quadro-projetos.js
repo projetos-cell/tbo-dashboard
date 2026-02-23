@@ -86,18 +86,43 @@ const TBO_QUADRO_PROJETOS = {
       return;
     }
 
+    // Obter tenant_id — mesmo padrão dos outros módulos
+    let tid = null;
     try {
-      const [projRes, demRes] = await Promise.all([
-        client.from('projects').select('id,name,status,construtora,bus,owner_name,due_date_start,due_date_end,notion_url,code,notion_page_id').order('name'),
-        client.from('demands').select('id,title,status,due_date,responsible,bus,project_id,notion_url').order('due_date', { ascending: true })
-      ]);
+      if (typeof RepoBase !== 'undefined' && RepoBase.requireTenantId) {
+        tid = RepoBase.requireTenantId();
+      } else if (typeof TBO_SUPABASE !== 'undefined' && TBO_SUPABASE.getTenantId) {
+        tid = TBO_SUPABASE.getTenantId();
+      }
+    } catch (_e) { /* sem tenant_id — RLS vai filtrar pelo auth */ }
 
+    try {
+      // Projetos — obrigatório
+      let projQuery = client.from('projects')
+        .select('id,name,status,construtora,bus,owner_name,due_date_start,due_date_end,notion_url,code,notion_page_id')
+        .order('name');
+      if (tid) projQuery = projQuery.eq('tenant_id', tid);
+
+      const projRes = await projQuery;
       if (projRes.error) throw projRes.error;
-
       this._data.projects = projRes.data || [];
-      this._data.demands  = demRes.data  || [];
-      this._loaded = true;
 
+      // Demandas — opcional (tabela pode não existir em todos os tenants)
+      try {
+        let demQuery = client.from('demands')
+          .select('id,title,status,due_date,responsible,bus,project_id,notion_url')
+          .order('due_date', { ascending: true });
+        if (tid) demQuery = demQuery.eq('tenant_id', tid);
+
+        const demRes = await demQuery;
+        this._data.demands = demRes.error ? [] : (demRes.data || []);
+        if (demRes.error) console.warn('[TBO QP] demands não disponível:', demRes.error.message);
+      } catch (_e) {
+        this._data.demands = [];
+        console.warn('[TBO QP] demands indisponível:', _e.message);
+      }
+
+      this._loaded = true;
       this._populateConstrutoraFilter();
       this._renderKpis();
       this._renderContent();

@@ -2,15 +2,16 @@
 -- TBO OS — Migration 044: Adiciona "Quadro de Projetos" à sidebar do Supabase
 --
 -- Insere o child item 'Quadro de Projetos' (route: quadro-projetos) dentro do
--- workspace 'Geral' para todos os tenants que já possuam esse workspace.
+-- workspace 'Geral' para o tenant TBO.
 --
--- IDEMPOTENTE: ON CONFLICT DO NOTHING garante re-execução segura.
+-- IDEMPOTENTE: verifica existência antes de inserir.
 -- ============================================================================
 
 DO $$
 DECLARE
-  v_tid      UUID;
-  v_geral_id UUID;
+  v_tid        UUID;
+  v_geral_id   UUID;
+  v_next_order INTEGER;
 BEGIN
   -- ── Buscar tenant TBO ──────────────────────────────────────────────────
   SELECT id INTO v_tid
@@ -32,20 +33,25 @@ BEGIN
   LIMIT 1;
 
   IF v_geral_id IS NULL THEN
-    RAISE NOTICE '[044] Workspace "Geral" não encontrado para o tenant TBO — migration ignorada.';
+    RAISE NOTICE '[044] Workspace "Geral" não encontrado — migration ignorada.';
     RETURN;
   END IF;
 
-  -- ── Verificar se o item já existe (idempotência extra) ─────────────────
+  -- ── Idempotência: pular se já existe ───────────────────────────────────
   IF EXISTS (
     SELECT 1 FROM sidebar_items
     WHERE tenant_id = v_tid
-      AND parent_id = v_geral_id
       AND route     = 'quadro-projetos'
   ) THEN
     RAISE NOTICE '[044] Item "Quadro de Projetos" já existe — nada a fazer.';
     RETURN;
   END IF;
+
+  -- ── Calcular próximo order_index livre ────────────────────────────────
+  SELECT COALESCE(MAX(order_index), 900) + 1
+  INTO v_next_order
+  FROM sidebar_items
+  WHERE tenant_id = v_tid;
 
   -- ── Inserir o item ─────────────────────────────────────────────────────
   INSERT INTO sidebar_items (
@@ -64,15 +70,15 @@ BEGIN
     v_geral_id,
     'Quadro de Projetos',
     'child',
-    9.025,                -- entre "Quadro Geral v2" (9.02) e "Manual de Cultura" (9.03)
+    v_next_order,
     'layout-dashboard',
     'quadro-projetos',
     TRUE,
-    '{}',                 -- visível para todos os roles
+    '{}',
     '{}'
   );
 
-  RAISE NOTICE '[044] Item "Quadro de Projetos" inserido com sucesso no workspace Geral.';
+  RAISE NOTICE '[044] Item "Quadro de Projetos" inserido com order_index=% no workspace Geral.', v_next_order;
 END $$;
 
 -- ============================================================================

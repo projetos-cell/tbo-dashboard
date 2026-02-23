@@ -6,19 +6,23 @@ const TBO_PROJECT_DETAIL = {
   _demands: [],
   _params: null,
   _loaded: false,
+  _ctxMenu: null,       // context menu DOM
+  _ctxDemandId: null,   // demand id for context menu
+  _dragEl: null,        // dragging element
+  _dragType: null,      // 'task' or 'section'
 
   // Section grouping for demands (by status category)
   _SECTIONS: [
     { key: 'planejamento', label: 'Planejamento', icon: 'clipboard-list', statuses: ['A fazer', 'Backlog', 'Planejamento'] },
-    { key: 'execucao',     label: 'Execução',     icon: 'play-circle',    statuses: ['Em andamento', 'Em Andamento', 'In Progress'] },
-    { key: 'revisao',      label: 'Revisão',       icon: 'eye',           statuses: ['Em revisão', 'Em Revisão', 'Revisão', 'Review'] },
-    { key: 'finalizado',   label: 'Finalização',   icon: 'check-circle-2', statuses: ['Concluído', 'Concluido', 'Finalizado', 'Done', 'Cancelado'] },
+    { key: 'execucao',     label: 'Execucao',     icon: 'play-circle',    statuses: ['Em andamento', 'Em Andamento', 'In Progress'] },
+    { key: 'revisao',      label: 'Revisao',       icon: 'eye',           statuses: ['Em revisao', 'Em Revisao', 'Revisao', 'Review'] },
+    { key: 'finalizado',   label: 'Finalizacao',   icon: 'check-circle-2', statuses: ['Concluido', 'Concluido', 'Finalizado', 'Done', 'Cancelado'] },
   ],
 
   // Status config (reuse from quadro-projetos)
   _STATUS: {
     em_andamento: { label: 'Em Andamento', color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', icon: 'play-circle' },
-    producao:     { label: 'Em Produção',  color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)', icon: 'zap' },
+    producao:     { label: 'Em Producao',  color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)', icon: 'zap' },
     finalizado:   { label: 'Finalizado',   color: '#22c55e', bg: 'rgba(34,197,94,0.12)',  icon: 'check-circle-2' },
     parado:       { label: 'Parado',       color: '#ef4444', bg: 'rgba(239,68,68,0.12)',  icon: 'pause-circle' },
     pausado:      { label: 'Pausado',      color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', icon: 'clock' },
@@ -39,11 +43,11 @@ const TBO_PROJECT_DETAIL = {
     'Em andamento':   { color: '#3b82f6', bg: 'rgba(59,130,246,0.10)' },
     'Em Andamento':   { color: '#3b82f6', bg: 'rgba(59,130,246,0.10)' },
     'In Progress':    { color: '#3b82f6', bg: 'rgba(59,130,246,0.10)' },
-    'Em revisão':     { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)' },
-    'Em Revisão':     { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)' },
-    'Revisão':        { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)' },
+    'Em revisao':     { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)' },
+    'Em Revisao':     { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)' },
+    'Revisao':        { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)' },
     'Review':         { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)' },
-    'Concluído':      { color: '#22c55e', bg: 'rgba(34,197,94,0.10)' },
+    'Concluido':      { color: '#22c55e', bg: 'rgba(34,197,94,0.10)' },
     'Concluido':      { color: '#22c55e', bg: 'rgba(34,197,94,0.10)' },
     'Finalizado':     { color: '#22c55e', bg: 'rgba(34,197,94,0.10)' },
     'Done':           { color: '#22c55e', bg: 'rgba(34,197,94,0.10)' },
@@ -87,13 +91,13 @@ const TBO_PROJECT_DETAIL = {
   async _load() {
     const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
     if (!client) {
-      this._renderError('Supabase não disponível');
+      this._renderError('Supabase nao disponivel');
       return;
     }
 
     const projectId = this._params?.id;
     if (!projectId) {
-      this._renderError('ID do projeto não informado');
+      this._renderError('ID do projeto nao informado');
       return;
     }
 
@@ -146,7 +150,7 @@ const TBO_PROJECT_DETAIL = {
     const info = this._statusInfo(p.status);
     const bus = this._parseBus(p.bus);
     const totalDemands = this._demands.length;
-    const doneDemands = this._demands.filter(d => d.status === 'Concluído' || d.status === 'Concluido' || d.status === 'Done' || d.feito).length;
+    const doneDemands = this._demands.filter(d => d.status === 'Concluido' || d.status === 'Concluido' || d.status === 'Done' || d.feito).length;
     const progressPct = totalDemands > 0 ? Math.round((doneDemands / totalDemands) * 100) : 0;
 
     return `
@@ -185,7 +189,7 @@ const TBO_PROJECT_DETAIL = {
             ${(p.due_date_start || p.due_date_end) ? `
               <div class="pd-meta-item">
                 <i data-lucide="calendar" style="width:13px;height:13px;"></i>
-                <span>${p.due_date_start ? this._fmtDate(p.due_date_start) : '?'} → ${p.due_date_end ? this._fmtDate(p.due_date_end) : '?'}</span>
+                <span>${p.due_date_start ? this._fmtDate(p.due_date_start) : '?'} &rarr; ${p.due_date_end ? this._fmtDate(p.due_date_end) : '?'}</span>
               </div>
             ` : ''}
             ${bus.length > 0 ? `
@@ -214,7 +218,7 @@ const TBO_PROJECT_DETAIL = {
           </div>
           <div class="pd-stats-text">
             <span class="pd-stats-done">${doneDemands}/${totalDemands}</span>
-            <span class="pd-stats-label">concluídas</span>
+            <span class="pd-stats-label">concluidas</span>
           </div>
         </div>
       </div>
@@ -223,7 +227,7 @@ const TBO_PROJECT_DETAIL = {
         <div class="pd-description">
           <div class="pd-description-label">
             <i data-lucide="file-text" style="width:14px;height:14px;"></i>
-            Descrição
+            Descricao
           </div>
           <div class="pd-description-text">${this._esc(p.notes)}</div>
         </div>
@@ -241,8 +245,9 @@ const TBO_PROJECT_DETAIL = {
 
         <!-- Task table header -->
         <div class="pd-table-header">
+          <div class="pd-th pd-th-drag"></div>
           <div class="pd-th pd-th-name">Nome da tarefa</div>
-          <div class="pd-th pd-th-responsible">Responsável</div>
+          <div class="pd-th pd-th-responsible">Responsavel</div>
           <div class="pd-th pd-th-date">Data</div>
           <div class="pd-th pd-th-priority">Prioridade</div>
           <div class="pd-th pd-th-status">Status</div>
@@ -292,10 +297,10 @@ const TBO_PROJECT_DETAIL = {
   },
 
   _renderSection(section, demands) {
-    const isCollapsed = false;
     return `
-      <div class="pd-section" data-section="${section.key}">
+      <div class="pd-section" data-section="${section.key}" draggable="true">
         <button class="pd-section-toggle" data-toggle="${section.key}">
+          <div class="pd-drag-handle pd-section-drag" title="Arrastar secao"><i data-lucide="grip-vertical"></i></div>
           <i data-lucide="chevron-down" class="pd-section-chevron" style="width:14px;height:14px;"></i>
           <i data-lucide="${section.icon}" style="width:14px;height:14px;opacity:0.6;"></i>
           <span class="pd-section-label">${section.label}</span>
@@ -310,11 +315,14 @@ const TBO_PROJECT_DETAIL = {
 
   _renderTaskRow(d) {
     const statusColors = this._DEMAND_STATUS_COLORS[d.status] || { color: '#6b7280', bg: 'rgba(107,114,128,0.10)' };
-    const isDone = d.status === 'Concluído' || d.status === 'Concluido' || d.status === 'Done' || d.feito;
+    const isDone = d.status === 'Concluido' || d.status === 'Concluido' || d.status === 'Done' || d.feito;
     const priorityHtml = this._renderPriority(d.prioridade);
 
     return `
-      <div class="pd-task-row ${isDone ? 'pd-task-done' : ''}" data-demand-id="${d.id}">
+      <div class="pd-task-row ${isDone ? 'pd-task-done' : ''}" data-demand-id="${d.id}" draggable="true">
+        <div class="pd-td pd-td-drag">
+          <div class="pd-drag-handle" title="Arrastar tarefa"><i data-lucide="grip-vertical"></i></div>
+        </div>
         <div class="pd-td pd-td-check">
           <span class="pd-check ${isDone ? 'pd-checked' : ''}" style="border-color:${statusColors.color};${isDone ? `background:${statusColors.color};` : ''}">
             ${isDone ? '<i data-lucide="check" style="width:10px;height:10px;color:#fff;"></i>' : ''}
@@ -330,10 +338,10 @@ const TBO_PROJECT_DETAIL = {
               ${this._initials(d.responsible)}
             </div>
             <span class="pd-responsible-name">${this._esc(d.responsible)}</span>
-          ` : '<span class="pd-empty-cell">—</span>'}
+          ` : '<span class="pd-empty-cell">&mdash;</span>'}
         </div>
         <div class="pd-td pd-td-date">
-          ${d.due_date ? `<span class="pd-date-text ${this._isLate(d) ? 'pd-date-late' : ''}">${this._fmtDate(d.due_date)}</span>` : '<span class="pd-empty-cell">—</span>'}
+          ${d.due_date ? `<span class="pd-date-text ${this._isLate(d) ? 'pd-date-late' : ''}">${this._fmtDate(d.due_date)}</span>` : '<span class="pd-empty-cell">&mdash;</span>'}
         </div>
         <div class="pd-td pd-td-priority">
           ${priorityHtml}
@@ -348,20 +356,27 @@ const TBO_PROJECT_DETAIL = {
   },
 
   _renderPriority(prioridade) {
-    if (!prioridade) return '<span class="pd-empty-cell">—</span>';
+    if (!prioridade) return '<span class="pd-empty-cell">&mdash;</span>';
     const p = prioridade.toLowerCase();
     let color = '#6b7280';
     let bg = 'rgba(107,114,128,0.10)';
     if (p.includes('alta') || p.includes('high') || p.includes('urgente')) { color = '#ef4444'; bg = 'rgba(239,68,68,0.10)'; }
-    else if (p.includes('média') || p.includes('media') || p.includes('medium')) { color = '#f59e0b'; bg = 'rgba(245,158,11,0.10)'; }
+    else if (p.includes('media') || p.includes('media') || p.includes('medium')) { color = '#f59e0b'; bg = 'rgba(245,158,11,0.10)'; }
     else if (p.includes('baixa') || p.includes('low')) { color = '#22c55e'; bg = 'rgba(34,197,94,0.10)'; }
     return `<span class="pd-priority-pill" style="background:${bg};color:${color};">${this._esc(prioridade)}</span>`;
   },
 
+  // ═══════════════════════════════════════════════════
+  // Event binding (section toggles, drawer, context menu, drag)
+  // ═══════════════════════════════════════════════════
   _bindEvents() {
+    const self = this;
+
     // Section toggles
     document.querySelectorAll('.pd-section-toggle').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
+        // Ignore if the drag handle was clicked
+        if (e.target.closest('.pd-drag-handle')) return;
         const section = btn.closest('.pd-section');
         if (!section) return;
         section.classList.toggle('pd-section-collapsed');
@@ -373,15 +388,505 @@ const TBO_PROJECT_DETAIL = {
     // Task row click → open demand drawer
     document.querySelectorAll('.pd-task-row[data-demand-id]').forEach(row => {
       row.addEventListener('click', (e) => {
-        // Don't open drawer if clicking a link or the check
-        if (e.target.closest('a') || e.target.closest('.pd-check')) return;
+        // Don't open drawer if clicking a link, check, or drag handle
+        if (e.target.closest('a') || e.target.closest('.pd-check') || e.target.closest('.pd-drag-handle')) return;
         const demandId = row.dataset.demandId;
-        const demand = this._demands.find(d => d.id === demandId);
+        const demand = self._demands.find(d => d.id === demandId);
         if (demand && typeof TBO_DEMAND_DRAWER !== 'undefined') {
-          TBO_DEMAND_DRAWER.open(demand, this._project);
+          TBO_DEMAND_DRAWER.open(demand, self._project);
         }
       });
     });
+
+    // ── Context Menu ──────────────────────────────────
+    this._bindContextMenu();
+
+    // ── Drag & Drop ───────────────────────────────────
+    this._bindDragAndDrop();
+  },
+
+  // ═══════════════════════════════════════════════════
+  // CONTEXT MENU
+  // ═══════════════════════════════════════════════════
+
+  _bindContextMenu() {
+    const self = this;
+
+    // Right-click on task rows
+    document.querySelectorAll('.pd-task-row[data-demand-id]').forEach(row => {
+      row.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const demandId = row.dataset.demandId;
+        self._showContextMenu(e.clientX, e.clientY, demandId);
+      });
+    });
+
+    // Close menu on outside click / scroll / Escape
+    document.addEventListener('click', () => self._closeContextMenu(), true);
+    document.addEventListener('scroll', () => self._closeContextMenu(), true);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') self._closeContextMenu();
+    });
+  },
+
+  _showContextMenu(x, y, demandId) {
+    this._closeContextMenu();
+    this._ctxDemandId = demandId;
+
+    const menu = document.createElement('div');
+    menu.className = 'pd-context-menu';
+    menu.innerHTML = `
+      <div class="pd-ctx-item" data-action="duplicate">
+        <i data-lucide="copy"></i> Duplicar
+      </div>
+      <div class="pd-ctx-item" data-action="follow-up">
+        <i data-lucide="corner-up-right"></i> Criar tarefa de acompanhamento
+      </div>
+      <div class="pd-ctx-item" data-action="mark-done">
+        <i data-lucide="check-circle-2"></i> Marcar como concluida
+      </div>
+      <div class="pd-ctx-separator"></div>
+      <div class="pd-ctx-item" data-action="add-subtask">
+        <i data-lucide="list-plus"></i> Adicionar subtarefa
+      </div>
+      <div class="pd-ctx-item" data-action="convert">
+        <i data-lucide="arrow-right-circle"></i> Converter em &gt;
+      </div>
+      <div class="pd-ctx-separator"></div>
+      <div class="pd-ctx-item" data-action="open-details">
+        <i data-lucide="panel-right-open"></i> Abrir detalhes
+      </div>
+      <div class="pd-ctx-item" data-action="open-new-tab">
+        <i data-lucide="external-link"></i> Abrir em nova aba
+      </div>
+      <div class="pd-ctx-item" data-action="copy-link">
+        <i data-lucide="link"></i> Copiar link
+      </div>
+      <div class="pd-ctx-separator"></div>
+      <div class="pd-ctx-item pd-ctx-item--danger" data-action="delete">
+        <i data-lucide="trash-2"></i> Excluir
+      </div>
+    `;
+
+    // Position — keep within viewport
+    document.body.appendChild(menu);
+    if (typeof lucide !== 'undefined') lucide.createIcons({ root: menu });
+
+    const mw = menu.offsetWidth;
+    const mh = menu.offsetHeight;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    menu.style.left = (x + mw > vw ? Math.max(0, x - mw) : x) + 'px';
+    menu.style.top  = (y + mh > vh ? Math.max(0, y - mh) : y) + 'px';
+
+    this._ctxMenu = menu;
+
+    // Handle clicks on items
+    menu.querySelectorAll('.pd-ctx-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const action = item.dataset.action;
+        this._handleContextAction(action, demandId);
+        this._closeContextMenu();
+      });
+    });
+  },
+
+  _closeContextMenu() {
+    if (this._ctxMenu) {
+      this._ctxMenu.remove();
+      this._ctxMenu = null;
+    }
+    this._ctxDemandId = null;
+  },
+
+  async _handleContextAction(action, demandId) {
+    const demand = this._demands.find(d => d.id === demandId);
+    if (!demand) return;
+    const self = this;
+
+    switch (action) {
+      case 'open-details': {
+        if (typeof TBO_DEMAND_DRAWER !== 'undefined') {
+          TBO_DEMAND_DRAWER.open(demand, this._project);
+        }
+        break;
+      }
+
+      case 'open-new-tab': {
+        if (demand.notion_url) {
+          window.open(demand.notion_url, '_blank');
+        } else {
+          // Open current page in new tab with hash pointing to this project
+          const url = window.location.origin + window.location.pathname + '#/projeto/' + (this._project?.id || '');
+          window.open(url, '_blank');
+        }
+        break;
+      }
+
+      case 'copy-link': {
+        const link = demand.notion_url || (window.location.origin + window.location.pathname + '#/projeto/' + (this._project?.id || ''));
+        try {
+          await navigator.clipboard.writeText(link);
+          console.log('[PD] Link copiado');
+        } catch (_e) {
+          // Fallback
+          const ta = document.createElement('textarea');
+          ta.value = link;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+        }
+        break;
+      }
+
+      case 'mark-done': {
+        const newStatus = (demand.status === 'Concluido' || demand.status === 'Concluido' || demand.status === 'Done' || demand.feito) ? 'A fazer' : 'Concluido';
+        const newFeito = newStatus === 'Concluido';
+        try {
+          const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+          if (client) {
+            await client.from('demands').update({ status: newStatus, feito: newFeito }).eq('id', demandId);
+            demand.status = newStatus;
+            demand.feito = newFeito;
+            // Re-render tasks section
+            self._reRenderTasks();
+          }
+        } catch (e) { console.error('[PD] mark-done error:', e); }
+        break;
+      }
+
+      case 'duplicate': {
+        try {
+          const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+          if (client) {
+            const dup = { ...demand };
+            delete dup.id;
+            dup.title = (demand.title || '') + ' (copia)';
+            dup.feito = false;
+            const { data, error } = await client.from('demands').insert(dup).select().single();
+            if (!error && data) {
+              self._demands.push(data);
+              self._reRenderTasks();
+            }
+          }
+        } catch (e) { console.error('[PD] duplicate error:', e); }
+        break;
+      }
+
+      case 'follow-up': {
+        try {
+          const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+          if (client) {
+            const followUp = {
+              project_id: demand.project_id,
+              tenant_id: demand.tenant_id,
+              title: 'Acompanhamento: ' + (demand.title || ''),
+              status: 'A fazer',
+              responsible: demand.responsible,
+              bus: demand.bus,
+              prioridade: demand.prioridade,
+              feito: false,
+            };
+            const { data, error } = await client.from('demands').insert(followUp).select().single();
+            if (!error && data) {
+              self._demands.push(data);
+              self._reRenderTasks();
+            }
+          }
+        } catch (e) { console.error('[PD] follow-up error:', e); }
+        break;
+      }
+
+      case 'add-subtask': {
+        // Open the drawer and focus subtask
+        if (typeof TBO_DEMAND_DRAWER !== 'undefined') {
+          TBO_DEMAND_DRAWER.open(demand, this._project);
+        }
+        break;
+      }
+
+      case 'convert': {
+        // Placeholder: convert to project (future feature)
+        console.log('[PD] Convert demand to project:', demandId);
+        break;
+      }
+
+      case 'delete': {
+        if (!confirm('Excluir esta tarefa permanentemente?')) return;
+        try {
+          const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+          if (client) {
+            await client.from('demands').delete().eq('id', demandId);
+            self._demands = self._demands.filter(d => d.id !== demandId);
+            self._reRenderTasks();
+          }
+        } catch (e) { console.error('[PD] delete error:', e); }
+        break;
+      }
+    }
+  },
+
+  /** Re-render just the tasks area without full page reload */
+  _reRenderTasks() {
+    const tasksContainer = document.querySelector('.pd-tasks');
+    if (!tasksContainer) return;
+
+    const totalDemands = this._demands.length;
+    const doneDemands = this._demands.filter(d => d.status === 'Concluido' || d.status === 'Concluido' || d.status === 'Done' || d.feito).length;
+
+    tasksContainer.innerHTML = `
+      <div class="pd-tasks-header">
+        <div class="pd-tasks-title">
+          <i data-lucide="list-checks" style="width:16px;height:16px;"></i>
+          Tarefas
+          <span class="pd-tasks-count">${totalDemands}</span>
+        </div>
+      </div>
+      <div class="pd-table-header">
+        <div class="pd-th pd-th-drag"></div>
+        <div class="pd-th pd-th-name">Nome da tarefa</div>
+        <div class="pd-th pd-th-responsible">Responsavel</div>
+        <div class="pd-th pd-th-date">Data</div>
+        <div class="pd-th pd-th-priority">Prioridade</div>
+        <div class="pd-th pd-th-status">Status</div>
+      </div>
+      ${this._renderSections()}
+    `;
+
+    // Re-bind only task-related events
+    this._bindTaskEvents();
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    // Update progress ring
+    const progressPct = totalDemands > 0 ? Math.round((doneDemands / totalDemands) * 100) : 0;
+    const ringFill = document.querySelector('.pd-ring-fill');
+    if (ringFill) ringFill.setAttribute('stroke-dasharray', `${progressPct}, 100`);
+    const ringText = document.querySelector('.pd-ring-text');
+    if (ringText) ringText.textContent = progressPct + '%';
+    const statsDone = document.querySelector('.pd-stats-done');
+    if (statsDone) statsDone.textContent = `${doneDemands}/${totalDemands}`;
+  },
+
+  /** Bind events only for task rows (used after partial re-render) */
+  _bindTaskEvents() {
+    const self = this;
+
+    // Section toggles
+    document.querySelectorAll('.pd-section-toggle').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        if (e.target.closest('.pd-drag-handle')) return;
+        const section = btn.closest('.pd-section');
+        if (!section) return;
+        section.classList.toggle('pd-section-collapsed');
+        const chevron = btn.querySelector('.pd-section-chevron');
+        if (chevron) chevron.style.transform = section.classList.contains('pd-section-collapsed') ? 'rotate(-90deg)' : '';
+      });
+    });
+
+    // Task row click → open demand drawer
+    document.querySelectorAll('.pd-task-row[data-demand-id]').forEach(row => {
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('a') || e.target.closest('.pd-check') || e.target.closest('.pd-drag-handle')) return;
+        const demandId = row.dataset.demandId;
+        const demand = self._demands.find(d => d.id === demandId);
+        if (demand && typeof TBO_DEMAND_DRAWER !== 'undefined') {
+          TBO_DEMAND_DRAWER.open(demand, self._project);
+        }
+      });
+    });
+
+    // Context menu
+    this._bindContextMenu();
+
+    // Drag & drop
+    this._bindDragAndDrop();
+  },
+
+  // ═══════════════════════════════════════════════════
+  // DRAG & DROP
+  // ═══════════════════════════════════════════════════
+
+  _bindDragAndDrop() {
+    const self = this;
+
+    // ── Task row drag ─────────────────────────────
+    document.querySelectorAll('.pd-task-row[draggable="true"]').forEach(row => {
+
+      row.addEventListener('dragstart', (e) => {
+        // Only start drag from the drag handle
+        if (!e.target.closest('.pd-drag-handle') && e.target !== row) {
+          // Allow drag even from the row itself (draggable="true"), but
+          // if user clicked anywhere else, the click handler fires instead.
+          // We still allow dragging from the row to keep HTML5 drag functional.
+        }
+        self._dragEl = row;
+        self._dragType = 'task';
+        row.classList.add('pd-dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', row.dataset.demandId || '');
+      });
+
+      row.addEventListener('dragend', () => {
+        row.classList.remove('pd-dragging');
+        self._clearDropIndicators();
+        self._dragEl = null;
+        self._dragType = null;
+      });
+
+      row.addEventListener('dragover', (e) => {
+        if (self._dragType !== 'task') return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        self._clearDropIndicators();
+
+        const rect = row.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        if (e.clientY < midY) {
+          row.classList.add('pd-drop-above');
+        } else {
+          row.classList.add('pd-drop-below');
+        }
+      });
+
+      row.addEventListener('dragleave', () => {
+        row.classList.remove('pd-drop-above', 'pd-drop-below');
+      });
+
+      row.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (self._dragType !== 'task' || !self._dragEl || self._dragEl === row) {
+          self._clearDropIndicators();
+          return;
+        }
+
+        const rect = row.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        const insertBefore = e.clientY < midY;
+
+        const parent = row.parentNode;
+        if (insertBefore) {
+          parent.insertBefore(self._dragEl, row);
+        } else {
+          parent.insertBefore(self._dragEl, row.nextSibling);
+        }
+
+        self._clearDropIndicators();
+        // Update internal order based on DOM
+        self._syncDemandOrderFromDOM();
+      });
+    });
+
+    // ── Section drag ──────────────────────────────
+    document.querySelectorAll('.pd-section[draggable="true"]').forEach(section => {
+
+      section.addEventListener('dragstart', (e) => {
+        // Only drag section if initiated from the section drag handle
+        const handle = e.target.closest('.pd-section-drag');
+        if (!handle) {
+          e.preventDefault();
+          return;
+        }
+        self._dragEl = section;
+        self._dragType = 'section';
+        section.classList.add('pd-dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', section.dataset.section || '');
+      });
+
+      section.addEventListener('dragend', () => {
+        section.classList.remove('pd-dragging');
+        self._clearDropIndicators();
+        self._dragEl = null;
+        self._dragType = null;
+      });
+
+      section.addEventListener('dragover', (e) => {
+        if (self._dragType !== 'section') return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        self._clearDropIndicators();
+
+        const rect = section.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        if (e.clientY < midY) {
+          section.classList.add('pd-drop-above');
+        } else {
+          section.classList.add('pd-drop-below');
+        }
+      });
+
+      section.addEventListener('dragleave', () => {
+        section.classList.remove('pd-drop-above', 'pd-drop-below');
+      });
+
+      section.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (self._dragType !== 'section' || !self._dragEl || self._dragEl === section) {
+          self._clearDropIndicators();
+          return;
+        }
+
+        const rect = section.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        const insertBefore = e.clientY < midY;
+        const parent = section.parentNode;
+
+        if (insertBefore) {
+          parent.insertBefore(self._dragEl, section);
+        } else {
+          parent.insertBefore(self._dragEl, section.nextSibling);
+        }
+
+        self._clearDropIndicators();
+      });
+    });
+
+    // ── Drop on section body (allow dropping tasks into different sections) ──
+    document.querySelectorAll('.pd-section-body').forEach(body => {
+      body.addEventListener('dragover', (e) => {
+        if (self._dragType !== 'task') return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+      });
+
+      body.addEventListener('drop', (e) => {
+        if (self._dragType !== 'task' || !self._dragEl) return;
+        e.preventDefault();
+        // If dropped on the body itself (not on a row), append to end
+        if (e.target === body || e.target.closest('.pd-section-body') === body) {
+          if (!e.target.closest('.pd-task-row')) {
+            body.appendChild(self._dragEl);
+            self._clearDropIndicators();
+            self._syncDemandOrderFromDOM();
+          }
+        }
+      });
+    });
+  },
+
+  _clearDropIndicators() {
+    document.querySelectorAll('.pd-drop-above, .pd-drop-below').forEach(el => {
+      el.classList.remove('pd-drop-above', 'pd-drop-below');
+    });
+  },
+
+  /** After drag, sync internal _demands array order from DOM order */
+  _syncDemandOrderFromDOM() {
+    const rows = document.querySelectorAll('.pd-task-row[data-demand-id]');
+    const newOrder = [];
+    rows.forEach(row => {
+      const d = this._demands.find(dd => dd.id === row.dataset.demandId);
+      if (d) newOrder.push(d);
+    });
+    // Keep any demands not found in DOM (shouldn't happen but safety)
+    this._demands.forEach(d => {
+      if (!newOrder.find(nd => nd.id === d.id)) newOrder.push(d);
+    });
+    this._demands = newOrder;
   },
 
   _renderError(msg) {
@@ -432,15 +937,18 @@ const TBO_PROJECT_DETAIL = {
 
   _isLate(d) {
     if (!d.due_date) return false;
-    if (d.status === 'Concluído' || d.status === 'Concluido' || d.status === 'Done' || d.feito) return false;
+    if (d.status === 'Concluido' || d.status === 'Concluido' || d.status === 'Done' || d.feito) return false;
     return new Date(d.due_date) < new Date();
   },
 
   destroy() {
+    this._closeContextMenu();
     this._project = null;
     this._demands = [];
     this._params = null;
     this._loaded = false;
+    this._dragEl = null;
+    this._dragType = null;
   },
 
   init() {}

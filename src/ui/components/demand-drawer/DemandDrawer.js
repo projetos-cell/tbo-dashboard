@@ -1,13 +1,13 @@
 /**
  * TBO OS — Demand Drawer (Painel lateral direito de detalhes da demanda)
  *
- * Abre ao clicar em uma tarefa na tela de projeto.
- * Exibe: título, status, campos (responsável, data, dependência, projeto vinculado),
- *        descrição, subtarefas, anexos, comentários e colaboradores.
+ * Todos os campos sao editaveis inline. Suporta adicionar novas propriedades.
+ * Salva via Supabase automaticamente (autosave com debounce).
  *
  * API:
  *   TBO_DEMAND_DRAWER.open(demand, project)
  *   TBO_DEMAND_DRAWER.close()
+ *   TBO_DEMAND_DRAWER.refresh()
  */
 const TBO_DEMAND_DRAWER = (() => {
   'use strict';
@@ -17,6 +17,10 @@ const TBO_DEMAND_DRAWER = (() => {
   let _isOpen = false;
   let _demand = null;
   let _project = null;
+  let _saveTimer = null;
+  let _customProps = []; // { key, label, icon, type }
+
+  const AUTOSAVE_DELAY = 800;
 
   // ── Helpers ──────────────────────────────────────
 
@@ -38,14 +42,6 @@ const TBO_DEMAND_DRAWER = (() => {
     } catch { return iso.slice(0, 10); }
   }
 
-  function _fmtDateShort(iso) {
-    if (!iso) return '';
-    try {
-      const d = new Date(iso.slice(0, 10) + 'T12:00:00');
-      return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
-    } catch { return iso.slice(0, 10); }
-  }
-
   function _isLate(demand) {
     if (!demand.due_date) return false;
     const done = demand.status === 'Concluído' || demand.status === 'Concluido' || demand.status === 'Done' || demand.feito;
@@ -54,6 +50,9 @@ const TBO_DEMAND_DRAWER = (() => {
   }
 
   // ── Status / Priority colors ─────────────────────
+
+  const STATUS_OPTIONS = ['A fazer', 'Backlog', 'Planejamento', 'Em andamento', 'Em revisão', 'Concluído', 'Cancelado'];
+  const PRIORITY_OPTIONS = ['Alta', 'Média', 'Baixa'];
 
   const STATUS_COLORS = {
     'A fazer':      { color: '#6b7280', bg: 'rgba(107,114,128,0.10)' },
@@ -94,18 +93,34 @@ const TBO_DEMAND_DRAWER = (() => {
     return { color: '#6b7280', bg: 'rgba(107,114,128,0.10)' };
   }
 
+  // ── Supabase save ────────────────────────────────
+
+  async function _saveDemand(changes) {
+    if (!_demand || !_demand.id) return;
+    Object.assign(_demand, changes);
+    try {
+      const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+      if (!client) return;
+      const { error } = await client.from('demands').update(changes).eq('id', _demand.id);
+      if (error) console.error('[DD] Save error:', error);
+    } catch (e) { console.error('[DD] Save exception:', e); }
+  }
+
+  function _scheduleSave(changes) {
+    clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(() => _saveDemand(changes), AUTOSAVE_DELAY);
+  }
+
   // ── DOM creation ─────────────────────────────────
 
   function _createDOM() {
     if (_panel) return;
 
-    // Overlay
     _overlay = document.createElement('div');
     _overlay.className = 'dd-overlay';
     _overlay.addEventListener('click', close);
     document.body.appendChild(_overlay);
 
-    // Panel
     _panel = document.createElement('div');
     _panel.className = 'dd-panel';
     _panel.setAttribute('role', 'dialog');
@@ -131,16 +146,150 @@ const TBO_DEMAND_DRAWER = (() => {
     `;
 
     document.body.appendChild(_panel);
-
-    // Events
     _panel.querySelector('#ddCloseBtn').addEventListener('click', close);
-
-    // Escape
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && _isOpen) close();
     });
 
     if (window.lucide) lucide.createIcons({ root: _panel });
+  }
+
+  // ── Inline edit helpers ──────────────────────────
+
+  function _makeEditable(el, opts) {
+    el.classList.add('dd-editable');
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (el.querySelector('.dd-edit-input, .dd-edit-select')) return;
+
+      if (opts.type === 'select') {
+        _showSelectEditor(el, opts);
+      } else if (opts.type === 'date') {
+        _showDateEditor(el, opts);
+      } else {
+        _showTextEditor(el, opts);
+      }
+    });
+  }
+
+  function _showTextEditor(el, opts) {
+    const current = _demand[opts.key] || '';
+    const input = document.createElement(opts.multiline ? 'textarea' : 'input');
+    input.className = 'dd-edit-input';
+    if (!opts.multiline) input.type = 'text';
+    input.value = current;
+    if (opts.placeholder) input.placeholder = opts.placeholder;
+    if (opts.multiline) { input.rows = 3; input.style.minHeight = '60px'; }
+
+    const origHtml = el.innerHTML;
+    el.innerHTML = '';
+    el.appendChild(input);
+    input.focus();
+    input.select();
+
+    const finish = () => {
+      const val = input.value.trim();
+      if (val !== current) {
+        _scheduleSave({ [opts.key]: val || null });
+        _demand[opts.key] = val || null;
+      }
+      _refreshBody();
+    };
+
+    input.addEventListener('blur', finish);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !opts.multiline) { e.preventDefault(); input.blur(); }
+      if (e.key === 'Escape') { input.value = current; input.blur(); }
+    });
+  }
+
+  function _showDateEditor(el, opts) {
+    const current = _demand[opts.key] || '';
+    const input = document.createElement('input');
+    input.type = 'date';
+    input.className = 'dd-edit-input';
+    input.value = current ? current.slice(0, 10) : '';
+
+    const origHtml = el.innerHTML;
+    el.innerHTML = '';
+    el.appendChild(input);
+    input.focus();
+
+    const finish = () => {
+      const val = input.value;
+      if (val !== (current ? current.slice(0, 10) : '')) {
+        _scheduleSave({ [opts.key]: val || null });
+        _demand[opts.key] = val || null;
+      }
+      _refreshBody();
+    };
+
+    input.addEventListener('blur', finish);
+    input.addEventListener('change', () => input.blur());
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { input.value = current ? current.slice(0, 10) : ''; input.blur(); }
+    });
+  }
+
+  function _showSelectEditor(el, opts) {
+    const current = _demand[opts.key] || '';
+    const dropdown = document.createElement('div');
+    dropdown.className = 'dd-select-dropdown';
+
+    (opts.options || []).forEach(opt => {
+      const item = document.createElement('div');
+      item.className = 'dd-select-option' + (opt === current ? ' dd-select-option--active' : '');
+      item.textContent = opt;
+
+      if (opts.key === 'status') {
+        const sc = _statusColor(opt);
+        item.innerHTML = `<span class="dd-select-dot" style="background:${sc.color};"></span> ${_esc(opt)}`;
+      } else if (opts.key === 'prioridade') {
+        const pc = _priorityColor(opt);
+        if (pc) item.innerHTML = `<span class="dd-select-dot" style="background:${pc.color};"></span> ${_esc(opt)}`;
+      }
+
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (opt !== current) {
+          _scheduleSave({ [opts.key]: opt });
+          _demand[opts.key] = opt;
+        }
+        _closeDropdowns();
+        _refreshBody();
+      });
+      dropdown.appendChild(item);
+    });
+
+    // Position dropdown
+    el.style.position = 'relative';
+    el.appendChild(dropdown);
+
+    // Close on outside click
+    const closeHandler = (e) => {
+      if (!dropdown.contains(e.target) && e.target !== el) {
+        _closeDropdowns();
+        document.removeEventListener('click', closeHandler, true);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', closeHandler, true), 10);
+  }
+
+  function _closeDropdowns() {
+    if (!_panel) return;
+    _panel.querySelectorAll('.dd-select-dropdown').forEach(d => d.remove());
+  }
+
+  // ── Refresh body (after edits) ───────────────────
+
+  function _refreshBody() {
+    if (!_panel || !_demand) return;
+    const body = _panel.querySelector('#ddBody');
+    if (body) {
+      body.innerHTML = _renderBody(_demand, _project);
+      _bindBodyEvents();
+      if (window.lucide) lucide.createIcons({ root: body });
+    }
   }
 
   // ── Render body ──────────────────────────────────
@@ -149,93 +298,58 @@ const TBO_DEMAND_DRAWER = (() => {
     const sc = _statusColor(demand.status);
     const pc = _priorityColor(demand.prioridade);
     const late = _isLate(demand);
-
-    // Parse subtasks from subitem/item_principal
     const subtasks = _parseSubtasks(demand);
-
-    // Determine the section/stage this demand belongs to
     const stage = _resolveStage(demand.status);
 
     return `
-      <!-- Title + Status -->
+      <!-- Title (editable) -->
       <div class="dd-title-section">
-        <h2 class="dd-title">${_esc(demand.title)}</h2>
+        <h2 class="dd-title dd-editable" data-edit="title">${_esc(demand.title || 'Sem titulo')}</h2>
         <div class="dd-status-row">
-          <span class="dd-status-badge" style="background:${sc.bg};color:${sc.color};">
+          <span class="dd-status-badge dd-editable" data-edit="status" style="background:${sc.bg};color:${sc.color};cursor:pointer;">
             ${_esc(demand.status || 'Sem status')}
           </span>
-          ${pc ? `<span class="dd-priority-badge" style="background:${pc.bg};color:${pc.color};">
+          <span class="dd-priority-badge dd-editable" data-edit="prioridade" style="${pc ? `background:${pc.bg};color:${pc.color};` : 'background:rgba(107,114,128,0.10);color:#6b7280;'}cursor:pointer;">
             <i data-lucide="flag" style="width:11px;height:11px;"></i>
-            ${_esc(demand.prioridade)}
-          </span>` : ''}
+            ${_esc(demand.prioridade || 'Prioridade')}
+          </span>
         </div>
       </div>
 
       <!-- Fields -->
-      <div class="dd-fields">
-        <!-- Responsavel -->
-        <div class="dd-field">
-          <i data-lucide="user" class="dd-field-icon"></i>
-          <span class="dd-field-label">Responsavel</span>
-          <span class="dd-field-value">
-            ${demand.responsible
-              ? `<span style="display:inline-flex;align-items:center;gap:6px;">
-                  <span style="width:22px;height:22px;border-radius:50%;background:var(--accent,#E85102);color:#fff;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">${_initials(demand.responsible)}</span>
-                  ${_esc(demand.responsible)}
-                </span>`
-              : '<span class="dd-field-value--empty">Nao atribuido</span>'}
-          </span>
-        </div>
+      <div class="dd-fields" id="ddFields">
+        ${_renderField('user', 'Responsavel', demand.responsible, 'responsible', 'text', demand.responsible
+          ? `<span style="display:inline-flex;align-items:center;gap:6px;">
+              <span style="width:22px;height:22px;border-radius:50%;background:var(--accent,#E85102);color:#fff;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">${_initials(demand.responsible)}</span>
+              ${_esc(demand.responsible)}
+            </span>`
+          : null
+        )}
 
-        <!-- Data de entrega -->
-        <div class="dd-field">
-          <i data-lucide="calendar" class="dd-field-icon"></i>
-          <span class="dd-field-label">Data de entrega</span>
-          <span class="dd-field-value">
-            ${demand.due_date
-              ? `<span style="${late ? 'color:#ef4444;font-weight:500;' : ''}">${_fmtDate(demand.due_date)}${demand.due_date_end ? ' → ' + _fmtDate(demand.due_date_end) : ''}</span>`
-              : '<span class="dd-field-value--empty">Sem data</span>'}
-          </span>
-        </div>
+        ${_renderField('calendar', 'Data de entrega', demand.due_date, 'due_date', 'date',
+          demand.due_date
+            ? `<span style="${late ? 'color:#ef4444;font-weight:500;' : ''}">${_fmtDate(demand.due_date)}${demand.due_date_end ? ' &rarr; ' + _fmtDate(demand.due_date_end) : ''}</span>`
+            : null
+        )}
 
-        <!-- Tipo de Midia -->
-        <div class="dd-field">
-          <i data-lucide="film" class="dd-field-icon"></i>
-          <span class="dd-field-label">Tipo de midia</span>
-          <span class="dd-field-value">
-            ${_renderTipoMidia(demand.tipo_midia)}
-          </span>
-        </div>
+        ${_renderField('film', 'Tipo de midia', demand.tipo_midia, 'tipo_midia', 'text',
+          _renderTipoMidiaHtml(demand.tipo_midia)
+        )}
 
-        <!-- Formalizacao -->
-        <div class="dd-field">
-          <i data-lucide="file-check" class="dd-field-icon"></i>
-          <span class="dd-field-label">Formalizacao</span>
-          <span class="dd-field-value">
-            ${demand.formalizacao
-              ? _esc(demand.formalizacao)
-              : '<span class="dd-field-value--empty">-</span>'}
-          </span>
-        </div>
+        ${_renderField('file-check', 'Formalizacao', demand.formalizacao, 'formalizacao', 'text')}
 
-        <!-- Milestones -->
-        <div class="dd-field">
-          <i data-lucide="milestone" class="dd-field-icon"></i>
-          <span class="dd-field-label">Milestones</span>
-          <span class="dd-field-value">
-            ${demand.milestones
-              ? _esc(demand.milestones)
-              : '<span class="dd-field-value--empty">-</span>'}
-          </span>
-        </div>
+        ${_renderField('milestone', 'Milestones', demand.milestones, 'milestones', 'text')}
 
-        <!-- Projeto vinculado -->
+        <!-- Custom properties -->
+        ${_customProps.map(cp => _renderField(cp.icon || 'tag', cp.label, demand[cp.key], cp.key, cp.type || 'text')).join('')}
+
+        <!-- Linked project (read-only) -->
         ${project ? `
         <div class="dd-field" style="align-items:flex-start;">
           <i data-lucide="folder" class="dd-field-icon" style="margin-top:10px;"></i>
           <span class="dd-field-label" style="margin-top:8px;">Projeto vinculado</span>
           <span class="dd-field-value">
-            <div class="dd-linked-project" onclick="TBO_DEMAND_DRAWER.close();TBO_ROUTER.navigate('projeto/${project.id}');">
+            <div class="dd-linked-project" onclick="TBO_DEMAND_DRAWER.close();if(typeof TBO_ROUTER!=='undefined')TBO_ROUTER.navigate('projeto/${project.id}');">
               <span class="dd-linked-project-name">${_esc(project.name)}</span>
               <div class="dd-linked-project-meta">
                 ${stage ? `<span class="dd-linked-project-stage">${_esc(stage)}</span>` : ''}
@@ -248,17 +362,21 @@ const TBO_DEMAND_DRAWER = (() => {
           </span>
         </div>
         ` : ''}
+
+        <!-- Add property button -->
+        <div class="dd-add-property" id="ddAddProperty">
+          <i data-lucide="plus" style="width:13px;height:13px;"></i>
+          Adicionar propriedade
+        </div>
       </div>
 
-      <!-- Description -->
+      <!-- Description (editable) -->
       <div class="dd-section">
         <div class="dd-section-header">
           <i data-lucide="align-left"></i>
           Descricao
         </div>
-        ${demand.info
-          ? `<div class="dd-description-text">${_esc(demand.info)}</div>`
-          : `<div class="dd-description-empty">Sem descricao adicionada.</div>`}
+        <div class="dd-description-text dd-editable" data-edit="info">${demand.info ? _esc(demand.info) : '<span class="dd-description-empty">Clique para adicionar descricao...</span>'}</div>
       </div>
 
       <!-- Subtasks -->
@@ -268,7 +386,11 @@ const TBO_DEMAND_DRAWER = (() => {
           Subtarefas
           ${subtasks.length > 0 ? `<span class="dd-section-header-count">${subtasks.filter(s => s.done).length}/${subtasks.length}</span>` : ''}
         </div>
-        ${subtasks.length > 0 ? _renderSubtasks(subtasks) : '<div class="dd-description-empty">Nenhuma subtarefa.</div>'}
+        ${subtasks.length > 0 ? _renderSubtasks(subtasks) : ''}
+        <div class="dd-add-subtask" id="ddAddSubtask">
+          <i data-lucide="plus" style="width:13px;height:13px;"></i>
+          Adicionar subtarefa
+        </div>
       </div>
 
       <!-- Attachments -->
@@ -308,9 +430,9 @@ const TBO_DEMAND_DRAWER = (() => {
           ${project && project.owner_name && project.owner_name !== demand.responsible
             ? `<div class="dd-collaborator" title="${_esc(project.owner_name)}" style="background:#8b5cf6;">${_initials(project.owner_name)}</div>`
             : ''}
-          ${!demand.responsible && !(project && project.owner_name)
-            ? '<div class="dd-collaborators-empty">Nenhum colaborador.</div>'
-            : ''}
+          <div class="dd-add-collaborator" title="Adicionar colaborador">
+            <i data-lucide="plus"></i>
+          </div>
         </div>
       </div>
 
@@ -326,21 +448,158 @@ const TBO_DEMAND_DRAWER = (() => {
     `;
   }
 
+  function _renderField(icon, label, value, key, type, customHtml) {
+    const displayEmpty = '<span class="dd-field-value--empty">Adicionar...</span>';
+    const displayValue = customHtml || (value ? _esc(String(value)) : null);
+
+    return `
+      <div class="dd-field">
+        <i data-lucide="${_esc(icon)}" class="dd-field-icon"></i>
+        <span class="dd-field-label">${_esc(label)}</span>
+        <span class="dd-field-value dd-editable" data-edit="${_esc(key)}" data-type="${_esc(type)}">
+          ${displayValue || displayEmpty}
+        </span>
+      </div>
+    `;
+  }
+
+  // ── Bind events on body ──────────────────────────
+
+  function _bindBodyEvents() {
+    if (!_panel || !_demand) return;
+    const body = _panel.querySelector('#ddBody');
+    if (!body) return;
+
+    // Title edit
+    const titleEl = body.querySelector('.dd-title[data-edit="title"]');
+    if (titleEl) {
+      _makeEditable(titleEl, { key: 'title', type: 'text', placeholder: 'Titulo da demanda' });
+    }
+
+    // Status select
+    const statusEl = body.querySelector('[data-edit="status"]');
+    if (statusEl) {
+      _makeEditable(statusEl, { key: 'status', type: 'select', options: STATUS_OPTIONS });
+    }
+
+    // Priority select
+    const prioEl = body.querySelector('[data-edit="prioridade"]');
+    if (prioEl) {
+      _makeEditable(prioEl, { key: 'prioridade', type: 'select', options: PRIORITY_OPTIONS });
+    }
+
+    // Field edits
+    body.querySelectorAll('.dd-field-value.dd-editable[data-edit]').forEach(el => {
+      const key = el.dataset.edit;
+      const type = el.dataset.type || 'text';
+      if (key === 'status' || key === 'prioridade') return; // already bound above
+
+      if (type === 'date') {
+        _makeEditable(el, { key, type: 'date' });
+      } else {
+        _makeEditable(el, { key, type: 'text', placeholder: 'Adicionar...' });
+      }
+    });
+
+    // Description edit
+    const descEl = body.querySelector('.dd-description-text[data-edit="info"]');
+    if (descEl) {
+      _makeEditable(descEl, { key: 'info', type: 'text', multiline: true, placeholder: 'Adicionar descricao...' });
+    }
+
+    // Add property button
+    const addPropBtn = body.querySelector('#ddAddProperty');
+    if (addPropBtn) {
+      addPropBtn.addEventListener('click', _showAddPropertyModal);
+    }
+
+    // Add subtask
+    const addSubBtn = body.querySelector('#ddAddSubtask');
+    if (addSubBtn) {
+      addSubBtn.addEventListener('click', _addSubtask);
+    }
+
+    // Subtask checkboxes
+    body.querySelectorAll('.dd-subtask-check').forEach((chk, i) => {
+      chk.addEventListener('click', () => _toggleSubtask(i));
+    });
+
+    // Comment input auto-grow
+    const commentInput = body.querySelector('#ddCommentInput');
+    if (commentInput) {
+      commentInput.addEventListener('input', () => {
+        commentInput.style.height = 'auto';
+        commentInput.style.height = Math.min(commentInput.scrollHeight, 100) + 'px';
+      });
+    }
+  }
+
+  // ── Add property modal ───────────────────────────
+
+  function _showAddPropertyModal() {
+    _closeDropdowns();
+    const container = _panel.querySelector('#ddAddProperty');
+    if (!container) return;
+
+    // Check if already showing
+    if (container.querySelector('.dd-add-prop-form')) return;
+
+    const form = document.createElement('div');
+    form.className = 'dd-add-prop-form';
+    form.innerHTML = `
+      <input class="dd-edit-input" type="text" placeholder="Nome da propriedade" id="ddNewPropName" style="margin-bottom:6px;">
+      <select class="dd-edit-input" id="ddNewPropType" style="margin-bottom:6px;">
+        <option value="text">Texto</option>
+        <option value="date">Data</option>
+        <option value="select">Selecao</option>
+      </select>
+      <div style="display:flex;gap:6px;">
+        <button class="dd-add-prop-btn dd-add-prop-confirm" id="ddNewPropOk">Criar</button>
+        <button class="dd-add-prop-btn dd-add-prop-cancel" id="ddNewPropCancel">Cancelar</button>
+      </div>
+    `;
+
+    container.after(form);
+
+    const nameInput = form.querySelector('#ddNewPropName');
+    nameInput.focus();
+
+    form.querySelector('#ddNewPropOk').addEventListener('click', () => {
+      const name = nameInput.value.trim();
+      const type = form.querySelector('#ddNewPropType').value;
+      if (!name) return;
+      const key = '_custom_' + name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      _customProps.push({ key, label: name, icon: 'tag', type });
+      _demand[key] = null;
+      form.remove();
+      _refreshBody();
+    });
+
+    form.querySelector('#ddNewPropCancel').addEventListener('click', () => form.remove());
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') form.querySelector('#ddNewPropOk').click();
+      if (e.key === 'Escape') form.querySelector('#ddNewPropCancel').click();
+    });
+  }
+
   // ── Subtask helpers ──────────────────────────────
 
   function _parseSubtasks(demand) {
-    // If there's a subitem field, it might reference sub-items
-    // For now, we'll show it as text; real subtasks would come from a relation
     if (!demand.subitem && !demand.item_principal) return [];
     const items = [];
     if (demand.subitem) {
-      // subitem can be a comma-separated list or a single item
       const parts = demand.subitem.split(',').map(s => s.trim()).filter(Boolean);
       parts.forEach(p => {
-        items.push({ title: p, done: false });
+        const done = p.startsWith('[x]') || p.startsWith('[X]');
+        const title = done ? p.slice(3).trim() : p.replace(/^\[\s?\]\s*/, '');
+        items.push({ title, done });
       });
     }
     return items;
+  }
+
+  function _serializeSubtasks(subtasks) {
+    return subtasks.map(s => (s.done ? '[x] ' : '') + s.title).join(', ');
   }
 
   function _renderSubtasks(subtasks) {
@@ -354,8 +613,8 @@ const TBO_DEMAND_DRAWER = (() => {
         </div>
         <span class="dd-subtasks-bar-label">${pct}%</span>
       </div>
-      ${subtasks.map(s => `
-        <div class="dd-subtask-item">
+      ${subtasks.map((s, i) => `
+        <div class="dd-subtask-item" data-subtask-idx="${i}">
           <div class="dd-subtask-check ${s.done ? 'dd-subtask-check--done' : ''}">
             ${s.done ? '<i data-lucide="check" style="width:10px;height:10px;"></i>' : ''}
           </div>
@@ -365,15 +624,54 @@ const TBO_DEMAND_DRAWER = (() => {
     `;
   }
 
+  function _toggleSubtask(idx) {
+    const subtasks = _parseSubtasks(_demand);
+    if (!subtasks[idx]) return;
+    subtasks[idx].done = !subtasks[idx].done;
+    _demand.subitem = _serializeSubtasks(subtasks);
+    _scheduleSave({ subitem: _demand.subitem });
+    _refreshBody();
+  }
+
+  function _addSubtask() {
+    const container = _panel.querySelector('#ddAddSubtask');
+    if (!container || container.querySelector('.dd-edit-input')) return;
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'dd-edit-input';
+    input.placeholder = 'Nova subtarefa...';
+    input.style.marginTop = '6px';
+    container.before(input);
+    input.focus();
+
+    const finish = () => {
+      const val = input.value.trim();
+      if (val) {
+        const current = _demand.subitem ? _demand.subitem + ', ' + val : val;
+        _demand.subitem = current;
+        _scheduleSave({ subitem: current });
+      }
+      input.remove();
+      _refreshBody();
+    };
+
+    input.addEventListener('blur', finish);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+      if (e.key === 'Escape') { input.value = ''; input.blur(); }
+    });
+  }
+
   // ── Misc helpers ─────────────────────────────────
 
-  function _renderTipoMidia(tipoMidia) {
-    if (!tipoMidia) return '<span class="dd-field-value--empty">-</span>';
+  function _renderTipoMidiaHtml(tipoMidia) {
+    if (!tipoMidia) return null;
     let arr = tipoMidia;
     if (typeof tipoMidia === 'string') {
       try { arr = JSON.parse(tipoMidia); } catch { arr = [tipoMidia]; }
     }
-    if (!Array.isArray(arr) || arr.length === 0) return '<span class="dd-field-value--empty">-</span>';
+    if (!Array.isArray(arr) || arr.length === 0) return null;
     return arr.map(t => `<span style="display:inline-block;font-size:11px;font-weight:500;padding:2px 7px;border-radius:4px;background:rgba(139,92,246,0.1);color:#7c3aed;margin-right:4px;">${_esc(t)}</span>`).join('');
   }
 
@@ -403,12 +701,14 @@ const TBO_DEMAND_DRAWER = (() => {
   function open(demand, project) {
     if (!demand) return;
     _createDOM();
-    _demand = demand;
+    _demand = { ...demand };
     _project = project || null;
 
-    // Body content
     const body = _panel.querySelector('#ddBody');
-    if (body) body.innerHTML = _renderBody(demand, project);
+    if (body) {
+      body.innerHTML = _renderBody(_demand, _project);
+      _bindBodyEvents();
+    }
 
     // Notion button
     const notionBtn = _panel.querySelector('#ddNotionBtn');
@@ -421,16 +721,6 @@ const TBO_DEMAND_DRAWER = (() => {
       }
     }
 
-    // Auto-grow comment textarea
-    const commentInput = _panel.querySelector('#ddCommentInput');
-    if (commentInput) {
-      commentInput.addEventListener('input', () => {
-        commentInput.style.height = 'auto';
-        commentInput.style.height = Math.min(commentInput.scrollHeight, 100) + 'px';
-      });
-    }
-
-    // Open animation
     requestAnimationFrame(() => {
       _overlay.classList.add('dd-overlay--visible');
       _panel.classList.add('dd-panel--open');
@@ -442,6 +732,7 @@ const TBO_DEMAND_DRAWER = (() => {
 
   function close() {
     if (!_panel || !_isOpen) return;
+    clearTimeout(_saveTimer);
     _panel.classList.remove('dd-panel--open');
     _overlay.classList.remove('dd-overlay--visible');
     _isOpen = false;
@@ -449,9 +740,14 @@ const TBO_DEMAND_DRAWER = (() => {
     _project = null;
   }
 
+  function refresh() {
+    if (_isOpen && _demand) _refreshBody();
+  }
+
   return {
     open,
     close,
+    refresh,
     get isOpen() { return _isOpen; },
     get currentDemand() { return _demand ? { ..._demand } : null; }
   };

@@ -279,7 +279,8 @@
   padding: 0 8px;
 }
 
-.pd-th-name        { flex: 1; min-width: 0; padding-left: 40px; }
+.pd-th-drag         { width: 20px; flex-shrink: 0; }
+.pd-th-name        { flex: 1; min-width: 0; padding-left: 32px; }
 .pd-th-responsible  { width: 160px; flex-shrink: 0; }
 .pd-th-date         { width: 100px; flex-shrink: 0; }
 .pd-th-priority     { width: 100px; flex-shrink: 0; }
@@ -364,6 +365,13 @@
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.pd-td-drag {
+  width: 20px;
+  flex-shrink: 0;
+  padding: 0 !important;
+  justify-content: center;
 }
 
 .pd-td-check {
@@ -538,6 +546,10 @@
   .pd-th-priority,
   .pd-td-priority {
     display: none;
+  }
+  .pd-th-drag,
+  .pd-td-drag {
+    width: 14px;
   }
   .pd-th-date,
   .pd-td-date {

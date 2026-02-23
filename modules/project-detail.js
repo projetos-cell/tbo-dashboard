@@ -13,6 +13,7 @@ const TBO_PROJECT_DETAIL = {
   _secCtxMenu: null,    // section context menu DOM element
   _secCtxKey: null,     // section key for active section menu
   _hideEmptyGroups: false, // persistent toggle for hiding empty groups
+  _sectionOverrides: {}, // manual section assignments { demandId: sectionKey }
   _dragEl: null,        // element being dragged
   _dragType: null,      // 'task', 'section', or 'column'
   _dragColKey: null,    // column key being dragged
@@ -300,7 +301,8 @@ const TBO_PROJECT_DETAIL = {
   _renderTableHeader() {
     let html = '<div class="pd-table-header">';
 
-    // Fixed columns: drag (no label)
+    // Fixed columns: check (no label) then drag (no label)
+    html += '<div class="pd-th pd-th-check" data-col="check"></div>';
     html += '<div class="pd-th pd-th-drag" data-col="drag"></div>';
 
     // Fixed column: name (with label + chevron, NO drag handle)
@@ -348,6 +350,17 @@ const TBO_PROJECT_DETAIL = {
     const assigned = new Set();
     let html = '';
 
+    // First pass: assign demands with _sectionOverrides to their overridden section
+    const overriddenToSection = {}; // sectionKey -> [demand, ...]
+    for (const d of demands) {
+      const overrideKey = this._sectionOverrides[d.id];
+      if (overrideKey) {
+        if (!overriddenToSection[overrideKey]) overriddenToSection[overrideKey] = [];
+        overriddenToSection[overrideKey].push(d);
+        assigned.add(d.id);
+      }
+    }
+
     for (const section of this._SECTIONS) {
       const sectionDemands = demands.filter(d => {
         if (assigned.has(d.id)) return false;
@@ -355,13 +368,17 @@ const TBO_PROJECT_DETAIL = {
         if (match) assigned.add(d.id);
         return match;
       });
-      html += this._renderSection(section, sectionDemands);
+      // Merge with overridden demands for this section
+      const overrides = overriddenToSection[section.key] || [];
+      const allDemands = [...overrides, ...sectionDemands];
+      html += this._renderSection(section, allDemands);
     }
 
+    // "Outros" always renders as a valid drop target
     const remaining = demands.filter(d => !assigned.has(d.id));
-    if (remaining.length > 0) {
-      html += this._renderSection({ key: 'outros', label: 'Outros', icon: 'circle', statuses: [] }, remaining);
-    }
+    const outrosOverrides = overriddenToSection['outros'] || [];
+    const outrosDemands = [...outrosOverrides, ...remaining];
+    html += this._renderSection({ key: 'outros', label: 'Outros', icon: 'circle', statuses: [] }, outrosDemands);
 
     if (demands.length === 0) {
       html += `<div class="pd-empty-tasks"><i data-lucide="clipboard" style="width:24px;height:24px;opacity:0.3;"></i><p>Nenhuma tarefa registrada para este projeto.</p></div>`;
@@ -420,13 +437,13 @@ const TBO_PROJECT_DETAIL = {
 
     return `
       <div class="pd-task-row ${isDone ? 'pd-task-done' : ''}" data-demand-id="${d.id}">
-        <div class="pd-td pd-td-drag" data-col="drag">
-          <div class="pd-drag-handle pd-task-drag" title="Arrastar tarefa"><i data-lucide="grip-vertical"></i></div>
-        </div>
         <div class="pd-td pd-td-check" data-col="check">
-          <span class="pd-check ${isDone ? 'pd-checked' : ''}" style="border-color:${statusColors.color};${isDone ? `background:${statusColors.color};` : ''}">
+          <span class="pd-check ${isDone ? 'pd-checked' : ''}" data-demand-check="${d.id}" style="border-color:${statusColors.color};${isDone ? `background:${statusColors.color};` : ''}">
             ${isDone ? '<i data-lucide="check" style="width:10px;height:10px;color:#fff;"></i>' : ''}
           </span>
+        </div>
+        <div class="pd-td pd-td-drag" data-col="drag">
+          <div class="pd-drag-handle pd-task-drag" title="Arrastar tarefa"><i data-lucide="grip-vertical"></i></div>
         </div>
         <div class="pd-td pd-td-name" data-col="name" style="order:-1;">
           <span class="pd-task-title ${isDone ? 'pd-task-strikethrough' : ''}">${this._esc(d.title)}</span>
@@ -558,6 +575,29 @@ const TBO_PROJECT_DETAIL = {
         e.preventDefault();
         const sectionKey = btn.dataset.sectionMenu;
         if (sectionKey) self._showSectionContextMenu(sectionKey, btn);
+      });
+    });
+
+    // Checkbox click → toggle task completion
+    document.querySelectorAll('.pd-check[data-demand-check]').forEach(check => {
+      check.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const demandId = check.dataset.demandCheck;
+        const demand = self._demands.find(d => d.id === demandId);
+        if (!demand) return;
+        const isDone = self._isDone(demand);
+        const newStatus = isDone ? 'A fazer' : 'Concluido';
+        const newFeito = !isDone;
+        try {
+          const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+          if (client && !String(demandId).startsWith('temp_')) {
+            await client.from('demands').update({ status: newStatus, feito: newFeito }).eq('id', demandId);
+          }
+          demand.status = newStatus;
+          demand.feito = newFeito;
+          self._reRenderTasks();
+        } catch (err) { console.error('[PD] checkbox toggle error:', err); }
       });
     });
 
@@ -741,10 +781,10 @@ const TBO_PROJECT_DETAIL = {
           const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
           if (client) {
             await client.from('demands').update({ status: newStatus, feito: newFeito }).eq('id', demandId);
-            demand.status = newStatus;
-            demand.feito = newFeito;
-            self._reRenderTasks();
           }
+          demand.status = newStatus;
+          demand.feito = newFeito;
+          self._reRenderTasks();
         } catch (e) { console.error('[PD] mark-done error:', e); }
         break;
       }
@@ -1098,6 +1138,7 @@ const TBO_PROJECT_DETAIL = {
 
       // Determine status for the new task
       const defaultStatus = (section && section.statuses.length > 0) ? section.statuses[0] : 'A fazer';
+      const needsSectionOverride = !section || section.statuses.length === 0;
 
       const newDemand = {
         project_id: self._project?.id || null,
@@ -1113,19 +1154,32 @@ const TBO_PROJECT_DETAIL = {
           const { data, error } = await client.from('demands').insert(newDemand).select().single();
           if (!error && data) {
             self._demands.unshift(data);
+            // For sections with no status mapping, store override to keep task in this section
+            if (needsSectionOverride) {
+              self._sectionOverrides[data.id] = sectionKey;
+            }
           } else {
             // Fallback: add locally with temp ID
             newDemand.id = 'temp_' + Date.now();
             self._demands.unshift(newDemand);
+            if (needsSectionOverride) {
+              self._sectionOverrides[newDemand.id] = sectionKey;
+            }
           }
         } else {
           newDemand.id = 'temp_' + Date.now();
           self._demands.unshift(newDemand);
+          if (needsSectionOverride) {
+            self._sectionOverrides[newDemand.id] = sectionKey;
+          }
         }
       } catch (e) {
         console.error('[PD] inline add-task error:', e);
         newDemand.id = 'temp_' + Date.now();
         self._demands.unshift(newDemand);
+        if (needsSectionOverride) {
+          self._sectionOverrides[newDemand.id] = sectionKey;
+        }
       }
 
       self._reRenderTasks();
@@ -1658,6 +1712,7 @@ const TBO_PROJECT_DETAIL = {
       row.addEventListener('drop', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        document.querySelectorAll('.pd-section.pd-drop-target').forEach(s => s.classList.remove('pd-drop-target'));
         if (self._dragType !== 'task' || !self._dragEl || self._dragEl === row) {
           self._clearDropIndicators();
           return;
@@ -1672,6 +1727,8 @@ const TBO_PROJECT_DETAIL = {
         }
         self._clearDropIndicators();
         self._syncDemandOrderFromDOM();
+        // Re-render to update statuses and section counts
+        self._reRenderTasks();
       });
     });
 
@@ -1747,15 +1804,31 @@ const TBO_PROJECT_DETAIL = {
         if (self._dragType !== 'task') return;
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
+        // Highlight the section as drop target
+        const sectionEl = body.closest('.pd-section');
+        if (sectionEl && !sectionEl.classList.contains('pd-drop-target')) {
+          document.querySelectorAll('.pd-section.pd-drop-target').forEach(s => s.classList.remove('pd-drop-target'));
+          sectionEl.classList.add('pd-drop-target');
+        }
+      });
+
+      body.addEventListener('dragleave', (e) => {
+        const sectionEl = body.closest('.pd-section');
+        if (sectionEl && !body.contains(e.relatedTarget)) {
+          sectionEl.classList.remove('pd-drop-target');
+        }
       });
 
       body.addEventListener('drop', (e) => {
         if (self._dragType !== 'task' || !self._dragEl) return;
         e.preventDefault();
+        document.querySelectorAll('.pd-section.pd-drop-target').forEach(s => s.classList.remove('pd-drop-target'));
         if (!e.target.closest('.pd-task-row')) {
           body.appendChild(self._dragEl);
           self._clearDropIndicators();
           self._syncDemandOrderFromDOM();
+          // Re-render to update statuses and section counts
+          self._reRenderTasks();
         }
       });
     });
@@ -1907,16 +1980,57 @@ const TBO_PROJECT_DETAIL = {
   },
 
   _syncDemandOrderFromDOM() {
+    const self = this;
     const rows = document.querySelectorAll('.pd-task-row[data-demand-id]');
     const newOrder = [];
+    const statusUpdates = []; // { id, status } for DB persistence
+
     rows.forEach(row => {
       const d = this._demands.find(dd => dd.id === row.dataset.demandId);
-      if (d) newOrder.push(d);
+      if (!d) return;
+      newOrder.push(d);
+
+      // Determine which section this row is now in
+      const sectionEl = row.closest('.pd-section');
+      if (!sectionEl) return;
+      const sectionKey = sectionEl.dataset.section;
+      const section = this._SECTIONS.find(s => s.key === sectionKey);
+
+      if (section && section.statuses.length > 0) {
+        // Check if the demand's current status already matches this section
+        const alreadyInSection = section.statuses.some(s => (d.status || '').toLowerCase() === s.toLowerCase());
+        if (!alreadyInSection) {
+          // Move demand to this section's first status
+          const newStatus = section.statuses[0];
+          d.status = newStatus;
+          // Remove any section override since it now belongs by status
+          delete self._sectionOverrides[d.id];
+          if (!String(d.id).startsWith('temp_')) {
+            statusUpdates.push({ id: d.id, status: newStatus });
+          }
+        }
+      } else if (sectionKey === 'outros' || (section && section.statuses.length === 0)) {
+        // Dropped into "Outros" or a custom section with no statuses → set override
+        self._sectionOverrides[d.id] = sectionKey;
+      }
     });
+
     this._demands.forEach(d => {
       if (!newOrder.find(nd => nd.id === d.id)) newOrder.push(d);
     });
     this._demands = newOrder;
+
+    // Persist status changes to DB
+    if (statusUpdates.length > 0) {
+      const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+      if (client) {
+        statusUpdates.forEach(async (u) => {
+          try {
+            await client.from('demands').update({ status: u.status }).eq('id', u.id);
+          } catch (e) { console.error('[PD] drag status update error:', e); }
+        });
+      }
+    }
   },
 
   // ═══════════════════════════════════════════════════
@@ -2032,6 +2146,7 @@ const TBO_PROJECT_DETAIL = {
     this._dragType = null;
     this._dragColKey = null;
     this._columnOrder = null;
+    this._sectionOverrides = {};
     // Reset hidden state to defaults
     this._COLUMNS.forEach(c => c.hidden = false);
   },

@@ -10,6 +10,9 @@ const TBO_PROJECT_DETAIL = {
   _ctxDemandId: null,   // demand id for active context menu
   _colCtxMenu: null,    // column context menu DOM element
   _colCtxKey: null,     // column key for active column menu
+  _secCtxMenu: null,    // section context menu DOM element
+  _secCtxKey: null,     // section key for active section menu
+  _hideEmptyGroups: false, // persistent toggle for hiding empty groups
   _dragEl: null,        // element being dragged
   _dragType: null,      // 'task', 'section', or 'column'
   _dragColKey: null,    // column key being dragged
@@ -172,6 +175,12 @@ const TBO_PROJECT_DETAIL = {
 
     // Load column order from localStorage before rendering
     this._loadColumnOrder();
+
+    // Load hide-empty-groups preference
+    try {
+      const heg = localStorage.getItem('tbo_pd_hide_empty_groups');
+      if (heg !== null) this._hideEmptyGroups = JSON.parse(heg);
+    } catch (_) {}
 
     let tid = null;
     try {
@@ -362,15 +371,25 @@ const TBO_PROJECT_DETAIL = {
   },
 
   _renderSection(section, demands) {
+    if (this._hideEmptyGroups && demands.length === 0) return '';
     return `
       <div class="pd-section" data-section="${section.key}">
-        <button class="pd-section-toggle" data-toggle="${section.key}">
+        <div class="pd-section-header">
           <div class="pd-drag-handle pd-section-drag" title="Arrastar secao"><i data-lucide="grip-vertical"></i></div>
-          <i data-lucide="chevron-down" class="pd-section-chevron" style="width:14px;height:14px;"></i>
-          <i data-lucide="${section.icon}" style="width:14px;height:14px;opacity:0.6;"></i>
-          <span class="pd-section-label">${section.label}</span>
+          <button class="pd-section-toggle" data-toggle="${section.key}">
+            <i data-lucide="chevron-down" class="pd-section-chevron" style="width:14px;height:14px;"></i>
+          </button>
+          <span class="pd-section-label" data-section-label="${section.key}" title="Clique duplo para renomear">${section.label}</span>
           <span class="pd-section-count">${demands.length}</span>
-        </button>
+          <div class="pd-section-actions">
+            <button class="pd-section-add-task-btn" data-section-add="${section.key}" title="Adicionar tarefa">
+              <i data-lucide="plus" style="width:14px;height:14px;"></i>
+            </button>
+            <button class="pd-section-menu-btn" data-section-menu="${section.key}" title="Opcoes da secao">
+              <i data-lucide="more-horizontal" style="width:16px;height:16px;"></i>
+            </button>
+          </div>
+        </div>
         <div class="pd-section-body">
           ${demands.map(d => this._renderTaskRow(d)).join('')}
         </div>
@@ -475,6 +494,9 @@ const TBO_PROJECT_DETAIL = {
       if (self._colCtxMenu && !self._colCtxMenu.contains(e.target)) {
         self._closeColContextMenu();
       }
+      if (self._secCtxMenu && !self._secCtxMenu.contains(e.target)) {
+        self._closeSectionContextMenu();
+      }
     });
 
     // Close context menus on Escape
@@ -482,6 +504,7 @@ const TBO_PROJECT_DETAIL = {
       if (e.key === 'Escape') {
         self._closeContextMenu();
         self._closeColContextMenu();
+        self._closeSectionContextMenu();
       }
     });
 
@@ -489,6 +512,7 @@ const TBO_PROJECT_DETAIL = {
     document.addEventListener('scroll', () => {
       self._closeContextMenu();
       self._closeColContextMenu();
+      self._closeSectionContextMenu();
     }, true);
   },
 
@@ -496,10 +520,10 @@ const TBO_PROJECT_DETAIL = {
   _bindLocalEvents() {
     const self = this;
 
-    // Section toggles
+    // Section chevron toggles (expand / collapse)
     document.querySelectorAll('.pd-section-toggle').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        if (e.target.closest('.pd-drag-handle')) return;
+        e.stopPropagation();
         const section = btn.closest('.pd-section');
         if (!section) return;
         section.classList.toggle('pd-section-collapsed');
@@ -508,10 +532,39 @@ const TBO_PROJECT_DETAIL = {
       });
     });
 
+    // Section label double-click → inline rename
+    document.querySelectorAll('.pd-section-label[data-section-label]').forEach(label => {
+      label.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        const sectionKey = label.dataset.sectionLabel;
+        if (sectionKey) self._renameSectionInline(sectionKey);
+      });
+    });
+
+    // Section "+" add-task buttons
+    document.querySelectorAll('.pd-section-add-task-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const sectionKey = btn.dataset.sectionAdd;
+        if (sectionKey) self._showInlineTaskInput(sectionKey);
+      });
+    });
+
+    // Section "..." menu buttons
+    document.querySelectorAll('.pd-section-menu-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const sectionKey = btn.dataset.sectionMenu;
+        if (sectionKey) self._showSectionContextMenu(sectionKey, btn);
+      });
+    });
+
     // Task row click → open demand drawer
     document.querySelectorAll('.pd-task-row[data-demand-id]').forEach(row => {
       row.addEventListener('click', (e) => {
-        if (e.target.closest('a') || e.target.closest('.pd-check') || e.target.closest('.pd-drag-handle')) return;
+        if (e.target.closest('a') || e.target.closest('.pd-check') || e.target.closest('.pd-drag-handle') || e.target.closest('.pd-inline-task-input')) return;
         const demandId = row.dataset.demandId;
         const demand = self._demands.find(d => d.id === demandId);
         if (demand && typeof TBO_DEMAND_DRAWER !== 'undefined') {
@@ -763,6 +816,568 @@ const TBO_PROJECT_DETAIL = {
         break;
       }
     }
+  },
+
+  // ═══════════════════════════════════════════════════
+  // SECTION CONTEXT MENU ("..." button)
+  // ═══════════════════════════════════════════════════
+
+  _showSectionContextMenu(sectionKey, anchorEl) {
+    this._closeSectionContextMenu();
+    this._closeContextMenu();
+    this._closeColContextMenu();
+    this._secCtxKey = sectionKey;
+    const self = this;
+    const section = this._SECTIONS.find(s => s.key === sectionKey);
+    if (!section && sectionKey !== 'outros') return;
+
+    const sectionEl = document.querySelector(`.pd-section[data-section="${sectionKey}"]`);
+    const isCollapsed = sectionEl ? sectionEl.classList.contains('pd-section-collapsed') : false;
+
+    // Check if any section has subtasks (for enabling/disabling subtask toggle)
+    const hasSubtasks = false; // demands don't have subtask hierarchy yet
+
+    const menu = document.createElement('div');
+    menu.className = 'pd-sec-context-menu';
+    menu.innerHTML = `
+      <div class="pd-sec-ctx-item" data-action="add-rule">
+        <i data-lucide="sparkles"></i> <span>Adicionar regra a secao</span>
+      </div>
+      <div class="pd-sec-ctx-separator"></div>
+      <div class="pd-sec-ctx-item" data-action="rename">
+        <i data-lucide="pencil"></i> <span>Renomear secao</span>
+      </div>
+      <div class="pd-sec-ctx-item pd-sec-ctx-has-sub" data-action="add-section">
+        <i data-lucide="plus"></i> <span>Adicionar secao</span>
+        <i data-lucide="chevron-right" class="pd-sec-ctx-arrow"></i>
+      </div>
+      <div class="pd-sec-ctx-item" data-action="duplicate">
+        <i data-lucide="copy"></i> <span>Duplicar secao</span>
+      </div>
+      <div class="pd-sec-ctx-separator"></div>
+      <div class="pd-sec-ctx-item ${hasSubtasks ? '' : 'pd-sec-ctx-item--disabled'}" data-action="toggle-subtasks">
+        <i data-lucide="list-tree"></i> <span>${isCollapsed ? 'Expandir' : 'Recolher'} subtarefas</span>
+      </div>
+      <div class="pd-sec-ctx-item" data-action="toggle-all-groups">
+        <i data-lucide="rows-3"></i> <span>Expandir ou recolher grupos</span>
+      </div>
+      <div class="pd-sec-ctx-item" data-action="hide-empty">
+        <i data-lucide="${this._hideEmptyGroups ? 'eye' : 'eye-off'}"></i>
+        <span>Ocultar grupos vazios</span>
+        ${this._hideEmptyGroups ? '<span class="pd-sec-ctx-check"><i data-lucide="check" style="width:13px;height:13px;"></i></span>' : ''}
+      </div>
+      <div class="pd-sec-ctx-separator"></div>
+      <div class="pd-sec-ctx-item pd-sec-ctx-item--danger" data-action="delete">
+        <i data-lucide="trash-2"></i> <span>Excluir secao</span>
+      </div>
+    `;
+
+    // Build the "add section" submenu
+    const subMenu = document.createElement('div');
+    subMenu.className = 'pd-sec-submenu';
+    subMenu.innerHTML = `
+      <div class="pd-sec-ctx-item" data-action="add-section-above">
+        <i data-lucide="arrow-up"></i> <span>Acima</span>
+      </div>
+      <div class="pd-sec-ctx-item" data-action="add-section-below">
+        <i data-lucide="arrow-down"></i> <span>Abaixo</span>
+      </div>
+    `;
+    subMenu.style.display = 'none';
+    menu.appendChild(subMenu);
+
+    document.body.appendChild(menu);
+    if (typeof lucide !== 'undefined') lucide.createIcons({ root: menu });
+
+    // Position relative to anchor
+    const rect = anchorEl.getBoundingClientRect();
+    const mw = menu.offsetWidth;
+    const mh = menu.offsetHeight;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let left = rect.right - mw;
+    if (left < 8) left = rect.left;
+    if (left + mw > vw) left = Math.max(8, vw - mw - 8);
+    let top = rect.bottom + 4;
+    if (top + mh > vh) top = Math.max(8, rect.top - mh - 4);
+    menu.style.left = left + 'px';
+    menu.style.top = top + 'px';
+
+    this._secCtxMenu = menu;
+
+    // Submenu hover for "Adicionar secao"
+    const addSectionItem = menu.querySelector('[data-action="add-section"]');
+    if (addSectionItem) {
+      addSectionItem.addEventListener('mouseenter', () => {
+        const itemRect = addSectionItem.getBoundingClientRect();
+        const menuRect = menu.getBoundingClientRect();
+        // Position submenu to the right or left
+        let subLeft = menuRect.right + 2;
+        if (subLeft + 180 > vw) subLeft = menuRect.left - 182;
+        subMenu.style.left = (subLeft - menuRect.left) + 'px';
+        subMenu.style.top = (itemRect.top - menuRect.top) + 'px';
+        subMenu.style.display = 'block';
+      });
+      addSectionItem.addEventListener('mouseleave', (e) => {
+        // Don't hide if hovering submenu
+        setTimeout(() => {
+          if (!subMenu.matches(':hover') && !addSectionItem.matches(':hover')) {
+            subMenu.style.display = 'none';
+          }
+        }, 80);
+      });
+      subMenu.addEventListener('mouseleave', () => {
+        setTimeout(() => {
+          if (!subMenu.matches(':hover') && !addSectionItem.matches(':hover')) {
+            subMenu.style.display = 'none';
+          }
+        }, 80);
+      });
+    }
+
+    // Bind actions
+    menu.querySelectorAll('.pd-sec-ctx-item:not(.pd-sec-ctx-item--disabled)').forEach(item => {
+      item.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const action = item.dataset.action;
+        if (action && action !== 'add-section') {
+          self._closeSectionContextMenu();
+          self._handleSectionAction(action, sectionKey);
+        }
+      });
+    });
+
+    menu.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+    });
+  },
+
+  _closeSectionContextMenu() {
+    if (this._secCtxMenu) {
+      this._secCtxMenu.remove();
+      this._secCtxMenu = null;
+    }
+    this._secCtxKey = null;
+  },
+
+  _handleSectionAction(action, sectionKey) {
+    const self = this;
+    const section = this._SECTIONS.find(s => s.key === sectionKey) ||
+      (sectionKey === 'outros' ? { key: 'outros', label: 'Outros', icon: 'circle', statuses: [] } : null);
+    if (!section) return;
+
+    switch (action) {
+      case 'add-rule': {
+        // Placeholder — rules engine not yet implemented
+        console.log('[PD] Add rule to section:', sectionKey);
+        if (typeof TBO_TOAST !== 'undefined') {
+          TBO_TOAST.show('Funcionalidade de regras em breve.', 'info');
+        }
+        break;
+      }
+
+      case 'rename': {
+        this._renameSectionInline(sectionKey);
+        break;
+      }
+
+      case 'add-section-above': {
+        this._addSection(sectionKey, 'above');
+        break;
+      }
+
+      case 'add-section-below': {
+        this._addSection(sectionKey, 'below');
+        break;
+      }
+
+      case 'duplicate': {
+        this._duplicateSection(sectionKey);
+        break;
+      }
+
+      case 'toggle-subtasks': {
+        // Subtask hierarchy not yet present — toggle section collapse as fallback
+        const sectionEl = document.querySelector(`.pd-section[data-section="${sectionKey}"]`);
+        if (sectionEl) {
+          sectionEl.classList.toggle('pd-section-collapsed');
+          const chevron = sectionEl.querySelector('.pd-section-chevron');
+          if (chevron) chevron.style.transform = sectionEl.classList.contains('pd-section-collapsed') ? 'rotate(-90deg)' : '';
+        }
+        break;
+      }
+
+      case 'toggle-all-groups': {
+        const sections = document.querySelectorAll('.pd-section');
+        const allCollapsed = Array.from(sections).every(s => s.classList.contains('pd-section-collapsed'));
+        sections.forEach(s => {
+          if (allCollapsed) {
+            s.classList.remove('pd-section-collapsed');
+          } else {
+            s.classList.add('pd-section-collapsed');
+          }
+          const chevron = s.querySelector('.pd-section-chevron');
+          if (chevron) chevron.style.transform = allCollapsed ? '' : 'rotate(-90deg)';
+        });
+        break;
+      }
+
+      case 'hide-empty': {
+        this._hideEmptyGroups = !this._hideEmptyGroups;
+        try { localStorage.setItem('tbo_pd_hide_empty_groups', JSON.stringify(this._hideEmptyGroups)); } catch (_) {}
+        this._reRenderTasks();
+        break;
+      }
+
+      case 'delete': {
+        this._deleteSectionWithDialog(sectionKey);
+        break;
+      }
+    }
+  },
+
+  // ── Section: Inline task creation (+ button) ─────────
+  _showInlineTaskInput(sectionKey) {
+    const sectionEl = document.querySelector(`.pd-section[data-section="${sectionKey}"]`);
+    if (!sectionEl) return;
+
+    // Auto-expand if collapsed
+    if (sectionEl.classList.contains('pd-section-collapsed')) {
+      sectionEl.classList.remove('pd-section-collapsed');
+      const chevron = sectionEl.querySelector('.pd-section-chevron');
+      if (chevron) chevron.style.transform = '';
+    }
+
+    const body = sectionEl.querySelector('.pd-section-body');
+    if (!body) return;
+
+    // Don't duplicate — if there's already an inline input, focus it
+    const existing = body.querySelector('.pd-inline-task-row');
+    if (existing) {
+      const inp = existing.querySelector('.pd-inline-task-input');
+      if (inp) inp.focus();
+      return;
+    }
+
+    const self = this;
+    const section = this._SECTIONS.find(s => s.key === sectionKey);
+
+    // Build the inline row
+    const row = document.createElement('div');
+    row.className = 'pd-inline-task-row';
+    row.innerHTML = `
+      <div class="pd-inline-task-icon">
+        <i data-lucide="plus-circle" style="width:16px;height:16px;"></i>
+      </div>
+      <input type="text" class="pd-inline-task-input" placeholder="Adicionar tarefa..." autocomplete="off" />
+    `;
+
+    // Insert at TOP of section body
+    body.insertBefore(row, body.firstChild);
+    if (typeof lucide !== 'undefined') lucide.createIcons({ root: row });
+
+    const input = row.querySelector('.pd-inline-task-input');
+    input.focus();
+
+    let isCommitting = false;
+
+    const commit = async () => {
+      if (isCommitting) return;
+      const title = input.value.trim();
+      if (!title) {
+        cleanup();
+        return;
+      }
+      isCommitting = true;
+      input.disabled = true;
+      input.style.opacity = '0.5';
+
+      // Determine status for the new task
+      const defaultStatus = (section && section.statuses.length > 0) ? section.statuses[0] : 'A fazer';
+
+      const newDemand = {
+        project_id: self._project?.id || null,
+        tenant_id: self._project?.tenant_id || null,
+        title: title,
+        status: defaultStatus,
+        feito: false,
+      };
+
+      try {
+        const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+        if (client) {
+          const { data, error } = await client.from('demands').insert(newDemand).select().single();
+          if (!error && data) {
+            self._demands.unshift(data);
+          } else {
+            // Fallback: add locally with temp ID
+            newDemand.id = 'temp_' + Date.now();
+            self._demands.unshift(newDemand);
+          }
+        } else {
+          newDemand.id = 'temp_' + Date.now();
+          self._demands.unshift(newDemand);
+        }
+      } catch (e) {
+        console.error('[PD] inline add-task error:', e);
+        newDemand.id = 'temp_' + Date.now();
+        self._demands.unshift(newDemand);
+      }
+
+      self._reRenderTasks();
+      // Re-open the input so user can add more tasks quickly
+      setTimeout(() => self._showInlineTaskInput(sectionKey), 60);
+    };
+
+    const cleanup = () => {
+      input.removeEventListener('blur', onBlur);
+      input.removeEventListener('keydown', onKey);
+      row.remove();
+    };
+
+    const onKey = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        commit();
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        cleanup();
+      }
+    };
+
+    const onBlur = () => {
+      // Small delay to allow commit via Enter to fire first
+      setTimeout(() => {
+        if (!isCommitting) cleanup();
+      }, 120);
+    };
+
+    input.addEventListener('keydown', onKey);
+    input.addEventListener('blur', onBlur);
+  },
+
+  // ── Section: Rename inline ──────────────────────────
+  _renameSectionInline(sectionKey) {
+    const sectionEl = document.querySelector(`.pd-section[data-section="${sectionKey}"]`);
+    if (!sectionEl) return;
+    const labelEl = sectionEl.querySelector('.pd-section-label');
+    if (!labelEl) return;
+
+    const section = this._SECTIONS.find(s => s.key === sectionKey);
+    const currentLabel = section ? section.label : sectionKey;
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'pd-section-rename-input';
+    input.value = currentLabel;
+
+    const originalHTML = labelEl.innerHTML;
+    labelEl.innerHTML = '';
+    labelEl.appendChild(input);
+    input.focus();
+    input.select();
+
+    const commit = () => {
+      const newLabel = input.value.trim();
+      if (newLabel && section) {
+        section.label = newLabel;
+      }
+      labelEl.textContent = (section ? section.label : currentLabel);
+      input.removeEventListener('blur', commit);
+      input.removeEventListener('keydown', onKey);
+    };
+
+    const onKey = (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+      if (e.key === 'Escape') { input.value = currentLabel; input.blur(); }
+    };
+
+    input.addEventListener('blur', commit);
+    input.addEventListener('keydown', onKey);
+  },
+
+  // ── Section: Add new ────────────────────────────────
+  _addSection(refKey, position) {
+    const idx = this._SECTIONS.findIndex(s => s.key === refKey);
+    const newKey = 'custom_' + Date.now();
+    const newSection = {
+      key: newKey,
+      label: 'Nova secao',
+      icon: 'folder',
+      statuses: [],
+    };
+
+    if (idx === -1) {
+      this._SECTIONS.push(newSection);
+    } else if (position === 'above') {
+      this._SECTIONS.splice(idx, 0, newSection);
+    } else {
+      this._SECTIONS.splice(idx + 1, 0, newSection);
+    }
+
+    this._reRenderTasks();
+    // Auto-trigger rename on the new section
+    setTimeout(() => this._renameSectionInline(newKey), 100);
+  },
+
+  // ── Section: Duplicate ──────────────────────────────
+  _duplicateSection(sectionKey) {
+    const idx = this._SECTIONS.findIndex(s => s.key === sectionKey);
+    const original = this._SECTIONS[idx];
+    if (!original) return;
+
+    const newKey = original.key + '_copy_' + Date.now();
+    const duplicate = {
+      key: newKey,
+      label: original.label + ' (copia)',
+      icon: original.icon,
+      statuses: [...original.statuses],
+    };
+
+    this._SECTIONS.splice(idx + 1, 0, duplicate);
+
+    // Duplicate tasks in this section
+    const sectionDemands = this._demands.filter(d =>
+      original.statuses.some(s => (d.status || '').toLowerCase() === s.toLowerCase())
+    );
+
+    const duplicatedDemands = sectionDemands.map(d => {
+      const dup = { ...d };
+      dup.id = 'temp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+      dup.title = (d.title || '') + ' (copia)';
+      return dup;
+    });
+
+    this._demands.push(...duplicatedDemands);
+    this._reRenderTasks();
+  },
+
+  // ── Section: Delete with dialog ─────────────────────
+  _deleteSectionWithDialog(sectionKey) {
+    const section = this._SECTIONS.find(s => s.key === sectionKey);
+    if (!section) return;
+
+    const sectionDemands = this._demands.filter(d =>
+      section.statuses.some(s => (d.status || '').toLowerCase() === s.toLowerCase())
+    );
+
+    const otherSections = this._SECTIONS.filter(s => s.key !== sectionKey);
+    const self = this;
+
+    // Build modal
+    const overlay = document.createElement('div');
+    overlay.className = 'pd-sec-delete-overlay';
+
+    let optionsHtml = '';
+    if (sectionDemands.length > 0) {
+      optionsHtml = `
+        <p class="pd-sec-del-desc">Esta secao contem <strong>${sectionDemands.length}</strong> tarefa(s). O que deseja fazer com elas?</p>
+        <div class="pd-sec-del-options">
+          <label class="pd-sec-del-option">
+            <input type="radio" name="pd-sec-del-dest" value="move" checked>
+            <span>Mover para outra secao</span>
+          </label>
+          <select class="pd-sec-del-select" id="pdSecDelTarget">
+            ${otherSections.map(s => `<option value="${s.key}">${this._esc(s.label)}</option>`).join('')}
+            <option value="__none__">Sem secao</option>
+          </select>
+          <label class="pd-sec-del-option">
+            <input type="radio" name="pd-sec-del-dest" value="delete">
+            <span class="pd-sec-del-danger-label">Excluir as tarefas tambem</span>
+          </label>
+        </div>
+      `;
+    } else {
+      optionsHtml = `<p class="pd-sec-del-desc">Esta secao esta vazia. Deseja exclui-la?</p>`;
+    }
+
+    overlay.innerHTML = `
+      <div class="pd-sec-delete-dialog">
+        <div class="pd-sec-del-header">
+          <i data-lucide="alert-triangle" style="width:20px;height:20px;color:#ef4444;"></i>
+          <span>Excluir secao "${this._esc(section.label)}"</span>
+        </div>
+        ${optionsHtml}
+        <div class="pd-sec-del-actions">
+          <button class="pd-sec-del-btn pd-sec-del-cancel">Cancelar</button>
+          <button class="pd-sec-del-btn pd-sec-del-confirm">Excluir</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    if (typeof lucide !== 'undefined') lucide.createIcons({ root: overlay });
+
+    // Toggle select visibility based on radio
+    const selectEl = overlay.querySelector('#pdSecDelTarget');
+    if (selectEl) {
+      overlay.querySelectorAll('input[name="pd-sec-del-dest"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+          selectEl.style.display = radio.value === 'move' && radio.checked ? '' : 'none';
+        });
+      });
+    }
+
+    // Cancel
+    overlay.querySelector('.pd-sec-del-cancel').addEventListener('click', () => {
+      overlay.remove();
+    });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+
+    // Confirm
+    overlay.querySelector('.pd-sec-del-confirm').addEventListener('click', async () => {
+      if (sectionDemands.length > 0) {
+        const destRadio = overlay.querySelector('input[name="pd-sec-del-dest"]:checked');
+        const dest = destRadio ? destRadio.value : 'move';
+
+        if (dest === 'move') {
+          const targetKey = selectEl ? selectEl.value : '__none__';
+          const targetSection = self._SECTIONS.find(s => s.key === targetKey);
+          // Move demands: change their status to first status of target section
+          const newStatus = targetSection && targetSection.statuses.length > 0
+            ? targetSection.statuses[0]
+            : 'A fazer';
+          sectionDemands.forEach(d => { d.status = newStatus; });
+
+          // Persist to DB
+          try {
+            const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+            if (client) {
+              const ids = sectionDemands.map(d => d.id).filter(id => !String(id).startsWith('temp_'));
+              if (ids.length > 0) {
+                await client.from('demands').update({ status: newStatus }).in('id', ids);
+              }
+            }
+          } catch (e) { console.error('[PD] move demands error:', e); }
+        } else {
+          // Delete the demands
+          try {
+            const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+            if (client) {
+              const ids = sectionDemands.map(d => d.id).filter(id => !String(id).startsWith('temp_'));
+              if (ids.length > 0) {
+                await client.from('demands').delete().in('id', ids);
+              }
+            }
+          } catch (e) { console.error('[PD] delete demands error:', e); }
+          self._demands = self._demands.filter(d => !sectionDemands.includes(d));
+        }
+      }
+
+      // Remove section from _SECTIONS
+      const idx = self._SECTIONS.findIndex(s => s.key === sectionKey);
+      if (idx !== -1) self._SECTIONS.splice(idx, 1);
+
+      overlay.remove();
+      self._reRenderTasks();
+    });
   },
 
   // ═══════════════════════════════════════════════════
@@ -1408,6 +2023,7 @@ const TBO_PROJECT_DETAIL = {
   destroy() {
     this._closeContextMenu();
     this._closeColContextMenu();
+    this._closeSectionContextMenu();
     this._project = null;
     this._demands = [];
     this._params = null;

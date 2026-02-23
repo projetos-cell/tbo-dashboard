@@ -519,32 +519,62 @@
   border-bottom: 1px solid var(--border);
 }
 
+.pd-section-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 4px;
+  transition: background 0.1s;
+  border-radius: 4px;
+}
+.pd-section-header:hover {
+  background: var(--bg-card-hover);
+}
+
+/* ── Chevron toggle button ─────────────────────── */
 .pd-section-toggle {
   display: flex;
   align-items: center;
-  gap: 6px;
-  width: 100%;
-  padding: 10px 4px;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
   background: none;
   border: none;
+  border-radius: 4px;
   cursor: pointer;
-  color: var(--text-primary);
-  font-size: 0.82rem;
-  font-weight: 600;
-  transition: background 0.1s;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: background 0.1s, color 0.1s;
 }
 .pd-section-toggle:hover {
-  background: var(--bg-card-hover);
+  background: rgba(0,0,0,0.06);
+  color: var(--text-primary);
 }
 
 .pd-section-chevron {
   transition: transform 0.2s;
-  color: var(--text-muted);
 }
 
+/* ── Section name (editable on dblclick) ──────── */
 .pd-section-label {
   flex: 1;
+  min-width: 0;
   text-align: left;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: default;
+  padding: 2px 4px;
+  border-radius: 4px;
+  border: 1.5px solid transparent;
+  transition: border-color 0.15s;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pd-section-label:hover {
+  border-color: var(--border, #e5e7eb);
 }
 
 .pd-section-count {
@@ -554,14 +584,331 @@
   background: var(--bg-card-hover);
   border-radius: 8px;
   padding: 1px 7px;
+  flex-shrink: 0;
 }
 
+/* ── Section action buttons (+ and ...) ─────────── */
+.pd-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.pd-section-header:hover .pd-section-actions {
+  opacity: 1;
+}
+
+.pd-section-add-task-btn,
+.pd-section-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: background 0.1s, color 0.1s;
+  flex-shrink: 0;
+  padding: 0;
+}
+.pd-section-add-task-btn:hover,
+.pd-section-menu-btn:hover {
+  background: rgba(0,0,0,0.06);
+  color: var(--text-primary);
+}
+
+/* ── Collapse state ────────────────────────────── */
 .pd-section-collapsed .pd-section-chevron {
   transform: rotate(-90deg);
 }
 
 .pd-section-collapsed .pd-section-body {
   display: none;
+}
+
+/* ── Section rename input ───────────────────────── */
+.pd-section-rename-input {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-primary, #fff);
+  border: 1.5px solid var(--accent, #E85102);
+  border-radius: 4px;
+  padding: 1px 6px;
+  outline: none;
+  width: 100%;
+  min-width: 80px;
+}
+
+/* ── Inline task input row (+ button) ─────────── */
+.pd-inline-task-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 52px;
+  min-height: 40px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-primary, #fff);
+  animation: pd-inline-in 0.15s ease;
+}
+
+@keyframes pd-inline-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.pd-inline-task-icon {
+  color: var(--accent, #E85102);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.pd-inline-task-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 4px 0;
+}
+.pd-inline-task-input::placeholder {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* ═══════════════════════════════════════════════════
+   SECTION CONTEXT MENU
+   ═══════════════════════════════════════════════════ */
+
+.pd-sec-context-menu {
+  position: fixed;
+  min-width: 240px;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.14);
+  z-index: 9999;
+  padding: 4px;
+  animation: pd-ctx-in 0.12s ease;
+}
+
+.pd-sec-ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text-primary, #111827);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.1s;
+  white-space: nowrap;
+  position: relative;
+}
+
+.pd-sec-ctx-item:hover {
+  background: var(--bg-card-hover, #f3f4f6);
+}
+
+.pd-sec-ctx-item i {
+  width: 15px;
+  height: 15px;
+  color: var(--text-muted, #9ca3af);
+  flex-shrink: 0;
+}
+
+.pd-sec-ctx-item span {
+  flex: 1;
+}
+
+.pd-sec-ctx-arrow {
+  width: 13px !important;
+  height: 13px !important;
+  margin-left: auto;
+}
+
+.pd-sec-ctx-check {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  color: var(--accent, #E85102);
+}
+.pd-sec-ctx-check i {
+  color: var(--accent, #E85102);
+}
+
+.pd-sec-ctx-item--disabled {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
+}
+
+.pd-sec-ctx-item--danger {
+  color: #ef4444;
+}
+.pd-sec-ctx-item--danger i {
+  color: #ef4444;
+}
+.pd-sec-ctx-item--danger:hover {
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.pd-sec-ctx-separator {
+  height: 1px;
+  background: var(--border, #e5e7eb);
+  margin: 4px 8px;
+}
+
+.pd-sec-ctx-has-sub {
+  padding-right: 8px;
+}
+
+/* ── Section submenu ────────────────────────────── */
+.pd-sec-submenu {
+  position: absolute;
+  min-width: 160px;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.14);
+  padding: 4px;
+  z-index: 10000;
+  animation: pd-ctx-in 0.12s ease;
+}
+
+/* ═══════════════════════════════════════════════════
+   SECTION DELETE DIALOG
+   ═══════════════════════════════════════════════════ */
+
+.pd-sec-delete-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pd-overlay-in 0.15s ease;
+}
+
+@keyframes pd-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.pd-sec-delete-dialog {
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  padding: 24px;
+  min-width: 380px;
+  max-width: 460px;
+  animation: pd-dialog-in 0.2s ease;
+}
+
+@keyframes pd-dialog-in {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.pd-sec-del-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+
+.pd-sec-del-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #6b7280);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+.pd-sec-del-desc strong {
+  color: var(--text-primary);
+}
+
+.pd-sec-del-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.pd-sec-del-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.pd-sec-del-option input[type="radio"] {
+  accent-color: var(--accent, #E85102);
+}
+
+.pd-sec-del-danger-label {
+  color: #ef4444;
+}
+
+.pd-sec-del-select {
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 6px;
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary);
+  margin-left: 24px;
+  max-width: 250px;
+}
+
+.pd-sec-del-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.pd-sec-del-btn {
+  padding: 8px 18px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  border-radius: 8px;
+  border: 1px solid var(--border, #e5e7eb);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.pd-sec-del-cancel {
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary);
+}
+.pd-sec-del-cancel:hover {
+  background: var(--bg-card-hover);
+}
+
+.pd-sec-del-confirm {
+  background: #ef4444;
+  color: #fff;
+  border-color: #ef4444;
+}
+.pd-sec-del-confirm:hover {
+  background: #dc2626;
+  border-color: #dc2626;
 }
 
 /* ── Task row ─────────────────────────────────────── */
@@ -767,6 +1114,29 @@ body.dark-mode .pd-add-col-btn:hover {
 }
 
 body.dark-mode .pd-th:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+body.dark-mode .pd-sec-context-menu,
+body.dark-mode .pd-sec-submenu {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .pd-sec-delete-dialog {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .pd-section-toggle:hover,
+body.dark-mode .pd-section-add-task-btn:hover,
+body.dark-mode .pd-section-menu-btn:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+body.dark-mode .pd-section-label:hover {
+  border-color: var(--border);
+}
+
+body.dark-mode .pd-section-header:hover {
   background: rgba(255,255,255,0.03);
 }
 

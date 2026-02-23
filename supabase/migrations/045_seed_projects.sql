@@ -1,12 +1,6 @@
--- ============================================================================
--- TBO OS — Migration 045: Seed projetos reais TBO
--- Total: 75 projetos importados do Supabase/Notion
--- IDEMPOTENTE: ON CONFLICT (id) DO UPDATE
--- ============================================================================
-
--- Remover projeto de teste se existir
-DELETE FROM projects WHERE name = 'Projeto Teste';
-
+-- Auto-generated seed: projects
+-- Generated at: 2026-02-23T14:50:50.986Z
+-- Total rows: 75
 
 INSERT INTO projects (
   id,
@@ -1685,7 +1679,7 @@ INSERT INTO projects (
   ),
   (
     '1a4b22cb-5f5b-4c8e-9763-e23d7706c74b',
-    NULL,
+    '89080d1a-bc79-4c3f-8fce-20aabc561c0d',
     'teste',
     'teste',
     'teste',

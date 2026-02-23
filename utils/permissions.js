@@ -124,7 +124,7 @@ const TBO_PERMISSIONS = {
       label: 'EXECUÇÃO',
       icon: 'clipboard-list',
       _roles: [],
-      modules: ['projetos', 'projetos-notion', 'tarefas', 'reunioes', 'biblioteca', 'database-notion']
+      modules: ['projetos', 'projetos-notion', 'quadro-projetos', 'tarefas', 'reunioes', 'biblioteca', 'database-notion']
     },
     {
       id: 'producao',

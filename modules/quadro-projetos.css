@@ -8,8 +8,6 @@
   gap: 16px;
   height: 100%;
   min-height: 0;
-  position: relative; /* ancora o detail-panel absoluto */
-  overflow: hidden;   /* evita scroll lateral ao abrir o drawer */
 }
 
 /* ── Toolbar ──────────────────────────────────────── */
@@ -354,14 +352,16 @@
 }
 
 /* ── Detail Panel ──────────────────────────────────── */
+/* position:fixed → sempre visível na borda direita da viewport,
+   sem sobrepor com overlay, sem ser cortado por overflow do pai */
 .qp-detail-panel {
-  position: absolute;
+  position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
   width: 400px;
   max-width: 45vw;
-  z-index: 100;
+  z-index: 350;   /* acima do conteúdo (200) mas abaixo da sidebar/header (400+) */
   pointer-events: none;
 }
 
@@ -373,7 +373,7 @@
   width: 100%;
   background: var(--bg-primary);
   border-left: 1px solid var(--border);
-  box-shadow: -4px 0 20px rgba(0,0,0,0.08);
+  box-shadow: -6px 0 24px rgba(0,0,0,0.10);
   display: flex;
   flex-direction: column;
   overflow: hidden;

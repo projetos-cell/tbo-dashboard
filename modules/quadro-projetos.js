@@ -671,7 +671,9 @@ const TBO_QUADRO_PROJETOS = {
       </div>
     `;
 
-    document.getElementById('quadroProjetos')?.appendChild(panel);
+    // Ancoramos no #main-content que tem position:relative e abrange a área visível
+    const anchor = document.getElementById('main-content') || document.body;
+    anchor.appendChild(panel);
     if (typeof lucide !== 'undefined') lucide.createIcons();
 
     // Fecha ao clicar fora do drawer

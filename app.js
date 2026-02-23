@@ -85,8 +85,6 @@ const TBO_APP = {
       'dashboard': typeof TBO_COMMAND_CENTER !== 'undefined' ? TBO_COMMAND_CENTER : null,
       'conteudo': typeof TBO_CONTEUDO !== 'undefined' ? TBO_CONTEUDO : null,
       'comercial': typeof TBO_COMERCIAL !== 'undefined' ? TBO_COMERCIAL : null,
-      'projetos': typeof TBO_PROJETOS !== 'undefined' ? TBO_PROJETOS : null,
-      'projetos-notion': typeof TBO_PROJETOS_NOTION !== 'undefined' ? TBO_PROJETOS_NOTION : null,
       'mercado': typeof TBO_MERCADO !== 'undefined' ? TBO_MERCADO : null,
       'reunioes': typeof TBO_REUNIOES !== 'undefined' ? TBO_REUNIOES : null,
       'agenda': typeof TBO_AGENDA !== 'undefined' ? TBO_AGENDA : null,
@@ -127,7 +125,6 @@ const TBO_APP = {
       'onboarding-wizard': typeof TBO_ONBOARDING_WIZARD !== 'undefined' ? TBO_ONBOARDING_WIZARD : null,
       // 'academy': desativado — removido do boot para performance (v2.6)
       'chat': typeof TBO_CHAT !== 'undefined' ? TBO_CHAT : null,
-      'project-workspace': typeof TBO_PROJECT_WORKSPACE !== 'undefined' ? TBO_PROJECT_WORKSPACE : null,
       'inteligencia-imobiliaria': typeof TBO_INTELIGENCIA_IMOBILIARIA !== 'undefined' ? TBO_INTELIGENCIA_IMOBILIARIA : null,
       'people-profile': typeof TBO_PEOPLE_PROFILE !== 'undefined' ? TBO_PEOPLE_PROFILE : null,
       'relatorios': typeof TBO_RELATORIOS !== 'undefined' ? TBO_RELATORIOS : null,
@@ -295,7 +292,6 @@ const TBO_APP = {
       ['Design System', typeof TBO_DESIGN !== 'undefined' ? TBO_DESIGN : null],
       ['UX Enhancements', typeof TBO_UX_ENHANCEMENTS !== 'undefined' ? TBO_UX_ENHANCEMENTS : null],
       ['Business Intelligence', typeof TBO_BUSINESS_INTELLIGENCE !== 'undefined' ? TBO_BUSINESS_INTELLIGENCE : null],
-      ['Project Enhancements', typeof TBO_PROJECT_ENHANCEMENTS !== 'undefined' ? TBO_PROJECT_ENHANCEMENTS : null],
       ['Financial Enhancements', typeof TBO_FINANCIAL_ENHANCEMENTS !== 'undefined' ? TBO_FINANCIAL_ENHANCEMENTS : null],
       ['People Enhancements', typeof TBO_PEOPLE_ENHANCEMENTS !== 'undefined' ? TBO_PEOPLE_ENHANCEMENTS : null],
       ['Analytics', typeof TBO_ANALYTICS !== 'undefined' ? TBO_ANALYTICS : null],
@@ -557,10 +553,6 @@ const TBO_APP = {
     // 8b. Botao Criar (Asana-style)
     this._bindCreateButton();
 
-    // 8c. Secao de projetos
-    this._renderSidebarProjects();
-    this._bindSidebarProjects();
-
     // 9. Scroll fade gradients (B12)
     this._bindScrollFade();
 
@@ -600,14 +592,7 @@ const TBO_APP = {
       dropdown.classList.remove('visible');
 
       const action = opt.dataset.create;
-      if (action === 'projeto') {
-        TBO_ROUTER.navigate('projetos');
-        // Abrir modal de criacao apos carregar modulo
-        setTimeout(() => {
-          const createBtn = document.querySelector('[onclick*="criarProjeto"], .btn-criar-projeto, [data-action="novo-projeto"]');
-          if (createBtn) createBtn.click();
-        }, 500);
-      } else if (action === 'tarefa') {
+      if (action === 'tarefa') {
         TBO_ROUTER.navigate('tarefas');
       } else if (action === 'contato') {
         TBO_ROUTER.navigate('clientes');
@@ -620,151 +605,6 @@ const TBO_APP = {
     if (window.lucide) lucide.createIcons({ root: dropdown });
   },
 
-  // ── Secao "Meus Projetos" na sidebar ────────────────────────────────────
-  _sidebarProjectsLoaded: false,
-
-  async _renderSidebarProjects() {
-    // v2.6.1: Projetos renderizam DENTRO da secao PRODUCAO
-    const producaoSection = document.querySelector('.nav-section[data-section="producao"]');
-    if (!producaoSection) return;
-
-    // Criar/reutilizar container inline dentro de PRODUCAO
-    let container = producaoSection.querySelector('.sidebar-projects-inline');
-    if (!container) {
-      container = document.createElement('div');
-      container.className = 'sidebar-projects-inline';
-      container.id = 'sidebarProjectsInline';
-      producaoSection.appendChild(container);
-    }
-
-    try {
-      if (typeof TBO_SUPABASE === 'undefined') return;
-      const client = TBO_SUPABASE.getClient ? TBO_SUPABASE.getClient() : null;
-      if (!client) return;
-
-      const user = TBO_AUTH.getCurrentUser();
-      if (!user) return;
-
-      const tenantId = typeof TBO_SUPABASE.getCurrentTenantId === 'function'
-        ? TBO_SUPABASE.getCurrentTenantId() : null;
-
-      // Buscar projetos ativos do usuario
-      let query = client
-        .from('projects')
-        .select('id, name, status')
-        .not('status', 'eq', 'concluido')
-        .order('updated_at', { ascending: false })
-        .limit(8);
-
-      if (tenantId) query = query.eq('tenant_id', tenantId);
-
-      const { data: projects, error } = await query;
-
-      if (error) {
-        console.warn('[Sidebar Projects] Query error:', error.message);
-        this._renderSidebarProjectsInline(container, null);
-        return;
-      }
-
-      this._renderSidebarProjectsInline(container, projects);
-      this._sidebarProjectsLoaded = true;
-    } catch (e) {
-      console.warn('[Sidebar Projects] Error:', e);
-      this._renderSidebarProjectsInline(container, null);
-    }
-  },
-
-  _renderSidebarProjectsInline(container, projects) {
-    // Se nao tem projetos do Supabase, tentar fallback ERP
-    let items = projects;
-    if (!items || items.length === 0) {
-      if (typeof TBO_STORAGE !== 'undefined') {
-        const context = TBO_STORAGE.get('context') || {};
-        const erpProjetos = context.projetos_ativos || [];
-        items = erpProjetos.slice(0, 8).map(p => ({
-          id: p.id || '', name: p.nome || p.name || 'Projeto', status: 'em_andamento'
-        }));
-      }
-    }
-
-    if (!items || items.length === 0) {
-      container.innerHTML = '';
-      return;
-    }
-
-    const statusColors = {
-      producao: '#22c55e', em_andamento: '#3b82f6', planejamento: '#a855f7',
-      pausado: '#eab308', concluido: '#6b7280', ativo: '#22c55e'
-    };
-
-    const isCollapsed = localStorage.getItem('tbo_sidebar_projects_collapsed') === '1';
-
-    container.innerHTML = `
-      <div class="sidebar-projects-header">
-        <span>PROJETOS</span>
-        <button class="sidebar-projects-toggle" id="sidebarProjectsToggle" title="Expandir/recolher">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        </button>
-      </div>
-      <ul class="sidebar-projects-list" id="sidebarProjectsList"${isCollapsed ? ' style="max-height:0;opacity:0;"' : ''}>
-        ${items.map(p => {
-          const color = statusColors[p.status] || '#3b82f6';
-          const name = this._escHtml(p.name || 'Sem nome');
-          return `<li>
-            <button class="sidebar-project-item" data-project-id="${this._escHtml(p.id)}" title="${name}">
-              <span class="sidebar-project-dot" style="background:${color}"></span>
-              <span class="sidebar-project-name">${name}</span>
-            </button>
-          </li>`;
-        }).join('')}
-      </ul>
-    `;
-
-    if (isCollapsed) container.classList.add('collapsed');
-
-    if (window.lucide) lucide.createIcons({ root: container });
-  },
-
-  _bindSidebarProjects() {
-    const container = document.getElementById('sidebarProjectsInline');
-    if (!container) return;
-
-    // Toggle expand/collapse
-    container.addEventListener('click', (e) => {
-      const toggleBtn = e.target.closest('.sidebar-projects-toggle');
-      if (toggleBtn) {
-        e.stopPropagation();
-        const list = container.querySelector('.sidebar-projects-list');
-        const isCollapsed = container.classList.toggle('collapsed');
-        localStorage.setItem('tbo_sidebar_projects_collapsed', isCollapsed ? '1' : '0');
-        if (list) {
-          if (isCollapsed) {
-            list.style.maxHeight = list.scrollHeight + 'px';
-            list.offsetHeight; // force reflow
-            list.style.maxHeight = '0';
-            list.style.opacity = '0';
-          } else {
-            list.style.maxHeight = list.scrollHeight + 'px';
-            list.style.opacity = '1';
-            setTimeout(() => { list.style.maxHeight = ''; }, 200);
-          }
-        }
-        return;
-      }
-
-      // Click em projeto → navegar para project-workspace
-      const btn = e.target.closest('.sidebar-project-item');
-      if (btn) {
-        const projectId = btn.dataset.projectId;
-        if (projectId) {
-          TBO_ROUTER.navigate(`projeto/${projectId}/overview`);
-          document.getElementById('sidebar')?.classList.remove('mobile-open');
-        }
-      }
-    });
-  },
 
   // ── Dynamic Sidebar Renderer (C14 XSS safe, C18 preload states) ───────
   _renderSidebar() {
@@ -1596,7 +1436,6 @@ const TBO_APP = {
     'inbox': 'Caixa de Entrada',
     'chat': 'Chat',
     // Execucao
-    'projetos': 'Projetos',
     'tarefas': 'Tarefas',
     'reunioes': 'Calendário',
     'agenda': 'Agenda',
@@ -1642,8 +1481,6 @@ const TBO_APP = {
     'revisoes-pendentes': 'Revisões Pendentes',
     'system-health': 'System Health',
     // Módulos parametrizados / embeds
-    'projetos-notion': 'Projetos (Notion)',
-    'project-workspace': 'Workspace do Projeto',
     'people-profile': 'Perfil do Colaborador',
     'page-editor': 'Página',
     'notion-embed': 'Notion',
@@ -1661,7 +1498,6 @@ const TBO_APP = {
     'inbox': 'inbox',
     'chat': 'message-circle',
     // Execucao
-    'projetos': 'folder-kanban',
     'tarefas': 'list-checks',
     'reunioes': 'calendar',
     'agenda': 'calendar-days',
@@ -1706,8 +1542,6 @@ const TBO_APP = {
     'revisoes-pendentes': 'message-circle',
     'system-health': 'heart-pulse',
     // Módulos parametrizados / embeds
-    'projetos-notion': 'database',
-    'project-workspace': 'folder-open',
     'people-profile': 'user',
     'page-editor': 'file-text',
     'notion-embed': 'layout-dashboard',
@@ -1947,7 +1781,6 @@ const TBO_APP = {
           TBO_ROUTER.navigate(item.dataset.module);
         } else if (action === 'data') {
           const typeModuleMap = {
-            projeto_ativo: 'projetos', projeto_finalizado: 'projetos',
             cliente: 'comercial', reuniao: 'reunioes', mercado: 'mercado'
           };
           TBO_ROUTER.navigate(typeModuleMap[item.dataset.type] || 'dashboard');

@@ -10,8 +10,6 @@ const TBO_ROUTE_REGISTRY = (() => {
   // Mapeamento: hash route → module key
   const MODULE_ROUTES = {
     'dashboard':              'dashboard',
-    'projetos':               'projetos',
-    'projetos-notion':        'projetos-notion',
     'tarefas':                'tarefas',
     'financeiro':             'financeiro',
     'pagar':                  'pagar',
@@ -75,10 +73,6 @@ const TBO_ROUTE_REGISTRY = (() => {
 
   // Rotas parametrizadas: prefixo → { module, permissionModule }
   const PARAM_ROUTES = {
-    'projeto': {
-      module: 'project-workspace',
-      permissionModule: 'projetos'
-    },
     'people': {
       module: 'people-profile',
       permissionModule: 'rh'
@@ -90,7 +84,7 @@ const TBO_ROUTE_REGISTRY = (() => {
     'notion-embed': {
       module: 'notion-embed',
       permissionModule: null  // Acesso controlado via sidebar RBAC (allowed_roles nos children)
-    }
+    },
   };
 
   // Metadados por módulo — H2: fonte da verdade (migrado de app.js _moduleLabels/_moduleIcons)
@@ -102,8 +96,6 @@ const TBO_ROUTE_REGISTRY = (() => {
     'database-notion':        { label: 'Database',               icon: 'database',           group: 'execucao',     color: '#6366F1' },
     'chat':                   { label: 'Chat',                   icon: 'message-circle',     group: 'inicio',       color: '#6366F1' },
     // Execução
-    'projetos':               { label: 'Projetos',               icon: 'folder-kanban',      group: 'execucao',     color: '#3B82F6' },
-    'projetos-notion':        { label: 'Projetos (Notion)',       icon: 'database',           group: 'execucao',     color: '#3B82F6' },
     'tarefas':                { label: 'Tarefas',                icon: 'list-checks',        group: 'execucao',     color: '#22C55E' },
     'reunioes':               { label: 'Calendário',             icon: 'calendar',           group: 'execucao',     color: '#0EA5E9' },
     'agenda':                 { label: 'Agenda',                 icon: 'calendar-days',      group: 'execucao',     color: '#0EA5E9' },

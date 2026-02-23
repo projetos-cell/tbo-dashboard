@@ -17,10 +17,8 @@ const TBO_ROUTER = {
   },
 
   // Rotas parametrizadas: prefixo → modulo handler
-  // Formato: #projeto/{id}/{tab} → modulo 'project-workspace' recebe params
   // Formato: #people/{userId}/{tab} → modulo 'people-profile' recebe params
   _paramRoutes: {
-    'projeto': 'project-workspace',
     'people': 'people-profile',
     'page': 'page-editor'
   },

@@ -57,6 +57,7 @@ const TBO_SIDEBAR_SERVICE = (() => {
     // ── Sub-items: Geral ──────────────────────────────────────────────────
     { id: 'geral-quadro',      name: 'Quadro Geral',         type: 'child', order_index: 9.01, icon: 'layout-dashboard', route: 'notion-embed/geral-quadro',    parent_id: 'ws-geral', allowed_roles: [] },
     { id: 'geral-quadro-v2',   name: 'Quadro Geral v2',      type: 'child', order_index: 9.02, icon: 'layout-grid',      route: 'notion-embed/geral-quadro-v2', parent_id: 'ws-geral', allowed_roles: [] },
+    { id: 'geral-quadro-projetos', name: 'Quadro de Projetos', type: 'child', order_index: 9.025, icon: 'layout-dashboard', route: 'quadro-projetos', parent_id: 'ws-geral', allowed_roles: [] },
     { id: 'geral-cultura',     name: 'Manual de Cultura',     type: 'child', order_index: 9.03, icon: 'book-open',        route: 'notion-embed/geral-cultura',   parent_id: 'ws-geral', allowed_roles: [] },
     { id: 'geral-docs',        name: 'Documentos & Padrões',  type: 'child', order_index: 9.04, icon: 'file-text',        route: 'notion-embed/geral-docs',      parent_id: 'ws-geral', allowed_roles: [] },
     { id: 'geral-okrs',        name: 'OKRs TBO — 2026',      type: 'child', order_index: 14.56, icon: 'target',           route: 'notion-embed/geral-okrs',      parent_id: 'ws-pessoas', allowed_roles: [] },

@@ -727,6 +727,11 @@
   transition: background 0.1s;
   border-radius: 4px;
 }
+.pd-section-header .pd-drag-handle {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
 .pd-section-header:hover {
   background: var(--bg-card-hover);
 }

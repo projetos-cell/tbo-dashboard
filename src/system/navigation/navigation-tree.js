@@ -34,6 +34,7 @@ const TBO_NAV_TREE = (() => {
       children: [
         { id: 'op-quadro',      label: 'Quadro Geral',      icon: 'layout-dashboard',   route: 'dashboard' },
         { id: 'op-projetos',    label: 'Projetos',           icon: 'folder-kanban',      route: 'projetos' },
+        { id: 'op-quadro-projetos', label: 'Quadro de Projetos', icon: 'layout-dashboard', route: 'quadro-projetos' },
         { id: 'op-tarefas',     label: 'Tarefas',            icon: 'list-checks',        route: 'tarefas',        badge: 'tarefas' },
         { id: 'op-entregas',    label: 'Entregas',           icon: 'check-circle-2',     route: 'entregas' },
         { id: 'op-revisoes',    label: 'Revisões',           icon: 'git-pull-request',   route: 'revisoes' }

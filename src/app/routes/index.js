@@ -85,6 +85,10 @@ const TBO_ROUTE_REGISTRY = (() => {
       module: 'notion-embed',
       permissionModule: null  // Acesso controlado via sidebar RBAC (allowed_roles nos children)
     },
+    'projeto': {
+      module: 'project-detail',
+      permissionModule: null  // RLS cuida do acesso
+    },
   };
 
   // Metadados por módulo — H2: fonte da verdade (migrado de app.js _moduleLabels/_moduleIcons)
@@ -150,7 +154,9 @@ const TBO_ROUTE_REGISTRY = (() => {
     // Notion Embed (inline iframe)
     'notion-embed':           { label: 'Notion',                 icon: 'layout-dashboard',   group: 'outros',       color: '#000000' },
     // System Health (production readiness)
-    'system-health':          { label: 'System Health',          icon: 'heart-pulse',        group: 'sistema',      color: '#22C55E' }
+    'system-health':          { label: 'System Health',          icon: 'heart-pulse',        group: 'sistema',      color: '#22C55E' },
+    // Project Detail (parametric)
+    'project-detail':         { label: 'Projeto',                icon: 'folder-open',        group: 'outros',       color: '#3B82F6' }
   };
 
   return {

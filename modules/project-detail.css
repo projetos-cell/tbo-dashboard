@@ -1,0 +1,557 @@
+/* ═══════════════════════════════════════════════════
+   TBO OS — Project Detail CSS (Asana-style)
+   ═══════════════════════════════════════════════════ */
+
+.pd-module {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 40px;
+}
+
+/* ── Skeleton ─────────────────────────────────────── */
+.pd-skeleton {
+  padding: 24px;
+}
+.pd-skeleton-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 32px;
+}
+.pd-skeleton-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── Top bar (back button) ───────────────────────── */
+.pd-topbar {
+  padding: 12px 24px 0;
+}
+
+.pd-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+.pd-back-btn:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+/* ── Header ──────────────────────────────────────── */
+.pd-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 12px 24px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pd-header-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.pd-header-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.pd-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.pd-code {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: monospace;
+}
+
+.pd-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 10px;
+  line-height: 1.3;
+}
+
+.pd-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pd-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.pd-meta-bus {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pd-bu-tag {
+  font-size: 0.65rem;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.pd-notion-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.15s;
+}
+.pd-notion-link:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+/* ── Progress ring ───────────────────────────────── */
+.pd-header-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.pd-progress-ring {
+  position: relative;
+  width: 56px;
+  height: 56px;
+}
+
+.pd-ring-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.pd-ring-bg {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 3;
+}
+
+.pd-ring-fill {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.6s ease;
+}
+
+.pd-ring-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pd-stats-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.pd-stats-done {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pd-stats-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+/* ── Description ──────────────────────────────────── */
+.pd-description {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pd-description-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.pd-description-text {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* ── Tasks ─────────────────────────────────────────── */
+.pd-tasks {
+  padding: 0 24px;
+}
+
+.pd-tasks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0 8px;
+}
+
+.pd-tasks-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pd-tasks-count {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1px 8px;
+}
+
+/* ── Table header ─────────────────────────────────── */
+.pd-table-header {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg-primary, #fff);
+  z-index: 5;
+}
+
+.pd-th {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0 8px;
+}
+
+.pd-th-name        { flex: 1; min-width: 0; padding-left: 40px; }
+.pd-th-responsible  { width: 160px; flex-shrink: 0; }
+.pd-th-date         { width: 100px; flex-shrink: 0; }
+.pd-th-priority     { width: 100px; flex-shrink: 0; }
+.pd-th-status       { width: 120px; flex-shrink: 0; }
+
+/* ── Section ─────────────────────────────────────── */
+.pd-section {
+  border-bottom: 1px solid var(--border);
+}
+
+.pd-section-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: background 0.1s;
+}
+.pd-section-toggle:hover {
+  background: var(--bg-card-hover);
+}
+
+.pd-section-chevron {
+  transition: transform 0.2s;
+  color: var(--text-muted);
+}
+
+.pd-section-label {
+  flex: 1;
+  text-align: left;
+}
+
+.pd-section-count {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--bg-card-hover);
+  border-radius: 8px;
+  padding: 1px 7px;
+}
+
+.pd-section-collapsed .pd-section-chevron {
+  transform: rotate(-90deg);
+}
+
+.pd-section-collapsed .pd-section-body {
+  display: none;
+}
+
+/* ── Task row ─────────────────────────────────────── */
+.pd-task-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  min-height: 42px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+  cursor: default;
+}
+.pd-task-row:last-child {
+  border-bottom: none;
+}
+.pd-task-row:hover {
+  background: var(--bg-card-hover);
+}
+
+.pd-task-done {
+  opacity: 0.6;
+}
+
+.pd-td {
+  padding: 8px 8px;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pd-td-check {
+  width: 32px;
+  flex-shrink: 0;
+  justify-content: center;
+}
+
+.pd-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pd-checked {
+  border-color: currentColor;
+}
+
+.pd-td-name {
+  flex: 1;
+  min-width: 0;
+  gap: 4px;
+}
+
+.pd-task-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.pd-task-strikethrough {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.pd-task-notion {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.pd-task-row:hover .pd-task-notion {
+  opacity: 0.6;
+}
+.pd-task-notion:hover {
+  opacity: 1 !important;
+  color: var(--accent);
+}
+
+.pd-td-responsible {
+  width: 160px;
+  flex-shrink: 0;
+}
+
+.pd-avatar-small {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.55rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pd-responsible-name {
+  font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pd-td-date {
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.pd-date-text {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.pd-date-late {
+  color: #ef4444 !important;
+  font-weight: 500;
+}
+
+.pd-td-priority {
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.pd-priority-pill {
+  font-size: 0.68rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.pd-td-status {
+  width: 120px;
+  flex-shrink: 0;
+}
+
+.pd-demand-status {
+  font-size: 0.68rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.pd-empty-cell {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+/* ── Empty state ──────────────────────────────────── */
+.pd-empty-tasks {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* ── Error ─────────────────────────────────────────── */
+.pd-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 60px;
+  text-align: center;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+/* ── Responsive ───────────────────────────────────── */
+@media (max-width: 768px) {
+  .pd-header {
+    flex-direction: column;
+    gap: 16px;
+    padding: 12px 16px 16px;
+  }
+  .pd-header-stats {
+    align-self: flex-start;
+  }
+  .pd-title {
+    font-size: 1.15rem;
+  }
+  .pd-tasks {
+    padding: 0 16px;
+  }
+  .pd-topbar {
+    padding: 8px 16px 0;
+  }
+  .pd-th-responsible,
+  .pd-td-responsible,
+  .pd-th-priority,
+  .pd-td-priority {
+    display: none;
+  }
+  .pd-th-date,
+  .pd-td-date {
+    width: 80px;
+  }
+  .pd-th-status,
+  .pd-td-status {
+    width: 90px;
+  }
+}
+
+/* ── Skeleton reuse ───────────────────────────────── */
+.pd-module .skeleton {
+  background: linear-gradient(90deg, var(--bg-card-hover) 25%, var(--border) 50%, var(--bg-card-hover) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s infinite;
+}

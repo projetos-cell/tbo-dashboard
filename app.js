@@ -132,7 +132,8 @@ const TBO_APP = {
       'page-editor': typeof TBO_PAGE_EDITOR !== 'undefined' ? TBO_PAGE_EDITOR : null,
       'notion-embed': typeof TBO_NOTION_EMBED !== 'undefined' ? TBO_NOTION_EMBED : null,
       'system-health': typeof TBO_SYSTEM_HEALTH !== 'undefined' ? TBO_SYSTEM_HEALTH : null,
-      'quadro-projetos': typeof TBO_QUADRO_PROJETOS !== 'undefined' ? TBO_QUADRO_PROJETOS : null
+      'quadro-projetos': typeof TBO_QUADRO_PROJETOS !== 'undefined' ? TBO_QUADRO_PROJETOS : null,
+      'project-detail': typeof TBO_PROJECT_DETAIL !== 'undefined' ? TBO_PROJECT_DETAIL : null
     };
 
     Object.entries(modules).forEach(([name, mod]) => {
@@ -1489,7 +1490,8 @@ const TBO_APP = {
     'conciliacao-bancaria': 'Conciliação Bancária',
     'rsm': 'Social Media',
     'onboarding-wizard': 'Onboarding',
-    'quadro-projetos': 'Quadro de Projetos'
+    'quadro-projetos': 'Quadro de Projetos',
+    'project-detail': 'Projeto'
   },
 
   // ── Module icons (Lucide icon names — v3) ──────────────────────────
@@ -1551,7 +1553,8 @@ const TBO_APP = {
     'conciliacao-bancaria': 'scale',
     'rsm': 'share-2',
     'onboarding-wizard': 'user-plus',
-    'quadro-projetos': 'layout-dashboard'
+    'quadro-projetos': 'layout-dashboard',
+    'project-detail': 'folder-open'
   },
 
   _updateHeaderTitle(moduleName) {

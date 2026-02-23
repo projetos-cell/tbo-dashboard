@@ -20,7 +20,8 @@ const TBO_ROUTER = {
   // Formato: #people/{userId}/{tab} → modulo 'people-profile' recebe params
   _paramRoutes: {
     'people': 'people-profile',
-    'page': 'page-editor'
+    'page': 'page-editor',
+    'projeto': 'project-detail'
   },
 
   _resolveAlias(name) {

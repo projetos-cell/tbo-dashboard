@@ -6,11 +6,31 @@ const TBO_PROJECT_DETAIL = {
   _demands: [],
   _params: null,
   _loaded: false,
-  _ctxMenu: null,       // context menu DOM element
+  _ctxMenu: null,       // task context menu DOM element
   _ctxDemandId: null,   // demand id for active context menu
+  _colCtxMenu: null,    // column context menu DOM element
+  _colCtxKey: null,     // column key for active column menu
   _dragEl: null,        // element being dragged
-  _dragType: null,      // 'task' or 'section'
+  _dragType: null,      // 'task', 'section', or 'column'
+  _dragColKey: null,    // column key being dragged
   _globalsBound: false, // track global listeners to avoid duplicates
+
+  // ═══════════════════════════════════════════════════
+  // COLUMN CONFIGURATION
+  // ═══════════════════════════════════════════════════
+
+  _COLUMNS: [
+    { key: 'drag',        label: '',               width: '20px',  fixed: true,  hidden: false, icon: null },
+    { key: 'check',       label: '',               width: '32px',  fixed: true,  hidden: false, icon: null },
+    { key: 'name',        label: 'Nome da tarefa',  width: null,    fixed: true,  hidden: false, icon: 'type' },
+    { key: 'responsible', label: 'Responsavel',      width: '160px', fixed: false, hidden: false, icon: 'user' },
+    { key: 'date',        label: 'Data',             width: '100px', fixed: false, hidden: false, icon: 'calendar' },
+    { key: 'priority',    label: 'Prioridade',       width: '100px', fixed: false, hidden: false, icon: 'signal' },
+    { key: 'status',      label: 'Status',           width: '120px', fixed: false, hidden: false, icon: 'circle-dot' },
+  ],
+
+  _columnOrder: null,  // array of movable column keys
+  _STORAGE_KEY: 'tbo_pd_column_order',
 
   // Section grouping for demands (by status category)
   _SECTIONS: [
@@ -52,6 +72,56 @@ const TBO_PROJECT_DETAIL = {
     'Done':           { color: '#22c55e', bg: 'rgba(34,197,94,0.10)' },
     'Cancelado':      { color: '#9ca3af', bg: 'rgba(156,163,175,0.10)' },
   },
+
+  // ═══════════════════════════════════════════════════
+  // COLUMN ORDER PERSISTENCE
+  // ═══════════════════════════════════════════════════
+
+  _loadColumnOrder() {
+    const defaults = this._COLUMNS.filter(c => !c.fixed).map(c => c.key);
+    try {
+      const saved = localStorage.getItem(this._STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed.order) && parsed.order.length > 0) {
+          // Validate all keys exist
+          const validKeys = new Set(defaults);
+          const allValid = parsed.order.every(k => validKeys.has(k));
+          if (allValid && parsed.order.length === defaults.length) {
+            this._columnOrder = parsed.order;
+          }
+        }
+        if (Array.isArray(parsed.hidden)) {
+          parsed.hidden.forEach(key => {
+            const col = this._COLUMNS.find(c => c.key === key);
+            if (col && !col.fixed) col.hidden = true;
+          });
+        }
+      }
+    } catch (_e) {}
+    if (!this._columnOrder) {
+      this._columnOrder = defaults;
+    }
+  },
+
+  _saveColumnOrder() {
+    const hidden = this._COLUMNS.filter(c => c.hidden).map(c => c.key);
+    try {
+      localStorage.setItem(this._STORAGE_KEY, JSON.stringify({
+        order: this._columnOrder,
+        hidden: hidden,
+      }));
+    } catch (_e) {}
+  },
+
+  _getColOrder(key) {
+    const idx = this._columnOrder.indexOf(key);
+    return idx >= 0 ? idx : 999;
+  },
+
+  // ═══════════════════════════════════════════════════
+  // LIFECYCLE
+  // ═══════════════════════════════════════════════════
 
   setParams(params) {
     this._params = params;
@@ -99,6 +169,9 @@ const TBO_PROJECT_DETAIL = {
       this._renderError('ID do projeto nao informado');
       return;
     }
+
+    // Load column order from localStorage before rendering
+    this._loadColumnOrder();
 
     let tid = null;
     try {
@@ -205,18 +278,61 @@ const TBO_PROJECT_DETAIL = {
             <span class="pd-tasks-count">${totalDemands}</span>
           </div>
         </div>
-        <div class="pd-table-header">
-          <div class="pd-th pd-th-drag"></div>
-          <div class="pd-th pd-th-name">Nome da tarefa</div>
-          <div class="pd-th pd-th-responsible">Responsavel</div>
-          <div class="pd-th pd-th-date">Data</div>
-          <div class="pd-th pd-th-priority">Prioridade</div>
-          <div class="pd-th pd-th-status">Status</div>
-        </div>
+        ${this._renderTableHeader()}
         ${this._renderSections()}
       </div>
     `;
   },
+
+  // ═══════════════════════════════════════════════════
+  // TABLE HEADER (Notion-style)
+  // ═══════════════════════════════════════════════════
+
+  _renderTableHeader() {
+    let html = '<div class="pd-table-header">';
+
+    // Fixed columns: drag (no label)
+    html += '<div class="pd-th pd-th-drag" data-col="drag"></div>';
+
+    // Fixed column: name (with label + chevron, NO drag handle)
+    html += `
+      <div class="pd-th pd-th-name" data-col="name" style="order:-1;">
+        <div class="pd-th-inner">
+          <span class="pd-th-label">Nome da tarefa</span>
+          <button class="pd-th-chevron" data-col-menu="name" title="Opcoes da coluna"><i data-lucide="chevron-down"></i></button>
+        </div>
+      </div>`;
+
+    // Movable columns
+    const movable = this._COLUMNS.filter(c => !c.fixed);
+    for (const col of movable) {
+      const orderIdx = this._getColOrder(col.key);
+      const hiddenStyle = col.hidden ? 'display:none;' : '';
+      html += `
+        <div class="pd-th pd-th-${col.key}" data-col="${col.key}" data-draggable-col="true" style="order:${orderIdx};${hiddenStyle}">
+          <div class="pd-th-inner">
+            <div class="pd-col-drag-handle" title="Arrastar coluna"><i data-lucide="grip-vertical"></i></div>
+            <span class="pd-th-label">${this._esc(col.label)}</span>
+            <button class="pd-th-chevron" data-col-menu="${col.key}" title="Opcoes da coluna"><i data-lucide="chevron-down"></i></button>
+          </div>
+        </div>`;
+    }
+
+    // "+" button to add/restore columns
+    html += `
+      <div class="pd-th pd-th-add" style="order:999;">
+        <button class="pd-add-col-btn" title="Adicionar propriedade">
+          <i data-lucide="plus"></i>
+        </button>
+      </div>`;
+
+    html += '</div>';
+    return html;
+  },
+
+  // ═══════════════════════════════════════════════════
+  // SECTIONS & TASK ROWS
+  // ═══════════════════════════════════════════════════
 
   _renderSections() {
     const demands = this._demands;
@@ -246,7 +362,6 @@ const TBO_PROJECT_DETAIL = {
   },
 
   _renderSection(section, demands) {
-    // NOTE: draggable is NOT set here in HTML; it's set dynamically via mousedown on the handle
     return `
       <div class="pd-section" data-section="${section.key}">
         <button class="pd-section-toggle" data-toggle="${section.key}">
@@ -268,33 +383,44 @@ const TBO_PROJECT_DETAIL = {
     const isDone = this._isDone(d);
     const priorityHtml = this._renderPriority(d.prioridade);
 
-    // NOTE: draggable is NOT set here in HTML; it's set dynamically via mousedown on the handle
+    // Build movable cells with CSS order
+    const cells = {
+      responsible: `<div class="pd-td pd-td-responsible" data-col="responsible" style="order:${this._getColOrder('responsible')};${this._isColHidden('responsible') ? 'display:none;' : ''}">
+        ${d.responsible ? `<div class="pd-avatar-small" title="${this._esc(d.responsible)}">${this._initials(d.responsible)}</div><span class="pd-responsible-name">${this._esc(d.responsible)}</span>` : '<span class="pd-empty-cell">&mdash;</span>'}
+      </div>`,
+      date: `<div class="pd-td pd-td-date" data-col="date" style="order:${this._getColOrder('date')};${this._isColHidden('date') ? 'display:none;' : ''}">
+        ${d.due_date ? `<span class="pd-date-text ${this._isLate(d) ? 'pd-date-late' : ''}">${this._fmtDate(d.due_date)}</span>` : '<span class="pd-empty-cell">&mdash;</span>'}
+      </div>`,
+      priority: `<div class="pd-td pd-td-priority" data-col="priority" style="order:${this._getColOrder('priority')};${this._isColHidden('priority') ? 'display:none;' : ''}">${priorityHtml}</div>`,
+      status: `<div class="pd-td pd-td-status" data-col="status" style="order:${this._getColOrder('status')};${this._isColHidden('status') ? 'display:none;' : ''}">
+        <span class="pd-demand-status" style="background:${statusColors.bg};color:${statusColors.color};">${this._esc(d.status || '\u2014')}</span>
+      </div>`,
+    };
+
+    const movableHtml = this._columnOrder.map(key => cells[key] || '').join('');
+
     return `
       <div class="pd-task-row ${isDone ? 'pd-task-done' : ''}" data-demand-id="${d.id}">
-        <div class="pd-td pd-td-drag">
+        <div class="pd-td pd-td-drag" data-col="drag">
           <div class="pd-drag-handle pd-task-drag" title="Arrastar tarefa"><i data-lucide="grip-vertical"></i></div>
         </div>
-        <div class="pd-td pd-td-check">
+        <div class="pd-td pd-td-check" data-col="check">
           <span class="pd-check ${isDone ? 'pd-checked' : ''}" style="border-color:${statusColors.color};${isDone ? `background:${statusColors.color};` : ''}">
             ${isDone ? '<i data-lucide="check" style="width:10px;height:10px;color:#fff;"></i>' : ''}
           </span>
         </div>
-        <div class="pd-td pd-td-name">
+        <div class="pd-td pd-td-name" data-col="name" style="order:-1;">
           <span class="pd-task-title ${isDone ? 'pd-task-strikethrough' : ''}">${this._esc(d.title)}</span>
           ${d.notion_url ? `<a href="${d.notion_url}" target="_blank" class="pd-task-notion" onclick="event.stopPropagation()" title="Abrir no Notion"><i data-lucide="external-link" style="width:11px;height:11px;"></i></a>` : ''}
         </div>
-        <div class="pd-td pd-td-responsible">
-          ${d.responsible ? `<div class="pd-avatar-small" title="${this._esc(d.responsible)}">${this._initials(d.responsible)}</div><span class="pd-responsible-name">${this._esc(d.responsible)}</span>` : '<span class="pd-empty-cell">&mdash;</span>'}
-        </div>
-        <div class="pd-td pd-td-date">
-          ${d.due_date ? `<span class="pd-date-text ${this._isLate(d) ? 'pd-date-late' : ''}">${this._fmtDate(d.due_date)}</span>` : '<span class="pd-empty-cell">&mdash;</span>'}
-        </div>
-        <div class="pd-td pd-td-priority">${priorityHtml}</div>
-        <div class="pd-td pd-td-status">
-          <span class="pd-demand-status" style="background:${statusColors.bg};color:${statusColors.color};">${this._esc(d.status || '\u2014')}</span>
-        </div>
+        ${movableHtml}
       </div>
     `;
+  },
+
+  _isColHidden(key) {
+    const col = this._COLUMNS.find(c => c.key === key);
+    return col ? col.hidden : false;
   },
 
   _renderPriority(prioridade) {
@@ -305,6 +431,25 @@ const TBO_PROJECT_DETAIL = {
     else if (p.includes('media') || p.includes('medium')) { color = '#f59e0b'; bg = 'rgba(245,158,11,0.10)'; }
     else if (p.includes('baixa') || p.includes('low')) { color = '#22c55e'; bg = 'rgba(34,197,94,0.10)'; }
     return `<span class="pd-priority-pill" style="background:${bg};color:${color};">${this._esc(prioridade)}</span>`;
+  },
+
+  // ═══════════════════════════════════════════════════
+  // APPLY COLUMN ORDER (cheap CSS-only update)
+  // ═══════════════════════════════════════════════════
+
+  _applyColumnOrder() {
+    this._columnOrder.forEach((key, idx) => {
+      document.querySelectorAll(`[data-col="${key}"]`).forEach(el => {
+        el.style.order = idx;
+      });
+    });
+    // Handle hidden columns
+    this._COLUMNS.forEach(col => {
+      if (col.fixed) return;
+      document.querySelectorAll(`[data-col="${col.key}"]`).forEach(el => {
+        el.style.display = col.hidden ? 'none' : '';
+      });
+    });
   },
 
   // ═══════════════════════════════════════════════════
@@ -322,20 +467,29 @@ const TBO_PROJECT_DETAIL = {
     this._globalsBound = true;
     const self = this;
 
-    // Close context menu on mousedown anywhere outside the menu
+    // Close context menus on mousedown anywhere outside
     document.addEventListener('mousedown', (e) => {
       if (self._ctxMenu && !self._ctxMenu.contains(e.target)) {
         self._closeContextMenu();
       }
+      if (self._colCtxMenu && !self._colCtxMenu.contains(e.target)) {
+        self._closeColContextMenu();
+      }
     });
 
-    // Close context menu on Escape
+    // Close context menus on Escape
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') self._closeContextMenu();
+      if (e.key === 'Escape') {
+        self._closeContextMenu();
+        self._closeColContextMenu();
+      }
     });
 
-    // Close context menu on scroll
-    document.addEventListener('scroll', () => self._closeContextMenu(), true);
+    // Close context menus on scroll
+    document.addEventListener('scroll', () => {
+      self._closeContextMenu();
+      self._closeColContextMenu();
+    }, true);
   },
 
   /** Local per-render listeners on task/section elements */
@@ -376,12 +530,33 @@ const TBO_PROJECT_DETAIL = {
       });
     });
 
-    // Drag & Drop
+    // Column header chevron click → column context menu
+    document.querySelectorAll('.pd-th-chevron').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const colKey = btn.dataset.colMenu;
+        if (colKey) self._showColContextMenu(colKey, btn);
+      });
+    });
+
+    // "+" add column button
+    const addColBtn = document.querySelector('.pd-add-col-btn');
+    if (addColBtn) {
+      addColBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        self._showAddColumnMenu(addColBtn);
+      });
+    }
+
+    // Drag & Drop (tasks + sections)
     this._bindDragHandles();
+
+    // Column drag & drop
+    this._bindColumnDrag();
   },
 
   // ═══════════════════════════════════════════════════
-  // CONTEXT MENU
+  // TASK CONTEXT MENU
   // ═══════════════════════════════════════════════════
 
   _showContextMenu(x, y, demandId) {
@@ -430,7 +605,6 @@ const TBO_PROJECT_DETAIL = {
     document.body.appendChild(menu);
     if (typeof lucide !== 'undefined') lucide.createIcons({ root: menu });
 
-    // Position within viewport
     const mw = menu.offsetWidth;
     const mh = menu.offsetHeight;
     const vw = window.innerWidth;
@@ -440,7 +614,6 @@ const TBO_PROJECT_DETAIL = {
 
     this._ctxMenu = menu;
 
-    // Handle action clicks — use mousedown to fire before the global mousedown closes the menu
     menu.querySelectorAll('.pd-ctx-item').forEach(item => {
       item.addEventListener('mousedown', (e) => {
         e.preventDefault();
@@ -454,7 +627,6 @@ const TBO_PROJECT_DETAIL = {
       });
     });
 
-    // Prevent the menu itself from triggering the global close on mousedown
     menu.addEventListener('mousedown', (e) => {
       e.stopPropagation();
     });
@@ -594,14 +766,232 @@ const TBO_PROJECT_DETAIL = {
   },
 
   // ═══════════════════════════════════════════════════
-  // DRAG & DROP
+  // COLUMN CONTEXT MENU
+  // ═══════════════════════════════════════════════════
+
+  _showColContextMenu(colKey, anchorEl) {
+    this._closeColContextMenu();
+    this._closeContextMenu();
+    this._colCtxKey = colKey;
+    const self = this;
+    const col = this._COLUMNS.find(c => c.key === colKey);
+    if (!col) return;
+
+    const menu = document.createElement('div');
+    menu.className = 'pd-col-context-menu';
+
+    const isFixed = col.fixed;
+    const typeLabel = this._getColTypeLabel(colKey);
+
+    menu.innerHTML = `
+      <div class="pd-col-ctx-item" data-action="sort-asc">
+        <i data-lucide="arrow-up-narrow-wide"></i> <span>Ordenar A &rarr; Z</span>
+      </div>
+      <div class="pd-col-ctx-item" data-action="sort-desc">
+        <i data-lucide="arrow-down-wide-narrow"></i> <span>Ordenar Z &rarr; A</span>
+      </div>
+      ${!isFixed ? `
+        <div class="pd-col-ctx-separator"></div>
+        <div class="pd-col-ctx-item" data-action="hide">
+          <i data-lucide="eye-off"></i> <span>Ocultar coluna</span>
+        </div>
+      ` : ''}
+      <div class="pd-col-ctx-separator"></div>
+      <div class="pd-col-ctx-item pd-col-ctx-item--info">
+        <i data-lucide="info"></i> <span>Tipo: ${typeLabel}</span>
+      </div>
+    `;
+
+    document.body.appendChild(menu);
+    if (typeof lucide !== 'undefined') lucide.createIcons({ root: menu });
+
+    // Position below the anchor
+    const rect = anchorEl.getBoundingClientRect();
+    const mw = menu.offsetWidth;
+    const vw = window.innerWidth;
+    let left = rect.left;
+    if (left + mw > vw) left = Math.max(0, vw - mw - 8);
+    menu.style.left = left + 'px';
+    menu.style.top = (rect.bottom + 4) + 'px';
+
+    this._colCtxMenu = menu;
+
+    // Bind actions
+    menu.querySelectorAll('.pd-col-ctx-item:not(.pd-col-ctx-item--info)').forEach(item => {
+      item.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const action = item.dataset.action;
+        if (action) {
+          self._closeColContextMenu();
+          self._handleColContextAction(action, colKey);
+        }
+      });
+    });
+
+    menu.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+    });
+  },
+
+  _closeColContextMenu() {
+    if (this._colCtxMenu) {
+      this._colCtxMenu.remove();
+      this._colCtxMenu = null;
+    }
+    this._colCtxKey = null;
+  },
+
+  _handleColContextAction(action, colKey) {
+    switch (action) {
+      case 'sort-asc':
+        this._sortDemands(colKey, 'asc');
+        break;
+      case 'sort-desc':
+        this._sortDemands(colKey, 'desc');
+        break;
+      case 'hide':
+        this._hideColumn(colKey);
+        break;
+    }
+  },
+
+  _getColTypeLabel(colKey) {
+    const types = {
+      name: 'Titulo',
+      responsible: 'Pessoa',
+      date: 'Data',
+      priority: 'Selecao',
+      status: 'Selecao',
+    };
+    return types[colKey] || 'Texto';
+  },
+
+  // ═══════════════════════════════════════════════════
+  // SORT
+  // ═══════════════════════════════════════════════════
+
+  _sortDemands(colKey, direction) {
+    const fieldMap = {
+      name: 'title',
+      responsible: 'responsible',
+      date: 'due_date',
+      priority: 'prioridade',
+      status: 'status',
+    };
+    const field = fieldMap[colKey];
+    if (!field) return;
+
+    const priorityOrder = { 'alta': 0, 'high': 0, 'urgente': 0, 'media': 1, 'média': 1, 'medium': 1, 'baixa': 2, 'low': 2 };
+
+    this._demands.sort((a, b) => {
+      let va = a[field] || '';
+      let vb = b[field] || '';
+
+      if (colKey === 'priority') {
+        va = priorityOrder[(va || '').toLowerCase()] ?? 99;
+        vb = priorityOrder[(vb || '').toLowerCase()] ?? 99;
+      } else if (colKey === 'date') {
+        va = va ? new Date(va).getTime() : Infinity;
+        vb = vb ? new Date(vb).getTime() : Infinity;
+      } else {
+        va = (va || '').toLowerCase();
+        vb = (vb || '').toLowerCase();
+      }
+
+      const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+      return direction === 'asc' ? cmp : -cmp;
+    });
+
+    this._reRenderTasks();
+  },
+
+  // ═══════════════════════════════════════════════════
+  // HIDE / SHOW COLUMNS
+  // ═══════════════════════════════════════════════════
+
+  _hideColumn(colKey) {
+    const col = this._COLUMNS.find(c => c.key === colKey);
+    if (!col || col.fixed) return;
+    col.hidden = true;
+    this._applyColumnOrder();
+    this._saveColumnOrder();
+  },
+
+  _showColumn(colKey) {
+    const col = this._COLUMNS.find(c => c.key === colKey);
+    if (!col) return;
+    col.hidden = false;
+    if (!this._columnOrder.includes(colKey)) {
+      this._columnOrder.push(colKey);
+    }
+    this._applyColumnOrder();
+    this._saveColumnOrder();
+  },
+
+  _showAddColumnMenu(anchorEl) {
+    this._closeColContextMenu();
+    const self = this;
+    const hiddenCols = this._COLUMNS.filter(c => c.hidden && !c.fixed);
+
+    const menu = document.createElement('div');
+    menu.className = 'pd-col-context-menu';
+
+    if (hiddenCols.length > 0) {
+      let html = '<div class="pd-col-ctx-label">Colunas ocultas</div>';
+      hiddenCols.forEach(col => {
+        html += `<div class="pd-col-ctx-item" data-action="show" data-col-key="${col.key}">
+          <i data-lucide="eye"></i> <span>${this._esc(col.label)}</span>
+        </div>`;
+      });
+      menu.innerHTML = html;
+    } else {
+      menu.innerHTML = '<div class="pd-col-ctx-label">Todas as colunas estao visiveis</div>';
+    }
+
+    document.body.appendChild(menu);
+    if (typeof lucide !== 'undefined') lucide.createIcons({ root: menu });
+
+    // Position
+    const rect = anchorEl.getBoundingClientRect();
+    const mw = menu.offsetWidth;
+    const vw = window.innerWidth;
+    let left = rect.left;
+    if (left + mw > vw) left = Math.max(0, vw - mw - 8);
+    menu.style.left = left + 'px';
+    menu.style.top = (rect.bottom + 4) + 'px';
+
+    // Store as colCtxMenu so global handler closes it
+    this._colCtxMenu = menu;
+
+    menu.querySelectorAll('[data-action="show"]').forEach(item => {
+      item.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const key = item.dataset.colKey;
+        self._closeColContextMenu();
+        if (key) self._showColumn(key);
+      });
+    });
+
+    menu.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+    });
+  },
+
+  // ═══════════════════════════════════════════════════
+  // DRAG & DROP (Tasks + Sections) — vertical
   // ═══════════════════════════════════════════════════
   //
   // Strategy: Elements are NOT draggable by default.
   // We set draggable="true" on mousedown of the drag handle,
-  // and remove it on mouseup/dragend. This prevents the browser
-  // from hijacking clicks on the row for drag operations.
-  //
+  // and remove it on mouseup/dragend.
 
   _bindDragHandles() {
     const self = this;
@@ -612,7 +1002,7 @@ const TBO_PROJECT_DETAIL = {
       if (!row) return;
 
       handle.addEventListener('mousedown', (e) => {
-        e.stopPropagation(); // don't trigger row click
+        e.stopPropagation();
         row.setAttribute('draggable', 'true');
         self._dragType = 'task';
       });
@@ -623,7 +1013,6 @@ const TBO_PROJECT_DETAIL = {
         row.classList.add('pd-dragging');
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', row.dataset.demandId || '');
-        // Set a small drag image offset so cursor doesn't jump
         if (e.dataTransfer.setDragImage) {
           e.dataTransfer.setDragImage(row, 20, 20);
         }
@@ -671,7 +1060,7 @@ const TBO_PROJECT_DETAIL = {
       });
     });
 
-    // Cleanup draggable on mouseup (in case drag didn't start)
+    // Cleanup draggable on mouseup
     document.addEventListener('mouseup', () => {
       document.querySelectorAll('.pd-task-row[draggable]').forEach(r => r.removeAttribute('draggable'));
       document.querySelectorAll('.pd-section[draggable]').forEach(s => s.removeAttribute('draggable'));
@@ -683,7 +1072,7 @@ const TBO_PROJECT_DETAIL = {
       if (!section) return;
 
       handle.addEventListener('mousedown', (e) => {
-        e.stopPropagation(); // don't trigger section toggle
+        e.stopPropagation();
         section.setAttribute('draggable', 'true');
         self._dragType = 'section';
       });
@@ -737,7 +1126,7 @@ const TBO_PROJECT_DETAIL = {
       });
     });
 
-    // ── Drop on section body (allow dropping tasks into different sections) ──
+    // ── Drop on section body ──
     document.querySelectorAll('.pd-section-body').forEach(body => {
       body.addEventListener('dragover', (e) => {
         if (self._dragType !== 'task') return;
@@ -755,6 +1144,145 @@ const TBO_PROJECT_DETAIL = {
         }
       });
     });
+  },
+
+  // ═══════════════════════════════════════════════════
+  // DRAG & DROP (Columns) — horizontal
+  // ═══════════════════════════════════════════════════
+
+  _bindColumnDrag() {
+    const self = this;
+    const header = document.querySelector('.pd-table-header');
+    if (!header) return;
+
+    // Create drop indicator line (reusable)
+    let dropIndicator = document.createElement('div');
+    dropIndicator.className = 'pd-col-drop-indicator';
+    dropIndicator.style.display = 'none';
+    header.style.position = 'sticky'; // ensure positioning context
+    header.appendChild(dropIndicator);
+
+    let dropColTarget = null;
+    let dropColBefore = false;
+
+    document.querySelectorAll('.pd-col-drag-handle').forEach(handle => {
+      const th = handle.closest('.pd-th');
+      if (!th) return;
+      const colKey = th.dataset.col;
+
+      handle.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        th.setAttribute('draggable', 'true');
+        self._dragType = 'column';
+        self._dragColKey = colKey;
+      });
+
+      th.addEventListener('dragstart', (e) => {
+        if (self._dragType !== 'column') { e.preventDefault(); return; }
+        self._dragEl = th;
+        th.classList.add('pd-col-dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', colKey);
+      });
+
+      th.addEventListener('dragend', () => {
+        th.classList.remove('pd-col-dragging');
+        th.removeAttribute('draggable');
+        dropIndicator.style.display = 'none';
+        self._dragEl = null;
+        self._dragColKey = null;
+        self._dragType = null;
+      });
+    });
+
+    // Dragover on ALL movable header columns
+    document.querySelectorAll('.pd-th[data-draggable-col]').forEach(th => {
+      th.addEventListener('dragover', (e) => {
+        if (self._dragType !== 'column') return;
+        if (th === self._dragEl) {
+          dropIndicator.style.display = 'none';
+          return;
+        }
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+
+        const headerRect = header.getBoundingClientRect();
+        const rect = th.getBoundingClientRect();
+        const midX = rect.left + rect.width / 2;
+        const insertBefore = e.clientX < midX;
+
+        dropIndicator.style.display = 'block';
+        dropIndicator.style.left = ((insertBefore ? rect.left : rect.right) - headerRect.left) + 'px';
+        dropIndicator.style.height = headerRect.height + 'px';
+        dropIndicator.style.top = '0';
+
+        dropColTarget = th.dataset.col;
+        dropColBefore = insertBefore;
+      });
+
+      th.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropIndicator.style.display = 'none';
+
+        if (self._dragType !== 'column' || !self._dragColKey) return;
+
+        const fromKey = self._dragColKey;
+        const toKey = dropColTarget;
+        const before = dropColBefore;
+
+        if (fromKey === toKey) return;
+
+        // Reorder _columnOrder
+        const newOrder = self._columnOrder.filter(k => k !== fromKey);
+        const targetIdx = newOrder.indexOf(toKey);
+        const insertIdx = before ? targetIdx : targetIdx + 1;
+        newOrder.splice(insertIdx, 0, fromKey);
+
+        self._columnOrder = newOrder;
+        self._applyColumnOrder();
+        self._saveColumnOrder();
+      });
+    });
+
+    // Also handle dragover on the "name" column (fixed, for left-edge drop)
+    const nameCol = document.querySelector('.pd-th[data-col="name"]');
+    if (nameCol) {
+      nameCol.addEventListener('dragover', (e) => {
+        if (self._dragType !== 'column') return;
+        e.preventDefault();
+        // Show indicator at right edge of name column
+        const headerRect = header.getBoundingClientRect();
+        const rect = nameCol.getBoundingClientRect();
+        dropIndicator.style.display = 'block';
+        dropIndicator.style.left = (rect.right - headerRect.left) + 'px';
+        dropIndicator.style.height = headerRect.height + 'px';
+        dropIndicator.style.top = '0';
+        dropColTarget = '__name_right__';
+        dropColBefore = true;
+      });
+
+      nameCol.addEventListener('drop', (e) => {
+        if (self._dragType !== 'column' || !self._dragColKey) return;
+        e.preventDefault();
+        e.stopPropagation();
+        dropIndicator.style.display = 'none';
+
+        // Move column to first position
+        const fromKey = self._dragColKey;
+        const newOrder = self._columnOrder.filter(k => k !== fromKey);
+        newOrder.unshift(fromKey);
+        self._columnOrder = newOrder;
+        self._applyColumnOrder();
+        self._saveColumnOrder();
+      });
+    }
+
+    // Cleanup draggable on mouseup
+    const cleanupCols = () => {
+      document.querySelectorAll('.pd-th[draggable]').forEach(th => th.removeAttribute('draggable'));
+    };
+    document.addEventListener('mouseup', cleanupCols);
   },
 
   _clearDropIndicators() {
@@ -795,14 +1323,7 @@ const TBO_PROJECT_DETAIL = {
           <span class="pd-tasks-count">${totalDemands}</span>
         </div>
       </div>
-      <div class="pd-table-header">
-        <div class="pd-th pd-th-drag"></div>
-        <div class="pd-th pd-th-name">Nome da tarefa</div>
-        <div class="pd-th pd-th-responsible">Responsavel</div>
-        <div class="pd-th pd-th-date">Data</div>
-        <div class="pd-th pd-th-priority">Prioridade</div>
-        <div class="pd-th pd-th-status">Status</div>
-      </div>
+      ${this._renderTableHeader()}
       ${this._renderSections()}
     `;
 
@@ -886,12 +1407,17 @@ const TBO_PROJECT_DETAIL = {
 
   destroy() {
     this._closeContextMenu();
+    this._closeColContextMenu();
     this._project = null;
     this._demands = [];
     this._params = null;
     this._loaded = false;
     this._dragEl = null;
     this._dragType = null;
+    this._dragColKey = null;
+    this._columnOrder = null;
+    // Reset hidden state to defaults
+    this._COLUMNS.forEach(c => c.hidden = false);
   },
 
   init() {}

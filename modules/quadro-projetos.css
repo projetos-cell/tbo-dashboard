@@ -39,7 +39,7 @@
   padding: 6px 10px;
   border: 1px solid var(--border);
   border-radius: 7px;
-  background: var(--bg-secondary);
+  background: var(--bg-card-hover);
   color: var(--text-primary);
   font-size: 0.82rem;
   width: 180px;
@@ -52,7 +52,7 @@
   padding: 5px 8px;
   border: 1px solid var(--border);
   border-radius: 7px;
-  background: var(--bg-secondary);
+  background: var(--bg-card-hover);
   color: var(--text-primary);
   font-size: 0.8rem;
   cursor: pointer;
@@ -68,7 +68,7 @@
 
 .qp-view-btn {
   padding: 5px 9px;
-  background: var(--bg-secondary);
+  background: var(--bg-card-hover);
   border: none;
   color: var(--text-muted);
   cursor: pointer;
@@ -93,7 +93,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  background: var(--bg-secondary);
+  background: var(--bg-card-hover);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px 14px;
@@ -108,7 +108,7 @@
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: var(--bg-card, var(--bg-primary));
+  background: var(--bg-card);
   flex-shrink: 0;
 }
 
@@ -149,7 +149,7 @@
 .qp-column {
   flex: 0 0 240px;
   width: 240px;
-  background: var(--bg-secondary);
+  background: var(--bg-card-hover);
   border-radius: 10px;
   border: 1px solid var(--border);
   overflow: hidden;
@@ -197,7 +197,7 @@
 
 /* ── Card ──────────────────────────────────────────── */
 .qp-card {
-  background: var(--bg-primary);
+  background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px;
@@ -286,7 +286,7 @@
   gap: 3px;
   font-size: 0.68rem;
   color: var(--text-muted);
-  background: var(--bg-secondary);
+  background: var(--bg-card-hover);
   border: 1px solid var(--border);
   border-radius: 5px;
   padding: 2px 6px;
@@ -320,7 +320,7 @@
   color: var(--text-primary);
 }
 
-.qp-row:hover td { background: var(--bg-secondary); }
+.qp-row:hover td { background: var(--bg-card-hover); }
 
 .qp-row-name { max-width: 220px; }
 .qp-row-name-text { font-weight: 500; }
@@ -329,7 +329,7 @@
   margin-left: 6px;
   font-size: 0.68rem;
   color: var(--text-muted);
-  background: var(--bg-secondary);
+  background: var(--bg-card-hover);
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 1px 5px;
@@ -356,7 +356,7 @@
    O left é calculado via JS para começar após a sidebar.  */
 .qp-detail-panel {
   position: fixed;
-  top: 0;
+  /* top é definido via JS em _positionDetailPanel() para começar abaixo da toolbar */
   bottom: 0;
   /* right e width são definidos via JS em _positionDetailPanel()
      para alinhar exatamente com a borda do #main-content */
@@ -367,7 +367,7 @@
 .qp-detail-drawer {
   position: absolute;
   inset: 0;
-  background: var(--bg-primary);
+  background: var(--bg-card);
   border-left: 1px solid var(--border);
   box-shadow: -6px 0 24px rgba(0,0,0,0.10);
   display: flex;
@@ -440,7 +440,7 @@
   align-items: center;
   transition: background 0.15s, color 0.15s;
 }
-.qp-detail-close:hover { background: var(--bg-secondary); color: var(--text-primary); }
+.qp-detail-close:hover { background: var(--bg-card-hover); color: var(--text-primary); }
 
 .qp-detail-body {
   flex: 1;
@@ -504,7 +504,7 @@
 }
 
 .qp-demand-item {
-  background: var(--bg-secondary);
+  background: var(--bg-card-hover);
   border: 1px solid var(--border);
   border-radius: 7px;
   padding: 8px 10px;
@@ -572,14 +572,14 @@
   min-height: 0;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: var(--bg-primary);
+  background: var(--bg-card);
 }
 
 .qp-gantt-header-row {
   display: flex;
   align-items: stretch;
   border-bottom: 2px solid var(--border);
-  background: var(--bg-secondary);
+  background: var(--bg-card-hover);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -597,7 +597,7 @@
   letter-spacing: 0.04em;
   border-right: 1px solid var(--border);
   flex-shrink: 0;
-  background: var(--bg-secondary);
+  background: var(--bg-card-hover);
   position: sticky;
   left: 0;
   z-index: 11;
@@ -665,9 +665,9 @@
   transition: background 0.1s;
   border-bottom: 1px solid var(--border);
 }
-.qp-gantt-row:hover { background: var(--bg-secondary); }
+.qp-gantt-row:hover { background: var(--bg-card-hover); }
 .qp-gantt-row-alt   { background: rgba(0,0,0,0.015); }
-.qp-gantt-row-alt:hover { background: var(--bg-secondary); }
+.qp-gantt-row-alt:hover { background: var(--bg-card-hover); }
 
 .qp-gantt-label {
   display: flex;
@@ -773,7 +773,7 @@
 
 /* ── Skeleton (reutiliza classe .skeleton do app) ──── */
 .skeleton {
-  background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--border) 50%, var(--bg-secondary) 75%);
+  background: linear-gradient(90deg, var(--bg-card-hover) 25%, var(--border) 50%, var(--bg-card-hover) 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.4s infinite;
 }

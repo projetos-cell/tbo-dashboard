@@ -695,18 +695,22 @@ const TBO_QUADRO_PROJETOS = {
   },
 
   // Posiciona o drawer fixed colado na borda DIREITA do #main-content,
-  // sem sobrepor a sidebar nem sair da área de conteúdo.
+  // começando abaixo da toolbar para não cobri-la.
   _positionDetailPanel(panel) {
     const p = panel || document.getElementById('qpDetailPanel');
     if (!p) return;
     const main = document.getElementById('main-content');
     if (!main) return;
     const rect = main.getBoundingClientRect();
+    // Começa abaixo da toolbar (.qp-toolbar) para não cobrir os filtros
+    const toolbar = document.querySelector('.qp-toolbar');
+    const top = toolbar ? Math.round(toolbar.getBoundingClientRect().bottom) : Math.round(rect.top);
     // Largura: 380px ou 40% do main, o que for menor
     const w = Math.min(380, Math.round(rect.width * 0.42));
     p.style.width  = w + 'px';
     p.style.right  = (window.innerWidth - rect.right) + 'px';
     p.style.left   = 'auto';
+    p.style.top    = top + 'px';
   },
 
   _closeDetail() {

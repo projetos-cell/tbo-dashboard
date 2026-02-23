@@ -1,0 +1,697 @@
+/* ============================================================================
+ * TBO OS — Demand Drawer (Painel lateral direito para detalhes de demanda)
+ * ============================================================================ */
+
+/* ── Overlay ─────────────────────────────────────── */
+.dd-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.18);
+  z-index: 899;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.dd-overlay--visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── Panel ────────────────────────────────────────── */
+.dd-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 520px;
+  max-width: 96vw;
+  z-index: 900;
+  background: var(--bg-primary, #ffffff);
+  border-left: 1px solid var(--border, #e5e7eb);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.08);
+  transform: translateX(100%);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dd-panel--open {
+  transform: translateX(0);
+}
+
+/* ── Header ───────────────────────────────────────── */
+.dd-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+  flex-shrink: 0;
+  background: var(--bg-primary, #ffffff);
+}
+
+.dd-header-entity {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted, #9ca3af);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dd-header-entity i {
+  width: 14px;
+  height: 14px;
+}
+
+.dd-header-spacer {
+  flex: 1;
+}
+
+.dd-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.dd-header-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-muted, #9ca3af);
+  transition: all 0.15s ease;
+}
+
+.dd-header-btn:hover {
+  background: var(--bg-card-hover, #f3f4f6);
+  color: var(--text-primary, #111827);
+}
+
+.dd-header-btn i {
+  width: 16px;
+  height: 16px;
+}
+
+/* ── Body (scrollable) ────────────────────────────── */
+.dd-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.dd-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.dd-body::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 2px;
+}
+
+.dd-body:hover::-webkit-scrollbar-thumb {
+  background: var(--brand-gray-400, #9ca3af);
+}
+
+/* ── Title ────────────────────────────────────────── */
+.dd-title-section {
+  padding: 20px 20px 0;
+}
+
+.dd-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+  line-height: 1.35;
+  margin: 0 0 4px;
+  word-break: break-word;
+}
+
+.dd-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.dd-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.dd-priority-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* ── Fields (metadata grid) ───────────────────────── */
+.dd-fields {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+}
+
+.dd-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border-subtle, #f3f4f6);
+  min-height: 38px;
+}
+
+.dd-field:last-child {
+  border-bottom: none;
+}
+
+.dd-field-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted, #9ca3af);
+  flex-shrink: 0;
+}
+
+.dd-field-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted, #9ca3af);
+  min-width: 110px;
+  flex-shrink: 0;
+}
+
+.dd-field-value {
+  font-size: 13px;
+  color: var(--text-primary, #111827);
+  flex: 1;
+  min-width: 0;
+}
+
+.dd-field-value--empty {
+  color: var(--text-muted, #9ca3af);
+  font-style: italic;
+  font-size: 12px;
+}
+
+/* ── Linked project badge ─────────────────────────── */
+.dd-linked-project {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--bg-card-hover, #f9fafb);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.dd-linked-project:hover {
+  background: var(--border-subtle, #f3f4f6);
+}
+
+.dd-linked-project-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dd-linked-project-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dd-linked-project-stage {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+  white-space: nowrap;
+}
+
+.dd-linked-project-status {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* ── Section separator ────────────────────────────── */
+.dd-section {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+}
+
+.dd-section:last-child {
+  border-bottom: none;
+}
+
+.dd-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted, #9ca3af);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 12px;
+}
+
+.dd-section-header i {
+  width: 14px;
+  height: 14px;
+}
+
+.dd-section-header-count {
+  font-size: 10px;
+  font-weight: 500;
+  background: var(--bg-card-hover, #f3f4f6);
+  border-radius: 8px;
+  padding: 1px 6px;
+  margin-left: 4px;
+}
+
+/* ── Description ──────────────────────────────────── */
+.dd-description-text {
+  font-size: 13px;
+  color: var(--text-secondary, #6b7280);
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.dd-description-empty {
+  font-size: 13px;
+  color: var(--text-muted, #9ca3af);
+  font-style: italic;
+}
+
+/* ── Subtasks ─────────────────────────────────────── */
+.dd-subtasks-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.dd-subtasks-bar-track {
+  flex: 1;
+  height: 4px;
+  background: var(--border, #e5e7eb);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.dd-subtasks-bar-fill {
+  height: 100%;
+  background: var(--accent, #E85102);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.dd-subtasks-bar-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted, #9ca3af);
+  white-space: nowrap;
+}
+
+.dd-subtask-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.dd-subtask-check {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 2px solid var(--border, #d1d5db);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.dd-subtask-check:hover {
+  border-color: var(--accent, #E85102);
+}
+
+.dd-subtask-check--done {
+  background: var(--accent, #E85102);
+  border-color: var(--accent, #E85102);
+}
+
+.dd-subtask-check--done i {
+  color: #fff;
+}
+
+.dd-subtask-title {
+  font-size: 13px;
+  color: var(--text-primary, #111827);
+  flex: 1;
+}
+
+.dd-subtask-title--done {
+  text-decoration: line-through;
+  color: var(--text-muted, #9ca3af);
+}
+
+/* ── Attachments ──────────────────────────────────── */
+.dd-attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--bg-card-hover, #f9fafb);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.dd-attachment-item:hover {
+  background: var(--border-subtle, #f3f4f6);
+}
+
+.dd-attachment-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dd-attachment-icon i {
+  width: 16px;
+  height: 16px;
+}
+
+.dd-attachment-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.dd-attachment-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary, #111827);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dd-attachment-meta {
+  font-size: 11px;
+  color: var(--text-muted, #9ca3af);
+}
+
+.dd-attachments-empty {
+  font-size: 12px;
+  color: var(--text-muted, #9ca3af);
+  font-style: italic;
+  text-align: center;
+  padding: 8px;
+}
+
+/* ── Comments ─────────────────────────────────────── */
+.dd-comment {
+  display: flex;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle, #f3f4f6);
+}
+
+.dd-comment:last-child {
+  border-bottom: none;
+}
+
+.dd-comment-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent, #E85102);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dd-comment-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.dd-comment-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.dd-comment-author {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+}
+
+.dd-comment-time {
+  font-size: 11px;
+  color: var(--text-muted, #9ca3af);
+}
+
+.dd-comment-text {
+  font-size: 13px;
+  color: var(--text-secondary, #6b7280);
+  line-height: 1.5;
+}
+
+.dd-comment-input-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle, #f3f4f6);
+}
+
+.dd-comment-input {
+  flex: 1;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-primary, #111827);
+  background: var(--bg-card-hover, #f9fafb);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  padding: 8px 12px;
+  outline: none;
+  resize: none;
+  min-height: 36px;
+  max-height: 100px;
+  transition: border-color 0.15s;
+}
+
+.dd-comment-input:focus {
+  border-color: var(--accent, #E85102);
+}
+
+.dd-comment-input::placeholder {
+  color: var(--text-muted, #9ca3af);
+}
+
+.dd-comment-send {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--accent, #E85102);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.dd-comment-send:hover {
+  opacity: 0.85;
+}
+
+.dd-comment-send i {
+  width: 16px;
+  height: 16px;
+}
+
+.dd-comments-empty {
+  font-size: 12px;
+  color: var(--text-muted, #9ca3af);
+  font-style: italic;
+  text-align: center;
+  padding: 8px;
+}
+
+/* ── Collaborators ────────────────────────────────── */
+.dd-collaborators {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: wrap;
+}
+
+.dd-collaborator {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent, #E85102);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-primary, #fff);
+  margin-left: -6px;
+  cursor: default;
+  position: relative;
+}
+
+.dd-collaborator:first-child {
+  margin-left: 0;
+}
+
+.dd-collaborator[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: #fff;
+  background: #374151;
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.dd-add-collaborator {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-card-hover, #f3f4f6);
+  border: 2px dashed var(--border, #d1d5db);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: -6px;
+  cursor: pointer;
+  color: var(--text-muted, #9ca3af);
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.dd-add-collaborator:hover {
+  border-color: var(--accent, #E85102);
+  color: var(--accent, #E85102);
+}
+
+.dd-add-collaborator i {
+  width: 14px;
+  height: 14px;
+}
+
+.dd-collaborators-empty {
+  font-size: 12px;
+  color: var(--text-muted, #9ca3af);
+  font-style: italic;
+}
+
+/* ── Notion link footer ───────────────────────────── */
+.dd-notion-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent, #E85102);
+  text-decoration: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.dd-notion-link:hover {
+  background: rgba(232, 81, 2, 0.06);
+  text-decoration: underline;
+}
+
+.dd-notion-link i {
+  width: 13px;
+  height: 13px;
+}
+
+/* ── Responsive ───────────────────────────────────── */
+@media (max-width: 640px) {
+  .dd-panel {
+    width: 100vw;
+    max-width: 100vw;
+  }
+}
+
+/* ── Dark mode ────────────────────────────────────── */
+body.dark-mode .dd-panel {
+  border-left-color: var(--border);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .dd-overlay {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .dd-collaborator {
+  border-color: var(--bg-primary);
+}

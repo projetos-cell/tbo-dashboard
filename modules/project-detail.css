@@ -344,7 +344,7 @@
   min-height: 42px;
   border-bottom: 1px solid var(--border);
   transition: background 0.1s;
-  cursor: default;
+  cursor: pointer;
 }
 .pd-task-row:last-child {
   border-bottom: none;

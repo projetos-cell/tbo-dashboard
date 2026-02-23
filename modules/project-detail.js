@@ -369,6 +369,19 @@ const TBO_PROJECT_DETAIL = {
         if (chevron) chevron.style.transform = section.classList.contains('pd-section-collapsed') ? 'rotate(-90deg)' : '';
       });
     });
+
+    // Task row click → open demand drawer
+    document.querySelectorAll('.pd-task-row[data-demand-id]').forEach(row => {
+      row.addEventListener('click', (e) => {
+        // Don't open drawer if clicking a link or the check
+        if (e.target.closest('a') || e.target.closest('.pd-check')) return;
+        const demandId = row.dataset.demandId;
+        const demand = this._demands.find(d => d.id === demandId);
+        if (demand && typeof TBO_DEMAND_DRAWER !== 'undefined') {
+          TBO_DEMAND_DRAWER.open(demand, this._project);
+        }
+      });
+    });
   },
 
   _renderError(msg) {

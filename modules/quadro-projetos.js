@@ -671,10 +671,17 @@ const TBO_QUADRO_PROJETOS = {
       </div>
     `;
 
-    // Ancoramos no #main-content que tem position:relative e abrange a área visível
-    const anchor = document.getElementById('main-content') || document.body;
-    anchor.appendChild(panel);
+    // Vai para document.body com position:fixed.
+    // Calculamos o left = borda esquerda do #main-content para o drawer
+    // ficar apenas dentro da área do conteúdo (não sobre a sidebar).
+    document.body.appendChild(panel);
+    this._positionDetailPanel(panel);
+
     if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    // Reposiciona se a janela for redimensionada
+    this._detailResizeHandler = () => this._positionDetailPanel(panel);
+    window.addEventListener('resize', this._detailResizeHandler);
 
     // Fecha ao clicar fora do drawer
     this._detailOutsideHandler = (e) => {
@@ -687,11 +694,30 @@ const TBO_QUADRO_PROJETOS = {
     this._loadDetailDemands(projectId);
   },
 
+  // Posiciona o drawer fixed colado na borda DIREITA do #main-content,
+  // sem sobrepor a sidebar nem sair da área de conteúdo.
+  _positionDetailPanel(panel) {
+    const p = panel || document.getElementById('qpDetailPanel');
+    if (!p) return;
+    const main = document.getElementById('main-content');
+    if (!main) return;
+    const rect = main.getBoundingClientRect();
+    // Largura: 380px ou 40% do main, o que for menor
+    const w = Math.min(380, Math.round(rect.width * 0.42));
+    p.style.width  = w + 'px';
+    p.style.right  = (window.innerWidth - rect.right) + 'px';
+    p.style.left   = 'auto';
+  },
+
   _closeDetail() {
     document.getElementById('qpDetailPanel')?.remove();
     if (this._detailOutsideHandler) {
       document.removeEventListener('click', this._detailOutsideHandler);
       this._detailOutsideHandler = null;
+    }
+    if (this._detailResizeHandler) {
+      window.removeEventListener('resize', this._detailResizeHandler);
+      this._detailResizeHandler = null;
     }
   },
 

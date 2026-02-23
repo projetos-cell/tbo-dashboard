@@ -352,25 +352,21 @@
 }
 
 /* ── Detail Panel ──────────────────────────────────── */
-/* position:fixed → sempre visível na borda direita da viewport,
-   sem sobrepor com overlay, sem ser cortado por overflow do pai */
+/* O panel usa position:fixed alinhado ao #main-content.
+   O left é calculado via JS para começar após a sidebar.  */
 .qp-detail-panel {
   position: fixed;
   top: 0;
-  right: 0;
   bottom: 0;
-  width: 400px;
-  max-width: 45vw;
-  z-index: 350;   /* acima do conteúdo (200) mas abaixo da sidebar/header (400+) */
+  /* right e width são definidos via JS em _positionDetailPanel()
+     para alinhar exatamente com a borda do #main-content */
+  z-index: 350;
   pointer-events: none;
 }
 
 .qp-detail-drawer {
   position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
+  inset: 0;
   background: var(--bg-primary);
   border-left: 1px solid var(--border);
   box-shadow: -6px 0 24px rgba(0,0,0,0.10);

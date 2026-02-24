@@ -2783,6 +2783,9 @@ const TBO_PROJECT_DETAIL = {
                   ${cards.map(d => this._renderKanbanCard(d)).join('')}
                   ${cards.length === 0 ? '<div class="pd-kanban-placeholder">Arraste tarefas aqui</div>' : ''}
                 </div>
+                <button class="pd-kanban-add-task-btn" data-kanban-add-task="${this._esc(col.status)}">
+                  <i data-lucide="plus" style="width:13px;height:13px;"></i> Adicionar tarefa
+                </button>
               </div>
             `;
           }).join('')}
@@ -2799,6 +2802,9 @@ const TBO_PROJECT_DETAIL = {
                   ${cards.map(d => this._renderKanbanCard(d)).join('')}
                   ${cards.length === 0 ? '<div class="pd-kanban-placeholder">Arraste tarefas aqui</div>' : ''}
                 </div>
+                <button class="pd-kanban-add-task-btn" data-kanban-add-task-section="${this._esc(sec.key)}">
+                  <i data-lucide="plus" style="width:13px;height:13px;"></i> Adicionar tarefa
+                </button>
               </div>
             `;
           }).join('')}
@@ -2881,12 +2887,28 @@ const TBO_PROJECT_DETAIL = {
     const isLate = this._isLate(d);
     return `
       <div class="pd-kanban-card ${isDone ? 'pd-kanban-card--done' : ''}" data-kanban-id="${d.id}">
-        <div class="pd-kanban-card-title">${this._esc(d.title)}</div>
-        <div class="pd-kanban-card-meta">
+        <div class="pd-kanban-card-top">
+          <button class="pd-task-check ${isDone ? 'pd-task-check--done' : ''}" data-kanban-check="${d.id}" title="${isDone ? 'Reabrir' : 'Concluir'}">
+            <i data-lucide="${isDone ? 'check-circle-2' : 'circle'}" style="width:16px;height:16px;"></i>
+          </button>
+          <span class="pd-task-title ${isDone ? 'pd-task-strikethrough' : ''}" data-kanban-title="${d.id}">${this._esc(d.title)}</span>
+        </div>
+        <div class="pd-task-fields">
           ${d.responsible ? `<span class="pd-kanban-card-responsible"><span class="pd-avatar-small" title="${this._esc(d.responsible)}">${this._initials(d.responsible)}</span><span class="pd-kanban-card-resp-name">${this._esc(d.responsible)}</span></span>` : ''}
           ${d.due_date ? `<span class="pd-kanban-card-date ${isLate ? 'pd-kanban-card-date--late' : ''}"><i data-lucide="calendar" style="width:11px;height:11px;"></i>${this._fmtDate(d.due_date)}</span>` : ''}
+          ${d.prioridade ? this._renderPriority(d.prioridade) : ''}
         </div>
-        ${d.prioridade ? `<div class="pd-kanban-card-footer">${this._renderPriority(d.prioridade)}</div>` : ''}
+        <div class="pd-kanban-card-actions">
+          <button class="pd-kanban-action-btn pd-task-assignee" data-kanban-assign="${d.id}" title="Atribuir responsavel">
+            <i data-lucide="user-plus" style="width:13px;height:13px;"></i>
+          </button>
+          <button class="pd-kanban-action-btn pd-task-due-date" data-kanban-date="${d.id}" title="Adicionar data">
+            <i data-lucide="calendar-plus" style="width:13px;height:13px;"></i>
+          </button>
+          <button class="pd-kanban-action-btn pd-task-add-field" data-kanban-field="${d.id}" title="Adicionar campo">
+            <i data-lucide="plus-square" style="width:13px;height:13px;"></i>
+          </button>
+        </div>
       </div>
     `;
   },
@@ -2894,10 +2916,11 @@ const TBO_PROJECT_DETAIL = {
   _bindKanbanEvents() {
     const self = this;
 
-    // Card click -> open drawer
+    // ── Card click → open drawer (skip if interacted with action buttons) ──
     document.querySelectorAll('.pd-kanban-card').forEach(card => {
       card.addEventListener('click', (e) => {
         if (self._kanbanDragState) return;
+        if (e.target.closest('.pd-task-check') || e.target.closest('.pd-kanban-action-btn') || e.target.closest('.pd-kanban-inline-edit')) return;
         const demandId = card.dataset.kanbanId;
         const demand = self._demands.find(d => d.id === demandId);
         if (demand && typeof TBO_DEMAND_DRAWER !== 'undefined') {
@@ -2906,7 +2929,26 @@ const TBO_PROJECT_DETAIL = {
       });
     });
 
-    // Add section button
+    // ── Card interactions ──
+    this._bindKanbanCardEvents();
+
+    // ── Add task buttons per column ──
+    document.querySelectorAll('.pd-kanban-add-task-btn[data-kanban-add-task]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const status = btn.dataset.kanbanAddTask;
+        self._showKanbanInlineCreateTask(btn.closest('.pd-kanban-column'), status, null);
+      });
+    });
+    document.querySelectorAll('.pd-kanban-add-task-btn[data-kanban-add-task-section]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const sectionKey = btn.dataset.kanbanAddTaskSection;
+        self._showKanbanInlineCreateTask(btn.closest('.pd-kanban-column'), null, sectionKey);
+      });
+    });
+
+    // ── Add section button ──
     const addSectionBtn = document.querySelector('.pd-kanban-add-section-btn');
     const addSectionInline = document.querySelector('.pd-kanban-add-section-inline');
     const addSectionInput = document.querySelector('.pd-kanban-add-section-input');
@@ -2945,6 +2987,302 @@ const TBO_PROJECT_DETAIL = {
 
     // Kanban drag using pointer events
     this._bindKanbanDrag();
+  },
+
+  // ═══════════════════════════════════════════════════
+  // KANBAN: Card interactions (check, inline edit, assign, date, add field)
+  // ═══════════════════════════════════════════════════
+
+  _bindKanbanCardEvents() {
+    const self = this;
+
+    // ── Check circle → toggle completion ──
+    document.querySelectorAll('.pd-task-check[data-kanban-check]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const demandId = btn.dataset.kanbanCheck;
+        const demand = self._demands.find(d => d.id === demandId);
+        if (!demand) return;
+        const isDone = self._isDone(demand);
+        const newStatus = isDone ? 'A fazer' : 'Concluido';
+        const newFeito = !isDone;
+        try {
+          const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+          if (client && !String(demandId).startsWith('temp_')) {
+            await client.from('demands').update({ status: newStatus, feito: newFeito }).eq('id', demandId);
+          }
+          demand.status = newStatus;
+          demand.feito = newFeito;
+        } catch (err) { console.error('[PD] kanban check error:', err); }
+        // Re-render kanban
+        self._switchTab();
+      });
+    });
+
+    // ── Inline title editing (double-click) ──
+    document.querySelectorAll('.pd-task-title[data-kanban-title]').forEach(titleEl => {
+      titleEl.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        const demandId = titleEl.dataset.kanbanTitle;
+        const demand = self._demands.find(d => d.id === demandId);
+        if (!demand) return;
+
+        const current = demand.title || '';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'pd-kanban-inline-edit';
+        input.value = current;
+        titleEl.replaceWith(input);
+        input.focus();
+        input.select();
+
+        let committed = false;
+        const commit = async () => {
+          if (committed) return;
+          committed = true;
+          const newTitle = input.value.trim();
+          if (newTitle && newTitle !== current) {
+            demand.title = newTitle;
+            try {
+              const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+              if (client && !String(demandId).startsWith('temp_')) {
+                await client.from('demands').update({ title: newTitle }).eq('id', demandId);
+              }
+            } catch (err) { console.error('[PD] kanban title edit error:', err); }
+          }
+          self._switchTab();
+        };
+
+        input.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter') { ev.preventDefault(); commit(); }
+          if (ev.key === 'Escape') { ev.preventDefault(); self._switchTab(); }
+        });
+        input.addEventListener('blur', () => setTimeout(commit, 80));
+      });
+    });
+
+    // ── Assign responsible ──
+    document.querySelectorAll('[data-kanban-assign]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const demandId = btn.dataset.kanbanAssign;
+        const demand = self._demands.find(d => d.id === demandId);
+        if (!demand) return;
+        self._showKanbanAssignPopover(btn, demand);
+      });
+    });
+
+    // ── Set due date ──
+    document.querySelectorAll('[data-kanban-date]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const demandId = btn.dataset.kanbanDate;
+        const demand = self._demands.find(d => d.id === demandId);
+        if (!demand) return;
+        self._showKanbanDatePicker(btn, demand);
+      });
+    });
+
+    // ── Add field (opens drawer for now) ──
+    document.querySelectorAll('[data-kanban-field]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const demandId = btn.dataset.kanbanField;
+        const demand = self._demands.find(d => d.id === demandId);
+        if (demand && typeof TBO_DEMAND_DRAWER !== 'undefined') {
+          TBO_DEMAND_DRAWER.open(demand, self._project);
+        }
+      });
+    });
+  },
+
+  // ── Kanban: Inline task creation in column ──
+  _showKanbanInlineCreateTask(columnEl, status, sectionKey) {
+    if (!columnEl) return;
+    const self = this;
+    const body = columnEl.querySelector('.pd-kanban-col-body');
+    if (!body) return;
+
+    // Don't duplicate
+    const existing = body.querySelector('.pd-kanban-inline-task-input');
+    if (existing) { existing.focus(); return; }
+
+    const row = document.createElement('div');
+    row.className = 'pd-kanban-inline-task-row';
+    row.innerHTML = `<input class="pd-kanban-inline-task-input" placeholder="Adicionar tarefa..." autocomplete="off" />`;
+    body.appendChild(row);
+
+    const input = row.querySelector('input');
+    input.focus();
+    let isCommitting = false;
+
+    const commit = async () => {
+      if (isCommitting) return;
+      const title = input.value.trim();
+      if (!title) { cleanup(); return; }
+      isCommitting = true;
+      input.disabled = true;
+      input.style.opacity = '0.5';
+
+      const defaultStatus = status || 'A fazer';
+      const newDemand = {
+        project_id: self._project?.id || null,
+        tenant_id: self._project?.tenant_id || null,
+        title: title,
+        status: defaultStatus,
+        feito: false,
+      };
+
+      try {
+        const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+        if (client) {
+          const { data, error } = await client.from('demands').insert(newDemand).select().single();
+          if (!error && data) {
+            self._demands.unshift(data);
+            if (sectionKey) self._sectionOverrides[data.id] = sectionKey;
+          } else {
+            newDemand.id = 'temp_' + Date.now();
+            self._demands.unshift(newDemand);
+            if (sectionKey) self._sectionOverrides[newDemand.id] = sectionKey;
+          }
+        } else {
+          newDemand.id = 'temp_' + Date.now();
+          self._demands.unshift(newDemand);
+          if (sectionKey) self._sectionOverrides[newDemand.id] = sectionKey;
+        }
+      } catch (err) {
+        console.error('[PD] kanban inline create error:', err);
+        newDemand.id = 'temp_' + Date.now();
+        self._demands.unshift(newDemand);
+        if (sectionKey) self._sectionOverrides[newDemand.id] = sectionKey;
+      }
+
+      self._switchTab();
+      self._updateTopBarProgress();
+    };
+
+    const cleanup = () => {
+      input.removeEventListener('blur', onBlur);
+      input.removeEventListener('keydown', onKey);
+      row.remove();
+    };
+
+    const onKey = (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); commit(); }
+      if (e.key === 'Escape') { e.preventDefault(); cleanup(); }
+    };
+    const onBlur = () => { setTimeout(() => { if (!isCommitting) cleanup(); }, 120); };
+
+    input.addEventListener('keydown', onKey);
+    input.addEventListener('blur', onBlur);
+  },
+
+  // ── Kanban: Assign responsible popover ──
+  _showKanbanAssignPopover(anchorEl, demand) {
+    const self = this;
+    // Remove any existing popover
+    document.querySelectorAll('.pd-kanban-popover').forEach(p => p.remove());
+
+    // Get unique responsible names from demands
+    const names = [...new Set(self._demands.map(d => d.responsible).filter(Boolean))].sort();
+
+    const popover = document.createElement('div');
+    popover.className = 'pd-kanban-popover';
+    popover.innerHTML = `
+      <input type="text" class="pd-kanban-popover-search" placeholder="Nome do responsavel..." value="${self._esc(demand.responsible || '')}">
+      ${names.length > 0 ? `<div class="pd-kanban-popover-list">${names.map(n => `<div class="pd-kanban-popover-item" data-value="${self._esc(n)}">${self._esc(n)}</div>`).join('')}</div>` : ''}
+    `;
+
+    // Position relative to anchor
+    const rect = anchorEl.getBoundingClientRect();
+    popover.style.cssText = `position:fixed;top:${rect.bottom + 4}px;left:${rect.left}px;z-index:9999;`;
+    document.body.appendChild(popover);
+
+    const searchInput = popover.querySelector('.pd-kanban-popover-search');
+    searchInput.focus();
+    searchInput.select();
+
+    const applyAssign = async (name) => {
+      demand.responsible = name || null;
+      try {
+        const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+        if (client && !String(demand.id).startsWith('temp_')) {
+          await client.from('demands').update({ responsible: demand.responsible }).eq('id', demand.id);
+        }
+      } catch (err) { console.error('[PD] kanban assign error:', err); }
+      popover.remove();
+      self._switchTab();
+    };
+
+    popover.querySelectorAll('.pd-kanban-popover-item').forEach(item => {
+      item.addEventListener('click', () => applyAssign(item.dataset.value));
+    });
+
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); applyAssign(searchInput.value.trim()); }
+      if (e.key === 'Escape') { e.preventDefault(); popover.remove(); }
+    });
+
+    // Close on outside click
+    setTimeout(() => {
+      const closeHandler = (e) => {
+        if (!popover.contains(e.target)) { popover.remove(); document.removeEventListener('pointerdown', closeHandler); }
+      };
+      document.addEventListener('pointerdown', closeHandler);
+    }, 10);
+  },
+
+  // ── Kanban: Date picker ──
+  _showKanbanDatePicker(anchorEl, demand) {
+    const self = this;
+    document.querySelectorAll('.pd-kanban-popover').forEach(p => p.remove());
+
+    const popover = document.createElement('div');
+    popover.className = 'pd-kanban-popover';
+    popover.innerHTML = `
+      <label style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:4px;display:block;">Data de entrega</label>
+      <input type="date" class="pd-kanban-popover-date" value="${demand.due_date ? demand.due_date.substring(0, 10) : ''}">
+      <div style="display:flex;gap:6px;margin-top:6px;">
+        <button class="pd-kanban-popover-apply" style="flex:1;">Aplicar</button>
+        ${demand.due_date ? '<button class="pd-kanban-popover-clear">Limpar</button>' : ''}
+      </div>
+    `;
+
+    const rect = anchorEl.getBoundingClientRect();
+    popover.style.cssText = `position:fixed;top:${rect.bottom + 4}px;left:${rect.left}px;z-index:9999;`;
+    document.body.appendChild(popover);
+
+    const dateInput = popover.querySelector('.pd-kanban-popover-date');
+    dateInput.focus();
+
+    const applyDate = async (dateVal) => {
+      demand.due_date = dateVal || null;
+      try {
+        const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+        if (client && !String(demand.id).startsWith('temp_')) {
+          await client.from('demands').update({ due_date: demand.due_date }).eq('id', demand.id);
+        }
+      } catch (err) { console.error('[PD] kanban date error:', err); }
+      popover.remove();
+      self._switchTab();
+    };
+
+    popover.querySelector('.pd-kanban-popover-apply').addEventListener('click', () => applyDate(dateInput.value || null));
+    const clearBtn = popover.querySelector('.pd-kanban-popover-clear');
+    if (clearBtn) clearBtn.addEventListener('click', () => applyDate(null));
+
+    dateInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); applyDate(dateInput.value || null); }
+      if (e.key === 'Escape') { e.preventDefault(); popover.remove(); }
+    });
+
+    setTimeout(() => {
+      const closeHandler = (e) => {
+        if (!popover.contains(e.target)) { popover.remove(); document.removeEventListener('pointerdown', closeHandler); }
+      };
+      document.addEventListener('pointerdown', closeHandler);
+    }, 10);
   },
 
   _bindKanbanDrag() {

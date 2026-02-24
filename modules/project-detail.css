@@ -2037,20 +2037,6 @@ body.dark-mode .pd-status-dropdown:hover {
 .pd-kanban-card--done {
   opacity: 0.6;
 }
-.pd-kanban-card-title {
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: var(--text-primary);
-  margin-bottom: 8px;
-  line-height: 1.4;
-  word-break: break-word;
-}
-.pd-kanban-card-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
 .pd-kanban-card-responsible {
   display: inline-flex;
   align-items: center;
@@ -2075,12 +2061,185 @@ body.dark-mode .pd-status-dropdown:hover {
   color: #ef4444;
   font-weight: 600;
 }
-.pd-kanban-card-footer {
-  margin-top: 6px;
-}
 .pd-kanban-ghost {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
   transform: rotate(2deg) !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   KANBAN: Card enhancements
+   ═══════════════════════════════════════════════════ */
+.pd-kanban-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.pd-kanban-card-top .pd-task-check {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  margin-top: 1px;
+  transition: color 0.15s;
+}
+.pd-kanban-card-top .pd-task-check:hover {
+  color: var(--accent);
+}
+.pd-kanban-card-top .pd-task-check--done {
+  color: #22c55e;
+}
+.pd-kanban-card-top .pd-task-title {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.4;
+  word-break: break-word;
+  cursor: text;
+  flex: 1;
+  min-width: 0;
+}
+.pd-kanban-card-top .pd-task-strikethrough {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+.pd-task-fields {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+  min-height: 0;
+}
+.pd-task-fields:empty {
+  display: none;
+}
+.pd-kanban-card-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  margin-top: 4px;
+}
+.pd-kanban-card:hover .pd-kanban-card-actions {
+  opacity: 1;
+}
+.pd-kanban-action-btn {
+  background: none;
+  border: 1px solid transparent;
+  padding: 3px 5px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.pd-kanban-action-btn:hover {
+  background: var(--bg-secondary, #f3f4f6);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+.pd-kanban-inline-edit {
+  width: 100%;
+  padding: 2px 4px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(232, 81, 2, 0.15);
+}
+
+/* Kanban: Add task button per column */
+.pd-kanban-add-task-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  transition: color 0.12s, background 0.12s;
+}
+.pd-kanban-add-task-btn:hover {
+  color: var(--accent);
+  background: rgba(232, 81, 2, 0.04);
+}
+
+/* Kanban: Popover (assign / date) */
+.pd-kanban-popover {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  min-width: 200px;
+  max-width: 260px;
+}
+.pd-kanban-popover-search,
+.pd-kanban-popover-date {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-size: 0.82rem;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  outline: none;
+  margin-bottom: 4px;
+}
+.pd-kanban-popover-search:focus,
+.pd-kanban-popover-date:focus {
+  border-color: var(--accent);
+}
+.pd-kanban-popover-list {
+  max-height: 160px;
+  overflow-y: auto;
+}
+.pd-kanban-popover-item {
+  padding: 6px 8px;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: background 0.1s;
+}
+.pd-kanban-popover-item:hover {
+  background: rgba(232, 81, 2, 0.08);
+}
+.pd-kanban-popover-apply,
+.pd-kanban-popover-clear {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+.pd-kanban-popover-apply {
+  background: var(--accent);
+  color: #fff;
+}
+.pd-kanban-popover-apply:hover {
+  filter: brightness(1.1);
+}
+.pd-kanban-popover-clear {
+  background: var(--bg-secondary, #f3f4f6);
+  color: var(--text-secondary);
+}
+.pd-kanban-popover-clear:hover {
+  background: var(--border);
 }
 
 /* ═══════════════════════════════════════════════════

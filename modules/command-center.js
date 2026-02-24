@@ -2524,6 +2524,65 @@ const TBO_COMMAND_CENTER = {
 
     // Refresh Lucide icons for new elements
     if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    // Refresh meetings sidebar when external APIs finish loading (Fireflies sync)
+    window.addEventListener('tbo:external-data-loaded', () => this._refreshMeetingsWidget(), { once: true });
+
+    // Also try loading fresh meetings from Supabase (MeetingsRepo) in background
+    this._loadFreshMeetings();
+  },
+
+  /**
+   * Loads meetings from MeetingsRepo (Supabase) and refreshes the sidebar widget.
+   * Ensures dashboard always shows the latest data, not stale JSON.
+   */
+  async _loadFreshMeetings() {
+    try {
+      if (typeof MeetingsRepo === 'undefined') return;
+      const dbMeetings = await MeetingsRepo.list({ limit: 200 });
+      if (!dbMeetings || dbMeetings.length === 0) return;
+
+      // Update TBO_STORAGE in-memory with fresh Supabase data
+      const transformed = {
+        metadata: { collected_at: new Date().toISOString(), total_meetings: dbMeetings.length },
+        meetings: dbMeetings.map(m => ({ ...m, _source: m.sync_source || 'supabase' }))
+      };
+      if (typeof TBO_STORAGE !== 'undefined') {
+        TBO_STORAGE._data.meetings = transformed;
+      }
+      this._refreshMeetingsWidget();
+    } catch (e) {
+      console.warn('[CommandCenter] _loadFreshMeetings falhou:', e.message);
+    }
+  },
+
+  /**
+   * Re-renders the sidebar-meetings widget in-place without full dashboard re-render.
+   */
+  _refreshMeetingsWidget() {
+    const container = document.querySelector('.cc-sidebar-card');
+    if (!container) return;
+    // Find the meetings sidebar card by looking for "Reunioes Recentes" header
+    const allCards = document.querySelectorAll('.cc-sidebar-card');
+    let meetingsCard = null;
+    allCards.forEach(card => {
+      const title = card.querySelector('.card-title');
+      if (title && title.textContent.includes('Reunioes')) meetingsCard = card;
+    });
+    if (!meetingsCard) return;
+
+    try {
+      const d = this._getData();
+      const tmp = document.createElement('div');
+      tmp.innerHTML = this._renderSidebarMeetings(d.meetingsArr);
+      const newCard = tmp.querySelector('.cc-sidebar-card');
+      if (newCard) {
+        meetingsCard.replaceWith(newCard);
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      }
+    } catch (e) {
+      console.warn('[CommandCenter] _refreshMeetingsWidget error:', e.message);
+    }
   },
 
   _bind(id, fn) {

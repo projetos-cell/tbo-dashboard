@@ -21,6 +21,9 @@ const TBO_PROJECT_DETAIL = {
   _dragActive: false,       // true while a drag operation is in progress
   _taskDragState: null,     // pointer-event task drag state object
   _taskDragBound: false,    // flag: task drag delegation bound once
+  _chartInstances: [],      // Chart.js instances for Dashboard tab
+  _notesSaveTimer: null,    // autosave debounce for Overview rich text
+  _kanbanDragState: null,   // Kanban card drag state
 
   // ═══════════════════════════════════════════════════
   // COLUMN CONFIGURATION
@@ -238,9 +241,16 @@ const TBO_PROJECT_DETAIL = {
     { key: 'visao-geral', label: 'Visao geral', icon: 'layout-dashboard' },
     { key: 'lista',       label: 'Lista',        icon: 'list' },
     { key: 'quadro',      label: 'Quadro',       icon: 'columns-3' },
-    { key: 'cronograma',  label: 'Cronograma',   icon: 'calendar-range' },
     { key: 'painel',      label: 'Painel',       icon: 'bar-chart-3' },
     { key: 'gantt',       label: 'Gantt',        icon: 'gantt-chart' },
+  ],
+
+  _KANBAN_COLUMNS: [
+    { status: 'A fazer',       label: 'A fazer',       color: '#6b7280' },
+    { status: 'Planejamento',  label: 'Planejamento',  color: '#8b5cf6' },
+    { status: 'Em andamento',  label: 'Em andamento',  color: '#3b82f6' },
+    { status: 'Em revisao',    label: 'Em revisao',    color: '#f59e0b' },
+    { status: 'Concluido',     label: 'Concluido',     color: '#22c55e' },
   ],
 
   _renderPage() {
@@ -314,42 +324,72 @@ const TBO_PROJECT_DETAIL = {
           </div>
         </div>
 
-        <!-- LINE 3: Action bar (filter/sort/group controls) -->
-        <div class="pd-action-bar">
-          <div class="pd-action-left">
-            <button class="pd-action-btn pd-action-add-task" data-action="add-task-top">
-              <i data-lucide="plus" style="width:14px;height:14px;"></i>
-              <span>Adicionar tarefa</span>
-            </button>
-          </div>
-          <div class="pd-action-right">
-            <button class="pd-action-btn" data-action="filter">
-              <i data-lucide="filter" style="width:14px;height:14px;"></i>
-              <span>Filtrar</span>
-            </button>
-            <button class="pd-action-btn" data-action="sort">
-              <i data-lucide="arrow-up-down" style="width:14px;height:14px;"></i>
-              <span>Ordenar</span>
-            </button>
-            <button class="pd-action-btn" data-action="group">
-              <i data-lucide="layers" style="width:14px;height:14px;"></i>
-              <span>Agrupar</span>
-            </button>
-            <div class="pd-action-separator"></div>
-            <button class="pd-action-btn pd-action-icon-only" data-action="search-toggle" title="Buscar">
-              <i data-lucide="search" style="width:14px;height:14px;"></i>
-            </button>
-            <button class="pd-action-btn pd-action-icon-only" data-action="more-options" title="Mais opcoes">
-              <i data-lucide="more-horizontal" style="width:14px;height:14px;"></i>
-            </button>
-          </div>
-        </div>
+        <!-- LINE 3: Action bar (only shown on list tab, rendered inside tab content) -->
       </div>
 
-      <!-- ═══ META BAR (collapsible project info) ═══ -->
-      ${this._renderMetaBar(p, info, bus)}
+      <!-- ═══ TAB CONTENT ═══ -->
+      <div class="pd-tab-content" id="pdTabContent">
+        ${this._renderTabContent()}
+      </div>
+    `;
+  },
 
-      <!-- ═══ TASKS CONTENT ═══ -->
+  // ═══════════════════════════════════════════════════
+  // TAB CONTENT DISPATCHER
+  // ═══════════════════════════════════════════════════
+
+  _renderTabContent() {
+    switch (this._activeTab) {
+      case 'visao-geral': return this._renderOverviewTab();
+      case 'lista':       return this._renderListTab();
+      case 'quadro':      return this._renderKanbanTab();
+      case 'painel':      return this._renderDashboardTab();
+      case 'gantt':       return this._renderGanttTab();
+      default:            return this._renderListTab();
+    }
+  },
+
+  _renderActionBar() {
+    return `
+      <div class="pd-action-bar">
+        <div class="pd-action-left">
+          <button class="pd-action-btn pd-action-add-task" data-action="add-task-top">
+            <i data-lucide="plus" style="width:14px;height:14px;"></i>
+            <span>Adicionar tarefa</span>
+          </button>
+        </div>
+        <div class="pd-action-right">
+          <button class="pd-action-btn" data-action="filter">
+            <i data-lucide="filter" style="width:14px;height:14px;"></i>
+            <span>Filtrar</span>
+          </button>
+          <button class="pd-action-btn" data-action="sort">
+            <i data-lucide="arrow-up-down" style="width:14px;height:14px;"></i>
+            <span>Ordenar</span>
+          </button>
+          <button class="pd-action-btn" data-action="group">
+            <i data-lucide="layers" style="width:14px;height:14px;"></i>
+            <span>Agrupar</span>
+          </button>
+          <div class="pd-action-separator"></div>
+          <button class="pd-action-btn pd-action-icon-only" data-action="search-toggle" title="Buscar">
+            <i data-lucide="search" style="width:14px;height:14px;"></i>
+          </button>
+          <button class="pd-action-btn pd-action-icon-only" data-action="more-options" title="Mais opcoes">
+            <i data-lucide="more-horizontal" style="width:14px;height:14px;"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  },
+
+  _renderListTab() {
+    const p = this._project;
+    const info = this._statusInfo(p.status);
+    const bus = this._parseBus(p.bus);
+    return `
+      ${this._renderActionBar()}
+      ${this._renderMetaBar(p, info, bus)}
       <div class="pd-tasks">
         ${this._renderTableHeader()}
         ${this._renderSections()}
@@ -573,7 +613,45 @@ const TBO_PROJECT_DETAIL = {
 
   _bindEvents() {
     this._bindGlobalListeners();
-    this._bindLocalEvents();
+    this._bindTopBarEvents();
+    this._bindTabContent();
+  },
+
+  _bindTabContent() {
+    switch (this._activeTab) {
+      case 'visao-geral': this._bindOverviewEvents(); break;
+      case 'lista':       this._bindListEvents(); break;
+      case 'quadro':      this._bindKanbanEvents(); break;
+      case 'painel':      this._bindDashboardEvents(); break;
+      case 'gantt':       this._bindGanttEvents(); break;
+      default:            this._bindListEvents(); break;
+    }
+  },
+
+  _switchTab() {
+    this._destroyTabState();
+    const container = document.getElementById('pdTabContent');
+    if (!container) return;
+    container.innerHTML = this._renderTabContent();
+    this._bindTabContent();
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  },
+
+  _destroyTabState() {
+    if (this._chartInstances) {
+      this._chartInstances.forEach(c => { try { c.destroy(); } catch(_){} });
+      this._chartInstances = [];
+    }
+    if (this._notesSaveTimer) {
+      clearTimeout(this._notesSaveTimer);
+      this._notesSaveTimer = null;
+    }
+    this._kanbanDragState = null;
+    if (this._taskDragState && this._taskDragState.started) {
+      this._taskDragCleanup(this._taskDragState);
+      this._taskDragState = null;
+    }
+    this._taskDragBound = false;
   },
 
   /** Global listeners (only bound ONCE, never duplicated) */
@@ -617,29 +695,21 @@ const TBO_PROJECT_DETAIL = {
   },
 
   /** Local per-render listeners on task/section elements */
-  _bindLocalEvents() {
+  /** Top bar events: tabs, star — always bound regardless of active tab */
+  _bindTopBarEvents() {
     const self = this;
 
-    // ── Top bar: Tab clicks ──
+    // ── Top bar: Tab clicks (with content switching) ──
     document.querySelectorAll('.pd-tab[data-tab]').forEach(tab => {
       tab.addEventListener('click', () => {
         const key = tab.dataset.tab;
+        if (key === self._activeTab) return;
         self._activeTab = key;
         document.querySelectorAll('.pd-tab[data-tab]').forEach(t => t.classList.remove('pd-tab-active'));
         tab.classList.add('pd-tab-active');
+        self._switchTab();
       });
     });
-
-    // ── Top bar: Add task from action bar ──
-    const addTaskTop = document.querySelector('[data-action="add-task-top"]');
-    if (addTaskTop) {
-      addTaskTop.addEventListener('click', (e) => {
-        e.stopPropagation();
-        // Open inline task input on first section
-        const firstSection = self._SECTIONS[0];
-        if (firstSection) self._showInlineTaskInput(firstSection.key);
-      });
-    }
 
     // ── Top bar: Star button toggle ──
     const starBtn = document.querySelector('.pd-star-btn');
@@ -648,13 +718,27 @@ const TBO_PROJECT_DETAIL = {
         starBtn.classList.toggle('pd-starred');
         const icon = starBtn.querySelector('i');
         if (icon) {
-          icon.setAttribute('data-lucide', starBtn.classList.contains('pd-starred') ? 'star' : 'star');
           if (starBtn.classList.contains('pd-starred')) {
             icon.style.fill = '#f59e0b';
           } else {
             icon.style.fill = 'none';
           }
         }
+      });
+    }
+  },
+
+  /** List tab events: sections, tasks, checkboxes, columns, drag */
+  _bindListEvents() {
+    const self = this;
+
+    // ── Action bar: Add task ──
+    const addTaskTop = document.querySelector('[data-action="add-task-top"]');
+    if (addTaskTop) {
+      addTaskTop.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const firstSection = self._SECTIONS[0];
+        if (firstSection) self._showInlineTaskInput(firstSection.key);
       });
     }
 
@@ -2304,15 +2388,721 @@ const TBO_PROJECT_DETAIL = {
   // _syncDemandOrderFromDOM — replaced by _syncDemandsArrayFromDOM + _persistStatusChange
 
   // ═══════════════════════════════════════════════════
+  // TAB 1: VISAO GERAL (OVERVIEW)
+  // ═══════════════════════════════════════════════════
+
+  _renderOverviewTab() {
+    const p = this._project;
+    const total = this._demands.length;
+    const done = this._demands.filter(d => this._isDone(d)).length;
+    const inProgress = this._demands.filter(d => {
+      const s = (d.status || '').toLowerCase();
+      return s === 'em andamento' || s === 'in progress';
+    }).length;
+    const overdue = this._demands.filter(d => this._isLate(d)).length;
+    const progressPct = total > 0 ? Math.round((done / total) * 100) : 0;
+    const info = this._statusInfo(p.status);
+
+    return `
+      <div class="pd-overview">
+        <div class="pd-overview-header">
+          <div class="pd-overview-title-row">
+            <h2 class="pd-overview-name">${this._esc(p.name)}</h2>
+            <span class="pd-overview-status" style="background:${info.bg};color:${info.color};">
+              <i data-lucide="${info.icon}" style="width:13px;height:13px;"></i>
+              ${info.label}
+            </span>
+          </div>
+          <div class="pd-overview-info-row">
+            ${p.construtora ? `<span class="pd-overview-info-chip"><i data-lucide="building-2" style="width:13px;height:13px;"></i>${this._esc(p.construtora)}</span>` : ''}
+            ${p.owner_name ? `<span class="pd-overview-info-chip"><i data-lucide="user" style="width:13px;height:13px;"></i>${this._esc(p.owner_name)}</span>` : ''}
+            <span class="pd-overview-info-chip">
+              <i data-lucide="calendar" style="width:13px;height:13px;"></i>
+              ${p.due_date_start ? this._fmtDate(p.due_date_start) : 'Sem inicio'} &rarr; ${p.due_date_end ? this._fmtDate(p.due_date_end) : 'Sem fim'}
+            </span>
+          </div>
+          <div class="pd-overview-progress">
+            <div class="pd-overview-progress-track">
+              <div class="pd-overview-progress-fill" style="width:${progressPct}%;background:${info.color};"></div>
+            </div>
+            <span class="pd-overview-progress-label">${progressPct}% concluido (${done}/${total})</span>
+          </div>
+        </div>
+
+        <div class="pd-overview-kpis">
+          <div class="pd-overview-kpi">
+            <div class="pd-overview-kpi-icon"><i data-lucide="list-checks" style="width:18px;height:18px;"></i></div>
+            <div class="pd-overview-kpi-value">${total}</div>
+            <div class="pd-overview-kpi-label">Total de tarefas</div>
+          </div>
+          <div class="pd-overview-kpi pd-overview-kpi--done">
+            <div class="pd-overview-kpi-icon"><i data-lucide="check-circle-2" style="width:18px;height:18px;"></i></div>
+            <div class="pd-overview-kpi-value">${done}</div>
+            <div class="pd-overview-kpi-label">Concluidas</div>
+          </div>
+          <div class="pd-overview-kpi pd-overview-kpi--progress">
+            <div class="pd-overview-kpi-icon"><i data-lucide="play-circle" style="width:18px;height:18px;"></i></div>
+            <div class="pd-overview-kpi-value">${inProgress}</div>
+            <div class="pd-overview-kpi-label">Em andamento</div>
+          </div>
+          <div class="pd-overview-kpi pd-overview-kpi--overdue">
+            <div class="pd-overview-kpi-icon"><i data-lucide="alert-triangle" style="width:18px;height:18px;"></i></div>
+            <div class="pd-overview-kpi-value">${overdue}</div>
+            <div class="pd-overview-kpi-label">Atrasadas</div>
+          </div>
+        </div>
+
+        <div class="pd-overview-description">
+          <div class="pd-overview-desc-header">
+            <span class="pd-overview-desc-title"><i data-lucide="file-text" style="width:14px;height:14px;"></i> Descricao do Projeto</span>
+            <span class="pd-overview-save-status" id="pdOverviewSaveStatus"></span>
+          </div>
+          <div class="pd-overview-toolbar" id="pdOverviewToolbar">
+            <button class="pd-overview-tb-btn" data-cmd="bold" title="Negrito (Ctrl+B)"><i data-lucide="bold" style="width:14px;height:14px;"></i></button>
+            <button class="pd-overview-tb-btn" data-cmd="italic" title="Italico (Ctrl+I)"><i data-lucide="italic" style="width:14px;height:14px;"></i></button>
+            <div class="pd-overview-tb-sep"></div>
+            <button class="pd-overview-tb-btn" data-cmd="insertUnorderedList" title="Lista"><i data-lucide="list" style="width:14px;height:14px;"></i></button>
+            <button class="pd-overview-tb-btn" data-cmd="insertOrderedList" title="Lista numerada"><i data-lucide="list-ordered" style="width:14px;height:14px;"></i></button>
+            <div class="pd-overview-tb-sep"></div>
+            <button class="pd-overview-tb-btn" data-cmd="formatBlock-h3" title="Subtitulo"><i data-lucide="heading-3" style="width:14px;height:14px;"></i></button>
+            <button class="pd-overview-tb-btn" data-cmd="createLink" title="Link"><i data-lucide="link" style="width:14px;height:14px;"></i></button>
+            <button class="pd-overview-tb-btn" data-cmd="formatBlock-blockquote" title="Citacao"><i data-lucide="quote" style="width:14px;height:14px;"></i></button>
+          </div>
+          <div class="pd-overview-editor" id="pdOverviewEditor" contenteditable="true"
+               data-placeholder="Adicione uma descricao para o projeto...">${p.notes || ''}</div>
+        </div>
+
+        <div class="pd-overview-activity">
+          <div class="pd-overview-activity-header">
+            <i data-lucide="activity" style="width:14px;height:14px;"></i>
+            <span>Atividade recente</span>
+          </div>
+          <div class="pd-overview-activity-list">
+            ${this._renderRecentActivity()}
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  _renderRecentActivity() {
+    const recent = [...this._demands]
+      .filter(d => d.updated_at || d.created_at)
+      .sort((a, b) => (b.updated_at || b.created_at || '').localeCompare(a.updated_at || a.created_at || ''))
+      .slice(0, 8);
+
+    if (recent.length === 0) {
+      return `<div class="pd-overview-activity-empty">
+        <i data-lucide="clock" style="width:20px;height:20px;opacity:0.3;"></i>
+        <p>Nenhuma atividade recente.</p>
+      </div>`;
+    }
+
+    return recent.map(d => {
+      const statusColors = this._DEMAND_STATUS_COLORS[d.status] || { color: '#6b7280', bg: 'rgba(107,114,128,0.10)' };
+      const date = d.updated_at || d.created_at;
+      return `<div class="pd-overview-activity-item">
+        <span class="pd-overview-activity-dot" style="background:${statusColors.color};"></span>
+        <span class="pd-overview-activity-title">${this._esc(d.title)}</span>
+        <span class="pd-overview-activity-status" style="color:${statusColors.color};">${this._esc(d.status || '')}</span>
+        ${date ? `<span class="pd-overview-activity-date">${this._fmtDate(date)}</span>` : ''}
+      </div>`;
+    }).join('');
+  },
+
+  _bindOverviewEvents() {
+    const self = this;
+    const editor = document.getElementById('pdOverviewEditor');
+    const toolbar = document.getElementById('pdOverviewToolbar');
+    if (!editor || !toolbar) return;
+
+    toolbar.querySelectorAll('.pd-overview-tb-btn').forEach(btn => {
+      btn.addEventListener('mousedown', (e) => e.preventDefault());
+      btn.addEventListener('click', () => {
+        const cmd = btn.dataset.cmd;
+        if (cmd === 'createLink') {
+          const url = prompt('URL do link:');
+          if (url) document.execCommand('createLink', false, url);
+        } else if (cmd.startsWith('formatBlock-')) {
+          const tag = cmd.replace('formatBlock-', '');
+          document.execCommand('formatBlock', false, tag);
+        } else {
+          document.execCommand(cmd, false, null);
+        }
+        editor.focus();
+      });
+    });
+
+    editor.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'b') { e.preventDefault(); document.execCommand('bold'); }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'i') { e.preventDefault(); document.execCommand('italic'); }
+    });
+
+    editor.addEventListener('input', () => {
+      self._scheduleNotesSave();
+    });
+  },
+
+  _scheduleNotesSave() {
+    if (this._notesSaveTimer) clearTimeout(this._notesSaveTimer);
+    const statusEl = document.getElementById('pdOverviewSaveStatus');
+    if (statusEl) { statusEl.textContent = 'Editando...'; statusEl.className = 'pd-overview-save-status pd-overview-save-editing'; }
+    this._notesSaveTimer = setTimeout(() => this._saveNotes(), 1200);
+  },
+
+  async _saveNotes() {
+    const editor = document.getElementById('pdOverviewEditor');
+    const statusEl = document.getElementById('pdOverviewSaveStatus');
+    if (!editor) return;
+
+    const content = editor.innerHTML;
+    if (statusEl) { statusEl.textContent = 'Salvando...'; statusEl.className = 'pd-overview-save-status pd-overview-save-saving'; }
+
+    try {
+      const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+      if (client && this._project?.id) {
+        await client.from('projects').update({ notes: content }).eq('id', this._project.id);
+        this._project.notes = content;
+        if (statusEl) { statusEl.textContent = 'Salvo'; statusEl.className = 'pd-overview-save-status pd-overview-save-saved'; }
+        setTimeout(() => { if (statusEl && statusEl.textContent === 'Salvo') statusEl.textContent = ''; }, 3000);
+      }
+    } catch (err) {
+      console.error('[PD] save notes error:', err);
+      if (statusEl) { statusEl.textContent = 'Erro ao salvar'; statusEl.className = 'pd-overview-save-status pd-overview-save-error'; }
+    }
+  },
+
+  // ═══════════════════════════════════════════════════
+  // TAB 4: PAINEL (DASHBOARD)
+  // ═══════════════════════════════════════════════════
+
+  _renderDashboardTab() {
+    const total = this._demands.length;
+    const done = this._demands.filter(d => this._isDone(d)).length;
+    const inProgress = this._demands.filter(d => {
+      const s = (d.status || '').toLowerCase();
+      return s === 'em andamento' || s === 'in progress';
+    }).length;
+    const overdue = this._demands.filter(d => this._isLate(d)).length;
+    const progressPct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+    if (total === 0) {
+      return `<div class="pd-dashboard-empty">
+        <i data-lucide="bar-chart-3" style="width:32px;height:32px;opacity:0.3;"></i>
+        <p>Nenhuma tarefa para exibir metricas.</p>
+        <p style="font-size:0.78rem;color:var(--text-muted);">Adicione tarefas na aba Lista para ver o painel.</p>
+      </div>`;
+    }
+
+    return `
+      <div class="pd-dashboard">
+        <div class="pd-dashboard-kpis">
+          <div class="pd-dashboard-kpi">
+            <span class="pd-dashboard-kpi-val">${total}</span>
+            <span class="pd-dashboard-kpi-lbl">Total</span>
+          </div>
+          <div class="pd-dashboard-kpi pd-dashboard-kpi--done">
+            <span class="pd-dashboard-kpi-val">${done}</span>
+            <span class="pd-dashboard-kpi-lbl">Concluidas</span>
+          </div>
+          <div class="pd-dashboard-kpi pd-dashboard-kpi--progress">
+            <span class="pd-dashboard-kpi-val">${inProgress}</span>
+            <span class="pd-dashboard-kpi-lbl">Em andamento</span>
+          </div>
+          <div class="pd-dashboard-kpi pd-dashboard-kpi--overdue">
+            <span class="pd-dashboard-kpi-val">${overdue}</span>
+            <span class="pd-dashboard-kpi-lbl">Atrasadas</span>
+          </div>
+          <div class="pd-dashboard-kpi">
+            <span class="pd-dashboard-kpi-val">${progressPct}%</span>
+            <span class="pd-dashboard-kpi-lbl">Progresso</span>
+          </div>
+        </div>
+        <div class="pd-dashboard-charts">
+          <div class="pd-dashboard-chart-card">
+            <div class="pd-dashboard-chart-title">Tarefas por Status</div>
+            <div class="pd-dashboard-chart-wrap"><canvas id="pdChartStatus"></canvas></div>
+          </div>
+          <div class="pd-dashboard-chart-card">
+            <div class="pd-dashboard-chart-title">Tarefas por Secao</div>
+            <div class="pd-dashboard-chart-wrap"><canvas id="pdChartSection"></canvas></div>
+          </div>
+          <div class="pd-dashboard-chart-card pd-dashboard-chart-wide">
+            <div class="pd-dashboard-chart-title">Conclusao ao longo do tempo</div>
+            <div class="pd-dashboard-chart-wrap pd-dashboard-chart-wrap--wide"><canvas id="pdChartTimeline"></canvas></div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  _bindDashboardEvents() {
+    this._chartInstances = [];
+    this._renderStatusChart();
+    this._renderSectionChart();
+    this._renderTimelineChart();
+  },
+
+  _renderStatusChart() {
+    const canvas = document.getElementById('pdChartStatus');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    const statusCounts = {};
+    this._demands.forEach(d => {
+      const s = d.status || 'Sem status';
+      statusCounts[s] = (statusCounts[s] || 0) + 1;
+    });
+
+    const labels = Object.keys(statusCounts);
+    const data = Object.values(statusCounts);
+    const colors = labels.map(s => (this._DEMAND_STATUS_COLORS[s] || {}).color || '#6b7280');
+
+    const chart = new Chart(canvas.getContext('2d'), {
+      type: 'doughnut',
+      data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12, usePointStyle: true } } },
+        cutout: '60%',
+        onClick: (evt, elements) => {
+          if (elements.length > 0) {
+            const idx = elements[0].index;
+            const status = labels[idx];
+            this._activeTab = 'lista';
+            this._switchTab();
+            document.querySelectorAll('.pd-tab[data-tab]').forEach(t => {
+              t.classList.toggle('pd-tab-active', t.dataset.tab === 'lista');
+            });
+          }
+        }
+      }
+    });
+    this._chartInstances.push(chart);
+  },
+
+  _renderSectionChart() {
+    const canvas = document.getElementById('pdChartSection');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    const sectionData = this._SECTIONS.map(sec => {
+      const count = this._demands.filter(d =>
+        sec.statuses.some(s => (d.status || '').toLowerCase() === s.toLowerCase())
+      ).length;
+      return { label: sec.label, count };
+    });
+
+    const chart = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: sectionData.map(s => s.label),
+        datasets: [{ data: sectionData.map(s => s.count), backgroundColor: '#E85102', borderRadius: 4, maxBarThickness: 40 }]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
+      }
+    });
+    this._chartInstances.push(chart);
+  },
+
+  _renderTimelineChart() {
+    const canvas = document.getElementById('pdChartTimeline');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    const doneDemands = this._demands.filter(d => this._isDone(d) && d.due_date);
+    if (doneDemands.length === 0) {
+      const wrap = canvas.parentElement;
+      if (wrap) wrap.innerHTML = '<p class="pd-dashboard-chart-empty">Sem dados de conclusao com datas.</p>';
+      return;
+    }
+
+    const sorted = [...doneDemands].sort((a, b) => (a.due_date || '').localeCompare(b.due_date || ''));
+    const dateLabels = [];
+    const cumulative = [];
+    let count = 0;
+    sorted.forEach(d => {
+      count++;
+      dateLabels.push(this._fmtDate(d.due_date));
+      cumulative.push(count);
+    });
+
+    const chart = new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: dateLabels,
+        datasets: [{
+          label: 'Tarefas concluidas',
+          data: cumulative,
+          borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.08)',
+          fill: true, tension: 0.3, pointRadius: 3,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+      }
+    });
+    this._chartInstances.push(chart);
+  },
+
+  // ═══════════════════════════════════════════════════
+  // TAB 3: QUADRO (KANBAN)
+  // ═══════════════════════════════════════════════════
+
+  _kanbanMatch(demandStatus, colStatus) {
+    const s = (demandStatus || '').toLowerCase();
+    const c = colStatus.toLowerCase();
+    if (s === c) return true;
+    const aliases = {
+      'em andamento': ['in progress', 'em andamento'],
+      'em revisao': ['em revisão', 'revisao', 'revisão', 'review'],
+      'concluido': ['concluído', 'finalizado', 'done'],
+      'a fazer': ['backlog', 'a fazer'],
+      'planejamento': ['planejamento'],
+    };
+    return (aliases[c] || []).includes(s);
+  },
+
+  _renderKanbanTab() {
+    const columns = this._KANBAN_COLUMNS;
+    return `
+      <div class="pd-kanban">
+        <div class="pd-kanban-board">
+          ${columns.map(col => {
+            const cards = this._demands.filter(d => this._kanbanMatch(d.status, col.status));
+            return `
+              <div class="pd-kanban-column" data-kanban-status="${this._esc(col.status)}">
+                <div class="pd-kanban-col-header" style="border-top:3px solid ${col.color};">
+                  <span class="pd-kanban-col-title">${this._esc(col.label)}</span>
+                  <span class="pd-kanban-col-count" style="background:${col.color}20;color:${col.color};">${cards.length}</span>
+                </div>
+                <div class="pd-kanban-col-body" data-kanban-drop="${this._esc(col.status)}">
+                  ${cards.map(d => this._renderKanbanCard(d)).join('')}
+                  ${cards.length === 0 ? '<div class="pd-kanban-placeholder">Arraste tarefas aqui</div>' : ''}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  },
+
+  _renderKanbanCard(d) {
+    const isDone = this._isDone(d);
+    const isLate = this._isLate(d);
+    return `
+      <div class="pd-kanban-card ${isDone ? 'pd-kanban-card--done' : ''}" data-kanban-id="${d.id}">
+        <div class="pd-kanban-card-title">${this._esc(d.title)}</div>
+        <div class="pd-kanban-card-meta">
+          ${d.responsible ? `<span class="pd-kanban-card-responsible"><span class="pd-avatar-small" title="${this._esc(d.responsible)}">${this._initials(d.responsible)}</span><span class="pd-kanban-card-resp-name">${this._esc(d.responsible)}</span></span>` : ''}
+          ${d.due_date ? `<span class="pd-kanban-card-date ${isLate ? 'pd-kanban-card-date--late' : ''}"><i data-lucide="calendar" style="width:11px;height:11px;"></i>${this._fmtDate(d.due_date)}</span>` : ''}
+        </div>
+        ${d.prioridade ? `<div class="pd-kanban-card-footer">${this._renderPriority(d.prioridade)}</div>` : ''}
+      </div>
+    `;
+  },
+
+  _bindKanbanEvents() {
+    const self = this;
+
+    // Card click -> open drawer
+    document.querySelectorAll('.pd-kanban-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        if (self._kanbanDragState) return;
+        const demandId = card.dataset.kanbanId;
+        const demand = self._demands.find(d => d.id === demandId);
+        if (demand && typeof TBO_DEMAND_DRAWER !== 'undefined') {
+          TBO_DEMAND_DRAWER.open(demand, self._project);
+        }
+      });
+    });
+
+    // Kanban drag using pointer events
+    this._bindKanbanDrag();
+  },
+
+  _bindKanbanDrag() {
+    const self = this;
+    const board = document.querySelector('.pd-kanban-board');
+    if (!board) return;
+
+    let dragState = null;
+
+    board.addEventListener('pointerdown', (e) => {
+      const card = e.target.closest('.pd-kanban-card');
+      if (!card) return;
+
+      dragState = {
+        el: card,
+        id: card.dataset.kanbanId,
+        startX: e.clientX,
+        startY: e.clientY,
+        started: false,
+        ghost: null,
+      };
+    });
+
+    document.addEventListener('pointermove', (e) => {
+      if (!dragState) return;
+      const dx = Math.abs(e.clientX - dragState.startX);
+      const dy = Math.abs(e.clientY - dragState.startY);
+
+      if (!dragState.started && (dx > 5 || dy > 5)) {
+        dragState.started = true;
+        self._kanbanDragState = dragState;
+        const rect = dragState.el.getBoundingClientRect();
+        const ghost = dragState.el.cloneNode(true);
+        ghost.className = 'pd-kanban-card pd-kanban-ghost';
+        ghost.style.cssText = `position:fixed;z-index:9999;width:${rect.width}px;pointer-events:none;opacity:0.9;transform:rotate(2deg);box-shadow:0 8px 24px rgba(0,0,0,0.15);`;
+        document.body.appendChild(ghost);
+        dragState.ghost = ghost;
+        dragState.el.style.opacity = '0.3';
+        dragState.offsetX = e.clientX - rect.left;
+        dragState.offsetY = e.clientY - rect.top;
+      }
+
+      if (dragState.started && dragState.ghost) {
+        dragState.ghost.style.left = (e.clientX - dragState.offsetX) + 'px';
+        dragState.ghost.style.top = (e.clientY - dragState.offsetY) + 'px';
+
+        // Highlight drop target column
+        document.querySelectorAll('.pd-kanban-col-body').forEach(col => col.classList.remove('pd-kanban-col-drop'));
+        const colBody = self._findKanbanDropTarget(e.clientX, e.clientY);
+        if (colBody) colBody.classList.add('pd-kanban-col-drop');
+      }
+    });
+
+    document.addEventListener('pointerup', async (e) => {
+      if (!dragState) return;
+      const state = dragState;
+      dragState = null;
+
+      if (!state.started) {
+        self._kanbanDragState = null;
+        return;
+      }
+
+      // Clean up ghost
+      if (state.ghost) state.ghost.remove();
+      state.el.style.opacity = '';
+      document.querySelectorAll('.pd-kanban-col-body').forEach(col => col.classList.remove('pd-kanban-col-drop'));
+
+      // Find target column
+      const colBody = self._findKanbanDropTarget(e.clientX, e.clientY);
+      if (colBody) {
+        const newStatus = colBody.dataset.kanbanDrop;
+        const demand = self._demands.find(d => d.id === state.id);
+        if (demand && newStatus && !self._kanbanMatch(demand.status, newStatus)) {
+          demand.status = newStatus;
+          demand.feito = self._isDone(demand);
+          try {
+            const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+            if (client) {
+              await client.from('demands').update({ status: newStatus, feito: demand.feito }).eq('id', demand.id);
+            }
+          } catch (err) { console.error('[PD] kanban drag error:', err); }
+          // Re-render kanban
+          const container = document.getElementById('pdTabContent');
+          if (container) {
+            container.innerHTML = self._renderKanbanTab();
+            self._bindKanbanEvents();
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+          }
+          self._updateTopBarProgress();
+        }
+      }
+      setTimeout(() => { self._kanbanDragState = null; }, 50);
+    });
+  },
+
+  _findKanbanDropTarget(x, y) {
+    const cols = document.querySelectorAll('.pd-kanban-col-body');
+    for (const col of cols) {
+      const rect = col.getBoundingClientRect();
+      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+        return col;
+      }
+    }
+    return null;
+  },
+
+  // ═══════════════════════════════════════════════════
+  // TAB 5: GANTT (TIMELINE)
+  // ═══════════════════════════════════════════════════
+
+  _renderGanttTab() {
+    const withDates = this._demands.filter(d => d.due_date || d.due_date_end);
+    const noDates = this._demands.filter(d => !d.due_date && !d.due_date_end);
+
+    if (withDates.length === 0) {
+      return `<div class="pd-gantt-empty">
+        <i data-lucide="gantt-chart" style="width:32px;height:32px;opacity:0.3;"></i>
+        <p>Nenhuma tarefa com datas definidas.</p>
+        <p style="font-size:0.78rem;color:var(--text-muted);">Defina datas nas tarefas para visualizar o cronograma.</p>
+      </div>`;
+    }
+
+    const allDates = withDates.flatMap(d => [d.due_date, d.due_date_end].filter(Boolean));
+    const minDate = new Date(allDates.reduce((a, b) => a < b ? a : b));
+    const maxDate = new Date(allDates.reduce((a, b) => a > b ? a : b));
+    minDate.setDate(minDate.getDate() - 7);
+    maxDate.setDate(maxDate.getDate() + 14);
+
+    const totalDays = Math.ceil((maxDate - minDate) / 86400000);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const todayOffset = Math.max(0, Math.ceil((today - minDate) / 86400000));
+    const todayPct = (todayOffset / totalDays * 100).toFixed(2);
+
+    const months = this._ganttMonths(minDate, maxDate);
+
+    const ROW_H = 36;
+    const LABEL_W = 220;
+
+    // Rows grouped by section
+    let rowsHtml = '';
+    let rowIdx = 0;
+    const assigned = new Set();
+
+    for (const section of this._SECTIONS) {
+      const sectionDemands = withDates.filter(d => {
+        if (assigned.has(d.id)) return false;
+        const match = section.statuses.some(s => (d.status || '').toLowerCase() === s.toLowerCase());
+        if (match) assigned.add(d.id);
+        return match;
+      });
+      if (sectionDemands.length === 0) continue;
+
+      rowsHtml += `<div class="pd-gantt-group-header">${this._esc(section.label)} <span class="pd-gantt-group-count">${sectionDemands.length}</span></div>`;
+      sectionDemands.forEach(d => {
+        rowsHtml += this._renderGanttRow(d, minDate, totalDays, ROW_H, LABEL_W, rowIdx++);
+      });
+    }
+
+    const remaining = withDates.filter(d => !assigned.has(d.id));
+    if (remaining.length > 0) {
+      rowsHtml += `<div class="pd-gantt-group-header">Outros <span class="pd-gantt-group-count">${remaining.length}</span></div>`;
+      remaining.forEach(d => {
+        rowsHtml += this._renderGanttRow(d, minDate, totalDays, ROW_H, LABEL_W, rowIdx++);
+      });
+    }
+
+    const monthHeaders = months.map(m => `
+      <div class="pd-gantt-month" style="left:${m.left.toFixed(2)}%;width:${m.width.toFixed(2)}%;">${m.label}</div>
+    `).join('');
+
+    const ticks = [];
+    for (let d = 7; d < totalDays; d += 7) {
+      ticks.push(`<div class="pd-gantt-tick" style="left:${(d / totalDays * 100).toFixed(2)}%;"></div>`);
+    }
+
+    return `
+      <div class="pd-gantt-wrap">
+        <div class="pd-gantt-header-row">
+          <div class="pd-gantt-header-label" style="width:${LABEL_W}px;min-width:${LABEL_W}px;">Tarefa</div>
+          <div class="pd-gantt-header-track">
+            ${monthHeaders}
+            ${ticks.join('')}
+            ${todayOffset > 0 && todayOffset < totalDays
+              ? `<div class="pd-gantt-today" style="left:${todayPct}%;" title="Hoje"></div>` : ''}
+          </div>
+        </div>
+        <div class="pd-gantt-body" id="pdGanttBody">
+          ${rowsHtml}
+          ${noDates.length > 0 ? `<div class="pd-gantt-no-dates">
+            <i data-lucide="info" style="width:13px;height:13px;"></i>
+            ${noDates.length} tarefa(s) sem datas nao exibidas
+          </div>` : ''}
+        </div>
+      </div>
+    `;
+  },
+
+  _renderGanttRow(d, minDate, totalDays, ROW_H, LABEL_W, rowIdx) {
+    const start = d.due_date ? new Date(d.due_date + 'T00:00:00') : new Date(d.due_date_end + 'T00:00:00');
+    const end = d.due_date_end ? new Date(d.due_date_end + 'T23:59:59') : new Date((d.due_date || d.due_date_end) + 'T23:59:59');
+    const statusColors = this._DEMAND_STATUS_COLORS[d.status] || { color: '#6b7280' };
+    const isLate = this._isLate(d);
+    const barColor = isLate ? '#ef4444' : statusColors.color;
+
+    const left = ((start - minDate) / 86400000 / totalDays * 100).toFixed(2);
+    const width = Math.max(0.5, ((end - start) / 86400000 / totalDays * 100)).toFixed(2);
+
+    return `
+      <div class="pd-gantt-row ${rowIdx % 2 === 1 ? 'pd-gantt-row-alt' : ''}" style="height:${ROW_H}px;" data-gantt-id="${d.id}">
+        <div class="pd-gantt-label" style="width:${LABEL_W}px;min-width:${LABEL_W}px;">
+          <span class="pd-gantt-label-name" title="${this._esc(d.title)}">${this._esc(d.title)}</span>
+          ${d.responsible ? `<span class="pd-gantt-label-resp">${this._esc(d.responsible)}</span>` : ''}
+        </div>
+        <div class="pd-gantt-track">
+          <div class="pd-gantt-bar" style="left:${left}%;width:${width}%;background:${barColor};opacity:0.85;"
+               title="${this._esc(d.title)} - ${this._fmtDate(d.due_date)} → ${this._fmtDate(d.due_date_end || d.due_date)}">
+            <span class="pd-gantt-bar-label">${this._esc(d.title)}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  _ganttMonths(minDate, maxDate) {
+    const months = [];
+    const totalDays = (maxDate - minDate) / 86400000;
+    let cur = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+    while (cur <= maxDate) {
+      const mStart = new Date(Math.max(cur, minDate));
+      const mEnd = new Date(Math.min(new Date(cur.getFullYear(), cur.getMonth() + 1, 0), maxDate));
+      const left = (mStart - minDate) / 86400000 / totalDays * 100;
+      const width = (mEnd - mStart + 86400000) / 86400000 / totalDays * 100;
+      months.push({
+        label: cur.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
+        left, width
+      });
+      cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+    }
+    return months;
+  },
+
+  _bindGanttEvents() {
+    const self = this;
+
+    // Scroll today into view
+    const todayEl = document.querySelector('.pd-gantt-today');
+    if (todayEl) {
+      setTimeout(() => {
+        const wrap = document.querySelector('.pd-gantt-wrap');
+        if (wrap && todayEl) {
+          const pct = parseFloat(todayEl.style.left) / 100;
+          const scrollTo = pct * wrap.scrollWidth - wrap.clientWidth / 2;
+          wrap.scrollLeft = Math.max(0, scrollTo);
+        }
+      }, 100);
+    }
+
+    // Row click -> open drawer
+    document.querySelectorAll('.pd-gantt-row[data-gantt-id]').forEach(row => {
+      row.addEventListener('click', () => {
+        const demand = self._demands.find(d => d.id === row.dataset.ganttId);
+        if (demand && typeof TBO_DEMAND_DRAWER !== 'undefined') {
+          TBO_DEMAND_DRAWER.open(demand, self._project);
+        }
+      });
+    });
+  },
+
+  // ═══════════════════════════════════════════════════
   // RE-RENDER TASKS (partial)
   // ═══════════════════════════════════════════════════
 
   _reRenderTasks() {
+    if (this._activeTab !== 'lista') return;
     // Abort any active task drag before re-rendering
     if (this._taskDragState && this._taskDragState.started) {
       this._taskDragCleanup(this._taskDragState);
       this._taskDragState = null;
     }
+    this._taskDragBound = false;
     const tasksContainer = document.querySelector('.pd-tasks');
     if (!tasksContainer) return;
 
@@ -2324,10 +3114,16 @@ const TBO_PROJECT_DETAIL = {
       ${this._renderSections()}
     `;
 
-    this._bindLocalEvents();
+    this._bindListEvents();
     if (typeof lucide !== 'undefined') lucide.createIcons();
 
     // Update progress bar in top bar
+    this._updateTopBarProgress();
+  },
+
+  _updateTopBarProgress() {
+    const totalDemands = this._demands.length;
+    const doneDemands = this._demands.filter(d => this._isDone(d)).length;
     const progressPct = totalDemands > 0 ? Math.round((doneDemands / totalDemands) * 100) : 0;
     const info = this._statusInfo(this._project?.status);
     const barFill = document.querySelector('.pd-progress-bar-fill');
@@ -2404,6 +3200,7 @@ const TBO_PROJECT_DETAIL = {
   },
 
   destroy() {
+    this._destroyTabState();
     this._closeContextMenu();
     this._closeColContextMenu();
     this._closeSectionContextMenu();
@@ -2419,6 +3216,7 @@ const TBO_PROJECT_DETAIL = {
     this._sectionOverrides = {};
     this._taskDragState = null;
     this._taskDragBound = false;
+    this._activeTab = 'lista';
     // Reset hidden state to defaults
     this._COLUMNS.forEach(c => c.hidden = false);
   },

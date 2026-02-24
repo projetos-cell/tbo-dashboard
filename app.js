@@ -175,7 +175,7 @@ const TBO_APP = {
     this._updateStatus();
 
     // 9. Sidebar resize handle
-    this._bindSidebarResize();
+    // Sidebar resize removido — largura fixa
 
     // 10. Listen for route changes to update sidebar
     TBO_ROUTER.onChange((current) => {
@@ -1197,109 +1197,6 @@ const TBO_APP = {
         e.preventDefault();
         if (current && current.classList.contains('nav-item')) current.click();
       }
-    });
-  },
-
-  // ── Sidebar resize com snap points (C16 — rAF throttle) ──────────────
-  _SIDEBAR_SNAP_POINTS: [64, 260],
-  _SIDEBAR_SNAP_THRESHOLD: 40,
-
-  _bindSidebarResize() {
-    const handle = document.getElementById('sidebarResizeHandle');
-    const sidebar = document.getElementById('sidebar');
-    if (!handle || !sidebar) return;
-
-    let isResizing = false;
-    let rafPending = false;
-
-    // Estado restaurado pelo _bindSidebar() via tbo_sidebar_collapsed
-
-    // Ghost line + snap indicator
-    const ghost = document.createElement('div');
-    ghost.style.cssText = 'position:fixed;top:0;bottom:0;width:2px;background:var(--brand-orange);z-index:9999;pointer-events:none;display:none;opacity:0.7;';
-    const snapIndicator = document.createElement('div');
-    snapIndicator.style.cssText = 'position:fixed;top:50%;transform:translateY(-50%);background:var(--brand-orange);color:#fff;font-size:11px;font-weight:600;padding:4px 8px;border-radius:4px;z-index:9999;pointer-events:none;display:none;white-space:nowrap;';
-    document.body.appendChild(ghost);
-    document.body.appendChild(snapIndicator);
-
-    const getSnapPoint = (x) => {
-      for (const sp of this._SIDEBAR_SNAP_POINTS) {
-        if (Math.abs(x - sp) < this._SIDEBAR_SNAP_THRESHOLD) return sp;
-      }
-      return null;
-    };
-
-    const getSnapLabel = (w) => w <= 64 ? 'Colapsado (64px)' : 'Normal (260px)';
-
-    handle.addEventListener('mousedown', (e) => {
-      isResizing = true;
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-      sidebar.style.transition = 'none';
-      ghost.style.display = 'block';
-      e.preventDefault();
-    });
-
-    // C16 — rAF throttled mousemove
-    document.addEventListener('mousemove', (e) => {
-      if (!isResizing) return;
-      if (rafPending) return;
-      rafPending = true;
-      requestAnimationFrame(() => {
-        rafPending = false;
-        const rawWidth = Math.min(Math.max(e.clientX, 50), 400);
-        const snapped = getSnapPoint(rawWidth);
-        const finalWidth = snapped || rawWidth;
-
-        ghost.style.left = finalWidth + 'px';
-        ghost.style.background = snapped ? 'var(--brand-orange)' : 'var(--text-muted)';
-        ghost.style.width = snapped ? '3px' : '2px';
-
-        if (snapped) {
-          snapIndicator.style.display = 'block';
-          snapIndicator.style.left = (finalWidth + 8) + 'px';
-          snapIndicator.textContent = getSnapLabel(snapped) + ' (' + snapped + 'px)';
-        } else {
-          snapIndicator.style.display = 'none';
-        }
-
-        // Binario: collapsed ou expanded
-        if (finalWidth <= 160) {
-          sidebar.classList.add('collapsed');
-          sidebar.style.width = '';
-        } else {
-          sidebar.classList.remove('collapsed');
-          sidebar.style.width = '';
-        }
-      });
-    });
-
-    document.addEventListener('mouseup', () => {
-      if (!isResizing) return;
-      isResizing = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      sidebar.style.transition = '';
-      ghost.style.display = 'none';
-      snapIndicator.style.display = 'none';
-
-      // Finalizar: binario collapsed/expanded
-      const currentWidth = sidebar.offsetWidth;
-      if (currentWidth <= 160) {
-        sidebar.classList.add('collapsed');
-      } else {
-        sidebar.classList.remove('collapsed');
-      }
-      sidebar.style.width = '';
-
-      const isCollapsed = sidebar.classList.contains('collapsed');
-      localStorage.setItem('tbo_sidebar_collapsed', isCollapsed ? '1' : '0');
-    });
-
-    handle.addEventListener('dblclick', () => {
-      sidebar.classList.remove('collapsed');
-      sidebar.style.width = '';
-      localStorage.setItem('tbo_sidebar_collapsed', '0');
     });
   },
 

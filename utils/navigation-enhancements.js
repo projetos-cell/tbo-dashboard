@@ -634,106 +634,9 @@ const TBO_NAVIGATION = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 6. SIDEBAR SMART COLLAPSE
+  // 6. SIDEBAR SMART COLLAPSE (removido)
   // ═══════════════════════════════════════════════════════════════════════════
-  initSidebarCollapse() {
-    const sidebar = document.getElementById('sidebar');
-    if (!sidebar) return;
-
-    // Restore saved preference
-    const savedState = localStorage.getItem(this._keys.sidebarCollapsed);
-    if (savedState === '1') {
-      this._collapseSidebar(false); // false = do not animate
-    }
-
-    // Create custom collapse button if not present
-    this._ensureCollapseButton(sidebar);
-
-    // Hover-to-expand when collapsed
-    sidebar.addEventListener('mouseenter', () => {
-      if (sidebar.classList.contains('tbo-sidebar-collapsed')) {
-        sidebar.classList.add('tbo-sidebar-peek');
-      }
-    });
-
-    sidebar.addEventListener('mouseleave', () => {
-      sidebar.classList.remove('tbo-sidebar-peek');
-    });
-
-    // Auto-collapse on mobile
-    if (this._mobileQuery && this._mobileQuery.matches) {
-      this._collapseSidebar(false);
-    }
-  },
-
-  _ensureCollapseButton(sidebar) {
-    if (document.getElementById('tboSidebarCollapseBtn')) return;
-
-    const btn = document.createElement('button');
-    btn.id = 'tboSidebarCollapseBtn';
-    btn.className = 'tbo-sidebar-collapse-btn';
-    btn.title = 'Recolher / Expandir menu';
-    btn.setAttribute('aria-label', 'Recolher ou expandir barra lateral');
-    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline></svg>';
-
-    // Insert at top of sidebar, after brand
-    const brand = sidebar.querySelector('.sidebar-brand');
-    if (brand && brand.nextSibling) {
-      sidebar.insertBefore(btn, brand.nextSibling);
-    } else {
-      sidebar.appendChild(btn);
-    }
-
-    btn.addEventListener('click', () => {
-      this._toggleSidebarCollapse();
-    });
-  },
-
-  _toggleSidebarCollapse() {
-    const sidebar = document.getElementById('sidebar');
-    if (!sidebar) return;
-
-    if (sidebar.classList.contains('tbo-sidebar-collapsed')) {
-      this._expandSidebar();
-    } else {
-      this._collapseSidebar(true);
-    }
-  },
-
-  _collapseSidebar(savePreference) {
-    const sidebar = document.getElementById('sidebar');
-    if (!sidebar) return;
-
-    sidebar.classList.add('tbo-sidebar-collapsed');
-    this._sidebarCollapsed = true;
-
-    // Update button icon direction
-    const btn = document.getElementById('tboSidebarCollapseBtn');
-    if (btn) {
-      btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>';
-    }
-
-    if (savePreference) {
-      localStorage.setItem(this._keys.sidebarCollapsed, '1');
-    }
-  },
-
-  _expandSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    if (!sidebar) return;
-
-    sidebar.classList.remove('tbo-sidebar-collapsed');
-    sidebar.classList.remove('tbo-sidebar-peek');
-    this._sidebarCollapsed = false;
-
-    // Update button icon direction
-    const btn = document.getElementById('tboSidebarCollapseBtn');
-    if (btn) {
-      btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline></svg>';
-    }
-
-    localStorage.setItem(this._keys.sidebarCollapsed, '0');
-  },
+  initSidebarCollapse() { /* no-op */ },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 7. ONBOARDING TOUR
@@ -1451,127 +1354,6 @@ const TBO_NAVIGATION = {
     }
 
     /* =====================================================================
-       SIDEBAR SMART COLLAPSE
-       ===================================================================== */
-    .tbo-sidebar-collapse-btn {
-      position: absolute;
-      top: 12px;
-      right: -12px;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: var(--bg-card, #fff);
-      border: 1px solid var(--border-default, #eee);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      z-index: 10;
-      color: var(--text-muted, #999);
-      box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.06));
-      transition: color 0.2s ease,
-                  background 0.2s ease,
-                  transform 0.2s ease;
-      opacity: 0;
-    }
-
-    #sidebar:hover .tbo-sidebar-collapse-btn,
-    #sidebar:focus-within .tbo-sidebar-collapse-btn {
-      opacity: 1;
-    }
-
-    .tbo-sidebar-collapse-btn:hover {
-      background: var(--accent, #E85102);
-      color: #fff;
-      border-color: var(--accent, #E85102);
-      transform: scale(1.1);
-    }
-
-    /* Sidebar collapsed state */
-    #sidebar.tbo-sidebar-collapsed {
-      width: var(--sidebar-collapsed, 64px) !important;
-      overflow: hidden;
-    }
-
-    #sidebar.tbo-sidebar-collapsed .nav-label,
-    #sidebar.tbo-sidebar-collapsed .nav-section-label,
-    #sidebar.tbo-sidebar-collapsed .nav-section-chevron,
-    #sidebar.tbo-sidebar-collapsed .brand-label,
-    #sidebar.tbo-sidebar-collapsed .sidebar-social,
-    #sidebar.tbo-sidebar-collapsed .sidebar-user,
-    #sidebar.tbo-sidebar-collapsed .sidebar-version,
-    #sidebar.tbo-sidebar-collapsed .nav-badge-dev {
-      opacity: 0;
-      width: 0;
-      overflow: hidden;
-      white-space: nowrap;
-      transition: opacity 0.2s ease, width 0.2s ease;
-    }
-
-    #sidebar.tbo-sidebar-collapsed .nav-item {
-      justify-content: center;
-      padding: 10px;
-    }
-
-    #sidebar.tbo-sidebar-collapsed .nav-section-toggle {
-      justify-content: center;
-      padding: 8px;
-    }
-
-    #sidebar.tbo-sidebar-collapsed .sidebar-brand {
-      justify-content: center;
-      padding: 12px 8px;
-    }
-
-    #sidebar.tbo-sidebar-collapsed .brand-logo-svg {
-      max-width: 32px;
-    }
-
-    /* Peek-on-hover when collapsed */
-    #sidebar.tbo-sidebar-collapsed.tbo-sidebar-peek {
-      width: var(--sidebar-width, 260px) !important;
-      position: fixed;
-      z-index: calc(var(--z-sidebar, 400) + 1);
-      box-shadow: var(--shadow-xl, 0 12px 48px rgba(0,0,0,0.18));
-    }
-
-    #sidebar.tbo-sidebar-collapsed.tbo-sidebar-peek .nav-label,
-    #sidebar.tbo-sidebar-collapsed.tbo-sidebar-peek .nav-section-label,
-    #sidebar.tbo-sidebar-collapsed.tbo-sidebar-peek .nav-section-chevron,
-    #sidebar.tbo-sidebar-collapsed.tbo-sidebar-peek .brand-label,
-    #sidebar.tbo-sidebar-collapsed.tbo-sidebar-peek .sidebar-social,
-    #sidebar.tbo-sidebar-collapsed.tbo-sidebar-peek .sidebar-user,
-    #sidebar.tbo-sidebar-collapsed.tbo-sidebar-peek .sidebar-version,
-    #sidebar.tbo-sidebar-collapsed.tbo-sidebar-peek .nav-badge-dev {
-      opacity: 1;
-      width: auto;
-    }
-
-    #sidebar.tbo-sidebar-collapsed.tbo-sidebar-peek .nav-item {
-      justify-content: flex-start;
-      padding: 8px 12px;
-    }
-
-    #sidebar.tbo-sidebar-collapsed.tbo-sidebar-peek .nav-section-toggle {
-      justify-content: flex-start;
-      padding: 10px 14px;
-    }
-
-    #sidebar.tbo-sidebar-collapsed.tbo-sidebar-peek .sidebar-brand {
-      justify-content: flex-start;
-      padding: 16px 20px;
-    }
-
-    #sidebar.tbo-sidebar-collapsed.tbo-sidebar-peek .brand-logo-svg {
-      max-width: 100px;
-    }
-
-    /* Smooth transition for sidebar width */
-    #sidebar {
-      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    /* =====================================================================
        ONBOARDING TOUR
        ===================================================================== */
     .tbo-tour-overlay {
@@ -1882,11 +1664,6 @@ const TBO_NAVIGATION = {
       background: var(--bg-card);
     }
 
-    body.dark-mode .tbo-sidebar-collapse-btn {
-      background: var(--bg-card);
-      border-color: var(--border-default);
-    }
-
     /* =====================================================================
        ANIMATION KEYFRAMES
        ===================================================================== */
@@ -1910,7 +1687,6 @@ const TBO_NAVIGATION = {
       .tbo-tour-overlay,
       .tbo-tour-spotlight,
       .tbo-tour-tooltip,
-      .tbo-sidebar-collapse-btn,
       .tbo-mobile-sidebar-backdrop {
         display: none !important;
       }

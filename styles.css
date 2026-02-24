@@ -851,25 +851,6 @@ strong {
 }
 .sidebar.collapsed .nav-section-drag-handle { display: none; }
 
-/* -- Sidebar resize handle -- */
-.sidebar-resize-handle {
-  position: absolute;
-  top: 0;
-  right: -3px;
-  bottom: 0;
-  width: 6px;
-  cursor: col-resize;
-  z-index: 10;
-  background: transparent;
-  transition: background 0.15s;
-}
-
-.sidebar-resize-handle:hover,
-.sidebar-resize-handle:active {
-  background: var(--accent-gold);
-  opacity: 0.5;
-}
-
 /* -- Theme toggle button -- */
 .theme-toggle-btn {
   width: 28px;
@@ -969,40 +950,7 @@ body.dark-mode .theme-icon-dark { display: flex; }
   display: none;
 }
 
-/* Login UI helper classes (replacing inline styles) */
-.login-google-btn {
-  width: 100%;
-  margin-top: 24px;
-  background: #4285f4;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 12px;
-  border-radius: 8px;
-  font-size: 0.88rem;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-}
-.login-google-btn:hover { background: #3367d6; }
-
-.login-divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 20px 0;
-}
-.login-divider-line {
-  flex: 1;
-  height: 1px;
-  background: var(--border-default);
-}
-.login-divider-text {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
+/* Login UI helper classes */
 
 .login-legacy-details { margin-bottom: 8px; }
 .login-legacy-summary {
@@ -11810,12 +11758,3 @@ body.dark-mode .sidebar-context-separator {
   line-height: 16px;
 }
 
-/* ── FIX 21: Sidebar resize handle accessibility ── */
-.sidebar-resize-handle {
-  cursor: col-resize;
-}
-
-.sidebar-resize-handle:focus-visible {
-  outline: 2px solid var(--accent-gold);
-  outline-offset: -1px;
-}

@@ -98,7 +98,7 @@ const TBO_DB = (() => {
         auth: {
           autoRefreshToken: true,
           persistSession: true,
-          detectSessionInUrl: true
+          detectSessionInUrl: false
         },
         global: {
           headers: {

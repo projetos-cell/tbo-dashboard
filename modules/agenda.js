@@ -217,46 +217,6 @@ const TBO_AGENDA = (() => {
     }
   }
 
-  // ── Re-autenticação Google ──────────────────────────────────────────────
-
-  async function _reauthGoogle() {
-    try {
-      if (typeof TBO_SUPABASE === 'undefined' && typeof TBO_DB === 'undefined') {
-        if (typeof TBO_TOAST !== 'undefined') {
-          TBO_TOAST.error('Erro', 'Cliente Supabase não disponível');
-        }
-        return;
-      }
-
-      const client = typeof TBO_DB !== 'undefined'
-        ? TBO_DB.getClient()
-        : TBO_SUPABASE.getClient();
-
-      if (!client) return;
-
-      const { error } = await client.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          scopes: 'https://www.googleapis.com/auth/calendar.readonly',
-          redirectTo: window.location.origin + window.location.pathname + '#agenda',
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent'
-          }
-        }
-      });
-
-      if (error) {
-        console.error('[TBO Agenda] Erro ao re-autenticar:', error.message);
-        if (typeof TBO_TOAST !== 'undefined') {
-          TBO_TOAST.error('Erro', 'Falha na autenticação Google: ' + error.message);
-        }
-      }
-    } catch (e) {
-      console.error('[TBO Agenda] Erro inesperado:', e);
-    }
-  }
-
   // ── Render: Estado sem token ────────────────────────────────────────────
 
   function _renderAuthRequired() {
@@ -264,18 +224,10 @@ const TBO_AGENDA = (() => {
       <div class="agenda-auth-icon">
         <i data-lucide="calendar-x"></i>
       </div>
-      <h3 class="agenda-auth-title">Conecte seu Google Calendar</h3>
+      <h3 class="agenda-auth-title">Google Calendar indisponivel</h3>
       <p class="agenda-auth-text">
-        Para visualizar sua agenda, é necessário autenticar com sua conta Google.
-        Isso permite ao TBO OS acessar seus eventos do Google Calendar (somente leitura).
-      </p>
-      <button class="agenda-auth-btn" id="agendaAuthBtn">
-        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-        Conectar Google Calendar
-      </button>
-      <p class="agenda-auth-note">
-        <i data-lucide="shield-check"></i>
-        Acesso somente leitura — seus dados estão seguros
+        A integracao com Google Calendar requer configuracao de API externa.
+        Entre em contato com o administrador para habilitar este recurso.
       </p>
     </div>`;
   }
@@ -573,12 +525,6 @@ const TBO_AGENDA = (() => {
         _loadEvents();
       });
     });
-
-    // Botão de auth
-    const authBtn = container.querySelector('#agendaAuthBtn');
-    if (authBtn) {
-      authBtn.addEventListener('click', () => _reauthGoogle());
-    }
 
     // Botão retry
     const retryBtn = container.querySelector('#agendaRetryBtn');

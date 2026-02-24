@@ -1,5 +1,5 @@
 // TBO OS — Authentication & Session Management
-// Supabase Auth exclusivo (Google OAuth, email/password, Magic Link) — v2.1
+// Supabase Auth exclusivo (email/password + Magic Link para recuperacao) — v3.1
 // Legacy mode (TBO_CRYPTO) removido em v2.1 por seguranca
 // Delegates role/permission logic to TBO_PERMISSIONS.
 // Manages login, session, user menu dropdown, sidebar user widget.
@@ -43,9 +43,8 @@ const TBO_AUTH = {
   _cachedUser: null,
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // AVATAR — Cadeia de fallback robusta para resolver URL do avatar
-  // Prioridade: 1) profiles.avatar_url  2) user_metadata.avatar_url
-  //             3) provider identity_data.avatar_url  4) null (iniciais)
+  // AVATAR — Fallback para resolver URL do avatar
+  // Prioridade: 1) profiles.avatar_url  2) user_metadata.avatar_url  3) null (iniciais)
   // ═══════════════════════════════════════════════════════════════════════════
 
   _resolveAvatarUrl(profile, authUser) {
@@ -58,16 +57,7 @@ const TBO_AUTH = {
     if (metaAvatar && /^https:\/\//i.test(metaAvatar)) {
       return metaAvatar;
     }
-    // 3. Avatar nos dados do provider Google (identities array)
-    if (authUser?.identities?.length) {
-      for (const identity of authUser.identities) {
-        const providerAvatar = identity.identity_data?.avatar_url || identity.identity_data?.picture;
-        if (providerAvatar && /^https:\/\//i.test(providerAvatar)) {
-          return providerAvatar;
-        }
-      }
-    }
-    // 4. Nenhum avatar disponivel — UI usara iniciais como fallback
+    // 3. Nenhum avatar disponivel — UI usara iniciais como fallback
     return null;
   },
 
@@ -149,49 +139,7 @@ const TBO_AUTH = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // LOGIN — Google OAuth via Supabase
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  async loginWithGoogle() {
-    if (typeof TBO_SUPABASE === 'undefined') {
-      return { ok: false, msg: 'Supabase nao disponivel.' };
-    }
-
-    const client = TBO_SUPABASE.getClient();
-    if (!client) return { ok: false, msg: 'Supabase client nao inicializado.' };
-
-    try {
-      // PRD v1.2 — Solicitar scopes Drive + Calendar para provider_token
-      const { error } = await client.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin + '/',
-          scopes: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/calendar.events'
-        }
-      });
-
-      if (error) {
-        // Handle "provider not enabled" error gracefully
-        if (error.message && (error.message.includes('provider is not enabled') || error.message.includes('Unsupported provider'))) {
-          console.warn('[TBO Auth] Google OAuth not enabled in Supabase. Use legacy login.');
-          return { ok: false, msg: 'Login com Google nao habilitado. Use usuario e senha.', providerDisabled: true };
-        }
-        return { ok: false, msg: error.message };
-      }
-
-      // OAuth redirects — session is handled on redirect return via initAuthListener
-      return { ok: true, redirecting: true };
-    } catch (e) {
-      console.warn('[TBO Auth] Google OAuth error:', e);
-      if (e.message && (e.message.includes('provider is not enabled') || e.message.includes('Unsupported provider') || e.message.includes('validation_failed'))) {
-        return { ok: false, msg: 'Login com Google nao habilitado. Use usuario e senha.', providerDisabled: true };
-      }
-      return { ok: false, msg: e.message || 'Erro ao conectar com Google.' };
-    }
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // LOGIN — Magic Link via Supabase
+  // LOGIN — Magic Link via Supabase (recuperacao de senha)
   // ═══════════════════════════════════════════════════════════════════════════
 
   async loginWithMagicLink(email) {
@@ -345,89 +293,7 @@ const TBO_AUTH = {
       };
     }
 
-    // v2.2.2: Auto-provisionamento para novos membros @agenciatbo.com.br via Google OAuth
-    // Cria profile automatico com role 'artist' (menor permissao) — admin configura depois
-    if (authUser.email && authUser.email.toLowerCase().endsWith('@agenciatbo.com.br')) {
-      console.log('[TBO Auth] Novo membro detectado — auto-provisionando profile:', authUser.email);
-      try {
-        const client = TBO_SUPABASE.getClient();
-        const tenantId = TBO_SUPABASE.getCurrentTenantId() || '89080d1a-bc79-4c3f-8fce-20aabc561c0d';
-        const username = authUser.email.split('@')[0];
-        const fullName = authUser.user_metadata?.full_name || username;
-
-        // Criar profile com role padrao 'artist'
-        const { data: newProfile, error: profileErr } = await client
-          .from('profiles')
-          .insert({
-            id: authUser.id,
-            username: username,
-            full_name: fullName,
-            email: authUser.email,
-            role: 'artist',
-            bu: null,
-            is_coordinator: false,
-            is_active: true,
-            tenant_id: tenantId,
-            first_login_completed: false,
-            onboarding_wizard_completed: false,
-            avatar_url: authUser.user_metadata?.avatar_url || null
-          })
-          .select()
-          .single();
-
-        if (profileErr) {
-          console.warn('[TBO Auth] Erro ao criar profile:', profileErr.message);
-        } else {
-          console.log('[TBO Auth] Profile criado com sucesso para:', username);
-        }
-
-        // Adicionar ao tenant_members com role Artista
-        // Buscar role_id do Artista
-        const { data: artistRole } = await client
-          .from('roles')
-          .select('id')
-          .eq('tenant_id', tenantId)
-          .ilike('slug', 'artista')
-          .single();
-
-        if (artistRole) {
-          const { error: tmErr } = await client
-            .from('tenant_members')
-            .insert({
-              user_id: authUser.id,
-              tenant_id: tenantId,
-              role_id: artistRole.id
-            });
-          if (tmErr) console.warn('[TBO Auth] Erro ao criar tenant_member:', tmErr.message);
-        }
-
-        // Construir sessao com os dados recem-criados
-        const roleDef = TBO_PERMISSIONS._roles['artist'];
-        return {
-          id: username,
-          supabaseId: authUser.id,
-          name: fullName,
-          email: authUser.email,
-          role: 'artist',
-          roleLabel: roleDef?.label || 'Artista',
-          roleColor: roleDef?.color || '#3a7bd5',
-          modules: [...new Set([...(roleDef?.modules || []), ...TBO_PERMISSIONS._sharedModules])],
-          dashboardVariant: roleDef?.dashboardVariant || 'tasks',
-          defaultModule: roleDef?.defaultModule || 'dashboard',
-          bu: null,
-          isCoordinator: false,
-          initials: TBO_PERMISSIONS.getInitials(fullName),
-          loginAt: new Date().toISOString(),
-          authMode: 'supabase',
-          avatarUrl: this._resolveAvatarUrl(null, authUser),
-          _isNewMember: true // flag para mostrar boas-vindas
-        };
-      } catch (e) {
-        console.error('[TBO Auth] Auto-provisionamento falhou:', e);
-      }
-    }
-
-    // Sem fallback — profile obrigatorio para dominios externos
+    // Sem fallback — profile obrigatorio (admin cria manualmente)
     console.warn('[TBO Auth] Nenhum profile encontrado para:', authUser.email);
     return null;
   },
@@ -505,23 +371,6 @@ const TBO_AUTH = {
       }
     });
 
-    // Process OAuth redirect (if returning from Google sign-in)
-    this._handleOAuthRedirect();
-  },
-
-  async _handleOAuthRedirect() {
-    // Supabase detects session in URL hash automatically via detectSessionInUrl option
-    // Just check if we have a session after redirect
-    if (typeof TBO_SUPABASE === 'undefined') return;
-    const session = await TBO_SUPABASE.getSession();
-    if (session && !this._cachedUser) {
-      const userSession = await this._buildSupabaseSession(session.user);
-      if (userSession) {
-        // v2.1: auth mode sempre supabase
-        this._cachedUser = userSession;
-        sessionStorage.setItem('tbo_auth', JSON.stringify(userSession));
-      }
-    }
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -621,30 +470,7 @@ const TBO_AUTH = {
 
     if (!overlay) return;
 
-    // Google OAuth button
-    const googleBtn = document.getElementById('loginGoogleBtn');
-    if (googleBtn) {
-      googleBtn.addEventListener('click', async () => {
-        googleBtn.disabled = true;
-        googleBtn.textContent = 'Redirecionando...';
-        const result = await this.loginWithGoogle();
-        if (!result.ok && !result.redirecting) {
-          if (result.providerDisabled) {
-            // Google provider not enabled — show clear message and highlight legacy login
-            this._showLoginError(errorEl, 'Google OAuth nao habilitado no Supabase. Habilite o provider Google em Authentication > Providers no painel do Supabase, ou use login com usuario/senha abaixo.');
-            if (typeof TBO_TOAST !== 'undefined') {
-              TBO_TOAST.warning('Google OAuth', 'Provider Google nao habilitado. Configure em Supabase Dashboard > Authentication > Providers > Google.');
-            }
-          } else {
-            this._showLoginError(errorEl, result.msg);
-          }
-          googleBtn.disabled = false;
-          googleBtn.textContent = 'Entrar com Google';
-        }
-      });
-    }
-
-    // v2.1: Login apenas por email via Supabase Auth
+    // Login por email/senha via Supabase Auth
     const doLogin = async () => {
       const emailInput = document.getElementById('loginEmail');
       const email = emailInput?.value?.trim();

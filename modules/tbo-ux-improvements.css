@@ -194,6 +194,7 @@
   padding-top: 15vh;
   backdrop-filter: blur(4px);
 }
+.uxi-cmd-overlay[hidden] { display: none; }
 
 .uxi-cmd-dialog {
   width: 520px;

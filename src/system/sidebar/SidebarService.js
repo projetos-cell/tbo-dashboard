@@ -54,8 +54,6 @@ const TBO_SIDEBAR_SERVICE = (() => {
     { id: 'ws-diretoria',   name: 'Diretoria TBO',    type: 'workspace', order_index: 15, icon: 'shield',   route: null, parent_id: 'sep-equipe', allowed_roles: ['owner', 'admin', 'diretor'] },
 
     // ── Sub-items: Geral ──────────────────────────────────────────────────
-    { id: 'geral-quadro',      name: 'Quadro Geral',         type: 'child', order_index: 9.01, icon: 'layout-dashboard', route: 'notion-embed/geral-quadro',    parent_id: 'ws-geral', allowed_roles: [] },
-    { id: 'geral-quadro-v2',   name: 'Quadro Geral v2',      type: 'child', order_index: 9.02, icon: 'layout-grid',      route: 'notion-embed/geral-quadro-v2', parent_id: 'ws-geral', allowed_roles: [] },
     { id: 'geral-quadro-projetos', name: 'Quadro de Projetos', type: 'child', order_index: 9.025, icon: 'layout-dashboard', route: 'quadro-projetos', parent_id: 'ws-geral', allowed_roles: [] },
     { id: 'geral-cultura',     name: 'Manual de Cultura',     type: 'child', order_index: 9.03, icon: 'book-open',        route: 'notion-embed/geral-cultura',   parent_id: 'ws-geral', allowed_roles: [] },
     { id: 'geral-docs',        name: 'Documentos & Padrões',  type: 'child', order_index: 9.04, icon: 'file-text',        route: 'notion-embed/geral-docs',      parent_id: 'ws-geral', allowed_roles: [] },
@@ -80,7 +78,6 @@ const TBO_SIDEBAR_SERVICE = (() => {
     { id: 'mkt-guia',          name: 'Guia da Marca',         type: 'child', order_index: 13.01, icon: 'book-marked',     route: 'notion-embed/mkt-guia',       parent_id: 'ws-marketing', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'copy', 'design', 'qa'] },
     { id: 'mkt-calendario',    name: 'Calendário Redes Sociais', type: 'child', order_index: 13.02, icon: 'calendar',    route: 'notion-embed/mkt-calendario', parent_id: 'ws-marketing', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'copy', 'design', 'qa'] },
     { id: 'mkt-demandas',      name: 'Gestão de Demandas',    type: 'child', order_index: 13.03, icon: 'list-checks',     route: 'notion-embed/mkt-demandas',   parent_id: 'ws-marketing', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'copy', 'design', 'qa'] },
-    { id: 'mkt-conteudo',      name: 'Conteúdo & Redação',    type: 'child', order_index: 13.04, icon: 'pen-tool',        route: 'conteudo', parent_id: 'ws-marketing', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'copy', 'design', 'qa'] },
     { id: 'mkt-rsm',           name: 'Social Media (RSM)',    type: 'child', order_index: 13.05, icon: 'share-2',         route: 'rsm', parent_id: 'ws-marketing', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'copy', 'design', 'qa'] },
 
     // ── Sub-items: Comercial ────────────────────────────────────────────

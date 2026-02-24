@@ -318,35 +318,11 @@ const TBO_QUADRO_PROJETOS = {
     const filtered = this._sortedList(this._filtered());
     if (filtered.length === 0) return `<div class="qp-empty">Nenhum projeto encontrado.</div>`;
 
-    const th = (col, label) => {
-      const active = this._listSort.col === col;
-      const dir = active ? this._listSort.dir : 'none';
-      const arrow = dir === 'asc' ? '↑' : dir === 'desc' ? '↓' : '';
-      return `<th class="qp-th-sortable ${active ? 'qp-th-active' : ''}"
-                  onclick="TBO_QUADRO_PROJETOS._sortList('${col}')">
-                ${label} <span class="qp-sort-arrow">${arrow}</span>
-              </th>`;
-    };
+    const groups = this._groupProjectsByStatus(filtered);
 
     return `
       <div class="qp-list">
-        <table class="qp-table">
-          <thead>
-            <tr>
-              ${th('name',        'Projeto')}
-              ${th('construtora', 'Construtora')}
-              ${th('status',      'Status')}
-              ${th('bus',         'BUs')}
-              ${th('owner_name',  'Responsável')}
-              ${th('due_date_end','Prazo')}
-              <th>Demandas</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            ${filtered.map(p => this._renderListRow(p)).join('')}
-          </tbody>
-        </table>
+        ${this._renderProjectSectionList(groups)}
       </div>
     `;
   },
@@ -379,6 +355,86 @@ const TBO_QUADRO_PROJETOS = {
         : String(va).localeCompare(String(vb), 'pt-BR', { sensitivity: 'base' });
       return dir === 'asc' ? cmp : -cmp;
     });
+  },
+
+  // ── Section grouping for list view ──────────────────────────────────────────
+  _SECTION_ORDER: ['em_andamento', 'producao', 'finalizado', 'parado'],
+
+  _SECTION_LABELS: {
+    em_andamento: 'Em Andamento',
+    producao:     'Em Produção',
+    finalizado:   'Finalizados',
+    parado:       'Parados/Pausados',
+  },
+
+  _groupProjectsByStatus(projects) {
+    const groups = {};
+    this._SECTION_ORDER.forEach(key => { groups[key] = []; });
+
+    projects.forEach(p => {
+      const s = p.status || '';
+      if (s === 'pausado' || s === 'parado') {
+        groups['parado'].push(p);
+      } else if (groups[s]) {
+        groups[s].push(p);
+      } else {
+        // Unknown status — put in first group
+        groups[this._SECTION_ORDER[0]].push(p);
+      }
+    });
+
+    return groups;
+  },
+
+  _renderProjectSectionList(groups) {
+    return this._SECTION_ORDER
+      .filter(key => groups[key] && groups[key].length > 0)
+      .map(key => this._renderProjectSection(key, groups[key]))
+      .join('');
+  },
+
+  _renderProjectSection(sectionKey, projects) {
+    const label = this._SECTION_LABELS[sectionKey] || sectionKey;
+    const info = this._statusInfo(sectionKey);
+
+    const th = (col, colLabel) => {
+      const active = this._listSort.col === col;
+      const dir = active ? this._listSort.dir : 'none';
+      const arrow = dir === 'asc' ? '↑' : dir === 'desc' ? '↓' : '';
+      return `<th class="qp-th-sortable ${active ? 'qp-th-active' : ''}"
+                  onclick="TBO_QUADRO_PROJETOS._sortList('${col}')">
+                ${colLabel} <span class="qp-sort-arrow">${arrow}</span>
+              </th>`;
+    };
+
+    return `
+      <section class="project-section">
+        <div class="project-section-header">
+          <span class="project-section-dot" style="background:${info.color};"></span>
+          <span class="project-section-title">${label}</span>
+          <span class="project-section-count" style="background:${info.bg};color:${info.color};">${projects.length}</span>
+        </div>
+        <div class="project-section-list">
+          <table class="qp-table">
+            <thead>
+              <tr>
+                ${th('name',        'Projeto')}
+                ${th('construtora', 'Construtora')}
+                ${th('status',      'Status')}
+                ${th('bus',         'BUs')}
+                ${th('owner_name',  'Responsável')}
+                ${th('due_date_end','Prazo')}
+                <th>Demandas</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${projects.map(p => this._renderListRow(p)).join('')}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    `;
   },
 
   _renderListRow(p) {

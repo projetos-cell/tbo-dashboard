@@ -58,6 +58,9 @@ const TBO_QUADRO_PROJETOS = {
             <select class="qp-filter" id="qpFilterConstrutora">
               <option value="">Todas as construtoras</option>
             </select>
+            <button class="qp-density-btn" onclick="typeof TBO_UX_IMPROVEMENTS!=='undefined'&&TBO_UX_IMPROVEMENTS.toggleDensity()" title="Alternar densidade">
+              <i data-lucide="rows-3" style="width:15px;height:15px;"></i>
+            </button>
             <div class="qp-view-toggle">
               <button class="qp-view-btn active" id="qpViewBoard" title="Quadro Kanban">
                 <i data-lucide="layout-grid" style="width:15px;height:15px;"></i>
@@ -222,7 +225,7 @@ const TBO_QUADRO_PROJETOS = {
     const el = document.getElementById('qpKpis');
     if (!el) return;
     el.innerHTML = kpis.map(k => `
-      <div class="qp-kpi-card">
+      <div class="qp-kpi-card" title="Clique para filtrar por ${k.label}">
         <div class="qp-kpi-icon" style="color:${k.color};">
           <i data-lucide="${k.icon}" style="width:18px;height:18px;"></i>
         </div>
@@ -316,7 +319,11 @@ const TBO_QUADRO_PROJETOS = {
   // ── LIST VIEW ──────────────────────────────────────────────────────────────
   _renderList() {
     const filtered = this._sortedList(this._filtered());
-    if (filtered.length === 0) return `<div class="qp-empty">Nenhum projeto encontrado.</div>`;
+    if (filtered.length === 0) {
+      return typeof TBO_UX_IMPROVEMENTS !== 'undefined'
+        ? TBO_UX_IMPROVEMENTS.renderEmptyState('folder-open', 'Nenhum projeto encontrado', 'Tente alterar os filtros ou criar um novo projeto.', 'Limpar filtros', "document.getElementById('qpFilterStatus').value='all';document.getElementById('qpFilterStatus').dispatchEvent(new Event('change'))")
+        : `<div class="qp-empty">Nenhum projeto encontrado.</div>`;
+    }
 
     const groups = this._groupProjectsByStatus(filtered);
 
@@ -418,6 +425,7 @@ const TBO_QUADRO_PROJETOS = {
           <table class="qp-table">
             <thead>
               <tr>
+                <th style="width:32px;"></th>
                 ${th('name',        'Projeto')}
                 ${th('construtora', 'Construtora')}
                 ${th('status',      'Status')}
@@ -444,39 +452,55 @@ const TBO_QUADRO_PROJETOS = {
     const info = this._statusInfo(p.status);
     const dueEnd = p.due_date_end ? this._fmtDate(p.due_date_end) : '—';
     const isLate = p.due_date_end && new Date(p.due_date_end) < new Date() && p.status !== 'finalizado';
+    const dueRaw = p.due_date_end || '';
+
+    const statusOptions = Object.entries(this._STATUS).map(([k, v]) =>
+      `<option value="${k}" ${p.status === k ? 'selected' : ''}>${v.label}</option>`
+    ).join('');
+
+    const buOptions = Object.keys(this._BU_COLORS).map(b => {
+      const selected = bus.includes(b) ? 'selected' : '';
+      return `<option value="${b}" ${selected}>${b}</option>`;
+    }).join('');
 
     return `
-      <tr class="qp-row" onclick="TBO_QUADRO_PROJETOS._openDetail('${p.id}')" style="cursor:pointer;">
+      <tr class="qp-row" data-project-id="${p.id}">
+        <td class="qp-row-check"><input type="checkbox" class="uxi-bulk-checkbox" data-id="${p.id}"></td>
         <td class="qp-row-name">
-          <span class="qp-row-name-text">${this._esc(p.name)}</span>
+          <span class="qp-editable-text" data-field="name" data-id="${p.id}" title="Clique para editar">${this._esc(p.name)}</span>
           ${p.code ? `<span class="qp-row-code">${p.code}</span>` : ''}
         </td>
-        <td>${this._esc(p.construtora || '—')}</td>
         <td>
-          <span class="qp-status-pill" style="background:${info.bg};color:${info.color};">
-            <i data-lucide="${info.icon}" style="width:11px;height:11px;"></i>
-            ${info.label}
-          </span>
+          <span class="qp-editable-text" data-field="construtora" data-id="${p.id}" title="Clique para editar">${this._esc(p.construtora || '—')}</span>
         </td>
         <td>
-          <div style="display:flex;gap:3px;flex-wrap:wrap;">
-            ${bus.map(b => {
-              const bc = this._BU_COLORS[b] || { bg: '#f3f4f6', color: '#374151' };
-              return `<span class="qp-bu-tag" style="background:${bc.bg};color:${bc.color};">${b}</span>`;
-            }).join('')}
-          </div>
+          <select class="qp-inline-select qp-inline-status" data-field="status" data-id="${p.id}">
+            ${statusOptions}
+          </select>
         </td>
-        <td>${this._esc(p.owner_name || '—')}</td>
-        <td class="${isLate ? 'qp-late' : ''}">${isLate ? '⚠ ' : ''}${dueEnd}</td>
+        <td>
+          <select class="qp-inline-select qp-inline-bus" data-field="bus" data-id="${p.id}" multiple>
+            ${buOptions}
+          </select>
+        </td>
+        <td>
+          <span class="qp-editable-text" data-field="owner_name" data-id="${p.id}" title="Clique para editar">${this._esc(p.owner_name || '—')}</span>
+        </td>
+        <td class="${isLate ? 'qp-late' : ''}">
+          <input type="date" class="qp-inline-date" data-field="due_date_end" data-id="${p.id}" value="${dueRaw}">
+        </td>
         <td>
           ${demands.length > 0
-            ? `<span class="qp-demands-pill">${openDemands.length}/${demands.length}</span>`
+            ? `<span class="qp-demands-pill qp-demands-link" data-id="${p.id}" title="Ver demandas">${openDemands.length}/${demands.length}</span>`
             : '<span style="color:var(--text-muted);">—</span>'}
         </td>
         <td>
           ${p.notion_url ? `<a href="${p.notion_url}" target="_blank" class="qp-notion-link" onclick="event.stopPropagation()" title="Abrir no Notion">
             <i data-lucide="external-link" style="width:13px;height:13px;"></i>
           </a>` : ''}
+          <button class="qp-row-open-btn" data-id="${p.id}" title="Abrir projeto">
+            <i data-lucide="arrow-right" style="width:13px;height:13px;"></i>
+          </button>
         </td>
       </tr>
     `;
@@ -653,6 +677,106 @@ const TBO_QUADRO_PROJETOS = {
     }
   },
 
+  // ── Inline editing: save field to Supabase ─────────────────────────────────
+  async _saveField(projectId, field, value) {
+    const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+    if (!client) return;
+
+    const update = {};
+    if (field === 'bus') {
+      update.bus = JSON.stringify(value);
+    } else {
+      update[field] = value || null;
+    }
+
+    // Show saving state
+    if (typeof TBO_UX_IMPROVEMENTS !== 'undefined') TBO_UX_IMPROVEMENTS.setSaveState('saving');
+
+    try {
+      const { error } = await client.from('projects').update(update).eq('id', projectId);
+      if (error) throw error;
+
+      // Capture old value for undo
+      const proj = this._data.projects.find(p => p.id === projectId);
+      const oldValue = proj ? (field === 'bus' ? [...(this._parseBus(proj.bus))] : proj[field]) : null;
+
+      // Update local data
+      if (proj) {
+        if (field === 'bus') {
+          proj.bus = value;
+        } else {
+          proj[field] = value || null;
+        }
+      }
+
+      // Show feedback
+      this._showSaveToast('Salvo');
+      if (typeof TBO_UX_IMPROVEMENTS !== 'undefined') {
+        TBO_UX_IMPROVEMENTS.setSaveState('saved');
+        // Push undo action
+        TBO_UX_IMPROVEMENTS.pushUndo(`Campo "${field}" alterado`, () => {
+          this._saveField(projectId, field, oldValue);
+          this._renderContent();
+          if (typeof lucide !== 'undefined') lucide.createIcons();
+        });
+      }
+    } catch (err) {
+      console.error('[TBO QP] Save error:', err);
+      this._showSaveToast('Erro ao salvar', true);
+      if (typeof TBO_UX_IMPROVEMENTS !== 'undefined') TBO_UX_IMPROVEMENTS.setSaveState('error');
+    }
+  },
+
+  _showSaveToast(msg, isError) {
+    let toast = document.getElementById('qpSaveToast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'qpSaveToast';
+      toast.className = 'qp-save-toast';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.classList.toggle('qp-save-toast-error', !!isError);
+    toast.classList.add('qp-save-toast-show');
+    clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => toast.classList.remove('qp-save-toast-show'), 1800);
+  },
+
+  // ── Inline text editing (click-to-edit) ───────────────────────────────────
+  _startInlineEdit(span) {
+    if (span.querySelector('input')) return; // already editing
+    const field = span.dataset.field;
+    const id = span.dataset.id;
+    const currentValue = span.textContent.trim();
+    const displayValue = currentValue === '—' ? '' : currentValue;
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'qp-inline-input';
+    input.value = displayValue;
+    input.dataset.field = field;
+    input.dataset.id = id;
+
+    span.textContent = '';
+    span.appendChild(input);
+    input.focus();
+    input.select();
+
+    const save = () => {
+      const newVal = input.value.trim();
+      span.textContent = newVal || '—';
+      if (newVal !== displayValue) {
+        this._saveField(id, field, newVal);
+      }
+    };
+
+    input.addEventListener('blur', save);
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+      if (e.key === 'Escape') { span.textContent = currentValue; }
+    });
+  },
+
   // ── Event bindings ─────────────────────────────────────────────────────────
   _bindEvents() {
     const search      = document.getElementById('qpSearch');
@@ -679,6 +803,46 @@ const TBO_QUADRO_PROJETOS = {
     btnBoard?.addEventListener('click', () => setView('board'));
     btnList?.addEventListener('click',  () => setView('list'));
     btnGantt?.addEventListener('click', () => setView('gantt'));
+
+    // ── Inline editing delegation ──
+    const content = document.getElementById('qpContent');
+    if (!content) return;
+
+    // Click-to-edit text fields
+    content.addEventListener('click', e => {
+      const editable = e.target.closest('.qp-editable-text');
+      if (editable) { e.stopPropagation(); this._startInlineEdit(editable); return; }
+
+      const openBtn = e.target.closest('.qp-row-open-btn');
+      if (openBtn) { e.stopPropagation(); this._openDetail(openBtn.dataset.id); return; }
+
+      const demandsLink = e.target.closest('.qp-demands-link');
+      if (demandsLink) { e.stopPropagation(); this._openDetail(demandsLink.dataset.id); return; }
+    });
+
+    // Select changes (status, BUs)
+    content.addEventListener('change', e => {
+      const sel = e.target.closest('.qp-inline-select');
+      if (sel) {
+        e.stopPropagation();
+        const field = sel.dataset.field;
+        const id = sel.dataset.id;
+        if (field === 'bus') {
+          const selected = Array.from(sel.selectedOptions).map(o => o.value);
+          this._saveField(id, field, selected);
+        } else {
+          this._saveField(id, field, sel.value);
+          // Re-render to update status pill colors across the board
+          setTimeout(() => { this._renderKpis(); this._renderContent(); if (typeof lucide !== 'undefined') lucide.createIcons(); }, 200);
+        }
+      }
+
+      const dateInput = e.target.closest('.qp-inline-date');
+      if (dateInput) {
+        e.stopPropagation();
+        this._saveField(dateInput.dataset.id, dateInput.dataset.field, dateInput.value);
+      }
+    });
   },
 
   // ── Skeletons / error ──────────────────────────────────────────────────────

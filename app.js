@@ -305,7 +305,8 @@ const TBO_APP = {
       ['Realtime Engine', typeof TBO_REALTIME !== 'undefined' ? TBO_REALTIME : null],
       ['Digest Engine', typeof TBO_DIGEST !== 'undefined' ? TBO_DIGEST : null],
       ['Document Versions', typeof TBO_DOC_VERSIONS !== 'undefined' ? TBO_DOC_VERSIONS : null],
-      ['Dynamic Templates', typeof TBO_DYNAMIC_TEMPLATES !== 'undefined' ? TBO_DYNAMIC_TEMPLATES : null]
+      ['Dynamic Templates', typeof TBO_DYNAMIC_TEMPLATES !== 'undefined' ? TBO_DYNAMIC_TEMPLATES : null],
+      ['UX Improvements', typeof TBO_UX_IMPROVEMENTS !== 'undefined' ? TBO_UX_IMPROVEMENTS : null]
     ];
 
     enhancementModules.forEach(([name, mod]) => {

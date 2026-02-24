@@ -1732,14 +1732,6 @@ const TBO_RH = {
 
     return `
       ${this._pageHeader('Cultura & Reconhecimento', 'Valores, reconhecimentos, rituais e feedbacks')}
-      <div class="tab-bar tab-bar--sub" id="rhCulturaSubtabs" style="margin-bottom:16px;">
-        <button class="tab tab--sub ${sub === 'valores' ? 'active' : ''}" data-cultura-tab="valores"><i data-lucide="gem" style="width:14px;height:14px;"></i> Valores TBO</button>
-        <button class="tab tab--sub ${sub === 'reconhecimentos' ? 'active' : ''}" data-cultura-tab="reconhecimentos"><i data-lucide="award" style="width:14px;height:14px;"></i> Reconhecimentos</button>
-        <button class="tab tab--sub ${sub === 'rituais' ? 'active' : ''}" data-cultura-tab="rituais"><i data-lucide="repeat" style="width:14px;height:14px;"></i> Rituais</button>
-        <button class="tab tab--sub ${sub === 'feedbacks' ? 'active' : ''}" data-cultura-tab="feedbacks"><i data-lucide="message-square" style="width:14px;height:14px;"></i> Feedbacks</button>
-        <button class="tab tab--sub ${sub === 'historico' ? 'active' : ''}" data-cultura-tab="historico"><i data-lucide="clock" style="width:14px;height:14px;"></i> Historico</button>
-        <button class="tab tab--sub ${sub === 'onboarding' ? 'active' : ''}" data-cultura-tab="onboarding"><i data-lucide="book-open" style="width:14px;height:14px;"></i> Onboarding</button>
-      </div>
       <div id="rhCulturaContent">
         ${this._renderCulturaSubTab(sub, elogios, feedbacks, userId, isAdmin)}
       </div>
@@ -4801,8 +4793,13 @@ const TBO_RH = {
         const validCulturaSubs = ['valores', 'reconhecimentos', 'rituais', 'feedbacks', 'historico', 'onboarding'];
         if (validCulturaSubs.includes(parts[2]) && parts[2] !== this._culturaSubTab) {
           this._culturaSubTab = parts[2];
-          const subTabBtn = document.querySelector(`#rhCulturaSubtabs .tab--sub[data-cultura-tab="${parts[2]}"]`);
-          if (subTabBtn) subTabBtn.click();
+          const content = document.getElementById('rhCulturaContent');
+          if (content) {
+            content.innerHTML = this._renderCulturaSubTab(parts[2]);
+            if (window.lucide) lucide.createIcons({ root: content });
+            this._bindCulturaContent();
+            if (parts[2] === 'onboarding') this._loadOnboardingData();
+          }
         }
       }
     };
@@ -4836,31 +4833,6 @@ const TBO_RH = {
       });
     });
 
-    // Cultura subtab switching
-    document.querySelectorAll('#rhCulturaSubtabs .tab--sub').forEach(tab => {
-      tab.addEventListener('click', () => {
-        const subTab = tab.dataset.culturaTab;
-        this._culturaSubTab = subTab;
-        // Atualizar visual das subtabs
-        document.querySelectorAll('#rhCulturaSubtabs .tab--sub').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        // Re-renderizar conteudo da subtab
-        const content = document.getElementById('rhCulturaContent');
-        if (content) {
-          content.innerHTML = this._renderCulturaSubTab(subTab);
-          if (window.lucide) lucide.createIcons({ root: content });
-          this._bindCulturaContent();
-          // Carregar dados async de onboarding se subtab onboarding
-          if (subTab === 'onboarding') this._loadOnboardingData();
-        }
-        // Atualizar hash para deep link do sidebar
-        const newHash = `rh/cultura/${subTab}`;
-        history.replaceState(null, '', '#' + newHash);
-        if (typeof TBO_SIDEBAR_RENDERER !== 'undefined') {
-          TBO_SIDEBAR_RENDERER.setActive(newHash);
-        }
-      });
-    });
     // Bind interacoes da tab Cultura (elogios, feedbacks)
     this._bindCulturaContent();
 

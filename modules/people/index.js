@@ -214,8 +214,17 @@ const TBO_PEOPLE = {
         const validCulturaSubs = ['valores', 'reconhecimentos', 'rituais', 'feedbacks', 'historico', 'onboarding'];
         if (validCulturaSubs.includes(parts[2]) && parts[2] !== S._culturaSubTab) {
           S._culturaSubTab = parts[2];
-          const subTabBtn = document.querySelector(`#rhCulturaSubtabs .tab--sub[data-cultura-tab="${parts[2]}"]`);
-          if (subTabBtn) subTabBtn.click();
+          // Re-renderizar conteudo da subtab diretamente
+          const culturaTab = this._tabs['cultura'];
+          if (culturaTab) {
+            const content = document.getElementById('rhCulturaContent');
+            if (content) {
+              content.innerHTML = culturaTab._renderCulturaSubTab(parts[2]);
+              if (window.lucide) lucide.createIcons({ root: content });
+              if (culturaTab._bindCulturaContent) culturaTab._bindCulturaContent();
+              if (parts[2] === 'onboarding' && culturaTab._loadOnboardingData) culturaTab._loadOnboardingData();
+            }
+          }
         }
       }
     };

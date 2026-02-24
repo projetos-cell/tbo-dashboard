@@ -443,18 +443,52 @@ const TBO_SIDEBAR_SERVICE = (() => {
     }
   }
 
+  // ── Parent Override (cross-workspace move persistence) ──────────────
+
+  const PARENT_OVERRIDE_KEY = 'tbo_sidebar_parent_overrides';
+
+  function _loadParentOverrides() {
+    try {
+      const raw = localStorage.getItem(PARENT_OVERRIDE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (_e) {
+      return {};
+    }
+  }
+
+  function _saveParentOverride(childId, newParentId) {
+    try {
+      const overrides = _loadParentOverrides();
+      overrides[childId] = newParentId;
+      localStorage.setItem(PARENT_OVERRIDE_KEY, JSON.stringify(overrides));
+    } catch (_e) {
+      // noop
+    }
+  }
+
   /**
    * Aplica ordem customizada (do localStorage) sobre os items carregados.
    * orderMap: { itemId: newOrderIndex, ... }
    */
   function _applyCustomOrder() {
     const orderMap = _loadCustomOrder();
-    if (!orderMap) return;
-    _items.forEach(item => {
-      if (orderMap[item.id] !== undefined) {
-        item.order_index = orderMap[item.id];
-      }
-    });
+    if (orderMap) {
+      _items.forEach(item => {
+        if (orderMap[item.id] !== undefined) {
+          item.order_index = orderMap[item.id];
+        }
+      });
+    }
+
+    // Aplicar parent_id overrides de moves cross-workspace
+    const parentOverrides = _loadParentOverrides();
+    if (parentOverrides) {
+      _items.forEach(item => {
+        if (parentOverrides[item.id] !== undefined) {
+          item.parent_id = parentOverrides[item.id];
+        }
+      });
+    }
   }
 
   /**
@@ -484,6 +518,9 @@ const TBO_SIDEBAR_SERVICE = (() => {
 
     _saveCustomOrder(orderMap);
     _saveCache(_items);
+
+    // Background Supabase sync
+    _persistOrderToSupabase(orderMap);
   }
 
   /**
@@ -515,6 +552,77 @@ const TBO_SIDEBAR_SERVICE = (() => {
 
     _saveCustomOrder(orderMap);
     _saveCache(_items);
+
+    // Background Supabase sync
+    _persistOrderToSupabase(orderMap);
+  }
+
+  /**
+   * Move um child para outro workspace e reordena os children do destino.
+   * @param {string} childId - ID do child sendo movido
+   * @param {string} newParentId - ID do workspace destino
+   * @param {string[]} orderedIds - IDs dos children na nova ordem (no destino)
+   */
+  function moveChild(childId, newParentId, orderedIds) {
+    const item = _items.find(i => i.id === childId);
+    if (!item) return;
+
+    // 1. Atualizar parent_id em memória
+    item.parent_id = newParentId;
+
+    // 2. Reordenar children no destino (também persiste order no localStorage)
+    reorderChildren(newParentId, orderedIds);
+
+    // 3. Persistir parent_id override no localStorage (otimista)
+    _saveParentOverride(childId, newParentId);
+
+    // 4. Atualizar cache
+    _saveCache(_items);
+
+    // 5. Background Supabase: atualizar parent_id
+    _persistMoveToSupabase(childId, newParentId);
+  }
+
+  // ── Supabase Background Persistence ──────────────────────────────────
+
+  /**
+   * Persiste mudanças de order_index no Supabase em background.
+   * @param {Object} orderMap - { itemId: newOrderIndex, ... }
+   */
+  async function _persistOrderToSupabase(orderMap) {
+    const client = _getClient();
+    if (!client || !_tenantId) return;
+
+    try {
+      const updates = Object.entries(orderMap).map(([id, orderIndex]) =>
+        client
+          .from('sidebar_items')
+          .update({ order_index: orderIndex })
+          .eq('id', id)
+          .eq('tenant_id', _tenantId)
+      );
+      await Promise.allSettled(updates);
+    } catch (e) {
+      console.warn('[TBO Sidebar] Falha ao persistir order no Supabase:', e.message);
+    }
+  }
+
+  /**
+   * Persiste um move cross-workspace no Supabase em background.
+   */
+  async function _persistMoveToSupabase(childId, newParentId) {
+    const client = _getClient();
+    if (!client || !_tenantId) return;
+
+    try {
+      await client
+        .from('sidebar_items')
+        .update({ parent_id: newParentId })
+        .eq('id', childId)
+        .eq('tenant_id', _tenantId);
+    } catch (e) {
+      console.warn('[TBO Sidebar] Falha ao persistir move no Supabase:', e.message);
+    }
   }
 
   /**
@@ -545,6 +653,7 @@ const TBO_SIDEBAR_SERVICE = (() => {
     getBadge,
     reorderWorkspaces,
     reorderChildren,
+    moveChild,
     get loading() { return _loading; },
     get initialized() { return _initialized; },
     get userRole() { return _userRole; }

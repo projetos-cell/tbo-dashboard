@@ -20,6 +20,7 @@ const TBO_SIDEBAR_RENDERER = (() => {
   let _container = null;
   let _activeRoute = null;
   let _badgeInterval = null;
+  let _sortableInstances = []; // Track SortableJS instances for cleanup
 
   const BADGE_POLL_INTERVAL = 2 * 60 * 1000; // 2 minutos
 
@@ -165,8 +166,8 @@ const TBO_SIDEBAR_RENDERER = (() => {
     _bindPageItemEvents(contentEl);
     _bindChildItemEvents(contentEl);
 
-    // Bind drag & drop para reordenação de children dentro do workspace
-    _bindChildDragAndDrop(contentEl, spaceId);
+    // Initialize SortableJS para children (reorder + cross-workspace drag)
+    _initSortableChildren(contentEl, spaceId);
   }
 
   /**
@@ -202,10 +203,12 @@ const TBO_SIDEBAR_RENDERER = (() => {
   }
 
   /**
-   * Bind click events nos children fixos
+   * Bind click events nos children fixos.
+   * Usa data-events-bound guard para evitar duplicação ao mover DOM entre containers.
    */
   function _bindChildItemEvents(container) {
-    container.querySelectorAll('[data-child-route]').forEach(el => {
+    container.querySelectorAll('[data-child-route]:not([data-events-bound])').forEach(el => {
+      el.setAttribute('data-events-bound', 'true');
       el.addEventListener('click', (e) => {
         e.preventDefault();
         const route = el.dataset.childRoute;
@@ -215,7 +218,8 @@ const TBO_SIDEBAR_RENDERER = (() => {
         }
       });
     });
-    container.querySelectorAll('[data-external-url]').forEach(el => {
+    container.querySelectorAll('[data-external-url]:not([data-events-bound])').forEach(el => {
+      el.setAttribute('data-events-bound', 'true');
       el.addEventListener('click', (e) => {
         e.preventDefault();
         const url = el.dataset.externalUrl;
@@ -348,318 +352,147 @@ const TBO_SIDEBAR_RENDERER = (() => {
       }
     });
 
-    // Bind drag & drop para reordenação de workspaces
-    _bindWorkspaceDragAndDrop();
+    // Initialize SortableJS para reordenação de workspaces
+    _initSortableWorkspaces();
   }
 
-  // ── Drag & Drop ─────────────────────────────────────────────────────────
+  // ── SortableJS Drag & Drop ───────────────────────────────────────────
 
-  let _dragState = {
-    dragging: null,       // DOM element being dragged
-    type: null,           // 'workspace' | 'child'
-    parentId: null,       // parent workspace ID (for children)
-    indicator: null       // drop indicator element
-  };
-
-  function _createDropIndicator() {
-    const el = document.createElement('div');
-    el.className = 'nsb-drop-indicator';
-    return el;
+  /**
+   * Destroy all tracked SortableJS instances and clear the array.
+   */
+  function _destroyAllSortables() {
+    _sortableInstances.forEach(instance => {
+      try { instance.destroy(); } catch (_e) { /* noop */ }
+    });
+    _sortableInstances = [];
   }
 
-  function _removeDropIndicator() {
-    if (_dragState.indicator && _dragState.indicator.parentNode) {
-      _dragState.indicator.parentNode.removeChild(_dragState.indicator);
+  /**
+   * Destroy the SortableJS instance attached to a specific DOM element.
+   * @param {HTMLElement} el - The container element
+   */
+  function _destroySortableFor(el) {
+    const idx = _sortableInstances.findIndex(s => {
+      try { return s.el === el; } catch (_e) { return false; }
+    });
+    if (idx > -1) {
+      try { _sortableInstances[idx].destroy(); } catch (_e) { /* noop */ }
+      _sortableInstances.splice(idx, 1);
     }
   }
 
   /**
-   * Bind drag & drop on workspace headers (.nsb-ws-header)
-   * within the workspaces section.
+   * Initialize SortableJS on .nsb-section--workspaces.
+   * Workspaces reorder among themselves using the header as drag handle.
    */
-  function _bindWorkspaceDragAndDrop() {
+  function _initSortableWorkspaces() {
     const section = _container?.querySelector('.nsb-section--workspaces');
-    if (!section) return;
+    if (!section || typeof Sortable === 'undefined') return;
 
-    const workspaceEls = section.querySelectorAll('.nsb-workspace');
+    const instance = Sortable.create(section, {
+      group: 'workspaces',
+      animation: 150,
+      handle: '.nsb-ws-header',
+      draggable: '.nsb-workspace',
+      ghostClass: 'nsb-sortable-ghost',
+      chosenClass: 'nsb-sortable-chosen',
+      dragClass: 'nsb-sortable-drag',
+      fallbackOnBody: true,
+      swapThreshold: 0.65,
 
-    workspaceEls.forEach(wsEl => {
-      const header = wsEl.querySelector('.nsb-ws-header');
-      if (!header) return;
+      onStart: function (evt) {
+        evt.item.classList.add('nsb-dragging');
+      },
 
-      header.setAttribute('draggable', 'true');
+      onEnd: function (evt) {
+        evt.item.classList.remove('nsb-dragging');
 
-      header.addEventListener('dragstart', (e) => {
-        e.stopPropagation();
-        _dragState.dragging = wsEl;
-        _dragState.type = 'workspace';
-        _dragState.parentId = null;
-        _dragState.indicator = _createDropIndicator();
+        // Ler nova ordem do DOM e persistir
+        const orderedIds = [...section.querySelectorAll('.nsb-workspace')]
+          .map(el => el.dataset.itemId)
+          .filter(Boolean);
 
-        wsEl.classList.add('nsb-dragging');
-
-        // Required for Firefox
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', wsEl.dataset.itemId || '');
-      });
-
-      header.addEventListener('dragend', (e) => {
-        e.stopPropagation();
-        wsEl.classList.remove('nsb-dragging');
-        _removeDropIndicator();
-        // Remove drag-over from all workspaces
-        section.querySelectorAll('.nsb-drag-over').forEach(el => el.classList.remove('nsb-drag-over'));
-        _dragState.dragging = null;
-        _dragState.type = null;
-      });
-    });
-
-    // Dragover/drop on the workspace section container
-    section.addEventListener('dragover', (e) => {
-      if (_dragState.type !== 'workspace') return;
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-
-      const target = _getClosestWorkspace(e.clientY, section);
-      if (!target || target.el === _dragState.dragging) {
-        _removeDropIndicator();
-        return;
-      }
-
-      // Show indicator above or below the target workspace
-      const rect = target.el.getBoundingClientRect();
-      const sectionRect = section.getBoundingClientRect();
-
-      _removeDropIndicator();
-      const indicator = _dragState.indicator;
-
-      if (target.position === 'before') {
-        indicator.style.top = (rect.top - sectionRect.top - 1) + 'px';
-      } else {
-        indicator.style.top = (rect.bottom - sectionRect.top - 1) + 'px';
-      }
-
-      section.style.position = 'relative';
-      section.appendChild(indicator);
-    });
-
-    section.addEventListener('dragleave', (e) => {
-      if (_dragState.type !== 'workspace') return;
-      // Only remove if actually leaving the section
-      if (!section.contains(e.relatedTarget)) {
-        _removeDropIndicator();
-      }
-    });
-
-    section.addEventListener('drop', (e) => {
-      if (_dragState.type !== 'workspace' || !_dragState.dragging) return;
-      e.preventDefault();
-      _removeDropIndicator();
-
-      const target = _getClosestWorkspace(e.clientY, section);
-      if (!target || target.el === _dragState.dragging) return;
-
-      // Perform the DOM reorder
-      if (target.position === 'before') {
-        section.insertBefore(_dragState.dragging, target.el);
-      } else {
-        section.insertBefore(_dragState.dragging, target.el.nextSibling);
-      }
-
-      // Persist new order
-      _persistWorkspaceOrder(section);
-
-      _dragState.dragging.classList.remove('nsb-dragging');
-      _dragState.dragging = null;
-      _dragState.type = null;
-    });
-  }
-
-  /**
-   * Find closest workspace to the cursor Y and determine before/after.
-   */
-  function _getClosestWorkspace(clientY, section) {
-    const workspaces = [...section.querySelectorAll('.nsb-workspace')];
-    let closest = null;
-    let minDist = Infinity;
-
-    for (const ws of workspaces) {
-      const rect = ws.getBoundingClientRect();
-      const midY = rect.top + rect.height / 2;
-      const dist = Math.abs(clientY - midY);
-      if (dist < minDist) {
-        minDist = dist;
-        closest = {
-          el: ws,
-          position: clientY < midY ? 'before' : 'after'
-        };
-      }
-    }
-    return closest;
-  }
-
-  /**
-   * Read current DOM order of workspaces and persist via SidebarService.
-   */
-  function _persistWorkspaceOrder(section) {
-    const orderedIds = [...section.querySelectorAll('.nsb-workspace')]
-      .map(el => el.dataset.itemId)
-      .filter(Boolean);
-
-    if (typeof TBO_SIDEBAR_SERVICE !== 'undefined' && orderedIds.length > 0) {
-      TBO_SIDEBAR_SERVICE.reorderWorkspaces(orderedIds);
-    }
-  }
-
-  /**
-   * Bind drag & drop on child items within a workspace content container.
-   * @param {HTMLElement} contentEl - the .nsb-ws-content element
-   * @param {string} parentId - workspace ID
-   */
-  function _bindChildDragAndDrop(contentEl, parentId) {
-    if (!contentEl) return;
-
-    const childEls = contentEl.querySelectorAll('.nsb-ws-child');
-    if (childEls.length < 2) return; // No point if 0 or 1 child
-
-    childEls.forEach(childEl => {
-      childEl.setAttribute('draggable', 'true');
-
-      childEl.addEventListener('dragstart', (e) => {
-        e.stopPropagation();
-        _dragState.dragging = childEl;
-        _dragState.type = 'child';
-        _dragState.parentId = parentId;
-        _dragState.indicator = _createDropIndicator();
-
-        childEl.classList.add('nsb-dragging');
-
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', '');
-      });
-
-      childEl.addEventListener('dragend', (e) => {
-        e.stopPropagation();
-        childEl.classList.remove('nsb-dragging');
-        _removeDropIndicator();
-        contentEl.querySelectorAll('.nsb-drag-over').forEach(el => el.classList.remove('nsb-drag-over'));
-        _dragState.dragging = null;
-        _dragState.type = null;
-        _dragState.parentId = null;
-      });
-    });
-
-    contentEl.addEventListener('dragover', (e) => {
-      if (_dragState.type !== 'child' || _dragState.parentId !== parentId) return;
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-
-      const target = _getClosestChild(e.clientY, contentEl);
-      if (!target || target.el === _dragState.dragging) {
-        _removeDropIndicator();
-        return;
-      }
-
-      const rect = target.el.getBoundingClientRect();
-      const containerRect = contentEl.getBoundingClientRect();
-
-      _removeDropIndicator();
-      const indicator = _dragState.indicator;
-
-      if (target.position === 'before') {
-        indicator.style.top = (rect.top - containerRect.top - 1) + 'px';
-      } else {
-        indicator.style.top = (rect.bottom - containerRect.top - 1) + 'px';
-      }
-
-      contentEl.style.position = 'relative';
-      contentEl.appendChild(indicator);
-    });
-
-    contentEl.addEventListener('dragleave', (e) => {
-      if (_dragState.type !== 'child') return;
-      if (!contentEl.contains(e.relatedTarget)) {
-        _removeDropIndicator();
-      }
-    });
-
-    contentEl.addEventListener('drop', (e) => {
-      if (_dragState.type !== 'child' || _dragState.parentId !== parentId || !_dragState.dragging) return;
-      e.preventDefault();
-      e.stopPropagation();
-      _removeDropIndicator();
-
-      const target = _getClosestChild(e.clientY, contentEl);
-      if (!target || target.el === _dragState.dragging) return;
-
-      if (target.position === 'before') {
-        contentEl.insertBefore(_dragState.dragging, target.el);
-      } else {
-        contentEl.insertBefore(_dragState.dragging, target.el.nextSibling);
-      }
-
-      // Persist new child order
-      _persistChildOrder(contentEl, parentId);
-
-      _dragState.dragging.classList.remove('nsb-dragging');
-      _dragState.dragging = null;
-      _dragState.type = null;
-      _dragState.parentId = null;
-    });
-  }
-
-  /**
-   * Find closest child item to the cursor Y.
-   */
-  function _getClosestChild(clientY, contentEl) {
-    const children = [...contentEl.querySelectorAll('.nsb-ws-child')];
-    let closest = null;
-    let minDist = Infinity;
-
-    for (const child of children) {
-      const rect = child.getBoundingClientRect();
-      const midY = rect.top + rect.height / 2;
-      const dist = Math.abs(clientY - midY);
-      if (dist < minDist) {
-        minDist = dist;
-        closest = {
-          el: child,
-          position: clientY < midY ? 'before' : 'after'
-        };
-      }
-    }
-    return closest;
-  }
-
-  /**
-   * Read current DOM order of children and persist via SidebarService.
-   */
-  function _persistChildOrder(contentEl, parentId) {
-    const orderedIds = [...contentEl.querySelectorAll('.nsb-ws-child')]
-      .map(el => {
-        // Use data-child-id if available (most reliable)
-        if (el.dataset.childId) return el.dataset.childId;
-
-        // Fallback: look up by route or external URL
-        const route = el.dataset.childRoute;
-        const extUrl = el.dataset.externalUrl;
-
-        if (typeof TBO_SIDEBAR_SERVICE !== 'undefined') {
-          const children = TBO_SIDEBAR_SERVICE.getChildItems(parentId);
-          const match = children.find(c => {
-            if (route && c.route === route) return true;
-            if (extUrl && c.metadata?.external_url === extUrl) return true;
-            return false;
-          });
-          return match?.id || null;
+        if (typeof TBO_SIDEBAR_SERVICE !== 'undefined' && orderedIds.length > 0) {
+          TBO_SIDEBAR_SERVICE.reorderWorkspaces(orderedIds);
         }
-        return null;
-      })
-      .filter(Boolean);
+      }
+    });
 
-    if (typeof TBO_SIDEBAR_SERVICE !== 'undefined' && orderedIds.length > 0) {
-      TBO_SIDEBAR_SERVICE.reorderChildren(parentId, orderedIds);
-    }
+    _sortableInstances.push(instance);
+  }
+
+  /**
+   * Initialize SortableJS on a workspace's .nsb-ws-content.
+   * Children (.nsb-ws-child) can be reordered within the same workspace
+   * or dragged to another workspace (cross-workspace move).
+   *
+   * @param {HTMLElement} contentEl - The .nsb-ws-content element
+   * @param {string} parentId - Workspace ID (e.g., 'ws-geral')
+   */
+  function _initSortableChildren(contentEl, parentId) {
+    if (!contentEl || typeof Sortable === 'undefined') return;
+
+    const instance = Sortable.create(contentEl, {
+      group: {
+        name: 'children',
+        pull: true,
+        put: true
+      },
+      animation: 150,
+      draggable: '.nsb-ws-child',
+      ghostClass: 'nsb-sortable-ghost',
+      chosenClass: 'nsb-sortable-chosen',
+      dragClass: 'nsb-sortable-drag',
+      fallbackOnBody: true,
+      swapThreshold: 0.65,
+
+      onStart: function () {
+        // Highlight visual em todos os workspace contents abertos
+        document.querySelectorAll('.nsb-ws-content').forEach(el => {
+          el.classList.add('nsb-drop-target');
+        });
+      },
+
+      onEnd: function (evt) {
+        // Remover highlights
+        document.querySelectorAll('.nsb-drop-target').forEach(el => {
+          el.classList.remove('nsb-drop-target');
+        });
+
+        const childId = evt.item.dataset.childId;
+        if (!childId) return;
+
+        // Determinar workspace destino
+        const destContentEl = evt.to;
+        const destWorkspace = destContentEl?.closest('.nsb-workspace');
+        const destParentId = destWorkspace?.dataset?.itemId;
+        if (!destParentId) return;
+
+        // Nova ordem dos children no destino
+        const orderedIds = [...destContentEl.querySelectorAll('.nsb-ws-child')]
+          .map(el => el.dataset.childId)
+          .filter(Boolean);
+
+        if (typeof TBO_SIDEBAR_SERVICE === 'undefined') return;
+
+        // Detectar cross-workspace vs same-workspace
+        const sourceWorkspace = evt.from?.closest('.nsb-workspace');
+        const sourceParentId = sourceWorkspace?.dataset?.itemId;
+
+        if (sourceParentId !== destParentId) {
+          // Cross-workspace move: atualizar parent_id + reordenar destino
+          TBO_SIDEBAR_SERVICE.moveChild(childId, destParentId, orderedIds);
+          // Re-bind click events no container destino (evitar duplicação)
+          _bindChildItemEvents(destContentEl);
+        } else {
+          // Same-workspace reorder
+          TBO_SIDEBAR_SERVICE.reorderChildren(destParentId, orderedIds);
+        }
+      }
+    });
+
+    _sortableInstances.push(instance);
   }
 
   // ── Bind Eventos ────────────────────────────────────────────────────────
@@ -711,6 +544,8 @@ const TBO_SIDEBAR_RENDERER = (() => {
               ws.appendChild(contentDiv);
               _loadWorkspaceContent(itemId);
             } else if (!newState && content) {
+              // Destruir instância Sortable antes de remover o DOM
+              _destroySortableFor(content);
               content.remove();
             }
           }
@@ -912,6 +747,9 @@ const TBO_SIDEBAR_RENDERER = (() => {
   }
 
   function destroy() {
+    // Destroy all SortableJS instances
+    _destroyAllSortables();
+
     if (_badgeInterval) {
       clearInterval(_badgeInterval);
       _badgeInterval = null;

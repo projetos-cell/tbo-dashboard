@@ -41,6 +41,7 @@ const TBO_AUTH = {
 
   // Session state
   _cachedUser: null,
+  _buildingSession: false, // Guard: evita _buildSupabaseSession concorrente
 
   // ═══════════════════════════════════════════════════════════════════════════
   // AVATAR — Fallback para resolver URL do avatar
@@ -59,6 +60,19 @@ const TBO_AUTH = {
     }
     // 3. Nenhum avatar disponivel — UI usara iniciais como fallback
     return null;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TIMEOUT HELPER — Evita hang infinito em queries Supabase
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  _withTimeout(promise, ms, label = 'operation') {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`[TBO Auth] Timeout ${ms}ms em ${label}`)), ms)
+      )
+    ]);
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -124,11 +138,28 @@ const TBO_AUTH = {
     const client = TBO_SUPABASE.getClient();
     if (!client) return { ok: false, msg: 'Supabase client nao inicializado.' };
 
-    const { data, error } = await client.auth.signInWithPassword({ email, password });
+    let data, error;
+    try {
+      ({ data, error } = await this._withTimeout(
+        client.auth.signInWithPassword({ email, password }),
+        15000, 'signInWithPassword'
+      ));
+    } catch (e) {
+      return { ok: false, msg: 'Servidor demorou para responder. Tente novamente.' };
+    }
     if (error) return { ok: false, msg: error.message };
 
-    // Build session from Supabase profile
-    const session = await this._buildSupabaseSession(data.user);
+    // Build session from Supabase profile (com timeout de 15s)
+    let session;
+    try {
+      session = await this._withTimeout(
+        this._buildSupabaseSession(data.user),
+        15000, '_buildSupabaseSession'
+      );
+    } catch (e) {
+      console.warn('[TBO Auth] buildSession timeout:', e.message);
+      return { ok: false, msg: 'Servidor lento ao carregar perfil. Tente novamente.' };
+    }
     if (!session) return { ok: false, msg: 'Perfil nao encontrado no Supabase.' };
 
     // v2.1: auth mode sempre supabase
@@ -194,9 +225,27 @@ const TBO_AUTH = {
 
   async _buildSupabaseSession(authUser) {
     if (!authUser) return null;
+    this._buildingSession = true;
 
-    // Fetch profile from Supabase
-    const profile = await TBO_SUPABASE.getProfile(true);
+    try {
+      return await this._buildSupabaseSessionInner(authUser);
+    } finally {
+      this._buildingSession = false;
+    }
+  },
+
+  async _buildSupabaseSessionInner(authUser) {
+    // Fetch profile from Supabase (com timeout individual)
+    let profile;
+    try {
+      profile = await this._withTimeout(
+        TBO_SUPABASE.getProfile(true),
+        10000, 'getProfile'
+      );
+    } catch (e) {
+      console.warn('[TBO Auth] getProfile timeout:', e.message);
+      profile = null;
+    }
 
     // v2.1: Super admins SEMPRE recebem role 'founder', independente do Supabase
     const isSuperAdmin = TBO_PERMISSIONS.isSuperAdmin(authUser.email);
@@ -232,11 +281,14 @@ const TBO_AUTH = {
           .catch(e => console.warn('[TBO Auth] Profile sync error:', e.message));
       }
 
-      // v2.5: Carregar permissoes granulares do Supabase (non-blocking)
+      // v2.5: Carregar permissoes granulares do Supabase (com timeout 8s)
       try {
-        await TBO_PERMISSIONS.loadPermissionsMatrix(authUser.id);
+        await this._withTimeout(
+          TBO_PERMISSIONS.loadPermissionsMatrix(authUser.id),
+          8000, 'loadPermissionsMatrix'
+        );
       } catch (e) {
-        console.warn('[TBO Auth] loadPermissionsMatrix fallback:', e);
+        console.warn('[TBO Auth] loadPermissionsMatrix timeout/fallback:', e.message);
       }
 
       return {
@@ -312,6 +364,11 @@ const TBO_AUTH = {
 
       if (event === 'SIGNED_IN' && supaSession?.user) {
         // Build session if not already logged in
+        // Guard: se loginWithEmail ja esta construindo sessao, nao duplicar
+        if (this._buildingSession) {
+          console.log('[TBO Auth] onAuthStateChange: _buildSupabaseSession ja em andamento, ignorando');
+          return;
+        }
         if (!this._cachedUser || this._cachedUser.supabaseId !== supaSession.user.id) {
           const session = await this._buildSupabaseSession(supaSession.user);
           if (session) {

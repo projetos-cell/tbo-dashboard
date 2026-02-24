@@ -7,21 +7,17 @@ const TBO_COMMAND_CENTER = {
     'kpis':             { label: 'KPIs',                 icon: 'activity',        zone: 'main', size: 'full' },
     'revenue-chart':    { label: 'Receita vs Despesa',   icon: 'bar-chart-3',     zone: 'main', size: 'span-2' },
     'my-tasks':         { label: 'Minhas Tarefas',       icon: 'clipboard-check', zone: 'main', size: '1' },
-    'weekly-summary':   { label: 'Resumo Semanal',       icon: 'bar-chart-3',     zone: 'main', size: '1' },
     'erp-alerts':       { label: 'Alertas ERP',          icon: 'alert-triangle',  zone: 'main', size: '1' },
     'actions-today':    { label: 'Acoes para Hoje',      icon: 'target',          zone: 'main', size: '1' },
     'business-pulse':   { label: 'Business Pulse',       icon: 'heart-pulse',     zone: 'main', size: '1' },
-    'strategic-alerts': { label: 'Alertas Estrategicos', icon: 'shield-alert',    zone: 'main', size: 'span-2' },
     'pipeline-funnel':  { label: 'Pipeline',             icon: 'filter',          zone: 'main', size: '1' },
     'people-widget':    { label: 'Equipe',               icon: 'users',           zone: 'main', size: '1' },
-    'news-feed':        { label: 'Noticias',             icon: 'newspaper',       zone: 'main', size: '1' },
     'projects-overview':{ label: 'Projetos Ativos',      icon: 'building-2',      zone: 'main', size: '1' },
-    'cities-map':       { label: 'Mapa de Cidades',      icon: 'map',             zone: 'main', size: 'span-2' },
   },
 
   _getDefaultLayout() {
     return {
-      main: ['kpis', 'revenue-chart', 'my-tasks', 'weekly-summary', 'pipeline-funnel', 'business-pulse', 'erp-alerts', 'actions-today', 'projects-overview', 'strategic-alerts', 'cities-map', 'people-widget', 'news-feed'],
+      main: ['kpis', 'revenue-chart', 'my-tasks', 'pipeline-funnel', 'business-pulse', 'erp-alerts', 'actions-today', 'projects-overview', 'people-widget'],
       sidebar: [],
       hidden: []
     };
@@ -282,12 +278,11 @@ const TBO_COMMAND_CENTER = {
       });
     });
 
-    const noticias = news.noticias || [];
     const dc24 = context.dados_comerciais?.['2024'] || {};
     const dc25 = context.dados_comerciais?.['2025'] || {};
     const dc26 = context.dados_comerciais?.[TBO_CONFIG.app.fiscalYear] || {};
 
-    const data = { context, ativos, finalizados, totalFinalizados, ic, meetingsArr, meta, recentMeetings, totalActions, actionsByPerson, actionItems, noticias, dc24, dc25, dc26 };
+    const data = { context, ativos, finalizados, totalFinalizados, ic, meetingsArr, meta, recentMeetings, totalActions, actionsByPerson, actionItems, dc24, dc25, dc26 };
     this._lastData = data;
     return data;
   },
@@ -397,67 +392,6 @@ const TBO_COMMAND_CENTER = {
   },
 
   // ── Weekly Summary: hours, tasks completed, deliverables ──────────────
-  _renderWeeklySummary() {
-    const user = (typeof TBO_AUTH !== 'undefined') ? TBO_AUTH.getCurrentUser() : null;
-    if (!user) return '';
-    if (typeof TBO_WORKLOAD === 'undefined') return '';
-
-    const weekStart = TBO_WORKLOAD.getWeekStart();
-    const weekEnd = TBO_WORKLOAD.getWeekEnd(weekStart);
-
-    // Hours logged this week
-    const entries = TBO_WORKLOAD.getTimeEntries({ userId: user.id, dateFrom: weekStart, dateTo: weekEnd });
-    const totalMins = entries.reduce((s, e) => s + (e.duration_minutes || 0), 0);
-    const weeklyTarget = TBO_WORKLOAD.getUserWeeklyMinutes(user.id);
-    const pct = weeklyTarget > 0 ? Math.round(totalMins / weeklyTarget * 100) : 0;
-
-    // Tasks completed this week
-    const allTasks = TBO_STORAGE.getAllErpEntities('task');
-    const completedThisWeek = allTasks.filter(t =>
-      t.ownerId === user.id &&
-      ['done', 'concluido', 'finalizado'].includes(t.status) &&
-      t.updatedAt && t.updatedAt >= weekStart
-    ).length;
-
-    // Deliverables approved this week
-    const allDeliverables = TBO_STORAGE.getAllErpEntities('deliverable');
-    const approvedThisWeek = allDeliverables.filter(d =>
-      d.status === 'aprovado' &&
-      d.updatedAt && d.updatedAt >= weekStart
-    ).length;
-
-    return `
-      <div class="card" style="padding:16px;">
-        <h3 style="font-size:0.9rem;font-weight:700;margin:0 0 12px;display:flex;align-items:center;gap:6px;">
-          <i data-lucide="bar-chart-3" style="width:16px;height:16px;color:var(--accent-blue);"></i>
-          Resumo Semanal
-        </h3>
-        <div style="display:flex;flex-direction:column;gap:12px;">
-          <div>
-            <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px;">
-              <span>Horas Registradas</span>
-              <strong>${TBO_WORKLOAD.formatHoursMinutes(totalMins)} / ${TBO_WORKLOAD.formatHoursMinutes(weeklyTarget)}</strong>
-            </div>
-            <div style="height:6px;background:var(--bg-elevated);border-radius:3px;overflow:hidden;">
-              <div style="height:100%;width:${Math.min(pct, 100)}%;background:${pct >= 80 ? 'var(--color-success)' : pct >= 50 ? 'var(--color-warning)' : 'var(--color-danger)'};border-radius:3px;transition:width 0.3s;"></div>
-            </div>
-            <div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px;">${pct}% da meta semanal</div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-            <div style="text-align:center;padding:8px;background:var(--bg-tertiary);border-radius:var(--radius-sm);">
-              <div style="font-size:1.1rem;font-weight:700;color:var(--color-success);">${completedThisWeek}</div>
-              <div style="font-size:0.68rem;color:var(--text-muted);">Tarefas Concluidas</div>
-            </div>
-            <div style="text-align:center;padding:8px;background:var(--bg-tertiary);border-radius:var(--radius-sm);">
-              <div style="font-size:1.1rem;font-weight:700;color:var(--accent-gold);">${approvedThisWeek}</div>
-              <div style="font-size:0.68rem;color:var(--text-muted);">Entregas Aprovadas</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-  },
-
   _esc(str) {
     if (!str) return '';
     const d = document.createElement('div');
@@ -510,9 +444,6 @@ const TBO_COMMAND_CENTER = {
     switch (widgetId) {
       case 'my-tasks':
         return this._renderMyTasksToday();
-
-      case 'weekly-summary':
-        return this._renderWeeklySummary();
 
       case 'erp-alerts':
         if (erpAlerts.length === 0) return '';
@@ -597,39 +528,11 @@ const TBO_COMMAND_CENTER = {
       case 'business-pulse':
         return this._renderBusinessPulse(d);
 
-      case 'strategic-alerts':
-        return `
-            <section class="section">
-              <div class="section-header">
-                <h2 class="section-title">Alertas Estrategicos</h2>
-                <div style="display:flex; gap:8px;">
-                  <button class="btn btn-sm btn-primary" id="ccGenerateAlerts">Gerar com IA</button>
-                </div>
-              </div>
-              <div id="ccAlerts">
-                ${this._renderStaticAlerts(d)}
-              </div>
-              <div id="ccAiAlerts" class="ai-response" style="display:none; margin-top:12px;"></div>
-            </section>`;
-
       case 'pipeline-funnel':
         return this._renderPipelineFunnel(d);
 
       case 'people-widget':
         return this._renderPeopleWidget();
-
-      case 'news-feed':
-        return `
-            <section class="section">
-              <div class="section-header">
-                <h2 class="section-title">Noticias do Mercado</h2>
-                <div style="display:flex; gap:8px; align-items:center;">
-                  ${d.noticias.length > 0 ? `<span style="font-size:0.72rem; color:var(--text-muted);">${d.noticias.length} noticias</span>` : ''}
-                  <button class="btn btn-sm btn-ghost" onclick="TBO_ROUTER.navigate('mercado')">Ver todas &rarr;</button>
-                </div>
-              </div>
-              ${this._renderNewsFeed(d.noticias)}
-            </section>`;
 
       case 'projects-overview':
         return `
@@ -645,21 +548,6 @@ const TBO_COMMAND_CENTER = {
                     <span style="color:var(--accent-gold); font-size:0.85rem;">+${d.ativos.length - 6} projetos &rarr;</span>
                   </div>
                 ` : ''}
-              </div>
-            </section>`;
-
-      case 'cities-map':
-        return `
-            <section class="section">
-              <div class="section-header">
-                <h2 class="section-title">Cidades Atendidas</h2>
-                <span style="font-size:0.72rem;color:var(--text-muted);">${this._getCities(d.ativos, d.finalizados).length} cidades</span>
-              </div>
-              <div class="card" style="padding:0;overflow:hidden;">
-                <div id="citiesLeafletMap" style="height:440px;width:100%;background:#1a1a2e;"></div>
-                <div style="padding:16px;border-top:1px solid var(--border-subtle);">
-                  ${this._renderCitiesList(d.ativos, d.finalizados)}
-                </div>
               </div>
             </section>`;
 
@@ -697,8 +585,6 @@ const TBO_COMMAND_CENTER = {
         return this._renderRevenueChart(d, fc);
       case 'my-tasks':
         return this._renderMyTasksToday();
-      case 'weekly-summary':
-        return this._renderWeeklySummary();
       case 'pipeline-funnel':
         return this._renderPipelineCardV3(d);
       case 'business-pulse':
@@ -709,14 +595,8 @@ const TBO_COMMAND_CENTER = {
         return (actionsToday.length > 0) ? this._renderActionsTodayV3(actionsToday) : '';
       case 'projects-overview':
         return this._renderProjectsGridV3(d);
-      case 'strategic-alerts':
-        return this._renderStrategicAlertsV3(d);
-      case 'cities-map':
-        return this._renderMapCardV3(d);
       case 'people-widget':
         return this._renderPeopleWidget();
-      case 'news-feed':
-        return this._renderNewsFeed(d.noticias);
       default:
         return '';
     }
@@ -1056,41 +936,6 @@ const TBO_COMMAND_CENTER = {
     `;
   },
 
-  _renderStrategicAlertsV3(d) {
-    return `
-      <div class="cc-card">
-        <div class="cc-card-header">
-          <span class="cc-card-title"><i data-lucide="shield-alert"></i> Alertas Estrategicos</span>
-          <div style="display:flex;gap:8px;">
-            <button class="btn btn-sm btn-primary" id="ccGenerateAlerts">Gerar com IA</button>
-          </div>
-        </div>
-        <div class="cc-card-body">
-          <div id="ccAlerts">${this._renderStaticAlerts(d)}</div>
-          <div id="ccAiAlerts" class="ai-response" style="display:none;margin-top:12px;"></div>
-        </div>
-      </div>
-    `;
-  },
-
-  _renderMapCardV3(d) {
-    const cities = this._getCities(d.ativos, d.finalizados);
-    return `
-      <div class="cc-card">
-        <div class="cc-card-header">
-          <span class="cc-card-title"><i data-lucide="map"></i> Cidades Atendidas</span>
-          <span style="font-size:0.72rem;color:var(--text-muted);">${cities.length} cidades</span>
-        </div>
-        <div style="padding:0;">
-          <div id="citiesLeafletMap" style="height:360px;width:100%;background:#1a1a2e;"></div>
-        </div>
-        <div style="padding:14px 20px;">
-          ${this._renderCitiesList(d.ativos, d.finalizados)}
-        </div>
-      </div>
-    `;
-  },
-
   // ═══════════════════════════════════════════════════════════════════════════
   // PROJECTS DASHBOARD (project_owner) — Focused on projects and action items
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1367,14 +1212,6 @@ const TBO_COMMAND_CENTER = {
               </div>
             </section>
 
-            <!-- News Feed -->
-            <section class="section">
-              <div class="section-header">
-                <h2 class="section-title">Noticias do Mercado</h2>
-                <button class="btn btn-sm btn-ghost" onclick="TBO_ROUTER.navigate('mercado')">Ver todas &rarr;</button>
-              </div>
-              ${this._renderNewsFeed(d.noticias)}
-            </section>
           </div>
 
         </div>
@@ -1659,52 +1496,6 @@ const TBO_COMMAND_CENTER = {
     `;
   },
 
-  // News feed with relative dates + hide >30 days (item 8)
-  _renderNewsFeed(noticias) {
-    if (noticias.length === 0) {
-      return `
-        <div class="empty-state" style="padding:24px;">
-          <div class="empty-state-text">Nenhuma noticia carregada</div>
-          <p style="color:var(--text-muted); font-size:0.78rem; margin-top:6px;">
-            Va em Inteligencia de Mercado e clique "Buscar Noticias" para carregar.
-          </p>
-        </div>
-      `;
-    }
-    const catColors = { lancamentos: 'var(--accent-blue)', indicadores: 'var(--color-success)', incorporadoras: 'var(--brand-orange)', tendencias: 'var(--color-purple)', mercado: 'var(--text-muted)' };
-    const catLabels = { lancamentos: 'Lancamento', indicadores: 'Indicador', incorporadoras: 'Incorporadora', tendencias: 'Tendencia', mercado: 'Mercado' };
-
-    // Filter out >30 day old news
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const filtered = noticias.filter(n => {
-      const d = n.date || n.data;
-      if (!d) return true; // keep if no date
-      return new Date(d) >= thirtyDaysAgo;
-    });
-    const hiddenCount = noticias.length - filtered.length;
-
-    return `
-      <div class="cc-news-feed">
-        ${filtered.map(n => {
-          const cat = (n.category || n.categoria || 'mercado').toLowerCase();
-          const color = catColors[cat] || 'var(--text-muted)';
-          const dateStr = n.date || n.data;
-          const relDate = dateStr ? TBO_FORMATTER.relativeTime(dateStr) : '';
-          return `
-            <div class="cc-news-item">
-              <span class="cc-news-dot" style="background:${color};"></span>
-              <div class="cc-news-content">
-                <span class="cc-news-tag" style="background:${color}22;color:${color};">${catLabels[cat] || cat}</span>
-                <div class="cc-news-title">${_escapeHtml(n.title || n.titulo)}</div>
-                <div class="cc-news-meta">${_escapeHtml(n.source || n.fonte)}${relDate ? ' \u2022 ' + relDate : ''}</div>
-              </div>
-            </div>`;
-        }).join('')}
-        ${hiddenCount > 0 ? `<div style="padding:8px 0; font-size:0.72rem; color:var(--text-muted); text-align:center;">${hiddenCount} noticia${hiddenCount > 1 ? 's' : ''} mais antiga${hiddenCount > 1 ? 's' : ''} ocultada${hiddenCount > 1 ? 's' : ''} (>30 dias)</div>` : ''}
-      </div>
-    `;
-  },
-
   // Action item row with completed/pending toggle (item 11)
   _renderActionItemRow(ai) {
     const completed = JSON.parse(localStorage.getItem('tbo_completed_actions') || '[]');
@@ -1917,107 +1708,6 @@ const TBO_COMMAND_CENTER = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // SMARTER STATIC ALERTS (item 7)
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  _renderStaticAlerts(d) {
-    const alerts = [];
-    const { ativos, ic, dc25, dc26, totalActions, meetingsArr, actionItems } = d;
-
-    // 1. Market retraction
-    if (ic.variacao_empreendimentos && ic.variacao_empreendimentos.includes('-')) {
-      alerts.push({
-        type: 'warning', icon: '\u26A0\uFE0F',
-        title: 'Mercado em Retracao',
-        message: `Lancamentos em Curitiba cairam ${ic.variacao_empreendimentos} no ${ic.periodo || 'periodo'}. Mercado mais conservador.`
-      });
-    }
-
-    // 2. Projects without recent meetings (>14 days)
-    const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
-    const projectsNoMeeting = ativos.filter(p => {
-      const projName = p.nome.toLowerCase();
-      const constName = (p.construtora || '').toLowerCase();
-      const relatedMeetings = meetingsArr.filter(m => {
-        const title = (m.title || m.titulo || '').toLowerCase();
-        return title.includes(constName) || title.includes(projName.split('_')[0]);
-      });
-      if (relatedMeetings.length === 0) return true;
-      const latest = relatedMeetings.sort((a, b) => new Date(b.date || b.data) - new Date(a.date || a.data))[0];
-      return new Date(latest.date || latest.data) < twoWeeksAgo;
-    });
-    if (projectsNoMeeting.length > 0) {
-      alerts.push({
-        type: 'warning', icon: '\u{1F4C5}',
-        title: `${projectsNoMeeting.length} Projeto${projectsNoMeeting.length > 1 ? 's' : ''} sem Reuniao Recente`,
-        message: `${projectsNoMeeting.slice(0, 3).map(p => _escapeHtml(p.nome)).join(', ')}${projectsNoMeeting.length > 3 ? '...' : ''} sem reuniao nas ultimas 2 semanas.`
-      });
-    }
-
-    // 3. Overdue action items (from meetings older than 7 days)
-    const weekAgo = new Date(Date.now() - TBO_CONFIG.business.thresholds.projectMonitoring.noMeetingDays * 86400000);
-    const completed = JSON.parse(localStorage.getItem('tbo_completed_actions') || '[]');
-    const overdueActions = actionItems.filter(ai => {
-      const key = ai.task + '|' + ai.meeting;
-      return !completed.includes(key) && new Date(ai.date) < weekAgo;
-    });
-    if (overdueActions.length > 0) {
-      alerts.push({
-        type: 'critical', icon: '\u{1F6A8}',
-        title: `${overdueActions.length} Action Items com +7 dias`,
-        message: `Itens pendentes de reunioes anteriores. Verifique: ${overdueActions.slice(0, 2).map(a => _escapeHtml(a.task)).join(', ')}${overdueActions.length > 2 ? '...' : ''}`
-      });
-    }
-
-    // 4. Active projects summary
-    if (ativos.length > 0) {
-      alerts.push({
-        type: 'info', icon: '\u{1F4CB}',
-        title: `${ativos.length} Projetos em Andamento`,
-        message: `${new Set(ativos.map(p => p.construtora)).size} construtoras. BUs: ${['Digital 3D', 'Branding', 'Marketing', 'Audiovisual', 'Interiores'].filter(bu => ativos.some(p => (p.bus || []).includes(bu))).join(', ')}`
-      });
-    }
-
-    // 5. Financial health check
-    const fc = dc26.fluxo_caixa || {};
-    if (fc.resultado_liquido_projetado && fc.resultado_liquido_projetado < 0) {
-      alerts.push({
-        type: 'critical', icon: '\u{1F4C9}',
-        title: 'Resultado 2026 Projetado Negativo',
-        message: `Projecao de resultado liquido: ${TBO_FORMATTER.currency(fc.resultado_liquido_projetado)}. Necessario ajustar receitas ou custos.`
-      });
-    }
-
-    // 6. Monthly proposal comparison
-    if (dc25.media_mensal_propostas && dc25.media_mensal_propostas > 0) {
-      const monthsNow = new Date().getMonth() + 1; // 1-indexed
-      const expectedProposals = Math.round(dc25.media_mensal_propostas * monthsNow);
-      alerts.push({
-        type: 'info', icon: '\u{1F4CA}',
-        title: 'Benchmark Propostas',
-        message: `Media 2025: ${dc25.media_mensal_propostas}/mes (${dc25.propostas} total). Em ${monthsNow} meses de 2026, projecao = ${expectedProposals} propostas.`
-      });
-    }
-
-    if (alerts.length === 0) {
-      alerts.push({
-        type: 'success', icon: '\u2705',
-        title: 'Tudo em Ordem',
-        message: 'Nenhum alerta critico no momento.'
-      });
-    }
-
-    return alerts.map(a => `
-      <div class="alert-item ${a.type}">
-        <span class="alert-icon">${a.icon}</span>
-        <div class="alert-content">
-          <div class="alert-title">${a.title}</div>
-          <div class="alert-message">${a.message}</div>
-        </div>
-      </div>
-    `).join('');
-  },
-
   // ═══════════════════════════════════════════════════════════════════════════
   // NOTION INTEGRATION HOOK (item 14)
   // ═══════════════════════════════════════════════════════════════════════════
@@ -2054,8 +1744,6 @@ const TBO_COMMAND_CENTER = {
     const self = this;
     const variant = (typeof TBO_AUTH !== 'undefined') ? TBO_AUTH.getDashboardVariant() : 'full';
     if (variant === 'full') {
-      this._bind('ccGenerateAlerts', () => this._generateAlerts());
-      this._initLeafletMap();
       this._initCharts(); // v3: Chart.js charts
 
       // Widget add buttons in customize panel
@@ -2378,52 +2066,6 @@ const TBO_COMMAND_CENTER = {
   // AI GENERATION
   // ═══════════════════════════════════════════════════════════════════════════
 
-  async _generateAlerts() {
-    const btn = document.getElementById('ccGenerateAlerts');
-    const output = document.getElementById('ccAiAlerts');
-    if (!output) return;
-
-    const cacheKey = 'tbo_cc_alerts';
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        if (Date.now() - parsed.timestamp < 3600000) {
-          output.style.display = 'block';
-          output.innerHTML = TBO_FORMATTER.markdownToHtml(parsed.text);
-          TBO_TOAST.info('Cache', 'Alertas carregados do cache (valido por 1h).');
-          return;
-        }
-      } catch (e) { /* ignore */ }
-    }
-
-    if (!TBO_API.isConfigured()) {
-      TBO_TOAST.warning('API nao configurada', 'Acesse Configuracoes para inserir sua chave.');
-      return;
-    }
-
-    if (btn) { btn.disabled = true; btn.textContent = 'Gerando...'; }
-    output.style.display = 'block';
-    output.textContent = 'Analisando dados...';
-
-    try {
-      const fullContext = TBO_STORAGE.getFullContext();
-      const result = await TBO_API.callWithContext(
-        'commandCenter',
-        `Analise todos os dados disponiveis e gere 5-8 alertas estrategicos priorizados para a TBO neste momento. Cruze dados comerciais, de projetos, mercado e reunioes. Classifique cada alerta como CRITICO, ATENCAO ou INFO. Sugira acoes concretas para cada um.`,
-        fullContext,
-        { temperature: 0.5 }
-      );
-      output.innerHTML = TBO_FORMATTER.markdownToHtml(result.text);
-      localStorage.setItem(cacheKey, JSON.stringify({ text: result.text, timestamp: Date.now() }));
-    } catch (e) {
-      output.textContent = 'Erro: ' + e.message;
-      TBO_TOAST.error('Erro', e.message);
-    } finally {
-      if (btn) { btn.disabled = false; btn.textContent = 'Gerar com IA'; }
-    }
-  },
-
   async _generateBriefing() {
     if (!TBO_API.isConfigured()) {
       TBO_TOAST.warning('API nao configurada', 'Acesse Configuracoes para inserir sua chave.');
@@ -2508,236 +2150,6 @@ const TBO_COMMAND_CENTER = {
     document.addEventListener('keydown', escHandler);
   },
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // CITIES MAP (Leaflet) — with fallback (item 4) + unknown cities (item 10)
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  _getCities(ativos, finalizados) {
-    const cityDB = {
-      'Curitiba':               { lat: -25.43, lng: -49.27, state: 'PR', country: 'Brasil' },
-      'Sao Jose dos Pinhais':   { lat: -25.53, lng: -49.20, state: 'PR', country: 'Brasil' },
-      'Campo Largo':            { lat: -25.46, lng: -49.53, state: 'PR', country: 'Brasil' },
-      'Pinhais':                { lat: -25.44, lng: -49.19, state: 'PR', country: 'Brasil' },
-      'Colombo':                { lat: -25.29, lng: -49.22, state: 'PR', country: 'Brasil' },
-      'Araucaria':              { lat: -25.59, lng: -49.41, state: 'PR', country: 'Brasil' },
-      'Quatro Barras':          { lat: -25.37, lng: -49.08, state: 'PR', country: 'Brasil' },
-      'Balneario Camboriu':     { lat: -26.99, lng: -48.63, state: 'SC', country: 'Brasil' },
-      'Itajai':                 { lat: -26.91, lng: -48.67, state: 'SC', country: 'Brasil' },
-      'Penha':                  { lat: -26.77, lng: -48.65, state: 'SC', country: 'Brasil' },
-      'Curitibanos':            { lat: -27.28, lng: -50.58, state: 'SC', country: 'Brasil' },
-      'Cachoeira do Sul':       { lat: -30.04, lng: -52.89, state: 'RS', country: 'Brasil' },
-      'Sorriso':                { lat: -12.55, lng: -55.71, state: 'MT', country: 'Brasil' },
-      'Sao Paulo':              { lat: -23.55, lng: -46.63, state: 'SP', country: 'Brasil' },
-      'Tel Aviv':               { lat: 32.07,  lng: 34.78,  state: '',   country: 'Israel' }
-    };
-
-    const projectCityMap = {
-      'ELIO WINTER_CURITIBANOS': 'Curitibanos',
-      'ARTHUR SILVEIRA_CACHOEIRA': 'Cachoeira do Sul',
-      'FONTANIVE_ECOVILLAGE': 'Balneario Camboriu',
-      'FONTANIVE_ILHAS GREGAS': 'Itajai',
-      'FONTANIVE_NEW LIFE': 'Penha',
-      'PRC_RESERVA TUIUTI': 'Sorriso',
-      'MDI BRASIL': 'Tel Aviv'
-    };
-
-    const cityProjects = {};
-    const unknownProjects = []; // item 10: track projects not mapped
-    const addToCity = (city, type) => {
-      if (!cityProjects[city]) cityProjects[city] = { active: 0, finished: 0 };
-      cityProjects[city][type]++;
-    };
-
-    ativos.forEach(p => {
-      let city = 'Curitiba';
-      let matched = false;
-      for (const [key, c] of Object.entries(projectCityMap)) {
-        if (p.nome.toUpperCase().includes(key.split('_')[0])) {
-          if (!key.includes('_') || p.nome.toUpperCase().includes(key.split('_')[1])) { city = c; matched = true; break; }
-        }
-      }
-      addToCity(city, 'active');
-    });
-
-    Object.values(finalizados).forEach(arr => {
-      if (!Array.isArray(arr)) return;
-      arr.forEach(name => {
-        let city = 'Curitiba';
-        const upper = name.toUpperCase();
-        if (upper.includes('CURITIBANOS')) city = 'Curitibanos';
-        else if (upper.includes('CACHOEIRA')) city = 'Cachoeira do Sul';
-        else if (upper.includes('ECOVILLAGE') || upper.includes('CAMBORIU')) city = 'Balneario Camboriu';
-        else if (upper.includes('ITAJAI') || upper.includes('ILHAS GREGAS')) city = 'Itajai';
-        else if (upper.includes('PENHA') || upper.includes('NEW LIFE')) city = 'Penha';
-        else if (upper.includes('SORRISO') || upper.includes('TUIUTI')) city = 'Sorriso';
-        else if (upper.includes('MDI') || upper.includes('TEL AVIV')) city = 'Tel Aviv';
-        addToCity(city, 'finished');
-      });
-    });
-
-    return Object.entries(cityProjects).map(([name, data]) => ({
-      name, ...data, total: data.active + data.finished,
-      ...(cityDB[name] || { lat: null, lng: null, state: '', country: '' })
-    })).sort((a, b) => b.total - a.total);
-  },
-
-  _initLeafletMap() {
-    const el = document.getElementById('citiesLeafletMap');
-    if (!el) return;
-
-    // Item 4: Leaflet fallback if CDN failed
-    if (!window.L) {
-      el.innerHTML = `
-        <div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-muted);gap:12px;">
-          <div style="font-size:2rem;">&#x1F5FA;</div>
-          <div style="font-size:0.85rem;font-weight:600;">Mapa indisponivel</div>
-          <div style="font-size:0.75rem;max-width:300px;text-align:center;">Biblioteca Leaflet nao carregou. Verifique sua conexao e recarregue a pagina.</div>
-          <button class="btn btn-sm btn-secondary" onclick="location.reload()">Recarregar</button>
-        </div>
-      `;
-      return;
-    }
-
-    if (this._leafletMap) { this._leafletMap.remove(); this._leafletMap = null; }
-
-    const context = TBO_STORAGE.get('context');
-    const ativos = context.projetos_ativos || [];
-    const finalizados = context.projetos_finalizados || {};
-    const cities = this._getCities(ativos, finalizados);
-
-    const map = L.map(el, {
-      center: [-18, -48], zoom: 4, minZoom: 2, maxZoom: 12,
-      zoomControl: false, attributionControl: false, scrollWheelZoom: true
-    });
-    this._leafletMap = map;
-
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd', maxZoom: 19
-    }).addTo(map);
-
-    L.control.zoom({ position: 'topright' }).addTo(map);
-    L.control.attribution({ position: 'bottomleft', prefix: false })
-      .addAttribution('&copy; <a href="https://carto.com/" target="_blank" style="color:#888;">CARTO</a>')
-      .addTo(map);
-
-    const cwb = cities.find(c => c.name === 'Curitiba');
-    if (cwb && cwb.lat) {
-      cities.forEach(city => {
-        if (!city.lat || city.name === 'Curitiba') return;
-        const midLat = (cwb.lat + city.lat) / 2 + Math.abs(cwb.lng - city.lng) * 0.06;
-        const midLng = (cwb.lng + city.lng) / 2;
-        const points = [];
-        for (let t = 0; t <= 1; t += 0.05) {
-          const lat = (1-t)*(1-t)*cwb.lat + 2*(1-t)*t*midLat + t*t*city.lat;
-          const lng = (1-t)*(1-t)*cwb.lng + 2*(1-t)*t*midLng + t*t*city.lng;
-          points.push([lat, lng]);
-        }
-        L.polyline(points, { color: '#E85102', weight: 1.2, opacity: 0.25, dashArray: '6,4', interactive: false }).addTo(map);
-      });
-    }
-
-    cities.forEach(city => {
-      if (!city.lat) return; // item 10: skip cities without coordinates gracefully
-      const isCuritiba = city.name === 'Curitiba';
-      const radius = isCuritiba ? 14 : Math.max(7, Math.min(12, Math.sqrt(city.total) * 4));
-
-      L.circleMarker([city.lat, city.lng], {
-        radius: radius + 8, fillColor: '#E85102', fillOpacity: 0.12, stroke: false, interactive: false
-      }).addTo(map);
-
-      const marker = L.circleMarker([city.lat, city.lng], {
-        radius, fillColor: '#E85102', fillOpacity: 0.9,
-        color: isCuritiba ? '#FF8A3D' : 'rgba(255,255,255,0.5)',
-        weight: isCuritiba ? 3 : 1.5
-      }).addTo(map);
-
-      if (city.total >= 3 || isCuritiba) {
-        marker.bindTooltip(city.name, {
-          permanent: true, direction: 'top', offset: [0, -radius - 4],
-          className: 'leaflet-city-label'
-        });
-      }
-
-      const loc = city.state ? `${city.state}, ${city.country}` : city.country;
-      const popupHTML = `
-        <div class="leaflet-city-popup">
-          <div class="leaflet-city-popup-name">${city.name}</div>
-          <div class="leaflet-city-popup-loc">${loc}</div>
-          <div class="leaflet-city-popup-stats">
-            <div class="leaflet-city-popup-stat">
-              <span class="leaflet-city-popup-val">${city.total}</span>
-              <span class="leaflet-city-popup-label">projetos</span>
-            </div>
-            ${city.active > 0 ? `<div class="leaflet-city-popup-stat">
-              <span class="leaflet-city-popup-val" style="color:#4ade80;">${city.active}</span>
-              <span class="leaflet-city-popup-label">ativos</span>
-            </div>` : ''}
-            ${city.finished > 0 ? `<div class="leaflet-city-popup-stat">
-              <span class="leaflet-city-popup-val" style="color:var(--text-muted);">${city.finished}</span>
-              <span class="leaflet-city-popup-label">finalizados</span>
-            </div>` : ''}
-          </div>
-        </div>
-      `;
-      marker.bindPopup(popupHTML, { className: 'leaflet-city-popup-container', closeButton: false });
-
-      if (city.total < 3 && !isCuritiba) {
-        marker.bindTooltip(`${city.name} (${city.total})`, {
-          direction: 'top', offset: [0, -radius - 2], className: 'leaflet-city-label'
-        });
-      }
-    });
-
-    map.setView([-22, -48], 5);
-    setTimeout(() => map.invalidateSize(), 200);
-  },
-
-  _renderCitiesList(ativos, finalizados) {
-    const cities = this._getCities(ativos, finalizados);
-    const total = cities.reduce((s, c) => s + c.total, 0);
-    const countries = new Set(cities.map(c => c.country).filter(Boolean));
-    const states = new Set(cities.map(c => c.state).filter(Boolean));
-
-    // Item 10: separate cities with and without coordinates
-    const mapped = cities.filter(c => c.lat);
-    const unmapped = cities.filter(c => !c.lat);
-
-    return `
-      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
-        <div style="flex:1;min-width:250px;display:flex;flex-wrap:wrap;gap:6px;">
-          ${mapped.map(c => `
-            <div style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:var(--bg-tertiary);border-radius:var(--radius-full);font-size:0.75rem;">
-              <span style="width:6px;height:6px;border-radius:50%;background:${c.active > 0 ? 'var(--accent-gold)' : 'var(--text-muted)'};"></span>
-              <span style="font-weight:600;">${c.name}</span>
-              <span style="color:var(--text-muted);">${c.state || c.country}</span>
-              <span style="color:var(--text-secondary);">${c.total}</span>
-            </div>
-          `).join('')}
-          ${unmapped.map(c => `
-            <div style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:var(--bg-tertiary);border-radius:var(--radius-full);font-size:0.75rem;opacity:0.6;" title="Cidade sem coordenadas no mapa">
-              <span style="width:6px;height:6px;border-radius:50%;background:var(--text-muted);"></span>
-              <span style="font-weight:600;">${c.name}</span>
-              <span style="color:var(--text-muted);">?</span>
-              <span style="color:var(--text-secondary);">${c.total}</span>
-            </div>
-          `).join('')}
-        </div>
-        <div style="display:flex;gap:12px;">
-          <div style="text-align:center;">
-            <div style="font-size:1.3rem;font-weight:700;color:var(--accent-gold);">${total}</div>
-            <div style="font-size:0.68rem;color:var(--text-muted);">projetos</div>
-          </div>
-          <div style="text-align:center;">
-            <div style="font-size:1.3rem;font-weight:700;color:var(--text-primary);">${cities.length}</div>
-            <div style="font-size:0.68rem;color:var(--text-muted);">cidades</div>
-          </div>
-          <div style="text-align:center;">
-            <div style="font-size:1.3rem;font-weight:700;color:var(--text-primary);">${countries.size}</div>
-            <div style="font-size:0.68rem;color:var(--text-muted);">paises</div>
-          </div>
-        </div>
-      </div>
-    `;
-  },
+  // (Cities map removed)
 
 };

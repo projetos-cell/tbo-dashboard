@@ -2844,39 +2844,8 @@ select.form-input {
 
 
 /* ===================================================================
-   ALERT / BANNER
+   ALERT / BANNER (ERP only)
    =================================================================== */
-.alert-item {
-  display: flex;
-  gap: 12px;
-  padding: 12px 16px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  margin-bottom: 8px;
-  align-items: flex-start;
-}
-
-.alert-item.critical { border-left: 3px solid var(--color-danger); }
-.alert-item.warning { border-left: 3px solid var(--color-warning); }
-.alert-item.info { border-left: 3px solid var(--color-info); }
-.alert-item.success { border-left: 3px solid var(--color-success); }
-
-.alert-icon { font-size: 1rem; flex-shrink: 0; margin-top: 2px; }
-.alert-content { flex: 1; }
-
-.alert-title {
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin-bottom: 4px;
-  color: var(--text-primary);
-}
-
-.alert-message {
-  font-size: 0.78rem;
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
-
 .alert-action {
   font-size: 0.75rem;
   color: var(--accent-gold);
@@ -5942,76 +5911,6 @@ body.light-mode .data-table tbody tr:hover {
   color: var(--text-muted);
 }
 
-/* CC News Feed — scrollable list container */
-.cc-news-feed {
-  display: flex;
-  flex-direction: column;
-  max-height: 380px;
-  overflow-y: auto;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--bg-card);
-  scroll-behavior: smooth;
-}
-
-.cc-news-feed::-webkit-scrollbar { width: 4px; }
-.cc-news-feed::-webkit-scrollbar-track { background: transparent; }
-.cc-news-feed::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 2px; }
-
-.cc-news-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border-subtle);
-  transition: background var(--transition-fast);
-  cursor: default;
-}
-
-.cc-news-item:last-child {
-  border-bottom: none;
-}
-
-.cc-news-item:hover {
-  background: var(--bg-card-hover);
-}
-
-.cc-news-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  margin-top: 6px;
-}
-
-.cc-news-content { flex: 1; min-width: 0; }
-
-.cc-news-tag {
-  display: inline-block;
-  font-size: 0.62rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  margin-bottom: 4px;
-  background: var(--accent-gold-dim);
-  color: var(--accent-gold);
-}
-
-.cc-news-title {
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: var(--text-primary);
-  line-height: 1.35;
-}
-
-.cc-news-meta {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  margin-top: 3px;
-}
-
 /* ── CC Greeting ── */
 .cc-greeting {
   margin-bottom: 8px;
@@ -6206,106 +6105,6 @@ body.light-mode .data-table tbody tr:hover {
   border-bottom: 1px solid var(--border-subtle);
 }
 
-/* ===================================================================
-   CITIES MAP (Leaflet Interactive)
-   =================================================================== */
-#citiesLeafletMap {
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
-  z-index: 0;
-}
-
-/* Leaflet overrides for dark theme */
-#citiesLeafletMap .leaflet-control-zoom a {
-  background: var(--bg-card) !important;
-  color: var(--text-primary) !important;
-  border-color: var(--border-default) !important;
-  width: 30px;
-  height: 30px;
-  line-height: 30px;
-  font-size: 16px;
-}
-#citiesLeafletMap .leaflet-control-zoom a:hover {
-  background: var(--bg-card-hover) !important;
-}
-#citiesLeafletMap .leaflet-control-attribution {
-  background: transparent !important;
-  color: var(--text-muted) !important;
-  font-size: 0.6rem;
-}
-#citiesLeafletMap .leaflet-control-attribution a {
-  color: var(--text-muted) !important;
-}
-
-/* City label tooltips (permanent) */
-.leaflet-city-label {
-  background: rgba(15, 15, 15, 0.85) !important;
-  border: 1px solid rgba(232, 81, 2, 0.3) !important;
-  color: #e0e0e0 !important;
-  font-family: 'Source Sans Pro', sans-serif !important;
-  font-size: 11px !important;
-  font-weight: 600 !important;
-  padding: 2px 8px !important;
-  border-radius: 4px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
-  white-space: nowrap !important;
-}
-.leaflet-city-label::before {
-  border-top-color: rgba(15, 15, 15, 0.85) !important;
-}
-
-/* City popup */
-.leaflet-city-popup-container .leaflet-popup-content-wrapper {
-  background: var(--bg-card) !important;
-  color: var(--text-primary) !important;
-  border: 1px solid var(--border-default) !important;
-  border-radius: var(--radius-md) !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
-  padding: 0 !important;
-}
-.leaflet-city-popup-container .leaflet-popup-tip {
-  background: var(--bg-card) !important;
-  border: 1px solid var(--border-default) !important;
-  box-shadow: none !important;
-}
-.leaflet-city-popup-container .leaflet-popup-content {
-  margin: 0 !important;
-}
-
-.leaflet-city-popup {
-  padding: 14px 16px;
-  min-width: 140px;
-}
-.leaflet-city-popup-name {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 2px;
-}
-.leaflet-city-popup-loc {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  margin-bottom: 10px;
-}
-.leaflet-city-popup-stats {
-  display: flex;
-  gap: 16px;
-}
-.leaflet-city-popup-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.leaflet-city-popup-val {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: var(--accent-gold);
-  line-height: 1;
-}
-.leaflet-city-popup-label {
-  font-size: 0.65rem;
-  color: var(--text-muted);
-  margin-top: 2px;
-}
 
 /* ===================================================================
    UX IMPROVEMENTS — Phase 7 Polish

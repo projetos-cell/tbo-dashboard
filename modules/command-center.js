@@ -243,10 +243,10 @@ const TBO_COMMAND_CENTER = {
     }
 
     return `
-      <div class="cc-quick-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+      <div class="cc-quick-bar">
         ${actions.map(a => `
-          <button class="btn btn-sm btn-secondary cc-quick-action-btn" onclick="TBO_ROUTER.navigate('${a.route}')" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;font-size:0.78rem;">
-            <i data-lucide="${a.icon}" style="width:14px;height:14px;"></i> ${this._esc(a.label)}
+          <button class="cc-quick-btn" onclick="TBO_ROUTER.navigate('${a.route}')">
+            <i data-lucide="${a.icon}"></i> ${this._esc(a.label)}
           </button>
         `).join('')}
       </div>
@@ -296,7 +296,7 @@ const TBO_COMMAND_CENTER = {
     return data;
   },
 
-  // ── Personalized greeting ───────────────────────────────────────────────
+  // ── Personalized greeting v3 ─────────────────────────────────────────────
   _renderGreeting() {
     const user = (typeof TBO_AUTH !== 'undefined') ? TBO_AUTH.getCurrentUser() : null;
     if (!user) return '';
@@ -316,19 +316,8 @@ const TBO_COMMAND_CENTER = {
       const nameParts = user.name.toLowerCase().split(/\s+/);
       return nameParts.some(part => part.length > 2 && personLower.includes(part));
     });
-
-    // Count completed action items from storage
     const completed = JSON.parse(localStorage.getItem('tbo_completed_actions') || '[]');
     const pendingCount = myActions.filter(ai => !completed.includes(ai.task + '|' + ai.meeting)).length;
-
-    let subline = '';
-    if (pendingCount > 0) {
-      subline = `Voce tem <strong>${pendingCount}</strong> action item${pendingCount > 1 ? 's' : ''} pendente${pendingCount > 1 ? 's' : ''}`;
-    }
-    if (d.recentMeetings.length > 0) {
-      subline += subline ? ' e ' : '';
-      subline += `<strong>${d.recentMeetings.length}</strong> reuniao${d.recentMeetings.length > 1 ? 'es' : ''} esta semana`;
-    }
 
     // Timer badge
     let timerBadge = '';
@@ -341,44 +330,35 @@ const TBO_COMMAND_CENTER = {
     }
 
     // Hours today
-    let hoursToday = '';
+    let hoursStr = '';
     if (typeof TBO_WORKLOAD !== 'undefined' && user) {
       const todayStr = TBO_WORKLOAD._today();
       const todayEntries = TBO_WORKLOAD.getTimeEntries({ userId: user.id, dateFrom: todayStr, dateTo: todayStr });
       const todayMins = todayEntries.reduce((s, e) => s + (e.duration_minutes || 0), 0);
-      if (todayMins > 0) {
-        subline += subline ? ' | ' : '';
-        subline += `<strong>${TBO_WORKLOAD.formatHoursMinutes(todayMins)}</strong> trackadas hoje`;
-      }
+      if (todayMins > 0) hoursStr = TBO_WORKLOAD.formatHoursMinutes(todayMins);
     }
 
-    // Frases motivacionais rotativas
-    const frases = [
-      'Cada projeto e uma nova oportunidade de criar algo incrivel.',
-      'Foco e clareza transformam ideias em resultados.',
-      'A consistencia e o motor do sucesso.',
-      'Grandes resultados comecam com pequenas acoes diarias.',
-      'Construa hoje o que voce quer ver amanha.',
-      'Disciplina e liberdade sao dois lados da mesma moeda.',
-      'A excelencia nao e um ato, e um habito.',
-      'O melhor momento para agir e agora.',
-      'Cada desafio e uma chance de crescer.'
-    ];
-    const fraseIdx = Math.floor(Date.now() / 86400000) % frases.length;
-    const frase = frases[fraseIdx];
-
-    // Data formatada
     const dataHoje = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
+    // Status badges
+    const badges = [];
+    if (pendingCount > 0) badges.push(`<span class="cc-status-dot" style="background:#f59e0b;"></span>${pendingCount} pendente${pendingCount > 1 ? 's' : ''}`);
+    if (d.recentMeetings.length > 0) badges.push(`<span class="cc-status-dot" style="background:#3b82f6;"></span>${d.recentMeetings.length} reuniao${d.recentMeetings.length > 1 ? 'es' : ''}`);
+    if (hoursStr) badges.push(`<span class="cc-status-dot" style="background:#22c55e;"></span>${hoursStr} hoje`);
+
     return `
-      <div class="cc-greeting" style="display:flex;justify-content:space-between;align-items:flex-start;padding:20px 0 12px;">
-        <div>
-          <h1 class="cc-greeting-title">${greeting}, ${firstName}${timerBadge}</h1>
-          <p style="font-size:0.78rem;color:var(--text-muted);margin:2px 0 0;text-transform:capitalize;">${dataHoje}</p>
-          ${subline ? `<p class="cc-greeting-sub" style="margin-top:6px;">${subline}</p>` : ''}
-          <p style="font-size:0.78rem;color:var(--text-secondary);font-style:italic;margin-top:8px;opacity:0.8;">"${frase}"</p>
+      <div class="cc-hero">
+        <div class="cc-hero-left">
+          <h1 class="cc-hero-title">${greeting}, ${firstName}${timerBadge}</h1>
+          <div class="cc-hero-meta">
+            <span style="text-transform:capitalize;">${dataHoje}</span>
+            ${badges.length > 0 ? '<span style="color:var(--border-default);">|</span>' + badges.join('<span style="color:var(--border-default);margin:0 4px;">·</span>') : ''}
+          </div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        <div class="cc-hero-actions">
+          <button class="btn btn-sm btn-secondary" id="ccBriefing" style="display:inline-flex;align-items:center;gap:5px;font-size:0.75rem;">
+            <i data-lucide="sparkles" style="width:14px;height:14px;"></i> Briefing
+          </button>
           <button class="btn btn-sm btn-ghost" id="ccCustomizeToggle" style="display:inline-flex;align-items:center;gap:4px;font-size:0.75rem;">
             <i data-lucide="sliders-horizontal" style="width:14px;height:14px;"></i> Personalizar
           </button>
@@ -715,81 +695,551 @@ const TBO_COMMAND_CENTER = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // FULL DASHBOARD (founder) — The original complete dashboard
+  // FULL DASHBOARD v3 (founder) — Redesigned 3-column layout with charts
   // ═══════════════════════════════════════════════════════════════════════════
   _renderFullDashboard() {
     const d = this._getData();
-    const layout = this._getLayout();
-    const hidden = layout.hidden || [];
+    const erpSummary = TBO_STORAGE.getErpSummary ? TBO_STORAGE.getErpSummary() : null;
+    const fc = d.dc26.fluxo_caixa || {};
+    const receitaYTD = (fc.meses_realizados || []).reduce((s, m) => s + ((fc.receita_mensal || {})[m] || 0), 0);
+    const despesaYTD = (fc.meses_realizados || []).reduce((s, m) => s + ((fc.despesa_mensal || {})[m] || 0), 0);
+    const resultadoYTD = receitaYTD - despesaYTD;
+    const metaAnual = fc.meta_vendas_anual || 1;
+    const progressMeta = metaAnual > 0 ? ((receitaYTD / metaAnual) * 100) : 0;
+    const margemYTD = receitaYTD > 0 ? ((resultadoYTD / receitaYTD) * 100).toFixed(1) : '0';
+    const erpAlerts = (typeof TBO_ERP !== 'undefined') ? TBO_ERP.generateAlerts().slice(0, 5) : [];
+    const actionsToday = (typeof TBO_ERP !== 'undefined') ? TBO_ERP.getActionsToday().slice(0, 5) : [];
 
-    // Separate widgets that go above the two-column layout vs inside it
-    // 'my-tasks' and 'weekly-summary' are special: if adjacent, they render in a 2-col grid
-    // 'erp-alerts', 'actions-today', 'kpis', 'business-pulse' render above the cc-layout
-    const aboveLayoutWidgets = ['my-tasks', 'weekly-summary', 'erp-alerts', 'actions-today', 'kpis', 'business-pulse'];
-    const insideMainWidgets = ['strategic-alerts', 'pipeline-funnel', 'people-widget', 'news-feed', 'projects-overview', 'cities-map'];
-
-    // Render above-layout widgets in layout order, skipping hidden
-    const aboveOrder = layout.main.filter(id => aboveLayoutWidgets.includes(id) && !hidden.includes(id));
-    const mainOrder = layout.main.filter(id => insideMainWidgets.includes(id) && !hidden.includes(id));
-
-    let aboveHtml = '';
-    let i = 0;
-    while (i < aboveOrder.length) {
-      const wid = aboveOrder[i];
-      // Special handling: if my-tasks and weekly-summary are adjacent, render in 2-col grid
-      if ((wid === 'my-tasks' || wid === 'weekly-summary') && i + 1 < aboveOrder.length) {
-        const nextWid = aboveOrder[i + 1];
-        if ((wid === 'my-tasks' && nextWid === 'weekly-summary') || (wid === 'weekly-summary' && nextWid === 'my-tasks')) {
-          const html1 = this._renderWidgetContent(wid, d);
-          const html2 = this._renderWidgetContent(nextWid, d);
-          if (html1 || html2) {
-            const wrapped1 = html1 ? this._wrapWidget(wid, html1) : '';
-            const wrapped2 = html2 ? this._wrapWidget(nextWid, html2) : '';
-            aboveHtml += `<div class="cc-tasks-summary-grid" style="display:grid;grid-template-columns:${html1 && html2 ? '1fr 1fr' : '1fr'};gap:16px;margin-bottom:16px;">
-              ${wrapped1}${wrapped2}
-            </div>`;
-          }
-          i += 2;
-          continue;
-        }
-      }
-      const content = this._renderWidgetContent(wid, d);
-      aboveHtml += this._wrapWidget(wid, content);
-      i++;
-    }
-
-    // Render main column widgets (skip hidden)
-    const mainHtml = mainOrder.map(id => this._wrapWidget(id, this._renderWidgetContent(id, d))).join('');
-
-    // Render sidebar widgets (skip hidden)
-    const sidebarOrder = layout.sidebar.filter(id => !hidden.includes(id));
-    const sidebarHtml = sidebarOrder.map(id => this._wrapWidget(id, this._renderWidgetContent(id, d))).join('');
+    // Get ERP task data
+    const allTasks = typeof TBO_STORAGE !== 'undefined' ? TBO_STORAGE.getAllErpEntities('task') : [];
+    const overdueTasks = erpSummary ? erpSummary.tasks.overdue : 0;
+    const activeProjCount = erpSummary ? erpSummary.projects.active : d.ativos.length;
 
     return `
       <div class="command-center">
-        <!-- Greeting with Personalizar button -->
         ${this._renderGreeting()}
-
-        <!-- Quick Actions -->
         ${this._renderQuickActions()}
 
-        <!-- Above-layout widgets (tasks, summary, ERP, actions, KPIs, pulse) -->
-        ${aboveHtml}
+        <!-- KPI Strip -->
+        ${this._renderKpiStrip(d, receitaYTD, resultadoYTD, progressMeta, margemYTD, activeProjCount, overdueTasks)}
 
-        <!-- Two-column layout: Main + Sidebar -->
-        <div class="cc-layout">
-          <div class="cc-main">
-            ${mainHtml}
+        <!-- Main 3-column grid -->
+        <div class="cc-grid">
+          <!-- Column 1+2: Revenue chart (spans 2 cols) -->
+          <div class="cc-col-span-2">
+            ${this._renderRevenueChart(d, fc)}
           </div>
 
-          <!-- Sidebar -->
-          <div class="cc-sidebar">
-            ${sidebarHtml}
+          <!-- Column 3: Sidebar -->
+          <div class="cc-sidebar-v3">
+            ${this._renderSidebarMeetingsV3(d.meetingsArr)}
+            ${this._renderSidebarActionsV3(d.actionsByPerson, d.totalActions)}
+            ${this._renderSidebarCommercialV3(d)}
+          </div>
+
+          <!-- Row 2, Col 1: Pipeline + Business Pulse -->
+          <div>
+            ${this._renderPipelineCardV3(d)}
+            <div style="margin-top:16px;">
+              ${this._renderBusinessPulseV3(d)}
+            </div>
+          </div>
+
+          <!-- Row 2, Col 2: Active Projects -->
+          <div>
+            ${this._renderProjectsGridV3(d)}
+          </div>
+
+          <!-- Row 3, Col 1+2: Alerts + Actions Today -->
+          ${erpAlerts.length > 0 || actionsToday.length > 0 ? `
+          <div class="cc-col-span-2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            ${erpAlerts.length > 0 ? this._renderAlertsCardV3(erpAlerts, erpSummary) : ''}
+            ${actionsToday.length > 0 ? this._renderActionsTodayV3(actionsToday) : ''}
+            ${erpAlerts.length === 0 && actionsToday.length > 0 ? '' : ''}
+          </div>` : ''}
+
+          <!-- Row 4: Strategic Alerts + People + News -->
+          <div class="cc-col-span-2">
+            ${this._renderStrategicAlertsV3(d)}
+          </div>
+
+          <!-- Map -->
+          <div class="cc-col-span-2">
+            ${this._renderMapCardV3(d)}
+          </div>
+
+          <!-- Sidebar: Culture + Market -->
+          <div class="cc-sidebar-v3">
+            ${this._renderSidebarMarketV3(d.ic)}
+            ${this._renderCultureNudgeV3()}
           </div>
         </div>
 
-        <!-- Customize Panel (slide-in from right) -->
         ${this._renderCustomizePanel()}
+      </div>
+    `;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // V3 WIDGETS — New redesigned widget renderers
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  _renderKpiStrip(d, receitaYTD, resultadoYTD, progressMeta, margemYTD, activeProjCount, overdueTasks) {
+    const fc = d.dc26.fluxo_caixa || {};
+    const dc25 = d.dc25;
+    const prev25 = dc25.total_vendido || 0;
+    const growthPct = prev25 > 0 ? (((receitaYTD - prev25) / prev25) * 100).toFixed(0) : 0;
+
+    return `
+      <div class="cc-kpi-strip">
+        <div class="cc-kpi-card" style="--kpi-accent:#E85102; --kpi-bg:rgba(232,81,2,0.08);">
+          <div class="cc-kpi-header">
+            <span class="cc-kpi-label">Receita YTD</span>
+            <div class="cc-kpi-icon"><i data-lucide="trending-up"></i></div>
+          </div>
+          <div class="cc-kpi-value">${receitaYTD > 0 ? TBO_FORMATTER.currency(receitaYTD) : '\u2014'}</div>
+          <div class="cc-kpi-sub">
+            <span class="cc-kpi-badge ${resultadoYTD >= 0 ? 'up' : 'down'}">${resultadoYTD >= 0 ? '+' : ''}${TBO_FORMATTER.currency(resultadoYTD)}</span>
+            <span>${progressMeta.toFixed(0)}% da meta</span>
+          </div>
+        </div>
+
+        <div class="cc-kpi-card" style="--kpi-accent:#3b82f6; --kpi-bg:rgba(59,130,246,0.08);">
+          <div class="cc-kpi-header">
+            <span class="cc-kpi-label">Projetos Ativos</span>
+            <div class="cc-kpi-icon"><i data-lucide="folder-kanban"></i></div>
+          </div>
+          <div class="cc-kpi-value">${activeProjCount}</div>
+          <div class="cc-kpi-sub">
+            <span class="cc-kpi-badge ${overdueTasks > 0 ? 'down' : 'up'}">${overdueTasks > 0 ? overdueTasks + ' atrasadas' : 'Em dia'}</span>
+            <span>${new Set(d.ativos.map(p => p.construtora)).size} clientes</span>
+          </div>
+        </div>
+
+        <div class="cc-kpi-card" style="--kpi-accent:#8b5cf6; --kpi-bg:rgba(139,92,246,0.08);">
+          <div class="cc-kpi-header">
+            <span class="cc-kpi-label">Reunioes (7d)</span>
+            <div class="cc-kpi-icon"><i data-lucide="calendar"></i></div>
+          </div>
+          <div class="cc-kpi-value">${d.recentMeetings.length}</div>
+          <div class="cc-kpi-sub">
+            <span class="cc-kpi-badge neutral">${d.totalActions} action items</span>
+            <span>${d.meetingsArr.length} total</span>
+          </div>
+        </div>
+
+        <div class="cc-kpi-card" style="--kpi-accent:#22c55e; --kpi-bg:rgba(34,197,94,0.08);">
+          <div class="cc-kpi-header">
+            <span class="cc-kpi-label">Margem YTD</span>
+            <div class="cc-kpi-icon"><i data-lucide="percent"></i></div>
+          </div>
+          <div class="cc-kpi-value">${margemYTD}%</div>
+          <div class="cc-kpi-sub">
+            <span class="cc-kpi-badge ${parseFloat(margemYTD) > 0 ? 'up' : 'down'}">${parseFloat(margemYTD) > 0 ? 'Positiva' : 'Negativa'}</span>
+          </div>
+        </div>
+
+        <div class="cc-kpi-card" style="--kpi-accent:#f59e0b; --kpi-bg:rgba(245,158,11,0.08);">
+          <div class="cc-kpi-header">
+            <span class="cc-kpi-label">Meta 2026</span>
+            <div class="cc-kpi-icon"><i data-lucide="target"></i></div>
+          </div>
+          <div class="cc-kpi-value">${progressMeta.toFixed(0)}%</div>
+          <div class="cc-kpi-sub">
+            <span>${fc.meta_vendas_anual ? TBO_FORMATTER.currency(fc.meta_vendas_anual) : '\u2014'}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  _renderRevenueChart(d, fc) {
+    if (!fc || !fc.receita_mensal) {
+      return `<div class="cc-card"><div class="cc-card-body" style="padding:32px;text-align:center;color:var(--text-muted);">Dados financeiros nao disponiveis</div></div>`;
+    }
+    const months = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    const realizados = fc.meses_realizados || [];
+
+    return `
+      <div class="cc-card">
+        <div class="cc-card-header">
+          <span class="cc-card-title"><i data-lucide="bar-chart-3"></i> Receita vs Despesa 2026</span>
+          <button class="btn btn-sm btn-ghost" onclick="TBO_ROUTER.navigate('financeiro')">Detalhar</button>
+        </div>
+        <div class="cc-card-body">
+          <div class="cc-chart-wrap">
+            <canvas id="ccRevenueChart"></canvas>
+          </div>
+          <div style="display:flex;justify-content:center;gap:20px;margin-top:12px;font-size:0.72rem;">
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#E85102;"></span> Receita</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#64748b;"></span> Despesa</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:3px;border-radius:2px;background:#22c55e;"></span> Resultado</span>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  _renderPipelineCardV3(d) {
+    const dc25 = d.dc25;
+    const dc26 = d.dc26;
+    const fc = dc26.fluxo_caixa || {};
+    const propostas = dc25.propostas || 0;
+    const contratos = dc25.contratos || 0;
+    const negociacao = dc25.em_negociacao || 0;
+    const metaAnual = fc.meta_vendas_anual || 1;
+    const receitaYTD = (fc.meses_realizados || []).reduce((s, m) => s + ((fc.receita_mensal || {})[m] || 0), 0);
+    const pct = metaAnual > 0 ? ((receitaYTD / metaAnual) * 100) : 0;
+
+    return `
+      <div class="cc-card">
+        <div class="cc-card-header">
+          <span class="cc-card-title"><i data-lucide="filter"></i> Pipeline</span>
+          <button class="btn btn-sm btn-ghost" onclick="TBO_ROUTER.navigate('comercial')">Ver</button>
+        </div>
+        <div class="cc-card-body">
+          <div class="cc-chart-wrap" style="height:180px;">
+            <canvas id="ccPipelineChart"></canvas>
+          </div>
+          <div style="margin-top:12px;">
+            <div style="display:flex;justify-content:space-between;font-size:0.75rem;margin-bottom:4px;">
+              <span style="font-weight:600;">Meta 2026</span>
+              <span style="color:var(--text-muted);">${pct.toFixed(0)}%</span>
+            </div>
+            <div style="height:6px;background:var(--bg-tertiary);border-radius:3px;overflow:hidden;">
+              <div style="height:100%;width:${Math.min(100, pct)}%;background:${pct >= 50 ? '#22c55e' : pct >= 25 ? '#f59e0b' : '#ef4444'};border-radius:3px;transition:width 0.5s;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  _renderBusinessPulseV3(d) {
+    const ctx = TBO_STORAGE.get('context') || {};
+    const dc24 = ctx.dados_comerciais?.['2024'] || {};
+    const dc25 = ctx.dados_comerciais?.['2025'] || {};
+    const fy = TBO_CONFIG?.app?.fiscalYear || '2026';
+    const dc26 = ctx.dados_comerciais?.[fy] || {};
+    const fc = dc26.fluxo_caixa || {};
+
+    const erpProjects = TBO_STORAGE.getAllErpEntities ? TBO_STORAGE.getAllErpEntities('project') : [];
+    const erpAtivos = erpProjects.filter(p => !['finalizado', 'cancelado'].includes(p.status));
+    const projAtivos = erpAtivos.length > 0 ? erpAtivos : (ctx.projetos_ativos || []);
+    const finalizados = ctx.projetos_finalizados || {};
+    const clientes = ctx.clientes_construtoras || [];
+
+    const activeConstrutoras = new Set(projAtivos.map(p => (p.construtora || '')).filter(Boolean));
+    const prevClients = new Set();
+    ['2024','2025'].forEach(y => { (finalizados[y] || []).forEach(p => { if (!p) return; const pLow = (typeof p === 'string' ? p : (p.nome || '')).toLowerCase(); clientes.forEach(c => { if (c && pLow.includes(c.toLowerCase())) prevClients.add(c); }); }); });
+    projAtivos.forEach(p => { if (p.construtora) prevClients.add(p.construtora); });
+    const churned = [...prevClients].filter(c => !activeConstrutoras.has(c));
+    const churnRate = prevClients.size > 0 ? Math.round((churned.length / prevClients.size) * 100) : 0;
+
+    const winRate = parseFloat(dc26.conversao_proposta) || parseFloat(dc25.conversao_proposta) || 0;
+    const ticket = dc26.ticket_medio || dc25.ticket_medio || dc24.ticket_medio || 0;
+
+    const mRealized = fc.meses_realizados || [];
+    const recYTD = mRealized.reduce((s, mes) => s + ((fc.receita_mensal||{})[mes]||0), 0);
+    const despYTD = mRealized.reduce((s, mes) => s + ((fc.despesa_mensal||{})[mes]||0), 0);
+    const margemYTD = recYTD > 0 ? ((recYTD - despYTD) / recYTD * 100).toFixed(1) : '0';
+
+    const fmt = (v) => { const abs = Math.abs(v); if (abs >= 1000000) return (v<0?'-':'') + (abs/1000000).toFixed(1) + 'M'; if (abs >= 1000) return (v<0?'-':'') + (abs/1000).toFixed(0) + 'k'; return v.toLocaleString('pt-BR'); };
+    const dotColor = (val, good, warn) => val <= good ? '#22c55e' : val <= warn ? '#f59e0b' : '#ef4444';
+
+    return `
+      <div class="cc-card">
+        <div class="cc-card-header">
+          <span class="cc-card-title"><i data-lucide="heart-pulse"></i> Business Pulse</span>
+          <button class="btn btn-sm btn-ghost" onclick="TBO_ROUTER.navigate('inteligencia')">BI</button>
+        </div>
+        <div class="cc-card-body">
+          <div class="cc-pulse-grid">
+            <div class="cc-pulse-item">
+              <div class="cc-pulse-val"><span class="cc-pulse-dot" style="background:${dotColor(churnRate, 15, 25)};"></span>${churnRate}%</div>
+              <div class="cc-pulse-label">Churn</div>
+            </div>
+            <div class="cc-pulse-item">
+              <div class="cc-pulse-val"><span class="cc-pulse-dot" style="background:${winRate > 40 ? '#22c55e' : winRate > 30 ? '#f59e0b' : '#ef4444'};"></span>${winRate}%</div>
+              <div class="cc-pulse-label">Win Rate</div>
+            </div>
+            <div class="cc-pulse-item">
+              <div class="cc-pulse-val"><span class="cc-pulse-dot" style="background:${parseFloat(margemYTD) > 10 ? '#22c55e' : parseFloat(margemYTD) > 0 ? '#f59e0b' : '#ef4444'};"></span>${margemYTD}%</div>
+              <div class="cc-pulse-label">Margem</div>
+            </div>
+            <div class="cc-pulse-item">
+              <div class="cc-pulse-val">R$ ${fmt(ticket)}</div>
+              <div class="cc-pulse-label">Ticket Medio</div>
+            </div>
+            <div class="cc-pulse-item">
+              <div class="cc-pulse-val">${projAtivos.length}</div>
+              <div class="cc-pulse-label">Proj. Ativos</div>
+            </div>
+            <div class="cc-pulse-item">
+              <div class="cc-pulse-val">${new Set(projAtivos.map(p => p.construtora)).size}</div>
+              <div class="cc-pulse-label">Clientes</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  _renderProjectsGridV3(d) {
+    return `
+      <div class="cc-card">
+        <div class="cc-card-header">
+          <span class="cc-card-title"><i data-lucide="building-2"></i> Projetos Ativos (${d.ativos.length})</span>
+          <button class="btn btn-sm btn-ghost" onclick="TBO_ROUTER.navigate('projetos')">Todos</button>
+        </div>
+        <div class="cc-card-body">
+          <div class="cc-project-grid">
+            ${d.ativos.slice(0, 6).map(p => {
+              const bus = p.bus || [];
+              let barColor = 'var(--text-muted)';
+              if (bus.includes('Digital 3D')) barColor = '#3b82f6';
+              else if (bus.includes('Branding')) barColor = '#8b5cf6';
+              else if (bus.includes('Marketing') || bus.includes('Audiovisual')) barColor = '#22c55e';
+              if (bus.length >= 4) barColor = '#E85102';
+              return `
+                <div class="cc-project-mini" onclick="TBO_ROUTER.navigate('projetos')">
+                  <div class="cc-project-mini-bar" style="background:${barColor};"></div>
+                  <div class="cc-project-mini-name">${_escapeHtml(p.nome)}</div>
+                  <div class="cc-project-mini-client">${_escapeHtml(p.construtora)}</div>
+                  <div class="cc-project-mini-bus">
+                    ${bus.slice(0, 3).map(b => `<span class="tag">${b}</span>`).join('')}
+                    ${bus.length > 3 ? `<span class="tag">+${bus.length - 3}</span>` : ''}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+          ${d.ativos.length > 6 ? `<div style="text-align:center;margin-top:10px;"><button class="btn btn-sm btn-ghost" onclick="TBO_ROUTER.navigate('projetos')" style="color:var(--brand-orange);">+${d.ativos.length - 6} projetos</button></div>` : ''}
+        </div>
+      </div>
+    `;
+  },
+
+  _renderAlertsCardV3(erpAlerts, erpSummary) {
+    return `
+      <div class="cc-card">
+        <div class="cc-card-header">
+          <span class="cc-card-title"><i data-lucide="alert-triangle"></i> Alertas (${erpAlerts.length})</span>
+        </div>
+        <div class="cc-card-body">
+          ${erpAlerts.slice(0, 4).map(a => `
+            <div class="cc-timeline-item">
+              <span class="cc-timeline-dot" style="background:${a.level === 'critical' ? '#ef4444' : '#f59e0b'};"></span>
+              <div class="cc-timeline-content">
+                <div class="cc-timeline-title" style="color:${a.level === 'critical' ? '#ef4444' : '#f59e0b'};">${a.title}</div>
+                <div class="cc-timeline-meta">${a.action}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  },
+
+  _renderActionsTodayV3(actionsToday) {
+    return `
+      <div class="cc-card">
+        <div class="cc-card-header">
+          <span class="cc-card-title"><i data-lucide="target"></i> Acoes Hoje (${actionsToday.length})</span>
+        </div>
+        <div class="cc-card-body">
+          ${actionsToday.slice(0, 4).map(a => `
+            <div class="cc-timeline-item">
+              <span class="cc-timeline-dot" style="background:${a.priority === 'critical' ? '#ef4444' : a.priority === 'high' ? '#f59e0b' : '#3b82f6'};"></span>
+              <div class="cc-timeline-content">
+                <div class="cc-timeline-title">${a.title}</div>
+                <div class="cc-timeline-meta">${a.project ? a.project + ' · ' : ''}${a.label}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  },
+
+  _renderStrategicAlertsV3(d) {
+    return `
+      <div class="cc-card">
+        <div class="cc-card-header">
+          <span class="cc-card-title"><i data-lucide="shield-alert"></i> Alertas Estrategicos</span>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-sm btn-primary" id="ccGenerateAlerts">Gerar com IA</button>
+          </div>
+        </div>
+        <div class="cc-card-body">
+          <div id="ccAlerts">${this._renderStaticAlerts(d)}</div>
+          <div id="ccAiAlerts" class="ai-response" style="display:none;margin-top:12px;"></div>
+        </div>
+      </div>
+    `;
+  },
+
+  _renderMapCardV3(d) {
+    const cities = this._getCities(d.ativos, d.finalizados);
+    return `
+      <div class="cc-card">
+        <div class="cc-card-header">
+          <span class="cc-card-title"><i data-lucide="map"></i> Cidades Atendidas</span>
+          <span style="font-size:0.72rem;color:var(--text-muted);">${cities.length} cidades</span>
+        </div>
+        <div style="padding:0;">
+          <div id="citiesLeafletMap" style="height:360px;width:100%;background:#1a1a2e;"></div>
+        </div>
+        <div style="padding:14px 20px;">
+          ${this._renderCitiesList(d.ativos, d.finalizados)}
+        </div>
+      </div>
+    `;
+  },
+
+  // ── Sidebar V3 widgets ──
+  _renderSidebarMeetingsV3(meetingsArr) {
+    return `
+      <div class="cc-sidebar-section">
+        <div class="cc-sidebar-section-header">
+          <span class="cc-sidebar-section-title"><i data-lucide="calendar"></i> Reunioes</span>
+          <span style="font-size:0.68rem;color:var(--text-muted);">${meetingsArr.length}</span>
+        </div>
+        <div class="cc-sidebar-section-body">
+          ${meetingsArr.length > 0 ? meetingsArr.slice(0, 5).map(m => `
+            <div class="cc-sidebar-list-item" onclick="TBO_ROUTER.navigate('reunioes')">
+              <div style="min-width:0;">
+                <div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;">${_escapeHtml(m.title || m.titulo)}</div>
+                <div style="font-size:0.68rem;color:var(--text-muted);">${TBO_FORMATTER.relativeTime(m.date || m.data)}</div>
+              </div>
+            </div>
+          `).join('') : '<div style="font-size:0.78rem;color:var(--text-muted);padding:4px 0;">Nenhuma reuniao</div>'}
+          <div style="margin-top:8px;text-align:center;">
+            <button class="btn btn-sm btn-ghost" onclick="TBO_ROUTER.navigate('reunioes')" style="width:100%;font-size:0.72rem;">Ver todas</button>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  _renderSidebarActionsV3(actionsByPerson, totalActions) {
+    if (totalActions === 0) return '';
+    const entries = Object.entries(actionsByPerson).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    return `
+      <div class="cc-sidebar-section">
+        <div class="cc-sidebar-section-header">
+          <span class="cc-sidebar-section-title"><i data-lucide="check-square"></i> Action Items</span>
+          <span style="font-size:0.68rem;color:var(--text-muted);">${totalActions}</span>
+        </div>
+        <div class="cc-sidebar-section-body">
+          ${entries.map(([person, count]) => {
+            const escaped = person.replace(/'/g, "\\'");
+            return `
+              <div class="cc-sidebar-list-item" onclick="TBO_COMMAND_CENTER._filterActionsByPerson('${escaped}')">
+                <span style="font-weight:500;">${_escapeHtml(person)}</span>
+                <span class="tag">${count}</span>
+              </div>
+            `;
+          }).join('')}
+          <div id="ccSidebarActionDetail" style="display:none;margin-top:8px;border-top:1px solid var(--border-subtle);padding-top:8px;"></div>
+        </div>
+      </div>
+    `;
+  },
+
+  _renderSidebarCommercialV3(d) {
+    const fc = d.dc26.fluxo_caixa || {};
+    const receitaYTD = (fc.meses_realizados || []).reduce((s, m) => s + ((fc.receita_mensal || {})[m] || 0), 0);
+    return `
+      <div class="cc-sidebar-section">
+        <div class="cc-sidebar-section-header">
+          <span class="cc-sidebar-section-title"><i data-lucide="briefcase"></i> Comercial 2026</span>
+        </div>
+        <div class="cc-sidebar-section-body">
+          <div class="cc-sidebar-list-item">
+            <span>Receita YTD</span>
+            <span style="font-weight:600;color:var(--brand-orange);">${receitaYTD > 0 ? TBO_FORMATTER.currency(receitaYTD) : '\u2014'}</span>
+          </div>
+          <div class="cc-sidebar-list-item">
+            <span>Meta Anual</span>
+            <span>${fc.meta_vendas_anual ? TBO_FORMATTER.currency(fc.meta_vendas_anual) : '\u2014'}</span>
+          </div>
+          <div class="cc-sidebar-list-item">
+            <span>Margem Projetada</span>
+            <span>${fc.margem_liquida_orcada || '\u2014'}</span>
+          </div>
+          ${d.dc25.total_vendido ? `
+          <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border-subtle);">
+            <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px;">2025</div>
+            <div class="cc-sidebar-list-item">
+              <span style="font-size:0.75rem;">Faturado</span>
+              <span style="font-size:0.72rem;color:var(--text-muted);">${TBO_FORMATTER.currency(d.dc25.total_vendido)}</span>
+            </div>
+          </div>` : ''}
+          <div style="margin-top:8px;text-align:center;">
+            <button class="btn btn-sm btn-ghost" onclick="TBO_ROUTER.navigate('financeiro')" style="width:100%;font-size:0.72rem;">Detalhar</button>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  _renderSidebarMarketV3(ic) {
+    return `
+      <div class="cc-sidebar-section">
+        <div class="cc-sidebar-section-header">
+          <span class="cc-sidebar-section-title"><i data-lucide="trending-up"></i> Mercado CWB</span>
+          <span style="font-size:0.68rem;color:var(--text-muted);">${ic.periodo || ''}</span>
+        </div>
+        <div class="cc-sidebar-section-body">
+          <div class="cc-sidebar-list-item">
+            <span>Lancamentos</span>
+            <span class="tag" style="color:var(--color-danger);">${ic.empreendimentos_lancados || '\u2014'} (${ic.variacao_empreendimentos || ''})</span>
+          </div>
+          <div class="cc-sidebar-list-item">
+            <span>Unidades</span>
+            <span class="tag" style="color:var(--color-danger);">${TBO_FORMATTER.number(ic.unidades_lancadas)} (${ic.variacao_unidades || ''})</span>
+          </div>
+          <div style="margin-top:8px;text-align:center;">
+            <button class="btn btn-sm btn-ghost" onclick="TBO_ROUTER.navigate('mercado')" style="width:100%;font-size:0.72rem;">Detalhar</button>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  _renderCultureNudgeV3() {
+    if (typeof TBO_CULTURA_DATA === 'undefined' || !TBO_CULTURA_DATA.nudges) return '';
+    const valor = TBO_CULTURA_DATA.nudges.valorDoDia();
+    const tip = TBO_CULTURA_DATA.nudges.tipCultural();
+    const reflexao = TBO_CULTURA_DATA.nudges.reflexaoDoDia();
+
+    return `
+      <div class="cc-sidebar-section">
+        <div class="cc-sidebar-section-header">
+          <span class="cc-sidebar-section-title"><i data-lucide="sparkles"></i> Cultura TBO</span>
+        </div>
+        <div class="cc-sidebar-section-body">
+          <div style="background:linear-gradient(135deg, #E8510215, #E8510208);border:1px solid #E8510230;border-radius:8px;padding:12px;margin-bottom:8px;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+              <span style="font-size:1rem;">${this._esc(valor.emoji || '')}</span>
+              <span style="font-size:0.68rem;font-weight:700;color:#E85102;text-transform:uppercase;">Valor do Dia</span>
+            </div>
+            <div style="font-weight:700;font-size:0.82rem;margin-bottom:3px;">${this._esc(valor.nome)}</div>
+            <div style="font-size:0.72rem;color:var(--text-secondary);line-height:1.4;">${this._esc(valor.desc)}</div>
+          </div>
+          <div style="background:var(--bg-tertiary);border-radius:6px;padding:10px;margin-bottom:8px;">
+            <div style="font-size:0.62rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px;">Dica</div>
+            <div style="font-size:0.72rem;line-height:1.4;">${this._esc(tip)}</div>
+          </div>
+          <div style="background:var(--bg-tertiary);border-radius:6px;padding:10px;">
+            <div style="font-size:0.62rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px;">Reflexao</div>
+            <div style="font-size:0.72rem;line-height:1.4;font-style:italic;">${this._esc(reflexao)}</div>
+          </div>
+          <div style="margin-top:8px;text-align:center;">
+            <button class="btn btn-sm btn-ghost" onclick="TBO_ROUTER.navigate('cultura')" style="font-size:0.68rem;color:var(--brand-orange);">Manual de Cultura</button>
+          </div>
+        </div>
       </div>
     `;
   },
@@ -2028,6 +2478,7 @@ const TBO_COMMAND_CENTER = {
       this._bind('ccGenerateAlerts', () => this._generateAlerts());
       this._bind('ccBriefing', () => this._generateBriefing());
       this._initLeafletMap();
+      this._initCharts(); // v3: Chart.js charts
 
       // Customize panel toggle
       this._bind('ccCustomizeToggle', () => this._toggleCustomizePanel());
@@ -2056,11 +2507,6 @@ const TBO_COMMAND_CENTER = {
           if (widgetId) self._removeWidget(widgetId);
         });
       });
-
-      // Initialize drag-and-drop (always active, no edit mode)
-      this._initDragDrop();
-
-      // Period selector removido (v2 — filtro de periodo nao necessario no dashboard)
     }
 
     // Quick-done buttons for "My Tasks Today"
@@ -2083,6 +2529,157 @@ const TBO_COMMAND_CENTER = {
   _bind(id, fn) {
     const el = document.getElementById(id);
     if (el) el.addEventListener('click', fn);
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CHART.JS INITIALIZATION (v3)
+  // ═══════════════════════════════════════════════════════════════════════════
+  _initCharts() {
+    if (typeof Chart === 'undefined') return;
+    const d = this._lastData || this._getData();
+    const fc = d.dc26.fluxo_caixa || {};
+
+    // ── Revenue Chart ──
+    const revenueEl = document.getElementById('ccRevenueChart');
+    if (revenueEl && fc.receita_mensal) {
+      const months = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+      const monthLabels = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+      const realizados = fc.meses_realizados || [];
+      const receitas = months.map(m => (fc.receita_mensal || {})[m] || 0);
+      const despesas = months.map(m => (fc.despesa_mensal || {})[m] || 0);
+      const resultados = months.map((m, i) => receitas[i] - despesas[i]);
+
+      const isDark = document.body.classList.contains('dark-mode');
+      const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+      const textColor = isDark ? '#999' : '#888';
+
+      if (this._revenueChart) this._revenueChart.destroy();
+      this._revenueChart = new Chart(revenueEl.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: monthLabels,
+          datasets: [
+            {
+              label: 'Receita',
+              data: receitas,
+              backgroundColor: realizados.map((_, i) => realizados.includes(months[i]) ? '#E85102' : '#E8510240'),
+              borderRadius: 4,
+              barPercentage: 0.7,
+              categoryPercentage: 0.8,
+              order: 2
+            },
+            {
+              label: 'Despesa',
+              data: despesas,
+              backgroundColor: realizados.map((_, i) => realizados.includes(months[i]) ? '#64748b' : '#64748b40'),
+              borderRadius: 4,
+              barPercentage: 0.7,
+              categoryPercentage: 0.8,
+              order: 3
+            },
+            {
+              label: 'Resultado',
+              data: resultados,
+              type: 'line',
+              borderColor: '#22c55e',
+              backgroundColor: 'rgba(34,197,94,0.05)',
+              borderWidth: 2,
+              pointRadius: realizados.map((_, i) => realizados.includes(months[i]) ? 4 : 2),
+              pointBackgroundColor: '#22c55e',
+              fill: true,
+              tension: 0.3,
+              order: 1
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: isDark ? '#1e1e2e' : '#fff',
+              titleColor: isDark ? '#eee' : '#333',
+              bodyColor: isDark ? '#ccc' : '#666',
+              borderColor: isDark ? '#333' : '#e5e7eb',
+              borderWidth: 1,
+              padding: 10,
+              displayColors: true,
+              callbacks: {
+                label: function(ctx) {
+                  return ctx.dataset.label + ': R$ ' + (ctx.raw || 0).toLocaleString('pt-BR');
+                }
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: textColor, font: { size: 11 } } },
+            y: {
+              grid: { color: gridColor },
+              ticks: {
+                color: textColor,
+                font: { size: 11 },
+                callback: function(v) {
+                  if (Math.abs(v) >= 1000000) return (v/1000000).toFixed(1) + 'M';
+                  if (Math.abs(v) >= 1000) return (v/1000).toFixed(0) + 'k';
+                  return v;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // ── Pipeline Doughnut Chart ──
+    const pipelineEl = document.getElementById('ccPipelineChart');
+    if (pipelineEl) {
+      const dc25 = d.dc25;
+      const propostas = dc25.propostas || 0;
+      const contratos = dc25.contratos || 0;
+      const negociacao = dc25.em_negociacao || 0;
+      const perdidos = Math.max(0, propostas - contratos - negociacao);
+
+      if (this._pipelineChart) this._pipelineChart.destroy();
+      this._pipelineChart = new Chart(pipelineEl.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Fechados', 'Em Negociacao', 'Perdidos/Outros'],
+          datasets: [{
+            data: [contratos, negociacao, perdidos],
+            backgroundColor: ['#22c55e', '#f59e0b', '#64748b40'],
+            borderWidth: 0,
+            spacing: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '65%',
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                padding: 12,
+                usePointStyle: true,
+                pointStyle: 'circle',
+                font: { size: 11 },
+                color: document.body.classList.contains('dark-mode') ? '#999' : '#888'
+              }
+            },
+            tooltip: {
+              backgroundColor: document.body.classList.contains('dark-mode') ? '#1e1e2e' : '#fff',
+              titleColor: document.body.classList.contains('dark-mode') ? '#eee' : '#333',
+              bodyColor: document.body.classList.contains('dark-mode') ? '#ccc' : '#666',
+              borderColor: document.body.classList.contains('dark-mode') ? '#333' : '#e5e7eb',
+              borderWidth: 1,
+              padding: 10
+            }
+          }
+        }
+      });
+    }
   },
 
   // ═══════════════════════════════════════════════════════════════════════════

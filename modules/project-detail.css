@@ -2152,6 +2152,22 @@ body.dark-mode .pd-status-dropdown:hover {
   filter: brightness(1.1);
 }
 
+/* Kanban inline task input */
+.pd-kanban-inline-task-row {
+  padding: 4px 8px 8px;
+}
+.pd-kanban-inline-task-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  font-size: 0.82rem;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(232, 81, 2, 0.15);
+}
+
 /* ═══════════════════════════════════════════════════
    GANTT TAB (pd-gantt-*)
    ═══════════════════════════════════════════════════ */

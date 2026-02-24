@@ -2767,6 +2767,7 @@ const TBO_PROJECT_DETAIL = {
 
   _renderKanbanTab() {
     const columns = this._KANBAN_COLUMNS;
+    const customSections = this._SECTIONS.filter(s => s.key.startsWith('custom_'));
     return `
       <div class="pd-kanban">
         <div class="pd-kanban-board">
@@ -2779,6 +2780,22 @@ const TBO_PROJECT_DETAIL = {
                   <span class="pd-kanban-col-count" style="background:${col.color}20;color:${col.color};">${cards.length}</span>
                 </div>
                 <div class="pd-kanban-col-body" data-kanban-drop="${this._esc(col.status)}">
+                  ${cards.map(d => this._renderKanbanCard(d)).join('')}
+                  ${cards.length === 0 ? '<div class="pd-kanban-placeholder">Arraste tarefas aqui</div>' : ''}
+                </div>
+              </div>
+            `;
+          }).join('')}
+
+          ${customSections.map(sec => {
+            const cards = this._demands.filter(d => (this._sectionOverrides[d.id] || '') === sec.key);
+            return `
+              <div class="pd-kanban-column" data-kanban-section="${this._esc(sec.key)}">
+                <div class="pd-kanban-col-header" style="border-top:3px solid #6b7280;">
+                  <span class="pd-kanban-col-title">${this._esc(sec.label)}</span>
+                  <span class="pd-kanban-col-count" style="background:#6b728020;color:#6b7280;">${cards.length}</span>
+                </div>
+                <div class="pd-kanban-col-body" data-kanban-drop-section="${this._esc(sec.key)}">
                   ${cards.map(d => this._renderKanbanCard(d)).join('')}
                   ${cards.length === 0 ? '<div class="pd-kanban-placeholder">Arraste tarefas aqui</div>' : ''}
                 </div>
@@ -2810,6 +2827,53 @@ const TBO_PROJECT_DETAIL = {
       statuses: []
     });
     this._switchTab();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        this._openKanbanInlineTask(newKey);
+      });
+    });
+  },
+
+  _openKanbanInlineTask(sectionKey) {
+    const col =
+      document.querySelector(`.pd-kanban-column[data-section="${sectionKey}"]`) ||
+      document.querySelector(`.pd-kanban-column[data-kanban-section="${sectionKey}"]`);
+
+    if (!col) return;
+
+    col.scrollIntoView({
+      behavior: 'smooth',
+      inline: 'end',
+      block: 'nearest'
+    });
+
+    const existing = col.querySelector('.pd-kanban-inline-task-input');
+    if (existing) {
+      existing.focus();
+      return;
+    }
+
+    const btn =
+      col.querySelector('[data-kanban-add-task]') ||
+      col.querySelector('.pd-kanban-add-task-btn');
+    if (btn) {
+      btn.click();
+      return;
+    }
+
+    const body = col.querySelector('.pd-kanban-col-body');
+    if (!body) return;
+
+    const row = document.createElement('div');
+    row.className = 'pd-kanban-inline-task-row';
+    row.innerHTML = `
+      <input
+        class="pd-kanban-inline-task-input"
+        placeholder="Adicionar tarefa..."
+      />
+    `;
+    body.appendChild(row);
+    row.querySelector('input').focus();
   },
 
   _renderKanbanCard(d) {

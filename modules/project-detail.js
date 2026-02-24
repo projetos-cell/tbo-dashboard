@@ -2785,9 +2785,31 @@ const TBO_PROJECT_DETAIL = {
               </div>
             `;
           }).join('')}
+
+          <div class="pd-kanban-add-section">
+            <button class="pd-kanban-add-section-btn">
+              <i data-lucide="plus"></i>
+              <span>Adicionar uma seção</span>
+            </button>
+            <div class="pd-kanban-add-section-inline hidden">
+              <input type="text" class="pd-kanban-add-section-input" placeholder="Nome da seção">
+              <button class="pd-kanban-add-section-confirm">Criar</button>
+            </div>
+          </div>
         </div>
       </div>
     `;
+  },
+
+  _createSectionAtEnd(title) {
+    const newKey = 'custom_' + Date.now();
+    this._SECTIONS.push({
+      key: newKey,
+      label: title,
+      icon: 'folder',
+      statuses: []
+    });
+    this._switchTab();
   },
 
   _renderKanbanCard(d) {
@@ -2819,6 +2841,43 @@ const TBO_PROJECT_DETAIL = {
         }
       });
     });
+
+    // Add section button
+    const addSectionBtn = document.querySelector('.pd-kanban-add-section-btn');
+    const addSectionInline = document.querySelector('.pd-kanban-add-section-inline');
+    const addSectionInput = document.querySelector('.pd-kanban-add-section-input');
+
+    if (addSectionBtn && addSectionInline && addSectionInput) {
+      addSectionBtn.addEventListener('click', () => {
+        addSectionBtn.classList.add('hidden');
+        addSectionInline.classList.remove('hidden');
+        addSectionInput.focus();
+      });
+
+      const confirmCreate = () => {
+        const val = addSectionInput.value.trim();
+        if (val) {
+          self._createSectionAtEnd(val);
+        } else {
+          addSectionInline.classList.add('hidden');
+          addSectionBtn.classList.remove('hidden');
+        }
+      };
+
+      addSectionInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); confirmCreate(); }
+        if (e.key === 'Escape') { addSectionInput.value = ''; addSectionInline.classList.add('hidden'); addSectionBtn.classList.remove('hidden'); }
+      });
+
+      addSectionInput.addEventListener('blur', () => {
+        setTimeout(confirmCreate, 120);
+      });
+
+      const confirmBtn = document.querySelector('.pd-kanban-add-section-confirm');
+      if (confirmBtn) {
+        confirmBtn.addEventListener('click', (e) => { e.preventDefault(); confirmCreate(); });
+      }
+    }
 
     // Kanban drag using pointer events
     this._bindKanbanDrag();

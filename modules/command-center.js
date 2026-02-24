@@ -2,21 +2,22 @@
 // Renders different dashboard variants based on user role.
 const TBO_COMMAND_CENTER = {
 
-  // ── Widget Definitions ────────────────────────────────────────────────────
+  // ── Widget Definitions (size: 'full' = above grid, 'span-2' = 2 cols, '1' = 1 col) ──
   _widgets: {
-    'my-tasks':         { label: 'Minhas Tarefas',       icon: 'clipboard-check', zone: 'main' },
-    'weekly-summary':   { label: 'Resumo Semanal',       icon: 'bar-chart-3',     zone: 'main' },
-    'erp-alerts':       { label: 'Alertas ERP',          icon: 'alert-triangle',  zone: 'main' },
-    'actions-today':    { label: 'Acoes para Hoje',      icon: 'target',          zone: 'main' },
-    'kpis':             { label: 'KPIs',                 icon: 'activity',        zone: 'main' },
-    'business-pulse':   { label: 'Business Pulse',       icon: 'heart-pulse',     zone: 'main' },
-    'strategic-alerts': { label: 'Alertas Estrategicos', icon: 'shield-alert',    zone: 'main' },
-    'pipeline-funnel':  { label: 'Pipeline',             icon: 'filter',          zone: 'main' },
-    'people-widget':    { label: 'Equipe',               icon: 'users',           zone: 'main' },
-    'news-feed':        { label: 'Noticias',             icon: 'newspaper',       zone: 'main' },
-    'projects-overview':{ label: 'Projetos Ativos',      icon: 'building-2',      zone: 'main' },
-    'cities-map':       { label: 'Mapa de Cidades',      icon: 'map',             zone: 'main' },
-    'culture-nudge':    { label: 'Cultura TBO',            icon: 'sparkles',        zone: 'sidebar' },
+    'kpis':             { label: 'KPIs',                 icon: 'activity',        zone: 'main', size: 'full' },
+    'revenue-chart':    { label: 'Receita vs Despesa',   icon: 'bar-chart-3',     zone: 'main', size: 'span-2' },
+    'my-tasks':         { label: 'Minhas Tarefas',       icon: 'clipboard-check', zone: 'main', size: '1' },
+    'weekly-summary':   { label: 'Resumo Semanal',       icon: 'bar-chart-3',     zone: 'main', size: '1' },
+    'erp-alerts':       { label: 'Alertas ERP',          icon: 'alert-triangle',  zone: 'main', size: '1' },
+    'actions-today':    { label: 'Acoes para Hoje',      icon: 'target',          zone: 'main', size: '1' },
+    'business-pulse':   { label: 'Business Pulse',       icon: 'heart-pulse',     zone: 'main', size: '1' },
+    'strategic-alerts': { label: 'Alertas Estrategicos', icon: 'shield-alert',    zone: 'main', size: 'span-2' },
+    'pipeline-funnel':  { label: 'Pipeline',             icon: 'filter',          zone: 'main', size: '1' },
+    'people-widget':    { label: 'Equipe',               icon: 'users',           zone: 'main', size: '1' },
+    'news-feed':        { label: 'Noticias',             icon: 'newspaper',       zone: 'main', size: '1' },
+    'projects-overview':{ label: 'Projetos Ativos',      icon: 'building-2',      zone: 'main', size: '1' },
+    'cities-map':       { label: 'Mapa de Cidades',      icon: 'map',             zone: 'main', size: 'span-2' },
+    'culture-nudge':    { label: 'Cultura TBO',          icon: 'sparkles',        zone: 'sidebar' },
     'sidebar-meetings': { label: 'Reunioes',             icon: 'calendar',        zone: 'sidebar' },
     'sidebar-actions':  { label: 'Action Items',         icon: 'check-square',    zone: 'sidebar' },
     'sidebar-market':   { label: 'Mercado',              icon: 'trending-up',     zone: 'sidebar' },
@@ -25,8 +26,8 @@ const TBO_COMMAND_CENTER = {
 
   _getDefaultLayout() {
     return {
-      main: ['my-tasks', 'weekly-summary', 'erp-alerts', 'actions-today', 'kpis', 'business-pulse', 'strategic-alerts', 'pipeline-funnel', 'people-widget', 'news-feed', 'projects-overview', 'cities-map'],
-      sidebar: ['culture-nudge', 'sidebar-meetings', 'sidebar-actions', 'sidebar-market', 'sidebar-commercial'],
+      main: ['kpis', 'revenue-chart', 'my-tasks', 'weekly-summary', 'pipeline-funnel', 'business-pulse', 'erp-alerts', 'actions-today', 'projects-overview', 'strategic-alerts', 'cities-map', 'people-widget', 'news-feed'],
+      sidebar: ['sidebar-meetings', 'sidebar-actions', 'sidebar-commercial', 'sidebar-market', 'culture-nudge'],
       hidden: []
     };
   },
@@ -496,7 +497,7 @@ const TBO_COMMAND_CENTER = {
   // ═══════════════════════════════════════════════════════════════════════════
   // v2.2.2: Widgets que contem dados financeiros sensiveis (receita, margem, pipeline values)
   // Apenas founders e finance podem visualizar
-  _financialWidgets: ['business-pulse', 'pipeline-funnel', 'sidebar-commercial'],
+  _financialWidgets: ['business-pulse', 'pipeline-funnel', 'sidebar-commercial', 'revenue-chart'],
 
   _isFinancialAccessAllowed() {
     const variant = (typeof TBO_AUTH !== 'undefined') ? TBO_AUTH.getDashboardVariant() : 'full';
@@ -695,11 +696,14 @@ const TBO_COMMAND_CENTER = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // FULL DASHBOARD v3 (founder) — Redesigned 3-column layout with charts
+  // V3 WIDGET DISPATCHER — Maps widget IDs to V3 renderers (layout-driven)
   // ═══════════════════════════════════════════════════════════════════════════
-  _renderFullDashboard() {
-    const d = this._getData();
-    const erpSummary = TBO_STORAGE.getErpSummary ? TBO_STORAGE.getErpSummary() : null;
+  _renderWidgetContentV3(widgetId, d) {
+    // Block financial widgets for unauthorized roles
+    if (this._financialWidgets.includes(widgetId) && !this._isFinancialAccessAllowed()) {
+      return '';
+    }
+
     const fc = d.dc26.fluxo_caixa || {};
     const receitaYTD = (fc.meses_realizados || []).reduce((s, m) => s + ((fc.receita_mensal || {})[m] || 0), 0);
     const despesaYTD = (fc.meses_realizados || []).reduce((s, m) => s + ((fc.despesa_mensal || {})[m] || 0), 0);
@@ -707,72 +711,115 @@ const TBO_COMMAND_CENTER = {
     const metaAnual = fc.meta_vendas_anual || 1;
     const progressMeta = metaAnual > 0 ? ((receitaYTD / metaAnual) * 100) : 0;
     const margemYTD = receitaYTD > 0 ? ((resultadoYTD / receitaYTD) * 100).toFixed(1) : '0';
-    const erpAlerts = (typeof TBO_ERP !== 'undefined') ? TBO_ERP.generateAlerts().slice(0, 5) : [];
-    const actionsToday = (typeof TBO_ERP !== 'undefined') ? TBO_ERP.getActionsToday().slice(0, 5) : [];
-
-    // Get ERP task data
-    const allTasks = typeof TBO_STORAGE !== 'undefined' ? TBO_STORAGE.getAllErpEntities('task') : [];
+    const erpSummary = TBO_STORAGE.getErpSummary ? TBO_STORAGE.getErpSummary() : null;
+    const erpAlerts = (typeof TBO_ERP !== 'undefined') ? TBO_ERP.generateAlerts().slice(0, 8) : [];
+    const actionsToday = (typeof TBO_ERP !== 'undefined') ? TBO_ERP.getActionsToday().slice(0, 6) : [];
     const overdueTasks = erpSummary ? erpSummary.tasks.overdue : 0;
     const activeProjCount = erpSummary ? erpSummary.projects.active : d.ativos.length;
+
+    switch (widgetId) {
+      case 'kpis':
+        return this._renderKpiStrip(d, receitaYTD, resultadoYTD, progressMeta, margemYTD, activeProjCount, overdueTasks);
+      case 'revenue-chart':
+        return this._renderRevenueChart(d, fc);
+      case 'my-tasks':
+        return this._renderMyTasksToday();
+      case 'weekly-summary':
+        return this._renderWeeklySummary();
+      case 'pipeline-funnel':
+        return this._renderPipelineCardV3(d);
+      case 'business-pulse':
+        return this._renderBusinessPulseV3(d);
+      case 'erp-alerts':
+        return (erpAlerts.length > 0) ? this._renderAlertsCardV3(erpAlerts, erpSummary) : '';
+      case 'actions-today':
+        return (actionsToday.length > 0) ? this._renderActionsTodayV3(actionsToday) : '';
+      case 'projects-overview':
+        return this._renderProjectsGridV3(d);
+      case 'strategic-alerts':
+        return this._renderStrategicAlertsV3(d);
+      case 'cities-map':
+        return this._renderMapCardV3(d);
+      case 'people-widget':
+        return this._renderPeopleWidget();
+      case 'news-feed':
+        return this._renderNewsFeed(d.noticias);
+      // Sidebar widgets
+      case 'sidebar-meetings':
+        return this._renderSidebarMeetingsV3(d.meetingsArr);
+      case 'sidebar-actions':
+        return this._renderSidebarActionsV3(d.actionsByPerson, d.totalActions);
+      case 'sidebar-commercial':
+        return this._renderSidebarCommercialV3(d);
+      case 'sidebar-market':
+        return this._renderSidebarMarketV3(d.ic);
+      case 'culture-nudge':
+        return this._renderCultureNudgeV3();
+      default:
+        return '';
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FULL DASHBOARD v3 (founder) — Layout-driven 3-column grid with drag-drop
+  // ═══════════════════════════════════════════════════════════════════════════
+  _renderFullDashboard() {
+    const d = this._getData();
+    const layout = this._getLayout();
+
+    // ── Render KPIs above grid (full-width, always first if present) ──
+    let kpiHtml = '';
+    if (layout.main.includes('kpis')) {
+      const kpiContent = this._renderWidgetContentV3('kpis', d);
+      if (kpiContent) {
+        kpiHtml = this._wrapWidget('kpis', kpiContent);
+      }
+    }
+
+    // ── Render main-zone widgets (iterate layout order) ──
+    let mainWidgetsHtml = '';
+    for (const wId of layout.main) {
+      if (wId === 'kpis') continue; // Already rendered above grid
+      const wDef = this._widgets[wId];
+      if (!wDef || wDef.zone !== 'main') continue;
+
+      const content = this._renderWidgetContentV3(wId, d);
+      if (!content || !content.trim()) continue;
+
+      const sizeClass = wDef.size === 'span-2' ? ' cc-col-span-2' : '';
+      const wrapped = this._wrapWidget(wId, content);
+      // Inject size class into the wrapper div
+      mainWidgetsHtml += sizeClass
+        ? wrapped.replace('class="cc-widget"', `class="cc-widget${sizeClass}"`)
+        : wrapped;
+    }
+
+    // ── Render sidebar-zone widgets ──
+    let sidebarWidgetsHtml = '';
+    for (const wId of layout.sidebar) {
+      const wDef = this._widgets[wId];
+      if (!wDef || wDef.zone !== 'sidebar') continue;
+
+      const content = this._renderWidgetContentV3(wId, d);
+      if (!content || !content.trim()) continue;
+
+      sidebarWidgetsHtml += this._wrapWidget(wId, content);
+    }
 
     return `
       <div class="command-center">
         ${this._renderGreeting()}
         ${this._renderQuickActions()}
 
-        <!-- KPI Strip -->
-        ${this._renderKpiStrip(d, receitaYTD, resultadoYTD, progressMeta, margemYTD, activeProjCount, overdueTasks)}
+        <!-- KPI Strip (full-width, above grid) -->
+        ${kpiHtml}
 
-        <!-- Main 3-column grid -->
+        <!-- Main 3-column grid: layout-driven -->
         <div class="cc-grid">
-          <!-- Column 1+2: Revenue chart (spans 2 cols) -->
-          <div class="cc-col-span-2">
-            ${this._renderRevenueChart(d, fc)}
-          </div>
+          ${mainWidgetsHtml}
 
-          <!-- Column 3: Sidebar -->
-          <div class="cc-sidebar-v3">
-            ${this._renderSidebarMeetingsV3(d.meetingsArr)}
-            ${this._renderSidebarActionsV3(d.actionsByPerson, d.totalActions)}
-            ${this._renderSidebarCommercialV3(d)}
-          </div>
-
-          <!-- Row 2, Col 1: Pipeline + Business Pulse -->
-          <div>
-            ${this._renderPipelineCardV3(d)}
-            <div style="margin-top:16px;">
-              ${this._renderBusinessPulseV3(d)}
-            </div>
-          </div>
-
-          <!-- Row 2, Col 2: Active Projects -->
-          <div>
-            ${this._renderProjectsGridV3(d)}
-          </div>
-
-          <!-- Row 3, Col 1+2: Alerts + Actions Today -->
-          ${erpAlerts.length > 0 || actionsToday.length > 0 ? `
-          <div class="cc-col-span-2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-            ${erpAlerts.length > 0 ? this._renderAlertsCardV3(erpAlerts, erpSummary) : ''}
-            ${actionsToday.length > 0 ? this._renderActionsTodayV3(actionsToday) : ''}
-            ${erpAlerts.length === 0 && actionsToday.length > 0 ? '' : ''}
-          </div>` : ''}
-
-          <!-- Row 4: Strategic Alerts + People + News -->
-          <div class="cc-col-span-2">
-            ${this._renderStrategicAlertsV3(d)}
-          </div>
-
-          <!-- Map -->
-          <div class="cc-col-span-2">
-            ${this._renderMapCardV3(d)}
-          </div>
-
-          <!-- Sidebar: Culture + Market -->
-          <div class="cc-sidebar-v3">
-            ${this._renderSidebarMarketV3(d.ic)}
-            ${this._renderCultureNudgeV3()}
-          </div>
+          <!-- Sidebar column -->
+          ${sidebarWidgetsHtml ? `<div class="cc-sidebar cc-sidebar-v3">${sidebarWidgetsHtml}</div>` : ''}
         </div>
 
         ${this._renderCustomizePanel()}
@@ -2507,6 +2554,9 @@ const TBO_COMMAND_CENTER = {
           if (widgetId) self._removeWidget(widgetId);
         });
       });
+
+      // Drag & Drop — enable widget reordering
+      this._initDragDrop();
     }
 
     // Quick-done buttons for "My Tasks Today"
@@ -2746,95 +2796,91 @@ const TBO_COMMAND_CENTER = {
   // ═══════════════════════════════════════════════════════════════════════════
   _initDragDrop() {
     const self = this;
-    const mainContainer = document.querySelector('.cc-main');
-    const sidebarContainer = document.querySelector('.cc-sidebar');
-    // Also handle above-layout widgets (tasks/summary/erp/kpis/pulse)
-    const commandCenter = document.querySelector('.command-center');
 
-    const allZones = [mainContainer, sidebarContainer, commandCenter].filter(Boolean);
+    // Select ALL draggable widgets from the rendered DOM
+    const widgets = document.querySelectorAll('.cc-widget[draggable="true"]');
+    if (!widgets.length) return;
 
-    allZones.forEach(zone => {
-      const widgets = zone.querySelectorAll(':scope > .cc-widget, :scope > .cc-tasks-summary-grid > .cc-widget');
+    widgets.forEach(widget => {
+      widget.addEventListener('dragstart', (e) => {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', widget.dataset.widgetId);
+        // Small delay so the dragging class is applied after the drag image is captured
+        requestAnimationFrame(() => widget.classList.add('cc-widget--dragging'));
+      });
 
-      widgets.forEach(widget => {
-        widget.addEventListener('dragstart', (e) => {
-          e.dataTransfer.effectAllowed = 'move';
-          e.dataTransfer.setData('text/plain', widget.dataset.widgetId);
-          // Small delay so the dragging class is applied after the drag image is captured
-          requestAnimationFrame(() => widget.classList.add('cc-widget--dragging'));
+      widget.addEventListener('dragend', () => {
+        widget.classList.remove('cc-widget--dragging');
+        document.querySelectorAll('.cc-widget--drag-over-top, .cc-widget--drag-over-bottom').forEach(el => {
+          el.classList.remove('cc-widget--drag-over-top', 'cc-widget--drag-over-bottom');
         });
+      });
 
-        widget.addEventListener('dragend', () => {
-          widget.classList.remove('cc-widget--dragging');
-          document.querySelectorAll('.cc-widget--drag-over-top, .cc-widget--drag-over-bottom').forEach(el => {
-            el.classList.remove('cc-widget--drag-over-top', 'cc-widget--drag-over-bottom');
-          });
-        });
+      widget.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        const draggedId = e.dataTransfer.types.includes('text/plain') ? null : null; // can't read during dragover
+        e.dataTransfer.dropEffect = 'move';
+        const rect = widget.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        widget.classList.toggle('cc-widget--drag-over-top', e.clientY < midY);
+        widget.classList.toggle('cc-widget--drag-over-bottom', e.clientY >= midY);
+      });
 
-        widget.addEventListener('dragover', (e) => {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = 'move';
-          const rect = widget.getBoundingClientRect();
-          const midY = rect.top + rect.height / 2;
-          widget.classList.toggle('cc-widget--drag-over-top', e.clientY < midY);
-          widget.classList.toggle('cc-widget--drag-over-bottom', e.clientY >= midY);
-        });
-
-        widget.addEventListener('dragleave', (e) => {
-          // Only remove if leaving the widget entirely
-          if (!widget.contains(e.relatedTarget)) {
-            widget.classList.remove('cc-widget--drag-over-top', 'cc-widget--drag-over-bottom');
-          }
-        });
-
-        widget.addEventListener('drop', (e) => {
-          e.preventDefault();
+      widget.addEventListener('dragleave', (e) => {
+        // Only remove if leaving the widget entirely
+        if (!widget.contains(e.relatedTarget)) {
           widget.classList.remove('cc-widget--drag-over-top', 'cc-widget--drag-over-bottom');
+        }
+      });
 
-          const draggedId = e.dataTransfer.getData('text/plain');
-          const targetId = widget.dataset.widgetId;
-          if (!draggedId || !targetId || draggedId === targetId) return;
+      widget.addEventListener('drop', (e) => {
+        e.preventDefault();
+        widget.classList.remove('cc-widget--drag-over-top', 'cc-widget--drag-over-bottom');
 
-          const layout = self._getLayout();
+        const draggedId = e.dataTransfer.getData('text/plain');
+        const targetId = widget.dataset.widgetId;
+        if (!draggedId || !targetId || draggedId === targetId) return;
 
-          // Determine which zone the dragged widget belongs to
-          const draggedDef = self._widgets[draggedId];
-          const targetDef = self._widgets[targetId];
-          if (!draggedDef || !targetDef) return;
+        const layout = self._getLayout();
 
-          // Only allow reorder within the same zone
-          const dragZone = draggedDef.zone;
-          const targetZone = targetDef.zone;
-          if (dragZone !== targetZone) return;
-
-          const zoneName = dragZone === 'sidebar' ? 'sidebar' : 'main';
-          const arr = layout[zoneName];
-          const fromIdx = arr.indexOf(draggedId);
-          let toIdx = arr.indexOf(targetId);
-          if (fromIdx === -1 || toIdx === -1) return;
-
-          // Determine if above or below target
-          const rect = widget.getBoundingClientRect();
-          const insertAfter = e.clientY >= rect.top + rect.height / 2;
-
-          // Remove from old position
-          arr.splice(fromIdx, 1);
-
-          // Recalculate toIdx after removal
-          toIdx = arr.indexOf(targetId);
-          if (insertAfter) toIdx++;
-
-          arr.splice(toIdx, 0, draggedId);
-
-          self._saveLayout(layout);
-
-          // Re-render
-          const container = document.getElementById('moduleContainer');
-          if (container) {
-            container.innerHTML = self.render();
-            self.init();
+        // Zone enforcement via _widgets definition — only same-zone reorder
+        const draggedDef = self._widgets[draggedId];
+        const targetDef = self._widgets[targetId];
+        if (!draggedDef || !targetDef) return;
+        if (draggedDef.zone !== targetDef.zone) {
+          if (typeof TBO_TOAST !== 'undefined') {
+            TBO_TOAST.warning('Arraste negado', 'Widgets so podem ser reordenados dentro da mesma zona.');
           }
-        });
+          return;
+        }
+
+        const zoneName = draggedDef.zone === 'sidebar' ? 'sidebar' : 'main';
+        const arr = layout[zoneName];
+        const fromIdx = arr.indexOf(draggedId);
+        let toIdx = arr.indexOf(targetId);
+        if (fromIdx === -1 || toIdx === -1) return;
+
+        // Determine if above or below target
+        const rect = widget.getBoundingClientRect();
+        const insertAfter = e.clientY >= rect.top + rect.height / 2;
+
+        // Remove from old position
+        arr.splice(fromIdx, 1);
+
+        // Recalculate toIdx after removal
+        toIdx = arr.indexOf(targetId);
+        if (insertAfter) toIdx++;
+
+        arr.splice(toIdx, 0, draggedId);
+
+        self._saveLayout(layout);
+
+        // Re-render the full dashboard
+        const container = document.getElementById('moduleContainer');
+        if (container) {
+          container.innerHTML = self.render();
+          self.init();
+        }
       });
     });
   },

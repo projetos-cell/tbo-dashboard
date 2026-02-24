@@ -39,11 +39,6 @@
   margin-bottom: 4px;
 }
 
-.nsb-section--footer {
-  margin-top: 4px;
-  border-top: 1px solid var(--border-subtle, #eaeaea);
-  padding-top: 8px;
-}
 
 /* ── Item de navegação ──────────────────────────────────────────────────── */
 
@@ -86,14 +81,6 @@
   border-radius: 0 2px 2px 0;
 }
 
-.nsb-item--more {
-  color: var(--text-muted, #9f9f9f);
-  font-size: 12px;
-}
-
-.nsb-item--more:hover {
-  color: var(--brand-orange, #E85102);
-}
 
 .nsb-item i {
   width: 16px;

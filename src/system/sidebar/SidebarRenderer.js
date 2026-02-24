@@ -277,15 +277,6 @@ const TBO_SIDEBAR_RENDERER = (() => {
     _bindPageItemEvents(contentEl);
   }
 
-  // ── Render: "Mais" botão ────────────────────────────────────────────────
-
-  function _renderMoreButton(item) {
-    return `<div class="nsb-item nsb-item--more" data-action="show-more-workspaces" data-item-id="${_escHtml(item.id)}">
-      <i data-lucide="${_escHtml(item.icon || 'plus')}"></i>
-      <span class="nsb-item-label">${_escHtml(item.name)}</span>
-    </div>`;
-  }
-
   // ── Render Completo ─────────────────────────────────────────────────────
 
   function _renderFull() {
@@ -308,7 +299,6 @@ const TBO_SIDEBAR_RENDERER = (() => {
     const systemBefore = [];
     const separators = [];
     const workspaces = [];
-    const systemAfter = [];
     let foundSeparator = false;
 
     items.forEach(item => {
@@ -322,8 +312,6 @@ const TBO_SIDEBAR_RENDERER = (() => {
         workspaces.push(item);
       } else if (!foundSeparator) {
         systemBefore.push(item);
-      } else {
-        systemAfter.push(item);
       }
     });
 
@@ -340,19 +328,6 @@ const TBO_SIDEBAR_RENDERER = (() => {
       html += '<div class="nsb-section nsb-section--workspaces">';
       workspaces.forEach(item => {
         html += _renderWorkspace(item);
-      });
-      html += '</div>';
-    }
-
-    // Itens pós-separador (Mais, etc.)
-    if (systemAfter.length > 0) {
-      html += '<div class="nsb-section nsb-section--footer">';
-      systemAfter.forEach(item => {
-        if (item.metadata?.action === 'show-more-workspaces') {
-          html += _renderMoreButton(item);
-        } else {
-          html += _renderSystemItem(item);
-        }
       });
       html += '</div>';
     }
@@ -825,12 +800,6 @@ const TBO_SIDEBAR_RENDERER = (() => {
       }
       break;
 
-    case 'show-more-workspaces':
-      // Mostrar workspaces ocultos ou modal de criação
-      if (typeof TBO_TOAST !== 'undefined') {
-        TBO_TOAST.info('Mais espaços', 'Funcionalidade em desenvolvimento');
-      }
-      break;
 
     case 'toggle-inbox':
       // Abrir/fechar painel complementar de notificações

@@ -21,7 +21,6 @@ const TBO_NOTION_EMBED = {
   EMBED_MAP: {
     'geral-cultura':     { title: 'Manual de Cultura',          notionUrl: 'https://www.notion.so/2193782e356143e5b41756c78e230cec', icon: 'book-open',        parent: 'Geral',        desc: 'Valores, principios e cultura organizacional da TBO.' },
     'geral-docs':        { title: 'Documentos & Padroes',       notionUrl: 'https://www.notion.so/1c58ac19b4de401bacc051dba890f357', icon: 'file-text',        parent: 'Geral',        desc: 'Templates, checklists e padroes de qualidade da agencia.' },
-    'geral-bds':         { title: 'BDs | TBO',                  notionUrl: 'https://www.notion.so/1fab27ff29e380d9b152d288ecd5b2da', icon: 'database',         parent: 'Geral',        desc: 'Databases centrais com informacoes consolidadas.' },
     'geral-okrs':        { title: 'OKRs TBO — 2026',            notionUrl: 'https://www.notion.so/2e0b27ff29e38020bf63e8cf9b3714d5', icon: 'target',           parent: 'Pessoas',      desc: 'Objetivos e resultados-chave da TBO para 2026.' },
     'brand-linhas':      { title: 'Linhas Editoriais',           notionUrl: 'https://www.notion.so/24fb27ff29e3804db856e6a2c22d9fb0', icon: 'pen-tool',         parent: 'Branding',     desc: 'Diretrizes de conteudo e linhas editoriais por cliente.' },
     'brand-links':       { title: 'Links Educacionais',          notionUrl: 'https://www.notion.so/1f8b27ff29e38043b77bf330385eac7d', icon: 'link',             parent: 'Branding',     desc: 'Acervo de links e referencias para a equipe de branding.' },

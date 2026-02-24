@@ -95,7 +95,6 @@ const TBO_APP = {
       // timeline removido em v2.1
       'alerts': typeof TBO_ALERTS !== 'undefined' ? TBO_ALERTS : null,
       'inbox': typeof TBO_INBOX !== 'undefined' ? TBO_INBOX : null,
-      'database-notion': typeof TBO_DATABASE_NOTION !== 'undefined' ? TBO_DATABASE_NOTION : null,
       'pipeline': typeof TBO_PIPELINE !== 'undefined' ? TBO_PIPELINE : null,
       'clientes': typeof TBO_CLIENTES !== 'undefined' ? TBO_CLIENTES : null,
       'portal-cliente': typeof TBO_PORTAL_CLIENTE !== 'undefined' ? TBO_PORTAL_CLIENTE : null,
@@ -1398,7 +1397,6 @@ const TBO_APP = {
     'people-profile': 'Perfil do Colaborador',
     'page-editor': 'Página',
     'notion-embed': 'Notion',
-    'database-notion': 'Database',
     'conciliacao-bancaria': 'Conciliação Bancária',
     'rsm': 'Social Media',
     'onboarding-wizard': 'Onboarding',
@@ -1460,7 +1458,6 @@ const TBO_APP = {
     'people-profile': 'user',
     'page-editor': 'file-text',
     'notion-embed': 'layout-dashboard',
-    'database-notion': 'database',
     'conciliacao-bancaria': 'scale',
     'rsm': 'share-2',
     'onboarding-wizard': 'user-plus',

@@ -25,7 +25,6 @@ const TBO_ROUTE_REGISTRY = (() => {
     'chat':                   'chat',
     'alerts':                 'alerts',
     'inbox':                  'inbox',
-    'database-notion':        'database-notion',
     'conteudo':               'conteudo',
     'mercado':                'mercado',
     'reunioes':               'reunioes',
@@ -96,7 +95,6 @@ const TBO_ROUTE_REGISTRY = (() => {
     'dashboard':              { label: 'Dashboard',              icon: 'layout-dashboard',   group: 'inicio',       color: '#E85102' },
     'alerts':                 { label: 'Alertas',                icon: 'alert-triangle',     group: 'inicio',       color: '#EF4444' },
     'inbox':                  { label: 'Caixa de Entrada',       icon: 'inbox',              group: 'inicio',       color: '#3B82F6' },
-    'database-notion':        { label: 'Database',               icon: 'database',           group: 'execucao',     color: '#6366F1' },
     'chat':                   { label: 'Chat',                   icon: 'message-circle',     group: 'inicio',       color: '#6366F1' },
     // Execução
     'tarefas':                { label: 'Tarefas',                icon: 'list-checks',        group: 'execucao',     color: '#22C55E' },

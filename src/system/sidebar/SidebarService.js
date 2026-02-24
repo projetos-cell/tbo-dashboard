@@ -58,7 +58,6 @@ const TBO_SIDEBAR_SERVICE = (() => {
     { id: 'geral-cultura',     name: 'Manual de Cultura',     type: 'child', order_index: 9.03, icon: 'book-open',        route: 'notion-embed/geral-cultura',   parent_id: 'ws-geral', allowed_roles: [] },
     { id: 'geral-docs',        name: 'Documentos & Padrões',  type: 'child', order_index: 9.04, icon: 'file-text',        route: 'notion-embed/geral-docs',      parent_id: 'ws-geral', allowed_roles: [] },
     { id: 'geral-okrs',        name: 'OKRs TBO — 2026',      type: 'child', order_index: 14.56, icon: 'target',           route: 'notion-embed/geral-okrs',      parent_id: 'ws-pessoas', allowed_roles: [] },
-    { id: 'geral-bds',         name: 'BDs | TBO',             type: 'child', order_index: 9.06, icon: 'database',         route: 'notion-embed/geral-bds',       parent_id: 'ws-geral', allowed_roles: [] },
 
     // ── Sub-items: Branding ─────────────────────────────────────────────
     { id: 'brand-projetos',    name: 'Quadro de Projetos',    type: 'child', order_index: 10.01, icon: 'kanban',          route: 'projetos', parent_id: 'ws-branding', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'creative-dir', 'design', 'copy', 'qa'] },
@@ -111,13 +110,6 @@ const TBO_SIDEBAR_SERVICE = (() => {
     { id: 'cult-historico',     name: 'Historico cultural',   type: 'child', order_index: 14.65, icon: 'clock',           route: 'rh/cultura/historico',         parent_id: 'ws-cultura', allowed_roles: [] },
     { id: 'cult-onboarding',    name: 'Onboarding cultural',  type: 'child', order_index: 14.66, icon: 'book-open',       route: 'rh/cultura/onboarding',       parent_id: 'ws-cultura', allowed_roles: [] },
 
-    // Workspace Database
-    { id: 'ws-database',    name: 'Database',          type: 'workspace', order_index: 14.7, icon: 'database', route: null, parent_id: 'sep-equipe', allowed_roles: [] },
-    { id: 'db-databases',   name: 'Todos os Databases', type: 'child',   order_index: 14.71, icon: 'table',   route: 'database-notion', parent_id: 'ws-database', allowed_roles: [] },
-
-
-    // Mais
-    { id: 'sys-mais',       name: 'Mais',             type: 'system',    order_index: 16, icon: 'plus',     route: null, allowed_roles: [], metadata: { action: 'show-more-workspaces' } }
   ];
 
   // ── Helpers ─────────────────────────────────────────────────────────────

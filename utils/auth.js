@@ -389,6 +389,10 @@ const TBO_AUTH = {
               TBO_APP._renderSidebar();
               TBO_APP._bindSectionToggles();
             }
+            // Atualizar footer da sidebar com dados do usuario
+            if (typeof TBO_APP !== 'undefined' && TBO_APP._renderSidebarFooter) {
+              TBO_APP._renderSidebarFooter();
+            }
             // v2.5.1: Apenas navegar se ainda nao tiver modulo ativo (evita
             // sobrescrever hash do usuario durante reload — corrige bug onde
             // recarregar #projetos redirecionava para dashboard)
@@ -571,6 +575,10 @@ const TBO_AUTH = {
           TBO_APP._renderSidebar();
           TBO_APP._bindSectionToggles();
         }
+        // Atualizar footer da sidebar com dados do usuario
+        if (typeof TBO_APP !== 'undefined' && TBO_APP._renderSidebarFooter) {
+          TBO_APP._renderSidebarFooter();
+        }
         if (typeof TBO_ROUTER !== 'undefined') {
           TBO_ROUTER.initFromHash(result.session.defaultModule);
         }
@@ -671,6 +679,10 @@ const TBO_AUTH = {
       this._applyAccess();
       this._renderUserMenu(user);
       this._renderSidebarUser(user);
+      // Atualizar footer da sidebar com dados do usuario
+      if (typeof TBO_APP !== 'undefined' && TBO_APP._renderSidebarFooter) {
+        TBO_APP._renderSidebarFooter();
+      }
 
       // v2.6.2: Re-verificar avatar assincronamente no reload
       // Se sessionStorage nao tem avatar, buscar do Supabase session + profiles

@@ -47,31 +47,50 @@ const TBO_STORAGE = {
   },
 
   // Dados essenciais: JSON staticos + company context + ERP cache (em paralelo)
+  // v3.2: ERP fetch continua em background apos timeout e emite evento ao completar
+  _erpFreshLoaded: false, // true quando Supabase respondeu (nao localStorage)
+
   async loadCritical() {
     const t0 = performance.now();
+    this._erpFreshLoaded = false;
 
     // 1. Restaurar ERP cache do localStorage imediatamente (sync, <10ms)
     // Permite render instantaneo enquanto Supabase carrega dados frescos
     const entityTypes = ['project', 'task', 'deliverable', 'proposal', 'decision', 'meeting_erp', 'time_entry'];
     entityTypes.forEach(type => this._loadErpCacheFromLocal(type));
 
-    // 2. Carregar JSON staticos + company context + ERP cache do Supabase EM PARALELO
-    // v2.1: Cada operacao tem timeout individual para prevenir hang
-    await Promise.all([
-      // 2a. JSON files (5 fetches em paralelo internamente) — max 5s
-      this._withTimeout(this._loadStaticJsonFiles(), 5000, 'JSON files'),
-      // 2b. Company context do Supabase — max 5s
-      this._withTimeout(this._loadCompanyContext(), 5000, 'Company context'),
-      // 2c. ERP cache fresco do Supabase (sobrescreve localStorage) — max 8s
-      this._withTimeout(this._warmErpCache(), 8000, 'ERP cache')
-    ]);
+    // 2. Iniciar fetch do Supabase (ERP + company context) — roda independente do timeout
+    const erpPromise = this._warmErpCache().then(() => {
+      this._erpFreshLoaded = true;
+      console.log('[TBO Storage] ERP cache atualizado do Supabase');
+      window.dispatchEvent(new CustomEvent('tbo:data-ready', { detail: { source: 'erp' } }));
+    }).catch(e => {
+      console.warn('[TBO Storage] ERP cache Supabase falhou:', e.message);
+    });
 
-    // 3. Process sync queue (fire-and-forget)
+    const companyPromise = this._loadCompanyContext().then(() => {
+      window.dispatchEvent(new CustomEvent('tbo:data-ready', { detail: { source: 'company' } }));
+    }).catch(e => {
+      console.warn('[TBO Storage] Company context falhou:', e.message);
+    });
+
+    // 3. Carregar JSON staticos + aguardar Supabase COM timeout (nao bloqueia render)
+    // Se Supabase for lento, render usa localStorage; quando Supabase chegar, re-render via evento
+    await Promise.all([
+      this._withTimeout(this._loadStaticJsonFiles(), 5000, 'JSON files'),
+      this._withTimeout(companyPromise, 5000, 'Company context'),
+      this._withTimeout(erpPromise, 8000, 'ERP cache')
+    ]).catch(() => {
+      // Timeouts sao esperados — erpPromise/companyPromise continuam em background
+      console.warn('[TBO Storage] loadCritical: alguns fetches ainda em andamento (background)');
+    });
+
+    // 4. Process sync queue (fire-and-forget)
     if (typeof TBO_SUPABASE !== 'undefined') {
       TBO_SUPABASE.processSyncQueue();
     }
 
-    console.log(`[TBO Storage] Dados criticos carregados em ${Math.round(performance.now() - t0)}ms`);
+    console.log(`[TBO Storage] Dados criticos carregados em ${Math.round(performance.now() - t0)}ms (ERP fresh: ${this._erpFreshLoaded})`);
     return this._data;
   },
 
@@ -127,6 +146,10 @@ const TBO_STORAGE = {
       const ok = results.filter(r => r.status === 'fulfilled' && r.value !== null).length;
       console.log(`[TBO Storage] APIs externas: ${ok}/${apis.length} sync OK em ${Math.round(performance.now() - t0)}ms`);
       window.dispatchEvent(new CustomEvent('tbo:external-data-loaded'));
+      // v3.2: Também emitir data-ready para re-render de módulos
+      if (ok > 0) {
+        window.dispatchEvent(new CustomEvent('tbo:data-ready', { detail: { source: 'external-apis' } }));
+      }
     });
   },
 

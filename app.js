@@ -268,8 +268,24 @@ const TBO_APP = {
       TBO_ROUTER.listenHashChanges();
 
       // v2.1 Performance: APIs externas carregam APOS dashboard visivel
-      // Nao bloqueia render — widgets atualizam via evento 'tbo:external-data-loaded'
       TBO_STORAGE.loadExternalAPIs();
+
+      // v3.2: Re-render módulo ativo quando dados frescos do Supabase chegam
+      // Resolve o problema de dados stale do localStorage que exigia F5
+      let dataReadyDebounce = null;
+      window.addEventListener('tbo:data-ready', (e) => {
+        const source = e.detail?.source || 'unknown';
+        console.log(`[TBO OS] tbo:data-ready (${source})`);
+        // Debounce: múltiplos eventos podem chegar em sequência (ERP, company, APIs)
+        // Aguarda 500ms de silêncio antes de re-renderizar (evita re-render em cascata)
+        clearTimeout(dataReadyDebounce);
+        dataReadyDebounce = setTimeout(() => {
+          if (typeof TBO_ROUTER !== 'undefined' && TBO_ROUTER.getCurrent()) {
+            console.log('[TBO OS] Re-rendering módulo ativo com dados frescos');
+            TBO_ROUTER.refresh();
+          }
+        }, 500);
+      });
     }
 
     // 14. Update freshness timestamp

@@ -301,6 +301,40 @@ const TBO_ROUTER = {
     return this._currentModule;
   },
 
+  // v3.2: Força re-render do módulo ativo (quando dados frescos chegam)
+  async refresh() {
+    const moduleName = this._currentModule;
+    if (!moduleName) return;
+
+    // Se é rota parametrizada, re-navegar para ela
+    if (this._currentRoute) {
+      const route = this._currentRoute;
+      this._currentModule = null; // Reset para forçar re-render
+      this._currentRoute = null;
+      return this.navigate(route);
+    }
+
+    const module = this._modules[moduleName];
+    if (!module) return;
+
+    const container = document.getElementById('mainContent');
+    if (!container) return;
+
+    try {
+      if (module.render) {
+        const html = await module.render();
+        container.innerHTML = html;
+      }
+      if (module.init) {
+        await module.init();
+      }
+      if (window.lucide) lucide.createIcons();
+      console.log(`[TBO Router] Refresh: ${moduleName}`);
+    } catch (error) {
+      console.warn(`[TBO Router] Refresh error for ${moduleName}:`, error);
+    }
+  },
+
   // Retorna rota completa atual (para param routes)
   getCurrentRoute() {
     return this._currentRoute;

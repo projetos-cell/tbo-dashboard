@@ -626,6 +626,35 @@ const TBO_PROJECT_DETAIL = {
       case 'gantt':       this._bindGanttEvents(); break;
       default:            this._bindListEvents(); break;
     }
+    // Universal context menu for any demand element in any tab
+    this._bindUniversalContextMenu();
+  },
+
+  _bindUniversalContextMenu() {
+    const self = this;
+    const container = document.getElementById('pdTabContent');
+    if (!container) return;
+
+    container.addEventListener('contextmenu', (e) => {
+      // Find closest demand element — check all known data attribute patterns
+      const demandEl =
+        e.target.closest('[data-demand-id]') ||
+        e.target.closest('[data-kanban-id]') ||
+        e.target.closest('[data-gantt-id]') ||
+        e.target.closest('[data-activity-demand]');
+      if (!demandEl) return;
+
+      const demandId =
+        demandEl.dataset.demandId ||
+        demandEl.dataset.kanbanId ||
+        demandEl.dataset.ganttId ||
+        demandEl.dataset.activityDemand;
+      if (!demandId) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      self._showContextMenu(e.clientX, e.clientY, demandId);
+    });
   },
 
   _switchTab() {
@@ -815,16 +844,6 @@ const TBO_PROJECT_DETAIL = {
         if (demand && typeof TBO_DEMAND_DRAWER !== 'undefined') {
           TBO_DEMAND_DRAWER.open(demand, self._project);
         }
-      });
-    });
-
-    // Context menu (right-click on task rows)
-    document.querySelectorAll('.pd-task-row[data-demand-id]').forEach(row => {
-      row.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const demandId = row.dataset.demandId;
-        self._showContextMenu(e.clientX, e.clientY, demandId);
       });
     });
 
@@ -2501,7 +2520,7 @@ const TBO_PROJECT_DETAIL = {
     return recent.map(d => {
       const statusColors = this._DEMAND_STATUS_COLORS[d.status] || { color: '#6b7280', bg: 'rgba(107,114,128,0.10)' };
       const date = d.updated_at || d.created_at;
-      return `<div class="pd-overview-activity-item">
+      return `<div class="pd-overview-activity-item" data-activity-demand="${d.id}">
         <span class="pd-overview-activity-dot" style="background:${statusColors.color};"></span>
         <span class="pd-overview-activity-title">${this._esc(d.title)}</span>
         <span class="pd-overview-activity-status" style="color:${statusColors.color};">${this._esc(d.status || '')}</span>

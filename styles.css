@@ -8185,26 +8185,6 @@ body .tab-btn {
    ACCESSIBILITY (Phase 5)
    =================================================================== */
 
-/* Skip link */
-.skip-link {
-  position: absolute;
-  top: -100px;
-  left: 8px;
-  background: var(--accent-gold);
-  color: #fff;
-  padding: 8px 16px;
-  border-radius: var(--radius-sm);
-  font-size: 0.82rem;
-  font-weight: 600;
-  z-index: 10000;
-  text-decoration: none;
-  transition: top 0.2s;
-}
-
-.skip-link:focus {
-  top: 8px;
-}
-
 /* Focus visible (keyboard-only focus ring) */
 *:focus-visible {
   outline: 2px solid var(--accent-gold);

@@ -69,7 +69,6 @@ const TBO_NAV_TREE = (() => {
       label: 'Conhecimento',
       icon: 'book-open',
       children: [
-        { id: 'con-documentos',  label: 'Documentos',        icon: 'files',              route: 'biblioteca' },
         { id: 'con-templates',   label: 'Templates',         icon: 'layout-template',    route: 'templates' },
         { id: 'con-cultura',     label: 'Manual de Cultura', icon: 'book-open-text',     route: 'cultura' },
         { id: 'con-conteudo',    label: 'Conteúdo',          icon: 'pen-tool',           route: 'conteudo' }

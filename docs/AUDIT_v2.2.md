@@ -33,7 +33,7 @@
 | Command Center | command-center, timeline, alerts | command-center.js (122 KB) |
 | Receita | pipeline, comercial, clientes, portal-cliente, contratos | comercial.js (91 KB) |
 | Projetos | projetos, entregas, tarefas, revisoes | projetos.js (144 KB) |
-| Conteudo & Intel | inteligencia, conteudo, mercado, reunioes, decisoes, biblioteca | trilha-aprendizagem.js (86 KB) |
+| Conteudo & Intel | inteligencia, conteudo, mercado, reunioes, decisoes | trilha-aprendizagem.js (86 KB) |
 | Pessoas | rh, cultura, trilha, pessoas-avancado, carga, timesheets, capacidade, admin-onboarding | rh.js (88 KB) |
 | Financeiro | financeiro, pagar, receber, margens, conciliacao | financeiro.js (59 KB) |
 | Sistema | configuracoes, templates, permissoes-config, integracoes, changelog | configuracoes.js (79 KB) |

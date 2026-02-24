@@ -17,17 +17,12 @@ const TBO_COMMAND_CENTER = {
     'news-feed':        { label: 'Noticias',             icon: 'newspaper',       zone: 'main', size: '1' },
     'projects-overview':{ label: 'Projetos Ativos',      icon: 'building-2',      zone: 'main', size: '1' },
     'cities-map':       { label: 'Mapa de Cidades',      icon: 'map',             zone: 'main', size: 'span-2' },
-    'culture-nudge':    { label: 'Cultura TBO',          icon: 'sparkles',        zone: 'sidebar' },
-    'sidebar-meetings': { label: 'Reunioes',             icon: 'calendar',        zone: 'sidebar' },
-    'sidebar-actions':  { label: 'Action Items',         icon: 'check-square',    zone: 'sidebar' },
-    'sidebar-market':   { label: 'Mercado',              icon: 'trending-up',     zone: 'sidebar' },
-    'sidebar-commercial':{ label: 'Comercial',           icon: 'briefcase',       zone: 'sidebar' }
   },
 
   _getDefaultLayout() {
     return {
       main: ['kpis', 'revenue-chart', 'my-tasks', 'weekly-summary', 'pipeline-funnel', 'business-pulse', 'erp-alerts', 'actions-today', 'projects-overview', 'strategic-alerts', 'cities-map', 'people-widget', 'news-feed'],
-      sidebar: ['sidebar-meetings', 'sidebar-actions', 'sidebar-commercial', 'sidebar-market', 'culture-nudge'],
+      sidebar: [],
       hidden: []
     };
   },
@@ -357,12 +352,6 @@ const TBO_COMMAND_CENTER = {
           </div>
         </div>
         <div class="cc-hero-actions">
-          <button class="btn btn-sm btn-secondary" id="ccBriefing" style="display:inline-flex;align-items:center;gap:5px;font-size:0.75rem;">
-            <i data-lucide="sparkles" style="width:14px;height:14px;"></i> Briefing
-          </button>
-          <button class="btn btn-sm btn-ghost" id="ccCustomizeToggle" style="display:inline-flex;align-items:center;gap:4px;font-size:0.75rem;">
-            <i data-lucide="sliders-horizontal" style="width:14px;height:14px;"></i> Personalizar
-          </button>
         </div>
       </div>
     `;
@@ -497,7 +486,7 @@ const TBO_COMMAND_CENTER = {
   // ═══════════════════════════════════════════════════════════════════════════
   // v2.2.2: Widgets que contem dados financeiros sensiveis (receita, margem, pipeline values)
   // Apenas founders e finance podem visualizar
-  _financialWidgets: ['business-pulse', 'pipeline-funnel', 'sidebar-commercial', 'revenue-chart'],
+  _financialWidgets: ['business-pulse', 'pipeline-funnel', 'revenue-chart'],
 
   _isFinancialAccessAllowed() {
     const variant = (typeof TBO_AUTH !== 'undefined') ? TBO_AUTH.getDashboardVariant() : 'full';
@@ -615,7 +604,6 @@ const TBO_COMMAND_CENTER = {
                 <h2 class="section-title">Alertas Estrategicos</h2>
                 <div style="display:flex; gap:8px;">
                   <button class="btn btn-sm btn-primary" id="ccGenerateAlerts">Gerar com IA</button>
-                  <button class="btn btn-sm btn-secondary" id="ccBriefing">Briefing da Semana</button>
                 </div>
               </div>
               <div id="ccAlerts">
@@ -626,9 +614,6 @@ const TBO_COMMAND_CENTER = {
 
       case 'pipeline-funnel':
         return this._renderPipelineFunnel(d);
-
-      case 'culture-nudge':
-        return this._renderCultureNudge();
 
       case 'people-widget':
         return this._renderPeopleWidget();
@@ -677,18 +662,6 @@ const TBO_COMMAND_CENTER = {
                 </div>
               </div>
             </section>`;
-
-      case 'sidebar-meetings':
-        return this._renderSidebarMeetings(d.meetingsArr);
-
-      case 'sidebar-actions':
-        return this._renderSidebarActions(d.actionsByPerson, d.totalActions);
-
-      case 'sidebar-market':
-        return this._renderSidebarMarket(d.ic);
-
-      case 'sidebar-commercial':
-        return this._renderSidebarCommercial(d);
 
       default:
         return '';
@@ -744,17 +717,6 @@ const TBO_COMMAND_CENTER = {
         return this._renderPeopleWidget();
       case 'news-feed':
         return this._renderNewsFeed(d.noticias);
-      // Sidebar widgets
-      case 'sidebar-meetings':
-        return this._renderSidebarMeetingsV3(d.meetingsArr);
-      case 'sidebar-actions':
-        return this._renderSidebarActionsV3(d.actionsByPerson, d.totalActions);
-      case 'sidebar-commercial':
-        return this._renderSidebarCommercialV3(d);
-      case 'sidebar-market':
-        return this._renderSidebarMarketV3(d.ic);
-      case 'culture-nudge':
-        return this._renderCultureNudgeV3();
       default:
         return '';
     }
@@ -794,18 +756,6 @@ const TBO_COMMAND_CENTER = {
         : wrapped;
     }
 
-    // ── Render sidebar-zone widgets ──
-    let sidebarWidgetsHtml = '';
-    for (const wId of layout.sidebar) {
-      const wDef = this._widgets[wId];
-      if (!wDef || wDef.zone !== 'sidebar') continue;
-
-      const content = this._renderWidgetContentV3(wId, d);
-      if (!content || !content.trim()) continue;
-
-      sidebarWidgetsHtml += this._wrapWidget(wId, content);
-    }
-
     return `
       <div class="command-center">
         ${this._renderGreeting()}
@@ -814,12 +764,9 @@ const TBO_COMMAND_CENTER = {
         <!-- KPI Strip (full-width, above grid) -->
         ${kpiHtml}
 
-        <!-- Main 3-column grid: layout-driven -->
+        <!-- Main grid: layout-driven -->
         <div class="cc-grid">
           ${mainWidgetsHtml}
-
-          <!-- Sidebar column -->
-          ${sidebarWidgetsHtml ? `<div class="cc-sidebar cc-sidebar-v3">${sidebarWidgetsHtml}</div>` : ''}
         </div>
 
         ${this._renderCustomizePanel()}
@@ -1144,153 +1091,6 @@ const TBO_COMMAND_CENTER = {
     `;
   },
 
-  // ── Sidebar V3 widgets ──
-  _renderSidebarMeetingsV3(meetingsArr) {
-    return `
-      <div class="cc-sidebar-section">
-        <div class="cc-sidebar-section-header">
-          <span class="cc-sidebar-section-title"><i data-lucide="calendar"></i> Reunioes</span>
-          <span style="font-size:0.68rem;color:var(--text-muted);">${meetingsArr.length}</span>
-        </div>
-        <div class="cc-sidebar-section-body">
-          ${meetingsArr.length > 0 ? meetingsArr.slice(0, 5).map(m => `
-            <div class="cc-sidebar-list-item" onclick="TBO_ROUTER.navigate('reunioes')">
-              <div style="min-width:0;">
-                <div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;">${_escapeHtml(m.title || m.titulo)}</div>
-                <div style="font-size:0.68rem;color:var(--text-muted);">${TBO_FORMATTER.relativeTime(m.date || m.data)}</div>
-              </div>
-            </div>
-          `).join('') : '<div style="font-size:0.78rem;color:var(--text-muted);padding:4px 0;">Nenhuma reuniao</div>'}
-          <div style="margin-top:8px;text-align:center;">
-            <button class="btn btn-sm btn-ghost" onclick="TBO_ROUTER.navigate('reunioes')" style="width:100%;font-size:0.72rem;">Ver todas</button>
-          </div>
-        </div>
-      </div>
-    `;
-  },
-
-  _renderSidebarActionsV3(actionsByPerson, totalActions) {
-    if (totalActions === 0) return '';
-    const entries = Object.entries(actionsByPerson).sort((a, b) => b[1] - a[1]).slice(0, 5);
-    return `
-      <div class="cc-sidebar-section">
-        <div class="cc-sidebar-section-header">
-          <span class="cc-sidebar-section-title"><i data-lucide="check-square"></i> Action Items</span>
-          <span style="font-size:0.68rem;color:var(--text-muted);">${totalActions}</span>
-        </div>
-        <div class="cc-sidebar-section-body">
-          ${entries.map(([person, count]) => {
-            const escaped = person.replace(/'/g, "\\'");
-            return `
-              <div class="cc-sidebar-list-item" onclick="TBO_COMMAND_CENTER._filterActionsByPerson('${escaped}')">
-                <span style="font-weight:500;">${_escapeHtml(person)}</span>
-                <span class="tag">${count}</span>
-              </div>
-            `;
-          }).join('')}
-          <div id="ccSidebarActionDetail" style="display:none;margin-top:8px;border-top:1px solid var(--border-subtle);padding-top:8px;"></div>
-        </div>
-      </div>
-    `;
-  },
-
-  _renderSidebarCommercialV3(d) {
-    const fc = d.dc26.fluxo_caixa || {};
-    const receitaYTD = (fc.meses_realizados || []).reduce((s, m) => s + ((fc.receita_mensal || {})[m] || 0), 0);
-    return `
-      <div class="cc-sidebar-section">
-        <div class="cc-sidebar-section-header">
-          <span class="cc-sidebar-section-title"><i data-lucide="briefcase"></i> Comercial 2026</span>
-        </div>
-        <div class="cc-sidebar-section-body">
-          <div class="cc-sidebar-list-item">
-            <span>Receita YTD</span>
-            <span style="font-weight:600;color:var(--brand-orange);">${receitaYTD > 0 ? TBO_FORMATTER.currency(receitaYTD) : '\u2014'}</span>
-          </div>
-          <div class="cc-sidebar-list-item">
-            <span>Meta Anual</span>
-            <span>${fc.meta_vendas_anual ? TBO_FORMATTER.currency(fc.meta_vendas_anual) : '\u2014'}</span>
-          </div>
-          <div class="cc-sidebar-list-item">
-            <span>Margem Projetada</span>
-            <span>${fc.margem_liquida_orcada || '\u2014'}</span>
-          </div>
-          ${d.dc25.total_vendido ? `
-          <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border-subtle);">
-            <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px;">2025</div>
-            <div class="cc-sidebar-list-item">
-              <span style="font-size:0.75rem;">Faturado</span>
-              <span style="font-size:0.72rem;color:var(--text-muted);">${TBO_FORMATTER.currency(d.dc25.total_vendido)}</span>
-            </div>
-          </div>` : ''}
-          <div style="margin-top:8px;text-align:center;">
-            <button class="btn btn-sm btn-ghost" onclick="TBO_ROUTER.navigate('financeiro')" style="width:100%;font-size:0.72rem;">Detalhar</button>
-          </div>
-        </div>
-      </div>
-    `;
-  },
-
-  _renderSidebarMarketV3(ic) {
-    return `
-      <div class="cc-sidebar-section">
-        <div class="cc-sidebar-section-header">
-          <span class="cc-sidebar-section-title"><i data-lucide="trending-up"></i> Mercado CWB</span>
-          <span style="font-size:0.68rem;color:var(--text-muted);">${ic.periodo || ''}</span>
-        </div>
-        <div class="cc-sidebar-section-body">
-          <div class="cc-sidebar-list-item">
-            <span>Lancamentos</span>
-            <span class="tag" style="color:var(--color-danger);">${ic.empreendimentos_lancados || '\u2014'} (${ic.variacao_empreendimentos || ''})</span>
-          </div>
-          <div class="cc-sidebar-list-item">
-            <span>Unidades</span>
-            <span class="tag" style="color:var(--color-danger);">${TBO_FORMATTER.number(ic.unidades_lancadas)} (${ic.variacao_unidades || ''})</span>
-          </div>
-          <div style="margin-top:8px;text-align:center;">
-            <button class="btn btn-sm btn-ghost" onclick="TBO_ROUTER.navigate('mercado')" style="width:100%;font-size:0.72rem;">Detalhar</button>
-          </div>
-        </div>
-      </div>
-    `;
-  },
-
-  _renderCultureNudgeV3() {
-    if (typeof TBO_CULTURA_DATA === 'undefined' || !TBO_CULTURA_DATA.nudges) return '';
-    const valor = TBO_CULTURA_DATA.nudges.valorDoDia();
-    const tip = TBO_CULTURA_DATA.nudges.tipCultural();
-    const reflexao = TBO_CULTURA_DATA.nudges.reflexaoDoDia();
-
-    return `
-      <div class="cc-sidebar-section">
-        <div class="cc-sidebar-section-header">
-          <span class="cc-sidebar-section-title"><i data-lucide="sparkles"></i> Cultura TBO</span>
-        </div>
-        <div class="cc-sidebar-section-body">
-          <div style="background:linear-gradient(135deg, #E8510215, #E8510208);border:1px solid #E8510230;border-radius:8px;padding:12px;margin-bottom:8px;">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-              <span style="font-size:1rem;">${this._esc(valor.emoji || '')}</span>
-              <span style="font-size:0.68rem;font-weight:700;color:#E85102;text-transform:uppercase;">Valor do Dia</span>
-            </div>
-            <div style="font-weight:700;font-size:0.82rem;margin-bottom:3px;">${this._esc(valor.nome)}</div>
-            <div style="font-size:0.72rem;color:var(--text-secondary);line-height:1.4;">${this._esc(valor.desc)}</div>
-          </div>
-          <div style="background:var(--bg-tertiary);border-radius:6px;padding:10px;margin-bottom:8px;">
-            <div style="font-size:0.62rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px;">Dica</div>
-            <div style="font-size:0.72rem;line-height:1.4;">${this._esc(tip)}</div>
-          </div>
-          <div style="background:var(--bg-tertiary);border-radius:6px;padding:10px;">
-            <div style="font-size:0.62rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px;">Reflexao</div>
-            <div style="font-size:0.72rem;line-height:1.4;font-style:italic;">${this._esc(reflexao)}</div>
-          </div>
-          <div style="margin-top:8px;text-align:center;">
-            <button class="btn btn-sm btn-ghost" onclick="TBO_ROUTER.navigate('cultura')" style="font-size:0.68rem;color:var(--brand-orange);">Manual de Cultura</button>
-          </div>
-        </div>
-      </div>
-    `;
-  },
-
   // ═══════════════════════════════════════════════════════════════════════════
   // PROJECTS DASHBOARD (project_owner) — Focused on projects and action items
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1396,11 +1196,6 @@ const TBO_COMMAND_CENTER = {
             </section>
           </div>
 
-          <!-- Sidebar -->
-          <div class="cc-sidebar">
-            ${this._renderSidebarMeetings(bu ? buMeetings : d.meetingsArr)}
-            ${this._renderSidebarActions(d.actionsByPerson, d.totalActions)}
-          </div>
         </div>
       </div>
     `;
@@ -1499,12 +1294,6 @@ const TBO_COMMAND_CENTER = {
             </section>
           </div>
 
-          <!-- Sidebar -->
-          <div class="cc-sidebar">
-            ${this._renderSidebarMeetings(d.meetingsArr)}
-            ${rhData.upcoming11 ? this._renderSidebarUpcoming11(rhData) : ''}
-            ${rhData.recentFeedbacks.length > 0 ? this._renderSidebarRecentFeedbacks(rhData) : ''}
-          </div>
         </div>
       </div>
     `;
@@ -1588,12 +1377,6 @@ const TBO_COMMAND_CENTER = {
             </section>
           </div>
 
-          <!-- Sidebar -->
-          <div class="cc-sidebar">
-            ${this._renderSidebarMarket(d.ic)}
-            ${this._renderSidebarCommercial(d)}
-            ${this._renderSidebarMeetings(d.meetingsArr)}
-          </div>
         </div>
       </div>
     `;
@@ -1708,54 +1491,6 @@ const TBO_COMMAND_CENTER = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // CULTURE NUDGE WIDGET — Micro-lembrete diario da cultura TBO
-  // ═══════════════════════════════════════════════════════════════════════════
-  _renderCultureNudge() {
-    if (typeof TBO_CULTURA_DATA === 'undefined' || !TBO_CULTURA_DATA.nudges) {
-      return '<div style="padding:12px;color:var(--text-muted);font-size:0.78rem;">Dados de cultura nao disponiveis.</div>';
-    }
-
-    const valor = TBO_CULTURA_DATA.nudges.valorDoDia();
-    const tip = TBO_CULTURA_DATA.nudges.tipCultural();
-    const reflexao = TBO_CULTURA_DATA.nudges.reflexaoDoDia();
-
-    return `
-      <section class="section" style="padding:0;">
-        <!-- Valor do dia -->
-        <div style="background:linear-gradient(135deg, #E8510215, #E8510208);border:1px solid #E8510230;border-radius:10px;padding:14px 16px;margin-bottom:10px;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            <span style="font-size:1.1rem;">${this._esc(valor.emoji || '')}</span>
-            <span style="font-size:0.72rem;font-weight:700;color:#E85102;text-transform:uppercase;letter-spacing:0.5px;">Valor do Dia</span>
-          </div>
-          <div style="font-weight:700;font-size:0.88rem;margin-bottom:4px;">${this._esc(valor.nome)}</div>
-          <div style="font-size:0.75rem;color:var(--text-secondary);line-height:1.4;">${this._esc(valor.desc)}</div>
-        </div>
-
-        <!-- Tip cultural -->
-        <div style="background:var(--bg-secondary);border-radius:8px;padding:12px 14px;margin-bottom:10px;">
-          <div style="font-size:0.65rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px;">
-            <i data-lucide="lightbulb" style="width:11px;height:11px;display:inline;vertical-align:-1px;"></i> Dica
-          </div>
-          <div style="font-size:0.75rem;color:var(--text-primary);line-height:1.45;">${this._esc(tip)}</div>
-        </div>
-
-        <!-- Reflexao -->
-        <div style="background:var(--bg-secondary);border-radius:8px;padding:12px 14px;">
-          <div style="font-size:0.65rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px;">
-            <i data-lucide="brain" style="width:11px;height:11px;display:inline;vertical-align:-1px;"></i> Reflexao
-          </div>
-          <div style="font-size:0.75rem;color:var(--text-primary);line-height:1.45;font-style:italic;">${this._esc(reflexao)}</div>
-        </div>
-
-        <div style="margin-top:10px;text-align:center;">
-          <button class="btn btn-sm btn-ghost" onclick="TBO_ROUTER.navigate('cultura')" style="font-size:0.7rem;color:var(--accent-gold);">
-            <i data-lucide="book-open" style="width:12px;height:12px;"></i> Ver Manual de Cultura
-          </button>
-        </div>
-      </section>`;
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
   // PEOPLE/TEAM WIDGET (item 15 — founders only)
   // ═══════════════════════════════════════════════════════════════════════════
   _renderPeopleWidget() {
@@ -1859,50 +1594,6 @@ const TBO_COMMAND_CENTER = {
     } catch (e) { /* ignore parse errors */ }
 
     return result;
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // SIDEBAR: UPCOMING 1:1 for artist
-  // ═══════════════════════════════════════════════════════════════════════════
-  _renderSidebarUpcoming11(rhData) {
-    if (!rhData.upcoming11) return '';
-    return `
-      <div class="card cc-sidebar-card">
-        <div class="card-header" style="padding-bottom:8px;">
-          <h3 class="card-title" style="font-size:0.82rem;">Proxima 1:1</h3>
-        </div>
-        <div style="padding:4px 0;">
-          <div style="font-size:0.85rem; font-weight:600;">${_escapeHtml(rhData.upcoming11.lider) || 'Lider'}</div>
-          <div style="font-size:0.78rem; color:var(--text-muted);">${TBO_FORMATTER.date(rhData.upcoming11.data)}</div>
-          ${rhData.upcoming11.pauta ? `<div style="font-size:0.75rem; color:var(--text-secondary); margin-top:4px;">${TBO_FORMATTER.truncate(_escapeHtml(rhData.upcoming11.pauta), 80)}</div>` : ''}
-        </div>
-        <button class="btn btn-sm btn-ghost" style="width:100%; margin-top:8px;" onclick="TBO_ROUTER.navigate('rh')">Ver RH &rarr;</button>
-      </div>
-    `;
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // SIDEBAR: RECENT FEEDBACKS for artist
-  // ═══════════════════════════════════════════════════════════════════════════
-  _renderSidebarRecentFeedbacks(rhData) {
-    if (!rhData.recentFeedbacks || rhData.recentFeedbacks.length === 0) return '';
-    return `
-      <div class="card cc-sidebar-card">
-        <div class="card-header" style="padding-bottom:8px;">
-          <h3 class="card-title" style="font-size:0.82rem;">Feedbacks Recentes</h3>
-        </div>
-        ${rhData.recentFeedbacks.map(f => `
-          <div class="cc-sidebar-item">
-            <div>
-              <div class="cc-sidebar-item-title">${_escapeHtml(f.de || f.remetente)}</div>
-              <div style="font-size:0.72rem; color:var(--text-muted);">${TBO_FORMATTER.relativeTime(f.data)}</div>
-            </div>
-            <span class="tag" style="background:${f.tipo === 'positivo' ? 'var(--color-success-dim)' : 'var(--color-warning-dim)'}; color:${f.tipo === 'positivo' ? 'var(--color-success)' : 'var(--color-warning)'};">${f.tipo === 'positivo' ? '+' : '\u0394'}</span>
-          </div>
-        `).join('')}
-        <button class="btn btn-sm btn-ghost" style="width:100%; margin-top:8px;" onclick="TBO_ROUTER.navigate('rh')">Pessoas &rarr;</button>
-      </div>
-    `;
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -2088,165 +1779,6 @@ const TBO_COMMAND_CENTER = {
     }
   },
 
-  // ── Sidebar card helpers ────────────────────────────────────────────────
-  _renderSidebarMeetings(meetingsArr) {
-    return `
-      <div class="card cc-sidebar-card">
-        <div class="card-header" style="padding-bottom:8px;">
-          <h3 class="card-title" style="font-size:0.82rem;">Reunioes Recentes</h3>
-        </div>
-        ${meetingsArr.length > 0 ? meetingsArr.slice(0, 5).map(m => `
-          <div class="cc-sidebar-item" onclick="TBO_ROUTER.navigate('reunioes')">
-            <div>
-              <div class="cc-sidebar-item-title">${_escapeHtml(m.title || m.titulo)}</div>
-              <div class="cc-sidebar-item-meta">${TBO_FORMATTER.relativeTime(m.date || m.data)}</div>
-            </div>
-          </div>
-        `).join('') : '<div style="padding:8px 0; color:var(--text-muted); font-size:0.78rem;">Nenhuma reuniao</div>'}
-        <button class="btn btn-sm btn-ghost" style="width:100%; margin-top:8px;" onclick="TBO_ROUTER.navigate('reunioes')">Ver todas &rarr;</button>
-      </div>
-    `;
-  },
-
-  _renderSidebarActions(actionsByPerson, totalActions) {
-    if (totalActions === 0) return '';
-    const escapedEntries = Object.entries(actionsByPerson).sort((a, b) => b[1] - a[1]).slice(0, 6);
-    return `
-      <div class="card cc-sidebar-card">
-        <div class="card-header" style="padding-bottom:8px;">
-          <h3 class="card-title" style="font-size:0.82rem;">Action Items por Pessoa</h3>
-        </div>
-        ${escapedEntries.map(([person, count]) => {
-          const escaped = person.replace(/'/g, "\\'");
-          return `
-          <div class="cc-sidebar-item" style="cursor:pointer;" onclick="TBO_COMMAND_CENTER._filterActionsByPerson('${escaped}')" title="Ver action items de ${_escapeHtml(person)}">
-            <div class="cc-sidebar-item-title">${_escapeHtml(person)}</div>
-            <span class="tag">${count}</span>
-          </div>`;
-        }).join('')}
-        <div id="ccSidebarActionDetail" style="display:none; margin-top:8px; border-top:1px solid var(--border-subtle); padding-top:8px;"></div>
-      </div>
-    `;
-  },
-
-  // Filter and display action items for a specific person in sidebar
-  _filterActionsByPerson(person) {
-    const detail = document.getElementById('ccSidebarActionDetail');
-    if (!detail) return;
-
-    // Toggle: if already showing this person, hide
-    if (detail.style.display !== 'none' && detail.dataset.person === person) {
-      detail.style.display = 'none';
-      detail.dataset.person = '';
-      // Remove active highlight
-      document.querySelectorAll('.cc-sidebar-item[style*="cursor"]').forEach(el => {
-        el.style.background = '';
-      });
-      return;
-    }
-
-    // Get action items data
-    const d = this._lastData;
-    if (!d || !d.actionItems) return;
-
-    const items = d.actionItems.filter(ai => ai.person === person);
-    if (items.length === 0) {
-      detail.style.display = 'none';
-      return;
-    }
-
-    // Highlight active person
-    document.querySelectorAll('.cc-sidebar-item[style*="cursor"]').forEach(el => {
-      el.style.background = '';
-    });
-    // Find and highlight the clicked item
-    document.querySelectorAll('.cc-sidebar-item[style*="cursor"]').forEach(el => {
-      const title = el.querySelector('.cc-sidebar-item-title');
-      if (title && title.textContent.trim() === person) {
-        el.style.background = 'var(--bg-subtle, #f5f5f5)';
-      }
-    });
-
-    const completed = JSON.parse(localStorage.getItem('tbo_completed_actions') || '[]');
-
-    detail.dataset.person = person;
-    detail.style.display = 'block';
-    detail.innerHTML = `
-      <div style="font-size:0.72rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px;">${_escapeHtml(person)} (${items.length})</div>
-      ${items.slice(0, 8).map(ai => {
-        const key = ai.task + '|' + ai.meeting;
-        const isDone = completed.includes(key);
-        return `
-        <div style="display:flex; align-items:flex-start; gap:6px; padding:4px 0; font-size:0.75rem; ${isDone ? 'opacity:0.5; text-decoration:line-through;' : ''}">
-          <span style="flex-shrink:0; margin-top:2px; width:6px; height:6px; border-radius:50%; background:${isDone ? 'var(--color-success)' : 'var(--accent, #E85102)'}; display:inline-block;"></span>
-          <div>
-            <div style="line-height:1.3;">${_escapeHtml(ai.task)}</div>
-            <div style="font-size:0.68rem; color:var(--text-muted);">${_escapeHtml(ai.meeting)}</div>
-          </div>
-        </div>`;
-      }).join('')}
-      ${items.length > 8 ? `<div style="font-size:0.68rem; color:var(--text-muted); text-align:center; margin-top:4px;">+${items.length - 8} mais</div>` : ''}
-    `;
-  },
-
-  _renderSidebarMarket(ic) {
-    return `
-      <div class="card cc-sidebar-card">
-        <div class="card-header" style="padding-bottom:8px;">
-          <h3 class="card-title" style="font-size:0.82rem;">Mercado CWB ${ic.periodo || ''}</h3>
-        </div>
-        <div class="cc-sidebar-item">
-          <div class="cc-sidebar-item-title">Lancamentos</div>
-          <span class="tag" style="color:var(--color-danger);">${ic.empreendimentos_lancados || '\u2014'} (${ic.variacao_empreendimentos || ''})</span>
-        </div>
-        <div class="cc-sidebar-item">
-          <div class="cc-sidebar-item-title">Unidades</div>
-          <span class="tag" style="color:var(--color-danger);">${TBO_FORMATTER.number(ic.unidades_lancadas)} (${ic.variacao_unidades || ''})</span>
-        </div>
-        <button class="btn btn-sm btn-ghost" style="width:100%; margin-top:8px;" onclick="TBO_ROUTER.navigate('mercado')">Detalhar &rarr;</button>
-      </div>
-    `;
-  },
-
-  // Sidebar Commercial — 2026 primary + 2025 comparison (items 2, 5, 6)
-  _renderSidebarCommercial(d) {
-    const dc25 = d.dc25;
-    const dc26 = d.dc26;
-    const fc = dc26.fluxo_caixa || {};
-    const receitaYTD = (fc.meses_realizados || []).reduce((s, m) => s + ((fc.receita_mensal || {})[m] || 0), 0);
-
-    return `
-      <div class="card cc-sidebar-card">
-        <div class="card-header" style="padding-bottom:8px;">
-          <h3 class="card-title" style="font-size:0.82rem;">Comercial 2026</h3>
-        </div>
-        <div class="cc-sidebar-item">
-          <div class="cc-sidebar-item-title">Receita YTD</div>
-          <span class="tag" style="color:var(--accent-gold); font-weight:600;">${receitaYTD > 0 ? TBO_FORMATTER.currency(receitaYTD) : '\u2014'}</span>
-        </div>
-        <div class="cc-sidebar-item">
-          <div class="cc-sidebar-item-title">Meta Anual</div>
-          <span class="tag">${fc.meta_vendas_anual ? TBO_FORMATTER.currency(fc.meta_vendas_anual) : '\u2014'}</span>
-        </div>
-        <div class="cc-sidebar-item">
-          <div class="cc-sidebar-item-title">Margem Projetada</div>
-          <span class="tag">${fc.margem_liquida_orcada || '\u2014'}</span>
-        </div>
-        <div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border-subtle);">
-          <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:4px;">Comparativo 2025:</div>
-          <div class="cc-sidebar-item">
-            <div class="cc-sidebar-item-title" style="font-size:0.75rem;">Faturado</div>
-            <span style="font-size:0.72rem; color:var(--text-muted);">${dc25.total_vendido ? TBO_FORMATTER.currency(dc25.total_vendido) : '\u2014'}</span>
-          </div>
-          <div class="cc-sidebar-item">
-            <div class="cc-sidebar-item-title" style="font-size:0.75rem;">Conversao</div>
-            <span style="font-size:0.72rem; color:var(--text-muted);">${dc25.conversao_proposta || '\u2014'}</span>
-          </div>
-        </div>
-        <button class="btn btn-sm btn-ghost" style="width:100%; margin-top:8px;" onclick="TBO_ROUTER.navigate('financeiro')">Detalhar &rarr;</button>
-      </div>
-    `;
-  },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // BUSINESS PULSE — Quick BI preview for founder dashboard
@@ -2523,18 +2055,8 @@ const TBO_COMMAND_CENTER = {
     const variant = (typeof TBO_AUTH !== 'undefined') ? TBO_AUTH.getDashboardVariant() : 'full';
     if (variant === 'full') {
       this._bind('ccGenerateAlerts', () => this._generateAlerts());
-      this._bind('ccBriefing', () => this._generateBriefing());
       this._initLeafletMap();
       this._initCharts(); // v3: Chart.js charts
-
-      // Customize panel toggle
-      this._bind('ccCustomizeToggle', () => this._toggleCustomizePanel());
-      this._bind('ccCustomizeClose', () => this._toggleCustomizePanel());
-      this._bind('ccResetLayoutPanel', () => { this._resetLayout(); });
-
-      // Customize panel overlay click to close
-      const overlay = document.getElementById('ccCustomizeOverlay');
-      if (overlay) overlay.addEventListener('click', () => this._toggleCustomizePanel());
 
       // Widget add buttons in customize panel
       document.querySelectorAll('.cc-add-widget-btn').forEach(btn => {
@@ -2575,9 +2097,6 @@ const TBO_COMMAND_CENTER = {
     // Refresh Lucide icons for new elements
     if (typeof lucide !== 'undefined') lucide.createIcons();
 
-    // Refresh meetings sidebar when external APIs finish loading (Fireflies sync)
-    window.addEventListener('tbo:external-data-loaded', () => this._refreshMeetingsWidget(), { once: true });
-
     // Also try loading fresh meetings from Supabase (MeetingsRepo) in background
     this._loadFreshMeetings();
   },
@@ -2600,38 +2119,8 @@ const TBO_COMMAND_CENTER = {
       if (typeof TBO_STORAGE !== 'undefined') {
         TBO_STORAGE._data.meetings = transformed;
       }
-      this._refreshMeetingsWidget();
     } catch (e) {
       console.warn('[CommandCenter] _loadFreshMeetings falhou:', e.message);
-    }
-  },
-
-  /**
-   * Re-renders the sidebar-meetings widget in-place without full dashboard re-render.
-   */
-  _refreshMeetingsWidget() {
-    const container = document.querySelector('.cc-sidebar-card');
-    if (!container) return;
-    // Find the meetings sidebar card by looking for "Reunioes Recentes" header
-    const allCards = document.querySelectorAll('.cc-sidebar-card');
-    let meetingsCard = null;
-    allCards.forEach(card => {
-      const title = card.querySelector('.card-title');
-      if (title && title.textContent.includes('Reunioes')) meetingsCard = card;
-    });
-    if (!meetingsCard) return;
-
-    try {
-      const d = this._getData();
-      const tmp = document.createElement('div');
-      tmp.innerHTML = this._renderSidebarMeetings(d.meetingsArr);
-      const newCard = tmp.querySelector('.cc-sidebar-card');
-      if (newCard) {
-        meetingsCard.replaceWith(newCard);
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-      }
-    } catch (e) {
-      console.warn('[CommandCenter] _refreshMeetingsWidget error:', e.message);
     }
   },
 

@@ -247,7 +247,7 @@ DECLARE
         'timeline', 'timesheets', 'carga-trabalho', 'capacidade',
         'comercial', 'pipeline', 'clientes', 'inteligencia', 'mercado', 'conteudo',
         'financeiro', 'receber', 'pagar', 'margens', 'conciliacao', 'contratos',
-        'rh', 'pessoas-avancado', 'cultura', 'reunioes', 'decisoes', 'biblioteca',
+        'rh', 'pessoas-avancado', 'cultura', 'reunioes', 'decisoes',
         'alerts', 'changelog', 'configuracoes', 'integracoes', 'admin-portal',
         'permissoes-config', 'portal-cliente', 'trilha-aprendizagem', 'admin-onboarding',
         'templates'
@@ -274,7 +274,7 @@ DECLARE
         'timeline', 'timesheets', 'carga-trabalho', 'capacidade',
         'comercial', 'pipeline', 'clientes', 'inteligencia', 'mercado', 'conteudo',
         'financeiro', 'receber', 'pagar', 'margens', 'conciliacao', 'contratos',
-        'rh', 'pessoas-avancado', 'cultura', 'reunioes', 'decisoes', 'biblioteca',
+        'rh', 'pessoas-avancado', 'cultura', 'reunioes', 'decisoes',
         'alerts', 'changelog', 'configuracoes', 'integracoes', 'admin-portal',
         'permissoes-config', 'portal-cliente', 'trilha-aprendizagem', 'admin-onboarding',
         'templates'
@@ -298,7 +298,7 @@ DECLARE
     artista_role_id UUID;
     modules TEXT[] := ARRAY[
         'command-center', 'projetos', 'tarefas', 'entregas', 'revisoes',
-        'timesheets', 'cultura', 'biblioteca', 'reunioes', 'alerts', 'changelog'
+        'timesheets', 'cultura', 'reunioes', 'alerts', 'changelog'
     ];
     m TEXT;
 BEGIN
@@ -320,7 +320,7 @@ DECLARE
     modules TEXT[] := ARRAY[
         'command-center', 'projetos', 'tarefas', 'entregas', 'revisoes',
         'timeline', 'timesheets', 'carga-trabalho', 'contratos',
-        'pessoas-avancado', 'decisoes', 'reunioes', 'cultura', 'biblioteca',
+        'pessoas-avancado', 'decisoes', 'reunioes', 'cultura',
         'alerts', 'changelog', 'admin-onboarding'
     ];
     m TEXT;

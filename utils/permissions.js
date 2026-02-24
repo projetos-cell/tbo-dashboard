@@ -37,7 +37,7 @@ const TBO_PERMISSIONS = {
         'portal-cliente','contratos','conteudo','projetos','projetos-notion',
         'mercado','reunioes','financeiro','rh','cultura','configuracoes',
         'admin-onboarding','database-notion','relatorios','rsm',
-        'system-health','entregas','tarefas','revisoes','decisoes','biblioteca',
+        'system-health','entregas','tarefas','revisoes','decisoes',
         'trilha-aprendizagem','changelog','chat','carga-trabalho','notion-embed',
         'pagar','receber','margens','conciliacao','conciliacao-bancaria',
         'permissoes-config','integracoes','templates','workspace','pessoas-avancado',
@@ -124,7 +124,7 @@ const TBO_PERMISSIONS = {
       label: 'EXECUÇÃO',
       icon: 'clipboard-list',
       _roles: [],
-      modules: ['projetos', 'projetos-notion', 'quadro-projetos', 'tarefas', 'reunioes', 'biblioteca', 'database-notion']
+      modules: ['projetos', 'projetos-notion', 'quadro-projetos', 'tarefas', 'reunioes', 'database-notion']
     },
     {
       id: 'producao',

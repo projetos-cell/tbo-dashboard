@@ -43,7 +43,7 @@
 ### 1.1 Mapa de Modulos (40+ modulos ativos)
 
 **Inicio:** dashboard, alerts, inbox, chat
-**Execucao:** projetos, projetos-notion, tarefas, reunioes, agenda, biblioteca, database-notion
+**Execucao:** projetos, projetos-notion, tarefas, reunioes, agenda, database-notion
 **Producao:** entregas, revisoes, portal-cliente
 **Pessoas:** rh (people), cultura, trilha-aprendizagem, pessoas-avancado, admin-onboarding
 **Financeiro:** financeiro, pagar, receber, margens, conciliacao, conciliacao-bancaria

@@ -112,7 +112,6 @@ const TBO_APP = {
       'margens': typeof TBO_MARGENS !== 'undefined' ? TBO_MARGENS : null,
       'conciliacao': typeof TBO_CONCILIACAO !== 'undefined' ? TBO_CONCILIACAO : null,
       'templates': typeof TBO_TEMPLATES !== 'undefined' ? TBO_TEMPLATES : null,
-      'biblioteca': typeof TBO_BIBLIOTECA !== 'undefined' ? TBO_BIBLIOTECA : null,
       // capacidade removido em v2.2
       'permissoes-config': typeof TBO_PERMISSOES_CONFIG !== 'undefined' ? TBO_PERMISSOES_CONFIG : null,
       'integracoes': typeof TBO_INTEGRACOES !== 'undefined' ? TBO_INTEGRACOES : null,
@@ -1442,7 +1441,6 @@ const TBO_APP = {
     'tarefas': 'Tarefas',
     'reunioes': 'Calendário',
     'agenda': 'Agenda',
-    'biblioteca': 'Arquivos',
     // Producao
     'entregas': 'QA / Aprovações',
     'revisoes': 'Revisões',
@@ -1506,7 +1504,6 @@ const TBO_APP = {
     'tarefas': 'list-checks',
     'reunioes': 'calendar',
     'agenda': 'calendar-days',
-    'biblioteca': 'files',
     // Producao
     'entregas': 'check-circle-2',
     'revisoes': 'git-pull-request',

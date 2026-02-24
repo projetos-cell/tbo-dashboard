@@ -45,7 +45,6 @@ const TBO_ROUTE_REGISTRY = (() => {
     'decisoes':               'decisoes',
     'cultura':                'cultura',
     'changelog':              'changelog',
-    'biblioteca':             'biblioteca',
     'inteligencia':           'inteligencia',
     'inteligencia-imobiliaria': 'inteligencia-imobiliaria',
     'portal-cliente':         'portal-cliente',
@@ -103,7 +102,6 @@ const TBO_ROUTE_REGISTRY = (() => {
     'tarefas':                { label: 'Tarefas',                icon: 'list-checks',        group: 'execucao',     color: '#22C55E' },
     'reunioes':               { label: 'Calendário',             icon: 'calendar',           group: 'execucao',     color: '#0EA5E9' },
     'agenda':                 { label: 'Agenda',                 icon: 'calendar-days',      group: 'execucao',     color: '#0EA5E9' },
-    'biblioteca':             { label: 'Arquivos',               icon: 'files',              group: 'execucao',     color: '#64748B' },
     // Produção
     'entregas':               { label: 'QA / Aprovações',        icon: 'check-circle-2',     group: 'producao',     color: '#10B981' },
     'revisoes':               { label: 'Revisões',               icon: 'git-pull-request',   group: 'producao',     color: '#F97316' },

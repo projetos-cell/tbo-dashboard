@@ -149,11 +149,7 @@ BEGIN
   INSERT INTO sidebar_items (tenant_id, name, type, order_index, icon, route, allowed_roles, metadata)
   VALUES (_tid, 'Caixa de entrada', 'system', 6, 'inbox', 'alerts', '{}', '{"badge_key": "alerts"}');
 
-  -- 7. Biblioteca
-  INSERT INTO sidebar_items (tenant_id, name, type, order_index, icon, route, allowed_roles)
-  VALUES (_tid, 'Biblioteca', 'system', 7, 'library', 'biblioteca', '{}');
-
-  -- 8. Separador
+  -- 7. Separador (was 8)
   INSERT INTO sidebar_items (tenant_id, name, type, order_index, icon, allowed_roles)
   VALUES (_tid, 'Espaços de equipe', 'separator', 8, 'users', '{}')
   RETURNING id INTO _sep;

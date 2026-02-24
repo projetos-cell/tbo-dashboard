@@ -41,7 +41,6 @@
 | Tarefas | `#/tarefas` | Todos |
 | Calendario | `#/reunioes` | Todos |
 | Agenda | `#/agenda` | Todos |
-| Arquivos | `#/biblioteca` | Todos |
 | Database | `#/database-notion` | Todos |
 
 ### Producao

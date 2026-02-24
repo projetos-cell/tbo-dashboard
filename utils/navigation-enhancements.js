@@ -52,7 +52,6 @@ const TBO_NAVIGATION = {
     'conciliacao': 'Conciliacao',
     'inteligencia': 'Inteligencia BI',
     'cultura': 'Manual de Cultura',
-    'biblioteca': 'Biblioteca',
     'templates': 'Templates',
     // capacidade removido em v2.2
     'changelog': 'Changelog',

@@ -28,7 +28,7 @@
 **Financeiro:** financeiro, receber, pagar, margens, conciliacao, contratos
 **Projetos:** projetos, tarefas, entregas, revisoes, decisoes, timesheets, carga-trabalho, capacidade, timeline
 **Pessoas:** rh, pessoas-avancado, cultura
-**Reunioes:** reunioes, biblioteca
+**Reunioes:** reunioes
 **Academy:** trilha-aprendizagem (basico)
 **Admin:** permissoes-config, integracoes, changelog, templates, portal-cliente, placeholder
 
@@ -1025,7 +1025,6 @@ $$ LANGUAGE sql SECURITY DEFINER STABLE;
 | #cultura | cultura | todos |
 | #reunioes | reunioes | todos |
 | #decisoes | decisoes | admin, socio, diretor, po |
-| #biblioteca | biblioteca | todos |
 | #alerts | alerts | todos |
 | #changelog | changelog | todos |
 | #configuracoes | configuracoes | admin, socio |
@@ -1045,8 +1044,8 @@ $$ LANGUAGE sql SECURITY DEFINER STABLE;
 |------|-------------------|
 | admin/socio | TODOS |
 | diretor | Todos exceto: configuracoes, integracoes, admin-portal, permissoes-config |
-| po | projetos, tarefas, entregas, revisoes, timeline, carga-trabalho, contratos, pessoas-avancado, decisoes, reunioes, timesheets, cultura, biblioteca, alerts, changelog |
-| artista | projetos, tarefas, entregas, revisoes, timesheets, cultura, biblioteca, reunioes, alerts, changelog |
+| po | projetos, tarefas, entregas, revisoes, timeline, carga-trabalho, contratos, pessoas-avancado, decisoes, reunioes, timesheets, cultura, alerts, changelog |
+| artista | projetos, tarefas, entregas, revisoes, timesheets, cultura, reunioes, alerts, changelog |
 | comercial | comercial, pipeline, clientes, mercado, conteudo, contratos, portal-cliente, reunioes, tarefas, alerts, changelog, pesquisas |
 | financeiro | financeiro, receber, pagar, margens, conciliacao, contratos, tarefas, alerts, changelog |
 

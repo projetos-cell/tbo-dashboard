@@ -11,7 +11,6 @@ const TBO_SEARCH = {
     'proposal': 'file-text',
     'decision': 'check-square',
     'meeting_erp': 'users',
-    'knowledge_item': 'book-open',
     'cliente': 'building',
     'reuniao': 'video',
     'mercado': 'trending-up',
@@ -25,7 +24,6 @@ const TBO_SEARCH = {
     'proposal': 'Proposta',
     'decision': 'Decisao',
     'meeting_erp': 'Reuniao ERP',
-    'knowledge_item': 'Biblioteca',
     'projeto_ativo': 'Projeto Ativo',
     'projeto_finalizado': 'Projeto Finalizado',
     'cliente': 'Cliente',
@@ -69,10 +67,6 @@ const TBO_SEARCH = {
     if (filter === 'all' || filter === 'decision') {
       this._searchErpType('decision', q, results);
     }
-    if (filter === 'all' || filter === 'knowledge_item') {
-      this._searchErpType('knowledge_item', q, results);
-    }
-
     // ── Context-based (active projects from JSON) ──
     if (filter === 'all' || filter === 'projeto_ativo') {
       (context.projetos_ativos || []).forEach(p => {
@@ -249,8 +243,7 @@ const TBO_SEARCH = {
       'deliverable': '#entregas',
       'proposal': '#comercial',
       'decision': '#decisoes',
-      'meeting_erp': '#reunioes',
-      'knowledge_item': '#biblioteca'
+      'meeting_erp': '#reunioes'
     };
     return map[type] || null;
   },

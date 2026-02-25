@@ -927,6 +927,76 @@ const TBO_PROJECT_DETAIL = {
         }
       });
     }
+
+    // ── Top bar: Project status dropdown ──
+    const statusBtn = document.querySelector('.pd-status-dropdown[data-action="status-dropdown"]');
+    if (statusBtn) {
+      statusBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        self._showProjectStatusDropdown(statusBtn);
+      });
+    }
+  },
+
+  _showProjectStatusDropdown(anchorEl) {
+    // Remove any existing dropdown
+    document.querySelectorAll('.pd-status-menu').forEach(m => m.remove());
+
+    const menu = document.createElement('div');
+    menu.className = 'pd-status-menu';
+
+    const currentStatus = this._project?.status || '';
+
+    Object.entries(this._STATUS).forEach(([key, info]) => {
+      const item = document.createElement('div');
+      item.className = 'pd-status-menu-item' + (key === currentStatus ? ' pd-status-menu-item--active' : '');
+      item.innerHTML = `
+        <span class="pd-status-menu-dot" style="background:${info.color};"></span>
+        <span class="pd-status-menu-label">${info.label}</span>
+        ${key === currentStatus ? '<i data-lucide="check" style="width:14px;height:14px;margin-left:auto;opacity:0.6;"></i>' : ''}
+      `;
+      item.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        menu.remove();
+        if (key === currentStatus) return;
+
+        // Save to Supabase
+        try {
+          const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+          if (client && this._project) {
+            const { error } = await client.from('projects').update({ status: key }).eq('id', this._project.id);
+            if (error) throw error;
+            this._project.status = key;
+            this._renderTopbar();
+            this._bindTopBarEvents();
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Status atualizado');
+          }
+        } catch (err) {
+          console.error('[PD] Status update error:', err);
+          if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro ao atualizar status');
+        }
+      });
+      menu.appendChild(item);
+    });
+
+    // Position below the anchor
+    const rect = anchorEl.getBoundingClientRect();
+    menu.style.position = 'fixed';
+    menu.style.top = (rect.bottom + 4) + 'px';
+    menu.style.left = rect.left + 'px';
+    document.body.appendChild(menu);
+
+    if (typeof lucide !== 'undefined') lucide.createIcons({ root: menu });
+
+    // Close on outside click
+    const closeHandler = (e) => {
+      if (!menu.contains(e.target)) {
+        menu.remove();
+        document.removeEventListener('click', closeHandler, true);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', closeHandler, true), 10);
   },
 
   /** List tab events: sections, tasks, checkboxes, columns, drag */

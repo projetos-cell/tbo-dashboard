@@ -522,10 +522,109 @@ textarea.dd-edit-input {
   padding: 8px;
 }
 
-.dd-comment-input-row {
+.dd-comments-list {
+  max-height: 400px;
+  overflow-y: auto;
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 0;
+}
+
+.dd-comment {
+  display: flex;
   gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle, #f3f4f6);
+}
+
+.dd-comment:last-child { border-bottom: none; }
+
+.dd-comment-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.dd-comment-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dd-comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.dd-comment-author {
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+}
+
+.dd-comment-time {
+  color: var(--text-muted, #9ca3af);
+}
+
+.dd-comment-delete {
+  margin-left: auto;
+  opacity: 0;
+  cursor: pointer;
+  color: var(--text-muted, #9ca3af);
+  background: none;
+  border: none;
+  padding: 2px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.dd-comment:hover .dd-comment-delete { opacity: 1; }
+.dd-comment-delete:hover { color: #ef4444; }
+
+.dd-comment-text {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-secondary, #374151);
+  word-break: break-word;
+}
+
+/* ── Mention chips (rendered in comment text) ──── */
+.dd-mention {
+  display: inline;
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 500;
+  font-size: 12.5px;
+  cursor: default;
+  white-space: nowrap;
+}
+
+.dd-mention-self {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+}
+
+/* ── Comment input wrapper + @mention dropdown ── */
+.dd-comment-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--border-subtle, #f3f4f6);
@@ -567,6 +666,102 @@ textarea.dd-edit-input {
 
 .dd-comment-send:hover { opacity: 0.85; }
 .dd-comment-send i { width: 16px; height: 16px; }
+
+/* ── @Mention autocomplete dropdown ────────────── */
+.dd-mention-suggestions {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  right: 48px;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 110;
+  display: none;
+  animation: dd-mention-in 0.12s ease;
+}
+
+@keyframes dd-mention-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.dd-mention-header {
+  padding: 6px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #9ca3af);
+  border-bottom: 1px solid var(--border-subtle, #f3f4f6);
+}
+
+.dd-mention-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.dd-mention-item:hover,
+.dd-mention-item.active {
+  background: var(--bg-card-hover, #f3f4f6);
+}
+
+.dd-mention-item-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.dd-mention-item-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.dd-mention-item-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary, #111827);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dd-mention-role {
+  font-size: 11px;
+  color: var(--text-muted, #9ca3af);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dd-mention-highlight {
+  background: rgba(232, 81, 2, 0.15);
+  color: inherit;
+  font-weight: 700;
+  border-radius: 1px;
+}
+
+.dd-mention-empty {
+  padding: 14px 12px;
+  text-align: center;
+  color: var(--text-muted, #9ca3af);
+  font-size: 12px;
+}
 
 /* ── Collaborators ────────────────────────────────── */
 .dd-collaborators {
@@ -798,4 +993,31 @@ body.dark-mode .pd-context-menu {
 
 body.dark-mode .dd-select-dropdown {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .dd-comment {
+  border-bottom-color: var(--border, #374151);
+}
+
+body.dark-mode .dd-mention {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+body.dark-mode .dd-mention-self {
+  background: rgba(16, 185, 129, 0.2);
+}
+
+body.dark-mode .dd-mention-suggestions {
+  background: var(--bg-primary, #1f2937);
+  border-color: var(--border, #374151);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+body.dark-mode .dd-mention-header {
+  border-bottom-color: var(--border, #374151);
+}
+
+body.dark-mode .dd-mention-item:hover,
+body.dark-mode .dd-mention-item.active {
+  background: var(--bg-card-hover, #374151);
 }

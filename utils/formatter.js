@@ -2,6 +2,7 @@
 const TBO_FORMATTER = {
   // Format currency in BRL
   currency(value) {
+    if (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked()) return 'R$ ••••••';
     if (value == null || isNaN(value)) return 'R$ —';
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   },

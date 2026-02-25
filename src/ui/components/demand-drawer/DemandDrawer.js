@@ -18,7 +18,9 @@ const TBO_DEMAND_DRAWER = (() => {
   let _demand = null;
   let _project = null;
   let _saveTimer = null;
-  let _customProps = []; // { key, label, icon, type }
+  let _customProps = []; // { key, label, icon, type } — legacy local-only props
+  let _dbFieldDefs = [];    // os_custom_fields definitions from DB
+  let _dbFieldValues = {};  // { fieldId: valueJson }
 
   const AUTOSAVE_DELAY = 800;
 
@@ -173,7 +175,9 @@ const TBO_DEMAND_DRAWER = (() => {
   }
 
   function _showTextEditor(el, opts) {
-    const current = _demand[opts.key] || '';
+    const isDbField = opts.key && opts.key.startsWith('__dbfield_');
+    const dbFieldId = isDbField ? opts.key.slice(10) : null;
+    const current = isDbField ? (_dbFieldValues[dbFieldId] != null ? String(_dbFieldValues[dbFieldId]) : '') : (_demand[opts.key] || '');
     const input = document.createElement(opts.multiline ? 'textarea' : 'input');
     input.className = 'dd-edit-input';
     if (!opts.multiline) input.type = 'text';
@@ -190,8 +194,12 @@ const TBO_DEMAND_DRAWER = (() => {
     const finish = () => {
       const val = input.value.trim();
       if (val !== current) {
-        _scheduleSave({ [opts.key]: val || null });
-        _demand[opts.key] = val || null;
+        if (opts._onSave) {
+          opts._onSave(val);
+        } else {
+          _scheduleSave({ [opts.key]: val || null });
+          _demand[opts.key] = val || null;
+        }
       }
       _refreshBody();
     };
@@ -204,7 +212,9 @@ const TBO_DEMAND_DRAWER = (() => {
   }
 
   function _showDateEditor(el, opts) {
-    const current = _demand[opts.key] || '';
+    const isDbField = opts.key && opts.key.startsWith('__dbfield_');
+    const dbFieldId = isDbField ? opts.key.slice(10) : null;
+    const current = isDbField ? (_dbFieldValues[dbFieldId] || '') : (_demand[opts.key] || '');
     const input = document.createElement('input');
     input.type = 'date';
     input.className = 'dd-edit-input';
@@ -218,8 +228,12 @@ const TBO_DEMAND_DRAWER = (() => {
     const finish = () => {
       const val = input.value;
       if (val !== (current ? current.slice(0, 10) : '')) {
-        _scheduleSave({ [opts.key]: val || null });
-        _demand[opts.key] = val || null;
+        if (opts._onSave) {
+          opts._onSave(val);
+        } else {
+          _scheduleSave({ [opts.key]: val || null });
+          _demand[opts.key] = val || null;
+        }
       }
       _refreshBody();
     };
@@ -232,28 +246,39 @@ const TBO_DEMAND_DRAWER = (() => {
   }
 
   function _showSelectEditor(el, opts) {
-    const current = _demand[opts.key] || '';
+    const isDbField = opts.key && opts.key.startsWith('__dbfield_');
+    const dbFieldId = isDbField ? opts.key.slice(10) : null;
+    const current = isDbField ? (_dbFieldValues[dbFieldId] || '') : (_demand[opts.key] || '');
+
     const dropdown = document.createElement('div');
     dropdown.className = 'dd-select-dropdown';
 
-    (opts.options || []).forEach(opt => {
+    (opts.options || []).forEach(rawOpt => {
+      // Options can be plain strings (built-in) or {value, label} objects (DB fields)
+      const optValue = typeof rawOpt === 'object' ? rawOpt.value : rawOpt;
+      const optLabel = typeof rawOpt === 'object' ? (rawOpt.label || rawOpt.value) : rawOpt;
+
       const item = document.createElement('div');
-      item.className = 'dd-select-option' + (opt === current ? ' dd-select-option--active' : '');
-      item.textContent = opt;
+      item.className = 'dd-select-option' + (optValue === current ? ' dd-select-option--active' : '');
+      item.textContent = optLabel;
 
       if (opts.key === 'status') {
-        const sc = _statusColor(opt);
-        item.innerHTML = `<span class="dd-select-dot" style="background:${sc.color};"></span> ${_esc(opt)}`;
+        const sc = _statusColor(optValue);
+        item.innerHTML = `<span class="dd-select-dot" style="background:${sc.color};"></span> ${_esc(optLabel)}`;
       } else if (opts.key === 'prioridade') {
-        const pc = _priorityColor(opt);
-        if (pc) item.innerHTML = `<span class="dd-select-dot" style="background:${pc.color};"></span> ${_esc(opt)}`;
+        const pc = _priorityColor(optValue);
+        if (pc) item.innerHTML = `<span class="dd-select-dot" style="background:${pc.color};"></span> ${_esc(optLabel)}`;
       }
 
       item.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (opt !== current) {
-          _scheduleSave({ [opts.key]: opt });
-          _demand[opts.key] = opt;
+        if (optValue !== current) {
+          if (opts._onSave) {
+            opts._onSave(optValue);
+          } else {
+            _scheduleSave({ [opts.key]: optValue });
+            _demand[opts.key] = optValue;
+          }
         }
         _closeDropdowns();
         _refreshBody();
@@ -340,8 +365,24 @@ const TBO_DEMAND_DRAWER = (() => {
 
         ${_renderField('milestone', 'Milestones', demand.milestones, 'milestones', 'text')}
 
-        <!-- Custom properties -->
+        <!-- Custom properties (legacy local) -->
         ${_customProps.map(cp => _renderField(cp.icon || 'tag', cp.label, demand[cp.key], cp.key, cp.type || 'text')).join('')}
+
+        <!-- Custom fields from DB (os_custom_fields) -->
+        ${_dbFieldDefs.map(fd => {
+          const val = _dbFieldValues[fd.id];
+          const ico = { text:'type', number:'hash', date:'calendar', select:'list', multi_select:'tags', checkbox:'check-square', url:'link', user:'user' }[fd.type] || 'tag';
+          const displayVal = _formatDbFieldValue(fd, val);
+          return `
+            <div class="dd-field" data-db-field-id="${fd.id}">
+              <i data-lucide="${ico}" class="dd-field-icon"></i>
+              <span class="dd-field-label">${_esc(fd.name)}</span>
+              <span class="dd-field-value dd-editable dd-dbfield-editable" data-dbfield="${fd.id}" data-type="${fd.type}">
+                ${displayVal || '<span class="dd-field-value--empty">Adicionar...</span>'}
+              </span>
+            </div>
+          `;
+        }).join('')}
 
         <!-- Linked project (read-only) -->
         ${project ? `
@@ -448,6 +489,33 @@ const TBO_DEMAND_DRAWER = (() => {
     `;
   }
 
+  function _formatDbFieldValue(fd, val) {
+    if (val === undefined || val === null) return null;
+    switch (fd.type) {
+      case 'text': case 'user': return _esc(String(val));
+      case 'number': return _esc(String(val));
+      case 'date': return val ? _fmtDate(val) : null;
+      case 'checkbox': return val ? '<i data-lucide="check-square" style="width:14px;height:14px;color:var(--accent,#E85102);"></i>' : '<i data-lucide="square" style="width:14px;height:14px;opacity:0.4;"></i>';
+      case 'url': return val ? `<a href="${_esc(val)}" target="_blank" onclick="event.stopPropagation()" style="color:var(--accent,#E85102);text-decoration:none;font-size:0.82rem;">${_esc(val.length > 35 ? val.slice(0, 35) + '…' : val)}</a>` : null;
+      case 'select': {
+        const opts = (fd.config_json && fd.config_json.options) || [];
+        const opt = opts.find(o => o.value === val);
+        const c = opt ? (opt.color || '#6b7280') : '#6b7280';
+        return `<span style="background:${c}20;color:${c};padding:2px 8px;border-radius:9999px;font-size:0.78rem;font-weight:500;">${_esc(val)}</span>`;
+      }
+      case 'multi_select': {
+        if (!Array.isArray(val) || val.length === 0) return null;
+        const opts = (fd.config_json && fd.config_json.options) || [];
+        return val.map(v => {
+          const opt = opts.find(o => o.value === v);
+          const c = opt ? (opt.color || '#6b7280') : '#6b7280';
+          return `<span style="background:${c}20;color:${c};padding:1px 6px;border-radius:9999px;font-size:0.72rem;font-weight:500;margin-right:3px;">${_esc(v)}</span>`;
+        }).join('');
+      }
+      default: return _esc(String(val));
+    }
+  }
+
   function _renderField(icon, label, value, key, type, customHtml) {
     const displayEmpty = '<span class="dd-field-value--empty">Adicionar...</span>';
     const displayValue = customHtml || (value ? _esc(String(value)) : null);
@@ -461,6 +529,51 @@ const TBO_DEMAND_DRAWER = (() => {
         </span>
       </div>
     `;
+  }
+
+  // ── DB custom field save ─────────────────────────
+
+  async function _saveDbFieldValue(fieldId, value) {
+    if (!_demand || !_demand.id) return;
+    _dbFieldValues[fieldId] = value;
+    try {
+      if (typeof DemandFieldsRepo !== 'undefined') {
+        await DemandFieldsRepo.upsertValue(_demand.id, fieldId, value);
+      }
+    } catch (e) { console.error('[DD] DB field save error:', e); }
+  }
+
+  function _makeDbFieldEditable(el, fieldId, opts) {
+    el.classList.add('dd-editable');
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (el.querySelector('.dd-edit-input, .dd-edit-select')) return;
+
+      if (opts.type === 'select') {
+        _showSelectEditor(el, {
+          key: '__dbfield_' + fieldId,
+          type: 'select',
+          options: opts.options || [],
+          _onSave: (val) => _saveDbFieldValue(fieldId, val || null),
+        });
+      } else if (opts.type === 'date') {
+        _showDateEditor(el, {
+          key: '__dbfield_' + fieldId,
+          type: 'date',
+          _onSave: (val) => _saveDbFieldValue(fieldId, val || null),
+        });
+      } else {
+        _showTextEditor(el, {
+          key: '__dbfield_' + fieldId,
+          type: 'text',
+          placeholder: opts.placeholder || '',
+          _onSave: (val) => {
+            const finalVal = opts.type === 'number' ? (val === '' ? null : Number(val)) : (val || null);
+            _saveDbFieldValue(fieldId, finalVal);
+          },
+        });
+      }
+    });
   }
 
   // ── Bind events on body ──────────────────────────
@@ -507,6 +620,47 @@ const TBO_DEMAND_DRAWER = (() => {
       _makeEditable(descEl, { key: 'info', type: 'text', multiline: true, placeholder: 'Adicionar descricao...' });
     }
 
+    // DB custom field edits
+    body.querySelectorAll('.dd-dbfield-editable[data-dbfield]').forEach(el => {
+      const fieldId = el.dataset.dbfield;
+      const fd = _dbFieldDefs.find(f => f.id === fieldId);
+      if (!fd) return;
+
+      if (fd.type === 'checkbox') {
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const cur = _dbFieldValues[fieldId];
+          const newVal = !cur;
+          await _saveDbFieldValue(fieldId, newVal);
+          _refreshBody();
+        });
+      } else if (fd.type === 'multi_select') {
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const opts = (fd.config_json && fd.config_json.options) || [];
+          const cur = Array.isArray(_dbFieldValues[fieldId]) ? _dbFieldValues[fieldId].join(', ') : '';
+          const input = prompt(`${fd.name} (separar por virgula):\nOpcoes: ${opts.map(o => o.value).join(', ')}`, cur);
+          if (input !== null) {
+            const arr = input.split(',').map(s => s.trim()).filter(Boolean);
+            _saveDbFieldValue(fieldId, arr).then(() => _refreshBody());
+          }
+        });
+      } else if (fd.type === 'select') {
+        const opts = (fd.config_json && fd.config_json.options) || [];
+        _makeDbFieldEditable(el, fieldId, {
+          type: 'select',
+          options: [{ value: '', label: '— Nenhum —' }, ...opts.map(o => ({ value: o.value, label: o.value }))],
+        });
+      } else if (fd.type === 'date') {
+        _makeDbFieldEditable(el, fieldId, { type: 'date' });
+      } else if (fd.type === 'number') {
+        _makeDbFieldEditable(el, fieldId, { type: 'text', placeholder: '0' });
+      } else {
+        _makeDbFieldEditable(el, fieldId, { type: 'text', placeholder: 'Adicionar...' });
+      }
+    });
+
     // Add property button
     const addPropBtn = body.querySelector('#ddAddProperty');
     if (addPropBtn) {
@@ -542,7 +696,7 @@ const TBO_DEMAND_DRAWER = (() => {
     if (!container) return;
 
     // Check if already showing
-    if (container.querySelector('.dd-add-prop-form')) return;
+    if (container.parentElement.querySelector('.dd-add-prop-form')) return;
 
     const form = document.createElement('div');
     form.className = 'dd-add-prop-form';
@@ -550,8 +704,13 @@ const TBO_DEMAND_DRAWER = (() => {
       <input class="dd-edit-input" type="text" placeholder="Nome da propriedade" id="ddNewPropName" style="margin-bottom:6px;">
       <select class="dd-edit-input" id="ddNewPropType" style="margin-bottom:6px;">
         <option value="text">Texto</option>
+        <option value="number">Numero</option>
         <option value="date">Data</option>
         <option value="select">Selecao</option>
+        <option value="multi_select">Multi-selecao</option>
+        <option value="checkbox">Checkbox</option>
+        <option value="url">URL</option>
+        <option value="user">Pessoa</option>
       </select>
       <div style="display:flex;gap:6px;">
         <button class="dd-add-prop-btn dd-add-prop-confirm" id="ddNewPropOk">Criar</button>
@@ -564,13 +723,36 @@ const TBO_DEMAND_DRAWER = (() => {
     const nameInput = form.querySelector('#ddNewPropName');
     nameInput.focus();
 
-    form.querySelector('#ddNewPropOk').addEventListener('click', () => {
+    form.querySelector('#ddNewPropOk').addEventListener('click', async () => {
       const name = nameInput.value.trim();
       const type = form.querySelector('#ddNewPropType').value;
       if (!name) return;
-      const key = '_custom_' + name.toLowerCase().replace(/[^a-z0-9]/g, '_');
-      _customProps.push({ key, label: name, icon: 'tag', type });
-      _demand[key] = null;
+
+      // Create DB-backed custom field via DemandFieldsRepo
+      if (typeof DemandFieldsRepo !== 'undefined' && _demand && _demand.project_id) {
+        try {
+          const newField = await DemandFieldsRepo.createField({
+            name,
+            type,
+            project_id: _demand.project_id,
+            config_json: (type === 'select' || type === 'multi_select')
+              ? { options: [] } : {},
+          });
+          if (newField) {
+            _dbFieldDefs.push(newField);
+          }
+          if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Campo criado');
+        } catch (e) {
+          console.error('[DD] Create field error:', e);
+          if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro ao criar campo');
+        }
+      } else {
+        // Fallback: local-only prop (legacy)
+        const key = '_custom_' + name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        _customProps.push({ key, label: name, icon: 'tag', type });
+        _demand[key] = null;
+      }
+
       form.remove();
       _refreshBody();
     });
@@ -698,11 +880,25 @@ const TBO_DEMAND_DRAWER = (() => {
 
   // ── Public API ───────────────────────────────────
 
-  function open(demand, project) {
+  async function open(demand, project) {
     if (!demand) return;
     _createDOM();
     _demand = { ...demand };
     _project = project || null;
+
+    // Load custom fields from DB
+    _dbFieldDefs = [];
+    _dbFieldValues = {};
+    try {
+      if (typeof DemandFieldsRepo !== 'undefined' && demand.project_id) {
+        const [defs, vals] = await Promise.all([
+          DemandFieldsRepo.listFields(demand.project_id),
+          DemandFieldsRepo.listValues(demand.id),
+        ]);
+        _dbFieldDefs = defs || [];
+        (vals || []).forEach(v => { _dbFieldValues[v.field_id] = v.value_json; });
+      }
+    } catch (e) { console.warn('[DD] Custom fields load:', e); }
 
     const body = _panel.querySelector('#ddBody');
     if (body) {

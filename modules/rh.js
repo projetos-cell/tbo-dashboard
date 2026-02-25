@@ -4346,7 +4346,7 @@ const TBO_RH = {
     const now = new Date();
     const in30d = new Date(); in30d.setDate(in30d.getDate() + 30);
     const vencendo = all.filter(c => c.status === 'active' && c.end_date && new Date(c.end_date) >= now && new Date(c.end_date) <= in30d).length;
-    const fmt = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });
+    const fmt = (v) => (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked()) ? 'R$ ••••••' : v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });
     return `
       <div class="kpi-card"><div class="kpi-label">Total Ativos</div><div class="kpi-value">${ativos}</div></div>
       <div class="kpi-card"><div class="kpi-label">Custo Mensal Total</div><div class="kpi-value" style="font-size:1.1rem;">${fmt(custoTotal)}</div></div>
@@ -4386,7 +4386,7 @@ const TBO_RH = {
     }
     const esc = (s) => typeof TBO_SANITIZE !== 'undefined' ? TBO_SANITIZE.html(s||'') : (s||'').replace(/</g,'&lt;');
     const formatDate = (d) => d ? new Date(d).toLocaleDateString('pt-BR') : '-';
-    const fmt = (v) => v ? parseFloat(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 }) : '-';
+    const fmt = (v) => (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked()) ? 'R$ ••••••' : (v ? parseFloat(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 }) : '-');
 
     return `
       <table class="rh-bu-table">

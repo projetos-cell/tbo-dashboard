@@ -61,6 +61,7 @@ const TBO_ANALYTICS = {
   },
 
   _formatBRL(v) {
+    if (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked()) return 'R$ ••••••';
     return 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   },
 

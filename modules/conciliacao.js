@@ -35,7 +35,9 @@ const TBO_CONCILIACAO = {
     const varReceita = receitaOrcadaProporcional > 0 ? Math.round(((receitaReal - receitaOrcadaProporcional) / receitaOrcadaProporcional) * 100) : 0;
     const varDespesa = despesaOrcadaProporcional > 0 ? Math.round(((despesaReal - despesaOrcadaProporcional) / despesaOrcadaProporcional) * 100) : 0;
 
-    const fmt = (v) => 'R$ ' + Math.round(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
+    const fmt = (v) => (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked())
+      ? 'R$ ••••••'
+      : 'R$ ' + Math.round(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
 
     return `
       <div class="conciliacao-module">
@@ -87,7 +89,9 @@ const TBO_CONCILIACAO = {
   },
 
   _renderMonthlyFlow(meses, mesesLabel, realizados, recMensal, despMensal, resMensal, margemMensal) {
-    const fmt = (v) => 'R$ ' + Math.round(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
+    const fmt = (v) => (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked())
+      ? 'R$ ••••••'
+      : 'R$ ' + Math.round(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
 
     return `<div class="card" style="padding:16px;overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
@@ -145,7 +149,9 @@ const TBO_CONCILIACAO = {
   },
 
   _renderAccumulated(meses, mesesLabel, realizados, recMensal, despMensal) {
-    const fmt = (v) => 'R$ ' + Math.round(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
+    const fmt = (v) => (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked())
+      ? 'R$ ••••••'
+      : 'R$ ' + Math.round(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
 
     let acumRec = 0, acumDesp = 0;
     const rows = meses.map((m, i) => {
@@ -199,7 +205,9 @@ const TBO_CONCILIACAO = {
   },
 
   _renderBudgetComparison(recOrc, despOrc, resOrc, recProj, despProj, resProj, recReal, despReal, resReal, mesesCount) {
-    const fmt = (v) => 'R$ ' + Math.round(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
+    const fmt = (v) => (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked())
+      ? 'R$ ••••••'
+      : 'R$ ' + Math.round(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
 
     const rows = [
       { label: 'Receita', orcado: recOrc, projetado: recProj, realizado: recReal, positive: true },

@@ -1671,7 +1671,7 @@ const TBO_COMERCIAL = {
     return `
       <div class="grid-4" style="margin-bottom:16px;">
         <div class="kpi-card"><div class="kpi-label">Propostas Abertas</div><div class="kpi-value">${open.length}</div></div>
-        <div class="kpi-card"><div class="kpi-label">Valor Total</div><div class="kpi-value">${typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.currency(totalValue) : 'R$' + totalValue}</div></div>
+        <div class="kpi-card"><div class="kpi-label">Valor Total</div><div class="kpi-value">${typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked() ? 'R$ ••••••' : (typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.currency(totalValue) : 'R$' + totalValue)}</div></div>
         <div class="kpi-card"><div class="kpi-label">Aguardando Conversao</div><div class="kpi-value" style="color:${approved.length > 0 ? '#22c55e' : 'var(--text-primary)'};">${approved.length}</div></div>
         <div class="kpi-card"><div class="kpi-label">Total</div><div class="kpi-value">${proposals.length}</div></div>
       </div>
@@ -1696,7 +1696,7 @@ const TBO_COMERCIAL = {
                 </div>
               </div>
               <div style="display:flex;align-items:center;gap:8px;">
-                ${p.value ? `<span style="font-size:0.85rem;font-weight:600;color:var(--accent-gold);">${typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.currency(p.value) : 'R$' + p.value}</span>` : ''}
+                ${p.value ? `<span style="font-size:0.85rem;font-weight:600;color:var(--accent-gold);">${typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked() ? 'R$ ••••••' : (typeof TBO_FORMATTER !== 'undefined' ? TBO_FORMATTER.currency(p.value) : 'R$' + p.value)}</span>` : ''}
                 ${p.status === 'aprovada' ? `<button class="btn btn-secondary" style="font-size:0.68rem;padding:3px 8px;color:#22c55e;" onclick="event.stopPropagation();TBO_COMERCIAL._convertProposalToProject('${p.id}')">Converter em Projeto</button>` : ''}
               </div>
             </div>

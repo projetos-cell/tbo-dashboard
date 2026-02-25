@@ -6389,53 +6389,7 @@ body .tab-btn {
 }
 
 /* ── P3: Tour ────────────────────────────────────────────────────── */
-.ux-tour-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 10000;
-}
-.ux-tour-tooltip {
-  position: fixed;
-  background: var(--bg-card);
-  border: 1px solid var(--accent-gold);
-  border-radius: var(--radius-lg);
-  padding: 16px 20px;
-  max-width: 300px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  z-index: 10001;
-  animation: ux-slideIn 0.3s ease;
-}
-.ux-tour-title {
-  font-weight: 700;
-  font-size: 0.9rem;
-  color: var(--accent-gold);
-  margin-bottom: 4px;
-}
-.ux-tour-text {
-  font-size: 0.82rem;
-  color: var(--text-secondary);
-  line-height: 1.5;
-  margin-bottom: 12px;
-}
-.ux-tour-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.ux-tour-counter {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-}
-.ux-tour-btns {
-  display: flex;
-  gap: 6px;
-}
-.ux-tour-highlight {
-  outline: 2px solid var(--accent-gold) !important;
-  outline-offset: 4px;
-  border-radius: var(--radius-sm);
-}
+/* UX Tour — removido */
 
 /* ── P3: Bulk Action Bar ─────────────────────────────────────────── */
 .ux-bulk-bar {
@@ -8528,12 +8482,23 @@ body .tab-btn {
   align-items: center;
 }
 
-/* ── KPI Strip ── */
+/* ── KPI Strip (individual widgets) ── */
 .cc-kpi-strip {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
   margin-bottom: 24px;
+}
+.cc-kpi-strip > .cc-widget {
+  cursor: default;
+  border-radius: 0;
+  box-shadow: none;
+}
+.cc-kpi-strip > .cc-widget:hover {
+  box-shadow: none;
+}
+.cc-kpi-strip > .cc-widget > .cc-widget-label {
+  display: none;
 }
 .cc-kpi-card {
   background: var(--bg-card);
@@ -8878,7 +8843,7 @@ body .tab-btn {
 }
 @media (max-width: 768px) {
   .cc-kpi-strip { grid-template-columns: repeat(2, 1fr); }
-  .cc-kpi-strip > :last-child { grid-column: span 2; }
+  .cc-kpi-strip > :last-child:nth-child(odd) { grid-column: span 2; }
   .cc-grid { grid-template-columns: 1fr; }
   .cc-col-span-2 { grid-column: span 1; }
   .cc-grid > .cc-sidebar { grid-column: span 1; grid-row: auto; }
@@ -11555,5 +11520,21 @@ body.dark-mode .sidebar-context-separator {
   justify-content: center;
   padding: 0 4px;
   line-height: 16px;
+}
+
+/* ===================================================================
+   FINANCE MASK TOGGLE
+   =================================================================== */
+#financeMaskToggle {
+  transition: color 0.2s, background 0.2s;
+}
+
+#financeMaskToggle.active {
+  color: var(--accent-gold) !important;
+  background: rgba(218, 165, 32, 0.12);
+}
+
+#financeMaskToggle:hover {
+  color: var(--accent-gold);
 }
 

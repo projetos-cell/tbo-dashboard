@@ -464,6 +464,7 @@ const TBO_OMIE_BRIDGE = {
 
   // Formatar valor BRL
   _fmt(v) {
+    if (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked()) return 'R$ ••••••';
     return (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   },
 

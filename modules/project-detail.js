@@ -25,6 +25,10 @@ const TBO_PROJECT_DETAIL = {
   _notesSaveTimer: null,    // autosave debounce for Overview rich text
   _kanbanDragState: null,   // Kanban card drag state
 
+  // ── Custom Fields state ──
+  _customFieldDefs: [],        // os_custom_fields definitions for this project
+  _customFieldValues: {},      // { demandId: { fieldId: valueJson } }
+
   // ═══════════════════════════════════════════════════
   // COLUMN CONFIGURATION
   // ═══════════════════════════════════════════════════
@@ -37,6 +41,8 @@ const TBO_PROJECT_DETAIL = {
     { key: 'date',        label: 'Data',             width: '100px', fixed: false, hidden: false, icon: 'calendar' },
     { key: 'priority',    label: 'Prioridade',       width: '100px', fixed: false, hidden: false, icon: 'signal' },
     { key: 'status',      label: 'Status',           width: '120px', fixed: false, hidden: false, icon: 'circle-dot' },
+    { key: 'start_date', label: 'Inicio',           width: '100px', fixed: false, hidden: true,  icon: 'calendar-plus' },
+    { key: 'tags',        label: 'Tags',             width: '160px', fixed: false, hidden: true,  icon: 'tags' },
   ],
 
   _columnOrder: null,  // array of movable column keys
@@ -94,12 +100,14 @@ const TBO_PROJECT_DETAIL = {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed.order) && parsed.order.length > 0) {
-          // Validate all keys exist
-          const validKeys = new Set(defaults);
-          const allValid = parsed.order.every(k => validKeys.has(k));
-          if (allValid && parsed.order.length === defaults.length) {
-            this._columnOrder = parsed.order;
+          // Keep saved keys that are valid (built-in OR custom cf_ keys)
+          const builtinKeys = new Set(defaults);
+          const filtered = parsed.order.filter(k => builtinKeys.has(k) || k.startsWith('cf_'));
+          // Ensure every built-in default is present
+          for (const dk of defaults) {
+            if (!filtered.includes(dk)) filtered.push(dk);
           }
+          this._columnOrder = filtered;
         }
         if (Array.isArray(parsed.hidden)) {
           parsed.hidden.forEach(key => {
@@ -127,6 +135,61 @@ const TBO_PROJECT_DETAIL = {
   _getColOrder(key) {
     const idx = this._columnOrder.indexOf(key);
     return idx >= 0 ? idx : 999;
+  },
+
+  /**
+   * Sync custom field definitions into _COLUMNS and _columnOrder so the
+   * existing column system (drag, hide, context menu) works transparently.
+   * Call AFTER loading _customFieldDefs.
+   */
+  _syncCustomFieldColumns() {
+    // Remove stale cf_ entries from _COLUMNS
+    this._COLUMNS = this._COLUMNS.filter(c => !c.key.startsWith('cf_'));
+
+    // Add an entry for each custom field definition
+    const cfTypeIcon = {
+      text: 'type', number: 'hash', date: 'calendar', select: 'list',
+      multi_select: 'tags', checkbox: 'check-square', url: 'link', user: 'user',
+    };
+    for (const fd of this._customFieldDefs) {
+      this._COLUMNS.push({
+        key: 'cf_' + fd.id,
+        label: fd.name,
+        width: '140px',
+        fixed: false,
+        hidden: false,
+        icon: cfTypeIcon[fd.type] || 'file-text',
+        customField: fd,          // reference to definition
+      });
+    }
+
+    // Ensure every cf_ key is in _columnOrder (append if new)
+    for (const fd of this._customFieldDefs) {
+      const k = 'cf_' + fd.id;
+      if (!this._columnOrder.includes(k)) {
+        this._columnOrder.push(k);
+      }
+    }
+
+    // Remove stale cf_ keys from _columnOrder (field was deleted)
+    const validCfKeys = new Set(this._customFieldDefs.map(fd => 'cf_' + fd.id));
+    this._columnOrder = this._columnOrder.filter(k => !k.startsWith('cf_') || validCfKeys.has(k));
+
+    // Restore hidden state from localStorage
+    try {
+      const saved = localStorage.getItem(this._STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed.hidden)) {
+          parsed.hidden.forEach(key => {
+            if (key.startsWith('cf_')) {
+              const col = this._COLUMNS.find(c => c.key === key);
+              if (col) col.hidden = true;
+            }
+          });
+        }
+      }
+    } catch (_) {}
   },
 
   // ═══════════════════════════════════════════════════
@@ -207,13 +270,44 @@ const TBO_PROJECT_DETAIL = {
       if (projRes.error) throw projRes.error;
       this._project = projRes.data;
 
+      // Try with start_date,tags columns first; fallback without if migration 053 not yet applied
+      const demBaseCols = 'id,title,status,due_date,due_date_end,responsible,bus,project_id,notion_url,prioridade,info,formalizacao,tipo_midia,subitem,item_principal,feito,milestones,tenant_id';
       let dq = client.from('demands')
-        .select('id,title,status,due_date,due_date_end,responsible,bus,project_id,notion_url,prioridade,info,formalizacao,tipo_midia,subitem,item_principal,feito,milestones,tenant_id')
+        .select(demBaseCols + ',start_date,tags')
         .eq('project_id', projectId)
         .order('due_date', { ascending: true, nullsFirst: false });
       if (tid) dq = dq.eq('tenant_id', tid);
-      const demRes = await dq;
+      let demRes = await dq;
+      if (demRes.error && /start_date|tags/.test(demRes.error.message || '')) {
+        // Columns don't exist yet — retry without them
+        let dq2 = client.from('demands')
+          .select(demBaseCols)
+          .eq('project_id', projectId)
+          .order('due_date', { ascending: true, nullsFirst: false });
+        if (tid) dq2 = dq2.eq('tenant_id', tid);
+        demRes = await dq2;
+      }
       this._demands = demRes.error ? [] : (demRes.data || []);
+
+      // ── Custom fields: definitions + values ──
+      try {
+        if (typeof DemandFieldsRepo !== 'undefined') {
+          const [cfDefs, cfVals] = await Promise.all([
+            DemandFieldsRepo.listFields(projectId),
+            DemandFieldsRepo.listValuesByProject(projectId),
+          ]);
+          this._customFieldDefs = cfDefs || [];
+          this._customFieldValues = {};
+          (cfVals || []).forEach(v => {
+            if (!this._customFieldValues[v.demand_id]) this._customFieldValues[v.demand_id] = {};
+            this._customFieldValues[v.demand_id][v.field_id] = v.value_json;
+          });
+        }
+      } catch (cfErr) {
+        console.warn('[PD] Custom fields load (non-critical):', cfErr);
+      }
+      // Sync custom field defs into column system
+      this._syncCustomFieldColumns();
 
       this._loaded = true;
       this._breadcrumbLabel = this._project.name;
@@ -221,7 +315,9 @@ const TBO_PROJECT_DETAIL = {
 
       const el = document.getElementById('projectDetail');
       if (!el) return;
-      el.innerHTML = this._renderPage();
+      // Render topbar into context toolbar (outside <main>) for flush alignment
+      this._renderTopbar();
+      el.innerHTML = this._renderPageContent();
       this._bindEvents();
       if (typeof lucide !== 'undefined') lucide.createIcons();
     } catch (err) {
@@ -253,85 +349,88 @@ const TBO_PROJECT_DETAIL = {
     { status: 'Concluido',     label: 'Concluido',     color: '#22c55e' },
   ],
 
-  _renderPage() {
+  /** Render the sticky topbar into #contextToolbar (outside <main>) */
+  _renderTopbar() {
+    if (typeof TBO_CONTEXT_TOOLBAR === 'undefined') return;
     const p = this._project;
-    if (!p) return '';
+    if (!p) return;
     const info = this._statusInfo(p.status);
-    const bus = this._parseBus(p.bus);
     const totalDemands = this._demands.length;
     const doneDemands = this._demands.filter(d => this._isDone(d)).length;
     const progressPct = totalDemands > 0 ? Math.round((doneDemands / totalDemands) * 100) : 0;
 
-    // Build member avatars (unique responsibles)
     const members = [...new Set(this._demands.map(d => d.responsible).filter(Boolean))].slice(0, 5);
     const extraMembers = [...new Set(this._demands.map(d => d.responsible).filter(Boolean))].length - 5;
 
-    return `
-      <!-- ═══ ASANA-STYLE STICKY TOP BAR ═══ -->
-      <div class="pd-topbar-sticky">
-
-        <!-- LINE 1: Project header -->
-        <div class="pd-topbar-line1">
-          <div class="pd-topbar-left">
-            <button class="pd-back-arrow" onclick="TBO_ROUTER.navigate('quadro-projetos')" title="Voltar ao Quadro">
-              <i data-lucide="arrow-left" style="width:16px;height:16px;"></i>
-            </button>
-            <h1 class="pd-project-name">${this._esc(p.name)}</h1>
-            <button class="pd-star-btn" title="Favoritar" data-action="star">
-              <i data-lucide="star" style="width:16px;height:16px;"></i>
-            </button>
-            ${p.code ? `<span class="pd-code">${this._esc(p.code)}</span>` : ''}
-            <button class="pd-status-dropdown" data-action="status-dropdown" style="background:${info.bg};color:${info.color};">
-              <i data-lucide="${info.icon}" style="width:13px;height:13px;"></i>
-              <span>${info.label}</span>
-              <i data-lucide="chevron-down" style="width:12px;height:12px;opacity:0.6;"></i>
-            </button>
-          </div>
-          <div class="pd-topbar-right">
-            <div class="pd-topbar-progress" title="${doneDemands}/${totalDemands} concluidas (${progressPct}%)">
-              <div class="pd-progress-bar-track">
-                <div class="pd-progress-bar-fill" style="width:${progressPct}%;background:${info.color};"></div>
-              </div>
-              <span class="pd-progress-label">${progressPct}%</span>
-            </div>
-            <div class="pd-topbar-members">
-              ${members.map(m => `<div class="pd-member-avatar" title="${this._esc(m)}">${this._initials(m)}</div>`).join('')}
-              ${extraMembers > 0 ? `<div class="pd-member-avatar pd-member-extra">+${extraMembers}</div>` : ''}
-            </div>
-            ${p.notion_url ? `<a href="${p.notion_url}" target="_blank" class="pd-topbar-icon-btn" title="Abrir no Notion" onclick="event.stopPropagation()"><i data-lucide="external-link" style="width:15px;height:15px;"></i></a>` : ''}
-            <button class="pd-topbar-btn pd-btn-share" title="Compartilhar">
-              <i data-lucide="share-2" style="width:14px;height:14px;"></i>
-              <span>Compartilhar</span>
-            </button>
-            <button class="pd-topbar-icon-btn" title="Personalizar" data-action="customize">
-              <i data-lucide="sliders-horizontal" style="width:15px;height:15px;"></i>
-            </button>
-          </div>
+    const html = `
+      <div class="pd-topbar-line1">
+        <div class="pd-topbar-left">
+          <button class="pd-back-arrow" onclick="TBO_ROUTER.navigate('quadro-projetos')" title="Voltar ao Quadro">
+            <i data-lucide="arrow-left" style="width:16px;height:16px;"></i>
+          </button>
+          <h1 class="pd-project-name">${this._esc(p.name)}</h1>
+          <button class="pd-star-btn" title="Favoritar" data-action="star">
+            <i data-lucide="star" style="width:16px;height:16px;"></i>
+          </button>
+          ${p.code ? `<span class="pd-code">${this._esc(p.code)}</span>` : ''}
+          <button class="pd-status-dropdown" data-action="status-dropdown" style="background:${info.bg};color:${info.color};">
+            <i data-lucide="${info.icon}" style="width:13px;height:13px;"></i>
+            <span>${info.label}</span>
+            <i data-lucide="chevron-down" style="width:12px;height:12px;opacity:0.6;"></i>
+          </button>
         </div>
-
-        <!-- LINE 2: View tabs -->
-        <div class="pd-topbar-line2">
-          <div class="pd-tabs-scroll">
-            ${this._TABS.map(t => `
-              <button class="pd-tab ${t.key === this._activeTab ? 'pd-tab-active' : ''}" data-tab="${t.key}">
-                <i data-lucide="${t.icon}" style="width:14px;height:14px;"></i>
-                <span>${t.label}</span>
-              </button>
-            `).join('')}
-            <button class="pd-tab pd-tab-add" data-action="add-tab" title="Adicionar aba">
-              <i data-lucide="plus" style="width:14px;height:14px;"></i>
-            </button>
+        <div class="pd-topbar-right">
+          <div class="pd-topbar-progress" title="${doneDemands}/${totalDemands} concluidas (${progressPct}%)">
+            <div class="pd-progress-bar-track">
+              <div class="pd-progress-bar-fill" style="width:${progressPct}%;background:${info.color};"></div>
+            </div>
+            <span class="pd-progress-label">${progressPct}%</span>
           </div>
+          <div class="pd-topbar-members">
+            ${members.map(m => `<div class="pd-member-avatar" title="${this._esc(m)}">${this._initials(m)}</div>`).join('')}
+            ${extraMembers > 0 ? `<div class="pd-member-avatar pd-member-extra">+${extraMembers}</div>` : ''}
+          </div>
+          ${p.notion_url ? `<a href="${p.notion_url}" target="_blank" class="pd-topbar-icon-btn" title="Abrir no Notion" onclick="event.stopPropagation()"><i data-lucide="external-link" style="width:15px;height:15px;"></i></a>` : ''}
+          <button class="pd-topbar-btn pd-btn-share" title="Compartilhar">
+            <i data-lucide="share-2" style="width:14px;height:14px;"></i>
+            <span>Compartilhar</span>
+          </button>
+          <button class="pd-topbar-icon-btn" title="Personalizar" data-action="customize">
+            <i data-lucide="sliders-horizontal" style="width:15px;height:15px;"></i>
+          </button>
         </div>
-
-        <!-- LINE 3: Action bar (only shown on list tab, rendered inside tab content) -->
       </div>
+      <div class="pd-topbar-line2">
+        <div class="pd-tabs-scroll">
+          ${this._TABS.map(t => `
+            <button class="pd-tab ${t.key === this._activeTab ? 'pd-tab-active' : ''}" data-tab="${t.key}">
+              <i data-lucide="${t.icon}" style="width:14px;height:14px;"></i>
+              <span>${t.label}</span>
+            </button>
+          `).join('')}
+          <button class="pd-tab pd-tab-add" data-action="add-tab" title="Adicionar aba">
+            <i data-lucide="plus" style="width:14px;height:14px;"></i>
+          </button>
+        </div>
+      </div>
+    `;
 
-      <!-- ═══ TAB CONTENT ═══ -->
+    TBO_CONTEXT_TOOLBAR.renderCustom(html, 'project-detail');
+  },
+
+  /** Render only the tab content area (topbar is rendered separately) */
+  _renderPageContent() {
+    return `
       <div class="pd-tab-content" id="pdTabContent">
         ${this._renderTabContent()}
       </div>
     `;
+  },
+
+  /** @deprecated — kept for reference, replaced by _renderTopbar() + _renderPageContent() */
+  _renderPage() {
+    this._renderTopbar();
+    return this._renderPageContent();
   },
 
   // ═══════════════════════════════════════════════════
@@ -550,7 +649,22 @@ const TBO_PROJECT_DETAIL = {
       status: `<div class="pd-td pd-td-status" data-col="status" style="order:${this._getColOrder('status')};${this._isColHidden('status') ? 'display:none;' : ''}">
         <span class="pd-demand-status" style="background:${statusColors.bg};color:${statusColors.color};">${this._esc(d.status || '\u2014')}</span>
       </div>`,
+      start_date: `<div class="pd-td pd-td-start-date" data-col="start_date" style="order:${this._getColOrder('start_date')};${this._isColHidden('start_date') ? 'display:none;' : ''}">
+        ${d.start_date ? `<span class="pd-date-text">${this._fmtDate(d.start_date)}</span>` : '<span class="pd-empty-cell">&mdash;</span>'}
+      </div>`,
+      tags: `<div class="pd-td pd-td-tags" data-col="tags" style="order:${this._getColOrder('tags')};${this._isColHidden('tags') ? 'display:none;' : ''}">
+        ${(d.tags && d.tags.length) ? d.tags.map(t => `<span class="pd-tag-pill">${this._esc(t)}</span>`).join('') : '<span class="pd-empty-cell">&mdash;</span>'}
+      </div>`,
     };
+
+    // Custom field cells
+    for (const fd of this._customFieldDefs) {
+      const k = 'cf_' + fd.id;
+      const val = (this._customFieldValues[d.id] || {})[fd.id];
+      cells[k] = `<div class="pd-td pd-td-custom" data-col="${k}" data-field-id="${fd.id}" data-demand-id="${d.id}" style="order:${this._getColOrder(k)};${this._isColHidden(k) ? 'display:none;' : ''}">
+        ${this._renderCustomFieldCell(fd, val, d.id)}
+      </div>`;
+    }
 
     const movableHtml = this._columnOrder.map(key => cells[key] || '').join('');
 
@@ -586,6 +700,64 @@ const TBO_PROJECT_DETAIL = {
     else if (p.includes('media') || p.includes('medium')) { color = '#f59e0b'; bg = 'rgba(245,158,11,0.10)'; }
     else if (p.includes('baixa') || p.includes('low')) { color = '#22c55e'; bg = 'rgba(34,197,94,0.10)'; }
     return `<span class="pd-priority-pill" style="background:${bg};color:${color};">${this._esc(prioridade)}</span>`;
+  },
+
+  // ═══════════════════════════════════════════════════
+  // CUSTOM FIELD CELL RENDERER
+  // ═══════════════════════════════════════════════════
+
+  _renderCustomFieldCell(fieldDef, value, demandId) {
+    if (value === undefined || value === null) return '<span class="pd-empty-cell pd-cf-editable" data-cf-edit="true">&mdash;</span>';
+
+    switch (fieldDef.type) {
+      case 'text':
+        return `<span class="pd-cf-text pd-cf-editable" data-cf-edit="true">${this._esc(String(value))}</span>`;
+      case 'number':
+        return `<span class="pd-cf-number pd-cf-editable" data-cf-edit="true">${this._esc(String(value))}</span>`;
+      case 'date':
+        return `<span class="pd-cf-date pd-cf-editable" data-cf-edit="true">${value ? this._fmtDate(value) : '&mdash;'}</span>`;
+      case 'checkbox':
+        return `<input type="checkbox" class="pd-cf-checkbox" data-cf-checkbox="${fieldDef.id}" data-demand-id="${demandId}" ${value ? 'checked' : ''}>`;
+      case 'select': {
+        const opts = (fieldDef.config_json && fieldDef.config_json.options) || [];
+        const opt = opts.find(o => o.value === value);
+        const color = opt ? (opt.color || '#6b7280') : '#6b7280';
+        const bg = this._hexToBgAlpha(color);
+        return value ? `<span class="pd-cf-select pd-cf-editable" data-cf-edit="true" style="background:${bg};color:${color};">${this._esc(String(value))}</span>` : '<span class="pd-empty-cell pd-cf-editable" data-cf-edit="true">&mdash;</span>';
+      }
+      case 'multi_select': {
+        if (!Array.isArray(value) || value.length === 0) return '<span class="pd-empty-cell pd-cf-editable" data-cf-edit="true">&mdash;</span>';
+        const opts = (fieldDef.config_json && fieldDef.config_json.options) || [];
+        return value.map(v => {
+          const opt = opts.find(o => o.value === v);
+          const color = opt ? (opt.color || '#6b7280') : '#6b7280';
+          const bg = this._hexToBgAlpha(color);
+          return `<span class="pd-tag-pill" style="background:${bg};color:${color};">${this._esc(v)}</span>`;
+        }).join('');
+      }
+      case 'url':
+        return value ? `<a href="${this._esc(value)}" target="_blank" class="pd-cf-url" onclick="event.stopPropagation()">${this._esc(this._truncUrl(value))}<i data-lucide="external-link" style="width:10px;height:10px;margin-left:3px;"></i></a>` : '<span class="pd-empty-cell pd-cf-editable" data-cf-edit="true">&mdash;</span>';
+      case 'user':
+        return value ? `<span class="pd-cf-user pd-cf-editable" data-cf-edit="true">${this._esc(String(value))}</span>` : '<span class="pd-empty-cell pd-cf-editable" data-cf-edit="true">&mdash;</span>';
+      default:
+        return `<span class="pd-cf-text pd-cf-editable" data-cf-edit="true">${this._esc(String(value))}</span>`;
+    }
+  },
+
+  _hexToBgAlpha(hex) {
+    // Convert hex color to rgba with alpha 0.10
+    const r = parseInt(hex.slice(1, 3), 16) || 107;
+    const g = parseInt(hex.slice(3, 5), 16) || 114;
+    const b = parseInt(hex.slice(5, 7), 16) || 128;
+    return `rgba(${r},${g},${b},0.10)`;
+  },
+
+  _truncUrl(url) {
+    try {
+      const u = new URL(url);
+      const path = u.pathname.length > 20 ? u.pathname.slice(0, 20) + '…' : u.pathname;
+      return u.hostname + path;
+    } catch (_) { return url.length > 30 ? url.slice(0, 30) + '…' : url; }
   },
 
   // ═══════════════════════════════════════════════════
@@ -864,6 +1036,55 @@ const TBO_PROJECT_DETAIL = {
         self._showAddColumnMenu(addColBtn);
       });
     }
+
+    // ── Custom field: checkbox toggle ──
+    document.querySelectorAll('.pd-cf-checkbox[data-cf-checkbox]').forEach(cb => {
+      cb.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const fieldId = cb.dataset.cfCheckbox;
+        const demandId = cb.dataset.demandId;
+        if (fieldId && demandId) {
+          self._onCustomFieldEdit(demandId, fieldId, cb.checked);
+        }
+      });
+    });
+
+    // ── Custom field: click-to-edit cells ──
+    document.querySelectorAll('.pd-td-custom[data-field-id]').forEach(cell => {
+      cell.addEventListener('click', (e) => {
+        if (e.target.closest('a') || e.target.closest('.pd-cf-checkbox') || e.target.closest('.pd-check') || e.target.closest('.pd-drag-handle')) return;
+        e.stopPropagation();
+        const fieldId = cell.dataset.fieldId;
+        const demandId = cell.dataset.demandId;
+        if (fieldId && demandId) {
+          self._editCustomFieldCell(cell, demandId, fieldId);
+        }
+      });
+    });
+
+    // ── Built-in start_date: click to edit ──
+    document.querySelectorAll('.pd-td-start-date').forEach(cell => {
+      cell.addEventListener('click', (e) => {
+        if (e.target.closest('a')) return;
+        e.stopPropagation();
+        const row = cell.closest('.pd-task-row');
+        if (!row) return;
+        const demandId = row.dataset.demandId;
+        if (demandId) self._editBuiltinStartDate(cell, demandId);
+      });
+    });
+
+    // ── Built-in tags: click to edit ──
+    document.querySelectorAll('.pd-td-tags').forEach(cell => {
+      cell.addEventListener('click', (e) => {
+        if (e.target.closest('a')) return;
+        e.stopPropagation();
+        const row = cell.closest('.pd-task-row');
+        if (!row) return;
+        const demandId = row.dataset.demandId;
+        if (demandId) self._editBuiltinTags(cell, demandId);
+      });
+    });
 
     // Drag & Drop (tasks + sections)
     this._bindDragHandles();
@@ -1674,6 +1895,7 @@ const TBO_PROJECT_DETAIL = {
     menu.className = 'pd-col-context-menu';
 
     const isFixed = col.fixed;
+    const isCustomField = colKey.startsWith('cf_');
     const typeLabel = this._getColTypeLabel(colKey);
 
     menu.innerHTML = `
@@ -1687,6 +1909,15 @@ const TBO_PROJECT_DETAIL = {
         <div class="pd-col-ctx-separator"></div>
         <div class="pd-col-ctx-item" data-action="hide">
           <i data-lucide="eye-off"></i> <span>Ocultar coluna</span>
+        </div>
+      ` : ''}
+      ${isCustomField ? `
+        <div class="pd-col-ctx-separator"></div>
+        <div class="pd-col-ctx-item" data-action="rename-field">
+          <i data-lucide="pencil"></i> <span>Renomear campo</span>
+        </div>
+        <div class="pd-col-ctx-item pd-col-ctx-item--danger" data-action="delete-field">
+          <i data-lucide="trash-2"></i> <span>Excluir campo</span>
         </div>
       ` : ''}
       <div class="pd-col-ctx-separator"></div>
@@ -1749,6 +1980,62 @@ const TBO_PROJECT_DETAIL = {
       case 'hide':
         this._hideColumn(colKey);
         break;
+      case 'rename-field':
+        this._renameCustomField(colKey);
+        break;
+      case 'delete-field':
+        this._deleteCustomField(colKey);
+        break;
+    }
+  },
+
+  async _renameCustomField(colKey) {
+    if (!colKey.startsWith('cf_')) return;
+    const fieldId = colKey.slice(3);
+    const fd = this._customFieldDefs.find(f => f.id === fieldId);
+    if (!fd) return;
+    const newName = prompt('Novo nome do campo:', fd.name);
+    if (!newName || newName.trim() === '' || newName.trim() === fd.name) return;
+    try {
+      if (typeof DemandFieldsRepo !== 'undefined') {
+        await DemandFieldsRepo.updateField(fieldId, { name: newName.trim() });
+      }
+      fd.name = newName.trim();
+      // Update column label
+      const col = this._COLUMNS.find(c => c.key === colKey);
+      if (col) col.label = newName.trim();
+      this._reRenderTasks();
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Campo renomeado');
+    } catch (e) {
+      console.error('[PD] rename field error:', e);
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro ao renomear campo');
+    }
+  },
+
+  async _deleteCustomField(colKey) {
+    if (!colKey.startsWith('cf_')) return;
+    const fieldId = colKey.slice(3);
+    const fd = this._customFieldDefs.find(f => f.id === fieldId);
+    if (!fd) return;
+    if (!confirm(`Excluir o campo "${fd.name}"? Todos os valores serao apagados.`)) return;
+    try {
+      if (typeof DemandFieldsRepo !== 'undefined') {
+        await DemandFieldsRepo.deleteField(fieldId);
+      }
+      // Remove from local state
+      this._customFieldDefs = this._customFieldDefs.filter(f => f.id !== fieldId);
+      // Remove values
+      Object.keys(this._customFieldValues).forEach(did => {
+        delete this._customFieldValues[did][fieldId];
+      });
+      // Sync columns
+      this._syncCustomFieldColumns();
+      this._saveColumnOrder();
+      this._reRenderTasks();
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Campo excluido');
+    } catch (e) {
+      console.error('[PD] delete field error:', e);
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro ao excluir campo');
     }
   },
 
@@ -1759,8 +2046,19 @@ const TBO_PROJECT_DETAIL = {
       date: 'Data',
       priority: 'Selecao',
       status: 'Selecao',
+      start_date: 'Data',
+      tags: 'Multi-selecao',
     };
-    return types[colKey] || 'Texto';
+    if (types[colKey]) return types[colKey];
+    // Custom field — lookup type from definition
+    if (colKey.startsWith('cf_')) {
+      const col = this._COLUMNS.find(c => c.key === colKey);
+      if (col && col.customField) {
+        const tl = { text: 'Texto', number: 'Numero', date: 'Data', select: 'Selecao', multi_select: 'Multi-selecao', checkbox: 'Checkbox', url: 'URL', user: 'Pessoa' };
+        return tl[col.customField.type] || col.customField.type;
+      }
+    }
+    return 'Texto';
   },
 
   // ═══════════════════════════════════════════════════
@@ -1774,22 +2072,37 @@ const TBO_PROJECT_DETAIL = {
       date: 'due_date',
       priority: 'prioridade',
       status: 'status',
+      start_date: 'start_date',
+      tags: 'tags',
     };
     const field = fieldMap[colKey];
-    if (!field) return;
+    const isCustomField = colKey.startsWith('cf_');
+    if (!field && !isCustomField) return;
 
     const priorityOrder = { 'alta': 0, 'high': 0, 'urgente': 0, 'media': 1, 'média': 1, 'medium': 1, 'baixa': 2, 'low': 2 };
+    const cfId = isCustomField ? colKey.slice(3) : null;
 
     this._demands.sort((a, b) => {
-      let va = a[field] || '';
-      let vb = b[field] || '';
+      let va, vb;
+      if (isCustomField) {
+        va = (this._customFieldValues[a.id] || {})[cfId];
+        vb = (this._customFieldValues[b.id] || {})[cfId];
+        va = va != null ? String(va) : '';
+        vb = vb != null ? String(vb) : '';
+      } else {
+        va = a[field] || '';
+        vb = b[field] || '';
+      }
 
       if (colKey === 'priority') {
         va = priorityOrder[(va || '').toLowerCase()] ?? 99;
         vb = priorityOrder[(vb || '').toLowerCase()] ?? 99;
-      } else if (colKey === 'date') {
+      } else if (colKey === 'date' || colKey === 'start_date') {
         va = va ? new Date(va).getTime() : Infinity;
         vb = vb ? new Date(vb).getTime() : Infinity;
+      } else if (colKey === 'tags') {
+        va = Array.isArray(va) ? va.join(',').toLowerCase() : '';
+        vb = Array.isArray(vb) ? vb.join(',').toLowerCase() : '';
       } else {
         va = (va || '').toLowerCase();
         vb = (vb || '').toLowerCase();
@@ -1833,17 +2146,25 @@ const TBO_PROJECT_DETAIL = {
     const menu = document.createElement('div');
     menu.className = 'pd-col-context-menu';
 
+    let html = '';
     if (hiddenCols.length > 0) {
-      let html = '<div class="pd-col-ctx-label">Colunas ocultas</div>';
+      html += '<div class="pd-col-ctx-label">Colunas ocultas</div>';
       hiddenCols.forEach(col => {
         html += `<div class="pd-col-ctx-item" data-action="show" data-col-key="${col.key}">
           <i data-lucide="eye"></i> <span>${this._esc(col.label)}</span>
         </div>`;
       });
-      menu.innerHTML = html;
     } else {
-      menu.innerHTML = '<div class="pd-col-ctx-label">Todas as colunas estao visiveis</div>';
+      html += '<div class="pd-col-ctx-label">Todas as colunas estao visiveis</div>';
     }
+
+    // Separator + create new custom field option
+    html += '<div class="pd-col-ctx-separator"></div>';
+    html += `<div class="pd-col-ctx-item pd-col-ctx-item--create" data-action="create-field">
+      <i data-lucide="plus-circle"></i> <span>Novo campo personalizado</span>
+    </div>`;
+
+    menu.innerHTML = html;
 
     document.body.appendChild(menu);
     if (typeof lucide !== 'undefined') lucide.createIcons({ root: menu });
@@ -1861,10 +2182,7 @@ const TBO_PROJECT_DETAIL = {
     this._colCtxMenu = menu;
 
     menu.querySelectorAll('[data-action="show"]').forEach(item => {
-      item.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      });
+      item.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); });
       item.addEventListener('click', (e) => {
         e.stopPropagation();
         const key = item.dataset.colKey;
@@ -1873,9 +2191,334 @@ const TBO_PROJECT_DETAIL = {
       });
     });
 
-    menu.addEventListener('mousedown', (e) => {
-      e.stopPropagation();
+    const createBtn = menu.querySelector('[data-action="create-field"]');
+    if (createBtn) {
+      createBtn.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); });
+      createBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        self._closeColContextMenu();
+        self._showCreateFieldDialog();
+      });
+    }
+
+    menu.addEventListener('mousedown', (e) => { e.stopPropagation(); });
+  },
+
+  // ═══════════════════════════════════════════════════
+  // CREATE CUSTOM FIELD DIALOG
+  // ═══════════════════════════════════════════════════
+
+  _showCreateFieldDialog() {
+    // Remove existing dialog if any
+    const existing = document.querySelector('.pd-field-dialog-overlay');
+    if (existing) existing.remove();
+
+    const self = this;
+    const overlay = document.createElement('div');
+    overlay.className = 'pd-field-dialog-overlay';
+
+    overlay.innerHTML = `
+      <div class="pd-field-dialog">
+        <div class="pd-field-dialog__header">
+          <h3>Novo campo personalizado</h3>
+          <button class="pd-field-dialog__close" title="Fechar"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
+        </div>
+        <div class="pd-field-dialog__body">
+          <label class="pd-field-dialog__label">Nome do campo</label>
+          <input type="text" class="pd-field-dialog__input" id="pdFieldName" placeholder="Ex: Custo estimado" autofocus>
+
+          <label class="pd-field-dialog__label" style="margin-top:12px;">Tipo</label>
+          <select class="pd-field-dialog__select" id="pdFieldType">
+            <option value="text">Texto</option>
+            <option value="number">Numero</option>
+            <option value="date">Data</option>
+            <option value="select">Selecao</option>
+            <option value="multi_select">Multi-selecao</option>
+            <option value="checkbox">Checkbox</option>
+            <option value="url">URL</option>
+            <option value="user">Pessoa</option>
+          </select>
+
+          <div class="pd-field-dialog__options-section" id="pdFieldOptionsSection" style="display:none;margin-top:12px;">
+            <label class="pd-field-dialog__label">Opcoes</label>
+            <div id="pdFieldOptionsList" class="pd-field-dialog__options-list"></div>
+            <button class="pd-field-dialog__add-option" id="pdAddOption"><i data-lucide="plus" style="width:12px;height:12px;"></i> Adicionar opcao</button>
+          </div>
+        </div>
+        <div class="pd-field-dialog__footer">
+          <button class="pd-field-dialog__btn pd-field-dialog__btn--cancel" id="pdFieldCancel">Cancelar</button>
+          <button class="pd-field-dialog__btn pd-field-dialog__btn--create" id="pdFieldCreate">Criar campo</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    if (typeof lucide !== 'undefined') lucide.createIcons({ root: overlay });
+
+    const nameInput = overlay.querySelector('#pdFieldName');
+    const typeSelect = overlay.querySelector('#pdFieldType');
+    const optionsSection = overlay.querySelector('#pdFieldOptionsSection');
+    const optionsList = overlay.querySelector('#pdFieldOptionsList');
+    const addOptionBtn = overlay.querySelector('#pdAddOption');
+    const cancelBtn = overlay.querySelector('#pdFieldCancel');
+    const createBtn = overlay.querySelector('#pdFieldCreate');
+    const closeBtn = overlay.querySelector('.pd-field-dialog__close');
+
+    // Show/hide options section based on type
+    typeSelect.addEventListener('change', () => {
+      const t = typeSelect.value;
+      optionsSection.style.display = (t === 'select' || t === 'multi_select') ? 'block' : 'none';
     });
+
+    const colors = ['#6b7280', '#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6'];
+    let optionCount = 0;
+
+    const addOptionRow = (val = '', colorIdx = 0) => {
+      const row = document.createElement('div');
+      row.className = 'pd-field-dialog__option-row';
+      row.innerHTML = `
+        <input type="text" class="pd-field-dialog__option-input" value="${self._esc(val)}" placeholder="Opcao ${optionCount + 1}">
+        <input type="color" class="pd-field-dialog__option-color" value="${colors[colorIdx % colors.length]}">
+        <button class="pd-field-dialog__option-remove" title="Remover"><i data-lucide="trash-2" style="width:12px;height:12px;"></i></button>
+      `;
+      optionsList.appendChild(row);
+      if (typeof lucide !== 'undefined') lucide.createIcons({ root: row });
+      row.querySelector('.pd-field-dialog__option-remove').addEventListener('click', () => row.remove());
+      optionCount++;
+    };
+
+    addOptionBtn.addEventListener('click', () => addOptionRow('', optionCount));
+
+    // Close handlers
+    const close = () => overlay.remove();
+    cancelBtn.addEventListener('click', close);
+    closeBtn.addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    // Create handler
+    createBtn.addEventListener('click', async () => {
+      const name = nameInput.value.trim();
+      if (!name) { nameInput.focus(); return; }
+
+      const type = typeSelect.value;
+      let configJson = {};
+
+      if (type === 'select' || type === 'multi_select') {
+        const rows = optionsList.querySelectorAll('.pd-field-dialog__option-row');
+        const opts = [];
+        rows.forEach(r => {
+          const v = r.querySelector('.pd-field-dialog__option-input').value.trim();
+          const c = r.querySelector('.pd-field-dialog__option-color').value;
+          if (v) opts.push({ value: v, color: c });
+        });
+        configJson = { options: opts };
+      }
+
+      try {
+        createBtn.disabled = true;
+        createBtn.textContent = 'Criando...';
+
+        if (typeof DemandFieldsRepo !== 'undefined') {
+          const field = await DemandFieldsRepo.createField({
+            name,
+            type,
+            scope: 'project',
+            project_id: self._params?.id || null,
+            config_json: configJson,
+            is_visible: true,
+            order_index: self._customFieldDefs.length,
+          });
+          if (field) {
+            self._customFieldDefs.push(field);
+            self._syncCustomFieldColumns();
+            self._saveColumnOrder();
+            self._reRenderTasks();
+            if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success(`Campo "${name}" criado`);
+          }
+        }
+        close();
+      } catch (e) {
+        console.error('[PD] create field error:', e);
+        if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro ao criar campo');
+        createBtn.disabled = false;
+        createBtn.textContent = 'Criar campo';
+      }
+    });
+
+    // Focus name input
+    setTimeout(() => nameInput.focus(), 50);
+  },
+
+  // ═══════════════════════════════════════════════════
+  // CUSTOM FIELD INLINE EDITING
+  // ═══════════════════════════════════════════════════
+
+  async _onCustomFieldEdit(demandId, fieldId, newValue) {
+    try {
+      if (typeof DemandFieldsRepo !== 'undefined') {
+        await DemandFieldsRepo.upsertValue(demandId, fieldId, newValue);
+      }
+      if (!this._customFieldValues[demandId]) this._customFieldValues[demandId] = {};
+      this._customFieldValues[demandId][fieldId] = newValue;
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Campo atualizado');
+    } catch (e) {
+      console.error('[PD] custom field save error:', e);
+      if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro ao salvar campo');
+    }
+  },
+
+  _editCustomFieldCell(cell, demandId, fieldId) {
+    const fd = this._customFieldDefs.find(f => f.id === fieldId);
+    if (!fd) return;
+    const curVal = (this._customFieldValues[demandId] || {})[fieldId];
+    const self = this;
+
+    switch (fd.type) {
+      case 'text':
+      case 'url':
+      case 'user': {
+        if (typeof TBO_INLINE_EDITOR !== 'undefined') {
+          TBO_INLINE_EDITOR.attach(cell, {
+            key: 'cf_' + fieldId,
+            type: 'text',
+            value: curVal || '',
+            placeholder: fd.name,
+            onSave: async (val) => {
+              await self._onCustomFieldEdit(demandId, fieldId, val || null);
+              self._reRenderTasks();
+            },
+          });
+        }
+        break;
+      }
+      case 'number': {
+        if (typeof TBO_INLINE_EDITOR !== 'undefined') {
+          TBO_INLINE_EDITOR.attach(cell, {
+            key: 'cf_' + fieldId,
+            type: 'text',
+            value: curVal != null ? String(curVal) : '',
+            placeholder: '0',
+            onSave: async (val) => {
+              const numVal = val === '' ? null : Number(val);
+              await self._onCustomFieldEdit(demandId, fieldId, numVal);
+              self._reRenderTasks();
+            },
+          });
+        }
+        break;
+      }
+      case 'date': {
+        if (typeof TBO_INLINE_EDITOR !== 'undefined') {
+          TBO_INLINE_EDITOR.attach(cell, {
+            key: 'cf_' + fieldId,
+            type: 'date',
+            value: curVal || '',
+            onSave: async (val) => {
+              await self._onCustomFieldEdit(demandId, fieldId, val || null);
+              self._reRenderTasks();
+            },
+          });
+        }
+        break;
+      }
+      case 'select': {
+        const opts = (fd.config_json && fd.config_json.options) || [];
+        if (typeof TBO_INLINE_EDITOR !== 'undefined') {
+          TBO_INLINE_EDITOR.attach(cell, {
+            key: 'cf_' + fieldId,
+            type: 'select',
+            value: curVal || '',
+            options: [{ value: '', label: '— Nenhum —' }, ...opts.map(o => ({ value: o.value, label: o.value }))],
+            onSave: async (val) => {
+              await self._onCustomFieldEdit(demandId, fieldId, val || null);
+              self._reRenderTasks();
+            },
+          });
+        }
+        break;
+      }
+      case 'multi_select': {
+        // Show a simple prompt for now — chips selector to be implemented
+        const opts = (fd.config_json && fd.config_json.options) || [];
+        const current = Array.isArray(curVal) ? curVal.join(', ') : '';
+        const input = prompt(`${fd.name} (separar por virgula):\nOpcoes: ${opts.map(o => o.value).join(', ')}`, current);
+        if (input !== null) {
+          const newArr = input.split(',').map(s => s.trim()).filter(Boolean);
+          self._onCustomFieldEdit(demandId, fieldId, newArr).then(() => self._reRenderTasks());
+        }
+        break;
+      }
+      case 'checkbox':
+        // Handled via checkbox toggle, not cell click
+        break;
+      default: {
+        if (typeof TBO_INLINE_EDITOR !== 'undefined') {
+          TBO_INLINE_EDITOR.attach(cell, {
+            key: 'cf_' + fieldId,
+            type: 'text',
+            value: curVal != null ? String(curVal) : '',
+            onSave: async (val) => {
+              await self._onCustomFieldEdit(demandId, fieldId, val || null);
+              self._reRenderTasks();
+            },
+          });
+        }
+      }
+    }
+  },
+
+  // ── Built-in: start_date inline edit ──
+  _editBuiltinStartDate(cell, demandId) {
+    const demand = this._demands.find(d => d.id === demandId);
+    if (!demand) return;
+    const self = this;
+    if (typeof TBO_INLINE_EDITOR !== 'undefined') {
+      TBO_INLINE_EDITOR.attach(cell, {
+        key: 'start_date',
+        type: 'date',
+        value: demand.start_date || '',
+        onSave: async (val) => {
+          try {
+            const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+            if (client && !String(demandId).startsWith('temp_')) {
+              await client.from('demands').update({ start_date: val || null }).eq('id', demandId);
+            }
+            demand.start_date = val || null;
+            self._reRenderTasks();
+            if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Data de inicio atualizada');
+          } catch (e) {
+            console.error('[PD] start_date save error:', e);
+            if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro ao salvar data');
+          }
+        },
+      });
+    }
+  },
+
+  // ── Built-in: tags inline edit ──
+  _editBuiltinTags(cell, demandId) {
+    const demand = this._demands.find(d => d.id === demandId);
+    if (!demand) return;
+    const self = this;
+    const current = Array.isArray(demand.tags) ? demand.tags.join(', ') : '';
+    const input = prompt('Tags (separar por virgula):', current);
+    if (input !== null) {
+      const newTags = input.split(',').map(s => s.trim()).filter(Boolean);
+      (async () => {
+        try {
+          const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+          if (client && !String(demandId).startsWith('temp_')) {
+            await client.from('demands').update({ tags: newTags }).eq('id', demandId);
+          }
+          demand.tags = newTags;
+          self._reRenderTasks();
+          if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('Tags atualizadas');
+        } catch (e) {
+          console.error('[PD] tags save error:', e);
+          if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.error('Erro ao salvar tags');
+        }
+      })();
+    }
   },
 
   // ═══════════════════════════════════════════════════
@@ -3680,6 +4323,7 @@ const TBO_PROJECT_DETAIL = {
   },
 
   destroy() {
+    if (typeof TBO_CONTEXT_TOOLBAR !== 'undefined') TBO_CONTEXT_TOOLBAR.clear();
     this._destroyTabState();
     this._closeContextMenu();
     this._closeColContextMenu();
@@ -3697,7 +4341,10 @@ const TBO_PROJECT_DETAIL = {
     this._taskDragState = null;
     this._taskDragBound = false;
     this._activeTab = 'lista';
-    // Reset hidden state to defaults
+    this._customFieldDefs = [];
+    this._customFieldValues = {};
+    // Remove custom field columns and reset hidden state to defaults
+    this._COLUMNS = this._COLUMNS.filter(c => !c.key.startsWith('cf_'));
     this._COLUMNS.forEach(c => c.hidden = false);
   },
 

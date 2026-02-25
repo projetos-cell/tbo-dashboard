@@ -32,21 +32,21 @@
    ASANA-STYLE STICKY TOP BAR
    ═══════════════════════════════════════════════════ */
 
+/* pd-topbar-sticky is no longer needed — topbar now renders inside #contextToolbar.
+   Keep class for reference but it's not used in the DOM. */
 .pd-topbar-sticky {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  background: var(--bg-primary, #fff);
-  border-bottom: 1px solid var(--border, #e5e7eb);
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-subtle, var(--border, #e5e7eb));
 }
 
 /* ── LINE 1: Project header row ───────────────────── */
+/* No horizontal padding — container (.tbo-context-toolbar) handles it at 24px */
 .pd-topbar-line1 {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 20px;
+  padding: 0;
   min-height: 48px;
 }
 
@@ -262,8 +262,9 @@
 }
 
 /* ── LINE 2: View tabs ────────────────────────────── */
+/* No horizontal padding — container (.tbo-context-toolbar) handles it */
 .pd-topbar-line2 {
-  padding: 0 20px;
+  padding: 8px 0 0;
   overflow: hidden;
 }
 
@@ -1610,7 +1611,7 @@ body.dark-mode .pd-check:hover {
     gap: 6px;
   }
   .pd-topbar-line2 {
-    padding: 0 12px;
+    padding: 8px 0 0;
   }
   .pd-action-bar {
     padding: 4px 12px;
@@ -2603,4 +2604,365 @@ body.dark-mode .pd-check:hover {
   .pd-kanban-column {
     min-width: 230px;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CUSTOM FIELDS — Cells, Tags, Dialog, Context Menu Additions
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Custom field cells ─────────────────────────────────────── */
+.pd-td-custom {
+  min-width: 100px;
+  cursor: pointer;
+}
+
+.pd-td-custom:hover {
+  background: var(--bg-card-hover, rgba(0,0,0,0.02));
+  border-radius: 4px;
+}
+
+.pd-cf-editable {
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.pd-cf-editable:hover {
+  opacity: 0.7;
+}
+
+.pd-cf-text,
+.pd-cf-number,
+.pd-cf-date,
+.pd-cf-user {
+  font-size: 0.82rem;
+  color: var(--text-primary);
+}
+
+.pd-cf-select {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.pd-cf-checkbox {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent-gold, #E85102);
+  cursor: pointer;
+}
+
+.pd-cf-url {
+  font-size: 0.78rem;
+  color: var(--accent-gold, #E85102);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.pd-cf-url:hover {
+  text-decoration: underline;
+}
+
+/* ── Tags pill (built-in + custom multi_select) ──────────── */
+.pd-tag-pill {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 0.7rem;
+  font-weight: 500;
+  background: rgba(107,114,128,0.10);
+  color: #6b7280;
+  white-space: nowrap;
+  margin-right: 3px;
+  margin-bottom: 2px;
+}
+
+.pd-td-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  min-width: 100px;
+}
+
+/* ── Start date cell ────────────────────────────────────── */
+.pd-td-start-date {
+  cursor: pointer;
+}
+.pd-td-start-date:hover {
+  background: var(--bg-card-hover, rgba(0,0,0,0.02));
+  border-radius: 4px;
+}
+
+/* ── Create field: context menu item highlight ──────────── */
+.pd-col-ctx-item--create {
+  color: var(--accent-gold, #E85102);
+  font-weight: 500;
+}
+.pd-col-ctx-item--create:hover {
+  background: rgba(232,81,2,0.06);
+}
+
+.pd-col-ctx-item--danger {
+  color: #ef4444;
+}
+.pd-col-ctx-item--danger:hover {
+  background: rgba(239,68,68,0.06);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CREATE FIELD DIALOG
+   ═══════════════════════════════════════════════════════════════ */
+
+.pd-field-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pd-fadeIn 0.15s ease;
+}
+
+@keyframes pd-fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.pd-field-dialog {
+  background: var(--bg-card, #fff);
+  border-radius: var(--radius-lg, 12px);
+  width: 380px;
+  max-width: 92vw;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  overflow: hidden;
+  animation: pd-slideUp 0.2s ease;
+}
+
+@keyframes pd-slideUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.pd-field-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--border-subtle, #eaeaea);
+}
+
+.pd-field-dialog__header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pd-field-dialog__close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-xs, 3px);
+}
+.pd-field-dialog__close:hover {
+  background: var(--bg-card-hover, #f5f5f5);
+  color: var(--text-primary);
+}
+
+.pd-field-dialog__body {
+  padding: 16px 20px;
+}
+
+.pd-field-dialog__label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-secondary, #606060);
+  margin-bottom: 6px;
+}
+
+.pd-field-dialog__input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-default, #ddd);
+  border-radius: var(--radius-sm, 6px);
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  background: var(--bg-main, #fff);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.pd-field-dialog__input:focus {
+  border-color: var(--accent-gold, #E85102);
+  box-shadow: 0 0 0 3px rgba(232,81,2,0.08);
+}
+
+.pd-field-dialog__select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-default, #ddd);
+  border-radius: var(--radius-sm, 6px);
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  background: var(--bg-main, #fff);
+  outline: none;
+  cursor: pointer;
+}
+.pd-field-dialog__select:focus {
+  border-color: var(--accent-gold, #E85102);
+  box-shadow: 0 0 0 3px rgba(232,81,2,0.08);
+}
+
+/* Options list for select / multi_select */
+.pd-field-dialog__options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.pd-field-dialog__option-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pd-field-dialog__option-input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border-default, #ddd);
+  border-radius: var(--radius-xs, 4px);
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  background: var(--bg-main, #fff);
+  outline: none;
+}
+.pd-field-dialog__option-input:focus {
+  border-color: var(--accent-gold, #E85102);
+}
+
+.pd-field-dialog__option-color {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-xs, 4px);
+  cursor: pointer;
+  padding: 0;
+}
+
+.pd-field-dialog__option-remove {
+  background: none;
+  border: none;
+  color: var(--text-muted, #9f9f9f);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-xs, 3px);
+}
+.pd-field-dialog__option-remove:hover {
+  color: #ef4444;
+  background: rgba(239,68,68,0.06);
+}
+
+.pd-field-dialog__add-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--accent-gold, #E85102);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 4px 0;
+}
+.pd-field-dialog__add-option:hover {
+  opacity: 0.7;
+}
+
+.pd-field-dialog__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--border-subtle, #eaeaea);
+}
+
+.pd-field-dialog__btn {
+  padding: 7px 16px;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.pd-field-dialog__btn--cancel {
+  background: var(--bg-card-hover, #f5f5f5);
+  color: var(--text-secondary, #606060);
+}
+.pd-field-dialog__btn--cancel:hover {
+  background: var(--border-subtle, #eaeaea);
+}
+
+.pd-field-dialog__btn--create {
+  background: var(--accent-gold, #E85102);
+  color: #fff;
+}
+.pd-field-dialog__btn--create:hover {
+  opacity: 0.9;
+}
+.pd-field-dialog__btn--create:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DARK MODE — Custom Fields + Dialog
+   ═══════════════════════════════════════════════════════════════ */
+
+body.dark-mode .pd-td-custom:hover,
+body.dark-mode .pd-td-start-date:hover {
+  background: var(--bg-card-hover, rgba(255,255,255,0.04));
+}
+
+body.dark-mode .pd-field-dialog {
+  background: var(--bg-card, #1e1e1e);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+body.dark-mode .pd-field-dialog__header {
+  border-bottom-color: var(--border-default, #333);
+}
+
+body.dark-mode .pd-field-dialog__input,
+body.dark-mode .pd-field-dialog__select,
+body.dark-mode .pd-field-dialog__option-input {
+  background: var(--bg-main, #141414);
+  border-color: var(--border-default, #333);
+  color: var(--text-primary);
+}
+
+body.dark-mode .pd-field-dialog__footer {
+  border-top-color: var(--border-default, #333);
+}
+
+body.dark-mode .pd-field-dialog__btn--cancel {
+  background: var(--bg-card-hover, #2a2a2a);
+  color: var(--text-secondary);
+}
+
+body.dark-mode .pd-col-ctx-item--create {
+  color: var(--accent-gold, #E85102);
+}
+
+body.dark-mode .pd-col-ctx-item--danger {
+  color: #f87171;
 }

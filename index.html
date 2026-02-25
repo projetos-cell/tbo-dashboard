@@ -80,6 +80,9 @@
   <link rel="stylesheet" href="modules/quadro-projetos.css">
   <link rel="stylesheet" href="modules/project-detail.css">
 
+  <!-- Context Toolbar (reusable module toolbar) -->
+  <link rel="stylesheet" href="ui/context-toolbar.css">
+
   <!-- UX Improvements Module CSS -->
   <link rel="stylesheet" href="modules/tbo-ux-improvements.css">
 
@@ -249,6 +252,9 @@
         <div class="user-menu" id="userMenu"></div>
       </div>
     </header>
+
+    <!-- Context Toolbar (reusable, driven by each module — outside main for top alignment) -->
+    <div id="contextToolbar" class="tbo-context-toolbar" style="display:none;"></div>
 
     <!-- ─────────────────────────────────────────────────── -->
     <!-- MAIN CONTENT AREA                                     -->
@@ -430,6 +436,7 @@
   <script defer src="src/core/field-engine/FieldEngine.js"></script>
   <script defer src="src/infra/supabase/queries/os-tasks.js"></script>
   <script defer src="src/infra/supabase/queries/os-fields.js"></script>
+  <script defer src="src/infra/supabase/queries/demand-fields.js"></script>
   <script defer src="src/core/task-engine/TaskEngine.js"></script>
   <script defer src="src/core/task-engine/CapabilityMatrix.js"></script>
 
@@ -523,6 +530,7 @@
   <script defer src="utils/api.js"></script>
   <script defer src="utils/storage.js"></script>
   <script defer src="utils/formatter.js"></script>
+  <script defer src="utils/finance-mask.js"></script>
   <script defer src="utils/toast.js"></script>
   <script defer src="utils/router.js"></script>
   <script defer src="utils/shortcuts.js"></script>
@@ -555,6 +563,7 @@
   <script defer src="modules/relatorios.js"></script>
   <script defer src="modules/notion-embed.js"></script>
   <script defer src="modules/system-health.js"></script>
+  <script defer src="ui/context-toolbar.js"></script>
   <script defer src="modules/quadro-projetos.js"></script>
   <script defer src="modules/project-detail.js"></script>
   <script defer src="modules/tbo-ux-improvements.js"></script>

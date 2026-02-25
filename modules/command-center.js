@@ -2,12 +2,15 @@
 // Renders different dashboard variants based on user role.
 const TBO_COMMAND_CENTER = {
 
-  // ── Widget Definitions (size: 'full' = above grid, 'span-2' = 2 cols, '1' = 1 col) ──
+  // ── Widget Definitions (size: 'kpi' = KPI strip above grid, 'span-2' = 2 cols, '1' = 1 col) ──
   _widgets: {
-    'kpis':             { label: 'KPIs',                 icon: 'activity',        zone: 'main', size: 'full' },
+    'kpi-receita':      { label: 'Receita YTD',          icon: 'trending-up',     zone: 'main', size: 'kpi' },
+    'kpi-projetos':     { label: 'Projetos Ativos',      icon: 'folder-kanban',   zone: 'main', size: 'kpi' },
+    'kpi-reunioes':     { label: 'Reunioes 7d',          icon: 'calendar',        zone: 'main', size: 'kpi' },
+    'kpi-margem':       { label: 'Margem YTD',           icon: 'percent',         zone: 'main', size: 'kpi' },
+    'kpi-meta':         { label: 'Meta 2026',            icon: 'target',          zone: 'main', size: 'kpi' },
     'revenue-chart':    { label: 'Receita vs Despesa',   icon: 'bar-chart-3',     zone: 'main', size: 'span-2' },
     'my-tasks':         { label: 'Minhas Tarefas',       icon: 'clipboard-check', zone: 'main', size: '1' },
-    'erp-alerts':       { label: 'Alertas ERP',          icon: 'alert-triangle',  zone: 'main', size: '1' },
     'actions-today':    { label: 'Acoes para Hoje',      icon: 'target',          zone: 'main', size: '1' },
     'business-pulse':   { label: 'Business Pulse',       icon: 'heart-pulse',     zone: 'main', size: '1' },
     'pipeline-funnel':  { label: 'Pipeline',             icon: 'filter',          zone: 'main', size: '1' },
@@ -17,7 +20,7 @@ const TBO_COMMAND_CENTER = {
 
   _getDefaultLayout() {
     return {
-      main: ['kpis', 'revenue-chart', 'my-tasks', 'pipeline-funnel', 'business-pulse', 'erp-alerts', 'actions-today', 'projects-overview', 'people-widget'],
+      main: ['kpi-receita', 'kpi-projetos', 'kpi-reunioes', 'kpi-margem', 'kpi-meta', 'revenue-chart', 'my-tasks', 'pipeline-funnel', 'business-pulse', 'actions-today', 'projects-overview', 'people-widget'],
       sidebar: [],
       hidden: []
     };
@@ -420,7 +423,7 @@ const TBO_COMMAND_CENTER = {
   // ═══════════════════════════════════════════════════════════════════════════
   // v2.2.2: Widgets que contem dados financeiros sensiveis (receita, margem, pipeline values)
   // Apenas founders e finance podem visualizar
-  _financialWidgets: ['business-pulse', 'pipeline-funnel', 'revenue-chart'],
+  _financialWidgets: ['business-pulse', 'pipeline-funnel', 'revenue-chart', 'kpi-receita', 'kpi-margem', 'kpi-meta'],
 
   _isFinancialAccessAllowed() {
     const variant = (typeof TBO_AUTH !== 'undefined') ? TBO_AUTH.getDashboardVariant() : 'full';
@@ -434,41 +437,31 @@ const TBO_COMMAND_CENTER = {
     }
 
     const erpSummary = TBO_STORAGE.getErpSummary ? TBO_STORAGE.getErpSummary() : null;
-    const erpAlerts = (typeof TBO_ERP !== 'undefined') ? TBO_ERP.generateAlerts().slice(0, 8) : [];
     const actionsToday = (typeof TBO_ERP !== 'undefined') ? TBO_ERP.getActionsToday().slice(0, 6) : [];
     const fc = d.dc26.fluxo_caixa || {};
     const receitaYTD = (fc.meses_realizados || []).reduce((s, m) => s + ((fc.receita_mensal || {})[m] || 0), 0);
     const despesaYTD = (fc.meses_realizados || []).reduce((s, m) => s + ((fc.despesa_mensal || {})[m] || 0), 0);
     const resultadoYTD = receitaYTD - despesaYTD;
+    const overdueTasks = erpSummary ? erpSummary.tasks.overdue : 0;
+    const activeProjCount = erpSummary ? erpSummary.projects.active : d.ativos.length;
+    const metaAnual = fc.meta_vendas_anual || 1;
+    const progressMeta = metaAnual > 0 ? ((receitaYTD / metaAnual) * 100) : 0;
+    const margemYTD = receitaYTD > 0 ? ((resultadoYTD / receitaYTD) * 100).toFixed(1) : '0';
 
     switch (widgetId) {
       case 'my-tasks':
         return this._renderMyTasksToday();
 
-      case 'erp-alerts':
-        if (erpAlerts.length === 0) return '';
-        return `
-        <section class="section" style="margin-bottom:16px;">
-          <div class="card" style="border-left:3px solid ${erpAlerts[0].level === 'critical' ? '#ef4444' : '#f59e0b'};padding:16px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-              <h3 style="font-size:0.9rem;font-weight:700;color:var(--text-primary);">Alertas ERP (${erpAlerts.length})</h3>
-              ${erpSummary ? `<div style="display:flex;gap:12px;font-size:0.72rem;color:var(--text-muted);">
-                <span>${erpSummary.projects.active} projetos</span>
-                <span style="color:${erpSummary.tasks.overdue > 0 ? '#ef4444' : '#22c55e'};">${erpSummary.tasks.overdue} atrasadas</span>
-                <span>${erpSummary.deliverables.pendingReview} revisoes</span>
-              </div>` : ''}
-            </div>
-            ${erpAlerts.map(a => `
-              <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-subtle);font-size:0.78rem;">
-                <span style="flex-shrink:0;">${a.icon}</span>
-                <div style="flex:1;">
-                  <div style="font-weight:500;color:${a.level === 'critical' ? '#ef4444' : '#f59e0b'};">${a.title}</div>
-                  <div style="font-size:0.72rem;color:var(--text-muted);">${a.action}</div>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </section>`;
+      case 'kpi-receita':
+        return this._renderKpiReceita(receitaYTD, resultadoYTD, progressMeta);
+      case 'kpi-projetos':
+        return this._renderKpiProjetos(activeProjCount, overdueTasks, d);
+      case 'kpi-reunioes':
+        return this._renderKpiReunioes(d);
+      case 'kpi-margem':
+        return this._renderKpiMargem(margemYTD);
+      case 'kpi-meta':
+        return this._renderKpiMeta(progressMeta, fc);
 
       case 'actions-today':
         if (actionsToday.length === 0) return '';
@@ -486,42 +479,6 @@ const TBO_COMMAND_CENTER = {
                 <span class="tag" style="font-size:0.62rem;">${a.label}</span>
               </div>
             `).join('')}
-          </div>
-        </section>`;
-
-      case 'kpis':
-        // v2.2.2: Card de receita so para founders/finance — outros veem entregas do mes
-        const showFinancialKpi = this._isFinancialAccessAllowed();
-        const kpiFinancialCard = showFinancialKpi
-          ? `<div class="kpi-card kpi-card--gold">
-              <div class="kpi-label">Receita YTD 2026</div>
-              <div class="kpi-value gold">${receitaYTD > 0 ? TBO_FORMATTER.currency(receitaYTD) : '\u2014'}</div>
-              <div class="kpi-change ${resultadoYTD >= 0 ? 'positive' : 'negative'}">${resultadoYTD >= 0 ? '+' : ''}${TBO_FORMATTER.currency(resultadoYTD)} resultado</div>
-            </div>`
-          : `<div class="kpi-card">
-              <div class="kpi-label">Entregas no Mes</div>
-              <div class="kpi-value">${erpSummary ? erpSummary.deliverables?.completed || 0 : d.totalFinalizados || 0}</div>
-              <div class="kpi-change neutral">${d.ativos.length} projetos em andamento</div>
-            </div>`;
-        return `
-        <section class="section">
-          <div class="grid-4" style="margin-bottom:12px;">
-            <div class="kpi-card">
-              <div class="kpi-label">Projetos Ativos</div>
-              <div class="kpi-value">${erpSummary ? erpSummary.projects.active : d.ativos.length}</div>
-              <div class="kpi-change neutral">${erpSummary ? erpSummary.tasks.overdue + ' tarefas atrasadas' : new Set(d.ativos.map(p => p.construtora)).size + ' construtoras'}</div>
-            </div>
-            ${kpiFinancialCard}
-            <div class="kpi-card">
-              <div class="kpi-label">Reunioes (7 dias)</div>
-              <div class="kpi-value">${d.recentMeetings.length}</div>
-              <div class="kpi-change neutral">${d.meetingsArr.length} total registradas</div>
-            </div>
-            <div class="kpi-card">
-              <div class="kpi-label">Action Items</div>
-              <div class="kpi-value">${d.totalActions}</div>
-              <div class="kpi-change neutral">${Object.keys(d.actionsByPerson).length} pessoas</div>
-            </div>
           </div>
         </section>`;
 
@@ -573,14 +530,21 @@ const TBO_COMMAND_CENTER = {
     const progressMeta = metaAnual > 0 ? ((receitaYTD / metaAnual) * 100) : 0;
     const margemYTD = receitaYTD > 0 ? ((resultadoYTD / receitaYTD) * 100).toFixed(1) : '0';
     const erpSummary = TBO_STORAGE.getErpSummary ? TBO_STORAGE.getErpSummary() : null;
-    const erpAlerts = (typeof TBO_ERP !== 'undefined') ? TBO_ERP.generateAlerts().slice(0, 8) : [];
     const actionsToday = (typeof TBO_ERP !== 'undefined') ? TBO_ERP.getActionsToday().slice(0, 6) : [];
     const overdueTasks = erpSummary ? erpSummary.tasks.overdue : 0;
     const activeProjCount = erpSummary ? erpSummary.projects.active : d.ativos.length;
 
     switch (widgetId) {
-      case 'kpis':
-        return this._renderKpiStrip(d, receitaYTD, resultadoYTD, progressMeta, margemYTD, activeProjCount, overdueTasks);
+      case 'kpi-receita':
+        return this._renderKpiReceita(receitaYTD, resultadoYTD, progressMeta);
+      case 'kpi-projetos':
+        return this._renderKpiProjetos(activeProjCount, overdueTasks, d);
+      case 'kpi-reunioes':
+        return this._renderKpiReunioes(d);
+      case 'kpi-margem':
+        return this._renderKpiMargem(margemYTD);
+      case 'kpi-meta':
+        return this._renderKpiMeta(progressMeta, fc);
       case 'revenue-chart':
         return this._renderRevenueChart(d, fc);
       case 'my-tasks':
@@ -589,8 +553,6 @@ const TBO_COMMAND_CENTER = {
         return this._renderPipelineCardV3(d);
       case 'business-pulse':
         return this._renderBusinessPulseV3(d);
-      case 'erp-alerts':
-        return (erpAlerts.length > 0) ? this._renderAlertsCardV3(erpAlerts, erpSummary) : '';
       case 'actions-today':
         return (actionsToday.length > 0) ? this._renderActionsTodayV3(actionsToday) : '';
       case 'projects-overview':
@@ -609,21 +571,25 @@ const TBO_COMMAND_CENTER = {
     const d = this._getData();
     const layout = this._getLayout();
 
-    // ── Render KPIs above grid (full-width, always first if present) ──
+    // ── Render individual KPI cards above grid (full-width strip) ──
+    const kpiIds = layout.main.filter(id => this._widgets[id]?.size === 'kpi');
     let kpiHtml = '';
-    if (layout.main.includes('kpis')) {
-      const kpiContent = this._renderWidgetContentV3('kpis', d);
-      if (kpiContent) {
-        kpiHtml = this._wrapWidget('kpis', kpiContent);
+    if (kpiIds.length > 0) {
+      const kpiCards = kpiIds.map(id => {
+        const content = this._renderWidgetContentV3(id, d);
+        return content ? this._wrapWidget(id, content) : '';
+      }).filter(h => h).join('');
+      if (kpiCards) {
+        kpiHtml = `<div class="cc-kpi-strip">${kpiCards}</div>`;
       }
     }
 
     // ── Render main-zone widgets (iterate layout order) ──
     let mainWidgetsHtml = '';
     for (const wId of layout.main) {
-      if (wId === 'kpis') continue; // Already rendered above grid
       const wDef = this._widgets[wId];
       if (!wDef || wDef.zone !== 'main') continue;
+      if (wDef.size === 'kpi') continue; // Already rendered above grid
 
       const content = this._renderWidgetContentV3(wId, d);
       if (!content || !content.trim()) continue;
@@ -658,70 +624,79 @@ const TBO_COMMAND_CENTER = {
   // V3 WIDGETS — New redesigned widget renderers
   // ═══════════════════════════════════════════════════════════════════════════
 
-  _renderKpiStrip(d, receitaYTD, resultadoYTD, progressMeta, margemYTD, activeProjCount, overdueTasks) {
-    const fc = d.dc26.fluxo_caixa || {};
-    const dc25 = d.dc25;
-    const prev25 = dc25.total_vendido || 0;
-    const growthPct = prev25 > 0 ? (((receitaYTD - prev25) / prev25) * 100).toFixed(0) : 0;
-
+  _renderKpiReceita(receitaYTD, resultadoYTD, progressMeta) {
     return `
-      <div class="cc-kpi-strip">
-        <div class="cc-kpi-card" style="--kpi-accent:#E85102; --kpi-bg:rgba(232,81,2,0.08);">
-          <div class="cc-kpi-header">
-            <span class="cc-kpi-label">Receita YTD</span>
-            <div class="cc-kpi-icon"><i data-lucide="trending-up"></i></div>
-          </div>
-          <div class="cc-kpi-value">${receitaYTD > 0 ? TBO_FORMATTER.currency(receitaYTD) : '\u2014'}</div>
-          <div class="cc-kpi-sub">
-            <span class="cc-kpi-badge ${resultadoYTD >= 0 ? 'up' : 'down'}">${resultadoYTD >= 0 ? '+' : ''}${TBO_FORMATTER.currency(resultadoYTD)}</span>
-            <span>${progressMeta.toFixed(0)}% da meta</span>
-          </div>
+      <div class="cc-kpi-card" style="--kpi-accent:#E85102; --kpi-bg:rgba(232,81,2,0.08);">
+        <div class="cc-kpi-header">
+          <span class="cc-kpi-label">Receita YTD</span>
+          <div class="cc-kpi-icon"><i data-lucide="trending-up"></i></div>
         </div>
-
-        <div class="cc-kpi-card" style="--kpi-accent:#3b82f6; --kpi-bg:rgba(59,130,246,0.08);">
-          <div class="cc-kpi-header">
-            <span class="cc-kpi-label">Projetos Ativos</span>
-            <div class="cc-kpi-icon"><i data-lucide="folder-kanban"></i></div>
-          </div>
-          <div class="cc-kpi-value">${activeProjCount}</div>
-          <div class="cc-kpi-sub">
-            <span class="cc-kpi-badge ${overdueTasks > 0 ? 'down' : 'up'}">${overdueTasks > 0 ? overdueTasks + ' atrasadas' : 'Em dia'}</span>
-            <span>${new Set(d.ativos.map(p => p.construtora)).size} clientes</span>
-          </div>
+        <div class="cc-kpi-value">${receitaYTD > 0 ? TBO_FORMATTER.currency(receitaYTD) : '\u2014'}</div>
+        <div class="cc-kpi-sub">
+          <span class="cc-kpi-badge ${resultadoYTD >= 0 ? 'up' : 'down'}">${resultadoYTD >= 0 ? '+' : ''}${TBO_FORMATTER.currency(resultadoYTD)}</span>
+          <span>${progressMeta.toFixed(0)}% da meta</span>
         </div>
+      </div>
+    `;
+  },
 
-        <div class="cc-kpi-card" style="--kpi-accent:#8b5cf6; --kpi-bg:rgba(139,92,246,0.08);">
-          <div class="cc-kpi-header">
-            <span class="cc-kpi-label">Reunioes (7d)</span>
-            <div class="cc-kpi-icon"><i data-lucide="calendar"></i></div>
-          </div>
-          <div class="cc-kpi-value">${d.recentMeetings.length}</div>
-          <div class="cc-kpi-sub">
-            <span class="cc-kpi-badge neutral">${d.totalActions} action items</span>
-            <span>${d.meetingsArr.length} total</span>
-          </div>
+  _renderKpiProjetos(activeProjCount, overdueTasks, d) {
+    return `
+      <div class="cc-kpi-card" style="--kpi-accent:#3b82f6; --kpi-bg:rgba(59,130,246,0.08);">
+        <div class="cc-kpi-header">
+          <span class="cc-kpi-label">Projetos Ativos</span>
+          <div class="cc-kpi-icon"><i data-lucide="folder-kanban"></i></div>
         </div>
-
-        <div class="cc-kpi-card" style="--kpi-accent:#22c55e; --kpi-bg:rgba(34,197,94,0.08);">
-          <div class="cc-kpi-header">
-            <span class="cc-kpi-label">Margem YTD</span>
-            <div class="cc-kpi-icon"><i data-lucide="percent"></i></div>
-          </div>
-          <div class="cc-kpi-value">${margemYTD}%</div>
-          <div class="cc-kpi-sub">
-            <span class="cc-kpi-badge ${parseFloat(margemYTD) > 0 ? 'up' : 'down'}">${parseFloat(margemYTD) > 0 ? 'Positiva' : 'Negativa'}</span>
-          </div>
+        <div class="cc-kpi-value">${activeProjCount}</div>
+        <div class="cc-kpi-sub">
+          <span class="cc-kpi-badge ${overdueTasks > 0 ? 'down' : 'up'}">${overdueTasks > 0 ? overdueTasks + ' atrasadas' : 'Em dia'}</span>
+          <span>${new Set(d.ativos.map(p => p.construtora)).size} clientes</span>
         </div>
+      </div>
+    `;
+  },
 
-        <div class="cc-kpi-card" style="--kpi-accent:#f59e0b; --kpi-bg:rgba(245,158,11,0.08);">
-          <div class="cc-kpi-header">
-            <span class="cc-kpi-label">Meta 2026</span>
-            <div class="cc-kpi-icon"><i data-lucide="target"></i></div>
-          </div>
-          <div class="cc-kpi-value">${progressMeta.toFixed(0)}%</div>
-          <div class="cc-kpi-sub">
-            <span>${fc.meta_vendas_anual ? TBO_FORMATTER.currency(fc.meta_vendas_anual) : '\u2014'}</span>
-          </div>
+  _renderKpiReunioes(d) {
+    return `
+      <div class="cc-kpi-card" style="--kpi-accent:#8b5cf6; --kpi-bg:rgba(139,92,246,0.08);">
+        <div class="cc-kpi-header">
+          <span class="cc-kpi-label">Reunioes (7d)</span>
+          <div class="cc-kpi-icon"><i data-lucide="calendar"></i></div>
+        </div>
+        <div class="cc-kpi-value">${d.recentMeetings.length}</div>
+        <div class="cc-kpi-sub">
+          <span class="cc-kpi-badge neutral">${d.totalActions} action items</span>
+          <span>${d.meetingsArr.length} total</span>
+        </div>
+      </div>
+    `;
+  },
+
+  _renderKpiMargem(margemYTD) {
+    return `
+      <div class="cc-kpi-card" style="--kpi-accent:#22c55e; --kpi-bg:rgba(34,197,94,0.08);">
+        <div class="cc-kpi-header">
+          <span class="cc-kpi-label">Margem YTD</span>
+          <div class="cc-kpi-icon"><i data-lucide="percent"></i></div>
+        </div>
+        <div class="cc-kpi-value">${margemYTD}%</div>
+        <div class="cc-kpi-sub">
+          <span class="cc-kpi-badge ${parseFloat(margemYTD) > 0 ? 'up' : 'down'}">${parseFloat(margemYTD) > 0 ? 'Positiva' : 'Negativa'}</span>
+        </div>
+      </div>
+    `;
+  },
+
+  _renderKpiMeta(progressMeta, fc) {
+    return `
+      <div class="cc-kpi-card" style="--kpi-accent:#f59e0b; --kpi-bg:rgba(245,158,11,0.08);">
+        <div class="cc-kpi-header">
+          <span class="cc-kpi-label">Meta 2026</span>
+          <div class="cc-kpi-icon"><i data-lucide="target"></i></div>
+        </div>
+        <div class="cc-kpi-value">${progressMeta.toFixed(0)}%</div>
+        <div class="cc-kpi-sub">
+          <span>${fc.meta_vendas_anual ? TBO_FORMATTER.currency(fc.meta_vendas_anual) : '\u2014'}</span>
         </div>
       </div>
     `;
@@ -889,27 +864,6 @@ const TBO_COMMAND_CENTER = {
             }).join('')}
           </div>
           ${d.ativos.length > 6 ? `<div style="text-align:center;margin-top:10px;"><button class="btn btn-sm btn-ghost" onclick="TBO_ROUTER.navigate('projetos')" style="color:var(--brand-orange);">+${d.ativos.length - 6} projetos</button></div>` : ''}
-        </div>
-      </div>
-    `;
-  },
-
-  _renderAlertsCardV3(erpAlerts, erpSummary) {
-    return `
-      <div class="cc-card">
-        <div class="cc-card-header">
-          <span class="cc-card-title"><i data-lucide="alert-triangle"></i> Alertas (${erpAlerts.length})</span>
-        </div>
-        <div class="cc-card-body">
-          ${erpAlerts.slice(0, 4).map(a => `
-            <div class="cc-timeline-item">
-              <span class="cc-timeline-dot" style="background:${a.level === 'critical' ? '#ef4444' : '#f59e0b'};"></span>
-              <div class="cc-timeline-content">
-                <div class="cc-timeline-title" style="color:${a.level === 'critical' ? '#ef4444' : '#f59e0b'};">${a.title}</div>
-                <div class="cc-timeline-meta">${a.action}</div>
-              </div>
-            </div>
-          `).join('')}
         </div>
       </div>
     `;
@@ -1894,6 +1848,7 @@ const TBO_COMMAND_CENTER = {
               displayColors: true,
               callbacks: {
                 label: function(ctx) {
+                  if (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked()) return ctx.dataset.label + ': R$ ••••••';
                   return ctx.dataset.label + ': R$ ' + (ctx.raw || 0).toLocaleString('pt-BR');
                 }
               }

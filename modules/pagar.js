@@ -33,7 +33,9 @@ const TBO_PAGAR = {
     const activeProjects = projects.filter(p => !['finalizado','cancelado'].includes(p.status));
     const totalPlannedCost = activeProjects.reduce((s, p) => s + (p.planned_cost || 0), 0);
 
-    const fmt = (v) => 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
+    const fmt = (v) => (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked())
+      ? 'R$ ••••••'
+      : 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
 
     return `
       <div class="pagar-module">
@@ -135,7 +137,9 @@ const TBO_PAGAR = {
 
   _renderCatBar(label, value, total, color) {
     const pct = total > 0 ? Math.round((value / total) * 100) : 0;
-    const fmt = (v) => 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
+    const fmt = (v) => (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked())
+      ? 'R$ ••••••'
+      : 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
     return `<div style="margin-bottom:14px;">
       <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:4px;">
         <span style="font-weight:600;">${label}</span>
@@ -151,7 +155,9 @@ const TBO_PAGAR = {
     if (equipe.length === 0) {
       return '<div class="card" style="padding:32px;text-align:center;color:var(--text-muted);">Nenhum dado de equipe disponivel.</div>';
     }
-    const fmt = (v) => 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
+    const fmt = (v) => (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked())
+      ? 'R$ ••••••'
+      : 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
     const totalMensal = equipe.reduce((s, e) => s + (e.salario || 0), 0);
     const sorted = [...equipe].sort((a, b) => (b.salario || 0) - (a.salario || 0));
 
@@ -193,7 +199,9 @@ const TBO_PAGAR = {
     if (projects.length === 0) {
       return '<div class="card" style="padding:32px;text-align:center;color:var(--text-muted);">Nenhum projeto ativo com custos.</div>';
     }
-    const fmt = (v) => 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
+    const fmt = (v) => (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked())
+      ? 'R$ ••••••'
+      : 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
     const hasWorkload = typeof TBO_WORKLOAD !== 'undefined';
 
     return `<div class="card" style="padding:16px;overflow-x:auto;">

@@ -8,10 +8,17 @@ const TBO_QUADRO_PROJETOS = {
   _listSort: { col: 'name', dir: 'asc' },
   _loaded: false,
 
+  // ── Board column config (dynamic, persisted in localStorage) ──────────────
+  _boardColumns: null,
+  _sortableCards: [],
+  _sortableBoard: null,
+  _BOARD_STORAGE_KEY: 'tbo_qp_board_columns',
+
   // ── Status config ──────────────────────────────────────────────────────────
   _STATUS: {
     em_andamento: { label: 'Em Andamento', color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', icon: 'play-circle' },
     producao:     { label: 'Em Produção',  color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)', icon: 'zap' },
+    em_revisao:   { label: 'Em Revisão',   color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', icon: 'eye' },
     finalizado:   { label: 'Finalizado',   color: '#22c55e', bg: 'rgba(34,197,94,0.12)',  icon: 'check-circle-2' },
     parado:       { label: 'Parado',       color: '#ef4444', bg: 'rgba(239,68,68,0.12)',  icon: 'pause-circle' },
     pausado:      { label: 'Pausado',      color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', icon: 'clock' },
@@ -32,58 +39,20 @@ const TBO_QUADRO_PROJETOS = {
     setTimeout(() => this._load(), 0);
     return `
       <div class="quadro-projetos-module" id="quadroProjetos">
-        <div class="qp-toolbar">
-          <div class="qp-title">
-            <i data-lucide="layout-dashboard" style="width:18px;height:18px;"></i>
-            Quadro de Projetos
-          </div>
-          <div class="qp-toolbar-actions">
-            <input type="text" class="qp-search" id="qpSearch" placeholder="Buscar projeto..." autocomplete="off">
-            <select class="qp-filter" id="qpFilterStatus">
-              <option value="all">Todos os status</option>
-              <option value="em_andamento">Em Andamento</option>
-              <option value="producao">Em Produção</option>
-              <option value="parado">Parado</option>
-              <option value="pausado">Pausado</option>
-              <option value="finalizado">Finalizado</option>
-            </select>
-            <select class="qp-filter" id="qpFilterBU">
-              <option value="">Todas as BUs</option>
-              <option value="Branding">Branding</option>
-              <option value="Digital 3D">Digital 3D</option>
-              <option value="Marketing">Marketing</option>
-              <option value="Audiovisual">Audiovisual</option>
-              <option value="Interiores">Interiores</option>
-            </select>
-            <select class="qp-filter" id="qpFilterConstrutora">
-              <option value="">Todas as construtoras</option>
-            </select>
-            <button class="qp-density-btn" onclick="typeof TBO_UX_IMPROVEMENTS!=='undefined'&&TBO_UX_IMPROVEMENTS.toggleDensity()" title="Alternar densidade">
-              <i data-lucide="rows-3" style="width:15px;height:15px;"></i>
-            </button>
-            <div class="qp-view-toggle">
-              <button class="qp-view-btn active" id="qpViewBoard" title="Quadro Kanban">
-                <i data-lucide="layout-grid" style="width:15px;height:15px;"></i>
-              </button>
-              <button class="qp-view-btn" id="qpViewList" title="Lista">
-                <i data-lucide="list" style="width:15px;height:15px;"></i>
-              </button>
-              <button class="qp-view-btn" id="qpViewGantt" title="Gantt / Timeline">
-                <i data-lucide="gantt-chart" style="width:15px;height:15px;"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-
         <div id="qpKpis" class="qp-kpis">
           ${this._renderKpiSkeleton()}
         </div>
-
         <div id="qpContent" class="qp-content">
           ${this._renderLoadingSkeleton()}
         </div>
       </div>
     `;
+  },
+
+  /** Called by router when navigating away — cleans up the context toolbar */
+  destroy() {
+    this._destroySortables();
+    if (typeof TBO_CONTEXT_TOOLBAR !== 'undefined') TBO_CONTEXT_TOOLBAR.clear();
   },
 
   async _load() {
@@ -142,10 +111,10 @@ const TBO_QUADRO_PROJETOS = {
       }
 
       this._loaded = true;
-      this._populateConstrutoraFilter();
+      this._renderToolbar();
       this._renderKpis();
       this._renderContent();
-      this._bindEvents();
+      this._bindContentEvents();
       if (typeof lucide !== 'undefined') lucide.createIcons();
     } catch (err) {
       console.error('[TBO QP] Load error:', err);
@@ -182,21 +151,125 @@ const TBO_QUADRO_PROJETOS = {
   },
 
   _statusInfo(status) {
-    return this._STATUS[status] || { label: status, color: '#6b7280', bg: 'rgba(107,114,128,0.12)', icon: 'circle' };
+    if (this._STATUS[status]) return this._STATUS[status];
+    // Check dynamic board columns for custom statuses
+    if (this._boardColumns) {
+      const col = this._boardColumns.find(c => c.key === status);
+      if (col) return { label: col.label, color: col.color, bg: this._hexToRgba(col.color, 0.12), icon: col.icon || 'circle' };
+    }
+    return { label: status, color: '#6b7280', bg: 'rgba(107,114,128,0.12)', icon: 'circle' };
   },
 
-  // ── Populate construtora filter ────────────────────────────────────────────
-  _populateConstrutoraFilter() {
-    const sel = document.getElementById('qpFilterConstrutora');
-    if (!sel) return;
-    // preserve existing options (avoid duplicates on re-render)
-    if (sel.options.length > 1) return;
-    const unique = [...new Set(this._data.projects.map(p => p.construtora).filter(Boolean))].sort();
-    unique.forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c; opt.textContent = c;
-      sel.appendChild(opt);
+  _hexToRgba(hex, alpha) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  },
+
+  // ── Board column persistence (localStorage) ──────────────────────────────
+  _getStorageKey() {
+    let tid = '';
+    try {
+      if (typeof RepoBase !== 'undefined' && RepoBase.requireTenantId) tid = RepoBase.requireTenantId();
+    } catch (_e) { /* ignore */ }
+    return this._BOARD_STORAGE_KEY + (tid ? '_' + tid : '');
+  },
+
+  _loadBoardColumns() {
+    const defaults = [
+      { key: 'parado',       label: 'Parado',        color: '#ef4444', icon: 'pause-circle' },
+      { key: 'em_andamento', label: 'Em Andamento',   color: '#3b82f6', icon: 'play-circle' },
+      { key: 'producao',     label: 'Em Produção',    color: '#8b5cf6', icon: 'zap' },
+      { key: 'em_revisao',   label: 'Em Revisão',     color: '#f59e0b', icon: 'eye' },
+      { key: 'finalizado',   label: 'Finalizado',     color: '#22c55e', icon: 'check-circle-2' },
+      { key: 'pausado',      label: 'Pausado',        color: '#f59e0b', icon: 'clock' },
+    ];
+    try {
+      const saved = localStorage.getItem(this._getStorageKey());
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed.every(c => c.key && c.label)) {
+          this._boardColumns = parsed;
+          return;
+        }
+      }
+    } catch (_e) { /* ignore */ }
+    this._boardColumns = defaults;
+  },
+
+  _saveBoardColumns() {
+    try { localStorage.setItem(this._getStorageKey(), JSON.stringify(this._boardColumns)); } catch (_e) { /* ignore */ }
+  },
+
+  // ── Context Toolbar (via TBO_CONTEXT_TOOLBAR) ─────────────────────────────
+  _renderToolbar() {
+    if (typeof TBO_CONTEXT_TOOLBAR === 'undefined') return;
+
+    // Dynamic construtora options from loaded data
+    const construtoras = [...new Set(this._data.projects.map(p => p.construtora).filter(Boolean))].sort();
+    const construtoraOpts = [{ value: '', label: 'Todas as construtoras' }]
+      .concat(construtoras.map(c => ({ value: c, label: c })));
+
+    TBO_CONTEXT_TOOLBAR.render({
+      moduleId: 'quadro-projetos',
+      title: 'Quadro de Projetos',
+      icon: 'layout-dashboard',
+      filters: [
+        { id: 'search', type: 'text', label: 'Buscar projeto...', value: this._filters.search, debounceMs: 300 },
+        { id: 'status', type: 'select', label: 'Status', value: this._filters.status, options: [
+          { value: 'all', label: 'Todos os status' },
+          { value: 'em_andamento', label: 'Em Andamento' },
+          { value: 'producao', label: 'Em Produção' },
+          { value: 'em_revisao', label: 'Em Revisão' },
+          { value: 'parado', label: 'Parado' },
+          { value: 'pausado', label: 'Pausado' },
+          { value: 'finalizado', label: 'Finalizado' },
+        ]},
+        { id: 'bus', type: 'select', label: 'BU', value: this._filters.bus, options: [
+          { value: '', label: 'Todas as BUs' },
+          { value: 'Branding', label: 'Branding' },
+          { value: 'Digital 3D', label: 'Digital 3D' },
+          { value: 'Marketing', label: 'Marketing' },
+          { value: 'Audiovisual', label: 'Audiovisual' },
+          { value: 'Interiores', label: 'Interiores' },
+        ]},
+        { id: 'construtora', type: 'select', label: 'Construtora', value: this._filters.construtora, options: construtoraOpts },
+      ],
+      viewModes: [
+        { id: 'board', label: 'Quadro Kanban', icon: 'layout-grid' },
+        { id: 'list',  label: 'Lista',         icon: 'list' },
+        { id: 'gantt', label: 'Gantt / Timeline', icon: 'gantt-chart' },
+      ],
+      activeView: this._view,
+      actions: [
+        { id: 'new-project', label: 'Novo Projeto', icon: 'plus', variant: 'primary', onClick: () => this._openNewProjectDialog() },
+      ],
+      extraActions: [
+        { id: 'density', icon: 'rows-3', variant: 'ghost', tooltip: 'Alternar densidade',
+          onClick: () => { if (typeof TBO_UX_IMPROVEMENTS !== 'undefined') TBO_UX_IMPROVEMENTS.toggleDensity(); }
+        },
+      ],
+      onFilterChange: (filterId, value) => {
+        this._filters[filterId] = value;
+        this._renderContent();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      },
+      onViewChange: (viewId) => {
+        this._view = viewId;
+        this._renderContent();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      },
     });
+  },
+
+  /** Stub — will open a new-project dialog in a future iteration */
+  _openNewProjectDialog() {
+    if (typeof TBO_TOAST !== 'undefined') {
+      TBO_TOAST.show('Em breve: criação de projetos pelo Quadro', 'info');
+    } else {
+      alert('Em breve: criação de projetos pelo Quadro');
+    }
   },
 
   // ── KPIs ────────────────────────────────────────────────────────────────────
@@ -242,40 +315,88 @@ const TBO_QUADRO_PROJETOS = {
   _renderContent() {
     const el = document.getElementById('qpContent');
     if (!el) return;
-    if (this._view === 'board')       el.innerHTML = this._renderBoard();
-    else if (this._view === 'list')   el.innerHTML = this._renderList();
-    else if (this._view === 'gantt')  el.innerHTML = this._renderGantt();
+    this._destroySortables();
+    if (this._view === 'board') {
+      el.innerHTML = this._renderBoard();
+      this._initSortableCards();
+      this._initSortableColumns();
+    } else if (this._view === 'list') {
+      el.innerHTML = this._renderList();
+    } else if (this._view === 'gantt') {
+      el.innerHTML = this._renderGantt();
+    }
     if (typeof lucide !== 'undefined') lucide.createIcons();
     if (this._view === 'gantt') this._bindGanttScroll();
   },
 
   // ── BOARD VIEW ─────────────────────────────────────────────────────────────
   _renderBoard() {
-    const statusOrder = ['em_andamento', 'producao', 'pausado', 'parado', 'finalizado'];
+    if (!this._boardColumns) this._loadBoardColumns();
     const filtered = this._filtered();
-    const columns = statusOrder.map(s => {
-      const info = this._statusInfo(s);
-      const cards = filtered.filter(p => p.status === s);
-      return { status: s, info, cards };
+    const configuredKeys = new Set(this._boardColumns.map(c => c.key));
+
+    // Build columns from dynamic config
+    const columns = this._boardColumns.map(col => {
+      const info = this._statusInfo(col.key);
+      const cards = filtered.filter(p => p.status === col.key);
+      return { status: col.key, info, cards, config: col };
     });
+
+    // Detect orphan projects (status not in any configured column)
+    const orphanStatuses = [...new Set(filtered.map(p => p.status).filter(s => s && !configuredKeys.has(s)))];
+    const orphanCards = filtered.filter(p => p.status && !configuredKeys.has(p.status));
+
+    const renderCol = (col, isOrphan) => `
+      <div class="qp-column${isOrphan ? ' qp-column-orphan' : ''}" data-status="${col.status}">
+        <div class="qp-column-header" style="border-top:3px solid ${col.info.color};">
+          ${!isOrphan ? `<div class="qp-column-drag-handle" title="Arrastar para reordenar">
+            <i data-lucide="grip-vertical" style="width:12px;height:12px;"></i>
+          </div>` : ''}
+          <span class="qp-column-title">
+            <i data-lucide="${col.info.icon}" style="width:14px;height:14px;color:${col.info.color};"></i>
+            <span class="qp-column-title-text">${col.info.label}</span>
+          </span>
+          <span class="qp-column-count" style="background:${col.info.bg};color:${col.info.color};">${col.cards.length}</span>
+          ${!isOrphan ? `<div class="qp-column-header-actions">
+            <button class="qp-column-delete-btn" data-status="${col.status}" title="Remover coluna">
+              <i data-lucide="trash-2" style="width:12px;height:12px;"></i>
+            </button>
+          </div>` : ''}
+        </div>
+        <div class="qp-column-body" id="qpColBody_${col.status}">
+          ${col.cards.length === 0
+            ? '<div class="qp-empty-col">Nenhum projeto</div>'
+            : col.cards.map(p => this._renderProjectCard(p)).join('')}
+        </div>
+        <div class="qp-column-footer">
+          <button class="qp-column-add-card-btn" data-status="${col.status}" title="Novo projeto nesta coluna">
+            <i data-lucide="plus" style="width:12px;height:12px;"></i>
+            <span style="font-size:0.72rem;">Novo</span>
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Orphan column (if any)
+    let orphanHtml = '';
+    if (orphanCards.length > 0) {
+      orphanHtml = renderCol({
+        status: '__orphan__',
+        info: { label: `Outros (${orphanCards.length})`, color: '#6b7280', bg: 'rgba(107,114,128,0.12)', icon: 'circle' },
+        cards: orphanCards,
+      }, true);
+    }
+
     return `
       <div class="qp-board">
-        ${columns.map(col => `
-          <div class="qp-column">
-            <div class="qp-column-header" style="border-top:3px solid ${col.info.color};">
-              <span class="qp-column-title">
-                <i data-lucide="${col.info.icon}" style="width:14px;height:14px;color:${col.info.color};"></i>
-                ${col.info.label}
-              </span>
-              <span class="qp-column-count" style="background:${col.info.bg};color:${col.info.color};">${col.cards.length}</span>
-            </div>
-            <div class="qp-column-body">
-              ${col.cards.length === 0
-                ? `<div class="qp-empty-col">Nenhum projeto</div>`
-                : col.cards.map(p => this._renderProjectCard(p)).join('')}
-            </div>
-          </div>
-        `).join('')}
+        ${columns.map(col => renderCol(col, false)).join('')}
+        ${orphanHtml}
+        <div class="qp-column qp-column-add">
+          <button class="qp-add-column-btn">
+            <i data-lucide="plus" style="width:16px;height:16px;"></i>
+            Adicionar coluna
+          </button>
+        </div>
       </div>
     `;
   },
@@ -670,6 +791,496 @@ const TBO_QUADRO_PROJETOS = {
     }
   },
 
+  // ── SortableJS — drag-and-drop ──────────────────────────────────────────────
+  _initSortableCards() {
+    if (typeof Sortable === 'undefined') return;
+    const bodies = document.querySelectorAll('.qp-column-body');
+    bodies.forEach(body => {
+      const instance = Sortable.create(body, {
+        group: 'kanban-cards',
+        animation: 150,
+        draggable: '.qp-card',
+        ghostClass: 'qp-card-ghost',
+        chosenClass: 'qp-card-chosen',
+        dragClass: 'qp-card-drag',
+        fallbackOnBody: true,
+        swapThreshold: 0.65,
+        onEnd: (evt) => this._onCardDrop(evt),
+      });
+      this._sortableCards.push(instance);
+    });
+  },
+
+  _initSortableColumns() {
+    const board = document.querySelector('.qp-board');
+    if (!board || typeof Sortable === 'undefined') return;
+    this._sortableBoard = Sortable.create(board, {
+      animation: 200,
+      draggable: '.qp-column:not(.qp-column-add):not(.qp-column-orphan)',
+      handle: '.qp-column-drag-handle',
+      ghostClass: 'qp-column-ghost',
+      chosenClass: 'qp-column-chosen',
+      onEnd: (evt) => this._onColumnReorder(evt),
+    });
+  },
+
+  _destroySortables() {
+    this._sortableCards.forEach(s => { try { s.destroy(); } catch (_e) { /* */ } });
+    this._sortableCards = [];
+    if (this._sortableBoard) { try { this._sortableBoard.destroy(); } catch (_e) { /* */ } this._sortableBoard = null; }
+  },
+
+  // ── moveCard — drag card between columns ──────────────────────────────────
+  async _onCardDrop(evt) {
+    const cardEl = evt.item;
+    const projectId = cardEl.dataset.id;
+    const newColBody = evt.to;
+    const newColEl = newColBody.closest('.qp-column');
+    const newStatus = newColEl ? newColEl.dataset.status : null;
+    if (!projectId || !newStatus || newStatus === '__orphan__') return;
+
+    const proj = this._data.projects.find(p => p.id === projectId);
+    const oldStatus = proj ? proj.status : null;
+    if (proj) proj.status = newStatus;
+
+    this._updateColumnCounts();
+    this._renderKpis();
+
+    try {
+      await this._saveField(projectId, 'status', newStatus);
+    } catch (err) {
+      if (proj && oldStatus) proj.status = oldStatus;
+      this._renderContent();
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+  },
+
+  _updateColumnCounts() {
+    const filtered = this._filtered();
+    document.querySelectorAll('.qp-column[data-status]').forEach(colEl => {
+      const key = colEl.dataset.status;
+      const countEl = colEl.querySelector('.qp-column-count');
+      if (countEl) {
+        const count = filtered.filter(p => p.status === key).length;
+        countEl.textContent = count;
+      }
+    });
+  },
+
+  // ── moveColumn — reorder columns via drag ─────────────────────────────────
+  _onColumnReorder(evt) {
+    const cols = document.querySelectorAll('.qp-column:not(.qp-column-add):not(.qp-column-orphan)');
+    const newOrder = [...cols].map(el => el.dataset.status).filter(Boolean);
+    const ordered = newOrder.map(key => this._boardColumns.find(c => c.key === key)).filter(Boolean);
+    this._boardColumns = ordered;
+    this._saveBoardColumns();
+  },
+
+  // ── createCard — inline form at bottom of column ──────────────────────────
+  _createCard(statusKey) {
+    const body = document.getElementById('qpColBody_' + statusKey);
+    if (!body) return;
+    if (body.querySelector('.qp-card-create-form')) return;
+
+    // Remove "Nenhum projeto" empty state if present
+    const emptyEl = body.querySelector('.qp-empty-col');
+    if (emptyEl) emptyEl.remove();
+
+    const form = document.createElement('div');
+    form.className = 'qp-card-create-form';
+    form.innerHTML = `
+      <input type="text" class="qp-card-create-input" placeholder="Nome do projeto..." autofocus>
+      <div class="qp-card-create-actions">
+        <button class="qp-card-create-save" title="Salvar (Enter)">
+          <i data-lucide="check" style="width:14px;height:14px;"></i>
+        </button>
+        <button class="qp-card-create-cancel" title="Cancelar (Esc)">
+          <i data-lucide="x" style="width:14px;height:14px;"></i>
+        </button>
+      </div>
+    `;
+    body.appendChild(form);
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    const input = form.querySelector('.qp-card-create-input');
+    input.focus();
+
+    const save = async () => {
+      const name = input.value.trim();
+      if (!name) { form.remove(); return; }
+
+      const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+      if (!client) { if (form.parentNode) form.remove(); return; }
+
+      let tid = null;
+      try { tid = typeof RepoBase !== 'undefined' ? await RepoBase.resolveTenantId() : null; } catch (_e) { /* */ }
+
+      const newProject = { name, status: statusKey };
+      if (tid) newProject.tenant_id = tid;
+
+      try {
+        const { data, error } = await client.from('projects').insert(newProject).select().single();
+        if (error) throw error;
+
+        this._data.projects.push(data);
+        form.remove();
+        this._renderContent();
+        this._renderKpis();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        this._showSaveToast('Projeto criado');
+      } catch (err) {
+        console.error('[TBO QP] Create card error:', err);
+        this._showSaveToast('Erro ao criar projeto', true);
+      }
+    };
+
+    const cancel = () => form.remove();
+
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); save(); }
+      if (e.key === 'Escape') cancel();
+    });
+    form.querySelector('.qp-card-create-save').addEventListener('click', save);
+    form.querySelector('.qp-card-create-cancel').addEventListener('click', cancel);
+  },
+
+  // ── renameColumn — double-click inline edit ───────────────────────────────
+  _renameColumn(statusKey) {
+    const colEl = document.querySelector(`.qp-column[data-status="${statusKey}"]`);
+    if (!colEl) return;
+    const titleEl = colEl.querySelector('.qp-column-title-text');
+    if (!titleEl || titleEl.querySelector('input')) return;
+
+    const col = this._boardColumns.find(c => c.key === statusKey);
+    if (!col) return;
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'qp-column-rename-input';
+    input.value = col.label;
+
+    const originalText = titleEl.textContent;
+    titleEl.textContent = '';
+    titleEl.appendChild(input);
+    input.focus();
+    input.select();
+
+    const save = () => {
+      const newLabel = input.value.trim();
+      if (newLabel && newLabel !== col.label) {
+        col.label = newLabel;
+        if (this._STATUS[statusKey]) this._STATUS[statusKey].label = newLabel;
+        this._saveBoardColumns();
+      }
+      titleEl.textContent = col.label;
+    };
+
+    input.addEventListener('blur', save);
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+      if (e.key === 'Escape') { titleEl.textContent = originalText; }
+    });
+  },
+
+  // ── addColumn — modal dialog ──────────────────────────────────────────────
+  _COLOR_PRESETS: [
+    '#ef4444', '#f59e0b', '#22c55e', '#3b82f6',
+    '#8b5cf6', '#ec4899', '#14b8a6', '#6b7280',
+  ],
+
+  _addColumn() {
+    if (document.querySelector('.qp-add-col-overlay')) return;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'qp-add-col-overlay';
+    overlay.innerHTML = `
+      <div class="qp-add-col-modal">
+        <div class="qp-add-col-title">Adicionar coluna</div>
+        <div class="qp-add-col-field">
+          <label class="qp-add-col-label">Nome</label>
+          <input type="text" class="qp-add-col-input" placeholder="Ex: Em Revisão..." autofocus>
+        </div>
+        <div class="qp-add-col-field">
+          <label class="qp-add-col-label">Cor</label>
+          <div class="qp-color-swatches">
+            ${this._COLOR_PRESETS.map((c, i) =>
+              `<div class="qp-color-swatch${i === 0 ? ' selected' : ''}" data-color="${c}" style="background:${c};"></div>`
+            ).join('')}
+          </div>
+        </div>
+        <div class="qp-add-col-actions">
+          <button class="qp-add-col-btn qp-add-col-btn-cancel">Cancelar</button>
+          <button class="qp-add-col-btn qp-add-col-btn-save">Criar</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('qp-add-col-overlay--visible'));
+
+    const input = overlay.querySelector('.qp-add-col-input');
+    let selectedColor = this._COLOR_PRESETS[0];
+    input.focus();
+
+    // Color swatch selection
+    overlay.querySelector('.qp-color-swatches').addEventListener('click', e => {
+      const swatch = e.target.closest('.qp-color-swatch');
+      if (!swatch) return;
+      overlay.querySelectorAll('.qp-color-swatch').forEach(s => s.classList.remove('selected'));
+      swatch.classList.add('selected');
+      selectedColor = swatch.dataset.color;
+    });
+
+    const close = () => {
+      overlay.classList.remove('qp-add-col-overlay--visible');
+      setTimeout(() => overlay.remove(), 150);
+    };
+
+    const save = () => {
+      const label = input.value.trim();
+      if (!label) { input.focus(); return; }
+
+      let key = label.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+      if (!key) key = 'col_' + Date.now();
+
+      // Avoid duplicate keys
+      const existing = new Set(this._boardColumns.map(c => c.key));
+      let finalKey = key;
+      let suffix = 2;
+      while (existing.has(finalKey)) { finalKey = key + '_' + suffix++; }
+
+      this._boardColumns.push({ key: finalKey, label, color: selectedColor, icon: 'circle' });
+      this._saveBoardColumns();
+      close();
+      this._renderContent();
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    };
+
+    overlay.querySelector('.qp-add-col-btn-cancel').addEventListener('click', close);
+    overlay.querySelector('.qp-add-col-btn-save').addEventListener('click', save);
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); save(); }
+      if (e.key === 'Escape') close();
+    });
+  },
+
+  // ── deleteColumn — confirm + move cards ───────────────────────────────────
+  async _deleteColumn(statusKey) {
+    const col = this._boardColumns.find(c => c.key === statusKey);
+    if (!col) return;
+    const cardsInCol = this._data.projects.filter(p => p.status === statusKey);
+    const otherCols = this._boardColumns.filter(c => c.key !== statusKey);
+
+    if (cardsInCol.length > 0 && otherCols.length > 0) {
+      // Show move-cards dialog
+      const targetKey = await this._showMoveCardsDialog(col.label, cardsInCol.length, otherCols);
+      if (!targetKey) return;
+
+      // Batch update in Supabase
+      for (const p of cardsInCol) {
+        try {
+          await this._saveField(p.id, 'status', targetKey);
+          p.status = targetKey;
+        } catch (err) {
+          console.error('[TBO QP] Move card error:', err);
+        }
+      }
+    } else if (cardsInCol.length > 0 && otherCols.length === 0) {
+      // Cannot delete last column when it has cards
+      const alertFn = typeof TBO_FEEDBACK !== 'undefined' && TBO_FEEDBACK.toast
+        ? (msg) => TBO_FEEDBACK.toast(msg, 'warning')
+        : (msg) => alert(msg);
+      alertFn(`Não é possível remover "${col.label}" — ela contém ${cardsInCol.length} projeto(s) e não há outra coluna para movê-los.`);
+      return;
+    } else {
+      // Simple confirmation for empty column
+      const confirmFn = typeof TBO_FEEDBACK !== 'undefined' && TBO_FEEDBACK.confirm
+        ? TBO_FEEDBACK.confirm.bind(TBO_FEEDBACK)
+        : (msg) => Promise.resolve(confirm(msg));
+
+      const confirmed = await confirmFn(`Remover a coluna "${col.label}"?`, { title: 'Remover coluna', confirmLabel: 'Remover', danger: true });
+      if (!confirmed) return;
+    }
+
+    this._boardColumns = this._boardColumns.filter(c => c.key !== statusKey);
+    this._saveBoardColumns();
+    this._renderContent();
+    this._renderKpis();
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    this._showSaveToast('Coluna removida');
+  },
+
+  _showMoveCardsDialog(fromLabel, cardCount, targetCols) {
+    return new Promise(resolve => {
+      const overlay = document.createElement('div');
+      overlay.className = 'qp-add-col-overlay';
+      overlay.innerHTML = `
+        <div class="qp-add-col-modal">
+          <div class="qp-add-col-title">Mover ${cardCount} projeto(s)</div>
+          <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 12px;">
+            A coluna "${fromLabel}" tem projetos. Mova-os antes de remover.
+          </p>
+          <div class="qp-add-col-field">
+            <label class="qp-add-col-label">Mover para</label>
+            <select class="qp-move-cards-select">
+              ${targetCols.map(c => `<option value="${c.key}">${c.label}</option>`).join('')}
+            </select>
+          </div>
+          <div class="qp-add-col-actions">
+            <button class="qp-add-col-btn qp-add-col-btn-cancel">Cancelar</button>
+            <button class="qp-add-col-btn qp-add-col-btn-save">Mover e remover</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => overlay.classList.add('qp-add-col-overlay--visible'));
+
+      const close = (result) => {
+        overlay.classList.remove('qp-add-col-overlay--visible');
+        setTimeout(() => overlay.remove(), 150);
+        resolve(result);
+      };
+
+      overlay.querySelector('.qp-add-col-btn-cancel').addEventListener('click', () => close(null));
+      overlay.querySelector('.qp-add-col-btn-save').addEventListener('click', () => {
+        const sel = overlay.querySelector('.qp-move-cards-select');
+        close(sel.value);
+      });
+      overlay.addEventListener('click', e => { if (e.target === overlay) close(null); });
+    });
+  },
+
+  // ── Card context menu (right-click) ────────────────────────────────────────
+  _showCardContextMenu(projectId, x, y) {
+    // Remove any existing context menu
+    this._dismissCardContextMenu();
+
+    const proj = this._data.projects.find(p => p.id === projectId);
+    if (!proj) return;
+
+    const cols = this._boardColumns || [];
+    const statusInfo = this._statusInfo(proj.status);
+
+    const menu = document.createElement('div');
+    menu.className = 'qp-ctx-menu';
+    menu.innerHTML = `
+      <button class="qp-ctx-item" data-action="open" data-id="${projectId}">
+        <i data-lucide="external-link" style="width:14px;height:14px;"></i>
+        <span>Abrir projeto</span>
+      </button>
+      <div class="qp-ctx-separator"></div>
+      <div class="qp-ctx-label">Mover para</div>
+      ${cols.filter(c => c.key !== proj.status).map(c => {
+        const info = this._statusInfo(c.key);
+        return `<button class="qp-ctx-item" data-action="move" data-id="${projectId}" data-status="${c.key}">
+          <span class="qp-ctx-dot" style="background:${info.color};"></span>
+          <span>${this._esc(info.label)}</span>
+        </button>`;
+      }).join('')}
+      <div class="qp-ctx-separator"></div>
+      <button class="qp-ctx-item qp-ctx-danger" data-action="delete" data-id="${projectId}">
+        <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
+        <span>Excluir projeto</span>
+      </button>
+    `;
+
+    // Position within viewport
+    document.body.appendChild(menu);
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    const rect = menu.getBoundingClientRect();
+    const maxX = window.innerWidth - rect.width - 8;
+    const maxY = window.innerHeight - rect.height - 8;
+    menu.style.left = Math.min(x, maxX) + 'px';
+    menu.style.top = Math.min(y, maxY) + 'px';
+
+    // Handle clicks
+    menu.addEventListener('click', async (e) => {
+      const item = e.target.closest('.qp-ctx-item');
+      if (!item) return;
+
+      const action = item.dataset.action;
+      const id = item.dataset.id;
+
+      this._dismissCardContextMenu();
+
+      if (action === 'open') {
+        this._openDetail(id);
+      } else if (action === 'move') {
+        const newStatus = item.dataset.status;
+        const p = this._data.projects.find(pr => pr.id === id);
+        if (p) {
+          const oldStatus = p.status;
+          p.status = newStatus;
+          this._renderContent();
+          this._renderKpis();
+          if (typeof lucide !== 'undefined') lucide.createIcons();
+          try {
+            await this._saveField(id, 'status', newStatus);
+          } catch (err) {
+            p.status = oldStatus;
+            this._renderContent();
+            this._renderKpis();
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+          }
+        }
+      } else if (action === 'delete') {
+        const confirmFn = typeof TBO_FEEDBACK !== 'undefined' && TBO_FEEDBACK.confirm
+          ? TBO_FEEDBACK.confirm.bind(TBO_FEEDBACK)
+          : (msg) => Promise.resolve(confirm(msg));
+
+        const confirmed = await confirmFn(
+          `Excluir o projeto "${proj.name}"? Esta ação não pode ser desfeita.`,
+          { title: 'Excluir projeto', confirmLabel: 'Excluir', danger: true }
+        );
+        if (!confirmed) return;
+
+        const client = typeof TBO_SUPABASE !== 'undefined' ? TBO_SUPABASE.getClient() : null;
+        if (!client) return;
+        try {
+          const { error } = await client.from('projects').delete().eq('id', id);
+          if (error) throw error;
+          this._data.projects = this._data.projects.filter(pr => pr.id !== id);
+          this._renderContent();
+          this._renderKpis();
+          if (typeof lucide !== 'undefined') lucide.createIcons();
+          this._showSaveToast('Projeto excluído');
+        } catch (err) {
+          console.error('[TBO QP] Delete project error:', err);
+          this._showSaveToast('Erro ao excluir projeto', true);
+        }
+      }
+    });
+
+    // Dismiss on click outside or Escape
+    this._ctxDismissHandler = (e) => {
+      if (!menu.contains(e.target)) this._dismissCardContextMenu();
+    };
+    this._ctxEscHandler = (e) => {
+      if (e.key === 'Escape') this._dismissCardContextMenu();
+    };
+    setTimeout(() => {
+      document.addEventListener('click', this._ctxDismissHandler, true);
+      document.addEventListener('contextmenu', this._ctxDismissHandler, true);
+      document.addEventListener('keydown', this._ctxEscHandler, true);
+    }, 0);
+  },
+
+  _dismissCardContextMenu() {
+    const existing = document.querySelector('.qp-ctx-menu');
+    if (existing) existing.remove();
+    if (this._ctxDismissHandler) {
+      document.removeEventListener('click', this._ctxDismissHandler, true);
+      document.removeEventListener('contextmenu', this._ctxDismissHandler, true);
+      this._ctxDismissHandler = null;
+    }
+    if (this._ctxEscHandler) {
+      document.removeEventListener('keydown', this._ctxEscHandler, true);
+      this._ctxEscHandler = null;
+    }
+  },
+
   // ── Navigate to project detail page ────────────────────────────────────────
   _openDetail(projectId) {
     if (typeof TBO_ROUTER !== 'undefined') {
@@ -777,39 +1388,26 @@ const TBO_QUADRO_PROJETOS = {
     });
   },
 
-  // ── Event bindings ─────────────────────────────────────────────────────────
-  _bindEvents() {
-    const search      = document.getElementById('qpSearch');
-    const filterSt    = document.getElementById('qpFilterStatus');
-    const filterBU    = document.getElementById('qpFilterBU');
-    const filterConst = document.getElementById('qpFilterConstrutora');
-    const btnBoard    = document.getElementById('qpViewBoard');
-    const btnList     = document.getElementById('qpViewList');
-    const btnGantt    = document.getElementById('qpViewGantt');
-
-    const setView = (v) => {
-      this._view = v;
-      btnBoard?.classList.toggle('active', v === 'board');
-      btnList?.classList.toggle('active',  v === 'list');
-      btnGantt?.classList.toggle('active', v === 'gantt');
-      this._renderContent();
-    };
-
-    search?.addEventListener('input',  e => { this._filters.search      = e.target.value.trim(); this._renderContent(); });
-    filterSt?.addEventListener('change', e => { this._filters.status    = e.target.value;        this._renderContent(); });
-    filterBU?.addEventListener('change', e => { this._filters.bus       = e.target.value;        this._renderContent(); });
-    filterConst?.addEventListener('change', e => { this._filters.construtora = e.target.value;   this._renderContent(); });
-
-    btnBoard?.addEventListener('click', () => setView('board'));
-    btnList?.addEventListener('click',  () => setView('list'));
-    btnGantt?.addEventListener('click', () => setView('gantt'));
-
-    // ── Inline editing delegation ──
+  // ── Content event bindings (inline editing in #qpContent) ─────────────────
+  _bindContentEvents() {
     const content = document.getElementById('qpContent');
     if (!content) return;
 
-    // Click-to-edit text fields
+    // Click delegation — board CRUD + inline editing
     content.addEventListener('click', e => {
+      // Board: add column button
+      const addColBtn = e.target.closest('.qp-add-column-btn');
+      if (addColBtn) { e.stopPropagation(); this._addColumn(); return; }
+
+      // Board: delete column button
+      const delColBtn = e.target.closest('.qp-column-delete-btn');
+      if (delColBtn) { e.stopPropagation(); this._deleteColumn(delColBtn.dataset.status); return; }
+
+      // Board: add card button (per column)
+      const addCardBtn = e.target.closest('.qp-column-add-card-btn');
+      if (addCardBtn) { e.stopPropagation(); this._createCard(addCardBtn.dataset.status); return; }
+
+      // List: click-to-edit text fields
       const editable = e.target.closest('.qp-editable-text');
       if (editable) { e.stopPropagation(); this._startInlineEdit(editable); return; }
 
@@ -818,6 +1416,26 @@ const TBO_QUADRO_PROJETOS = {
 
       const demandsLink = e.target.closest('.qp-demands-link');
       if (demandsLink) { e.stopPropagation(); this._openDetail(demandsLink.dataset.id); return; }
+    });
+
+    // Right-click: card context menu
+    content.addEventListener('contextmenu', e => {
+      const card = e.target.closest('.qp-card');
+      if (card && card.dataset.id) {
+        e.preventDefault();
+        e.stopPropagation();
+        this._showCardContextMenu(card.dataset.id, e.clientX, e.clientY);
+      }
+    });
+
+    // Double-click: rename column
+    content.addEventListener('dblclick', e => {
+      const titleEl = e.target.closest('.qp-column-title-text');
+      if (titleEl) {
+        e.stopPropagation();
+        const colEl = titleEl.closest('.qp-column');
+        if (colEl && colEl.dataset.status) this._renameColumn(colEl.dataset.status);
+      }
     });
 
     // Select changes (status, BUs)

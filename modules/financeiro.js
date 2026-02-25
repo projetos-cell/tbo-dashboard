@@ -46,6 +46,9 @@ const TBO_FINANCEIRO = {
   // ═══════════════════════════════════════════════════════════════════════
 
   _fmt() {
+    if (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked()) {
+      return { currency: () => 'R$ ••••••' };
+    }
     return typeof TBO_FORMATTER !== 'undefined'
       ? TBO_FORMATTER
       : { currency: v => `R$ ${(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` };
@@ -3317,7 +3320,7 @@ const TBO_FINANCEIRO = {
         y: {
           ticks: {
             color: '#64748b', font: { size: 10 },
-            callback: (v) => 'R$ ' + (v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v)
+            callback: (v) => (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked()) ? '•••' : 'R$ ' + (v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v)
           },
           grid: { color: 'rgba(255,255,255,0.04)' }
         }

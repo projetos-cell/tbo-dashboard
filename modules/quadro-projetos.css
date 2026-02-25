@@ -10,7 +10,8 @@
   min-height: 0;
 }
 
-/* ── Toolbar ──────────────────────────────────────── */
+/* ── Toolbar (DEPRECATED — now handled by TBO_CONTEXT_TOOLBAR / ui/context-toolbar.css)
+   Kept as safety net. Will be removed in a future cleanup pass. ────────── */
 .qp-toolbar {
   display: flex;
   align-items: center;
@@ -998,4 +999,532 @@
 @keyframes skeleton-shimmer {
   0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KANBAN — Dynamic Columns, Drag-and-Drop, CRUD
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Column drag handle ──────────────────────────────────────────────────── */
+.qp-column-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s;
+  padding: 2px;
+  flex-shrink: 0;
+}
+.qp-column-drag-handle:active {
+  cursor: grabbing;
+}
+.qp-column:hover .qp-column-drag-handle {
+  opacity: 0.5;
+}
+.qp-column-drag-handle:hover {
+  opacity: 1 !important;
+  color: var(--accent, #E85102);
+}
+
+/* ── Column header enhancements ──────────────────────────────────────────── */
+.qp-column-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.qp-column-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.qp-column-title-text {
+  font-weight: 600;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+  user-select: none;
+}
+
+.qp-column-count {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-card-hover, rgba(0,0,0,0.05));
+  border-radius: 9999px;
+  padding: 1px 7px;
+  min-width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* ── Column delete button ────────────────────────────────────────────────── */
+.qp-column-delete-btn {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s, background 0.2s;
+  flex-shrink: 0;
+  padding: 0;
+}
+.qp-column:hover .qp-column-delete-btn {
+  opacity: 0.5;
+}
+.qp-column-delete-btn:hover {
+  opacity: 1 !important;
+  color: #ef4444;
+  background: rgba(239,68,68,0.08);
+}
+
+/* ── Column footer + Add card button ─────────────────────────────────────── */
+.qp-column-footer {
+  padding: 6px 10px 8px;
+  border-top: 1px solid var(--border-subtle, var(--border, rgba(0,0,0,0.06)));
+}
+
+.qp-column-add-card-btn {
+  width: 100%;
+  padding: 5px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s, background 0.2s;
+}
+.qp-column:hover .qp-column-add-card-btn {
+  opacity: 1;
+}
+.qp-column-add-card-btn:hover {
+  color: var(--accent, #E85102);
+  background: rgba(232,81,2,0.06);
+}
+
+/* ── Column rename input ─────────────────────────────────────────────────── */
+.qp-column-rename-input {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-card, #fff);
+  border: 1.5px solid var(--accent, #E85102);
+  border-radius: 4px;
+  padding: 1px 4px;
+  outline: none;
+  width: 100%;
+  min-width: 60px;
+  font-family: inherit;
+  box-shadow: 0 0 0 3px rgba(232,81,2,0.1);
+}
+
+/* ── "+ Adicionar coluna" — placeholder column ───────────────────────────── */
+.qp-column-add {
+  background: transparent !important;
+  border: 2px dashed var(--border-subtle, var(--border, rgba(0,0,0,0.12))) !important;
+  box-shadow: none !important;
+  min-height: 120px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 24px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.qp-column-add:hover {
+  border-color: var(--accent, #E85102) !important;
+  background: rgba(232,81,2,0.03) !important;
+}
+
+.qp-add-column-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+.qp-add-column-btn:hover {
+  color: var(--accent, #E85102);
+  background: rgba(232,81,2,0.06);
+}
+
+/* ── Orphan column (muted) ───────────────────────────────────────────────── */
+.qp-column-orphan {
+  opacity: 0.65;
+}
+.qp-column-orphan .qp-column-header {
+  border-top-color: var(--text-muted) !important;
+}
+
+/* ── SortableJS Drag States — Cards ──────────────────────────────────────── */
+.qp-card-ghost {
+  opacity: 0.4;
+  border: 2px dashed var(--accent, #E85102) !important;
+  background: rgba(232,81,2,0.04) !important;
+  box-shadow: none !important;
+}
+
+.qp-card-chosen {
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
+  transform: rotate(2deg);
+  z-index: 100;
+}
+
+.qp-card-drag {
+  box-shadow: 0 12px 32px rgba(0,0,0,0.2) !important;
+  transform: rotate(2deg);
+  z-index: 100;
+}
+
+/* ── SortableJS Drag States — Columns ────────────────────────────────────── */
+.qp-column-ghost {
+  opacity: 0.3;
+  border: 2px dashed var(--accent, #E85102) !important;
+  background: rgba(232,81,2,0.04) !important;
+}
+
+.qp-column-chosen {
+  box-shadow: 0 12px 40px rgba(0,0,0,0.18) !important;
+  z-index: 100;
+}
+
+/* ── Inline Card Creation Form ───────────────────────────────────────────── */
+.qp-card-create-form {
+  padding: 8px;
+  background: var(--bg-card, #fff);
+  border: 1.5px solid var(--accent, #E85102);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 0;
+  box-shadow: 0 2px 8px rgba(232,81,2,0.1);
+}
+
+.qp-card-create-input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border-subtle, var(--border, rgba(0,0,0,0.1)));
+  border-radius: 5px;
+  font-size: 0.82rem;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-card, #fff);
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+.qp-card-create-input:focus {
+  border-color: var(--accent, #E85102);
+}
+.qp-card-create-input::placeholder {
+  color: var(--text-muted);
+}
+
+.qp-card-create-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.qp-card-create-save,
+.qp-card-create-cancel {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  padding: 0;
+  font-size: 0.8rem;
+}
+.qp-card-create-save {
+  background: var(--accent, #E85102);
+  color: #fff;
+}
+.qp-card-create-save:hover {
+  background: var(--accent-hover, #d04800);
+}
+.qp-card-create-cancel {
+  background: var(--bg-card-hover, rgba(0,0,0,0.05));
+  color: var(--text-muted);
+}
+.qp-card-create-cancel:hover {
+  background: rgba(239,68,68,0.1);
+  color: #ef4444;
+}
+
+/* ── Add Column Modal Dialog ─────────────────────────────────────────────── */
+.qp-add-col-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(4px);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: qp-overlay-in 0.2s ease;
+}
+
+@keyframes qp-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.qp-add-col-modal {
+  background: var(--bg-card, #fff);
+  border-radius: 14px;
+  padding: 24px;
+  width: 340px;
+  max-width: 92vw;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  animation: qp-modal-in 0.25s ease;
+}
+
+@keyframes qp-modal-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.qp-add-col-modal h3 {
+  margin: 0 0 16px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.qp-add-col-modal label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.qp-add-col-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1.5px solid var(--border-subtle, var(--border, rgba(0,0,0,0.1)));
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-card, #fff);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+.qp-add-col-input:focus {
+  border-color: var(--accent, #E85102);
+  box-shadow: 0 0 0 3px rgba(232,81,2,0.08);
+}
+
+/* Color swatches row */
+.qp-color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 18px;
+}
+
+.qp-color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2.5px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+  flex-shrink: 0;
+}
+.qp-color-swatch:hover {
+  transform: scale(1.15);
+}
+.qp-color-swatch--selected {
+  border-color: var(--text-primary, #222) !important;
+  box-shadow: 0 0 0 2px var(--bg-card, #fff), 0 0 0 4px var(--text-primary, #222);
+  transform: scale(1.1);
+}
+
+/* Modal buttons */
+.qp-add-col-btns {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.qp-add-col-btn-cancel {
+  padding: 7px 16px;
+  border: 1px solid var(--border-subtle, var(--border, rgba(0,0,0,0.1)));
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.qp-add-col-btn-cancel:hover {
+  background: var(--bg-card-hover, rgba(0,0,0,0.04));
+  color: var(--text-primary);
+}
+
+.qp-add-col-btn-save {
+  padding: 7px 18px;
+  border: none;
+  border-radius: 9999px;
+  background: var(--accent, #E85102);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.qp-add-col-btn-save:hover {
+  background: var(--accent-hover, #d04800);
+  box-shadow: 0 2px 8px rgba(232,81,2,0.25);
+}
+.qp-add-col-btn-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Move Cards Dialog (reuses overlay/modal from add-column) ─────────── */
+.qp-move-cards-modal {
+  background: var(--bg-card, #fff);
+  border-radius: 14px;
+  padding: 24px;
+  width: 360px;
+  max-width: 92vw;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  animation: qp-modal-in 0.25s ease;
+}
+
+.qp-move-cards-modal h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.qp-move-cards-modal p {
+  margin: 0 0 16px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.qp-move-cards-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1.5px solid var(--border-subtle, var(--border, rgba(0,0,0,0.1)));
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-card, #fff);
+  outline: none;
+  cursor: pointer;
+  margin-bottom: 18px;
+  box-sizing: border-box;
+}
+.qp-move-cards-select:focus {
+  border-color: var(--accent, #E85102);
+  box-shadow: 0 0 0 3px rgba(232,81,2,0.08);
+}
+
+/* ── Card Context Menu (right-click) ─────────────────────────────────────── */
+.qp-ctx-menu {
+  position: fixed;
+  z-index: 600;
+  min-width: 200px;
+  max-width: 260px;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-subtle, var(--border, rgba(0,0,0,0.08)));
+  border-radius: 10px;
+  padding: 4px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);
+  animation: qp-ctx-in 0.12s ease;
+}
+
+@keyframes qp-ctx-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.qp-ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 7px;
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+.qp-ctx-item:hover {
+  background: var(--bg-card-hover, rgba(0,0,0,0.04));
+}
+
+.qp-ctx-item.qp-ctx-danger {
+  color: #ef4444;
+}
+.qp-ctx-item.qp-ctx-danger:hover {
+  background: rgba(239,68,68,0.08);
+}
+
+.qp-ctx-separator {
+  height: 1px;
+  background: var(--border-subtle, var(--border, rgba(0,0,0,0.06)));
+  margin: 3px 6px;
+}
+
+.qp-ctx-label {
+  padding: 5px 10px 2px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.qp-ctx-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }

@@ -612,6 +612,7 @@ const TBO_BI = {
   },
 
   _formatCurrency(val) {
+    if (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked()) return 'R$ ••••••';
     if (typeof TBO_FORMATTER !== 'undefined' && TBO_FORMATTER.currency) {
       return TBO_FORMATTER.currency(val);
     }
@@ -856,7 +857,7 @@ const TBO_BI = {
       const next = forecast.forecast.find(f => !f.realized);
       if (next) {
         const gap = meta - next.predicted;
-        if (gap > 0) insights.push({ category: 'receita', priority: gap > meta * 0.5 ? 'critical' : 'warning', title: `Gap de receita em ${next.month}`, detail: `Previsao R$${next.predicted.toLocaleString('pt-BR')} vs meta R$${meta.toLocaleString('pt-BR')}`, action: 'Intensificar prospecao e conversao' });
+        if (gap > 0) insights.push({ category: 'receita', priority: gap > meta * 0.5 ? 'critical' : 'warning', title: `Gap de receita em ${next.month}`, detail: (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked()) ? 'Previsao R$ •••••• vs meta R$ ••••••' : `Previsao R$${next.predicted.toLocaleString('pt-BR')} vs meta R$${meta.toLocaleString('pt-BR')}`, action: 'Intensificar prospecao e conversao' });
       }
       if (forecast.trend === 'down') insights.push({ category: 'receita', priority: 'critical', title: 'Tendencia de queda na receita', detail: `${forecast.trendPercent}% nos proximos meses`, action: 'Revisar estrategia comercial' });
     } catch (e) { /* skip */ }

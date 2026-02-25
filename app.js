@@ -178,6 +178,7 @@ const TBO_APP = {
 
     // 10. Listen for route changes to update sidebar
     TBO_ROUTER.onChange((current) => {
+      if (typeof TBO_CONTEXT_TOOLBAR !== 'undefined') TBO_CONTEXT_TOOLBAR.clear();
       this._setActiveNav(current);
       this._updateHeaderTitle(current);
     });
@@ -294,8 +295,7 @@ const TBO_APP = {
     if (typeof TBO_UX !== 'undefined') {
       TBO_UX.initKeyboardNav();
       TBO_UX.initOfflineDetection();
-      // Show tour for first-time users (after a short delay)
-      if (loggedIn) TBO_UX.showTour();
+      // Tour removido
     }
 
     // 14c. Init notifications
@@ -876,6 +876,9 @@ const TBO_APP = {
         </div>
       </div>
       <div class="sidebar-footer-actions">
+        <button class="sidebar-footer-btn" id="financeMaskToggle" title="Ocultar valores financeiros" aria-label="Alternar visibilidade de valores financeiros">
+          <i data-lucide="eye" aria-hidden="true"></i>
+        </button>
         <button class="sidebar-footer-btn" id="sidebarLogout" title="Sair" aria-label="Fazer logout" style="color:var(--color-danger);">
           <i data-lucide="log-out" aria-hidden="true"></i>
         </button>
@@ -901,6 +904,15 @@ const TBO_APP = {
           localStorage.setItem('tbo_sidebar_collapsed', sb.classList.contains('collapsed') ? '1' : '0');
         }
       });
+    }
+
+    // Bind finance mask toggle
+    const maskBtn = document.getElementById('financeMaskToggle');
+    if (maskBtn) {
+      maskBtn.addEventListener('click', () => {
+        if (typeof TBO_FINANCE_MASK !== 'undefined') TBO_FINANCE_MASK.toggle();
+      });
+      if (typeof TBO_FINANCE_MASK !== 'undefined') TBO_FINANCE_MASK.init();
     }
 
     // Bind settings button

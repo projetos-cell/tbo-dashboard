@@ -40,6 +40,7 @@ const TBO_RELATORIOS = (() => {
   }
 
   function _formatCurrency(val) {
+    if (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked()) return 'R$ ••••••';
     if (val == null || isNaN(val)) return 'R$ 0,00';
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
   }

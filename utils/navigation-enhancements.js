@@ -16,14 +16,14 @@ const TBO_NAVIGATION = {
   _fabOpen: false,
   _sidebarCollapsed: false,
   _mobileQuery: null,
-  _tourActive: false,
+  // _tourActive: removed,
 
   // Storage keys
   _keys: {
     recents:          'tbo_nav_recents',
     favorites:        'tbo_nav_favorites',
     sidebarCollapsed: 'tbo_nav_sidebar_collapsed',
-    tourDone:         'tbo_nav_tour_done',
+    // tourDone: removed,
     filterHistory:    'tbo_nav_filter_history'
   },
 
@@ -83,13 +83,7 @@ const TBO_NAVIGATION = {
     this.initSidebarCollapse();
     this.initNaturalFilter();
 
-    // Show onboarding for first-time users (delayed, somente se autenticado)
-    if (!localStorage.getItem(this._keys.tourDone)) {
-      setTimeout(() => {
-        const isLoggedIn = typeof TBO_AUTH !== 'undefined' && TBO_AUTH.checkSession && TBO_AUTH.checkSession();
-        if (isLoggedIn) this.startOnboardingTour();
-      }, 2000);
-    }
+    // Tour removido
 
     console.log('[TBO Navigation] Ready.');
   },
@@ -638,187 +632,7 @@ const TBO_NAVIGATION = {
   // ═══════════════════════════════════════════════════════════════════════════
   initSidebarCollapse() { /* no-op */ },
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 7. ONBOARDING TOUR
-  // ═══════════════════════════════════════════════════════════════════════════
-  _defaultTourSteps: [
-    {
-      target: '#sidebar',
-      title: 'Barra Lateral',
-      description: 'Aqui voce encontra todos os modulos do TBO OS. Navegue entre projetos, clientes, financeiro e muito mais.',
-      position: 'right'
-    },
-    {
-      target: '.nav-item[data-module="dashboard"]',
-      title: 'Central de Comando',
-      description: 'Sua visao geral com KPIs, alertas e resumo de tudo que esta acontecendo no estudio.',
-      position: 'right'
-    },
-    {
-      target: '#userMenu',
-      title: 'Seu Perfil',
-      description: 'Acesse configuracoes, altere o tema e gerencie sua conta por aqui.',
-      position: 'bottom'
-    },
-    {
-      target: '#searchBtn',
-      title: 'Busca Rapida',
-      description: 'Use Alt+K para buscar modulos, projetos e clientes instantaneamente.',
-      position: 'bottom'
-    },
-    {
-      target: '#tboFabMain',
-      title: 'Acoes Rapidas',
-      description: 'Crie novos projetos, tarefas, contratos e reunioes com um clique.',
-      position: 'left'
-    }
-  ],
-
-  startOnboardingTour(steps) {
-    const tourSteps = steps || this._defaultTourSteps;
-    if (!tourSteps || tourSteps.length === 0) return;
-
-    // Prevent multiple tours
-    if (this._tourActive) return;
-    this._tourActive = true;
-
-    let currentStepIndex = 0;
-
-    const cleanup = () => {
-      this._tourActive = false;
-      document.querySelector('.tbo-tour-overlay')?.remove();
-      document.querySelector('.tbo-tour-spotlight')?.remove();
-      document.querySelector('.tbo-tour-tooltip')?.remove();
-      document.querySelectorAll('.tbo-tour-highlighted').forEach(el => {
-        el.classList.remove('tbo-tour-highlighted');
-        el.style.removeProperty('z-index');
-        el.style.removeProperty('position');
-      });
-    };
-
-    const showStep = (index) => {
-      cleanup();
-      this._tourActive = true;
-
-      if (index >= tourSteps.length) {
-        // Tour complete
-        this._tourActive = false;
-        localStorage.setItem(this._keys.tourDone, '1');
-        if (typeof TBO_TOAST !== 'undefined') {
-          TBO_TOAST.success('Tour concluido!', 'Voce ja conhece os recursos principais do TBO OS.');
-        }
-        return;
-      }
-
-      const step = tourSteps[index];
-      const targetEl = document.querySelector(step.target);
-
-      if (!targetEl) {
-        // Skip missing targets
-        showStep(index + 1);
-        return;
-      }
-
-      const targetRect = targetEl.getBoundingClientRect();
-
-      // Create dark overlay with spotlight cutout
-      const overlay = document.createElement('div');
-      overlay.className = 'tbo-tour-overlay';
-      document.body.appendChild(overlay);
-
-      // Create spotlight highlight
-      const spotlight = document.createElement('div');
-      spotlight.className = 'tbo-tour-spotlight';
-      spotlight.style.top = (targetRect.top - 8) + 'px';
-      spotlight.style.left = (targetRect.left - 8) + 'px';
-      spotlight.style.width = (targetRect.width + 16) + 'px';
-      spotlight.style.height = (targetRect.height + 16) + 'px';
-      document.body.appendChild(spotlight);
-
-      // Highlight target element
-      targetEl.classList.add('tbo-tour-highlighted');
-      targetEl.style.position = targetEl.style.position || 'relative';
-      targetEl.style.zIndex = '10002';
-
-      // Create tooltip
-      const tooltip = document.createElement('div');
-      tooltip.className = 'tbo-tour-tooltip';
-      tooltip.innerHTML = `
-        <div class="tbo-tour-tooltip-title">${step.title}</div>
-        <div class="tbo-tour-tooltip-desc">${step.description}</div>
-        <div class="tbo-tour-tooltip-footer">
-          <span class="tbo-tour-tooltip-counter">${index + 1} de ${tourSteps.length}</span>
-          <div class="tbo-tour-tooltip-actions">
-            <button class="tbo-tour-btn-skip">Pular</button>
-            <button class="tbo-tour-btn-next">${index === tourSteps.length - 1 ? 'Concluir' : 'Proximo'}</button>
-          </div>
-        </div>
-      `;
-
-      // Position tooltip based on step.position
-      const padding = 16;
-      let tooltipTop, tooltipLeft;
-
-      switch (step.position) {
-        case 'right':
-          tooltipTop = targetRect.top;
-          tooltipLeft = targetRect.right + padding;
-          break;
-        case 'left':
-          tooltipTop = targetRect.top;
-          tooltipLeft = targetRect.left - 320 - padding;
-          break;
-        case 'bottom':
-          tooltipTop = targetRect.bottom + padding;
-          tooltipLeft = targetRect.left - 50;
-          break;
-        case 'top':
-          tooltipTop = targetRect.top - 180 - padding;
-          tooltipLeft = targetRect.left - 50;
-          break;
-        default:
-          tooltipTop = targetRect.bottom + padding;
-          tooltipLeft = targetRect.left;
-      }
-
-      // Keep tooltip within viewport
-      tooltipLeft = Math.max(16, Math.min(tooltipLeft, window.innerWidth - 340));
-      tooltipTop = Math.max(16, Math.min(tooltipTop, window.innerHeight - 200));
-
-      tooltip.style.top = tooltipTop + 'px';
-      tooltip.style.left = tooltipLeft + 'px';
-      document.body.appendChild(tooltip);
-
-      // Animate in
-      requestAnimationFrame(() => {
-        overlay.classList.add('visible');
-        tooltip.classList.add('visible');
-      });
-
-      // Bind buttons
-      tooltip.querySelector('.tbo-tour-btn-next').addEventListener('click', () => {
-        currentStepIndex = index + 1;
-        showStep(currentStepIndex);
-      });
-
-      tooltip.querySelector('.tbo-tour-btn-skip').addEventListener('click', () => {
-        cleanup();
-        localStorage.setItem(this._keys.tourDone, '1');
-      });
-
-      // Click overlay to skip
-      overlay.addEventListener('click', () => {
-        cleanup();
-        localStorage.setItem(this._keys.tourDone, '1');
-      });
-    };
-
-    showStep(0);
-  },
-
-  resetTour() {
-    localStorage.removeItem(this._keys.tourDone);
-  },
+  // 7. ONBOARDING TOUR — removido
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 8. NATURAL LANGUAGE FILTER
@@ -1353,117 +1167,7 @@ const TBO_NAVIGATION = {
       white-space: nowrap;
     }
 
-    /* =====================================================================
-       ONBOARDING TOUR
-       ===================================================================== */
-    .tbo-tour-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.6);
-      z-index: 10000;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-
-    .tbo-tour-overlay.visible {
-      opacity: 1;
-    }
-
-    .tbo-tour-spotlight {
-      position: fixed;
-      border-radius: var(--radius-md, 8px);
-      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
-      z-index: 10001;
-      pointer-events: none;
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .tbo-tour-highlighted {
-      z-index: 10002 !important;
-      position: relative;
-    }
-
-    .tbo-tour-tooltip {
-      position: fixed;
-      width: 320px;
-      background: var(--bg-card, #fff);
-      border-radius: var(--radius-lg, 12px);
-      box-shadow: var(--shadow-xl, 0 12px 48px rgba(0,0,0,0.2));
-      z-index: 10003;
-      padding: 20px;
-      opacity: 0;
-      transform: translateY(10px);
-      transition: opacity 0.3s ease, transform 0.3s ease;
-    }
-
-    .tbo-tour-tooltip.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .tbo-tour-tooltip-title {
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--text-primary, #0f0f0f);
-      margin-bottom: 8px;
-      font-family: var(--font-display);
-    }
-
-    .tbo-tour-tooltip-desc {
-      font-size: 0.85rem;
-      color: var(--text-secondary, #606060);
-      line-height: 1.5;
-      margin-bottom: 16px;
-    }
-
-    .tbo-tour-tooltip-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .tbo-tour-tooltip-counter {
-      font-size: 0.75rem;
-      color: var(--text-muted, #999);
-      font-weight: 500;
-    }
-
-    .tbo-tour-tooltip-actions {
-      display: flex;
-      gap: 8px;
-    }
-
-    .tbo-tour-btn-skip {
-      padding: 6px 14px;
-      border-radius: var(--radius-sm, 6px);
-      border: 1px solid var(--border-default, #eee);
-      background: transparent;
-      color: var(--text-secondary, #606060);
-      font-size: 0.8rem;
-      cursor: pointer;
-      transition: background 0.15s ease, color 0.15s ease;
-    }
-
-    .tbo-tour-btn-skip:hover {
-      background: var(--bg-elevated, #dfdfdf);
-    }
-
-    .tbo-tour-btn-next {
-      padding: 6px 16px;
-      border-radius: var(--radius-sm, 6px);
-      border: none;
-      background: var(--accent, #E85102);
-      color: #fff;
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s ease, transform 0.15s ease;
-    }
-
-    .tbo-tour-btn-next:hover {
-      background: var(--brand-orange-dark, #BE4202);
-      transform: translateY(-1px);
-    }
+    /* ONBOARDING TOUR — removido */
 
     /* =====================================================================
        NATURAL LANGUAGE FILTER

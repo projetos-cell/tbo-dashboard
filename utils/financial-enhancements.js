@@ -11,6 +11,7 @@ const TBO_FINANCIAL = {
   // =========================================================================
 
   _fmt(v) {
+    if (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked()) return 'R$ ••••••';
     if (typeof TBO_FORMATTER !== 'undefined') return TBO_FORMATTER.currency(v);
     if (v == null || isNaN(v)) return 'R$ --';
     return 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

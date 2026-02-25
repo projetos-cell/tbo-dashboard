@@ -106,7 +106,7 @@ const TBO_DIGEST = {
     if (!container || !digest) return;
 
     const { stats } = digest;
-    const formatCurrency = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
+    const formatCurrency = (v) => (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked()) ? 'R$ ••••••' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
 
     container.innerHTML = `
       <div class="digest-widget" style="background:var(--bg-card);border-radius:12px;padding:20px;border:1px solid var(--border-default);">

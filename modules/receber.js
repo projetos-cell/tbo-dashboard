@@ -38,7 +38,9 @@ const TBO_RECEBER = {
     const metaAnual = fc.meta_vendas_anual || fc.receita_total_orcada || 0;
     const atingimento = metaAnual > 0 ? Math.round((receitaRealizada / metaAnual) * 100) : 0;
 
-    const fmt = (v) => 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
+    const fmt = (v) => (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked())
+      ? 'R$ ••••••'
+      : 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
 
     return `
       <div class="receber-module">
@@ -147,7 +149,9 @@ const TBO_RECEBER = {
     if (meses.length === 0) {
       return '<div class="card" style="padding:32px;text-align:center;color:var(--text-muted);">Nenhum dado de contas a receber.</div>';
     }
-    const fmt = (v) => 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
+    const fmt = (v) => (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked())
+      ? 'R$ ••••••'
+      : 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
 
     return `<div class="card" style="padding:16px;">
       <div style="font-weight:600;font-size:0.88rem;margin-bottom:16px;">Aging de Recebiveis</div>
@@ -180,7 +184,9 @@ const TBO_RECEBER = {
     if (withValue.length === 0) {
       return '<div class="card" style="padding:32px;text-align:center;color:var(--text-muted);">Nenhum projeto com valor definido.</div>';
     }
-    const fmt = (v) => 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
+    const fmt = (v) => (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked())
+      ? 'R$ ••••••'
+      : 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
     const totalRev = withValue.reduce((s, p) => s + p.value, 0);
 
     return `<div class="card" style="padding:16px;overflow-x:auto;">
@@ -219,7 +225,9 @@ const TBO_RECEBER = {
     if (deals.length === 0) {
       return '<div class="card" style="padding:32px;text-align:center;color:var(--text-muted);">Nenhum deal fechado no CRM.</div>';
     }
-    const fmt = (v) => 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
+    const fmt = (v) => (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked())
+      ? 'R$ ••••••'
+      : 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
 
     return `<div class="card" style="padding:16px;overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">

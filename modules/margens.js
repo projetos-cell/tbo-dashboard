@@ -61,7 +61,9 @@ const TBO_MARGENS = {
       }))
       .sort((a, b) => b.revenue - a.revenue);
 
-    const fmt = (v) => 'R$ ' + Math.round(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
+    const fmt = (v) => (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked())
+      ? 'R$ ••••••'
+      : 'R$ ' + Math.round(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
 
     return `
       <div class="margens-module">
@@ -115,7 +117,9 @@ const TBO_MARGENS = {
     if (projects.length === 0) {
       return '<div class="card" style="padding:32px;text-align:center;color:var(--text-muted);">Nenhum projeto com dados financeiros.</div>';
     }
-    const fmt = (v) => 'R$ ' + Math.round(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
+    const fmt = (v) => (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked())
+      ? 'R$ ••••••'
+      : 'R$ ' + Math.round(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
 
     return `<div class="card" style="padding:16px;overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
@@ -177,7 +181,9 @@ const TBO_MARGENS = {
     if (buList.length === 0) {
       return '<div class="card" style="padding:32px;text-align:center;color:var(--text-muted);">Nenhuma BU com dados.</div>';
     }
-    const fmt = (v) => 'R$ ' + Math.round(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
+    const fmt = (v) => (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked())
+      ? 'R$ ••••••'
+      : 'R$ ' + Math.round(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
     const totalBuRevenue = buList.reduce((s, b) => s + b.revenue, 0);
 
     return `<div style="display:flex;flex-direction:column;gap:16px;">
@@ -222,7 +228,9 @@ const TBO_MARGENS = {
     if (projects.length === 0 || totalRevenue === 0) {
       return '<div class="card" style="padding:32px;text-align:center;color:var(--text-muted);">Sem dados suficientes para analise.</div>';
     }
-    const fmt = (v) => 'R$ ' + Math.round(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
+    const fmt = (v) => (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked())
+      ? 'R$ ••••••'
+      : 'R$ ' + Math.round(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
 
     // Group by client
     const clientMap = {};

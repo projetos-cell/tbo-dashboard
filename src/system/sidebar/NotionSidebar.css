@@ -459,6 +459,79 @@ body.dark-mode .nsb-drop-target {
   background: var(--accent-alpha-08, rgba(232, 81, 2, 0.06));
 }
 
+/* ── Sidebar collapsed: apenas ícones ─────────────────────────────────── */
+
+/* System items: esconder label, centrar */
+.sidebar.collapsed .nsb-item {
+  padding: 8px 0;
+  justify-content: center;
+  gap: 0;
+}
+
+.sidebar.collapsed .nsb-item-label {
+  display: none;
+}
+
+.sidebar.collapsed .nsb-item i {
+  width: 20px;
+  height: 20px;
+}
+
+.sidebar.collapsed .nsb-item--active::before {
+  left: 0;
+  width: 2px;
+  height: 12px;
+}
+
+/* Separador: esconder label */
+.sidebar.collapsed .nsb-separator {
+  padding: 8px 4px 4px;
+  justify-content: center;
+}
+
+.sidebar.collapsed .nsb-separator-label {
+  display: none;
+}
+
+/* Workspace header: centrar, esconder texto e botões */
+.sidebar.collapsed .nsb-ws-header {
+  padding: 6px 0;
+  justify-content: center;
+  gap: 0;
+}
+
+.sidebar.collapsed .nsb-ws-name,
+.sidebar.collapsed .nsb-ws-chevron,
+.sidebar.collapsed .nsb-ws-add,
+.sidebar.collapsed .nsb-ws-more {
+  display: none;
+}
+
+.sidebar.collapsed .nsb-ws-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Workspace content (filhos): esconder inteiramente */
+.sidebar.collapsed .nsb-ws-content {
+  display: none;
+}
+
+/* Badge no modo collapsed: esconder */
+.sidebar.collapsed .nsb-badge {
+  display: none;
+}
+
+/* Placeholder / skeleton no modo collapsed */
+.sidebar.collapsed .nsb-ws-placeholder {
+  display: none;
+}
+
+/* Seção do container: reduzir padding */
+.sidebar.collapsed .nsb-section {
+  padding: 0 4px;
+}
+
 /* ── v3.0: Esconder elementos clássicos quando Notion v2 está ativo ──── */
 #sidebar:has(.nsb-container) .sidebar-create,
 #sidebar:has(.nsb-container) .sidebar-search,

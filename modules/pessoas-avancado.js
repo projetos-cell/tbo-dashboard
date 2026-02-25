@@ -837,6 +837,7 @@ const TBO_PESSOAS_AVANCADO = {
   },
 
   _fmtCurrency(val) {
+    if (typeof TBO_FINANCE_MASK !== 'undefined' && TBO_FINANCE_MASK.isMasked()) return '••••••';
     if (!val) return '0';
     return val.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   },

@@ -130,7 +130,7 @@ const TBO_SIDEBAR_SERVICE = (() => {
       if (user) {
         // Mapear roles legadas para roles da sidebar
         const roleMap = {
-          'socio': 'owner', 'founder': 'owner',
+          'socio': 'owner', 'founder': 'owner', 'fundador': 'owner',
           'artista': '3d-artist', 'artist': '3d-artist',
           'project_owner': 'po', 'coordinator': 'pm',
           'finance': 'financeiro', 'comercial': 'comercial'

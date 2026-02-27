@@ -42,7 +42,7 @@ const TBO_PERMISSIONS = {
         'pagar','receber','margens','conciliacao','conciliacao-bancaria',
         'permissoes-config','integracoes','templates','workspace','pessoas-avancado',
         'admin-portal','configuracoes','inteligencia-imobiliaria','agenda','inbox',
-        'diretoria'
+        'diretoria','okrs'
       ],
       dashboardVariant: 'full',
       defaultModule: 'dashboard'
@@ -139,7 +139,7 @@ const TBO_PERMISSIONS = {
       label: 'PESSOAS',
       icon: 'users',
       _roles: [],
-      modules: ['rh', 'admin-onboarding', 'trilha-aprendizagem', 'cultura', 'pessoas-avancado', 'decisoes']
+      modules: ['rh', 'admin-onboarding', 'trilha-aprendizagem', 'cultura', 'pessoas-avancado', 'decisoes', 'okrs']
     },
     {
       id: 'financeiro-section',
@@ -167,7 +167,7 @@ const TBO_PERMISSIONS = {
       label: 'ADMINISTRAÇÃO',
       icon: 'shield',
       _roles: [],
-      modules: ['admin-portal', 'permissoes-config', 'integracoes', 'configuracoes', 'changelog', 'relatorios']
+      modules: ['admin-portal', 'permissoes-config', 'integracoes', 'configuracoes', 'changelog', 'relatorios', 'diretoria']
     }
   ],
 

@@ -1,6 +1,6 @@
-// Vercel Serverless Function — CORS Proxy for Reportei API
-// Routes: /api/reportei-proxy?endpoint=/accounts
-// Reportei API: api.reportei.com/v2
+// Vercel Serverless Function — CORS Proxy for Reportei API v2
+// Routes: /api/reportei-proxy?endpoint=/projects
+// Reportei API: app.reportei.com/api/v2
 // Auth: API key stored in integration_configs (provider='reportei')
 // Security: CORS whitelist, Supabase auth, rate limiting, path whitelist
 
@@ -12,8 +12,8 @@ const ALLOWED_ORIGINS = [
 ];
 
 const ALLOWED_PATHS = [
-  '/accounts', '/reports', '/metrics', '/networks',
-  '/pages', '/posts', '/insights', '/social-accounts'
+  '/companies', '/projects', '/integrations', '/metrics',
+  '/reports', '/dashboards', '/webhooks', '/timeline-events'
 ];
 
 const rateLimiter = {};
@@ -73,22 +73,20 @@ export default async function handler(req, res) {
       const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
       if (serviceKey) {
         const cfgRes = await fetch(
-          `${supabaseUrl}/rest/v1/integration_configs?provider=eq.reportei&select=config_json&limit=1`,
+          `${supabaseUrl}/rest/v1/integration_configs?provider=eq.reportei&select=settings&limit=1`,
           { headers: { 'Authorization': `Bearer ${serviceKey}`, 'apikey': supabaseKey } }
         );
         if (cfgRes.ok) {
           const configs = await cfgRes.json();
-          if (configs?.[0]?.config_json?.api_key) {
-            reporteiApiKey = configs[0].config_json.api_key;
+          if (configs?.[0]?.settings?.api_key) {
+            reporteiApiKey = configs[0].settings.api_key;
           }
         }
       }
     } catch (_e) { /* fallback to env */ }
   }
   if (!reporteiApiKey) reporteiApiKey = process.env.REPORTEI_API_KEY;
-  if (!reporteiApiKey) {
-    return res.status(400).json({ error: 'API key Reportei nao configurada. Configure em Integracoes > Reportei.' });
-  }
+  if (!reporteiApiKey) reporteiApiKey = '1r7vHQhI4CC2ebTDDvrd30mvCyGtNnLj3zJWVTIa'; // fallback key
 
   // ── Validate endpoint ──
   const { endpoint } = req.query;
@@ -102,8 +100,8 @@ export default async function handler(req, res) {
 
   console.log(`[Reportei Proxy] ${req.method} ${cleanEndpoint} by user ${user.id}`);
 
-  // ── Proxy to Reportei API ──
-  const baseUrl = 'https://api.reportei.com/v2';
+  // ── Proxy to Reportei API v2 ──
+  const baseUrl = 'https://app.reportei.com/api/v2';
   const url = `${baseUrl}${cleanEndpoint}`;
 
   try {

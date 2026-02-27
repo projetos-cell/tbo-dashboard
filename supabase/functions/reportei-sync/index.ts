@@ -1,8 +1,13 @@
 // ============================================================================
-// TBO OS — Edge Function: Reportei ETL Sync
-// Pulls social media metrics from Reportei API → upserts into Supabase
+// TBO OS — Edge Function: Reportei ETL Sync (v2 API)
+// Pulls social media metrics from Reportei API v2 → upserts into Supabase
 // Trigger: Vercel Cron (daily) or manual call
 // Query params: ?tenant_id=xxx (optional, syncs all if omitted)
+//
+// Reportei v2 flow:
+//   1. GET /integrations → list connected social accounts
+//   2. GET /metrics?integration_slug=xxx → list available metric definitions
+//   3. POST /metrics/get-data → fetch actual metric values
 // ============================================================================
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
@@ -10,7 +15,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const REPORTEI_BASE_URL = "https://api.reportei.com/v2";
+const REPORTEI_BASE_URL = "https://app.reportei.com/api/v2";
 
 interface SyncStats {
   accounts_synced: number;
@@ -30,7 +35,7 @@ serve(async (req: Request) => {
     // 1. Get all tenants with Reportei integration configured
     let configQuery = supabase
       .from("integration_configs")
-      .select("tenant_id, config_json")
+      .select("tenant_id, settings")
       .eq("provider", "reportei")
       .eq("is_active", true);
 
@@ -49,7 +54,7 @@ serve(async (req: Request) => {
     const results: Record<string, SyncStats> = {};
 
     for (const cfg of configs) {
-      const apiKey = cfg.config_json?.api_key;
+      const apiKey = cfg.settings?.api_key;
       if (!apiKey) continue;
 
       const tenantId = cfg.tenant_id;
@@ -65,114 +70,110 @@ serve(async (req: Request) => {
       const runId = run?.id;
 
       try {
-        // 2. Fetch accounts from Reportei
-        const accounts = await fetchReportei(apiKey, "/social-accounts");
-        if (!accounts?.data) {
-          stats.errors.push("No accounts returned from Reportei");
+        // 2. Fetch integrations (social accounts) from Reportei v2
+        const integrationsRes = await fetchReportei(apiKey, "/integrations?per_page=100");
+        const integrations = integrationsRes?.data;
+
+        if (!integrations || integrations.length === 0) {
+          stats.errors.push("No integrations returned from Reportei");
         } else {
-          for (const acct of accounts.data) {
+          for (const integ of integrations) {
             try {
+              // Map integration to platform
+              const platform = mapPlatform(integ.slug || integ.name || "");
+
               // Upsert account into rsm_accounts
-              const platform = mapPlatform(acct.network || acct.type);
               const { error: acctErr } = await supabase
                 .from("rsm_accounts")
                 .upsert({
                   tenant_id: tenantId,
-                  reportei_account_id: String(acct.id),
+                  reportei_account_id: String(integ.id),
                   platform,
-                  handle: acct.name || acct.username || acct.id,
-                  profile_url: acct.url || null,
-                  followers_count: acct.followers || 0,
-                  platform_id: acct.external_id || null,
-                  is_active: true,
+                  handle: integ.name || String(integ.id),
+                  profile_url: null,
+                  followers_count: 0,
+                  platform_id: String(integ.id),
+                  is_active: integ.status === "active" || integ.status === undefined,
                 }, { onConflict: "reportei_account_id", ignoreDuplicates: false });
 
               if (acctErr) {
-                stats.errors.push(`Account ${acct.id}: ${acctErr.message}`);
+                stats.errors.push(`Integration ${integ.id}: ${acctErr.message}`);
                 continue;
               }
               stats.accounts_synced++;
 
-              // Get the rsm_accounts id for this account
+              // Get the rsm_accounts id for this integration
               const { data: localAcct } = await supabase
                 .from("rsm_accounts")
                 .select("id")
-                .eq("reportei_account_id", String(acct.id))
+                .eq("reportei_account_id", String(integ.id))
                 .eq("tenant_id", tenantId)
                 .single();
 
               if (!localAcct) continue;
 
-              // 3. Fetch metrics for the last N days
+              // 3. Fetch available metrics for this integration
+              const integSlug = integ.slug || "";
+              if (!integSlug) {
+                stats.errors.push(`Integration ${integ.id}: no slug, skipping metrics`);
+                continue;
+              }
+
+              let availableMetrics: any[] = [];
+              try {
+                const metricsListRes = await fetchReportei(apiKey, `/metrics?integration_slug=${integSlug}&per_page=100`);
+                availableMetrics = metricsListRes?.data || [];
+              } catch (e) {
+                stats.errors.push(`Metrics list for ${integSlug}: ${e.message}`);
+              }
+
+              if (availableMetrics.length === 0) continue;
+
+              // 4. Fetch actual metric data via POST /metrics/get-data
               const endDate = new Date().toISOString().split("T")[0];
               const startDate = new Date(Date.now() - daysBack * 86400000).toISOString().split("T")[0];
 
-              const metricsData = await fetchReportei(
-                apiKey,
-                `/metrics?account_id=${acct.id}&start_date=${startDate}&end_date=${endDate}`
-              );
+              try {
+                const metricsData = await fetchReporteiPost(apiKey, "/metrics/get-data", {
+                  start: startDate,
+                  end: endDate,
+                  integration_id: integ.id,
+                  metrics: availableMetrics,
+                });
 
-              if (metricsData?.data) {
-                for (const m of metricsData.data) {
-                  const metricDate = m.date || endDate;
+                if (metricsData) {
+                  // Parse the metrics response — it returns an object with metric IDs as keys
+                  const metricValues = extractMetricValues(metricsData, availableMetrics);
+
+                  // Upsert a single daily metric snapshot
                   const { error: mErr } = await supabase
                     .from("rsm_metrics")
                     .upsert({
                       tenant_id: tenantId,
                       account_id: localAcct.id,
-                      date: metricDate,
+                      date: endDate,
                       source: "reportei",
-                      followers: m.followers ?? 0,
-                      following: m.following ?? 0,
-                      posts_count: m.posts_count ?? 0,
-                      engagement_rate: m.engagement_rate ?? 0,
-                      reach: m.reach ?? 0,
-                      impressions: m.impressions ?? 0,
-                      clicks: m.clicks ?? 0,
-                      saves: m.saves ?? 0,
-                      profile_views: m.profile_views ?? 0,
-                      metadata: m,
+                      followers: metricValues.followers ?? 0,
+                      following: metricValues.following ?? 0,
+                      posts_count: metricValues.posts_count ?? 0,
+                      engagement_rate: metricValues.engagement_rate ?? 0,
+                      reach: metricValues.reach ?? 0,
+                      impressions: metricValues.impressions ?? 0,
+                      clicks: metricValues.clicks ?? 0,
+                      saves: metricValues.saves ?? 0,
+                      profile_views: metricValues.profile_views ?? 0,
+                      metadata: metricsData,
                     }, { onConflict: "account_id,date,source", ignoreDuplicates: false });
 
                   if (!mErr) stats.metrics_upserted++;
-                  else stats.errors.push(`Metric ${metricDate}: ${mErr.message}`);
+                  else stats.errors.push(`Metric upsert ${integSlug}: ${mErr.message}`);
                 }
+              } catch (e) {
+                stats.errors.push(`Metrics data for ${integSlug}: ${e.message}`);
               }
 
-              // 4. Fetch recent posts
-              const postsData = await fetchReportei(
-                apiKey,
-                `/posts?account_id=${acct.id}&start_date=${startDate}&end_date=${endDate}`
-              );
-
-              if (postsData?.data) {
-                for (const post of postsData.data) {
-                  const { error: pErr } = await supabase
-                    .from("rsm_posts")
-                    .upsert({
-                      tenant_id: tenantId,
-                      account_id: localAcct.id,
-                      external_post_id: String(post.id),
-                      title: (post.caption || post.text || "").substring(0, 200),
-                      content: post.caption || post.text || "",
-                      type: mapPostType(post.type),
-                      status: "published",
-                      published_date: post.published_at || post.created_at,
-                      source: "reportei",
-                      metrics: {
-                        likes: post.likes ?? 0,
-                        comments: post.comments ?? 0,
-                        shares: post.shares ?? 0,
-                        reach: post.reach ?? 0,
-                        impressions: post.impressions ?? 0,
-                      },
-                    }, { onConflict: "account_id,external_post_id", ignoreDuplicates: false });
-
-                  if (!pErr) stats.posts_upserted++;
-                }
-              }
             } catch (e) {
-              stats.errors.push(`Account ${acct.id}: ${e.message}`);
+              stats.errors.push(`Integration ${integ.id}: ${e.message}`);
             }
           }
         }
@@ -214,6 +215,7 @@ serve(async (req: Request) => {
 
 async function fetchReportei(apiKey: string, endpoint: string): Promise<any> {
   const url = `${REPORTEI_BASE_URL}${endpoint}`;
+  console.log(`[reportei-sync] GET ${url}`);
   const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -222,33 +224,128 @@ async function fetchReportei(apiKey: string, endpoint: string): Promise<any> {
   });
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Reportei ${res.status}: ${text.slice(0, 200)}`);
+    throw new Error(`Reportei GET ${res.status}: ${text.slice(0, 300)}`);
   }
   return res.json();
 }
 
+async function fetchReporteiPost(apiKey: string, endpoint: string, body: unknown): Promise<any> {
+  const url = `${REPORTEI_BASE_URL}${endpoint}`;
+  console.log(`[reportei-sync] POST ${url}`);
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Reportei POST ${res.status}: ${text.slice(0, 300)}`);
+  }
+  return res.json();
+}
+
+/**
+ * Extract standard metric values from Reportei's metrics/get-data response.
+ * The response is an object keyed by metric ID with { value, comparison } objects.
+ * We map known reference_keys to our DB columns.
+ */
+function extractMetricValues(
+  metricsData: Record<string, any>,
+  availableMetrics: any[]
+): Record<string, number> {
+  const result: Record<string, number> = {
+    followers: 0,
+    following: 0,
+    posts_count: 0,
+    engagement_rate: 0,
+    reach: 0,
+    impressions: 0,
+    clicks: 0,
+    saves: 0,
+    profile_views: 0,
+  };
+
+  // Build a map: metric ID → reference_key
+  const idToKey: Record<string, string> = {};
+  for (const m of availableMetrics) {
+    if (m.id && m.reference_key) {
+      idToKey[String(m.id)] = m.reference_key.toLowerCase();
+    }
+  }
+
+  // Map known reference keys to our DB columns
+  const keyMap: Record<string, string> = {
+    followers: "followers",
+    followers_count: "followers",
+    total_followers: "followers",
+    following: "following",
+    following_count: "following",
+    posts: "posts_count",
+    posts_count: "posts_count",
+    media_count: "posts_count",
+    engagement: "engagement_rate",
+    engagement_rate: "engagement_rate",
+    reach: "reach",
+    total_reach: "reach",
+    accounts_reached: "reach",
+    impressions: "impressions",
+    total_impressions: "impressions",
+    clicks: "clicks",
+    website_clicks: "clicks",
+    profile_clicks: "clicks",
+    saves: "saves",
+    saved: "saves",
+    profile_views: "profile_views",
+    profile_visits: "profile_views",
+  };
+
+  // Extract values from the response
+  for (const [metricId, metricData] of Object.entries(metricsData)) {
+    const refKey = idToKey[metricId];
+    if (!refKey) continue;
+
+    const dbColumn = keyMap[refKey];
+    if (!dbColumn) continue;
+
+    const value = typeof metricData === "object" && metricData !== null
+      ? (metricData.value ?? metricData.total ?? 0)
+      : (typeof metricData === "number" ? metricData : 0);
+
+    result[dbColumn] = parseFloat(String(value)) || 0;
+  }
+
+  return result;
+}
+
 function mapPlatform(raw: string): string {
+  const lower = (raw || "").toLowerCase();
   const map: Record<string, string> = {
     instagram: "instagram",
     facebook: "facebook",
+    "facebook-pages": "facebook",
+    "facebook-ads": "facebook",
     tiktok: "tiktok",
+    "tiktok-ads": "tiktok",
     linkedin: "linkedin",
+    "linkedin-pages": "linkedin",
     youtube: "youtube",
     twitter: "twitter",
     x: "twitter",
+    "google-analytics": "google_analytics",
+    "google-ads": "google_ads",
+    "google-business": "google_business",
+    pinterest: "pinterest",
   };
-  return map[(raw || "").toLowerCase()] || "instagram";
-}
-
-function mapPostType(raw: string): string {
-  const map: Record<string, string> = {
-    image: "feed",
-    video: "reel",
-    carousel: "carousel",
-    story: "story",
-    reel: "reel",
-  };
-  return map[(raw || "").toLowerCase()] || "feed";
+  // Try exact match first, then partial
+  if (map[lower]) return map[lower];
+  for (const [key, val] of Object.entries(map)) {
+    if (lower.includes(key)) return val;
+  }
+  return lower || "other";
 }
 
 function jsonResponse(data: unknown, status = 200): Response {

@@ -429,7 +429,8 @@ const RSMRepo = (() => {
       const token = (await _db().auth.getSession())?.data?.session?.access_token;
       if (!token) throw new Error('Not authenticated');
 
-      const res = await fetch('/api/reportei-sync?days=7', {
+      const tid = _tid();
+      const res = await fetch(`/api/reportei-sync?days=7&tenant_id=${tid}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 

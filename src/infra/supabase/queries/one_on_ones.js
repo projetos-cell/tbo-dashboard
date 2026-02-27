@@ -17,7 +17,7 @@ const OneOnOnesRepo = (() => {
     return null;
   }
 
-  const _SELECT = 'id, leader_id, collaborator_id, scheduled_at, status, notes, google_event_id, recurrence, fireflies_meeting_id, transcript_summary, created_by, created_at, updated_at';
+  const _SELECT = 'id, leader_id, collaborator_id, scheduled_at, status, notes, google_event_id, recurrence, ritual_type_id, fireflies_meeting_id, transcript_summary, created_by, created_at, updated_at';
 
   return {
 

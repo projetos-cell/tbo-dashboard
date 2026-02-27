@@ -8,6 +8,7 @@
     // ── Estado especifico da tab ──
     _oneOnOnesCache: null,
     _oneOnOneActionsCache: null,
+    _ritualTypesCache: null,
     _ctxCleanup: null,
 
     // ══════════════════════════════════════════════════════════════════
@@ -65,13 +66,18 @@
       // Carregar dados do Supabase async
       if (!fromSupabase) this._load1on1sFromSupabase();
 
-      const rituais = [
-        { nome: 'Daily Socios', freq: 'Diaria', desc: 'Alinhamento rapido entre fundadores' },
-        { nome: '1:1 Mensal', freq: 'Mensal', desc: 'PDI + feedback bidirecional' },
-        { nome: 'Review Semanal', freq: 'Semanal', desc: 'Revisao de entregas por BU' },
-        { nome: 'Retrospectiva', freq: 'Mensal', desc: 'O que foi bem, o que melhorar' },
-        { nome: 'All Hands', freq: 'Trimestral', desc: 'Resultados + visao da empresa' }
-      ];
+      // Ritual types from DB (or fallback)
+      const ritualTypes = this._ritualTypesCache || [];
+      const freqLabel = (f) => typeof RitualTypesRepo !== 'undefined' ? RitualTypesRepo.freqLabel(f) : f;
+      if (!this._ritualTypesCache) this._loadRitualTypes();
+
+      // Helper: ritual type badge for 1:1 row
+      const rtBadge = (o) => {
+        if (!o.ritual_type_id || !ritualTypes.length) return '';
+        const rt = ritualTypes.find(t => t.id === o.ritual_type_id);
+        if (!rt) return '';
+        return ` · <span style="font-size:0.58rem;padding:1px 5px;border-radius:4px;background:${rt.color || '#6366f1'}15;color:${rt.color || '#6366f1'};">${S._esc(rt.name)}</span>`;
+      };
 
       return `
         ${S._pageHeader('1:1s & Rituais', 'Reuniões individuais, ações e rituais da equipe')}
@@ -101,8 +107,12 @@
                 <div class="form-group" style="margin-bottom:0;"><label class="form-label">Colaborador</label><select class="form-input" id="ooColab">${S._team.filter(t => !t.terceirizado).map(t => `<option value="${t.supabaseId || t.id}">${t.nome}</option>`).join('')}</select></div>
               </div>
               <div class="grid-2" style="gap:12px;margin-bottom:12px;">
+                <div class="form-group" style="margin-bottom:0;"><label class="form-label">Tipo de Ritual</label><select class="form-input" id="ooRitualType"><option value="">— Sem tipo —</option>${ritualTypes.map(rt => `<option value="${rt.id}" data-freq="${rt.frequency}" data-dur="${rt.duration_minutes}">${rt.name}</option>`).join('')}</select></div>
                 <div class="form-group" style="margin-bottom:0;"><label class="form-label">Data</label><input type="datetime-local" class="form-input" id="ooData"></div>
-                <div class="form-group" style="margin-bottom:0;"><label class="form-label">Recorrência</label><select class="form-input" id="ooRecurrence"><option value="daily">Diária — seg a sex (padrão)</option><option value="weekly">Semanal</option><option value="biweekly">Quinzenal</option><option value="monthly">Mensal</option><option value="">Única vez</option></select></div>
+              </div>
+              <div class="grid-2" style="gap:12px;margin-bottom:12px;">
+                <div class="form-group" style="margin-bottom:0;"><label class="form-label">Recorrência</label><select class="form-input" id="ooRecurrence"><option value="daily">Diária — seg a sex</option><option value="weekly">Semanal</option><option value="biweekly">Quinzenal</option><option value="monthly">Mensal</option><option value="">Única vez</option></select></div>
+                <div class="form-group" style="margin-bottom:0;" id="ooDurationGroup"><label class="form-label">Duração (min)</label><input type="number" class="form-input" id="ooDuration" value="30" min="5" max="240" step="5"></div>
               </div>
               <div style="display:flex;gap:8px;align-items:center;">
                 <button class="btn btn-primary btn-sm" id="ooSave"><i data-lucide="calendar-plus" style="width:12px;height:12px;vertical-align:-2px;"></i> Agendar + Google Calendar</button>
@@ -110,7 +120,7 @@
                 <span id="oo1on1Status" style="font-size:0.68rem;color:var(--text-muted);margin-left:auto;"></span>
               </div>
             </div>
-            ${filtered.filter(o => (o.status === 'agendada' || o.status === 'scheduled')).sort((a, b) => new Date(getDate(a)) - new Date(getDate(b))).map(o => `<div class="rh-1on1-row" data-id="${o.id}" style="padding:12px 16px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:10px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='var(--bg-elevated)'" onmouseout="this.style.background=''"><input type="checkbox" class="rh-1on1-select" data-id="${o.id}" style="width:16px;height:16px;accent-color:var(--accent-gold);cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();"><div style="flex:1;"><div style="font-size:0.85rem;font-weight:600;">${getName(getLeader(o))} ↔ ${getName(getCollab(o))}</div><div style="font-size:0.72rem;color:var(--text-muted);">${new Date(getDate(o)).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}${o.recurrence ? ` · <i data-lucide="repeat" style="width:10px;height:10px;vertical-align:-1px;"></i> ${o.recurrence === 'daily' ? 'Diária' : o.recurrence === 'monthly' ? 'Mensal' : o.recurrence === 'biweekly' ? 'Quinzenal' : 'Semanal'}` : ''}${o.google_event_id ? ' · <i data-lucide="calendar" style="width:10px;height:10px;vertical-align:-1px;color:var(--color-info);"></i>' : ''}${!o.google_event_id && o.status === 'scheduled' ? ' · <i data-lucide="calendar-x" style="width:10px;height:10px;vertical-align:-1px;color:var(--color-danger);"></i>' : ''}</div></div><span class="tag" style="font-size:0.65rem;background:var(--color-info)20;color:var(--color-info);">Agendada</span></div>`).join('') || '<div style="padding:16px;font-size:0.78rem;color:var(--text-muted);">Nenhuma agendada</div>'}
+            ${filtered.filter(o => (o.status === 'agendada' || o.status === 'scheduled')).sort((a, b) => new Date(getDate(a)) - new Date(getDate(b))).map(o => `<div class="rh-1on1-row" data-id="${o.id}" style="padding:12px 16px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:10px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='var(--bg-elevated)'" onmouseout="this.style.background=''"><input type="checkbox" class="rh-1on1-select" data-id="${o.id}" style="width:16px;height:16px;accent-color:var(--accent-gold);cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();"><div style="flex:1;"><div style="font-size:0.85rem;font-weight:600;">${getName(getLeader(o))} ↔ ${getName(getCollab(o))}</div><div style="font-size:0.72rem;color:var(--text-muted);">${new Date(getDate(o)).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}${o.recurrence ? ` · <i data-lucide="repeat" style="width:10px;height:10px;vertical-align:-1px;"></i> ${o.recurrence === 'daily' ? 'Diária' : o.recurrence === 'monthly' ? 'Mensal' : o.recurrence === 'biweekly' ? 'Quinzenal' : 'Semanal'}` : ''}${o.google_event_id ? ' · <i data-lucide="calendar" style="width:10px;height:10px;vertical-align:-1px;color:var(--color-info);"></i>' : ''}${!o.google_event_id && o.status === 'scheduled' ? ' · <i data-lucide="calendar-x" style="width:10px;height:10px;vertical-align:-1px;color:var(--color-danger);"></i>' : ''}${rtBadge(o)}</div></div><span class="tag" style="font-size:0.65rem;background:var(--color-info)20;color:var(--color-info);">Agendada</span></div>`).join('') || '<div style="padding:16px;font-size:0.78rem;color:var(--text-muted);">Nenhuma agendada</div>'}
           </div>
           <div class="card">
             <div class="card-header"><h3 class="card-title">Historico</h3></div>
@@ -124,9 +134,39 @@
 
         <!-- Rituais -->
         <div class="card">
-          <div class="card-header"><h3 class="card-title">Rituais da Empresa</h3></div>
-          <div style="padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">
-            ${rituais.map(r => `<div style="padding:12px;background:var(--bg-elevated);border-radius:8px;"><div style="font-weight:600;font-size:0.85rem;margin-bottom:4px;">${r.nome}</div><div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">${r.desc}</div><span class="tag" style="font-size:0.62rem;">${r.freq}</span></div>`).join('')}
+          <div class="card-header">
+            <h3 class="card-title">Rituais da Empresa</h3>
+            ${isAdmin ? '<button class="btn btn-primary btn-sm" id="rhNewRitualType"><i data-lucide="plus" style="width:12px;height:12px;vertical-align:-2px;"></i> Novo Tipo</button>' : ''}
+          </div>
+          <div id="rhRitualTypeForm" style="display:none;padding:16px;border-bottom:1px solid var(--border-subtle);">
+            <div class="grid-2" style="gap:12px;margin-bottom:12px;">
+              <div class="form-group" style="margin-bottom:0;"><label class="form-label">Nome</label><input class="form-input" id="rtName" placeholder="Ex: Sprint Planning"></div>
+              <div class="form-group" style="margin-bottom:0;"><label class="form-label">Frequência</label><select class="form-input" id="rtFreq"><option value="daily">Diária</option><option value="weekly" selected>Semanal</option><option value="biweekly">Quinzenal</option><option value="monthly">Mensal</option><option value="quarterly">Trimestral</option><option value="custom">Personalizada</option></select></div>
+            </div>
+            <div class="grid-2" style="gap:12px;margin-bottom:12px;">
+              <div class="form-group" style="margin-bottom:0;"><label class="form-label">Duração (min)</label><input type="number" class="form-input" id="rtDuration" value="30" min="5" max="240" step="5"></div>
+              <div class="form-group" style="margin-bottom:0;"><label class="form-label">Cor</label><input type="color" class="form-input" id="rtColor" value="#6366f1" style="height:36px;padding:2px;"></div>
+            </div>
+            <div class="form-group" style="margin-bottom:12px;"><label class="form-label">Descrição</label><input class="form-input" id="rtDesc" placeholder="Breve descrição do ritual"></div>
+            <div class="form-group" style="margin-bottom:12px;"><label class="form-label">Template de Pauta</label><textarea class="form-input" id="rtAgenda" rows="4" placeholder="## Pauta\n- Item 1\n- Item 2" style="font-family:monospace;font-size:0.78rem;"></textarea></div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-primary btn-sm" id="rtSave"><i data-lucide="save" style="width:12px;height:12px;vertical-align:-2px;"></i> Salvar</button>
+              <button class="btn btn-secondary btn-sm" id="rtCancel">Cancelar</button>
+            </div>
+          </div>
+          <div style="padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;" id="rhRituaisGrid">
+            ${ritualTypes.length ? ritualTypes.map(rt => `<div class="rh-ritual-card" data-id="${rt.id}" style="padding:14px;background:var(--bg-elevated);border-radius:10px;border-left:4px solid ${rt.color || '#6366f1'};cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                <i data-lucide="${rt.icon || 'calendar'}" style="width:16px;height:16px;color:${rt.color || '#6366f1'};"></i>
+                <div style="font-weight:600;font-size:0.85rem;flex:1;">${S._esc(rt.name)}</div>
+                ${rt.is_system ? '<span style="font-size:0.55rem;padding:1px 5px;border-radius:4px;background:var(--bg-tertiary);color:var(--text-muted);">Padrão</span>' : ''}
+              </div>
+              <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px;">${S._esc(rt.description || '')}</div>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <span class="tag" style="font-size:0.62rem;background:${rt.color || '#6366f1'}15;color:${rt.color || '#6366f1'};">${freqLabel(rt.frequency)}</span>
+                <span style="font-size:0.62rem;color:var(--text-muted);">${rt.duration_minutes || 30} min</span>
+              </div>
+            </div>`).join('') : '<div style="padding:8px;font-size:0.78rem;color:var(--text-muted);grid-column:1/-1;">Carregando tipos de rituais...</div>'}
           </div>
         </div>
 
@@ -149,11 +189,29 @@
       // 1:1 CRUD
       S._bindToggle('rhNew1on1', 'rh1on1Form');
       S._bindToggle('ooCancel', 'rh1on1Form', false);
+      // Ritual type selector auto-fills recurrence + duration
+      const ooRitualType = document.getElementById('ooRitualType');
+      if (ooRitualType) {
+        ooRitualType.addEventListener('change', () => {
+          const opt = ooRitualType.selectedOptions[0];
+          if (opt?.dataset?.freq) {
+            const ooRec = document.getElementById('ooRecurrence');
+            if (ooRec) ooRec.value = opt.dataset.freq;
+          }
+          if (opt?.dataset?.dur) {
+            const ooDur = document.getElementById('ooDuration');
+            if (ooDur) ooDur.value = opt.dataset.dur;
+          }
+        });
+      }
+
       S._bind('ooSave', async () => {
         const leaderId = document.getElementById('ooLider')?.value;
         const collabId = document.getElementById('ooColab')?.value;
         const dataValue = document.getElementById('ooData')?.value || new Date().toISOString();
         const recurrence = document.getElementById('ooRecurrence')?.value || '';
+        const ritualTypeId = document.getElementById('ooRitualType')?.value || null;
+        const durationMin = parseInt(document.getElementById('ooDuration')?.value) || 30;
         const statusEl = document.getElementById('oo1on1Status');
 
         const leaderPerson = S._team.find(t => (t.supabaseId || t.id) === leaderId);
@@ -197,7 +255,8 @@
                 collaborator_id: collabId,
                 scheduled_at: dt,
                 status: 'scheduled',
-                recurrence: recurrence || null
+                recurrence: recurrence || null,
+                ritual_type_id: ritualTypeId || null
               });
 
               // Criar evento no Google Calendar automaticamente
@@ -210,7 +269,7 @@
                     collaboratorName: collabPerson?.nome || 'Colaborador',
                     collaboratorEmail: collabPerson?.email || '',
                     scheduledAt: dt,
-                    durationMinutes: 30
+                    durationMinutes: durationMin
                   });
 
                   // Salvar google_event_id na 1:1
@@ -272,6 +331,38 @@
       // Action checkboxes
       this._bindActionChecks();
 
+      // Ritual type CRUD (admin)
+      S._bindToggle('rhNewRitualType', 'rhRitualTypeForm');
+      S._bindToggle('rtCancel', 'rhRitualTypeForm', false);
+      S._bind('rtSave', async () => {
+        const name = document.getElementById('rtName')?.value?.trim();
+        if (!name) { TBO_TOAST.warning('Informe o nome do ritual'); return; }
+
+        try {
+          await RitualTypesRepo.create({
+            name,
+            frequency: document.getElementById('rtFreq')?.value || 'weekly',
+            duration_minutes: parseInt(document.getElementById('rtDuration')?.value) || 30,
+            color: document.getElementById('rtColor')?.value || '#6366f1',
+            description: document.getElementById('rtDesc')?.value?.trim() || '',
+            default_agenda: document.getElementById('rtAgenda')?.value || ''
+          });
+          TBO_TOAST.success('Tipo de ritual criado!');
+          self._ritualTypesCache = null;
+          await self._loadRitualTypes();
+        } catch (e) {
+          TBO_TOAST.error('Erro ao criar tipo: ' + (e.message || ''));
+        }
+      });
+
+      // Ritual type card click → detail/edit modal
+      document.querySelectorAll('.rh-ritual-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const id = card.dataset.id;
+          if (id) self._openRitualTypeDetail(id);
+        });
+      });
+
       // Lucide icons
       if (window.lucide) lucide.createIcons();
     },
@@ -303,6 +394,153 @@
     },
 
     // ══════════════════════════════════════════════════════════════════
+    // Carregar tipos de ritual do Supabase
+    // ══════════════════════════════════════════════════════════════════
+    async _loadRitualTypes() {
+      try {
+        if (typeof RitualTypesRepo === 'undefined') return;
+        const types = await RitualTypesRepo.list();
+        this._ritualTypesCache = types || [];
+
+        // Re-renderizar se estiver na tab 1on1
+        if (S._activeTab === 'one-on-ones') {
+          const tabContent = document.getElementById('rhTabContent');
+          if (tabContent) {
+            tabContent.innerHTML = this.render();
+            this.init();
+          }
+        }
+      } catch (e) {
+        console.warn('[RH] Erro ao carregar tipos de ritual:', e.message);
+      }
+    },
+
+    // ══════════════════════════════════════════════════════════════════
+    // Ritual Type Detail Modal
+    // ══════════════════════════════════════════════════════════════════
+    async _openRitualTypeDetail(ritualTypeId) {
+      if (typeof RitualTypesRepo === 'undefined') return;
+      const self = this;
+      const isAdmin = S._isAdmin();
+
+      try {
+        const rt = await RitualTypesRepo.getById(ritualTypeId);
+        if (!rt) { TBO_TOAST.warning('Tipo de ritual não encontrado'); return; }
+
+        const freqLabel = RitualTypesRepo.freqLabel(rt.frequency);
+
+        const overlay = document.createElement('div');
+        overlay.id = 'rhRitualTypeOverlay';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:9999;display:flex;justify-content:center;align-items:center;';
+        overlay.innerHTML = `
+          <div style="background:var(--bg-card, #ffffff);border-radius:16px;width:520px;max-width:calc(100vw - 48px);max-height:85vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,0.25);padding:24px;position:relative;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:36px;height:36px;border-radius:10px;background:${rt.color || '#6366f1'}15;display:flex;align-items:center;justify-content:center;">
+                  <i data-lucide="${rt.icon || 'calendar'}" style="width:18px;height:18px;color:${rt.color || '#6366f1'};"></i>
+                </div>
+                <div>
+                  <h3 style="font-size:1rem;font-weight:700;margin-bottom:2px;">${S._esc(rt.name)}</h3>
+                  <div style="font-size:0.72rem;color:var(--text-muted);">${freqLabel} · ${rt.duration_minutes || 30} min${rt.is_system ? ' · Tipo padrão' : ''}</div>
+                </div>
+              </div>
+              <button id="rtDetailClose" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px;"><i data-lucide="x" style="width:18px;height:18px;"></i></button>
+            </div>
+
+            ${rt.description ? `<div style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:16px;padding:10px;background:var(--bg-elevated);border-radius:8px;">${S._esc(rt.description)}</div>` : ''}
+
+            ${rt.default_agenda ? `
+              <div style="margin-bottom:16px;">
+                <label style="font-weight:600;font-size:0.82rem;display:block;margin-bottom:6px;"><i data-lucide="file-text" style="width:14px;height:14px;vertical-align:-2px;"></i> Template de Pauta</label>
+                <div style="padding:12px;background:var(--bg-elevated);border-radius:8px;font-size:0.78rem;white-space:pre-wrap;font-family:monospace;line-height:1.5;max-height:200px;overflow-y:auto;">${S._esc(rt.default_agenda)}</div>
+              </div>
+            ` : ''}
+
+            ${isAdmin && !rt.is_system ? `
+              <div style="display:flex;gap:8px;padding-top:12px;border-top:1px solid var(--border-subtle);">
+                <button class="btn btn-sm" id="rtDetailEdit" style="color:var(--color-info);border:1px solid var(--color-info);"><i data-lucide="edit-2" style="width:12px;height:12px;"></i> Editar</button>
+                <button class="btn btn-sm" style="color:var(--color-danger);border:1px solid var(--color-danger);margin-left:auto;" id="rtDetailDelete"><i data-lucide="trash-2" style="width:12px;height:12px;"></i> Excluir</button>
+              </div>
+            ` : ''}
+          </div>
+        `;
+
+        document.body.appendChild(overlay);
+        if (window.lucide) lucide.createIcons({ nodes: [overlay] });
+
+        // Close
+        overlay.querySelector('#rtDetailClose')?.addEventListener('click', () => overlay.remove());
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+        // Delete
+        overlay.querySelector('#rtDetailDelete')?.addEventListener('click', async () => {
+          if (!confirm('Excluir este tipo de ritual?')) return;
+          try {
+            await RitualTypesRepo.remove(rt.id);
+            TBO_TOAST.success('Tipo de ritual excluído');
+            overlay.remove();
+            self._ritualTypesCache = null;
+            await self._loadRitualTypes();
+          } catch (e) {
+            TBO_TOAST.error('Erro: ' + (e.message || ''));
+          }
+        });
+
+        // Edit (inline — replace content with edit form)
+        overlay.querySelector('#rtDetailEdit')?.addEventListener('click', () => {
+          const panel = overlay.querySelector('div > div');
+          panel.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+              <h3 style="font-size:1rem;font-weight:700;">Editar Ritual</h3>
+              <button id="rtEditClose" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px;"><i data-lucide="x" style="width:18px;height:18px;"></i></button>
+            </div>
+            <div class="grid-2" style="gap:12px;margin-bottom:12px;">
+              <div class="form-group" style="margin-bottom:0;"><label class="form-label">Nome</label><input class="form-input" id="rtEditName" value="${S._esc(rt.name)}"></div>
+              <div class="form-group" style="margin-bottom:0;"><label class="form-label">Frequência</label><select class="form-input" id="rtEditFreq"><option value="daily" ${rt.frequency === 'daily' ? 'selected' : ''}>Diária</option><option value="weekly" ${rt.frequency === 'weekly' ? 'selected' : ''}>Semanal</option><option value="biweekly" ${rt.frequency === 'biweekly' ? 'selected' : ''}>Quinzenal</option><option value="monthly" ${rt.frequency === 'monthly' ? 'selected' : ''}>Mensal</option><option value="quarterly" ${rt.frequency === 'quarterly' ? 'selected' : ''}>Trimestral</option><option value="custom" ${rt.frequency === 'custom' ? 'selected' : ''}>Personalizada</option></select></div>
+            </div>
+            <div class="grid-2" style="gap:12px;margin-bottom:12px;">
+              <div class="form-group" style="margin-bottom:0;"><label class="form-label">Duração (min)</label><input type="number" class="form-input" id="rtEditDuration" value="${rt.duration_minutes || 30}" min="5" max="240" step="5"></div>
+              <div class="form-group" style="margin-bottom:0;"><label class="form-label">Cor</label><input type="color" class="form-input" id="rtEditColor" value="${rt.color || '#6366f1'}" style="height:36px;padding:2px;"></div>
+            </div>
+            <div class="form-group" style="margin-bottom:12px;"><label class="form-label">Descrição</label><input class="form-input" id="rtEditDesc" value="${S._esc(rt.description || '')}"></div>
+            <div class="form-group" style="margin-bottom:12px;"><label class="form-label">Template de Pauta</label><textarea class="form-input" id="rtEditAgenda" rows="5" style="font-family:monospace;font-size:0.78rem;">${S._esc(rt.default_agenda || '')}</textarea></div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-primary btn-sm" id="rtEditSave"><i data-lucide="save" style="width:12px;height:12px;vertical-align:-2px;"></i> Salvar</button>
+              <button class="btn btn-secondary btn-sm" id="rtEditCancel">Cancelar</button>
+            </div>
+          `;
+          if (window.lucide) lucide.createIcons({ nodes: [panel] });
+
+          panel.querySelector('#rtEditClose')?.addEventListener('click', () => overlay.remove());
+          panel.querySelector('#rtEditCancel')?.addEventListener('click', () => overlay.remove());
+          panel.querySelector('#rtEditSave')?.addEventListener('click', async () => {
+            const newName = panel.querySelector('#rtEditName')?.value?.trim();
+            if (!newName) { TBO_TOAST.warning('Nome obrigatório'); return; }
+            try {
+              await RitualTypesRepo.update(rt.id, {
+                name: newName,
+                frequency: panel.querySelector('#rtEditFreq')?.value || 'weekly',
+                duration_minutes: parseInt(panel.querySelector('#rtEditDuration')?.value) || 30,
+                color: panel.querySelector('#rtEditColor')?.value || '#6366f1',
+                description: panel.querySelector('#rtEditDesc')?.value?.trim() || '',
+                default_agenda: panel.querySelector('#rtEditAgenda')?.value || ''
+              });
+              TBO_TOAST.success('Tipo de ritual atualizado!');
+              overlay.remove();
+              self._ritualTypesCache = null;
+              await self._loadRitualTypes();
+            } catch (e) {
+              TBO_TOAST.error('Erro: ' + (e.message || ''));
+            }
+          });
+        });
+      } catch (e) {
+        console.warn('[RH] Erro ao abrir detalhe do tipo de ritual:', e);
+        TBO_TOAST.error('Erro ao carregar tipo de ritual');
+      }
+    },
+
+    // ══════════════════════════════════════════════════════════════════
     // 1:1 Detail Panel (modal com notas + acoes)
     // ══════════════════════════════════════════════════════════════════
     async _open1on1Detail(oneOnOneId) {
@@ -321,6 +559,7 @@
         const statusColors = { scheduled: 'var(--color-info)', completed: 'var(--color-success)', cancelled: 'var(--text-muted)', no_show: 'var(--color-danger)' };
         const statusLabels = { scheduled: 'Agendada', completed: 'Concluída', cancelled: 'Cancelada', no_show: 'No-show' };
         const hasMeeting = !!data.fireflies_meeting_id;
+        const ritualType = data.ritual_type_id && this._ritualTypesCache ? this._ritualTypesCache.find(rt => rt.id === data.ritual_type_id) : null;
         const categoryLabels = { feedback: 'Feedback', desenvolvimento: 'Desenvolvimento', operacional: 'Operacional', pdi: 'PDI', follow_up: 'Follow-up' };
         const categoryColors = { feedback: '#8B5CF6', desenvolvimento: '#3B82F6', operacional: '#6B7280', pdi: '#10B981', follow_up: '#F59E0B' };
 
@@ -352,8 +591,8 @@
           <div style="background:var(--bg-card, #ffffff);border-radius:16px;width:620px;max-width:calc(100vw - 48px);max-height:85vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,0.25);padding:24px;position:relative;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
               <div>
-                <h3 style="font-size:1rem;font-weight:700;margin-bottom:2px;">1:1 ${S._esc(leaderName)} ↔ ${S._esc(collabName)}</h3>
-                <div style="font-size:0.75rem;color:var(--text-muted);">${data.scheduled_at ? new Date(data.scheduled_at).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                <h3 style="font-size:1rem;font-weight:700;margin-bottom:2px;">${ritualType ? `<i data-lucide="${ritualType.icon || 'calendar'}" style="width:14px;height:14px;vertical-align:-2px;color:${ritualType.color || '#6366f1'};"></i> ` : ''}1:1 ${S._esc(leaderName)} ↔ ${S._esc(collabName)}</h3>
+                <div style="font-size:0.75rem;color:var(--text-muted);">${ritualType ? `<span style="font-size:0.65rem;padding:1px 6px;border-radius:4px;background:${ritualType.color || '#6366f1'}15;color:${ritualType.color || '#6366f1'};margin-right:4px;">${S._esc(ritualType.name)}</span>` : ''}${data.scheduled_at ? new Date(data.scheduled_at).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
                   ${data.google_event_id ? ' · <i data-lucide="calendar" style="width:10px;height:10px;vertical-align:-1px;color:var(--color-info);"></i> Google Calendar' : ''}
                   ${data.recurrence ? ` · <i data-lucide="repeat" style="width:10px;height:10px;vertical-align:-1px;"></i> ${data.recurrence === 'daily' ? 'Diária' : data.recurrence === 'monthly' ? 'Mensal' : data.recurrence === 'biweekly' ? 'Quinzenal' : 'Semanal'}` : ''}
                   ${hasMeeting ? ' · <i data-lucide="mic" style="width:10px;height:10px;vertical-align:-1px;color:#8B5CF6;"></i> Fireflies' : ''}

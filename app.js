@@ -131,7 +131,9 @@ const TBO_APP = {
       'notion-embed': typeof TBO_NOTION_EMBED !== 'undefined' ? TBO_NOTION_EMBED : null,
       'system-health': typeof TBO_SYSTEM_HEALTH !== 'undefined' ? TBO_SYSTEM_HEALTH : null,
       'quadro-projetos': typeof TBO_QUADRO_PROJETOS !== 'undefined' ? TBO_QUADRO_PROJETOS : null,
-      'project-detail': typeof TBO_PROJECT_DETAIL !== 'undefined' ? TBO_PROJECT_DETAIL : null
+      'project-detail': typeof TBO_PROJECT_DETAIL !== 'undefined' ? TBO_PROJECT_DETAIL : null,
+      'diretoria': typeof TBO_DIRETORIA !== 'undefined' ? TBO_DIRETORIA : null,
+      'okrs': typeof TBO_OKRS !== 'undefined' ? TBO_OKRS : null
     };
 
     Object.entries(modules).forEach(([name, mod]) => {

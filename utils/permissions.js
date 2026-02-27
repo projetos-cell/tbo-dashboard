@@ -41,7 +41,8 @@ const TBO_PERMISSIONS = {
         'trilha-aprendizagem','changelog','chat','carga-trabalho','notion-embed',
         'pagar','receber','margens','conciliacao','conciliacao-bancaria',
         'permissoes-config','integracoes','templates','workspace','pessoas-avancado',
-        'admin-portal','configuracoes','inteligencia-imobiliaria','agenda','inbox'
+        'admin-portal','configuracoes','inteligencia-imobiliaria','agenda','inbox',
+        'diretoria'
       ],
       dashboardVariant: 'full',
       defaultModule: 'dashboard'

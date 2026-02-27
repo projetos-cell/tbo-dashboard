@@ -55,9 +55,9 @@ const TBO_SIDEBAR_SERVICE = (() => {
 
     // ── Sub-items: Geral ──────────────────────────────────────────────────
     { id: 'geral-quadro-projetos', name: 'Quadro de Projetos', type: 'child', order_index: 9.025, icon: 'layout-dashboard', route: 'quadro-projetos', parent_id: 'ws-geral', allowed_roles: [] },
-    { id: 'geral-cultura',     name: 'Manual de Cultura',     type: 'child', order_index: 9.03, icon: 'book-open',        route: 'notion-embed/geral-cultura',   parent_id: 'ws-geral', allowed_roles: [] },
+    { id: 'geral-cultura',     name: 'Manual de Cultura',     type: 'child', order_index: 9.03, icon: 'book-open',        route: 'cultura',                      parent_id: 'ws-geral', allowed_roles: [] },
     { id: 'geral-docs',        name: 'Documentos & Padrões',  type: 'child', order_index: 9.04, icon: 'file-text',        route: 'notion-embed/geral-docs',      parent_id: 'ws-geral', allowed_roles: [] },
-    { id: 'geral-okrs',        name: 'OKRs TBO — 2026',      type: 'child', order_index: 14.56, icon: 'target',           route: 'notion-embed/geral-okrs',      parent_id: 'ws-pessoas', allowed_roles: [] },
+    { id: 'geral-okrs',        name: 'OKRs TBO — 2026',      type: 'child', order_index: 14.56, icon: 'target',           route: 'okrs',                         parent_id: 'ws-pessoas', allowed_roles: [] },
 
     // ── Sub-items: Branding ─────────────────────────────────────────────
     { id: 'brand-projetos',    name: 'Quadro de Projetos',    type: 'child', order_index: 10.01, icon: 'kanban',          route: 'projetos', parent_id: 'ws-branding', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'creative-dir', 'design', 'copy', 'qa'] },
@@ -86,8 +86,11 @@ const TBO_SIDEBAR_SERVICE = (() => {
     { id: 'com-gestao',        name: 'Gestão Comercial',      type: 'child', order_index: 14.05, icon: 'chart-bar',       route: 'notion-embed/com-gestao', parent_id: 'ws-comercial', allowed_roles: ['owner', 'admin', 'diretor', 'po', 'pm', 'comercial', 'cs', 'financeiro'] },
 
     // ── Sub-items: Diretoria ────────────────────────────────────────────
+    { id: 'dir-painel',     name: 'Painel Diretoria',  type: 'child',     order_index: 15.05, icon: 'layout-dashboard', route: 'diretoria', parent_id: 'ws-diretoria', allowed_roles: ['owner', 'admin', 'diretor'] },
     { id: 'dir-financeiro', name: 'Financeiro',       type: 'child',     order_index: 15.1, icon: 'coins',  route: 'financeiro', parent_id: 'ws-diretoria', allowed_roles: ['owner', 'admin', 'diretor', 'financeiro'] },
+    { id: 'dir-people',     name: 'People Analytics',  type: 'child',     order_index: 15.15, icon: 'bar-chart-3', route: 'diretoria/people', parent_id: 'ws-diretoria', allowed_roles: ['owner', 'admin', 'diretor'] },
     { id: 'dir-relatorios', name: 'Relatórios',      type: 'child',     order_index: 15.2, icon: 'file-bar-chart', route: 'relatorios', parent_id: 'ws-diretoria', allowed_roles: ['owner', 'admin', 'diretor'] },
+    { id: 'dir-audit',      name: 'Auditoria',         type: 'child',     order_index: 15.25, icon: 'scroll-text', route: 'diretoria/auditoria', parent_id: 'ws-diretoria', allowed_roles: ['owner', 'admin', 'diretor'] },
     { id: 'dir-portal',     name: 'Portal do Cliente', type: 'child',     order_index: 15.3, icon: 'monitor-smartphone', route: 'portal-cliente', parent_id: 'ws-diretoria', allowed_roles: ['owner', 'admin', 'diretor'] },
 
     // Sub-items do workspace Pessoas (RH) — deep link: rh/{tab}

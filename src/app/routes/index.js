@@ -50,7 +50,9 @@ const TBO_ROUTE_REGISTRY = (() => {
     'relatorios':             'relatorios',
     'rsm':                    'rsm',
     'permissoes-config':      'permissoes-config',
-    'system-health':          'system-health'
+    'system-health':          'system-health',
+    'diretoria':              'diretoria',
+    'okrs':                   'okrs'
   };
 
   // Aliases: rotas antigas → module key
@@ -152,7 +154,11 @@ const TBO_ROUTE_REGISTRY = (() => {
     // System Health (production readiness)
     'system-health':          { label: 'System Health',          icon: 'heart-pulse',        group: 'sistema',      color: '#22C55E' },
     // Project Detail (parametric)
-    'project-detail':         { label: 'Projeto',                icon: 'folder-open',        group: 'outros',       color: '#3B82F6' }
+    'project-detail':         { label: 'Projeto',                icon: 'folder-open',        group: 'outros',       color: '#3B82F6' },
+    // Diretoria
+    'diretoria':              { label: 'Diretoria',              icon: 'shield',             group: 'gestao',       color: '#E85102' },
+    // OKRs (Sprint 2.1)
+    'okrs':                   { label: 'OKRs',                   icon: 'target',             group: 'pessoas',      color: '#8B5CF6' }
   };
 
   return {

@@ -19,8 +19,8 @@ const TBO_CULTURA = {
         </div>
         <div class="cultura-header-stats">
           <div class="cultura-stat"><span class="cultura-stat-num">${sections.length + this._customPages.length}</span><span class="cultura-stat-label">Secoes</span></div>
-          <div class="cultura-stat"><span class="cultura-stat-num">17</span><span class="cultura-stat-label">Pessoas</span></div>
-          <div class="cultura-stat"><span class="cultura-stat-num">5</span><span class="cultura-stat-label">BUs</span></div>
+          <div class="cultura-stat"><span class="cultura-stat-num">${this._getHeadcount()}</span><span class="cultura-stat-label">Pessoas</span></div>
+          <div class="cultura-stat"><span class="cultura-stat-num">${this._getBUCount()}</span><span class="cultura-stat-label">BUs</span></div>
         </div>
       </div>
 
@@ -126,7 +126,15 @@ const TBO_CULTURA = {
     try {
       if (typeof TBO_SUPABASE === 'undefined' || !TBO_SUPABASE.getClient()) return;
       const client = TBO_SUPABASE.getClient();
-      const { data } = await client.from('culture_pages').select('*').order('order_index');
+      const tenantStr = localStorage.getItem('tbo_current_workspace');
+      const tenantId = tenantStr ? JSON.parse(tenantStr).id : null;
+      let query = client.from('culture_pages').select('*').order('order_index');
+      if (tenantId) query = query.eq('tenant_id', tenantId);
+      const { data, error } = await query;
+      if (error) {
+        console.warn('[Cultura] Erro ao carregar paginas:', error.message);
+        return;
+      }
       if (data) this._customPages = data;
     } catch (e) {
       console.warn('[Cultura] Erro ao carregar paginas:', e.message);
@@ -393,5 +401,38 @@ const TBO_CULTURA = {
       <ul class="cultura-list-accent">${d.principiosCulturais.map(p => `<li>${p}</li>`).join('')}</ul>
       <h3>Perfil de Lideranca TBO</h3>
       <ul class="cultura-list-accent">${d.perfilLider.map(p => `<li>${p}</li>`).join('')}</ul>`;
+  },
+
+  // ── Lifecycle: destroy ──────────────────────────────────────────────
+
+  destroy() {
+    this._currentSection = null;
+    this._customPages = [];
+    this._tab = 'manual';
+  },
+
+  // ── Dynamic stats helpers ───────────────────────────────────────────
+
+  _getHeadcount() {
+    try {
+      if (typeof TBO_PEOPLE_SHARED !== 'undefined' && TBO_PEOPLE_SHARED._getInternalTeam) {
+        const team = TBO_PEOPLE_SHARED._getInternalTeam();
+        if (team && team.length > 0) return team.length;
+      }
+    } catch (e) { /* fallback */ }
+    return '\u2014';
+  },
+
+  _getBUCount() {
+    try {
+      if (typeof TBO_PEOPLE_SHARED !== 'undefined' && TBO_PEOPLE_SHARED._getInternalTeam) {
+        const team = TBO_PEOPLE_SHARED._getInternalTeam();
+        if (team && team.length > 0) {
+          const bus = new Set(team.map(p => p.bu).filter(Boolean));
+          return bus.size || '\u2014';
+        }
+      }
+    } catch (e) { /* fallback */ }
+    return '\u2014';
   }
 };

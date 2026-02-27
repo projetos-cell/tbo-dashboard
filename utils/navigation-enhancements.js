@@ -274,7 +274,8 @@ const TBO_NAVIGATION = {
 
     // Auto-collapse sidebar on mobile
     if (matches) {
-      this._collapseSidebar(true);
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar) sidebar.classList.add('collapsed');
     }
   },
 

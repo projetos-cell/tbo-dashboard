@@ -309,7 +309,7 @@ const RSMRepo = (() => {
 
     /**
      * Get dashboard metrics aggregated across all accounts
-     * Returns: accounts with their latest metrics
+     * Returns: accounts with their latest metrics + last 7 days sparkline data
      */
     async getDashboardMetrics() {
       const tid = _tid();
@@ -322,19 +322,33 @@ const RSMRepo = (() => {
         .order('handle');
 
       if (accErr) throw accErr;
-      if (!accounts || accounts.length === 0) return { accounts: [], totals: {} };
+      if (!accounts || accounts.length === 0) return { accounts: [], totals: {}, lastSync: null };
 
-      // Get latest metric for each account
+      const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+
+      // Get latest metric + last 7 days for each account
       const metricsPromises = accounts.map(async (account) => {
-        const { data: metric } = await _db().from('rsm_metrics')
-          .select('*')
-          .eq('tenant_id', tid)
-          .eq('account_id', account.id)
-          .order('date', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        const [latestRes, sparklineRes] = await Promise.all([
+          _db().from('rsm_metrics')
+            .select('*')
+            .eq('tenant_id', tid)
+            .eq('account_id', account.id)
+            .order('date', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          _db().from('rsm_metrics')
+            .select('date, followers, reach, impressions, engagement_rate, source')
+            .eq('tenant_id', tid)
+            .eq('account_id', account.id)
+            .gte('date', sevenDaysAgo)
+            .order('date', { ascending: true })
+        ]);
 
-        return { ...account, latestMetric: metric };
+        return {
+          ...account,
+          latestMetric: latestRes.data,
+          sparkline: sparklineRes.data || []
+        };
       });
 
       const accountsWithMetrics = await Promise.all(metricsPromises);
@@ -365,7 +379,65 @@ const RSMRepo = (() => {
 
       totals.avgEngagement = engagementCount > 0 ? (engagementSum / engagementCount).toFixed(2) : 0;
 
-      return { accounts: accountsWithMetrics, totals };
+      // Get last sync run
+      const { data: lastSync } = await _db().from('reportei_sync_runs')
+        .select('id, started_at, finished_at, status, accounts_synced, metrics_upserted, error_message')
+        .eq('tenant_id', tid)
+        .order('started_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      return { accounts: accountsWithMetrics, totals, lastSync };
+    },
+
+    /**
+     * Get metrics evolution for a specific account over a date range
+     * Used for detail charts
+     */
+    async getMetricsEvolution(accountId, days = 30) {
+      const fromDate = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
+      const { data, error } = await _db().from('rsm_metrics')
+        .select('date, followers, reach, impressions, engagement_rate, clicks, saves, profile_views, source')
+        .eq('tenant_id', _tid())
+        .eq('account_id', accountId)
+        .gte('date', fromDate)
+        .order('date', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    },
+
+    /**
+     * Get last sync run info
+     */
+    async getLastSyncRun() {
+      const { data, error } = await _db().from('reportei_sync_runs')
+        .select('*')
+        .eq('tenant_id', _tid())
+        .order('started_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    },
+
+    /**
+     * Trigger a manual Reportei sync via the proxy endpoint
+     */
+    async triggerSync() {
+      const token = (await _db().auth.getSession())?.data?.session?.access_token;
+      if (!token) throw new Error('Not authenticated');
+
+      const res = await fetch('/api/reportei-sync?days=7', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Sync failed (${res.status})`);
+      }
+      return res.json();
     }
   };
 })();

@@ -204,7 +204,13 @@ const TBO_RSM = {
       ? data.accounts.filter(a => a.client_id === this._selectedClient)
       : data.accounts;
 
+    // Sync status bar
+    const sync = data.lastSync;
+    const syncHtml = this._renderSyncBar(sync);
+
     return `
+      ${syncHtml}
+
       <!-- KPI Summary -->
       <div class="rsm-kpi-grid">
         <div class="rsm-kpi-card">
@@ -249,15 +255,118 @@ const TBO_RSM = {
       <div class="rsm-accounts-grid">
         ${filtered.map(a => this._renderAccountCard(a)).join('')}
       </div>
+
+      <!-- Performance Ranking -->
+      ${filtered.length > 1 ? this._renderRanking(filtered) : ''}
     `;
+  },
+
+  /**
+   * Render performance ranking table (sorted by engagement rate)
+   */
+  _renderRanking(accounts) {
+    const sorted = [...accounts]
+      .filter(a => a.latestMetric)
+      .sort((a, b) => (parseFloat(b.latestMetric.engagement_rate) || 0) - (parseFloat(a.latestMetric.engagement_rate) || 0));
+
+    if (sorted.length === 0) return '';
+
+    const rows = sorted.map((a, i) => {
+      const m = a.latestMetric;
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`;
+      return `
+        <tr class="rsm-rank-row">
+          <td class="rsm-rank-pos">${medal}</td>
+          <td class="rsm-rank-handle">@${this._esc(a.handle)} <span class="rsm-rank-platform">${a.platform}</span></td>
+          <td class="rsm-rank-val">${this._fmtNum(m.followers || 0)}</td>
+          <td class="rsm-rank-val">${this._fmtNum(m.reach || 0)}</td>
+          <td class="rsm-rank-val">${parseFloat(m.engagement_rate || 0).toFixed(2)}%</td>
+          <td class="rsm-rank-val">${this._fmtNum(m.impressions || 0)}</td>
+        </tr>`;
+    }).join('');
+
+    return `
+      <div class="rsm-ranking-section">
+        <h3 class="rsm-section-title">
+          <i data-lucide="trophy" style="width:18px;height:18px;"></i>
+          Ranking de Performance
+        </h3>
+        <div class="rsm-table-wrap">
+          <table class="rsm-ranking-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Conta</th>
+                <th>Seguidores</th>
+                <th>Alcance</th>
+                <th>Engajamento</th>
+                <th>Impressoes</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>`;
+  },
+
+  _renderSyncBar(sync) {
+    if (!sync) {
+      return `
+        <div class="rsm-sync-bar rsm-sync-bar--none">
+          <div class="rsm-sync-info">
+            <i data-lucide="cloud-off" style="width:14px;height:14px;"></i>
+            <span>Nenhuma sincronizacao Reportei realizada</span>
+          </div>
+          <button class="btn btn-sm" id="rsmSyncNow">
+            <i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> Sincronizar
+          </button>
+        </div>`;
+    }
+
+    const statusMap = {
+      success: { label: 'Sucesso', cls: 'rsm-sync-bar--ok', icon: 'check-circle' },
+      partial: { label: 'Parcial', cls: 'rsm-sync-bar--warn', icon: 'alert-triangle' },
+      error:   { label: 'Erro',    cls: 'rsm-sync-bar--err', icon: 'x-circle' },
+      running: { label: 'Rodando', cls: 'rsm-sync-bar--run', icon: 'loader' }
+    };
+    const s = statusMap[sync.status] || statusMap.error;
+    const when = sync.finished_at || sync.started_at;
+    const ago = this._timeAgo(when);
+
+    return `
+      <div class="rsm-sync-bar ${s.cls}">
+        <div class="rsm-sync-info">
+          <i data-lucide="${s.icon}" style="width:14px;height:14px;"></i>
+          <span>Ultima sync: <strong>${s.label}</strong> &mdash; ${ago}</span>
+          ${sync.accounts_synced ? `<span class="rsm-sync-detail">${sync.accounts_synced} contas, ${sync.metrics_upserted || 0} metricas</span>` : ''}
+        </div>
+        <button class="btn btn-sm" id="rsmSyncNow">
+          <i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> Sincronizar
+        </button>
+      </div>`;
+  },
+
+  _timeAgo(dateStr) {
+    if (!dateStr) return '--';
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'agora';
+    if (mins < 60) return `${mins}min atras`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h atras`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d atras`;
   },
 
   _renderAccountCard(account) {
     const m = account.latestMetric;
-    const platformIcons = { instagram: 'instagram', facebook: 'facebook', linkedin: 'linkedin', tiktok: 'music' };
-    const platformColors = { instagram: '#E4405F', facebook: '#1877F2', linkedin: '#0A66C2', tiktok: '#000000' };
+    const platformIcons = { instagram: 'instagram', facebook: 'facebook', linkedin: 'linkedin', tiktok: 'music', twitter: 'twitter', youtube: 'youtube' };
+    const platformColors = { instagram: '#E4405F', facebook: '#1877F2', linkedin: '#0A66C2', tiktok: '#000000', twitter: '#1DA1F2', youtube: '#FF0000' };
     const icon = platformIcons[account.platform] || 'share-2';
     const color = platformColors[account.platform] || '#EC4899';
+
+    const sourceLabel = m?.source === 'reportei' ? 'Reportei' : (m?.source === 'manual' ? 'Manual' : '');
+    const sparklineSvg = this._buildSparklineSVG(account.sparkline || [], 'followers', color);
 
     return `
       <div class="rsm-account-card" data-account-id="${account.id}">
@@ -267,7 +376,7 @@ const TBO_RSM = {
           </div>
           <div class="rsm-account-info">
             <span class="rsm-account-handle">@${this._esc(account.handle)}</span>
-            <span class="rsm-account-platform-label">${account.platform}</span>
+            <span class="rsm-account-platform-label">${account.platform}${sourceLabel ? ` &middot; <span class="rsm-source-tag">${sourceLabel}</span>` : ''}</span>
           </div>
           <span class="rsm-badge rsm-badge--${account.is_active ? 'active' : 'inactive'}">
             ${account.is_active ? 'Ativo' : 'Inativo'}
@@ -291,11 +400,46 @@ const TBO_RSM = {
             <span class="rsm-metric-label">Impressoes</span>
           </div>
         </div>
-        <div class="rsm-account-card-sparkline" id="sparkline-${account.id}">
-          <div class="rsm-sparkline-placeholder"></div>
+        <div class="rsm-account-card-sparkline">
+          ${sparklineSvg}
         </div>
       </div>
     `;
+  },
+
+  /**
+   * Build a tiny SVG sparkline from metrics array
+   */
+  _buildSparklineSVG(metrics, field, color) {
+    if (!metrics || metrics.length < 2) {
+      return '<div class="rsm-sparkline-placeholder"></div>';
+    }
+    const values = metrics.map(m => m[field] || 0);
+    const max = Math.max(...values, 1);
+    const min = Math.min(...values);
+    const range = max - min || 1;
+    const w = 260;
+    const h = 32;
+    const pad = 2;
+    const step = (w - pad * 2) / (values.length - 1);
+
+    const points = values.map((v, i) => {
+      const x = pad + i * step;
+      const y = h - pad - ((v - min) / range) * (h - pad * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+
+    const areaPoints = [
+      `${pad},${h - pad}`,
+      ...points,
+      `${(pad + (values.length - 1) * step).toFixed(1)},${h - pad}`
+    ];
+
+    return `
+      <svg viewBox="0 0 ${w} ${h}" class="rsm-sparkline-svg" preserveAspectRatio="none">
+        <polygon points="${areaPoints.join(' ')}" fill="${color}" fill-opacity="0.08"/>
+        <polyline points="${points.join(' ')}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`;
   },
 
   // ════════════════════════════════════════════════════════════
@@ -609,17 +753,138 @@ const TBO_RSM = {
   },
 
   _bindDashboardEvents() {
-    // Click on account card for detail
+    // Click on account card to show evolution chart
     document.querySelectorAll('.rsm-account-card').forEach(card => {
       card.addEventListener('click', () => {
         const accountId = card.dataset.accountId;
-        // Navigate to accounts tab focused on this account
-        this._tab = 'contas';
-        document.querySelectorAll('.rsm-tab').forEach(t => t.classList.remove('active'));
-        document.querySelector('.rsm-tab[data-tab="contas"]')?.classList.add('active');
-        this._renderTab();
+        this._showAccountEvolution(accountId);
       });
     });
+
+    // Sync button
+    const syncBtn = document.getElementById('rsmSyncNow');
+    if (syncBtn) {
+      syncBtn.addEventListener('click', async () => {
+        syncBtn.disabled = true;
+        syncBtn.innerHTML = '<i data-lucide="loader" style="width:13px;height:13px;" class="rsm-spin"></i> Sincronizando...';
+        if (window.lucide) lucide.createIcons({ nodes: [syncBtn] });
+        try {
+          await RSMRepo.triggerSync();
+          TBO_TOAST?.success?.('Sincronizacao Reportei iniciada!');
+          // Wait a moment then reload data
+          setTimeout(() => this._loadData(), 3000);
+        } catch (e) {
+          console.error('[RSM] Sync error:', e);
+          TBO_TOAST?.error?.('Erro ao sincronizar: ' + e.message);
+          syncBtn.disabled = false;
+          syncBtn.innerHTML = '<i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> Sincronizar';
+          if (window.lucide) lucide.createIcons({ nodes: [syncBtn] });
+        }
+      });
+    }
+
+    // Close evolution panel
+    document.getElementById('rsmEvoClose')?.addEventListener('click', () => {
+      document.getElementById('rsmEvolutionPanel')?.remove();
+    });
+  },
+
+  /**
+   * Show evolution chart for a specific account (inline panel)
+   */
+  async _showAccountEvolution(accountId) {
+    const account = this._dashboardData?.accounts?.find(a => a.id === accountId);
+    if (!account) return;
+
+    // Remove existing panel
+    document.getElementById('rsmEvolutionPanel')?.remove();
+
+    const panel = document.createElement('div');
+    panel.id = 'rsmEvolutionPanel';
+    panel.className = 'rsm-evolution-panel';
+    panel.innerHTML = `
+      <div class="rsm-evo-header">
+        <h3>@${this._esc(account.handle)} — Evolucao 30 dias</h3>
+        <button class="rsm-evo-close" id="rsmEvoClose"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
+      </div>
+      <div class="rsm-evo-loading"><div class="loading-spinner"></div></div>
+    `;
+
+    // Insert after KPI grid
+    const grid = document.querySelector('.rsm-accounts-grid');
+    grid?.parentNode.insertBefore(panel, grid);
+    if (window.lucide) lucide.createIcons({ nodes: [panel] });
+
+    document.getElementById('rsmEvoClose')?.addEventListener('click', () => panel.remove());
+
+    try {
+      const evolution = await RSMRepo.getMetricsEvolution(accountId, 30);
+      if (!evolution || evolution.length < 2) {
+        panel.querySelector('.rsm-evo-loading').innerHTML = '<p style="color:var(--text-muted);padding:16px;text-align:center;">Dados insuficientes para grafico (min 2 dias).</p>';
+        return;
+      }
+
+      const metrics = [
+        { key: 'followers', label: 'Seguidores', color: '#EC4899' },
+        { key: 'reach', label: 'Alcance', color: '#3B82F6' },
+        { key: 'impressions', label: 'Impressoes', color: '#F59E0B' },
+        { key: 'engagement_rate', label: 'Engajamento (%)', color: '#22C55E' }
+      ];
+
+      const chartsHtml = metrics.map(m => `
+        <div class="rsm-evo-chart-block">
+          <span class="rsm-evo-chart-label" style="color:${m.color};">${m.label}</span>
+          ${this._buildEvolutionSVG(evolution, m.key, m.color)}
+        </div>
+      `).join('');
+
+      panel.querySelector('.rsm-evo-loading').innerHTML = `
+        <div class="rsm-evo-charts">${chartsHtml}</div>
+      `;
+    } catch (e) {
+      console.error('[RSM] Evolution error:', e);
+      panel.querySelector('.rsm-evo-loading').innerHTML = `<p style="color:#EF4444;padding:16px;">Erro: ${e.message}</p>`;
+    }
+  },
+
+  /**
+   * Build a larger evolution SVG chart with axis labels
+   */
+  _buildEvolutionSVG(data, field, color) {
+    const values = data.map(d => parseFloat(d[field]) || 0);
+    const dates = data.map(d => d.date);
+    const max = Math.max(...values, 1);
+    const min = Math.min(...values, 0);
+    const range = max - min || 1;
+
+    const w = 400, h = 80, padX = 4, padY = 4;
+    const step = (w - padX * 2) / Math.max(values.length - 1, 1);
+
+    const points = values.map((v, i) => {
+      const x = padX + i * step;
+      const y = h - padY - ((v - min) / range) * (h - padY * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+
+    const areaPoints = [`${padX},${h - padY}`, ...points, `${(padX + (values.length - 1) * step).toFixed(1)},${h - padY}`];
+
+    // Start/end labels
+    const startVal = field === 'engagement_rate' ? values[0].toFixed(2) + '%' : this._fmtNum(values[0]);
+    const endVal = field === 'engagement_rate' ? values[values.length - 1].toFixed(2) + '%' : this._fmtNum(values[values.length - 1]);
+    const startDate = dates[0]?.slice(5) || '';
+    const endDate = dates[dates.length - 1]?.slice(5) || '';
+
+    return `
+      <div class="rsm-evo-svg-wrap">
+        <div class="rsm-evo-labels">
+          <span>${startDate}: ${startVal}</span>
+          <span>${endDate}: ${endVal}</span>
+        </div>
+        <svg viewBox="0 0 ${w} ${h}" class="rsm-evo-svg" preserveAspectRatio="none">
+          <polygon points="${areaPoints.join(' ')}" fill="${color}" fill-opacity="0.1"/>
+          <polyline points="${points.join(' ')}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>`;
   },
 
   _bindCalendarEvents() {

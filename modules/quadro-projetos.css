@@ -132,6 +132,68 @@
   color: var(--text-muted);
 }
 
+/* ── Filter chips bar ─────────────────────────────── */
+.qp-filter-chips:empty { display: none; }
+
+.qp-chips-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 6px 0;
+}
+
+.qp-chips-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.qp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 6px;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--chip-color, #6b7280) 25%, transparent);
+  background: color-mix(in srgb, var(--chip-color, #6b7280) 8%, transparent);
+  color: var(--chip-color, #6b7280);
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  font-family: inherit;
+}
+.qp-chip:hover {
+  background: color-mix(in srgb, var(--chip-color, #6b7280) 15%, transparent);
+  border-color: var(--chip-color, #6b7280);
+}
+.qp-chip-x { opacity: 0.5; transition: opacity 0.15s; }
+.qp-chip:hover .qp-chip-x { opacity: 1; }
+
+.qp-chips-count {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.qp-chips-clear {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  font-family: inherit;
+  padding: 2px 4px;
+  transition: color 0.15s;
+}
+.qp-chips-clear:hover { color: var(--accent); }
+
 /* ── Board ─────────────────────────────────────────── */
 .qp-content {
   flex: 1;
@@ -148,12 +210,19 @@
 }
 
 .qp-column {
-  flex: 0 0 240px;
-  width: 240px;
+  flex: 0 0 272px;
+  width: 272px;
   background: var(--bg-card-hover);
-  border-radius: 10px;
+  border-radius: 12px;
   border: 1px solid var(--border);
   overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Drop zone highlight when dragging cards over */
+.qp-column.qp-drop-active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(232, 81, 2, 0.12);
 }
 
 .qp-column-header {
@@ -200,15 +269,16 @@
 .qp-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px;
+  border-radius: 10px;
+  padding: 10px 10px 8px;
   cursor: pointer;
-  transition: box-shadow 0.15s, border-color 0.15s, transform 0.1s;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+  position: relative;
 }
 .qp-card:hover {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-  border-color: var(--accent);
-  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.10);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  transform: translateY(-2px);
 }
 
 .qp-card-header {
@@ -222,48 +292,113 @@
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--text-primary);
-  line-height: 1.3;
+  line-height: 1.35;
   flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .qp-notion-link {
   display: flex;
   align-items: center;
   color: var(--text-muted);
-  opacity: 0.6;
+  opacity: 0;
   transition: opacity 0.15s;
   flex-shrink: 0;
   padding: 2px;
 }
-.qp-notion-link:hover { opacity: 1; color: var(--accent); }
+.qp-card:hover .qp-notion-link { opacity: 0.6; }
+.qp-notion-link:hover { opacity: 1 !important; color: var(--accent); }
 
 .qp-card-construtora {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
-  margin-top: 3px;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .qp-card-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 3px;
-  margin-top: 7px;
+  margin-top: 6px;
 }
 
 .qp-bu-tag {
-  font-size: 0.65rem;
-  font-weight: 500;
+  font-size: 0.62rem;
+  font-weight: 600;
   padding: 1px 6px;
   border-radius: 4px;
   white-space: nowrap;
+  letter-spacing: 0.01em;
 }
 
+/* ── Card progress bar ──────────────────────────────── */
+.qp-card-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.qp-card-progress-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  position: relative;
+  overflow: hidden;
+}
+.qp-card-progress-bar::after {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: var(--progress, 0%);
+  background: var(--bar-color, var(--accent));
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.qp-card-progress-text {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 28px;
+  text-align: right;
+}
+
+/* ── Card footer (avatar + info) ───────────────────── */
 .qp-card-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-top: 8px;
   gap: 6px;
+}
+
+.qp-card-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.qp-avatar-sm {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+  line-height: 1;
 }
 
 .qp-card-info {
@@ -280,6 +415,11 @@
   font-size: 0.68rem;
   color: var(--text-muted);
 }
+
+/* deadline urgency */
+.qp-overdue { color: #ef4444 !important; font-weight: 600; }
+.qp-urgent  { color: #f59e0b !important; font-weight: 500; }
+.qp-soon    { color: #3b82f6 !important; }
 
 .qp-demands-badge {
   display: flex;
@@ -1182,22 +1322,26 @@
 
 /* ── SortableJS Drag States — Cards ──────────────────────────────────────── */
 .qp-card-ghost {
-  opacity: 0.4;
+  opacity: 0.35;
   border: 2px dashed var(--accent, #E85102) !important;
   background: rgba(232,81,2,0.04) !important;
   box-shadow: none !important;
+  border-radius: 10px;
 }
 
 .qp-card-chosen {
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
-  transform: rotate(2deg);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.18) !important;
+  transform: rotate(1.5deg) scale(1.02);
   z-index: 100;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .qp-card-drag {
-  box-shadow: 0 12px 32px rgba(0,0,0,0.2) !important;
-  transform: rotate(2deg);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.22) !important;
+  transform: rotate(1.5deg) scale(1.03);
   z-index: 100;
+  border-radius: 10px;
+  opacity: 0.92;
 }
 
 /* ── SortableJS Drag States — Columns ────────────────────────────────────── */

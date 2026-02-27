@@ -299,6 +299,236 @@
   opacity: 0.5;
 }
 
+.rsm-sparkline-svg {
+  width: 100%;
+  height: 32px;
+  display: block;
+}
+
+/* ── Source Tag ───────────────────────────────────────────── */
+.rsm-source-tag {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-muted, #6B7280);
+  opacity: 0.8;
+}
+
+/* ── Sync Bar ────────────────────────────────────────────── */
+.rsm-sync-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  font-size: 0.8rem;
+  border: 1px solid var(--border-color, #E5E7EB);
+  background: var(--bg-secondary, #F9FAFB);
+}
+
+.rsm-sync-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary, #4B5563);
+  flex-wrap: wrap;
+}
+
+.rsm-sync-detail {
+  font-size: 0.72rem;
+  color: var(--text-muted, #6B7280);
+  padding-left: 4px;
+}
+
+.rsm-sync-bar--ok {
+  background: #22C55E08;
+  border-color: #22C55E40;
+}
+.rsm-sync-bar--ok .rsm-sync-info { color: #16A34A; }
+
+.rsm-sync-bar--warn {
+  background: #F59E0B08;
+  border-color: #F59E0B40;
+}
+.rsm-sync-bar--warn .rsm-sync-info { color: #D97706; }
+
+.rsm-sync-bar--err {
+  background: #EF444408;
+  border-color: #EF444440;
+}
+.rsm-sync-bar--err .rsm-sync-info { color: #DC2626; }
+
+.rsm-sync-bar--run {
+  background: #3B82F608;
+  border-color: #3B82F640;
+}
+.rsm-sync-bar--run .rsm-sync-info { color: #2563EB; }
+
+.rsm-sync-bar--none {
+  background: var(--bg-secondary, #F9FAFB);
+  border-style: dashed;
+}
+
+@keyframes rsm-spin {
+  to { transform: rotate(360deg); }
+}
+.rsm-spin { animation: rsm-spin 1s linear infinite; }
+
+/* ── Evolution Panel ─────────────────────────────────────── */
+.rsm-evolution-panel {
+  background: var(--bg-primary, #FFFFFF);
+  border: 1px solid var(--border-color, #E5E7EB);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.rsm-evo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.rsm-evo-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+}
+
+.rsm-evo-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted, #6B7280);
+  padding: 4px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.rsm-evo-close:hover {
+  background: var(--bg-secondary, #F9FAFB);
+  color: var(--text-primary, #111827);
+}
+
+.rsm-evo-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60px;
+}
+
+.rsm-evo-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.rsm-evo-chart-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rsm-evo-chart-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.rsm-evo-svg-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rsm-evo-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  color: var(--text-muted, #6B7280);
+}
+
+.rsm-evo-svg {
+  width: 100%;
+  height: 60px;
+  display: block;
+}
+
+/* ── Ranking Table ───────────────────────────────────────── */
+.rsm-ranking-section {
+  margin-top: 28px;
+}
+
+.rsm-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  margin: 0 0 12px 0;
+}
+
+.rsm-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-color, #E5E7EB);
+  border-radius: 10px;
+}
+
+.rsm-ranking-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.rsm-ranking-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted, #6B7280);
+  background: var(--bg-secondary, #F9FAFB);
+  border-bottom: 1px solid var(--border-color, #E5E7EB);
+}
+
+.rsm-ranking-table th:first-child { width: 40px; text-align: center; }
+
+.rsm-rank-row td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-color, #E5E7EB);
+  color: var(--text-primary, #111827);
+}
+
+.rsm-rank-row:last-child td { border-bottom: none; }
+
+.rsm-rank-pos {
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.rsm-rank-handle {
+  font-weight: 600;
+}
+
+.rsm-rank-platform {
+  font-size: 0.7rem;
+  color: var(--text-muted, #6B7280);
+  text-transform: capitalize;
+  margin-left: 4px;
+}
+
+.rsm-rank-val {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
 /* ── Badges ───────────────────────────────────────────────── */
 .rsm-badge {
   display: inline-flex;
@@ -870,6 +1100,8 @@
 }
 
 /* ── Dark Mode ────────────────────────────────────────────── */
+.dark-mode .rsm-section-title,
+.dark-mode .rsm-evo-header h3,
 .dark-mode .rsm-title,
 .dark-mode .rsm-kpi-value,
 .dark-mode .rsm-account-handle,
@@ -908,9 +1140,35 @@
 .dark-mode .rsm-cal-detail,
 .dark-mode .rsm-kanban-card,
 .dark-mode .rsm-modal,
+.dark-mode .rsm-evolution-panel,
 .dark-mode .rsm-cal-detail-item {
   background: var(--bg-primary, #1F2937);
   border-color: var(--border-color, #374151);
+}
+
+.dark-mode .rsm-sync-bar {
+  background: var(--bg-secondary, #111827);
+  border-color: var(--border-color, #374151);
+}
+.dark-mode .rsm-sync-bar--ok { background: #22C55E10; border-color: #22C55E30; }
+.dark-mode .rsm-sync-bar--warn { background: #F59E0B10; border-color: #F59E0B30; }
+.dark-mode .rsm-sync-bar--err { background: #EF444410; border-color: #EF444430; }
+.dark-mode .rsm-sync-bar--run { background: #3B82F610; border-color: #3B82F630; }
+
+.dark-mode .rsm-table-wrap {
+  border-color: var(--border-color, #374151);
+}
+.dark-mode .rsm-ranking-table th {
+  background: var(--bg-secondary, #111827);
+  border-color: var(--border-color, #374151);
+  color: #9CA3AF;
+}
+.dark-mode .rsm-rank-row td {
+  border-color: var(--border-color, #374151);
+  color: #F3F4F6;
+}
+.dark-mode .rsm-rank-platform {
+  color: #6B7280;
 }
 
 .dark-mode .rsm-kanban-col {

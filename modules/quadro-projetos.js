@@ -42,6 +42,7 @@ const TBO_QUADRO_PROJETOS = {
         <div id="qpKpis" class="qp-kpis">
           ${this._renderKpiSkeleton()}
         </div>
+        <div id="qpFilterChips" class="qp-filter-chips"></div>
         <div id="qpContent" class="qp-content">
           ${this._renderLoadingSkeleton()}
         </div>
@@ -316,6 +317,7 @@ const TBO_QUADRO_PROJETOS = {
     const el = document.getElementById('qpContent');
     if (!el) return;
     this._destroySortables();
+    this._renderFilterChips();
     if (this._view === 'board') {
       el.innerHTML = this._renderBoard();
       this._initSortableCards();
@@ -327,6 +329,59 @@ const TBO_QUADRO_PROJETOS = {
     }
     if (typeof lucide !== 'undefined') lucide.createIcons();
     if (this._view === 'gantt') this._bindGanttScroll();
+  },
+
+  // ── Filter chips bar ─────────────────────────────────────────────────────
+  _renderFilterChips() {
+    const el = document.getElementById('qpFilterChips');
+    if (!el) return;
+    const chips = [];
+    const { status, construtora, bus, search } = this._filters;
+    if (status && status !== 'all') {
+      const info = this._statusInfo(status);
+      chips.push({ key: 'status', label: info.label, color: info.color, icon: info.icon });
+    }
+    if (construtora) chips.push({ key: 'construtora', label: construtora, color: '#6b7280', icon: 'building-2' });
+    if (bus) {
+      const bc = this._BU_COLORS[bus] || { color: '#6b7280' };
+      chips.push({ key: 'bus', label: bus, color: bc.color, icon: 'layers' });
+    }
+    if (search) chips.push({ key: 'search', label: `"${search}"`, color: '#6b7280', icon: 'search' });
+
+    if (chips.length === 0) { el.innerHTML = ''; return; }
+
+    const filtered = this._filtered();
+    el.innerHTML = `
+      <div class="qp-chips-bar">
+        <span class="qp-chips-label"><i data-lucide="filter" style="width:12px;height:12px;"></i> Filtros:</span>
+        ${chips.map(c => `
+          <button class="qp-chip" style="--chip-color:${c.color};" onclick="TBO_QUADRO_PROJETOS._removeFilter('${c.key}')">
+            <i data-lucide="${c.icon}" style="width:11px;height:11px;"></i>
+            <span>${this._esc(c.label)}</span>
+            <i data-lucide="x" style="width:10px;height:10px;" class="qp-chip-x"></i>
+          </button>
+        `).join('')}
+        <span class="qp-chips-count">${filtered.length} projeto${filtered.length !== 1 ? 's' : ''}</span>
+        ${chips.length > 1 ? `<button class="qp-chips-clear" onclick="TBO_QUADRO_PROJETOS._clearFilters()">Limpar todos</button>` : ''}
+      </div>
+    `;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  },
+
+  _removeFilter(key) {
+    if (key === 'status') this._filters.status = 'all';
+    else if (key === 'search') this._filters.search = '';
+    else this._filters[key] = '';
+    this._renderToolbar();
+    this._renderContent();
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  },
+
+  _clearFilters() {
+    this._filters = { status: 'all', construtora: '', bus: '', search: '' };
+    this._renderToolbar();
+    this._renderContent();
+    if (typeof lucide !== 'undefined') lucide.createIcons();
   },
 
   // ── BOARD VIEW ─────────────────────────────────────────────────────────────
@@ -405,9 +460,15 @@ const TBO_QUADRO_PROJETOS = {
     const bus = this._parseBus(p.bus);
     const demands = this._demandsForProject(p.id);
     const openDemands = demands.filter(d => d.status !== 'Concluído' && d.status !== 'Cancelado');
-    const due = p.due_date_start ? this._fmtDate(p.due_date_start) : (p.due_date_end ? this._fmtDate(p.due_date_end) : null);
+    const doneDemands = demands.length - openDemands.length;
+    const progressPct = demands.length > 0 ? Math.round((doneDemands / demands.length) * 100) : 0;
+    const statusInfo = this._statusInfo(p.status);
+    const due = p.due_date_end || p.due_date_start;
+    const dueFormatted = due ? this._fmtDate(due) : null;
+    const urgency = this._deadlineUrgency(due);
+    const initials = this._ownerInitials(p.owner_name);
     return `
-      <div class="qp-card" data-id="${p.id}" onclick="TBO_QUADRO_PROJETOS._openDetail('${p.id}')">
+      <div class="qp-card" data-id="${p.id}" style="border-left:3px solid ${statusInfo.color};" onclick="TBO_QUADRO_PROJETOS._openDetail('${p.id}')">
         <div class="qp-card-header">
           <div class="qp-card-name">${this._esc(p.name)}</div>
           ${p.notion_url ? `<a href="${p.notion_url}" target="_blank" class="qp-notion-link" onclick="event.stopPropagation()" title="Abrir no Notion">
@@ -415,26 +476,45 @@ const TBO_QUADRO_PROJETOS = {
           </a>` : ''}
         </div>
         ${p.construtora ? `<div class="qp-card-construtora">${this._esc(p.construtora)}</div>` : ''}
-        <div class="qp-card-meta">
+        ${bus.length > 0 ? `<div class="qp-card-meta">
           ${bus.map(b => {
             const bc = this._BU_COLORS[b] || { bg: '#f3f4f6', color: '#374151' };
             return `<span class="qp-bu-tag" style="background:${bc.bg};color:${bc.color};">${b}</span>`;
           }).join('')}
-        </div>
+        </div>` : ''}
+        ${demands.length > 0 ? `<div class="qp-card-progress">
+          <div class="qp-card-progress-bar" style="--progress:${progressPct}%;--bar-color:${statusInfo.color};"></div>
+          <span class="qp-card-progress-text">${doneDemands}/${demands.length}</span>
+        </div>` : ''}
         <div class="qp-card-footer">
-          <div class="qp-card-info">
-            ${p.owner_name ? `<span class="qp-owner"><i data-lucide="user" style="width:11px;height:11px;"></i>${this._esc(p.owner_name)}</span>` : ''}
-            ${due ? `<span class="qp-due"><i data-lucide="calendar" style="width:11px;height:11px;"></i>${due}</span>` : ''}
+          ${initials ? `<div class="qp-avatar-sm" style="background:${statusInfo.bg};color:${statusInfo.color};" title="${this._esc(p.owner_name)}">${initials}</div>` : '<div></div>'}
+          <div class="qp-card-footer-right">
+            ${dueFormatted ? `<span class="qp-due ${urgency}""><i data-lucide="calendar" style="width:11px;height:11px;"></i>${dueFormatted}</span>` : ''}
+            ${demands.length > 0 ? `<span class="qp-demands-badge" title="${openDemands.length} abertas / ${demands.length} total">
+              <i data-lucide="clipboard-list" style="width:11px;height:11px;"></i>${openDemands.length}
+            </span>` : ''}
           </div>
-          ${demands.length > 0 ? `
-            <div class="qp-demands-badge" title="${openDemands.length} demandas abertas / ${demands.length} total">
-              <i data-lucide="clipboard-list" style="width:11px;height:11px;"></i>
-              <span>${openDemands.length}/${demands.length}</span>
-            </div>
-          ` : ''}
         </div>
       </div>
     `;
+  },
+
+  _ownerInitials(name) {
+    if (!name) return '';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return parts[0].substring(0, 2).toUpperCase();
+  },
+
+  _deadlineUrgency(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr + 'T00:00:00');
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    const diff = (d - now) / 86400000;
+    if (diff < 0) return 'qp-overdue';
+    if (diff <= 3) return 'qp-urgent';
+    if (diff <= 7) return 'qp-soon';
+    return '';
   },
 
   // ── LIST VIEW ──────────────────────────────────────────────────────────────
@@ -798,14 +878,23 @@ const TBO_QUADRO_PROJETOS = {
     bodies.forEach(body => {
       const instance = Sortable.create(body, {
         group: 'kanban-cards',
-        animation: 150,
+        animation: 200,
+        easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
         draggable: '.qp-card',
         ghostClass: 'qp-card-ghost',
         chosenClass: 'qp-card-chosen',
         dragClass: 'qp-card-drag',
         fallbackOnBody: true,
         swapThreshold: 0.65,
-        onEnd: (evt) => this._onCardDrop(evt),
+        onMove: (evt) => {
+          document.querySelectorAll('.qp-column').forEach(c => c.classList.remove('qp-drop-active'));
+          const col = evt.to.closest('.qp-column');
+          if (col) col.classList.add('qp-drop-active');
+        },
+        onEnd: (evt) => {
+          document.querySelectorAll('.qp-column').forEach(c => c.classList.remove('qp-drop-active'));
+          this._onCardDrop(evt);
+        },
       });
       this._sortableCards.push(instance);
     });

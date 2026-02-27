@@ -317,7 +317,7 @@ const TBO_ROUTER = {
     const module = this._modules[moduleName];
     if (!module) return;
 
-    const container = document.getElementById('mainContent');
+    const container = document.getElementById('moduleContainer');
     if (!container) return;
 
     try {

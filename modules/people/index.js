@@ -19,7 +19,7 @@ const TBO_PEOPLE = {
     'analytics':      'modules/people/tab-analytics.js'
   },
   _tabLoading: {},
-  _cacheBust: '2026022200',
+  _cacheBust: '2026022701',
 
   // ── Registrar sub-modulo de tab ──
   registerTab(tabId, handler) {

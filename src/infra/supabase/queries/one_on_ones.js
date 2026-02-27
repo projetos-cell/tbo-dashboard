@@ -366,6 +366,96 @@ const OneOnOnesRepo = (() => {
     },
 
     /**
+     * Historico consolidado de um par (leader + collaborator)
+     * Retorna todas as 1:1s entre duas pessoas, com acoes
+     */
+    async getHistoryByPair(leaderId, collaboratorId) {
+      const tid = _tid();
+      const { data, error } = await _db().from('one_on_ones')
+        .select('*, one_on_one_actions(id, text, assignee_id, due_date, completed, completed_at, category, source, created_at)')
+        .eq('tenant_id', tid)
+        .or(`and(leader_id.eq.${leaderId},collaborator_id.eq.${collaboratorId}),and(leader_id.eq.${collaboratorId},collaborator_id.eq.${leaderId})`)
+        .order('scheduled_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+
+    /**
+     * Lista proximos rituais (1:1s agendadas com countdown)
+     * Retorna as proximas N 1:1s agendadas a partir de agora
+     */
+    async listUpcoming(limit = 10) {
+      const tid = _tid();
+      const now = new Date().toISOString();
+      const { data, error } = await _db().from('one_on_ones')
+        .select('id, leader_id, collaborator_id, scheduled_at, status, recurrence, ritual_type_id, google_event_id')
+        .eq('tenant_id', tid)
+        .eq('status', 'scheduled')
+        .gte('scheduled_at', now)
+        .order('scheduled_at', { ascending: true })
+        .limit(limit);
+
+      if (error) throw error;
+      return data || [];
+    },
+
+    /**
+     * Lista rituais pendentes (agendados no passado, nao realizados)
+     */
+    async listOverdue() {
+      const tid = _tid();
+      const now = new Date().toISOString();
+      const { data, error } = await _db().from('one_on_ones')
+        .select('id, leader_id, collaborator_id, scheduled_at, status, recurrence, ritual_type_id')
+        .eq('tenant_id', tid)
+        .eq('status', 'scheduled')
+        .lt('scheduled_at', now)
+        .order('scheduled_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      return data || [];
+    },
+
+    /**
+     * Lista pares unicos (leader ↔ collaborator) com contagem de 1:1s
+     */
+    async listPairs() {
+      const tid = _tid();
+      const { data, error } = await _db().from('one_on_ones')
+        .select('leader_id, collaborator_id, status, scheduled_at')
+        .eq('tenant_id', tid);
+
+      if (error) throw error;
+      if (!data?.length) return [];
+
+      // Agrupar por par (normalizado: menor UUID primeiro)
+      const pairMap = {};
+      for (const o of data) {
+        const key = [o.leader_id, o.collaborator_id].sort().join('|');
+        if (!pairMap[key]) {
+          pairMap[key] = {
+            leader_id: o.leader_id,
+            collaborator_id: o.collaborator_id,
+            total: 0,
+            completed: 0,
+            scheduled: 0,
+            last_date: null
+          };
+        }
+        pairMap[key].total++;
+        if (o.status === 'completed') pairMap[key].completed++;
+        if (o.status === 'scheduled') pairMap[key].scheduled++;
+        if (!pairMap[key].last_date || o.scheduled_at > pairMap[key].last_date) {
+          pairMap[key].last_date = o.scheduled_at;
+        }
+      }
+
+      return Object.values(pairMap).sort((a, b) => (b.last_date || '').localeCompare(a.last_date || ''));
+    },
+
+    /**
      * KPIs: total, agendadas, concluidas, acoes pendentes
      */
     async getKPIs() {

@@ -9,7 +9,11 @@
     _oneOnOnesCache: null,
     _oneOnOneActionsCache: null,
     _ritualTypesCache: null,
+    _upcomingCache: null,
+    _overdueCache: null,
+    _pairsCache: null,
     _ctxCleanup: null,
+    _countdownInterval: null,
 
     // ══════════════════════════════════════════════════════════════════
     // RENDER
@@ -66,6 +70,15 @@
       // Carregar dados do Supabase async
       if (!fromSupabase) this._load1on1sFromSupabase();
 
+      // Upcoming & overdue (Sprint 3.3.2)
+      const upcoming = this._upcomingCache || [];
+      const overdue = this._overdueCache || [];
+      if (!this._upcomingCache) this._loadUpcomingAndOverdue();
+
+      // Pairs for history (Sprint 3.3.3)
+      const pairs = this._pairsCache || [];
+      if (!this._pairsCache) this._loadPairs();
+
       // Ritual types from DB (or fallback)
       const ritualTypes = this._ritualTypesCache || [];
       const freqLabel = (f) => typeof RitualTypesRepo !== 'undefined' ? RitualTypesRepo.freqLabel(f) : f;
@@ -87,6 +100,57 @@
           <div class="kpi-card kpi-card--success"><div class="kpi-label">Concluidas</div><div class="kpi-value">${concluidas}</div></div>
           <div class="kpi-card kpi-card--warning"><div class="kpi-label">Acoes Pendentes</div><div class="kpi-value">${pendingActions.length}</div></div>
         </div>
+
+        ${overdue.length ? `
+        <div class="card" style="margin-bottom:16px;border-left:4px solid var(--color-danger);">
+          <div class="card-header"><h3 class="card-title" style="color:var(--color-danger);"><i data-lucide="alert-triangle" style="width:16px;height:16px;vertical-align:-3px;"></i> Rituais Pendentes (${overdue.length})</h3></div>
+          <div style="max-height:160px;overflow-y:auto;">
+            ${overdue.map(o => {
+              const daysAgo = Math.floor((Date.now() - new Date(o.scheduled_at).getTime()) / 86400000);
+              const rt = o.ritual_type_id && ritualTypes.length ? ritualTypes.find(t => t.id === o.ritual_type_id) : null;
+              return `<div class="rh-1on1-row" data-id="${o.id}" style="padding:10px 16px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:10px;cursor:pointer;" onmouseover="this.style.background='var(--bg-elevated)'" onmouseout="this.style.background=''">
+                <i data-lucide="clock" style="width:14px;height:14px;color:var(--color-danger);flex-shrink:0;"></i>
+                <div style="flex:1;">
+                  <div style="font-size:0.82rem;font-weight:600;">${getName(o.leader_id)} ↔ ${getName(o.collaborator_id)}</div>
+                  <div style="font-size:0.68rem;color:var(--text-muted);">${new Date(o.scheduled_at).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })}${rt ? ` · ${S._esc(rt.name)}` : ''}</div>
+                </div>
+                <span style="font-size:0.68rem;font-weight:600;color:var(--color-danger);">${daysAgo}d atrás</span>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+        ` : ''}
+
+        ${upcoming.length ? `
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-header"><h3 class="card-title"><i data-lucide="calendar-clock" style="width:16px;height:16px;vertical-align:-3px;color:var(--color-info);"></i> Próximos Rituais</h3></div>
+          <div id="rhUpcomingList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;padding:12px;">
+            ${upcoming.slice(0, 6).map(o => {
+              const dt = new Date(o.scheduled_at);
+              const rt = o.ritual_type_id && ritualTypes.length ? ritualTypes.find(t => t.id === o.ritual_type_id) : null;
+              const diffMs = dt.getTime() - Date.now();
+              const diffH = Math.floor(diffMs / 3600000);
+              const diffD = Math.floor(diffMs / 86400000);
+              let countdown = '';
+              if (diffD > 0) countdown = `${diffD}d ${Math.floor((diffMs % 86400000) / 3600000)}h`;
+              else if (diffH > 0) countdown = `${diffH}h ${Math.floor((diffMs % 3600000) / 60000)}m`;
+              else countdown = `${Math.max(0, Math.floor(diffMs / 60000))}m`;
+              return `<div class="rh-1on1-row" data-id="${o.id}" style="padding:12px;background:var(--bg-elevated);border-radius:10px;cursor:pointer;border-left:3px solid ${rt?.color || 'var(--color-info)'};transition:transform 0.15s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+                  <div style="font-size:0.82rem;font-weight:600;">${getName(o.leader_id)} ↔ ${getName(o.collaborator_id)}</div>
+                  <span class="rh-countdown" data-target="${dt.toISOString()}" style="font-size:0.68rem;font-weight:700;color:${diffD === 0 ? 'var(--color-warning)' : 'var(--color-info)'};background:${diffD === 0 ? 'var(--color-warning)' : 'var(--color-info)'}10;padding:2px 8px;border-radius:6px;white-space:nowrap;">${countdown}</span>
+                </div>
+                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                  <span style="font-size:0.7rem;color:var(--text-muted);">${dt.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                  ${rt ? `<span style="font-size:0.58rem;padding:1px 5px;border-radius:4px;background:${rt.color || '#6366f1'}15;color:${rt.color || '#6366f1'};">${S._esc(rt.name)}</span>` : ''}
+                  ${o.recurrence ? `<span style="font-size:0.58rem;color:var(--text-muted);"><i data-lucide="repeat" style="width:8px;height:8px;vertical-align:-1px;"></i> ${o.recurrence === 'daily' ? 'Diária' : o.recurrence === 'monthly' ? 'Mensal' : o.recurrence === 'biweekly' ? 'Quinzenal' : 'Semanal'}</span>` : ''}
+                  ${o.google_event_id ? '<i data-lucide="calendar" style="width:10px;height:10px;color:var(--color-info);" title="Google Calendar"></i>' : ''}
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+        ` : ''}
 
         ${pendingActions.length ? `<div class="card" style="margin-bottom:16px;"><div class="card-header"><h3 class="card-title">Acoes Pendentes</h3></div><div style="max-height:200px;overflow-y:auto;">
           ${pendingActions.map(a => `<div style="padding:10px 16px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:10px;">
@@ -169,6 +233,30 @@
             </div>`).join('') : '<div style="padding:8px;font-size:0.78rem;color:var(--text-muted);grid-column:1/-1;">Carregando tipos de rituais...</div>'}
           </div>
         </div>
+
+        <!-- Histórico por Par (Sprint 3.3.3) -->
+        ${pairs.length ? `
+        <div class="card" style="margin-top:16px;">
+          <div class="card-header"><h3 class="card-title"><i data-lucide="users" style="width:16px;height:16px;vertical-align:-3px;color:var(--accent-gold);"></i> Histórico por Par</h3></div>
+          <div style="padding:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;">
+            ${pairs.map(p => {
+              const pct = p.total > 0 ? Math.round((p.completed / p.total) * 100) : 0;
+              return `<div class="rh-pair-card" data-leader="${p.leader_id}" data-collab="${p.collaborator_id}" style="padding:14px;background:var(--bg-elevated);border-radius:10px;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;border-left:3px solid var(--accent-gold);" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+                <div style="font-size:0.85rem;font-weight:600;margin-bottom:4px;">${getName(p.leader_id)} ↔ ${getName(p.collaborator_id)}</div>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+                  <span style="font-size:0.68rem;color:var(--text-muted);">${p.total} reuniões</span>
+                  <span style="font-size:0.68rem;color:var(--color-success);">${p.completed} concluídas</span>
+                  ${p.scheduled > 0 ? `<span style="font-size:0.68rem;color:var(--color-info);">${p.scheduled} agendadas</span>` : ''}
+                </div>
+                <div style="height:4px;background:var(--bg-tertiary);border-radius:2px;overflow:hidden;">
+                  <div style="height:100%;width:${pct}%;background:var(--color-success);border-radius:2px;transition:width 0.3s;"></div>
+                </div>
+                <div style="font-size:0.62rem;color:var(--text-muted);margin-top:4px;">${p.last_date ? 'Última: ' + new Date(p.last_date).toLocaleDateString('pt-BR') : ''}</div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+        ` : ''}
 
         <!-- Bulk actions bar (multi-selecao 1:1) -->
         <div id="rh1on1BulkBar" style="display:none;position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:10px 20px;align-items:center;gap:12px;z-index:100;box-shadow:0 4px 24px rgba(0,0,0,0.18);">
@@ -363,6 +451,18 @@
         });
       });
 
+      // Pair card click → timeline modal (Sprint 3.3.3)
+      document.querySelectorAll('.rh-pair-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const leader = card.dataset.leader;
+          const collab = card.dataset.collab;
+          if (leader && collab) self._openPairTimeline(leader, collab);
+        });
+      });
+
+      // Start countdown timer (Sprint 3.3.2)
+      this._startCountdownTimer();
+
       // Lucide icons
       if (window.lucide) lucide.createIcons();
     },
@@ -412,6 +512,208 @@
         }
       } catch (e) {
         console.warn('[RH] Erro ao carregar tipos de ritual:', e.message);
+      }
+    },
+
+    // ══════════════════════════════════════════════════════════════════
+    // Carregar upcoming & overdue (Sprint 3.3.2)
+    // ══════════════════════════════════════════════════════════════════
+    async _loadUpcomingAndOverdue() {
+      try {
+        if (typeof OneOnOnesRepo === 'undefined') return;
+        const [upcoming, overdue] = await Promise.all([
+          OneOnOnesRepo.listUpcoming(10),
+          OneOnOnesRepo.listOverdue()
+        ]);
+        this._upcomingCache = upcoming || [];
+        this._overdueCache = overdue || [];
+
+        // Re-renderizar se estiver na tab 1on1
+        if (S._activeTab === 'one-on-ones') {
+          const tabContent = document.getElementById('rhTabContent');
+          if (tabContent) {
+            tabContent.innerHTML = this.render();
+            this.init();
+          }
+        }
+      } catch (e) {
+        console.warn('[RH] Erro ao carregar upcoming/overdue:', e.message);
+      }
+    },
+
+    // ══════════════════════════════════════════════════════════════════
+    // Carregar pares (Sprint 3.3.3)
+    // ══════════════════════════════════════════════════════════════════
+    async _loadPairs() {
+      try {
+        if (typeof OneOnOnesRepo === 'undefined') return;
+        const pairs = await OneOnOnesRepo.listPairs();
+        this._pairsCache = pairs || [];
+
+        // Re-renderizar se estiver na tab 1on1
+        if (S._activeTab === 'one-on-ones') {
+          const tabContent = document.getElementById('rhTabContent');
+          if (tabContent) {
+            tabContent.innerHTML = this.render();
+            this.init();
+          }
+        }
+      } catch (e) {
+        console.warn('[RH] Erro ao carregar pares:', e.message);
+      }
+    },
+
+    // ══════════════════════════════════════════════════════════════════
+    // Countdown timer para próximos rituais
+    // ══════════════════════════════════════════════════════════════════
+    _startCountdownTimer() {
+      if (this._countdownInterval) clearInterval(this._countdownInterval);
+
+      const updateCountdowns = () => {
+        document.querySelectorAll('.rh-countdown[data-target]').forEach(el => {
+          const target = new Date(el.dataset.target).getTime();
+          const diffMs = target - Date.now();
+          if (diffMs <= 0) { el.textContent = 'Agora!'; return; }
+          const diffD = Math.floor(diffMs / 86400000);
+          const diffH = Math.floor((diffMs % 86400000) / 3600000);
+          const diffM = Math.floor((diffMs % 3600000) / 60000);
+          if (diffD > 0) el.textContent = `${diffD}d ${diffH}h`;
+          else if (diffH > 0) el.textContent = `${diffH}h ${diffM}m`;
+          else el.textContent = `${diffM}m`;
+        });
+      };
+
+      this._countdownInterval = setInterval(updateCountdowns, 60000);
+    },
+
+    // ══════════════════════════════════════════════════════════════════
+    // Timeline por Par (Sprint 3.3.3) — Modal completo
+    // ══════════════════════════════════════════════════════════════════
+    async _openPairTimeline(leaderId, collaboratorId) {
+      if (typeof OneOnOnesRepo === 'undefined') return;
+      const self = this;
+
+      try {
+        const history = await OneOnOnesRepo.getHistoryByPair(leaderId, collaboratorId);
+        if (!history?.length) { TBO_TOAST.info('Nenhuma 1:1 encontrada para este par'); return; }
+
+        const leaderName = S._getPersonNameByUid(leaderId);
+        const collabName = S._getPersonNameByUid(collaboratorId);
+        const ritualTypes = this._ritualTypesCache || [];
+
+        // Estatísticas
+        const total = history.length;
+        const completed = history.filter(o => o.status === 'completed').length;
+        const scheduled = history.filter(o => o.status === 'scheduled').length;
+        const cancelled = history.filter(o => o.status === 'cancelled').length;
+        const allActions = history.flatMap(o => o.one_on_one_actions || []);
+        const actionsDone = allActions.filter(a => a.completed).length;
+        const actionsPending = allActions.filter(a => !a.completed).length;
+
+        // Status colors
+        const stMap = {
+          scheduled: { label: 'Agendada', color: 'var(--color-info)', bg: 'var(--color-info)' },
+          completed: { label: 'Concluída', color: 'var(--color-success)', bg: 'var(--color-success)' },
+          cancelled: { label: 'Cancelada', color: 'var(--text-muted)', bg: 'var(--text-muted)' },
+          no_show:   { label: 'No-show', color: 'var(--color-danger)', bg: 'var(--color-danger)' }
+        };
+
+        const overlay = document.createElement('div');
+        overlay.id = 'rhPairTimelineOverlay';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:9999;display:flex;justify-content:center;align-items:center;';
+        overlay.innerHTML = `
+          <div style="background:var(--bg-card, #ffffff);border-radius:16px;width:680px;max-width:calc(100vw - 48px);max-height:88vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,0.25);padding:24px;position:relative;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+              <div>
+                <h3 style="font-size:1.05rem;font-weight:700;margin-bottom:2px;">
+                  <i data-lucide="users" style="width:16px;height:16px;vertical-align:-3px;color:var(--accent-gold);"></i>
+                  ${S._esc(leaderName)} ↔ ${S._esc(collabName)}
+                </h3>
+                <div style="font-size:0.72rem;color:var(--text-muted);">Histórico de ${total} reunião(ões) · ${completed} concluída(s)</div>
+              </div>
+              <button id="rhPairTimelineClose" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px;">
+                <i data-lucide="x" style="width:18px;height:18px;"></i>
+              </button>
+            </div>
+
+            <!-- KPIs do par -->
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;">
+              <div style="padding:10px;background:var(--bg-elevated);border-radius:8px;text-align:center;">
+                <div style="font-size:1.1rem;font-weight:700;color:var(--color-success);">${completed}</div>
+                <div style="font-size:0.62rem;color:var(--text-muted);">Concluídas</div>
+              </div>
+              <div style="padding:10px;background:var(--bg-elevated);border-radius:8px;text-align:center;">
+                <div style="font-size:1.1rem;font-weight:700;color:var(--color-info);">${scheduled}</div>
+                <div style="font-size:0.62rem;color:var(--text-muted);">Agendadas</div>
+              </div>
+              <div style="padding:10px;background:var(--bg-elevated);border-radius:8px;text-align:center;">
+                <div style="font-size:1.1rem;font-weight:700;color:var(--accent-gold);">${actionsDone}</div>
+                <div style="font-size:0.62rem;color:var(--text-muted);">Ações feitas</div>
+              </div>
+              <div style="padding:10px;background:var(--bg-elevated);border-radius:8px;text-align:center;">
+                <div style="font-size:1.1rem;font-weight:700;color:${actionsPending > 0 ? 'var(--color-warning)' : 'var(--text-muted)'};">${actionsPending}</div>
+                <div style="font-size:0.62rem;color:var(--text-muted);">Ações pendentes</div>
+              </div>
+            </div>
+
+            <!-- Timeline -->
+            <div style="position:relative;padding-left:24px;">
+              <div style="position:absolute;left:10px;top:0;bottom:0;width:2px;background:var(--border-subtle);"></div>
+              ${history.map((o, idx) => {
+                const st = stMap[o.status] || stMap.completed;
+                const actions = o.one_on_one_actions || [];
+                const rt = o.ritual_type_id && ritualTypes.length ? ritualTypes.find(t => t.id === o.ritual_type_id) : null;
+                const hasMeeting = !!o.fireflies_meeting_id;
+                const dateStr = o.scheduled_at ? new Date(o.scheduled_at).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : '';
+                return `
+                <div style="position:relative;margin-bottom:16px;">
+                  <div style="position:absolute;left:-18px;top:4px;width:10px;height:10px;border-radius:50%;background:${st.bg};border:2px solid var(--bg-card, #ffffff);"></div>
+                  <div class="rh-timeline-item" data-id="${o.id}" style="padding:12px;background:var(--bg-elevated);border-radius:10px;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;" onmouseover="this.style.transform='translateX(2px)';this.style.boxShadow='0 2px 8px rgba(0,0,0,0.06)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                      <span style="font-size:0.78rem;font-weight:600;color:var(--text-primary);">${dateStr}</span>
+                      <span style="font-size:0.62rem;padding:2px 8px;border-radius:4px;background:${st.bg}15;color:${st.color};">${st.label}</span>
+                    </div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                      ${rt ? `<span style="font-size:0.58rem;padding:1px 5px;border-radius:4px;background:${rt.color || '#6366f1'}15;color:${rt.color || '#6366f1'};">${S._esc(rt.name)}</span>` : ''}
+                      ${o.recurrence ? `<span style="font-size:0.58rem;color:var(--text-muted);"><i data-lucide="repeat" style="width:8px;height:8px;vertical-align:-1px;"></i> ${o.recurrence === 'daily' ? 'Diária' : o.recurrence === 'monthly' ? 'Mensal' : o.recurrence === 'biweekly' ? 'Quinzenal' : 'Semanal'}</span>` : ''}
+                      ${hasMeeting ? `<span style="font-size:0.58rem;color:#8B5CF6;"><i data-lucide="mic" style="width:8px;height:8px;vertical-align:-1px;"></i> Fireflies</span>` : ''}
+                      ${o.google_event_id ? `<span style="font-size:0.58rem;color:var(--color-info);"><i data-lucide="calendar" style="width:8px;height:8px;vertical-align:-1px;"></i></span>` : ''}
+                    </div>
+                    ${o.notes ? `<div style="font-size:0.72rem;color:var(--text-secondary);margin-top:6px;line-height:1.3;max-height:40px;overflow:hidden;text-overflow:ellipsis;">${S._esc((o.notes || '').slice(0, 120))}${(o.notes || '').length > 120 ? '...' : ''}</div>` : ''}
+                    ${o.transcript_summary ? `<div style="font-size:0.68rem;color:#8B5CF6;margin-top:4px;line-height:1.3;max-height:36px;overflow:hidden;"><i data-lucide="sparkles" style="width:8px;height:8px;vertical-align:-1px;"></i> ${S._esc((o.transcript_summary || '').slice(0, 100))}${(o.transcript_summary || '').length > 100 ? '...' : ''}</div>` : ''}
+                    ${actions.length ? `
+                      <div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap;">
+                        ${actions.slice(0, 4).map(a => `<span style="font-size:0.58rem;padding:2px 6px;border-radius:4px;background:${a.completed ? 'var(--color-success)10' : 'var(--color-warning)10'};color:${a.completed ? 'var(--color-success)' : 'var(--color-warning)'};text-decoration:${a.completed ? 'line-through' : 'none'};max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${S._esc(a.text)}</span>`).join('')}
+                        ${actions.length > 4 ? `<span style="font-size:0.58rem;color:var(--text-muted);">+${actions.length - 4}</span>` : ''}
+                      </div>
+                    ` : ''}
+                  </div>
+                </div>`;
+              }).join('')}
+            </div>
+          </div>
+        `;
+
+        document.body.appendChild(overlay);
+        if (window.lucide) lucide.createIcons({ nodes: [overlay] });
+
+        // Close
+        overlay.querySelector('#rhPairTimelineClose')?.addEventListener('click', () => overlay.remove());
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+        // Click on timeline item → open 1:1 detail
+        overlay.querySelectorAll('.rh-timeline-item').forEach(item => {
+          item.addEventListener('click', async () => {
+            const id = item.dataset.id;
+            if (id) {
+              overlay.remove();
+              await self._open1on1Detail(id);
+            }
+          });
+        });
+      } catch (e) {
+        console.error('[RH] Erro ao abrir timeline do par:', e);
+        TBO_TOAST.error('Erro ao carregar histórico do par');
       }
     },
 
@@ -1215,6 +1517,10 @@
     // ══════════════════════════════════════════════════════════════════
     destroy() {
       this._close1on1ContextMenu();
+      if (this._countdownInterval) {
+        clearInterval(this._countdownInterval);
+        this._countdownInterval = null;
+      }
     }
   };
 

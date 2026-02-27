@@ -17,7 +17,7 @@ const RecognitionsRepo = (() => {
     return null;
   }
 
-  const _SELECT = 'id, from_user, to_user, value_id, value_name, value_emoji, message, likes, created_at';
+  const _SELECT = 'id, from_user, to_user, value_id, value_name, value_emoji, message, likes, points, source, reviewed, meeting_id, detection_context, created_at';
 
   return {
 
@@ -143,6 +143,80 @@ const RecognitionsRepo = (() => {
         topPeople,
         byValue
       };
+    },
+
+    // ── Fireflies auto-detect: reconhecimentos nao revisados ──
+
+    /**
+     * Lista reconhecimentos pendentes de revisao (auto-detectados)
+     */
+    async listUnreviewed({ limit = 50 } = {}) {
+      const { data, error } = await _db().from('recognitions')
+        .select(_SELECT)
+        .eq('tenant_id', _tid())
+        .eq('reviewed', false)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+      return data || [];
+    },
+
+    /**
+     * Aprovar reconhecimento auto-detectado
+     */
+    async approve(id) {
+      const { data, error } = await _db().from('recognitions')
+        .update({ reviewed: true })
+        .eq('id', id)
+        .eq('tenant_id', _tid())
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    /**
+     * Rejeitar (deletar) reconhecimento auto-detectado
+     */
+    async reject(id) {
+      const { error } = await _db().from('recognitions')
+        .delete()
+        .eq('id', id)
+        .eq('tenant_id', _tid())
+        .eq('reviewed', false);
+
+      if (error) throw error;
+      return true;
+    },
+
+    /**
+     * Cria reconhecimento a partir de deteccao automatica (Fireflies)
+     * reviewed=false ate admin aprovar
+     */
+    async createFromDetection({ to_user, message, meeting_id, detection_context, value_id, value_name, value_emoji }) {
+      const { data, error } = await _db().from('recognitions')
+        .insert({
+          tenant_id: _tid(),
+          from_user: null,
+          to_user,
+          value_id: value_id || 'colaboracao',
+          value_name: value_name || 'Colaboracao',
+          value_emoji: value_emoji || '🤝',
+          message,
+          points: 1,
+          source: 'fireflies',
+          reviewed: false,
+          meeting_id,
+          detection_context,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
     }
   };
 })();

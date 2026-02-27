@@ -433,6 +433,37 @@ const TBO_FIREFLIES = {
           } catch (actErr) {
             console.warn(`[TBO Fireflies] Auto-actions 1:1 ${t.id} falhou:`, actErr.message);
           }
+
+          // 6. Detectar elogios no resumo (Sprint 2.3.2)
+          try {
+            if (typeof TBO_PRAISE_PARSER !== 'undefined' && typeof RecognitionsRepo !== 'undefined') {
+              const textToScan = [t.summary, t.overview].filter(Boolean).join('\n');
+              if (textToScan) {
+                const extractedParticipants = this._extractParticipants(t);
+                const praises = TBO_PRAISE_PARSER.detect(textToScan, extractedParticipants, { minConfidence: 0.8 });
+                for (const praise of praises) {
+                  // Resolver target email para user_id
+                  let toUserId = null;
+                  if (praise.targetEmail && typeof PeopleRepo !== 'undefined') {
+                    const allProfiles = await PeopleRepo.list({ is_active: true, limit: 200 });
+                    const match = allProfiles.find(p => p.email === praise.targetEmail);
+                    toUserId = match?.supabase_uid || null;
+                  }
+                  await RecognitionsRepo.createFromDetection({
+                    to_user: toUserId,
+                    message: `Elogio detectado: "${praise.matchedText}" ${praise.targetHint ? 'para ' + praise.targetHint : ''}`,
+                    meeting_id: meeting.id,
+                    detection_context: praise.context
+                  });
+                }
+                if (praises.length > 0) {
+                  console.log(`[TBO Fireflies] ${praises.length} elogio(s) detectado(s) em ${t.id}`);
+                }
+              }
+            }
+          } catch (praiseErr) {
+            console.warn(`[TBO Fireflies] Detecção elogios ${t.id} falhou:`, praiseErr.message);
+          }
         }
 
         // Progress callback

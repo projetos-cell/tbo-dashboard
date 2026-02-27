@@ -1,9 +1,101 @@
 // Vercel Serverless Function — Webhook para Fireflies via Zapier
 // PRD v1.2: Recebe notificações de novas reuniões/transcrições
+// Sprint 2.3.2: + Detecção automática de elogios em transcrições
 // Deduplicação garantida por UNIQUE INDEX (tenant_id, fireflies_id)
 // Auth: X-Webhook-Secret header + X-Tenant-Id header
 
 import { createClient } from '@supabase/supabase-js';
+
+// ── Server-side praise detection patterns ──
+const PRAISE_PATTERNS = [
+  // Alta confiança — Português
+  { regex: /\bparab[eé]ns\b/gi, label: 'parabens', confidence: 0.9 },
+  { regex: /\bexcelente\s+trabalho\b/gi, label: 'excelente trabalho', confidence: 0.95 },
+  { regex: /\bmandou\s+(muito\s+)?bem\b/gi, label: 'mandou bem', confidence: 0.9 },
+  { regex: /\barrasou\b/gi, label: 'arrasou', confidence: 0.85 },
+  { regex: /\bmuito\s+orgulho/gi, label: 'orgulho', confidence: 0.85 },
+  { regex: /\bmerece\s+reconhecimento/gi, label: 'merece reconhecimento', confidence: 0.95 },
+  { regex: /\btrabalho\s+incr[ií]vel/gi, label: 'trabalho incrivel', confidence: 0.9 },
+  { regex: /\bfez\s+um\s+[oó]timo\s+trabalho/gi, label: 'otimo trabalho', confidence: 0.95 },
+  // Média confiança
+  { regex: /\b(?:[oó]timo|otimo|excelente|sensacional|espetacular)\s+(?:resultado|entrega|desempenho|performance)/gi, label: 'otimo resultado', confidence: 0.85 },
+  { regex: /\bde\s+parab[eé]ns\b/gi, label: 'de parabens', confidence: 0.9 },
+  { regex: /\bdestaque\s+(?:para|pro|pra|do|da|de)\b/gi, label: 'destaque para', confidence: 0.85 },
+  { regex: /\bparab[eé]ns\s+(?:para|pro|pra|ao|à|a)\b/gi, label: 'parabens para', confidence: 0.95 },
+  // Inglês
+  { regex: /\bgreat\s+(?:job|work)\b/gi, label: 'great job', confidence: 0.85 },
+  { regex: /\bwell\s+done\b/gi, label: 'well done', confidence: 0.85 },
+  { regex: /\bamazing\s+(?:work|job|result)/gi, label: 'amazing work', confidence: 0.85 },
+  { regex: /\bkudos\b/gi, label: 'kudos', confidence: 0.9 }
+];
+
+const CONTEXT_WINDOW = 120;
+
+function detectPraises(text, participants = [], minConfidence = 0.7) {
+  if (!text || typeof text !== 'string') return [];
+  const detections = [];
+  const seen = new Set();
+
+  for (const pat of PRAISE_PATTERNS) {
+    if (pat.confidence < minConfidence) continue;
+    let match;
+    const regex = new RegExp(pat.regex.source, pat.regex.flags);
+    while ((match = regex.exec(text)) !== null) {
+      const start = Math.max(0, match.index - CONTEXT_WINDOW);
+      const end = Math.min(text.length, match.index + match[0].length + CONTEXT_WINDOW);
+      let ctx = text.substring(start, end).trim();
+      if (start > 0) ctx = '...' + ctx;
+      if (end < text.length) ctx = ctx + '...';
+
+      const ctxKey = ctx.substring(0, 60);
+      if (seen.has(ctxKey)) continue;
+      seen.add(ctxKey);
+
+      // Find person mentions in context
+      const target = findTargetInContext(ctx, participants);
+
+      detections.push({
+        pattern: pat.label,
+        matchedText: match[0],
+        context: ctx,
+        targetEmail: target?.email || null,
+        targetName: target?.name || null,
+        confidence: pat.confidence,
+        index: match.index
+      });
+    }
+  }
+
+  // Sort by position, deduplicate overlapping
+  detections.sort((a, b) => a.index - b.index);
+  const deduped = [];
+  for (const d of detections) {
+    const overlap = deduped.find(prev => Math.abs(prev.index - d.index) < 50);
+    if (!overlap) {
+      deduped.push(d);
+    } else if (d.confidence > overlap.confidence) {
+      deduped[deduped.indexOf(overlap)] = d;
+    }
+  }
+  return deduped;
+}
+
+function findTargetInContext(context, participants) {
+  if (!participants || !participants.length) return null;
+  const lowerCtx = context.toLowerCase();
+  for (const p of participants) {
+    const name = (typeof p === 'object') ? (p.displayName || p.name || '') : '';
+    if (!name || name.length < 3) continue;
+    if (lowerCtx.includes(name.toLowerCase())) {
+      return { name, email: p.email };
+    }
+    const firstName = name.split(/\s+/)[0];
+    if (firstName.length >= 3 && lowerCtx.includes(firstName.toLowerCase())) {
+      return { name: firstName, email: p.email };
+    }
+  }
+  return null;
+}
 
 // ── Whitelist de origens ──
 const ALLOWED_ORIGINS = [
@@ -208,6 +300,55 @@ export default async function handler(req, res) {
       }
     }
 
+    // ── Detectar elogios no resumo/transcrição ──
+    let praisesDetected = 0;
+    const textToScan = [body.summary, body.transcript, body.notes].filter(Boolean).join('\n\n');
+
+    if (textToScan && meeting?.id) {
+      try {
+        const praises = detectPraises(textToScan, participants, 0.8);
+
+        for (const praise of praises) {
+          // Resolver target para user_id via profiles
+          let toUserId = null;
+          if (praise.targetEmail) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('supabase_uid')
+              .eq('tenant_id', tenantId)
+              .eq('email', praise.targetEmail)
+              .maybeSingle();
+            toUserId = profile?.supabase_uid || null;
+          }
+
+          // Inserir reconhecimento auto-detectado (reviewed=false)
+          await supabase.from('recognitions').insert({
+            tenant_id: tenantId,
+            from_user: null,
+            to_user: toUserId,
+            value_id: 'colaboracao',
+            value_name: 'Colaboração',
+            value_emoji: '🤝',
+            message: `Elogio detectado: "${praise.matchedText}" ${praise.targetName ? 'para ' + praise.targetName : ''}`,
+            points: 1,
+            source: 'fireflies',
+            reviewed: false,
+            meeting_id: meeting.id,
+            detection_context: praise.context,
+            created_at: new Date().toISOString()
+          });
+          praisesDetected++;
+        }
+
+        if (praisesDetected > 0) {
+          console.log(`[Fireflies Webhook] ${praisesDetected} elogio(s) detectado(s) na reunião ${body.fireflies_id}`);
+        }
+      } catch (praiseErr) {
+        console.error('[Fireflies Webhook] Erro na detecção de elogios:', praiseErr.message);
+        // Não falhar o webhook por causa de erro na detecção
+      }
+    }
+
     // ── Registrar sync log ──
     await supabase.from('fireflies_sync_log').insert({
       tenant_id: tenantId,
@@ -223,7 +364,8 @@ export default async function handler(req, res) {
       ok: true,
       meeting_id: meeting.id,
       action: isNew ? 'created' : 'updated',
-      fireflies_id: body.fireflies_id
+      fireflies_id: body.fireflies_id,
+      praises_detected: praisesDetected
     });
 
   } catch (err) {

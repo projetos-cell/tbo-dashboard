@@ -321,6 +321,22 @@ const TBO_RECONHECIMENTOS = {
     `).join('');
 
     return `
+      <!-- Fireflies Auto-Detected Praises -->
+      <div style="margin-bottom:28px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <h3 style="margin:0;font-size:0.95rem;">
+            <i data-lucide="sparkles" style="width:16px;height:16px;color:#F59E0B;vertical-align:middle;"></i>
+            Elogios Detectados (Fireflies)
+          </h3>
+          <span class="tag" style="font-size:0.72rem;">Auto-detect</span>
+        </div>
+        <div id="recFirefliesReview" style="min-height:40px;">
+          <p style="color:var(--text-muted);font-size:0.82rem;">Carregando deteccoes...</p>
+        </div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid var(--border-subtle);margin:24px 0;">
+
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
         <h3 style="margin:0;font-size:0.95rem;">Catalogo de Recompensas</h3>
         <button class="btn btn-primary btn-sm" id="recAddReward">
@@ -394,6 +410,7 @@ const TBO_RECONHECIMENTOS = {
     // Load pending redemptions for admin
     if (this._tab === 'admin' && this._isAdmin()) {
       this._loadPendingRedemptions();
+      this._loadFirefliesReview();
     }
   },
 
@@ -439,6 +456,94 @@ const TBO_RECONHECIMENTOS = {
       });
     } catch (e) {
       el.innerHTML = '<p style="color:var(--color-error);">Erro ao carregar resgates.</p>';
+    }
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // FIREFLIES REVIEW
+  // ══════════════════════════════════════════════════════════════
+
+  async _loadFirefliesReview() {
+    const el = document.getElementById('recFirefliesReview');
+    if (!el) return;
+
+    try {
+      const unreviewed = typeof RecognitionsRepo !== 'undefined'
+        ? await RecognitionsRepo.listUnreviewed({ limit: 20 })
+        : [];
+
+      if (!unreviewed.length) {
+        el.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:0.82rem;">
+          <i data-lucide="check-circle" style="width:20px;height:20px;opacity:0.4;"></i>
+          <p style="margin:8px 0 0;">Nenhum elogio pendente de revisao</p>
+        </div>`;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        return;
+      }
+
+      el.innerHTML = unreviewed.map(r => {
+        const toName = r.to_user ? this._getProfileName(r.to_user) : 'Nao identificado';
+        return `
+          <div class="rec-review-card" data-review-id="${r.id}">
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                <span class="tag" style="font-size:0.68rem;background:rgba(245,158,11,0.15);color:#F59E0B;">Fireflies</span>
+                <span style="font-size:0.78rem;font-weight:600;">${toName}</span>
+                <span style="font-size:0.72rem;color:var(--text-muted);">${this._timeAgo(r.created_at)}</span>
+              </div>
+              <p style="margin:0;font-size:0.82rem;color:var(--text-secondary);">${this._escapeHtml(r.message)}</p>
+              ${r.detection_context ? `
+                <details style="margin-top:6px;">
+                  <summary style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">Ver contexto</summary>
+                  <p style="font-size:0.75rem;color:var(--text-muted);background:var(--bg-secondary);padding:8px;border-radius:6px;margin-top:4px;font-style:italic;">${this._escapeHtml(r.detection_context)}</p>
+                </details>
+              ` : ''}
+            </div>
+            <div style="display:flex;gap:4px;flex-shrink:0;">
+              <button class="btn btn-sm btn-primary" data-ff-approve="${r.id}" title="Aprovar">
+                <i data-lucide="check" style="width:13px;height:13px;"></i>
+              </button>
+              <button class="btn btn-sm btn-ghost" data-ff-reject="${r.id}" title="Rejeitar">
+                <i data-lucide="x" style="width:13px;height:13px;"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Bind approve/reject
+      el.querySelectorAll('[data-ff-approve]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.ffApprove;
+          try {
+            await RecognitionsRepo.approve(id);
+            const card = el.querySelector(`[data-review-id="${id}"]`);
+            if (card) {
+              card.style.opacity = '0.5';
+              card.innerHTML = '<p style="color:var(--color-success);font-size:0.82rem;padding:8px;">✅ Aprovado</p>';
+            }
+            TBO_TOAST?.success('Reconhecimento aprovado!');
+          } catch (e) { TBO_TOAST?.error('Erro: ' + e.message); }
+        });
+      });
+
+      el.querySelectorAll('[data-ff-reject]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.ffReject;
+          if (!confirm('Rejeitar este reconhecimento detectado?')) return;
+          try {
+            await RecognitionsRepo.reject(id);
+            const card = el.querySelector(`[data-review-id="${id}"]`);
+            if (card) card.remove();
+            TBO_TOAST?.info('Reconhecimento rejeitado.');
+          } catch (e) { TBO_TOAST?.error('Erro: ' + e.message); }
+        });
+      });
+
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    } catch (e) {
+      console.error('[Reconhecimentos] Erro ao carregar review Fireflies:', e);
+      el.innerHTML = '<p style="color:var(--color-error);font-size:0.82rem;">Erro ao carregar deteccoes.</p>';
     }
   },
 
@@ -729,6 +834,15 @@ const TBO_RECONHECIMENTOS = {
         padding:12px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px;
         font-size:0.82rem;
       }
+
+      /* Fireflies Review Cards */
+      .rec-review-card {
+        display:flex; align-items:flex-start; gap:12px;
+        padding:12px 16px; border:1px solid var(--border); border-radius:10px;
+        margin-bottom:8px; background:var(--bg-card);
+        border-left:3px solid #F59E0B; transition: opacity 0.3s;
+      }
+      .rec-review-card:hover { background:var(--bg-secondary); }
 
       /* Modal */
       .rec-modal-overlay {

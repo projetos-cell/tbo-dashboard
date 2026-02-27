@@ -125,7 +125,7 @@ const TBO_RECONHECIMENTOS = {
         typeof RecognitionsRepo !== 'undefined' ? RecognitionsRepo.list({ limit: 100 }) : { data: [] },
         typeof RecognitionRewardsRepo !== 'undefined' ? RecognitionRewardsRepo.listRewards() : [],
         typeof RecognitionRewardsRepo !== 'undefined' ? RecognitionRewardsRepo.getPointsBalance() : { earned: 0, spent: 0, available: 0 },
-        typeof PeopleRepo !== 'undefined' ? PeopleRepo.listProfiles() : []
+        typeof PeopleRepo !== 'undefined' ? PeopleRepo.list({ is_active: true, limit: 200 }) : []
       ]);
 
       this._recognitions = recs.data || recs || [];

@@ -52,7 +52,8 @@ const TBO_ROUTE_REGISTRY = (() => {
     'permissoes-config':      'permissoes-config',
     'system-health':          'system-health',
     'diretoria':              'diretoria',
-    'okrs':                   'okrs'
+    'okrs':                   'okrs',
+    'reconhecimentos':        'reconhecimentos'
   };
 
   // Aliases: rotas antigas → module key
@@ -158,7 +159,9 @@ const TBO_ROUTE_REGISTRY = (() => {
     // Diretoria
     'diretoria':              { label: 'Diretoria',              icon: 'shield',             group: 'gestao',       color: '#E85102' },
     // OKRs (Sprint 2.1)
-    'okrs':                   { label: 'OKRs',                   icon: 'target',             group: 'pessoas',      color: '#8B5CF6' }
+    'okrs':                   { label: 'OKRs',                   icon: 'target',             group: 'pessoas',      color: '#8B5CF6' },
+    // Reconhecimentos (Sprint 2.3)
+    'reconhecimentos':        { label: 'Reconhecimentos',        icon: 'award',              group: 'pessoas',      color: '#F59E0B' }
   };
 
   return {

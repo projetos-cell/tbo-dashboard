@@ -133,7 +133,8 @@ const TBO_APP = {
       'quadro-projetos': typeof TBO_QUADRO_PROJETOS !== 'undefined' ? TBO_QUADRO_PROJETOS : null,
       'project-detail': typeof TBO_PROJECT_DETAIL !== 'undefined' ? TBO_PROJECT_DETAIL : null,
       'diretoria': typeof TBO_DIRETORIA !== 'undefined' ? TBO_DIRETORIA : null,
-      'okrs': typeof TBO_OKRS !== 'undefined' ? TBO_OKRS : null
+      'okrs': typeof TBO_OKRS !== 'undefined' ? TBO_OKRS : null,
+      'reconhecimentos': typeof TBO_RECONHECIMENTOS !== 'undefined' ? TBO_RECONHECIMENTOS : null
     };
 
     Object.entries(modules).forEach(([name, mod]) => {

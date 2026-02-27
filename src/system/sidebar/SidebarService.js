@@ -107,7 +107,7 @@ const TBO_SIDEBAR_SERVICE = (() => {
 
     // Sub-items do workspace Cultura — deep link: rh/cultura/{subtab}
     { id: 'cult-valores',       name: 'Valores TBO',          type: 'child', order_index: 14.61, icon: 'gem',             route: 'rh/cultura/valores',          parent_id: 'ws-cultura', allowed_roles: [] },
-    { id: 'cult-reconhecimentos', name: 'Reconhecimentos',    type: 'child', order_index: 14.62, icon: 'award',           route: 'rh/cultura/reconhecimentos',  parent_id: 'ws-cultura', allowed_roles: [] },
+    { id: 'cult-reconhecimentos', name: 'Reconhecimentos',    type: 'child', order_index: 14.62, icon: 'award',           route: 'reconhecimentos',  parent_id: 'ws-cultura', allowed_roles: [] },
     { id: 'cult-rituais',       name: 'Rituais',              type: 'child', order_index: 14.63, icon: 'repeat',          route: 'rh/cultura/rituais',          parent_id: 'ws-cultura', allowed_roles: [] },
     { id: 'cult-feedbacks',     name: 'Feedbacks',            type: 'child', order_index: 14.64, icon: 'message-square',  route: 'rh/cultura/feedbacks',        parent_id: 'ws-cultura', allowed_roles: [] },
     { id: 'cult-historico',     name: 'Historico cultural',   type: 'child', order_index: 14.65, icon: 'clock',           route: 'rh/cultura/historico',         parent_id: 'ws-cultura', allowed_roles: [] },

@@ -228,7 +228,7 @@ const OkrsRepo = (() => {
 
       // 1. Buscar KR atual para previous_value
       const { data: kr, error: krErr } = await _db().from('okr_key_results')
-        .select('id, current_value, objective_id, target_value, start_value')
+        .select('id, current_value, objective_id, target_value, start_value, owner_id, title')
         .eq('id', key_result_id)
         .eq('tenant_id', tid)
         .single();
@@ -259,6 +259,20 @@ const OkrsRepo = (() => {
 
       // 4. Recalcular objective progress (media dos KRs)
       await this._recalcObjectiveProgress(kr.objective_id);
+
+      // 5. Enviar alerta se at_risk ou behind (Sprint 2.1.6)
+      if (confidence === 'at_risk' || confidence === 'behind') {
+        const updatedKr = { ...kr, current_value: new_value, owner_id: kr.owner_id };
+        // Buscar objective para o titulo
+        try {
+          const { data: obj } = await _db().from('okr_objectives')
+            .select('id, title, owner_id')
+            .eq('id', kr.objective_id)
+            .eq('tenant_id', tid)
+            .single();
+          await this._sendRiskAlert(updatedKr, obj, confidence);
+        } catch (e) { console.warn('[OkrsRepo] Erro buscando obj para alerta:', e.message); }
+      }
 
       return checkin;
     },
@@ -329,6 +343,52 @@ const OkrsRepo = (() => {
       };
     },
 
+
+    // ═══════════════════════════════════════════════════════════
+    // ALERTS — OKR at_risk / behind notifications (2.1.6)
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Envia notificação inbox quando KR muda para at_risk ou behind
+     */
+    async _sendRiskAlert(kr, objective, confidence) {
+      try {
+        if (confidence === 'on_track') return;
+        if (typeof InboxRepo === 'undefined') return;
+
+        const tid = _tid();
+        const levelLabel = { at_risk: 'Em Risco', behind: 'Atrasado' };
+
+        const range = Number(kr.target_value) - Number(kr.start_value || 0);
+        const current = Number(kr.current_value || 0) - Number(kr.start_value || 0);
+        const pct = range > 0 ? Math.round((current / range) * 100) : 0;
+
+        const title = `OKR ${levelLabel[confidence]}: ${kr.title}`;
+        const body = `Key Result "${kr.title}" do objetivo "${objective?.title || ''}" está ${levelLabel[confidence].toLowerCase()} (${pct}% progresso).`;
+
+        const recipients = new Set();
+        if (kr.owner_id) recipients.add(kr.owner_id);
+        if (objective?.owner_id && objective.owner_id !== kr.owner_id) recipients.add(objective.owner_id);
+
+        for (const userId of recipients) {
+          await InboxRepo.create({
+            tenant_id: tid,
+            user_id: userId,
+            type: 'okr_alert',
+            title,
+            body,
+            metadata: {
+              key_result_id: kr.id,
+              objective_id: objective?.id,
+              confidence,
+              progress_pct: pct
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('[OkrsRepo] Erro ao enviar alerta OKR:', e.message);
+      }
+    },
 
     // ═══════════════════════════════════════════════════════════
     // INTERNALS

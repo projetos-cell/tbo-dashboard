@@ -1,5 +1,5 @@
 // ============================================================================
-// TBO OS — Modulo: OKRs (v1.0 — Modular Tabs)
+// TBO OS — Modulo: OKRs (v1.1 — Performance + Access Fix)
 // Orquestrador: delega para sub-modulos em modules/okrs/*.js
 // Acesso: todos os usuarios com permissao ao modulo
 //
@@ -12,6 +12,8 @@
 const TBO_OKRS = {
   _tab: 'dashboard',
   _loading: false,
+  _dataLoaded: false,
+  _error: null,
   _period: '2026-Q1',
   _objectives: [],
   _kpis: null,
@@ -84,10 +86,32 @@ const TBO_OKRS = {
         <div id="okrTabContent">
           ${this._loading
             ? '<div style="text-align:center;padding:40px;"><div class="spinner"></div><p style="color:var(--text-muted);margin-top:12px;">Carregando OKRs...</p></div>'
-            : this._renderTab()}
+            : this._error
+              ? this._renderError()
+              : this._renderTab()}
         </div>
 
         ${this._renderModal()}
+      </div>
+    `;
+  },
+
+  // ── Error state ───────────────────────────────────────────────────────
+
+  _renderError() {
+    return `
+      <div class="card" style="padding:48px;text-align:center;">
+        <i data-lucide="shield-alert" style="width:48px;height:48px;color:var(--color-danger, #EF4444);margin-bottom:12px;"></i>
+        <h3 style="margin:0 0 8px;font-size:1rem;">Erro ao carregar OKRs</h3>
+        <p style="color:var(--text-muted);font-size:0.82rem;margin:0 0 8px;">
+          ${this._esc(this._error)}
+        </p>
+        <p style="color:var(--text-muted);font-size:0.75rem;margin:0 0 16px;">
+          Verifique se voce tem acesso ao tenant atual e se as tabelas de OKR foram criadas.
+        </p>
+        <button class="btn btn-primary" id="okrRetryBtn" style="font-size:0.82rem;">
+          <i data-lucide="refresh-cw" style="width:14px;height:14px;"></i> Tentar novamente
+        </button>
       </div>
     `;
   },
@@ -242,9 +266,22 @@ const TBO_OKRS = {
     `;
   },
 
-  // ── Init & Event Binding ─────────────────────────────────────────────
+  // ── Init (first-time mount only) ──────────────────────────────────────
 
   async init() {
+    this._bindAllEvents();
+
+    // Load data only on first mount (no double render)
+    if (!this._dataLoaded) {
+      this._dataLoaded = true;
+      await this._loadData();
+      this._rerender();
+    }
+  },
+
+  // ── Event Binding (separated from init to avoid recursion) ────────────
+
+  _bindAllEvents() {
     // Tab navigation
     document.querySelectorAll('.ap-tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -258,6 +295,7 @@ const TBO_OKRS = {
     if (periodSel) {
       periodSel.addEventListener('change', async () => {
         this._period = periodSel.value;
+        this._dataLoaded = false;
         await this._loadData();
         this._rerender();
       });
@@ -273,17 +311,22 @@ const TBO_OKRS = {
       });
     }
 
+    // Retry button (error state)
+    const retryBtn = document.getElementById('okrRetryBtn');
+    if (retryBtn) {
+      retryBtn.addEventListener('click', async () => {
+        this._error = null;
+        this._dataLoaded = false;
+        await this._loadData();
+        this._rerender();
+      });
+    }
+
     // Bind tab-specific events
     this._bindTabEvents();
 
     // Bind modal events
     this._bindModalEvents();
-
-    // Load data (first time)
-    if (this._objectives.length === 0) {
-      await this._loadData();
-      this._rerender();
-    }
   },
 
   _bindTabEvents() {
@@ -331,7 +374,7 @@ const TBO_OKRS = {
         if (container) {
           const idx = container.children.length;
           container.insertAdjacentHTML('beforeend', this._renderKRField(idx));
-          if (typeof lucide !== 'undefined') lucide.createIcons();
+          this._scopedCreateIcons();
         }
       });
     }
@@ -346,32 +389,62 @@ const TBO_OKRS = {
     }
   },
 
-  // ── Data Loading ────────────────────────────────────────────────────
+  // ── Data Loading (parallelized, no redundant KPI query) ───────────────
 
   async _loadData() {
     if (typeof OkrsRepo === 'undefined') {
       console.warn('[OKRs] OkrsRepo nao disponivel');
+      this._error = 'Modulo OkrsRepo nao disponivel. Verifique se o script esta carregado.';
+      this._loading = false;
       return;
     }
 
     try {
       this._loading = true;
+      this._error = null;
 
-      // Load objectives with KRs
-      this._objectives = await OkrsRepo.getTree(this._period);
+      // Parallel: load objectives tree + profiles at the same time
+      const promises = [OkrsRepo.getTree(this._period)];
 
-      // Load KPIs
-      this._kpis = await OkrsRepo.getDashboardKPIs(this._period);
+      const needProfiles = this._profiles.length === 0 && typeof PeopleRepo !== 'undefined';
+      if (needProfiles) {
+        promises.push(PeopleRepo.list({ is_active: true, limit: 200 }));
+      }
 
-      // Load profiles for owner select
-      if (typeof PeopleRepo !== 'undefined' && this._profiles.length === 0) {
-        try {
-          const profiles = await PeopleRepo.list({ is_active: true, limit: 200 });
-          this._profiles = profiles || [];
-        } catch (e) {
-          console.warn('[OKRs] Erro ao carregar profiles:', e.message);
+      const results = await Promise.allSettled(promises);
+
+      // Process tree result
+      const treeResult = results[0];
+      if (treeResult.status === 'fulfilled') {
+        this._objectives = treeResult.value || [];
+      } else {
+        const errMsg = treeResult.reason?.message || 'Erro desconhecido';
+        console.error('[OKRs] Erro ao carregar objectives:', treeResult.reason);
+
+        // Detect RLS / permission errors
+        if (errMsg.includes('permission') || errMsg.includes('RLS') || errMsg.includes('policy') ||
+            errMsg.includes('denied') || errMsg.includes('42501') || errMsg.includes('tenant')) {
+          this._error = 'Sem permissao para acessar OKRs. Verifique se voce esta vinculado a um tenant.';
+        } else if (errMsg.includes('does not exist') || errMsg.includes('42P01') || errMsg.includes('relation')) {
+          this._error = 'Tabelas de OKR nao encontradas. Execute a migration 056_okrs.sql no Supabase.';
+        } else {
+          this._error = 'Erro ao carregar OKRs: ' + errMsg;
+        }
+        this._objectives = [];
+        this._loading = false;
+        return;
+      }
+
+      // Process profiles result
+      if (needProfiles && results[1]) {
+        const profileResult = results[1];
+        if (profileResult.status === 'fulfilled' && profileResult.value) {
+          this._profiles = profileResult.value;
         }
       }
+
+      // Compute KPIs from tree data (eliminates extra Supabase query)
+      this._kpis = this._computeKPIs(this._objectives);
 
       // Auto-flag at risk KRs
       this._autoFlagRisk();
@@ -380,10 +453,43 @@ const TBO_OKRS = {
     } catch (err) {
       console.error('[OKRs] Erro ao carregar dados:', err);
       this._loading = false;
-      if (typeof TBO_TOAST !== 'undefined') {
-        TBO_TOAST.error('OKRs', 'Erro ao carregar dados: ' + (err.message || ''));
-      }
+      this._error = 'Erro ao carregar dados: ' + (err.message || 'Verifique sua conexao');
     }
+  },
+
+  /**
+   * Compute KPIs from already-loaded tree data (no extra query)
+   */
+  _computeKPIs(objectives) {
+    const activeObjs = objectives.filter(o => o.status === 'active');
+
+    let totalKRs = 0;
+    let atRisk = 0;
+    let behind = 0;
+    let onTrack = 0;
+
+    activeObjs.forEach(obj => {
+      const krs = (obj.okr_key_results || []).filter(k => k.status === 'active');
+      totalKRs += krs.length;
+      krs.forEach(kr => {
+        if (kr.confidence === 'at_risk') atRisk++;
+        else if (kr.confidence === 'behind') behind++;
+        else if (kr.confidence === 'on_track') onTrack++;
+      });
+    });
+
+    const avgProgress = activeObjs.length > 0
+      ? activeObjs.reduce((sum, o) => sum + Number(o.progress || 0), 0) / activeObjs.length
+      : 0;
+
+    return {
+      totalObjectives: activeObjs.length,
+      avgProgress: Math.round(avgProgress * 100) / 100,
+      atRiskCount: atRisk,
+      behindCount: behind,
+      onTrackCount: onTrack,
+      totalKRs
+    };
   },
 
   /**
@@ -473,6 +579,7 @@ const TBO_OKRS = {
       if (typeof TBO_TOAST !== 'undefined') TBO_TOAST.success('OKR Criado', title);
 
       // Reload
+      this._dataLoaded = false;
       await this._loadData();
       this._rerender();
 
@@ -482,14 +589,25 @@ const TBO_OKRS = {
     }
   },
 
-  // ── Rerender ─────────────────────────────────────────────────────────
+  // ── Rerender (no recursive init — just DOM + events) ──────────────────
 
   _rerender() {
     const container = document.getElementById('moduleContainer');
     if (container) {
       container.innerHTML = this.render();
-      this.init();
-      if (typeof lucide !== 'undefined') lucide.createIcons();
+      this._bindAllEvents();
+      this._scopedCreateIcons();
+    }
+  },
+
+  // ── Scoped icon creation (only scans module container) ────────────────
+
+  _scopedCreateIcons() {
+    if (typeof lucide !== 'undefined') {
+      try {
+        const root = document.getElementById('moduleContainer');
+        lucide.createIcons(root ? { root } : undefined);
+      } catch (e) { /* ignore lucide errors */ }
     }
   },
 
@@ -498,6 +616,8 @@ const TBO_OKRS = {
   destroy() {
     this._tab = 'dashboard';
     this._loading = false;
+    this._dataLoaded = false;
+    this._error = null;
     this._objectives = [];
     this._kpis = null;
     this._showModal = null;

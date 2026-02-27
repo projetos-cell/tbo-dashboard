@@ -464,6 +464,26 @@ const TBO_FIREFLIES = {
           } catch (praiseErr) {
             console.warn(`[TBO Fireflies] Detecção elogios ${t.id} falhou:`, praiseErr.message);
           }
+
+          // 7. Auto-match com 1:1 (Sprint 2.2.3)
+          try {
+            if (typeof OneOnOnesRepo !== 'undefined') {
+              const extractedParticipants = this._extractParticipants(t);
+              const participantEmails = extractedParticipants.map(p => p.email).filter(Boolean);
+
+              // Apenas reuniões com 2-4 participantes são candidatas a 1:1
+              if (participantEmails.length >= 2 && participantEmails.length <= 4) {
+                const meetingDate = t.date || t.dateString;
+                const matched = await OneOnOnesRepo.findMatchForMeeting(meetingDate, participantEmails);
+                if (matched) {
+                  await OneOnOnesRepo.linkToMeeting(matched.id, meeting.id, t.summary || t.overview || null);
+                  console.log(`[TBO Fireflies] 1:1 ${matched.id} vinculada ao meeting ${meeting.id}`);
+                }
+              }
+            }
+          } catch (linkErr) {
+            console.warn(`[TBO Fireflies] Auto-link 1:1 ${t.id} falhou:`, linkErr.message);
+          }
         }
 
         // Progress callback

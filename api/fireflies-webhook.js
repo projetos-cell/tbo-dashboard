@@ -349,6 +349,101 @@ export default async function handler(req, res) {
       }
     }
 
+    // ── Auto-match com 1:1 (Sprint 2.2.3) ──
+    let linkedOneOnOneId = null;
+    if (meeting?.id && participants.length > 0) {
+      try {
+        const participantEmails = participants
+          .map(p => typeof p === 'string' ? p : (p.email || ''))
+          .filter(Boolean);
+
+        if (participantEmails.length >= 2 && participantEmails.length <= 4) {
+          // Reuniões com 2-4 participantes são candidatas a 1:1
+          const meetingDate = body.date || new Date().toISOString();
+
+          // Buscar 1:1 agendada proxima da data com participantes coincidentes
+          const dayBefore = new Date(meetingDate);
+          dayBefore.setDate(dayBefore.getDate() - 2);
+          const dayAfter = new Date(meetingDate);
+          dayAfter.setDate(dayAfter.getDate() + 2);
+
+          // Resolver emails para supabase_uids
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('supabase_uid, email')
+            .eq('tenant_id', tenantId)
+            .in('email', participantEmails.map(e => e.toLowerCase()));
+
+          const profileUids = (profiles || []).map(p => p.supabase_uid).filter(Boolean);
+
+          if (profileUids.length >= 2) {
+            const { data: candidateOneOnOnes } = await supabase
+              .from('one_on_ones')
+              .select('id, leader_id, collaborator_id, scheduled_at')
+              .eq('tenant_id', tenantId)
+              .is('fireflies_meeting_id', null)
+              .gte('scheduled_at', dayBefore.toISOString())
+              .lte('scheduled_at', dayAfter.toISOString())
+              .in('status', ['scheduled', 'completed'])
+              .limit(10);
+
+            if (candidateOneOnOnes?.length) {
+              // Melhor match: ambos leader e collaborator nos participantes
+              const bestMatch = candidateOneOnOnes.find(oo =>
+                profileUids.includes(oo.leader_id) && profileUids.includes(oo.collaborator_id)
+              ) || candidateOneOnOnes.find(oo =>
+                profileUids.includes(oo.leader_id) || profileUids.includes(oo.collaborator_id)
+              );
+
+              if (bestMatch) {
+                const updateData = {
+                  fireflies_meeting_id: meeting.id,
+                  status: 'completed',
+                  updated_at: new Date().toISOString()
+                };
+                if (body.summary) updateData.transcript_summary = body.summary;
+
+                await supabase
+                  .from('one_on_ones')
+                  .update(updateData)
+                  .eq('id', bestMatch.id)
+                  .eq('tenant_id', tenantId);
+
+                linkedOneOnOneId = bestMatch.id;
+                console.log(`[Fireflies Webhook] 1:1 ${bestMatch.id} vinculada ao meeting ${meeting.id}`);
+
+                // Disparar processamento de transcrição assíncrono (Sprint 2.2.4)
+                try {
+                  const proto = req.headers['x-forwarded-proto'] || 'https';
+                  const host = req.headers.host;
+                  const processUrl = `${proto}://${host}/api/process-1on1-transcript`;
+                  fetch(processUrl, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'X-Webhook-Secret': webhookSecret,
+                      'X-Tenant-Id': tenantId
+                    },
+                    body: JSON.stringify({
+                      one_on_one_id: bestMatch.id,
+                      meeting_id: meeting.id,
+                      tenant_id: tenantId
+                    })
+                  }).catch(err => console.warn('[Fireflies Webhook] Trigger process-transcript falhou:', err.message));
+                  console.log(`[Fireflies Webhook] Processamento de transcrição disparado para 1:1 ${bestMatch.id}`);
+                } catch (triggerErr) {
+                  console.warn('[Fireflies Webhook] Erro ao disparar processamento:', triggerErr.message);
+                }
+              }
+            }
+          }
+        }
+      } catch (linkErr) {
+        console.error('[Fireflies Webhook] Erro no auto-link 1:1:', linkErr.message);
+        // Não falhar o webhook por causa de erro no linking
+      }
+    }
+
     // ── Registrar sync log ──
     await supabase.from('fireflies_sync_log').insert({
       tenant_id: tenantId,
@@ -365,7 +460,8 @@ export default async function handler(req, res) {
       meeting_id: meeting.id,
       action: isNew ? 'created' : 'updated',
       fireflies_id: body.fireflies_id,
-      praises_detected: praisesDetected
+      praises_detected: praisesDetected,
+      linked_one_on_one: linkedOneOnOneId
     });
 
   } catch (err) {

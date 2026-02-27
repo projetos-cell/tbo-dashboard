@@ -316,21 +316,47 @@
         const leaderName = S._getPersonNameByUid(data.leader_id);
         const collabName = S._getPersonNameByUid(data.collaborator_id);
         const actions = data.one_on_one_actions || [];
+        const manualActions = actions.filter(a => !a.source || a.source === 'manual');
+        const aiActions = actions.filter(a => a.source === 'ai_extracted' || a.source === 'fireflies');
         const statusColors = { scheduled: 'var(--color-info)', completed: 'var(--color-success)', cancelled: 'var(--text-muted)', no_show: 'var(--color-danger)' };
         const statusLabels = { scheduled: 'Agendada', completed: 'Concluída', cancelled: 'Cancelada', no_show: 'No-show' };
+        const hasMeeting = !!data.fireflies_meeting_id;
+        const categoryLabels = { feedback: 'Feedback', desenvolvimento: 'Desenvolvimento', operacional: 'Operacional', pdi: 'PDI', follow_up: 'Follow-up' };
+        const categoryColors = { feedback: '#8B5CF6', desenvolvimento: '#3B82F6', operacional: '#6B7280', pdi: '#10B981', follow_up: '#F59E0B' };
+
+        // Helper para renderizar uma ação
+        const renderAction = (a) => {
+          const isAI = a.source === 'ai_extracted' || a.source === 'fireflies';
+          const catLabel = categoryLabels[a.category] || '';
+          const catColor = categoryColors[a.category] || 'var(--text-muted)';
+          return `
+            <div style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--border-subtle);">
+              <input type="checkbox" class="rh1on1-action-toggle" data-id="${a.id}" ${a.completed ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--accent-gold);">
+              <div style="flex:1;">
+                <div style="font-size:0.78rem;${a.completed ? 'text-decoration:line-through;opacity:0.6;' : ''}">${S._esc(a.text)}</div>
+                <div style="display:flex;gap:6px;align-items:center;margin-top:2px;">
+                  ${a.due_date ? `<span style="font-size:0.65rem;color:${new Date(a.due_date) < new Date() && !a.completed ? 'var(--color-danger)' : 'var(--text-muted)'};">Prazo: ${new Date(a.due_date + 'T12:00').toLocaleDateString('pt-BR')}</span>` : ''}
+                  ${catLabel ? `<span style="font-size:0.58rem;padding:1px 5px;border-radius:4px;background:${catColor}15;color:${catColor};">${catLabel}</span>` : ''}
+                  ${isAI ? `<span style="font-size:0.58rem;padding:1px 5px;border-radius:4px;background:#8B5CF615;color:#8B5CF6;" title="Confiança: ${Math.round((a.ai_confidence || 0) * 100)}%"><i data-lucide="sparkles" style="width:8px;height:8px;vertical-align:-1px;"></i> IA</span>` : ''}
+                </div>
+              </div>
+              <button class="rh1on1-action-delete" data-id="${a.id}" style="background:none;border:none;cursor:pointer;color:var(--color-danger);padding:2px;"><i data-lucide="trash-2" style="width:12px;height:12px;"></i></button>
+            </div>`;
+        };
 
         // Modal overlay
         const overlay = document.createElement('div');
         overlay.id = 'rh1on1DetailOverlay';
         overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:9999;display:flex;justify-content:center;align-items:center;';
         overlay.innerHTML = `
-          <div style="background:var(--bg-card, #ffffff);border-radius:16px;width:560px;max-width:calc(100vw - 48px);max-height:80vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,0.25);padding:24px;position:relative;">
+          <div style="background:var(--bg-card, #ffffff);border-radius:16px;width:620px;max-width:calc(100vw - 48px);max-height:85vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,0.25);padding:24px;position:relative;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
               <div>
                 <h3 style="font-size:1rem;font-weight:700;margin-bottom:2px;">1:1 ${S._esc(leaderName)} ↔ ${S._esc(collabName)}</h3>
                 <div style="font-size:0.75rem;color:var(--text-muted);">${data.scheduled_at ? new Date(data.scheduled_at).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
                   ${data.google_event_id ? ' · <i data-lucide="calendar" style="width:10px;height:10px;vertical-align:-1px;color:var(--color-info);"></i> Google Calendar' : ''}
                   ${data.recurrence ? ` · <i data-lucide="repeat" style="width:10px;height:10px;vertical-align:-1px;"></i> ${data.recurrence === 'daily' ? 'Diária' : data.recurrence === 'monthly' ? 'Mensal' : data.recurrence === 'biweekly' ? 'Quinzenal' : 'Semanal'}` : ''}
+                  ${hasMeeting ? ' · <i data-lucide="mic" style="width:10px;height:10px;vertical-align:-1px;color:#8B5CF6;"></i> Fireflies' : ''}
                 </div>
               </div>
               <div style="display:flex;gap:6px;align-items:center;">
@@ -348,17 +374,57 @@
               <button class="btn btn-sm" style="margin-left:auto;color:var(--color-danger);border:1px solid var(--color-danger);" id="rh1on1Delete"><i data-lucide="trash-2" style="width:12px;height:12px;"></i> Excluir</button>
             </div>
 
+            <!-- Fireflies Section -->
+            <div style="margin-bottom:16px;padding:12px;background:${hasMeeting ? '#8B5CF608' : 'var(--bg-elevated)'};border:1px solid ${hasMeeting ? '#8B5CF620' : 'var(--border-subtle)'};border-radius:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <label style="font-weight:600;font-size:0.82rem;"><i data-lucide="mic" style="width:14px;height:14px;vertical-align:-2px;color:#8B5CF6;"></i> Transcrição Fireflies</label>
+                ${hasMeeting ? `
+                  <div style="display:flex;gap:4px;">
+                    <button class="btn btn-sm" id="rh1on1ProcessTranscript" style="font-size:0.62rem;padding:2px 8px;background:#8B5CF615;color:#8B5CF6;border:1px solid #8B5CF630;" title="Reprocessar transcrição com IA"><i data-lucide="sparkles" style="width:10px;height:10px;"></i> Processar IA</button>
+                  </div>
+                ` : `
+                  <button class="btn btn-sm btn-secondary" id="rh1on1LinkMeeting" style="font-size:0.62rem;padding:2px 8px;"><i data-lucide="link" style="width:10px;height:10px;"></i> Vincular reunião</button>
+                `}
+              </div>
+              ${hasMeeting ? `
+                <div id="rh1on1MeetingInfo" style="font-size:0.72rem;color:var(--text-secondary);">
+                  <span style="color:var(--text-muted);">Carregando dados da reunião...</span>
+                </div>
+                ${data.transcript_summary ? `
+                  <div style="margin-top:8px;padding:8px;background:var(--bg-card, #ffffff);border-radius:6px;border:1px solid var(--border-subtle);">
+                    <div style="font-size:0.68rem;font-weight:600;color:#8B5CF6;margin-bottom:4px;"><i data-lucide="sparkles" style="width:10px;height:10px;vertical-align:-1px;"></i> Resumo IA</div>
+                    <div style="font-size:0.75rem;color:var(--text-secondary);line-height:1.4;">${S._esc(data.transcript_summary)}</div>
+                  </div>
+                ` : ''}
+              ` : `
+                <div style="font-size:0.72rem;color:var(--text-muted);">Nenhuma reunião do Fireflies vinculada. Vincule manualmente ou aguarde o link automático após a gravação.</div>
+                <div id="rh1on1MeetingSelector" style="display:none;margin-top:8px;"></div>
+              `}
+            </div>
+
             <!-- Notas -->
             <div style="margin-bottom:16px;">
               <label style="font-weight:600;font-size:0.82rem;display:block;margin-bottom:6px;"><i data-lucide="file-text" style="width:14px;height:14px;vertical-align:-2px;color:var(--accent-gold);"></i> Notas da Reunião</label>
-              <textarea id="rh1on1Notes" class="form-input" rows="4" placeholder="Escreva notas sobre a reunião..." style="font-size:0.8rem;resize:vertical;">${S._esc(data.notes || '')}</textarea>
+              <textarea id="rh1on1Notes" class="form-input" rows="3" placeholder="Escreva notas sobre a reunião..." style="font-size:0.8rem;resize:vertical;">${S._esc(data.notes || '')}</textarea>
               <button class="btn btn-sm btn-secondary" id="rh1on1SaveNotes" style="margin-top:6px;font-size:0.68rem;">Salvar Notas</button>
             </div>
 
-            <!-- Ações -->
+            <!-- Ações extraídas por IA -->
+            ${aiActions.length ? `
+            <div style="margin-bottom:16px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <label style="font-weight:600;font-size:0.82rem;"><i data-lucide="sparkles" style="width:14px;height:14px;vertical-align:-2px;color:#8B5CF6;"></i> Ações Extraídas pela IA (${aiActions.length})</label>
+              </div>
+              <div style="border:1px solid #8B5CF620;border-radius:8px;overflow:hidden;">
+                ${aiActions.map(renderAction).join('')}
+              </div>
+            </div>
+            ` : ''}
+
+            <!-- Ações manuais -->
             <div>
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                <label style="font-weight:600;font-size:0.82rem;"><i data-lucide="check-square" style="width:14px;height:14px;vertical-align:-2px;color:var(--color-info);"></i> Ações (${actions.length})</label>
+                <label style="font-weight:600;font-size:0.82rem;"><i data-lucide="check-square" style="width:14px;height:14px;vertical-align:-2px;color:var(--color-info);"></i> Ações${manualActions.length ? ` (${manualActions.length})` : ''}</label>
                 <button class="btn btn-sm btn-secondary" id="rh1on1AddAction" style="font-size:0.66rem;padding:2px 8px;"><i data-lucide="plus" style="width:10px;height:10px;"></i> Ação</button>
               </div>
               <div id="rh1on1ActionForm" style="display:none;margin-bottom:8px;padding:8px;background:var(--bg-elevated);border-radius:8px;">
@@ -369,16 +435,7 @@
                 </div>
               </div>
               <div id="rh1on1ActionList">
-                ${actions.length ? actions.map(a => `
-                  <div style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--border-subtle);">
-                    <input type="checkbox" class="rh1on1-action-toggle" data-id="${a.id}" ${a.completed ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--accent-gold);">
-                    <div style="flex:1;">
-                      <div style="font-size:0.78rem;${a.completed ? 'text-decoration:line-through;opacity:0.6;' : ''}">${S._esc(a.text)}</div>
-                      ${a.due_date ? `<div style="font-size:0.65rem;color:${new Date(a.due_date) < new Date() && !a.completed ? 'var(--color-danger)' : 'var(--text-muted)'};">Prazo: ${new Date(a.due_date + 'T12:00').toLocaleDateString('pt-BR')}</div>` : ''}
-                    </div>
-                    <button class="rh1on1-action-delete" data-id="${a.id}" style="background:none;border:none;cursor:pointer;color:var(--color-danger);padding:2px;"><i data-lucide="trash-2" style="width:12px;height:12px;"></i></button>
-                  </div>
-                `).join('') : '<div style="font-size:0.72rem;color:var(--text-muted);padding:8px;">Nenhuma ação registrada</div>'}
+                ${manualActions.length ? manualActions.map(renderAction).join('') : '<div style="font-size:0.72rem;color:var(--text-muted);padding:8px;">Nenhuma ação manual registrada</div>'}
               </div>
             </div>
           </div>
@@ -488,6 +545,125 @@
             overlay.remove();
             await self._open1on1Detail(oneOnOneId);
           } catch (e) { TBO_TOAST.error('Erro ao criar ação'); }
+        });
+
+        // ── Fireflies: carregar info da reunião vinculada ──
+        if (hasMeeting && data.fireflies_meeting_id) {
+          (async () => {
+            try {
+              const meeting = await OneOnOnesRepo.getLinkedMeeting(data.fireflies_meeting_id);
+              const infoDiv = overlay.querySelector('#rh1on1MeetingInfo');
+              if (infoDiv && meeting) {
+                const meetingDate = meeting.date ? new Date(meeting.date + 'T12:00').toLocaleDateString('pt-BR') : '';
+                const dur = meeting.duration_minutes ? `${meeting.duration_minutes}min` : '';
+                infoDiv.innerHTML = `
+                  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <span style="font-weight:600;">${S._esc(meeting.title || 'Reunião')}</span>
+                    ${meetingDate ? `<span style="color:var(--text-muted);font-size:0.68rem;">${meetingDate}</span>` : ''}
+                    ${dur ? `<span style="color:var(--text-muted);font-size:0.68rem;">${dur}</span>` : ''}
+                    ${meeting.fireflies_url ? `<a href="${meeting.fireflies_url}" target="_blank" style="color:#8B5CF6;font-size:0.68rem;text-decoration:none;">Abrir no Fireflies ↗</a>` : ''}
+                  </div>
+                  ${meeting.short_summary ? `<div style="margin-top:4px;font-size:0.7rem;color:var(--text-muted);line-height:1.3;">${S._esc(meeting.short_summary).substring(0, 200)}${meeting.short_summary.length > 200 ? '...' : ''}</div>` : ''}
+                `;
+              } else if (infoDiv) {
+                infoDiv.innerHTML = '<span style="color:var(--text-muted);font-size:0.7rem;">Reunião vinculada (dados não encontrados)</span>';
+              }
+            } catch (e) {
+              console.warn('[RH] Erro ao carregar meeting info:', e);
+              const infoDiv = overlay.querySelector('#rh1on1MeetingInfo');
+              if (infoDiv) infoDiv.innerHTML = '<span style="color:var(--text-muted);font-size:0.7rem;">Erro ao carregar dados da reunião</span>';
+            }
+          })();
+        }
+
+        // ── Fireflies: vincular reunião manualmente ──
+        overlay.querySelector('#rh1on1LinkMeeting')?.addEventListener('click', async () => {
+          const btn = overlay.querySelector('#rh1on1LinkMeeting');
+          const selectorDiv = overlay.querySelector('#rh1on1MeetingSelector');
+          if (!selectorDiv) return;
+
+          btn.disabled = true;
+          btn.innerHTML = '<i data-lucide="loader" style="width:10px;height:10px;animation:spin 1s linear infinite;"></i> Buscando...';
+
+          try {
+            const meetings = await OneOnOnesRepo.listAvailableMeetings(data.scheduled_at);
+            if (!meetings?.length) {
+              selectorDiv.style.display = 'block';
+              selectorDiv.innerHTML = '<div style="font-size:0.72rem;color:var(--text-muted);padding:4px;">Nenhuma reunião disponível encontrada nos últimos 7 dias.</div>';
+              btn.innerHTML = '<i data-lucide="link" style="width:10px;height:10px;"></i> Vincular reunião';
+              btn.disabled = false;
+              if (window.lucide) lucide.createIcons({ root: btn });
+              return;
+            }
+
+            selectorDiv.style.display = 'block';
+            selectorDiv.innerHTML = `
+              <div style="font-size:0.7rem;font-weight:600;margin-bottom:4px;">Selecione a reunião:</div>
+              ${meetings.map(m => `
+                <button class="rh1on1-meeting-option" data-meeting-id="${m.id}" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;margin-bottom:2px;border:1px solid var(--border-subtle);border-radius:6px;background:var(--bg-card, #ffffff);cursor:pointer;text-align:left;font-size:0.72rem;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='var(--bg-card, #ffffff)'">
+                  <i data-lucide="mic" style="width:12px;height:12px;color:#8B5CF6;flex-shrink:0;"></i>
+                  <div style="flex:1;">
+                    <div style="font-weight:500;">${S._esc(m.title || 'Reunião sem título')}</div>
+                    <div style="font-size:0.65rem;color:var(--text-muted);">${m.date ? new Date(m.date + 'T12:00').toLocaleDateString('pt-BR') : ''} ${m.time || ''} ${m.duration_minutes ? `· ${m.duration_minutes}min` : ''}</div>
+                  </div>
+                </button>
+              `).join('')}
+            `;
+            if (window.lucide) lucide.createIcons({ root: selectorDiv });
+
+            // Bind click em cada opção
+            selectorDiv.querySelectorAll('.rh1on1-meeting-option').forEach(opt => {
+              opt.addEventListener('click', async () => {
+                const meetingId = opt.dataset.meetingId;
+                opt.disabled = true;
+                opt.style.opacity = '0.6';
+                try {
+                  await OneOnOnesRepo.linkToMeeting(oneOnOneId, meetingId);
+                  TBO_TOAST.success('Reunião vinculada! Recarregando...');
+                  overlay.remove();
+                  await self._open1on1Detail(oneOnOneId);
+                } catch (e) {
+                  TBO_TOAST.error('Erro ao vincular reunião');
+                  opt.disabled = false;
+                  opt.style.opacity = '1';
+                }
+              });
+            });
+
+            btn.innerHTML = '<i data-lucide="link" style="width:10px;height:10px;"></i> Vincular reunião';
+            btn.disabled = false;
+            if (window.lucide) lucide.createIcons({ root: btn });
+          } catch (e) {
+            console.error('[RH] Erro ao buscar meetings:', e);
+            TBO_TOAST.error('Erro ao buscar reuniões');
+            btn.innerHTML = '<i data-lucide="link" style="width:10px;height:10px;"></i> Vincular reunião';
+            btn.disabled = false;
+            if (window.lucide) lucide.createIcons({ root: btn });
+          }
+        });
+
+        // ── Fireflies: processar transcrição com IA ──
+        overlay.querySelector('#rh1on1ProcessTranscript')?.addEventListener('click', async () => {
+          const btn = overlay.querySelector('#rh1on1ProcessTranscript');
+          if (!btn) return;
+
+          if (!confirm('Processar transcrição com IA? Isso pode criar novas ações automaticamente.')) return;
+
+          btn.disabled = true;
+          btn.innerHTML = '<i data-lucide="loader" style="width:10px;height:10px;animation:spin 1s linear infinite;"></i> Processando...';
+
+          try {
+            const result = await OneOnOnesRepo.processTranscript(oneOnOneId, data.fireflies_meeting_id);
+            TBO_TOAST.success(`IA extraiu ${result.actions_created || 0} ação(ões)! Recarregando...`);
+            overlay.remove();
+            await self._open1on1Detail(oneOnOneId);
+          } catch (e) {
+            console.error('[RH] Erro ao processar transcrição:', e);
+            TBO_TOAST.error(`Erro ao processar: ${e.message || 'Tente novamente'}`);
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="sparkles" style="width:10px;height:10px;"></i> Processar IA';
+            if (window.lucide) lucide.createIcons({ root: btn });
+          }
         });
       } catch (e) {
         console.error('[RH] Erro ao abrir detalhe 1:1:', e);

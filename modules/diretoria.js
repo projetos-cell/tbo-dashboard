@@ -15,9 +15,10 @@ const TBO_DIRETORIA = {
 
   // ── Tab config ──────────────────────────────────────────────────────────
   _tabConfig: [
-    { id: 'dashboard',  icon: 'layout-dashboard', label: 'Dashboard' },
-    { id: 'people',     icon: 'bar-chart-3',      label: 'People Analytics' },
-    { id: 'auditoria',  icon: 'scroll-text',      label: 'Auditoria' }
+    { id: 'dashboard',       icon: 'layout-dashboard', label: 'Dashboard' },
+    { id: 'people',          icon: 'bar-chart-3',      label: 'People Analytics' },
+    { id: 'reconhecimentos', icon: 'award',             label: 'Reconhecimentos' },
+    { id: 'auditoria',       icon: 'scroll-text',      label: 'Auditoria' }
   ],
 
   // ── Render principal ───────────────────────────────────────────────────
@@ -85,6 +86,8 @@ const TBO_DIRETORIA = {
         return typeof TBO_DIRETORIA_DASHBOARD !== 'undefined' ? TBO_DIRETORIA_DASHBOARD.render() : this._renderFallback('Dashboard');
       case 'people':
         return typeof TBO_DIRETORIA_PEOPLE !== 'undefined' ? TBO_DIRETORIA_PEOPLE.render() : this._renderFallback('People Analytics');
+      case 'reconhecimentos':
+        return typeof TBO_DIRETORIA_RECONHECIMENTOS !== 'undefined' ? TBO_DIRETORIA_RECONHECIMENTOS.render() : this._renderFallback('Reconhecimentos');
       case 'auditoria':
         return typeof TBO_DIRETORIA_AUDIT !== 'undefined' ? TBO_DIRETORIA_AUDIT.render() : this._renderFallback('Auditoria');
       default: return '';
@@ -94,6 +97,7 @@ const TBO_DIRETORIA = {
   _setupSubModule() {
     if (typeof TBO_DIRETORIA_DASHBOARD !== 'undefined') TBO_DIRETORIA_DASHBOARD.setup(this);
     if (typeof TBO_DIRETORIA_PEOPLE !== 'undefined') TBO_DIRETORIA_PEOPLE.setup(this);
+    if (typeof TBO_DIRETORIA_RECONHECIMENTOS !== 'undefined') TBO_DIRETORIA_RECONHECIMENTOS.setup(this);
     if (typeof TBO_DIRETORIA_AUDIT !== 'undefined') TBO_DIRETORIA_AUDIT.setup(this);
   },
 
@@ -129,6 +133,9 @@ const TBO_DIRETORIA = {
       case 'people':
         if (typeof TBO_DIRETORIA_PEOPLE !== 'undefined') TBO_DIRETORIA_PEOPLE.bind();
         break;
+      case 'reconhecimentos':
+        if (typeof TBO_DIRETORIA_RECONHECIMENTOS !== 'undefined') TBO_DIRETORIA_RECONHECIMENTOS.bind();
+        break;
       case 'auditoria':
         if (typeof TBO_DIRETORIA_AUDIT !== 'undefined') TBO_DIRETORIA_AUDIT.bind();
         break;
@@ -143,6 +150,13 @@ const TBO_DIRETORIA = {
         await TBO_PEOPLE_SHARED._loadTeamFromSupabase();
         this._rerender();
         return;
+      }
+    }
+
+    // Reconhecimentos: carregar KPIs
+    if (this._tab === 'reconhecimentos' && typeof TBO_DIRETORIA_RECONHECIMENTOS !== 'undefined') {
+      if (!TBO_DIRETORIA_RECONHECIMENTOS._kpis) {
+        await TBO_DIRETORIA_RECONHECIMENTOS.loadData();
       }
     }
 

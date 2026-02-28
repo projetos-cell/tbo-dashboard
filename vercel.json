@@ -1,31 +1,11 @@
 {
-  "buildCommand": "",
-  "crons": [
-    {
-      "path": "/api/reportei-sync",
-      "schedule": "0 6 * * *"
-    }
-  ],
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/pages/:file", "destination": "/pages/:file" },
-    { "source": "/(.*)", "destination": "/index.html" }
-  ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
         {
-          "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://olnndpultyllyhzxuyxh.supabase.co https://*.supabase.co https://*.tile.openstreetmap.org https://lh3.googleusercontent.com; connect-src 'self' https://olnndpultyllyhzxuyxh.supabase.co wss://olnndpultyllyhzxuyxh.supabase.co https://api.allorigins.win https://news.google.com https://api.anthropic.com https://api.openai.com https://api.fireflies.ai https://hooks.zapier.com https://www.googleapis.com https://app.reportei.com https://api.reportei.com; frame-src https://accounts.google.com https://olnndpultyllyhzxuyxh.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self';"
-        },
-        {
           "key": "X-Content-Type-Options",
           "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
         },
         {
           "key": "Referrer-Policy",
@@ -38,42 +18,6 @@
         {
           "key": "Strict-Transport-Security",
           "value": "max-age=63072000; includeSubDomains; preload"
-        }
-      ]
-    },
-    {
-      "source": "/(.*)\\.js",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
-        }
-      ]
-    },
-    {
-      "source": "/(.*)\\.css",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
-        }
-      ]
-    },
-    {
-      "source": "/index.html",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
-        }
-      ]
-    },
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store, no-cache, must-revalidate"
         }
       ]
     }

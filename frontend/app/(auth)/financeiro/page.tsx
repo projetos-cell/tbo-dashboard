@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus, Upload } from "lucide-react";
+import { Plus, Upload, Settings } from "lucide-react";
 import {
   usePayables,
   useReceivables,
@@ -11,17 +11,28 @@ import {
   useDeletePayable,
   useUpdateReceivable,
   useDeleteReceivable,
+  useLatestBalanceSnapshot,
+  useFinClients,
+  useCostCenters,
 } from "@/hooks/use-financial";
 import {
-  computeFinancialKPIs,
-  computeCashFlow,
+  computeExecutiveKPIs,
   computeInboxAlerts,
+  computeInsights,
 } from "@/services/financial";
 import { PAYABLE_STATUS, RECEIVABLE_STATUS } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 import { RequireRole } from "@/components/auth/require-role";
 
-import { FinKPICards } from "@/components/financial/fin-kpis";
+import { ExecutiveKPICards } from "@/components/financial/executive-kpis";
+import { OmieSyncIndicator } from "@/components/financial/omie-sync-indicator";
+import { BalanceSetupDialog } from "@/components/financial/balance-setup-dialog";
+import { ValueMaskToggle } from "@/components/financial/value-mask-toggle";
+import { InsightsPanel } from "@/components/financial/insights-panel";
+import { IntelligentCashFlow } from "@/components/financial/intelligent-cash-flow";
+import { EstrategicoTab } from "@/components/financial/estrategico-tab";
+import { ClientesTab } from "@/components/financial/clientes-tab";
+import { SimulacoesTab } from "@/components/financial/simulacoes-tab";
 import { FinFilters } from "@/components/financial/fin-filters";
 import { PayablesTable } from "@/components/financial/payables-table";
 import { ReceivablesTable } from "@/components/financial/receivables-table";
@@ -29,9 +40,7 @@ import { PayableDetail } from "@/components/financial/payable-detail";
 import { ReceivableDetail } from "@/components/financial/receivable-detail";
 import { PayableForm } from "@/components/financial/payable-form";
 import { ReceivableForm } from "@/components/financial/receivable-form";
-import { CashFlowTable } from "@/components/financial/cash-flow-table";
 import { InboxAlerts } from "@/components/financial/inbox-alerts";
-import { MargensTab } from "@/components/financial/margens-tab";
 import { ConciliacaoTab } from "@/components/financial/conciliacao-tab";
 import { CadastrosTab } from "@/components/financial/cadastros-tab";
 import { FinCharts } from "@/components/financial/fin-charts";
@@ -69,8 +78,10 @@ export default function FinanceiroPage() {
   const [recDetailOpen, setRecDetailOpen] = useState(false);
   const [recFormOpen, setRecFormOpen] = useState(false);
 
-  // Import dialog
+  // Import, balance & masking state
   const [importOpen, setImportOpen] = useState(false);
+  const [balanceOpen, setBalanceOpen] = useState(false);
+  const [valueMasked, setValueMasked] = useState(false);
 
   // Queries
   const { data: payables = [] } = usePayables({
@@ -91,20 +102,32 @@ export default function FinanceiroPage() {
   // KPIs (computed from all data — fetch without status filter)
   const { data: allPayables = [] } = usePayables();
   const { data: allReceivables = [] } = useReceivables();
+  const { data: balanceSnapshot } = useLatestBalanceSnapshot();
+  const { data: clients = [] } = useFinClients();
+  const { data: costCenters = [] } = useCostCenters();
 
-  const kpis = useMemo(
-    () => computeFinancialKPIs(allPayables, allReceivables),
-    [allPayables, allReceivables]
-  );
+  const initialBalance = balanceSnapshot?.balance ?? 0;
 
-  const cashFlow = useMemo(
-    () => computeCashFlow(allPayables, allReceivables, 30),
-    [allPayables, allReceivables]
+  const executiveKpis = useMemo(
+    () => computeExecutiveKPIs(allPayables, allReceivables, initialBalance),
+    [allPayables, allReceivables, initialBalance]
   );
 
   const alerts = useMemo(
     () => computeInboxAlerts(allPayables, allReceivables),
     [allPayables, allReceivables]
+  );
+
+  const insights = useMemo(
+    () =>
+      computeInsights(
+        allPayables,
+        allReceivables,
+        clients,
+        costCenters,
+        initialBalance
+      ),
+    [allPayables, allReceivables, clients, costCenters, initialBalance]
   );
 
   // Handlers
@@ -151,23 +174,40 @@ export default function FinanceiroPage() {
             Gerencie contas a pagar, receber e fluxo de caixa.
           </p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => setImportOpen(true)}
-          aria-label="Importar extrato bancário"
-        >
-          <Upload className="mr-1.5 h-4 w-4" />
-          Importar OFX/CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <ValueMaskToggle masked={valueMasked} onToggle={setValueMasked} />
+          <OmieSyncIndicator />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setBalanceOpen(true)}
+            aria-label="Configurar saldo inicial"
+          >
+            <Settings className="mr-1.5 h-3.5 w-3.5" />
+            Saldo Inicial
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setImportOpen(true)}
+            aria-label="Importar extrato bancário"
+          >
+            <Upload className="mr-1.5 h-3.5 w-3.5" />
+            Importar OFX/CSV
+          </Button>
+        </div>
       </div>
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="pagar">A Pagar</TabsTrigger>
           <TabsTrigger value="receber">A Receber</TabsTrigger>
           <TabsTrigger value="caixa">Caixa</TabsTrigger>
+          <TabsTrigger value="estrategico">Estrategico</TabsTrigger>
+          <TabsTrigger value="clientes">Clientes</TabsTrigger>
+          <TabsTrigger value="simulacoes">Simulacoes</TabsTrigger>
           <TabsTrigger value="inbox">
             Inbox
             {alerts.length > 0 && (
@@ -176,15 +216,15 @@ export default function FinanceiroPage() {
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="margens">Margens</TabsTrigger>
-          <TabsTrigger value="conciliacao">Conciliação</TabsTrigger>
+          <TabsTrigger value="conciliacao">Conciliacao</TabsTrigger>
           <TabsTrigger value="cadastros">Cadastros</TabsTrigger>
           <TabsTrigger value="omie">Omie</TabsTrigger>
         </TabsList>
 
         {/* Dashboard */}
         <TabsContent value="dashboard" className="space-y-4">
-          <FinKPICards kpis={kpis} />
+          <ExecutiveKPICards kpis={executiveKpis} masked={valueMasked} />
+          <InsightsPanel insights={insights} />
           <FinCharts payables={allPayables} receivables={allReceivables} />
         </TabsContent>
 
@@ -227,28 +267,52 @@ export default function FinanceiroPage() {
           />
         </TabsContent>
 
-        {/* Caixa */}
+        {/* Caixa — Intelligent Cash Flow */}
         <TabsContent value="caixa" className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Fluxo de caixa projetado para os próximos 30 dias.
-          </p>
-          <CashFlowTable days={cashFlow} />
+          <IntelligentCashFlow
+            payables={allPayables}
+            receivables={allReceivables}
+            initialBalance={initialBalance}
+            masked={valueMasked}
+          />
+        </TabsContent>
+
+        {/* Estrategico (was Margens) */}
+        <TabsContent value="estrategico" className="space-y-4">
+          <EstrategicoTab
+            payables={allPayables}
+            receivables={allReceivables}
+            masked={valueMasked}
+          />
+        </TabsContent>
+
+        {/* Clientes */}
+        <TabsContent value="clientes" className="space-y-4">
+          <ClientesTab
+            receivables={allReceivables}
+            masked={valueMasked}
+          />
+        </TabsContent>
+
+        {/* Simulacoes */}
+        <TabsContent value="simulacoes" className="space-y-4">
+          <SimulacoesTab
+            payables={allPayables}
+            receivables={allReceivables}
+            initialBalance={initialBalance}
+            masked={valueMasked}
+          />
         </TabsContent>
 
         {/* Inbox */}
         <TabsContent value="inbox" className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Itens que precisam de atenção.
+            Itens que precisam de atencao.
           </p>
           <InboxAlerts alerts={alerts} />
         </TabsContent>
 
-        {/* Margens / DRE */}
-        <TabsContent value="margens" className="space-y-4">
-          <MargensTab payables={allPayables} receivables={allReceivables} />
-        </TabsContent>
-
-        {/* Conciliação Bancária */}
+        {/* Conciliacao Bancaria */}
         <TabsContent value="conciliacao" className="space-y-4">
           <ConciliacaoTab />
         </TabsContent>
@@ -287,8 +351,9 @@ export default function FinanceiroPage() {
       <PayableForm open={payFormOpen} onOpenChange={setPayFormOpen} />
       <ReceivableForm open={recFormOpen} onOpenChange={setRecFormOpen} />
 
-      {/* Import Dialog */}
+      {/* Dialogs */}
       <FinImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
+      <BalanceSetupDialog open={balanceOpen} onOpenChange={setBalanceOpen} />
     </div>
     </RequireRole>
   );

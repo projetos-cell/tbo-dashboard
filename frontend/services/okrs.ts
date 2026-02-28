@@ -90,11 +90,9 @@ export async function getObjectives(
     .from("okr_objectives")
     .select("*")
     .eq("tenant_id", tenantId)
-    .is("archived_at", null)
-    .order("sort_order", { nullsFirst: false })
     .order("created_at");
 
-  if (filters?.cycleId) query = query.eq("cycle_id", filters.cycleId);
+  if (filters?.cycleId) query = query.eq("period", filters.cycleId);
   if (filters?.level) query = query.eq("level", filters.level);
   if (filters?.status) query = query.eq("status", filters.status);
   if (filters?.ownerId) query = query.eq("owner_id", filters.ownerId);
@@ -136,10 +134,9 @@ export async function deleteObjective(
   supabase: SupabaseClient<Database>,
   id: string,
 ) {
-  // Soft-delete via archive
   const { error } = await supabase
     .from("okr_objectives")
-    .update({ archived_at: new Date().toISOString() } as never)
+    .delete()
     .eq("id", id);
   if (error) throw error;
 }
@@ -156,8 +153,6 @@ export async function getKeyResults(
     .select("*")
     .eq("tenant_id", tenantId)
     .eq("objective_id", objectiveId)
-    .is("archived_at", null)
-    .order("sort_order", { nullsFirst: false })
     .order("created_at");
   if (error) throw error;
   return data as KeyResultRow[];
@@ -197,7 +192,7 @@ export async function deleteKeyResult(
 ) {
   const { error } = await supabase
     .from("okr_key_results")
-    .update({ archived_at: new Date().toISOString() } as never)
+    .delete()
     .eq("id", id);
   if (error) throw error;
 }

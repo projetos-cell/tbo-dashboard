@@ -30,6 +30,8 @@ import {
   deleteReconciliationRule,
   listFinTransactions,
   listMonthlyClosings,
+  getLatestBalanceSnapshot,
+  createBalanceSnapshot,
 } from "@/services/financial";
 import type { Database } from "@/lib/supabase/types";
 
@@ -347,5 +349,28 @@ export function useMonthlyClosings() {
     queryKey: ["monthly-closings", tenantId],
     queryFn: () => listMonthlyClosings(supabase, tenantId!),
     enabled: !!tenantId,
+  });
+}
+
+// ── Balance Snapshots ────────────────────────────────────────
+
+export function useLatestBalanceSnapshot() {
+  const supabase = useSupabase();
+  const tenantId = useAuthStore((s) => s.tenantId);
+  return useQuery({
+    queryKey: ["balance-snapshot", tenantId],
+    queryFn: () => getLatestBalanceSnapshot(supabase, tenantId!),
+    enabled: !!tenantId,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useCreateBalanceSnapshot() {
+  const supabase = useSupabase();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (snapshot: Database["public"]["Tables"]["fin_balance_snapshots"]["Insert"]) =>
+      createBalanceSnapshot(supabase, snapshot),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["balance-snapshot"] }),
   });
 }

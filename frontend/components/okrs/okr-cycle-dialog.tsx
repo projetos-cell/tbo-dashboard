@@ -11,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCreateCycle, useUpdateCycle } from "@/hooks/use-okrs";
 import { useAuthStore } from "@/stores/auth-store";
@@ -35,7 +34,6 @@ export function OkrCycleDialog({ open, onClose, cycle }: OkrCycleDialogProps) {
   const isEdit = !!cycle;
 
   const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [isActive, setIsActive] = useState(false);
@@ -45,16 +43,11 @@ export function OkrCycleDialog({ open, onClose, cycle }: OkrCycleDialogProps) {
     if (open) {
       if (cycle) {
         setName(cycle.name ?? "");
-        // description may not be in the Row type — read via any
-        setDescription(
-          String((cycle as Record<string, unknown>).description ?? ""),
-        );
         setStartDate(cycle.start_date ? cycle.start_date.slice(0, 10) : "");
         setEndDate(cycle.end_date ? cycle.end_date.slice(0, 10) : "");
         setIsActive(cycle.is_active ?? false);
       } else {
         setName("");
-        setDescription("");
         setStartDate("");
         setEndDate("");
         setIsActive(false);
@@ -78,7 +71,6 @@ export function OkrCycleDialog({ open, onClose, cycle }: OkrCycleDialogProps) {
           id: cycle.id,
           updates: {
             name: name.trim(),
-            description: description.trim() || null,
             start_date: startDate || undefined,
             end_date: endDate || null,
             is_active: isActive,
@@ -89,7 +81,6 @@ export function OkrCycleDialog({ open, onClose, cycle }: OkrCycleDialogProps) {
         await createCycle.mutateAsync({
           tenant_id: tenantId,
           name: name.trim(),
-          description: description.trim() || null,
           start_date: startDate || new Date().toISOString().slice(0, 10),
           end_date: endDate || null,
           is_active: isActive,
@@ -129,18 +120,6 @@ export function OkrCycleDialog({ open, onClose, cycle }: OkrCycleDialogProps) {
             {nameError && (
               <p className="text-xs text-red-600 mt-1">{nameError}</p>
             )}
-          </div>
-
-          {/* Description */}
-          <div>
-            <Label htmlFor="cycle-desc">Descricao</Label>
-            <Textarea
-              id="cycle-desc"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              placeholder="Detalhes do ciclo..."
-            />
           </div>
 
           {/* Dates */}

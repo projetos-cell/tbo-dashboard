@@ -58,7 +58,6 @@ export function OkrKeyResultDialog({
   const [targetValue, setTargetValue] = useState("");
   const [currentValue, setCurrentValue] = useState("0");
   const [unit, setUnit] = useState("");
-  const [weight, setWeight] = useState("1");
   const [titleError, setTitleError] = useState("");
   const [targetError, setTargetError] = useState("");
 
@@ -71,8 +70,6 @@ export function OkrKeyResultDialog({
         setTargetValue(String(keyResult.target_value ?? ""));
         setCurrentValue(String(keyResult.current_value ?? 0));
         setUnit(keyResult.unit ?? "");
-        // weight may not be in the Row type — read via any
-        setWeight(String((keyResult as Record<string, unknown>).weight ?? 1));
       } else {
         setTitle("");
         setMetricType("number");
@@ -80,7 +77,6 @@ export function OkrKeyResultDialog({
         setTargetValue("");
         setCurrentValue("0");
         setUnit("");
-        setWeight("1");
       }
       setTitleError("");
       setTargetError("");
@@ -109,7 +105,6 @@ export function OkrKeyResultDialog({
 
     const numStart = parseFloat(startValue) || 0;
     const numCurrent = parseFloat(currentValue) || 0;
-    const numWeight = Math.max(1, Math.min(10, parseInt(weight) || 1));
 
     try {
       if (isEdit && keyResult) {
@@ -122,7 +117,6 @@ export function OkrKeyResultDialog({
             target_value: numTarget,
             current_value: numCurrent,
             unit: unit.trim() || null,
-            weight: numWeight,
           } as never,
         });
         toast({ title: "Key Result atualizado" });
@@ -136,7 +130,6 @@ export function OkrKeyResultDialog({
           target_value: numTarget,
           current_value: numStart,
           unit: unit.trim() || null,
-          weight: numWeight,
         } as never);
         toast({ title: "Key Result criado" });
       }
@@ -246,18 +239,6 @@ export function OkrKeyResultDialog({
             />
           </div>
 
-          {/* Weight */}
-          <div>
-            <Label htmlFor="kr-weight">Peso (1-10)</Label>
-            <Input
-              id="kr-weight"
-              type="number"
-              min={1}
-              max={10}
-              value={weight}
-              onChange={(e) => setWeight(e.target.value)}
-            />
-          </div>
         </div>
 
         <DialogFooter>

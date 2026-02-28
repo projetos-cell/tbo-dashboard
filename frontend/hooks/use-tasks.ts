@@ -1,0 +1,99 @@
+"use client";
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { createClient } from "@/lib/supabase/client";
+import { useAuthStore } from "@/stores/auth-store";
+import type { Database } from "@/lib/supabase/types";
+import {
+  getTasks,
+  getTaskById,
+  getSubtasks,
+  createTask,
+  updateTask,
+  deleteTask,
+} from "@/services/tasks";
+
+export function useTasks(filters?: {
+  status?: string;
+  assignee_name?: string;
+  project_id?: string;
+  priority?: string;
+}) {
+  const supabase = createClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery({
+    queryKey: ["tasks", tenantId, filters],
+    queryFn: () => getTasks(supabase, tenantId!, filters),
+    enabled: !!tenantId,
+  });
+}
+
+export function useTask(id: string | undefined) {
+  const supabase = createClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery({
+    queryKey: ["task", id],
+    queryFn: () => getTaskById(supabase, id!, tenantId!),
+    enabled: !!id && !!tenantId,
+  });
+}
+
+export function useSubtasks(parentId: string | undefined) {
+  const supabase = createClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery({
+    queryKey: ["subtasks", parentId],
+    queryFn: () => getSubtasks(supabase, parentId!, tenantId!),
+    enabled: !!parentId && !!tenantId,
+  });
+}
+
+export function useCreateTask() {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (task: Database["public"]["Tables"]["os_tasks"]["Insert"]) =>
+      createTask(supabase, task),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+}
+
+export function useUpdateTask() {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      updates,
+    }: {
+      id: string;
+      updates: Database["public"]["Tables"]["os_tasks"]["Update"];
+    }) => updateTask(supabase, id, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["task"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+}
+
+export function useDeleteTask() {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => deleteTask(supabase, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+}

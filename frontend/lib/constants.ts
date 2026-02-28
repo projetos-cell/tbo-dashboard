@@ -1,0 +1,216 @@
+// Project status configuration — matches legacy TBO_QUADRO_PROJETOS._STATUS
+export const PROJECT_STATUS = {
+  em_andamento: {
+    label: "Em Andamento",
+    color: "#3b82f6",
+    bg: "rgba(59,130,246,0.12)",
+    icon: "play-circle",
+  },
+  producao: {
+    label: "Em Produção",
+    color: "#8b5cf6",
+    bg: "rgba(139,92,246,0.12)",
+    icon: "zap",
+  },
+  em_revisao: {
+    label: "Em Revisão",
+    color: "#f59e0b",
+    bg: "rgba(245,158,11,0.12)",
+    icon: "eye",
+  },
+  finalizado: {
+    label: "Finalizado",
+    color: "#22c55e",
+    bg: "rgba(34,197,94,0.12)",
+    icon: "check-circle-2",
+  },
+  parado: {
+    label: "Parado",
+    color: "#ef4444",
+    bg: "rgba(239,68,68,0.12)",
+    icon: "pause-circle",
+  },
+  pausado: {
+    label: "Pausado",
+    color: "#f59e0b",
+    bg: "rgba(245,158,11,0.12)",
+    icon: "clock",
+  },
+} as const;
+
+export type ProjectStatusKey = keyof typeof PROJECT_STATUS;
+
+// Task status configuration — matches legacy TBO_TAREFAS statuses
+export const TASK_STATUS = {
+  pendente: { label: "Pendente", color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
+  em_andamento: { label: "Em Andamento", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
+  revisao: { label: "Revisão", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+  concluida: { label: "Concluída", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  bloqueada: { label: "Bloqueada", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+  cancelada: { label: "Cancelada", color: "#9ca3af", bg: "rgba(156,163,175,0.12)" },
+} as const;
+
+export type TaskStatusKey = keyof typeof TASK_STATUS;
+
+// Task priority configuration
+export const TASK_PRIORITY = {
+  urgente: { label: "Urgente", color: "#ef4444", sort: 0 },
+  alta: { label: "Alta", color: "#f59e0b", sort: 1 },
+  media: { label: "Média", color: "#3b82f6", sort: 2 },
+  baixa: { label: "Baixa", color: "#6b7280", sort: 3 },
+} as const;
+
+export type TaskPriorityKey = keyof typeof TASK_PRIORITY;
+
+// BU badge colors — matches legacy TBO_QUADRO_PROJETOS._BU_COLORS
+export const BU_COLORS: Record<string, { bg: string; color: string }> = {
+  Branding: { bg: "#fef3c7", color: "#92400e" },
+  "Digital 3D": { bg: "#ede9fe", color: "#5b21b6" },
+  Marketing: { bg: "#d1fae5", color: "#065f46" },
+  Audiovisual: { bg: "#fce7f3", color: "#9d174d" },
+  Interiores: { bg: "#e0f2fe", color: "#0c4a6e" },
+};
+
+// People status configuration
+export const PEOPLE_STATUS = {
+  active: { label: "Ativo", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  inactive: { label: "Inativo", color: "#9ca3af", bg: "rgba(156,163,175,0.12)" },
+  vacation: { label: "Férias", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
+  away: { label: "Afastado", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+  onboarding: { label: "Onboarding", color: "#8b5cf6", bg: "rgba(139,92,246,0.12)" },
+  offboarding: { label: "Offboarding", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+} as const;
+
+export type PeopleStatusKey = keyof typeof PEOPLE_STATUS;
+
+// Financial — Payable status configuration
+export const PAYABLE_STATUS = {
+  rascunho: { label: "Rascunho", color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
+  aguardando_aprovacao: { label: "Aguardando", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+  aprovado: { label: "Aprovado", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
+  aberto: { label: "Aberto", color: "#ca8a04", bg: "rgba(202,138,4,0.12)" },
+  parcial: { label: "Parcial", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+  pago: { label: "Pago", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  atrasado: { label: "Atrasado", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+  cancelado: { label: "Cancelado", color: "#9ca3af", bg: "rgba(156,163,175,0.12)" },
+} as const;
+
+export type PayableStatusKey = keyof typeof PAYABLE_STATUS;
+
+// Financial — Receivable status configuration
+export const RECEIVABLE_STATUS = {
+  previsto: { label: "Previsto", color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
+  emitido: { label: "Emitido", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
+  aberto: { label: "Aberto", color: "#ca8a04", bg: "rgba(202,138,4,0.12)" },
+  parcial: { label: "Parcial", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+  pago: { label: "Pago", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  atrasado: { label: "Atrasado", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+  cancelado: { label: "Cancelado", color: "#9ca3af", bg: "rgba(156,163,175,0.12)" },
+} as const;
+
+export type ReceivableStatusKey = keyof typeof RECEIVABLE_STATUS;
+
+// Financial tabs
+export const FIN_TABS = [
+  { id: "dashboard", label: "Dashboard" },
+  { id: "pagar", label: "A Pagar" },
+  { id: "receber", label: "A Receber" },
+  { id: "caixa", label: "Caixa" },
+  { id: "inbox", label: "Inbox" },
+  { id: "cadastros", label: "Cadastros" },
+] as const;
+
+export type FinTabId = (typeof FIN_TABS)[number]["id"];
+
+// Client status configuration
+export const CLIENT_STATUS = {
+  lead: { label: "Lead", color: "#8b5cf6", bg: "rgba(139,92,246,0.12)" },
+  prospect: { label: "Prospect", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
+  ativo: { label: "Ativo", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  vip: { label: "VIP", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+  inativo: { label: "Inativo", color: "#9ca3af", bg: "rgba(156,163,175,0.12)" },
+} as const;
+
+export type ClientStatusKey = keyof typeof CLIENT_STATUS;
+
+// Client interaction types
+export const INTERACTION_TYPES = {
+  email: { label: "E-mail", icon: "mail" },
+  reuniao: { label: "Reunião", icon: "video" },
+  call: { label: "Ligação", icon: "phone" },
+  whatsapp: { label: "WhatsApp", icon: "message-circle" },
+  presencial: { label: "Presencial", icon: "users" },
+} as const;
+
+export type InteractionTypeKey = keyof typeof INTERACTION_TYPES;
+
+// Contract status configuration
+export const CONTRACT_STATUS = {
+  ativo: { label: "Ativo", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  pendente: { label: "Pendente", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+  finalizado: { label: "Finalizado", color: "#94a3b8", bg: "rgba(148,163,184,0.12)" },
+  cancelado: { label: "Cancelado", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+} as const;
+
+export type ContractStatusKey = keyof typeof CONTRACT_STATUS;
+
+// ─── Deal pipeline stages (CRM) ──────────────────────────────────────
+export const DEAL_STAGES = {
+  lead: { label: "Lead", color: "#6366f1", bg: "rgba(99,102,241,0.12)", order: 0 },
+  qualificacao: { label: "Qualificação", color: "#f59e0b", bg: "rgba(245,158,11,0.12)", order: 1 },
+  proposta: { label: "Proposta Enviada", color: "#3b82f6", bg: "rgba(59,130,246,0.12)", order: 2 },
+  negociacao: { label: "Negociação", color: "#8b5cf6", bg: "rgba(139,92,246,0.12)", order: 3 },
+  fechado_ganho: { label: "Fechado Ganho", color: "#22c55e", bg: "rgba(34,197,94,0.12)", order: 4 },
+  fechado_perdido: { label: "Fechado Perdido", color: "#ef4444", bg: "rgba(239,68,68,0.12)", order: 5 },
+} as const;
+
+export type DealStageKey = keyof typeof DEAL_STAGES;
+
+export const DEAL_SOURCES = ["site", "indicacao", "rd_station", "linkedin", "evento", "outbound", "outro"] as const;
+
+// ─── OKR status / levels ─────────────────────────────────────────────
+export const OKR_STATUS = {
+  on_track: { label: "No caminho", color: "#16a34a", bg: "rgba(34,197,94,0.1)" },
+  attention: { label: "Atenção", color: "#d97706", bg: "rgba(245,158,11,0.1)" },
+  at_risk: { label: "Em risco", color: "#dc2626", bg: "rgba(239,68,68,0.1)" },
+  behind: { label: "Atrasado", color: "#dc2626", bg: "rgba(239,68,68,0.1)" },
+} as const;
+
+export type OkrStatusKey = keyof typeof OKR_STATUS;
+
+export const OKR_LEVELS = {
+  company: { label: "Empresa", color: "#7c3aed", bg: "rgba(139,92,246,0.1)" },
+  directorate: { label: "Diretoria", color: "#2563eb", bg: "rgba(59,130,246,0.1)" },
+  squad: { label: "Squad", color: "#0891b2", bg: "rgba(8,145,178,0.1)" },
+  individual: { label: "Individual", color: "#16a34a", bg: "rgba(34,197,94,0.1)" },
+} as const;
+
+export type OkrLevelKey = keyof typeof OKR_LEVELS;
+
+// Navigation items for the sidebar
+export const NAV_ITEMS = [
+  { href: "/dashboard", label: "Dashboard", icon: "layout-dashboard", module: "dashboard" },
+  { href: "/projetos", label: "Projetos", icon: "folder-kanban", module: "projetos" },
+  { href: "/tarefas", label: "Tarefas", icon: "list-checks", module: "tarefas" },
+  { href: "/pessoas", label: "Pessoas", icon: "users", module: "pessoas" },
+  { href: "/agenda", label: "Agenda", icon: "calendar", module: "agenda" },
+  { href: "/financeiro", label: "Financeiro", icon: "dollar-sign", module: "financeiro" },
+  { href: "/clientes", label: "Clientes", icon: "building-2", module: "clientes" },
+  { href: "/contratos", label: "Contratos", icon: "file-text", module: "contratos" },
+  { href: "/comercial", label: "Comercial", icon: "briefcase", module: "comercial" },
+  { href: "/okrs", label: "OKRs", icon: "target", module: "okrs" },
+  { href: "/chat", label: "Chat", icon: "message-square", module: "chat" },
+  { href: "/configuracoes", label: "Configurações", icon: "settings", module: "configuracoes" },
+] as const;
+
+// Settings tabs
+export const SETTINGS_TABS = [
+  { id: "perfil", label: "Perfil & Conta", icon: "user" },
+  { id: "aparencia", label: "Aparência", icon: "palette" },
+  { id: "usuarios", label: "Usuários", icon: "users" },
+  { id: "audit", label: "Logs de Auditoria", icon: "shield" },
+] as const;
+
+export type SettingsTabId = (typeof SETTINGS_TABS)[number]["id"];
+
+

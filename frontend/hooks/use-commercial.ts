@@ -1,0 +1,83 @@
+"use client";
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { createClient } from "@/lib/supabase/client";
+import { useAuthStore } from "@/stores/auth-store";
+import {
+  getDeals,
+  getDealById,
+  createDeal,
+  updateDeal,
+  updateDealStage,
+} from "@/services/commercial";
+
+interface DealFilters {
+  stage?: string;
+  search?: string;
+  owner_id?: string;
+}
+
+export function useDeals(filters?: DealFilters) {
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery({
+    queryKey: ["deals", tenantId, filters],
+    queryFn: async () => {
+      const supabase = createClient();
+      return getDeals(supabase, tenantId!, filters);
+    },
+    enabled: !!tenantId,
+  });
+}
+
+export function useDeal(id: string | null) {
+  return useQuery({
+    queryKey: ["deal", id],
+    queryFn: async () => {
+      const supabase = createClient();
+      return getDealById(supabase, id!);
+    },
+    enabled: !!id,
+  });
+}
+
+export function useCreateDeal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (
+      deal: Parameters<typeof createDeal>[1],
+    ) => {
+      const supabase = createClient();
+      return createDeal(supabase, deal);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["deals"] }),
+  });
+}
+
+export function useUpdateDeal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      updates,
+    }: {
+      id: string;
+      updates: Parameters<typeof updateDeal>[2];
+    }) => {
+      const supabase = createClient();
+      return updateDeal(supabase, id, updates);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["deals"] }),
+  });
+}
+
+export function useUpdateDealStage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, stage }: { id: string; stage: string }) => {
+      const supabase = createClient();
+      return updateDealStage(supabase, id, stage);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["deals"] }),
+  });
+}

@@ -227,6 +227,9 @@ export const NAV_ITEMS = [
   { href: "/tarefas", label: "Tarefas", icon: "list-checks", module: "tarefas" },
   { href: "/pessoas", label: "Pessoas", icon: "users", module: "pessoas" },
   { href: "/agenda", label: "Agenda", icon: "calendar", module: "agenda" },
+  { href: "/entregas", label: "Entregas", icon: "package-check", module: "entregas" },
+  { href: "/reunioes", label: "Reuniões", icon: "video", module: "reunioes" },
+  { href: "/decisoes", label: "Decisões", icon: "scale", module: "decisoes" },
   { href: "/financeiro", label: "Financeiro", icon: "dollar-sign", module: "financeiro" },
   { href: "/clientes", label: "Clientes", icon: "building-2", module: "clientes" },
   { href: "/contratos", label: "Contratos", icon: "file-text", module: "contratos" },
@@ -234,6 +237,20 @@ export const NAV_ITEMS = [
   { href: "/okrs", label: "OKRs", icon: "target", module: "okrs" },
   { href: "/chat", label: "Chat", icon: "message-square", module: "chat" },
   { href: "/cultura", label: "Cultura", icon: "heart-handshake", module: "cultura" },
+  { href: "/templates", label: "Templates", icon: "layout-template", module: "templates" },
+  { href: "/rsm", label: "Redes Sociais", icon: "share-2", module: "rsm" },
+  { href: "/mercado", label: "Mercado", icon: "trending-up", module: "mercado" },
+  { href: "/relatorios", label: "Relatórios", icon: "bar-chart-3", module: "relatorios" },
+  { href: "/alerts", label: "Alertas", icon: "bell", module: "alerts" },
+  { href: "/portal-cliente", label: "Portal Cliente", icon: "globe", module: "portal-cliente" },
+  { href: "/conteudo", label: "Conteúdo", icon: "pen-tool", module: "conteudo" },
+  { href: "/revisoes", label: "Revisões", icon: "check-circle", module: "revisoes" },
+  { href: "/inteligencia", label: "Inteligência", icon: "lightbulb", module: "inteligencia" },
+  { href: "/diretoria", label: "Diretoria", icon: "presentation", module: "diretoria" },
+  { href: "/permissoes", label: "Permissões", icon: "lock", module: "permissoes" },
+  { href: "/admin", label: "Admin", icon: "shield", module: "admin" },
+  { href: "/system-health", label: "System Health", icon: "activity", module: "system-health" },
+  { href: "/changelog", label: "Changelog", icon: "history", module: "changelog" },
   { href: "/configuracoes", label: "Configurações", icon: "settings", module: "configuracoes" },
 ] as const;
 
@@ -308,3 +325,60 @@ export const CULTURA_STATUS = {
 
 export type CulturaStatusKey = keyof typeof CULTURA_STATUS;
 
+// ─── Changelog tags ───────────────────────────────────────────────────
+export const CHANGELOG_TAGS = {
+  feature: { label: "Nova Funcionalidade", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  fix: { label: "Correção", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+  improvement: { label: "Melhoria", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
+  breaking: { label: "Breaking Change", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+} as const;
+
+export type ChangelogTagKey = keyof typeof CHANGELOG_TAGS;
+
+// ─── Meeting status configuration ────────────────────────────────────
+export const MEETING_STATUS = {
+  agendada: { label: "Agendada", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
+  realizada: { label: "Realizada", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  cancelada: { label: "Cancelada", color: "#9ca3af", bg: "rgba(156,163,175,0.12)" },
+} as const;
+
+export type MeetingStatusKey = keyof typeof MEETING_STATUS;
+
+// ─── Meeting categories ──────────────────────────────────────────────
+export const MEETING_CATEGORIES: Record<string, { label: string; color: string }> = {
+  interna: { label: "Interna", color: "#3b82f6" },
+  cliente: { label: "Cliente", color: "#22c55e" },
+  fornecedor: { label: "Fornecedor", color: "#f59e0b" },
+  entrevista: { label: "Entrevista", color: "#8b5cf6" },
+  outro: { label: "Outro", color: "#6b7280" },
+};
+
+// ─── Template type configuration ──────────────────────────────────────
+export const TEMPLATE_TYPES: Record<string, { label: string; color: string; bg: string }> = {
+  email: { label: "Email", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
+  documento: { label: "Documento", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  proposta: { label: "Proposta", color: "#8b5cf6", bg: "rgba(139,92,246,0.12)" },
+  contrato: { label: "Contrato", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+  relatorio: { label: "Relatório", color: "#ec4899", bg: "rgba(236,72,153,0.12)" },
+  outro: { label: "Outro", color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
+};
+
+// ─── Deliverable (Entregas) status configuration ─────────────────────
+export const DELIVERABLE_STATUS = {
+  pendente: { label: "Pendente", color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
+  em_revisao: { label: "Em Revisão", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+  aprovado: { label: "Aprovado", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  rejeitado: { label: "Rejeitado", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+  entregue: { label: "Entregue", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
+} as const;
+
+export type DeliverableStatusKey = keyof typeof DELIVERABLE_STATUS;
+
+// ─── Deliverable types ───────────────────────────────────────────────
+export const DELIVERABLE_TYPES: Record<string, { label: string; color: string }> = {
+  design: { label: "Design", color: "#8b5cf6" },
+  video: { label: "Vídeo", color: "#ec4899" },
+  documento: { label: "Documento", color: "#3b82f6" },
+  apresentacao: { label: "Apresentação", color: "#f59e0b" },
+  outro: { label: "Outro", color: "#6b7280" },
+};

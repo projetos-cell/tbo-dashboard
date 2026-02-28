@@ -486,3 +486,191 @@ export function computeInboxAlerts(
 
   return alerts;
 }
+
+// ── Bank Transactions ────────────────────────────────────────
+
+type BankTransactionRow = Database["public"]["Tables"]["bank_transactions"]["Row"];
+type BankImportRow = Database["public"]["Tables"]["bank_imports"]["Row"];
+type ReconciliationRuleRow = Database["public"]["Tables"]["reconciliation_rules"]["Row"];
+type FinTransactionRow = Database["public"]["Tables"]["fin_transactions"]["Row"];
+type MonthlyClosingRow = Database["public"]["Tables"]["monthly_closings"]["Row"];
+
+export async function listBankTransactions(
+  supabase: SupabaseClient<Database>,
+  tenantId: string,
+  filters?: { import_id?: string; match_status?: string }
+): Promise<BankTransactionRow[]> {
+  let query = supabase
+    .from("bank_transactions")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .order("date", { ascending: false });
+
+  if (filters?.import_id) query = query.eq("import_id", filters.import_id);
+  if (filters?.match_status) query = query.eq("match_status", filters.match_status);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as BankTransactionRow[];
+}
+
+export async function listBankImports(
+  supabase: SupabaseClient<Database>,
+  tenantId: string
+): Promise<BankImportRow[]> {
+  const { data, error } = await supabase
+    .from("bank_imports")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as BankImportRow[];
+}
+
+export async function listReconciliationRules(
+  supabase: SupabaseClient<Database>,
+  tenantId: string
+): Promise<ReconciliationRuleRow[]> {
+  const { data, error } = await supabase
+    .from("reconciliation_rules")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .order("priority", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as ReconciliationRuleRow[];
+}
+
+export async function createReconciliationRule(
+  supabase: SupabaseClient<Database>,
+  rule: Database["public"]["Tables"]["reconciliation_rules"]["Insert"]
+): Promise<ReconciliationRuleRow> {
+  const { data, error } = await supabase
+    .from("reconciliation_rules")
+    .insert(rule as never)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as unknown as ReconciliationRuleRow;
+}
+
+export async function updateReconciliationRule(
+  supabase: SupabaseClient<Database>,
+  id: string,
+  updates: Database["public"]["Tables"]["reconciliation_rules"]["Update"]
+): Promise<ReconciliationRuleRow> {
+  const { data, error } = await supabase
+    .from("reconciliation_rules")
+    .update(updates as never)
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as unknown as ReconciliationRuleRow;
+}
+
+export async function deleteReconciliationRule(
+  supabase: SupabaseClient<Database>,
+  id: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("reconciliation_rules")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+}
+
+// ── Financial Transactions (Ledger) ─────────────────────────
+
+export async function listFinTransactions(
+  supabase: SupabaseClient<Database>,
+  tenantId: string,
+  filters?: { category_id?: string; type?: string; month?: string }
+): Promise<FinTransactionRow[]> {
+  let query = supabase
+    .from("fin_transactions")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .order("date", { ascending: false });
+
+  if (filters?.category_id) query = query.eq("category_id", filters.category_id);
+  if (filters?.type) query = query.eq("type", filters.type);
+  if (filters?.month) {
+    const start = `${filters.month}-01`;
+    const endDate = new Date(parseInt(filters.month.split("-")[0]), parseInt(filters.month.split("-")[1]), 0);
+    const end = endDate.toISOString().slice(0, 10);
+    query = query.gte("date", start).lte("date", end);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as FinTransactionRow[];
+}
+
+// ── Monthly Closings ────────────────────────────────────────
+
+export async function listMonthlyClosings(
+  supabase: SupabaseClient<Database>,
+  tenantId: string
+): Promise<MonthlyClosingRow[]> {
+  const { data, error } = await supabase
+    .from("monthly_closings")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .order("year", { ascending: false })
+    .order("month", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as MonthlyClosingRow[];
+}
+
+// ── DRE / Margin helpers (client-side aggregation) ──────────
+
+export interface DRELine {
+  category: string;
+  categoryId: string | null;
+  revenue: number;
+  expenses: number;
+  margin: number;
+  marginPct: number;
+}
+
+export function computeDRE(
+  payables: PayableRow[],
+  receivables: ReceivableRow[],
+  categories: CategoryRow[]
+): DRELine[] {
+  const catMap = new Map<string, { name: string; revenue: number; expenses: number }>();
+
+  // Group receivables by category
+  for (const r of receivables) {
+    if (r.status === "cancelado") continue;
+    const catName = "Receitas";
+    const entry = catMap.get(catName) ?? { name: catName, revenue: 0, expenses: 0 };
+    entry.revenue += r.amount;
+    catMap.set(catName, entry);
+  }
+
+  // Group payables by category
+  for (const p of payables) {
+    if (p.status === "cancelado") continue;
+    const cat = categories.find((c) => c.id === p.category_id);
+    const catName = cat?.name ?? "Sem Categoria";
+    const entry = catMap.get(catName) ?? { name: catName, revenue: 0, expenses: 0 };
+    entry.expenses += p.amount;
+    catMap.set(catName, entry);
+  }
+
+  const lines: DRELine[] = [];
+  for (const [key, val] of catMap) {
+    const margin = val.revenue - val.expenses;
+    lines.push({
+      category: key,
+      categoryId: null,
+      revenue: val.revenue,
+      expenses: val.expenses,
+      margin,
+      marginPct: val.revenue > 0 ? (margin / val.revenue) * 100 : val.expenses > 0 ? -100 : 0,
+    });
+  }
+
+  return lines.sort((a, b) => b.margin - a.margin);
+}

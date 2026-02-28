@@ -1,14 +1,15 @@
 // RBAC — Role-based access control for the frontend
 // Maps each role to the modules it can access and provides helper functions.
 
-export type RoleSlug = "admin" | "po" | "member" | "cs" | "freelancer";
+export type RoleSlug = "admin" | "founder" | "po" | "member" | "cs" | "freelancer";
 
 /**
  * Modules each role can SEE in the sidebar and access via URL.
- * Admin uses "*" wildcard = unrestricted access.
+ * Admin and Founder use "*" wildcard = unrestricted access.
  */
 export const ROLE_MODULES: Record<RoleSlug, string[]> = {
   admin: ["*"],
+  founder: ["*"],
   po: [
     "dashboard",
     "projetos",
@@ -53,9 +54,9 @@ export function canAccessModule(role: RoleSlug, module: string): boolean {
   return allowed.includes("*") || allowed.includes(module);
 }
 
-/** True for admin role */
+/** True for admin or founder role */
 export function isAdmin(role: RoleSlug | null): boolean {
-  return role === "admin";
+  return role === "admin" || role === "founder";
 }
 
 /** True if email matches a hardcoded super-admin */

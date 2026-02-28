@@ -1,20 +1,20 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   RefreshCw,
   Check,
   AlertCircle,
   Loader2,
-  Eye,
-  EyeOff,
   Database,
   MessageSquare,
-  Info,
+  ExternalLink,
+  Unplug,
+  Plug,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -24,9 +24,21 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { useNotionStatus, useNotionDisconnect } from "@/hooks/use-notion-integration";
 
-const EDGE_FN_URL =
-  process.env.NEXT_PUBLIC_SUPABASE_URL + "/functions/v1/notion-sync";
+const CLIENT_ID = (process.env.NEXT_PUBLIC_NOTION_CLIENT_ID ?? "").trim();
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "").trim();
+
+function buildAuthUrl() {
+  const redirectUri = `${APP_URL}/api/notion/callback`;
+  return (
+    `https://api.notion.com/v1/oauth/authorize` +
+    `?client_id=${CLIENT_ID}` +
+    `&response_type=code` +
+    `&owner=user` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}`
+  );
+}
 
 interface SyncResult {
   mode: string;
@@ -47,57 +59,58 @@ interface SyncResult {
 type SyncStatus = "idle" | "running" | "success" | "error";
 
 export function NotionSync() {
-  const [token, setToken] = useState("");
-  const [showToken, setShowToken] = useState(false);
+  const searchParams = useSearchParams();
+  const notionParam = searchParams.get("notion");
+
+  const { data: status, isLoading: statusLoading } = useNotionStatus();
+  const disconnect = useNotionDisconnect();
 
   const [propStatus, setPropStatus] = useState<SyncStatus>("idle");
   const [propResult, setPropResult] = useState<SyncResult | null>(null);
-
   const [commentStatus, setCommentStatus] = useState<SyncStatus>("idle");
   const [commentResult, setCommentResult] = useState<SyncResult | null>(null);
 
-  const runSync = useCallback(
-    async (mode: "properties" | "comments") => {
-      const setStatus = mode === "properties" ? setPropStatus : setCommentStatus;
-      const setResult = mode === "properties" ? setPropResult : setCommentResult;
-
-      if (!token.trim()) return;
-
-      setStatus("running");
-      setResult(null);
-
-      try {
-        const params = new URLSearchParams({ mode });
-        if (mode === "comments") params.set("limit", "100");
-
-        const res = await fetch(`${EDGE_FN_URL}?${params}`, {
-          method: "GET",
-          headers: {
-            "x-notion-token": token.trim(),
-            "Content-Type": "application/json",
-          },
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          setStatus("error");
-          setResult({ mode, error: data.error || `HTTP ${res.status}` });
-          return;
-        }
-
-        setStatus("success");
-        setResult(data);
-      } catch (err) {
-        setStatus("error");
-        setResult({
-          mode,
-          error: err instanceof Error ? err.message : "Erro de rede",
-        });
-      }
-    },
-    [token],
+  // Show toast-like banner when returning from OAuth
+  const [oauthBanner, setOauthBanner] = useState<"connected" | "error" | null>(
+    null
   );
+  useEffect(() => {
+    if (notionParam === "connected") setOauthBanner("connected");
+    else if (notionParam && notionParam !== "connected") setOauthBanner("error");
+  }, [notionParam]);
+
+  const runSync = useCallback(async (mode: "properties" | "comments") => {
+    const setStatus = mode === "properties" ? setPropStatus : setCommentStatus;
+    const setResult = mode === "properties" ? setPropResult : setCommentResult;
+
+    setStatus("running");
+    setResult(null);
+
+    try {
+      const params = new URLSearchParams({ mode });
+      if (mode === "comments") params.set("limit", "100");
+
+      const res = await fetch(`/api/notion/sync?${params}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setStatus("error");
+        setResult({ mode, error: data.error ?? `HTTP ${res.status}` });
+        return;
+      }
+
+      setStatus("success");
+      setResult(data);
+    } catch (err) {
+      setStatus("error");
+      setResult({
+        mode,
+        error: err instanceof Error ? err.message : "Erro de rede",
+      });
+    }
+  }, []);
+
+  const connected = status?.connected ?? false;
 
   return (
     <div className="space-y-6">
@@ -108,131 +121,169 @@ export function NotionSync() {
         </p>
       </div>
 
-      {/* Token input */}
+      {/* OAuth result banner */}
+      {oauthBanner === "connected" && (
+        <div className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-4 py-3 dark:border-green-900 dark:bg-green-950/30">
+          <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
+          <p className="text-sm text-green-700 dark:text-green-300">
+            Workspace do Notion conectado com sucesso!
+          </p>
+        </div>
+      )}
+      {oauthBanner === "error" && (
+        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-3 dark:border-red-900 dark:bg-red-950/30">
+          <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 shrink-0" />
+          <p className="text-sm text-red-700 dark:text-red-300">
+            Falha ao conectar com o Notion. Tente novamente.
+          </p>
+        </div>
+      )}
+
+      {/* Connection status card */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium">
-            Token de Integracao
-          </CardTitle>
+          <div className="flex items-center gap-2">
+            {connected ? (
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+            ) : (
+              <Plug className="h-4 w-4 text-muted-foreground" />
+            )}
+            <CardTitle className="text-sm font-medium">
+              {connected ? "Conectado ao Notion" : "Conectar com Notion"}
+            </CardTitle>
+          </div>
           <CardDescription>
-            Crie uma integracao interna no Notion e cole o token aqui. O token
-            nao e salvo no servidor.
+            {connected
+              ? "O dashboard tem acesso ao workspace do Notion para sincronizar demandas."
+              : "Autorize o acesso ao workspace do Notion para habilitar a sincronizacao."}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Input
-                type={showToken ? "text" : "password"}
-                placeholder="ntn_..."
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                className="pr-10 font-mono text-sm"
-              />
-              <button
-                type="button"
-                onClick={() => setShowToken(!showToken)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                {showToken ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
+          {statusLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Verificando conexao...
             </div>
-          </div>
-
-          <div className="mt-3 flex items-start gap-2 rounded-md bg-muted/50 p-3">
-            <Info className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Va em{" "}
-              <a
-                href="https://www.notion.so/my-integrations"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-foreground"
+          ) : connected ? (
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2 text-sm">
+                {status?.workspace_name && (
+                  <Badge variant="secondary">
+                    Workspace: {status.workspace_name}
+                  </Badge>
+                )}
+                {status?.owner_name && (
+                  <Badge variant="outline">Por: {status.owner_name}</Badge>
+                )}
+                {status?.connected_at && (
+                  <Badge variant="outline">
+                    {new Date(status.connected_at).toLocaleDateString("pt-BR")}
+                  </Badge>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => disconnect.mutate()}
+                disabled={disconnect.isPending}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
               >
-                notion.so/my-integrations
+                {disconnect.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Unplug className="h-4 w-4 mr-2" />
+                )}
+                Desconectar
+              </Button>
+            </div>
+          ) : (
+            <Button asChild size="sm">
+              <a href={buildAuthUrl()}>
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Conectar com Notion
               </a>
-              , crie uma integracao interna com acesso de leitura, e conecte-a
-              ao workspace do TBO. Depois copie o &quot;Internal Integration
-              Secret&quot;.
-            </p>
-          </div>
+            </Button>
+          )}
         </CardContent>
       </Card>
 
-      <Separator />
+      {connected && (
+        <>
+          <Separator />
 
-      {/* Properties sync */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            <Database className="h-4 w-4 text-blue-500" />
-            <CardTitle className="text-sm font-medium">
-              Sincronizar Propriedades
-            </CardTitle>
-          </div>
-          <CardDescription>
-            Importa datas (inicio, prazo, fim), status, prioridade, responsavel,
-            BUs, tags e mais de cada demanda no Notion.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button
-            onClick={() => runSync("properties")}
-            disabled={!token.trim() || propStatus === "running"}
-            size="sm"
-          >
-            {propStatus === "running" ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4 mr-2" />
-            )}
-            {propStatus === "running"
-              ? "Sincronizando..."
-              : "Sincronizar Propriedades"}
-          </Button>
+          {/* Properties sync */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <Database className="h-4 w-4 text-blue-500" />
+                <CardTitle className="text-sm font-medium">
+                  Sincronizar Propriedades
+                </CardTitle>
+              </div>
+              <CardDescription>
+                Importa datas (inicio, prazo, fim), status, prioridade,
+                responsavel, BUs, tags e mais de cada demanda no Notion.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => runSync("properties")}
+                disabled={propStatus === "running"}
+                size="sm"
+              >
+                {propStatus === "running" ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                {propStatus === "running"
+                  ? "Sincronizando..."
+                  : "Sincronizar Propriedades"}
+              </Button>
 
-          <SyncResultDisplay status={propStatus} result={propResult} />
-        </CardContent>
-      </Card>
+              <SyncResultDisplay status={propStatus} result={propResult} />
+            </CardContent>
+          </Card>
 
-      {/* Comments sync */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4 text-violet-500" />
-            <CardTitle className="text-sm font-medium">
-              Sincronizar Comentarios
-            </CardTitle>
-          </div>
-          <CardDescription>
-            Importa comentarios de cada pagina de demanda no Notion para a tabela
-            de comentarios do dashboard.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button
-            onClick={() => runSync("comments")}
-            disabled={!token.trim() || commentStatus === "running"}
-            variant="outline"
-            size="sm"
-          >
-            {commentStatus === "running" ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <MessageSquare className="h-4 w-4 mr-2" />
-            )}
-            {commentStatus === "running"
-              ? "Importando..."
-              : "Sincronizar Comentarios"}
-          </Button>
+          {/* Comments sync */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-violet-500" />
+                <CardTitle className="text-sm font-medium">
+                  Sincronizar Comentarios
+                </CardTitle>
+              </div>
+              <CardDescription>
+                Importa comentarios de cada pagina de demanda no Notion para a
+                tabela de comentarios do dashboard.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => runSync("comments")}
+                disabled={commentStatus === "running"}
+                variant="outline"
+                size="sm"
+              >
+                {commentStatus === "running" ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                )}
+                {commentStatus === "running"
+                  ? "Importando..."
+                  : "Sincronizar Comentarios"}
+              </Button>
 
-          <SyncResultDisplay status={commentStatus} result={commentResult} />
-        </CardContent>
-      </Card>
+              <SyncResultDisplay
+                status={commentStatus}
+                result={commentResult}
+              />
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 }
@@ -273,7 +324,6 @@ function SyncResultDisplay({
     );
   }
 
-  // success
   return (
     <div className="mt-4 rounded-md border border-green-200 bg-green-50 p-3 dark:border-green-900 dark:bg-green-950/30">
       <div className="flex items-center gap-2 mb-2">
@@ -330,21 +380,20 @@ function SyncResultDisplay({
         )}
       </div>
 
-      {result.unmatched_titles &&
-        result.unmatched_titles.length > 0 && (
-          <details className="mt-3">
-            <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
-              {result.unmatched_titles.length} demandas sem correspondencia
-            </summary>
-            <ul className="mt-1 max-h-40 overflow-y-auto space-y-0.5 pl-2">
-              {result.unmatched_titles.map((t, i) => (
-                <li key={i} className="text-xs text-muted-foreground">
-                  {t}
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
+      {result.unmatched_titles && result.unmatched_titles.length > 0 && (
+        <details className="mt-3">
+          <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
+            {result.unmatched_titles.length} demandas sem correspondencia
+          </summary>
+          <ul className="mt-1 max-h-40 overflow-y-auto space-y-0.5 pl-2">
+            {result.unmatched_titles.map((t, i) => (
+              <li key={i} className="text-xs text-muted-foreground">
+                {t}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
 
       {result.errors && result.errors.length > 0 && (
         <details className="mt-2">

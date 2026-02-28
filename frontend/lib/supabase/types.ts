@@ -4036,6 +4036,39 @@ export type Database = {
           },
         ]
       }
+      notion_integrations: {
+        Row: {
+          access_token: string
+          connected_at: string | null
+          connected_by: string | null
+          id: string
+          owner_name: string | null
+          tenant_id: string
+          workspace_id: string | null
+          workspace_name: string | null
+        }
+        Insert: {
+          access_token: string
+          connected_at?: string | null
+          connected_by?: string | null
+          id?: string
+          owner_name?: string | null
+          tenant_id: string
+          workspace_id?: string | null
+          workspace_name?: string | null
+        }
+        Update: {
+          access_token?: string
+          connected_at?: string | null
+          connected_by?: string | null
+          id?: string
+          owner_name?: string | null
+          tenant_id?: string
+          workspace_id?: string | null
+          workspace_name?: string | null
+        }
+        Relationships: []
+      }
       okr_checkins: {
         Row: {
           author_id: string

@@ -22,6 +22,14 @@ import {
   listFinClients,
   createFinClient,
   updateFinClient,
+  listBankTransactions,
+  listBankImports,
+  listReconciliationRules,
+  createReconciliationRule,
+  updateReconciliationRule,
+  deleteReconciliationRule,
+  listFinTransactions,
+  listMonthlyClosings,
 } from "@/services/financial";
 import type { Database } from "@/lib/supabase/types";
 
@@ -247,5 +255,97 @@ export function useUpdateFinClient() {
       updates: Database["public"]["Tables"]["fin_clients"]["Update"];
     }) => updateFinClient(supabase, id, updates),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["fin-clients"] }),
+  });
+}
+
+// ── Bank Transactions ────────────────────────────────────────
+
+export function useBankTransactions(filters?: { import_id?: string; match_status?: string }) {
+  const supabase = useSupabase();
+  const tenantId = useAuthStore((s) => s.tenantId);
+  return useQuery({
+    queryKey: ["bank-transactions", tenantId, filters],
+    queryFn: () => listBankTransactions(supabase, tenantId!, filters),
+    enabled: !!tenantId,
+  });
+}
+
+export function useBankImports() {
+  const supabase = useSupabase();
+  const tenantId = useAuthStore((s) => s.tenantId);
+  return useQuery({
+    queryKey: ["bank-imports", tenantId],
+    queryFn: () => listBankImports(supabase, tenantId!),
+    enabled: !!tenantId,
+  });
+}
+
+// ── Reconciliation Rules ─────────────────────────────────────
+
+export function useReconciliationRules() {
+  const supabase = useSupabase();
+  const tenantId = useAuthStore((s) => s.tenantId);
+  return useQuery({
+    queryKey: ["reconciliation-rules", tenantId],
+    queryFn: () => listReconciliationRules(supabase, tenantId!),
+    enabled: !!tenantId,
+  });
+}
+
+export function useCreateReconciliationRule() {
+  const supabase = useSupabase();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (rule: Database["public"]["Tables"]["reconciliation_rules"]["Insert"]) =>
+      createReconciliationRule(supabase, rule),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["reconciliation-rules"] }),
+  });
+}
+
+export function useUpdateReconciliationRule() {
+  const supabase = useSupabase();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      updates,
+    }: {
+      id: string;
+      updates: Database["public"]["Tables"]["reconciliation_rules"]["Update"];
+    }) => updateReconciliationRule(supabase, id, updates),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["reconciliation-rules"] }),
+  });
+}
+
+export function useDeleteReconciliationRule() {
+  const supabase = useSupabase();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteReconciliationRule(supabase, id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["reconciliation-rules"] }),
+  });
+}
+
+// ── Financial Transactions ───────────────────────────────────
+
+export function useFinTransactions(filters?: { category_id?: string; type?: string; month?: string }) {
+  const supabase = useSupabase();
+  const tenantId = useAuthStore((s) => s.tenantId);
+  return useQuery({
+    queryKey: ["fin-transactions", tenantId, filters],
+    queryFn: () => listFinTransactions(supabase, tenantId!, filters),
+    enabled: !!tenantId,
+  });
+}
+
+// ── Monthly Closings ─────────────────────────────────────────
+
+export function useMonthlyClosings() {
+  const supabase = useSupabase();
+  const tenantId = useAuthStore((s) => s.tenantId);
+  return useQuery({
+    queryKey: ["monthly-closings", tenantId],
+    queryFn: () => listMonthlyClosings(supabase, tenantId!),
+    enabled: !!tenantId,
   });
 }

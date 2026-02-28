@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { RequireRole } from "@/components/auth/require-role";
 import { useAuthStore } from "@/stores/auth-store";
 import { SettingsTabs } from "@/components/configuracoes/settings-tabs";
@@ -9,12 +10,26 @@ import { AppearanceSettings } from "@/components/configuracoes/appearance-settin
 import { NotionSync } from "@/components/configuracoes/notion-sync";
 import { UserManagement } from "@/components/configuracoes/user-management";
 import { AuditLogTable } from "@/components/configuracoes/audit-log-table";
+import { RdStationPanel } from "@/components/integrations/rd-station-panel";
+import { FirefliesPanel } from "@/components/integrations/fireflies-panel";
 import type { SettingsTabId } from "@/lib/constants";
 
+const VALID_TABS: SettingsTabId[] = [
+  "perfil",
+  "aparencia",
+  "integracoes",
+  "usuarios",
+  "audit",
+];
+
 function SettingsContent() {
-  const [activeTab, setActiveTab] = useState<SettingsTabId>("perfil");
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab") as SettingsTabId | null;
+  const initialTab =
+    tabParam && VALID_TABS.includes(tabParam) ? tabParam : "perfil";
+  const [activeTab, setActiveTab] = useState<SettingsTabId>(initialTab);
   const role = useAuthStore((s) => s.role);
-  const isAdmin = role === "admin" || role === "po";
+  const isAdmin = role === "admin" || role === "founder" || role === "po";
 
   return (
     <div className="space-y-6">
@@ -39,7 +54,13 @@ function SettingsContent() {
         <div className="flex-1 min-w-0">
           {activeTab === "perfil" && <ProfileForm />}
           {activeTab === "aparencia" && <AppearanceSettings />}
-          {activeTab === "integracoes" && isAdmin && <NotionSync />}
+          {activeTab === "integracoes" && isAdmin && (
+            <div className="space-y-8">
+              <NotionSync />
+              <RdStationPanel />
+              <FirefliesPanel />
+            </div>
+          )}
           {activeTab === "usuarios" && isAdmin && <UserManagement />}
           {activeTab === "audit" && isAdmin && <AuditLogTable />}
         </div>

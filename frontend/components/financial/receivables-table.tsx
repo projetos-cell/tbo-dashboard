@@ -1,20 +1,18 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/ui/data-table";
 import { RECEIVABLE_STATUS } from "@/lib/constants";
+import { useTablePreferences } from "@/hooks/use-table-preferences";
+import type { ColumnDef } from "@/lib/column-types";
 import type { Database } from "@/lib/supabase/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useMemo } from "react";
 
 type ReceivableRow = Database["public"]["Tables"]["fin_receivables"]["Row"];
+
+const TABLE_ID = "fin_receivables";
 
 function fmt(value: number): string {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -29,66 +27,74 @@ export function ReceivablesTable({
   receivables,
   onSelect,
 }: ReceivablesTableProps) {
-  if (!receivables.length) {
-    return (
-      <div className="rounded-lg border p-8 text-center text-muted-foreground">
-        Nenhuma conta a receber encontrada.
-      </div>
-    );
-  }
+  const { prefs, save, reset } = useTablePreferences(TABLE_ID);
+
+  const columnDefs: ColumnDef<ReceivableRow>[] = useMemo(
+    () => [
+      {
+        id: "description",
+        label: "Descricao",
+        hideable: false,
+        cellRender: (row) => (
+          <span className="font-medium max-w-[250px] truncate block">
+            {row.description}
+            {row.installment_number && row.installment_total
+              ? ` (${row.installment_number}/${row.installment_total})`
+              : ""}
+          </span>
+        ),
+      },
+      {
+        id: "amount",
+        label: "Valor",
+        cellRender: (row) => (
+          <span className="whitespace-nowrap">{fmt(row.amount)}</span>
+        ),
+      },
+      {
+        id: "due_date",
+        label: "Vencimento",
+        cellRender: (row) => (
+          <span className="whitespace-nowrap">
+            {format(new Date(row.due_date + "T12:00:00"), "dd MMM yyyy", {
+              locale: ptBR,
+            })}
+          </span>
+        ),
+      },
+      {
+        id: "status",
+        label: "Status",
+        cellRender: (row) => {
+          const st =
+            RECEIVABLE_STATUS[row.status as keyof typeof RECEIVABLE_STATUS];
+          return st ? (
+            <Badge
+              variant="secondary"
+              style={{ backgroundColor: st.bg, color: st.color }}
+            >
+              {st.label}
+            </Badge>
+          ) : (
+            <Badge variant="secondary">{row.status}</Badge>
+          );
+        },
+      },
+    ],
+    []
+  );
 
   return (
-    <div className="rounded-lg border overflow-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Descrição</TableHead>
-            <TableHead>Valor</TableHead>
-            <TableHead>Vencimento</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {receivables.map((r) => {
-            const st =
-              RECEIVABLE_STATUS[r.status as keyof typeof RECEIVABLE_STATUS];
-            return (
-              <TableRow
-                key={r.id}
-                className="cursor-pointer hover:bg-muted/50"
-                onClick={() => onSelect(r)}
-              >
-                <TableCell className="font-medium max-w-[250px] truncate">
-                  {r.description}
-                  {r.installment_number && r.installment_total
-                    ? ` (${r.installment_number}/${r.installment_total})`
-                    : ""}
-                </TableCell>
-                <TableCell className="whitespace-nowrap">
-                  {fmt(r.amount)}
-                </TableCell>
-                <TableCell className="whitespace-nowrap">
-                  {format(new Date(r.due_date + "T12:00:00"), "dd MMM yyyy", {
-                    locale: ptBR,
-                  })}
-                </TableCell>
-                <TableCell>
-                  {st ? (
-                    <Badge
-                      variant="secondary"
-                      style={{ backgroundColor: st.bg, color: st.color }}
-                    >
-                      {st.label}
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary">{r.status}</Badge>
-                  )}
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </div>
+    <DataTable
+      tableId={TABLE_ID}
+      columnDefs={columnDefs}
+      data={receivables}
+      rowKey={(row) => row.id}
+      savedPrefs={prefs}
+      onPrefsChange={save}
+      onPrefsReset={reset}
+      onRowClick={onSelect}
+      emptyMessage="Nenhuma conta a receber encontrada."
+    />
   );
 }

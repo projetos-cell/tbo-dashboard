@@ -1,20 +1,18 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/ui/data-table";
 import { PAYABLE_STATUS } from "@/lib/constants";
+import { useTablePreferences } from "@/hooks/use-table-preferences";
+import type { ColumnDef } from "@/lib/column-types";
 import type { Database } from "@/lib/supabase/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useMemo } from "react";
 
 type PayableRow = Database["public"]["Tables"]["fin_payables"]["Row"];
+
+const TABLE_ID = "fin_payables";
 
 function fmt(value: number): string {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -26,63 +24,70 @@ interface PayablesTableProps {
 }
 
 export function PayablesTable({ payables, onSelect }: PayablesTableProps) {
-  if (!payables.length) {
-    return (
-      <div className="rounded-lg border p-8 text-center text-muted-foreground">
-        Nenhuma conta a pagar encontrada.
-      </div>
-    );
-  }
+  const { prefs, save, reset } = useTablePreferences(TABLE_ID);
+
+  const columnDefs: ColumnDef<PayableRow>[] = useMemo(
+    () => [
+      {
+        id: "description",
+        label: "Descricao",
+        hideable: false,
+        cellRender: (row) => (
+          <span className="font-medium max-w-[250px] truncate block">
+            {row.description}
+          </span>
+        ),
+      },
+      {
+        id: "amount",
+        label: "Valor",
+        cellRender: (row) => (
+          <span className="whitespace-nowrap">{fmt(row.amount)}</span>
+        ),
+      },
+      {
+        id: "due_date",
+        label: "Vencimento",
+        cellRender: (row) => (
+          <span className="whitespace-nowrap">
+            {format(new Date(row.due_date + "T12:00:00"), "dd MMM yyyy", {
+              locale: ptBR,
+            })}
+          </span>
+        ),
+      },
+      {
+        id: "status",
+        label: "Status",
+        cellRender: (row) => {
+          const st = PAYABLE_STATUS[row.status as keyof typeof PAYABLE_STATUS];
+          return st ? (
+            <Badge
+              variant="secondary"
+              style={{ backgroundColor: st.bg, color: st.color }}
+            >
+              {st.label}
+            </Badge>
+          ) : (
+            <Badge variant="secondary">{row.status}</Badge>
+          );
+        },
+      },
+    ],
+    []
+  );
 
   return (
-    <div className="rounded-lg border overflow-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Descrição</TableHead>
-            <TableHead>Valor</TableHead>
-            <TableHead>Vencimento</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {payables.map((p) => {
-            const st =
-              PAYABLE_STATUS[p.status as keyof typeof PAYABLE_STATUS];
-            return (
-              <TableRow
-                key={p.id}
-                className="cursor-pointer hover:bg-muted/50"
-                onClick={() => onSelect(p)}
-              >
-                <TableCell className="font-medium max-w-[250px] truncate">
-                  {p.description}
-                </TableCell>
-                <TableCell className="whitespace-nowrap">
-                  {fmt(p.amount)}
-                </TableCell>
-                <TableCell className="whitespace-nowrap">
-                  {format(new Date(p.due_date + "T12:00:00"), "dd MMM yyyy", {
-                    locale: ptBR,
-                  })}
-                </TableCell>
-                <TableCell>
-                  {st ? (
-                    <Badge
-                      variant="secondary"
-                      style={{ backgroundColor: st.bg, color: st.color }}
-                    >
-                      {st.label}
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary">{p.status}</Badge>
-                  )}
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </div>
+    <DataTable
+      tableId={TABLE_ID}
+      columnDefs={columnDefs}
+      data={payables}
+      rowKey={(row) => row.id}
+      savedPrefs={prefs}
+      onPrefsChange={save}
+      onPrefsReset={reset}
+      onRowClick={onSelect}
+      emptyMessage="Nenhuma conta a pagar encontrada."
+    />
   );
 }

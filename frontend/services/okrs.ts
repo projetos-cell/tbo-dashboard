@@ -49,9 +49,32 @@ export async function createCycle(
   return data as unknown as CycleRow;
 }
 
+export async function updateCycle(
+  supabase: SupabaseClient<Database>,
+  id: string,
+  updates: Database["public"]["Tables"]["okr_cycles"]["Update"],
+) {
+  const { data, error } = await supabase
+    .from("okr_cycles")
+    .update(updates as never)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as unknown as CycleRow;
+}
+
+export async function deleteCycle(
+  supabase: SupabaseClient<Database>,
+  id: string,
+) {
+  const { error } = await supabase.from("okr_cycles").delete().eq("id", id);
+  if (error) throw error;
+}
+
 // ── Objectives ────────────────────────────────────────────────────────
 
-interface ObjectiveFilters {
+export interface ObjectiveFilters {
   cycleId?: string;
   level?: string;
   status?: string;
@@ -109,6 +132,18 @@ export async function updateObjective(
   return data as unknown as ObjectiveRow;
 }
 
+export async function deleteObjective(
+  supabase: SupabaseClient<Database>,
+  id: string,
+) {
+  // Soft-delete via archive
+  const { error } = await supabase
+    .from("okr_objectives")
+    .update({ archived_at: new Date().toISOString() } as never)
+    .eq("id", id);
+  if (error) throw error;
+}
+
 // ── Key Results ───────────────────────────────────────────────────────
 
 export async function getKeyResults(
@@ -156,6 +191,17 @@ export async function updateKeyResult(
   return data as unknown as KeyResultRow;
 }
 
+export async function deleteKeyResult(
+  supabase: SupabaseClient<Database>,
+  id: string,
+) {
+  const { error } = await supabase
+    .from("okr_key_results")
+    .update({ archived_at: new Date().toISOString() } as never)
+    .eq("id", id);
+  if (error) throw error;
+}
+
 // ── Check-ins ─────────────────────────────────────────────────────────
 
 export async function getCheckins(
@@ -182,6 +228,68 @@ export async function createCheckin(
     .single();
   if (error) throw error;
   return data as unknown as CheckinRow;
+}
+
+// ── Comments ──────────────────────────────────────────────────────────
+
+interface CommentRow {
+  id: string;
+  tenant_id: string;
+  objective_id: string | null;
+  key_result_id: string | null;
+  author_id: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getComments(
+  supabase: SupabaseClient<Database>,
+  params: { objectiveId?: string; keyResultId?: string },
+) {
+  let query = supabase
+    .from("okr_comments" as never)
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (params.objectiveId)
+    query = query.eq("objective_id" as never, params.objectiveId as never);
+  if (params.keyResultId)
+    query = query.eq("key_result_id" as never, params.keyResultId as never);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as unknown as CommentRow[];
+}
+
+export async function createComment(
+  supabase: SupabaseClient<Database>,
+  comment: {
+    tenant_id: string;
+    objective_id?: string | null;
+    key_result_id?: string | null;
+    author_id: string;
+    body: string;
+  },
+) {
+  const { data, error } = await supabase
+    .from("okr_comments" as never)
+    .insert(comment as never)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as unknown as CommentRow;
+}
+
+export async function deleteComment(
+  supabase: SupabaseClient<Database>,
+  id: string,
+) {
+  const { error } = await supabase
+    .from("okr_comments" as never)
+    .delete()
+    .eq("id" as never, id as never);
+  if (error) throw error;
 }
 
 // ── KPI helpers ───────────────────────────────────────────────────────

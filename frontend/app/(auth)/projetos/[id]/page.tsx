@@ -14,6 +14,11 @@ import { ProjectActivityTab } from "@/components/projects/tabs/project-activity"
 import { DemandsList } from "@/components/demands/demands-list";
 import { DemandsBoard } from "@/components/demands/demands-board";
 import { DemandDetail } from "@/components/demands/demand-detail";
+import {
+  DemandsToolbar,
+  applyDemandsFilters,
+  type DemandsFilters,
+} from "@/components/demands/demands-toolbar";
 import { useProject, useProjectDemands, useProjectStats } from "@/hooks/use-projects";
 import { useProfiles } from "@/hooks/use-people";
 import { useUser } from "@/hooks/use-user";
@@ -36,6 +41,24 @@ export default function ProjectDetailPage({
   const { data: demands } = useProjectDemands(id);
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedDemand, setSelectedDemand] = useState<DemandRow | null>(null);
+
+  // Demand filters & sorting
+  const [filters, setFilters] = useState<DemandsFilters>({
+    statuses: [],
+    priorities: [],
+    bus: [],
+    search: "",
+  });
+  const [sortField, setSortField] = useState<"title" | "due_date" | "prioridade" | "status" | "created_at">("due_date");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const allDemands = demands || [];
+  const filteredDemands = applyDemandsFilters(
+    allDemands,
+    filters,
+    sortField,
+    sortDir
+  );
 
   const users: UserOption[] = (profiles || []).map((p) => ({
     id: p.id,
@@ -70,6 +93,8 @@ export default function ProjectDetailPage({
     );
   }
 
+  const showToolbar = activeTab === "list" || activeTab === "board";
+
   return (
     <div className="space-y-6">
       <ProjectTopbar project={project} users={users} />
@@ -84,6 +109,24 @@ export default function ProjectDetailPage({
           <TabsTrigger value="activity">Atividade</TabsTrigger>
         </TabsList>
 
+        {/* Toolbar shown for list & board tabs */}
+        {showToolbar && (
+          <div className="mt-3">
+            <DemandsToolbar
+              demands={allDemands}
+              filters={filters}
+              onFiltersChange={setFilters}
+              sortField={sortField}
+              sortDir={sortDir}
+              onSortChange={(field, dir) => {
+                setSortField(field);
+                setSortDir(dir);
+              }}
+              filteredCount={filteredDemands.length}
+            />
+          </div>
+        )}
+
         <TabsContent value="overview">
           <ProjectOverview
             projectId={id}
@@ -93,22 +136,24 @@ export default function ProjectDetailPage({
         </TabsContent>
 
         <TabsContent value="list">
-          {demands && demands.length > 0 ? (
+          {filteredDemands.length > 0 ? (
             <DemandsList
-              demands={demands}
+              demands={filteredDemands}
               onSelect={(d) => setSelectedDemand(d)}
             />
           ) : (
             <div className="text-sm text-muted-foreground text-center py-8">
-              Nenhuma demanda neste projeto.
+              {allDemands.length === 0
+                ? "Nenhuma demanda neste projeto."
+                : "Nenhuma demanda encontrada com os filtros aplicados."}
             </div>
           )}
         </TabsContent>
 
         <TabsContent value="board">
-          {demands && demands.length > 0 ? (
+          {allDemands.length > 0 ? (
             <DemandsBoard
-              demands={demands}
+              demands={filteredDemands}
               onSelect={(d) => setSelectedDemand(d)}
             />
           ) : (

@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Upload } from "lucide-react";
 import {
   usePayables,
   useReceivables,
@@ -31,6 +31,12 @@ import { PayableForm } from "@/components/financial/payable-form";
 import { ReceivableForm } from "@/components/financial/receivable-form";
 import { CashFlowTable } from "@/components/financial/cash-flow-table";
 import { InboxAlerts } from "@/components/financial/inbox-alerts";
+import { MargensTab } from "@/components/financial/margens-tab";
+import { ConciliacaoTab } from "@/components/financial/conciliacao-tab";
+import { CadastrosTab } from "@/components/financial/cadastros-tab";
+import { FinCharts } from "@/components/financial/fin-charts";
+import { OmieSyncPanel } from "@/components/financial/omie-sync-panel";
+import { FinImportDialog } from "@/components/financial/fin-import-dialog";
 
 type PayableRow = Database["public"]["Tables"]["fin_payables"]["Row"];
 type ReceivableRow = Database["public"]["Tables"]["fin_receivables"]["Row"];
@@ -62,6 +68,9 @@ export default function FinanceiroPage() {
     useState<ReceivableRow | null>(null);
   const [recDetailOpen, setRecDetailOpen] = useState(false);
   const [recFormOpen, setRecFormOpen] = useState(false);
+
+  // Import dialog
+  const [importOpen, setImportOpen] = useState(false);
 
   // Queries
   const { data: payables = [] } = usePayables({
@@ -132,14 +141,24 @@ export default function FinanceiroPage() {
   }
 
   return (
-    <RequireRole allowed={["admin"]} module="financeiro">
+    <RequireRole allowed={["admin", "founder"]} module="financeiro">
     <div className="space-y-4">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Financeiro</h1>
-        <p className="text-sm text-muted-foreground">
-          Gerencie contas a pagar, receber e fluxo de caixa.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Financeiro</h1>
+          <p className="text-sm text-muted-foreground">
+            Gerencie contas a pagar, receber e fluxo de caixa.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => setImportOpen(true)}
+          aria-label="Importar extrato bancário"
+        >
+          <Upload className="mr-1.5 h-4 w-4" />
+          Importar OFX/CSV
+        </Button>
       </div>
 
       {/* Tabs */}
@@ -152,16 +171,21 @@ export default function FinanceiroPage() {
           <TabsTrigger value="inbox">
             Inbox
             {alerts.length > 0 && (
-              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
+              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
                 {alerts.length}
               </span>
             )}
           </TabsTrigger>
+          <TabsTrigger value="margens">Margens</TabsTrigger>
+          <TabsTrigger value="conciliacao">Conciliação</TabsTrigger>
+          <TabsTrigger value="cadastros">Cadastros</TabsTrigger>
+          <TabsTrigger value="omie">Omie</TabsTrigger>
         </TabsList>
 
         {/* Dashboard */}
         <TabsContent value="dashboard" className="space-y-4">
           <FinKPICards kpis={kpis} />
+          <FinCharts payables={allPayables} receivables={allReceivables} />
         </TabsContent>
 
         {/* A Pagar */}
@@ -218,6 +242,29 @@ export default function FinanceiroPage() {
           </p>
           <InboxAlerts alerts={alerts} />
         </TabsContent>
+
+        {/* Margens / DRE */}
+        <TabsContent value="margens" className="space-y-4">
+          <MargensTab payables={allPayables} receivables={allReceivables} />
+        </TabsContent>
+
+        {/* Conciliação Bancária */}
+        <TabsContent value="conciliacao" className="space-y-4">
+          <ConciliacaoTab />
+        </TabsContent>
+
+        {/* Cadastros */}
+        <TabsContent value="cadastros" className="space-y-4">
+          <CadastrosTab />
+        </TabsContent>
+
+        {/* Omie Integration */}
+        <TabsContent value="omie" className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Sincronize fornecedores, clientes, contas a pagar e a receber com o Omie.
+          </p>
+          <OmieSyncPanel />
+        </TabsContent>
       </Tabs>
 
       {/* Drawers */}
@@ -239,6 +286,9 @@ export default function FinanceiroPage() {
       {/* Forms */}
       <PayableForm open={payFormOpen} onOpenChange={setPayFormOpen} />
       <ReceivableForm open={recFormOpen} onOpenChange={setRecFormOpen} />
+
+      {/* Import Dialog */}
+      <FinImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
     </div>
     </RequireRole>
   );

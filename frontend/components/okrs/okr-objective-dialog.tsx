@@ -78,7 +78,7 @@ export function OkrObjectiveDialog({
 
   async function handleSubmit() {
     if (!title.trim()) {
-      setTitleError("Titulo e obrigatorio");
+      setTitleError("Título é obrigatório");
       return;
     }
     setTitleError("");
@@ -130,7 +130,7 @@ export function OkrObjectiveDialog({
         <div className="space-y-4">
           {/* Title */}
           <div>
-            <Label htmlFor="obj-title">Titulo *</Label>
+            <Label htmlFor="obj-title">Título *</Label>
             <Input
               id="obj-title"
               value={title}
@@ -147,7 +147,7 @@ export function OkrObjectiveDialog({
 
           {/* Description */}
           <div>
-            <Label htmlFor="obj-desc">Descricao</Label>
+            <Label htmlFor="obj-desc">Descrição</Label>
             <Textarea
               id="obj-desc"
               value={description}
@@ -159,10 +159,10 @@ export function OkrObjectiveDialog({
 
           {/* Level */}
           <div>
-            <Label htmlFor="obj-level">Nivel</Label>
+            <Label htmlFor="obj-level">Nível</Label>
             <Select value={level} onValueChange={setLevel}>
               <SelectTrigger id="obj-level">
-                <SelectValue />
+                <SelectValue placeholder="Selecione o nível" />
               </SelectTrigger>
               <SelectContent>
                 {(Object.keys(OKR_LEVELS) as OkrLevelKey[]).map((key) => (
@@ -179,7 +179,7 @@ export function OkrObjectiveDialog({
             <Label htmlFor="obj-status">Status</Label>
             <Select value={status} onValueChange={setStatus}>
               <SelectTrigger id="obj-status">
-                <SelectValue />
+                <SelectValue placeholder="Selecione o status" />
               </SelectTrigger>
               <SelectContent>
                 {(Object.keys(OKR_STATUS) as OkrStatusKey[]).map((key) => (
@@ -191,14 +191,14 @@ export function OkrObjectiveDialog({
             </Select>
           </div>
 
-          {/* Owner ID */}
+          {/* Owner */}
           <div>
-            <Label htmlFor="obj-owner">Responsavel (ID)</Label>
+            <Label htmlFor="obj-owner">Responsável</Label>
             <Input
               id="obj-owner"
               value={ownerId}
               onChange={(e) => setOwnerId(e.target.value)}
-              placeholder="ID do responsavel (opcional)"
+              placeholder="UUID do responsável (opcional)"
             />
           </div>
         </div>

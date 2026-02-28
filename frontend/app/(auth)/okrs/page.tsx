@@ -235,6 +235,7 @@ function ObjectiveCard({
   onToggle,
   onEdit,
   onDelete,
+  onAddKr,
   showComments,
   onToggleComments,
   children,
@@ -244,6 +245,7 @@ function ObjectiveCard({
   onToggle: () => void;
   onEdit: (obj: ObjectiveRow) => void;
   onDelete: (obj: ObjectiveRow) => void;
+  onAddKr: (objectiveId: string) => void;
   showComments: boolean;
   onToggleComments: () => void;
   children?: React.ReactNode;
@@ -330,6 +332,10 @@ function ObjectiveCard({
                 <DropdownMenuItem onClick={() => onEdit(objective)}>
                   <Pencil className="h-3.5 w-3.5 mr-2" />
                   Editar
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onAddKr(objective.id)}>
+                  <Plus className="h-3.5 w-3.5 mr-2" />
+                  Adicionar Key Result
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={onToggleComments}>
                   <MessageSquare className="h-3.5 w-3.5 mr-2" />
@@ -506,18 +512,47 @@ function OkrsContent() {
             selectedId={effectiveCycleId}
             onSelect={setSelectedCycleId}
           />
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setCycleDialog({ open: true })}
-            aria-label="Gerenciar ciclos"
-          >
-            <Settings2 className="h-4 w-4" />
-          </Button>
-          <Button
-            onClick={() => setObjDialog({ open: true })}
-            disabled={!effectiveCycleId}
-          >
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label="Gerenciar ciclos"
+              >
+                <Settings2 className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem
+                onClick={() => setCycleDialog({ open: true })}
+              >
+                <Plus className="h-3.5 w-3.5 mr-2" />
+                Novo Ciclo
+              </DropdownMenuItem>
+              {cycles && cycles.length > 0 && (
+                <>
+                  <DropdownMenuSeparator />
+                  {cycles.map((c) => (
+                    <DropdownMenuItem
+                      key={c.id}
+                      onClick={() =>
+                        setCycleDialog({ open: true, cycle: c })
+                      }
+                    >
+                      <Pencil className="h-3.5 w-3.5 mr-2" />
+                      {c.name}
+                      {c.is_active && (
+                        <Badge variant="secondary" className="ml-auto text-xs">
+                          Ativo
+                        </Badge>
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button onClick={() => setObjDialog({ open: true })}>
             <Plus className="h-4 w-4 mr-1" />
             Novo Objetivo
           </Button>
@@ -562,15 +597,13 @@ function OkrsContent() {
                 ? "Você não possui objetivos neste ciclo."
                 : "Nenhum objetivo encontrado neste ciclo."}
           </p>
-          {effectiveCycleId && (
-            <Button
-              variant="outline"
-              onClick={() => setObjDialog({ open: true })}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Criar Objetivo
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            onClick={() => setObjDialog({ open: true })}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Criar Objetivo
+          </Button>
         </div>
       ) : (
         <div className="space-y-3">
@@ -587,6 +620,9 @@ function OkrsContent() {
                   id: o.id,
                   title: o.title,
                 })
+              }
+              onAddKr={(objId) =>
+                setKrDialog({ open: true, objectiveId: objId })
               }
               showComments={commentIds.has(obj.id)}
               onToggleComments={() => toggleComments(obj.id)}

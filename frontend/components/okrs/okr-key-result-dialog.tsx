@@ -87,7 +87,7 @@ export function OkrKeyResultDialog({
     let hasError = false;
 
     if (!title.trim()) {
-      setTitleError("Titulo e obrigatorio");
+      setTitleError("Título é obrigatório");
       hasError = true;
     } else {
       setTitleError("");
@@ -95,7 +95,7 @@ export function OkrKeyResultDialog({
 
     const numTarget = parseFloat(targetValue);
     if (!targetValue.trim() || isNaN(numTarget)) {
-      setTargetError("Meta e obrigatoria");
+      setTargetError("Meta é obrigatória");
       hasError = true;
     } else {
       setTargetError("");
@@ -153,7 +153,7 @@ export function OkrKeyResultDialog({
         <div className="space-y-4">
           {/* Title */}
           <div>
-            <Label htmlFor="kr-title">Titulo *</Label>
+            <Label htmlFor="kr-title">Título *</Label>
             <Input
               id="kr-title"
               value={title}

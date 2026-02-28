@@ -58,7 +58,7 @@ export function OkrCycleDialog({ open, onClose, cycle }: OkrCycleDialogProps) {
 
   async function handleSubmit() {
     if (!name.trim()) {
-      setNameError("Nome e obrigatorio");
+      setNameError("Nome é obrigatório");
       return;
     }
     setNameError("");
@@ -125,7 +125,7 @@ export function OkrCycleDialog({ open, onClose, cycle }: OkrCycleDialogProps) {
           {/* Dates */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="cycle-start">Data Inicio</Label>
+              <Label htmlFor="cycle-start">Data Início</Label>
               <Input
                 id="cycle-start"
                 type="date"

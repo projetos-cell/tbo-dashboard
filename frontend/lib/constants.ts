@@ -187,6 +187,39 @@ export const OKR_LEVELS = {
 
 export type OkrLevelKey = keyof typeof OKR_LEVELS;
 
+// ─── Demand status configuration (legacy demands table) ─────────────
+export const DEMAND_STATUS: Record<string, { label: string; color: string; bg: string }> = {
+  Briefing: { label: "Briefing", color: "#6366f1", bg: "rgba(99,102,241,0.12)" },
+  Aprovado: { label: "Aprovado", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
+  Cronograma: { label: "Cronograma", color: "#8b5cf6", bg: "rgba(139,92,246,0.12)" },
+  "Apresentação": { label: "Apresentação", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+  Desenvolvimento: { label: "Desenvolvimento", color: "#0ea5e9", bg: "rgba(14,165,233,0.12)" },
+  "Revisão Interna": { label: "Revisão Interna", color: "#d97706", bg: "rgba(217,119,6,0.12)" },
+  Pausado: { label: "Pausado", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+  "Concluído": { label: "Concluído", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  Concluido: { label: "Concluído", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+};
+
+// Demand priority configuration
+export const DEMAND_PRIORITY: Record<string, { label: string; color: string }> = {
+  urgente: { label: "Urgente", color: "#ef4444" },
+  alta: { label: "Alta", color: "#f59e0b" },
+  media: { label: "Média", color: "#3b82f6" },
+  baixa: { label: "Baixa", color: "#6b7280" },
+};
+
+// Board columns for demands (status order)
+export const DEMAND_BOARD_COLUMNS = [
+  "Briefing",
+  "Aprovado",
+  "Cronograma",
+  "Desenvolvimento",
+  "Apresentação",
+  "Revisão Interna",
+  "Pausado",
+  "Concluído",
+] as const;
+
 // Navigation items for the sidebar
 export const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: "layout-dashboard", module: "dashboard" },

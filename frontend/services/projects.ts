@@ -103,13 +103,12 @@ export async function getProjectStats(
   projectId: string,
   tenantId: string
 ): Promise<ProjectStats> {
-  const [tasksRes, sectionsRes, attachRes] = await Promise.all([
+  const [demandsRes, sectionsRes, attachRes] = await Promise.all([
     supabase
-      .from("os_tasks")
-      .select("id,is_completed,due_date", { count: "exact" })
+      .from("demands")
+      .select("id,status,feito,due_date", { count: "exact" })
       .eq("project_id", projectId)
-      .eq("tenant_id", tenantId)
-      .is("parent_id", null),
+      .eq("tenant_id", tenantId),
     supabase
       .from("os_sections")
       .select("id", { count: "exact" })
@@ -122,14 +121,22 @@ export async function getProjectStats(
       .eq("tenant_id", tenantId),
   ]);
 
-  const tasks = (tasksRes.data ?? []) as { id: string; is_completed: boolean | null; due_date: string | null }[];
-  const now = new Date().toISOString();
+  const demands = (demandsRes.data ?? []) as {
+    id: string;
+    status: string;
+    feito: boolean | null;
+    due_date: string | null;
+  }[];
+  const now = new Date().toISOString().split("T")[0];
+
+  const isDone = (d: { status: string; feito: boolean | null }) =>
+    d.feito || d.status === "Concluído" || d.status === "Concluido";
 
   return {
-    totalTasks: tasksRes.count ?? tasks.length,
-    completedTasks: tasks.filter((t) => t.is_completed).length,
-    overdueTasks: tasks.filter(
-      (t) => !t.is_completed && t.due_date && t.due_date < now
+    totalTasks: demandsRes.count ?? demands.length,
+    completedTasks: demands.filter(isDone).length,
+    overdueTasks: demands.filter(
+      (d) => !isDone(d) && d.due_date && d.due_date < now
     ).length,
     totalSections: sectionsRes.count ?? 0,
     totalAttachments: attachRes.count ?? 0,

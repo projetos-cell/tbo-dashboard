@@ -11,17 +11,16 @@ import { ProjectOverview } from "@/components/projects/tabs/project-overview";
 import { ProjectGantt } from "@/components/projects/tabs/project-gantt";
 import { ProjectFiles } from "@/components/projects/tabs/project-files";
 import { ProjectActivityTab } from "@/components/projects/tabs/project-activity";
-import { TaskList } from "@/components/tasks/task-list";
-import { TaskBoard } from "@/components/tasks/task-board";
-import { TaskDetail } from "@/components/tasks/task-detail";
-import { useProject, useProjectStats } from "@/hooks/use-projects";
-import { useTasks } from "@/hooks/use-tasks";
+import { DemandsList } from "@/components/demands/demands-list";
+import { DemandsBoard } from "@/components/demands/demands-board";
+import { DemandDetail } from "@/components/demands/demand-detail";
+import { useProject, useProjectDemands, useProjectStats } from "@/hooks/use-projects";
 import { useProfiles } from "@/hooks/use-people";
 import { useUser } from "@/hooks/use-user";
 import type { UserOption } from "@/components/ui/user-selector";
 import type { Database } from "@/lib/supabase/types";
 
-type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
+type DemandRow = Database["public"]["Tables"]["demands"]["Row"];
 
 export default function ProjectDetailPage({
   params,
@@ -34,9 +33,9 @@ export default function ProjectDetailPage({
   const { data: project, isLoading, error } = useProject(id);
   const { data: stats, isLoading: statsLoading } = useProjectStats(id);
   const { data: profiles } = useProfiles();
-  const { data: tasks } = useTasks({ project_id: id });
+  const { data: demands } = useProjectDemands(id);
   const [activeTab, setActiveTab] = useState("overview");
-  const [selectedTask, setSelectedTask] = useState<TaskRow | null>(null);
+  const [selectedDemand, setSelectedDemand] = useState<DemandRow | null>(null);
 
   const users: UserOption[] = (profiles || []).map((p) => ({
     id: p.id,
@@ -94,21 +93,27 @@ export default function ProjectDetailPage({
         </TabsContent>
 
         <TabsContent value="list">
-          {tasks && tasks.length > 0 ? (
-            <TaskList tasks={tasks} onSelect={(t) => setSelectedTask(t)} />
+          {demands && demands.length > 0 ? (
+            <DemandsList
+              demands={demands}
+              onSelect={(d) => setSelectedDemand(d)}
+            />
           ) : (
             <div className="text-sm text-muted-foreground text-center py-8">
-              Nenhuma tarefa neste projeto.
+              Nenhuma demanda neste projeto.
             </div>
           )}
         </TabsContent>
 
         <TabsContent value="board">
-          {tasks && tasks.length > 0 ? (
-            <TaskBoard tasks={tasks} onSelect={(t) => setSelectedTask(t)} />
+          {demands && demands.length > 0 ? (
+            <DemandsBoard
+              demands={demands}
+              onSelect={(d) => setSelectedDemand(d)}
+            />
           ) : (
             <div className="text-sm text-muted-foreground text-center py-8">
-              Nenhuma tarefa neste projeto.
+              Nenhuma demanda neste projeto.
             </div>
           )}
         </TabsContent>
@@ -126,12 +131,12 @@ export default function ProjectDetailPage({
         </TabsContent>
       </Tabs>
 
-      <TaskDetail
-        task={selectedTask}
-        open={!!selectedTask}
-        onOpenChange={(open) => { if (!open) setSelectedTask(null); }}
-        users={users}
-        projectId={id}
+      <DemandDetail
+        demand={selectedDemand}
+        open={!!selectedDemand}
+        onOpenChange={(open) => {
+          if (!open) setSelectedDemand(null);
+        }}
       />
     </div>
   );

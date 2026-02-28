@@ -116,8 +116,13 @@ export const FIN_TABS = [
   { id: "pagar", label: "A Pagar" },
   { id: "receber", label: "A Receber" },
   { id: "caixa", label: "Caixa" },
+  { id: "estrategico", label: "Estratégico" },
+  { id: "clientes", label: "Clientes" },
+  { id: "simulacoes", label: "Simulações" },
   { id: "inbox", label: "Inbox" },
+  { id: "conciliacao", label: "Conciliação" },
   { id: "cadastros", label: "Cadastros" },
+  { id: "omie", label: "Omie" },
 ] as const;
 
 export type FinTabId = (typeof FIN_TABS)[number]["id"];

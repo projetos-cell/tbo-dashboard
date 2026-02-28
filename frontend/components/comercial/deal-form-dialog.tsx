@@ -37,16 +37,13 @@ const emptyForm = {
   company: "",
   contact: "",
   contact_email: "",
-  contact_phone: "",
   stage: "lead",
   value: "",
   probability: "",
-  expected_close_date: "",
+  expected_close: "",
   owner_name: "",
   source: "",
   priority: "media",
-  description: "",
-  lost_reason: "",
   notes: "",
 };
 
@@ -69,16 +66,13 @@ export function DealFormDialog({
         company: deal.company ?? "",
         contact: deal.contact ?? "",
         contact_email: deal.contact_email ?? "",
-        contact_phone: deal.contact_phone ?? "",
         stage: deal.stage ?? "lead",
         value: deal.value != null ? String(deal.value) : "",
         probability: deal.probability != null ? String(deal.probability) : "",
-        expected_close_date: deal.expected_close_date ?? "",
+        expected_close: deal.expected_close ?? "",
         owner_name: deal.owner_name ?? "",
         source: deal.source ?? "",
         priority: deal.priority ?? "media",
-        description: deal.description ?? "",
-        lost_reason: deal.lost_reason ?? "",
         notes: deal.notes ?? "",
       });
     } else {
@@ -99,16 +93,13 @@ export function DealFormDialog({
       company: form.company || null,
       contact: form.contact || null,
       contact_email: form.contact_email || null,
-      contact_phone: form.contact_phone || null,
       stage: form.stage,
       value: form.value ? Number(form.value) : null,
       probability: form.probability ? Number(form.probability) : null,
-      expected_close_date: form.expected_close_date || null,
+      expected_close: form.expected_close || null,
       owner_name: form.owner_name || null,
       source: form.source || null,
       priority: form.priority || null,
-      description: form.description || null,
-      lost_reason: form.lost_reason || null,
       notes: form.notes || null,
     };
 
@@ -170,14 +161,6 @@ export function DealFormDialog({
                 type="email"
                 value={form.contact_email}
                 onChange={(e) => handleChange("contact_email", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contact_phone">Telefone Contato</Label>
-              <Input
-                id="contact_phone"
-                value={form.contact_phone}
-                onChange={(e) => handleChange("contact_phone", e.target.value)}
               />
             </div>
           </div>
@@ -244,13 +227,13 @@ export function DealFormDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="expected_close_date">Previsão Fechamento</Label>
+              <Label htmlFor="expected_close">Previsão Fechamento</Label>
               <Input
-                id="expected_close_date"
+                id="expected_close"
                 type="date"
-                value={form.expected_close_date}
+                value={form.expected_close}
                 onChange={(e) =>
-                  handleChange("expected_close_date", e.target.value)
+                  handleChange("expected_close", e.target.value)
                 }
               />
             </div>
@@ -283,28 +266,6 @@ export function DealFormDialog({
               </Select>
             </div>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Descrição</Label>
-            <Textarea
-              id="description"
-              value={form.description}
-              onChange={(e) => handleChange("description", e.target.value)}
-              rows={2}
-            />
-          </div>
-
-          {form.stage === "fechado_perdido" && (
-            <div className="space-y-2">
-              <Label htmlFor="lost_reason">Motivo da Perda</Label>
-              <Textarea
-                id="lost_reason"
-                value={form.lost_reason}
-                onChange={(e) => handleChange("lost_reason", e.target.value)}
-                rows={2}
-              />
-            </div>
-          )}
 
           <div className="space-y-2">
             <Label htmlFor="notes">Observações</Label>

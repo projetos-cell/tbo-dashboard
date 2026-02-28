@@ -15,9 +15,7 @@ import {
   Building2,
   User,
   Mail,
-  Phone,
   Target,
-  Tag,
 } from "lucide-react";
 import type { Database } from "@/lib/supabase/types";
 import { DEAL_STAGES, type DealStageKey } from "@/lib/constants";
@@ -102,12 +100,6 @@ export function DealDetailDialog({
                 <span>{deal.contact_email}</span>
               </div>
             )}
-            {deal.contact_phone && (
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>{deal.contact_phone}</span>
-              </div>
-            )}
           </div>
 
           {/* Value & Dates */}
@@ -126,12 +118,12 @@ export function DealDetailDialog({
                 )}
               </div>
             )}
-            {deal.expected_close_date && (
+            {deal.expected_close && (
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span>
                   Previsão:{" "}
-                  {new Date(deal.expected_close_date).toLocaleDateString(
+                  {new Date(deal.expected_close).toLocaleDateString(
                     "pt-BR",
                   )}
                 </span>
@@ -158,32 +150,6 @@ export function DealDetailDialog({
                     </Badge>
                   ))}
                 </div>
-              </div>
-            </>
-          )}
-
-          {/* Description */}
-          {deal.description && (
-            <>
-              <Separator />
-              <div className="space-y-1 text-sm">
-                <h4 className="font-medium">Descrição</h4>
-                <p className="whitespace-pre-wrap text-muted-foreground">
-                  {deal.description}
-                </p>
-              </div>
-            </>
-          )}
-
-          {/* Lost reason */}
-          {deal.stage === "fechado_perdido" && deal.lost_reason && (
-            <>
-              <Separator />
-              <div className="space-y-1 text-sm">
-                <h4 className="font-medium text-red-600">Motivo da Perda</h4>
-                <p className="whitespace-pre-wrap text-muted-foreground">
-                  {deal.lost_reason}
-                </p>
               </div>
             </>
           )}

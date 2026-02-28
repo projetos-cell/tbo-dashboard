@@ -83,15 +83,14 @@ export function ContractList({
                 )}
               </div>
               <p className="text-sm text-muted-foreground truncate">
-                {contract.client_name ?? "Sem cliente"}
-                {contract.project_name && ` · ${contract.project_name}`}
+                {contract.person_name ?? "Sem responsável"}
               </p>
             </div>
 
             <div className="flex items-center gap-3 shrink-0">
-              {contract.value != null && contract.value > 0 && (
+              {contract.monthly_value != null && contract.monthly_value > 0 && (
                 <span className="text-sm font-medium">
-                  {formatCurrency(contract.value)}
+                  {formatCurrency(contract.monthly_value)}
                 </span>
               )}
               <Badge

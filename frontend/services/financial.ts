@@ -354,17 +354,17 @@ export function computeFinancialKPIs(
   let overdue = 0;
 
   for (const p of payables) {
-    if (openPayStatuses.includes(p.status)) totalPayable += p.amount - p.amount_paid;
+    if (openPayStatuses.includes(p.status ?? "")) totalPayable += p.amount - (p.amount_paid ?? 0);
     if (p.status === "pago") totalPaid += p.amount;
-    if (p.status === "atrasado" || (openPayStatuses.includes(p.status) && p.due_date < today))
-      overdue += p.amount - p.amount_paid;
+    if (p.status === "atrasado" || (openPayStatuses.includes(p.status ?? "") && p.due_date < today))
+      overdue += p.amount - (p.amount_paid ?? 0);
   }
 
   let totalReceivable = 0;
   let totalReceived = 0;
 
   for (const r of receivables) {
-    if (openRecStatuses.includes(r.status)) totalReceivable += r.amount - r.amount_paid;
+    if (openRecStatuses.includes(r.status ?? "")) totalReceivable += r.amount - (r.amount_paid ?? 0);
     if (r.status === "pago") totalReceived += r.amount;
   }
 
@@ -404,11 +404,11 @@ export function computeCashFlow(
 
     const dayInflows = receivables
       .filter((r) => r.due_date.slice(0, 10) === dateStr && r.status !== "cancelado")
-      .reduce((sum, r) => sum + (r.amount - r.amount_paid), 0);
+      .reduce((sum, r) => sum + (r.amount - (r.amount_paid ?? 0)), 0);
 
     const dayOutflows = payables
       .filter((p) => p.due_date.slice(0, 10) === dateStr && p.status !== "cancelado")
-      .reduce((sum, p) => sum + (p.amount - p.amount_paid), 0);
+      .reduce((sum, p) => sum + (p.amount - (p.amount_paid ?? 0)), 0);
 
     runningBalance += dayInflows - dayOutflows;
     result.push({ date: dateStr, inflows: dayInflows, outflows: dayOutflows, balance: runningBalance });
@@ -435,7 +435,7 @@ export function computeInboxAlerts(
   const alerts: InboxAlert[] = [];
 
   const overduePayables = payables.filter(
-    (p) => !["pago", "cancelado"].includes(p.status) && p.due_date < today
+    (p) => !["pago", "cancelado"].includes(p.status ?? "") && p.due_date < today
   );
   if (overduePayables.length) {
     alerts.push({
@@ -448,7 +448,7 @@ export function computeInboxAlerts(
   }
 
   const overdueReceivables = receivables.filter(
-    (r) => !["pago", "cancelado"].includes(r.status) && r.due_date < today
+    (r) => !["pago", "cancelado"].includes(r.status ?? "") && r.due_date < today
   );
   if (overdueReceivables.length) {
     alerts.push({
@@ -472,7 +472,7 @@ export function computeInboxAlerts(
   }
 
   const noCostCenter = payables.filter(
-    (p) => !p.cost_center_id && !["cancelado", "pago"].includes(p.status)
+    (p) => !p.cost_center_id && !["cancelado", "pago"].includes(p.status ?? "")
   );
   if (noCostCenter.length) {
     alerts.push({

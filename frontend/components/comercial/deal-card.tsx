@@ -51,11 +51,11 @@ export function DealCard({ deal, onClick }: DealCardProps) {
             <span className="truncate">{deal.owner_name}</span>
           </div>
         )}
-        {deal.expected_close_date && (
+        {deal.expected_close && (
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Calendar className="h-3 w-3" />
             <span>
-              {new Date(deal.expected_close_date).toLocaleDateString("pt-BR")}
+              {new Date(deal.expected_close).toLocaleDateString("pt-BR")}
             </span>
           </div>
         )}

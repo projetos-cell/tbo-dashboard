@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
-  FileText,
   Calendar,
   DollarSign,
   Building2,
@@ -79,25 +78,16 @@ export function ContractDetailDialog({
                 Expirando
               </Badge>
             )}
-            {contract.auto_renew && (
-              <Badge variant="outline">Auto-renovação</Badge>
-            )}
           </div>
         </SheetHeader>
 
         <div className="mt-6 space-y-4">
-          {/* Client & Project */}
+          {/* Person */}
           <div className="space-y-2 text-sm">
-            {contract.client_name && (
+            {contract.person_name && (
               <div className="flex items-center gap-2">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
-                <span>{contract.client_name}</span>
-              </div>
-            )}
-            {contract.project_name && (
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-muted-foreground" />
-                <span>{contract.project_name}</span>
+                <span>{contract.person_name}</span>
               </div>
             )}
           </div>
@@ -105,11 +95,11 @@ export function ContractDetailDialog({
           {/* Dates & Value */}
           <Separator />
           <div className="space-y-2 text-sm">
-            {contract.value != null && (
+            {contract.monthly_value != null && (
               <div className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">
-                  {formatCurrency(contract.value)}
+                  {formatCurrency(contract.monthly_value)}
                 </span>
               </div>
             )}
@@ -131,30 +121,7 @@ export function ContractDetailDialog({
                 </span>
               </div>
             )}
-            {contract.payment_terms && (
-              <p>
-                <span className="text-muted-foreground">Pagamento: </span>
-                {contract.payment_terms}
-              </p>
-            )}
           </div>
-
-          {/* Services */}
-          {contract.services && contract.services.length > 0 && (
-            <>
-              <Separator />
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium">Serviços</h4>
-                <div className="flex flex-wrap gap-1">
-                  {contract.services.map((s) => (
-                    <Badge key={s} variant="outline" className="text-xs">
-                      {s}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
 
           {/* Description */}
           {contract.description && (
@@ -169,31 +136,18 @@ export function ContractDetailDialog({
             </>
           )}
 
-          {/* Notes */}
-          {contract.notes && (
-            <>
-              <Separator />
-              <div className="space-y-1 text-sm">
-                <h4 className="font-medium">Observações</h4>
-                <p className="whitespace-pre-wrap text-muted-foreground">
-                  {contract.notes}
-                </p>
-              </div>
-            </>
-          )}
-
-          {/* PDF link */}
-          {contract.pdf_url && (
+          {/* File link */}
+          {contract.file_url && (
             <>
               <Separator />
               <Button variant="outline" className="w-full gap-2" asChild>
                 <a
-                  href={contract.pdf_url}
+                  href={contract.file_url}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
                   <ExternalLink className="h-4 w-4" />
-                  Ver PDF do Contrato
+                  Ver Arquivo do Contrato
                 </a>
               </Button>
             </>

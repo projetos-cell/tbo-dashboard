@@ -3,6 +3,9 @@
 import { Badge } from "@/components/ui/badge";
 import { TASK_STATUS, TASK_PRIORITY } from "@/lib/constants";
 import { useUpdateTask } from "@/hooks/use-tasks";
+import { useUndoStack } from "@/hooks/use-undo-stack";
+import { useUndoKeyboard } from "@/hooks/use-undo-keyboard";
+import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/lib/supabase/types";
 import {
   DndContext,
@@ -14,7 +17,7 @@ import {
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -89,17 +92,25 @@ interface TaskBoardProps {
 export function TaskBoard({ tasks, onSelect }: TaskBoardProps) {
   const updateTask = useUpdateTask();
   const [activeTask, setActiveTask] = useState<TaskRow | null>(null);
+  const [localTasks, setLocalTasks] = useState(tasks);
+  const undo = useUndoStack();
+  const { toast } = useToast();
+
+  // Sync when props change (unless mid-mutation)
+  if (tasks !== localTasks && !updateTask.isPending) {
+    setLocalTasks(tasks);
+  }
 
   const tasksByStatus = BOARD_COLUMNS.reduce(
     (acc, status) => {
-      acc[status] = tasks.filter((t) => t.status === status);
+      acc[status] = localTasks.filter((t) => t.status === status);
       return acc;
     },
     {} as Record<string, TaskRow[]>
   );
 
   function handleDragStart(event: DragStartEvent) {
-    const task = tasks.find((t) => t.id === event.active.id);
+    const task = localTasks.find((t) => t.id === event.active.id);
     setActiveTask(task ?? null);
   }
 
@@ -109,20 +120,79 @@ export function TaskBoard({ tasks, onSelect }: TaskBoardProps) {
     if (!over) return;
 
     const taskId = active.id as string;
-    // The over.id could be a column id or another task id
     let targetStatus = over.id as string;
 
-    // If dropped on a task, find that task's status
     if (!BOARD_COLUMNS.includes(targetStatus as (typeof BOARD_COLUMNS)[number])) {
-      const overTask = tasks.find((t) => t.id === targetStatus);
+      const overTask = localTasks.find((t) => t.id === targetStatus);
       if (overTask) targetStatus = overTask.status;
     }
 
-    const task = tasks.find((t) => t.id === taskId);
+    const task = localTasks.find((t) => t.id === taskId);
     if (!task || task.status === targetStatus) return;
+
+    const oldStatus = task.status;
+
+    // Push to undo stack
+    undo.push({
+      type: "MOVE_TASK",
+      payload: { taskId, fromStatus: oldStatus, toStatus: targetStatus },
+      inverse: { taskId, fromStatus: targetStatus, toStatus: oldStatus },
+    });
+
+    // Optimistic update
+    setLocalTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, status: targetStatus } : t))
+    );
 
     updateTask.mutate({ id: taskId, updates: { status: targetStatus } });
   }
+
+  const handleUndo = useCallback(() => {
+    const action = undo.pop();
+    if (!action) return;
+
+    const { taskId, toStatus } = action.inverse as {
+      taskId: string;
+      fromStatus: string;
+      toStatus: string;
+    };
+
+    undo.setUndoing(true);
+
+    // Optimistic revert
+    setLocalTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, status: toStatus } : t))
+    );
+
+    updateTask.mutate(
+      { id: taskId, updates: { status: toStatus } },
+      {
+        onSuccess: () => {
+          undo.setUndoing(false);
+          toast({
+            title: "Desfeito",
+            description: "Movimento revertido com sucesso.",
+          });
+        },
+        onError: () => {
+          undo.setUndoing(false);
+          const original = action.payload as { toStatus: string };
+          setLocalTasks((prev) =>
+            prev.map((t) =>
+              t.id === taskId ? { ...t, status: original.toStatus } : t
+            )
+          );
+          toast({
+            title: "Erro ao desfazer",
+            description: "Não foi possível reverter o movimento.",
+            variant: "destructive",
+          });
+        },
+      }
+    );
+  }, [undo, updateTask, toast]);
+
+  useUndoKeyboard(handleUndo);
 
   return (
     <DndContext

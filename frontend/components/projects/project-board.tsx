@@ -18,6 +18,9 @@ import { CSS } from "@dnd-kit/utilities";
 import { ProjectCard } from "./project-card";
 import { PROJECT_STATUS, type ProjectStatusKey } from "@/lib/constants";
 import { useUpdateProject } from "@/hooks/use-projects";
+import { useUndoStack } from "@/hooks/use-undo-stack";
+import { useUndoKeyboard } from "@/hooks/use-undo-keyboard";
+import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/lib/supabase/types";
 
 type Project = Database["public"]["Tables"]["projects"]["Row"];
@@ -45,6 +48,8 @@ function SortableCard({ project }: { project: Project }) {
 export function ProjectBoard({ projects }: ProjectBoardProps) {
   const updateProject = useUpdateProject();
   const [localProjects, setLocalProjects] = useState(projects);
+  const undo = useUndoStack();
+  const { toast } = useToast();
 
   // Update when props change
   if (projects !== localProjects && !updateProject.isPending) {
@@ -77,6 +82,15 @@ export function ProjectBoard({ projects }: ProjectBoardProps) {
     const project = localProjects.find((p) => p.id === projectId);
     if (!project || project.status === newStatus) return;
 
+    const oldStatus = project.status;
+
+    // Push to undo stack
+    undo.push({
+      type: "MOVE_PROJECT",
+      payload: { projectId, fromStatus: oldStatus, toStatus: newStatus },
+      inverse: { projectId, fromStatus: newStatus, toStatus: oldStatus },
+    });
+
     // Optimistic update
     setLocalProjects((prev) =>
       prev.map((p) => (p.id === projectId ? { ...p, status: newStatus } : p))
@@ -88,6 +102,57 @@ export function ProjectBoard({ projects }: ProjectBoardProps) {
       updates: { status: newStatus },
     });
   }
+
+  const handleUndo = useCallback(() => {
+    const action = undo.pop();
+    if (!action) return;
+
+    const { projectId, toStatus } = action.inverse as {
+      projectId: string;
+      fromStatus: string;
+      toStatus: string;
+    };
+
+    // Mark as undoing so the push is ignored
+    undo.setUndoing(true);
+
+    // Optimistic revert
+    setLocalProjects((prev) =>
+      prev.map((p) => (p.id === projectId ? { ...p, status: toStatus } : p))
+    );
+
+    // Persist revert to Supabase
+    updateProject.mutate(
+      { id: projectId, updates: { status: toStatus } },
+      {
+        onSuccess: () => {
+          undo.setUndoing(false);
+          toast({
+            title: "Desfeito",
+            description: "Movimento revertido com sucesso.",
+          });
+        },
+        onError: () => {
+          undo.setUndoing(false);
+          // Rollback the optimistic revert
+          const original = action.payload as { toStatus: string };
+          setLocalProjects((prev) =>
+            prev.map((p) =>
+              p.id === projectId ? { ...p, status: original.toStatus } : p
+            )
+          );
+          toast({
+            title: "Erro ao desfazer",
+            description: "Não foi possível reverter o movimento.",
+            variant: "destructive",
+          });
+        },
+      }
+    );
+  }, [undo, updateProject, toast]);
+
+  // Ctrl+Z / Cmd+Z listener
+  useUndoKeyboard(handleUndo);
 
   return (
     <DndContext

@@ -16,7 +16,7 @@ export async function getContracts(
     .from("contracts")
     .select()
     .eq("tenant_id", tenantId)
-    .order("value", { ascending: false, nullsFirst: false });
+    .order("monthly_value", { ascending: false, nullsFirst: false });
 
   if (filters?.status) query = query.eq("status", filters.status);
   if (filters?.clientId) query = query.eq("client_id", filters.clientId);
@@ -87,9 +87,9 @@ export function computeContractKPIs(
   expiringDays = 30
 ): ContractKPIs {
   const ativos = contracts.filter((c) => c.status === "ativo");
-  const totalValue = contracts.reduce((s, c) => s + (c.value ?? 0), 0);
-  const ativosValue = ativos.reduce((s, c) => s + (c.value ?? 0), 0);
-  const withValue = contracts.filter((c) => (c.value ?? 0) > 0);
+  const totalValue = contracts.reduce((s, c) => s + (c.monthly_value ?? 0), 0);
+  const ativosValue = ativos.reduce((s, c) => s + (c.monthly_value ?? 0), 0);
+  const withValue = contracts.filter((c) => (c.monthly_value ?? 0) > 0);
   const ticketMedio = withValue.length > 0 ? totalValue / withValue.length : 0;
 
   const now = new Date();

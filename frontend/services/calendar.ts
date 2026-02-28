@@ -22,12 +22,12 @@ function toCalendarEvent(row: EventRow): CalendarEvent {
     title: row.title,
     description: row.description,
     startAt: row.start_at,
-    endAt: row.end_at,
+    endAt: row.end_at || "",
     isAllDay: row.is_all_day,
     location: row.location,
     organizer: row.organizer,
     googleEventId: row.google_event_id,
-    source: row.source,
+    source: row.source || "",
   };
 }
 

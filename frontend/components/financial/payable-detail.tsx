@@ -41,7 +41,7 @@ export function PayableDetail({
 
   const st = PAYABLE_STATUS[payable.status as keyof typeof PAYABLE_STATUS];
   const canPay = ["aberto", "aprovado", "parcial", "atrasado"].includes(
-    payable.status
+    payable.status ?? ""
   );
 
   return (
@@ -70,9 +70,9 @@ export function PayableDetail({
             <div className="flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-muted-foreground" />
               <span className="font-semibold">{fmt(payable.amount)}</span>
-              {payable.amount_paid > 0 && (
+              {(payable.amount_paid ?? 0) > 0 && (
                 <span className="text-muted-foreground">
-                  (pago: {fmt(payable.amount_paid)})
+                  (pago: {fmt(payable.amount_paid ?? 0)})
                 </span>
               )}
             </div>

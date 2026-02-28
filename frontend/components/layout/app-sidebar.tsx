@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Settings,
   LogOut,
+  HeartHandshake,
 } from "lucide-react";
 import {
   Sidebar,
@@ -48,6 +49,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   target: Target,
   "message-square": MessageSquare,
   settings: Settings,
+  "heart-handshake": HeartHandshake,
 };
 
 export function AppSidebar() {

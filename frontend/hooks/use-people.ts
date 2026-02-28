@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
 import type { Database } from "@/lib/supabase/types";
-import { getPeople, getPersonById, updatePerson, getTeams } from "@/services/people";
+import { getPeople, getPersonById, updatePerson, getTeams, getProfiles } from "@/services/people";
 
 export function usePeople(filters?: {
   status?: string;
@@ -58,6 +58,18 @@ export function useTeams() {
   return useQuery({
     queryKey: ["teams", tenantId],
     queryFn: () => getTeams(supabase, tenantId!),
+    enabled: !!tenantId,
+  });
+}
+
+/** Lightweight profiles for user pickers (id, name, avatar, email) */
+export function useProfiles() {
+  const supabase = createClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery({
+    queryKey: ["profiles", tenantId],
+    queryFn: () => getProfiles(supabase, tenantId!),
     enabled: !!tenantId,
   });
 }

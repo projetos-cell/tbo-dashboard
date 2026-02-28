@@ -82,6 +82,22 @@ export interface PeopleKPIs {
   byBU: Record<string, number>;
 }
 
+/** Lightweight profiles query for user pickers — returns id, name, avatar, email */
+export async function getProfiles(
+  supabase: SupabaseClient<Database>,
+  tenantId: string
+): Promise<Pick<ProfileRow, "id" | "full_name" | "avatar_url" | "email">[]> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id,full_name,avatar_url,email")
+    .eq("tenant_id", tenantId)
+    .eq("is_active", true)
+    .order("full_name");
+
+  if (error) throw error;
+  return (data ?? []) as Pick<ProfileRow, "id" | "full_name" | "avatar_url" | "email">[];
+}
+
 export function computePeopleKPIs(people: ProfileRow[]): PeopleKPIs {
   const active = people.filter((p) => p.status === "active" || p.is_active);
   const onVacation = people.filter((p) => p.status === "vacation");

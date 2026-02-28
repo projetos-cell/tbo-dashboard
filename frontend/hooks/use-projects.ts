@@ -7,6 +7,7 @@ import {
   getProjects,
   getProjectById,
   getProjectDemands,
+  getProjectStats,
   createProject,
   updateProject,
   deleteProject,
@@ -83,6 +84,17 @@ export function useUpdateProject() {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["project", variables.id] });
     },
+  });
+}
+
+export function useProjectStats(projectId: string) {
+  const supabase = useSupabase();
+  const tenantId = useTenantId();
+
+  return useQuery({
+    queryKey: ["project-stats", projectId],
+    queryFn: () => getProjectStats(supabase, projectId, tenantId!),
+    enabled: !!tenantId && !!projectId,
   });
 }
 

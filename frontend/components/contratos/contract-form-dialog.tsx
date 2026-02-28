@@ -19,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { CONTRACT_STATUS } from "@/lib/constants";
 import { useAuthStore } from "@/stores/auth-store";
 import { useCreateContract, useUpdateContract } from "@/hooks/use-contracts";
@@ -35,16 +34,12 @@ interface ContractFormDialogProps {
 
 const emptyForm = {
   title: "",
-  client_name: "",
-  project_name: "",
   description: "",
+  type: "servico",
   status: "ativo",
   start_date: "",
   end_date: "",
-  value: "",
-  payment_terms: "",
-  auto_renew: false,
-  notes: "",
+  monthly_value: "",
 };
 
 export function ContractFormDialog({
@@ -63,16 +58,12 @@ export function ContractFormDialog({
     if (contract) {
       setForm({
         title: contract.title ?? "",
-        client_name: contract.client_name ?? "",
-        project_name: contract.project_name ?? "",
         description: contract.description ?? "",
+        type: contract.type ?? "servico",
         status: contract.status ?? "ativo",
         start_date: contract.start_date ?? "",
         end_date: contract.end_date ?? "",
-        value: contract.value != null ? String(contract.value) : "",
-        payment_terms: contract.payment_terms ?? "",
-        auto_renew: contract.auto_renew ?? false,
-        notes: contract.notes ?? "",
+        monthly_value: contract.monthly_value != null ? String(contract.monthly_value) : "",
       });
     } else {
       setForm(emptyForm);
@@ -89,16 +80,12 @@ export function ContractFormDialog({
 
     const payload = {
       title: form.title.trim(),
-      client_name: form.client_name || null,
-      project_name: form.project_name || null,
       description: form.description || null,
+      type: form.type,
       status: form.status,
       start_date: form.start_date || null,
       end_date: form.end_date || null,
-      value: form.value ? Number(form.value) : null,
-      payment_terms: form.payment_terms || null,
-      auto_renew: form.auto_renew,
-      notes: form.notes || null,
+      monthly_value: form.monthly_value ? Number(form.monthly_value) : null,
     };
 
     if (isEditing && contract) {
@@ -134,25 +121,6 @@ export function ContractFormDialog({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="client_name">Cliente</Label>
-              <Input
-                id="client_name"
-                value={form.client_name}
-                onChange={(e) => handleChange("client_name", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="project_name">Projeto</Label>
-              <Input
-                id="project_name"
-                value={form.project_name}
-                onChange={(e) => handleChange("project_name", e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select
                 value={form.status}
@@ -171,13 +139,13 @@ export function ContractFormDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="value">Valor (R$)</Label>
+              <Label htmlFor="monthly_value">Valor Mensal (R$)</Label>
               <Input
-                id="value"
+                id="monthly_value"
                 type="number"
                 step="0.01"
-                value={form.value}
-                onChange={(e) => handleChange("value", e.target.value)}
+                value={form.monthly_value}
+                onChange={(e) => handleChange("monthly_value", e.target.value)}
               />
             </div>
           </div>
@@ -204,39 +172,11 @@ export function ContractFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="payment_terms">Condições de Pagamento</Label>
-            <Input
-              id="payment_terms"
-              value={form.payment_terms}
-              onChange={(e) => handleChange("payment_terms", e.target.value)}
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Switch
-              id="auto_renew"
-              checked={form.auto_renew}
-              onCheckedChange={(v) => handleChange("auto_renew", v)}
-            />
-            <Label htmlFor="auto_renew">Auto-renovação</Label>
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="description">Descrição</Label>
             <Textarea
               id="description"
               value={form.description}
               onChange={(e) => handleChange("description", e.target.value)}
-              rows={2}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="notes">Observações</Label>
-            <Textarea
-              id="notes"
-              value={form.notes}
-              onChange={(e) => handleChange("notes", e.target.value)}
               rows={2}
             />
           </div>

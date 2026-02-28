@@ -60,16 +60,16 @@ export function OkrCheckinDialog({ kr, open, onClose }: OkrCheckinDialogProps) {
       key_result_id: kr.id,
       previous_value: kr.current_value ?? kr.start_value ?? 0,
       new_value: numValue,
-      confidence: numConfidence,
+      confidence: String(numConfidence),
       notes: notes || null,
-      author_id: userId ?? null,
+      author_id: userId ?? "",
     });
 
     await updateKr.mutateAsync({
       id: kr.id,
       updates: {
         current_value: numValue,
-        confidence: numConfidence,
+        confidence: String(numConfidence),
       },
     });
 

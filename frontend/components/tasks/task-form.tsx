@@ -54,7 +54,7 @@ export function TaskForm({ open, onOpenChange, projectId }: TaskFormProps) {
         priority,
         assignee_name: assigneeName.trim() || null,
         due_date: dueDate || null,
-        project_id: projectId ?? null,
+        project_id: projectId ?? "",
       },
       {
         onSuccess: () => {

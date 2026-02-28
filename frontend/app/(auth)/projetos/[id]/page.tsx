@@ -1,38 +1,27 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import {
-  ArrowLeft,
-  Calendar,
-  User,
-  Building2,
-  ExternalLink,
-} from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { useProject, useProjectDemands } from "@/hooks/use-projects";
+import { ProjectTopbar } from "@/components/projects/project-topbar";
+import { ProjectOverview } from "@/components/projects/tabs/project-overview";
+import { ProjectGantt } from "@/components/projects/tabs/project-gantt";
+import { ProjectFiles } from "@/components/projects/tabs/project-files";
+import { ProjectActivityTab } from "@/components/projects/tabs/project-activity";
+import { TaskList } from "@/components/tasks/task-list";
+import { TaskBoard } from "@/components/tasks/task-board";
+import { TaskDetail } from "@/components/tasks/task-detail";
+import { useProject, useProjectStats } from "@/hooks/use-projects";
+import { useTasks } from "@/hooks/use-tasks";
+import { useProfiles } from "@/hooks/use-people";
 import { useUser } from "@/hooks/use-user";
-import { PROJECT_STATUS, BU_COLORS, type ProjectStatusKey } from "@/lib/constants";
+import type { UserOption } from "@/components/ui/user-selector";
+import type { Database } from "@/lib/supabase/types";
+
+type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 
 export default function ProjectDetailPage({
   params,
@@ -41,16 +30,26 @@ export default function ProjectDetailPage({
 }) {
   const { id } = use(params);
 
-  // Initialize user/tenant
   useUser();
-
   const { data: project, isLoading, error } = useProject(id);
-  const { data: demands, isLoading: demandsLoading } = useProjectDemands(id);
+  const { data: stats, isLoading: statsLoading } = useProjectStats(id);
+  const { data: profiles } = useProfiles();
+  const { data: tasks } = useTasks({ project_id: id });
+  const [activeTab, setActiveTab] = useState("overview");
+  const [selectedTask, setSelectedTask] = useState<TaskRow | null>(null);
+
+  const users: UserOption[] = (profiles || []).map((p) => ({
+    id: p.id,
+    full_name: p.full_name,
+    avatar_url: p.avatar_url,
+    email: p.email,
+  }));
 
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-8 w-full max-w-md" />
         <Skeleton className="h-64 rounded-lg" />
       </div>
     );
@@ -72,257 +71,68 @@ export default function ProjectDetailPage({
     );
   }
 
-  const status = PROJECT_STATUS[project.status as ProjectStatusKey];
-  const busList = parseBus(project.bus);
-
   return (
     <div className="space-y-6">
-      {/* Back + title */}
-      <div className="flex items-start gap-4">
-        <Link href="/projetos">
-          <Button variant="ghost" size="icon" className="mt-0.5">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight truncate">
-              {project.name}
-            </h1>
-            {status && (
-              <Badge
-                style={{ backgroundColor: status.bg, color: status.color }}
-              >
-                {status.label}
-              </Badge>
-            )}
-          </div>
-          {project.code && (
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {project.code}
-            </p>
-          )}
-        </div>
-        {project.notion_url && (
-          <a
-            href={project.notion_url}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Button variant="outline" size="sm">
-              <ExternalLink className="h-4 w-4 mr-1" />
-              Notion
-            </Button>
-          </a>
-        )}
-      </div>
+      <ProjectTopbar project={project} users={users} />
 
-      {/* Tabs */}
-      <Tabs defaultValue="overview">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="overview">Visao Geral</TabsTrigger>
-          <TabsTrigger value="demands">
-            Demandas{" "}
-            {demands && (
-              <span className="ml-1 text-xs text-muted-foreground">
-                ({demands.length})
-              </span>
-            )}
-          </TabsTrigger>
+          <TabsTrigger value="list">Lista</TabsTrigger>
+          <TabsTrigger value="board">Board</TabsTrigger>
+          <TabsTrigger value="gantt">Gantt</TabsTrigger>
+          <TabsTrigger value="files">Arquivos</TabsTrigger>
+          <TabsTrigger value="activity">Atividade</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {/* Info card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Informacoes</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {project.construtora && (
-                  <InfoRow
-                    icon={Building2}
-                    label="Construtora"
-                    value={project.construtora}
-                  />
-                )}
-                {project.owner_name && (
-                  <InfoRow
-                    icon={User}
-                    label="Responsavel"
-                    value={project.owner_name}
-                  />
-                )}
-                {project.due_date_start && (
-                  <InfoRow
-                    icon={Calendar}
-                    label="Inicio"
-                    value={format(
-                      new Date(project.due_date_start),
-                      "dd MMM yyyy",
-                      { locale: ptBR }
-                    )}
-                  />
-                )}
-                {project.due_date_end && (
-                  <InfoRow
-                    icon={Calendar}
-                    label="Prazo"
-                    value={format(
-                      new Date(project.due_date_end),
-                      "dd MMM yyyy",
-                      { locale: ptBR }
-                    )}
-                  />
-                )}
-              </CardContent>
-            </Card>
-
-            {/* BUs card */}
-            {busList.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">
-                    Business Units
-                  </CardTitle>
-                  <CardDescription>
-                    Areas envolvidas no projeto
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {busList.map((bu) => {
-                      const buColor = BU_COLORS[bu];
-                      return (
-                        <Badge
-                          key={bu}
-                          variant="outline"
-                          style={
-                            buColor
-                              ? {
-                                  backgroundColor: buColor.bg,
-                                  color: buColor.color,
-                                  borderColor: "transparent",
-                                }
-                              : undefined
-                          }
-                        >
-                          {bu}
-                        </Badge>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+        <TabsContent value="overview">
+          <ProjectOverview
+            projectId={id}
+            stats={stats}
+            statsLoading={statsLoading}
+          />
         </TabsContent>
 
-        <TabsContent value="demands">
-          {demandsLoading ? (
-            <div className="space-y-2">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-12 rounded-lg" />
-              ))}
-            </div>
-          ) : !demands || demands.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <p className="text-muted-foreground">
-                  Nenhuma demanda vinculada a este projeto.
-                </p>
-              </CardContent>
-            </Card>
+        <TabsContent value="list">
+          {tasks && tasks.length > 0 ? (
+            <TaskList tasks={tasks} onSelect={(t) => setSelectedTask(t)} />
           ) : (
-            <div className="rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Titulo</TableHead>
-                    <TableHead className="w-[120px]">Status</TableHead>
-                    <TableHead className="hidden md:table-cell">
-                      Responsavel
-                    </TableHead>
-                    <TableHead className="hidden md:table-cell w-[110px]">
-                      Prazo
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {demands.map((demand) => (
-                    <TableRow key={demand.id}>
-                      <TableCell className="font-medium">
-                        {demand.title}
-                        {demand.notion_url && (
-                          <a
-                            href={demand.notion_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="ml-2 inline-flex text-muted-foreground hover:text-foreground"
-                          >
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className="text-xs">
-                          {demand.status || "Sem status"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell text-muted-foreground">
-                        {demand.responsible || "—"}
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
-                        {demand.due_date
-                          ? format(
-                              new Date(demand.due_date),
-                              "dd MMM yyyy",
-                              { locale: ptBR }
-                            )
-                          : "—"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="text-sm text-muted-foreground text-center py-8">
+              Nenhuma tarefa neste projeto.
             </div>
           )}
         </TabsContent>
+
+        <TabsContent value="board">
+          {tasks && tasks.length > 0 ? (
+            <TaskBoard tasks={tasks} onSelect={(t) => setSelectedTask(t)} />
+          ) : (
+            <div className="text-sm text-muted-foreground text-center py-8">
+              Nenhuma tarefa neste projeto.
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="gantt">
+          <ProjectGantt projectId={id} />
+        </TabsContent>
+
+        <TabsContent value="files">
+          <ProjectFiles projectId={id} />
+        </TabsContent>
+
+        <TabsContent value="activity">
+          <ProjectActivityTab projectId={id} />
+        </TabsContent>
       </Tabs>
+
+      <TaskDetail
+        task={selectedTask}
+        open={!!selectedTask}
+        onOpenChange={(open) => { if (!open) setSelectedTask(null); }}
+        users={users}
+        projectId={id}
+      />
     </div>
   );
-}
-
-function InfoRow({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: React.ElementType;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-      <div>
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-sm">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-function parseBus(raw: string | string[] | null): string[] {
-  if (!raw) return [];
-  if (Array.isArray(raw)) return raw;
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [raw];
-  } catch {
-    return raw
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-  }
 }

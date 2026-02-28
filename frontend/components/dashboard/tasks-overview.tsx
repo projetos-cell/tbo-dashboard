@@ -23,8 +23,8 @@ export function TasksOverview({ tasks }: { tasks: TaskRow[] }) {
       if (aOverdue !== bOverdue) return aOverdue - bOverdue;
       // Then by priority
       const priSort = TASK_PRIORITY as Record<string, { sort: number }>;
-      const aPri = priSort[a.priority]?.sort ?? 99;
-      const bPri = priSort[b.priority]?.sort ?? 99;
+      const aPri = priSort[a.priority ?? ""]?.sort ?? 99;
+      const bPri = priSort[b.priority ?? ""]?.sort ?? 99;
       if (aPri !== bPri) return aPri - bPri;
       // Then by due date
       return (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999");

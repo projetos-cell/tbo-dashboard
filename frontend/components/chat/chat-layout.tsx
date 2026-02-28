@@ -25,7 +25,6 @@ export function ChatLayout() {
     sendMessage.mutate({
       channel_id: selectedChannelId,
       sender_id: userId,
-      tenant_id: tenantId,
       content,
     });
   }

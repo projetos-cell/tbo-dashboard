@@ -20,9 +20,10 @@ export const ROLE_MODULES: Record<RoleSlug, string[]> = {
     "contratos",
     "okrs",
     "chat",
+    "cultura",
     "configuracoes",
   ],
-  member: ["projetos", "tarefas", "agenda", "chat"],
+  member: ["projetos", "tarefas", "agenda", "chat", "cultura"],
   cs: [
     "dashboard",
     "projetos",
@@ -31,8 +32,9 @@ export const ROLE_MODULES: Record<RoleSlug, string[]> = {
     "clientes",
     "contratos",
     "chat",
+    "cultura",
   ],
-  freelancer: ["tarefas"],
+  freelancer: ["tarefas", "cultura"],
 };
 
 /**
@@ -79,6 +81,7 @@ export function getModulesForRole(role: RoleSlug): string[] {
       "contratos",
       "okrs",
       "chat",
+      "cultura",
       "configuracoes",
     ];
   }

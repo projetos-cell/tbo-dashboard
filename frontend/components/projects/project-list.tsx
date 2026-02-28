@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useDeleteProject } from "@/hooks/use-projects";
+import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -23,6 +26,24 @@ interface ProjectListProps {
 }
 
 export function ProjectList({ projects }: ProjectListProps) {
+  const deleteProject = useDeleteProject();
+  const { toast } = useToast();
+
+  function handleDelete(project: Project) {
+    const confirmed = window.confirm(
+      `Tem certeza que deseja excluir "${project.name}"?`
+    );
+    if (!confirmed) return;
+    deleteProject.mutate(project.id, {
+      onSuccess: () => {
+        toast({ title: "Excluído", description: `"${project.name}" foi removido.` });
+      },
+      onError: () => {
+        toast({ title: "Erro", description: "Não foi possível excluir.", variant: "destructive" });
+      },
+    });
+  }
+
   return (
     <div className="rounded-lg border">
       <Table>
@@ -36,12 +57,13 @@ export function ProjectList({ projects }: ProjectListProps) {
               Prazo
             </TableHead>
             <TableHead className="w-[40px]" />
+            <TableHead className="w-[40px]" />
           </TableRow>
         </TableHeader>
         <TableBody>
           {projects.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center">
+              <TableCell colSpan={7} className="h-24 text-center">
                 Nenhum projeto encontrado.
               </TableCell>
             </TableRow>
@@ -98,6 +120,20 @@ export function ProjectList({ projects }: ProjectListProps) {
                         <ExternalLink className="h-3.5 w-3.5" />
                       </a>
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(project);
+                      }}
+                      disabled={deleteProject.isPending}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               );

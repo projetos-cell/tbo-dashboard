@@ -26,7 +26,7 @@ export function ChannelList({
   return (
     <div className="space-y-0.5">
       {channels.map((ch) => {
-        const Icon = typeIcons[ch.type] ?? Hash;
+        const Icon = typeIcons[ch.type ?? "public"] ?? Hash;
         return (
           <button
             key={ch.id}

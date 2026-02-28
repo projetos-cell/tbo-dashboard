@@ -200,6 +200,7 @@ export const NAV_ITEMS = [
   { href: "/comercial", label: "Comercial", icon: "briefcase", module: "comercial" },
   { href: "/okrs", label: "OKRs", icon: "target", module: "okrs" },
   { href: "/chat", label: "Chat", icon: "message-square", module: "chat" },
+  { href: "/cultura", label: "Cultura", icon: "heart-handshake", module: "cultura" },
   { href: "/configuracoes", label: "Configurações", icon: "settings", module: "configuracoes" },
 ] as const;
 
@@ -213,4 +214,63 @@ export const SETTINGS_TABS = [
 
 export type SettingsTabId = (typeof SETTINGS_TABS)[number]["id"];
 
+// ─── Custom Field types ───────────────────────────────────────────────
+export const CUSTOM_FIELD_TYPES = {
+  text: { label: "Texto", icon: "type" },
+  number: { label: "Numero", icon: "hash" },
+  date: { label: "Data", icon: "calendar" },
+  select: { label: "Select", icon: "list" },
+  multi_select: { label: "Multi Select", icon: "list-checks" },
+  checkbox: { label: "Checkbox", icon: "check-square" },
+  url: { label: "URL", icon: "link" },
+} as const;
+
+export type CustomFieldTypeKey = keyof typeof CUSTOM_FIELD_TYPES;
+
+// ─── Activity action labels ──────────────────────────────────────────
+export const ACTIVITY_ACTIONS: Record<string, string> = {
+  created: "criou",
+  updated: "atualizou",
+  deleted: "excluiu",
+  moved: "moveu",
+  commented: "comentou",
+  attached: "anexou",
+  assigned: "atribuiu",
+  unassigned: "removeu atribuicao",
+  completed: "concluiu",
+  reopened: "reabriu",
+};
+
+// ─── Cultura categories ──────────────────────────────────────────────
+export const CULTURA_CATEGORIES = {
+  pilar: { label: "Pilares", icon: "columns-3", color: "#8b5cf6", bg: "rgba(139,92,246,0.12)" },
+  ritual: { label: "Rituais", icon: "repeat", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
+  politica: { label: "Politicas", icon: "shield", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+  reconhecimento: { label: "Reconhecimentos", icon: "award", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  valor: { label: "Valores", icon: "heart", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+  documento: { label: "Documentos", icon: "file-text", color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
+  manual: { label: "Manual", icon: "book-open", color: "#0ea5e9", bg: "rgba(14,165,233,0.12)" },
+} as const;
+
+export type CulturaCategoryKey = keyof typeof CULTURA_CATEGORIES;
+
+// ─── Cultura internal sidebar navigation ─────────────────────────────
+export const CULTURA_NAV_ITEMS = [
+  { href: "/cultura", label: "Visao Geral", icon: "layout-dashboard" },
+  { href: "/cultura/pilares", label: "Pilares", icon: "columns-3" },
+  { href: "/cultura/rituais", label: "Rituais", icon: "repeat" },
+  { href: "/cultura/politicas", label: "Politicas", icon: "shield" },
+  { href: "/cultura/reconhecimentos", label: "Reconhecimentos", icon: "award" },
+  { href: "/cultura/manual", label: "Manual", icon: "book-open" },
+  { href: "/cultura/analytics", label: "Analytics", icon: "bar-chart-3", founders_only: true },
+] as const;
+
+// ─── Cultura item status ─────────────────────────────────────────────
+export const CULTURA_STATUS = {
+  draft: { label: "Rascunho", color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
+  published: { label: "Publicado", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  archived: { label: "Arquivado", color: "#9ca3af", bg: "rgba(156,163,175,0.12)" },
+} as const;
+
+export type CulturaStatusKey = keyof typeof CULTURA_STATUS;
 

@@ -71,9 +71,9 @@ export function AuditLogTable() {
                 label: log.action,
                 variant: "outline" as const,
               };
-              const entityLabel = ENTITY_LABELS[log.entity_type] ?? log.entity_type;
+              const entityLabel = ENTITY_LABELS[log.entity_type ?? ""] ?? log.entity_type;
               const meta = log.metadata as Record<string, unknown> | null;
-              const date = new Date(log.created_at);
+              const date = new Date(log.created_at ?? "");
 
               return (
                 <div key={log.id} className="py-3 flex items-start justify-between gap-4">

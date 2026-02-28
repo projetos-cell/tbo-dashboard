@@ -42,7 +42,7 @@ export function ReceivableDetail({
   const st =
     RECEIVABLE_STATUS[receivable.status as keyof typeof RECEIVABLE_STATUS];
   const canPay = ["aberto", "emitido", "parcial", "atrasado"].includes(
-    receivable.status
+    receivable.status ?? ""
   );
 
   return (
@@ -76,9 +76,9 @@ export function ReceivableDetail({
             <div className="flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-muted-foreground" />
               <span className="font-semibold">{fmt(receivable.amount)}</span>
-              {receivable.amount_paid > 0 && (
+              {(receivable.amount_paid ?? 0) > 0 && (
                 <span className="text-muted-foreground">
-                  (recebido: {fmt(receivable.amount_paid)})
+                  (recebido: {fmt(receivable.amount_paid ?? 0)})
                 </span>
               )}
             </div>

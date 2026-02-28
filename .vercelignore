@@ -8,6 +8,7 @@ scripts/
 *.md
 .eslintrc*
 eslint.config.*
-package*.json
+/package*.json
 node_modules/
-.env*
+/config.js
+/config.example.js

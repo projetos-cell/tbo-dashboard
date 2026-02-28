@@ -6,6 +6,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { SettingsTabs } from "@/components/configuracoes/settings-tabs";
 import { ProfileForm } from "@/components/configuracoes/profile-form";
 import { AppearanceSettings } from "@/components/configuracoes/appearance-settings";
+import { NotionSync } from "@/components/configuracoes/notion-sync";
 import { UserManagement } from "@/components/configuracoes/user-management";
 import { AuditLogTable } from "@/components/configuracoes/audit-log-table";
 import type { SettingsTabId } from "@/lib/constants";
@@ -38,6 +39,7 @@ function SettingsContent() {
         <div className="flex-1 min-w-0">
           {activeTab === "perfil" && <ProfileForm />}
           {activeTab === "aparencia" && <AppearanceSettings />}
+          {activeTab === "integracoes" && isAdmin && <NotionSync />}
           {activeTab === "usuarios" && isAdmin && <UserManagement />}
           {activeTab === "audit" && isAdmin && <AuditLogTable />}
         </div>

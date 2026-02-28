@@ -2,11 +2,12 @@
 
 import { SETTINGS_TABS, type SettingsTabId } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-import { User, Palette, Users, Shield } from "lucide-react";
+import { User, Palette, Users, Shield, Plug } from "lucide-react";
 
 const ICONS: Record<string, React.ElementType> = {
   user: User,
   palette: Palette,
+  plug: Plug,
   users: Users,
   shield: Shield,
 };
@@ -18,8 +19,9 @@ interface SettingsTabsProps {
 }
 
 export function SettingsTabs({ active, onChange, isAdmin }: SettingsTabsProps) {
+  const adminOnly = new Set(["usuarios", "audit", "integracoes"]);
   const tabs = SETTINGS_TABS.filter(
-    (t) => t.id !== "usuarios" && t.id !== "audit" || isAdmin,
+    (t) => !adminOnly.has(t.id) || isAdmin,
   );
 
   return (

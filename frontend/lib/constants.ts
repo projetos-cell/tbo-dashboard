@@ -241,6 +241,7 @@ export const NAV_ITEMS = [
 export const SETTINGS_TABS = [
   { id: "perfil", label: "Perfil & Conta", icon: "user" },
   { id: "aparencia", label: "Aparência", icon: "palette" },
+  { id: "integracoes", label: "Integrações", icon: "plug" },
   { id: "usuarios", label: "Usuários", icon: "users" },
   { id: "audit", label: "Logs de Auditoria", icon: "shield" },
 ] as const;

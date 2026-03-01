@@ -511,6 +511,7 @@ function OkrsContent() {
             cycles={cycles ?? []}
             selectedId={effectiveCycleId}
             onSelect={setSelectedCycleId}
+            onCreateCycle={() => setCycleDialog({ open: true })}
           />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -559,53 +560,74 @@ function OkrsContent() {
         </div>
       </div>
 
-      {/* View tabs */}
-      <Tabs value={viewTab} onValueChange={setViewTab}>
-        <TabsList>
-          <TabsTrigger value="all">Todos</TabsTrigger>
-          <TabsTrigger value="mine">Meus OKRs</TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      {/* KPIs */}
-      <OkrKpis data={kpis} />
-
-      {/* Filters */}
-      <OkrFilters
-        search={search}
-        onSearchChange={setSearch}
-        statusFilter={statusFilter}
-        onStatusChange={setStatusFilter}
-        levelFilter={levelFilter}
-        onLevelChange={setLevelFilter}
-      />
-
-      {/* Objectives list */}
-      {loadingObjs ? (
-        <div className="space-y-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-20 w-full rounded-lg" />
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <Target className="h-12 w-12 text-muted-foreground/40 mb-3" />
-          <p className="text-muted-foreground mb-4">
-            {!effectiveCycleId
-              ? "Selecione ou crie um ciclo para começar."
-              : viewTab === "mine"
-                ? "Você não possui objetivos neste ciclo."
-                : "Nenhum objetivo encontrado neste ciclo."}
-          </p>
-          <Button
-            variant="outline"
-            onClick={() => setObjDialog({ open: true })}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Criar Objetivo
-          </Button>
-        </div>
+      {/* Onboarding: no cycles at all */}
+      {cycles && cycles.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="rounded-full bg-primary/10 p-4 mb-4">
+              <Target className="h-10 w-10 text-primary" />
+            </div>
+            <h2 className="text-lg font-semibold mb-2">
+              Comece definindo seus ciclos de OKR
+            </h2>
+            <p className="text-muted-foreground text-sm max-w-md mb-6">
+              Ciclos organizam seus objetivos por trimestre, semestre ou qualquer
+              período que faça sentido para sua equipe. Crie o primeiro ciclo
+              para começar a acompanhar seus OKRs.
+            </p>
+            <Button onClick={() => setCycleDialog({ open: true })}>
+              <Plus className="h-4 w-4 mr-1" />
+              Criar Ciclo
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
+        <>
+          {/* View tabs */}
+          <Tabs value={viewTab} onValueChange={setViewTab}>
+            <TabsList>
+              <TabsTrigger value="all">Todos</TabsTrigger>
+              <TabsTrigger value="mine">Meus OKRs</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          {/* KPIs */}
+          <OkrKpis data={kpis} />
+
+          {/* Filters */}
+          <OkrFilters
+            search={search}
+            onSearchChange={setSearch}
+            statusFilter={statusFilter}
+            onStatusChange={setStatusFilter}
+            levelFilter={levelFilter}
+            onLevelChange={setLevelFilter}
+          />
+
+          {/* Objectives list */}
+          {loadingObjs ? (
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-20 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <Target className="h-12 w-12 text-muted-foreground/40 mb-3" />
+              <p className="text-muted-foreground mb-4">
+                {viewTab === "mine"
+                  ? "Você não possui objetivos neste ciclo."
+                  : "Nenhum objetivo encontrado neste ciclo."}
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => setObjDialog({ open: true })}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Criar Objetivo
+              </Button>
+            </div>
+          ) : (
         <div className="space-y-3">
           {filtered.map((obj) => (
             <ObjectiveCard
@@ -652,6 +674,8 @@ function OkrsContent() {
             </ObjectiveCard>
           ))}
         </div>
+      )}
+        </>
       )}
 
       {/* ── Dialogs ──────────────────────────────────────── */}

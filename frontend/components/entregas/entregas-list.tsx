@@ -37,7 +37,7 @@ interface EntregasListProps {
 export function EntregasList({ deliverables, onSelect }: EntregasListProps) {
   const updateDeliverable = useUpdateDeliverable();
   const deleteDeliverable = useDeleteDeliverable();
-  const { prefs, save, reset } = useTablePreferences(TABLE_ID);
+  const { columnPrefs, sortPref, saveColumns, saveSort, reset } = useTablePreferences(TABLE_ID);
 
   const handleStatusChange = useCallback(
     (id: string, status: string) => {
@@ -59,6 +59,9 @@ export function EntregasList({ deliverables, onSelect }: EntregasListProps) {
         id: "name",
         label: "Nome",
         hideable: false,
+        sortable: true,
+        sortType: "string",
+        sortAccessor: (row) => row.name,
         cellRender: (row) => (
           <span className="font-medium">{row.name}</span>
         ),
@@ -77,6 +80,9 @@ export function EntregasList({ deliverables, onSelect }: EntregasListProps) {
         id: "status",
         label: "Status",
         responsive: "md" as const,
+        sortable: true,
+        sortType: "string",
+        sortAccessor: (row) => row.status,
         cellRender: (row) => {
           const statusCfg =
             DELIVERABLE_STATUS[row.status as keyof typeof DELIVERABLE_STATUS];
@@ -140,6 +146,9 @@ export function EntregasList({ deliverables, onSelect }: EntregasListProps) {
         id: "date",
         label: "Data",
         responsive: "xl" as const,
+        sortable: true,
+        sortType: "date",
+        sortAccessor: (row) => row.created_at,
         cellRender: (row) =>
           row.created_at ? (
             <span className="text-sm text-muted-foreground">
@@ -223,9 +232,11 @@ export function EntregasList({ deliverables, onSelect }: EntregasListProps) {
       columnDefs={columnDefs}
       data={deliverables}
       rowKey={(row) => row.id}
-      savedPrefs={prefs}
-      onPrefsChange={save}
+      savedPrefs={columnPrefs}
+      onPrefsChange={saveColumns}
       onPrefsReset={reset}
+      defaultSort={sortPref}
+      onSortChange={saveSort}
       onRowClick={onSelect}
       emptyMessage="Nenhuma entrega encontrada"
     />

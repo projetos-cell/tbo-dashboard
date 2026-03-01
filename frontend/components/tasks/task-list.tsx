@@ -24,7 +24,7 @@ interface TaskListProps {
 
 export function TaskList({ tasks, onSelect }: TaskListProps) {
   const updateTask = useUpdateTask();
-  const { prefs, save, reset } = useTablePreferences(TABLE_ID);
+  const { columnPrefs, sortPref, saveColumns, saveSort, reset } = useTablePreferences(TABLE_ID);
 
   const toggleComplete = useCallback(
     (task: TaskRow, e: React.MouseEvent) => {
@@ -67,6 +67,9 @@ export function TaskList({ tasks, onSelect }: TaskListProps) {
         id: "title",
         label: "Titulo",
         hideable: false,
+        sortable: true,
+        sortType: "string",
+        sortAccessor: (row) => row.title,
         cellRender: (row) => (
           <span className={row.is_completed ? "line-through opacity-60" : ""}>
             {row.title}
@@ -77,6 +80,9 @@ export function TaskList({ tasks, onSelect }: TaskListProps) {
         id: "status",
         label: "Status",
         responsive: "md" as const,
+        sortable: true,
+        sortType: "string",
+        sortAccessor: (row) => row.status,
         cellRender: (row) => {
           const statusCfg = TASK_STATUS[row.status as keyof typeof TASK_STATUS];
           return statusCfg ? (
@@ -94,6 +100,9 @@ export function TaskList({ tasks, onSelect }: TaskListProps) {
         id: "priority",
         label: "Prioridade",
         responsive: "md" as const,
+        sortable: true,
+        sortType: "string",
+        sortAccessor: (row) => row.priority,
         cellRender: (row) => {
           const priCfg = TASK_PRIORITY[row.priority as keyof typeof TASK_PRIORITY];
           return priCfg ? (
@@ -117,6 +126,9 @@ export function TaskList({ tasks, onSelect }: TaskListProps) {
         id: "due_date",
         label: "Prazo",
         responsive: "lg" as const,
+        sortable: true,
+        sortType: "date",
+        sortAccessor: (row) => row.due_date,
         cellRender: (row) => {
           const overdue =
             row.due_date &&
@@ -145,9 +157,11 @@ export function TaskList({ tasks, onSelect }: TaskListProps) {
       columnDefs={columnDefs}
       data={tasks}
       rowKey={(row) => row.id}
-      savedPrefs={prefs}
-      onPrefsChange={save}
+      savedPrefs={columnPrefs}
+      onPrefsChange={saveColumns}
       onPrefsReset={reset}
+      defaultSort={sortPref}
+      onSortChange={saveSort}
       onRowClick={onSelect}
       emptyMessage="Nenhuma tarefa encontrada"
     />

@@ -18,7 +18,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
-import { GripVertical, Eye, EyeOff, RotateCcw } from "lucide-react";
+import { GripVertical, Eye, EyeOff, RotateCcw, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Table,
@@ -37,8 +37,8 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import type { ColumnDef, ColumnPref } from "@/lib/column-types";
-import { applyColumnPrefs, extractColumnPrefs, responsiveClass } from "@/lib/column-types";
+import type { ColumnDef, ColumnPref, SortPref } from "@/lib/column-types";
+import { applyColumnPrefs, extractColumnPrefs, responsiveClass, getDefaultSortFn } from "@/lib/column-types";
 
 /* ------------------------------------------------------------------ */
 /* Sortable Header Cell                                                */
@@ -50,6 +50,9 @@ interface SortableHeaderProps {
   responsive?: "always" | "md" | "lg" | "xl";
   width?: string;
   reorderable?: boolean;
+  sortable?: boolean;
+  sortDirection?: "asc" | "desc" | null;
+  onSort?: () => void;
   headerRender?: () => React.ReactNode;
 }
 
@@ -59,6 +62,9 @@ function SortableHeader({
   responsive,
   width,
   reorderable = true,
+  sortable = false,
+  sortDirection = null,
+  onSort,
   headerRender,
 }: SortableHeaderProps) {
   const {
@@ -77,6 +83,8 @@ function SortableHeader({
     position: "relative" as const,
   };
 
+  const SortIcon = sortDirection === "asc" ? ArrowUp : sortDirection === "desc" ? ArrowDown : ArrowUpDown;
+
   return (
     <TableHead
       ref={setNodeRef}
@@ -94,7 +102,22 @@ function SortableHeader({
         {reorderable && (
           <GripVertical className="h-3 w-3 text-muted-foreground/50 shrink-0" />
         )}
-        {headerRender ? headerRender() : label}
+        {sortable ? (
+          <button
+            type="button"
+            className="flex items-center gap-1 hover:text-foreground transition-colors -m-1 p-1 rounded select-none"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSort?.();
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            {headerRender ? headerRender() : label}
+            <SortIcon className={cn("h-3.5 w-3.5 shrink-0", sortDirection ? "text-foreground" : "text-muted-foreground/50")} />
+          </button>
+        ) : (
+          headerRender ? headerRender() : label
+        )}
       </span>
     </TableHead>
   );
@@ -172,6 +195,10 @@ interface DataTableProps<T> {
   onPrefsChange?: (prefs: ColumnPref[]) => void;
   /** Called when reset is clicked */
   onPrefsReset?: () => void;
+  /** Initial sort state (from saved preferences) */
+  defaultSort?: SortPref | null;
+  /** Callback when sort changes (for persistence) */
+  onSortChange?: (sort: SortPref | null) => void;
   /** Whether to show the column visibility toggle */
   showColumnToggle?: boolean;
   /** Extra toolbar content (left side) */
@@ -194,6 +221,8 @@ export function DataTable<T>({
   savedPrefs,
   onPrefsChange,
   onPrefsReset,
+  defaultSort,
+  onSortChange,
   showColumnToggle = true,
   toolbar,
   emptyMessage = "Nenhum registro encontrado.",
@@ -206,10 +235,18 @@ export function DataTable<T>({
     applyColumnPrefs(columnDefs, savedPrefs ?? undefined)
   );
 
+  // Sort state
+  const [sortPref, setSortPref] = useState<SortPref | null>(defaultSort ?? null);
+
   // Re-apply when savedPrefs or defs change
   useEffect(() => {
     setColumns(applyColumnPrefs(columnDefs, savedPrefs ?? undefined));
   }, [columnDefs, savedPrefs]);
+
+  // Sync defaultSort from parent (e.g. when loaded from DB)
+  useEffect(() => {
+    setSortPref(defaultSort ?? null);
+  }, [defaultSort]);
 
   // Column IDs for sortable context
   const columnIds = useMemo(
@@ -222,6 +259,42 @@ export function DataTable<T>({
     () => columns.filter((c) => c.visible),
     [columns]
   );
+
+  // Sort handler: cycle asc → desc → none
+  const handleSort = useCallback(
+    (columnId: string) => {
+      setSortPref((prev) => {
+        let next: SortPref | null;
+        if (!prev || prev.columnId !== columnId) {
+          next = { columnId, direction: "asc" };
+        } else if (prev.direction === "asc") {
+          next = { columnId, direction: "desc" };
+        } else {
+          next = null;
+        }
+        onSortChange?.(next);
+        return next;
+      });
+    },
+    [onSortChange]
+  );
+
+  // Sorted data
+  const sortedData = useMemo(() => {
+    if (!sortPref) return data;
+    const col = columnDefs.find((c) => c.id === sortPref.columnId);
+    if (!col || !col.sortable) return data;
+
+    const dir = sortPref.direction === "asc" ? 1 : -1;
+
+    if (col.sortFn) {
+      return [...data].sort((a, b) => col.sortFn!(a, b) * dir);
+    }
+
+    const valueFn = col.sortAccessor ?? (() => undefined);
+    const cmp = getDefaultSortFn(col.sortType ?? "string");
+    return [...data].sort((a, b) => cmp(valueFn(a), valueFn(b)) * dir);
+  }, [data, sortPref, columnDefs]);
 
   // DnD sensors
   const sensors = useSensors(
@@ -308,6 +381,9 @@ export function DataTable<T>({
                       responsive={column.responsive}
                       width={column.width}
                       reorderable={column.reorderable !== false}
+                      sortable={column.sortable}
+                      sortDirection={sortPref?.columnId === column.id ? sortPref.direction : null}
+                      onSort={() => handleSort(column.id)}
                       headerRender={column.headerRender}
                     />
                   ))}
@@ -316,7 +392,7 @@ export function DataTable<T>({
             </TableHeader>
 
             <TableBody>
-              {data.length === 0 ? (
+              {sortedData.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={visibleColumns.length}
@@ -326,7 +402,7 @@ export function DataTable<T>({
                   </TableCell>
                 </TableRow>
               ) : (
-                data.map((row, rowIndex) => (
+                sortedData.map((row, rowIndex) => (
                   <TableRow
                     key={rowKey(row, rowIndex)}
                     className={cn(

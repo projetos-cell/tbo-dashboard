@@ -17,6 +17,14 @@ export interface ColumnDef<T = Record<string, unknown>> {
   hideable?: boolean;
   /** Whether this column can be reordered */
   reorderable?: boolean;
+  /** Whether this column supports click-to-sort */
+  sortable?: boolean;
+  /** Auto-comparator type (used when sortFn is not provided) */
+  sortType?: "string" | "number" | "date" | "boolean";
+  /** Extract a raw value from the row for sorting (bypasses cellRender) */
+  sortAccessor?: (row: T) => unknown;
+  /** Fully custom comparator (return negative/0/positive) */
+  sortFn?: (a: T, b: T) => number;
   /** Custom header render */
   headerRender?: () => ReactNode;
   /** Custom cell render */
@@ -37,12 +45,18 @@ export interface ColumnPref {
 /* Table preference record (matches user_table_preferences table)      */
 /* ------------------------------------------------------------------ */
 
+export interface SortPref {
+  columnId: string;
+  direction: "asc" | "desc";
+}
+
 export interface TablePreference {
   id: string;
   tenant_id: string;
   user_id: string;
   table_id: string;
   columns: ColumnPref[];
+  sort?: SortPref | null;
   created_at: string;
   updated_at: string;
 }
@@ -113,4 +127,28 @@ export function responsiveClass(responsive?: "always" | "md" | "lg" | "xl"): str
     default:
       return "";
   }
+}
+
+/**
+ * Build a comparator for two raw values based on the declared sortType.
+ */
+export function getDefaultSortFn(
+  sortType: "string" | "number" | "date" | "boolean" = "string"
+): (a: unknown, b: unknown) => number {
+  return (a, b) => {
+    if (a == null && b == null) return 0;
+    if (a == null) return 1;
+    if (b == null) return -1;
+
+    switch (sortType) {
+      case "number":
+        return Number(a) - Number(b);
+      case "date":
+        return new Date(a as string).getTime() - new Date(b as string).getTime();
+      case "boolean":
+        return (a ? 1 : 0) - (b ? 1 : 0);
+      default:
+        return String(a).localeCompare(String(b), "pt-BR", { sensitivity: "base" });
+    }
+  };
 }

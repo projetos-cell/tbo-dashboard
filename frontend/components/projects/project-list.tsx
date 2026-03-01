@@ -26,7 +26,7 @@ interface ProjectListProps {
 export function ProjectList({ projects }: ProjectListProps) {
   const deleteProject = useDeleteProject();
   const { toast } = useToast();
-  const { prefs, save, reset } = useTablePreferences(TABLE_ID);
+  const { columnPrefs, sortPref, saveColumns, saveSort, reset } = useTablePreferences(TABLE_ID);
 
   const handleDelete = useCallback(
     (project: Project) => {
@@ -59,6 +59,9 @@ export function ProjectList({ projects }: ProjectListProps) {
         id: "name",
         label: "Nome",
         hideable: false,
+        sortable: true,
+        sortType: "string",
+        sortAccessor: (row) => row.name,
         cellRender: (row) => (
           <Link
             href={`/projetos/${row.id}`}
@@ -72,6 +75,9 @@ export function ProjectList({ projects }: ProjectListProps) {
         id: "status",
         label: "Status",
         width: "w-[130px]",
+        sortable: true,
+        sortType: "string",
+        sortAccessor: (row) => row.status,
         cellRender: (row) => {
           const status =
             PROJECT_STATUS[row.status as ProjectStatusKey];
@@ -93,6 +99,9 @@ export function ProjectList({ projects }: ProjectListProps) {
         id: "construtora",
         label: "Construtora",
         responsive: "md" as const,
+        sortable: true,
+        sortType: "string",
+        sortAccessor: (row) => row.construtora,
         cellRender: (row) => (
           <span className="text-muted-foreground">
             {row.construtora || "\u2014"}
@@ -114,6 +123,9 @@ export function ProjectList({ projects }: ProjectListProps) {
         label: "Prazo",
         responsive: "lg" as const,
         width: "w-[110px]",
+        sortable: true,
+        sortType: "date",
+        sortAccessor: (row) => row.due_date_end,
         cellRender: (row) => (
           <span className="text-muted-foreground text-sm">
             {row.due_date_end
@@ -174,9 +186,11 @@ export function ProjectList({ projects }: ProjectListProps) {
       columnDefs={columnDefs}
       data={projects}
       rowKey={(row) => row.id}
-      savedPrefs={prefs}
-      onPrefsChange={save}
+      savedPrefs={columnPrefs}
+      onPrefsChange={saveColumns}
       onPrefsReset={reset}
+      defaultSort={sortPref}
+      onSortChange={saveSort}
       emptyMessage="Nenhum projeto encontrado."
     />
   );

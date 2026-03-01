@@ -19,7 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { UserSelector } from "@/components/ui/user-selector";
 import { useCreateObjective, useUpdateObjective } from "@/hooks/use-okrs";
+import { useProfiles } from "@/hooks/use-people";
 import { useAuthStore } from "@/stores/auth-store";
 import { useToast } from "@/hooks/use-toast";
 import { OKR_STATUS, OKR_LEVELS } from "@/lib/constants";
@@ -45,6 +47,7 @@ export function OkrObjectiveDialog({
   const userId = useAuthStore((s) => s.user?.id);
   const createObjective = useCreateObjective();
   const updateObjective = useUpdateObjective();
+  const { data: profiles } = useProfiles();
   const { toast } = useToast();
 
   const isEdit = !!objective;
@@ -193,12 +196,13 @@ export function OkrObjectiveDialog({
 
           {/* Owner */}
           <div>
-            <Label htmlFor="obj-owner">Responsável</Label>
-            <Input
-              id="obj-owner"
-              value={ownerId}
-              onChange={(e) => setOwnerId(e.target.value)}
-              placeholder="UUID do responsável (opcional)"
+            <Label>Responsável</Label>
+            <UserSelector
+              mode="single"
+              selected={ownerId || null}
+              onChange={(id) => setOwnerId(id ?? "")}
+              users={profiles ?? []}
+              placeholder="Selecionar responsável"
             />
           </div>
         </div>

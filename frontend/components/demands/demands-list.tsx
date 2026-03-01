@@ -44,7 +44,7 @@ interface DemandsListProps {
 export function DemandsList({ demands, onSelect }: DemandsListProps) {
   const updateDemand = useUpdateDemand();
   const deleteDemand = useDeleteDemand();
-  const { prefs, save, reset } = useTablePreferences(TABLE_ID);
+  const { columnPrefs, sortPref, saveColumns, saveSort, reset } = useTablePreferences(TABLE_ID);
 
   const handleStatusChange = useCallback(
     (demandId: string, status: string) => {
@@ -96,6 +96,9 @@ export function DemandsList({ demands, onSelect }: DemandsListProps) {
         id: "title",
         label: "Titulo",
         hideable: false,
+        sortable: true,
+        sortType: "string",
+        sortAccessor: (row) => row.title,
         cellRender: (row) => {
           const isDone =
             row.feito ||
@@ -125,6 +128,9 @@ export function DemandsList({ demands, onSelect }: DemandsListProps) {
         id: "status",
         label: "Status",
         responsive: "md" as const,
+        sortable: true,
+        sortType: "string",
+        sortAccessor: (row) => row.status,
         cellRender: (row) => {
           const statusCfg = DEMAND_STATUS[row.status];
           return statusCfg ? (
@@ -193,6 +199,9 @@ export function DemandsList({ demands, onSelect }: DemandsListProps) {
         id: "due_date",
         label: "Prazo",
         responsive: "lg" as const,
+        sortable: true,
+        sortType: "date",
+        sortAccessor: (row) => row.due_date,
         cellRender: (row) => {
           const isDone =
             row.feito ||
@@ -320,9 +329,11 @@ export function DemandsList({ demands, onSelect }: DemandsListProps) {
       columnDefs={columnDefs}
       data={demands}
       rowKey={(row) => row.id}
-      savedPrefs={prefs}
-      onPrefsChange={save}
+      savedPrefs={columnPrefs}
+      onPrefsChange={saveColumns}
       onPrefsReset={reset}
+      defaultSort={sortPref}
+      onSortChange={saveSort}
       onRowClick={onSelect}
       emptyMessage="Nenhuma demanda encontrada"
     />

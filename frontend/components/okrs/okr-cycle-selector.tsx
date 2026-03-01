@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar } from "lucide-react";
+import { Calendar, Plus } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { Database } from "@/lib/supabase/types";
 
 type CycleRow = Database["public"]["Tables"]["okr_cycles"]["Row"];
@@ -17,19 +18,21 @@ interface OkrCycleSelectorProps {
   cycles: CycleRow[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  onCreateCycle?: () => void;
 }
 
 export function OkrCycleSelector({
   cycles,
   selectedId,
   onSelect,
+  onCreateCycle,
 }: OkrCycleSelectorProps) {
   if (cycles.length === 0) {
     return (
-      <div className="text-muted-foreground flex items-center gap-2 text-sm">
-        <Calendar className="h-4 w-4" />
-        Nenhum ciclo cadastrado
-      </div>
+      <Button variant="outline" size="sm" onClick={onCreateCycle}>
+        <Plus className="h-4 w-4 mr-1" />
+        Criar primeiro ciclo
+      </Button>
     );
   }
 

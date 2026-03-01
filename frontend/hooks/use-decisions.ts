@@ -27,6 +27,7 @@ export function useDecisions() {
   return useQuery({
     queryKey: ["decisions", tenantId],
     queryFn: () => getDecisions(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -38,6 +39,7 @@ export function useDecision(id: string) {
   return useQuery({
     queryKey: ["decision", id],
     queryFn: () => getDecisionById(supabase, id, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!id,
   });
 }

@@ -315,7 +315,7 @@ function SystemHealthContent() {
 
 export default function SystemHealthPage() {
   return (
-    <RequireRole allowed={["admin"]} module="system-health">
+    <RequireRole allowed={["founder"]} module="system-health">
       <SystemHealthContent />
     </RequireRole>
   );

@@ -110,7 +110,7 @@ export default function RelatoriosPage() {
   }
 
   return (
-    <RequireRole allowed={["admin", "po"]} module="relatorios">
+    <RequireRole minRole="diretoria" module="relatorios">
       <div className="space-y-4">
         {/* Header */}
         <div>

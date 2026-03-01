@@ -768,7 +768,7 @@ import {
 
 export default function OkrsPage() {
   return (
-    <RequireRole allowed={["admin", "po", "member", "founder"]}>
+    <RequireRole minRole="colaborador">
       <OkrsContent />
     </RequireRole>
   );

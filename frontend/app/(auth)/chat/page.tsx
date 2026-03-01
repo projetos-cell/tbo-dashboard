@@ -19,7 +19,7 @@ function ChatContent() {
 
 export default function ChatPage() {
   return (
-    <RequireRole allowed={["admin", "po", "member", "cs", "freelancer"]}>
+    <RequireRole minRole="colaborador">
       <ChatContent />
     </RequireRole>
   );

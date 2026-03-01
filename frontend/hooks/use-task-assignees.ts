@@ -25,6 +25,7 @@ export function useTaskAssignees(taskId: string) {
   return useQuery({
     queryKey: ["task-assignees", taskId],
     queryFn: () => getAssignees(supabase, taskId, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!taskId,
   });
 }

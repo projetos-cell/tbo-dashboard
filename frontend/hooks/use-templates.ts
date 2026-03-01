@@ -20,6 +20,7 @@ export function useTemplates() {
   return useQuery({
     queryKey: ["templates"],
     queryFn: () => getTemplates(supabase),
+    staleTime: 1000 * 60 * 5,
   });
 }
 

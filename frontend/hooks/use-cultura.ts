@@ -28,6 +28,7 @@ export function useCulturaItems(category?: string) {
   return useQuery({
     queryKey: ["cultura-items", tenantId, category],
     queryFn: () => getCulturaItems(supabase, tenantId!, category),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -39,6 +40,7 @@ export function useCulturaItem(id: string) {
   return useQuery({
     queryKey: ["cultura-item", id],
     queryFn: () => getCulturaItem(supabase, id, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!id,
   });
 }
@@ -49,6 +51,7 @@ export function useCulturaVersions(itemId: string) {
   return useQuery({
     queryKey: ["cultura-versions", itemId],
     queryFn: () => getCulturaVersions(supabase, itemId),
+    staleTime: 1000 * 60 * 5,
     enabled: !!itemId,
   });
 }

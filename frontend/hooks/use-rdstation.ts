@@ -12,6 +12,7 @@ export function useRdSyncLogs() {
   return useQuery({
     queryKey: ["rd-sync-logs", tenantId],
     queryFn: () => getRdSyncLogs(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
     refetchInterval: 15_000,
   });
@@ -32,6 +33,7 @@ export function useRdConfig() {
   return useQuery({
     queryKey: ["rd-config", tenantId],
     queryFn: () => getRdConfig(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }

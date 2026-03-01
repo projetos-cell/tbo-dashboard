@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { useCulturaItem, useCulturaVersions } from "@/hooks/use-cultura";
 import { CULTURA_CATEGORIES, CULTURA_STATUS } from "@/lib/constants";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 interface CulturaItemDetailProps {
   itemId: string;
@@ -103,12 +104,12 @@ export function CulturaItemDetail({
           {item.content_html ? (
             <div
               className="prose prose-sm dark:prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: item.content_html }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(item.content_html) }}
             />
           ) : item.content ? (
             <div
               className="prose prose-sm dark:prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: item.content }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(item.content) }}
             />
           ) : (
             <p className="text-muted-foreground text-sm">

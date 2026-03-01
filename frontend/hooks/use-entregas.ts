@@ -26,6 +26,7 @@ export function useDeliverables() {
   return useQuery({
     queryKey: ["deliverables", tenantId],
     queryFn: () => getDeliverables(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }

@@ -22,6 +22,7 @@ export function useContracts(filters?: {
   return useQuery({
     queryKey: ["contracts", tenantId, filters],
     queryFn: () => getContracts(supabase, tenantId!, filters),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -33,6 +34,7 @@ export function useContract(id: string | undefined) {
   return useQuery({
     queryKey: ["contract", id],
     queryFn: () => getContractById(supabase, id!, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!id && !!tenantId,
   });
 }

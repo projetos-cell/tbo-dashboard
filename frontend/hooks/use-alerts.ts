@@ -21,6 +21,7 @@ export function useNotifications(filters?: {
   return useQuery({
     queryKey: ["notifications", userId, filters],
     queryFn: () => listNotifications(supabase, userId!, tenantId!, filters),
+    staleTime: 1000 * 60 * 5,
     enabled: !!userId && !!tenantId,
   });
 }

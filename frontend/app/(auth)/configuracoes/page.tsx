@@ -29,7 +29,7 @@ function SettingsContent() {
     tabParam && VALID_TABS.includes(tabParam) ? tabParam : "perfil";
   const [activeTab, setActiveTab] = useState<SettingsTabId>(initialTab);
   const role = useAuthStore((s) => s.role);
-  const isAdmin = role === "admin" || role === "founder" || role === "po";
+  const isAdmin = role === "founder" || role === "diretoria";
 
   return (
     <div className="space-y-6">
@@ -71,7 +71,7 @@ function SettingsContent() {
 
 export default function ConfiguracoesPage() {
   return (
-    <RequireRole allowed={["admin", "po", "member", "cs", "freelancer"]}>
+    <RequireRole minRole="colaborador">
       <SettingsContent />
     </RequireRole>
   );

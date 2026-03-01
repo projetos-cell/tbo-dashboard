@@ -30,3 +30,7 @@ _ul*
 
 # Supabase CLI temp
 supabase/.temp/
+
+# Claude Code local files
+CLAUDE.local.md
+.claude/projects/

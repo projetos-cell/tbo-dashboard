@@ -12,6 +12,7 @@ export function useFirefliesSyncLogs() {
   return useQuery({
     queryKey: ["fireflies-sync-logs", tenantId],
     queryFn: () => getFirefliesSyncLogs(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
     refetchInterval: 15_000,
   });
@@ -32,6 +33,7 @@ export function useFirefliesConfig() {
   return useQuery({
     queryKey: ["fireflies-config", tenantId],
     queryFn: () => getFirefliesConfig(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }

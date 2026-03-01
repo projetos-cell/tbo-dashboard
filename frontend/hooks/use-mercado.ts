@@ -32,6 +32,7 @@ export function useMarketResearch(filters?: {
   return useQuery({
     queryKey: ["market-research", tenantId, filters],
     queryFn: () => listResearch(supabase, tenantId!, filters),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -42,6 +43,7 @@ export function useMarketResearchById(id: string | null) {
   return useQuery({
     queryKey: ["market-research-detail", id],
     queryFn: () => getResearchById(supabase, id!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!id,
   });
 }
@@ -91,6 +93,7 @@ export function useMarketSources(researchId: string | null) {
   return useQuery({
     queryKey: ["market-sources", researchId],
     queryFn: () => listSources(supabase, researchId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!researchId,
   });
 }

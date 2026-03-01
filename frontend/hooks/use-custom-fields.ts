@@ -28,6 +28,7 @@ export function useFieldDefinitions(projectId: string) {
   return useQuery({
     queryKey: ["field-definitions", projectId],
     queryFn: () => getDefinitions(supabase, projectId, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!projectId,
   });
 }
@@ -39,6 +40,7 @@ export function useFieldValues(taskId: string) {
   return useQuery({
     queryKey: ["field-values", taskId],
     queryFn: () => getValues(supabase, taskId, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!taskId,
   });
 }

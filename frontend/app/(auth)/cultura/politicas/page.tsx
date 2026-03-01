@@ -24,7 +24,7 @@ export default function PoliticasPage() {
   const updateItem = useUpdateCulturaItem();
   const deleteItem = useDeleteCulturaItem();
   const { user, tenantId, role } = useAuthStore();
-  const canEdit = role === "admin" || role === "po";
+  const canEdit = role === "founder" || role === "diretoria";
 
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<CulturaRow | null>(null);

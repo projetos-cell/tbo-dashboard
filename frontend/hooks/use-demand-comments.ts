@@ -26,6 +26,7 @@ export function useDemandComments(demandId: string) {
   return useQuery({
     queryKey: ["demand-comments", demandId],
     queryFn: () => getDemandComments(supabase, demandId, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!demandId,
   });
 }

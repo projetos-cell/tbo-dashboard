@@ -16,19 +16,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Users } from "lucide-react";
 
 const ROLES = [
-  { value: "admin", label: "Admin" },
-  { value: "po", label: "PO" },
-  { value: "member", label: "Membro" },
-  { value: "cs", label: "CS" },
-  { value: "freelancer", label: "Freelancer" },
+  { value: "founder", label: "Founder" },
+  { value: "diretoria", label: "Diretoria" },
+  { value: "lider", label: "Lider" },
+  { value: "colaborador", label: "Colaborador" },
 ] as const;
 
 const ROLE_COLORS: Record<string, string> = {
-  admin: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-  po: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-  member: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  cs: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-  freelancer: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  founder: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  diretoria: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+  lider: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  colaborador: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
 };
 
 export function UserManagement() {
@@ -109,12 +107,12 @@ export function UserManagement() {
                       </Badge>
                     )}
                     {user.id === currentUserId ? (
-                      <Badge className={ROLE_COLORS[user.role ?? "member"]}>
+                      <Badge className={ROLE_COLORS[user.role ?? "colaborador"]}>
                         {ROLES.find((r) => r.value === user.role)?.label ?? user.role}
                       </Badge>
                     ) : (
                       <Select
-                        defaultValue={user.role ?? "member"}
+                        defaultValue={user.role ?? "colaborador"}
                         onValueChange={(role) =>
                           updateRole.mutate({ userId: user.id, role })
                         }

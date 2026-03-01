@@ -94,7 +94,7 @@ export function ProfileForm() {
             <p className="font-medium">{profile?.full_name ?? "Usuário"}</p>
             <p className="text-sm text-muted-foreground">{profile?.email}</p>
             <span className="inline-block mt-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary capitalize">
-              {role ?? profile?.role ?? "member"}
+              {role ?? profile?.role ?? "colaborador"}
             </span>
           </div>
         </CardContent>

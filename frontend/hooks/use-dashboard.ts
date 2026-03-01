@@ -16,6 +16,7 @@ export function useDashboard() {
   return useQuery({
     queryKey: ["dashboard", tenantId],
     queryFn: () => getDashboardData(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -36,6 +37,7 @@ export function useFounderDashboard() {
   return useQuery({
     queryKey: ["founder-dashboard", tenantId],
     queryFn: () => getFounderDashboardData(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
     refetchInterval: 5 * 60 * 1000, // refresh every 5 min
   });

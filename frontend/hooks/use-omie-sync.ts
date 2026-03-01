@@ -24,6 +24,7 @@ export function useOmieSyncLogs() {
   return useQuery({
     queryKey: ["omie-sync-logs", tenantId],
     queryFn: () => getOmieSyncLogs(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
     refetchInterval: 15_000, // polling a cada 15s para acompanhar sync em andamento
   });

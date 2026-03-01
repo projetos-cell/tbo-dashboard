@@ -52,6 +52,7 @@ export function usePayables(filters?: {
   return useQuery({
     queryKey: ["fin-payables", tenantId, filters],
     queryFn: () => listPayables(supabase, tenantId!, filters),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -103,6 +104,7 @@ export function useReceivables(filters?: {
   return useQuery({
     queryKey: ["fin-receivables", tenantId, filters],
     queryFn: () => listReceivables(supabase, tenantId!, filters),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -196,6 +198,7 @@ export function useVendors(search?: string) {
   return useQuery({
     queryKey: ["fin-vendors", tenantId, search],
     queryFn: () => listVendors(supabase, tenantId!, search),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -231,6 +234,7 @@ export function useFinClients(search?: string) {
   return useQuery({
     queryKey: ["fin-clients", tenantId, search],
     queryFn: () => listFinClients(supabase, tenantId!, search),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -268,6 +272,7 @@ export function useBankTransactions(filters?: { import_id?: string; match_status
   return useQuery({
     queryKey: ["bank-transactions", tenantId, filters],
     queryFn: () => listBankTransactions(supabase, tenantId!, filters),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -278,6 +283,7 @@ export function useBankImports() {
   return useQuery({
     queryKey: ["bank-imports", tenantId],
     queryFn: () => listBankImports(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -290,6 +296,7 @@ export function useReconciliationRules() {
   return useQuery({
     queryKey: ["reconciliation-rules", tenantId],
     queryFn: () => listReconciliationRules(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -336,6 +343,7 @@ export function useFinTransactions(filters?: { category_id?: string; type?: stri
   return useQuery({
     queryKey: ["fin-transactions", tenantId, filters],
     queryFn: () => listFinTransactions(supabase, tenantId!, filters),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -348,6 +356,7 @@ export function useMonthlyClosings() {
   return useQuery({
     queryKey: ["monthly-closings", tenantId],
     queryFn: () => listMonthlyClosings(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }

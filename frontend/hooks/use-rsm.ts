@@ -29,6 +29,7 @@ export function useRsmAccounts() {
   return useQuery({
     queryKey: ["rsm-accounts", tenantId],
     queryFn: () => listAccounts(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -45,6 +46,7 @@ export function useRsmPosts(filters?: {
   return useQuery({
     queryKey: ["rsm-posts", tenantId, filters],
     queryFn: () => listPosts(supabase, tenantId!, filters),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -92,6 +94,7 @@ export function useRsmIdeas(filters?: { status?: string }) {
   return useQuery({
     queryKey: ["rsm-ideas", tenantId, filters],
     queryFn: () => listIdeas(supabase, tenantId!, filters),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }

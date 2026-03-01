@@ -25,6 +25,7 @@ export function usePendingReviews() {
   return useQuery({
     queryKey: ["reviews", "pending", tenantId],
     queryFn: () => getPendingReviews(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -36,6 +37,7 @@ export function useInProgressReviews() {
   return useQuery({
     queryKey: ["reviews", "in-progress", tenantId],
     queryFn: () => getInProgressReviews(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -47,6 +49,7 @@ export function useCompletedReviews() {
   return useQuery({
     queryKey: ["reviews", "completed", tenantId],
     queryFn: () => getCompletedReviews(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -58,6 +61,7 @@ export function useReviewKpis() {
   return useQuery({
     queryKey: ["reviews", "kpis", tenantId],
     queryFn: () => getReviewKpis(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }

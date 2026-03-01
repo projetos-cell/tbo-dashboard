@@ -1,15 +1,20 @@
 "use client";
 
 import { useAuthStore } from "@/stores/auth-store";
-import { isAdmin as checkAdmin, isSuperAdmin } from "@/lib/permissions";
-import type { RoleSlug } from "@/lib/permissions";
+import {
+  isAdmin as checkAdmin,
+  isSuperAdmin,
+  hasMinRole,
+  hasPermission,
+} from "@/lib/permissions";
+import type { RoleSlug, PermissionKey } from "@/lib/permissions";
 
 /** Returns the current user's role slug (null while loading) */
 export function useRole(): RoleSlug | null {
   return useAuthStore((s) => s.role);
 }
 
-/** True if the current user is admin */
+/** True if the current user is founder (admin) */
 export function useIsAdmin(): boolean {
   const role = useAuthStore((s) => s.role);
   const email = useAuthStore((s) => s.user?.email);
@@ -27,4 +32,16 @@ export function useHasRole(allowed: RoleSlug[]): boolean {
   const role = useAuthStore((s) => s.role);
   if (!role) return false;
   return allowed.includes(role);
+}
+
+/** True if the current user's role meets the minimum required role in the hierarchy */
+export function useHasMinRole(minRole: RoleSlug): boolean {
+  const role = useAuthStore((s) => s.role);
+  return hasMinRole(role, minRole);
+}
+
+/** True if the current user has a specific granular permission */
+export function useHasPermission(permission: PermissionKey): boolean {
+  const role = useAuthStore((s) => s.role);
+  return hasPermission(role, permission);
 }

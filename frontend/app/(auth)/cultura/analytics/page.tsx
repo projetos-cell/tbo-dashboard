@@ -13,7 +13,7 @@ import {
 
 export default function CulturaAnalyticsPage() {
   return (
-    <RequireRole allowed={["admin", "po"]}>
+    <RequireRole minRole="diretoria">
       <AnalyticsContent />
     </RequireRole>
   );

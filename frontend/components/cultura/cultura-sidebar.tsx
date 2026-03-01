@@ -39,8 +39,8 @@ export function CulturaSidebar() {
         if (
           "founders_only" in item &&
           item.founders_only &&
-          role !== "admin" &&
-          role !== "po"
+          role !== "founder" &&
+          role !== "diretoria"
         ) {
           return null;
         }

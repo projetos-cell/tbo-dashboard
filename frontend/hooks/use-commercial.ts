@@ -26,6 +26,7 @@ export function useDeals(filters?: DealFilters) {
       const supabase = createClient();
       return getDeals(supabase, tenantId!, filters);
     },
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -37,6 +38,7 @@ export function useDeal(id: string | null) {
       const supabase = createClient();
       return getDealById(supabase, id!);
     },
+    staleTime: 1000 * 60 * 5,
     enabled: !!id,
   });
 }

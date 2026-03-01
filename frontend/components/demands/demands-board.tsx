@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -321,6 +321,31 @@ export function DemandsBoard({ demands, onSelect }: DemandsBoardProps) {
   const [localDemands, setLocalDemands] = useState(demands);
   const [activeDemand, setActiveDemand] = useState<DemandRow | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
+  const [undoStack, setUndoStack] = useState<DemandRow[][]>([]);
+
+  // Ctrl+Z undo handler
+  useEffect(() => {
+    function handleUndo(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && undoStack.length > 0) {
+        e.preventDefault();
+        const previous = undoStack[undoStack.length - 1];
+        setUndoStack((prev) => prev.slice(0, -1));
+        setLocalDemands(previous);
+        // Re-sync the reverted state to Supabase
+        for (const demand of previous) {
+          const current = localDemands.find((d) => d.id === demand.id);
+          if (current && current.status !== demand.status) {
+            updateDemand.mutate({
+              id: demand.id,
+              updates: { status: demand.status, feito: demand.feito },
+            });
+          }
+        }
+      }
+    }
+    window.addEventListener("keydown", handleUndo);
+    return () => window.removeEventListener("keydown", handleUndo);
+  }, [undoStack, localDemands, updateDemand]);
 
   // Sync from props when not mutating
   if (
@@ -354,6 +379,8 @@ export function DemandsBoard({ demands, onSelect }: DemandsBoardProps) {
   const handleStatusChange = useCallback(
     (demandId: string, newStatus: string) => {
       const feito = newStatus === "Concluido" || newStatus === "Concluido";
+      // Save previous state for undo
+      setUndoStack((prev) => [...prev.slice(-19), [...localDemands]]);
       setLocalDemands((prev) =>
         prev.map((d) =>
           d.id === demandId ? { ...d, status: newStatus, feito } : d
@@ -364,7 +391,7 @@ export function DemandsBoard({ demands, onSelect }: DemandsBoardProps) {
         updates: { status: newStatus, feito },
       });
     },
-    [updateDemand]
+    [updateDemand, localDemands]
   );
 
   const handlePriorityChange = useCallback(

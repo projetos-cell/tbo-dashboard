@@ -13,13 +13,13 @@ export interface UserRoleInfo {
 }
 
 /**
- * Fetch the authenticated user's role from `tenant_members` → `roles`.
+ * Fetch the authenticated user's role from `tenant_members` -> `roles`.
  *
- * Falls back to DEFAULT_ROLE ("member") when:
+ * Falls back to DEFAULT_ROLE ("colaborador") when:
  * - The query fails (no Supabase creds, network error)
  * - The user has no tenant_members record
  *
- * Super-admin emails are always promoted to "admin" regardless of DB value.
+ * Super-admin emails are always promoted to "founder" regardless of DB value.
  */
 export async function fetchUserRole(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -27,12 +27,12 @@ export async function fetchUserRole(
   userId: string,
   userEmail?: string | null
 ): Promise<UserRoleInfo> {
-  // Super-admin override — hardcoded emails always get admin
+  // Super-admin override -- hardcoded emails always get founder
   if (isSuperAdmin(userEmail)) {
     return {
-      roleSlug: "admin",
-      roleLabel: "Admin",
-      modules: getModulesForRole("admin"),
+      roleSlug: "founder",
+      roleLabel: "Founder",
+      modules: getModulesForRole("founder"),
     };
   }
 
@@ -73,32 +73,39 @@ export async function fetchUserRole(
 }
 
 /**
- * Map any DB role slug to one of the 5 frontend roles.
- * The DB has 18 specific slugs (e.g. "3d-artist", "design", "video-editor")
- * but the frontend groups them into broader categories.
+ * Map any DB role slug to one of the 4 frontend roles.
+ * Architecture: founder > diretoria > lider > colaborador
+ *
+ * The DB may have specific slugs (e.g. "3d-artist", "design", "video-editor")
+ * which map to the 4-tier hierarchy.
  */
 function mapDbSlugToRole(dbSlug: string): RoleSlug {
   const mapping: Record<string, RoleSlug> = {
     // Direct matches
-    admin: "admin",
-    founder: "admin",
-    po: "po",
-    manager: "po",
-    cs: "cs",
-    "customer-success": "cs",
-    guest: "freelancer",
-    freelancer: "freelancer",
-    // Specialist roles → member
-    member: "member",
-    design: "member",
-    "3d-artist": "member",
-    "video-editor": "member",
-    copywriter: "member",
-    developer: "member",
-    "social-media": "member",
-    "motion-designer": "member",
-    photographer: "member",
-    illustrator: "member",
+    founder: "founder",
+    admin: "founder",
+    diretoria: "diretoria",
+    director: "diretoria",
+    manager: "diretoria",
+    po: "lider",
+    lider: "lider",
+    lead: "lider",
+    cs: "lider",
+    "customer-success": "lider",
+    // Specialist roles -> colaborador
+    colaborador: "colaborador",
+    member: "colaborador",
+    design: "colaborador",
+    "3d-artist": "colaborador",
+    "video-editor": "colaborador",
+    copywriter: "colaborador",
+    developer: "colaborador",
+    "social-media": "colaborador",
+    "motion-designer": "colaborador",
+    photographer: "colaborador",
+    illustrator: "colaborador",
+    freelancer: "colaborador",
+    guest: "colaborador",
   };
 
   return mapping[dbSlug] ?? DEFAULT_ROLE;
@@ -107,7 +114,7 @@ function mapDbSlugToRole(dbSlug: string): RoleSlug {
 function buildDefault(): UserRoleInfo {
   return {
     roleSlug: DEFAULT_ROLE,
-    roleLabel: "Membro",
+    roleLabel: "Colaborador",
     modules: getModulesForRole(DEFAULT_ROLE),
   };
 }

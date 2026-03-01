@@ -19,6 +19,7 @@ export function useAuditLogs(filters?: {
   return useQuery({
     queryKey: ["audit-logs", tenantId, filters],
     queryFn: () => listAuditLogs(supabase, tenantId!, filters),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }

@@ -28,6 +28,7 @@ export function useRoles() {
   return useQuery({
     queryKey: ["roles", tenantId],
     queryFn: () => listRoles(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -38,6 +39,7 @@ export function useRolePermissions(roleId: string | null) {
   return useQuery({
     queryKey: ["role-permissions", roleId],
     queryFn: () => listRolePermissions(supabase, roleId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!roleId,
   });
 }

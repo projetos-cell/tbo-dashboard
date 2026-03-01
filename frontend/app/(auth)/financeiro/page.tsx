@@ -164,7 +164,7 @@ export default function FinanceiroPage() {
   }
 
   return (
-    <RequireRole allowed={["admin", "founder"]} module="financeiro">
+    <RequireRole minRole="diretoria" module="financeiro">
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">

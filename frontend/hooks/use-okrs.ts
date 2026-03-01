@@ -45,6 +45,7 @@ export function useCycles() {
   return useQuery({
     queryKey: ["okr-cycles", tenantId],
     queryFn: () => getCycles(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -56,6 +57,7 @@ export function useActiveCycle() {
   return useQuery({
     queryKey: ["okr-active-cycle", tenantId],
     queryFn: () => getActiveCycle(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -115,6 +117,7 @@ export function useObjectives(filters?: ObjectiveFilters) {
   return useQuery({
     queryKey: ["okr-objectives", tenantId, filters],
     queryFn: () => getObjectives(supabase, tenantId!, filters),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -166,6 +169,7 @@ export function useKeyResults(objectiveId: string | null) {
   return useQuery({
     queryKey: ["okr-key-results", tenantId, objectiveId],
     queryFn: () => getKeyResults(supabase, tenantId!, objectiveId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!objectiveId,
   });
 }
@@ -225,6 +229,7 @@ export function useCheckins(keyResultId: string | null) {
   return useQuery({
     queryKey: ["okr-checkins", keyResultId],
     queryFn: () => getCheckins(supabase, keyResultId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!keyResultId,
   });
 }
@@ -257,6 +262,7 @@ export function useOkrComments(params: {
   return useQuery({
     queryKey: ["okr-comments", params.objectiveId, params.keyResultId],
     queryFn: () => getComments(supabase, params),
+    staleTime: 1000 * 60 * 5,
     enabled,
   });
 }

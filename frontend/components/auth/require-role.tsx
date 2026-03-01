@@ -2,11 +2,14 @@
 
 import { useAuthStore } from "@/stores/auth-store";
 import type { RoleSlug } from "@/lib/permissions";
+import { hasMinRole } from "@/lib/permissions";
 import { ShieldAlert } from "lucide-react";
 
 interface RequireRoleProps {
-  /** Roles that can see this content */
+  /** Roles that can see this content (whitelist) */
   allowed?: RoleSlug[];
+  /** Minimum role in the hierarchy (founder > diretoria > lider > colaborador) */
+  minRole?: RoleSlug;
   /** Module slug required (uses the modules list from auth store) */
   module?: string;
   /** Custom fallback UI when access is denied */
@@ -21,9 +24,9 @@ function AccessDenied() {
       <div>
         <h2 className="text-lg font-semibold">Acesso restrito</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Você não tem permissão para acessar este módulo.
+          Voce nao tem permissao para acessar este modulo.
           <br />
-          Fale com um administrador caso precise de acesso.
+          Fale com o founder caso precise de acesso.
         </p>
       </div>
     </div>
@@ -34,10 +37,15 @@ function AccessDenied() {
  * Guard component that shows children only if the user has the required role
  * or module access. Shows a fallback (or default AccessDenied) otherwise.
  *
+ * Supports two modes:
+ * - `allowed`: whitelist of specific roles
+ * - `minRole`: minimum hierarchy level (uses ROLE_HIERARCHY)
+ *
  * While the role is still loading (null), renders nothing to avoid flash.
  */
 export function RequireRole({
   allowed,
+  minRole,
   module,
   fallback,
   children,
@@ -45,7 +53,7 @@ export function RequireRole({
   const role = useAuthStore((s) => s.role);
   const modules = useAuthStore((s) => s.modules);
 
-  // Still loading — show nothing to avoid flicker
+  // Still loading -- show nothing to avoid flicker
   if (role === null) {
     return null;
   }
@@ -54,6 +62,13 @@ export function RequireRole({
   if (module) {
     const hasModule = modules.includes("*") || modules.includes(module);
     if (!hasModule) {
+      return <>{fallback ?? <AccessDenied />}</>;
+    }
+  }
+
+  // Check minimum role in hierarchy
+  if (minRole) {
+    if (!hasMinRole(role, minRole)) {
       return <>{fallback ?? <AccessDenied />}</>;
     }
   }

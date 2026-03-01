@@ -29,6 +29,7 @@ export function useMeetings() {
   return useQuery({
     queryKey: ["meetings", tenantId],
     queryFn: () => getMeetings(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -40,6 +41,7 @@ export function useMeeting(id: string) {
   return useQuery({
     queryKey: ["meeting", id],
     queryFn: () => getMeetingById(supabase, id, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!id,
   });
 }
@@ -94,6 +96,7 @@ export function useMeetingParticipants(meetingId: string) {
   return useQuery({
     queryKey: ["meeting-participants", meetingId],
     queryFn: () => getMeetingParticipants(supabase, meetingId),
+    staleTime: 1000 * 60 * 5,
     enabled: !!meetingId,
   });
 }
@@ -104,6 +107,7 @@ export function useMeetingTranscription(meetingId: string) {
   return useQuery({
     queryKey: ["meeting-transcription", meetingId],
     queryFn: () => getMeetingTranscription(supabase, meetingId),
+    staleTime: 1000 * 60 * 5,
     enabled: !!meetingId,
   });
 }

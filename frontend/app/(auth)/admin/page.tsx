@@ -106,7 +106,7 @@ export default function AdminPage() {
   }
 
   return (
-    <RequireRole allowed={["admin"]} module="admin">
+    <RequireRole allowed={["founder"]} module="admin">
       <div className="space-y-6">
         {/* Header */}
         <div>

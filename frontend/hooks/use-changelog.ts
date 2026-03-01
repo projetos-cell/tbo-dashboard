@@ -20,6 +20,7 @@ export function useChangelog() {
   return useQuery({
     queryKey: ["changelog"],
     queryFn: () => getChangelogEntries(supabase),
+    staleTime: 1000 * 60 * 5,
   });
 }
 

@@ -24,6 +24,7 @@ export function useAttachments(filters?: { task_id?: string; project_id?: string
   return useQuery({
     queryKey: ["attachments", filters?.task_id, filters?.project_id],
     queryFn: () => getAttachments(supabase, tenantId!, filters),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }

@@ -408,7 +408,7 @@ function PermissoesContent() {
 
 export default function PermissoesPage() {
   return (
-    <RequireRole allowed={["admin"]} module="permissoes">
+    <RequireRole allowed={["founder"]} module="permissoes">
       <PermissoesContent />
     </RequireRole>
   );

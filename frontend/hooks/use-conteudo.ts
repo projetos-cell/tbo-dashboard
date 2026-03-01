@@ -20,6 +20,7 @@ export function usePages() {
   return useQuery({
     queryKey: ["pages", tenantId],
     queryFn: () => getPages(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -31,6 +32,7 @@ export function useSearchPages(query: string) {
   return useQuery({
     queryKey: ["pages", "search", tenantId, query],
     queryFn: () => searchPages(supabase, tenantId!, query),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && query.length >= 2,
   });
 }
@@ -42,6 +44,7 @@ export function usePageStats() {
   return useQuery({
     queryKey: ["pages", "stats", tenantId],
     queryFn: () => getPageStats(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }

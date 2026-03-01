@@ -17,6 +17,7 @@ export function usePeople(filters?: {
   return useQuery({
     queryKey: ["people", tenantId, filters],
     queryFn: () => getPeople(supabase, tenantId!, filters),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -28,6 +29,7 @@ export function usePerson(id: string | undefined) {
   return useQuery({
     queryKey: ["person", id],
     queryFn: () => getPersonById(supabase, id!, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!id && !!tenantId,
   });
 }
@@ -58,6 +60,7 @@ export function useTeams() {
   return useQuery({
     queryKey: ["teams", tenantId],
     queryFn: () => getTeams(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -70,6 +73,7 @@ export function useProfiles() {
   return useQuery({
     queryKey: ["profiles", tenantId],
     queryFn: () => getProfiles(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }

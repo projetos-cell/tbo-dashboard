@@ -19,6 +19,7 @@ export function useProfile() {
   return useQuery({
     queryKey: ["profile", userId],
     queryFn: () => getProfile(supabase, userId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!userId,
   });
 }
@@ -61,6 +62,7 @@ export function useUsers() {
   return useQuery({
     queryKey: ["users", tenantId],
     queryFn: () => getUsers(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -98,6 +100,7 @@ export function useAuditLogs(opts: {
         action: opts.action,
         entityType: opts.entityType,
       }),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }

@@ -26,6 +26,7 @@ export function useComments(taskId: string) {
   return useQuery({
     queryKey: ["comments", taskId],
     queryFn: () => getComments(supabase, taskId, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!taskId,
   });
 }

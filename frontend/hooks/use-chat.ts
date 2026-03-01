@@ -23,6 +23,7 @@ export function useChannels() {
   return useQuery({
     queryKey: ["chat-channels", tenantId],
     queryFn: () => getChannels(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
@@ -37,6 +38,7 @@ export function useMessages(channelId: string | null) {
   const query = useQuery({
     queryKey: ["chat-messages", channelId, tenantId],
     queryFn: () => getMessages(supabase, channelId!, tenantId!),
+    staleTime: 1000 * 60 * 5,
     enabled: !!channelId && !!tenantId,
   });
 

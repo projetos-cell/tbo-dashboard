@@ -204,7 +204,7 @@ function InteligenciaContent() {
 
 export default function InteligenciaPage() {
   return (
-    <RequireRole allowed={["admin", "po"]} module="inteligencia">
+    <RequireRole minRole="lider" module="intelligence">
       <InteligenciaContent />
     </RequireRole>
   );

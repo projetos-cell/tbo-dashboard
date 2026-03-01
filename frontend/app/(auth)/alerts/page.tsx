@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ErrorState } from "@/components/shared";
+import { ErrorState, EmptyState } from "@/components/shared";
 import {
   Select,
   SelectContent,
@@ -184,13 +184,11 @@ export default function AlertsPage() {
           ))}
         </div>
       ) : notifications.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
-          <Inbox className="mb-3 h-10 w-10 text-muted-foreground/50" />
-          <p className="text-sm font-medium">Nenhuma notificação</p>
-          <p className="text-xs text-muted-foreground">
-            Você está em dia! Nenhuma notificação para exibir.
-          </p>
-        </div>
+        <EmptyState
+          icon={Inbox}
+          title="Nenhuma notificação"
+          description="Você está em dia! Nenhuma notificação para exibir."
+        />
       ) : (
         <div className="space-y-2">
           {notifications.map((notification) => (

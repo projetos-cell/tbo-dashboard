@@ -7,7 +7,7 @@ import { PeopleFilters } from "@/components/people/people-filters";
 import { PersonCard } from "@/components/people/person-card";
 import { PersonDetail } from "@/components/people/person-detail";
 import { computePeopleKPIs } from "@/services/people";
-import { ErrorState } from "@/components/shared";
+import { ErrorState, EmptyState } from "@/components/shared";
 import type { Database } from "@/lib/supabase/types";
 import { Users } from "lucide-react";
 
@@ -65,13 +65,11 @@ export default function PessoasPage() {
           ))}
         </div>
       ) : people.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
-          <Users className="mb-3 h-10 w-10 text-muted-foreground/50" />
-          <p className="text-sm font-medium">Nenhuma pessoa encontrada</p>
-          <p className="text-xs text-muted-foreground">
-            Ajuste os filtros ou adicione novos membros à equipe.
-          </p>
-        </div>
+        <EmptyState
+          icon={Users}
+          title="Nenhuma pessoa encontrada"
+          description="Ajuste os filtros ou adicione novos membros à equipe."
+        />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {people.map((person) => (

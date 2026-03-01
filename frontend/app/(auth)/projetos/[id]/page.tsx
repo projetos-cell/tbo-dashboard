@@ -2,11 +2,10 @@
 
 import { use, useState } from "react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/shared";
 import { ProjectTopbar } from "@/components/projects/project-topbar";
 import { ProjectOverview } from "@/components/projects/tabs/project-overview";
 import { ProjectFiles } from "@/components/projects/tabs/project-files";
@@ -44,7 +43,7 @@ export default function ProjectDetailPage({
   const { id } = use(params);
 
   useUser();
-  const { data: project, isLoading, error } = useProject(id);
+  const { data: project, isLoading, error, refetch } = useProject(id);
   const { data: stats, isLoading: statsLoading } = useProjectStats(id);
   const { data: profiles } = useProfiles();
   const { data: demands } = useProjectDemands(id);
@@ -88,17 +87,10 @@ export default function ProjectDetailPage({
 
   if (error || !project) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <p className="text-destructive text-lg font-medium">
-          Projeto nao encontrado
-        </p>
-        <Link href="/projetos">
-          <Button variant="outline" className="mt-4">
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Voltar
-          </Button>
-        </Link>
-      </div>
+      <ErrorState
+        message={error?.message || "Projeto não encontrado"}
+        onRetry={() => refetch()}
+      />
     );
   }
 

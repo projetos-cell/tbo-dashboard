@@ -16,7 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CulturaOverviewStats } from "@/components/cultura/cultura-overview-stats";
 import { CulturaItemCard } from "@/components/cultura/cultura-item-card";
 import { CulturaItemDetail } from "@/components/cultura/cultura-item-detail";
-import { ErrorState } from "@/components/shared";
+import { ErrorState, EmptyState } from "@/components/shared";
 import { useCulturaItems } from "@/hooks/use-cultura";
 import {
   CULTURA_CATEGORIES,
@@ -127,12 +127,11 @@ export default function CulturaPage() {
       })}
 
       {!isLoading && (!items || items.length === 0) && (
-        <div className="text-center py-12 text-muted-foreground">
-          <p>Nenhum item de cultura cadastrado ainda.</p>
-          <p className="text-sm mt-1">
-            Comece adicionando pilares, rituais ou politicas.
-          </p>
-        </div>
+        <EmptyState
+          icon={Heart}
+          title="Nenhum item de cultura cadastrado ainda"
+          description="Comece adicionando pilares, rituais ou politicas."
+        />
       )}
     </div>
   );

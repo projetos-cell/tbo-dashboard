@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ErrorState } from "@/components/shared";
+import { ErrorState, EmptyState } from "@/components/shared";
 import {
   Select,
   SelectContent,
@@ -209,13 +209,11 @@ export default function AdminPage() {
             ))}
           </div>
         ) : logs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
-            <Shield className="mb-3 h-10 w-10 text-muted-foreground/50" />
-            <p className="text-sm font-medium">Nenhum registro encontrado</p>
-            <p className="text-xs text-muted-foreground">
-              Ajuste os filtros ou aguarde novas ações no sistema.
-            </p>
-          </div>
+          <EmptyState
+            icon={Shield}
+            title="Nenhum registro encontrado"
+            description="Ajuste os filtros ou aguarde novas ações no sistema."
+          />
         ) : (
           <div className="rounded-lg border">
             <Table>

@@ -73,6 +73,8 @@ export function useUpdateTask() {
   const supabase = createClient();
   const queryClient = useQueryClient();
 
+  type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
+
   return useMutation({
     mutationFn: ({
       id,
@@ -81,6 +83,35 @@ export function useUpdateTask() {
       id: string;
       updates: Database["public"]["Tables"]["os_tasks"]["Update"];
     }) => updateTask(supabase, id, updates),
+
+    onMutate: async (variables) => {
+      // Cancel in-flight queries so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({ queryKey: ["tasks"] });
+
+      // Snapshot current tasks data for rollback
+      const previousTasks = queryClient.getQueriesData<TaskRow[]>({ queryKey: ["tasks"] });
+
+      // Optimistically update all matching "tasks" caches
+      queryClient.setQueriesData<TaskRow[]>(
+        { queryKey: ["tasks"] },
+        (old) =>
+          old?.map((task) =>
+            task.id === variables.id ? { ...task, ...variables.updates } : task
+          )
+      );
+
+      return { previousTasks };
+    },
+
+    onError: (_err, _variables, context) => {
+      // Rollback to previous state on error
+      if (context?.previousTasks) {
+        for (const [queryKey, data] of context.previousTasks) {
+          queryClient.setQueryData(queryKey, data);
+        }
+      }
+    },
+
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["task"] });

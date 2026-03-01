@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { RequireRole } from "@/components/auth/require-role";
-import { ErrorState } from "@/components/shared";
+import { ErrorState, EmptyState } from "@/components/shared";
 import {
   usePortalAccess,
   useCreateAccess,
@@ -186,14 +186,11 @@ export default function PortalClientePage() {
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
-            <Users className="mb-3 h-10 w-10 text-muted-foreground/50" />
-            <p className="text-sm font-medium">Nenhum acesso configurado</p>
-            <p className="text-xs text-muted-foreground">
-              Adicione clientes ao portal para que possam acompanhar seus
-              projetos.
-            </p>
-          </div>
+          <EmptyState
+            icon={Users}
+            title="Nenhum acesso configurado"
+            description="Adicione clientes ao portal para que possam acompanhar seus projetos."
+          />
         ) : (
           <div className="rounded-lg border">
             <Table>

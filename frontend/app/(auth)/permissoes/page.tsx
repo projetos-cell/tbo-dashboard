@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/shared";
 import {
   Table,
   TableBody,
@@ -54,7 +55,7 @@ const PERMISSION_COLS = [
 
 function PermissoesContent() {
   const tenantId = useAuthStore((s) => s.tenantId);
-  const { data: roles = [], isLoading: rolesLoading } = useRoles();
+  const { data: roles = [], isLoading: rolesLoading, error: rolesError, refetch: rolesRefetch } = useRoles();
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newRoleName, setNewRoleName] = useState("");
@@ -123,6 +124,10 @@ function PermissoesContent() {
         if (selectedRoleId === roleId) setSelectedRoleId(null);
       },
     });
+  }
+
+  if (rolesError) {
+    return <ErrorState message={rolesError.message} onRetry={() => rolesRefetch()} />;
   }
 
   return (
@@ -199,11 +204,10 @@ function PermissoesContent() {
                   <button
                     key={role.id}
                     onClick={() => setSelectedRoleId(role.id)}
-                    className={`flex w-full items-center gap-3 rounded-md border px-3 py-2.5 text-left text-sm transition-colors hover:bg-accent ${
-                      selectedRoleId === role.id
-                        ? "border-primary bg-accent"
-                        : "border-transparent"
-                    }`}
+                    className={`flex w-full items-center gap-3 rounded-md border px-3 py-2.5 text-left text-sm transition-colors hover:bg-accent ${selectedRoleId === role.id
+                      ? "border-primary bg-accent"
+                      : "border-transparent"
+                      }`}
                   >
                     <span
                       className="h-2.5 w-2.5 shrink-0 rounded-full"

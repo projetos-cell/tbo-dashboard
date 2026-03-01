@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { RequireRole } from "@/components/auth/require-role";
+import { ErrorState } from "@/components/shared";
 import {
   usePortalAccess,
   useCreateAccess,
@@ -55,7 +56,7 @@ export default function PortalClientePage() {
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
 
-  const { data: accesses = [], isLoading, error } = usePortalAccess();
+  const { data: accesses = [], isLoading, error, refetch } = usePortalAccess();
   const createAccess = useCreateAccess();
   const updateAccess = useUpdateAccess();
   const deleteAccessMut = useDeleteAccess();
@@ -109,14 +110,7 @@ export default function PortalClientePage() {
   }
 
   if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <p className="text-destructive text-lg font-medium">
-          Erro ao carregar acessos do portal
-        </p>
-        <p className="text-sm text-muted-foreground mt-1">{error.message}</p>
-      </div>
-    );
+    return <ErrorState message={error.message} onRetry={() => refetch()} />;
   }
 
   return (
@@ -163,8 +157,8 @@ export default function PortalClientePage() {
               value={
                 kpis.lastLogin
                   ? format(new Date(kpis.lastLogin), "dd MMM yyyy, HH:mm", {
-                      locale: ptBR,
-                    })
+                    locale: ptBR,
+                  })
                   : "—"
               }
               isText
@@ -248,19 +242,19 @@ export default function PortalClientePage() {
                     <TableCell className="text-muted-foreground">
                       {access.last_login
                         ? format(
-                            new Date(access.last_login),
-                            "dd MMM yyyy, HH:mm",
-                            { locale: ptBR }
-                          )
+                          new Date(access.last_login),
+                          "dd MMM yyyy, HH:mm",
+                          { locale: ptBR }
+                        )
                         : "—"}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {access.created_at
                         ? format(
-                            new Date(access.created_at),
-                            "dd MMM yyyy",
-                            { locale: ptBR }
-                          )
+                          new Date(access.created_at),
+                          "dd MMM yyyy",
+                          { locale: ptBR }
+                        )
                         : "—"}
                     </TableCell>
                     <TableCell className="text-right">

@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/shared";
 import {
   Select,
   SelectContent,
@@ -62,7 +63,7 @@ export default function AlertsPage() {
     return Object.keys(f).length > 0 ? f : undefined;
   }, [typeFilter, readFilter]);
 
-  const { data: notifications = [], isLoading, error } = useNotifications(queryFilters);
+  const { data: notifications = [], isLoading, error, refetch } = useNotifications(queryFilters);
   const markRead = useMarkAsRead();
   const markAllRead = useMarkAllAsRead();
   const deleteNotif = useDeleteNotification();
@@ -91,14 +92,7 @@ export default function AlertsPage() {
   }
 
   if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <p className="text-destructive text-lg font-medium">
-          Erro ao carregar notificações
-        </p>
-        <p className="text-sm text-muted-foreground mt-1">{error.message}</p>
-      </div>
-    );
+    return <ErrorState message={error.message} onRetry={() => refetch()} />;
   }
 
   return (
@@ -256,17 +250,16 @@ function NotificationCard({
 
   const timeLabel = notification.created_at
     ? formatDistanceToNow(new Date(notification.created_at), {
-        locale: ptBR,
-        addSuffix: true,
-      })
+      locale: ptBR,
+      addSuffix: true,
+    })
     : "";
 
   return (
     <div
       onClick={onClick}
-      className={`group flex items-start gap-3 rounded-lg border p-4 transition-colors cursor-pointer hover:bg-muted/50 ${
-        !notification.read ? "bg-blue-50/50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-900" : ""
-      }`}
+      className={`group flex items-start gap-3 rounded-lg border p-4 transition-colors cursor-pointer hover:bg-muted/50 ${!notification.read ? "bg-blue-50/50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-900" : ""
+        }`}
     >
       {/* Unread dot */}
       <div className="mt-1.5 shrink-0">
@@ -281,9 +274,8 @@ function NotificationCard({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <p
-            className={`text-sm font-medium truncate ${
-              !notification.read ? "text-foreground" : "text-muted-foreground"
-            }`}
+            className={`text-sm font-medium truncate ${!notification.read ? "text-foreground" : "text-muted-foreground"
+              }`}
           >
             {notification.title}
           </p>

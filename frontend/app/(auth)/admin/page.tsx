@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/shared";
 import {
   Select,
   SelectContent,
@@ -84,7 +85,7 @@ export default function AdminPage() {
     return Object.keys(f).length > 0 ? f : undefined;
   }, [search, entityType, dateFrom, dateTo]);
 
-  const { data: logs = [], isLoading, error } = useAuditLogs(filters);
+  const { data: logs = [], isLoading, error, refetch } = useAuditLogs(filters);
 
   // KPIs from unfiltered logs
   const { data: allLogs = [] } = useAuditLogs();
@@ -95,14 +96,7 @@ export default function AdminPage() {
   }
 
   if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <p className="text-destructive text-lg font-medium">
-          Erro ao carregar logs de auditoria
-        </p>
-        <p className="text-sm text-muted-foreground mt-1">{error.message}</p>
-      </div>
-    );
+    return <ErrorState message={error.message} onRetry={() => refetch()} />;
   }
 
   return (
@@ -260,10 +254,10 @@ export default function AdminPage() {
                         <TableCell className="text-muted-foreground text-xs">
                           {log.created_at
                             ? format(
-                                new Date(log.created_at),
-                                "dd MMM yyyy, HH:mm",
-                                { locale: ptBR }
-                              )
+                              new Date(log.created_at),
+                              "dd MMM yyyy, HH:mm",
+                              { locale: ptBR }
+                            )
                             : "—"}
                         </TableCell>
                         <TableCell className="font-medium">

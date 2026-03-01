@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { LayoutGrid, List, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/shared";
 import { ProjectBoard } from "@/components/projects/project-board";
 import { ProjectList } from "@/components/projects/project-list";
 import { ProjectFilters } from "@/components/projects/project-filters";
@@ -20,7 +21,7 @@ export default function ProjetosPage() {
   // Initialize user/tenant
   useUser();
 
-  const { data: projects, isLoading, error } = useProjects();
+  const { data: projects, isLoading, error, refetch } = useProjects();
 
   // Filtered projects
   const filtered = useMemo(() => {
@@ -55,16 +56,7 @@ export default function ProjetosPage() {
   }, [projects]);
 
   if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <p className="text-destructive text-lg font-medium">
-          Erro ao carregar projetos
-        </p>
-        <p className="text-sm text-muted-foreground mt-1">
-          {error.message}
-        </p>
-      </div>
-    );
+    return <ErrorState message={error.message} onRetry={() => refetch()} />;
   }
 
   return (

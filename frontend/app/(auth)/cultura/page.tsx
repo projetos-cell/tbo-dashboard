@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CulturaOverviewStats } from "@/components/cultura/cultura-overview-stats";
 import { CulturaItemCard } from "@/components/cultura/cultura-item-card";
 import { CulturaItemDetail } from "@/components/cultura/cultura-item-detail";
+import { ErrorState } from "@/components/shared";
 import { useCulturaItems } from "@/hooks/use-cultura";
 import {
   CULTURA_CATEGORIES,
@@ -44,8 +45,12 @@ const CATEGORY_LINKS: Record<string, string> = {
 };
 
 export default function CulturaPage() {
-  const { data: items, isLoading } = useCulturaItems();
+  const { data: items, isLoading, error, refetch } = useCulturaItems();
   const [viewingId, setViewingId] = useState<string | null>(null);
+
+  if (error) {
+    return <ErrorState message={error.message} onRetry={() => refetch()} />;
+  }
 
   if (viewingId) {
     return (

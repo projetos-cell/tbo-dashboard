@@ -72,7 +72,7 @@ BEGIN
     SELECT COUNT(DISTINCT ap.id) AS cnt
     FROM active_people ap
     LEFT JOIN pdis pd ON pd.person_id = ap.id AND pd.tenant_id = p_tenant_id
-    WHERE ap.media_avaliacao IS NOT NULL AND ap.media_avaliacao < 60
+    WHERE (ap.media_avaliacao IS NOT NULL AND ap.media_avaliacao < 60)
        OR pd.status = 'Atrasado'
   ),
 
@@ -130,7 +130,7 @@ BEGIN
       -- person_tasks: person_id is already text
       SELECT person_id, COUNT(*) AS cnt
       FROM person_tasks
-      WHERE tenant_id = p_tenant_id::text
+      WHERE tenant_id = p_tenant_id
         AND (status IS NULL OR status NOT IN ('concluida', 'cancelada'))
       GROUP BY person_id
     ) combined

@@ -1721,6 +1721,122 @@ export type Database = {
           },
         ]
       }
+      policies: {
+        Row: {
+          id: string
+          tenant_id: string
+          title: string
+          slug: string
+          category: string
+          summary: string | null
+          content_md: string | null
+          image_url: string | null
+          status: string
+          version: number
+          effective_date: string | null
+          review_cycle_days: number | null
+          next_review_at: string | null
+          owner_user_id: string | null
+          created_by: string | null
+          updated_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          title: string
+          slug: string
+          category?: string
+          summary?: string | null
+          content_md?: string | null
+          image_url?: string | null
+          status?: string
+          version?: number
+          effective_date?: string | null
+          review_cycle_days?: number | null
+          next_review_at?: string | null
+          owner_user_id?: string | null
+          created_by?: string | null
+          updated_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          title?: string
+          slug?: string
+          category?: string
+          summary?: string | null
+          content_md?: string | null
+          image_url?: string | null
+          status?: string
+          version?: number
+          effective_date?: string | null
+          review_cycle_days?: number | null
+          next_review_at?: string | null
+          owner_user_id?: string | null
+          created_by?: string | null
+          updated_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policies_owner_user_id_fkey"
+            columns: ["owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_revisions: {
+        Row: {
+          id: string
+          policy_id: string
+          version: number
+          change_note: string | null
+          content_md: string | null
+          updated_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          policy_id: string
+          version: number
+          change_note?: string | null
+          content_md?: string | null
+          updated_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          policy_id?: string
+          version?: number
+          change_note?: string | null
+          content_md?: string | null
+          updated_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_revisions_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       culture_pages: {
         Row: {
           category: string | null
@@ -5529,6 +5645,51 @@ export type Database = {
           },
         ]
       }
+      pdis: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_updated_at: string | null
+          person_id: string
+          status: string
+          tenant_id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_updated_at?: string | null
+          person_id: string
+          status?: string
+          tenant_id: string
+          title?: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_updated_at?: string | null
+          person_id?: string
+          status?: string
+          tenant_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdis_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pdis_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       person_tasks: {
         Row: {
           assigned_by: string | null
@@ -8175,6 +8336,10 @@ export type Database = {
       get_user_tenant_ids: { Args: never; Returns: string[] }
       is_founder_or_admin: { Args: never; Returns: boolean }
       is_month_locked: { Args: { check_date: string }; Returns: boolean }
+      get_people_kpis: {
+        Args: { p_tenant_id: string }
+        Returns: Json
+      }
       log_audit_event: {
         Args: {
           p_action: string

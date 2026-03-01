@@ -5,7 +5,14 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
 import { logAuditTrail } from "@/lib/audit-trail";
 import type { Database } from "@/lib/supabase/types";
-import { getPeople, getPersonById, updatePerson, getTeams, getProfiles } from "@/services/people";
+import {
+  getPeople,
+  getPersonById,
+  updatePerson,
+  getTeams,
+  getProfiles,
+  getPeopleKPIs,
+} from "@/services/people";
 
 export function usePeople(filters?: {
   status?: string;
@@ -49,6 +56,7 @@ export function useUpdatePerson() {
     }) => updatePerson(supabase, id, updates),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["people"] });
+      queryClient.invalidateQueries({ queryKey: ["people-kpis"] });
       queryClient.invalidateQueries({ queryKey: ["person"] });
 
       const action = variables.updates.role ? "permission_change" : "update";
@@ -70,6 +78,19 @@ export function useTeams() {
   return useQuery({
     queryKey: ["teams", tenantId],
     queryFn: () => getTeams(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
+    enabled: !!tenantId,
+  });
+}
+
+/** 8 fixed KPIs computed server-side via RPC */
+export function usePeopleKPIs() {
+  const supabase = createClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery({
+    queryKey: ["people-kpis", tenantId],
+    queryFn: () => getPeopleKPIs(supabase, tenantId!),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });

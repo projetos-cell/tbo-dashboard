@@ -98,6 +98,67 @@ export async function getProfiles(
   return (data ?? []) as Pick<ProfileRow, "id" | "full_name" | "avatar_url" | "email">[];
 }
 
+// ---------------------------------------------------------------------------
+// V2 KPIs — 8 fixed KPIs computed server-side via RPC
+// ---------------------------------------------------------------------------
+
+export interface PeopleKPIsV2 {
+  total: number;
+  active: number;
+  onboarding: number;
+  at_risk: number;
+  pending_1on1: number;
+  stale_pdi: number;
+  month_recognitions: number;
+  overloaded: number;
+}
+
+const EMPTY_KPIS: PeopleKPIsV2 = {
+  total: 0,
+  active: 0,
+  onboarding: 0,
+  at_risk: 0,
+  pending_1on1: 0,
+  stale_pdi: 0,
+  month_recognitions: 0,
+  overloaded: 0,
+};
+
+export async function getPeopleKPIs(
+  supabase: SupabaseClient<Database>,
+  tenantId: string
+): Promise<PeopleKPIsV2> {
+  const { data, error } = await supabase.rpc(
+    "get_people_kpis" as never,
+    { p_tenant_id: tenantId } as never
+  );
+
+  if (error) {
+    console.warn("[getPeopleKPIs] RPC failed, using fallback:", error.message);
+    return { ...EMPTY_KPIS };
+  }
+
+  const raw = (typeof data === "string" ? JSON.parse(data) : data) as Record<
+    string,
+    number
+  >;
+
+  return {
+    total: raw.total ?? 0,
+    active: raw.active ?? 0,
+    onboarding: raw.onboarding ?? 0,
+    at_risk: raw.at_risk ?? 0,
+    pending_1on1: raw.pending_1on1 ?? 0,
+    stale_pdi: raw.stale_pdi ?? 0,
+    month_recognitions: raw.month_recognitions ?? 0,
+    overloaded: raw.overloaded ?? 0,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Legacy V1 KPIs (kept for backward compatibility)
+// ---------------------------------------------------------------------------
+
 export function computePeopleKPIs(people: ProfileRow[]): PeopleKPIs {
   const active = people.filter((p) => p.status === "active" || p.is_active);
   const onVacation = people.filter((p) => p.status === "vacation");

@@ -1,35 +1,102 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { usePeople } from "@/hooks/use-people";
-import { PeopleKPICards } from "@/components/people/people-kpis";
+import { useRouter } from "next/navigation";
+import { usePeople, usePeopleKPIs } from "@/hooks/use-people";
+import {
+  PeopleKPICardsV2,
+  type PeopleKPIKey,
+} from "@/components/people/people-kpis-v2";
 import { PeopleFilters } from "@/components/people/people-filters";
 import { PersonCard } from "@/components/people/person-card";
 import { PersonDetail } from "@/components/people/person-detail";
-import { computePeopleKPIs } from "@/services/people";
 import { ErrorState, EmptyState } from "@/components/shared";
 import type { Database } from "@/lib/supabase/types";
 import { Users } from "lucide-react";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
+/** Map KPI keys that can directly filter the people list to a status string */
+const KPI_STATUS_MAP: Partial<Record<PeopleKPIKey, string>> = {
+  active: "active",
+  onboarding: "onboarding",
+};
+
 export default function PessoasPage() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [activeKPI, setActiveKPI] = useState<PeopleKPIKey | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<ProfileRow | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
+  // Derive the effective status filter from activeKPI or manual filter
+  const effectiveStatus = useMemo(() => {
+    if (activeKPI && activeKPI in KPI_STATUS_MAP) {
+      return KPI_STATUS_MAP[activeKPI];
+    }
+    return statusFilter || undefined;
+  }, [activeKPI, statusFilter]);
+
   const { data: people = [], isLoading, error, refetch } = usePeople({
-    status: statusFilter || undefined,
+    status: effectiveStatus,
     search: search || undefined,
   });
 
-  const kpis = useMemo(() => computePeopleKPIs(people), [people]);
+  const { data: kpis, isLoading: kpisLoading } = usePeopleKPIs();
+
+  function handleKPIClick(key: PeopleKPIKey) {
+    // Toggle: clicking same KPI deselects it
+    if (activeKPI === key) {
+      setActiveKPI(null);
+      return;
+    }
+
+    // "total" clears all filters (shows everyone)
+    if (key === "total") {
+      setActiveKPI("total");
+      setStatusFilter("");
+      return;
+    }
+
+    // Reconhecimentos navigates to the subpage
+    if (key === "month_recognitions") {
+      router.push("/pessoas/reconhecimentos");
+      return;
+    }
+
+    // KPIs with direct status mapping filter the list
+    if (key in KPI_STATUS_MAP) {
+      setActiveKPI(key);
+      setStatusFilter(""); // Clear manual filter; effectiveStatus handles it
+      return;
+    }
+
+    // Complex KPIs (at_risk, pending_1on1, stale_pdi, overloaded)
+    // — visual selection only for now; server-side filtering in a future phase
+    setActiveKPI(key);
+  }
+
+  function handleStatusChange(status: string) {
+    setStatusFilter(status);
+    setActiveKPI(null); // Clear KPI selection when user manually filters
+  }
 
   function handleSelectPerson(person: ProfileRow) {
     setSelectedPerson(person);
     setDetailOpen(true);
   }
+
+  const emptyKpis = {
+    total: 0,
+    active: 0,
+    onboarding: 0,
+    at_risk: 0,
+    pending_1on1: 0,
+    stale_pdi: 0,
+    month_recognitions: 0,
+    overloaded: 0,
+  };
 
   return (
     <div className="space-y-6">
@@ -41,15 +108,20 @@ export default function PessoasPage() {
         </p>
       </div>
 
-      {/* KPIs */}
-      <PeopleKPICards kpis={kpis} />
+      {/* KPIs — 2 rows × 4 columns */}
+      <PeopleKPICardsV2
+        kpis={kpis ?? emptyKpis}
+        activeKPI={activeKPI}
+        onKPIClick={handleKPIClick}
+        isLoading={kpisLoading}
+      />
 
       {/* Filters */}
       <PeopleFilters
         search={search}
         onSearchChange={setSearch}
         statusFilter={statusFilter}
-        onStatusChange={setStatusFilter}
+        onStatusChange={handleStatusChange}
       />
 
       {/* People Grid */}

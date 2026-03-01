@@ -1,0 +1,44 @@
+{
+    "executions": [
+        {
+            "id": "qa-run-001",
+            "date": "2026-02-28",
+            "branch": "main",
+            "block": "Initial",
+            "score_before": 43,
+            "score_after": 58,
+            "delta": 15,
+            "fixes_applied": 34,
+            "files_changed": 78,
+            "tsc_errors": 0,
+            "status": "completed"
+        },
+        {
+            "id": "qa-run-002",
+            "date": "2026-03-01",
+            "branch": "qa-auto-2026-02-28-2329",
+            "block": "Bloco 1 - Desbloqueio",
+            "score_before": 58,
+            "score_after": 66,
+            "delta": 8,
+            "fixes_applied": 9,
+            "files_changed": 7,
+            "tsc_errors": 0,
+            "corrections": [
+                "logAuditTrail was not dead code - already wired in 8 hooks",
+                "aria-labels were not missing - all icon buttons already had them",
+                "motion.ts was created in run-001 but framer-motion was never installed"
+            ],
+            "actual_fixes": [
+                "ErrorState adopted in 6 pages (projetos, alerts, admin, permissoes, portal-cliente, cultura)",
+                "Deleted dead lib/motion.ts (framer-motion not in package.json)",
+                "QA report corrected with accurate findings"
+            ],
+            "status": "completed"
+        }
+    ],
+    "current_score": 66,
+    "target_score": 85,
+    "next_block": "Bloco 2 - Estrutural",
+    "remaining_fixes": 162
+}

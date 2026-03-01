@@ -45,6 +45,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { RequireRole } from "@/components/auth/require-role";
+import { ErrorState } from "@/components/shared";
 import { OkrCycleSelector } from "@/components/okrs/okr-cycle-selector";
 import { OkrKpis } from "@/components/okrs/okr-kpis";
 import { OkrFilters } from "@/components/okrs/okr-filters";
@@ -185,7 +186,7 @@ function OkrKeyResultList({
   onHistoryKr: (kr: KeyResultRow) => void;
   onAddKr: (objectiveId: string) => void;
 }) {
-  const { data: keyResults, isLoading } = useKeyResults(objectiveId);
+  const { data: keyResults, isLoading, error, refetch } = useKeyResults(objectiveId);
 
   if (isLoading) {
     return (
@@ -194,6 +195,10 @@ function OkrKeyResultList({
         <Skeleton className="h-14 w-full rounded-lg" />
       </div>
     );
+  }
+
+  if (error) {
+    return <ErrorState message={error.message} onRetry={() => refetch()} />;
   }
 
   return (
@@ -377,7 +382,7 @@ function ObjectiveCard({
 function OkrsContent() {
   const { toast } = useToast();
   const userId = useAuthStore((s) => s.user?.id);
-  const { data: cycles, isLoading: loadingCycles } = useCycles();
+  const { data: cycles, isLoading: loadingCycles, error: cyclesError, refetch: refetchCycles } = useCycles();
   const { data: activeCycle } = useActiveCycle();
   const deleteObjective = useDeleteObjective();
   const deleteKeyResult = useDeleteKeyResult();
@@ -418,7 +423,7 @@ function OkrsContent() {
   // Filters for "Meus OKRs" tab
   const ownerFilter = viewTab === "mine" ? userId : undefined;
 
-  const { data: objectives, isLoading: loadingObjs } = useObjectives({
+  const { data: objectives, isLoading: loadingObjs, error: objsError, refetch: refetchObjs } = useObjectives({
     cycleId: effectiveCycleId ?? undefined,
     status: statusFilter || undefined,
     level: levelFilter || undefined,
@@ -491,6 +496,10 @@ function OkrsContent() {
         </div>
       </div>
     );
+  }
+
+  if (cyclesError) {
+    return <ErrorState message={cyclesError.message} onRetry={() => refetchCycles()} />;
   }
 
   return (
@@ -611,6 +620,8 @@ function OkrsContent() {
                 <Skeleton key={i} className="h-20 w-full rounded-lg" />
               ))}
             </div>
+          ) : objsError ? (
+            <ErrorState message={objsError.message} onRetry={() => refetchObjs()} />
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <Target className="h-12 w-12 text-muted-foreground/40 mb-3" />

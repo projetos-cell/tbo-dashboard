@@ -11,6 +11,7 @@ import {
   updateRole,
   deleteRole,
 } from "@/services/permissions";
+import { logAuditTrail } from "@/lib/audit-trail";
 import type { Database } from "@/lib/supabase/types";
 
 function useSupabase() {
@@ -56,8 +57,16 @@ export function useUpdateRolePermission() {
       id: string;
       updates: Partial<Database["public"]["Tables"]["role_permissions"]["Row"]>;
     }) => updateRolePermission(supabase, id, updates),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["role-permissions"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "permission_change",
+        table: "role_permissions",
+        recordId: variables.id,
+        after: variables.updates as Record<string, unknown>,
+      });
     },
   });
 }
@@ -69,8 +78,16 @@ export function useCreateRole() {
   return useMutation({
     mutationFn: (role: Database["public"]["Tables"]["roles"]["Insert"]) =>
       createRole(supabase, role),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["roles"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "create",
+        table: "roles",
+        recordId: (data as Record<string, unknown>)?.id as string ?? "unknown",
+        after: variables as unknown as Record<string, unknown>,
+      });
     },
   });
 }
@@ -87,8 +104,16 @@ export function useUpdateRole() {
       id: string;
       updates: Partial<Database["public"]["Tables"]["roles"]["Row"]>;
     }) => updateRole(supabase, id, updates),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["roles"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "permission_change",
+        table: "roles",
+        recordId: variables.id,
+        after: variables.updates as Record<string, unknown>,
+      });
     },
   });
 }
@@ -99,8 +124,16 @@ export function useDeleteRole() {
 
   return useMutation({
     mutationFn: (id: string) => deleteRole(supabase, id),
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ["roles"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "delete",
+        table: "roles",
+        recordId: id,
+        before: { id },
+      });
     },
   });
 }

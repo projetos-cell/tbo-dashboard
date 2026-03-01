@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
+import { logAuditTrail } from "@/lib/audit-trail";
 import type { Database } from "@/lib/supabase/types";
 import {
   getTasks,
@@ -80,10 +81,19 @@ export function useUpdateTask() {
       id: string;
       updates: Database["public"]["Tables"]["os_tasks"]["Update"];
     }) => updateTask(supabase, id, updates),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["task"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+
+      const action = variables.updates.status ? "status_change" : "update";
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action,
+        table: "tasks",
+        recordId: variables.id,
+        after: variables.updates as Record<string, unknown>,
+      });
     },
   });
 }
@@ -94,9 +104,17 @@ export function useDeleteTask() {
 
   return useMutation({
     mutationFn: (id: string) => deleteTask(supabase, id),
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "delete",
+        table: "tasks",
+        recordId: id,
+        before: { id },
+      });
     },
   });
 }

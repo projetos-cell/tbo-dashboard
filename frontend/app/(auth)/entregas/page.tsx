@@ -16,6 +16,7 @@ import { EntregasKPIs as EntregasKpis } from "@/components/entregas/entregas-kpi
 import { EntregasList } from "@/components/entregas/entregas-list";
 import { EntregasDetail } from "@/components/entregas/entregas-detail";
 import { useDeliverables } from "@/hooks/use-entregas";
+import { ErrorState } from "@/components/shared";
 import { DELIVERABLE_STATUS, DELIVERABLE_TYPES } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 
@@ -29,7 +30,7 @@ export default function EntregasPage() {
     useState<DeliverableRow | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
-  const { data: deliverables = [], isLoading } = useDeliverables();
+  const { data: deliverables = [], isLoading, error, refetch } = useDeliverables();
 
   const filtered = useMemo(() => {
     let result = deliverables;
@@ -140,6 +141,8 @@ export default function EntregasPage() {
             <Skeleton key={i} className="h-12 w-full rounded-lg" />
           ))}
         </div>
+      ) : error ? (
+        <ErrorState message={error.message} onRetry={() => refetch()} />
       ) : (
         <EntregasList deliverables={filtered} onSelect={handleSelect} />
       )}

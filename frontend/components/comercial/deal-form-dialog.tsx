@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { z } from "zod";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,23 @@ import { useCreateDeal, useUpdateDeal } from "@/hooks/use-commercial";
 import type { Database } from "@/lib/supabase/types";
 
 type DealRow = Database["public"]["Tables"]["crm_deals"]["Row"];
+
+const dealSchema = z.object({
+  name: z.string().min(1, "Nome do deal e obrigatorio"),
+  company: z.string().optional(),
+  contact: z.string().optional(),
+  contact_email: z.string().email("Email invalido").optional().or(z.literal("")),
+  stage: z.string().min(1),
+  value: z.string().optional(),
+  probability: z.string().optional(),
+  expected_close: z.string().optional(),
+  owner_name: z.string().optional(),
+  source: z.string().optional(),
+  priority: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+type DealFormData = z.infer<typeof dealSchema>;
 
 interface DealFormDialogProps {
   open: boolean;
@@ -56,6 +74,7 @@ export function DealFormDialog({
   const createDeal = useCreateDeal();
   const updateDeal = useUpdateDeal();
   const [form, setForm] = useState(emptyForm);
+  const [errors, setErrors] = useState<Partial<Record<keyof DealFormData, string>>>({});
 
   const isEditing = !!deal;
 
@@ -78,15 +97,28 @@ export function DealFormDialog({
     } else {
       setForm(emptyForm);
     }
+    setErrors({});
   }, [deal, open]);
 
   function handleChange(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: undefined }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!tenantId || !form.name.trim()) return;
+    const result = dealSchema.safeParse(form);
+    if (!result.success) {
+      const fieldErrors: Partial<Record<keyof DealFormData, string>> = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof DealFormData;
+        if (!fieldErrors[field]) fieldErrors[field] = issue.message;
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+    setErrors({});
+    if (!tenantId) return;
 
     const payload = {
       name: form.name.trim(),
@@ -132,6 +164,9 @@ export function DealFormDialog({
               onChange={(e) => handleChange("name", e.target.value)}
               required
             />
+            {errors.name && (
+              <p className="text-xs text-destructive">{errors.name}</p>
+            )}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -162,6 +197,9 @@ export function DealFormDialog({
                 value={form.contact_email}
                 onChange={(e) => handleChange("contact_email", e.target.value)}
               />
+              {errors.contact_email && (
+                <p className="text-xs text-destructive">{errors.contact_email}</p>
+              )}
             </div>
           </div>
 

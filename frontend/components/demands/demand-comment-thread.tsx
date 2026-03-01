@@ -142,6 +142,7 @@ function CommentComposer({
         className="size-8 shrink-0"
         onClick={handleSubmit}
         disabled={!content.trim() || submitting || disabled}
+        aria-label="Enviar comentario"
       >
         <Send className="size-3.5" />
       </Button>
@@ -213,6 +214,7 @@ function CommentItem({
                   variant="ghost"
                   size="icon"
                   className="size-6 ml-auto"
+                  aria-label="Acoes"
                 >
                   <MoreHorizontal className="size-3.5" />
                 </Button>

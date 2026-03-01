@@ -9,6 +9,7 @@ import { DealDetailDialog } from "@/components/comercial/deal-detail-dialog";
 import { DealFormDialog } from "@/components/comercial/deal-form-dialog";
 import { computeDealKPIs } from "@/services/commercial";
 import { RequireRole } from "@/components/auth/require-role";
+import { ErrorState } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import type { Database } from "@/lib/supabase/types";
@@ -23,7 +24,7 @@ export default function ComercialPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<DealRow | null>(null);
 
-  const { data: deals = [], isLoading } = useDeals({
+  const { data: deals = [], isLoading, error, refetch } = useDeals({
     stage: stageFilter || undefined,
     search: search || undefined,
   });
@@ -50,6 +51,14 @@ export default function ComercialPage() {
 
   function handleStageDrop(dealId: string, newStage: string) {
     updateStage.mutate({ id: dealId, stage: newStage });
+  }
+
+  if (error) {
+    return (
+      <RequireRole module="comercial">
+        <ErrorState message={error.message} onRetry={() => refetch()} />
+      </RequireRole>
+    );
   }
 
   return (

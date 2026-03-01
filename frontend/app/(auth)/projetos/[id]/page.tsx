@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,9 +9,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProjectTopbar } from "@/components/projects/project-topbar";
 import { ProjectOverview } from "@/components/projects/tabs/project-overview";
-import { ProjectGantt } from "@/components/projects/tabs/project-gantt";
 import { ProjectFiles } from "@/components/projects/tabs/project-files";
 import { ProjectActivityTab } from "@/components/projects/tabs/project-activity";
+
+// Heavy: frappe-gantt library — lazy load with SSR disabled
+const ProjectGantt = dynamic(
+  () => import("@/components/projects/tabs/project-gantt").then((m) => ({ default: m.ProjectGantt })),
+  {
+    ssr: false,
+    loading: () => <div className="h-64 animate-pulse rounded-lg bg-muted" />,
+  }
+);
 import { DemandsList } from "@/components/demands/demands-list";
 import { DemandsBoard } from "@/components/demands/demands-board";
 import { DemandDetail } from "@/components/demands/demand-detail";

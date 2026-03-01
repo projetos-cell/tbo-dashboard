@@ -20,6 +20,7 @@ import {
   useUpdateChangelog,
   useDeleteChangelog,
 } from "@/hooks/use-changelog";
+import { ErrorState } from "@/components/shared";
 import {
   CHANGELOG_TAGS,
   NAV_ITEMS,
@@ -36,7 +37,7 @@ export default function ChangelogPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<ChangelogRow | null>(null);
 
-  const { data: entries = [], isLoading } = useChangelog();
+  const { data: entries = [], isLoading, error, refetch } = useChangelog();
   const createChangelog = useCreateChangelog();
   const updateChangelog = useUpdateChangelog();
   const deleteChangelog = useDeleteChangelog();
@@ -107,6 +108,10 @@ export default function ChangelogPage() {
     });
     return Array.from(set);
   }, [entries]);
+
+  if (error) {
+    return <ErrorState message={error.message} onRetry={() => refetch()} />;
+  }
 
   return (
     <div className="space-y-6">

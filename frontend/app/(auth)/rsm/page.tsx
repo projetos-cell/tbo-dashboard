@@ -48,6 +48,7 @@ import { ptBR } from "date-fns/locale";
 import { RequireRole } from "@/components/auth/require-role";
 import { useRsmAccounts, useRsmPosts, useRsmIdeas, useDeleteRsmPost, useDeleteRsmIdea } from "@/hooks/use-rsm";
 import { computeRsmKPIs } from "@/services/rsm";
+import { ErrorState } from "@/components/shared";
 
 const PLATFORM_COLORS: Record<string, string> = {
   instagram: "bg-pink-100 text-pink-800",
@@ -80,13 +81,20 @@ export default function RsmPage() {
   const [ideaStatusFilter, setIdeaStatusFilter] = useState("all");
 
   // Queries
-  const { data: accounts = [], isLoading: loadingAccounts } = useRsmAccounts();
-  const { data: posts = [], isLoading: loadingPosts } = useRsmPosts(
+  const { data: accounts = [], isLoading: loadingAccounts, error: accountsError, refetch: refetchAccounts } = useRsmAccounts();
+  const { data: posts = [], isLoading: loadingPosts, error: postsError, refetch: refetchPosts } = useRsmPosts(
     postStatusFilter !== "all" ? { status: postStatusFilter } : undefined
   );
-  const { data: ideas = [], isLoading: loadingIdeas } = useRsmIdeas(
+  const { data: ideas = [], isLoading: loadingIdeas, error: ideasError, refetch: refetchIdeas } = useRsmIdeas(
     ideaStatusFilter !== "all" ? { status: ideaStatusFilter } : undefined
   );
+
+  const primaryError = accountsError || postsError || ideasError;
+  const primaryRefetch = () => {
+    refetchAccounts();
+    refetchPosts();
+    refetchIdeas();
+  };
 
   // Mutations
   const deletePostMutation = useDeleteRsmPost();
@@ -109,6 +117,10 @@ export default function RsmPage() {
             Gerencie contas, posts e ideias de redes sociais.
           </p>
         </div>
+
+        {primaryError && (
+          <ErrorState message={primaryError.message} onRetry={primaryRefetch} />
+        )}
 
         {/* KPI Cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

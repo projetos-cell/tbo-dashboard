@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { z } from "zod";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,18 @@ import {
 import type { Database } from "@/lib/supabase/types";
 
 type ChangelogRow = Database["public"]["Tables"]["changelog_entries"]["Row"];
+
+const changelogSchema = z.object({
+  version: z.string().min(1, "Versao e obrigatoria"),
+  title: z.string().min(1, "Titulo e obrigatorio"),
+  published_at: z.string().min(1, "Data de publicacao e obrigatoria"),
+  description: z.string().optional(),
+  tag: z.string().optional(),
+  module: z.string().optional(),
+  author: z.string().optional(),
+});
+
+type ChangelogFormData = z.infer<typeof changelogSchema>;
 
 interface ChangelogFormProps {
   open: boolean;
@@ -59,6 +72,7 @@ export function ChangelogForm({
   const [publishedAt, setPublishedAt] = useState("");
   const [author, setAuthor] = useState("");
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Partial<Record<keyof ChangelogFormData, string>>>({});
 
   useEffect(() => {
     if (open) {
@@ -73,11 +87,30 @@ export function ChangelogForm({
           : new Date().toISOString().split("T")[0]
       );
       setAuthor(entry?.author || "");
+      setErrors({});
     }
   }, [open, entry]);
 
   const handleSubmit = async () => {
-    if (!version.trim() || !title.trim() || !publishedAt) return;
+    const result = changelogSchema.safeParse({
+      version: version.trim(),
+      title: title.trim(),
+      published_at: publishedAt,
+      description: description.trim(),
+      tag,
+      module,
+      author: author.trim(),
+    });
+    if (!result.success) {
+      const fieldErrors: Partial<Record<keyof ChangelogFormData, string>> = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof ChangelogFormData;
+        if (!fieldErrors[field]) fieldErrors[field] = issue.message;
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+    setErrors({});
     setSaving(true);
     try {
       await onSave({
@@ -115,9 +148,12 @@ export function ChangelogForm({
               <Input
                 id="cl-version"
                 value={version}
-                onChange={(e) => setVersion(e.target.value)}
+                onChange={(e) => { setVersion(e.target.value); setErrors((prev) => ({ ...prev, version: undefined })); }}
                 placeholder="1.0.0"
               />
+              {errors.version && (
+                <p className="text-xs text-destructive">{errors.version}</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="cl-date">Data de Publicacao *</Label>
@@ -125,8 +161,11 @@ export function ChangelogForm({
                 id="cl-date"
                 type="date"
                 value={publishedAt}
-                onChange={(e) => setPublishedAt(e.target.value)}
+                onChange={(e) => { setPublishedAt(e.target.value); setErrors((prev) => ({ ...prev, published_at: undefined })); }}
               />
+              {errors.published_at && (
+                <p className="text-xs text-destructive">{errors.published_at}</p>
+              )}
             </div>
           </div>
 
@@ -135,9 +174,12 @@ export function ChangelogForm({
             <Input
               id="cl-title"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => { setTitle(e.target.value); setErrors((prev) => ({ ...prev, title: undefined })); }}
               placeholder="Titulo da mudanca..."
             />
+            {errors.title && (
+              <p className="text-xs text-destructive">{errors.title}</p>
+            )}
           </div>
 
           <div className="space-y-1.5">

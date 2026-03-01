@@ -10,6 +10,7 @@ import { TaskBoard } from "@/components/tasks/task-board";
 import { TaskDetail } from "@/components/tasks/task-detail";
 import { TaskForm } from "@/components/tasks/task-form";
 import { useTasks } from "@/hooks/use-tasks";
+import { ErrorState } from "@/components/shared";
 import type { Database } from "@/lib/supabase/types";
 import { Plus, LayoutList, Kanban } from "lucide-react";
 
@@ -23,7 +24,7 @@ export default function TarefasPage() {
   const [selectedTask, setSelectedTask] = useState<TaskRow | null>(null);
   const [showCreate, setShowCreate] = useState(false);
 
-  const { data: tasks, isLoading } = useTasks();
+  const { data: tasks, isLoading, error, refetch } = useTasks();
 
   const filtered = useMemo(() => {
     if (!tasks) return [];
@@ -91,6 +92,8 @@ export default function TarefasPage() {
             <Skeleton key={i} className="h-12 w-full" />
           ))}
         </div>
+      ) : error ? (
+        <ErrorState message={error.message} onRetry={() => refetch()} />
       ) : view === "board" ? (
         <TaskBoard tasks={filtered} onSelect={setSelectedTask} />
       ) : (

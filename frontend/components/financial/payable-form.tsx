@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { z } from "zod";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +13,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCreatePayable } from "@/hooks/use-financial";
 import { useAuthStore } from "@/stores/auth-store";
+
+const payableSchema = z.object({
+  description: z.string().min(1, "Descricao e obrigatoria"),
+  amount: z.string().min(1, "Valor e obrigatorio").refine((v) => !isNaN(Number(v)) && Number(v) > 0, "Valor deve ser positivo"),
+  due_date: z.string().min(1, "Vencimento e obrigatorio"),
+  notes: z.string().optional(),
+});
+
+type PayableFormData = z.infer<typeof payableSchema>;
 
 interface PayableFormProps {
   open: boolean;
@@ -26,17 +36,35 @@ export function PayableForm({ open, onOpenChange }: PayableFormProps) {
   const [amount, setAmount] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [errors, setErrors] = useState<Partial<Record<keyof PayableFormData, string>>>({});
 
   function reset() {
     setDescription("");
     setAmount("");
     setDueDate("");
     setNotes("");
+    setErrors({});
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!description.trim() || !amount || !dueDate || !tenantId) return;
+    const result = payableSchema.safeParse({
+      description: description.trim(),
+      amount,
+      due_date: dueDate,
+      notes: notes.trim(),
+    });
+    if (!result.success) {
+      const fieldErrors: Partial<Record<keyof PayableFormData, string>> = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof PayableFormData;
+        if (!fieldErrors[field]) fieldErrors[field] = issue.message;
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+    setErrors({});
+    if (!tenantId) return;
 
     create.mutate(
       {
@@ -65,14 +93,17 @@ export function PayableForm({ open, onOpenChange }: PayableFormProps) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="pay-desc">Descrição *</Label>
+            <Label htmlFor="pay-desc">Descricao *</Label>
             <Input
               id="pay-desc"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => { setDescription(e.target.value); setErrors((prev) => ({ ...prev, description: undefined })); }}
               placeholder="Ex: Nota fiscal fornecedor"
               required
             />
+            {errors.description && (
+              <p className="text-xs text-destructive">{errors.description}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -84,9 +115,12 @@ export function PayableForm({ open, onOpenChange }: PayableFormProps) {
                 step="0.01"
                 min="0"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => { setAmount(e.target.value); setErrors((prev) => ({ ...prev, amount: undefined })); }}
                 required
               />
+              {errors.amount && (
+                <p className="text-xs text-destructive">{errors.amount}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="pay-due">Vencimento *</Label>
@@ -94,9 +128,12 @@ export function PayableForm({ open, onOpenChange }: PayableFormProps) {
                 id="pay-due"
                 type="date"
                 value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
+                onChange={(e) => { setDueDate(e.target.value); setErrors((prev) => ({ ...prev, due_date: undefined })); }}
                 required
               />
+              {errors.due_date && (
+                <p className="text-xs text-destructive">{errors.due_date}</p>
+              )}
             </div>
           </div>
 

@@ -167,6 +167,7 @@ export function CustomFieldConfig({
                     size="icon"
                     className="size-6"
                     onClick={() => handleEdit(field)}
+                    aria-label="Editar"
                   >
                     <Pencil className="size-3" />
                   </Button>
@@ -175,6 +176,7 @@ export function CustomFieldConfig({
                     size="icon"
                     className="size-6 text-destructive"
                     onClick={() => handleDelete(field)}
+                    aria-label="Remover"
                   >
                     <Trash2 className="size-3" />
                   </Button>
@@ -334,6 +336,7 @@ function FieldDialog({
                   size="icon"
                   variant="outline"
                   onClick={addOption}
+                  aria-label="Adicionar opcao"
                 >
                   <Plus className="size-4" />
                 </Button>

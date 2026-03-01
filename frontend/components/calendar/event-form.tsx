@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { z } from "zod";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +13,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCreateCalendarEvent } from "@/hooks/use-calendar";
 import { useAuthStore } from "@/stores/auth-store";
+
+const eventSchema = z.object({
+  title: z.string().min(1, "Titulo e obrigatorio"),
+  date: z.string().min(1, "Data e obrigatoria"),
+  start_time: z.string().optional(),
+  end_time: z.string().optional(),
+  location: z.string().optional(),
+  is_all_day: z.boolean(),
+});
+
+type EventFormData = z.infer<typeof eventSchema>;
 
 interface EventFormProps {
   open: boolean;
@@ -28,6 +40,7 @@ export function EventForm({ open, onOpenChange }: EventFormProps) {
   const [endTime, setEndTime] = useState("10:00");
   const [location, setLocation] = useState("");
   const [isAllDay, setIsAllDay] = useState(false);
+  const [errors, setErrors] = useState<Partial<Record<keyof EventFormData, string>>>({});
 
   function reset() {
     setTitle("");
@@ -36,11 +49,30 @@ export function EventForm({ open, onOpenChange }: EventFormProps) {
     setEndTime("10:00");
     setLocation("");
     setIsAllDay(false);
+    setErrors({});
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim() || !date || !tenantId) return;
+    const result = eventSchema.safeParse({
+      title: title.trim(),
+      date,
+      start_time: startTime,
+      end_time: endTime,
+      location: location.trim(),
+      is_all_day: isAllDay,
+    });
+    if (!result.success) {
+      const fieldErrors: Partial<Record<keyof EventFormData, string>> = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof EventFormData;
+        if (!fieldErrors[field]) fieldErrors[field] = issue.message;
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+    setErrors({});
+    if (!tenantId) return;
 
     const startAt = isAllDay
       ? `${date}T00:00:00`
@@ -81,10 +113,13 @@ export function EventForm({ open, onOpenChange }: EventFormProps) {
             <Input
               id="ev-title"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => { setTitle(e.target.value); setErrors((prev) => ({ ...prev, title: undefined })); }}
               placeholder="Reunião de equipe"
               required
             />
+            {errors.title && (
+              <p className="text-xs text-destructive">{errors.title}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -93,9 +128,12 @@ export function EventForm({ open, onOpenChange }: EventFormProps) {
               id="ev-date"
               type="date"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              onChange={(e) => { setDate(e.target.value); setErrors((prev) => ({ ...prev, date: undefined })); }}
               required
             />
+            {errors.date && (
+              <p className="text-xs text-destructive">{errors.date}</p>
+            )}
           </div>
 
           <div className="flex items-center gap-2">

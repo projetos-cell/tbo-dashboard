@@ -54,6 +54,7 @@ export function TaskList({ tasks, onSelect }: TaskListProps) {
             variant="ghost"
             className="h-6 w-6"
             onClick={(e) => toggleComplete(row, e)}
+            aria-label="Alternar conclusao"
           >
             {row.is_completed ? (
               <Check className="h-4 w-4 text-green-600" />

@@ -127,6 +127,7 @@ export function FileDropzone({
                 className="size-6"
                 onClick={() => removeFile(index)}
                 disabled={uploading}
+                aria-label="Remover arquivo"
               >
                 <X className="size-3.5" />
               </Button>

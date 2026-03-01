@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { z } from "zod";
+import dynamic from "next/dynamic";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -13,7 +15,15 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { TiptapEditor } from "@/components/editor/tiptap-editor";
+
+// Heavy: TipTap rich-text editor — lazy load with SSR disabled
+const TiptapEditor = dynamic(
+  () => import("@/components/editor/tiptap-editor").then((m) => ({ default: m.TiptapEditor })),
+  {
+    ssr: false,
+    loading: () => <div className="h-32 animate-pulse rounded-lg bg-muted" />,
+  }
+);
 import {
   CULTURA_CATEGORIES,
   CULTURA_STATUS,
@@ -24,6 +34,16 @@ import { cn } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
 
 type CulturaRow = Database["public"]["Tables"]["cultura_items"]["Row"];
+
+const culturaItemSchema = z.object({
+  title: z.string().min(1, "Titulo e obrigatorio"),
+  content: z.string().optional(),
+  content_html: z.string().optional(),
+  category: z.string().min(1, "Categoria e obrigatoria"),
+  status: z.string().min(1, "Status e obrigatorio"),
+});
+
+type CulturaItemFormData = z.infer<typeof culturaItemSchema>;
 
 interface CulturaItemFormProps {
   open: boolean;
@@ -55,6 +75,7 @@ export function CulturaItemForm({
   );
   const [status, setStatus] = useState<string>(item?.status || "draft");
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Partial<Record<keyof CulturaItemFormData, string>>>({});
 
   const handleOpenChange = (isOpen: boolean) => {
     if (isOpen) {
@@ -63,6 +84,7 @@ export function CulturaItemForm({
       setContentHtml(item?.content_html || "");
       setCategory(item?.category || defaultCategory || "pilar");
       setStatus(item?.status || "draft");
+      setErrors({});
     }
     onOpenChange(isOpen);
   };
@@ -73,7 +95,23 @@ export function CulturaItemForm({
   };
 
   const handleSubmit = async () => {
-    if (!title.trim()) return;
+    const result = culturaItemSchema.safeParse({
+      title: title.trim(),
+      content,
+      content_html: contentHtml,
+      category,
+      status,
+    });
+    if (!result.success) {
+      const fieldErrors: Partial<Record<keyof CulturaItemFormData, string>> = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof CulturaItemFormData;
+        if (!fieldErrors[field]) fieldErrors[field] = issue.message;
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+    setErrors({});
     setSaving(true);
     try {
       await onSave({
@@ -107,9 +145,12 @@ export function CulturaItemForm({
             <Label>Titulo</Label>
             <Input
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => { setTitle(e.target.value); setErrors((prev) => ({ ...prev, title: undefined })); }}
               placeholder="Titulo do item..."
             />
+            {errors.title && (
+              <p className="text-xs text-destructive">{errors.title}</p>
+            )}
           </div>
 
           {!defaultCategory && (

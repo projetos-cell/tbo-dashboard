@@ -1,17 +1,25 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useDashboardKPIs, useFounderDashboard } from "@/hooks/use-dashboard";
 import { useAuthStore } from "@/stores/auth-store";
 import { isAdmin } from "@/lib/permissions";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/shared";
 
 // Shared components
 import { KPICards } from "@/components/dashboard/kpi-cards";
 import { ProjectsOverview } from "@/components/dashboard/projects-overview";
 import { TasksOverview } from "@/components/dashboard/tasks-overview";
 
-// Founder-only components
-import { FinancialOverview } from "@/components/dashboard/founder/financial-overview";
+// Founder-only components — FinancialOverview uses recharts (heavy), lazy load
+const FinancialOverview = dynamic(
+  () => import("@/components/dashboard/founder/financial-overview").then((m) => ({ default: m.FinancialOverview })),
+  {
+    ssr: false,
+    loading: () => <div className="h-64 animate-pulse rounded-lg bg-muted" />,
+  }
+);
 import { PipelineOverview } from "@/components/dashboard/founder/pipeline-overview";
 import { ActiveProjects } from "@/components/dashboard/founder/active-projects";
 import { UrgentTasks } from "@/components/dashboard/founder/urgent-tasks";
@@ -47,7 +55,7 @@ function DashboardSkeleton() {
 }
 
 function FounderDashboard() {
-  const { data, isLoading } = useFounderDashboard();
+  const { data, isLoading, error, refetch } = useFounderDashboard();
   const kpis = data
     ? {
         totalProjects: data.projects.length,
@@ -80,6 +88,7 @@ function FounderDashboard() {
     : undefined;
 
   if (isLoading || !data) return <DashboardSkeleton />;
+  if (error) return <ErrorState message={error.message} onRetry={() => refetch()} />;
 
   return (
     <div className="space-y-6 p-6">
@@ -117,9 +126,10 @@ function FounderDashboard() {
 }
 
 function GeneralDashboard() {
-  const { data: kpis, rawData, isLoading } = useDashboardKPIs();
+  const { data: kpis, rawData, isLoading, error, refetch } = useDashboardKPIs();
 
   if (isLoading) return <DashboardSkeleton />;
+  if (error) return <ErrorState message={error.message} onRetry={() => refetch()} />;
 
   return (
     <div className="space-y-6 p-6">

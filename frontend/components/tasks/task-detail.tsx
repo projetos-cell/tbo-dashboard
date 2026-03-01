@@ -217,6 +217,7 @@ export function TaskDetail({
               variant="ghost"
               className="mt-0.5 h-6 w-6 shrink-0"
               onClick={toggleComplete}
+              aria-label="Alternar conclusao"
             >
               {task.is_completed ? (
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
@@ -271,6 +272,7 @@ export function TaskDetail({
                         size="icon"
                         variant="ghost"
                         className="h-5 w-5 shrink-0"
+                        aria-label="Alternar subtarefa"
                         onClick={() =>
                           updateTask.mutate({
                             id: sub.id,

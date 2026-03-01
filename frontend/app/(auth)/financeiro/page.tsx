@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Plus, Upload, Settings } from "lucide-react";
@@ -23,16 +24,14 @@ import {
 import { PAYABLE_STATUS, RECEIVABLE_STATUS } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 import { RequireRole } from "@/components/auth/require-role";
+import { ErrorState } from "@/components/shared";
 
+// Static imports — small/always-visible components
 import { ExecutiveKPICards } from "@/components/financial/executive-kpis";
 import { OmieSyncIndicator } from "@/components/financial/omie-sync-indicator";
 import { BalanceSetupDialog } from "@/components/financial/balance-setup-dialog";
 import { ValueMaskToggle } from "@/components/financial/value-mask-toggle";
 import { InsightsPanel } from "@/components/financial/insights-panel";
-import { IntelligentCashFlow } from "@/components/financial/intelligent-cash-flow";
-import { EstrategicoTab } from "@/components/financial/estrategico-tab";
-import { ClientesTab } from "@/components/financial/clientes-tab";
-import { SimulacoesTab } from "@/components/financial/simulacoes-tab";
 import { FinFilters } from "@/components/financial/fin-filters";
 import { PayablesTable } from "@/components/financial/payables-table";
 import { ReceivablesTable } from "@/components/financial/receivables-table";
@@ -41,11 +40,69 @@ import { ReceivableDetail } from "@/components/financial/receivable-detail";
 import { PayableForm } from "@/components/financial/payable-form";
 import { ReceivableForm } from "@/components/financial/receivable-form";
 import { InboxAlerts } from "@/components/financial/inbox-alerts";
-import { ConciliacaoTab } from "@/components/financial/conciliacao-tab";
-import { CadastrosTab } from "@/components/financial/cadastros-tab";
-import { FinCharts } from "@/components/financial/fin-charts";
-import { OmieSyncPanel } from "@/components/financial/omie-sync-panel";
-import { FinImportDialog } from "@/components/financial/fin-import-dialog";
+
+// Heavy: recharts-based chart components — lazy load, SSR disabled
+const FinCharts = dynamic(
+  () => import("@/components/financial/fin-charts").then((m) => ({ default: m.FinCharts })),
+  {
+    ssr: false,
+    loading: () => <div className="h-64 animate-pulse rounded-lg bg-muted" />,
+  }
+);
+const IntelligentCashFlow = dynamic(
+  () => import("@/components/financial/intelligent-cash-flow").then((m) => ({ default: m.IntelligentCashFlow })),
+  {
+    ssr: false,
+    loading: () => <div className="h-64 animate-pulse rounded-lg bg-muted" />,
+  }
+);
+const EstrategicoTab = dynamic(
+  () => import("@/components/financial/estrategico-tab").then((m) => ({ default: m.EstrategicoTab })),
+  {
+    ssr: false,
+    loading: () => <div className="h-64 animate-pulse rounded-lg bg-muted" />,
+  }
+);
+const ClientesTab = dynamic(
+  () => import("@/components/financial/clientes-tab").then((m) => ({ default: m.ClientesTab })),
+  {
+    ssr: false,
+    loading: () => <div className="h-64 animate-pulse rounded-lg bg-muted" />,
+  }
+);
+const SimulacoesTab = dynamic(
+  () => import("@/components/financial/simulacoes-tab").then((m) => ({ default: m.SimulacoesTab })),
+  {
+    ssr: false,
+    loading: () => <div className="h-64 animate-pulse rounded-lg bg-muted" />,
+  }
+);
+
+// Heavy tab content — lazy load (SSR ok, no browser APIs)
+const ConciliacaoTab = dynamic(
+  () => import("@/components/financial/conciliacao-tab").then((m) => ({ default: m.ConciliacaoTab })),
+  {
+    loading: () => <div className="h-64 animate-pulse rounded-lg bg-muted" />,
+  }
+);
+const CadastrosTab = dynamic(
+  () => import("@/components/financial/cadastros-tab").then((m) => ({ default: m.CadastrosTab })),
+  {
+    loading: () => <div className="h-64 animate-pulse rounded-lg bg-muted" />,
+  }
+);
+const OmieSyncPanel = dynamic(
+  () => import("@/components/financial/omie-sync-panel").then((m) => ({ default: m.OmieSyncPanel })),
+  {
+    loading: () => <div className="h-64 animate-pulse rounded-lg bg-muted" />,
+  }
+);
+const FinImportDialog = dynamic(
+  () => import("@/components/financial/fin-import-dialog").then((m) => ({ default: m.FinImportDialog })),
+  {
+    loading: () => <div className="h-32 animate-pulse rounded-lg bg-muted" />,
+  }
+);
 
 type PayableRow = Database["public"]["Tables"]["fin_payables"]["Row"];
 type ReceivableRow = Database["public"]["Tables"]["fin_receivables"]["Row"];
@@ -84,11 +141,11 @@ export default function FinanceiroPage() {
   const [valueMasked, setValueMasked] = useState(false);
 
   // Queries
-  const { data: payables = [] } = usePayables({
+  const { data: payables = [], error: payError, refetch: refetchPay } = usePayables({
     status: payStatus !== "all" ? payStatus : undefined,
     search: paySearch || undefined,
   });
-  const { data: receivables = [] } = useReceivables({
+  const { data: receivables = [], error: recError, refetch: refetchRec } = useReceivables({
     status: recStatus !== "all" ? recStatus : undefined,
     search: recSearch || undefined,
   });
@@ -161,6 +218,18 @@ export default function FinanceiroPage() {
 
   function handleDeleteReceivable(id: string) {
     deleteRec.mutate(id, { onSuccess: () => setRecDetailOpen(false) });
+  }
+
+  const primaryError = payError || recError;
+  if (primaryError) {
+    return (
+      <RequireRole minRole="diretoria" module="financeiro">
+        <ErrorState
+          message={primaryError.message}
+          onRetry={() => { refetchPay(); refetchRec(); }}
+        />
+      </RequireRole>
+    );
   }
 
   return (

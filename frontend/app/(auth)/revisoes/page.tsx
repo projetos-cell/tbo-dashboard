@@ -30,6 +30,7 @@ import {
   useCompletedReviews,
   useReviewKpis,
 } from "@/hooks/use-revisoes";
+import { ErrorState } from "@/components/shared";
 import type { Database } from "@/lib/supabase/types";
 
 type DeliverableRow = Database["public"]["Tables"]["deliverables"]["Row"];
@@ -121,10 +122,18 @@ function DeliverableTable({
 }
 
 function RevisoesContent() {
-  const { data: kpis, isLoading: kpisLoading } = useReviewKpis();
+  const { data: kpis, isLoading: kpisLoading, error: kpisError, refetch: refetchKpis } = useReviewKpis();
   const pending = usePendingReviews();
   const inProgress = useInProgressReviews();
   const completed = useCompletedReviews();
+
+  const primaryError = kpisError || pending.error || inProgress.error || completed.error;
+  const primaryRefetch = () => {
+    refetchKpis();
+    pending.refetch();
+    inProgress.refetch();
+    completed.refetch();
+  };
 
   const kpiCards = [
     {
@@ -199,6 +208,10 @@ function RevisoesContent() {
           Acompanhe revisoes pendentes e aprovacoes de entregas.
         </p>
       </div>
+
+      {primaryError && (
+        <ErrorState message={primaryError.message} onRetry={primaryRefetch} />
+      )}
 
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-3">

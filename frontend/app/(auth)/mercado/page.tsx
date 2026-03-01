@@ -44,6 +44,7 @@ import {
   useDeleteResearch,
 } from "@/hooks/use-mercado";
 import { computeMercadoKPIs } from "@/services/mercado";
+import { ErrorState } from "@/components/shared";
 import type { Database } from "@/lib/supabase/types";
 
 type MarketResearchRow = Database["public"]["Tables"]["market_research"]["Row"];
@@ -79,7 +80,7 @@ export default function MercadoPage() {
   const [detailOpen, setDetailOpen] = useState(false);
 
   // Queries
-  const { data: research = [], isLoading } = useMarketResearch({
+  const { data: research = [], isLoading, error, refetch } = useMarketResearch({
     category: categoryFilter !== "all" ? categoryFilter : undefined,
     status: statusFilter !== "all" ? statusFilter : undefined,
     search: search || undefined,
@@ -203,7 +204,9 @@ export default function MercadoPage() {
         </div>
 
         {/* Research Grid */}
-        {isLoading ? (
+        {error ? (
+          <ErrorState message={error.message} onRetry={() => refetch()} />
+        ) : isLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <Skeleton key={i} className="h-40 rounded-lg" />

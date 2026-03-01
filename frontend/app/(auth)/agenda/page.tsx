@@ -8,6 +8,7 @@ import { WeekView } from "@/components/calendar/week-view";
 import { EventDetail } from "@/components/calendar/event-detail";
 import { EventForm } from "@/components/calendar/event-form";
 import { useCalendarEvents, useDeleteCalendarEvent } from "@/hooks/use-calendar";
+import { ErrorState } from "@/components/shared";
 import { getMonthRange, getWeekRange } from "@/services/calendar";
 import type { CalendarEvent } from "@/services/calendar";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,7 @@ export default function AgendaPage() {
       : getWeekRange(currentDate);
   }, [currentDate, view]);
 
-  const { data: events = [] } = useCalendarEvents(range.start, range.end);
+  const { data: events = [], error, refetch } = useCalendarEvents(range.start, range.end);
 
   const deleteEvent = useDeleteCalendarEvent();
 
@@ -82,7 +83,9 @@ export default function AgendaPage() {
       />
 
       {/* Calendar view */}
-      {view === "month" ? (
+      {error ? (
+        <ErrorState message={error.message} onRetry={() => refetch()} />
+      ) : view === "month" ? (
         <MonthView
           currentDate={currentDate}
           events={events}

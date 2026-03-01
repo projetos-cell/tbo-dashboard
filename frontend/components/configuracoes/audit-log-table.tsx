@@ -124,6 +124,7 @@ export function AuditLogTable() {
                 className="h-8 w-8"
                 disabled={page === 0}
                 onClick={() => setPage((p) => p - 1)}
+                aria-label="Pagina anterior"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -133,6 +134,7 @@ export function AuditLogTable() {
                 className="h-8 w-8"
                 disabled={page >= totalPages - 1}
                 onClick={() => setPage((p) => p + 1)}
+                aria-label="Proxima pagina"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>

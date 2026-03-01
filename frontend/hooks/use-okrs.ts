@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
+import { logAuditTrail } from "@/lib/audit-trail";
 import type { Database } from "@/lib/supabase/types";
 import {
   getCycles,
@@ -130,7 +131,17 @@ export function useCreateObjective() {
     mutationFn: (
       obj: Database["public"]["Tables"]["okr_objectives"]["Insert"],
     ) => createObjective(supabase, obj),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["okr-objectives"] }),
+    onSuccess: (data, variables) => {
+      qc.invalidateQueries({ queryKey: ["okr-objectives"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "create",
+        table: "okr_objectives",
+        recordId: (data as Record<string, unknown>)?.id as string ?? "unknown",
+        after: variables as unknown as Record<string, unknown>,
+      });
+    },
   });
 }
 
@@ -146,7 +157,17 @@ export function useUpdateObjective() {
       id: string;
       updates: Database["public"]["Tables"]["okr_objectives"]["Update"];
     }) => updateObjective(supabase, id, updates),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["okr-objectives"] }),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["okr-objectives"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "update",
+        table: "okr_objectives",
+        recordId: variables.id,
+        after: variables.updates as Record<string, unknown>,
+      });
+    },
   });
 }
 
@@ -156,7 +177,17 @@ export function useDeleteObjective() {
 
   return useMutation({
     mutationFn: (id: string) => deleteObjective(supabase, id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["okr-objectives"] }),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: ["okr-objectives"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "delete",
+        table: "okr_objectives",
+        recordId: id,
+        before: { id },
+      });
+    },
   });
 }
 
@@ -182,9 +213,17 @@ export function useCreateKeyResult() {
     mutationFn: (
       kr: Database["public"]["Tables"]["okr_key_results"]["Insert"],
     ) => createKeyResult(supabase, kr),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       qc.invalidateQueries({ queryKey: ["okr-key-results"] });
       qc.invalidateQueries({ queryKey: ["okr-objectives"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "create",
+        table: "okr_key_results",
+        recordId: (data as Record<string, unknown>)?.id as string ?? "unknown",
+        after: variables as unknown as Record<string, unknown>,
+      });
     },
   });
 }
@@ -201,9 +240,17 @@ export function useUpdateKeyResult() {
       id: string;
       updates: Database["public"]["Tables"]["okr_key_results"]["Update"];
     }) => updateKeyResult(supabase, id, updates),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ["okr-key-results"] });
       qc.invalidateQueries({ queryKey: ["okr-objectives"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "update",
+        table: "okr_key_results",
+        recordId: variables.id,
+        after: variables.updates as Record<string, unknown>,
+      });
     },
   });
 }
@@ -214,9 +261,17 @@ export function useDeleteKeyResult() {
 
   return useMutation({
     mutationFn: (id: string) => deleteKeyResult(supabase, id),
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       qc.invalidateQueries({ queryKey: ["okr-key-results"] });
       qc.invalidateQueries({ queryKey: ["okr-objectives"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "delete",
+        table: "okr_key_results",
+        recordId: id,
+        before: { id },
+      });
     },
   });
 }

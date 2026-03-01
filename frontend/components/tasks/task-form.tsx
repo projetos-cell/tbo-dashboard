@@ -1,5 +1,6 @@
 "use client";
 
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,6 +15,17 @@ import { TASK_STATUS, TASK_PRIORITY } from "@/lib/constants";
 import { useCreateTask } from "@/hooks/use-tasks";
 import { useAuthStore } from "@/stores/auth-store";
 import { useState } from "react";
+
+const taskSchema = z.object({
+  title: z.string().min(1, "Titulo e obrigatorio"),
+  description: z.string().optional(),
+  status: z.string().min(1),
+  priority: z.string().min(1),
+  assignee_name: z.string().optional(),
+  due_date: z.string().optional(),
+});
+
+type TaskFormData = z.infer<typeof taskSchema>;
 
 interface TaskFormProps {
   open: boolean;
@@ -31,6 +43,7 @@ export function TaskForm({ open, onOpenChange, projectId }: TaskFormProps) {
   const [priority, setPriority] = useState("media");
   const [assigneeName, setAssigneeName] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [errors, setErrors] = useState<Partial<Record<keyof TaskFormData, string>>>({});
 
   const reset = () => {
     setTitle("");
@@ -39,21 +52,40 @@ export function TaskForm({ open, onOpenChange, projectId }: TaskFormProps) {
     setPriority("media");
     setAssigneeName("");
     setDueDate("");
+    setErrors({});
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !tenantId) return;
+    const result = taskSchema.safeParse({
+      title: title.trim(),
+      description: description.trim(),
+      status,
+      priority,
+      assignee_name: assigneeName.trim(),
+      due_date: dueDate,
+    });
+    if (!result.success) {
+      const fieldErrors: Partial<Record<keyof TaskFormData, string>> = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof TaskFormData;
+        if (!fieldErrors[field]) fieldErrors[field] = issue.message;
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+    setErrors({});
+    if (!tenantId) return;
 
     createTask.mutate(
       {
         tenant_id: tenantId,
-        title: title.trim(),
-        description: description.trim() || null,
-        status,
-        priority,
-        assignee_name: assigneeName.trim() || null,
-        due_date: dueDate || null,
+        title: result.data.title,
+        description: result.data.description || null,
+        status: result.data.status,
+        priority: result.data.priority,
+        assignee_name: result.data.assignee_name || null,
+        due_date: result.data.due_date || null,
         project_id: projectId ?? "",
       },
       {
@@ -77,14 +109,17 @@ export function TaskForm({ open, onOpenChange, projectId }: TaskFormProps) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="task-title">Título *</Label>
+            <Label htmlFor="task-title">Titulo *</Label>
             <Input
               id="task-title"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ex: Revisar documentação"
+              onChange={(e) => { setTitle(e.target.value); setErrors((prev) => ({ ...prev, title: undefined })); }}
+              placeholder="Ex: Revisar documentacao"
               required
             />
+            {errors.title && (
+              <p className="text-xs text-destructive">{errors.title}</p>
+            )}
           </div>
 
           <div className="space-y-2">

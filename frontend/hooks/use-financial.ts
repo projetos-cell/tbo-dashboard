@@ -33,6 +33,7 @@ import {
   getLatestBalanceSnapshot,
   createBalanceSnapshot,
 } from "@/services/financial";
+import { logAuditTrail } from "@/lib/audit-trail";
 import type { Database } from "@/lib/supabase/types";
 
 function useSupabase() {
@@ -63,7 +64,17 @@ export function useCreatePayable() {
   return useMutation({
     mutationFn: (p: Database["public"]["Tables"]["fin_payables"]["Insert"]) =>
       createPayable(supabase, p),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["fin-payables"] }),
+    onSuccess: (data, variables) => {
+      qc.invalidateQueries({ queryKey: ["fin-payables"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "create",
+        table: "fin_payables",
+        recordId: (data as Record<string, unknown>)?.id as string ?? "unknown",
+        after: variables as unknown as Record<string, unknown>,
+      });
+    },
   });
 }
 
@@ -78,7 +89,17 @@ export function useUpdatePayable() {
       id: string;
       updates: Database["public"]["Tables"]["fin_payables"]["Update"];
     }) => updatePayable(supabase, id, updates),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["fin-payables"] }),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["fin-payables"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "update",
+        table: "fin_payables",
+        recordId: variables.id,
+        after: variables.updates as Record<string, unknown>,
+      });
+    },
   });
 }
 
@@ -87,7 +108,17 @@ export function useDeletePayable() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deletePayable(supabase, id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["fin-payables"] }),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: ["fin-payables"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "delete",
+        table: "fin_payables",
+        recordId: id,
+        before: { id },
+      });
+    },
   });
 }
 
@@ -115,7 +146,17 @@ export function useCreateReceivable() {
   return useMutation({
     mutationFn: (r: Database["public"]["Tables"]["fin_receivables"]["Insert"]) =>
       createReceivable(supabase, r),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["fin-receivables"] }),
+    onSuccess: (data, variables) => {
+      qc.invalidateQueries({ queryKey: ["fin-receivables"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "create",
+        table: "fin_receivables",
+        recordId: (data as Record<string, unknown>)?.id as string ?? "unknown",
+        after: variables as unknown as Record<string, unknown>,
+      });
+    },
   });
 }
 
@@ -130,7 +171,17 @@ export function useUpdateReceivable() {
       id: string;
       updates: Database["public"]["Tables"]["fin_receivables"]["Update"];
     }) => updateReceivable(supabase, id, updates),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["fin-receivables"] }),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["fin-receivables"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "update",
+        table: "fin_receivables",
+        recordId: variables.id,
+        after: variables.updates as Record<string, unknown>,
+      });
+    },
   });
 }
 
@@ -139,7 +190,17 @@ export function useDeleteReceivable() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteReceivable(supabase, id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["fin-receivables"] }),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: ["fin-receivables"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "delete",
+        table: "fin_receivables",
+        recordId: id,
+        before: { id },
+      });
+    },
   });
 }
 
@@ -173,7 +234,17 @@ export function useCreateCostCenter() {
   return useMutation({
     mutationFn: (cc: Database["public"]["Tables"]["fin_cost_centers"]["Insert"]) =>
       createCostCenter(supabase, cc),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["fin-cost-centers"] }),
+    onSuccess: (data, variables) => {
+      qc.invalidateQueries({ queryKey: ["fin-cost-centers"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "create",
+        table: "fin_cost_centers",
+        recordId: (data as Record<string, unknown>)?.id as string ?? "unknown",
+        after: variables as unknown as Record<string, unknown>,
+      });
+    },
   });
 }
 
@@ -188,7 +259,17 @@ export function useUpdateCostCenter() {
       id: string;
       updates: Database["public"]["Tables"]["fin_cost_centers"]["Update"];
     }) => updateCostCenter(supabase, id, updates),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["fin-cost-centers"] }),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["fin-cost-centers"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "update",
+        table: "fin_cost_centers",
+        recordId: variables.id,
+        after: variables.updates as Record<string, unknown>,
+      });
+    },
   });
 }
 
@@ -209,7 +290,17 @@ export function useCreateVendor() {
   return useMutation({
     mutationFn: (v: Database["public"]["Tables"]["fin_vendors"]["Insert"]) =>
       createVendor(supabase, v),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["fin-vendors"] }),
+    onSuccess: (data, variables) => {
+      qc.invalidateQueries({ queryKey: ["fin-vendors"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "create",
+        table: "fin_vendors",
+        recordId: (data as Record<string, unknown>)?.id as string ?? "unknown",
+        after: variables as unknown as Record<string, unknown>,
+      });
+    },
   });
 }
 
@@ -224,7 +315,17 @@ export function useUpdateVendor() {
       id: string;
       updates: Database["public"]["Tables"]["fin_vendors"]["Update"];
     }) => updateVendor(supabase, id, updates),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["fin-vendors"] }),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["fin-vendors"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "update",
+        table: "fin_vendors",
+        recordId: variables.id,
+        after: variables.updates as Record<string, unknown>,
+      });
+    },
   });
 }
 
@@ -245,7 +346,17 @@ export function useCreateFinClient() {
   return useMutation({
     mutationFn: (c: Database["public"]["Tables"]["fin_clients"]["Insert"]) =>
       createFinClient(supabase, c),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["fin-clients"] }),
+    onSuccess: (data, variables) => {
+      qc.invalidateQueries({ queryKey: ["fin-clients"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "create",
+        table: "fin_clients",
+        recordId: (data as Record<string, unknown>)?.id as string ?? "unknown",
+        after: variables as unknown as Record<string, unknown>,
+      });
+    },
   });
 }
 
@@ -260,7 +371,17 @@ export function useUpdateFinClient() {
       id: string;
       updates: Database["public"]["Tables"]["fin_clients"]["Update"];
     }) => updateFinClient(supabase, id, updates),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["fin-clients"] }),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["fin-clients"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "update",
+        table: "fin_clients",
+        recordId: variables.id,
+        after: variables.updates as Record<string, unknown>,
+      });
+    },
   });
 }
 
@@ -307,7 +428,17 @@ export function useCreateReconciliationRule() {
   return useMutation({
     mutationFn: (rule: Database["public"]["Tables"]["reconciliation_rules"]["Insert"]) =>
       createReconciliationRule(supabase, rule),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["reconciliation-rules"] }),
+    onSuccess: (data, variables) => {
+      qc.invalidateQueries({ queryKey: ["reconciliation-rules"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "create",
+        table: "reconciliation_rules",
+        recordId: (data as Record<string, unknown>)?.id as string ?? "unknown",
+        after: variables as unknown as Record<string, unknown>,
+      });
+    },
   });
 }
 
@@ -322,7 +453,17 @@ export function useUpdateReconciliationRule() {
       id: string;
       updates: Database["public"]["Tables"]["reconciliation_rules"]["Update"];
     }) => updateReconciliationRule(supabase, id, updates),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["reconciliation-rules"] }),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["reconciliation-rules"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "update",
+        table: "reconciliation_rules",
+        recordId: variables.id,
+        after: variables.updates as Record<string, unknown>,
+      });
+    },
   });
 }
 
@@ -331,7 +472,17 @@ export function useDeleteReconciliationRule() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteReconciliationRule(supabase, id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["reconciliation-rules"] }),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: ["reconciliation-rules"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "delete",
+        table: "reconciliation_rules",
+        recordId: id,
+        before: { id },
+      });
+    },
   });
 }
 
@@ -380,6 +531,16 @@ export function useCreateBalanceSnapshot() {
   return useMutation({
     mutationFn: (snapshot: Database["public"]["Tables"]["fin_balance_snapshots"]["Insert"]) =>
       createBalanceSnapshot(supabase, snapshot),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["balance-snapshot"] }),
+    onSuccess: (data, variables) => {
+      qc.invalidateQueries({ queryKey: ["balance-snapshot"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "create",
+        table: "fin_balance_snapshots",
+        recordId: (data as Record<string, unknown>)?.id as string ?? "unknown",
+        after: variables as unknown as Record<string, unknown>,
+      });
+    },
   });
 }

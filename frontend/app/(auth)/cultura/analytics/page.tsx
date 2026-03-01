@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RequireRole } from "@/components/auth/require-role";
 import { CulturaOverviewStats } from "@/components/cultura/cultura-overview-stats";
+import { ErrorState } from "@/components/shared";
 import { useCulturaItems } from "@/hooks/use-cultura";
 import {
   CULTURA_CATEGORIES,
@@ -20,7 +21,7 @@ export default function CulturaAnalyticsPage() {
 }
 
 function AnalyticsContent() {
-  const { data: items, isLoading } = useCulturaItems();
+  const { data: items, isLoading, error, refetch } = useCulturaItems();
 
   const totalItems = items?.length || 0;
   const publishedItems =
@@ -52,6 +53,10 @@ function AnalyticsContent() {
           fundadores e administradores.
         </p>
       </div>
+
+      {error ? (
+        <ErrorState message={error.message} onRetry={() => refetch()} />
+      ) : null}
 
       <CulturaOverviewStats items={items} isLoading={isLoading} />
 

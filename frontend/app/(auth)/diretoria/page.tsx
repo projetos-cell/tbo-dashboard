@@ -16,6 +16,7 @@ import {
   Target,
 } from "lucide-react";
 import { useExecutiveKpis } from "@/hooks/use-diretoria";
+import { ErrorState } from "@/components/shared";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -57,7 +58,7 @@ const DASHBOARD_SECTIONS = [
 ];
 
 function DiretoriaContent() {
-  const { data: kpis, isLoading } = useExecutiveKpis();
+  const { data: kpis, isLoading, error, refetch } = useExecutiveKpis();
 
   const executiveKpiCards = [
     {
@@ -101,6 +102,10 @@ function DiretoriaContent() {
           Visao executiva consolidada do negocio.
         </p>
       </div>
+
+      {error && (
+        <ErrorState message={error.message} onRetry={() => refetch()} />
+      )}
 
       {/* Executive KPIs */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

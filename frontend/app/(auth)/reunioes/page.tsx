@@ -16,6 +16,7 @@ import { MeetingsList } from "@/components/meetings/meetings-list";
 import { MeetingKPICards } from "@/components/meetings/meeting-kpis";
 import { MeetingDetail } from "@/components/meetings/meeting-detail";
 import { useMeetings } from "@/hooks/use-meetings";
+import { ErrorState } from "@/components/shared";
 import { MEETING_STATUS, MEETING_CATEGORIES } from "@/lib/constants";
 import { computeMeetingKPIs } from "@/services/meetings";
 import type { Database } from "@/lib/supabase/types";
@@ -30,7 +31,7 @@ export default function ReunioesPage() {
     null
   );
 
-  const { data: meetings = [], isLoading } = useMeetings();
+  const { data: meetings = [], isLoading, error, refetch } = useMeetings();
 
   // Filtered meetings
   const filtered = useMemo(() => {
@@ -171,6 +172,8 @@ export default function ReunioesPage() {
             <Skeleton key={i} className="h-12 rounded-lg" />
           ))}
         </div>
+      ) : error ? (
+        <ErrorState message={error.message} onRetry={() => refetch()} />
       ) : (
         <MeetingsList
           meetings={filtered}

@@ -129,6 +129,7 @@ export function DecisionDetail({
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7 shrink-0"
+                  aria-label="Acoes"
                 >
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>

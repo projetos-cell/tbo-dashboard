@@ -58,6 +58,7 @@ export function OkrKeyResultRow({ kr, onCheckin }: OkrKeyResultRowProps) {
         className="h-7 w-7 shrink-0"
         onClick={() => onCheckin(kr)}
         title="Novo check-in"
+        aria-label="Novo check-in"
       >
         <MessageSquarePlus className="h-3.5 w-3.5" />
       </Button>

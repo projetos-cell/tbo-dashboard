@@ -171,6 +171,7 @@ export function ProjectList({ projects }: ProjectListProps) {
               handleDelete(row);
             }}
             disabled={deleteProject.isPending}
+            aria-label="Excluir projeto"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>

@@ -9,6 +9,7 @@ import { ContractDetailDialog } from "@/components/contratos/contract-detail-dia
 import { ContractFormDialog } from "@/components/contratos/contract-form-dialog";
 import { computeContractKPIs } from "@/services/contracts";
 import { RequireRole } from "@/components/auth/require-role";
+import { ErrorState } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import type { Database } from "@/lib/supabase/types";
@@ -23,7 +24,7 @@ export default function ContratosPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingContract, setEditingContract] = useState<ContractRow | null>(null);
 
-  const { data: contracts = [], isLoading } = useContracts({
+  const { data: contracts = [], isLoading, error, refetch } = useContracts({
     status: statusFilter || undefined,
     search: search || undefined,
   });
@@ -44,6 +45,14 @@ export default function ContratosPage() {
   function handleNew() {
     setEditingContract(null);
     setFormOpen(true);
+  }
+
+  if (error) {
+    return (
+      <RequireRole module="contratos">
+        <ErrorState message={error.message} onRetry={() => refetch()} />
+      </RequireRole>
+    );
   }
 
   return (

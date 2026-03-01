@@ -16,6 +16,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { useIntelligenceKpis } from "@/hooks/use-intelligence";
+import { ErrorState } from "@/components/shared";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -62,7 +63,7 @@ const INTELLIGENCE_SECTIONS = [
 ];
 
 function InteligenciaContent() {
-  const { data: kpis, isLoading } = useIntelligenceKpis();
+  const { data: kpis, isLoading, error, refetch } = useIntelligenceKpis();
 
   const kpiCards = [
     {
@@ -103,6 +104,10 @@ function InteligenciaContent() {
           Dashboards analiticos e insights do negocio.
         </p>
       </div>
+
+      {error && (
+        <ErrorState message={error.message} onRetry={() => refetch()} />
+      )}
 
       {/* KPI Summary */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

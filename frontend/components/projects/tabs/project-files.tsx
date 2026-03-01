@@ -116,6 +116,7 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
                 size="icon"
                 className="size-8"
                 onClick={() => setViewMode("grid")}
+                aria-label="Visualizacao em grade"
               >
                 <Grid3X3 className="size-4" />
               </Button>
@@ -124,6 +125,7 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
                 size="icon"
                 className="size-8"
                 onClick={() => setViewMode("list")}
+                aria-label="Visualizacao em lista"
               >
                 <List className="size-4" />
               </Button>
@@ -207,6 +209,7 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
                         variant="ghost"
                         className="size-7"
                         onClick={() => handleDownload(att)}
+                        aria-label="Download"
                       >
                         <Download className="size-3.5" />
                       </Button>
@@ -215,6 +218,7 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
                         variant="ghost"
                         className="size-7 text-destructive"
                         onClick={() => handleDelete(att)}
+                        aria-label="Excluir arquivo"
                       >
                         <Trash2 className="size-3.5" />
                       </Button>

@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
+import { logAuditTrail } from "@/lib/audit-trail";
 import type { Database } from "@/lib/supabase/types";
 import {
   getContracts,
@@ -46,8 +47,16 @@ export function useCreateContract() {
   return useMutation({
     mutationFn: (input: Database["public"]["Tables"]["contracts"]["Insert"]) =>
       createContract(supabase, input),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["contracts"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "create",
+        table: "contracts",
+        recordId: (data as Record<string, unknown>)?.id as string ?? "unknown",
+        after: variables as unknown as Record<string, unknown>,
+      });
     },
   });
 }
@@ -64,9 +73,18 @@ export function useUpdateContract() {
       id: string;
       updates: Database["public"]["Tables"]["contracts"]["Update"];
     }) => updateContract(supabase, id, updates),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["contracts"] });
       queryClient.invalidateQueries({ queryKey: ["contract"] });
+
+      const action = variables.updates.status ? "status_change" : "update";
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action,
+        table: "contracts",
+        recordId: variables.id,
+        after: variables.updates as Record<string, unknown>,
+      });
     },
   });
 }

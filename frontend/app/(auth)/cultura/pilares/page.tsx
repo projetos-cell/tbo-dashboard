@@ -14,12 +14,13 @@ import {
   useDeleteCulturaItem,
 } from "@/hooks/use-cultura";
 import { useAuthStore } from "@/stores/auth-store";
+import { ErrorState } from "@/components/shared";
 import type { Database } from "@/lib/supabase/types";
 
 type CulturaRow = Database["public"]["Tables"]["cultura_items"]["Row"];
 
 export default function PilaresPage() {
-  const { data: items, isLoading } = useCulturaItems("pilar");
+  const { data: items, isLoading, error, refetch } = useCulturaItems("pilar");
   const createItem = useCreateCulturaItem();
   const updateItem = useUpdateCulturaItem();
   const deleteItem = useDeleteCulturaItem();
@@ -114,6 +115,8 @@ export default function PilaresPage() {
             <Skeleton key={i} className="h-28" />
           ))}
         </div>
+      ) : error ? (
+        <ErrorState message={error.message} onRetry={() => refetch()} />
       ) : items && items.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item) => (

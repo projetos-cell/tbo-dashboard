@@ -15,12 +15,13 @@ import {
   useDeleteCulturaItem,
 } from "@/hooks/use-cultura";
 import { useAuthStore } from "@/stores/auth-store";
+import { ErrorState } from "@/components/shared";
 import type { Database } from "@/lib/supabase/types";
 
 type CulturaRow = Database["public"]["Tables"]["cultura_items"]["Row"];
 
 export default function ManualPage() {
-  const { data: items, isLoading } = useCulturaItems("manual");
+  const { data: items, isLoading, error, refetch } = useCulturaItems("manual");
   const createItem = useCreateCulturaItem();
   const updateItem = useUpdateCulturaItem();
   const deleteItem = useDeleteCulturaItem();
@@ -115,6 +116,8 @@ export default function ManualPage() {
             <Skeleton key={i} className="h-20" />
           ))}
         </div>
+      ) : error ? (
+        <ErrorState message={error.message} onRetry={() => refetch()} />
       ) : items && items.length > 0 ? (
         <div className="space-y-2">
           {items.map((item, index) => (

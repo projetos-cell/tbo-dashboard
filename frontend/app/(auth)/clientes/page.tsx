@@ -9,6 +9,7 @@ import { ClientDetailDialog } from "@/components/clientes/client-detail-dialog";
 import { ClientFormDialog } from "@/components/clientes/client-form-dialog";
 import { computeClientKPIs } from "@/services/clients";
 import { RequireRole } from "@/components/auth/require-role";
+import { ErrorState } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import type { Database } from "@/lib/supabase/types";
@@ -23,7 +24,7 @@ export default function ClientesPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<ClientRow | null>(null);
 
-  const { data: clients = [], isLoading } = useClients({
+  const { data: clients = [], isLoading, error, refetch } = useClients({
     status: statusFilter || undefined,
     search: search || undefined,
   });
@@ -44,6 +45,14 @@ export default function ClientesPage() {
   function handleNewClient() {
     setEditingClient(null);
     setFormOpen(true);
+  }
+
+  if (error) {
+    return (
+      <RequireRole module="clientes">
+        <ErrorState message={error.message} onRetry={() => refetch()} />
+      </RequireRole>
+    );
   }
 
   return (

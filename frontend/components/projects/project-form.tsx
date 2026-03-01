@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +16,14 @@ import {
 import { useCreateProject } from "@/hooks/use-projects";
 import { useAuthStore } from "@/stores/auth-store";
 
+const projectSchema = z.object({
+  name: z.string().min(1, "Nome do projeto e obrigatorio"),
+  construtora: z.string().optional(),
+  owner_name: z.string().optional(),
+});
+
+type ProjectFormData = z.infer<typeof projectSchema>;
+
 interface ProjectFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -24,17 +33,33 @@ export function ProjectForm({ open, onOpenChange }: ProjectFormProps) {
   const [name, setName] = useState("");
   const [construtora, setConstrutora] = useState("");
   const [ownerName, setOwnerName] = useState("");
+  const [errors, setErrors] = useState<Partial<Record<keyof ProjectFormData, string>>>({});
   const createProject = useCreateProject();
   const tenantId = useAuthStore((s) => s.tenantId);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim() || !tenantId) return;
+    const result = projectSchema.safeParse({
+      name: name.trim(),
+      construtora: construtora.trim(),
+      owner_name: ownerName.trim(),
+    });
+    if (!result.success) {
+      const fieldErrors: Partial<Record<keyof ProjectFormData, string>> = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof ProjectFormData;
+        if (!fieldErrors[field]) fieldErrors[field] = issue.message;
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+    setErrors({});
+    if (!tenantId) return;
 
     await createProject.mutateAsync({
-      name: name.trim(),
-      construtora: construtora.trim() || null,
-      owner_name: ownerName.trim() || null,
+      name: result.data.name,
+      construtora: result.data.construtora || null,
+      owner_name: result.data.owner_name || null,
       status: "em_andamento",
       tenant_id: tenantId,
     });
@@ -60,10 +85,13 @@ export function ProjectForm({ open, onOpenChange }: ProjectFormProps) {
             <Input
               id="name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => { setName(e.target.value); setErrors((prev) => ({ ...prev, name: undefined })); }}
               placeholder="Ex: Residencial Aurora"
               required
             />
+            {errors.name && (
+              <p className="text-xs text-destructive">{errors.name}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="construtora">Construtora</Label>

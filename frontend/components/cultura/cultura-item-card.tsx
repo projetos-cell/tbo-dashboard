@@ -118,6 +118,7 @@ export function CulturaItemCard({
                   variant="ghost"
                   size="icon"
                   className="size-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Acoes"
                 >
                   <MoreHorizontal className="size-4" />
                 </Button>

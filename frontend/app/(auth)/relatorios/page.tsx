@@ -55,6 +55,7 @@ import {
   useDeleteSchedule,
 } from "@/hooks/use-reports";
 import { computeReportsKPIs } from "@/services/reports";
+import { ErrorState } from "@/components/shared";
 import type { Json } from "@/lib/supabase/types";
 
 const RUN_STATUS_COLORS: Record<string, string> = {
@@ -76,12 +77,18 @@ export default function RelatoriosPage() {
   const [runStatusFilter, setRunStatusFilter] = useState("all");
 
   // Queries
-  const { data: schedules = [], isLoading: loadingSchedules } =
+  const { data: schedules = [], isLoading: loadingSchedules, error: schedulesError, refetch: refetchSchedules } =
     useReportSchedules();
-  const { data: runs = [], isLoading: loadingRuns } = useReportRuns(
+  const { data: runs = [], isLoading: loadingRuns, error: runsError, refetch: refetchRuns } = useReportRuns(
     runStatusFilter !== "all" ? { status: runStatusFilter } : undefined
   );
   const { data: allRuns = [] } = useReportRuns();
+
+  const primaryError = schedulesError || runsError;
+  const primaryRefetch = () => {
+    refetchSchedules();
+    refetchRuns();
+  };
 
   // Mutations
   const updateScheduleMutation = useUpdateSchedule();
@@ -119,6 +126,10 @@ export default function RelatoriosPage() {
             Agendamentos de relatorios e historico de execucoes.
           </p>
         </div>
+
+        {primaryError && (
+          <ErrorState message={primaryError.message} onRetry={primaryRefetch} />
+        )}
 
         {/* KPI Cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

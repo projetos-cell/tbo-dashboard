@@ -26,6 +26,7 @@ import {
   Clock,
 } from "lucide-react";
 import { useSystemHealth } from "@/hooks/use-system-health";
+import { ErrorState } from "@/components/shared";
 import type { Database } from "@/lib/supabase/types";
 
 type SyncLogRow = Database["public"]["Tables"]["sync_logs"]["Row"];
@@ -76,7 +77,7 @@ const PROVIDER_ICONS: Record<string, React.ElementType> = {
 };
 
 function SystemHealthContent() {
-  const { data, isLoading, error } = useSystemHealth();
+  const { data, isLoading, error, refetch } = useSystemHealth();
 
   const integrations = data?.integrations ?? [];
   const recentErrors = data?.errors ?? [];
@@ -90,6 +91,10 @@ function SystemHealthContent() {
           Monitoramento e status dos servicos e integracoes.
         </p>
       </div>
+
+      {error && (
+        <ErrorState message={error.message} onRetry={() => refetch()} />
+      )}
 
       {/* Service Status Cards */}
       {isLoading ? (

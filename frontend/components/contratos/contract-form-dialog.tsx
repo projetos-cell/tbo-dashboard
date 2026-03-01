@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { z } from "zod";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,18 @@ import { useCreateContract, useUpdateContract } from "@/hooks/use-contracts";
 import type { Database } from "@/lib/supabase/types";
 
 type ContractRow = Database["public"]["Tables"]["contracts"]["Row"];
+
+const contractSchema = z.object({
+  title: z.string().min(1, "Titulo e obrigatorio"),
+  description: z.string().optional(),
+  type: z.string().min(1),
+  status: z.string().min(1),
+  start_date: z.string().optional(),
+  end_date: z.string().optional(),
+  monthly_value: z.string().optional(),
+});
+
+type ContractFormData = z.infer<typeof contractSchema>;
 
 interface ContractFormDialogProps {
   open: boolean;
@@ -51,6 +64,7 @@ export function ContractFormDialog({
   const createContract = useCreateContract();
   const updateContract = useUpdateContract();
   const [form, setForm] = useState(emptyForm);
+  const [errors, setErrors] = useState<Partial<Record<keyof ContractFormData, string>>>({});
 
   const isEditing = !!contract;
 
@@ -68,15 +82,28 @@ export function ContractFormDialog({
     } else {
       setForm(emptyForm);
     }
+    setErrors({});
   }, [contract, open]);
 
   function handleChange(field: string, value: string | boolean) {
     setForm((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: undefined }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!tenantId || !form.title.trim()) return;
+    const result = contractSchema.safeParse(form);
+    if (!result.success) {
+      const fieldErrors: Partial<Record<keyof ContractFormData, string>> = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof ContractFormData;
+        if (!fieldErrors[field]) fieldErrors[field] = issue.message;
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+    setErrors({});
+    if (!tenantId) return;
 
     const payload = {
       title: form.title.trim(),
@@ -110,13 +137,16 @@ export function ContractFormDialog({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="title">Título *</Label>
+            <Label htmlFor="title">Titulo *</Label>
             <Input
               id="title"
               value={form.title}
               onChange={(e) => handleChange("title", e.target.value)}
               required
             />
+            {errors.title && (
+              <p className="text-xs text-destructive">{errors.title}</p>
+            )}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">

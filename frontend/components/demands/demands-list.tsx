@@ -237,6 +237,7 @@ export function DemandsList({ demands, onSelect }: DemandsListProps) {
                 size="icon"
                 className="h-7 w-7"
                 onClick={(e) => e.stopPropagation()}
+                aria-label="Acoes"
               >
                 <MoreHorizontal className="h-3.5 w-3.5" />
               </Button>

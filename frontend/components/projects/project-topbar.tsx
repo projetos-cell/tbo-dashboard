@@ -83,7 +83,7 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
     <div className="space-y-3">
       <div className="flex items-start gap-3">
         <Link href="/projetos">
-          <Button variant="ghost" size="icon" className="mt-1">
+          <Button variant="ghost" size="icon" className="mt-1" aria-label="Voltar">
             <ArrowLeft className="size-4" />
           </Button>
         </Link>
@@ -126,6 +126,7 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
               variant="outline"
               size="icon"
               onClick={() => setShowMenu(!showMenu)}
+              aria-label="Mais opcoes"
             >
               <MoreHorizontal className="size-4" />
             </Button>

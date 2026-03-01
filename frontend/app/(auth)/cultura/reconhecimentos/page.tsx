@@ -14,12 +14,13 @@ import {
   useDeleteCulturaItem,
 } from "@/hooks/use-cultura";
 import { useAuthStore } from "@/stores/auth-store";
+import { ErrorState } from "@/components/shared";
 import type { Database } from "@/lib/supabase/types";
 
 type CulturaRow = Database["public"]["Tables"]["cultura_items"]["Row"];
 
 export default function ReconhecimentosPage() {
-  const { data: items, isLoading } = useCulturaItems("reconhecimento");
+  const { data: items, isLoading, error, refetch } = useCulturaItems("reconhecimento");
   const createItem = useCreateCulturaItem();
   const updateItem = useUpdateCulturaItem();
   const deleteItem = useDeleteCulturaItem();
@@ -106,6 +107,8 @@ export default function ReconhecimentosPage() {
             <Skeleton key={i} className="h-36" />
           ))}
         </div>
+      ) : error ? (
+        <ErrorState message={error.message} onRetry={() => refetch()} />
       ) : items && items.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item) => (

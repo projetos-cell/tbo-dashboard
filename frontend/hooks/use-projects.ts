@@ -12,6 +12,7 @@ import {
   updateProject,
   deleteProject,
 } from "@/services/projects";
+import { logAuditTrail } from "@/lib/audit-trail";
 import type { Database } from "@/lib/supabase/types";
 
 function useSupabase() {
@@ -86,6 +87,15 @@ export function useUpdateProject() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["project", variables.id] });
+
+      const action = variables.updates.status ? "status_change" : "update";
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action,
+        table: "projects",
+        recordId: variables.id,
+        after: variables.updates as Record<string, unknown>,
+      });
     },
   });
 }
@@ -108,8 +118,16 @@ export function useDeleteProject() {
 
   return useMutation({
     mutationFn: (id: string) => deleteProject(supabase, id),
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "delete",
+        table: "projects",
+        recordId: id,
+        before: { id },
+      });
     },
   });
 }

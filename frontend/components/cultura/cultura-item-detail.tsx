@@ -57,7 +57,7 @@ export function CulturaItemDetail({
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={onBack}>
+        <Button variant="ghost" size="icon" onClick={onBack} aria-label="Voltar">
           <ArrowLeft className="size-4" />
         </Button>
         <div className="flex-1">

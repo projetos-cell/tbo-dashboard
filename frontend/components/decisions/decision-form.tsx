@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,6 +14,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCreateDecision } from "@/hooks/use-decisions";
 import { useAuthStore } from "@/stores/auth-store";
+
+const decisionSchema = z.object({
+  title: z.string().min(1, "Titulo e obrigatorio"),
+  description: z.string().optional(),
+  decided_by: z.string().optional(),
+  project_id: z.string().optional(),
+  meeting_id: z.string().optional(),
+});
+
+type DecisionFormData = z.infer<typeof decisionSchema>;
 
 interface DecisionFormProps {
   open: boolean;
@@ -28,6 +39,7 @@ export function DecisionForm({ open, onOpenChange }: DecisionFormProps) {
   const [decidedBy, setDecidedBy] = useState("");
   const [projectId, setProjectId] = useState("");
   const [meetingId, setMeetingId] = useState("");
+  const [errors, setErrors] = useState<Partial<Record<keyof DecisionFormData, string>>>({});
 
   const reset = () => {
     setTitle("");
@@ -35,11 +47,29 @@ export function DecisionForm({ open, onOpenChange }: DecisionFormProps) {
     setDecidedBy("");
     setProjectId("");
     setMeetingId("");
+    setErrors({});
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !tenantId) return;
+    const result = decisionSchema.safeParse({
+      title: title.trim(),
+      description: description.trim(),
+      decided_by: decidedBy.trim(),
+      project_id: projectId.trim(),
+      meeting_id: meetingId.trim(),
+    });
+    if (!result.success) {
+      const fieldErrors: Partial<Record<keyof DecisionFormData, string>> = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof DecisionFormData;
+        if (!fieldErrors[field]) fieldErrors[field] = issue.message;
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+    setErrors({});
+    if (!tenantId) return;
 
     createDecision.mutate(
       {
@@ -75,10 +105,13 @@ export function DecisionForm({ open, onOpenChange }: DecisionFormProps) {
             <Input
               id="decision-title"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => { setTitle(e.target.value); setErrors((prev) => ({ ...prev, title: undefined })); }}
               placeholder="Ex: Aprovacao do novo escopo"
               required
             />
+            {errors.title && (
+              <p className="text-xs text-destructive">{errors.title}</p>
+            )}
           </div>
 
           <div className="space-y-2">

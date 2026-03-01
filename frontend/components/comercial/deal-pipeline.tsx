@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -33,7 +33,7 @@ interface DealPipelineProps {
   deals: DealRow[];
   isLoading: boolean;
   onSelect: (deal: DealRow) => void;
-  onStageDrop?: (dealId: string, newStage: string) => void;
+  onStageDrop?: (dealId: string, newStage: string) => Promise<void> | void;
 }
 
 const orderedStages = Object.entries(DEAL_STAGES)
@@ -112,8 +112,41 @@ export function DealPipeline({
   onSelect,
   onStageDrop,
 }: DealPipelineProps) {
+  const [localDeals, setLocalDeals] = useState<DealRow[]>(deals);
   const [activeDeal, setActiveDeal] = useState<DealRow | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
+  const [undoStack, setUndoStack] = useState<DealRow[][]>([]);
+  const [isMutating, setIsMutating] = useState(false);
+
+  // Sync localDeals from prop when not mutating (external refresh)
+  useEffect(() => {
+    if (!isMutating) {
+      setLocalDeals(deals);
+    }
+  }, [deals, isMutating]);
+
+  // Ctrl+Z undo handler
+  useEffect(() => {
+    function handleUndo(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && undoStack.length > 0) {
+        e.preventDefault();
+        const previous = undoStack[undoStack.length - 1];
+        setUndoStack((prev) => prev.slice(0, -1));
+        setLocalDeals(previous);
+        // Re-sync reverted state to Supabase
+        if (onStageDrop) {
+          for (const deal of previous) {
+            const current = localDeals.find((d) => d.id === deal.id);
+            if (current && current.stage !== deal.stage) {
+              onStageDrop(deal.id, deal.stage as string);
+            }
+          }
+        }
+      }
+    }
+    window.addEventListener("keydown", handleUndo);
+    return () => window.removeEventListener("keydown", handleUndo);
+  }, [undoStack, localDeals, onStageDrop]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -126,21 +159,21 @@ export function DealPipeline({
     for (const stage of orderedStages) {
       map[stage] = [];
     }
-    for (const deal of deals) {
+    for (const deal of localDeals) {
       const key = deal.stage as DealStageKey;
       if (map[key]) {
         map[key].push(deal);
       }
     }
     return map;
-  }, [deals]);
+  }, [localDeals]);
 
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
-      const deal = deals.find((d) => d.id === event.active.id);
+      const deal = localDeals.find((d) => d.id === event.active.id);
       if (deal) setActiveDeal(deal);
     },
-    [deals]
+    [localDeals]
   );
 
   const handleDragOver = useCallback(
@@ -154,16 +187,16 @@ export function DealPipeline({
       if (overData?.type === "column") {
         setOverColumnId(overData.stage as string);
       } else {
-        // Hovering over a deal card — find its stage
-        const overDeal = deals.find((d) => d.id === over.id);
+        // Hovering over a deal card -- find its stage
+        const overDeal = localDeals.find((d) => d.id === over.id);
         setOverColumnId(overDeal?.stage ?? (over.id as string));
       }
     },
-    [deals]
+    [localDeals]
   );
 
   const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
+    async (event: DragEndEvent) => {
       const { active, over } = event;
       setActiveDeal(null);
       setOverColumnId(null);
@@ -177,16 +210,42 @@ export function DealPipeline({
       if (overData?.type === "column") {
         targetStage = overData.stage as string;
       } else {
-        const overDeal = deals.find((d) => d.id === over.id);
+        const overDeal = localDeals.find((d) => d.id === over.id);
         targetStage = overDeal?.stage ?? (over.id as string);
       }
 
-      const deal = deals.find((d) => d.id === dealId);
+      const deal = localDeals.find((d) => d.id === dealId);
       if (!deal || deal.stage === targetStage) return;
 
-      onStageDrop(dealId, targetStage);
+      // 1. Push current state to undo stack (max 20 entries)
+      setUndoStack((prev) => [...prev.slice(-19), [...localDeals]]);
+
+      // 2. Optimistic update -- modify local state immediately
+      setLocalDeals((prev) =>
+        prev.map((d) =>
+          d.id === dealId ? { ...d, stage: targetStage } : d
+        )
+      );
+
+      // 3. Persist to Supabase with rollback on error
+      setIsMutating(true);
+      try {
+        await onStageDrop(dealId, targetStage);
+      } catch {
+        // Rollback: restore previous local state from undo stack
+        setLocalDeals((prev) => {
+          const restored = prev.map((d) =>
+            d.id === dealId ? { ...d, stage: deal.stage } : d
+          );
+          return restored;
+        });
+        // Remove the entry we just pushed
+        setUndoStack((prev) => prev.slice(0, -1));
+      } finally {
+        setIsMutating(false);
+      }
     },
-    [deals, onStageDrop]
+    [localDeals, onStageDrop]
   );
 
   const handleDragCancel = useCallback(() => {

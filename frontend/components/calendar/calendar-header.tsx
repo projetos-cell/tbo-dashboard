@@ -46,10 +46,10 @@ export function CalendarHeader({
         </Button>
 
         <div className="flex items-center rounded-md border">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onPrev}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onPrev} aria-label="Mes anterior">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNext}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNext} aria-label="Proximo mes">
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>

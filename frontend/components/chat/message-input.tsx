@@ -41,6 +41,7 @@ export function MessageInput({ onSend, disabled }: MessageInputProps) {
         size="icon"
         onClick={handleSend}
         disabled={disabled || !content.trim()}
+        aria-label="Enviar mensagem"
       >
         <Send className="h-4 w-4" />
       </Button>

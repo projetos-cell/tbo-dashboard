@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { z } from "zod";
 import { useProfile, useUpdateProfile, useUploadAvatar } from "@/hooks/use-settings";
 import { useAuthStore } from "@/stores/auth-store";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,14 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Camera, Loader2 } from "lucide-react";
+
+const profileSchema = z.object({
+  full_name: z.string().min(1, "Nome e obrigatorio"),
+  phone: z.string().optional(),
+  department: z.string().optional(),
+});
+
+type ProfileFormData = z.infer<typeof profileSchema>;
 
 export function ProfileForm() {
   const { data: profile, isLoading } = useProfile();
@@ -21,6 +30,7 @@ export function ProfileForm() {
   const [phone, setPhone] = useState("");
   const [department, setDepartment] = useState("");
   const [dirty, setDirty] = useState(false);
+  const [errors, setErrors] = useState<Partial<Record<keyof ProfileFormData, string>>>({});
 
   // Populate form when profile loads
   const populated = useRef(false);
@@ -32,6 +42,21 @@ export function ProfileForm() {
   }
 
   function handleSave() {
+    const result = profileSchema.safeParse({
+      full_name: fullName,
+      phone,
+      department,
+    });
+    if (!result.success) {
+      const fieldErrors: Partial<Record<keyof ProfileFormData, string>> = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof ProfileFormData;
+        if (!fieldErrors[field]) fieldErrors[field] = issue.message;
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+    setErrors({});
     updateProfile.mutate(
       { full_name: fullName, phone, department },
       { onSuccess: () => setDirty(false) },
@@ -111,8 +136,11 @@ export function ProfileForm() {
             <Input
               id="fullName"
               value={fullName}
-              onChange={(e) => { setFullName(e.target.value); setDirty(true); }}
+              onChange={(e) => { setFullName(e.target.value); setDirty(true); setErrors((prev) => ({ ...prev, full_name: undefined })); }}
             />
+            {errors.full_name && (
+              <p className="text-xs text-destructive">{errors.full_name}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">E-mail</Label>

@@ -7,6 +7,7 @@ import { PeopleFilters } from "@/components/people/people-filters";
 import { PersonCard } from "@/components/people/person-card";
 import { PersonDetail } from "@/components/people/person-detail";
 import { computePeopleKPIs } from "@/services/people";
+import { ErrorState } from "@/components/shared";
 import type { Database } from "@/lib/supabase/types";
 import { Users } from "lucide-react";
 
@@ -18,7 +19,7 @@ export default function PessoasPage() {
   const [selectedPerson, setSelectedPerson] = useState<ProfileRow | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
-  const { data: people = [], isLoading } = usePeople({
+  const { data: people = [], isLoading, error, refetch } = usePeople({
     status: statusFilter || undefined,
     search: search || undefined,
   });
@@ -52,7 +53,9 @@ export default function PessoasPage() {
       />
 
       {/* People Grid */}
-      {isLoading ? (
+      {error ? (
+        <ErrorState message={error.message} onRetry={() => refetch()} />
+      ) : isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 8 }).map((_, i) => (
             <div

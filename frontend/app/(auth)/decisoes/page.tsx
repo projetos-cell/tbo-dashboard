@@ -10,6 +10,7 @@ import { DecisionsList } from "@/components/decisions/decisions-list";
 import { DecisionDetail } from "@/components/decisions/decision-detail";
 import { DecisionForm } from "@/components/decisions/decision-form";
 import { useDecisions } from "@/hooks/use-decisions";
+import { ErrorState } from "@/components/shared";
 import type { Database } from "@/lib/supabase/types";
 
 type DecisionRow = Database["public"]["Tables"]["decisions"]["Row"];
@@ -20,7 +21,7 @@ export default function DecisoesPage() {
     useState<DecisionRow | null>(null);
   const [formOpen, setFormOpen] = useState(false);
 
-  const { data: decisions = [], isLoading } = useDecisions();
+  const { data: decisions = [], isLoading, error, refetch } = useDecisions();
 
   const filtered = useMemo(() => {
     if (!search.trim()) return decisions;
@@ -60,6 +61,10 @@ export default function DecisoesPage() {
         </div>
       </div>
     );
+  }
+
+  if (error) {
+    return <ErrorState message={error.message} onRetry={() => refetch()} />;
   }
 
   return (

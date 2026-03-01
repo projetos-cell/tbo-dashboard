@@ -24,6 +24,7 @@ import {
   Layers,
 } from "lucide-react";
 import { usePages, usePageStats } from "@/hooks/use-conteudo";
+import { ErrorState } from "@/components/shared";
 
 function formatDate(dateStr: string | null) {
   if (!dateStr) return "--";
@@ -32,7 +33,7 @@ function formatDate(dateStr: string | null) {
 
 function ConteudoContent() {
   const [search, setSearch] = useState("");
-  const { data: pages, isLoading } = usePages();
+  const { data: pages, isLoading, error, refetch } = usePages();
   const { data: stats, isLoading: statsLoading } = usePageStats();
 
   const filteredPages = useMemo(() => {
@@ -120,6 +121,10 @@ function ConteudoContent() {
               {Array.from({ length: 5 }).map((_, i) => (
                 <Skeleton key={i} className="h-10 w-full" />
               ))}
+            </div>
+          ) : error ? (
+            <div className="p-4">
+              <ErrorState message={error.message} onRetry={() => refetch()} />
             </div>
           ) : filteredPages.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">

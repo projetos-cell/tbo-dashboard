@@ -157,6 +157,7 @@ function CommentComposer({
           className="size-8"
           onClick={handleSubmit}
           disabled={!content.trim() || submitting}
+          aria-label="Enviar comentario"
         >
           <Send className="size-3.5" />
         </Button>
@@ -166,6 +167,7 @@ function CommentComposer({
             variant="ghost"
             className="size-8"
             onClick={onCancel}
+            aria-label="Cancelar"
           >
             ✕
           </Button>
@@ -244,6 +246,7 @@ function CommentItem({
                 size="icon"
                 className="size-6"
                 onClick={() => setShowMenu(!showMenu)}
+                aria-label="Acoes"
               >
                 <MoreHorizontal className="size-3.5" />
               </Button>

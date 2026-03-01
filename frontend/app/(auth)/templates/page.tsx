@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TemplatesGrid } from "@/components/templates/templates-grid";
 import { TemplateDetail } from "@/components/templates/template-detail";
 import { useTemplates, useDeleteTemplate } from "@/hooks/use-templates";
+import { ErrorState } from "@/components/shared";
 import { TEMPLATE_TYPES } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 
@@ -28,7 +29,7 @@ export default function TemplatesPage() {
   );
   const [detailOpen, setDetailOpen] = useState(false);
 
-  const { data: templates = [], isLoading } = useTemplates();
+  const { data: templates = [], isLoading, error, refetch } = useTemplates();
   const deleteTemplate = useDeleteTemplate();
 
   const filtered = useMemo(() => {
@@ -126,6 +127,8 @@ export default function TemplatesPage() {
             <Skeleton key={i} className="h-52 rounded-lg" />
           ))}
         </div>
+      ) : error ? (
+        <ErrorState message={error.message} onRetry={() => refetch()} />
       ) : (
         <TemplatesGrid
           templates={filtered}

@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
+import { logAuditTrail } from "@/lib/audit-trail";
 import type { Database } from "@/lib/supabase/types";
 import { getPeople, getPersonById, updatePerson, getTeams, getProfiles } from "@/services/people";
 
@@ -46,9 +47,18 @@ export function useUpdatePerson() {
       id: string;
       updates: Database["public"]["Tables"]["profiles"]["Update"];
     }) => updatePerson(supabase, id, updates),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["people"] });
       queryClient.invalidateQueries({ queryKey: ["person"] });
+
+      const action = variables.updates.role ? "permission_change" : "update";
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action,
+        table: "profiles",
+        recordId: variables.id,
+        after: variables.updates as Record<string, unknown>,
+      });
     },
   });
 }

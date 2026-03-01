@@ -133,6 +133,7 @@ export function ChangelogList({
                         variant="ghost"
                         size="icon"
                         className="size-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        aria-label="Acoes"
                       >
                         <MoreHorizontal className="size-4" />
                       </Button>

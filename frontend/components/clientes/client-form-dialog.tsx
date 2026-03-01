@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { z } from "zod";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,26 @@ import { useCreateClient, useUpdateClient } from "@/hooks/use-clients";
 import type { Database } from "@/lib/supabase/types";
 
 type ClientRow = Database["public"]["Tables"]["clients"]["Row"];
+
+const clientSchema = z.object({
+  name: z.string().min(1, "Razao social e obrigatoria"),
+  trading_name: z.string().optional(),
+  cnpj: z.string().optional(),
+  contact_name: z.string().optional(),
+  email: z.string().email("Email invalido").optional().or(z.literal("")),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  status: z.string().min(1),
+  segment: z.string().optional(),
+  notes: z.string().optional(),
+  sales_owner: z.string().optional(),
+  next_action: z.string().optional(),
+  next_action_date: z.string().optional(),
+});
+
+type ClientFormData = z.infer<typeof clientSchema>;
 
 interface ClientFormDialogProps {
   open: boolean;
@@ -59,6 +80,7 @@ export function ClientFormDialog({
   const createClient = useCreateClient();
   const updateClient = useUpdateClient();
   const [form, setForm] = useState(emptyForm);
+  const [errors, setErrors] = useState<Partial<Record<keyof ClientFormData, string>>>({});
 
   const isEditing = !!client;
 
@@ -84,15 +106,28 @@ export function ClientFormDialog({
     } else {
       setForm(emptyForm);
     }
+    setErrors({});
   }, [client, open]);
 
   function handleChange(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: undefined }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!tenantId || !form.name.trim()) return;
+    const result = clientSchema.safeParse(form);
+    if (!result.success) {
+      const fieldErrors: Partial<Record<keyof ClientFormData, string>> = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof ClientFormData;
+        if (!fieldErrors[field]) fieldErrors[field] = issue.message;
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+    setErrors({});
+    if (!tenantId) return;
 
     const payload = {
       name: form.name.trim(),
@@ -135,13 +170,16 @@ export function ClientFormDialog({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="name">Razão Social *</Label>
+              <Label htmlFor="name">Razao Social *</Label>
               <Input
                 id="name"
                 value={form.name}
                 onChange={(e) => handleChange("name", e.target.value)}
                 required
               />
+              {errors.name && (
+                <p className="text-xs text-destructive">{errors.name}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="trading_name">Nome Fantasia</Label>
@@ -210,6 +248,9 @@ export function ClientFormDialog({
                 value={form.email}
                 onChange={(e) => handleChange("email", e.target.value)}
               />
+              {errors.email && (
+                <p className="text-xs text-destructive">{errors.email}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Telefone</Label>

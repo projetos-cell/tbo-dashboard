@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
+import { logAuditTrail } from "@/lib/audit-trail";
 import {
   getDeals,
   getDealById,
@@ -52,7 +53,17 @@ export function useCreateDeal() {
       const supabase = createClient();
       return createDeal(supabase, deal);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["deals"] }),
+    onSuccess: (data, variables) => {
+      qc.invalidateQueries({ queryKey: ["deals"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "create",
+        table: "crm_deals",
+        recordId: (data as Record<string, unknown>)?.id as string ?? "unknown",
+        after: variables as unknown as Record<string, unknown>,
+      });
+    },
   });
 }
 
@@ -69,7 +80,17 @@ export function useUpdateDeal() {
       const supabase = createClient();
       return updateDeal(supabase, id, updates);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["deals"] }),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["deals"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "update",
+        table: "crm_deals",
+        recordId: variables.id,
+        after: variables.updates as Record<string, unknown>,
+      });
+    },
   });
 }
 
@@ -80,6 +101,17 @@ export function useUpdateDealStage() {
       const supabase = createClient();
       return updateDealStage(supabase, id, stage);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["deals"] }),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["deals"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "status_change",
+        table: "crm_deals",
+        recordId: variables.id,
+        after: { stage: variables.stage },
+        metadata: { field: "stage" },
+      });
+    },
   });
 }

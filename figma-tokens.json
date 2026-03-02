@@ -1,0 +1,449 @@
+{
+  "TBO Design System": {
+    "colors": {
+      "brand": {
+        "orange": {
+          "value": "#E85102",
+          "type": "color",
+          "description": "Primary brand orange (Pantone 1655 C)"
+        },
+        "orange-light": {
+          "value": "#FD8241",
+          "type": "color",
+          "description": "Light orange for hover states"
+        },
+        "orange-pale": {
+          "value": "#FED5C0",
+          "type": "color",
+          "description": "Pale orange for backgrounds"
+        },
+        "orange-dark": {
+          "value": "#BE4202",
+          "type": "color",
+          "description": "Dark orange for primary accents"
+        },
+        "orange-deep": {
+          "value": "#3F1601",
+          "type": "color",
+          "description": "Deep orange for dark contexts"
+        }
+      },
+      "neutral": {
+        "white": {
+          "value": "#FFFFFF",
+          "type": "color"
+        },
+        "gray-100": {
+          "value": "#EAEAEA",
+          "type": "color",
+          "description": "Lightest gray - borders, backgrounds"
+        },
+        "gray-200": {
+          "value": "#DFDFDF",
+          "type": "color",
+          "description": "Light gray - borders, inputs"
+        },
+        "gray-400": {
+          "value": "#9F9F9F",
+          "type": "color",
+          "description": "Medium gray - muted text"
+        },
+        "gray-600": {
+          "value": "#606060",
+          "type": "color",
+          "description": "Dark gray - secondary text"
+        },
+        "gray-800": {
+          "value": "#202020",
+          "type": "color",
+          "description": "Darkest gray - tooltips"
+        },
+        "black": {
+          "value": "#0F0F0F",
+          "type": "color",
+          "description": "Primary black"
+        },
+        "black-warm": {
+          "value": "#0F0400",
+          "type": "color",
+          "description": "Warm black for overlays"
+        }
+      },
+      "semantic": {
+        "success": {
+          "value": "#2ecc71",
+          "type": "color"
+        },
+        "success-dim": {
+          "value": "rgba(46, 204, 113, 0.15)",
+          "type": "color"
+        },
+        "warning": {
+          "value": "#f39c12",
+          "type": "color"
+        },
+        "warning-dim": {
+          "value": "rgba(243, 156, 18, 0.15)",
+          "type": "color"
+        },
+        "danger": {
+          "value": "#e74c3c",
+          "type": "color"
+        },
+        "danger-dim": {
+          "value": "rgba(231, 76, 60, 0.15)",
+          "type": "color"
+        },
+        "info": {
+          "value": "#3a7bd5",
+          "type": "color"
+        },
+        "info-dim": {
+          "value": "rgba(58, 123, 213, 0.15)",
+          "type": "color"
+        },
+        "purple": {
+          "value": "#8b5cf6",
+          "type": "color"
+        },
+        "purple-dim": {
+          "value": "rgba(139, 92, 246, 0.15)",
+          "type": "color"
+        }
+      },
+      "module": {
+        "dashboard": {
+          "value": "#E85102",
+          "type": "color",
+          "description": "Dashboard module accent"
+        },
+        "projetos": {
+          "value": "#3b82f6",
+          "type": "color",
+          "description": "Projects module accent"
+        },
+        "financeiro": {
+          "value": "#10b981",
+          "type": "color",
+          "description": "Finance module accent"
+        },
+        "pessoas": {
+          "value": "#8b5cf6",
+          "type": "color",
+          "description": "People module accent"
+        },
+        "comercial": {
+          "value": "#f59e0b",
+          "type": "color",
+          "description": "Commercial module accent"
+        },
+        "mercado": {
+          "value": "#14b8a6",
+          "type": "color",
+          "description": "Market module accent"
+        },
+        "cultura": {
+          "value": "#ec4899",
+          "type": "color",
+          "description": "Culture module accent"
+        }
+      }
+    },
+    "background": {
+      "root": {
+        "value": "{colors.neutral.gray-100}",
+        "type": "color",
+        "description": "Page background"
+      },
+      "sidebar": {
+        "value": "{colors.neutral.white}",
+        "type": "color"
+      },
+      "header": {
+        "value": "{colors.neutral.white}",
+        "type": "color"
+      },
+      "card": {
+        "value": "{colors.neutral.white}",
+        "type": "color"
+      },
+      "card-hover": {
+        "value": "#f8f8f8",
+        "type": "color"
+      },
+      "input": {
+        "value": "{colors.neutral.gray-200}",
+        "type": "color"
+      },
+      "overlay": {
+        "value": "rgba(15, 4, 0, 0.35)",
+        "type": "color"
+      },
+      "tooltip": {
+        "value": "{colors.neutral.gray-800}",
+        "type": "color"
+      },
+      "dropdown": {
+        "value": "{colors.neutral.white}",
+        "type": "color"
+      },
+      "elevated": {
+        "value": "{colors.neutral.gray-200}",
+        "type": "color"
+      }
+    },
+    "text": {
+      "primary": {
+        "value": "{colors.neutral.black}",
+        "type": "color",
+        "description": "Primary text color"
+      },
+      "secondary": {
+        "value": "{colors.neutral.gray-600}",
+        "type": "color",
+        "description": "Secondary text color"
+      },
+      "muted": {
+        "value": "{colors.neutral.gray-400}",
+        "type": "color",
+        "description": "Muted/placeholder text"
+      },
+      "inverse": {
+        "value": "{colors.neutral.gray-100}",
+        "type": "color",
+        "description": "Text on dark backgrounds"
+      },
+      "link": {
+        "value": "{colors.brand.orange-dark}",
+        "type": "color",
+        "description": "Link text color"
+      }
+    },
+    "border": {
+      "default": {
+        "value": "{colors.neutral.gray-200}",
+        "type": "color"
+      },
+      "subtle": {
+        "value": "{colors.neutral.gray-100}",
+        "type": "color"
+      },
+      "hover": {
+        "value": "{colors.neutral.gray-400}",
+        "type": "color"
+      },
+      "focus": {
+        "value": "#D14800",
+        "type": "color"
+      }
+    },
+    "spacing": {
+      "xs": {
+        "value": "4",
+        "type": "spacing"
+      },
+      "sm": {
+        "value": "8",
+        "type": "spacing"
+      },
+      "md": {
+        "value": "12",
+        "type": "spacing"
+      },
+      "lg": {
+        "value": "16",
+        "type": "spacing"
+      },
+      "xl": {
+        "value": "24",
+        "type": "spacing"
+      },
+      "xxl": {
+        "value": "32",
+        "type": "spacing"
+      },
+      "xxxl": {
+        "value": "48",
+        "type": "spacing"
+      }
+    },
+    "borderRadius": {
+      "xs": {
+        "value": "3",
+        "type": "borderRadius"
+      },
+      "sm": {
+        "value": "6",
+        "type": "borderRadius"
+      },
+      "md": {
+        "value": "8",
+        "type": "borderRadius"
+      },
+      "lg": {
+        "value": "12",
+        "type": "borderRadius"
+      },
+      "xl": {
+        "value": "16",
+        "type": "borderRadius"
+      },
+      "full": {
+        "value": "9999",
+        "type": "borderRadius"
+      }
+    },
+    "boxShadow": {
+      "sm": {
+        "value": {
+          "x": "0",
+          "y": "1",
+          "blur": "3",
+          "spread": "0",
+          "color": "rgba(0, 0, 0, 0.06)",
+          "type": "dropShadow"
+        },
+        "type": "boxShadow"
+      },
+      "md": {
+        "value": {
+          "x": "0",
+          "y": "4",
+          "blur": "12",
+          "spread": "0",
+          "color": "rgba(0, 0, 0, 0.08)",
+          "type": "dropShadow"
+        },
+        "type": "boxShadow"
+      },
+      "lg": {
+        "value": {
+          "x": "0",
+          "y": "8",
+          "blur": "30",
+          "spread": "0",
+          "color": "rgba(0, 0, 0, 0.12)",
+          "type": "dropShadow"
+        },
+        "type": "boxShadow"
+      },
+      "xl": {
+        "value": {
+          "x": "0",
+          "y": "12",
+          "blur": "48",
+          "spread": "0",
+          "color": "rgba(0, 0, 0, 0.18)",
+          "type": "dropShadow"
+        },
+        "type": "boxShadow"
+      },
+      "glow": {
+        "value": {
+          "x": "0",
+          "y": "0",
+          "blur": "16",
+          "spread": "0",
+          "color": "rgba(232, 81, 2, 0.15)",
+          "type": "dropShadow"
+        },
+        "type": "boxShadow",
+        "description": "Brand orange glow effect"
+      }
+    },
+    "typography": {
+      "display": {
+        "value": {
+          "fontFamily": "Helvetica Neue LT Pro",
+          "fontWeight": "800",
+          "fontSize": "32",
+          "lineHeight": "1.1",
+          "letterSpacing": "-0.02em"
+        },
+        "type": "typography",
+        "description": "Large display headlines"
+      },
+      "heading": {
+        "value": {
+          "fontFamily": "Helvetica Neue LT Pro",
+          "fontWeight": "700",
+          "fontSize": "24",
+          "lineHeight": "1.2",
+          "letterSpacing": "-0.01em"
+        },
+        "type": "typography",
+        "description": "Section headings"
+      },
+      "title": {
+        "value": {
+          "fontFamily": "Helvetica Neue LT Pro",
+          "fontWeight": "600",
+          "fontSize": "17.6",
+          "lineHeight": "1.3",
+          "letterSpacing": "0"
+        },
+        "type": "typography",
+        "description": "Card titles, sub-headings"
+      },
+      "body": {
+        "value": {
+          "fontFamily": "Helvetica Neue LT Pro",
+          "fontWeight": "400",
+          "fontSize": "14",
+          "lineHeight": "1.5",
+          "letterSpacing": "0"
+        },
+        "type": "typography",
+        "description": "Default body text"
+      },
+      "caption": {
+        "value": {
+          "fontFamily": "Helvetica Neue LT Pro",
+          "fontWeight": "500",
+          "fontSize": "12",
+          "lineHeight": "1.4",
+          "letterSpacing": "0.01em"
+        },
+        "type": "typography",
+        "description": "Captions, helper text"
+      },
+      "overline": {
+        "value": {
+          "fontFamily": "Helvetica Neue LT Pro",
+          "fontWeight": "700",
+          "fontSize": "10.4",
+          "lineHeight": "1.2",
+          "letterSpacing": "0.08em",
+          "textCase": "uppercase"
+        },
+        "type": "typography",
+        "description": "Labels, overline text"
+      },
+      "mono": {
+        "value": {
+          "fontFamily": "JetBrains Mono",
+          "fontWeight": "400",
+          "fontSize": "13",
+          "lineHeight": "1.5",
+          "letterSpacing": "0"
+        },
+        "type": "typography",
+        "description": "Code, technical text"
+      }
+    },
+    "sizing": {
+      "sidebar-width": {
+        "value": "260",
+        "type": "sizing"
+      },
+      "sidebar-collapsed": {
+        "value": "64",
+        "type": "sizing"
+      },
+      "content-max-width": {
+        "value": "1400",
+        "type": "sizing"
+      }
+    }
+  }
+}

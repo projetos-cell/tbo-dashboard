@@ -21,6 +21,7 @@ import {
   Plug,
 } from "lucide-react";
 import { useOmieSyncLogs, useTriggerSync, useTestOmieConnection } from "@/hooks/use-omie-sync";
+import { isStaleSyncLog } from "@/services/omie-sync";
 import type { OmieSyncLog } from "@/services/omie-sync";
 import { useToast } from "@/hooks/use-toast";
 
@@ -95,7 +96,8 @@ export function OmieSyncPanel() {
   ) as OmieSyncLog | undefined;
 
   const isSyncing =
-    syncMutation.isPending || lastLog?.status === "running";
+    syncMutation.isPending ||
+    (lastLog?.status === "running" && !isStaleSyncLog(lastLog));
 
   function handleTestConnection() {
     testMutation.mutate(undefined, {

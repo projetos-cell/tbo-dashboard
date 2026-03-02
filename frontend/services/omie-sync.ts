@@ -72,23 +72,38 @@ export async function getOmieSyncLogs(
   return (data ?? []) as unknown as OmieSyncLog[];
 }
 
-// ── Stale sync cleanup ─────────────────────────────────────
-// Marks syncs stuck in "running" for more than 30 min as "error"
+// ── Stale sync helpers ──────────────────────────────────────
 
+/** Threshold after which a "running" sync is considered stale (5 min) */
+export const STALE_SYNC_MINUTES = 5;
+
+/** Returns true if a "running" log entry is stale (older than threshold) */
+export function isStaleSyncLog(log: OmieSyncLog): boolean {
+  if (log.status !== "running") return false;
+  const elapsed = Date.now() - new Date(log.started_at).getTime();
+  return elapsed > STALE_SYNC_MINUTES * 60 * 1000;
+}
+
+// Marks syncs stuck in "running" for more than 5 min as "error"
 export async function cleanupStaleSyncs(
   supabase: SupabaseClient<Database>,
   tenantId: string
-): Promise<void> {
-  await supabase
+): Promise<number> {
+  const { data } = await supabase
     .from("omie_sync_log" as never)
     .update({
       status: "error",
       finished_at: new Date().toISOString(),
-      errors: [{ entity: "sync", message: "Sync travado — timeout de 30 minutos excedido" }],
+      errors: [{ entity: "sync", message: "Sync travado — timeout excedido" }],
     } as never)
     .eq("tenant_id" as never, tenantId as never)
     .eq("status" as never, "running" as never)
-    .lt("started_at" as never, new Date(Date.now() - 30 * 60 * 1000).toISOString() as never);
+    .lt(
+      "started_at" as never,
+      new Date(Date.now() - STALE_SYNC_MINUTES * 60 * 1000).toISOString() as never
+    )
+    .select("id" as never);
+  return (data as unknown[] | null)?.length ?? 0;
 }
 
 // ── Last successful sync info ───────────────────────────────

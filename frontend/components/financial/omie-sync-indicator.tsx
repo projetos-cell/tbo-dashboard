@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Clock, AlertTriangle } from "lucide-react";
 import { useOmieSyncLogs } from "@/hooks/use-omie-sync";
+import { isStaleSyncLog } from "@/services/omie-sync";
 import type { OmieSyncLog } from "@/services/omie-sync";
 
 function timeAgo(iso: string): string {
@@ -34,8 +35,22 @@ export function OmieSyncIndicator() {
     );
   }
 
-  // Currently running a sync
+  // Currently running — but check if stale (stuck)
   if (lastLog.status === "running") {
+    if (isStaleSyncLog(lastLog)) {
+      // Stale sync — treat as error, fall through to error display
+      return lastSuccess ? (
+        <Badge variant="secondary" className="text-xs">
+          <AlertTriangle className="mr-1 h-3 w-3 text-yellow-500" />
+          Omie: sync travada
+        </Badge>
+      ) : (
+        <Badge variant="destructive" className="text-xs">
+          <AlertTriangle className="mr-1 h-3 w-3" />
+          Omie: sync travada
+        </Badge>
+      );
+    }
     return (
       <Badge variant="default" className="text-xs">
         <Clock className="mr-1 h-3 w-3 animate-spin" />

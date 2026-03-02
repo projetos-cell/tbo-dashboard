@@ -29,13 +29,20 @@ export function useOmieSyncLogs() {
   const tenantId = useTenantId();
   const qc = useQueryClient();
 
-  // Cleanup stale syncs on mount
+  // Cleanup stale syncs on mount — if any were cleaned, refetch immediately
   useEffect(() => {
     if (!tenantId) return;
-    cleanupStaleSyncs(supabase, tenantId).catch(() => {
-      /* ignore cleanup errors */
-    });
-  }, [supabase, tenantId]);
+    cleanupStaleSyncs(supabase, tenantId)
+      .then((cleaned) => {
+        if (cleaned > 0) {
+          qc.invalidateQueries({ queryKey: ["omie-sync-logs", tenantId] });
+          qc.invalidateQueries({ queryKey: ["omie-last-sync", tenantId] });
+        }
+      })
+      .catch(() => {
+        /* ignore cleanup errors */
+      });
+  }, [supabase, tenantId, qc]);
 
   // Realtime subscription replaces 30s polling
   useEffect(() => {

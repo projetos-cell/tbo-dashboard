@@ -2,6 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -11,9 +12,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CheckCircle2, XCircle, Clock, AlertTriangle, Info } from "lucide-react";
-import { useOmieSyncLogs } from "@/hooks/use-omie-sync";
+import {
+  CheckCircle2,
+  XCircle,
+  Clock,
+  AlertTriangle,
+  RefreshCw,
+} from "lucide-react";
+import { useOmieSyncLogs, useTriggerSync } from "@/hooks/use-omie-sync";
 import type { OmieSyncLog } from "@/services/omie-sync";
+import { useToast } from "@/hooks/use-toast";
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -30,7 +38,14 @@ function formatDate(iso: string | null): string {
 }
 
 function statusBadge(status: string) {
-  const map: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ReactNode; label: string }> = {
+  const map: Record<
+    string,
+    {
+      variant: "default" | "secondary" | "destructive" | "outline";
+      icon: React.ReactNode;
+      label: string;
+    }
+  > = {
     running: {
       variant: "default",
       icon: <Clock className="mr-1 h-3 w-3 animate-spin" />,
@@ -55,7 +70,10 @@ function statusBadge(status: string) {
 
   const cfg = map[status] ?? map.error!;
   return (
-    <Badge variant={cfg.variant} className="inline-flex items-center text-xs">
+    <Badge
+      variant={cfg.variant}
+      className="inline-flex items-center text-xs"
+    >
       {cfg.icon}
       {cfg.label}
     </Badge>
@@ -66,11 +84,50 @@ function statusBadge(status: string) {
 
 export function OmieSyncPanel() {
   const { data: logs, isLoading } = useOmieSyncLogs();
+  const syncMutation = useTriggerSync();
+  const { toast } = useToast();
 
   const lastLog = logs?.[0] as OmieSyncLog | undefined;
   const lastSuccess = logs?.find(
     (l: OmieSyncLog) => l.status === "success" || l.status === "partial"
   ) as OmieSyncLog | undefined;
+
+  const isSyncing =
+    syncMutation.isPending || lastLog?.status === "running";
+
+  function handleSync() {
+    syncMutation.mutate(undefined, {
+      onSuccess: (result) => {
+        if (result.status === "success") {
+          toast({
+            title: "Sincronizacao concluida",
+            description: `${result.total} registros sincronizados`,
+          });
+        } else if (result.status === "partial") {
+          toast({
+            title: "Sincronizacao parcial",
+            description: `${result.total} registros, ${result.errors} erro(s)`,
+          });
+        } else {
+          toast({
+            title: "Erro na sincronizacao",
+            description: "Verifique os logs abaixo.",
+            variant: "destructive",
+          });
+        }
+      },
+      onError: (error) => {
+        toast({
+          title: "Erro ao sincronizar",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Erro ao iniciar sincronizacao",
+          variant: "destructive",
+        });
+      },
+    });
+  }
 
   return (
     <Card>
@@ -81,23 +138,59 @@ export function OmieSyncPanel() {
             <p className="text-sm font-semibold">Integracao Omie</p>
             {lastSuccess && (
               <p className="text-xs text-muted-foreground">
-                Ultima sincronizacao bem-sucedida: {formatDate(lastSuccess.finished_at ?? lastSuccess.started_at)}
+                Ultima sincronizacao bem-sucedida:{" "}
+                {formatDate(
+                  lastSuccess.finished_at ?? lastSuccess.started_at
+                )}
               </p>
             )}
           </div>
           <div className="flex items-center gap-2">
             {lastLog && statusBadge(lastLog.status)}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleSync}
+              disabled={isSyncing}
+              className="gap-1.5"
+            >
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`}
+              />
+              {isSyncing ? "Sincronizando..." : "Sincronizar agora"}
+            </Button>
           </div>
         </div>
 
-        {/* Info banner */}
-        <div className="flex items-start gap-2 rounded-md bg-muted/50 p-3">
-          <Info className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-          <p className="text-xs text-muted-foreground">
-            A sincronizacao com o Omie e executada automaticamente a cada 30 minutos
-            pelo sistema legado. Os dados abaixo mostram o historico de execucoes.
-          </p>
-        </div>
+        {/* Last sync result summary */}
+        {syncMutation.data && !syncMutation.isPending && (
+          <div className="grid grid-cols-4 gap-3">
+            <div className="rounded-md bg-muted/50 p-2.5 text-center">
+              <p className="text-lg font-semibold">
+                {syncMutation.data.vendors_synced}
+              </p>
+              <p className="text-xs text-muted-foreground">Fornecedores</p>
+            </div>
+            <div className="rounded-md bg-muted/50 p-2.5 text-center">
+              <p className="text-lg font-semibold">
+                {syncMutation.data.clients_synced}
+              </p>
+              <p className="text-xs text-muted-foreground">Clientes</p>
+            </div>
+            <div className="rounded-md bg-muted/50 p-2.5 text-center">
+              <p className="text-lg font-semibold">
+                {syncMutation.data.payables_synced}
+              </p>
+              <p className="text-xs text-muted-foreground">A Pagar</p>
+            </div>
+            <div className="rounded-md bg-muted/50 p-2.5 text-center">
+              <p className="text-lg font-semibold">
+                {syncMutation.data.receivables_synced}
+              </p>
+              <p className="text-xs text-muted-foreground">A Receber</p>
+            </div>
+          </div>
+        )}
 
         {/* Log Table */}
         {isLoading ? (
@@ -113,16 +206,26 @@ export function OmieSyncPanel() {
                 <TableRow>
                   <TableHead className="text-xs">Data</TableHead>
                   <TableHead className="text-xs">Status</TableHead>
-                  <TableHead className="text-xs text-right">Fornecedores</TableHead>
-                  <TableHead className="text-xs text-right">Clientes</TableHead>
-                  <TableHead className="text-xs text-right">A Pagar</TableHead>
-                  <TableHead className="text-xs text-right">A Receber</TableHead>
+                  <TableHead className="text-xs text-right">
+                    Fornecedores
+                  </TableHead>
+                  <TableHead className="text-xs text-right">
+                    Clientes
+                  </TableHead>
+                  <TableHead className="text-xs text-right">
+                    A Pagar
+                  </TableHead>
+                  <TableHead className="text-xs text-right">
+                    A Receber
+                  </TableHead>
                   <TableHead className="text-xs">Erros</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {logs.map((log: OmieSyncLog) => {
-                  const errCount = Array.isArray(log.errors) ? log.errors.length : 0;
+                  const errCount = Array.isArray(log.errors)
+                    ? log.errors.length
+                    : 0;
                   return (
                     <TableRow key={log.id}>
                       <TableCell className="text-xs whitespace-nowrap">
@@ -143,11 +246,16 @@ export function OmieSyncPanel() {
                       </TableCell>
                       <TableCell className="text-xs">
                         {errCount > 0 ? (
-                          <Badge variant="destructive" className="text-xs">
+                          <Badge
+                            variant="destructive"
+                            className="text-xs"
+                          >
                             {errCount} erro{errCount > 1 ? "s" : ""}
                           </Badge>
                         ) : (
-                          <span className="text-muted-foreground">---</span>
+                          <span className="text-muted-foreground">
+                            ---
+                          </span>
                         )}
                       </TableCell>
                     </TableRow>
@@ -158,7 +266,8 @@ export function OmieSyncPanel() {
           </div>
         ) : (
           <p className="text-sm text-muted-foreground py-4 text-center">
-            Nenhuma sincronizacao realizada ainda.
+            Nenhuma sincronizacao realizada ainda. Clique em
+            &quot;Sincronizar agora&quot; para iniciar.
           </p>
         )}
       </CardContent>

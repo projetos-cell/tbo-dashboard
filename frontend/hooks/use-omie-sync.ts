@@ -1,13 +1,14 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   getOmieSyncLogs,
   cleanupStaleSyncs,
   getLastSuccessfulSync,
+  triggerSync,
 } from "@/services/omie-sync";
 
 // ── helpers ──────────────────────────────────────────────────
@@ -57,9 +58,31 @@ export function useLastSuccessfulSync() {
   });
 }
 
+// ── Trigger Sync ─────────────────────────────────────────────
+
+export function useTriggerSync() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: triggerSync,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["omie-sync-logs"] });
+      qc.invalidateQueries({ queryKey: ["omie-last-sync"] });
+      // Invalidate financial data queries so tables refresh
+      qc.invalidateQueries({ queryKey: ["payables"] });
+      qc.invalidateQueries({ queryKey: ["receivables"] });
+      qc.invalidateQueries({ queryKey: ["vendors"] });
+      qc.invalidateQueries({ queryKey: ["clients"] });
+    },
+  });
+}
+
 // ── Invalidate sync logs ────────────────────────────────────
 
 export function useInvalidateSyncLogs() {
   const qc = useQueryClient();
-  return () => qc.invalidateQueries({ queryKey: ["omie-sync-logs"] });
+  return useCallback(
+    () => qc.invalidateQueries({ queryKey: ["omie-sync-logs"] }),
+    [qc]
+  );
 }

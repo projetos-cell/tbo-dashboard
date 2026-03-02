@@ -17,6 +17,28 @@ export interface OmieSyncLog {
   triggered_by: string | null;
 }
 
+export interface OmieSyncResult {
+  vendors_synced: number;
+  clients_synced: number;
+  payables_synced: number;
+  receivables_synced: number;
+  total: number;
+  errors: number;
+  duration_ms: number;
+  status: string;
+}
+
+// ── Trigger sync via API route ───────────────────────────────
+
+export async function triggerSync(): Promise<OmieSyncResult> {
+  const res = await fetch("/api/omie-sync", { method: "POST" });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || data.message || "Erro ao sincronizar");
+  }
+  return data as OmieSyncResult;
+}
+
 // ── Queries ──────────────────────────────────────────────────
 
 export async function getOmieSyncLogs(

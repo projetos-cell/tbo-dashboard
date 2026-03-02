@@ -1,23 +1,39 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
 
-type NotificationRow = Database["public"]["Tables"]["notifications"]["Row"];
+export type NotificationRow =
+  Database["public"]["Tables"]["notifications"]["Row"];
+
+export type NotificationTriggerType =
+  | "mention"
+  | "thread_reply"
+  | "task_assigned"
+  | "task_updated";
+
+export interface NotificationFilters {
+  read?: boolean;
+  type?: string;
+  triggerType?: NotificationTriggerType;
+}
 
 export async function listNotifications(
   supabase: SupabaseClient<Database>,
   userId: string,
   tenantId: string,
-  filters?: { read?: boolean; type?: string }
+  filters?: NotificationFilters
 ): Promise<NotificationRow[]> {
   let query = supabase
     .from("notifications")
     .select("*")
     .eq("user_id", userId)
     .eq("tenant_id", tenantId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(200);
 
   if (filters?.read !== undefined) query = query.eq("read", filters.read);
   if (filters?.type) query = query.eq("type", filters.type);
+  if (filters?.triggerType)
+    query = query.eq("trigger_type", filters.triggerType);
 
   const { data, error } = await query;
   if (error) throw error;
@@ -58,6 +74,62 @@ export async function deleteNotification(
   const { error } = await supabase.from("notifications").delete().eq("id", id);
   if (error) throw error;
 }
+
+// ─── Actor name lookup (cached in-memory per session) ───
+
+const actorNameCache = new Map<string, string>();
+
+export async function getActorName(
+  supabase: SupabaseClient<Database>,
+  actorId: string
+): Promise<string> {
+  if (actorNameCache.has(actorId)) return actorNameCache.get(actorId)!;
+
+  const { data } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("id", actorId)
+    .single();
+
+  const name = data?.full_name ?? "Alguém";
+  actorNameCache.set(actorId, name);
+  return name;
+}
+
+// Batch-fetch actor names for a list of notifications
+export async function enrichActorNames(
+  supabase: SupabaseClient<Database>,
+  notifications: NotificationRow[]
+): Promise<Map<string, string>> {
+  const actorIds = [
+    ...new Set(
+      notifications
+        .map((n) => n.actor_id)
+        .filter((id): id is string => !!id)
+    ),
+  ];
+
+  // Filter out already-cached
+  const uncached = actorIds.filter((id) => !actorNameCache.has(id));
+  if (uncached.length > 0) {
+    const { data } = await supabase
+      .from("profiles")
+      .select("id,full_name,avatar_url")
+      .in("id", uncached);
+
+    for (const profile of data ?? []) {
+      actorNameCache.set(profile.id, profile.full_name);
+    }
+  }
+
+  const map = new Map<string, string>();
+  for (const id of actorIds) {
+    map.set(id, actorNameCache.get(id) ?? "Alguém");
+  }
+  return map;
+}
+
+// ─── KPIs ───
 
 export interface AlertKPIs {
   total: number;

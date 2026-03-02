@@ -1,10 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
 
-type ChannelRow = Database["public"]["Tables"]["chat_channels"]["Row"];
-type MessageRow = Database["public"]["Tables"]["chat_messages"]["Row"];
-type MemberRow = Database["public"]["Tables"]["chat_channel_members"]["Row"];
-type ReactionRow = Database["public"]["Tables"]["chat_reactions"]["Row"];
+export type ChannelRow = Database["public"]["Tables"]["chat_channels"]["Row"];
+export type MessageRow = Database["public"]["Tables"]["chat_messages"]["Row"];
+export type MemberRow = Database["public"]["Tables"]["chat_channel_members"]["Row"];
+export type ReactionRow = Database["public"]["Tables"]["chat_reactions"]["Row"];
 
 // ── Channels ─────────────────────────────────────────────────────────
 
@@ -48,6 +48,47 @@ export async function createChannel(
   return data as unknown as ChannelRow;
 }
 
+export async function updateChannel(
+  supabase: SupabaseClient<Database>,
+  id: string,
+  updates: Database["public"]["Tables"]["chat_channels"]["Update"],
+) {
+  const { data, error } = await supabase
+    .from("chat_channels")
+    .update(updates as never)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as unknown as ChannelRow;
+}
+
+export async function archiveChannel(
+  supabase: SupabaseClient<Database>,
+  id: string,
+) {
+  const { error } = await supabase
+    .from("chat_channels")
+    .update({ is_archived: true } as never)
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** Channels with member join for DM display names */
+export async function getChannelsWithMembers(
+  supabase: SupabaseClient<Database>,
+  tenantId: string,
+) {
+  const { data, error } = await supabase
+    .from("chat_channels")
+    .select("*, chat_channel_members(user_id, role)")
+    .eq("tenant_id", tenantId)
+    .eq("is_archived", false)
+    .order("name");
+  if (error) throw error;
+  return data as (ChannelRow & { chat_channel_members: { user_id: string; role: string }[] })[];
+}
+
 // ── Members ──────────────────────────────────────────────────────────
 
 export async function getChannelMembers(
@@ -60,6 +101,50 @@ export async function getChannelMembers(
     .eq("channel_id", channelId);
   if (error) throw error;
   return data as MemberRow[];
+}
+
+export async function addChannelMembers(
+  supabase: SupabaseClient<Database>,
+  channelId: string,
+  userIds: string[],
+  role: "admin" | "member" = "member",
+) {
+  const rows = userIds.map((uid) => ({
+    channel_id: channelId,
+    user_id: uid,
+    role,
+  }));
+  const { error } = await supabase
+    .from("chat_channel_members")
+    .upsert(rows as never[]);
+  if (error) throw error;
+}
+
+export async function removeChannelMember(
+  supabase: SupabaseClient<Database>,
+  channelId: string,
+  userId: string,
+) {
+  const { error } = await supabase
+    .from("chat_channel_members")
+    .delete()
+    .eq("channel_id", channelId)
+    .eq("user_id", userId);
+  if (error) throw error;
+}
+
+export async function updateMemberRole(
+  supabase: SupabaseClient<Database>,
+  channelId: string,
+  userId: string,
+  role: "admin" | "member",
+) {
+  const { error } = await supabase
+    .from("chat_channel_members")
+    .update({ role } as never)
+    .eq("channel_id", channelId)
+    .eq("user_id", userId);
+  if (error) throw error;
 }
 
 export async function joinChannel(
@@ -123,6 +208,128 @@ export async function sendMessage(
     .single();
   if (error) throw error;
   return data as unknown as MessageRow;
+}
+
+export async function editMessage(
+  supabase: SupabaseClient<Database>,
+  messageId: string,
+  content: string,
+) {
+  const { data, error } = await supabase
+    .from("chat_messages")
+    .update({ content, edited_at: new Date().toISOString() } as never)
+    .eq("id", messageId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as unknown as MessageRow;
+}
+
+export async function deleteMessage(
+  supabase: SupabaseClient<Database>,
+  messageId: string,
+) {
+  const { error } = await supabase
+    .from("chat_messages")
+    .update({ deleted_at: new Date().toISOString() } as never)
+    .eq("id", messageId);
+  if (error) throw error;
+}
+
+// ── Search ───────────────────────────────────────────────────────────
+
+export async function searchMessages(
+  supabase: SupabaseClient<Database>,
+  tenantId: string,
+  userId: string,
+  query: string,
+  opts: { limit?: number; offset?: number } = {},
+) {
+  const { data, error } = await supabase.rpc("search_chat_messages" as never, {
+    p_tenant_id: tenantId,
+    p_user_id: userId,
+    p_query: query,
+    p_limit: opts.limit ?? 50,
+    p_offset: opts.offset ?? 0,
+  } as never);
+  if (error) throw error;
+  return (data ?? []) as MessageRow[];
+}
+
+// ── Unread Counts ────────────────────────────────────────────────────
+
+export async function getUnreadCounts(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  tenantId: string,
+) {
+  const { data, error } = await supabase.rpc("get_unread_counts" as never, {
+    p_user_id: userId,
+    p_tenant_id: tenantId,
+  } as never);
+  if (error) throw error;
+  return ((data ?? []) as { channel_id: string; unread_count: number }[]).reduce(
+    (acc, row) => {
+      acc[row.channel_id] = Number(row.unread_count);
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
+}
+
+// ── DMs / Groups ─────────────────────────────────────────────────────
+
+export async function findOrCreateDirectChannel(
+  supabase: SupabaseClient<Database>,
+  tenantId: string,
+  userId: string,
+  targetUserId: string,
+): Promise<ChannelRow> {
+  // Find existing DM between these two users
+  const { data: existing } = await supabase
+    .from("chat_channels")
+    .select("*, chat_channel_members(user_id)")
+    .eq("tenant_id", tenantId)
+    .eq("type", "direct")
+    .eq("is_archived", false);
+
+  const match = existing?.find((ch) => {
+    const members = (ch as Record<string, unknown>).chat_channel_members as { user_id: string }[];
+    return (
+      members.length === 2 &&
+      members.some((m) => m.user_id === userId) &&
+      members.some((m) => m.user_id === targetUserId)
+    );
+  });
+
+  if (match) return match as unknown as ChannelRow;
+
+  // Create new DM
+  const channel = await createChannel(supabase, {
+    tenant_id: tenantId,
+    name: `dm-${[userId, targetUserId].sort().join("-").slice(0, 20)}`,
+    type: "direct",
+    created_by: userId,
+  });
+  await addChannelMembers(supabase, channel.id, [userId, targetUserId]);
+  return channel;
+}
+
+export async function createGroupDM(
+  supabase: SupabaseClient<Database>,
+  tenantId: string,
+  userId: string,
+  memberIds: string[],
+  name?: string,
+): Promise<ChannelRow> {
+  const channel = await createChannel(supabase, {
+    tenant_id: tenantId,
+    name: name ?? `Grupo (${memberIds.length + 1})`,
+    type: "group",
+    created_by: userId,
+  });
+  await addChannelMembers(supabase, channel.id, [userId, ...memberIds]);
+  return channel;
 }
 
 // ── Reactions ────────────────────────────────────────────────────────

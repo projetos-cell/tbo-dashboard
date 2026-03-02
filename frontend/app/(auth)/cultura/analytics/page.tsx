@@ -1,13 +1,19 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { RequireRole } from "@/components/auth/require-role";
 import { CulturaOverviewStats } from "@/components/cultura/cultura-overview-stats";
 import { ErrorState } from "@/components/shared";
 import { useCulturaItems } from "@/hooks/use-cultura";
+import { useRecognitionKPIs } from "@/hooks/use-reconhecimentos";
+import { useRitualTypes } from "@/hooks/use-ritual-types";
+import { useRewardsKPIs } from "@/hooks/use-rewards";
 import {
   CULTURA_CATEGORIES,
   CULTURA_STATUS,
+  TBO_VALUES,
+  RECOGNITION_SOURCES,
   type CulturaCategoryKey,
   type CulturaStatusKey,
 } from "@/lib/constants";
@@ -22,6 +28,9 @@ export default function CulturaAnalyticsPage() {
 
 function AnalyticsContent() {
   const { data: items, isLoading, error, refetch } = useCulturaItems();
+  const { data: recKPIs } = useRecognitionKPIs();
+  const { data: rituals } = useRitualTypes(true);
+  const { data: rewardKPIs } = useRewardsKPIs();
 
   const totalItems = items?.length || 0;
   const publishedItems =
@@ -58,7 +67,13 @@ function AnalyticsContent() {
         <ErrorState message={error.message} onRetry={() => refetch()} />
       ) : null}
 
-      <CulturaOverviewStats items={items} isLoading={isLoading} />
+      <CulturaOverviewStats
+        items={items}
+        isLoading={isLoading}
+        recognitionCount={recKPIs?.total}
+        ritualCount={rituals?.length}
+        rewardsCount={rewardKPIs?.activeRewards}
+      />
 
       {/* Summary metrics */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -80,11 +95,111 @@ function AnalyticsContent() {
         />
       </div>
 
+      {/* Recognition KPIs */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium">
+            Reconhecimentos
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <p className="text-2xl font-bold">{recKPIs?.total ?? 0}</p>
+              <p className="text-xs text-muted-foreground">Total</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{recKPIs?.thisMonth ?? 0}</p>
+              <p className="text-xs text-muted-foreground">Este mes</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{recKPIs?.avgPerPerson?.toFixed(1) ?? "0"}</p>
+              <p className="text-xs text-muted-foreground">Media por pessoa</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{recKPIs?.firefliesCount ?? 0}</p>
+              <p className="text-xs text-muted-foreground">Via Fireflies</p>
+            </div>
+          </div>
+
+          {/* Top values */}
+          {recKPIs?.byValue && recKPIs.byValue.length > 0 && (
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-xs font-medium text-muted-foreground mb-2">Valores mais reconhecidos</p>
+              <div className="flex flex-wrap gap-2">
+                {recKPIs.byValue.map((v: { value_id: string; count: number }) => {
+                  const valDef = TBO_VALUES.find((tv) => tv.id === v.value_id);
+                  return (
+                    <Badge key={v.value_id} variant="secondary" className="text-xs">
+                      {valDef?.emoji ?? ""} {valDef?.name ?? v.value_id} ({v.count})
+                    </Badge>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Rewards KPIs */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium">
+            TBO Rewards
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <p className="text-2xl font-bold">{rewardKPIs?.activeRewards ?? 0}</p>
+              <p className="text-xs text-muted-foreground">Recompensas ativas</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{rewardKPIs?.totalRedemptions ?? 0}</p>
+              <p className="text-xs text-muted-foreground">Resgates totais</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{rewardKPIs?.pendingRedemptions ?? 0}</p>
+              <p className="text-xs text-muted-foreground">Pendentes</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold">R$ {rewardKPIs?.totalCostBrl?.toFixed(0) ?? "0"}</p>
+              <p className="text-xs text-muted-foreground">Custo total</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Ritual types */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium">
+            Rituais
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div>
+              <p className="text-2xl font-bold">{rituals?.length ?? 0}</p>
+              <p className="text-xs text-muted-foreground">Total de rituais</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{rituals?.filter((r) => r.is_active).length ?? 0}</p>
+              <p className="text-xs text-muted-foreground">Ativos</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{rituals?.filter((r) => r.is_system).length ?? 0}</p>
+              <p className="text-xs text-muted-foreground">Sistema</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Status breakdown */}
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-medium">
-            Distribuicao por status
+            Distribuicao por status (itens genericos)
           </CardTitle>
         </CardHeader>
         <CardContent>

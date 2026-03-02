@@ -312,16 +312,16 @@ function RevisoesContent() {
           <FileCheck className="h-8 w-8 shrink-0 text-muted-foreground/60" />
           <div className="flex-1">
             <p className="text-sm font-medium">
-              O modulo de revisoes esta integrado com as Entregas
+              O modulo de revisoes esta integrado com os Projetos
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Acesse Entregas para gerenciar revisoes e aprovacoes de forma
+              Acesse Projetos para gerenciar revisoes e aprovacoes de forma
               completa.
             </p>
           </div>
           <Button variant="outline" size="sm" asChild>
-            <Link href="/entregas">
-              Ir para Entregas
+            <Link href="/projetos">
+              Ir para Projetos
               <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
             </Link>
           </Button>

@@ -4,6 +4,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
 import { logAuditTrail } from "@/lib/audit-trail";
+import { getActorName } from "@/services/alerts";
+import {
+  notifyTaskAssigned,
+  notifyTaskUpdated,
+} from "@/services/notification-triggers";
 import type { Database } from "@/lib/supabase/types";
 import {
   getTasks,
@@ -79,19 +84,22 @@ export function useUpdateTask() {
     mutationFn: ({
       id,
       updates,
+      previousTask,
     }: {
       id: string;
       updates: Database["public"]["Tables"]["os_tasks"]["Update"];
-    }) => updateTask(supabase, id, updates),
+      previousTask?: TaskRow | null;
+    }) => {
+      // Include updated_by in every update
+      const userId = useAuthStore.getState().user?.id;
+      return updateTask(supabase, id, { ...updates, updated_by: userId });
+    },
 
     onMutate: async (variables) => {
-      // Cancel in-flight queries so they don't overwrite our optimistic update
       await queryClient.cancelQueries({ queryKey: ["tasks"] });
 
-      // Snapshot current tasks data for rollback
       const previousTasks = queryClient.getQueriesData<TaskRow[]>({ queryKey: ["tasks"] });
 
-      // Optimistically update all matching "tasks" caches
       queryClient.setQueriesData<TaskRow[]>(
         { queryKey: ["tasks"] },
         (old) =>
@@ -104,7 +112,6 @@ export function useUpdateTask() {
     },
 
     onError: (_err, _variables, context) => {
-      // Rollback to previous state on error
       if (context?.previousTasks) {
         for (const [queryKey, data] of context.previousTasks) {
           queryClient.setQueryData(queryKey, data);
@@ -112,19 +119,62 @@ export function useUpdateTask() {
       }
     },
 
-    onSuccess: (_data, variables) => {
+    onSuccess: async (updatedTask, variables) => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["task"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
 
+      const userId = useAuthStore.getState().user?.id ?? "unknown";
+      const tenantId = useAuthStore.getState().tenantId;
       const action = variables.updates.status ? "status_change" : "update";
+
       logAuditTrail({
-        userId: useAuthStore.getState().user?.id ?? "unknown",
+        userId,
         action,
         table: "tasks",
         recordId: variables.id,
         after: variables.updates as Record<string, unknown>,
       });
+
+      // ─── Notification triggers (fire-and-forget) ───
+      if (!tenantId || userId === "unknown") return;
+
+      try {
+        const actorName = await getActorName(supabase, userId);
+        const taskTitle = updatedTask?.title ?? variables.previousTask?.title ?? "Tarefa";
+        const taskAssignee = updatedTask?.assignee_id ?? variables.previousTask?.assignee_id ?? null;
+        const prevAssignee = variables.previousTask?.assignee_id ?? null;
+
+        // Task assigned: assignee changed to a new person
+        if (
+          variables.updates.assignee_id &&
+          variables.updates.assignee_id !== prevAssignee
+        ) {
+          notifyTaskAssigned(supabase, {
+            tenantId,
+            actorId: userId,
+            actorName,
+            taskId: variables.id,
+            taskTitle,
+            newAssigneeId: variables.updates.assignee_id,
+          });
+        }
+
+        // Task updated: notify current assignee of relevant field changes
+        if (taskAssignee && taskAssignee !== userId) {
+          notifyTaskUpdated(supabase, {
+            tenantId,
+            actorId: userId,
+            actorName,
+            taskId: variables.id,
+            taskTitle,
+            assigneeId: taskAssignee,
+            changedFields: variables.updates as Record<string, unknown>,
+          });
+        }
+      } catch {
+        // Notification errors should never block the main flow
+      }
     },
   });
 }

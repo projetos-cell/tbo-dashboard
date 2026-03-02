@@ -1,9 +1,14 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
-import { getOmieSyncLogs, triggerOmieSync } from "@/services/omie-sync";
+import {
+  getOmieSyncLogs,
+  cleanupStaleSyncs,
+  getLastSuccessfulSync,
+} from "@/services/omie-sync";
 
 // ── helpers ──────────────────────────────────────────────────
 
@@ -21,27 +26,40 @@ export function useOmieSyncLogs() {
   const supabase = useSupabase();
   const tenantId = useTenantId();
 
+  // Cleanup stale syncs on mount
+  useEffect(() => {
+    if (!tenantId) return;
+    cleanupStaleSyncs(supabase, tenantId).catch(() => {
+      /* ignore cleanup errors */
+    });
+  }, [supabase, tenantId]);
+
   return useQuery({
     queryKey: ["omie-sync-logs", tenantId],
     queryFn: () => getOmieSyncLogs(supabase, tenantId!),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
-    refetchInterval: 15_000, // polling a cada 15s para acompanhar sync em andamento
+    refetchInterval: 30_000, // polling a cada 30s
   });
 }
 
-// ── Trigger Sync ─────────────────────────────────────────────
+// ── Last Successful Sync ────────────────────────────────────
 
-export function useTriggerOmieSync() {
+export function useLastSuccessfulSync() {
   const supabase = useSupabase();
   const tenantId = useTenantId();
-  const userId = useAuthStore((s) => s.user?.id);
-  const qc = useQueryClient();
 
-  return useMutation({
-    mutationFn: () => triggerOmieSync(supabase, tenantId!, userId!),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["omie-sync-logs"] });
-    },
+  return useQuery({
+    queryKey: ["omie-last-sync", tenantId],
+    queryFn: () => getLastSuccessfulSync(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
+    enabled: !!tenantId,
   });
+}
+
+// ── Invalidate sync logs ────────────────────────────────────
+
+export function useInvalidateSyncLogs() {
+  const qc = useQueryClient();
+  return () => qc.invalidateQueries({ queryKey: ["omie-sync-logs"] });
 }

@@ -75,11 +75,13 @@ export function CommentThread({ taskId, className }: CommentThreadProps) {
         userId={userId}
         onSubmit={(content) =>
           createComment.mutateAsync({
-            task_id: taskId,
-            content,
-            author_id: userId!,
-            tenant_id: "", // filled by service via RLS
-          } as Database["public"]["Tables"]["project_comments"]["Insert"])
+            comment: {
+              task_id: taskId,
+              content,
+              author_id: userId!,
+              tenant_id: "",
+            } as Database["public"]["Tables"]["project_comments"]["Insert"],
+          })
         }
       />
 
@@ -331,12 +333,14 @@ function CommentItem({
               onCancel={() => setShowReply(false)}
               onSubmit={(content) =>
                 createComment.mutateAsync({
-                  task_id: taskId,
-                  content,
-                  author_id: currentUserId!,
-                  parent_id: comment.id,
-                  tenant_id: "",
-                } as Database["public"]["Tables"]["project_comments"]["Insert"])
+                  comment: {
+                    task_id: taskId,
+                    content,
+                    author_id: currentUserId!,
+                    parent_id: comment.id,
+                    tenant_id: "",
+                  } as Database["public"]["Tables"]["project_comments"]["Insert"],
+                })
               }
             />
           </div>

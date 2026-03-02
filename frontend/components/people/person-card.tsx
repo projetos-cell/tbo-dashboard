@@ -6,16 +6,19 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PEOPLE_STATUS, BU_COLORS } from "@/lib/constants";
 import { getInitials } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
+import type { PersonSnapshot } from "@/services/people-snapshot";
+import { PersonSnapshotBar } from "@/components/people/person-snapshot-bar";
 import { Mail, Phone } from "lucide-react";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
 interface PersonCardProps {
   person: ProfileRow;
+  snapshot?: PersonSnapshot;
   onClick?: () => void;
 }
 
-export function PersonCard({ person, onClick }: PersonCardProps) {
+export function PersonCard({ person, snapshot, onClick }: PersonCardProps) {
   const statusCfg = PEOPLE_STATUS[person.status as keyof typeof PEOPLE_STATUS];
   const buColor = person.bu ? BU_COLORS[person.bu] : undefined;
 
@@ -77,6 +80,9 @@ export function PersonCard({ person, onClick }: PersonCardProps) {
             </span>
           )}
         </div>
+
+        {/* Fase 3 — Strategic snapshot metrics */}
+        <PersonSnapshotBar snapshot={snapshot} />
       </CardContent>
     </Card>
   );

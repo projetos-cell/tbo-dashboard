@@ -9,9 +9,9 @@ import { ContractDetailDialog } from "@/components/contratos/contract-detail-dia
 import { ContractFormDialog } from "@/components/contratos/contract-form-dialog";
 import { computeContractKPIs } from "@/services/contracts";
 import { RequireRole } from "@/components/auth/require-role";
-import { ErrorState } from "@/components/shared";
+import { ErrorState, EmptyState } from "@/components/shared";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, FileText } from "lucide-react";
 import type { Database } from "@/lib/supabase/types";
 
 type ContractRow = Database["public"]["Tables"]["contracts"]["Row"];
@@ -80,11 +80,20 @@ export default function ContratosPage() {
           onStatusChange={setStatusFilter}
         />
 
-        <ContractList
-          contracts={contracts}
-          isLoading={isLoading}
-          onSelect={handleSelect}
-        />
+        {!isLoading && !contracts.length ? (
+          <EmptyState
+            icon={FileText}
+            title="Nenhum contrato encontrado"
+            description="Cadastre o primeiro contrato para controlar valores e prazos."
+            cta={{ label: "Novo Contrato", onClick: handleNew }}
+          />
+        ) : (
+          <ContractList
+            contracts={contracts}
+            isLoading={isLoading}
+            onSelect={handleSelect}
+          />
+        )}
 
         <ContractDetailDialog
           contract={selectedContract}

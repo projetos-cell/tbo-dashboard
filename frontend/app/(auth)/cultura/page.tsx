@@ -11,13 +11,20 @@ import {
   FileText,
   BookOpen,
   ArrowRight,
+  Gift,
+  Star,
+  TrendingUp,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { CulturaOverviewStats } from "@/components/cultura/cultura-overview-stats";
 import { CulturaItemCard } from "@/components/cultura/cultura-item-card";
 import { CulturaItemDetail } from "@/components/cultura/cultura-item-detail";
 import { ErrorState, EmptyState } from "@/components/shared";
 import { useCulturaItems } from "@/hooks/use-cultura";
+import { useRecognitionKPIs } from "@/hooks/use-reconhecimentos";
+import { useRitualTypes } from "@/hooks/use-ritual-types";
+import { useRewardsKPIs } from "@/hooks/use-rewards";
 import {
   CULTURA_CATEGORIES,
   type CulturaCategoryKey,
@@ -46,6 +53,9 @@ const CATEGORY_LINKS: Record<string, string> = {
 
 export default function CulturaPage() {
   const { data: items, isLoading, error, refetch } = useCulturaItems();
+  const { data: recKPIs } = useRecognitionKPIs();
+  const { data: rituals } = useRitualTypes();
+  const { data: rewardKPIs } = useRewardsKPIs();
   const [viewingId, setViewingId] = useState<string | null>(null);
 
   if (error) {
@@ -80,7 +90,70 @@ export default function CulturaPage() {
         </p>
       </div>
 
-      <CulturaOverviewStats items={items} isLoading={isLoading} />
+      <CulturaOverviewStats
+        items={items}
+        isLoading={isLoading}
+        recognitionCount={recKPIs?.total}
+        ritualCount={rituals?.length}
+        rewardsCount={rewardKPIs?.activeRewards}
+      />
+
+      {/* Quick-access cards for specialized modules */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Link href="/cultura/reconhecimentos" className="group">
+          <Card className="h-full transition-colors group-hover:border-primary/40">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="rounded-lg p-2.5 bg-amber-500/10">
+                <Award className="size-5 text-amber-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm">Reconhecimentos</p>
+                <p className="text-xs text-muted-foreground">
+                  {recKPIs?.total ?? 0} total &middot;{" "}
+                  {recKPIs?.thisMonth ?? 0} este mes
+                </p>
+              </div>
+              <ArrowRight className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/cultura/recompensas" className="group">
+          <Card className="h-full transition-colors group-hover:border-primary/40">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="rounded-lg p-2.5 bg-pink-500/10">
+                <Gift className="size-5 text-pink-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm">TBO Rewards</p>
+                <p className="text-xs text-muted-foreground">
+                  {rewardKPIs?.activeRewards ?? 0} recompensas &middot;{" "}
+                  {rewardKPIs?.pendingRedemptions ?? 0} pendentes
+                </p>
+              </div>
+              <ArrowRight className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/cultura/rituais" className="group">
+          <Card className="h-full transition-colors group-hover:border-primary/40">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="rounded-lg p-2.5 bg-blue-500/10">
+                <Repeat className="size-5 text-blue-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm">Rituais</p>
+                <p className="text-xs text-muted-foreground">
+                  {rituals?.filter((r) => r.is_active).length ?? 0} ativos de{" "}
+                  {rituals?.length ?? 0}
+                </p>
+              </div>
+              <ArrowRight className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
 
       {/* Category sections with recent items */}
       {(

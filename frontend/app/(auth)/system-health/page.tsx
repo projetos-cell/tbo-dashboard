@@ -26,7 +26,7 @@ import {
   Clock,
 } from "lucide-react";
 import { useSystemHealth } from "@/hooks/use-system-health";
-import { ErrorState } from "@/components/shared";
+import { ErrorState, EmptyState } from "@/components/shared";
 import type { Database } from "@/lib/supabase/types";
 
 type SyncLogRow = Database["public"]["Tables"]["sync_logs"]["Row"];
@@ -153,16 +153,15 @@ function SystemHealthContent() {
               );
             })}
 
-            {/* Show placeholders if less than 4 integrations */}
+            {/* Show empty state if no integrations configured */}
             {integrations.length === 0 && (
-              <Card>
-                <CardContent className="flex flex-col items-center gap-3 py-5">
-                  <Activity className="h-5 w-5 text-muted-foreground/40" />
-                  <p className="text-xs text-muted-foreground">
-                    Nenhuma integracao configurada
-                  </p>
-                </CardContent>
-              </Card>
+              <div className="col-span-full">
+                <EmptyState
+                  icon={Activity}
+                  title="Nenhuma integração configurada"
+                  description="Configure integrações com OMIE, Fireflies e outros serviços para monitorar o status aqui."
+                />
+              </div>
             )}
           </div>
 

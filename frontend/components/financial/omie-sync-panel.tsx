@@ -1,7 +1,6 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -12,8 +11,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { RefreshCw, CheckCircle2, XCircle, Clock, AlertTriangle } from "lucide-react";
-import { useOmieSyncLogs, useTriggerOmieSync } from "@/hooks/use-omie-sync";
+import { CheckCircle2, XCircle, Clock, AlertTriangle, Info } from "lucide-react";
+import { useOmieSyncLogs } from "@/hooks/use-omie-sync";
 import type { OmieSyncLog } from "@/services/omie-sync";
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -67,10 +66,11 @@ function statusBadge(status: string) {
 
 export function OmieSyncPanel() {
   const { data: logs, isLoading } = useOmieSyncLogs();
-  const triggerSync = useTriggerOmieSync();
 
   const lastLog = logs?.[0] as OmieSyncLog | undefined;
-  const isRunning = lastLog?.status === "running";
+  const lastSuccess = logs?.find(
+    (l: OmieSyncLog) => l.status === "success" || l.status === "partial"
+  ) as OmieSyncLog | undefined;
 
   return (
     <Card>
@@ -79,25 +79,24 @@ export function OmieSyncPanel() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold">Integracao Omie</p>
-            {lastLog && (
+            {lastSuccess && (
               <p className="text-xs text-muted-foreground">
-                Ultima sincronizacao: {formatDate(lastLog.started_at)}
-                {" "}
-                {statusBadge(lastLog.status)}
+                Ultima sincronizacao bem-sucedida: {formatDate(lastSuccess.finished_at ?? lastSuccess.started_at)}
               </p>
             )}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isRunning || triggerSync.isPending}
-            onClick={() => triggerSync.mutate()}
-          >
-            <RefreshCw
-              className={`mr-1.5 h-3.5 w-3.5 ${isRunning || triggerSync.isPending ? "animate-spin" : ""}`}
-            />
-            {isRunning ? "Sincronizando..." : "Sincronizar com Omie"}
-          </Button>
+          <div className="flex items-center gap-2">
+            {lastLog && statusBadge(lastLog.status)}
+          </div>
+        </div>
+
+        {/* Info banner */}
+        <div className="flex items-start gap-2 rounded-md bg-muted/50 p-3">
+          <Info className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+          <p className="text-xs text-muted-foreground">
+            A sincronizacao com o Omie e executada automaticamente a cada 30 minutos
+            pelo sistema legado. Os dados abaixo mostram o historico de execucoes.
+          </p>
         </div>
 
         {/* Log Table */}

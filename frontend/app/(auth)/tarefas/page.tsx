@@ -10,9 +10,9 @@ import { TaskBoard } from "@/components/tasks/task-board";
 import { TaskDetail } from "@/components/tasks/task-detail";
 import { TaskForm } from "@/components/tasks/task-form";
 import { useTasks } from "@/hooks/use-tasks";
-import { ErrorState } from "@/components/shared";
+import { ErrorState, EmptyState } from "@/components/shared";
 import type { Database } from "@/lib/supabase/types";
-import { Plus, LayoutList, Kanban } from "lucide-react";
+import { Plus, LayoutList, Kanban, CheckSquare } from "lucide-react";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 
@@ -94,6 +94,13 @@ export default function TarefasPage() {
         </div>
       ) : error ? (
         <ErrorState message={error.message} onRetry={() => refetch()} />
+      ) : !tasks?.length ? (
+        <EmptyState
+          icon={CheckSquare}
+          title="Nenhuma tarefa encontrada"
+          description="Crie sua primeira tarefa para organizar o trabalho da equipe."
+          cta={{ label: "Nova Tarefa", onClick: () => setShowCreate(true) }}
+        />
       ) : view === "board" ? (
         <TaskBoard tasks={filtered} onSelect={setSelectedTask} />
       ) : (

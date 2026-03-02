@@ -4,6 +4,7 @@ import type { Database } from "@/lib/supabase/types";
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 type DemandRow = Database["public"]["Tables"]["demands"]["Row"];
+type DealRow = Database["public"]["Tables"]["crm_deals"]["Row"];
 
 export interface DashboardData {
   projects: ProjectRow[];
@@ -39,6 +40,7 @@ export interface OkrSnapshot {
   objectiveId: string;
   objectiveTitle: string;
   progress: number;
+  status: string;
   keyResultsCount: number;
   keyResultsCompleted: number;
 }
@@ -56,6 +58,7 @@ export interface FounderDashboardData extends DashboardData {
   financial: FinancialEntry[];
   okrSnapshots: OkrSnapshot[];
   alerts: AlertItem[];
+  deals: DealRow[];
 }
 
 /* ---------- Fetch functions ---------- */
@@ -99,15 +102,77 @@ export async function getFounderDashboardData(
 ): Promise<FounderDashboardData> {
   const baseData = await getDashboardData(supabase, tenantId);
 
-  // Fetch financial entries (last 90 days)
+  // Fetch financial data from fin_payables + fin_receivables (last 90 days)
+  // These tables are the source of truth, synced from OMIE via omie-sync
   const ninetyDaysAgo = new Date();
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-  const finRes = await supabase
-    .from("financial_entries" as never)
-    .select("id, date, type, category, amount, description")
+  const cutoff = ninetyDaysAgo.toISOString().split("T")[0];
+
+  // Fetch CRM deals for the pipeline widget
+  const dealsRes = await supabase
+    .from("crm_deals")
+    .select("*")
     .eq("tenant_id", tenantId)
-    .gte("date", ninetyDaysAgo.toISOString().split("T")[0])
-    .order("date", { ascending: false });
+    .order("updated_at", { ascending: false, nullsFirst: false });
+  const deals = (dealsRes.data ?? []) as DealRow[];
+
+  const [payablesRes, receivablesRes] = await Promise.all([
+    supabase
+      .from("fin_payables")
+      .select("id, due_date, amount, description, status")
+      .eq("tenant_id", tenantId)
+      .neq("status", "cancelado")
+      .gte("due_date", cutoff)
+      .order("due_date", { ascending: false }),
+    supabase
+      .from("fin_receivables")
+      .select("id, due_date, amount, description, status")
+      .eq("tenant_id", tenantId)
+      .neq("status", "cancelado")
+      .gte("due_date", cutoff)
+      .order("due_date", { ascending: false }),
+  ]);
+
+  // Map payables (despesas) + receivables (receitas) → FinancialEntry[]
+  const financial: FinancialEntry[] = [];
+
+  if (payablesRes.data) {
+    for (const p of payablesRes.data as Array<{
+      id: string;
+      due_date: string;
+      amount: number;
+      description: string | null;
+      status: string | null;
+    }>) {
+      financial.push({
+        id: p.id,
+        date: p.due_date,
+        type: "despesa",
+        category: null,
+        amount: Math.abs(p.amount),
+        description: p.description ?? null,
+      });
+    }
+  }
+
+  if (receivablesRes.data) {
+    for (const r of receivablesRes.data as Array<{
+      id: string;
+      due_date: string;
+      amount: number;
+      description: string | null;
+      status: string | null;
+    }>) {
+      financial.push({
+        id: r.id,
+        date: r.due_date,
+        type: "receita",
+        category: null,
+        amount: Math.abs(r.amount),
+        description: r.description ?? null,
+      });
+    }
+  }
 
   // Fetch OKR objectives + key results for active cycle
   const cycleRes = await supabase
@@ -122,33 +187,38 @@ export async function getFounderDashboardData(
   if (cycleRes.data) {
     const objRes = await supabase
       .from("okr_objectives" as never)
-      .select("id, title, progress")
+      .select("id, title, progress, status")
       .eq("tenant_id", tenantId)
-      .eq("cycle_id", (cycleRes.data as Record<string, unknown>).id as string);
+      .eq("period", (cycleRes.data as Record<string, unknown>).id as string);
 
     if (objRes.data) {
       const objectives = objRes.data as Array<{
         id: string;
         title: string;
         progress: number;
+        status: string | null;
       }>;
       for (const obj of objectives) {
         const krRes = await supabase
           .from("okr_key_results" as never)
-          .select("id, current_value, target_value")
+          .select("id, current_value, target_value, start_value")
           .eq("objective_id", obj.id);
         const krs = (krRes.data ?? []) as Array<{
           id: string;
           current_value: number;
           target_value: number;
+          start_value: number | null;
         }>;
-        const completed = krs.filter(
-          (kr) => kr.current_value >= kr.target_value
-        ).length;
+        const completed = krs.filter((kr) => {
+          const start = kr.start_value ?? 0;
+          const range = kr.target_value - start;
+          return range > 0 && (kr.current_value ?? start) >= kr.target_value;
+        }).length;
         okrSnapshots.push({
           objectiveId: obj.id,
           objectiveTitle: obj.title,
           progress: obj.progress ?? 0,
+          status: obj.status ?? "on_track",
           keyResultsCount: krs.length,
           keyResultsCompleted: completed,
         });
@@ -194,25 +264,29 @@ export async function getFounderDashboardData(
     });
   });
 
-  // OKRs at risk (progress < 30% for active cycle)
+  // OKRs at risk — uses the same status values as the OKR module
   okrSnapshots
-    .filter((o) => o.progress < 30)
+    .filter((o) => o.status === "at_risk" || o.status === "behind")
     .slice(0, 3)
     .forEach((o) => {
       alerts.push({
         id: `okr-${o.objectiveId}`,
         type: "okr_at_risk",
         title: o.objectiveTitle,
-        detail: `Progresso: ${o.progress}%`,
+        detail: `Status: ${o.status === "at_risk" ? "Em risco" : "Atrasado"} (${o.progress}%)`,
         severity: "medium",
         href: "/okrs",
       });
     });
 
-  // Overdue demands
+  // Overdue demands — uses correct status casing from DEMAND_STATUS constants
   const overdueDemands = baseData.demands.filter(
     (d: Record<string, unknown>) =>
-      d.due_date && (d.due_date as string) < now && d.status !== "concluida" && d.status !== "cancelada"
+      d.due_date &&
+      (d.due_date as string) < now &&
+      d.feito !== true &&
+      d.status !== "Concluído" &&
+      d.status !== "Concluido"
   );
   overdueDemands.slice(0, 3).forEach((d: Record<string, unknown>) => {
     alerts.push({
@@ -221,14 +295,15 @@ export async function getFounderDashboardData(
       title: (d.title as string) ?? "Demanda",
       detail: `Venceu em ${d.due_date}`,
       severity: "high",
-      href: "/entregas",
+      href: "/projetos",
     });
   });
 
   return {
     ...baseData,
-    financial: ((finRes.data as FinancialEntry[]) ?? []),
+    financial,
     okrSnapshots,
+    deals,
     alerts: alerts.sort((a, b) =>
       a.severity === "high" && b.severity !== "high" ? -1 : 0
     ),

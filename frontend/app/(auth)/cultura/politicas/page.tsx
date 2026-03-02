@@ -1,82 +1,133 @@
 "use client";
 
-import { useState } from "react";
-import { Plus } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plus, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CulturaItemCard } from "@/components/cultura/cultura-item-card";
-import { CulturaItemForm } from "@/components/cultura/cultura-item-form";
-import { CulturaItemDetail } from "@/components/cultura/cultura-item-detail";
+import { PolicyCard } from "@/components/cultura/policy-card";
+import { PolicyForm, type PolicyFormData } from "@/components/cultura/policy-form";
+import { PolicyDetail } from "@/components/cultura/policy-detail";
 import {
-  useCulturaItems,
-  useCreateCulturaItem,
-  useUpdateCulturaItem,
-  useDeleteCulturaItem,
-} from "@/hooks/use-cultura";
+  PolicyFilters,
+  type PolicyFilterValues,
+} from "@/components/cultura/policy-filters";
+import {
+  usePolicies,
+  useCreatePolicy,
+  useUpdatePolicy,
+  useArchivePolicy,
+  useDuplicatePolicy,
+} from "@/hooks/use-policies";
 import { useAuthStore } from "@/stores/auth-store";
 import { ErrorState } from "@/components/shared";
 import type { Database } from "@/lib/supabase/types";
 
-type CulturaRow = Database["public"]["Tables"]["cultura_items"]["Row"];
+type PolicyRow = Database["public"]["Tables"]["policies"]["Row"];
 
 export default function PoliticasPage() {
-  const { data: items, isLoading, error, refetch } = useCulturaItems("politica");
-  const createItem = useCreateCulturaItem();
-  const updateItem = useUpdateCulturaItem();
-  const deleteItem = useDeleteCulturaItem();
   const { user, tenantId, role } = useAuthStore();
   const canEdit = role === "founder" || role === "diretoria";
 
+  // Filters state
+  const [filters, setFilters] = useState<PolicyFilterValues>({
+    search: "",
+    status: "",
+    category: "",
+    sort: "recent",
+  });
+
+  // Query with server-side filters (status, category, sort)
+  const queryFilters = useMemo(
+    () => ({
+      status: filters.status || undefined,
+      category: filters.category || undefined,
+      sort: (filters.sort || "recent") as "recent" | "az" | "next_review" | "status",
+    }),
+    [filters.status, filters.category, filters.sort]
+  );
+
+  const { data: policies, isLoading, error, refetch } = usePolicies(queryFilters);
+
+  // Client-side search filtering
+  const filteredPolicies = useMemo(() => {
+    if (!policies) return [];
+    if (!filters.search.trim()) return policies;
+    const q = filters.search.toLowerCase();
+    return policies.filter(
+      (p) =>
+        p.title.toLowerCase().includes(q) ||
+        (p.summary && p.summary.toLowerCase().includes(q))
+    );
+  }, [policies, filters.search]);
+
+  // Mutations
+  const createPolicy = useCreatePolicy();
+  const updatePolicy = useUpdatePolicy();
+  const archivePolicy = useArchivePolicy();
+  const duplicatePolicy = useDuplicatePolicy();
+
+  // UI state
   const [showForm, setShowForm] = useState(false);
-  const [editingItem, setEditingItem] = useState<CulturaRow | null>(null);
+  const [editingPolicy, setEditingPolicy] = useState<PolicyRow | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
 
-  const handleSave = async (data: {
-    title: string;
-    content: string;
-    content_html: string;
-    category: string;
-    status: string;
-  }) => {
-    if (editingItem) {
-      await updateItem.mutateAsync({
-        id: editingItem.id,
+  const handleSave = async (data: PolicyFormData) => {
+    if (editingPolicy) {
+      await updatePolicy.mutateAsync({
+        id: editingPolicy.id,
         updates: {
           title: data.title,
-          content: data.content,
-          content_html: data.content_html,
+          category: data.category,
+          summary: data.summary,
+          image_url: data.image_url || null,
+          content_md: data.content_md,
           status: data.status,
+          effective_date: data.effective_date || null,
+          review_cycle_days: data.review_cycle_days,
         },
         editedBy: user?.id,
+        changeNote: data.change_note,
       });
     } else {
-      await createItem.mutateAsync({
-        title: data.title,
-        content: data.content,
-        content_html: data.content_html,
-        category: "politica",
-        status: data.status,
+      await createPolicy.mutateAsync({
         tenant_id: tenantId!,
-        author_id: user?.id,
-      } as Database["public"]["Tables"]["cultura_items"]["Insert"]);
+        title: data.title,
+        category: data.category,
+        summary: data.summary,
+        image_url: data.image_url || null,
+        content_md: data.content_md,
+        status: data.status,
+        effective_date: data.effective_date || null,
+        review_cycle_days: data.review_cycle_days,
+        created_by: user?.id,
+        updated_by: user?.id,
+      });
     }
   };
 
-  const handleDelete = async (item: CulturaRow) => {
-    const confirmed = window.confirm(`Excluir "${item.title}"?`);
+  const handleArchive = async (policy: PolicyRow) => {
+    const confirmed = window.confirm(
+      `Arquivar "${policy.title}"? A politica nao sera mais exibida na listagem principal.`
+    );
     if (!confirmed) return;
-    await deleteItem.mutateAsync(item.id);
+    await archivePolicy.mutateAsync({ id: policy.id, userId: user?.id });
   };
 
+  const handleDuplicate = async (policy: PolicyRow) => {
+    if (!user?.id) return;
+    await duplicatePolicy.mutateAsync({ id: policy.id, userId: user.id });
+  };
+
+  // Detail view
   if (viewingId) {
     return (
-      <CulturaItemDetail
-        itemId={viewingId}
+      <PolicyDetail
+        policyId={viewingId}
         onBack={() => setViewingId(null)}
         onEdit={() => {
-          const item = items?.find((i) => i.id === viewingId);
-          if (item) {
-            setEditingItem(item);
+          const policy = policies?.find((p) => p.id === viewingId);
+          if (policy) {
+            setEditingPolicy(policy);
             setShowForm(true);
             setViewingId(null);
           }
@@ -88,6 +139,7 @@ export default function PoliticasPage() {
 
   return (
     <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight">Politicas</h1>
@@ -99,7 +151,7 @@ export default function PoliticasPage() {
           <Button
             size="sm"
             onClick={() => {
-              setEditingItem(null);
+              setEditingPolicy(null);
               setShowForm(true);
             }}
           >
@@ -109,42 +161,54 @@ export default function PoliticasPage() {
         )}
       </div>
 
+      {/* Filters */}
+      <PolicyFilters filters={filters} onChange={setFilters} />
+
+      {/* Content */}
       {isLoading ? (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {Array.from({ length: 4 }).map((_, i) => (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-28" />
           ))}
         </div>
       ) : error ? (
         <ErrorState message={error.message} onRetry={() => refetch()} />
-      ) : items && items.length > 0 ? (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {items.map((item) => (
-            <CulturaItemCard
-              key={item.id}
-              item={item}
+      ) : filteredPolicies.length > 0 ? (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredPolicies.map((policy) => (
+            <PolicyCard
+              key={policy.id}
+              policy={policy}
               canEdit={canEdit}
-              onView={(i) => setViewingId(i.id)}
-              onEdit={(i) => {
-                setEditingItem(i);
+              onView={(p) => setViewingId(p.id)}
+              onEdit={(p) => {
+                setEditingPolicy(p);
                 setShowForm(true);
               }}
-              onDelete={handleDelete}
+              onArchive={handleArchive}
+              onDuplicate={handleDuplicate}
             />
           ))}
         </div>
       ) : (
         <div className="text-center py-12 text-muted-foreground">
-          <p>Nenhuma politica cadastrada.</p>
+          <Shield className="size-10 mx-auto mb-3 opacity-30" />
+          <p className="font-medium">Nenhuma politica encontrada.</p>
+          <p className="text-xs mt-1">
+            {filters.search || filters.status || filters.category
+              ? "Tente ajustar os filtros."
+              : "Clique em 'Nova politica' para comecar."}
+          </p>
         </div>
       )}
 
-      <CulturaItemForm
+      {/* Form modal */}
+      <PolicyForm
         open={showForm}
         onOpenChange={setShowForm}
-        item={editingItem}
-        defaultCategory="politica"
+        policy={editingPolicy}
         onSave={handleSave}
+        canPublish={canEdit}
       />
     </div>
   );

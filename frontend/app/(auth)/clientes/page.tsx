@@ -9,9 +9,9 @@ import { ClientDetailDialog } from "@/components/clientes/client-detail-dialog";
 import { ClientFormDialog } from "@/components/clientes/client-form-dialog";
 import { computeClientKPIs } from "@/services/clients";
 import { RequireRole } from "@/components/auth/require-role";
-import { ErrorState } from "@/components/shared";
+import { ErrorState, EmptyState } from "@/components/shared";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Users } from "lucide-react";
 import type { Database } from "@/lib/supabase/types";
 
 type ClientRow = Database["public"]["Tables"]["clients"]["Row"];
@@ -84,11 +84,20 @@ export default function ClientesPage() {
         />
 
         {/* Grid */}
-        <ClientGrid
-          clients={clients}
-          isLoading={isLoading}
-          onSelect={handleSelect}
-        />
+        {!isLoading && !clients.length ? (
+          <EmptyState
+            icon={Users}
+            title="Nenhum cliente encontrado"
+            description="Cadastre o primeiro cliente para gerenciar sua carteira."
+            cta={{ label: "Novo Cliente", onClick: handleNewClient }}
+          />
+        ) : (
+          <ClientGrid
+            clients={clients}
+            isLoading={isLoading}
+            onSelect={handleSelect}
+          />
+        )}
 
         {/* Detail Sheet */}
         <ClientDetailDialog

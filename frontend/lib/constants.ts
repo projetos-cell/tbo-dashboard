@@ -232,9 +232,6 @@ export const NAV_ITEMS = [
   { href: "/tarefas", label: "Tarefas", icon: "list-checks", module: "tarefas" },
   { href: "/pessoas", label: "Pessoas", icon: "users", module: "pessoas" },
   { href: "/agenda", label: "Agenda", icon: "calendar", module: "agenda" },
-  { href: "/entregas", label: "Entregas", icon: "package-check", module: "entregas" },
-  { href: "/reunioes", label: "Reuniões", icon: "video", module: "reunioes" },
-  { href: "/decisoes", label: "Decisões", icon: "scale", module: "decisoes" },
   { href: "/financeiro", label: "Financeiro", icon: "dollar-sign", module: "financeiro" },
   { href: "/clientes", label: "Clientes", icon: "building-2", module: "clientes" },
   { href: "/contratos", label: "Contratos", icon: "file-text", module: "contratos" },
@@ -242,9 +239,7 @@ export const NAV_ITEMS = [
   { href: "/okrs", label: "OKRs", icon: "target", module: "okrs" },
   { href: "/chat", label: "Chat", icon: "message-square", module: "chat" },
   { href: "/cultura", label: "Cultura", icon: "heart-handshake", module: "cultura" },
-  { href: "/templates", label: "Templates", icon: "layout-template", module: "templates" },
   { href: "/rsm", label: "Redes Sociais", icon: "share-2", module: "rsm" },
-  { href: "/mercado", label: "Mercado", icon: "trending-up", module: "mercado" },
   { href: "/relatorios", label: "Relatórios", icon: "bar-chart-3", module: "relatorios" },
   { href: "/alerts", label: "Alertas", icon: "bell", module: "alerts" },
   { href: "/portal-cliente", label: "Portal Cliente", icon: "globe", module: "portal-cliente" },
@@ -317,8 +312,42 @@ export const CULTURA_NAV_ITEMS = [
   { href: "/cultura/rituais", label: "Rituais", icon: "repeat" },
   { href: "/cultura/politicas", label: "Politicas", icon: "shield" },
   { href: "/cultura/reconhecimentos", label: "Reconhecimentos", icon: "award" },
+  { href: "/cultura/recompensas", label: "Recompensas", icon: "gift" },
   { href: "/cultura/manual", label: "Manual", icon: "book-open" },
   { href: "/cultura/analytics", label: "Analytics", icon: "bar-chart-3", founders_only: true },
+] as const;
+
+// ─── TBO Company Values ─────────────────────────────────────────────
+export const TBO_VALUES = [
+  { id: "ownership", name: "Ownership", emoji: "🏆", color: "#f59e0b" },
+  { id: "excelencia", name: "Excelência", emoji: "⭐", color: "#8b5cf6" },
+  { id: "colaboracao", name: "Colaboração", emoji: "🤝", color: "#3b82f6" },
+  { id: "inovacao", name: "Inovação", emoji: "💡", color: "#22c55e" },
+  { id: "transparencia", name: "Transparência", emoji: "🔍", color: "#0ea5e9" },
+  { id: "cliente", name: "Foco no Cliente", emoji: "❤️", color: "#ef4444" },
+] as const;
+
+// ─── Recognition sources ────────────────────────────────────────────
+export const RECOGNITION_SOURCES = {
+  manual: { label: "Manual", color: "#3b82f6" },
+  fireflies: { label: "Fireflies (IA)", color: "#8b5cf6" },
+  slack: { label: "Slack", color: "#e01e5a" },
+} as const;
+
+// ─── Reward types ───────────────────────────────────────────────────
+export const REWARD_TYPES = {
+  experiencia: { label: "Experiência", icon: "sparkles", color: "#8b5cf6" },
+  produto: { label: "Produto", icon: "package", color: "#3b82f6" },
+  beneficio: { label: "Benefício", icon: "heart", color: "#ef4444" },
+  folga: { label: "Day Off", icon: "calendar", color: "#22c55e" },
+} as const;
+
+// ─── Recognition tiers ──────────────────────────────────────────────
+export const RECOGNITION_TIERS = [
+  { name: "Bronze", minPoints: 0, maxPoints: 49, color: "#cd7f32", icon: "🥉" },
+  { name: "Prata", minPoints: 50, maxPoints: 149, color: "#c0c0c0", icon: "🥈" },
+  { name: "Ouro", minPoints: 150, maxPoints: 299, color: "#ffd700", icon: "🥇" },
+  { name: "Diamante", minPoints: 300, maxPoints: Infinity, color: "#b9f2ff", icon: "💎" },
 ] as const;
 
 // ─── Cultura item status ─────────────────────────────────────────────
@@ -330,6 +359,26 @@ export const CULTURA_STATUS = {
 
 export type CulturaStatusKey = keyof typeof CULTURA_STATUS;
 
+// ─── Policy categories ───────────────────────────────────────────────
+export const POLICY_CATEGORIES = {
+  etica: { label: "Etica", icon: "scale", color: "#8b5cf6", bg: "rgba(139,92,246,0.12)" },
+  pessoas: { label: "Pessoas", icon: "users", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
+  comercial: { label: "Comercial", icon: "briefcase", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+  governanca: { label: "Governanca", icon: "landmark", color: "#0ea5e9", bg: "rgba(14,165,233,0.12)" },
+  compliance: { label: "Compliance", icon: "shield-check", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+} as const;
+
+export type PolicyCategoryKey = keyof typeof POLICY_CATEGORIES;
+
+// ─── Policy status ──────────────────────────────────────────────────
+export const POLICY_STATUS = {
+  draft: { label: "Rascunho", color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
+  active: { label: "Ativa", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  archived: { label: "Arquivada", color: "#9ca3af", bg: "rgba(156,163,175,0.12)" },
+} as const;
+
+export type PolicyStatusKey = keyof typeof POLICY_STATUS;
+
 // ─── Changelog tags ───────────────────────────────────────────────────
 export const CHANGELOG_TAGS = {
   feature: { label: "Nova Funcionalidade", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
@@ -340,50 +389,88 @@ export const CHANGELOG_TAGS = {
 
 export type ChangelogTagKey = keyof typeof CHANGELOG_TAGS;
 
-// ─── Meeting status configuration ────────────────────────────────────
-export const MEETING_STATUS = {
-  agendada: { label: "Agendada", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
-  realizada: { label: "Realizada", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
-  cancelada: { label: "Cancelada", color: "#9ca3af", bg: "rgba(156,163,175,0.12)" },
-} as const;
 
-export type MeetingStatusKey = keyof typeof MEETING_STATUS;
+// ─── Module sub-navigation items (L2 sidebar) ──────────────────────
+// Each module that has an L2 sidebar defines its nav items here.
+// Pattern follows CULTURA_NAV_ITEMS: { href, label, icon, min_role? }
 
-// ─── Meeting categories ──────────────────────────────────────────────
-export const MEETING_CATEGORIES: Record<string, { label: string; color: string }> = {
-  interna: { label: "Interna", color: "#3b82f6" },
-  cliente: { label: "Cliente", color: "#22c55e" },
-  fornecedor: { label: "Fornecedor", color: "#f59e0b" },
-  entrevista: { label: "Entrevista", color: "#8b5cf6" },
-  outro: { label: "Outro", color: "#6b7280" },
+export type SubNavItem = {
+  readonly href: string;
+  readonly label: string;
+  readonly icon: string;
+  readonly min_role?: "founder" | "diretoria" | "lider";
 };
 
-// ─── Template type configuration ──────────────────────────────────────
-export const TEMPLATE_TYPES: Record<string, { label: string; color: string; bg: string }> = {
-  email: { label: "Email", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
-  documento: { label: "Documento", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
-  proposta: { label: "Proposta", color: "#8b5cf6", bg: "rgba(139,92,246,0.12)" },
-  contrato: { label: "Contrato", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
-  relatorio: { label: "Relatório", color: "#ec4899", bg: "rgba(236,72,153,0.12)" },
-  outro: { label: "Outro", color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
-};
+export const PROJETOS_NAV_ITEMS: readonly SubNavItem[] = [
+  { href: "/projetos", label: "Visão Geral", icon: "layout-dashboard" },
+  { href: "/projetos/lista", label: "Lista", icon: "list" },
+  { href: "/projetos/board", label: "Board", icon: "kanban" },
+  { href: "/projetos/timeline", label: "Timeline", icon: "clock" },
+  { href: "/projetos/gantt", label: "Gantt", icon: "gantt-chart-square" },
+  { href: "/projetos/calendario", label: "Calendário", icon: "calendar" },
+  { href: "/projetos/arquivos", label: "Arquivos", icon: "folder-open" },
+  { href: "/projetos/templates", label: "Templates", icon: "copy" },
+  { href: "/projetos/configuracoes", label: "Configurações", icon: "settings" },
+] as const;
 
-// ─── Deliverable (Entregas) status configuration ─────────────────────
-export const DELIVERABLE_STATUS = {
-  pendente: { label: "Pendente", color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
-  em_revisao: { label: "Em Revisão", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
-  aprovado: { label: "Aprovado", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
-  rejeitado: { label: "Rejeitado", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
-  entregue: { label: "Entregue", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
-} as const;
+export const PESSOAS_NAV_ITEMS: readonly SubNavItem[] = [
+  { href: "/pessoas", label: "Visão Geral", icon: "layout-dashboard" },
+  { href: "/pessoas/colaboradores", label: "Colaboradores", icon: "users" },
+  { href: "/pessoas/1on1", label: "1:1", icon: "message-square" },
+  { href: "/pessoas/pdi", label: "PDI", icon: "target" },
+  { href: "/pessoas/reconhecimentos", label: "Reconhecimentos", icon: "award" },
+  { href: "/pessoas/performance", label: "Performance", icon: "trending-up" },
+  { href: "/pessoas/timeline", label: "Timeline", icon: "activity" },
+  { href: "/pessoas/configuracoes", label: "Configurações", icon: "settings" },
+] as const;
 
-export type DeliverableStatusKey = keyof typeof DELIVERABLE_STATUS;
+export const FINANCEIRO_NAV_ITEMS: readonly SubNavItem[] = [
+  { href: "/financeiro", label: "Visão Geral", icon: "layout-dashboard" },
+  { href: "/financeiro/contas-a-pagar", label: "Contas a Pagar", icon: "arrow-up-circle" },
+  { href: "/financeiro/contas-a-receber", label: "Contas a Receber", icon: "arrow-down-circle" },
+  { href: "/financeiro/fluxo-de-caixa", label: "Fluxo de Caixa", icon: "trending-up" },
+  { href: "/financeiro/centro-de-custos", label: "Centro de Custos", icon: "pie-chart" },
+  { href: "/financeiro/importacoes", label: "Importações", icon: "upload" },
+  { href: "/financeiro/integracoes", label: "Integrações", icon: "plug" },
+  { href: "/financeiro/relatorios", label: "Relatórios", icon: "bar-chart-3" },
+  { href: "/financeiro/configuracoes", label: "Configurações", icon: "settings" },
+] as const;
 
-// ─── Deliverable types ───────────────────────────────────────────────
-export const DELIVERABLE_TYPES: Record<string, { label: string; color: string }> = {
-  design: { label: "Design", color: "#8b5cf6" },
-  video: { label: "Vídeo", color: "#ec4899" },
-  documento: { label: "Documento", color: "#3b82f6" },
-  apresentacao: { label: "Apresentação", color: "#f59e0b" },
-  outro: { label: "Outro", color: "#6b7280" },
+export const COMERCIAL_NAV_ITEMS: readonly SubNavItem[] = [
+  { href: "/comercial", label: "Pipeline", icon: "kanban" },
+  { href: "/comercial/leads", label: "Leads", icon: "user-plus" },
+  { href: "/comercial/propostas", label: "Propostas", icon: "file-text" },
+  { href: "/comercial/atividades", label: "Atividades", icon: "activity" },
+  { href: "/comercial/relatorios", label: "Relatórios", icon: "bar-chart-3" },
+  { href: "/comercial/integracoes", label: "Integrações", icon: "plug" },
+  { href: "/comercial/configuracoes", label: "Configurações", icon: "settings" },
+] as const;
+
+export const CLIENTES_NAV_ITEMS: readonly SubNavItem[] = [
+  { href: "/clientes", label: "Visão Geral", icon: "layout-dashboard" },
+  { href: "/clientes/empresas", label: "Empresas", icon: "building-2" },
+  { href: "/clientes/contatos", label: "Contatos", icon: "contact" },
+  { href: "/clientes/projetos", label: "Projetos do Cliente", icon: "folder-kanban" },
+  { href: "/clientes/documentos", label: "Documentos", icon: "file-text" },
+  { href: "/clientes/configuracoes", label: "Configurações", icon: "settings" },
+] as const;
+
+export const OKRS_NAV_ITEMS: readonly SubNavItem[] = [
+  { href: "/okrs", label: "Visão Geral", icon: "layout-dashboard" },
+  { href: "/okrs/company", label: "Company OKRs", icon: "building" },
+  { href: "/okrs/teams", label: "Teams", icon: "users" },
+  { href: "/okrs/individuais", label: "Individuais", icon: "user" },
+  { href: "/okrs/check-ins", label: "Check-ins", icon: "check-circle" },
+  { href: "/okrs/dashboard", label: "Dashboard", icon: "bar-chart-3" },
+  { href: "/okrs/configuracoes", label: "Configurações", icon: "settings" },
+] as const;
+
+/** Map of module prefix → nav items + title for the L2 sidebar */
+export const MODULE_NAV_CONFIG: Record<string, { title: string; items: readonly SubNavItem[] }> = {
+  "/projetos": { title: "Projetos", items: PROJETOS_NAV_ITEMS },
+  "/pessoas": { title: "Pessoas", items: PESSOAS_NAV_ITEMS },
+  "/financeiro": { title: "Financeiro", items: FINANCEIRO_NAV_ITEMS },
+  "/comercial": { title: "Comercial", items: COMERCIAL_NAV_ITEMS },
+  "/clientes": { title: "Clientes", items: CLIENTES_NAV_ITEMS },
+  "/okrs": { title: "OKRs", items: OKRS_NAV_ITEMS },
 };

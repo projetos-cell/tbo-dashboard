@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { LayoutGrid, List, Plus } from "lucide-react";
+import { LayoutGrid, List, Plus, FolderKanban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ErrorState } from "@/components/shared";
+import { ErrorState, EmptyState } from "@/components/shared";
 import { ProjectBoard } from "@/components/projects/project-board";
 import { ProjectList } from "@/components/projects/project-list";
 import { ProjectFilters } from "@/components/projects/project-filters";
@@ -127,6 +127,13 @@ export default function ProjetosPage() {
             <Skeleton key={i} className="h-36 rounded-lg" />
           ))}
         </div>
+      ) : !projects?.length ? (
+        <EmptyState
+          icon={FolderKanban}
+          title="Nenhum projeto encontrado"
+          description="Crie seu primeiro projeto para organizar o trabalho da equipe."
+          cta={{ label: "Novo Projeto", onClick: () => setFormOpen(true) }}
+        />
       ) : view === "board" ? (
         <ProjectBoard projects={filtered} />
       ) : (

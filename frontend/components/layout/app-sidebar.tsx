@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import Image from "next/image";
 import {
-  LayoutDashboard, ListChecks, MessageSquare, FolderKanban, PackageCheck,
-  Video, Scale, Calendar, Users, DollarSign, Briefcase, Building2, FileText,
-  Target, HeartHandshake, LayoutTemplate, Share2, TrendingUp, BarChart3,
+  LayoutDashboard, ListChecks, MessageSquare, FolderKanban,
+  Calendar, Users, DollarSign, Briefcase, Building2, FileText,
+  Target, HeartHandshake, Share2, BarChart3,
   Bell, Settings, LogOut, History, PenTool, CheckCircle, Lightbulb,
   Presentation, Lock, Shield, Activity, Globe,
 } from "lucide-react";
@@ -15,18 +14,17 @@ import {
   SidebarGroupContent, SidebarGroupLabel, SidebarHeader,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
+import { useAlertCount } from "@/hooks/use-alert-count";
 
 const ICON_MAP: Record<string, React.ElementType> = {
   "layout-dashboard": LayoutDashboard,
   "list-checks": ListChecks,
   "message-square": MessageSquare,
   "folder-kanban": FolderKanban,
-  "package-check": PackageCheck,
-  video: Video,
-  scale: Scale,
   calendar: Calendar,
   users: Users,
   "dollar-sign": DollarSign,
@@ -35,9 +33,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   "file-text": FileText,
   target: Target,
   "heart-handshake": HeartHandshake,
-  "layout-template": LayoutTemplate,
   "share-2": Share2,
-  "trending-up": TrendingUp,
   "bar-chart-3": BarChart3,
   bell: Bell,
   settings: Settings,
@@ -67,9 +63,6 @@ const FAVORITOS: NavItem[] = [
 
 const OPERACAO: NavItem[] = [
   { href: "/projetos", label: "Projetos", icon: "folder-kanban", module: "projetos" },
-  { href: "/entregas", label: "Entregas", icon: "package-check", module: "entregas" },
-  { href: "/reunioes", label: "Reunioes", icon: "video", module: "reunioes" },
-  { href: "/decisoes", label: "Decisoes", icon: "scale", module: "decisoes" },
   { href: "/agenda", label: "Agenda", icon: "calendar", module: "agenda" },
   { href: "/pessoas", label: "Pessoas", icon: "users", module: "pessoas" },
 ];
@@ -84,13 +77,45 @@ const NEGOCIOS: NavItem[] = [
 
 const SISTEMA: NavItem[] = [
   { href: "/cultura", label: "Cultura", icon: "heart-handshake", module: "cultura" },
-  { href: "/templates", label: "Templates", icon: "layout-template", module: "templates" },
   { href: "/rsm", label: "Redes Sociais", icon: "share-2", module: "rsm" },
-  { href: "/mercado", label: "Mercado", icon: "trending-up", module: "mercado" },
   { href: "/relatorios", label: "Relatorios", icon: "bar-chart-3", module: "relatorios" },
-  { href: "/alerts", label: "Alertas", icon: "bell", module: "alerts" },
   { href: "/configuracoes", label: "Configuracoes", icon: "settings", module: "configuracoes" },
 ];
+
+function AlertsFixedItem({ pathname, canSee }: { pathname: string; canSee: (m: string) => boolean }) {
+  const count = useAlertCount();
+
+  if (!canSee("alerts")) return null;
+
+  const isActive = pathname === "/alerts" || pathname.startsWith("/alerts/");
+
+  return (
+    <SidebarGroup>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={isActive}>
+              <Link href="/alerts" className="flex items-center justify-between w-full">
+                <span className="flex items-center gap-2">
+                  <Bell className="h-4 w-4" />
+                  <span>Alertas</span>
+                </span>
+                {count > 0 && (
+                  <Badge
+                    variant="destructive"
+                    className="h-5 min-w-[20px] px-1.5 text-[10px] font-semibold leading-none"
+                  >
+                    {count > 99 ? "99+" : count}
+                  </Badge>
+                )}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  );
+}
 
 function NavSection({ label, items, canSee, pathname }: {
   label: string;
@@ -156,6 +181,9 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
+        {/* Alertas fixo no topo — sempre visível, não participa do drag-and-drop */}
+        <AlertsFixedItem pathname={pathname} canSee={canSee} />
+
         <NavSection label="Favoritos" items={FAVORITOS} canSee={canSee} pathname={pathname} />
         <NavSection label="Operacao" items={OPERACAO} canSee={canSee} pathname={pathname} />
         <NavSection label="Negocios" items={NEGOCIOS} canSee={canSee} pathname={pathname} />

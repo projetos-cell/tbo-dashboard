@@ -44,6 +44,7 @@ import {
   Trash2,
   Eye,
   Clock,
+  FileBarChart2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -55,7 +56,7 @@ import {
   useDeleteSchedule,
 } from "@/hooks/use-reports";
 import { computeReportsKPIs } from "@/services/reports";
-import { ErrorState } from "@/components/shared";
+import { ErrorState, EmptyState } from "@/components/shared";
 import type { Json } from "@/lib/supabase/types";
 
 const RUN_STATUS_COLORS: Record<string, string> = {
@@ -200,9 +201,11 @@ export default function RelatoriosPage() {
                 ))}
               </div>
             ) : schedules.length === 0 ? (
-              <p className="py-12 text-center text-sm text-muted-foreground">
-                Nenhum agendamento cadastrado.
-              </p>
+              <EmptyState
+                icon={FileBarChart2}
+                title="Nenhum agendamento configurado"
+                description="Configure relatórios automáticos para sua equipe."
+              />
             ) : (
               <div className="rounded-md border">
                 <Table>
@@ -304,9 +307,11 @@ export default function RelatoriosPage() {
                 ))}
               </div>
             ) : runs.length === 0 ? (
-              <p className="py-12 text-center text-sm text-muted-foreground">
-                Nenhuma execucao encontrada.
-              </p>
+              <EmptyState
+                icon={FileBarChart2}
+                title="Nenhuma execução encontrada"
+                description="Ainda não há execuções de relatórios registradas."
+              />
             ) : (
               <div className="rounded-md border">
                 <Table>

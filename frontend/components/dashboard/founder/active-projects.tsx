@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { PROJECT_STATUS, BU_COLORS } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 
@@ -41,7 +40,6 @@ export function ActiveProjects({ projects }: Props) {
             {active.map((project) => {
               const statusCfg =
                 PROJECT_STATUS[project.status as keyof typeof PROJECT_STATUS];
-              const progress = (project as Record<string, unknown>).progress as number ?? 0;
               const buList = Array.isArray(project.bus)
                 ? project.bus
                 : project.bus
@@ -94,12 +92,11 @@ export function ActiveProjects({ projects }: Props) {
                       })}
                     </div>
                   </div>
-                  <div className="ml-3 w-20">
-                    <Progress value={progress} className="h-1.5" />
-                    <p className="mt-0.5 text-right text-xs text-muted-foreground">
-                      {progress}%
+                  {project.construtora && (
+                    <p className="ml-3 shrink-0 text-xs text-muted-foreground">
+                      {project.construtora}
                     </p>
-                  </div>
+                  )}
                 </Link>
               );
             })}

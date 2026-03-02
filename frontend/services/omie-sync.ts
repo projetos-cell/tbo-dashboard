@@ -33,20 +33,38 @@ export async function getOmieSyncLogs(
   return (data ?? []) as unknown as OmieSyncLog[];
 }
 
-export async function triggerOmieSync(
+// ── Stale sync cleanup ─────────────────────────────────────
+// Marks syncs stuck in "running" for more than 30 min as "error"
+
+export async function cleanupStaleSyncs(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
-  userId: string
-): Promise<OmieSyncLog> {
-  const { data, error } = await supabase
+  tenantId: string
+): Promise<void> {
+  await supabase
     .from("omie_sync_log" as never)
-    .insert({
-      tenant_id: tenantId,
-      status: "running",
-      triggered_by: userId,
+    .update({
+      status: "error",
+      finished_at: new Date().toISOString(),
+      errors: [{ entity: "sync", message: "Sync travado — timeout de 30 minutos excedido" }],
     } as never)
-    .select()
+    .eq("tenant_id" as never, tenantId as never)
+    .eq("status" as never, "running" as never)
+    .lt("started_at" as never, new Date(Date.now() - 30 * 60 * 1000).toISOString() as never);
+}
+
+// ── Last successful sync info ───────────────────────────────
+
+export async function getLastSuccessfulSync(
+  supabase: SupabaseClient<Database>,
+  tenantId: string
+): Promise<OmieSyncLog | null> {
+  const { data } = await supabase
+    .from("omie_sync_log" as never)
+    .select("*")
+    .eq("tenant_id" as never, tenantId as never)
+    .in("status" as never, ["success", "partial"] as never)
+    .order("started_at" as never, { ascending: false })
+    .limit(1)
     .single();
-  if (error) throw error;
-  return data as unknown as OmieSyncLog;
+  return (data as unknown as OmieSyncLog) ?? null;
 }

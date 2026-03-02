@@ -34,10 +34,6 @@ export const ROLE_MODULES: Record<RoleSlug, string[]> = {
     "chat",
     "cultura",
     "configuracoes",
-    "entregas",
-    "reunioes",
-    "decisoes",
-    "templates",
     "relatorios",
     "intelligence",
     "audit-logs",
@@ -53,10 +49,6 @@ export const ROLE_MODULES: Record<RoleSlug, string[]> = {
     "okrs",
     "chat",
     "cultura",
-    "entregas",
-    "reunioes",
-    "decisoes",
-    "templates",
     "intelligence",
   ],
   colaborador: [
@@ -67,7 +59,6 @@ export const ROLE_MODULES: Record<RoleSlug, string[]> = {
     "okrs",
     "chat",
     "cultura",
-    "entregas",
   ],
 };
 
@@ -88,13 +79,8 @@ const ALL_MODULES = [
   "chat",
   "cultura",
   "configuracoes",
-  "entregas",
-  "reunioes",
-  "decisoes",
-  "templates",
   "changelog",
   "rsm",
-  "mercado",
   "relatorios",
   "alerts",
   "portal-cliente",
@@ -181,7 +167,10 @@ export type PermissionKey =
   | "audit_logs.view"
   | "one_on_one.conduct"
   | "one_on_one.participate"
-  | "reconhecimentos";
+  | "reconhecimentos"
+  | "chat.create_channel"
+  | "chat.manage_channels"
+  | "chat.delete_messages";
 
 /**
  * Permission matrix from architecture.md.
@@ -201,6 +190,9 @@ const PERMISSION_MATRIX: Record<PermissionKey, RoleSlug[]> = {
   "one_on_one.conduct": ["founder", "diretoria", "lider"],
   "one_on_one.participate": ["founder", "diretoria", "lider", "colaborador"],
   reconhecimentos: ["founder", "diretoria", "lider", "colaborador"],
+  "chat.create_channel": ["founder", "diretoria", "lider"],
+  "chat.manage_channels": ["founder", "diretoria"],
+  "chat.delete_messages": ["founder", "diretoria"],
 };
 
 /** Check if a role has a specific granular permission */

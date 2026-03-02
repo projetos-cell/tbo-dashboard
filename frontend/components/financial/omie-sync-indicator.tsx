@@ -20,6 +20,11 @@ export function OmieSyncIndicator() {
   const { data: logs } = useOmieSyncLogs();
   const lastLog = logs?.[0] as OmieSyncLog | undefined;
 
+  // Find the last successful sync (success or partial)
+  const lastSuccess = logs?.find(
+    (l: OmieSyncLog) => l.status === "success" || l.status === "partial"
+  ) as OmieSyncLog | undefined;
+
   if (!lastLog) {
     return (
       <Badge variant="outline" className="text-xs text-muted-foreground">
@@ -29,6 +34,7 @@ export function OmieSyncIndicator() {
     );
   }
 
+  // Currently running a sync
   if (lastLog.status === "running") {
     return (
       <Badge variant="default" className="text-xs">
@@ -38,6 +44,17 @@ export function OmieSyncIndicator() {
     );
   }
 
+  // Last entry was error, but there IS a recent successful sync — show success with subtle note
+  if (lastLog.status === "error" && lastSuccess) {
+    return (
+      <Badge variant="secondary" className="text-xs">
+        <CheckCircle2 className="mr-1 h-3 w-3 text-green-500" />
+        Omie: {timeAgo(lastSuccess.finished_at ?? lastSuccess.started_at)}
+      </Badge>
+    );
+  }
+
+  // Last entry was error and NO successful sync found
   if (lastLog.status === "error") {
     return (
       <Badge variant="destructive" className="text-xs">
@@ -47,6 +64,7 @@ export function OmieSyncIndicator() {
     );
   }
 
+  // Success or partial
   return (
     <Badge variant="secondary" className="text-xs">
       <CheckCircle2 className="mr-1 h-3 w-3 text-green-500" />

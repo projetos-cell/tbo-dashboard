@@ -8,6 +8,7 @@ import {
   Repeat,
   Shield,
   Award,
+  Gift,
   BookOpen,
   BarChart3,
 } from "lucide-react";
@@ -21,6 +22,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   repeat: Repeat,
   shield: Shield,
   award: Award,
+  gift: Gift,
   "book-open": BookOpen,
   "bar-chart-3": BarChart3,
 };

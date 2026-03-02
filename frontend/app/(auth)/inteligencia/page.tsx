@@ -16,7 +16,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { useIntelligenceKpis } from "@/hooks/use-intelligence";
-import { ErrorState } from "@/components/shared";
+import { ErrorState, EmptyState } from "@/components/shared";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -107,6 +107,14 @@ function InteligenciaContent() {
 
       {error && (
         <ErrorState message={error.message} onRetry={() => refetch()} />
+      )}
+
+      {!isLoading && !error && !kpis && (
+        <EmptyState
+          icon={Brain}
+          title="Sem dados de inteligência"
+          description="Os dados analíticos aparecerão aqui assim que houver informações nos módulos conectados."
+        />
       )}
 
       {/* KPI Summary */}

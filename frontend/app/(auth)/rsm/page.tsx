@@ -42,13 +42,14 @@ import {
   CalendarClock,
   Pencil,
   Trash2,
+  BarChart3,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { RequireRole } from "@/components/auth/require-role";
 import { useRsmAccounts, useRsmPosts, useRsmIdeas, useDeleteRsmPost, useDeleteRsmIdea } from "@/hooks/use-rsm";
 import { computeRsmKPIs } from "@/services/rsm";
-import { ErrorState } from "@/components/shared";
+import { ErrorState, EmptyState } from "@/components/shared";
 
 const PLATFORM_COLORS: Record<string, string> = {
   instagram: "bg-pink-100 text-pink-800",
@@ -181,9 +182,11 @@ export default function RsmPage() {
                 ))}
               </div>
             ) : accounts.length === 0 ? (
-              <p className="py-12 text-center text-sm text-muted-foreground">
-                Nenhuma conta cadastrada.
-              </p>
+              <EmptyState
+                icon={BarChart3}
+                title="Nenhuma conta cadastrada"
+                description="Adicione contas de redes sociais para gerenciar sua presença digital."
+              />
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {accounts.map((account) => (
@@ -253,9 +256,11 @@ export default function RsmPage() {
                 ))}
               </div>
             ) : posts.length === 0 ? (
-              <p className="py-12 text-center text-sm text-muted-foreground">
-                Nenhum post encontrado.
-              </p>
+              <EmptyState
+                icon={BarChart3}
+                title="Nenhum post encontrado"
+                description="Crie o primeiro post para publicar nas redes sociais."
+              />
             ) : (
               <div className="rounded-md border">
                 <Table>
@@ -365,9 +370,11 @@ export default function RsmPage() {
                 ))}
               </div>
             ) : ideas.length === 0 ? (
-              <p className="py-12 text-center text-sm text-muted-foreground">
-                Nenhuma ideia encontrada.
-              </p>
+              <EmptyState
+                icon={BarChart3}
+                title="Nenhuma ideia encontrada"
+                description="Registre ideias de conteúdo para transformar em posts."
+              />
             ) : (
               <div className="rounded-md border">
                 <Table>

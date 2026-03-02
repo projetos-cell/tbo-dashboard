@@ -4088,11 +4088,14 @@ export type Database = {
       notifications: {
         Row: {
           action_url: string | null
+          actor_id: string | null
           body: string | null
+          comment_id: string | null
           created_at: string | null
           entity_id: string | null
           entity_type: string | null
           id: string
+          meta: Record<string, unknown> | null
           read: boolean | null
           tenant_id: string | null
           title: string
@@ -4102,11 +4105,14 @@ export type Database = {
         }
         Insert: {
           action_url?: string | null
+          actor_id?: string | null
           body?: string | null
+          comment_id?: string | null
           created_at?: string | null
           entity_id?: string | null
           entity_type?: string | null
           id?: string
+          meta?: Record<string, unknown> | null
           read?: boolean | null
           tenant_id?: string | null
           title: string
@@ -4116,11 +4122,14 @@ export type Database = {
         }
         Update: {
           action_url?: string | null
+          actor_id?: string | null
           body?: string | null
+          comment_id?: string | null
           created_at?: string | null
           entity_id?: string | null
           entity_type?: string | null
           id?: string
+          meta?: Record<string, unknown> | null
           read?: boolean | null
           tenant_id?: string | null
           title?: string
@@ -5262,6 +5271,7 @@ export type Database = {
           tenant_id: string
           title: string
           updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           assignee_id?: string | null
@@ -5284,6 +5294,7 @@ export type Database = {
           tenant_id: string
           title?: string
           updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           assignee_id?: string | null
@@ -5306,6 +5317,7 @@ export type Database = {
           tenant_id?: string
           title?: string
           updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -5689,6 +5701,167 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pdi_goals: {
+        Row: {
+          id: string
+          tenant_id: string
+          pdi_id: string
+          title: string
+          description: string | null
+          status: string
+          target_date: string | null
+          skill_id: string | null
+          target_level_percent: number | null
+          sort_order: number
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          pdi_id: string
+          title?: string
+          description?: string | null
+          status?: string
+          target_date?: string | null
+          skill_id?: string | null
+          target_level_percent?: number | null
+          sort_order?: number
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          pdi_id?: string
+          title?: string
+          description?: string | null
+          status?: string
+          target_date?: string | null
+          skill_id?: string | null
+          target_level_percent?: number | null
+          sort_order?: number
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdi_goals_pdi_id_fkey"
+            columns: ["pdi_id"]
+            isOneToOne: false
+            referencedRelation: "pdis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pdi_goals_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "person_skills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pdi_goals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pdi_actions: {
+        Row: {
+          id: string
+          tenant_id: string
+          pdi_goal_id: string
+          text: string
+          completed: boolean
+          completed_at: string | null
+          due_date: string | null
+          assignee_id: string | null
+          one_on_one_action_id: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          pdi_goal_id: string
+          text?: string
+          completed?: boolean
+          completed_at?: string | null
+          due_date?: string | null
+          assignee_id?: string | null
+          one_on_one_action_id?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          pdi_goal_id?: string
+          text?: string
+          completed?: boolean
+          completed_at?: string | null
+          due_date?: string | null
+          assignee_id?: string | null
+          one_on_one_action_id?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdi_actions_pdi_goal_id_fkey"
+            columns: ["pdi_goal_id"]
+            isOneToOne: false
+            referencedRelation: "pdi_goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pdi_actions_one_on_one_action_id_fkey"
+            columns: ["one_on_one_action_id"]
+            isOneToOne: false
+            referencedRelation: "one_on_one_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pdi_actions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      people_events: {
+        Row: {
+          id: string
+          person_id: string
+          tenant_id: string
+          event_type: string
+          severity: string
+          metadata: Json | null
+          created_at: string
+          created_by: string
+        }
+        Insert: {
+          id?: string
+          person_id: string
+          tenant_id: string
+          event_type: string
+          severity?: string
+          metadata?: Json | null
+          created_at?: string
+          created_by?: string
+        }
+        Update: {
+          id?: string
+          person_id?: string
+          tenant_id?: string
+          event_type?: string
+          severity?: string
+          metadata?: Json | null
+          created_at?: string
+          created_by?: string
+        }
+        Relationships: []
       }
       person_tasks: {
         Row: {
@@ -7886,6 +8059,44 @@ export type Database = {
           },
         ]
       }
+      thread_subscriptions: {
+        Row: {
+          id: string
+          tenant_id: string
+          entity_type: string
+          entity_id: string
+          user_id: string
+          is_muted: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          entity_type?: string
+          entity_id: string
+          user_id: string
+          is_muted?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          entity_type?: string
+          entity_id?: string
+          user_id?: string
+          is_muted?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thread_subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           created_at: string | null
@@ -8159,6 +8370,47 @@ export type Database = {
             columns: ["vacancy_id"]
             isOneToOne: false
             referencedRelation: "vacancies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_view_state: {
+        Row: {
+          id: string
+          user_id: string
+          tenant_id: string
+          workspace: string
+          view_key: string
+          filters_json: Json
+          sort_json: Json
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          tenant_id: string
+          workspace: string
+          view_key: string
+          filters_json?: Json
+          sort_json?: Json
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          tenant_id?: string
+          workspace?: string
+          view_key?: string
+          filters_json?: Json
+          sort_json?: Json
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_view_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]

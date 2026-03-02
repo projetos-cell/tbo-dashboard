@@ -23,6 +23,8 @@ import {
   Calendar,
   Building2,
 } from "lucide-react";
+import { PeopleTimeline } from "@/components/people/people-timeline";
+import { usePersonEvents } from "@/hooks/use-people-events";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -156,8 +158,35 @@ export function PersonDetail({ person, open, onOpenChange }: PersonDetailProps) 
               </span>
             </div>
           </div>
+
+          <Separator />
+
+          {/* Mini-timeline (last 5 events) */}
+          <PersonMiniTimeline personId={person.id} />
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Internal: mini-timeline for person detail sheet
+// ---------------------------------------------------------------------------
+
+function PersonMiniTimeline({ personId }: { personId: string }) {
+  const { data: events, isLoading } = usePersonEvents(personId, 5);
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+        Últimos eventos
+      </p>
+      <PeopleTimeline
+        events={events ?? []}
+        isLoading={isLoading}
+        showPersonName={false}
+        emptyMessage="Nenhum evento registrado"
+      />
+    </div>
   );
 }

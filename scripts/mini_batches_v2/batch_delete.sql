@@ -1,0 +1,1 @@
+DELETE FROM demands WHERE tenant_id = '89080d1a-bc79-4c3f-8fce-20aabc561c0d';

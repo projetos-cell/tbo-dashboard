@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 interface MessageInputProps {
   onSend: (content: string) => void;
   disabled?: boolean;
+  onTyping?: () => void;
 }
 
-export function MessageInput({ onSend, disabled }: MessageInputProps) {
+export function MessageInput({ onSend, disabled, onTyping }: MessageInputProps) {
   const [content, setContent] = useState("");
 
   function handleSend() {
@@ -31,7 +32,10 @@ export function MessageInput({ onSend, disabled }: MessageInputProps) {
     <div className="flex items-center gap-2 border-t p-3">
       <Input
         value={content}
-        onChange={(e) => setContent(e.target.value)}
+        onChange={(e) => {
+          setContent(e.target.value);
+          onTyping?.();
+        }}
         onKeyDown={handleKeyDown}
         placeholder="Digite uma mensagem..."
         disabled={disabled}

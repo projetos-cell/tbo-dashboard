@@ -1,0 +1,16 @@
+INSERT INTO demands (
+  tenant_id, project_id, title, status, responsible,
+  due_date, due_date_end, bus, info, prioridade,
+  formalizacao, tipo_midia, subitem, item_principal,
+  feito, milestones, notion_project_name, notion_page_id
+) VALUES
+('89080d1a-bc79-4c3f-8fce-20aabc561c0d', NULL, 'Template - Demanda (1)', 'Cronograma', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, FALSE, NULL, NULL, NULL),
+('89080d1a-bc79-4c3f-8fce-20aabc561c0d', NULL, 'Template - Demanda (2)', 'Cronograma', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, FALSE, NULL, NULL, NULL),
+('89080d1a-bc79-4c3f-8fce-20aabc561c0d', NULL, 'Template - Demanda (3)', 'Cronograma', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, FALSE, NULL, NULL, NULL),
+('89080d1a-bc79-4c3f-8fce-20aabc561c0d', NULL, 'Template - Demanda (4)', 'Cronograma', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, FALSE, NULL, NULL, NULL),
+('89080d1a-bc79-4c3f-8fce-20aabc561c0d', (SELECT id FROM projects WHERE notion_page_id = '1f3b27ff29e381929a2bc10cc6e4a9b8' AND tenant_id = '89080d1a-bc79-4c3f-8fce-20aabc561c0d' LIMIT 1), 'Correção da Apresentação', 'Concluído', 'Felipe Miranda', '2025-07-24', NULL, '{"Interiores"}', NULL, 'Prioridade', NULL, NULL, NULL, NULL, FALSE, NULL, 'Horizon Smart Living', '1f3b27ff29e381929a2bc10cc6e4a9b8'),
+('89080d1a-bc79-4c3f-8fce-20aabc561c0d', (SELECT id FROM projects WHERE notion_page_id = '1f3b27ff29e381fa8d54e16cdef6188c' AND tenant_id = '89080d1a-bc79-4c3f-8fce-20aabc561c0d' LIMIT 1), 'Renderização do Vídeo', 'Concluído', 'Felipe Miranda', '2025-07-24', '2025-07-28', '{"Interiores"}', NULL, NULL, NULL, NULL, NULL, NULL, FALSE, NULL, 'AUMA', '1f3b27ff29e381fa8d54e16cdef6188c'),
+('89080d1a-bc79-4c3f-8fce-20aabc561c0d', (SELECT id FROM projects WHERE notion_page_id = '1f3b27ff29e381fa8d54e16cdef6188c' AND tenant_id = '89080d1a-bc79-4c3f-8fce-20aabc561c0d' LIMIT 1), 'Breve Lançamento', 'Concluído', NULL, '2025-10-15', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, FALSE, NULL, 'AUMA', '1f3b27ff29e381fa8d54e16cdef6188c'),
+('89080d1a-bc79-4c3f-8fce-20aabc561c0d', (SELECT id FROM projects WHERE notion_page_id = '1f3b27ff29e381929a2bc10cc6e4a9b8' AND tenant_id = '89080d1a-bc79-4c3f-8fce-20aabc561c0d' LIMIT 1), 'Motion Teaser', 'Concluído', 'Nelson Mozart', '2025-07-24', '2025-07-29', '{"Branding"}', NULL, NULL, NULL, NULL, NULL, NULL, FALSE, NULL, 'Horizon Smart Living', '1f3b27ff29e381929a2bc10cc6e4a9b8'),
+('89080d1a-bc79-4c3f-8fce-20aabc561c0d', (SELECT id FROM projects WHERE notion_page_id = '1f3b27ff29e381fa8d54e16cdef6188c' AND tenant_id = '89080d1a-bc79-4c3f-8fce-20aabc561c0d' LIMIT 1), 'Apresentação de Campanha', 'Concluído', 'Marco', '2025-08-14', NULL, '{"Branding"}', NULL, NULL, NULL, NULL, NULL, NULL, FALSE, NULL, 'AUMA', '1f3b27ff29e381fa8d54e16cdef6188c'),
+('89080d1a-bc79-4c3f-8fce-20aabc561c0d', (SELECT id FROM projects WHERE notion_page_id = '1fab27ff29e380199c1cd246b0df0af8' AND tenant_id = '89080d1a-bc79-4c3f-8fce-20aabc561c0d' LIMIT 1), 'Revisão- Vero', 'Concluído', 'Eduarda Anad', '2025-07-25', NULL, '{"Digital 3D"}', NULL, NULL, NULL, NULL, NULL, NULL, FALSE, NULL, 'Vero', '1fab27ff29e380199c1cd246b0df0af8');

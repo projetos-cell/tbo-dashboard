@@ -24,7 +24,7 @@ import {
   Layers,
 } from "lucide-react";
 import { usePages, usePageStats } from "@/hooks/use-conteudo";
-import { ErrorState } from "@/components/shared";
+import { ErrorState, EmptyState } from "@/components/shared";
 
 function formatDate(dateStr: string | null) {
   if (!dateStr) return "--";
@@ -127,17 +127,15 @@ function ConteudoContent() {
               <ErrorState message={error.message} onRetry={() => refetch()} />
             </div>
           ) : filteredPages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <PenLine className="mb-3 h-10 w-10 text-muted-foreground/40" />
-              <p className="text-sm font-medium">
-                {search ? "Nenhuma pagina encontrada" : "Nenhuma pagina cadastrada"}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-                {search
+            <EmptyState
+              icon={FileText}
+              title={search ? "Nenhuma página encontrada" : "Nenhuma página cadastrada"}
+              description={
+                search
                   ? "Tente buscar com outros termos."
-                  : "Crie paginas para organizar o conteudo do seu workspace."}
-              </p>
-            </div>
+                  : "Crie páginas para organizar o conteúdo do seu workspace."
+              }
+            />
           ) : (
             <Table>
               <TableHeader>

@@ -1,0 +1,76 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, Json } from "@/lib/supabase/types";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface ViewState {
+  filters: Record<string, unknown>;
+  sort: SortSpec[];
+}
+
+export interface SortSpec {
+  field: string;
+  dir: "asc" | "desc";
+}
+
+// ---------------------------------------------------------------------------
+// Load view state for (user, workspace, view_key)
+// ---------------------------------------------------------------------------
+
+export async function loadViewState(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  workspace: string,
+  viewKey: string
+): Promise<ViewState | null> {
+  const { data, error } = await supabase
+    .from("user_view_state")
+    .select("filters_json, sort_json")
+    .eq("user_id", userId)
+    .eq("workspace", workspace)
+    .eq("view_key", viewKey)
+    .maybeSingle();
+
+  if (error) {
+    console.warn("[loadViewState] failed:", error.message);
+    return null;
+  }
+
+  if (!data) return null;
+
+  return {
+    filters: (data.filters_json ?? {}) as Record<string, unknown>,
+    sort: (data.sort_json ?? []) as unknown as SortSpec[],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Upsert view state (optimistic — caller handles rollback)
+// ---------------------------------------------------------------------------
+
+export async function saveViewState(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  tenantId: string,
+  workspace: string,
+  viewKey: string,
+  state: ViewState
+): Promise<void> {
+  const { error } = await supabase
+    .from("user_view_state")
+    .upsert(
+      {
+        user_id: userId,
+        tenant_id: tenantId,
+        workspace,
+        view_key: viewKey,
+        filters_json: state.filters as Json,
+        sort_json: state.sort as unknown as Json,
+      } as never,
+      { onConflict: "user_id,workspace,view_key" }
+    );
+
+  if (error) throw error;
+}

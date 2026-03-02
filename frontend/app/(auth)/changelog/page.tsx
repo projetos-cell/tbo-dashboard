@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +20,7 @@ import {
   useUpdateChangelog,
   useDeleteChangelog,
 } from "@/hooks/use-changelog";
-import { ErrorState } from "@/components/shared";
+import { ErrorState, EmptyState } from "@/components/shared";
 import {
   CHANGELOG_TAGS,
   NAV_ITEMS,
@@ -233,12 +233,21 @@ export default function ChangelogPage() {
       )}
 
       {/* Timeline */}
-      <ChangelogList
-        entries={filtered}
-        isLoading={isLoading}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-      />
+      {!isLoading && !entries.length ? (
+        <EmptyState
+          icon={BookOpen}
+          title="Nenhuma entrada no changelog"
+          description="Registre atualizações e mudanças da plataforma."
+          cta={{ label: "Nova Entrada", onClick: handleNew }}
+        />
+      ) : (
+        <ChangelogList
+          entries={filtered}
+          isLoading={isLoading}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
+      )}
 
       {/* Form dialog */}
       <ChangelogForm

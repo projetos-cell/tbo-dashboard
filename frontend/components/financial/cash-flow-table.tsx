@@ -11,10 +11,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { CashFlowDay } from "@/services/financial";
-
-function fmt(value: number): string {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
+import { formatBRL } from "@/lib/format";
 
 function colorClass(value: number): string {
   if (value > 0) return "text-green-600";
@@ -55,13 +52,13 @@ export function CashFlowTable({ days }: CashFlowTableProps) {
                 })}
               </TableCell>
               <TableCell className={`text-right ${colorClass(d.inflows)}`}>
-                {d.inflows > 0 ? fmt(d.inflows) : "—"}
+                {d.inflows > 0 ? formatBRL(d.inflows) : "—"}
               </TableCell>
               <TableCell className={`text-right ${colorClass(-d.outflows)}`}>
-                {d.outflows > 0 ? fmt(d.outflows) : "—"}
+                {d.outflows > 0 ? formatBRL(d.outflows) : "—"}
               </TableCell>
               <TableCell className={`text-right font-medium ${colorClass(d.balance)}`}>
-                {fmt(d.balance)}
+                {formatBRL(d.balance)}
               </TableCell>
             </TableRow>
           ))}

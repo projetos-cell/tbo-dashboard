@@ -31,7 +31,7 @@ import {
   computeAverageTicket,
   computeRecurringVsProject,
 } from "@/services/financial";
-import { formatBRL, formatBRLCompact } from "@/lib/format";
+import { formatBRL, formatBRLCompact, formatBRLInt } from "@/lib/format";
 import type { Database } from "@/lib/supabase/types";
 
 type PayableRow = Database["public"]["Tables"]["fin_payables"]["Row"];
@@ -41,15 +41,6 @@ interface EstrategicoTabProps {
   payables: PayableRow[];
   receivables: ReceivableRow[];
   masked?: boolean;
-}
-
-function fmt(value: number): string {
-  return value.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
 }
 
 export function EstrategicoTab({ payables, receivables, masked = false }: EstrategicoTabProps) {
@@ -183,7 +174,7 @@ export function EstrategicoTab({ payables, receivables, masked = false }: Estrat
               <ResponsiveContainer width="100%" height={Math.max(200, ccAnalysis.length * 40)}>
                 <BarChart data={ccAnalysis} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis type="number" fontSize={11} tickFormatter={(v: number) => fmt(v)} />
+                  <XAxis type="number" fontSize={11} tickFormatter={(v: number) => formatBRLInt(v)} />
                   <YAxis
                     type="category"
                     dataKey="costCenterName"
@@ -193,7 +184,7 @@ export function EstrategicoTab({ payables, receivables, masked = false }: Estrat
                   />
                   <Tooltip
                     formatter={(value?: number | string) =>
-                      masked ? "R$ ****" : fmt(Number(value ?? 0))
+                      masked ? "R$ ****" : formatBRLInt(Number(value ?? 0))
                     }
                     contentStyle={{ fontSize: 12 }}
                   />
@@ -219,7 +210,7 @@ export function EstrategicoTab({ payables, receivables, masked = false }: Estrat
                 <ComposedChart data={paretoData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis dataKey="name" fontSize={10} angle={-20} textAnchor="end" height={50} />
-                  <YAxis yAxisId="left" fontSize={11} tickFormatter={(v: number) => fmt(v)} />
+                  <YAxis yAxisId="left" fontSize={11} tickFormatter={(v: number) => formatBRLInt(v)} />
                   <YAxis
                     yAxisId="right"
                     orientation="right"
@@ -233,7 +224,7 @@ export function EstrategicoTab({ payables, receivables, masked = false }: Estrat
                         ? `${Number(value ?? 0).toFixed(1)}%`
                         : masked
                           ? "R$ ****"
-                          : fmt(Number(value ?? 0))
+                          : formatBRLInt(Number(value ?? 0))
                     }
                     contentStyle={{ fontSize: 12 }}
                   />

@@ -15,7 +15,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { AlertTriangle } from "lucide-react";
 import { computeSimulation } from "@/services/financial";
-import { formatBRLCompact } from "@/lib/format";
+import { formatBRLCompact, formatBRLInt } from "@/lib/format";
 import type { Database } from "@/lib/supabase/types";
 
 type PayableRow = Database["public"]["Tables"]["fin_payables"]["Row"];
@@ -26,15 +26,6 @@ interface SimulacoesTabProps {
   receivables: ReceivableRow[];
   initialBalance: number;
   masked?: boolean;
-}
-
-function fmt(value: number): string {
-  return value.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
 }
 
 export function SimulacoesTab({
@@ -217,10 +208,10 @@ export function SimulacoesTab({
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis dataKey="name" fontSize={11} />
-                <YAxis fontSize={11} tickFormatter={(v: number) => fmt(v)} />
+                <YAxis fontSize={11} tickFormatter={(v: number) => formatBRLInt(v)} />
                 <Tooltip
                   formatter={(value?: number | string) =>
-                    masked ? "R$ ****" : fmt(Number(value ?? 0))
+                    masked ? "R$ ****" : formatBRLInt(Number(value ?? 0))
                   }
                   contentStyle={{ fontSize: 12 }}
                 />

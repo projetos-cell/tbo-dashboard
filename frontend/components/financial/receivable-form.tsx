@@ -11,12 +11,35 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useCreateReceivable } from "@/hooks/use-financial";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useCreateReceivable, useFinClients } from "@/hooks/use-financial";
 import { useAuthStore } from "@/stores/auth-store";
+
+const PAYMENT_METHODS = [
+  { value: "pix", label: "PIX" },
+  { value: "boleto", label: "Boleto" },
+  { value: "transferencia", label: "Transferencia" },
+  { value: "cartao_credito", label: "Cartao de Credito" },
+  { value: "cartao_debito", label: "Cartao de Debito" },
+  { value: "dinheiro", label: "Dinheiro" },
+  { value: "cheque", label: "Cheque" },
+] as const;
 
 const receivableSchema = z.object({
   description: z.string().min(1, "Descricao e obrigatoria"),
-  amount: z.string().min(1, "Valor e obrigatorio").refine((v) => !isNaN(Number(v)) && Number(v) > 0, "Valor deve ser positivo"),
+  amount: z
+    .string()
+    .min(1, "Valor e obrigatorio")
+    .refine(
+      (v) => !isNaN(Number(v)) && Number(v) > 0,
+      "Valor deve ser positivo"
+    ),
   due_date: z.string().min(1, "Vencimento e obrigatorio"),
   notes: z.string().optional(),
 });
@@ -32,17 +55,25 @@ export function ReceivableForm({ open, onOpenChange }: ReceivableFormProps) {
   const tenantId = useAuthStore((s) => s.tenantId);
   const create = useCreateReceivable();
 
+  const { data: clients = [] } = useFinClients();
+
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
-  const [errors, setErrors] = useState<Partial<Record<keyof ReceivableFormData, string>>>({});
+  const [clientId, setClientId] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof ReceivableFormData, string>>
+  >({});
 
   function reset() {
     setDescription("");
     setAmount("");
     setDueDate("");
     setNotes("");
+    setClientId("");
+    setPaymentMethod("");
     setErrors({});
   }
 
@@ -74,7 +105,9 @@ export function ReceivableForm({ open, onOpenChange }: ReceivableFormProps) {
         due_date: dueDate,
         status: "aberto",
         notes: notes.trim() || null,
-      },
+        client_id: clientId || null,
+        payment_method: paymentMethod || null,
+      } as never,
       {
         onSuccess: () => {
           reset();
@@ -86,7 +119,7 @@ export function ReceivableForm({ open, onOpenChange }: ReceivableFormProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Nova Conta a Receber</DialogTitle>
         </DialogHeader>
@@ -97,7 +130,10 @@ export function ReceivableForm({ open, onOpenChange }: ReceivableFormProps) {
             <Input
               id="rec-desc"
               value={description}
-              onChange={(e) => { setDescription(e.target.value); setErrors((prev) => ({ ...prev, description: undefined })); }}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                setErrors((prev) => ({ ...prev, description: undefined }));
+              }}
               placeholder="Ex: Fatura projeto X"
               required
             />
@@ -115,7 +151,10 @@ export function ReceivableForm({ open, onOpenChange }: ReceivableFormProps) {
                 step="0.01"
                 min="0"
                 value={amount}
-                onChange={(e) => { setAmount(e.target.value); setErrors((prev) => ({ ...prev, amount: undefined })); }}
+                onChange={(e) => {
+                  setAmount(e.target.value);
+                  setErrors((prev) => ({ ...prev, amount: undefined }));
+                }}
                 required
               />
               {errors.amount && (
@@ -128,7 +167,10 @@ export function ReceivableForm({ open, onOpenChange }: ReceivableFormProps) {
                 id="rec-due"
                 type="date"
                 value={dueDate}
-                onChange={(e) => { setDueDate(e.target.value); setErrors((prev) => ({ ...prev, due_date: undefined })); }}
+                onChange={(e) => {
+                  setDueDate(e.target.value);
+                  setErrors((prev) => ({ ...prev, due_date: undefined }));
+                }}
                 required
               />
               {errors.due_date && (
@@ -137,8 +179,42 @@ export function ReceivableForm({ open, onOpenChange }: ReceivableFormProps) {
             </div>
           </div>
 
+          {/* Lookup selects */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Cliente</Label>
+              <Select value={clientId} onValueChange={setClientId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Forma de Pagamento</Label>
+              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_METHODS.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="rec-notes">Observações</Label>
+            <Label htmlFor="rec-notes">Observacoes</Label>
             <Input
               id="rec-notes"
               value={notes}

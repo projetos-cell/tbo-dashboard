@@ -1,5 +1,7 @@
 "use client";
 
+import { useCallback } from "react";
+import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   DollarSign,
@@ -12,6 +14,7 @@ import {
   Percent,
 } from "lucide-react";
 import { formatBRL, formatBRLCompact, formatPct, formatMonths } from "@/lib/format";
+import { AnimatedNumber } from "@/components/ui/animated-number";
 import type { ExecutiveKPIs, HealthStatus } from "@/services/financial";
 import { getKPIHealthStatus } from "@/services/financial";
 
@@ -32,9 +35,22 @@ const healthDot: Record<HealthStatus, string> = {
   critico: "bg-red-500",
 };
 
+// Stagger animation variants
+const container = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08 } },
+};
+
+const cardVariant = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" as const } },
+};
+
 interface KPICardData {
   label: string;
-  value: string;
+  numericValue: number;
+  formatFn: (n: number) => string;
+  maskedDisplay: string;
   icon: React.ElementType;
   iconColor: string;
   variation: number | null;
@@ -43,10 +59,25 @@ interface KPICardData {
 }
 
 export function ExecutiveKPICards({ kpis, masked = false }: ExecutiveKPIsProps) {
+  const fmtCompact = useCallback(
+    (n: number) => formatBRLCompact(n),
+    []
+  );
+  const fmtPctVal = useCallback(
+    (n: number) => `${n.toFixed(1)}%`,
+    []
+  );
+  const fmtMonths = useCallback(
+    (n: number) => formatMonths(n),
+    []
+  );
+
   const cards: KPICardData[] = [
     {
       label: "Caixa Atual",
-      value: formatBRLCompact(kpis.currentCash, masked),
+      numericValue: kpis.currentCash,
+      formatFn: fmtCompact,
+      maskedDisplay: "R$ ****",
       icon: DollarSign,
       iconColor: "text-blue-500",
       variation: null,
@@ -55,7 +86,9 @@ export function ExecutiveKPICards({ kpis, masked = false }: ExecutiveKPIsProps) 
     },
     {
       label: "Receita do Mes",
-      value: formatBRLCompact(kpis.monthRevenue, masked),
+      numericValue: kpis.monthRevenue,
+      formatFn: fmtCompact,
+      maskedDisplay: "R$ ****",
       icon: ArrowUpCircle,
       iconColor: "text-green-500",
       variation: kpis.revenueVariation,
@@ -66,7 +99,9 @@ export function ExecutiveKPICards({ kpis, masked = false }: ExecutiveKPIsProps) 
     },
     {
       label: "Despesa do Mes",
-      value: formatBRLCompact(kpis.monthExpenses, masked),
+      numericValue: kpis.monthExpenses,
+      formatFn: fmtCompact,
+      maskedDisplay: "R$ ****",
       icon: ArrowDownCircle,
       iconColor: "text-red-500",
       variation: kpis.expenseVariation,
@@ -77,7 +112,9 @@ export function ExecutiveKPICards({ kpis, masked = false }: ExecutiveKPIsProps) 
     },
     {
       label: "Margem Liquida",
-      value: masked ? "****" : `${kpis.netMarginPct.toFixed(1)}%`,
+      numericValue: kpis.netMarginPct,
+      formatFn: fmtPctVal,
+      maskedDisplay: "****",
       icon: Percent,
       iconColor: "text-purple-500",
       variation: kpis.marginVariation,
@@ -88,7 +125,9 @@ export function ExecutiveKPICards({ kpis, masked = false }: ExecutiveKPIsProps) 
     },
     {
       label: "Burn Rate",
-      value: formatBRLCompact(kpis.burnRate, masked),
+      numericValue: kpis.burnRate,
+      formatFn: fmtCompact,
+      maskedDisplay: "R$ ****",
       icon: Flame,
       iconColor: "text-orange-500",
       variation: kpis.burnRateVariation,
@@ -97,7 +136,9 @@ export function ExecutiveKPICards({ kpis, masked = false }: ExecutiveKPIsProps) 
     },
     {
       label: "Runway",
-      value: masked ? "****" : formatMonths(kpis.runway),
+      numericValue: kpis.runway,
+      formatFn: fmtMonths,
+      maskedDisplay: "****",
       icon: Clock,
       iconColor: "text-cyan-500",
       variation: null,
@@ -107,48 +148,61 @@ export function ExecutiveKPICards({ kpis, masked = false }: ExecutiveKPIsProps) 
   ];
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+    <motion.div
+      className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
+      variants={container}
+      initial="hidden"
+      animate="show"
+    >
       {cards.map((c) => (
-        <Card
-          key={c.label}
-          className={`border-l-4 ${healthColors[c.health]}`}
-        >
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-muted-foreground font-medium">
-                {c.label}
-              </p>
-              <div className="flex items-center gap-1.5">
-                <span
-                  className={`h-2 w-2 rounded-full ${healthDot[c.health]}`}
-                  title={c.health}
-                />
-                <c.icon className={`h-4 w-4 ${c.iconColor}`} />
+        <motion.div key={c.label} variants={cardVariant}>
+          <Card className={`border-l-4 ${healthColors[c.health]} h-full`}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-muted-foreground font-medium">
+                  {c.label}
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className={`h-2 w-2 rounded-full ${healthDot[c.health]}`}
+                    title={c.health}
+                  />
+                  <c.icon className={`h-4 w-4 ${c.iconColor}`} />
+                </div>
               </div>
-            </div>
-            <p className="text-xl font-bold truncate">{c.value}</p>
-            <div className="flex items-center justify-between mt-1">
-              <p className="text-xs text-muted-foreground truncate">
-                {c.sub}
+              <p className="text-xl font-bold truncate">
+                {masked ? (
+                  c.maskedDisplay
+                ) : (
+                  <AnimatedNumber
+                    value={c.numericValue}
+                    format={c.formatFn}
+                  />
+                )}
               </p>
-              {c.variation !== null && (
-                <span
-                  className={`inline-flex items-center text-xs font-medium ${
-                    c.variation >= 0 ? "text-green-600" : "text-red-600"
-                  }`}
-                >
-                  {c.variation >= 0 ? (
-                    <TrendingUp className="mr-0.5 h-3 w-3" />
-                  ) : (
-                    <TrendingDown className="mr-0.5 h-3 w-3" />
-                  )}
-                  {formatPct(c.variation)}
-                </span>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-xs text-muted-foreground truncate">
+                  {c.sub}
+                </p>
+                {c.variation !== null && (
+                  <span
+                    className={`inline-flex items-center text-xs font-medium ${
+                      c.variation >= 0 ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    {c.variation >= 0 ? (
+                      <TrendingUp className="mr-0.5 h-3 w-3" />
+                    ) : (
+                      <TrendingDown className="mr-0.5 h-3 w-3" />
+                    )}
+                    {formatPct(c.variation)}
+                  </span>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       ))}
-    </div>
+    </motion.div>
   );
 }

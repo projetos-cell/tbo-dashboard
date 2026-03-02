@@ -7,6 +7,16 @@ export function formatBRL(value: number, masked = false): string {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+export function formatBRLInt(value: number, masked = false): string {
+  if (masked) return "R$ ****";
+  return value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+}
+
 export function formatBRLCompact(value: number, masked = false): string {
   if (masked) return "R$ ****";
   if (Math.abs(value) >= 1_000_000) {

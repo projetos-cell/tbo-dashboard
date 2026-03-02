@@ -22,7 +22,7 @@ import {
 import { Users, DollarSign, AlertTriangle, Clock } from "lucide-react";
 import { useFinClients } from "@/hooks/use-financial";
 import { computeClientProfiles } from "@/services/financial";
-import { formatBRL, formatBRLCompact } from "@/lib/format";
+import { formatBRL, formatBRLCompact, formatBRLInt } from "@/lib/format";
 import type { Database } from "@/lib/supabase/types";
 
 type ReceivableRow = Database["public"]["Tables"]["fin_receivables"]["Row"];
@@ -30,15 +30,6 @@ type ReceivableRow = Database["public"]["Tables"]["fin_receivables"]["Row"];
 interface ClientesTabProps {
   receivables: ReceivableRow[];
   masked?: boolean;
-}
-
-function fmt(value: number): string {
-  return value.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
 }
 
 export function ClientesTab({ receivables, masked = false }: ClientesTabProps) {
@@ -146,7 +137,7 @@ export function ClientesTab({ receivables, masked = false }: ClientesTabProps) {
                   <XAxis
                     type="number"
                     fontSize={11}
-                    tickFormatter={(v: number) => fmt(v)}
+                    tickFormatter={(v: number) => formatBRLInt(v)}
                   />
                   <YAxis
                     type="category"
@@ -157,7 +148,7 @@ export function ClientesTab({ receivables, masked = false }: ClientesTabProps) {
                   />
                   <Tooltip
                     formatter={(value?: number | string) =>
-                      masked ? "R$ ****" : fmt(Number(value ?? 0))
+                      masked ? "R$ ****" : formatBRLInt(Number(value ?? 0))
                     }
                     contentStyle={{ fontSize: 12 }}
                   />

@@ -11,12 +11,40 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useCreatePayable } from "@/hooks/use-financial";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  useCreatePayable,
+  useVendors,
+  useFinCategories,
+  useCostCenters,
+} from "@/hooks/use-financial";
 import { useAuthStore } from "@/stores/auth-store";
+
+const PAYMENT_METHODS = [
+  { value: "pix", label: "PIX" },
+  { value: "boleto", label: "Boleto" },
+  { value: "transferencia", label: "Transferencia" },
+  { value: "cartao_credito", label: "Cartao de Credito" },
+  { value: "cartao_debito", label: "Cartao de Debito" },
+  { value: "dinheiro", label: "Dinheiro" },
+  { value: "cheque", label: "Cheque" },
+] as const;
 
 const payableSchema = z.object({
   description: z.string().min(1, "Descricao e obrigatoria"),
-  amount: z.string().min(1, "Valor e obrigatorio").refine((v) => !isNaN(Number(v)) && Number(v) > 0, "Valor deve ser positivo"),
+  amount: z
+    .string()
+    .min(1, "Valor e obrigatorio")
+    .refine(
+      (v) => !isNaN(Number(v)) && Number(v) > 0,
+      "Valor deve ser positivo"
+    ),
   due_date: z.string().min(1, "Vencimento e obrigatorio"),
   notes: z.string().optional(),
 });
@@ -32,17 +60,31 @@ export function PayableForm({ open, onOpenChange }: PayableFormProps) {
   const tenantId = useAuthStore((s) => s.tenantId);
   const create = useCreatePayable();
 
+  const { data: vendors = [] } = useVendors();
+  const { data: categories = [] } = useFinCategories("despesa");
+  const { data: costCenters = [] } = useCostCenters();
+
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
-  const [errors, setErrors] = useState<Partial<Record<keyof PayableFormData, string>>>({});
+  const [vendorId, setVendorId] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [costCenterId, setCostCenterId] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof PayableFormData, string>>
+  >({});
 
   function reset() {
     setDescription("");
     setAmount("");
     setDueDate("");
     setNotes("");
+    setVendorId("");
+    setCategoryId("");
+    setCostCenterId("");
+    setPaymentMethod("");
     setErrors({});
   }
 
@@ -74,7 +116,11 @@ export function PayableForm({ open, onOpenChange }: PayableFormProps) {
         due_date: dueDate,
         status: "aberto",
         notes: notes.trim() || null,
-      },
+        vendor_id: vendorId || null,
+        category_id: categoryId || null,
+        cost_center_id: costCenterId || null,
+        payment_method: paymentMethod || null,
+      } as never,
       {
         onSuccess: () => {
           reset();
@@ -86,7 +132,7 @@ export function PayableForm({ open, onOpenChange }: PayableFormProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Nova Conta a Pagar</DialogTitle>
         </DialogHeader>
@@ -97,7 +143,10 @@ export function PayableForm({ open, onOpenChange }: PayableFormProps) {
             <Input
               id="pay-desc"
               value={description}
-              onChange={(e) => { setDescription(e.target.value); setErrors((prev) => ({ ...prev, description: undefined })); }}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                setErrors((prev) => ({ ...prev, description: undefined }));
+              }}
               placeholder="Ex: Nota fiscal fornecedor"
               required
             />
@@ -115,7 +164,10 @@ export function PayableForm({ open, onOpenChange }: PayableFormProps) {
                 step="0.01"
                 min="0"
                 value={amount}
-                onChange={(e) => { setAmount(e.target.value); setErrors((prev) => ({ ...prev, amount: undefined })); }}
+                onChange={(e) => {
+                  setAmount(e.target.value);
+                  setErrors((prev) => ({ ...prev, amount: undefined }));
+                }}
                 required
               />
               {errors.amount && (
@@ -128,7 +180,10 @@ export function PayableForm({ open, onOpenChange }: PayableFormProps) {
                 id="pay-due"
                 type="date"
                 value={dueDate}
-                onChange={(e) => { setDueDate(e.target.value); setErrors((prev) => ({ ...prev, due_date: undefined })); }}
+                onChange={(e) => {
+                  setDueDate(e.target.value);
+                  setErrors((prev) => ({ ...prev, due_date: undefined }));
+                }}
                 required
               />
               {errors.due_date && (
@@ -137,8 +192,75 @@ export function PayableForm({ open, onOpenChange }: PayableFormProps) {
             </div>
           </div>
 
+          {/* Lookup selects */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Fornecedor</Label>
+              <Select value={vendorId} onValueChange={setVendorId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {vendors.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Categoria</Label>
+              <Select value={categoryId} onValueChange={setCategoryId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Centro de Custo</Label>
+              <Select value={costCenterId} onValueChange={setCostCenterId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {costCenters.map((cc) => (
+                    <SelectItem key={cc.id} value={cc.id}>
+                      {cc.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Forma de Pagamento</Label>
+              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_METHODS.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="pay-notes">Observações</Label>
+            <Label htmlFor="pay-notes">Observacoes</Label>
             <Input
               id="pay-notes"
               value={notes}

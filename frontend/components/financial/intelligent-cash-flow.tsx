@@ -32,7 +32,7 @@ import {
 import { computeIntelligentCashFlow } from "@/services/financial";
 import type { CashFlowAlert } from "@/services/financial";
 import type { Database } from "@/lib/supabase/types";
-import { formatBRL } from "@/lib/format";
+import { formatBRL, formatBRLInt } from "@/lib/format";
 
 type PayableRow = Database["public"]["Tables"]["fin_payables"]["Row"];
 type ReceivableRow = Database["public"]["Tables"]["fin_receivables"]["Row"];
@@ -42,15 +42,6 @@ interface IntelligentCashFlowProps {
   receivables: ReceivableRow[];
   initialBalance: number;
   masked?: boolean;
-}
-
-function fmt(value: number): string {
-  return value.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
 }
 
 function alertBadge(alert: CashFlowAlert) {
@@ -177,10 +168,10 @@ export function IntelligentCashFlow({
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis dataKey="date" fontSize={11} interval={Math.floor(period / 10)} />
-                <YAxis fontSize={12} tickFormatter={(v: number) => fmt(v)} />
+                <YAxis fontSize={12} tickFormatter={(v: number) => formatBRLInt(v)} />
                 <Tooltip
                   formatter={(value?: number | string) =>
-                    masked ? "R$ ****" : fmt(Number(value ?? 0))
+                    masked ? "R$ ****" : formatBRLInt(Number(value ?? 0))
                   }
                   contentStyle={{ fontSize: 12 }}
                 />

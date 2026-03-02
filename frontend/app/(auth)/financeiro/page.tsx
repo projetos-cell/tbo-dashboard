@@ -1,30 +1,17 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import dynamic from "next/dynamic";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Plus, Upload, Settings } from "lucide-react";
-import {
-  usePayables,
-  useReceivables,
-  useUpdatePayable,
-  useDeletePayable,
-  useUpdateReceivable,
-  useDeleteReceivable,
-  useLatestBalanceSnapshot,
-  useFinClients,
-  useCostCenters,
-} from "@/hooks/use-financial";
-import {
-  computeExecutiveKPIs,
-  computeInboxAlerts,
-  computeInsights,
-} from "@/services/financial";
 import { PAYABLE_STATUS, RECEIVABLE_STATUS } from "@/lib/constants";
-import type { Database } from "@/lib/supabase/types";
 import { RequireRole } from "@/components/auth/require-role";
-import { ErrorState } from "@/components/shared";
+import { ErrorState, TabErrorBoundary } from "@/components/shared";
+import { usePayablesState } from "@/hooks/use-payables-state";
+import { useReceivablesState } from "@/hooks/use-receivables-state";
+import { useFinancialData } from "@/hooks/use-financial-data";
+import { useFinancialRealtime } from "@/hooks/use-financial-realtime";
 
 // Static imports — small/always-visible components
 import { ExecutiveKPICards } from "@/components/financial/executive-kpis";
@@ -104,9 +91,6 @@ const FinImportDialog = dynamic(
   }
 );
 
-type PayableRow = Database["public"]["Tables"]["fin_payables"]["Row"];
-type ReceivableRow = Database["public"]["Tables"]["fin_receivables"]["Row"];
-
 const PAYABLE_STATUS_OPTIONS = Object.entries(PAYABLE_STATUS).map(
   ([value, cfg]) => ({ value, label: cfg.label })
 );
@@ -116,117 +100,27 @@ const RECEIVABLE_STATUS_OPTIONS = Object.entries(RECEIVABLE_STATUS).map(
 );
 
 export default function FinanceiroPage() {
+  // UI state (simple toggles stay in the page)
   const [tab, setTab] = useState("dashboard");
-
-  // Payables state
-  const [paySearch, setPaySearch] = useState("");
-  const [payStatus, setPayStatus] = useState("all");
-  const [selectedPayable, setSelectedPayable] = useState<PayableRow | null>(
-    null
-  );
-  const [payDetailOpen, setPayDetailOpen] = useState(false);
-  const [payFormOpen, setPayFormOpen] = useState(false);
-
-  // Receivables state
-  const [recSearch, setRecSearch] = useState("");
-  const [recStatus, setRecStatus] = useState("all");
-  const [selectedReceivable, setSelectedReceivable] =
-    useState<ReceivableRow | null>(null);
-  const [recDetailOpen, setRecDetailOpen] = useState(false);
-  const [recFormOpen, setRecFormOpen] = useState(false);
-
-  // Import, balance & masking state
   const [importOpen, setImportOpen] = useState(false);
   const [balanceOpen, setBalanceOpen] = useState(false);
   const [valueMasked, setValueMasked] = useState(false);
 
-  // Queries
-  const { data: payables = [], error: payError, refetch: refetchPay } = usePayables({
-    status: payStatus !== "all" ? payStatus : undefined,
-    search: paySearch || undefined,
-  });
-  const { data: receivables = [], error: recError, refetch: refetchRec } = useReceivables({
-    status: recStatus !== "all" ? recStatus : undefined,
-    search: recSearch || undefined,
-  });
+  // Domain hooks
+  const pay = usePayablesState();
+  const rec = useReceivablesState();
+  const fin = useFinancialData();
 
-  // Mutations
-  const updatePay = useUpdatePayable();
-  const deletePay = useDeletePayable();
-  const updateRec = useUpdateReceivable();
-  const deleteRec = useDeleteReceivable();
+  // Realtime: auto-refresh on DB changes
+  useFinancialRealtime();
 
-  // KPIs (computed from all data — fetch without status filter)
-  const { data: allPayables = [] } = usePayables();
-  const { data: allReceivables = [] } = useReceivables();
-  const { data: balanceSnapshot } = useLatestBalanceSnapshot();
-  const { data: clients = [] } = useFinClients();
-  const { data: costCenters = [] } = useCostCenters();
-
-  const initialBalance = balanceSnapshot?.balance ?? 0;
-
-  const executiveKpis = useMemo(
-    () => computeExecutiveKPIs(allPayables, allReceivables, initialBalance),
-    [allPayables, allReceivables, initialBalance]
-  );
-
-  const alerts = useMemo(
-    () => computeInboxAlerts(allPayables, allReceivables),
-    [allPayables, allReceivables]
-  );
-
-  const insights = useMemo(
-    () =>
-      computeInsights(
-        allPayables,
-        allReceivables,
-        clients,
-        costCenters,
-        initialBalance
-      ),
-    [allPayables, allReceivables, clients, costCenters, initialBalance]
-  );
-
-  // Handlers
-  function handleSelectPayable(p: PayableRow) {
-    setSelectedPayable(p);
-    setPayDetailOpen(true);
-  }
-
-  function handleMarkPayablePaid(id: string) {
-    updatePay.mutate(
-      { id, updates: { status: "pago" } },
-      { onSuccess: () => setPayDetailOpen(false) }
-    );
-  }
-
-  function handleDeletePayable(id: string) {
-    deletePay.mutate(id, { onSuccess: () => setPayDetailOpen(false) });
-  }
-
-  function handleSelectReceivable(r: ReceivableRow) {
-    setSelectedReceivable(r);
-    setRecDetailOpen(true);
-  }
-
-  function handleMarkReceivablePaid(id: string) {
-    updateRec.mutate(
-      { id, updates: { status: "pago" } },
-      { onSuccess: () => setRecDetailOpen(false) }
-    );
-  }
-
-  function handleDeleteReceivable(id: string) {
-    deleteRec.mutate(id, { onSuccess: () => setRecDetailOpen(false) });
-  }
-
-  const primaryError = payError || recError;
+  const primaryError = pay.error || rec.error;
   if (primaryError) {
     return (
       <RequireRole minRole="diretoria" module="financeiro">
         <ErrorState
           message={primaryError.message}
-          onRetry={() => { refetchPay(); refetchRec(); }}
+          onRetry={() => { pay.refetch(); rec.refetch(); }}
         />
       </RequireRole>
     );
@@ -279,9 +173,9 @@ export default function FinanceiroPage() {
           <TabsTrigger value="simulacoes">Simulacoes</TabsTrigger>
           <TabsTrigger value="inbox">
             Inbox
-            {alerts.length > 0 && (
+            {fin.alerts.length > 0 && (
               <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
-                {alerts.length}
+                {fin.alerts.length}
               </span>
             )}
           </TabsTrigger>
@@ -292,85 +186,89 @@ export default function FinanceiroPage() {
 
         {/* Dashboard */}
         <TabsContent value="dashboard" className="space-y-4">
-          <ExecutiveKPICards kpis={executiveKpis} masked={valueMasked} />
-          <InsightsPanel insights={insights} />
-          <FinCharts payables={allPayables} receivables={allReceivables} />
+          <TabErrorBoundary fallbackLabel="Dashboard">
+            <ExecutiveKPICards kpis={fin.executiveKpis} masked={valueMasked} />
+            <InsightsPanel insights={fin.insights} />
+            <FinCharts payables={fin.allPayables} receivables={fin.allReceivables} />
+          </TabErrorBoundary>
         </TabsContent>
 
         {/* A Pagar */}
         <TabsContent value="pagar" className="space-y-4">
           <div className="flex items-center justify-between">
             <FinFilters
-              search={paySearch}
-              onSearchChange={setPaySearch}
-              status={payStatus}
-              onStatusChange={setPayStatus}
+              search={pay.search}
+              onSearchChange={pay.setSearch}
+              status={pay.status}
+              onStatusChange={pay.setStatus}
               statusOptions={PAYABLE_STATUS_OPTIONS}
             />
-            <Button onClick={() => setPayFormOpen(true)} className="ml-3 shrink-0">
+            <Button onClick={() => pay.setFormOpen(true)} className="ml-3 shrink-0">
               <Plus className="mr-1.5 h-4 w-4" />
               Nova Conta
             </Button>
           </div>
-          <PayablesTable payables={payables} onSelect={handleSelectPayable} />
+          <PayablesTable payables={pay.payables} onSelect={pay.handleSelect} />
         </TabsContent>
 
         {/* A Receber */}
         <TabsContent value="receber" className="space-y-4">
           <div className="flex items-center justify-between">
             <FinFilters
-              search={recSearch}
-              onSearchChange={setRecSearch}
-              status={recStatus}
-              onStatusChange={setRecStatus}
+              search={rec.search}
+              onSearchChange={rec.setSearch}
+              status={rec.status}
+              onStatusChange={rec.setStatus}
               statusOptions={RECEIVABLE_STATUS_OPTIONS}
             />
-            <Button onClick={() => setRecFormOpen(true)} className="ml-3 shrink-0">
+            <Button onClick={() => rec.setFormOpen(true)} className="ml-3 shrink-0">
               <Plus className="mr-1.5 h-4 w-4" />
               Nova Fatura
             </Button>
           </div>
-          <ReceivablesTable
-            receivables={receivables}
-            onSelect={handleSelectReceivable}
-          />
+          <ReceivablesTable receivables={rec.receivables} onSelect={rec.handleSelect} />
         </TabsContent>
 
         {/* Caixa — Intelligent Cash Flow */}
         <TabsContent value="caixa" className="space-y-4">
-          <IntelligentCashFlow
-            payables={allPayables}
-            receivables={allReceivables}
-            initialBalance={initialBalance}
-            masked={valueMasked}
-          />
+          <TabErrorBoundary fallbackLabel="Caixa">
+            <IntelligentCashFlow
+              payables={fin.allPayables}
+              receivables={fin.allReceivables}
+              initialBalance={fin.initialBalance}
+              masked={valueMasked}
+            />
+          </TabErrorBoundary>
         </TabsContent>
 
-        {/* Estrategico (was Margens) */}
+        {/* Estrategico */}
         <TabsContent value="estrategico" className="space-y-4">
-          <EstrategicoTab
-            payables={allPayables}
-            receivables={allReceivables}
-            masked={valueMasked}
-          />
+          <TabErrorBoundary fallbackLabel="Estrategico">
+            <EstrategicoTab
+              payables={fin.allPayables}
+              receivables={fin.allReceivables}
+              masked={valueMasked}
+            />
+          </TabErrorBoundary>
         </TabsContent>
 
         {/* Clientes */}
         <TabsContent value="clientes" className="space-y-4">
-          <ClientesTab
-            receivables={allReceivables}
-            masked={valueMasked}
-          />
+          <TabErrorBoundary fallbackLabel="Clientes">
+            <ClientesTab receivables={fin.allReceivables} masked={valueMasked} />
+          </TabErrorBoundary>
         </TabsContent>
 
         {/* Simulacoes */}
         <TabsContent value="simulacoes" className="space-y-4">
-          <SimulacoesTab
-            payables={allPayables}
-            receivables={allReceivables}
-            initialBalance={initialBalance}
-            masked={valueMasked}
-          />
+          <TabErrorBoundary fallbackLabel="Simulacoes">
+            <SimulacoesTab
+              payables={fin.allPayables}
+              receivables={fin.allReceivables}
+              initialBalance={fin.initialBalance}
+              masked={valueMasked}
+            />
+          </TabErrorBoundary>
         </TabsContent>
 
         {/* Inbox */}
@@ -378,47 +276,53 @@ export default function FinanceiroPage() {
           <p className="text-sm text-muted-foreground">
             Itens que precisam de atencao.
           </p>
-          <InboxAlerts alerts={alerts} />
+          <InboxAlerts alerts={fin.alerts} />
         </TabsContent>
 
         {/* Conciliacao Bancaria */}
         <TabsContent value="conciliacao" className="space-y-4">
-          <ConciliacaoTab />
+          <TabErrorBoundary fallbackLabel="Conciliacao">
+            <ConciliacaoTab />
+          </TabErrorBoundary>
         </TabsContent>
 
         {/* Cadastros */}
         <TabsContent value="cadastros" className="space-y-4">
-          <CadastrosTab />
+          <TabErrorBoundary fallbackLabel="Cadastros">
+            <CadastrosTab />
+          </TabErrorBoundary>
         </TabsContent>
 
         {/* Omie Integration */}
         <TabsContent value="omie" className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Sincronize fornecedores, clientes, contas a pagar e a receber com o Omie.
-          </p>
-          <OmieSyncPanel />
+          <TabErrorBoundary fallbackLabel="Omie">
+            <p className="text-sm text-muted-foreground">
+              Sincronize fornecedores, clientes, contas a pagar e a receber com o Omie.
+            </p>
+            <OmieSyncPanel />
+          </TabErrorBoundary>
         </TabsContent>
       </Tabs>
 
       {/* Drawers */}
       <PayableDetail
-        payable={selectedPayable}
-        open={payDetailOpen}
-        onOpenChange={setPayDetailOpen}
-        onDelete={handleDeletePayable}
-        onMarkPaid={handleMarkPayablePaid}
+        payable={pay.selected}
+        open={pay.detailOpen}
+        onOpenChange={pay.setDetailOpen}
+        onDelete={pay.handleDelete}
+        onMarkPaid={pay.handleMarkPaid}
       />
       <ReceivableDetail
-        receivable={selectedReceivable}
-        open={recDetailOpen}
-        onOpenChange={setRecDetailOpen}
-        onDelete={handleDeleteReceivable}
-        onMarkPaid={handleMarkReceivablePaid}
+        receivable={rec.selected}
+        open={rec.detailOpen}
+        onOpenChange={rec.setDetailOpen}
+        onDelete={rec.handleDelete}
+        onMarkPaid={rec.handleMarkPaid}
       />
 
       {/* Forms */}
-      <PayableForm open={payFormOpen} onOpenChange={setPayFormOpen} />
-      <ReceivableForm open={recFormOpen} onOpenChange={setRecFormOpen} />
+      <PayableForm open={pay.formOpen} onOpenChange={pay.setFormOpen} />
+      <ReceivableForm open={rec.formOpen} onOpenChange={rec.setFormOpen} />
 
       {/* Dialogs */}
       <FinImportDialog open={importOpen} onClose={() => setImportOpen(false)} />

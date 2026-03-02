@@ -18,8 +18,9 @@ import {
   Clock,
   AlertTriangle,
   RefreshCw,
+  Plug,
 } from "lucide-react";
-import { useOmieSyncLogs, useTriggerSync } from "@/hooks/use-omie-sync";
+import { useOmieSyncLogs, useTriggerSync, useTestOmieConnection } from "@/hooks/use-omie-sync";
 import type { OmieSyncLog } from "@/services/omie-sync";
 import { useToast } from "@/hooks/use-toast";
 
@@ -85,6 +86,7 @@ function statusBadge(status: string) {
 export function OmieSyncPanel() {
   const { data: logs, isLoading } = useOmieSyncLogs();
   const syncMutation = useTriggerSync();
+  const testMutation = useTestOmieConnection();
   const { toast } = useToast();
 
   const lastLog = logs?.[0] as OmieSyncLog | undefined;
@@ -94,6 +96,25 @@ export function OmieSyncPanel() {
 
   const isSyncing =
     syncMutation.isPending || lastLog?.status === "running";
+
+  function handleTestConnection() {
+    testMutation.mutate(undefined, {
+      onSuccess: (result) => {
+        toast({
+          title: "Conexao OK",
+          description: `Omie respondeu com sucesso (${result.total ?? 0} categorias encontradas)`,
+        });
+      },
+      onError: (error) => {
+        toast({
+          title: "Falha na conexao",
+          description:
+            error instanceof Error ? error.message : "Erro ao conectar com Omie",
+          variant: "destructive",
+        });
+      },
+    });
+  }
 
   function handleSync() {
     syncMutation.mutate(undefined, {
@@ -147,6 +168,18 @@ export function OmieSyncPanel() {
           </div>
           <div className="flex items-center gap-2">
             {lastLog && statusBadge(lastLog.status)}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleTestConnection}
+              disabled={testMutation.isPending}
+              className="gap-1.5"
+            >
+              <Plug
+                className={`h-3.5 w-3.5 ${testMutation.isPending ? "animate-pulse" : ""}`}
+              />
+              {testMutation.isPending ? "Testando..." : "Testar conexao"}
+            </Button>
             <Button
               size="sm"
               variant="outline"

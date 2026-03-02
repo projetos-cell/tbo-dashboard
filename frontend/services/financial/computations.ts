@@ -1,335 +1,12 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
 
 type PayableRow = Database["public"]["Tables"]["fin_payables"]["Row"];
 type ReceivableRow = Database["public"]["Tables"]["fin_receivables"]["Row"];
 type CategoryRow = Database["public"]["Tables"]["fin_categories"]["Row"];
 type CostCenterRow = Database["public"]["Tables"]["fin_cost_centers"]["Row"];
-type VendorRow = Database["public"]["Tables"]["fin_vendors"]["Row"];
 type FinClientRow = Database["public"]["Tables"]["fin_clients"]["Row"];
 
-// ── Payables ──────────────────────────────────────────────────
-
-export async function listPayables(
-  supabase: SupabaseClient<Database>,
-  tenantId: string,
-  filters?: {
-    status?: string;
-    cost_center_id?: string;
-    search?: string;
-  }
-): Promise<PayableRow[]> {
-  let query = supabase
-    .from("fin_payables")
-    .select("*")
-    .eq("tenant_id", tenantId)
-    .order("due_date", { ascending: true });
-
-  if (filters?.status) query = query.eq("status", filters.status);
-  if (filters?.cost_center_id)
-    query = query.eq("cost_center_id", filters.cost_center_id);
-  if (filters?.search)
-    query = query.ilike("description", `%${filters.search}%`);
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data ?? []) as PayableRow[];
-}
-
-export async function getPayable(
-  supabase: SupabaseClient<Database>,
-  id: string
-): Promise<PayableRow | null> {
-  const { data, error } = await supabase
-    .from("fin_payables")
-    .select("*")
-    .eq("id", id)
-    .single();
-  if (error) throw error;
-  return data as PayableRow;
-}
-
-export async function createPayable(
-  supabase: SupabaseClient<Database>,
-  payable: Database["public"]["Tables"]["fin_payables"]["Insert"]
-): Promise<PayableRow> {
-  const { data, error } = await supabase
-    .from("fin_payables")
-    .insert(payable as never)
-    .select("*")
-    .single();
-  if (error) throw error;
-  return data as unknown as PayableRow;
-}
-
-export async function updatePayable(
-  supabase: SupabaseClient<Database>,
-  id: string,
-  updates: Database["public"]["Tables"]["fin_payables"]["Update"]
-): Promise<PayableRow> {
-  const payload = { ...updates, updated_at: new Date().toISOString() };
-
-  if (updates.status === "pago") {
-    payload.paid_date = payload.paid_date ?? new Date().toISOString();
-    payload.amount_paid = payload.amount_paid ?? undefined;
-  }
-
-  const { data, error } = await supabase
-    .from("fin_payables")
-    .update(payload as never)
-    .eq("id", id)
-    .select("*")
-    .single();
-  if (error) throw error;
-  return data as unknown as PayableRow;
-}
-
-export async function deletePayable(
-  supabase: SupabaseClient<Database>,
-  id: string
-): Promise<void> {
-  const { error } = await supabase
-    .from("fin_payables")
-    .update({ status: "cancelado", updated_at: new Date().toISOString() } as never)
-    .eq("id", id);
-  if (error) throw error;
-}
-
-// ── Receivables ───────────────────────────────────────────────
-
-export async function listReceivables(
-  supabase: SupabaseClient<Database>,
-  tenantId: string,
-  filters?: {
-    status?: string;
-    client_id?: string;
-    search?: string;
-  }
-): Promise<ReceivableRow[]> {
-  let query = supabase
-    .from("fin_receivables")
-    .select("*")
-    .eq("tenant_id", tenantId)
-    .order("due_date", { ascending: true });
-
-  if (filters?.status) query = query.eq("status", filters.status);
-  if (filters?.client_id) query = query.eq("client_id", filters.client_id);
-  if (filters?.search)
-    query = query.ilike("description", `%${filters.search}%`);
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data ?? []) as ReceivableRow[];
-}
-
-export async function createReceivable(
-  supabase: SupabaseClient<Database>,
-  receivable: Database["public"]["Tables"]["fin_receivables"]["Insert"]
-): Promise<ReceivableRow> {
-  const { data, error } = await supabase
-    .from("fin_receivables")
-    .insert(receivable as never)
-    .select("*")
-    .single();
-  if (error) throw error;
-  return data as unknown as ReceivableRow;
-}
-
-export async function updateReceivable(
-  supabase: SupabaseClient<Database>,
-  id: string,
-  updates: Database["public"]["Tables"]["fin_receivables"]["Update"]
-): Promise<ReceivableRow> {
-  const payload = { ...updates, updated_at: new Date().toISOString() };
-  if (updates.status === "pago") {
-    payload.paid_date = payload.paid_date ?? new Date().toISOString();
-  }
-
-  const { data, error } = await supabase
-    .from("fin_receivables")
-    .update(payload as never)
-    .eq("id", id)
-    .select("*")
-    .single();
-  if (error) throw error;
-  return data as unknown as ReceivableRow;
-}
-
-export async function deleteReceivable(
-  supabase: SupabaseClient<Database>,
-  id: string
-): Promise<void> {
-  const { error } = await supabase
-    .from("fin_receivables")
-    .update({ status: "cancelado", updated_at: new Date().toISOString() } as never)
-    .eq("id", id);
-  if (error) throw error;
-}
-
-// ── Categories ────────────────────────────────────────────────
-
-export async function listCategories(
-  supabase: SupabaseClient<Database>,
-  tenantId: string,
-  type?: string
-): Promise<CategoryRow[]> {
-  let query = supabase
-    .from("fin_categories")
-    .select("*")
-    .eq("tenant_id", tenantId)
-    .eq("is_active", true)
-    .order("name");
-
-  if (type) query = query.eq("type", type);
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data ?? []) as CategoryRow[];
-}
-
-// ── Cost Centers ──────────────────────────────────────────────
-
-export async function listCostCenters(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
-): Promise<CostCenterRow[]> {
-  const { data, error } = await supabase
-    .from("fin_cost_centers")
-    .select("*")
-    .eq("tenant_id", tenantId)
-    .eq("is_active", true)
-    .order("name");
-  if (error) throw error;
-  return (data ?? []) as CostCenterRow[];
-}
-
-export async function createCostCenter(
-  supabase: SupabaseClient<Database>,
-  cc: Database["public"]["Tables"]["fin_cost_centers"]["Insert"]
-): Promise<CostCenterRow> {
-  const { data, error } = await supabase
-    .from("fin_cost_centers")
-    .insert(cc as never)
-    .select("*")
-    .single();
-  if (error) throw error;
-  return data as unknown as CostCenterRow;
-}
-
-export async function updateCostCenter(
-  supabase: SupabaseClient<Database>,
-  id: string,
-  updates: Database["public"]["Tables"]["fin_cost_centers"]["Update"]
-): Promise<CostCenterRow> {
-  const { data, error } = await supabase
-    .from("fin_cost_centers")
-    .update(updates as never)
-    .eq("id", id)
-    .select("*")
-    .single();
-  if (error) throw error;
-  return data as unknown as CostCenterRow;
-}
-
-// ── Vendors ───────────────────────────────────────────────────
-
-export async function listVendors(
-  supabase: SupabaseClient<Database>,
-  tenantId: string,
-  search?: string
-): Promise<VendorRow[]> {
-  let query = supabase
-    .from("fin_vendors")
-    .select("*")
-    .eq("tenant_id", tenantId)
-    .eq("is_active", true)
-    .order("name");
-
-  if (search) query = query.ilike("name", `%${search}%`);
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data ?? []) as VendorRow[];
-}
-
-export async function createVendor(
-  supabase: SupabaseClient<Database>,
-  vendor: Database["public"]["Tables"]["fin_vendors"]["Insert"]
-): Promise<VendorRow> {
-  const { data, error } = await supabase
-    .from("fin_vendors")
-    .insert(vendor as never)
-    .select("*")
-    .single();
-  if (error) throw error;
-  return data as unknown as VendorRow;
-}
-
-export async function updateVendor(
-  supabase: SupabaseClient<Database>,
-  id: string,
-  updates: Database["public"]["Tables"]["fin_vendors"]["Update"]
-): Promise<VendorRow> {
-  const { data, error } = await supabase
-    .from("fin_vendors")
-    .update(updates as never)
-    .eq("id", id)
-    .select("*")
-    .single();
-  if (error) throw error;
-  return data as unknown as VendorRow;
-}
-
-// ── Fin Clients ───────────────────────────────────────────────
-
-export async function listFinClients(
-  supabase: SupabaseClient<Database>,
-  tenantId: string,
-  search?: string
-): Promise<FinClientRow[]> {
-  let query = supabase
-    .from("fin_clients")
-    .select("*")
-    .eq("tenant_id", tenantId)
-    .eq("is_active", true)
-    .order("name");
-
-  if (search) query = query.ilike("name", `%${search}%`);
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data ?? []) as FinClientRow[];
-}
-
-export async function createFinClient(
-  supabase: SupabaseClient<Database>,
-  client: Database["public"]["Tables"]["fin_clients"]["Insert"]
-): Promise<FinClientRow> {
-  const { data, error } = await supabase
-    .from("fin_clients")
-    .insert(client as never)
-    .select("*")
-    .single();
-  if (error) throw error;
-  return data as unknown as FinClientRow;
-}
-
-export async function updateFinClient(
-  supabase: SupabaseClient<Database>,
-  id: string,
-  updates: Database["public"]["Tables"]["fin_clients"]["Update"]
-): Promise<FinClientRow> {
-  const { data, error } = await supabase
-    .from("fin_clients")
-    .update(updates as never)
-    .eq("id", id)
-    .select("*")
-    .single();
-  if (error) throw error;
-  return data as unknown as FinClientRow;
-}
-
-// ── KPI helpers (client-side aggregation) ─────────────────────
+// ── Basic KPIs ────────────────────────────────────────────────
 
 export interface FinancialKPIs {
   totalPayable: number;
@@ -379,7 +56,7 @@ export function computeFinancialKPIs(
   };
 }
 
-// ── Cash flow helper ──────────────────────────────────────────
+// ── Cash Flow ─────────────────────────────────────────────────
 
 export interface CashFlowDay {
   date: string;
@@ -417,7 +94,7 @@ export function computeCashFlow(
   return result;
 }
 
-// ── Inbox alerts helper ───────────────────────────────────────
+// ── Inbox Alerts ──────────────────────────────────────────────
 
 export interface InboxAlert {
   id: string;
@@ -487,174 +164,7 @@ export function computeInboxAlerts(
   return alerts;
 }
 
-// ── Bank Transactions ────────────────────────────────────────
-
-type BankTransactionRow = Database["public"]["Tables"]["bank_transactions"]["Row"];
-type BankImportRow = Database["public"]["Tables"]["bank_imports"]["Row"];
-type ReconciliationRuleRow = Database["public"]["Tables"]["reconciliation_rules"]["Row"];
-type FinTransactionRow = Database["public"]["Tables"]["fin_transactions"]["Row"];
-type MonthlyClosingRow = Database["public"]["Tables"]["monthly_closings"]["Row"];
-
-export async function listBankTransactions(
-  supabase: SupabaseClient<Database>,
-  tenantId: string,
-  filters?: { import_id?: string; match_status?: string }
-): Promise<BankTransactionRow[]> {
-  let query = supabase
-    .from("bank_transactions")
-    .select("*")
-    .eq("tenant_id", tenantId)
-    .order("date", { ascending: false });
-
-  if (filters?.import_id) query = query.eq("import_id", filters.import_id);
-  if (filters?.match_status) query = query.eq("match_status", filters.match_status);
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data ?? []) as BankTransactionRow[];
-}
-
-export async function listBankImports(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
-): Promise<BankImportRow[]> {
-  const { data, error } = await supabase
-    .from("bank_imports")
-    .select("*")
-    .eq("tenant_id", tenantId)
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as BankImportRow[];
-}
-
-export async function listReconciliationRules(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
-): Promise<ReconciliationRuleRow[]> {
-  const { data, error } = await supabase
-    .from("reconciliation_rules")
-    .select("*")
-    .eq("tenant_id", tenantId)
-    .order("priority", { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as ReconciliationRuleRow[];
-}
-
-export async function createReconciliationRule(
-  supabase: SupabaseClient<Database>,
-  rule: Database["public"]["Tables"]["reconciliation_rules"]["Insert"]
-): Promise<ReconciliationRuleRow> {
-  const { data, error } = await supabase
-    .from("reconciliation_rules")
-    .insert(rule as never)
-    .select("*")
-    .single();
-  if (error) throw error;
-  return data as unknown as ReconciliationRuleRow;
-}
-
-export async function updateReconciliationRule(
-  supabase: SupabaseClient<Database>,
-  id: string,
-  updates: Database["public"]["Tables"]["reconciliation_rules"]["Update"]
-): Promise<ReconciliationRuleRow> {
-  const { data, error } = await supabase
-    .from("reconciliation_rules")
-    .update(updates as never)
-    .eq("id", id)
-    .select("*")
-    .single();
-  if (error) throw error;
-  return data as unknown as ReconciliationRuleRow;
-}
-
-export async function deleteReconciliationRule(
-  supabase: SupabaseClient<Database>,
-  id: string
-): Promise<void> {
-  const { error } = await supabase
-    .from("reconciliation_rules")
-    .delete()
-    .eq("id", id);
-  if (error) throw error;
-}
-
-// ── Financial Transactions (Ledger) ─────────────────────────
-
-export async function listFinTransactions(
-  supabase: SupabaseClient<Database>,
-  tenantId: string,
-  filters?: { category_id?: string; type?: string; month?: string }
-): Promise<FinTransactionRow[]> {
-  let query = supabase
-    .from("fin_transactions")
-    .select("*")
-    .eq("tenant_id", tenantId)
-    .order("date", { ascending: false });
-
-  if (filters?.category_id) query = query.eq("category_id", filters.category_id);
-  if (filters?.type) query = query.eq("type", filters.type);
-  if (filters?.month) {
-    const start = `${filters.month}-01`;
-    const endDate = new Date(parseInt(filters.month.split("-")[0]), parseInt(filters.month.split("-")[1]), 0);
-    const end = endDate.toISOString().slice(0, 10);
-    query = query.gte("date", start).lte("date", end);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data ?? []) as FinTransactionRow[];
-}
-
-// ── Monthly Closings ────────────────────────────────────────
-
-export async function listMonthlyClosings(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
-): Promise<MonthlyClosingRow[]> {
-  const { data, error } = await supabase
-    .from("monthly_closings")
-    .select("*")
-    .eq("tenant_id", tenantId)
-    .order("year", { ascending: false })
-    .order("month", { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as MonthlyClosingRow[];
-}
-
-// ── Balance Snapshots ─────────────────────────────────────────
-
-type BalanceSnapshotRow = Database["public"]["Tables"]["fin_balance_snapshots"]["Row"];
-
-export async function getLatestBalanceSnapshot(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
-): Promise<BalanceSnapshotRow | null> {
-  const { data, error } = await supabase
-    .from("fin_balance_snapshots")
-    .select("*")
-    .eq("tenant_id", tenantId)
-    .order("recorded_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) throw error;
-  return data as BalanceSnapshotRow | null;
-}
-
-export async function createBalanceSnapshot(
-  supabase: SupabaseClient<Database>,
-  snapshot: Database["public"]["Tables"]["fin_balance_snapshots"]["Insert"]
-): Promise<BalanceSnapshotRow> {
-  const { data, error } = await supabase
-    .from("fin_balance_snapshots")
-    .insert(snapshot as never)
-    .select("*")
-    .single();
-  if (error) throw error;
-  return data as unknown as BalanceSnapshotRow;
-}
-
-// ── Executive KPI helpers ─────────────────────────────────────
+// ── Executive KPIs ────────────────────────────────────────────
 
 export type HealthStatus = "saudavel" | "atencao" | "critico";
 
@@ -665,12 +175,10 @@ export interface ExecutiveKPIs {
   netMarginPct: number;
   burnRate: number;
   runway: number;
-  // Variations vs previous month
   revenueVariation: number;
   expenseVariation: number;
   marginVariation: number;
   burnRateVariation: number;
-  // Previous month values
   prevMonthRevenue: number;
   prevMonthExpenses: number;
   prevMonthMarginPct: number;
@@ -693,7 +201,6 @@ export function computeExecutiveKPIs(
   const currentMonth = getMonthRange(0);
   const prevMonth = getMonthRange(-1);
 
-  // Current cash = initialBalance + all received - all paid
   let totalReceived = 0;
   let totalPaid = 0;
   for (const r of receivables) {
@@ -704,7 +211,6 @@ export function computeExecutiveKPIs(
   }
   const currentCash = initialBalance + totalReceived - totalPaid;
 
-  // Current month revenue & expenses (all statuses except cancelado)
   let monthRevenue = 0;
   let monthExpenses = 0;
   for (const r of receivables) {
@@ -718,7 +224,6 @@ export function computeExecutiveKPIs(
     if (dd >= currentMonth.start && dd <= currentMonth.end) monthExpenses += p.amount;
   }
 
-  // Previous month
   let prevMonthRevenue = 0;
   let prevMonthExpenses = 0;
   for (const r of receivables) {
@@ -732,7 +237,6 @@ export function computeExecutiveKPIs(
     if (dd >= prevMonth.start && dd <= prevMonth.end) prevMonthExpenses += p.amount;
   }
 
-  // Net margin %
   const netMarginPct = monthRevenue > 0
     ? ((monthRevenue - monthExpenses) / monthRevenue) * 100
     : 0;
@@ -740,7 +244,6 @@ export function computeExecutiveKPIs(
     ? ((prevMonthRevenue - prevMonthExpenses) / prevMonthRevenue) * 100
     : 0;
 
-  // Burn rate (average expenses last 3 months)
   let burnRateTotal = 0;
   let burnMonthCount = 0;
   for (let i = -1; i >= -3; i--) {
@@ -758,7 +261,6 @@ export function computeExecutiveKPIs(
   }
   const burnRate = burnMonthCount > 0 ? burnRateTotal / burnMonthCount : monthExpenses;
 
-  // Previous burn rate (months -2 to -4)
   let prevBurnTotal = 0;
   let prevBurnCount = 0;
   for (let i = -2; i >= -4; i--) {
@@ -776,10 +278,8 @@ export function computeExecutiveKPIs(
   }
   const prevBurnRate = prevBurnCount > 0 ? prevBurnTotal / prevBurnCount : 0;
 
-  // Runway
   const runway = burnRate > 0 ? currentCash / burnRate : Infinity;
 
-  // Variations
   const revenueVariation = prevMonthRevenue > 0
     ? ((monthRevenue - prevMonthRevenue) / prevMonthRevenue) * 100
     : 0;
@@ -824,7 +324,6 @@ export function getKPIHealthStatus(metric: string, value: number): HealthStatus 
       if (value < 6) return "atencao";
       return "saudavel";
     case "burnRate":
-      // Higher burn rate variation is worse
       if (value > 20) return "critico";
       if (value > 10) return "atencao";
       return "saudavel";
@@ -854,7 +353,6 @@ export function computeIntelligentCashFlow(
   const alerts: CashFlowAlert[] = [];
   let runningBalance = initialBalance;
 
-  // Add currently realized balance
   for (const r of receivables) {
     if (r.status === "pago" && r.paid_date) {
       const pd = r.paid_date.slice(0, 10);
@@ -887,7 +385,6 @@ export function computeIntelligentCashFlow(
       .filter((p) => p.due_date.slice(0, 10) === dateStr && p.status !== "cancelado" && p.status !== "pago")
       .reduce((sum, p) => sum + (p.amount - (p.amount_paid ?? 0)), 0);
 
-    // Count payables on this day for concentration alert
     const dayPayableCount = payables.filter(
       (p) => p.due_date.slice(0, 10) === dateStr && p.status !== "cancelado" && p.status !== "pago"
     ).length;
@@ -895,7 +392,6 @@ export function computeIntelligentCashFlow(
     runningBalance += dayInflows - dayOutflows;
     result.push({ date: dateStr, inflows: dayInflows, outflows: dayOutflows, balance: runningBalance });
 
-    // Negative balance alert
     if (runningBalance < 0 && !seenAlerts.has("negative_balance")) {
       alerts.push({
         type: "negative_balance",
@@ -907,7 +403,6 @@ export function computeIntelligentCashFlow(
       seenAlerts.add("negative_balance");
     }
 
-    // Payment concentration alert
     if (dayPayableCount > 3 && !seenAlerts.has(`concentration_${dateStr}`)) {
       alerts.push({
         type: "payment_concentration",
@@ -919,7 +414,6 @@ export function computeIntelligentCashFlow(
     }
   }
 
-  // Overdue receivables alert
   const todayStr = today.toISOString().slice(0, 10);
   const overdueReceivables = receivables.filter(
     (r) => !["pago", "cancelado"].includes(r.status ?? "") && r.due_date < todayStr
@@ -938,7 +432,7 @@ export function computeIntelligentCashFlow(
   return { days: result, alerts };
 }
 
-// ── Strategic Analysis helpers ────────────────────────────────
+// ── Strategic Analysis ────────────────────────────────────────
 
 export interface CostCenterAnalysis {
   costCenterId: string | null;
@@ -970,7 +464,6 @@ export function computeCostCenterAnalysis(
 ): CostCenterAnalysis[] {
   const ccMap = new Map<string | null, { name: string; revenue: number; expenses: number }>();
 
-  // Group payables by cost_center_id
   for (const p of payables) {
     if (p.status === "cancelado") continue;
     const ccId = p.cost_center_id;
@@ -981,8 +474,6 @@ export function computeCostCenterAnalysis(
     ccMap.set(ccId, entry);
   }
 
-  // Revenue: try to allocate via project_id matching
-  // If receivable has project_id, find payables with same project_id and their cost_center
   const projectCCMap = new Map<string, string | null>();
   for (const p of payables) {
     if (p.project_id && p.cost_center_id) {
@@ -1148,7 +639,6 @@ export function computeClientProfiles(
 
     if (r.status === "pago") {
       entry.paid += r.amount;
-      // DSO: days between due_date and paid_date
       if (r.paid_date) {
         const due = new Date(r.due_date);
         const paid = new Date(r.paid_date);
@@ -1157,10 +647,8 @@ export function computeClientProfiles(
         entry.dsoCount += 1;
       }
     } else if (r.due_date < todayStr) {
-      // Overdue
       entry.overdue += r.amount - (r.amount_paid ?? 0);
       entry.overdueCount += 1;
-      // DSO for overdue = today - due_date
       const due = new Date(r.due_date);
       const dso = Math.round((Date.now() - due.getTime()) / (1000 * 60 * 60 * 24));
       entry.dsoSum += dso;
@@ -1205,7 +693,6 @@ export function computeSimulation(
   initialBalance: number,
   params: SimulationParams
 ): SimulationResult {
-  // Get baseline from last 3 months
   let baseRevenue = 0;
   let baseExpenses = 0;
   let monthCount = 0;
@@ -1232,15 +719,12 @@ export function computeSimulation(
   const avgRevenue = monthCount > 0 ? baseRevenue / monthCount : 0;
   const avgExpenses = monthCount > 0 ? baseExpenses / monthCount : 0;
 
-  // Apply simulation parameters
   const simRevenue = avgRevenue * (1 + params.revenueGrowthPct / 100);
   const simExpenses = avgExpenses * (1 - params.expenseCutPct / 100);
   const delayedRevenue = simRevenue * (1 - params.receivablesDelayPct / 100);
 
-  // Project 6 months
   const now = new Date();
   let balance = initialBalance;
-  // Add realized balance
   for (const r of receivables) {
     if (r.status === "pago" && r.paid_date) balance += r.amount;
   }
@@ -1286,7 +770,6 @@ export function computeInsights(
   initialBalance: number
 ): FinancialInsight[] {
   const insights: FinancialInsight[] = [];
-  const todayStr = new Date().toISOString().slice(0, 10);
 
   // 1. Margin trend (last 3 months)
   const margins: number[] = [];
@@ -1362,6 +845,7 @@ export function computeInsights(
   }
 
   // 5. Overdue receivables volume
+  const todayStr = new Date().toISOString().slice(0, 10);
   const overdueReceivables = receivables.filter(
     (r) => !["pago", "cancelado"].includes(r.status ?? "") && r.due_date < todayStr
   );
@@ -1389,14 +873,13 @@ export function computeInsights(
     });
   }
 
-  // Sort by severity, return max 5
   const severityOrder = { danger: 0, warning: 1, info: 2, success: 3 };
   return insights
     .sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity])
     .slice(0, 5);
 }
 
-// ── DRE / Margin helpers (client-side aggregation) ──────────
+// ── DRE / Margin ──────────────────────────────────────────────
 
 export interface DRELine {
   category: string;
@@ -1414,7 +897,6 @@ export function computeDRE(
 ): DRELine[] {
   const catMap = new Map<string, { name: string; revenue: number; expenses: number }>();
 
-  // Group receivables by category
   for (const r of receivables) {
     if (r.status === "cancelado") continue;
     const catName = "Receitas";
@@ -1423,7 +905,6 @@ export function computeDRE(
     catMap.set(catName, entry);
   }
 
-  // Group payables by category
   for (const p of payables) {
     if (p.status === "cancelado") continue;
     const cat = categories.find((c) => c.id === p.category_id);

@@ -17,6 +17,7 @@ import {
   Legend,
 } from "recharts";
 import { computeCashFlow } from "@/services/financial";
+import { formatBRLInt } from "@/lib/format";
 import type { Database } from "@/lib/supabase/types";
 
 type PayableRow = Database["public"]["Tables"]["fin_payables"]["Row"];
@@ -28,15 +29,6 @@ interface FinChartsProps {
 }
 
 // ── Helpers ──────────────────────────────────────────────────
-
-function fmt(value: number): string {
-  return value.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
-}
 
 function getLastSixMonths(): { key: string; label: string }[] {
   const months: { key: string; label: string }[] = [];
@@ -117,9 +109,9 @@ export function FinCharts({ payables, receivables }: FinChartsProps) {
             <BarChart data={revenueExpenseData}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="name" fontSize={12} />
-              <YAxis fontSize={12} tickFormatter={(v: number) => fmt(v)} />
+              <YAxis fontSize={12} tickFormatter={(v: number) => formatBRLInt(v)} />
               <Tooltip
-                formatter={(value: number | string | undefined) => fmt(Number(value ?? 0))}
+                formatter={(value: number | string | undefined) => formatBRLInt(Number(value ?? 0))}
                 contentStyle={{ fontSize: 12 }}
               />
               <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -150,9 +142,9 @@ export function FinCharts({ payables, receivables }: FinChartsProps) {
             <LineChart data={profitData}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="name" fontSize={12} />
-              <YAxis fontSize={12} tickFormatter={(v: number) => fmt(v)} />
+              <YAxis fontSize={12} tickFormatter={(v: number) => formatBRLInt(v)} />
               <Tooltip
-                formatter={(value: number | string | undefined) => fmt(Number(value ?? 0))}
+                formatter={(value: number | string | undefined) => formatBRLInt(Number(value ?? 0))}
                 contentStyle={{ fontSize: 12 }}
               />
               <Line
@@ -185,9 +177,9 @@ export function FinCharts({ payables, receivables }: FinChartsProps) {
               </defs>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="date" fontSize={11} interval={2} />
-              <YAxis fontSize={12} tickFormatter={(v: number) => fmt(v)} />
+              <YAxis fontSize={12} tickFormatter={(v: number) => formatBRLInt(v)} />
               <Tooltip
-                formatter={(value: number | string | undefined) => fmt(Number(value ?? 0))}
+                formatter={(value: number | string | undefined) => formatBRLInt(Number(value ?? 0))}
                 contentStyle={{ fontSize: 12 }}
               />
               <Legend wrapperStyle={{ fontSize: 12 }} />

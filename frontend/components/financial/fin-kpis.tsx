@@ -8,10 +8,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import type { FinancialKPIs } from "@/services/financial";
-
-function fmt(value: number): string {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
+import { formatBRL } from "@/lib/format";
 
 interface FinKPIsProps {
   kpis: FinancialKPIs;
@@ -21,31 +18,31 @@ export function FinKPICards({ kpis }: FinKPIsProps) {
   const cards = [
     {
       label: "A Pagar (aberto)",
-      value: fmt(kpis.totalPayable),
+      value: formatBRL(kpis.totalPayable),
       icon: ArrowDownCircle,
       iconColor: "text-red-500",
       sub: `${kpis.countPayable} contas`,
     },
     {
       label: "A Receber (aberto)",
-      value: fmt(kpis.totalReceivable),
+      value: formatBRL(kpis.totalReceivable),
       icon: ArrowUpCircle,
       iconColor: "text-green-500",
       sub: `${kpis.countReceivable} contas`,
     },
     {
       label: "Resultado Líquido",
-      value: fmt(kpis.totalReceived - kpis.totalPaid),
+      value: formatBRL(kpis.totalReceived - kpis.totalPaid),
       icon: TrendingUp,
       iconColor:
         kpis.totalReceived - kpis.totalPaid >= 0
           ? "text-green-500"
           : "text-red-500",
-      sub: `Recebido ${fmt(kpis.totalReceived)} · Pago ${fmt(kpis.totalPaid)}`,
+      sub: `Recebido ${formatBRL(kpis.totalReceived)} · Pago ${formatBRL(kpis.totalPaid)}`,
     },
     {
       label: "Vencido",
-      value: fmt(kpis.overdue),
+      value: formatBRL(kpis.overdue),
       icon: AlertTriangle,
       iconColor: kpis.overdue > 0 ? "text-red-500" : "text-muted-foreground",
       sub: "inadimplência total",

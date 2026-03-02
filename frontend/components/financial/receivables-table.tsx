@@ -9,14 +9,11 @@ import type { Database } from "@/lib/supabase/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useMemo } from "react";
+import { formatBRL } from "@/lib/format";
 
 type ReceivableRow = Database["public"]["Tables"]["fin_receivables"]["Row"];
 
 const TABLE_ID = "fin_receivables";
-
-function fmt(value: number): string {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
 
 interface ReceivablesTableProps {
   receivables: ReceivableRow[];
@@ -54,7 +51,7 @@ export function ReceivablesTable({
         sortType: "number",
         sortAccessor: (row) => row.amount,
         cellRender: (row) => (
-          <span className="whitespace-nowrap">{fmt(row.amount)}</span>
+          <span className="whitespace-nowrap">{formatBRL(row.amount)}</span>
         ),
       },
       {

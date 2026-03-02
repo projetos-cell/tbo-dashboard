@@ -3,3 +3,4 @@ export { EmptyState } from "./empty-state";
 export { ErrorState } from "./error-state";
 export { PageHeader } from "./page-header";
 export { RBACGuard } from "./rbac-guard";
+export { TabErrorBoundary } from "./tab-error-boundary";

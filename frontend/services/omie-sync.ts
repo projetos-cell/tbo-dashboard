@@ -28,6 +28,23 @@ export interface OmieSyncResult {
   status: string;
 }
 
+// ── Test connection via API route ────────────────────────────
+
+export interface OmieTestResult {
+  ok: boolean;
+  total?: number;
+  error?: string;
+}
+
+export async function testOmieConnection(): Promise<OmieTestResult> {
+  const res = await fetch("/api/omie-sync/test");
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || "Falha ao testar conexao");
+  }
+  return data as OmieTestResult;
+}
+
 // ── Trigger sync via API route ───────────────────────────────
 
 export async function triggerSync(): Promise<OmieSyncResult> {

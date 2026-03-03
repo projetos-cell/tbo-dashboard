@@ -3,6 +3,19 @@ import { createClient } from "@/lib/supabase/server";
 
 const OMIE_BASE_URL = "https://app.omie.com.br/api/v1";
 const PAGE_SIZE = 500;
+const MAX_RETRIES = 3;
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Extract wait-seconds from Omie "Consumo redundante" message, or return a default */
+function parseOmieWaitSeconds(text: string): number {
+  const m = text.match(/Aguarde (\d+) segundos/i);
+  return m ? Math.min(Number(m[1]) + 2, 30) : 15; // add 2s buffer, cap at 30s
+}
 
 // ── Omie API helper ───────────────────────────────────────────────────────────
 
@@ -17,29 +30,63 @@ async function omieCall(
   call: string,
   params: Record<string, unknown>[]
 ): Promise<Record<string, unknown>> {
-  const res = await fetch(`${OMIE_BASE_URL}/${endpoint}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      call,
-      app_key: creds.app_key,
-      app_secret: creds.app_secret,
-      param: params,
-    }),
-  });
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const res = await fetch(`${OMIE_BASE_URL}/${endpoint}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        call,
+        app_key: creds.app_key,
+        app_secret: creds.app_secret,
+        param: params,
+      }),
+    });
 
-  if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`Omie HTTP ${res.status}: ${text.slice(0, 200)}`);
+
+    // Rate-limited: parse wait time from Omie and retry
+    if (
+      !res.ok &&
+      text.includes("Consumo redundante") &&
+      attempt < MAX_RETRIES
+    ) {
+      const waitSec = parseOmieWaitSeconds(text);
+      console.log(
+        `[sync-omie] Rate limited on ${call}, waiting ${waitSec}s (attempt ${attempt + 1}/${MAX_RETRIES})...`
+      );
+      await sleep(waitSec * 1000);
+      continue;
+    }
+
+    if (!res.ok) {
+      throw new Error(`Omie HTTP ${res.status}: ${text.slice(0, 200)}`);
+    }
+
+    let data: Record<string, unknown>;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error(`Omie invalid JSON: ${text.slice(0, 200)}`);
+    }
+
+    // faultstring can also be rate-limit — retry
+    if (data.faultstring) {
+      const fault = String(data.faultstring);
+      if (fault.includes("Consumo redundante") && attempt < MAX_RETRIES) {
+        const waitSec = parseOmieWaitSeconds(fault);
+        console.log(
+          `[sync-omie] Rate limited (fault) on ${call}, waiting ${waitSec}s (attempt ${attempt + 1}/${MAX_RETRIES})...`
+        );
+        await sleep(waitSec * 1000);
+        continue;
+      }
+      throw new Error(`Omie error: ${fault}`);
+    }
+
+    return data;
   }
 
-  const data = await res.json();
-
-  if (data.faultstring) {
-    throw new Error(`Omie error: ${data.faultstring}`);
-  }
-
-  return data;
+  throw new Error(`Omie: max retries exceeded for ${call}`);
 }
 
 // ── Date helper ──────────────────────────────────────────────────────────────
@@ -382,12 +429,12 @@ export async function POST() {
       app_secret: appSecret,
     };
 
-    // Run all syncs
-    const [catResult, cpResult, crResult] = await Promise.all([
-      syncCategories(supabase, tenantId, creds),
-      syncContasPagar(supabase, tenantId, creds, user.id),
-      syncContasReceber(supabase, tenantId, creds, user.id),
-    ]);
+    // Run syncs sequentially to avoid Omie rate-limiting ("Consumo redundante")
+    const catResult = await syncCategories(supabase, tenantId, creds);
+    await sleep(3000); // 3s pause between sync phases
+    const cpResult = await syncContasPagar(supabase, tenantId, creds, user.id);
+    await sleep(3000);
+    const crResult = await syncContasReceber(supabase, tenantId, creds, user.id);
 
     const totalInserted =
       catResult.inserted + cpResult.inserted + crResult.inserted;

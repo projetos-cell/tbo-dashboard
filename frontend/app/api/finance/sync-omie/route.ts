@@ -42,6 +42,28 @@ async function omieCall(
   return data;
 }
 
+// ── Date helper ──────────────────────────────────────────────────────────────
+// Omie returns dates as "DD/MM/YYYY" — PostgreSQL DATE columns need "YYYY-MM-DD"
+
+function parseOmieDate(raw: unknown): string | null {
+  if (!raw) return null;
+  const s = String(raw).trim();
+  if (!s) return null;
+
+  // Already ISO format? (YYYY-MM-DD)
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+
+  // DD/MM/YYYY
+  const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+
+  // Fallback: try native Date parse
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return d.toISOString().split("T")[0];
+
+  return null; // unparseable — let caller decide
+}
+
 // ── Sync categories from Omie ─────────────────────────────────────────────────
 
 async function syncCategories(
@@ -158,13 +180,9 @@ async function syncContasPagar(
             String(conta.observacao || conta.complemento || "Conta a pagar"),
           amount: Number(conta.valor_documento || 0),
           paid_amount: Number(conta.valor_pago || 0),
-          date: String(conta.data_emissao || conta.data_vencimento || new Date().toISOString().split("T")[0]),
-          due_date: conta.data_vencimento
-            ? String(conta.data_vencimento)
-            : null,
-          paid_date: conta.data_pagamento
-            ? String(conta.data_pagamento)
-            : null,
+          date: parseOmieDate(conta.data_emissao) || parseOmieDate(conta.data_vencimento) || new Date().toISOString().split("T")[0],
+          due_date: parseOmieDate(conta.data_vencimento),
+          paid_date: parseOmieDate(conta.data_pagamento),
           counterpart: conta.nome_fornecedor
             ? String(conta.nome_fornecedor)
             : null,
@@ -261,13 +279,9 @@ async function syncContasReceber(
             String(conta.observacao || conta.complemento || "Conta a receber"),
           amount: Number(conta.valor_documento || 0),
           paid_amount: Number(conta.valor_recebido || conta.valor_pago || 0),
-          date: String(conta.data_emissao || conta.data_vencimento || new Date().toISOString().split("T")[0]),
-          due_date: conta.data_vencimento
-            ? String(conta.data_vencimento)
-            : null,
-          paid_date: conta.data_recebimento || conta.data_pagamento
-            ? String(conta.data_recebimento || conta.data_pagamento)
-            : null,
+          date: parseOmieDate(conta.data_emissao) || parseOmieDate(conta.data_vencimento) || new Date().toISOString().split("T")[0],
+          due_date: parseOmieDate(conta.data_vencimento),
+          paid_date: parseOmieDate(conta.data_recebimento) || parseOmieDate(conta.data_pagamento),
           counterpart: conta.nome_cliente
             ? String(conta.nome_cliente)
             : null,

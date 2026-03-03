@@ -64,6 +64,13 @@ export function useFinanceTransactions(filters: FinanceFilters = {}) {
           qc.invalidateQueries({
             queryKey: ["finance-status", tenantId],
           });
+          // Keep founder KPIs and snapshots in sync
+          qc.invalidateQueries({
+            queryKey: ["finance-founder-kpis", tenantId],
+          });
+          qc.invalidateQueries({
+            queryKey: ["finance-snapshots", tenantId],
+          });
         }
       )
       .subscribe();
@@ -194,12 +201,13 @@ export function useTriggerFinanceSync() {
   return useMutation({
     mutationFn: triggerFinanceSync,
     onSuccess: () => {
-      // Invalidate everything finance-related
+      // Invalidate everything finance-related (including founder KPIs)
       qc.invalidateQueries({ queryKey: ["finance-transactions", tenantId] });
       qc.invalidateQueries({ queryKey: ["finance-categories", tenantId] });
       qc.invalidateQueries({ queryKey: ["finance-cost-centers", tenantId] });
       qc.invalidateQueries({ queryKey: ["finance-status", tenantId] });
       qc.invalidateQueries({ queryKey: ["finance-snapshots", tenantId] });
+      qc.invalidateQueries({ queryKey: ["finance-founder-kpis", tenantId] });
     },
   });
 }

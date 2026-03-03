@@ -104,6 +104,22 @@ export default function FinanceiroPage() {
   const [sortField, setSortField] = useState<string>("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [showFilters, setShowFilters] = useState(false);
+  const [activeTab, setActiveTab] = useState<"todas" | "pagar" | "receber">(
+    "todas"
+  );
+
+  const handleTabChange = useCallback(
+    (tab: "todas" | "pagar" | "receber") => {
+      setActiveTab(tab);
+      const typeMap: Record<string, FinanceFilters["type"] | undefined> = {
+        todas: undefined,
+        pagar: "despesa",
+        receber: "receita",
+      };
+      setFilters((prev) => ({ ...prev, type: typeMap[tab], page: 1 }));
+    },
+    []
+  );
 
   // Data hooks
   const { data: txData, isLoading: txLoading } = useFinanceTransactions(filters);
@@ -175,9 +191,14 @@ export default function FinanceiroPage() {
   );
 
   const clearFilters = useCallback(() => {
-    setFilters({ page: 1, pageSize: 25 });
+    const typeMap: Record<string, FinanceFilters["type"] | undefined> = {
+      todas: undefined,
+      pagar: "despesa",
+      receber: "receita",
+    };
+    setFilters({ page: 1, pageSize: 25, type: typeMap[activeTab] });
     setSearchInput("");
-  }, []);
+  }, [activeTab]);
 
   const handleSort = useCallback(
     (field: string) => {
@@ -196,7 +217,7 @@ export default function FinanceiroPage() {
   }, []);
 
   const activeFilterCount = [
-    filters.type,
+    activeTab === "todas" ? filters.type : undefined,
     filters.status,
     filters.category_id,
     filters.dateFrom,
@@ -291,6 +312,27 @@ export default function FinanceiroPage() {
         </div>
       )}
 
+      {/* Tab bar */}
+      <div className="flex gap-1 border-b border-border">
+        {([
+          { key: "todas", label: "Todas" },
+          { key: "pagar", label: "Contas a Pagar" },
+          { key: "receber", label: "Contas a Receber" },
+        ] as const).map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => handleTabChange(tab.key)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              activeTab === tab.key
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {/* Search + Filter bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1 max-w-md">
@@ -341,27 +383,29 @@ export default function FinanceiroPage() {
       {showFilters && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4
                         rounded-md border border-border bg-muted/30">
-          <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Tipo
-            </label>
-            <select
-              value={filters.type ?? ""}
-              onChange={(e) =>
-                handleFilterChange(
-                  "type",
-                  e.target.value as FinanceFilters["type"]
-                )
-              }
-              className="w-full px-3 py-2 rounded-md border border-border bg-background
-                         text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="">Todos</option>
-              <option value="receita">Receita</option>
-              <option value="despesa">Despesa</option>
-              <option value="transferencia">Transferência</option>
-            </select>
-          </div>
+          {activeTab === "todas" && (
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
+                Tipo
+              </label>
+              <select
+                value={filters.type ?? ""}
+                onChange={(e) =>
+                  handleFilterChange(
+                    "type",
+                    e.target.value as FinanceFilters["type"]
+                  )
+                }
+                className="w-full px-3 py-2 rounded-md border border-border bg-background
+                           text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">Todos</option>
+                <option value="receita">Receita</option>
+                <option value="despesa">Despesa</option>
+                <option value="transferencia">Transferência</option>
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">

@@ -50,8 +50,8 @@ CREATE TABLE IF NOT EXISTS finance_categories (
   updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_finance_categories_omie
-  ON finance_categories(tenant_id, omie_id) WHERE omie_id IS NOT NULL;
+ALTER TABLE finance_categories
+  ADD CONSTRAINT uq_finance_categories_tenant_omie UNIQUE (tenant_id, omie_id);
 
 CREATE INDEX IF NOT EXISTS idx_finance_categories_tenant
   ON finance_categories(tenant_id, is_active);
@@ -59,7 +59,7 @@ CREATE INDEX IF NOT EXISTS idx_finance_categories_tenant
 -- Trigger updated_at
 CREATE OR REPLACE TRIGGER trg_finance_categories_updated
   BEFORE UPDATE ON finance_categories
-  FOR EACH ROW EXECUTE FUNCTION moddatetime(updated_at);
+  FOR EACH ROW EXECUTE FUNCTION extensions.moddatetime(updated_at);
 
 -- RLS
 ALTER TABLE finance_categories ENABLE ROW LEVEL SECURITY;
@@ -92,8 +92,8 @@ CREATE TABLE IF NOT EXISTS finance_cost_centers (
   updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_finance_cost_centers_omie
-  ON finance_cost_centers(tenant_id, omie_id) WHERE omie_id IS NOT NULL;
+ALTER TABLE finance_cost_centers
+  ADD CONSTRAINT uq_finance_cost_centers_tenant_omie UNIQUE (tenant_id, omie_id);
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_finance_cost_centers_code
   ON finance_cost_centers(tenant_id, code);
@@ -103,7 +103,7 @@ CREATE INDEX IF NOT EXISTS idx_finance_cost_centers_tenant
 
 CREATE OR REPLACE TRIGGER trg_finance_cost_centers_updated
   BEFORE UPDATE ON finance_cost_centers
-  FOR EACH ROW EXECUTE FUNCTION moddatetime(updated_at);
+  FOR EACH ROW EXECUTE FUNCTION extensions.moddatetime(updated_at);
 
 -- RLS
 ALTER TABLE finance_cost_centers ENABLE ROW LEVEL SECURITY;
@@ -175,8 +175,8 @@ CREATE TABLE IF NOT EXISTS finance_transactions (
 );
 
 -- Indexes
-CREATE UNIQUE INDEX IF NOT EXISTS idx_finance_transactions_omie
-  ON finance_transactions(tenant_id, omie_id) WHERE omie_id IS NOT NULL;
+ALTER TABLE finance_transactions
+  ADD CONSTRAINT uq_finance_transactions_tenant_omie UNIQUE (tenant_id, omie_id);
 
 CREATE INDEX IF NOT EXISTS idx_finance_transactions_tenant
   ON finance_transactions(tenant_id, date DESC);
@@ -196,7 +196,7 @@ CREATE INDEX IF NOT EXISTS idx_finance_transactions_project
 
 CREATE OR REPLACE TRIGGER trg_finance_transactions_updated
   BEFORE UPDATE ON finance_transactions
-  FOR EACH ROW EXECUTE FUNCTION moddatetime(updated_at);
+  FOR EACH ROW EXECUTE FUNCTION extensions.moddatetime(updated_at);
 
 -- RLS
 ALTER TABLE finance_transactions ENABLE ROW LEVEL SECURITY;

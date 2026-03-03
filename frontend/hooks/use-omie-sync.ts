@@ -1,54 +1,42 @@
 "use client";
 
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   getOmieSyncLogs,
-  cleanupStaleSyncs,
-  getLastSuccessfulSync,
-  triggerSync,
+  triggerOmieSync,
   testOmieConnection,
+  type OmieSyncLog,
 } from "@/services/omie-sync";
 
-// ── helpers ──────────────────────────────────────────────────
-
-function useSupabase() {
-  return createClient();
-}
-
-function useTenantId() {
-  return useAuthStore((s) => s.tenantId);
-}
-
-// ── Sync Logs (with Realtime subscription) ───────────────────
+// ── Query: Recent sync logs ──────────────────────────────────────────────────
 
 export function useOmieSyncLogs() {
-  const supabase = useSupabase();
-  const tenantId = useTenantId();
+  const tenantId = useAuthStore((s) => s.tenantId);
   const qc = useQueryClient();
 
-  // Cleanup stale syncs on mount — if any were cleaned, refetch immediately
-  useEffect(() => {
-    if (!tenantId) return;
-    cleanupStaleSyncs(supabase, tenantId)
-      .then((cleaned) => {
-        if (cleaned > 0) {
-          qc.invalidateQueries({ queryKey: ["omie-sync-logs", tenantId] });
-          qc.invalidateQueries({ queryKey: ["omie-last-sync", tenantId] });
-        }
-      })
-      .catch(() => {
-        /* ignore cleanup errors */
-      });
-  }, [supabase, tenantId, qc]);
+  // Standard React Query fetch
+  const query = useQuery<OmieSyncLog[]>({
+    queryKey: ["omie-sync-logs", tenantId],
+    queryFn: async () => {
+      if (!tenantId) return [];
+      const supabase = createClient();
+      return getOmieSyncLogs(supabase, tenantId);
+    },
+    enabled: !!tenantId,
+    staleTime: 1000 * 30, // 30s — syncs change frequently
+    refetchInterval: 1000 * 60, // Poll every 60s as fallback
+  });
 
-  // Realtime subscription replaces 30s polling
+  // Realtime subscription on omie_sync_log
   useEffect(() => {
     if (!tenantId) return;
+
+    const supabase = createClient();
     const channel = supabase
-      .channel(`sync-log:${tenantId}`)
+      .channel(`omie-sync-realtime:${tenantId}`)
       .on(
         "postgres_changes",
         {
@@ -59,7 +47,6 @@ export function useOmieSyncLogs() {
         },
         () => {
           qc.invalidateQueries({ queryKey: ["omie-sync-logs", tenantId] });
-          qc.invalidateQueries({ queryKey: ["omie-last-sync", tenantId] });
         }
       )
       .subscribe();
@@ -67,67 +54,29 @@ export function useOmieSyncLogs() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase, tenantId, qc]);
+  }, [tenantId, qc]);
 
-  return useQuery({
-    queryKey: ["omie-sync-logs", tenantId],
-    queryFn: () => getOmieSyncLogs(supabase, tenantId!),
-    staleTime: 1000 * 60 * 5,
-    enabled: !!tenantId,
-    // Fallback polling at 60s in case Realtime disconnects
-    refetchInterval: 60_000,
-  });
+  return query;
 }
 
-// ── Last Successful Sync ────────────────────────────────────
+// ── Mutation: Trigger sync ───────────────────────────────────────────────────
 
-export function useLastSuccessfulSync() {
-  const supabase = useSupabase();
-  const tenantId = useTenantId();
-
-  return useQuery({
-    queryKey: ["omie-last-sync", tenantId],
-    queryFn: () => getLastSuccessfulSync(supabase, tenantId!),
-    staleTime: 1000 * 60 * 5,
-    enabled: !!tenantId,
-  });
-}
-
-// ── Trigger Sync ─────────────────────────────────────────────
-
-export function useTriggerSync() {
+export function useTriggerOmieSync() {
   const qc = useQueryClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
 
   return useMutation({
-    mutationFn: triggerSync,
+    mutationFn: triggerOmieSync,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["omie-sync-logs"] });
-      qc.invalidateQueries({ queryKey: ["omie-last-sync"] });
-      // Invalidate financial data queries so tables refresh
-      qc.invalidateQueries({ queryKey: ["fin-payables"] });
-      qc.invalidateQueries({ queryKey: ["fin-receivables"] });
-      qc.invalidateQueries({ queryKey: ["fin-vendors"] });
-      qc.invalidateQueries({ queryKey: ["fin-clients"] });
-      qc.invalidateQueries({ queryKey: ["fin-categories"] });
-      qc.invalidateQueries({ queryKey: ["fin-cost-centers"] });
+      qc.invalidateQueries({ queryKey: ["omie-sync-logs", tenantId] });
     },
   });
 }
 
-// ── Test Connection ──────────────────────────────────────────
+// ── Mutation: Test connection ────────────────────────────────────────────────
 
 export function useTestOmieConnection() {
   return useMutation({
     mutationFn: testOmieConnection,
   });
-}
-
-// ── Invalidate sync logs ────────────────────────────────────
-
-export function useInvalidateSyncLogs() {
-  const qc = useQueryClient();
-  return useCallback(
-    () => qc.invalidateQueries({ queryKey: ["omie-sync-logs"] }),
-    [qc]
-  );
 }

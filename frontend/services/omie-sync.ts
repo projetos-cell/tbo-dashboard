@@ -1,124 +1,93 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
 
-// ── Types ────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────────
 
 export interface OmieSyncLog {
   id: string;
   tenant_id: string;
   started_at: string;
   finished_at: string | null;
-  status: string;
+  status: "running" | "success" | "partial" | "error";
   vendors_synced: number;
   clients_synced: number;
   payables_synced: number;
   receivables_synced: number;
-  errors: unknown[];
+  categories_synced: number;
+  bank_accounts_synced: number;
+  duration_ms: number | null;
+  trigger_source: "manual" | "cron" | "webhook";
+  errors: { entity: string; message: string }[];
   triggered_by: string | null;
 }
 
 export interface OmieSyncResult {
-  vendors_synced: number;
-  clients_synced: number;
-  payables_synced: number;
-  receivables_synced: number;
-  total: number;
-  errors: number;
-  duration_ms: number;
-  status: string;
+  message: string;
+  results?: Record<string, unknown>;
+  duration_ms?: number;
+  error?: string;
 }
-
-// ── Test connection via API route ────────────────────────────
 
 export interface OmieTestResult {
   ok: boolean;
+  message?: string;
   total?: number;
   error?: string;
 }
 
+// ── API calls ────────────────────────────────────────────────────────────────
+
+/** Trigger a manual Omie sync */
+export async function triggerOmieSync(): Promise<OmieSyncResult> {
+  const res = await fetch("/api/omie-sync", { method: "POST" });
+  return res.json();
+}
+
+/** Test Omie API connection */
 export async function testOmieConnection(): Promise<OmieTestResult> {
   const res = await fetch("/api/omie-sync/test");
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || "Falha ao testar conexao");
-  }
-  return data as OmieTestResult;
+  return res.json();
 }
 
-// ── Trigger sync via API route ───────────────────────────────
+// ── Supabase queries ─────────────────────────────────────────────────────────
 
-export async function triggerSync(): Promise<OmieSyncResult> {
-  const res = await fetch("/api/omie-sync", { method: "POST" });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || data.message || "Erro ao sincronizar");
-  }
-  return data as OmieSyncResult;
-}
-
-// ── Queries ──────────────────────────────────────────────────
-
+/** Get recent Omie sync logs (last 20) */
 export async function getOmieSyncLogs(
   supabase: SupabaseClient<Database>,
   tenantId: string
 ): Promise<OmieSyncLog[]> {
-  const { data, error } = await supabase
-    .from("omie_sync_log" as never)
+  const { data, error } = await (supabase as any)
+    .from("omie_sync_log")
     .select("*")
-    .eq("tenant_id" as never, tenantId as never)
-    .order("started_at" as never, { ascending: false })
+    .eq("tenant_id", tenantId)
+    .order("started_at", { ascending: false })
     .limit(20);
+
   if (error) throw error;
-  return (data ?? []) as unknown as OmieSyncLog[];
+  return (data ?? []) as OmieSyncLog[];
 }
 
-// ── Stale sync helpers ──────────────────────────────────────
-
-/** Threshold after which a "running" sync is considered stale (5 min) */
-export const STALE_SYNC_MINUTES = 5;
-
-/** Returns true if a "running" log entry is stale (older than threshold) */
-export function isStaleSyncLog(log: OmieSyncLog): boolean {
-  if (log.status !== "running") return false;
-  const elapsed = Date.now() - new Date(log.started_at).getTime();
-  return elapsed > STALE_SYNC_MINUTES * 60 * 1000;
-}
-
-// Marks syncs stuck in "running" for more than 5 min as "error"
-export async function cleanupStaleSyncs(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
-): Promise<number> {
-  const { data } = await supabase
-    .from("omie_sync_log" as never)
-    .update({
-      status: "error",
-      finished_at: new Date().toISOString(),
-      errors: [{ entity: "sync", message: "Sync travado — timeout excedido" }],
-    } as never)
-    .eq("tenant_id" as never, tenantId as never)
-    .eq("status" as never, "running" as never)
-    .lt(
-      "started_at" as never,
-      new Date(Date.now() - STALE_SYNC_MINUTES * 60 * 1000).toISOString() as never
-    )
-    .select("id" as never);
-  return (data as unknown[] | null)?.length ?? 0;
-}
-
-// ── Last successful sync info ───────────────────────────────
-
-export async function getLastSuccessfulSync(
+/** Get the latest Omie sync log */
+export async function getLatestOmieSync(
   supabase: SupabaseClient<Database>,
   tenantId: string
 ): Promise<OmieSyncLog | null> {
-  const { data } = await supabase
-    .from("omie_sync_log" as never)
+  const { data, error } = await (supabase as any)
+    .from("omie_sync_log")
     .select("*")
-    .eq("tenant_id" as never, tenantId as never)
-    .in("status" as never, ["success", "partial"] as never)
-    .order("started_at" as never, { ascending: false })
+    .eq("tenant_id", tenantId)
+    .order("started_at", { ascending: false })
     .limit(1)
-    .single();
-  return (data as unknown as OmieSyncLog) ?? null;
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as OmieSyncLog | null;
+}
+
+/** Check if a sync log is stale (running for more than 5 minutes) */
+export function isStaleSyncLog(log: OmieSyncLog | null): boolean {
+  if (!log || log.status !== "running") return false;
+  const threshold = 5 * 60 * 1000; // 5 minutes
+  const elapsed = Date.now() - new Date(log.started_at).getTime();
+  return elapsed > threshold;
 }

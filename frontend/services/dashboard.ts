@@ -27,15 +27,6 @@ export interface DashboardKPIs {
 
 /* ---------- Founder dashboard extended data ---------- */
 
-export interface FinancialEntry {
-  id: string;
-  date: string;
-  type: "receita" | "despesa";
-  category: string | null;
-  amount: number;
-  description: string | null;
-}
-
 export interface OkrSnapshot {
   objectiveId: string;
   objectiveTitle: string;
@@ -55,7 +46,6 @@ export interface AlertItem {
 }
 
 export interface FounderDashboardData extends DashboardData {
-  financial: FinancialEntry[];
   okrSnapshots: OkrSnapshot[];
   alerts: AlertItem[];
   deals: DealRow[];
@@ -102,12 +92,6 @@ export async function getFounderDashboardData(
 ): Promise<FounderDashboardData> {
   const baseData = await getDashboardData(supabase, tenantId);
 
-  // Fetch financial data from fin_payables + fin_receivables (last 90 days)
-  // These tables are the source of truth, synced from OMIE via omie-sync
-  const ninetyDaysAgo = new Date();
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-  const cutoff = ninetyDaysAgo.toISOString().split("T")[0];
-
   // Fetch CRM deals for the pipeline widget
   const dealsRes = await supabase
     .from("crm_deals")
@@ -115,64 +99,6 @@ export async function getFounderDashboardData(
     .eq("tenant_id", tenantId)
     .order("updated_at", { ascending: false, nullsFirst: false });
   const deals = (dealsRes.data ?? []) as DealRow[];
-
-  const [payablesRes, receivablesRes] = await Promise.all([
-    supabase
-      .from("fin_payables")
-      .select("id, due_date, amount, description, status")
-      .eq("tenant_id", tenantId)
-      .neq("status", "cancelado")
-      .gte("due_date", cutoff)
-      .order("due_date", { ascending: false }),
-    supabase
-      .from("fin_receivables")
-      .select("id, due_date, amount, description, status")
-      .eq("tenant_id", tenantId)
-      .neq("status", "cancelado")
-      .gte("due_date", cutoff)
-      .order("due_date", { ascending: false }),
-  ]);
-
-  // Map payables (despesas) + receivables (receitas) → FinancialEntry[]
-  const financial: FinancialEntry[] = [];
-
-  if (payablesRes.data) {
-    for (const p of payablesRes.data as Array<{
-      id: string;
-      due_date: string;
-      amount: number;
-      description: string | null;
-      status: string | null;
-    }>) {
-      financial.push({
-        id: p.id,
-        date: p.due_date,
-        type: "despesa",
-        category: null,
-        amount: Math.abs(p.amount),
-        description: p.description ?? null,
-      });
-    }
-  }
-
-  if (receivablesRes.data) {
-    for (const r of receivablesRes.data as Array<{
-      id: string;
-      due_date: string;
-      amount: number;
-      description: string | null;
-      status: string | null;
-    }>) {
-      financial.push({
-        id: r.id,
-        date: r.due_date,
-        type: "receita",
-        category: null,
-        amount: Math.abs(r.amount),
-        description: r.description ?? null,
-      });
-    }
-  }
 
   // Fetch OKR objectives + key results for active cycle
   const cycleRes = await supabase
@@ -301,7 +227,6 @@ export async function getFounderDashboardData(
 
   return {
     ...baseData,
-    financial,
     okrSnapshots,
     deals,
     alerts: alerts.sort((a, b) =>

@@ -1,36 +1,86 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getOmieCredentials, testConnection } from "@/lib/omie-client";
 
-// GET /api/omie-sync/test — lightweight connection test
+const OMIE_BASE_URL = "https://app.omie.com.br/api/v1";
+
+/**
+ * GET /api/omie-sync/test — Test Omie connection
+ * Validates credentials by calling ListarCategorias with page size 1
+ */
 export async function GET() {
-  // ── Auth ──
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
-  }
-
-  // ── Credentials ──
-  const creds = getOmieCredentials();
-  if (!creds) {
-    return NextResponse.json(
-      { ok: false, error: "Credenciais Omie nao configuradas (OMIE_APP_KEY / OMIE_APP_SECRET)" },
-      { status: 400 }
-    );
-  }
-
   try {
-    const result = await testConnection(creds);
-    return NextResponse.json({ ok: true, total: result.total });
-  } catch (e) {
-    return NextResponse.json(
-      { ok: false, error: e instanceof Error ? e.message : "Falha ao conectar com Omie" },
-      { status: 502 }
-    );
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile?.tenant_id) {
+      return NextResponse.json({ error: "No tenant" }, { status: 400 });
+    }
+
+    // Fetch Omie credentials from integration_configs
+    const { data: config } = await (supabase as any)
+      .from("integration_configs")
+      .select("settings")
+      .eq("tenant_id", profile.tenant_id)
+      .eq("provider", "omie")
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (!config?.settings?.app_key || !config?.settings?.app_secret) {
+      return NextResponse.json(
+        { ok: false, error: "Credenciais Omie nao configuradas" },
+        { status: 400 }
+      );
+    }
+
+    // Quick Omie API call to validate connection
+    const res = await fetch(`${OMIE_BASE_URL}/geral/categorias/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        call: "ListarCategorias",
+        app_key: config.settings.app_key,
+        app_secret: config.settings.app_secret,
+        param: [{ pagina: 1, registros_por_pagina: 1 }],
+      }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      return NextResponse.json(
+        { ok: false, error: `Omie retornou HTTP ${res.status}`, detail: text.slice(0, 200) },
+        { status: 502 }
+      );
+    }
+
+    const data = await res.json();
+
+    // Check for Omie error response
+    if (data.faultstring) {
+      return NextResponse.json(
+        { ok: false, error: data.faultstring },
+        { status: 400 }
+      );
+    }
+
+    const total = data.total_de_registros || data.nTotRegistros || 0;
+
+    return NextResponse.json({
+      ok: true,
+      message: `Conexao OK — ${total} categorias encontradas`,
+      total,
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Internal error";
+    console.error("[omie-sync/test] Error:", message);
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

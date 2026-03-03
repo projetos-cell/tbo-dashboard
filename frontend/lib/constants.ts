@@ -83,50 +83,6 @@ export const PEOPLE_STATUS = {
 
 export type PeopleStatusKey = keyof typeof PEOPLE_STATUS;
 
-// Financial — Payable status configuration
-export const PAYABLE_STATUS = {
-  rascunho: { label: "Rascunho", color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
-  aguardando_aprovacao: { label: "Aguardando", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
-  aprovado: { label: "Aprovado", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
-  aberto: { label: "Aberto", color: "#ca8a04", bg: "rgba(202,138,4,0.12)" },
-  parcial: { label: "Parcial", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
-  pago: { label: "Pago", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
-  atrasado: { label: "Atrasado", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
-  cancelado: { label: "Cancelado", color: "#9ca3af", bg: "rgba(156,163,175,0.12)" },
-} as const;
-
-export type PayableStatusKey = keyof typeof PAYABLE_STATUS;
-
-// Financial — Receivable status configuration
-export const RECEIVABLE_STATUS = {
-  previsto: { label: "Previsto", color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
-  emitido: { label: "Emitido", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
-  aberto: { label: "Aberto", color: "#ca8a04", bg: "rgba(202,138,4,0.12)" },
-  parcial: { label: "Parcial", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
-  pago: { label: "Pago", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
-  atrasado: { label: "Atrasado", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
-  cancelado: { label: "Cancelado", color: "#9ca3af", bg: "rgba(156,163,175,0.12)" },
-} as const;
-
-export type ReceivableStatusKey = keyof typeof RECEIVABLE_STATUS;
-
-// Financial tabs
-export const FIN_TABS = [
-  { id: "dashboard", label: "Dashboard" },
-  { id: "pagar", label: "A Pagar" },
-  { id: "receber", label: "A Receber" },
-  { id: "caixa", label: "Caixa" },
-  { id: "estrategico", label: "Estratégico" },
-  { id: "clientes", label: "Clientes" },
-  { id: "simulacoes", label: "Simulações" },
-  { id: "inbox", label: "Inbox" },
-  { id: "conciliacao", label: "Conciliação" },
-  { id: "cadastros", label: "Cadastros" },
-  { id: "omie", label: "Omie" },
-] as const;
-
-export type FinTabId = (typeof FIN_TABS)[number]["id"];
-
 // Client status configuration
 export const CLIENT_STATUS = {
   lead: { label: "Lead", color: "#8b5cf6", bg: "rgba(139,92,246,0.12)" },
@@ -425,15 +381,8 @@ export const PESSOAS_NAV_ITEMS: readonly SubNavItem[] = [
 ] as const;
 
 export const FINANCEIRO_NAV_ITEMS: readonly SubNavItem[] = [
-  { href: "/financeiro", label: "Visão Geral", icon: "layout-dashboard" },
-  { href: "/financeiro/contas-a-pagar", label: "Contas a Pagar", icon: "arrow-up-circle" },
-  { href: "/financeiro/contas-a-receber", label: "Contas a Receber", icon: "arrow-down-circle" },
-  { href: "/financeiro/fluxo-de-caixa", label: "Fluxo de Caixa", icon: "trending-up" },
-  { href: "/financeiro/centro-de-custos", label: "Centro de Custos", icon: "pie-chart" },
-  { href: "/financeiro/importacoes", label: "Importações", icon: "upload" },
-  { href: "/financeiro/integracoes", label: "Integrações", icon: "plug" },
-  { href: "/financeiro/relatorios", label: "Relatórios", icon: "bar-chart-3" },
-  { href: "/financeiro/configuracoes", label: "Configurações", icon: "settings" },
+  { href: "/financeiro", label: "Transações", icon: "list" },
+  { href: "/financeiro/founder", label: "Estratégico", icon: "bar-chart-3", min_role: "diretoria" },
 ] as const;
 
 export const COMERCIAL_NAV_ITEMS: readonly SubNavItem[] = [

@@ -13,7 +13,6 @@
  * 8. src/infra/supabase/queries/crm.js       (CrmRepo)
  * 9. src/infra/supabase/queries/audit.js     (AuditRepo)
  * 10. src/infra/integrations/rdstation/index.js
- * 11. src/infra/integrations/omie/index.js
  * 12. src/infra/integrations/fireflies/index.js
  * 13. src/infra/integrations/google-calendar/index.js
  */

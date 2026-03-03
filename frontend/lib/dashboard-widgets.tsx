@@ -1,6 +1,4 @@
 import type { ComponentType } from "react";
-import dynamic from "next/dynamic";
-
 // ── Widget component imports ────────────────────────────────────
 import { ProjectsOverview } from "@/components/dashboard/projects-overview";
 import { TasksOverview } from "@/components/dashboard/tasks-overview";
@@ -11,18 +9,6 @@ import { OkrSnapshotCard } from "@/components/dashboard/founder/okr-snapshot";
 import { AlertsPanel } from "@/components/dashboard/founder/alerts-panel";
 import { QuickActions } from "@/components/dashboard/general/quick-actions";
 import { AgendaSummary } from "@/components/dashboard/general/agenda-summary";
-
-// Heavy component — lazy loaded (recharts)
-const FinancialOverview = dynamic(
-  () =>
-    import("@/components/dashboard/founder/financial-overview").then((m) => ({
-      default: m.FinancialOverview,
-    })),
-  {
-    ssr: false,
-    loading: () => <div className="h-64 animate-pulse rounded-lg bg-muted" />,
-  }
-);
 
 // ── Types ───────────────────────────────────────────────────────
 
@@ -51,14 +37,6 @@ export interface WidgetDef {
 // ── Founder widgets ─────────────────────────────────────────────
 
 export const FOUNDER_WIDGETS: WidgetDef[] = [
-  {
-    id: "financial-overview",
-    label: "Visão Financeira",
-    component: FinancialOverview,
-    propsKey: "financial",
-    propName: "entries",
-    founderOnly: true,
-  },
   {
     id: "pipeline-overview",
     label: "Pipeline Comercial",

@@ -3,7 +3,7 @@ import type { Database } from "@/lib/supabase/types";
 
 type SyncLogRow = Database["public"]["Tables"]["sync_logs"]["Row"];
 type FirefliesSyncRow = Database["public"]["Tables"]["fireflies_sync_log"]["Row"];
-type OmieSyncRow = Database["public"]["Tables"]["omie_sync_log"]["Row"];
+
 type ReporteiSyncRow = Database["public"]["Tables"]["reportei_sync_runs"]["Row"];
 type IntegrationConfigRow = Database["public"]["Tables"]["integration_configs"]["Row"];
 
@@ -92,8 +92,8 @@ export async function getLatestFirefliesSync(
 export async function getLatestOmieSync(
   supabase: SupabaseClient<Database>,
   tenantId: string
-): Promise<OmieSyncRow | null> {
-  const { data, error } = await supabase
+) {
+  const { data, error } = await (supabase as any)
     .from("omie_sync_log")
     .select("*")
     .eq("tenant_id", tenantId)
@@ -127,13 +127,13 @@ export async function getSystemHealthSummary(
   supabase: SupabaseClient<Database>,
   tenantId: string
 ) {
-  const [configs, errors, fireflies, omie, reportei, recentLogs] =
+  const [configs, errors, fireflies, reportei, omie, recentLogs] =
     await Promise.all([
       getIntegrationConfigs(supabase, tenantId),
       getRecentSyncErrors(supabase, tenantId),
       getLatestFirefliesSync(supabase, tenantId),
-      getLatestOmieSync(supabase, tenantId),
       getLatestReporteiSync(supabase, tenantId),
+      getLatestOmieSync(supabase, tenantId),
       getRecentSyncLogs(supabase, tenantId),
     ]);
 
@@ -153,8 +153,8 @@ export async function getSystemHealthSummary(
     integrations,
     errors,
     fireflies,
-    omie,
     reportei,
+    omie,
     totalSyncs,
     errorCount,
     successRate: totalSyncs > 0 ? Math.round((successCount / totalSyncs) * 100) : 100,

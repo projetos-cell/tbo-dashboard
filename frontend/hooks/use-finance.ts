@@ -182,6 +182,8 @@ export function useFounderKPIs() {
           saldoAcumulado: 0,
           costCenterRanking: [],
           categoryRanking: [],
+          buRevenue: [],
+          projectRanking: [],
         };
       const supabase = createClient();
       return getFounderKPIs(supabase, tenantId);

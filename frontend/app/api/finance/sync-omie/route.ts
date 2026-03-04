@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+// Allow up to 5 minutes for full historical sync on Vercel
+export const maxDuration = 300;
+
 const OMIE_BASE_URL = "https://app.omie.com.br/api/v1";
 const PAGE_SIZE = 500;
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 5;
+const INTER_PAGE_DELAY_MS = 2000; // 2s between pages to avoid rate-limiting
+const INTER_PHASE_DELAY_MS = 4000; // 4s between sync phases
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -127,6 +132,8 @@ async function syncCategories(
     let hasMore = true;
 
     while (hasMore) {
+      console.log(`[sync-omie] Categorias — page ${page}...`);
+
       const data = await omieCall(creds, "geral/categorias/", "ListarCategorias", [
         { pagina: page, registros_por_pagina: PAGE_SIZE },
       ]);
@@ -136,6 +143,8 @@ async function syncCategories(
         descricao: string;
         id_tipo_lancamento?: string;
       }>;
+
+      console.log(`[sync-omie] Categorias — page ${page}: ${categorias.length} records`);
 
       for (const cat of categorias) {
         // Omie type mapping: R = receita, D = despesa
@@ -158,7 +167,6 @@ async function syncCategories(
         if (error) {
           errors.push(`Categoria ${cat.codigo}: ${error.message}`);
         } else {
-          // upsert doesn't tell us insert vs update, count as inserted
           inserted++;
         }
       }
@@ -168,6 +176,8 @@ async function syncCategories(
       );
       hasMore = page < totalPages;
       page++;
+
+      if (hasMore) await sleep(INTER_PAGE_DELAY_MS);
     }
   } catch (err) {
     errors.push(
@@ -175,16 +185,16 @@ async function syncCategories(
     );
   }
 
+  console.log(`[sync-omie] Categorias done: ${inserted} upserted, ${errors.length} errors`);
   return { inserted, updated, errors };
 }
 
-// ── Sync contas a pagar from Omie ─────────────────────────────────────────────
+// ── Sync cost centers (departamentos) from Omie ──────────────────────────────
 
-async function syncContasPagar(
+async function syncCostCenters(
   supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never,
   tenantId: string,
-  creds: OmieCredentials,
-  userId: string
+  creds: OmieCredentials
 ): Promise<{ inserted: number; updated: number; errors: string[] }> {
   let inserted = 0;
   let updated = 0;
@@ -195,6 +205,234 @@ async function syncContasPagar(
     let hasMore = true;
 
     while (hasMore) {
+      console.log(`[sync-omie] Departamentos (Cost Centers) — page ${page}...`);
+
+      const data = await omieCall(creds, "geral/departamentos/", "ListarDepartamentos", [
+        { pagina: page, registros_por_pagina: PAGE_SIZE },
+      ]);
+
+      const departamentos = (data.departamentos || []) as Array<{
+        codigo: string;
+        descricao: string;
+        inativo?: string;
+      }>;
+
+      console.log(`[sync-omie] Departamentos — page ${page}: ${departamentos.length} records`);
+
+      for (const dep of departamentos) {
+        const omieId = String(dep.codigo || "");
+        if (!omieId) continue;
+
+        const isActive = dep.inativo !== "S";
+
+        const { error } = await (supabase as any)
+          .from("finance_cost_centers")
+          .upsert(
+            {
+              tenant_id: tenantId,
+              code: omieId,
+              name: dep.descricao || `Departamento ${omieId}`,
+              omie_id: omieId,
+              is_active: isActive,
+            } as never,
+            { onConflict: "tenant_id,omie_id" }
+          );
+
+        if (error) {
+          errors.push(`Departamento ${omieId}: ${error.message}`);
+        } else {
+          inserted++;
+        }
+      }
+
+      const totalPages = Math.ceil(
+        ((data.total_de_registros as number) || 0) / PAGE_SIZE
+      );
+      hasMore = page < totalPages;
+      page++;
+
+      if (hasMore) await sleep(INTER_PAGE_DELAY_MS);
+    }
+  } catch (err) {
+    errors.push(
+      `Departamentos: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+
+  console.log(`[sync-omie] Departamentos done: ${inserted} upserted, ${errors.length} errors`);
+  return { inserted, updated, errors };
+}
+
+// ── Category & Cost Center lookup maps ───────────────────────────────────────
+
+type LookupMap = Map<string, string>; // omie_id → our UUID
+
+async function buildCategoryLookup(
+  supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never,
+  tenantId: string
+): Promise<LookupMap> {
+  const { data } = await (supabase as any)
+    .from("finance_categories")
+    .select("id, omie_id")
+    .eq("tenant_id", tenantId)
+    .not("omie_id", "is", null);
+
+  const map = new Map<string, string>();
+  for (const row of (data ?? []) as Array<{ id: string; omie_id: string }>) {
+    map.set(String(row.omie_id), row.id);
+  }
+  return map;
+}
+
+async function buildCostCenterLookup(
+  supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never,
+  tenantId: string
+): Promise<LookupMap> {
+  const { data } = await (supabase as any)
+    .from("finance_cost_centers")
+    .select("id, omie_id")
+    .eq("tenant_id", tenantId)
+    .not("omie_id", "is", null);
+
+  const map = new Map<string, string>();
+  for (const row of (data ?? []) as Array<{ id: string; omie_id: string }>) {
+    map.set(String(row.omie_id), row.id);
+  }
+  return map;
+}
+
+// ── Cost center name lookup (omie_id → name) for BU derivation ──────────────
+
+type CostCenterNameMap = Map<string, string>; // omie_id → name
+
+async function buildCostCenterNameLookup(
+  supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never,
+  tenantId: string
+): Promise<CostCenterNameMap> {
+  const { data } = await (supabase as any)
+    .from("finance_cost_centers")
+    .select("omie_id, name")
+    .eq("tenant_id", tenantId)
+    .not("omie_id", "is", null);
+
+  const map = new Map<string, string>();
+  for (const row of (data ?? []) as Array<{ omie_id: string; name: string }>) {
+    map.set(String(row.omie_id), row.name);
+  }
+  return map;
+}
+
+// ── Derive business_unit from cost center name ──────────────────────────────
+
+const BU_NAME_PATTERNS: Array<{ pattern: RegExp; bu: string }> = [
+  { pattern: /branding/i, bu: "Branding" },
+  { pattern: /digital\s*3d|3d/i, bu: "Digital 3D" },
+  { pattern: /marketing/i, bu: "Marketing" },
+  { pattern: /audiovisual|audio\s*visual/i, bu: "Audiovisual" },
+  { pattern: /interi?ores/i, bu: "Interiores" },
+];
+
+function deriveBUFromCostCenter(
+  conta: Record<string, unknown>,
+  ccNameLookup: CostCenterNameMap
+): string | null {
+  // Extract the departamento code (same logic as resolveCostCenterId)
+  let depCode: string | undefined;
+
+  const departamentos = conta.departamentos as
+    | Array<{ codigo_departamento?: string }>
+    | undefined;
+  if (departamentos?.length) {
+    depCode = departamentos[0]?.codigo_departamento
+      ? String(departamentos[0].codigo_departamento)
+      : undefined;
+  }
+  if (!depCode) {
+    depCode = conta.codigo_departamento
+      ? String(conta.codigo_departamento)
+      : undefined;
+  }
+
+  if (!depCode) return null;
+
+  const ccName = ccNameLookup.get(depCode);
+  if (!ccName) return null;
+
+  for (const { pattern, bu } of BU_NAME_PATTERNS) {
+    if (pattern.test(ccName)) return bu;
+  }
+
+  return null; // No matching BU for this cost center
+}
+
+// ── Resolve category_id and cost_center_id from Omie raw data ────────────────
+
+function resolveCategoryId(
+  conta: Record<string, unknown>,
+  catLookup: LookupMap
+): string | null {
+  // Omie uses `codigo_categoria` for the category code
+  const codigoCat = conta.codigo_categoria || conta.codigo_categoria_str;
+  if (codigoCat) {
+    const resolved = catLookup.get(String(codigoCat));
+    if (resolved) return resolved;
+  }
+  // Some Omie endpoints nest categories differently
+  const categorias = conta.categorias as Array<{ codigo_categoria?: string }> | undefined;
+  if (categorias?.length) {
+    const firstCat = categorias[0]?.codigo_categoria;
+    if (firstCat) {
+      const resolved = catLookup.get(String(firstCat));
+      if (resolved) return resolved;
+    }
+  }
+  return null;
+}
+
+function resolveCostCenterId(
+  conta: Record<string, unknown>,
+  ccLookup: LookupMap
+): string | null {
+  // Omie uses `departamentos` array inside contas
+  const departamentos = conta.departamentos as Array<{ codigo_departamento?: string }> | undefined;
+  if (departamentos?.length) {
+    const firstDep = departamentos[0]?.codigo_departamento;
+    if (firstDep) {
+      const resolved = ccLookup.get(String(firstDep));
+      if (resolved) return resolved;
+    }
+  }
+  // Fallback: direct field
+  const codigoDep = conta.codigo_departamento;
+  if (codigoDep) {
+    const resolved = ccLookup.get(String(codigoDep));
+    if (resolved) return resolved;
+  }
+  return null;
+}
+
+// ── Sync contas a pagar from Omie ─────────────────────────────────────────────
+
+async function syncContasPagar(
+  supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never,
+  tenantId: string,
+  creds: OmieCredentials,
+  userId: string,
+  catLookup: LookupMap,
+  ccLookup: LookupMap,
+  ccNameLookup: CostCenterNameMap
+): Promise<{ inserted: number; updated: number; errors: string[] }> {
+  let inserted = 0;
+  let updated = 0;
+  const errors: string[] = [];
+
+  try {
+    let page = 1;
+    let hasMore = true;
+
+    while (hasMore) {
+      console.log(`[sync-omie] Contas a Pagar — page ${page}...`);
+
       const data = await omieCall(
         creds,
         "financas/contapagar/",
@@ -206,12 +444,17 @@ async function syncContasPagar(
         Record<string, unknown>
       >;
 
+      const totalRecords = (data.total_de_registros as number) || 0;
+      console.log(
+        `[sync-omie] Contas a Pagar — page ${page}: ${contas.length} records (total: ${totalRecords})`
+      );
+
       for (const conta of contas) {
         const omieId = String(conta.codigo_lancamento_omie || "");
         if (!omieId) continue;
 
         // Map Omie status to our status
-        let status = "pendente";
+        let status = "previsto";
         const statusOmie = String(conta.status_titulo || "").toLowerCase();
         if (statusOmie === "liquidado" || statusOmie === "pago")
           status = "pago";
@@ -227,7 +470,10 @@ async function syncContasPagar(
             String(conta.observacao || conta.complemento || "Conta a pagar"),
           amount: Number(conta.valor_documento || 0),
           paid_amount: Number(conta.valor_pago || 0),
-          date: parseOmieDate(conta.data_emissao) || parseOmieDate(conta.data_vencimento) || new Date().toISOString().split("T")[0],
+          date:
+            parseOmieDate(conta.data_emissao) ||
+            parseOmieDate(conta.data_vencimento) ||
+            new Date().toISOString().split("T")[0],
           due_date: parseOmieDate(conta.data_vencimento),
           paid_date: parseOmieDate(conta.data_pagamento),
           counterpart: conta.nome_fornecedor
@@ -235,6 +481,13 @@ async function syncContasPagar(
             : null,
           counterpart_doc: conta.cnpj_cpf_fornecedor
             ? String(conta.cnpj_cpf_fornecedor)
+            : null,
+          // Link category, cost center, and business unit from Omie codes
+          category_id: resolveCategoryId(conta, catLookup),
+          cost_center_id: resolveCostCenterId(conta, ccLookup),
+          business_unit: deriveBUFromCostCenter(conta, ccNameLookup),
+          payment_method: conta.id_meio_pagamento
+            ? String(conta.id_meio_pagamento)
             : null,
           omie_id: omieId,
           omie_synced_at: new Date().toISOString(),
@@ -265,9 +518,11 @@ async function syncContasPagar(
         }
       }
 
-      const total = (data.total_de_registros as number) || 0;
-      hasMore = page < Math.ceil(total / PAGE_SIZE);
+      const totalPages = Math.ceil(totalRecords / PAGE_SIZE);
+      hasMore = page < totalPages;
       page++;
+
+      if (hasMore) await sleep(INTER_PAGE_DELAY_MS);
     }
   } catch (err) {
     errors.push(
@@ -275,6 +530,9 @@ async function syncContasPagar(
     );
   }
 
+  console.log(
+    `[sync-omie] Contas a Pagar done: ${inserted} inserted, ${updated} updated, ${errors.length} errors`
+  );
   return { inserted, updated, errors };
 }
 
@@ -284,7 +542,10 @@ async function syncContasReceber(
   supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never,
   tenantId: string,
   creds: OmieCredentials,
-  userId: string
+  userId: string,
+  catLookup: LookupMap,
+  ccLookup: LookupMap,
+  ccNameLookup: CostCenterNameMap
 ): Promise<{ inserted: number; updated: number; errors: string[] }> {
   let inserted = 0;
   let updated = 0;
@@ -295,6 +556,8 @@ async function syncContasReceber(
     let hasMore = true;
 
     while (hasMore) {
+      console.log(`[sync-omie] Contas a Receber — page ${page}...`);
+
       const data = await omieCall(
         creds,
         "financas/contareceber/",
@@ -306,11 +569,16 @@ async function syncContasReceber(
         Record<string, unknown>
       >;
 
+      const totalRecords = (data.total_de_registros as number) || 0;
+      console.log(
+        `[sync-omie] Contas a Receber — page ${page}: ${contas.length} records (total: ${totalRecords})`
+      );
+
       for (const conta of contas) {
         const omieId = String(conta.codigo_lancamento_omie || "");
         if (!omieId) continue;
 
-        let status = "pendente";
+        let status = "previsto";
         const statusOmie = String(conta.status_titulo || "").toLowerCase();
         if (statusOmie === "liquidado" || statusOmie === "recebido")
           status = "pago";
@@ -326,14 +594,26 @@ async function syncContasReceber(
             String(conta.observacao || conta.complemento || "Conta a receber"),
           amount: Number(conta.valor_documento || 0),
           paid_amount: Number(conta.valor_recebido || conta.valor_pago || 0),
-          date: parseOmieDate(conta.data_emissao) || parseOmieDate(conta.data_vencimento) || new Date().toISOString().split("T")[0],
+          date:
+            parseOmieDate(conta.data_emissao) ||
+            parseOmieDate(conta.data_vencimento) ||
+            new Date().toISOString().split("T")[0],
           due_date: parseOmieDate(conta.data_vencimento),
-          paid_date: parseOmieDate(conta.data_recebimento) || parseOmieDate(conta.data_pagamento),
+          paid_date:
+            parseOmieDate(conta.data_recebimento) ||
+            parseOmieDate(conta.data_pagamento),
           counterpart: conta.nome_cliente
             ? String(conta.nome_cliente)
             : null,
           counterpart_doc: conta.cnpj_cpf_cliente
             ? String(conta.cnpj_cpf_cliente)
+            : null,
+          // Link category, cost center, and business unit from Omie codes
+          category_id: resolveCategoryId(conta, catLookup),
+          cost_center_id: resolveCostCenterId(conta, ccLookup),
+          business_unit: deriveBUFromCostCenter(conta, ccNameLookup),
+          payment_method: conta.id_meio_pagamento
+            ? String(conta.id_meio_pagamento)
             : null,
           omie_id: omieId,
           omie_synced_at: new Date().toISOString(),
@@ -364,9 +644,12 @@ async function syncContasReceber(
         }
       }
 
-      const total = (data.total_de_registros as number) || 0;
-      hasMore = page < Math.ceil(total / PAGE_SIZE);
+      const totalRecords2 = (data.total_de_registros as number) || 0;
+      const totalPages = Math.ceil(totalRecords2 / PAGE_SIZE);
+      hasMore = page < totalPages;
       page++;
+
+      if (hasMore) await sleep(INTER_PAGE_DELAY_MS);
     }
   } catch (err) {
     errors.push(
@@ -374,12 +657,17 @@ async function syncContasReceber(
     );
   }
 
+  console.log(
+    `[sync-omie] Contas a Receber done: ${inserted} inserted, ${updated} updated, ${errors.length} errors`
+  );
   return { inserted, updated, errors };
 }
 
 // ── POST /api/finance/sync-omie ───────────────────────────────────────────────
 
 export async function POST() {
+  const startedAt = new Date().toISOString();
+
   try {
     const supabase = await createClient();
     const {
@@ -429,22 +717,59 @@ export async function POST() {
       app_secret: appSecret,
     };
 
-    // Run syncs sequentially to avoid Omie rate-limiting ("Consumo redundante")
+    console.log("[sync-omie] ════════════════════════════════════════════════");
+    console.log("[sync-omie] Starting full sync for tenant:", tenantId);
+
+    // Phase 1: Sync reference data (categories + cost centers)
+    console.log("[sync-omie] Phase 1: Categories...");
     const catResult = await syncCategories(supabase, tenantId, creds);
-    await sleep(3000); // 3s pause between sync phases
-    const cpResult = await syncContasPagar(supabase, tenantId, creds, user.id);
-    await sleep(3000);
-    const crResult = await syncContasReceber(supabase, tenantId, creds, user.id);
+
+    await sleep(INTER_PHASE_DELAY_MS);
+
+    console.log("[sync-omie] Phase 2: Cost Centers (Departamentos)...");
+    const ccResult = await syncCostCenters(supabase, tenantId, creds);
+
+    await sleep(INTER_PHASE_DELAY_MS);
+
+    // Phase 2: Build lookup maps for linking (category_id, cost_center_id)
+    console.log("[sync-omie] Building lookup maps for category/cost center linking...");
+    const catLookup = await buildCategoryLookup(supabase, tenantId);
+    const ccLookup = await buildCostCenterLookup(supabase, tenantId);
+    const ccNameLookup = await buildCostCenterNameLookup(supabase, tenantId);
+    console.log(
+      `[sync-omie] Lookup maps: ${catLookup.size} categories, ${ccLookup.size} cost centers, ${ccNameLookup.size} CC names for BU`
+    );
+
+    // Phase 3: Sync transactions with linked references
+    console.log("[sync-omie] Phase 3: Contas a Pagar...");
+    const cpResult = await syncContasPagar(
+      supabase, tenantId, creds, user.id, catLookup, ccLookup, ccNameLookup
+    );
+
+    await sleep(INTER_PHASE_DELAY_MS);
+
+    console.log("[sync-omie] Phase 4: Contas a Receber...");
+    const crResult = await syncContasReceber(
+      supabase, tenantId, creds, user.id, catLookup, ccLookup, ccNameLookup
+    );
 
     const totalInserted =
-      catResult.inserted + cpResult.inserted + crResult.inserted;
+      catResult.inserted + ccResult.inserted + cpResult.inserted + crResult.inserted;
     const totalUpdated =
-      catResult.updated + cpResult.updated + crResult.updated;
+      catResult.updated + ccResult.updated + cpResult.updated + crResult.updated;
     const allErrors = [
       ...catResult.errors,
+      ...ccResult.errors,
       ...cpResult.errors,
       ...crResult.errors,
     ];
+
+    const finishedAt = new Date().toISOString();
+
+    console.log("[sync-omie] ════════════════════════════════════════════════");
+    console.log(
+      `[sync-omie] Sync complete: ${totalInserted} inserted, ${totalUpdated} updated, ${allErrors.length} errors`
+    );
 
     // Log sync result to omie_sync_log (reuse existing table)
     await (supabase as any).from("omie_sync_log").insert({
@@ -454,8 +779,8 @@ export async function POST() {
       records_synced: totalInserted + totalUpdated,
       error_message:
         allErrors.length > 0 ? allErrors.slice(0, 5).join("; ") : null,
-      started_at: new Date().toISOString(),
-      finished_at: new Date().toISOString(),
+      started_at: startedAt,
+      finished_at: finishedAt,
     } as never);
 
     return NextResponse.json({
@@ -466,6 +791,7 @@ export async function POST() {
       errors: allErrors.length > 0 ? allErrors.slice(0, 10) : undefined,
       details: {
         categories: catResult,
+        costCenters: ccResult,
         contasPagar: cpResult,
         contasReceber: crResult,
       },

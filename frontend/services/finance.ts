@@ -7,7 +7,7 @@ export interface FinanceTransaction {
   id: string;
   tenant_id: string;
   type: "receita" | "despesa" | "transferencia";
-  status: "pendente" | "pago" | "atrasado" | "cancelado" | "parcial";
+  status: "previsto" | "provisionado" | "pago" | "atrasado" | "recorrente" | "cancelado";
   description: string;
   notes: string | null;
   tags: string[];
@@ -25,6 +25,8 @@ export interface FinanceTransaction {
   bank_account: string | null;
   omie_id: string | null;
   omie_synced_at: string | null;
+  business_unit: string | null;
+  responsible_id: string | null;
   omie_raw: Record<string, unknown> | null;
   created_by: string | null;
   updated_by: string | null;
@@ -94,6 +96,8 @@ export interface FinanceFilters {
   statusIn?: string[];
   category_id?: string;
   cost_center_id?: string;
+  business_unit?: string;
+  project_id?: string;
   dateFrom?: string;
   dateTo?: string;
   search?: string;
@@ -131,6 +135,10 @@ export async function getFinanceTransactions(
   if (filters.category_id) query = query.eq("category_id", filters.category_id);
   if (filters.cost_center_id)
     query = query.eq("cost_center_id", filters.cost_center_id);
+  if (filters.business_unit)
+    query = query.eq("business_unit", filters.business_unit);
+  if (filters.project_id)
+    query = query.eq("project_id", filters.project_id);
   if (filters.dateFrom) query = query.gte("date", filters.dateFrom);
   if (filters.dateTo) query = query.lte("date", filters.dateTo);
   if (filters.search)
@@ -233,7 +241,7 @@ export async function getFinanceStatus(
 
   const receitas = transactions.filter((t) => t.type === "receita").length;
   const despesas = transactions.filter((t) => t.type === "despesa").length;
-  const pending = transactions.filter((t) => t.status === "pendente").length;
+  const pending = transactions.filter((t) => t.status === "previsto" || t.status === "provisionado").length;
   const paid = transactions.filter((t) => t.status === "pago").length;
   const overdue = transactions.filter((t) => t.status === "atrasado").length;
 
@@ -277,6 +285,17 @@ export interface FounderKPIs {
     type: string;
     total: number;
   }>;
+  buRevenue: Array<{
+    business_unit: string;
+    total: number;
+  }>;
+  projectRanking: Array<{
+    project_id: string;
+    name: string;
+    receita: number;
+    despesa: number;
+    margem: number;
+  }>;
 }
 
 export async function getFounderKPIs(
@@ -295,9 +314,9 @@ export async function getFounderKPIs(
     // MTD paid transactions
     (supabase as any)
       .from(TABLE_TRANSACTIONS)
-      .select("type, amount, paid_amount, cost_center_id, category_id")
+      .select("type, amount, paid_amount, cost_center_id, category_id, business_unit, project_id")
       .eq("tenant_id", tenantId)
-      .in("status", ["pago", "parcial"])
+      .in("status", ["pago", "provisionado"])
       .gte("date", monthStart)
       .lte("date", today),
     // AP next 30d (pending despesas)
@@ -306,7 +325,7 @@ export async function getFounderKPIs(
       .select("amount")
       .eq("tenant_id", tenantId)
       .eq("type", "despesa")
-      .in("status", ["pendente", "atrasado"])
+      .in("status", ["previsto", "provisionado", "atrasado"])
       .lte("due_date", in30Str),
     // AR next 30d (pending receitas)
     (supabase as any)
@@ -314,7 +333,7 @@ export async function getFounderKPIs(
       .select("amount")
       .eq("tenant_id", tenantId)
       .eq("type", "receita")
-      .in("status", ["pendente", "atrasado"])
+      .in("status", ["previsto", "provisionado", "atrasado"])
       .lte("due_date", in30Str),
     // All cost centers for name lookup
     (supabase as any)
@@ -337,6 +356,8 @@ export async function getFounderKPIs(
     paid_amount: number;
     cost_center_id: string | null;
     category_id: string | null;
+    business_unit: string | null;
+    project_id: string | null;
   }>;
 
   const receitaMTD = mtd
@@ -416,6 +437,63 @@ export async function getFounderKPIs(
     }));
   }
 
+  // BU revenue ranking (receitas grouped by business_unit)
+  const buMap = new Map<string, number>();
+  for (const t of mtd) {
+    if (t.type === "receita" && t.business_unit) {
+      buMap.set(
+        t.business_unit,
+        (buMap.get(t.business_unit) || 0) + (t.paid_amount || t.amount || 0)
+      );
+    }
+  }
+  const buRevenue = Array.from(buMap.entries())
+    .map(([business_unit, total]) => ({ business_unit, total }))
+    .sort((a, b) => b.total - a.total);
+
+  // Project ranking (receita vs despesa per project)
+  const projReceitaMap = new Map<string, number>();
+  const projDespesaMap = new Map<string, number>();
+  for (const t of mtd) {
+    if (t.project_id) {
+      const val = t.paid_amount || t.amount || 0;
+      if (t.type === "receita") {
+        projReceitaMap.set(t.project_id, (projReceitaMap.get(t.project_id) || 0) + val);
+      } else if (t.type === "despesa") {
+        projDespesaMap.set(t.project_id, (projDespesaMap.get(t.project_id) || 0) + val);
+      }
+    }
+  }
+  const allProjectIds = Array.from(
+    new Set([...projReceitaMap.keys(), ...projDespesaMap.keys()])
+  );
+
+  let projectRanking: FounderKPIs["projectRanking"] = [];
+  if (allProjectIds.length > 0) {
+    // Look up project names from the projects table
+    const { data: projRows } = await (supabase as any)
+      .from("projects" as never)
+      .select("id, name")
+      .in("id", allProjectIds.slice(0, 10));
+    const projLookup = new Map(
+      ((projRows ?? []) as Array<{ id: string; name: string }>).map((p) => [p.id, p.name])
+    );
+    projectRanking = allProjectIds
+      .map((pid) => {
+        const receita = projReceitaMap.get(pid) ?? 0;
+        const despesa = projDespesaMap.get(pid) ?? 0;
+        return {
+          project_id: pid,
+          name: projLookup.get(pid) ?? "Sem projeto",
+          receita,
+          despesa,
+          margem: receita - despesa,
+        };
+      })
+      .sort((a, b) => b.receita - a.receita)
+      .slice(0, 10);
+  }
+
   return {
     receitaMTD,
     despesaMTD,
@@ -426,6 +504,8 @@ export async function getFounderKPIs(
     saldoAcumulado: (latestSnap.data as any)?.saldo_acumulado ?? 0,
     costCenterRanking,
     categoryRanking,
+    buRevenue,
+    projectRanking,
   };
 }
 

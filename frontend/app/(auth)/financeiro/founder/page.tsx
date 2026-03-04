@@ -141,7 +141,7 @@ export default function FinanceiroFounderPage() {
           <KpiCard
             title="Receita Realizada"
             value={d ? fmt(d.receitaRealizada) : "—"}
-            sublabel="MTD (pagas)"
+            sublabel={d?.periodLabel ? `${d.periodLabel} (pagas)` : "MTD (pagas)"}
             icon={<TrendingUp className="h-4 w-4 text-emerald-500" />}
             colorClass="text-emerald-600 dark:text-emerald-400"
             tooltip={TOOLTIP_RECEITA}

@@ -5,11 +5,12 @@
 // Query params: ?tenant_id=xxx (optional, syncs all if omitted)
 //               ?trigger=manual|webhook
 //
-// Entities synced (4):
+// Entities synced (5):
 //   1. Fornecedores     → fin_vendors
 //   2. Clientes         → fin_clients
 //   3. Contas a Pagar   → fin_payables
 //   4. Contas a Receber → fin_receivables
+//   5. Contas Correntes → fin_bank_accounts
 // ============================================================================
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
@@ -33,6 +34,7 @@ interface SyncCounts {
   clients_synced: number;
   payables_synced: number;
   receivables_synced: number;
+  bank_accounts_synced: number;
 }
 
 interface SyncError {
@@ -87,6 +89,7 @@ serve(async (req: Request) => {
         clients_synced: 0,
         payables_synced: 0,
         receivables_synced: 0,
+        bank_accounts_synced: 0,
       };
       const errors: SyncError[] = [];
 
@@ -104,11 +107,12 @@ serve(async (req: Request) => {
       const logId = logEntry?.id;
 
       try {
-        // Sync in order: Fornecedores → Clientes → Pagar → Receber
+        // Sync in order: Fornecedores → Clientes → Pagar → Receber → Contas Correntes
         counts.vendors_synced = await syncVendors(supabase, creds, tenantId, errors);
         counts.clients_synced = await syncClients(supabase, creds, tenantId, errors);
         counts.payables_synced = await syncPayables(supabase, creds, tenantId, errors);
         counts.receivables_synced = await syncReceivables(supabase, creds, tenantId, errors);
+        counts.bank_accounts_synced = await syncBankAccounts(supabase, creds, tenantId, errors);
 
         // Update sync log: success or partial
         if (logId) {
@@ -119,6 +123,7 @@ serve(async (req: Request) => {
             clients_synced: counts.clients_synced,
             payables_synced: counts.payables_synced,
             receivables_synced: counts.receivables_synced,
+            bank_accounts_synced: counts.bank_accounts_synced,
             errors: errors.length > 0 ? errors : [],
             duration_ms: Date.now() - startTime,
           }).eq("id", logId);
@@ -432,6 +437,69 @@ async function syncReceivables(
   }
 
   console.log(`[omie-sync] Receivables: ${total} synced`);
+  return total;
+}
+
+async function syncBankAccounts(
+  supabase: SupabaseClient,
+  creds: OmieCredentials,
+  tenantId: string,
+  errors: SyncError[]
+): Promise<number> {
+  let total = 0;
+  let page = 1;
+  const pageSize = 50;
+
+  try {
+    while (true) {
+      const res = await omieCall(creds, "financas/contacorrente/", "ListarContasCorrentes", {
+        pagina: page,
+        registros_por_pagina: pageSize,
+      });
+
+      const records = res?.ListarContasCorrentes || res?.conta_corrente_lista || [];
+      if (records.length === 0) break;
+
+      for (const acc of records) {
+        try {
+          const omieId = String(acc.nCodCC || "");
+          if (!omieId) continue;
+
+          // Map Omie account type to our type
+          const tipoCC = (acc.tipo_conta_corrente || "CC").toUpperCase();
+          let accountType = "corrente";
+          if (tipoCC === "CP" || tipoCC.includes("POUPAN")) accountType = "poupanca";
+          else if (tipoCC === "CI" || tipoCC.includes("INVEST")) accountType = "investimento";
+
+          await supabase.from("fin_bank_accounts").upsert({
+            tenant_id: tenantId,
+            omie_id: omieId,
+            name: acc.descricao || acc.cDescricao || `Conta ${omieId}`,
+            bank_code: acc.codigo_banco || acc.cCodBanco || null,
+            bank_name: acc.descricao_banco || acc.cNomeBanco || null,
+            agency: acc.agencia || acc.cAgencia || null,
+            account_number: acc.conta_corrente || acc.cContaCorrente || acc.nro_conta_corrente || null,
+            account_type: accountType,
+            balance: parseFloat(acc.saldo || acc.nSaldo || "0") || 0,
+            is_active: acc.inativo !== "S" && acc.cInativo !== "S",
+            omie_synced_at: new Date().toISOString(),
+          }, { onConflict: "tenant_id,omie_id" });
+
+          total++;
+        } catch (e) {
+          errors.push({ entity: "bank_accounts", message: e.message, page });
+        }
+      }
+
+      if (records.length < pageSize) break;
+      page++;
+      await delay(RATE_LIMIT_MS);
+    }
+  } catch (e) {
+    errors.push({ entity: "bank_accounts", message: e.message });
+  }
+
+  console.log(`[omie-sync] Bank accounts: ${total} synced`);
   return total;
 }
 

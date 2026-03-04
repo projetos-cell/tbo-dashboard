@@ -26,6 +26,7 @@ const EMPTY_SNAPSHOT: FounderDashboardSnapshot = {
   concentracaoTop3: 0,
   alerts: [],
   forecast90d: { total: 0, months: [] },
+  periodLabel: "MTD",
 };
 
 export function useFounderDashboard() {
@@ -44,31 +45,60 @@ export function useFounderDashboard() {
     refetchInterval: 1000 * 60 * 5,
   });
 
-  // Realtime — invalidate when transactions change
+  // Realtime — invalidate when legacy fin_payables or fin_receivables change
   useEffect(() => {
     if (!tenantId) return;
 
     const supabase = createClient();
-    const channel = supabase
-      .channel(`founder-dash-realtime:${tenantId}`)
+    const queryKey = ["founder-dashboard", tenantId];
+    const invalidate = () => qc.invalidateQueries({ queryKey });
+
+    const channelAP = supabase
+      .channel(`founder-dash-ap:${tenantId}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
-          table: "finance_transactions",
+          table: "fin_payables",
           filter: `tenant_id=eq.${tenantId}`,
         },
-        () => {
-          qc.invalidateQueries({
-            queryKey: ["founder-dashboard", tenantId],
-          });
-        }
+        invalidate,
+      )
+      .subscribe();
+
+    const channelAR = supabase
+      .channel(`founder-dash-ar:${tenantId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "fin_receivables",
+          filter: `tenant_id=eq.${tenantId}`,
+        },
+        invalidate,
+      )
+      .subscribe();
+
+    const channelBank = supabase
+      .channel(`founder-dash-bank:${tenantId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "fin_bank_accounts",
+          filter: `tenant_id=eq.${tenantId}`,
+        },
+        invalidate,
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(channelAP);
+      supabase.removeChannel(channelAR);
+      supabase.removeChannel(channelBank);
     };
   }, [tenantId, qc]);
 

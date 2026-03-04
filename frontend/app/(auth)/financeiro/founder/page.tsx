@@ -1,27 +1,32 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
 import { hasMinRole } from "@/lib/permissions";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { useFounderKPIs, useFinanceSnapshots } from "@/hooks/use-finance";
+import { useFounderDashboard } from "@/hooks/use-founder-dashboard";
 import {
   TrendingUp,
-  TrendingDown,
-  DollarSign,
   BarChart3,
-  ArrowUpRight,
-  ArrowDownRight,
+  ShieldAlert,
   Wallet,
-  CreditCard,
-  Receipt,
-  Loader2,
-  AlertTriangle,
+  Flame,
+  Scale,
+  Calculator,
 } from "lucide-react";
+
+import { KpiCard } from "@/components/founder-dashboard/kpi-card";
+import { KpiGrid } from "@/components/founder-dashboard/kpi-grid";
+import { UnitRevenueTable } from "@/components/founder-dashboard/unit-revenue-table";
+import { TopProjectsTable } from "@/components/founder-dashboard/top-projects-table";
+import { TopClientsTable } from "@/components/founder-dashboard/top-clients-table";
+import { FounderAlerts } from "@/components/founder-dashboard/founder-alerts";
+import { ForecastPanel } from "@/components/founder-dashboard/forecast-panel";
+import type { KpiTooltipContent } from "@/components/founder-dashboard/kpi-card";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatCurrency(value: number): string {
+function fmt(value: number): string {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
@@ -30,18 +35,73 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
-function formatCurrencyFull(value: number): string {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
+function fmtPct(value: number): string {
+  return `${value.toFixed(1)}%`;
 }
 
-function formatPct(value: number): string {
-  return `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`;
+function fmtMonths(value: number): string {
+  return `${value.toFixed(1)} meses`;
 }
 
-// ── Component ────────────────────────────────────────────────────────────────
+// ── Tooltip content (from spec) ──────────────────────────────────────────────
+
+const TOOLTIP_RECEITA: KpiTooltipContent = {
+  description: "Soma de todas as receitas recebidas (baixadas) no mes atual.",
+  formula: undefined,
+  enters: "Titulos baixados no periodo (status pago).",
+  notEnters: "Faturado sem recebimento, propostas em aberto.",
+  source: "Omie — Contas a Receber (baixados)",
+};
+
+const TOOLTIP_MARGEM: KpiTooltipContent = {
+  description: "Lucro real apos custos diretos de projetos/producao.",
+  formula: "Receita Realizada - Custos Diretos Pagos",
+  enters: "Despesas de projetos e producao (pagos).",
+  notEnters: "Custo fixo (folha, softwares, infra).",
+  source: "Omie — AP + classificacao de custos",
+};
+
+const TOOLTIP_RUNWAY: KpiTooltipContent = {
+  description: "Quantos meses a empresa sobrevive com o caixa atual, sem novas receitas.",
+  formula: "Caixa Atual / Burn Rate",
+  enters: undefined,
+  notEnters: undefined,
+  source: "Omie — saldos bancarios + calculo interno",
+};
+
+const TOOLTIP_CAIXA: KpiTooltipContent = {
+  description: "Saldo consolidado de todas as contas bancarias hoje.",
+  formula: undefined,
+  enters: "Contas bancarias cadastradas no Omie.",
+  notEnters: undefined,
+  source: "Omie — saldos bancarios (snapshot diario)",
+};
+
+const TOOLTIP_BURN: KpiTooltipContent = {
+  description: "Media mensal de gastos totais nos ultimos 3 meses.",
+  formula: "Media de despesas pagas (ultimos 3 meses)",
+  enters: undefined,
+  notEnters: undefined,
+  source: "Omie — Contas a Pagar (baixadas)",
+};
+
+const TOOLTIP_BREAKEVEN: KpiTooltipContent = {
+  description: "Receita minima mensal para cobrir todos os custos (fixos + variaveis).",
+  formula: "Custos Fixos + Custos Variaveis medios",
+  enters: "Folha, softwares, infra, custos variaveis.",
+  notEnters: undefined,
+  source: "Omie — AP + centros de custo",
+};
+
+const TOOLTIP_CAIXA_PREVISTO: KpiTooltipContent = {
+  description: "Projecao de caixa para os proximos 30 dias.",
+  formula: "Caixa Atual + A Receber(30d) - A Pagar(30d)",
+  enters: undefined,
+  notEnters: undefined,
+  source: "Omie — AR/AP pendentes + saldos",
+};
+
+// ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function FinanceiroFounderPage() {
   const role = useAuthStore((s) => s.role);
@@ -53,36 +113,14 @@ export default function FinanceiroFounderPage() {
     }
   }, [role, router]);
 
-  const { data: kpis, isLoading, error } = useFounderKPIs();
-  const { data: snapshots } = useFinanceSnapshots(30);
+  const { data, isLoading, error, refetch } = useFounderDashboard();
 
   if (!role || !hasMinRole(role, "diretoria")) {
     return null;
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 gap-3">
-        <AlertTriangle className="h-10 w-10 text-amber-500" />
-        <p className="text-muted-foreground">Erro ao carregar KPIs financeiros.</p>
-        <p className="text-sm text-muted-foreground/70">{(error as Error).message}</p>
-      </div>
-    );
-  }
-
-  const k = kpis!;
-  const margemPositive = k.margemMTD >= 0;
-
-  // Mini sparkline data from snapshots
-  const sparkData = (snapshots ?? []).slice(-14);
+  const d = data;
+  const errMsg = error ? (error as Error).message : null;
 
   return (
     <div className="space-y-6">
@@ -90,285 +128,163 @@ export default function FinanceiroFounderPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Visao Estrategica</h1>
         <p className="text-muted-foreground">
-          KPIs financeiros consolidados para diretoria.
+          Dashboard financeiro executivo — dados consolidados do Omie.
         </p>
       </div>
 
-      {/* KPI Cards — 2 rows of 3 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* Receita MTD */}
-        <div className="rounded-lg border bg-card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-muted-foreground">Receita MTD</span>
-            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-500/10">
-              <TrendingUp className="h-4 w-4 text-emerald-500" />
-            </span>
-          </div>
-          <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-            {formatCurrency(k.receitaMTD)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">Receitas pagas no mes</p>
-        </div>
-
-        {/* Despesa MTD */}
-        <div className="rounded-lg border bg-card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-muted-foreground">Despesa MTD</span>
-            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-red-500/10">
-              <TrendingDown className="h-4 w-4 text-red-500" />
-            </span>
-          </div>
-          <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-            {formatCurrency(k.despesaMTD)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">Despesas pagas no mes</p>
-        </div>
-
-        {/* Margem MTD */}
-        <div className="rounded-lg border bg-card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-muted-foreground">Margem MTD</span>
-            <span
-              className={`flex h-8 w-8 items-center justify-center rounded-md ${
-                margemPositive ? "bg-emerald-500/10" : "bg-red-500/10"
-              }`}
-            >
-              <BarChart3
-                className={`h-4 w-4 ${
-                  margemPositive ? "text-emerald-500" : "text-red-500"
-                }`}
-              />
-            </span>
-          </div>
-          <p
-            className={`text-2xl font-bold ${
-              margemPositive
+      {/* Row 1 — Saude: Receita | Margem | Runway */}
+      <div>
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          Saude Financeira
+        </h2>
+        <KpiGrid columns={3}>
+          <KpiCard
+            title="Receita Realizada"
+            value={d ? fmt(d.receitaRealizada) : "—"}
+            sublabel="MTD (pagas)"
+            icon={<TrendingUp className="h-4 w-4 text-emerald-500" />}
+            colorClass="text-emerald-600 dark:text-emerald-400"
+            tooltip={TOOLTIP_RECEITA}
+            isLoading={isLoading}
+            isEmpty={!isLoading && !!d && d.receitaRealizada === 0}
+            error={errMsg}
+            onRetry={() => refetch()}
+          />
+          <KpiCard
+            title="Margem Real"
+            value={d ? `${fmt(d.margemReal)} (${fmtPct(d.margemPct)})` : "—"}
+            sublabel="Receita - Custos diretos"
+            icon={<BarChart3 className="h-4 w-4 text-blue-500" />}
+            colorClass={
+              d && d.margemPct >= 30
                 ? "text-emerald-600 dark:text-emerald-400"
                 : "text-red-600 dark:text-red-400"
-            }`}
-          >
-            {formatCurrency(k.margemMTD)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Margem: {formatPct(k.margemPct)}
-          </p>
-        </div>
+            }
+            tooltip={TOOLTIP_MARGEM}
+            isLoading={isLoading}
+            isEmpty={!isLoading && !!d && d.receitaRealizada === 0 && d.margemReal === 0}
+            error={errMsg}
+            onRetry={() => refetch()}
+          />
+          <KpiCard
+            title="Runway"
+            value={d ? fmtMonths(d.runway) : "—"}
+            sublabel="Meses de sobrevivencia"
+            icon={<ShieldAlert className="h-4 w-4 text-orange-500" />}
+            colorClass={
+              d && d.runway >= 6
+                ? "text-emerald-600 dark:text-emerald-400"
+                : d && d.runway >= 3
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-red-600 dark:text-red-400"
+            }
+            tooltip={TOOLTIP_RUNWAY}
+            isLoading={isLoading}
+            isEmpty={!isLoading && !!d && d.caixaAtual === 0 && d.burnRate === 0}
+            error={errMsg}
+            onRetry={() => refetch()}
+          />
+        </KpiGrid>
+      </div>
 
-        {/* AP prox 30d */}
-        <div className="rounded-lg border bg-card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-muted-foreground">A Pagar (30d)</span>
-            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-orange-500/10">
-              <CreditCard className="h-4 w-4 text-orange-500" />
-            </span>
-          </div>
-          <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-            {formatCurrency(k.apNext30)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Contas a pagar pendentes
-          </p>
-        </div>
-
-        {/* AR prox 30d */}
-        <div className="rounded-lg border bg-card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-muted-foreground">A Receber (30d)</span>
-            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-500/10">
-              <Receipt className="h-4 w-4 text-blue-500" />
-            </span>
-          </div>
-          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-            {formatCurrency(k.arNext30)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Contas a receber pendentes
-          </p>
-        </div>
-
-        {/* Saldo Acumulado */}
-        <div className="rounded-lg border bg-card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-muted-foreground">Saldo Acumulado</span>
-            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-violet-500/10">
-              <Wallet className="h-4 w-4 text-violet-500" />
-            </span>
-          </div>
-          <p
-            className={`text-2xl font-bold ${
-              k.saldoAcumulado >= 0
+      {/* Row 2 — Caixa: Caixa atual | Burn rate | Break-even | Caixa previsto */}
+      <div>
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          Caixa e Projecoes
+        </h2>
+        <KpiGrid columns={4}>
+          <KpiCard
+            title="Caixa Atual"
+            value={d ? d.caixaAtual : 0}
+            sublabel="Saldo consolidado"
+            icon={<Wallet className="h-4 w-4 text-violet-500" />}
+            colorClass={
+              d && d.caixaAtual >= 0
                 ? "text-violet-600 dark:text-violet-400"
                 : "text-red-600 dark:text-red-400"
-            }`}
-          >
-            {formatCurrency(k.saldoAcumulado)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">Ultimo snapshot diario</p>
-        </div>
+            }
+            tooltip={TOOLTIP_CAIXA}
+            isLoading={isLoading}
+            error={errMsg}
+            onRetry={() => refetch()}
+          />
+          <KpiCard
+            title="Burn Rate"
+            value={d ? d.burnRate : 0}
+            sublabel="Media mensal (3 meses)"
+            icon={<Flame className="h-4 w-4 text-red-500" />}
+            colorClass="text-red-600 dark:text-red-400"
+            tooltip={TOOLTIP_BURN}
+            isLoading={isLoading}
+            isEmpty={!isLoading && !!d && d.burnRate === 0}
+            error={errMsg}
+            onRetry={() => refetch()}
+          />
+          <KpiCard
+            title="Break-even"
+            value={d ? d.breakEven : 0}
+            sublabel="Receita minima mensal"
+            icon={<Scale className="h-4 w-4 text-amber-500" />}
+            colorClass="text-amber-600 dark:text-amber-400"
+            tooltip={TOOLTIP_BREAKEVEN}
+            isLoading={isLoading}
+            isEmpty={!isLoading && !!d && d.breakEven === 0}
+            error={errMsg}
+            onRetry={() => refetch()}
+          />
+          <KpiCard
+            title="Caixa Previsto (30d)"
+            value={d ? d.caixaPrevisto30d : 0}
+            sublabel={
+              d
+                ? `AR ${fmt(d.arNext30)} | AP ${fmt(d.apNext30)}`
+                : undefined
+            }
+            icon={<Calculator className="h-4 w-4 text-blue-500" />}
+            colorClass={
+              d && d.caixaPrevisto30d >= 0
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-red-600 dark:text-red-400"
+            }
+            tooltip={TOOLTIP_CAIXA_PREVISTO}
+            isLoading={isLoading}
+            error={errMsg}
+            onRetry={() => refetch()}
+          />
+        </KpiGrid>
       </div>
 
-      {/* Cash Flow Mini Chart */}
-      {sparkData.length > 1 && (
-        <div className="rounded-lg border bg-card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-sm font-semibold">Fluxo de Caixa (14 dias)</h2>
-              <p className="text-xs text-muted-foreground">Receitas vs Despesas diarias</p>
-            </div>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <div className="flex items-end gap-1 h-24">
-            {sparkData.map((s, i) => {
-              const maxVal = Math.max(
-                ...sparkData.map((d) => Math.max(d.total_receitas, d.total_despesas, 1))
-              );
-              const recH = (s.total_receitas / maxVal) * 100;
-              const despH = (s.total_despesas / maxVal) * 100;
-              return (
-                <div key={i} className="flex-1 flex items-end gap-px" title={s.snapshot_date}>
-                  <div
-                    className="flex-1 bg-emerald-500/60 rounded-t-sm min-h-[2px]"
-                    style={{ height: `${Math.max(recH, 2)}%` }}
-                  />
-                  <div
-                    className="flex-1 bg-red-500/60 rounded-t-sm min-h-[2px]"
-                    style={{ height: `${Math.max(despH, 2)}%` }}
-                  />
-                </div>
-              );
-            })}
-          </div>
-          <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-emerald-500/60" /> Receitas
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-red-500/60" /> Despesas
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Rankings — side by side */}
+      {/* Row 3 — Receita: Unit Revenue | Top Projects */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Cost Center Ranking */}
-        <div className="rounded-lg border bg-card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold">Top 5 Centros de Custo (Despesas MTD)</h2>
-            <ArrowDownRight className="h-4 w-4 text-muted-foreground" />
-          </div>
-          {k.costCenterRanking.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">
-              Nenhum dado disponivel no periodo.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {k.costCenterRanking.map((cc, i) => {
-                const maxCC = k.costCenterRanking[0]?.total || 1;
-                const pct = (cc.total / maxCC) * 100;
-                return (
-                  <div key={i}>
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono text-muted-foreground w-5 text-right">
-                          {i + 1}.
-                        </span>
-                        <span className="text-sm font-medium truncate max-w-[180px]">
-                          {cc.name}
-                        </span>
-                        <span className="text-xs text-muted-foreground">({cc.code})</span>
-                      </div>
-                      <span className="text-sm font-semibold text-red-600 dark:text-red-400">
-                        {formatCurrencyFull(cc.total)}
-                      </span>
-                    </div>
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-red-500/50 rounded-full transition-all"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Category Ranking */}
-        <div className="rounded-lg border bg-card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold">Top 5 Categorias (Despesas MTD)</h2>
-            <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-          </div>
-          {k.categoryRanking.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">
-              Nenhum dado disponivel no periodo.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {k.categoryRanking.map((cat, i) => {
-                const maxCat = k.categoryRanking[0]?.total || 1;
-                const pct = (cat.total / maxCat) * 100;
-                return (
-                  <div key={i}>
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono text-muted-foreground w-5 text-right">
-                          {i + 1}.
-                        </span>
-                        <span className="text-sm font-medium truncate max-w-[200px]">
-                          {cat.name}
-                        </span>
-                      </div>
-                      <span className="text-sm font-semibold text-red-600 dark:text-red-400">
-                        {formatCurrencyFull(cat.total)}
-                      </span>
-                    </div>
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-orange-500/50 rounded-full transition-all"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <UnitRevenueTable
+          data={d?.unitRevenue ?? []}
+          isLoading={isLoading}
+        />
+        <TopProjectsTable
+          data={d?.topProjectsByMargin ?? []}
+          isLoading={isLoading}
+        />
       </div>
 
-      {/* Net Position Summary */}
-      <div className="rounded-lg border bg-card p-5">
-        <h2 className="text-sm font-semibold mb-3">Posicao Liquida (prox. 30 dias)</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground mb-1">A Receber</p>
-            <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-              {formatCurrency(k.arNext30)}
-            </p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground mb-1">A Pagar</p>
-            <p className="text-lg font-bold text-red-600 dark:text-red-400">
-              {formatCurrency(k.apNext30)}
-            </p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground mb-1">Saldo Liquido Previsto</p>
-            <p
-              className={`text-lg font-bold ${
-                k.arNext30 - k.apNext30 >= 0
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : "text-red-600 dark:text-red-400"
-              }`}
-            >
-              {formatCurrency(k.arNext30 - k.apNext30)}
-            </p>
-          </div>
-        </div>
+      {/* Row 4 — Clientes / Risco: Top Clients | Alerts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <TopClientsTable
+          data={d?.topClientsByRevenue ?? []}
+          concentracaoTop3={d?.concentracaoTop3 ?? 0}
+          isLoading={isLoading}
+        />
+        <FounderAlerts
+          alerts={d?.alerts ?? []}
+          isLoading={isLoading}
+        />
       </div>
+
+      {/* Row 5 — Forecast 90 dias */}
+      <ForecastPanel
+        total={d?.forecast90d.total ?? 0}
+        months={d?.forecast90d.months ?? []}
+        isLoading={isLoading}
+      />
     </div>
   );
 }

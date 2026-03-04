@@ -8,6 +8,10 @@ import {
   getFounderDashboardSnapshot,
   type FounderDashboardSnapshot,
 } from "@/services/founder-dashboard";
+import {
+  resolvePeriodBounds,
+  type PeriodValue,
+} from "@/components/founder-dashboard/period-filter";
 
 const EMPTY_SNAPSHOT: FounderDashboardSnapshot = {
   receitaRealizada: 0,
@@ -29,16 +33,19 @@ const EMPTY_SNAPSHOT: FounderDashboardSnapshot = {
   periodLabel: "MTD",
 };
 
-export function useFounderDashboard() {
+export function useFounderDashboard(period?: PeriodValue) {
   const tenantId = useAuthStore((s) => s.tenantId);
   const qc = useQueryClient();
 
+  // Resolve period bounds so they become part of the query key
+  const bounds = period ? resolvePeriodBounds(period) : undefined;
+
   const query = useQuery<FounderDashboardSnapshot>({
-    queryKey: ["founder-dashboard", tenantId],
+    queryKey: ["founder-dashboard", tenantId, bounds?.from, bounds?.to],
     queryFn: async () => {
       if (!tenantId) return EMPTY_SNAPSHOT;
       const supabase = createClient();
-      return getFounderDashboardSnapshot(supabase, tenantId);
+      return getFounderDashboardSnapshot(supabase, tenantId, bounds);
     },
     enabled: !!tenantId,
     staleTime: 1000 * 60 * 2,

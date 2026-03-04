@@ -27,6 +27,11 @@ export interface FounderAlert {
   message: string;
   value: number;
   threshold: number;
+  // Correction #9 — enriched overdue alerts
+  client?: string;
+  clientId?: string;
+  valor?: number;
+  diasAtraso?: number;
 }
 
 export interface ForecastMonth {
@@ -140,9 +145,22 @@ type PendingPayableRow = {
 
 // ── Main query ────────────────────────────────────────────────────────────────
 
+/**
+ * Period bounds resolved by the caller (from PeriodFilter component).
+ * Affects: receita, margem, unit revenue, top clients, top projects.
+ * Does NOT affect: burn rate (always 90d rolling), forecast (forward-looking),
+ * caixa atual (snapshot), runway (caixa/burn).
+ */
+export interface PeriodBounds {
+  from: string; // ISO date
+  to: string;   // ISO date
+  label: string;
+}
+
 export async function getFounderDashboardSnapshot(
   supabase: SupabaseClient<Database>,
-  tenantId: string
+  tenantId: string,
+  period?: PeriodBounds
 ): Promise<FounderDashboardSnapshot> {
   const now = new Date();
   const today = isoDate(now);
@@ -273,54 +291,51 @@ export async function getFounderDashboardSnapshot(
 
   const caixaAtual = hasBankData ? realBankBalance : computedNetPosition;
 
-  // ── MTD receita & despesa (filter by paid_date) ─────────────────────────────
+  // ── Period-filtered receita & despesa ──────────────────────────────────────
+  // When a period is provided by the caller (via PeriodFilter), use it.
+  // Otherwise default to MTD with 90-day fallback when empty.
 
-  const mtdReceivables = paidReceivables.filter(
-    (r) => r.paid_date && r.paid_date >= monthStart && r.paid_date <= today
+  const periodFrom = period?.from ?? monthStart;
+  const periodTo = period?.to ?? today;
+  let periodLabel = period?.label ?? "MTD";
+
+  let periodReceivables = paidReceivables.filter(
+    (r) => r.paid_date && r.paid_date >= periodFrom && r.paid_date <= periodTo
   );
-  const mtdPayables = paidPayables.filter(
-    (r) => r.paid_date && r.paid_date >= monthStart && r.paid_date <= today
+  let periodPayables = paidPayables.filter(
+    (r) => r.paid_date && r.paid_date >= periodFrom && r.paid_date <= periodTo
   );
 
-  let receitaRealizada = mtdReceivables.reduce((s, r) => s + paidVal(r), 0);
-  let despesaMTD = mtdPayables.reduce((s, r) => s + paidVal(r), 0);
-  let periodLabel = "MTD";
+  let receitaRealizada = periodReceivables.reduce((s, r) => s + paidVal(r), 0);
+  let despesaPeriod = periodPayables.reduce((s, r) => s + paidVal(r), 0);
 
-  // ── 90-day fallback ─────────────────────────────────────────────────────────
-  // If MTD is empty (no data yet this month), widen window to last 90 days.
-
-  if (receitaRealizada === 0 && despesaMTD === 0) {
-    const fb90Receivables = paidReceivables.filter(
+  // 90-day fallback only when no explicit period was chosen and MTD is empty
+  if (!period && receitaRealizada === 0 && despesaPeriod === 0) {
+    periodReceivables = paidReceivables.filter(
       (r) => r.paid_date && r.paid_date >= d90agoStr && r.paid_date <= today
     );
-    const fb90Payables = paidPayables.filter(
+    periodPayables = paidPayables.filter(
       (r) => r.paid_date && r.paid_date >= d90agoStr && r.paid_date <= today
     );
-
-    receitaRealizada = fb90Receivables.reduce((s, r) => s + paidVal(r), 0);
-    despesaMTD = fb90Payables.reduce((s, r) => s + paidVal(r), 0);
-
-    // Only change label if fallback actually found data
-    if (receitaRealizada > 0 || despesaMTD > 0) {
+    receitaRealizada = periodReceivables.reduce((s, r) => s + paidVal(r), 0);
+    despesaPeriod = periodPayables.reduce((s, r) => s + paidVal(r), 0);
+    if (receitaRealizada > 0 || despesaPeriod > 0) {
       periodLabel = "Ultimos 90 dias";
     }
   }
 
-  const margemReal = receitaRealizada - despesaMTD;
+  const margemReal = receitaRealizada - despesaPeriod;
   const margemPct = receitaRealizada > 0 ? (margemReal / receitaRealizada) * 100 : 0;
 
-  // ── Burn Rate — avg monthly despesas paid in last 3 full months ─────────────
+  // ── Burn Rate — total despesas paid in rolling 90 days / 3 ──────────────────
+  // Correction #7: Use rolling 90-day window (not 3 calendar months).
+  // Burn Rate = sum of paid expenses in last 90 days ÷ 3.
 
-  const burn3m = paidPayables.filter(
-    (r) => r.paid_date && r.paid_date >= m3agoStr && r.paid_date < monthStart
+  const burn90d = paidPayables.filter(
+    (r) => r.paid_date && r.paid_date >= d90agoStr && r.paid_date <= today
   );
-  const burnByMonth = new Map<string, number>();
-  for (const t of burn3m) {
-    if (!t.paid_date) continue;
-    const mk = t.paid_date.slice(0, 7);
-    burnByMonth.set(mk, (burnByMonth.get(mk) || 0) + paidVal(t));
-  }
-  const burnRate = avg(Array.from(burnByMonth.values()));
+  const burnTotal90d = burn90d.reduce((s, r) => s + paidVal(r), 0);
+  const burnRate = burnTotal90d / 3;
 
   // Break-even = same as burn rate (avg total costs to cover)
   const breakEven = burnRate;
@@ -343,9 +358,7 @@ export async function getFounderDashboardSnapshot(
   // despesas per unit. We show cost center names dynamically from fin_cost_centers.
 
   const unitCostMap = new Map<string, number>(); // ccName → custos
-  for (const t of mtdPayables.length > 0 ? mtdPayables : paidPayables.filter(
-    (r) => r.paid_date && r.paid_date >= d90agoStr && r.paid_date <= today
-  )) {
+  for (const t of periodPayables) {
     if (!t.cost_center_id) continue;
     const ccName = ccLookup.get(t.cost_center_id);
     if (!ccName) continue;
@@ -366,11 +379,11 @@ export async function getFounderDashboardSnapshot(
   const projReceita = new Map<string, number>();
   const projCustos = new Map<string, number>();
 
-  for (const r of paidReceivables) {
+  for (const r of periodReceivables) {
     if (!r.project_id) continue;
     projReceita.set(r.project_id, (projReceita.get(r.project_id) || 0) + paidVal(r));
   }
-  for (const r of paidPayables) {
+  for (const r of periodPayables) {
     if (!r.project_id) continue;
     projCustos.set(r.project_id, (projCustos.get(r.project_id) || 0) + paidVal(r));
   }
@@ -394,7 +407,7 @@ export async function getFounderDashboardSnapshot(
   // ── Top Clients by Revenue ──────────────────────────────────────────────────
 
   const clientRevMap = new Map<string, number>();
-  for (const r of paidReceivables) {
+  for (const r of periodReceivables) {
     const cid = r.client_id || "__none__";
     clientRevMap.set(cid, (clientRevMap.get(cid) || 0) + paidVal(r));
   }
@@ -417,8 +430,10 @@ export async function getFounderDashboardSnapshot(
 
   // ── Forecast 90d — pending receivables due in next 90 days ──────────────────
 
+  // Correction #8: Include current month in forecast and use ar90 total directly.
+  // Receivables due from today onwards (including today) up to 90 days ahead.
   const ar90 = pendingReceivables.filter(
-    (r) => r.due_date && r.due_date > today && r.due_date <= in90Str
+    (r) => r.due_date && r.due_date >= today && r.due_date <= in90Str
   );
   const forecastByMonth = new Map<string, number>();
   for (const r of ar90) {
@@ -427,11 +442,11 @@ export async function getFounderDashboardSnapshot(
     forecastByMonth.set(mk, (forecastByMonth.get(mk) || 0) + (r.amount ?? 0));
   }
 
-  // Build 3 months starting from next month
+  // Build 3 months starting from the current month (not next month)
   const forecastMonths: ForecastMonth[] = [];
   for (let i = 0; i < 3; i++) {
     const d = new Date(now);
-    d.setMonth(d.getMonth() + 1 + i);
+    d.setMonth(d.getMonth() + i);
     const mk = monthKey(d);
     const mm = String(d.getMonth() + 1).padStart(2, "0");
     forecastMonths.push({
@@ -441,7 +456,8 @@ export async function getFounderDashboardSnapshot(
     });
   }
 
-  const forecastTotal = forecastMonths.reduce((s, m) => s + m.value, 0);
+  // Forecast total = sum of all receivables in 90-day window (not just the 3 buckets)
+  const forecastTotal = ar90.reduce((s, r) => s + (r.amount ?? 0), 0);
 
   // ── Alerts (Founder Radar) ──────────────────────────────────────────────────
 
@@ -481,21 +497,47 @@ export async function getFounderDashboardSnapshot(
     }
   }
 
-  // 4. Pagamentos atrasados > 15 dias
-  const fifteenDaysAgo = new Date(now);
-  fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
-  const fifteenDaysAgoStr = isoDate(fifteenDaysAgo);
-  const overdueOld = pendingReceivables.filter(
-    (r) => r.status === "atrasado" && r.due_date && r.due_date < fifteenDaysAgoStr
+  // 4. Recebiveis atrasados — per-client alerts (Correction #9)
+  // Group overdue receivables by client and emit one alert per client with
+  // enriched fields: client name, clientId, valor, diasAtraso.
+  const overdueAll = pendingReceivables.filter(
+    (r) => r.status === "atrasado" && r.due_date && r.due_date < today
   );
-  if (overdueOld.length > 0) {
-    const totalOverdue = overdueOld.reduce((s, r) => s + (r.amount ?? 0), 0);
-    alerts.push({
-      type: "atraso",
-      message: `${overdueOld.length} recebivel(is) atrasado(s) ha mais de 15 dias (total: R$ ${totalOverdue.toLocaleString("pt-BR")})`,
-      value: overdueOld.length,
-      threshold: 0,
-    });
+
+  if (overdueAll.length > 0) {
+    // Group by client_id
+    const overdueByClient = new Map<string, { total: number; maxDays: number; items: number }>();
+    for (const r of overdueAll) {
+      const cid = r.client_id || "__none__";
+      const days = Math.floor(
+        (now.getTime() - new Date(r.due_date!).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      const prev = overdueByClient.get(cid) || { total: 0, maxDays: 0, items: 0 };
+      prev.total += r.amount ?? 0;
+      prev.maxDays = Math.max(prev.maxDays, days);
+      prev.items += 1;
+      overdueByClient.set(cid, prev);
+    }
+
+    // Emit one alert per client, sorted by value desc
+    const sortedOverdue = Array.from(overdueByClient.entries())
+      .sort((a, b) => b[1].total - a[1].total);
+
+    for (const [cid, info] of sortedOverdue) {
+      const clientName = cid === "__none__"
+        ? "Sem cliente"
+        : (clientLookup.get(cid) || cid.slice(0, 8));
+      alerts.push({
+        type: "atraso",
+        message: `Recebivel atrasado — R$ ${info.total.toLocaleString("pt-BR")} | ${clientName} | Atraso: ${info.maxDays} dias`,
+        value: info.total,
+        threshold: 0,
+        client: clientName,
+        clientId: cid === "__none__" ? undefined : cid,
+        valor: info.total,
+        diasAtraso: info.maxDays,
+      });
+    }
   }
 
   // 5. Despesas crescendo acima da receita (2 meses anteriores)

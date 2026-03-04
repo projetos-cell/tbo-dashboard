@@ -112,6 +112,7 @@ export function FounderAlerts({ alerts, isLoading }: FounderAlertsProps) {
             const Icon = ALERT_ICONS[alert.type] || AlertTriangle;
             const colorClass = ALERT_COLORS[alert.type] || "text-amber-600";
             const badgeVariant = ALERT_BADGE[alert.type] || "secondary";
+            const isOverdue = alert.type === "atraso" && alert.client != null;
 
             return (
               <div
@@ -120,15 +121,45 @@ export function FounderAlerts({ alerts, isLoading }: FounderAlertsProps) {
               >
                 <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${colorClass}`} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm">{alert.message}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant={badgeVariant} className="text-xs">
-                      Atual: {formatAlertValue(alert)}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      Limiar: {formatAlertThreshold(alert)}
-                    </span>
-                  </div>
+                  {isOverdue ? (
+                    <>
+                      <p className="text-sm font-medium">
+                        Recebivel atrasado — {fmtBRL(alert.valor ?? 0)}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Cliente: {alert.client} &middot; Atraso: {alert.diasAtraso ?? 0} dias
+                      </p>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <Badge variant="destructive" className="text-xs">
+                          {fmtBRL(alert.valor ?? 0)}
+                        </Badge>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 rounded-md bg-orange-600 px-2.5 py-0.5 text-xs font-medium text-white hover:bg-orange-700 transition-colors"
+                          onClick={() => {
+                            // TODO: integrate with billing/collection flow
+                            window.alert(
+                              `Acao: cobrar cliente "${alert.client}" — ${fmtBRL(alert.valor ?? 0)}`
+                            );
+                          }}
+                        >
+                          Cobrar Cliente
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm">{alert.message}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant={badgeVariant} className="text-xs">
+                          Atual: {formatAlertValue(alert)}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          Limiar: {formatAlertThreshold(alert)}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             );
@@ -137,6 +168,17 @@ export function FounderAlerts({ alerts, isLoading }: FounderAlertsProps) {
       )}
     </div>
   );
+}
+
+// ── Currency formatting ──────────────────────────────────────────────────
+
+function fmtBRL(value: number): string {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
 // ── Value formatting ─────────────────────────────────────────────────────────

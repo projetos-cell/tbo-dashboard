@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
 import { hasMinRole } from "@/lib/permissions";
 import { useFounderDashboard } from "@/hooks/use-founder-dashboard";
+import { PeriodFilter, type PeriodValue } from "@/components/founder-dashboard/period-filter";
 import {
   TrendingUp,
   BarChart3,
@@ -106,6 +107,7 @@ const TOOLTIP_CAIXA_PREVISTO: KpiTooltipContent = {
 export default function FinanceiroFounderPage() {
   const role = useAuthStore((s) => s.role);
   const router = useRouter();
+  const [period, setPeriod] = useState<PeriodValue>({ preset: "mtd" });
 
   useEffect(() => {
     if (role && !hasMinRole(role, "diretoria")) {
@@ -113,7 +115,7 @@ export default function FinanceiroFounderPage() {
     }
   }, [role, router]);
 
-  const { data, isLoading, error, refetch } = useFounderDashboard();
+  const { data, isLoading, error, refetch } = useFounderDashboard(period);
 
   if (!role || !hasMinRole(role, "diretoria")) {
     return null;
@@ -125,21 +127,24 @@ export default function FinanceiroFounderPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Visao Estrategica</h1>
-        <p className="text-muted-foreground">
-          Dashboard financeiro executivo — dados consolidados do Omie.
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Visao Estrategica</h1>
+          <p className="text-muted-foreground">
+            Dashboard financeiro executivo — dados consolidados do Omie.
+          </p>
+        </div>
+        <PeriodFilter value={period} onChange={setPeriod} />
       </div>
 
-      {/* Row 1 — Saude: Receita | Margem | Runway */}
+      {/* Row 1 — Founder Metrics: Receita MTD | Margem | Caixa Atual | Runway */}
       <div>
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-          Saude Financeira
+          Founder Metrics
         </h2>
-        <KpiGrid columns={3}>
+        <KpiGrid columns={4}>
           <KpiCard
-            title="Receita Realizada"
+            title="Receita MTD"
             value={d ? fmt(d.receitaRealizada) : "—"}
             sublabel={d?.periodLabel ? `${d.periodLabel} (pagas)` : "MTD (pagas)"}
             icon={<TrendingUp className="h-4 w-4 text-emerald-500" />}
@@ -151,7 +156,7 @@ export default function FinanceiroFounderPage() {
             onRetry={() => refetch()}
           />
           <KpiCard
-            title="Margem Real"
+            title="Margem"
             value={d ? `${fmt(d.margemReal)} (${fmtPct(d.margemPct)})` : "—"}
             sublabel="Receita - Custos diretos"
             icon={<BarChart3 className="h-4 w-4 text-blue-500" />}
@@ -163,6 +168,21 @@ export default function FinanceiroFounderPage() {
             tooltip={TOOLTIP_MARGEM}
             isLoading={isLoading}
             isEmpty={!isLoading && !!d && d.receitaRealizada === 0 && d.margemReal === 0}
+            error={errMsg}
+            onRetry={() => refetch()}
+          />
+          <KpiCard
+            title="Caixa Atual"
+            value={d ? d.caixaAtual : 0}
+            sublabel="Saldo consolidado"
+            icon={<Wallet className="h-4 w-4 text-violet-500" />}
+            colorClass={
+              d && d.caixaAtual >= 0
+                ? "text-violet-600 dark:text-violet-400"
+                : "text-red-600 dark:text-red-400"
+            }
+            tooltip={TOOLTIP_CAIXA}
+            isLoading={isLoading}
             error={errMsg}
             onRetry={() => refetch()}
           />
@@ -187,31 +207,16 @@ export default function FinanceiroFounderPage() {
         </KpiGrid>
       </div>
 
-      {/* Row 2 — Caixa: Caixa atual | Burn rate | Break-even | Caixa previsto */}
+      {/* Row 2 — Saude Financeira: Burn Rate | Break-even | Caixa previsto (30d) */}
       <div>
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-          Caixa e Projecoes
+          Saude Financeira
         </h2>
-        <KpiGrid columns={4}>
-          <KpiCard
-            title="Caixa Atual"
-            value={d ? d.caixaAtual : 0}
-            sublabel="Saldo consolidado"
-            icon={<Wallet className="h-4 w-4 text-violet-500" />}
-            colorClass={
-              d && d.caixaAtual >= 0
-                ? "text-violet-600 dark:text-violet-400"
-                : "text-red-600 dark:text-red-400"
-            }
-            tooltip={TOOLTIP_CAIXA}
-            isLoading={isLoading}
-            error={errMsg}
-            onRetry={() => refetch()}
-          />
+        <KpiGrid columns={3}>
           <KpiCard
             title="Burn Rate"
             value={d ? d.burnRate : 0}
-            sublabel="Media mensal (3 meses)"
+            sublabel="Media mensal (90 dias)"
             icon={<Flame className="h-4 w-4 text-red-500" />}
             colorClass="text-red-600 dark:text-red-400"
             tooltip={TOOLTIP_BURN}
@@ -254,37 +259,45 @@ export default function FinanceiroFounderPage() {
         </KpiGrid>
       </div>
 
-      {/* Row 3 — Receita: Unit Revenue | Top Projects */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <UnitRevenueTable
-          data={d?.unitRevenue ?? []}
-          isLoading={isLoading}
-        />
-        <TopProjectsTable
-          data={d?.topProjectsByMargin ?? []}
-          isLoading={isLoading}
-        />
+      {/* Row 3 — Performance: Receita por unidade | Top clientes | Top projetos */}
+      <div>
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          Performance
+        </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <UnitRevenueTable
+            data={d?.unitRevenue ?? []}
+            isLoading={isLoading}
+          />
+          <TopClientsTable
+            data={d?.topClientsByRevenue ?? []}
+            concentracaoTop3={d?.concentracaoTop3 ?? 0}
+            isLoading={isLoading}
+          />
+          <TopProjectsTable
+            data={d?.topProjectsByMargin ?? []}
+            isLoading={isLoading}
+          />
+        </div>
       </div>
 
-      {/* Row 4 — Clientes / Risco: Top Clients | Alerts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <TopClientsTable
-          data={d?.topClientsByRevenue ?? []}
-          concentracaoTop3={d?.concentracaoTop3 ?? 0}
-          isLoading={isLoading}
-        />
-        <FounderAlerts
-          alerts={d?.alerts ?? []}
-          isLoading={isLoading}
-        />
+      {/* Row 4 — Alertas: Alertas estrategicos | Forecast */}
+      <div>
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          Alertas
+        </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <FounderAlerts
+            alerts={d?.alerts ?? []}
+            isLoading={isLoading}
+          />
+          <ForecastPanel
+            total={d?.forecast90d.total ?? 0}
+            months={d?.forecast90d.months ?? []}
+            isLoading={isLoading}
+          />
+        </div>
       </div>
-
-      {/* Row 5 — Forecast 90 dias */}
-      <ForecastPanel
-        total={d?.forecast90d.total ?? 0}
-        months={d?.forecast90d.months ?? []}
-        isLoading={isLoading}
-      />
     </div>
   );
 }

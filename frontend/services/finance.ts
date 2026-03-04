@@ -89,7 +89,9 @@ export interface FinanceSyncResult {
 
 export interface FinanceFilters {
   type?: "receita" | "despesa" | "transferencia";
+  typeIn?: string[];
   status?: string;
+  statusIn?: string[];
   category_id?: string;
   cost_center_id?: string;
   dateFrom?: string;
@@ -123,7 +125,9 @@ export async function getFinanceTransactions(
     .order("date", { ascending: false });
 
   if (filters.type) query = query.eq("type", filters.type);
+  if (filters.typeIn?.length) query = query.in("type", filters.typeIn);
   if (filters.status) query = query.eq("status", filters.status);
+  if (filters.statusIn?.length) query = query.in("status", filters.statusIn);
   if (filters.category_id) query = query.eq("category_id", filters.category_id);
   if (filters.cost_center_id)
     query = query.eq("cost_center_id", filters.cost_center_id);

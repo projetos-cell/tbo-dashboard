@@ -29,6 +29,7 @@ export interface KpiCardProps {
   tooltip: KpiTooltipContent;
   isLoading?: boolean;
   isEmpty?: boolean;
+  emptyMessage?: string;
   error?: string | null;
   onRetry?: () => void;
   onClick?: () => void;
@@ -58,6 +59,7 @@ export function KpiCard({
   tooltip,
   isLoading = false,
   isEmpty = false,
+  emptyMessage,
   error = null,
   onRetry,
   onClick,
@@ -123,7 +125,7 @@ export function KpiCard({
         <>
           <p className="text-2xl font-bold text-muted-foreground">&mdash;</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Sem dados no periodo
+            {emptyMessage || "Sem dados no período"}
           </p>
         </>
       ) : (
@@ -153,7 +155,7 @@ function TooltipInfo({ tooltip }: { tooltip: KpiTooltipContent }) {
         <button
           type="button"
           className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          aria-label="Informacoes do KPI"
+          aria-label="Informações do KPI"
           onClick={(e) => e.stopPropagation()}
         >
           <Info className="h-3.5 w-3.5" />
@@ -164,7 +166,7 @@ function TooltipInfo({ tooltip }: { tooltip: KpiTooltipContent }) {
         {tooltip.formula && (
           <div>
             <span className="text-xs font-medium text-muted-foreground">
-              Formula:
+              Fórmula:
             </span>
             <p className="text-xs font-mono bg-muted px-2 py-1 rounded mt-0.5">
               {tooltip.formula}
@@ -182,7 +184,7 @@ function TooltipInfo({ tooltip }: { tooltip: KpiTooltipContent }) {
         {tooltip.notEnters && (
           <div>
             <span className="text-xs font-medium text-red-600 dark:text-red-400">
-              Nao entra:
+              Não entra:
             </span>
             <p className="text-xs text-muted-foreground">
               {tooltip.notEnters}

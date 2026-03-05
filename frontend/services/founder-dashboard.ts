@@ -78,7 +78,7 @@ export interface FounderDashboardSnapshot {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const PAID_STATUSES = ["pago", "parcial"];
+const PAID_STATUSES = ["pago", "parcial", "liquidado"];
 const PENDING_RECEIVABLE = ["aberto", "emitido", "atrasado"];
 const PENDING_PAYABLE = ["aberto", "aprovado", "atrasado"];
 

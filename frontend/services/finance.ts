@@ -7,7 +7,7 @@ export interface FinanceTransaction {
   id: string;
   tenant_id: string;
   type: "receita" | "despesa" | "transferencia";
-  status: "previsto" | "provisionado" | "pago" | "atrasado" | "recorrente" | "cancelado";
+  status: "previsto" | "provisionado" | "pago" | "liquidado" | "parcial" | "atrasado" | "recorrente" | "cancelado";
   description: string;
   notes: string | null;
   tags: string[];
@@ -242,7 +242,7 @@ export async function getFinanceStatus(
   const receitas = transactions.filter((t) => t.type === "receita").length;
   const despesas = transactions.filter((t) => t.type === "despesa").length;
   const pending = transactions.filter((t) => t.status === "previsto" || t.status === "provisionado").length;
-  const paid = transactions.filter((t) => t.status === "pago").length;
+  const paid = transactions.filter((t) => t.status === "pago" || t.status === "liquidado" || t.status === "parcial").length;
   const overdue = transactions.filter((t) => t.status === "atrasado").length;
 
   // Find most recent sync timestamp
@@ -316,7 +316,7 @@ export async function getFounderKPIs(
       .from(TABLE_TRANSACTIONS)
       .select("type, amount, paid_amount, cost_center_id, category_id, business_unit, project_id")
       .eq("tenant_id", tenantId)
-      .in("status", ["pago", "provisionado"])
+      .in("status", ["pago", "provisionado", "liquidado"])
       .gte("date", monthStart)
       .lte("date", today),
     // AP next 30d (pending despesas)

@@ -47,19 +47,19 @@ function fmtMonths(value: number): string {
 // ── Tooltip content (from spec) ──────────────────────────────────────────────
 
 const TOOLTIP_RECEITA: KpiTooltipContent = {
-  description: "Soma de todas as receitas recebidas (baixadas) no mes atual.",
+  description: "Soma de todas as receitas recebidas (baixadas) no mês atual.",
   formula: undefined,
-  enters: "Titulos baixados no periodo (status pago).",
+  enters: "Títulos baixados no período (status pago).",
   notEnters: "Faturado sem recebimento, propostas em aberto.",
   source: "Omie — Contas a Receber (baixados)",
 };
 
 const TOOLTIP_MARGEM: KpiTooltipContent = {
-  description: "Lucro real apos custos diretos de projetos/producao.",
+  description: "Lucro real após custos diretos de projetos/produção.",
   formula: "Receita Realizada - Custos Diretos Pagos",
-  enters: "Despesas de projetos e producao (pagos).",
+  enters: "Despesas de projetos e produção (pagos).",
   notEnters: "Custo fixo (folha, softwares, infra).",
-  source: "Omie — AP + classificacao de custos",
+  source: "Omie — AP + classificação de custos",
 };
 
 const TOOLTIP_RUNWAY: KpiTooltipContent = {
@@ -67,35 +67,35 @@ const TOOLTIP_RUNWAY: KpiTooltipContent = {
   formula: "Caixa Atual / Burn Rate",
   enters: undefined,
   notEnters: undefined,
-  source: "Omie — saldos bancarios + calculo interno",
+  source: "Omie — saldos bancários + cálculo interno",
 };
 
 const TOOLTIP_CAIXA: KpiTooltipContent = {
-  description: "Saldo consolidado de todas as contas bancarias hoje.",
+  description: "Saldo consolidado de todas as contas bancárias hoje.",
   formula: undefined,
-  enters: "Contas bancarias cadastradas no Omie.",
+  enters: "Contas bancárias cadastradas no Omie.",
   notEnters: undefined,
-  source: "Omie — saldos bancarios (snapshot diario)",
+  source: "Omie — saldos bancários (snapshot diário)",
 };
 
 const TOOLTIP_BURN: KpiTooltipContent = {
-  description: "Media mensal de gastos totais nos ultimos 3 meses.",
-  formula: "Media de despesas pagas (ultimos 3 meses)",
+  description: "Média mensal de gastos totais nos últimos 3 meses.",
+  formula: "Média de despesas pagas (últimos 3 meses)",
   enters: undefined,
   notEnters: undefined,
   source: "Omie — Contas a Pagar (baixadas)",
 };
 
 const TOOLTIP_BREAKEVEN: KpiTooltipContent = {
-  description: "Receita minima mensal para cobrir todos os custos (fixos + variaveis).",
-  formula: "Custos Fixos + Custos Variaveis medios",
-  enters: "Folha, softwares, infra, custos variaveis.",
+  description: "Receita mínima mensal para cobrir todos os custos (fixos + variáveis).",
+  formula: "Custos Fixos + Custos Variáveis médios",
+  enters: "Folha, softwares, infra, custos variáveis.",
   notEnters: undefined,
   source: "Omie — AP + centros de custo",
 };
 
 const TOOLTIP_CAIXA_PREVISTO: KpiTooltipContent = {
-  description: "Projecao de caixa para os proximos 30 dias.",
+  description: "Projeção de caixa para os próximos 30 dias.",
   formula: "Caixa Atual + A Receber(30d) - A Pagar(30d)",
   enters: undefined,
   notEnters: undefined,
@@ -129,7 +129,7 @@ export default function FinanceiroFounderPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Visao Estrategica</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Visão Estratégica</h1>
           <p className="text-muted-foreground">
             Dashboard financeiro executivo — dados consolidados do Omie.
           </p>
@@ -152,6 +152,7 @@ export default function FinanceiroFounderPage() {
             tooltip={TOOLTIP_RECEITA}
             isLoading={isLoading}
             isEmpty={!isLoading && !!d && d.receitaRealizada === 0}
+            emptyMessage="Nenhuma receita paga neste período. Verifique a sincronização com o Omie."
             error={errMsg}
             onRetry={() => refetch()}
           />
@@ -168,6 +169,7 @@ export default function FinanceiroFounderPage() {
             tooltip={TOOLTIP_MARGEM}
             isLoading={isLoading}
             isEmpty={!isLoading && !!d && d.receitaRealizada === 0 && d.margemReal === 0}
+            emptyMessage="Sem receitas ou custos registrados neste período."
             error={errMsg}
             onRetry={() => refetch()}
           />
@@ -189,7 +191,7 @@ export default function FinanceiroFounderPage() {
           <KpiCard
             title="Runway"
             value={d ? fmtMonths(d.runway) : "—"}
-            sublabel="Meses de sobrevivencia"
+            sublabel="Meses de sobrevivência"
             icon={<ShieldAlert className="h-4 w-4 text-orange-500" />}
             colorClass={
               d && d.runway >= 6
@@ -201,39 +203,42 @@ export default function FinanceiroFounderPage() {
             tooltip={TOOLTIP_RUNWAY}
             isLoading={isLoading}
             isEmpty={!isLoading && !!d && d.caixaAtual === 0 && d.burnRate === 0}
+            emptyMessage="Cadastre o saldo bancário para calcular o runway."
             error={errMsg}
             onRetry={() => refetch()}
           />
         </KpiGrid>
       </div>
 
-      {/* Row 2 — Saude Financeira: Burn Rate | Break-even | Caixa previsto (30d) */}
+      {/* Row 2 — Saúde Financeira: Burn Rate | Break-even | Caixa previsto (30d) */}
       <div>
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-          Saude Financeira
+          Saúde Financeira
         </h2>
         <KpiGrid columns={3}>
           <KpiCard
             title="Burn Rate"
             value={d ? d.burnRate : 0}
-            sublabel="Media mensal (90 dias)"
+            sublabel="Média mensal (90 dias)"
             icon={<Flame className="h-4 w-4 text-red-500" />}
             colorClass="text-red-600 dark:text-red-400"
             tooltip={TOOLTIP_BURN}
             isLoading={isLoading}
             isEmpty={!isLoading && !!d && d.burnRate === 0}
+            emptyMessage="Sem despesas pagas nos últimos 90 dias para calcular o burn rate."
             error={errMsg}
             onRetry={() => refetch()}
           />
           <KpiCard
             title="Break-even"
             value={d ? d.breakEven : 0}
-            sublabel="Receita minima mensal"
+            sublabel="Receita mínima mensal"
             icon={<Scale className="h-4 w-4 text-amber-500" />}
             colorClass="text-amber-600 dark:text-amber-400"
             tooltip={TOOLTIP_BREAKEVEN}
             isLoading={isLoading}
             isEmpty={!isLoading && !!d && d.breakEven === 0}
+            emptyMessage="Sem dados de custos para calcular o ponto de equilíbrio."
             error={errMsg}
             onRetry={() => refetch()}
           />
@@ -281,7 +286,7 @@ export default function FinanceiroFounderPage() {
         </div>
       </div>
 
-      {/* Row 4 — Alertas: Alertas estrategicos | Forecast */}
+      {/* Row 4 — Alertas: Alertas estratégicos | Forecast */}
       <div>
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           Alertas

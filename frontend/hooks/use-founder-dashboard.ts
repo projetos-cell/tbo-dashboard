@@ -27,6 +27,7 @@ const EMPTY_SNAPSHOT: FounderDashboardSnapshot = {
   unitRevenue: [],
   topProjectsByMargin: [],
   topClientsByRevenue: [],
+  allClientsByRevenue: [],
   concentracaoTop3: 0,
   alerts: [],
   forecast90d: { total: 0, months: [] },

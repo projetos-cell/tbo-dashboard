@@ -173,7 +173,7 @@ export async function getFounderDashboardSnapshot(
   ] = await Promise.all([
     // 1. Paid transactions — all-time, filtered client-side for period/trends
     supabase
-      .from("finance_transactions")
+      .from("finance_transactions" as never)
       .select("amount, paid_amount, paid_date, due_date, status, type, counterpart, project_id, cost_center_id, business_unit")
       .eq("tenant_id", tenantId)
       .in("type", ["receita", "despesa"])
@@ -181,7 +181,7 @@ export async function getFounderDashboardSnapshot(
 
     // 2. Pending transactions — open/overdue obligations
     supabase
-      .from("finance_transactions")
+      .from("finance_transactions" as never)
       .select("amount, due_date, status, type, counterpart")
       .eq("tenant_id", tenantId)
       .in("type", ["receita", "despesa"])
@@ -189,13 +189,13 @@ export async function getFounderDashboardSnapshot(
 
     // 3. Cost centers for unit revenue name mapping
     supabase
-      .from("fin_cost_centers")
+      .from("fin_cost_centers" as never)
       .select("id, name")
       .eq("tenant_id", tenantId),
 
     // 4. Projects for name lookup
     supabase
-      .from("projects")
+      .from("projects" as never)
       .select("id, name")
       .eq("tenant_id", tenantId),
 

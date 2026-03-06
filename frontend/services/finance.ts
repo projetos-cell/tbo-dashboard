@@ -265,6 +265,75 @@ export async function getFinanceStatus(
   };
 }
 
+// ── Status with monetary amounts (for DateRangeFilter cards) ─────────────────
+
+export interface FinanceStatusWithAmounts {
+  /** Total valor a receber (receitas pendentes/previstas) no período */
+  arCount: number;
+  arAmount: number;
+  /** Total valor a pagar (despesas pendentes/previstas) no período */
+  apCount: number;
+  apAmount: number;
+  /** Pendentes (qualquer tipo) no período */
+  pendingCount: number;
+  /** Atrasados no período */
+  overdueCount: number;
+  /** Gap = arAmount - apAmount */
+  gap: number;
+}
+
+export async function getFinanceStatusWithAmounts(
+  supabase: SupabaseClient<Database>,
+  tenantId: string,
+  dateFrom?: string,
+  dateTo?: string
+): Promise<FinanceStatusWithAmounts> {
+  let query = (supabase as any)
+    .from(TABLE_TRANSACTIONS)
+    .select("type, status, amount, paid_amount")
+    .eq("tenant_id", tenantId);
+
+  if (dateFrom) query = query.gte("date", dateFrom);
+  if (dateTo) query = query.lte("date", dateTo);
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const rows = (data ?? []) as Array<{
+    type: string;
+    status: string;
+    amount: number;
+    paid_amount: number;
+  }>;
+
+  const isAR = (r: typeof rows[0]) =>
+    r.type === "receita" &&
+    (r.status === "previsto" || r.status === "provisionado" || r.status === "atrasado");
+
+  const isAP = (r: typeof rows[0]) =>
+    r.type === "despesa" &&
+    (r.status === "previsto" || r.status === "provisionado" || r.status === "atrasado");
+
+  const isPending = (r: typeof rows[0]) =>
+    r.status === "previsto" || r.status === "provisionado";
+
+  const arRows = rows.filter(isAR);
+  const apRows = rows.filter(isAP);
+
+  const arAmount = arRows.reduce((s, r) => s + (r.paid_amount || r.amount || 0), 0);
+  const apAmount = apRows.reduce((s, r) => s + (r.paid_amount || r.amount || 0), 0);
+
+  return {
+    arCount: arRows.length,
+    arAmount,
+    apCount: apRows.length,
+    apAmount,
+    pendingCount: rows.filter(isPending).length,
+    overdueCount: rows.filter((r) => r.status === "atrasado").length,
+    gap: arAmount - apAmount,
+  };
+}
+
 // ── Founder KPI aggregations ─────────────────────────────────────────────────
 
 export interface FounderKPIs {

@@ -10,6 +10,7 @@ import {
   getFinanceCostCenters,
   getFinanceSnapshots,
   getFinanceStatus,
+  getFinanceStatusWithAmounts,
   getFounderKPIs,
   triggerFinanceSync,
   type FinanceTransaction,
@@ -17,6 +18,7 @@ import {
   type FinanceCostCenter,
   type FinanceSnapshot,
   type FinanceStatus,
+  type FinanceStatusWithAmounts,
   type FinanceFilters,
   type FounderKPIs,
 } from "@/services/finance";
@@ -63,6 +65,9 @@ export function useFinanceTransactions(filters: FinanceFilters = {}) {
           // Also refresh status when transactions change
           qc.invalidateQueries({
             queryKey: ["finance-status", tenantId],
+          });
+          qc.invalidateQueries({
+            queryKey: ["finance-status-amounts", tenantId],
           });
           // Keep founder KPIs and snapshots in sync
           qc.invalidateQueries({
@@ -163,6 +168,33 @@ export function useFinanceStatus() {
   });
 }
 
+// ── Status with Monetary Amounts ─────────────────────────────────────────────
+
+export function useFinanceStatusWithAmounts(dateFrom?: string, dateTo?: string) {
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery<FinanceStatusWithAmounts>({
+    queryKey: ["finance-status-amounts", tenantId, dateFrom, dateTo],
+    queryFn: async () => {
+      if (!tenantId)
+        return {
+          arCount: 0,
+          arAmount: 0,
+          apCount: 0,
+          apAmount: 0,
+          pendingCount: 0,
+          overdueCount: 0,
+          gap: 0,
+        };
+      const supabase = createClient();
+      return getFinanceStatusWithAmounts(supabase, tenantId, dateFrom, dateTo);
+    },
+    enabled: !!tenantId,
+    staleTime: 1000 * 30,
+    refetchInterval: 1000 * 60,
+  });
+}
+
 // ── Founder KPIs ─────────────────────────────────────────────────────────────
 
 export function useFounderKPIs() {
@@ -208,6 +240,7 @@ export function useTriggerFinanceSync() {
       qc.invalidateQueries({ queryKey: ["finance-categories", tenantId] });
       qc.invalidateQueries({ queryKey: ["finance-cost-centers", tenantId] });
       qc.invalidateQueries({ queryKey: ["finance-status", tenantId] });
+      qc.invalidateQueries({ queryKey: ["finance-status-amounts", tenantId] });
       qc.invalidateQueries({ queryKey: ["finance-snapshots", tenantId] });
       qc.invalidateQueries({ queryKey: ["finance-founder-kpis", tenantId] });
     },

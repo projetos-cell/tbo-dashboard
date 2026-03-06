@@ -52,7 +52,7 @@ export function useFounderDashboard(period?: PeriodValue) {
     refetchInterval: 1000 * 60 * 5,
   });
 
-  // Realtime — invalidate when legacy fin_payables or fin_receivables change
+  // Realtime — invalidate when finance_transactions or fin_bank_accounts change
   useEffect(() => {
     if (!tenantId) return;
 
@@ -60,28 +60,14 @@ export function useFounderDashboard(period?: PeriodValue) {
     const queryKey = ["founder-dashboard", tenantId];
     const invalidate = () => qc.invalidateQueries({ queryKey });
 
-    const channelAP = supabase
-      .channel(`founder-dash-ap:${tenantId}`)
+    const channelTx = supabase
+      .channel(`founder-dash-tx:${tenantId}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
-          table: "fin_payables",
-          filter: `tenant_id=eq.${tenantId}`,
-        },
-        invalidate,
-      )
-      .subscribe();
-
-    const channelAR = supabase
-      .channel(`founder-dash-ar:${tenantId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "fin_receivables",
+          table: "finance_transactions",
           filter: `tenant_id=eq.${tenantId}`,
         },
         invalidate,
@@ -103,8 +89,7 @@ export function useFounderDashboard(period?: PeriodValue) {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channelAP);
-      supabase.removeChannel(channelAR);
+      supabase.removeChannel(channelTx);
       supabase.removeChannel(channelBank);
     };
   }, [tenantId, qc]);

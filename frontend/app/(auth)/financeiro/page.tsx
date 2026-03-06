@@ -20,9 +20,15 @@ import {
   useFinanceTransactions,
   useFinanceCategories,
   useFinanceStatus,
+  useFinanceStatusWithAmounts,
   useTriggerFinanceSync,
 } from "@/hooks/use-finance";
 import type { FinanceFilters } from "@/services/finance";
+import {
+  DateRangeFilter,
+  type DateRangeValue,
+  resolveDateRange,
+} from "@/components/financeiro/date-range-filter";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -180,6 +186,7 @@ export default function FinanceiroPage() {
   const [sortField, setSortField] = useState<string>("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [showFilters, setShowFilters] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRangeValue>({ preset: "mtd" });
 
   // ── Section change handler (full reset) ───────────────────────────────────
   const handleSectionChange = useCallback((newSection: Section) => {
@@ -209,11 +216,19 @@ export default function FinanceiroPage() {
     setFilters((prev) => ({ ...prev, ...navFilters, page: 1 }));
   }, []);
 
+  // ── Effective filters (merge date range into query filters) ──────────────
+  const effectiveFilters = useMemo<FinanceFilters>(() => {
+    const { from, to } = resolveDateRange(dateRange);
+    return { ...filters, dateFrom: from, dateTo: to };
+  }, [filters, dateRange]);
+
   // ── Data hooks ────────────────────────────────────────────────────────────
   const { data: txData, isLoading: txLoading } =
-    useFinanceTransactions(filters);
+    useFinanceTransactions(effectiveFilters);
   const { data: categories } = useFinanceCategories();
   const { data: status } = useFinanceStatus();
+  const { from: amountsFrom, to: amountsTo } = resolveDateRange(dateRange);
+  const { data: statusAmounts } = useFinanceStatusWithAmounts(amountsFrom, amountsTo);
   const syncMutation = useTriggerFinanceSync();
 
   const transactions = txData?.data ?? [];
@@ -292,6 +307,7 @@ export default function FinanceiroPage() {
     const navFilters = buildNavFilters(section, titulosTab, movTab);
     setFilters({ page: 1, pageSize: 25, ...navFilters });
     setSearchInput("");
+    setDateRange({ preset: "mtd" });
   }, [section, titulosTab, movTab]);
 
   const handleSort = useCallback(
@@ -313,13 +329,12 @@ export default function FinanceiroPage() {
   }, []);
 
   // Active filter count (only user-set filters, not nav-driven ones)
+  // Note: dateFrom/dateTo are now managed by DateRangeFilter, not counted here
   const activeFilterCount = [
     filters.status,
     filters.category_id,
     filters.business_unit,
     filters.project_id,
-    filters.dateFrom,
-    filters.dateTo,
     filters.search,
   ].filter(Boolean).length;
 
@@ -357,18 +372,21 @@ export default function FinanceiroPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => syncMutation.mutate()}
-          disabled={syncMutation.isPending}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium
-                     bg-primary text-primary-foreground hover:opacity-90
-                     disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
-        >
-          <RefreshCw
-            className={`h-4 w-4 ${syncMutation.isPending ? "animate-spin" : ""}`}
-          />
-          {syncMutation.isPending ? "Sincronizando…" : "Sincronizar Omie"}
-        </button>
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <DateRangeFilter value={dateRange} onChange={setDateRange} />
+          <button
+            onClick={() => syncMutation.mutate()}
+            disabled={syncMutation.isPending}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium
+                       bg-primary text-primary-foreground hover:opacity-90
+                       disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${syncMutation.isPending ? "animate-spin" : ""}`}
+            />
+            {syncMutation.isPending ? "Sincronizando…" : "Sincronizar Omie"}
+          </button>
+        </div>
       </div>
 
       {/* Sync result message */}
@@ -400,27 +418,43 @@ export default function FinanceiroPage() {
 
       {/* Status summary cards — contextual per section */}
       {status && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div
+          className={`grid gap-3 grid-cols-2 ${
+            section === "titulos" ? "sm:grid-cols-5" : "sm:grid-cols-4"
+          }`}
+        >
           {section === "titulos" ? (
             <>
               <StatusCard
                 label="A Receber"
-                value={status.totalReceitas}
+                value={statusAmounts?.arCount ?? status.totalReceitas}
                 color="text-emerald-600 dark:text-emerald-400"
+                amount={statusAmounts ? formatCurrency(statusAmounts.arAmount) : undefined}
               />
               <StatusCard
                 label="A Pagar"
-                value={status.totalDespesas}
+                value={statusAmounts?.apCount ?? status.totalDespesas}
                 color="text-red-600 dark:text-red-400"
+                amount={statusAmounts ? formatCurrency(statusAmounts.apAmount) : undefined}
+              />
+              <StatusCard
+                label="Gap AR − AP"
+                value={statusAmounts ? formatCurrency(statusAmounts.gap) : "—"}
+                color={
+                  statusAmounts && statusAmounts.gap >= 0
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-red-600 dark:text-red-400"
+                }
+                isCurrency
               />
               <StatusCard
                 label="Pendentes"
-                value={status.pendingCount}
+                value={statusAmounts?.pendingCount ?? status.pendingCount}
                 color="text-amber-600 dark:text-amber-400"
               />
               <StatusCard
                 label="Atrasados"
-                value={status.overdueCount}
+                value={statusAmounts?.overdueCount ?? status.overdueCount}
                 color="text-red-600 dark:text-red-400"
               />
             </>
@@ -636,37 +670,6 @@ export default function FinanceiroPage() {
               <option value="Audiovisual">Audiovisual</option>
               <option value="Interiores">Interiores</option>
             </select>
-          </div>
-
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <label className="block text-xs font-medium text-muted-foreground mb-1">
-                De
-              </label>
-              <input
-                type="date"
-                value={filters.dateFrom ?? ""}
-                onChange={(e) =>
-                  handleFilterChange("dateFrom", e.target.value)
-                }
-                className="w-full px-3 py-2 rounded-md border border-border bg-background
-                           text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-            <div className="flex-1">
-              <label className="block text-xs font-medium text-muted-foreground mb-1">
-                Até
-              </label>
-              <input
-                type="date"
-                value={filters.dateTo ?? ""}
-                onChange={(e) =>
-                  handleFilterChange("dateTo", e.target.value)
-                }
-                className="w-full px-3 py-2 rounded-md border border-border bg-background
-                           text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
           </div>
         </div>
       )}
@@ -951,17 +954,28 @@ function StatusCard({
   label,
   value,
   color,
+  amount,
+  isCurrency = false,
 }: {
   label: string;
-  value: number;
+  value: number | string;
   color: string;
+  amount?: string;
+  isCurrency?: boolean;
 }) {
+  // isCurrency signals value is pre-formatted; number values render natively
+  void isCurrency;
   return (
     <div className="rounded-md border border-border p-4 bg-card">
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
       <p className={`text-2xl font-bold mt-1 tabular-nums ${color}`}>
         {value}
       </p>
+      {amount && (
+        <p className={`text-xs font-medium mt-0.5 tabular-nums ${color} opacity-75`}>
+          {amount}
+        </p>
+      )}
     </div>
   );
 }

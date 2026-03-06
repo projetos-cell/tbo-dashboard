@@ -27,7 +27,7 @@ export interface FounderAlert {
   message: string;
   value: number;
   threshold: number;
-  // Correction #9 — enriched overdue alerts
+  // Enriched overdue alerts
   client?: string;
   clientId?: string;
   valor?: number;
@@ -63,6 +63,7 @@ export interface FounderDashboardSnapshot {
 
   // Row 4 — Clientes / Risco
   topClientsByRevenue: ClientRevenue[];
+  allClientsByRevenue: ClientRevenue[];
   concentracaoTop3: number;
   alerts: FounderAlert[];
 
@@ -78,9 +79,12 @@ export interface FounderDashboardSnapshot {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
+// Statuses that represent a completed payment in finance_transactions
 const PAID_STATUSES = ["pago", "parcial", "liquidado"];
-const PENDING_RECEIVABLE = ["aberto", "emitido", "atrasado"];
-const PENDING_PAYABLE = ["aberto", "aprovado", "atrasado"];
+
+// Statuses that represent open/pending/overdue obligations in finance_transactions
+// Note: "previsto" and "provisionado" replace the legacy "aberto"/"emitido"/"aprovado"
+const PENDING_STATUSES = ["previsto", "provisionado", "atrasado"];
 
 const MONTH_LABELS: Record<string, string> = {
   "01": "Jan", "02": "Fev", "03": "Mar", "04": "Abr",
@@ -103,44 +107,34 @@ function avg(values: number[]): number {
   return values.reduce((s, v) => s + v, 0) / values.length;
 }
 
-/** Paid value helper: prefer amount_paid, fall back to amount */
-function paidVal(row: { amount_paid?: number | null; amount?: number | null }): number {
-  return row.amount_paid ?? row.amount ?? 0;
+/** Paid value helper: prefer paid_amount (finance_transactions field), fall back to amount */
+function paidVal(row: { paid_amount?: number | null; amount?: number | null }): number {
+  return row.paid_amount ?? row.amount ?? 0;
 }
 
 // ── Row types for query results ───────────────────────────────────────────────
 
-type ReceivableRow = {
+/** A paid transaction row from finance_transactions */
+type FinTxRow = {
   amount: number | null;
-  amount_paid: number | null;
+  paid_amount: number | null;  // field name in finance_transactions (was amount_paid in legacy tables)
   paid_date: string | null;
   due_date: string | null;
   status: string | null;
-  client_id: string | null;
-  project_id: string | null;
-};
-
-type PayableRow = {
-  amount: number | null;
-  amount_paid: number | null;
-  paid_date: string | null;
-  due_date: string | null;
-  status: string | null;
-  vendor_id: string | null;
+  type: string | null;         // "receita" | "despesa"
+  counterpart: string | null;  // client name for receitas, vendor name for despesas
   project_id: string | null;
   cost_center_id: string | null;
+  business_unit: string | null;
 };
 
-type PendingReceivableRow = {
+/** A pending transaction row (lighter — no paid_amount needed) */
+type PendingTxRow = {
   amount: number | null;
   due_date: string | null;
   status: string | null;
-  client_id: string | null;
-};
-
-type PendingPayableRow = {
-  amount: number | null;
-  due_date: string | null;
+  type: string | null;
+  counterpart: string | null;
 };
 
 // ── Main query ────────────────────────────────────────────────────────────────
@@ -165,66 +159,47 @@ export async function getFounderDashboardSnapshot(
   const now = new Date();
   const today = isoDate(now);
 
-  // ── Parallel queries against legacy tables ──────────────────────────────────
+  // ── Parallel queries against finance_transactions ───────────────────────────
   // We fetch broad data sets and filter client-side to minimise round-trips.
+  // finance_transactions is the authoritative table synced from Omie (600+ records).
+  // Legacy tables (fin_receivables, fin_payables) are empty and no longer used.
 
   const [
-    paidReceivablesRes,   // 1. All paid receivables (all time)
-    paidPayablesRes,      // 2. All paid payables (all time)
-    pendingReceivablesRes,// 3. Pending receivables
-    pendingPayablesRes,   // 4. Pending payables
-    costCentersRes,       // 5. Cost centers lookup
-    clientsRes,           // 6. Clients lookup
-    projectsRes,          // 7. Projects lookup
-    bankAccountsRes,      // 8. Bank accounts (real balance from Omie)
+    paidTxRes,      // 1. All paid transactions (receita + despesa)
+    pendingTxRes,   // 2. All pending transactions (receita + despesa)
+    costCentersRes, // 3. Cost centers name lookup
+    projectsRes,    // 4. Projects name lookup
+    bankAccountsRes,// 5. Bank accounts (real balance synced from Omie)
   ] = await Promise.all([
-    // 1. Paid receivables — all-time for caixa, filtered client-side for MTD/trends
+    // 1. Paid transactions — all-time, filtered client-side for period/trends
     supabase
-      .from("fin_receivables")
-      .select("amount, amount_paid, paid_date, due_date, status, client_id, project_id")
+      .from("finance_transactions")
+      .select("amount, paid_amount, paid_date, due_date, status, type, counterpart, project_id, cost_center_id, business_unit")
       .eq("tenant_id", tenantId)
+      .in("type", ["receita", "despesa"])
       .in("status", PAID_STATUSES),
 
-    // 2. Paid payables — all-time for caixa, filtered client-side for MTD/burn/trends
+    // 2. Pending transactions — open/overdue obligations
     supabase
-      .from("fin_payables")
-      .select("amount, amount_paid, paid_date, due_date, status, vendor_id, project_id, cost_center_id")
+      .from("finance_transactions")
+      .select("amount, due_date, status, type, counterpart")
       .eq("tenant_id", tenantId)
-      .in("status", PAID_STATUSES),
+      .in("type", ["receita", "despesa"])
+      .in("status", PENDING_STATUSES),
 
-    // 3. Pending receivables (open/overdue)
-    supabase
-      .from("fin_receivables")
-      .select("amount, due_date, status, client_id")
-      .eq("tenant_id", tenantId)
-      .in("status", PENDING_RECEIVABLE),
-
-    // 4. Pending payables (open/overdue)
-    supabase
-      .from("fin_payables")
-      .select("amount, due_date")
-      .eq("tenant_id", tenantId)
-      .in("status", PENDING_PAYABLE),
-
-    // 5. Cost centers for unit revenue mapping
+    // 3. Cost centers for unit revenue name mapping
     supabase
       .from("fin_cost_centers")
       .select("id, name")
       .eq("tenant_id", tenantId),
 
-    // 6. Clients for name lookup
-    supabase
-      .from("fin_clients")
-      .select("id, name")
-      .eq("tenant_id", tenantId),
-
-    // 7. Projects for name lookup
+    // 4. Projects for name lookup
     supabase
       .from("projects")
       .select("id, name")
       .eq("tenant_id", tenantId),
 
-    // 8. Bank accounts — real balance synced from Omie
+    // 5. Bank accounts — real cash balance synced from Omie
     supabase
       .from("fin_bank_accounts" as never)
       .select("balance")
@@ -232,19 +207,17 @@ export async function getFounderDashboardSnapshot(
       .eq("is_active", true),
   ]);
 
-  // ── Unpack rows ─────────────────────────────────────────────────────────────
+  // ── Unpack and split by type ─────────────────────────────────────────────────
 
-  const paidReceivables = (paidReceivablesRes.data ?? []) as ReceivableRow[];
-  const paidPayables = (paidPayablesRes.data ?? []) as PayableRow[];
-  const pendingReceivables = (pendingReceivablesRes.data ?? []) as PendingReceivableRow[];
-  const pendingPayables = (pendingPayablesRes.data ?? []) as PendingPayableRow[];
+  const paidAll = (paidTxRes.data ?? []) as FinTxRow[];
+  const pendingAll = (pendingTxRes.data ?? []) as PendingTxRow[];
+
+  const paidReceivables = paidAll.filter((r) => r.type === "receita");
+  const paidPayables    = paidAll.filter((r) => r.type === "despesa");
+  const pendingReceivables = pendingAll.filter((r) => r.type === "receita");
+  const pendingPayables    = pendingAll.filter((r) => r.type === "despesa");
 
   // Lookups
-  const clientLookup = new Map<string, string>(
-    ((clientsRes.data ?? []) as Array<{ id: string; name: string }>).map(
-      (c) => [c.id, c.name]
-    )
-  );
   const projectLookup = new Map<string, string>(
     ((projectsRes.data ?? []) as Array<{ id: string; name: string }>).map(
       (p) => [p.id, p.name]
@@ -257,12 +230,7 @@ export async function getFounderDashboardSnapshot(
 
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 
-  // 3 full months before current month start (for burn rate)
-  const m3ago = new Date(now);
-  m3ago.setMonth(m3ago.getMonth() - 3);
-  const m3agoStr = `${m3ago.getFullYear()}-${String(m3ago.getMonth() + 1).padStart(2, "0")}-01`;
-
-  // 30 / 90 days ahead
+  // 30 / 90 days ahead (for forecast and AR/AP projections)
   const in30 = new Date(now);
   in30.setDate(in30.getDate() + 30);
   const in30Str = isoDate(in30);
@@ -271,12 +239,12 @@ export async function getFounderDashboardSnapshot(
   in90.setDate(in90.getDate() + 90);
   const in90Str = isoDate(in90);
 
-  // 90 days back (fallback period)
+  // 90 days back (for burn rate and 90-day fallback)
   const d90ago = new Date(now);
   d90ago.setDate(d90ago.getDate() - 90);
   const d90agoStr = isoDate(d90ago);
 
-  // ── Caixa Atual — prefer real bank balance, fallback to net position ───────
+  // ── Caixa Atual — prefer real bank balance, fallback to net position ─────────
   // If fin_bank_accounts has data (synced from Omie), use SUM(balance) as the
   // authoritative cash position. Otherwise fall back to the computed net
   // (all-time paid AR − paid AP), which is a rough approximation.
@@ -307,7 +275,7 @@ export async function getFounderDashboardSnapshot(
   );
 
   let receitaRealizada = periodReceivables.reduce((s, r) => s + paidVal(r), 0);
-  let despesaPeriod = periodPayables.reduce((s, r) => s + paidVal(r), 0);
+  let despesaPeriod    = periodPayables.reduce((s, r) => s + paidVal(r), 0);
 
   // 90-day fallback only when no explicit period was chosen and MTD is empty
   if (!period && receitaRealizada === 0 && despesaPeriod === 0) {
@@ -318,18 +286,17 @@ export async function getFounderDashboardSnapshot(
       (r) => r.paid_date && r.paid_date >= d90agoStr && r.paid_date <= today
     );
     receitaRealizada = periodReceivables.reduce((s, r) => s + paidVal(r), 0);
-    despesaPeriod = periodPayables.reduce((s, r) => s + paidVal(r), 0);
+    despesaPeriod    = periodPayables.reduce((s, r) => s + paidVal(r), 0);
     if (receitaRealizada > 0 || despesaPeriod > 0) {
       periodLabel = "Ultimos 90 dias";
     }
   }
 
   const margemReal = receitaRealizada - despesaPeriod;
-  const margemPct = receitaRealizada > 0 ? (margemReal / receitaRealizada) * 100 : 0;
+  const margemPct  = receitaRealizada > 0 ? (margemReal / receitaRealizada) * 100 : 0;
 
   // ── Burn Rate — total despesas paid in rolling 90 days / 3 ──────────────────
-  // Correction #7: Use rolling 90-day window (not 3 calendar months).
-  // Burn Rate = sum of paid expenses in last 90 days ÷ 3.
+  // Burn Rate = sum of paid expenses in last 90 days ÷ 3 (monthly average).
 
   const burn90d = paidPayables.filter(
     (r) => r.paid_date && r.paid_date >= d90agoStr && r.paid_date <= today
@@ -337,7 +304,7 @@ export async function getFounderDashboardSnapshot(
   const burnTotal90d = burn90d.reduce((s, r) => s + paidVal(r), 0);
   const burnRate = burnTotal90d / 3;
 
-  // Break-even = same as burn rate (avg total costs to cover)
+  // Break-even = same as burn rate (avg total costs to cover per month)
   const breakEven = burnRate;
 
   // ── AP / AR next 30 days ────────────────────────────────────────────────────
@@ -353,31 +320,38 @@ export async function getFounderDashboardSnapshot(
   const caixaPrevisto30d = caixaAtual + arNext30 - apNext30;
   const runway = burnRate > 0 ? caixaAtual / burnRate : 0;
 
-  // ── Unit Revenue (by cost center — payables only) ───────────────────────────
-  // fin_receivables does NOT have cost_center_id, so we can only attribute
-  // despesas per unit. We show cost center names dynamically from fin_cost_centers.
+  // ── Unit Revenue (by cost center — receitas + despesas) ─────────────────────
+  // finance_transactions has cost_center_id on both types, so we can now
+  // attribute both receita and custos per business unit.
 
-  const unitCostMap = new Map<string, number>(); // ccName → custos
+  const unitReceivableMap = new Map<string, number>(); // ccName → receita
+  const unitCostMap       = new Map<string, number>(); // ccName → custos
+
+  for (const t of periodReceivables) {
+    if (!t.cost_center_id) continue;
+    const ccName = ccLookup.get(t.cost_center_id) || t.cost_center_id.slice(0, 8);
+    unitReceivableMap.set(ccName, (unitReceivableMap.get(ccName) || 0) + paidVal(t));
+  }
   for (const t of periodPayables) {
     if (!t.cost_center_id) continue;
-    const ccName = ccLookup.get(t.cost_center_id);
-    if (!ccName) continue;
+    const ccName = ccLookup.get(t.cost_center_id) || t.cost_center_id.slice(0, 8);
     unitCostMap.set(ccName, (unitCostMap.get(ccName) || 0) + paidVal(t));
   }
 
-  const unitRevenue: UnitRevenue[] = Array.from(unitCostMap.entries())
-    .map(([unit, custos]) => ({
-      unit,
-      receita: 0, // Cannot attribute receita per unit without cost_center on receivables
-      margem: -custos, // Net = 0 receita - custos
-    }))
-    .sort((a, b) => b.margem - a.margem);
+  const allUnits = new Set([...unitReceivableMap.keys(), ...unitCostMap.keys()]);
+  const unitRevenue: UnitRevenue[] = Array.from(allUnits)
+    .map((unit) => {
+      const receita = unitReceivableMap.get(unit) || 0;
+      const custos  = unitCostMap.get(unit) || 0;
+      return { unit, receita, margem: receita - custos };
+    })
+    .sort((a, b) => b.receita - a.receita);
 
   // ── Top Projects by Margin ──────────────────────────────────────────────────
   // Receita per project from paid receivables, custos from paid payables.
 
   const projReceita = new Map<string, number>();
-  const projCustos = new Map<string, number>();
+  const projCustos  = new Map<string, number>();
 
   for (const r of periodReceivables) {
     if (!r.project_id) continue;
@@ -388,12 +362,11 @@ export async function getFounderDashboardSnapshot(
     projCustos.set(r.project_id, (projCustos.get(r.project_id) || 0) + paidVal(r));
   }
 
-  // Merge project IDs
   const allProjectIds = new Set([...projReceita.keys(), ...projCustos.keys()]);
   const topProjectsByMargin: ProjectMargin[] = Array.from(allProjectIds)
     .map((pid) => {
       const receita = projReceita.get(pid) || 0;
-      const custos = projCustos.get(pid) || 0;
+      const custos  = projCustos.get(pid) || 0;
       return {
         project: projectLookup.get(pid) || pid.slice(0, 8),
         receita,
@@ -405,21 +378,21 @@ export async function getFounderDashboardSnapshot(
     .slice(0, 5);
 
   // ── Top Clients by Revenue ──────────────────────────────────────────────────
+  // counterpart is the client name string directly (no separate clients table needed)
 
   const clientRevMap = new Map<string, number>();
   for (const r of periodReceivables) {
-    const cid = r.client_id || "__none__";
-    clientRevMap.set(cid, (clientRevMap.get(cid) || 0) + paidVal(r));
+    const key = r.counterpart || "__none__";
+    clientRevMap.set(key, (clientRevMap.get(key) || 0) + paidVal(r));
   }
 
   const totalClientRevenue = Array.from(clientRevMap.values()).reduce((s, v) => s + v, 0);
-  const sortedClients = Array.from(clientRevMap.entries())
-    .sort((a, b) => b[1] - a[1]);
+  const sortedClients = Array.from(clientRevMap.entries()).sort((a, b) => b[1] - a[1]);
 
   const topClientsByRevenue: ClientRevenue[] = sortedClients
     .slice(0, 5)
-    .map(([cid, receita]) => ({
-      client: cid === "__none__" ? "Sem cliente" : (clientLookup.get(cid) || cid.slice(0, 8)),
+    .map(([client, receita]) => ({
+      client: client === "__none__" ? "Sem cliente" : client,
       receita,
       pctTotal: totalClientRevenue > 0 ? (receita / totalClientRevenue) * 100 : 0,
     }));
@@ -428,10 +401,16 @@ export async function getFounderDashboardSnapshot(
     ? (sortedClients.slice(0, 3).reduce((s, [, v]) => s + v, 0) / totalClientRevenue) * 100
     : 0;
 
-  // ── Forecast 90d — pending receivables due in next 90 days ──────────────────
+  // All clients (no slice) — used by RevenueConcentration widget
+  const allClientsByRevenue: ClientRevenue[] = sortedClients.map(([client, receita]) => ({
+    client: client === "__none__" ? "Sem cliente" : client,
+    receita,
+    pctTotal: totalClientRevenue > 0 ? (receita / totalClientRevenue) * 100 : 0,
+  }));
 
-  // Correction #8: Include current month in forecast and use ar90 total directly.
+  // ── Forecast 90d — pending receivables due in next 90 days ──────────────────
   // Receivables due from today onwards (including today) up to 90 days ahead.
+
   const ar90 = pendingReceivables.filter(
     (r) => r.due_date && r.due_date >= today && r.due_date <= in90Str
   );
@@ -442,7 +421,7 @@ export async function getFounderDashboardSnapshot(
     forecastByMonth.set(mk, (forecastByMonth.get(mk) || 0) + (r.amount ?? 0));
   }
 
-  // Build 3 months starting from the current month (not next month)
+  // Build 3 months starting from the current month
   const forecastMonths: ForecastMonth[] = [];
   for (let i = 0; i < 3; i++) {
     const d = new Date(now);
@@ -456,7 +435,6 @@ export async function getFounderDashboardSnapshot(
     });
   }
 
-  // Forecast total = sum of all receivables in 90-day window (not just the 3 buckets)
   const forecastTotal = ar90.reduce((s, r) => s + (r.amount ?? 0), 0);
 
   // ── Alerts (Founder Radar) ──────────────────────────────────────────────────
@@ -497,43 +475,38 @@ export async function getFounderDashboardSnapshot(
     }
   }
 
-  // 4. Recebiveis atrasados — per-client alerts (Correction #9)
-  // Group overdue receivables by client and emit one alert per client with
-  // enriched fields: client name, clientId, valor, diasAtraso.
+  // 4. Recebiveis atrasados — per-client alerts, sorted by value desc
   const overdueAll = pendingReceivables.filter(
     (r) => r.status === "atrasado" && r.due_date && r.due_date < today
   );
 
   if (overdueAll.length > 0) {
-    // Group by client_id
+    // Group by counterpart (client name)
     const overdueByClient = new Map<string, { total: number; maxDays: number; items: number }>();
     for (const r of overdueAll) {
-      const cid = r.client_id || "__none__";
+      const key = r.counterpart || "__none__";
       const days = Math.floor(
         (now.getTime() - new Date(r.due_date!).getTime()) / (1000 * 60 * 60 * 24)
       );
-      const prev = overdueByClient.get(cid) || { total: 0, maxDays: 0, items: 0 };
+      const prev = overdueByClient.get(key) || { total: 0, maxDays: 0, items: 0 };
       prev.total += r.amount ?? 0;
       prev.maxDays = Math.max(prev.maxDays, days);
       prev.items += 1;
-      overdueByClient.set(cid, prev);
+      overdueByClient.set(key, prev);
     }
 
-    // Emit one alert per client, sorted by value desc
     const sortedOverdue = Array.from(overdueByClient.entries())
       .sort((a, b) => b[1].total - a[1].total);
 
-    for (const [cid, info] of sortedOverdue) {
-      const clientName = cid === "__none__"
-        ? "Sem cliente"
-        : (clientLookup.get(cid) || cid.slice(0, 8));
+    for (const [key, info] of sortedOverdue) {
+      const clientName = key === "__none__" ? "Sem cliente" : key;
       alerts.push({
         type: "atraso",
         message: `Recebivel atrasado — R$ ${info.total.toLocaleString("pt-BR")} | ${clientName} | Atraso: ${info.maxDays} dias`,
         value: info.total,
         threshold: 0,
         client: clientName,
-        clientId: cid === "__none__" ? undefined : cid,
+        clientId: key === "__none__" ? undefined : key,
         valor: info.total,
         diasAtraso: info.maxDays,
       });
@@ -572,6 +545,9 @@ export async function getFounderDashboardSnapshot(
     }
   }
 
+  // Suppress the avg import warning (used by callers, kept for API stability)
+  void avg;
+
   return {
     receitaRealizada,
     margemReal,
@@ -586,6 +562,7 @@ export async function getFounderDashboardSnapshot(
     unitRevenue,
     topProjectsByMargin,
     topClientsByRevenue,
+    allClientsByRevenue,
     concentracaoTop3,
     alerts,
     forecast90d: {

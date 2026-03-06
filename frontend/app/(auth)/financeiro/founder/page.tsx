@@ -20,10 +20,11 @@ import { KpiCard } from "@/components/founder-dashboard/kpi-card";
 import { KpiGrid } from "@/components/founder-dashboard/kpi-grid";
 import { UnitRevenueTable } from "@/components/founder-dashboard/unit-revenue-table";
 import { TopProjectsTable } from "@/components/founder-dashboard/top-projects-table";
-import { TopClientsTable } from "@/components/founder-dashboard/top-clients-table";
+import { RevenueConcentration } from "@/components/founder-dashboard/revenue-concentration";
 import { FounderAlerts } from "@/components/founder-dashboard/founder-alerts";
 import { ForecastPanel } from "@/components/founder-dashboard/forecast-panel";
 import type { KpiTooltipContent } from "@/components/founder-dashboard/kpi-card";
+import { CashBalanceInput } from "@/components/founder-dashboard/cash-balance-input";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -67,7 +68,7 @@ const TOOLTIP_RUNWAY: KpiTooltipContent = {
   formula: "Caixa Atual / Burn Rate",
   enters: undefined,
   notEnters: undefined,
-  source: "Omie — saldos bancários + cálculo interno",
+  source: "Caixa Real (manual) / Burn Rate (Omie)",
 };
 
 const TOOLTIP_CAIXA: KpiTooltipContent = {
@@ -75,7 +76,7 @@ const TOOLTIP_CAIXA: KpiTooltipContent = {
   formula: undefined,
   enters: "Contas bancárias cadastradas no Omie.",
   notEnters: undefined,
-  source: "Omie — saldos bancários (snapshot diário)",
+  source: "Caixa Real (entrada manual) · Omie (fallback automático)",
 };
 
 const TOOLTIP_BURN: KpiTooltipContent = {
@@ -99,7 +100,7 @@ const TOOLTIP_CAIXA_PREVISTO: KpiTooltipContent = {
   formula: "Caixa Atual + A Receber(30d) - A Pagar(30d)",
   enters: undefined,
   notEnters: undefined,
-  source: "Omie — AR/AP pendentes + saldos",
+  source: "Caixa Real (manual) + AR/AP Omie (30d)",
 };
 
 // ── Page ─────────────────────────────────────────────────────────────────────
@@ -108,6 +109,7 @@ export default function FinanceiroFounderPage() {
   const role = useAuthStore((s) => s.role);
   const router = useRouter();
   const [period, setPeriod] = useState<PeriodValue>({ preset: "mtd" });
+  const [manualCaixa, setManualCaixa] = useState<number | null>(null);
 
   useEffect(() => {
     if (role && !hasMinRole(role, "diretoria")) {
@@ -124,6 +126,13 @@ export default function FinanceiroFounderPage() {
   const d = data;
   const errMsg = error ? (error as Error).message : null;
 
+  // ── Effective values — manual cash overrides Omie when available ──────────
+  const effectiveCaixa = manualCaixa !== null ? manualCaixa : (d?.caixaAtual ?? 0);
+  const effectiveRunway =
+    d && d.burnRate > 0 ? effectiveCaixa / d.burnRate : (d?.runway ?? 0);
+  const effectiveCaixaPrevisto30d =
+    effectiveCaixa + (d?.arNext30 ?? 0) - (d?.apNext30 ?? 0);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -137,77 +146,95 @@ export default function FinanceiroFounderPage() {
         <PeriodFilter value={period} onChange={setPeriod} />
       </div>
 
-      {/* Row 1 — Founder Metrics: Receita MTD | Margem | Caixa Atual | Runway */}
+      {/* Row 1 — Founder Metrics: Receita MTD | Margem | Caixa Atual | Runway + Caixa Real widget */}
       <div>
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-          Founder Metrics
-        </h2>
-        <KpiGrid columns={4}>
-          <KpiCard
-            title="Receita MTD"
-            value={d ? fmt(d.receitaRealizada) : "—"}
-            sublabel={d?.periodLabel ? `${d.periodLabel} (pagas)` : "MTD (pagas)"}
-            icon={<TrendingUp className="h-4 w-4 text-emerald-500" />}
-            colorClass="text-emerald-600 dark:text-emerald-400"
-            tooltip={TOOLTIP_RECEITA}
-            isLoading={isLoading}
-            isEmpty={!isLoading && !!d && d.receitaRealizada === 0}
-            emptyMessage="Nenhuma receita paga neste período. Verifique a sincronização com o Omie."
-            error={errMsg}
-            onRetry={() => refetch()}
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Founder Metrics
+          </h2>
+          {manualCaixa !== null && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 dark:bg-violet-900/30 px-2 py-0.5 text-xs font-medium text-violet-700 dark:text-violet-300">
+              <Wallet className="h-3 w-3" />
+              Caixa manual ativo
+            </span>
+          )}
+        </div>
+        <div className="flex flex-col xl:flex-row gap-4">
+          {/* KPI cards */}
+          <div className="flex-1 min-w-0">
+            <KpiGrid columns={4}>
+              <KpiCard
+                title="Receita MTD"
+                value={d ? fmt(d.receitaRealizada) : "—"}
+                sublabel={d?.periodLabel ? `${d.periodLabel} (pagas)` : "MTD (pagas)"}
+                icon={<TrendingUp className="h-4 w-4 text-emerald-500" />}
+                colorClass="text-emerald-600 dark:text-emerald-400"
+                tooltip={TOOLTIP_RECEITA}
+                isLoading={isLoading}
+                isEmpty={!isLoading && !!d && d.receitaRealizada === 0}
+                emptyMessage="Nenhuma receita paga neste período. Verifique a sincronização com o Omie."
+                error={errMsg}
+                onRetry={() => refetch()}
+              />
+              <KpiCard
+                title="Margem"
+                value={d ? `${fmt(d.margemReal)} (${fmtPct(d.margemPct)})` : "—"}
+                sublabel="Receita - Custos diretos"
+                icon={<BarChart3 className="h-4 w-4 text-blue-500" />}
+                colorClass={
+                  d && d.margemPct >= 30
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-red-600 dark:text-red-400"
+                }
+                tooltip={TOOLTIP_MARGEM}
+                isLoading={isLoading}
+                isEmpty={!isLoading && !!d && d.receitaRealizada === 0 && d.margemReal === 0}
+                emptyMessage="Sem receitas ou custos registrados neste período."
+                error={errMsg}
+                onRetry={() => refetch()}
+              />
+              <KpiCard
+                title="Caixa Atual"
+                value={effectiveCaixa}
+                sublabel={manualCaixa !== null ? "Entrada manual (Caixa Real)" : "Saldo consolidado"}
+                icon={<Wallet className="h-4 w-4 text-violet-500" />}
+                colorClass={
+                  effectiveCaixa >= 0
+                    ? "text-violet-600 dark:text-violet-400"
+                    : "text-red-600 dark:text-red-400"
+                }
+                tooltip={TOOLTIP_CAIXA}
+                isLoading={isLoading}
+                error={errMsg}
+                onRetry={() => refetch()}
+              />
+              <KpiCard
+                title="Runway"
+                value={d ? fmtMonths(effectiveRunway) : "—"}
+                sublabel="Meses de sobrevivência"
+                icon={<ShieldAlert className="h-4 w-4 text-orange-500" />}
+                colorClass={
+                  effectiveRunway >= 6
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : effectiveRunway >= 3
+                      ? "text-amber-600 dark:text-amber-400"
+                      : "text-red-600 dark:text-red-400"
+                }
+                tooltip={TOOLTIP_RUNWAY}
+                isLoading={isLoading}
+                isEmpty={!isLoading && !!d && effectiveCaixa === 0 && d.burnRate === 0}
+                emptyMessage="Registre o saldo bancário (Caixa Real) para calcular o runway."
+                error={errMsg}
+                onRetry={() => refetch()}
+              />
+            </KpiGrid>
+          </div>
+          {/* Caixa Real manual input widget */}
+          <CashBalanceInput
+            onBalanceChange={setManualCaixa}
+            className="xl:w-72 shrink-0"
           />
-          <KpiCard
-            title="Margem"
-            value={d ? `${fmt(d.margemReal)} (${fmtPct(d.margemPct)})` : "—"}
-            sublabel="Receita - Custos diretos"
-            icon={<BarChart3 className="h-4 w-4 text-blue-500" />}
-            colorClass={
-              d && d.margemPct >= 30
-                ? "text-emerald-600 dark:text-emerald-400"
-                : "text-red-600 dark:text-red-400"
-            }
-            tooltip={TOOLTIP_MARGEM}
-            isLoading={isLoading}
-            isEmpty={!isLoading && !!d && d.receitaRealizada === 0 && d.margemReal === 0}
-            emptyMessage="Sem receitas ou custos registrados neste período."
-            error={errMsg}
-            onRetry={() => refetch()}
-          />
-          <KpiCard
-            title="Caixa Atual"
-            value={d ? d.caixaAtual : 0}
-            sublabel="Saldo consolidado"
-            icon={<Wallet className="h-4 w-4 text-violet-500" />}
-            colorClass={
-              d && d.caixaAtual >= 0
-                ? "text-violet-600 dark:text-violet-400"
-                : "text-red-600 dark:text-red-400"
-            }
-            tooltip={TOOLTIP_CAIXA}
-            isLoading={isLoading}
-            error={errMsg}
-            onRetry={() => refetch()}
-          />
-          <KpiCard
-            title="Runway"
-            value={d ? fmtMonths(d.runway) : "—"}
-            sublabel="Meses de sobrevivência"
-            icon={<ShieldAlert className="h-4 w-4 text-orange-500" />}
-            colorClass={
-              d && d.runway >= 6
-                ? "text-emerald-600 dark:text-emerald-400"
-                : d && d.runway >= 3
-                  ? "text-amber-600 dark:text-amber-400"
-                  : "text-red-600 dark:text-red-400"
-            }
-            tooltip={TOOLTIP_RUNWAY}
-            isLoading={isLoading}
-            isEmpty={!isLoading && !!d && d.caixaAtual === 0 && d.burnRate === 0}
-            emptyMessage="Cadastre o saldo bancário para calcular o runway."
-            error={errMsg}
-            onRetry={() => refetch()}
-          />
-        </KpiGrid>
+        </div>
       </div>
 
       {/* Row 2 — Saúde Financeira: Burn Rate | Break-even | Caixa previsto (30d) */}
@@ -244,7 +271,7 @@ export default function FinanceiroFounderPage() {
           />
           <KpiCard
             title="Caixa Previsto (30d)"
-            value={d ? d.caixaPrevisto30d : 0}
+            value={d ? effectiveCaixaPrevisto30d : 0}
             sublabel={
               d
                 ? `AR ${fmt(d.arNext30)} | AP ${fmt(d.apNext30)}`
@@ -252,7 +279,7 @@ export default function FinanceiroFounderPage() {
             }
             icon={<Calculator className="h-4 w-4 text-blue-500" />}
             colorClass={
-              d && d.caixaPrevisto30d >= 0
+              effectiveCaixaPrevisto30d >= 0
                 ? "text-blue-600 dark:text-blue-400"
                 : "text-red-600 dark:text-red-400"
             }
@@ -269,16 +296,17 @@ export default function FinanceiroFounderPage() {
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           Performance
         </h2>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           <UnitRevenueTable
             data={d?.unitRevenue ?? []}
             isLoading={isLoading}
           />
-          <TopClientsTable
-            data={d?.topClientsByRevenue ?? []}
-            concentracaoTop3={d?.concentracaoTop3 ?? 0}
-            isLoading={isLoading}
-          />
+          <div className="lg:col-span-2">
+            <RevenueConcentration
+              data={d?.allClientsByRevenue ?? []}
+              isLoading={isLoading}
+            />
+          </div>
           <TopProjectsTable
             data={d?.topProjectsByMargin ?? []}
             isLoading={isLoading}

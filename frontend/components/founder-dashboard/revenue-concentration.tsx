@@ -1,5 +1,6 @@
 "use client";
 
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import type { ClientRevenue } from "@/services/founder-dashboard";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -25,15 +26,86 @@ function getRiskLevel(top3Pct: number): RiskLevel {
   return "alto";
 }
 
-const BAR_COLORS = [
-  "bg-violet-500",
-  "bg-blue-500",
-  "bg-emerald-500",
-  "bg-amber-500",
-  "bg-rose-500",
-  "bg-pink-500",
-  "bg-cyan-500",
+const PIE_COLORS = [
+  "#8b5cf6", // violet
+  "#3b82f6", // blue
+  "#10b981", // emerald
+  "#f59e0b", // amber
+  "#ef4444", // red
+  "#ec4899", // pink
+  "#06b6d4", // cyan
+  "#94a3b8", // slate (for "Outros")
 ];
+
+// ── Chart data ──────────────────────────────────────────────────────────────
+
+interface PieSlice {
+  name: string;
+  value: number;
+  pct: number;
+}
+
+function toPieData(
+  data: ClientRevenue[],
+  topN: number
+): PieSlice[] {
+  const displayed = data.slice(0, topN);
+  const outros = data.slice(topN);
+  const outrosReceita = outros.reduce((s, c) => s + c.receita, 0);
+  const totalReceita = data.reduce((s, c) => s + c.receita, 0);
+  const outrosPct = totalReceita > 0 ? (outrosReceita / totalReceita) * 100 : 0;
+
+  const slices: PieSlice[] = displayed.map((c) => ({
+    name: c.client,
+    value: c.receita,
+    pct: c.pctTotal,
+  }));
+
+  if (outros.length > 0) {
+    slices.push({
+      name: `Outros (${outros.length})`,
+      value: outrosReceita,
+      pct: outrosPct,
+    });
+  }
+
+  return slices;
+}
+
+// ── Custom Tooltip ──────────────────────────────────────────────────────────
+
+function ConcentrationTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: PieSlice; color: string }>;
+}) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  const color = payload[0].color;
+  return (
+    <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-md space-y-1">
+      <div className="flex items-center gap-2">
+        <span
+          className="h-2.5 w-2.5 rounded-full shrink-0"
+          style={{ backgroundColor: color }}
+        />
+        <span className="text-xs font-medium text-foreground truncate max-w-[180px]">
+          {d.name}
+        </span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">Receita:</span>
+        <span className="text-xs font-semibold">{fmt(d.value)}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">Participação:</span>
+        <span className="text-xs font-semibold">{d.pct.toFixed(1)}%</span>
+      </div>
+    </div>
+  );
+}
 
 // ── Sub-components ─────────────────────────────────────────────────────────
 
@@ -66,6 +138,38 @@ function RiskBadge({ level }: { level: RiskLevel }) {
   );
 }
 
+function PieLegend({
+  slices,
+}: {
+  slices: PieSlice[];
+}) {
+  return (
+    <div className="space-y-1.5 mt-2">
+      {slices.map((s, i) => (
+        <div key={s.name} className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span
+              className="h-2.5 w-2.5 rounded-sm shrink-0"
+              style={{
+                backgroundColor: PIE_COLORS[i % PIE_COLORS.length],
+              }}
+            />
+            <span
+              className="text-xs text-foreground truncate"
+              title={s.name}
+            >
+              {s.name}
+            </span>
+          </div>
+          <span className="text-xs text-muted-foreground shrink-0">
+            {fmt(s.value)}&nbsp;·&nbsp;{s.pct.toFixed(1)}%
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function LoadingSkeleton() {
   return (
     <div className="rounded-lg border border-border bg-card p-4 space-y-4 animate-pulse">
@@ -73,13 +177,15 @@ function LoadingSkeleton() {
         <div className="h-4 w-40 bg-muted rounded" />
         <div className="h-5 w-24 bg-muted rounded-full" />
       </div>
-      {Array.from({ length: 6 }).map((_, i) => (
+      <div className="flex justify-center">
+        <div className="h-44 w-44 rounded-full bg-muted" />
+      </div>
+      {Array.from({ length: 4 }).map((_, i) => (
         <div key={i} className="space-y-1.5">
           <div className="flex justify-between">
             <div className="h-3 w-32 bg-muted rounded" />
             <div className="h-3 w-20 bg-muted rounded" />
           </div>
-          <div className="h-2 w-full bg-muted rounded-full" />
         </div>
       ))}
       <div className="pt-2 border-t border-border grid grid-cols-2 gap-2">
@@ -97,7 +203,7 @@ interface RevenueConcentrationProps {
   /** Full sorted client list (all clients, descending by receita). */
   data: ClientRevenue[];
   isLoading?: boolean;
-  /** How many named bars to show before collapsing the rest into "Outros". */
+  /** How many named slices to show before collapsing the rest into "Outros". */
   topN?: number;
   className?: string;
 }
@@ -113,17 +219,14 @@ export function RevenueConcentration({
   const isEmpty = data.length === 0;
 
   // Derived metrics
-  const displayed = data.slice(0, topN);
-  const outros = data.slice(topN);
-  const outrosReceita = outros.reduce((s, c) => s + c.receita, 0);
-  const totalReceita = data.reduce((s, c) => s + c.receita, 0);
-  const outrosPct = totalReceita > 0 ? (outrosReceita / totalReceita) * 100 : 0;
-
   const top1Pct = data[0]?.pctTotal ?? 0;
   const top3Pct = data.slice(0, 3).reduce((s, c) => s + c.pctTotal, 0);
   const top5Pct = data.slice(0, 5).reduce((s, c) => s + c.pctTotal, 0);
   const hhi = calcHHI(data);
   const riskLevel = getRiskLevel(top3Pct);
+
+  const pieData = toPieData(data, topN);
+  const totalReceita = data.reduce((s, c) => s + c.receita, 0);
 
   return (
     <div
@@ -144,50 +247,55 @@ export function RevenueConcentration({
         </p>
       ) : (
         <>
-          {/* Client bars */}
-          <div className="space-y-3">
-            {displayed.map((c, i) => (
-              <div key={c.client} className="space-y-1">
-                <div className="flex items-center justify-between gap-2">
-                  <span
-                    className="text-xs text-foreground truncate max-w-[55%]"
-                    title={c.client}
-                  >
-                    {c.client}
-                  </span>
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    {fmt(c.receita)}&nbsp;·&nbsp;{c.pctTotal.toFixed(1)}%
-                  </span>
-                </div>
-                <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${BAR_COLORS[i] ?? BAR_COLORS[BAR_COLORS.length - 1]}`}
-                    style={{ width: `${Math.min(c.pctTotal, 100)}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-
-            {/* Outros bucket */}
-            {outros.length > 0 && (
-              <div className="space-y-1">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    Outros ({outros.length} cliente{outros.length !== 1 ? "s" : ""})
-                  </span>
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    {fmt(outrosReceita)}&nbsp;·&nbsp;{outrosPct.toFixed(1)}%
-                  </span>
-                </div>
-                <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-slate-400 dark:bg-slate-500"
-                    style={{ width: `${Math.min(outrosPct, 100)}%` }}
-                  />
-                </div>
-              </div>
-            )}
+          {/* Donut chart */}
+          <div className="h-52">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius="50%"
+                  outerRadius="85%"
+                  paddingAngle={2}
+                  strokeWidth={0}
+                >
+                  {pieData.map((_, idx) => (
+                    <Cell
+                      key={`cell-${idx}`}
+                      fill={PIE_COLORS[idx % PIE_COLORS.length]}
+                      fillOpacity={0.85}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip content={<ConcentrationTooltip />} />
+                {/* Center label */}
+                <text
+                  x="50%"
+                  y="46%"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  className="fill-foreground text-sm font-bold"
+                >
+                  {fmt(totalReceita)}
+                </text>
+                <text
+                  x="50%"
+                  y="56%"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  className="fill-muted-foreground text-[10px]"
+                >
+                  Total
+                </text>
+              </PieChart>
+            </ResponsiveContainer>
           </div>
+
+          {/* Legend below chart */}
+          <PieLegend slices={pieData} />
 
           {/* Footer metrics */}
           <div className="pt-3 border-t border-border space-y-2">

@@ -7,6 +7,15 @@ import {
   PopoverContent,
 } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
 import type { ForecastMonth } from "@/services/founder-dashboard";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -20,6 +29,27 @@ function fmt(value: number): string {
   }).format(value);
 }
 
+// ── Custom Tooltip ───────────────────────────────────────────────────────────
+
+function ForecastTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: ForecastMonth }>;
+}) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  return (
+    <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-md">
+      <p className="text-xs font-medium text-foreground">{d.label}</p>
+      <p className="text-sm font-bold text-blue-600 dark:text-blue-400">
+        {fmt(d.value)}
+      </p>
+    </div>
+  );
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 interface ForecastPanelProps {
@@ -29,7 +59,8 @@ interface ForecastPanelProps {
 }
 
 export function ForecastPanel({ total, months, isLoading }: ForecastPanelProps) {
-  const maxVal = Math.max(...months.map((m) => m.value), 1);
+  // Gradient colors per bar (month 1 → 3)
+  const barColors = ["#3b82f6", "#6366f1", "#8b5cf6"];
 
   return (
     <div className="rounded-lg border bg-card p-5">
@@ -68,7 +99,7 @@ export function ForecastPanel({ total, months, isLoading }: ForecastPanelProps) 
       {isLoading ? (
         <div className="space-y-3">
           <Skeleton className="h-8 w-40" />
-          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-40 w-full" />
         </div>
       ) : months.length === 0 ? (
         <p className="text-sm text-muted-foreground py-4 text-center">
@@ -84,28 +115,41 @@ export function ForecastPanel({ total, months, isLoading }: ForecastPanelProps) 
             </p>
           </div>
 
-          {/* Bar chart */}
-          <div className="flex items-end gap-3 h-32">
-            {months.map((m) => {
-              const pct = (m.value / maxVal) * 100;
-              return (
-                <div
-                  key={m.month}
-                  className="flex-1 flex flex-col items-center gap-1"
-                >
-                  <span className="text-xs font-semibold">{fmt(m.value)}</span>
-                  <div className="w-full flex items-end h-20">
-                    <div
-                      className="w-full bg-blue-500/60 rounded-t-sm min-h-[4px] transition-all"
-                      style={{ height: `${Math.max(pct, 4)}%` }}
+          {/* Recharts Bar Chart */}
+          <div className="h-44">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={months}
+                margin={{ top: 8, right: 4, left: 4, bottom: 4 }}
+              >
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v: number) => fmt(v)}
+                  width={80}
+                />
+                <Tooltip
+                  content={<ForecastTooltip />}
+                  cursor={{ fill: "var(--color-muted)", opacity: 0.3 }}
+                />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={56}>
+                  {months.map((_, idx) => (
+                    <Cell
+                      key={`cell-${idx}`}
+                      fill={barColors[idx % barColors.length]}
+                      fillOpacity={0.85}
                     />
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    {m.label}
-                  </span>
-                </div>
-              );
-            })}
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </>
       )}

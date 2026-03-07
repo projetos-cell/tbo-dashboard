@@ -134,6 +134,7 @@ export function ForecastPanel({ total, months, isLoading }: ForecastPanelProps) 
                   tickLine={false}
                   tickFormatter={(v: number) => fmt(v)}
                   width={80}
+                  domain={[0, (dataMax: number) => (dataMax > 0 ? dataMax : 1)]}
                 />
                 <Tooltip
                   content={<ForecastTooltip />}

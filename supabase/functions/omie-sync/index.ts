@@ -1,5 +1,5 @@
 // ============================================================================
-// TBO OS — Edge Function: Omie ERP Sync v2
+// TBO OS — Edge Function: Omie ERP Sync v2.1
 // Pulls data from Omie JSON-RPC API → upserts into Supabase
 // Trigger: Manual call via API route
 // Query params: ?tenant_id=xxx (optional, syncs all if omitted)
@@ -11,6 +11,12 @@
 //   3. Contas a Pagar   → fin_payables
 //   4. Contas a Receber → fin_receivables
 //   5. Contas Correntes → fin_bank_accounts
+//
+// FIXES v2.1:
+//   - PAGE_SIZE 50 → 500 (10× menos chamadas Omie, handle 1000+ registros)
+//   - Paginação usa total_de_paginas (robusto) em vez de heurística de length
+//   - N+1 eliminado: vendor/client/category maps pré-carregados por entidade
+//   - Batch upsert em payables & receivables (1 upsert/página vs 500)
 // ============================================================================
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
@@ -21,6 +27,7 @@ const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const OMIE_BASE_URL = "https://app.omie.com.br/api/v1";
 const RATE_LIMIT_MS = 600; // ~1.67 req/s (Omie limit is 3 req/s)
 const MAX_RETRIES = 3;
+const PAGE_SIZE = 500; // Increased from 50 — Omie supports up to 500 per page
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -151,6 +158,26 @@ serve(async (req: Request) => {
   }
 });
 
+// ── Helper: preload omie_id → internal id map (eliminates N+1) ───────────────
+
+async function loadOmieIdMap(
+  supabase: SupabaseClient,
+  table: string,
+  tenantId: string
+): Promise<Map<string, string>> {
+  const { data } = await supabase
+    .from(table)
+    .select("id, omie_id")
+    .eq("tenant_id", tenantId)
+    .not("omie_id", "is", null);
+
+  const map = new Map<string, string>();
+  for (const row of (data ?? [])) {
+    if (row.omie_id) map.set(String(row.omie_id), row.id);
+  }
+  return map;
+}
+
 // ── Entity Sync Functions ────────────────────────────────────────────────────
 
 async function syncVendors(
@@ -161,13 +188,12 @@ async function syncVendors(
 ): Promise<number> {
   let total = 0;
   let page = 1;
-  const pageSize = 50;
 
   try {
     while (true) {
       const res = await omieCall(creds, "geral/clientes/", "ListarClientes", {
         pagina: page,
-        registros_por_pagina: pageSize,
+        registros_por_pagina: PAGE_SIZE,
         clientesFiltro: { tags: [{ tag: "Fornecedor" }] },
       });
 
@@ -198,7 +224,8 @@ async function syncVendors(
         }
       }
 
-      if (records.length < pageSize) break;
+      // Use total_de_paginas for reliable pagination termination
+      if (page >= (res?.total_de_paginas ?? 1)) break;
       page++;
       await delay(RATE_LIMIT_MS);
     }
@@ -218,13 +245,12 @@ async function syncClients(
 ): Promise<number> {
   let total = 0;
   let page = 1;
-  const pageSize = 50;
 
   try {
     while (true) {
       const res = await omieCall(creds, "geral/clientes/", "ListarClientes", {
         pagina: page,
-        registros_por_pagina: pageSize,
+        registros_por_pagina: PAGE_SIZE,
       });
 
       const records = res?.clientes_cadastro || [];
@@ -262,7 +288,7 @@ async function syncClients(
         }
       }
 
-      if (records.length < pageSize) break;
+      if (page >= (res?.total_de_paginas ?? 1)) break;
       page++;
       await delay(RATE_LIMIT_MS);
     }
@@ -282,70 +308,68 @@ async function syncPayables(
 ): Promise<number> {
   let total = 0;
   let page = 1;
-  const pageSize = 50;
+
+  // Preload FK maps — eliminates N+1 (was: 2 DB queries per record)
+  const [vendorMap, categoryMap] = await Promise.all([
+    loadOmieIdMap(supabase, "fin_vendors", tenantId),
+    loadOmieIdMap(supabase, "fin_categories", tenantId),
+  ]);
+
+  const syncedAt = new Date().toISOString();
 
   try {
     while (true) {
       const res = await omieCall(creds, "financas/contapagar/", "ListarContasPagar", {
         pagina: page,
-        registros_por_pagina: pageSize,
+        registros_por_pagina: PAGE_SIZE,
       });
 
       const records = res?.conta_pagar_cadastro || [];
       if (records.length === 0) break;
 
+      // Build batch for this page
+      const batch: Record<string, unknown>[] = [];
+
       for (const p of records) {
-        try {
-          const omieId = String(p.codigo_lancamento_omie || "");
-          if (!omieId) continue;
+        const omieId = String(p.codigo_lancamento_omie || "");
+        if (!omieId) continue;
 
-          // Resolve vendor by omie_id
-          let vendorId: string | null = null;
-          if (p.codigo_cliente_fornecedor) {
-            const { data: vendor } = await supabase
-              .from("fin_vendors")
-              .select("id")
-              .eq("tenant_id", tenantId)
-              .eq("omie_id", String(p.codigo_cliente_fornecedor))
-              .maybeSingle();
-            vendorId = vendor?.id || null;
-          }
+        batch.push({
+          tenant_id: tenantId,
+          omie_id: omieId,
+          description: p.observacao || p.numero_documento || `Conta ${omieId}`,
+          amount: parseFloat(p.valor_documento) || 0,
+          amount_paid: parseFloat(p.valor_pago) || 0,
+          due_date: omieDate(p.data_vencimento),
+          paid_date: p.data_pagamento ? omieDate(p.data_pagamento) : null,
+          status: mapPayableStatus(p.status_titulo),
+          // FK resolution via preloaded maps — O(1) instead of DB query
+          vendor_id: p.codigo_cliente_fornecedor
+            ? (vendorMap.get(String(p.codigo_cliente_fornecedor)) ?? null)
+            : null,
+          category_id: p.codigo_categoria
+            ? (categoryMap.get(String(p.codigo_categoria)) ?? null)
+            : null,
+          payment_method: p.id_conta_corrente ? "transferencia" : null,
+          notes: p.observacao || null,
+          omie_synced_at: syncedAt,
+        });
+      }
 
-          // Resolve category by omie_id
-          let categoryId: string | null = null;
-          if (p.codigo_categoria) {
-            const { data: cat } = await supabase
-              .from("fin_categories")
-              .select("id")
-              .eq("tenant_id", tenantId)
-              .eq("omie_id", String(p.codigo_categoria))
-              .maybeSingle();
-            categoryId = cat?.id || null;
-          }
+      // Batch upsert (1 DB call per page instead of N)
+      if (batch.length > 0) {
+        const { error: upsertErr } = await supabase
+          .from("fin_payables")
+          .upsert(batch, { onConflict: "tenant_id,omie_id" });
 
-          await supabase.from("fin_payables").upsert({
-            tenant_id: tenantId,
-            omie_id: omieId,
-            description: p.observacao || p.numero_documento || `Conta ${omieId}`,
-            amount: parseFloat(p.valor_documento) || 0,
-            amount_paid: parseFloat(p.valor_pago) || 0,
-            due_date: omieDate(p.data_vencimento),
-            paid_date: p.data_pagamento ? omieDate(p.data_pagamento) : null,
-            status: mapPayableStatus(p.status_titulo),
-            vendor_id: vendorId,
-            category_id: categoryId,
-            payment_method: p.id_conta_corrente ? "transferencia" : null,
-            notes: p.observacao || null,
-            omie_synced_at: new Date().toISOString(),
-          }, { onConflict: "tenant_id,omie_id" });
-
-          total++;
-        } catch (e) {
-          errors.push({ entity: "payables", message: e.message, page });
+        if (upsertErr) {
+          errors.push({ entity: "payables", message: upsertErr.message, page });
+        } else {
+          total += batch.length;
         }
       }
 
-      if (records.length < pageSize) break;
+      if (page >= (res?.total_de_paginas ?? 1)) break;
       page++;
       await delay(RATE_LIMIT_MS);
     }
@@ -365,70 +389,67 @@ async function syncReceivables(
 ): Promise<number> {
   let total = 0;
   let page = 1;
-  const pageSize = 50;
+
+  // Preload FK maps — eliminates N+1
+  const [clientMap, categoryMap] = await Promise.all([
+    loadOmieIdMap(supabase, "fin_clients", tenantId),
+    loadOmieIdMap(supabase, "fin_categories", tenantId),
+  ]);
+
+  const syncedAt = new Date().toISOString();
 
   try {
     while (true) {
       const res = await omieCall(creds, "financas/contareceber/", "ListarContasReceber", {
         pagina: page,
-        registros_por_pagina: pageSize,
+        registros_por_pagina: PAGE_SIZE,
       });
 
       const records = res?.conta_receber_cadastro || [];
       if (records.length === 0) break;
 
+      // Build batch for this page
+      const batch: Record<string, unknown>[] = [];
+
       for (const r of records) {
-        try {
-          const omieId = String(r.codigo_lancamento_omie || "");
-          if (!omieId) continue;
+        const omieId = String(r.codigo_lancamento_omie || "");
+        if (!omieId) continue;
 
-          // Resolve client by omie_id
-          let clientId: string | null = null;
-          if (r.codigo_cliente_fornecedor) {
-            const { data: client } = await supabase
-              .from("fin_clients")
-              .select("id")
-              .eq("tenant_id", tenantId)
-              .eq("omie_id", String(r.codigo_cliente_fornecedor))
-              .maybeSingle();
-            clientId = client?.id || null;
-          }
+        batch.push({
+          tenant_id: tenantId,
+          omie_id: omieId,
+          description: r.observacao || r.numero_documento || `Recebivel ${omieId}`,
+          amount: parseFloat(r.valor_documento) || 0,
+          amount_paid: parseFloat(r.valor_recebido) || 0,
+          due_date: omieDate(r.data_vencimento),
+          paid_date: r.data_recebimento ? omieDate(r.data_recebimento) : null,
+          status: mapReceivableStatus(r.status_titulo),
+          client_id: r.codigo_cliente_fornecedor
+            ? (clientMap.get(String(r.codigo_cliente_fornecedor)) ?? null)
+            : null,
+          category_id: r.codigo_categoria
+            ? (categoryMap.get(String(r.codigo_categoria)) ?? null)
+            : null,
+          payment_method: r.id_conta_corrente ? "transferencia" : null,
+          notes: r.observacao || null,
+          omie_synced_at: syncedAt,
+        });
+      }
 
-          // Resolve category by omie_id
-          let categoryId: string | null = null;
-          if (r.codigo_categoria) {
-            const { data: cat } = await supabase
-              .from("fin_categories")
-              .select("id")
-              .eq("tenant_id", tenantId)
-              .eq("omie_id", String(r.codigo_categoria))
-              .maybeSingle();
-            categoryId = cat?.id || null;
-          }
+      // Batch upsert
+      if (batch.length > 0) {
+        const { error: upsertErr } = await supabase
+          .from("fin_receivables")
+          .upsert(batch, { onConflict: "tenant_id,omie_id" });
 
-          await supabase.from("fin_receivables").upsert({
-            tenant_id: tenantId,
-            omie_id: omieId,
-            description: r.observacao || r.numero_documento || `Recebivel ${omieId}`,
-            amount: parseFloat(r.valor_documento) || 0,
-            amount_paid: parseFloat(r.valor_recebido) || 0,
-            due_date: omieDate(r.data_vencimento),
-            paid_date: r.data_recebimento ? omieDate(r.data_recebimento) : null,
-            status: mapReceivableStatus(r.status_titulo),
-            client_id: clientId,
-            category_id: categoryId,
-            payment_method: r.id_conta_corrente ? "transferencia" : null,
-            notes: r.observacao || null,
-            omie_synced_at: new Date().toISOString(),
-          }, { onConflict: "tenant_id,omie_id" });
-
-          total++;
-        } catch (e) {
-          errors.push({ entity: "receivables", message: e.message, page });
+        if (upsertErr) {
+          errors.push({ entity: "receivables", message: upsertErr.message, page });
+        } else {
+          total += batch.length;
         }
       }
 
-      if (records.length < pageSize) break;
+      if (page >= (res?.total_de_paginas ?? 1)) break;
       page++;
       await delay(RATE_LIMIT_MS);
     }
@@ -448,13 +469,12 @@ async function syncBankAccounts(
 ): Promise<number> {
   let total = 0;
   let page = 1;
-  const pageSize = 50;
 
   try {
     while (true) {
       const res = await omieCall(creds, "financas/contacorrente/", "ListarContasCorrentes", {
         pagina: page,
-        registros_por_pagina: pageSize,
+        registros_por_pagina: PAGE_SIZE,
       });
 
       const records = res?.ListarContasCorrentes || res?.conta_corrente_lista || [];
@@ -491,7 +511,7 @@ async function syncBankAccounts(
         }
       }
 
-      if (records.length < pageSize) break;
+      if (page >= (res?.total_de_paginas ?? 1)) break;
       page++;
       await delay(RATE_LIMIT_MS);
     }

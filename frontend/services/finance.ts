@@ -100,6 +100,7 @@ export interface FinanceFilters {
   project_id?: string;
   dateFrom?: string;
   dateTo?: string;
+  dateField?: "date" | "paid_date";
   search?: string;
   page?: number;
   pageSize?: number;
@@ -139,8 +140,25 @@ export async function getFinanceTransactions(
     query = query.eq("business_unit", filters.business_unit);
   if (filters.project_id)
     query = query.eq("project_id", filters.project_id);
-  if (filters.dateFrom) query = query.gte("date", filters.dateFrom);
-  if (filters.dateTo) query = query.lte("date", filters.dateTo);
+  if (filters.dateField === "paid_date") {
+    if (filters.dateFrom && filters.dateTo) {
+      query = query.or(
+        `and(paid_date.gte.${filters.dateFrom},paid_date.lte.${filters.dateTo}),` +
+        `and(paid_date.is.null,date.gte.${filters.dateFrom},date.lte.${filters.dateTo})`
+      );
+    } else if (filters.dateFrom) {
+      query = query.or(
+        `paid_date.gte.${filters.dateFrom},and(paid_date.is.null,date.gte.${filters.dateFrom})`
+      );
+    } else if (filters.dateTo) {
+      query = query.or(
+        `paid_date.lte.${filters.dateTo},and(paid_date.is.null,date.lte.${filters.dateTo})`
+      );
+    }
+  } else {
+    if (filters.dateFrom) query = query.gte("date", filters.dateFrom);
+    if (filters.dateTo) query = query.lte("date", filters.dateTo);
+  }
   if (filters.search)
     query = query.ilike("description", `%${filters.search}%`);
 

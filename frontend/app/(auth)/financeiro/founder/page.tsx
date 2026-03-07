@@ -188,8 +188,8 @@ export default function FinanceiroFounderPage() {
                 }
                 tooltip={TOOLTIP_MARGEM}
                 isLoading={isLoading}
-                isEmpty={!isLoading && !!d && d.receitaRealizada === 0 && d.margemReal === 0}
-                emptyMessage="Sem receitas ou custos registrados neste período."
+                isEmpty={!isLoading && !!d && d.receitaRealizada === 0}
+                emptyMessage="Nenhuma receita paga neste período."
                 error={errMsg}
                 onRetry={() => refetch()}
               />

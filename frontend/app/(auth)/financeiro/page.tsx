@@ -145,18 +145,21 @@ function buildNavFilters(
         type: "receita",
         typeIn: undefined,
         statusIn: ["pago", "provisionado"],
+        dateField: "paid_date",
       };
     case "saidas":
       return {
         type: "despesa",
         typeIn: undefined,
         statusIn: ["pago", "provisionado"],
+        dateField: "paid_date",
       };
     case "transferencias":
       return {
         type: "transferencia",
         typeIn: undefined,
         statusIn: undefined,
+        dateField: "paid_date",
       };
     default:
       // Todas movimentações — paid/provisionado of all types
@@ -164,6 +167,7 @@ function buildNavFilters(
         type: undefined,
         typeIn: undefined,
         statusIn: ["pago", "provisionado"],
+        dateField: "paid_date",
       };
   }
 }
@@ -467,7 +471,7 @@ export default function FinanceiroPage() {
               />
               <StatusCard
                 label="Total"
-                value={status.totalTransactions}
+                value={totalCount}
                 color="text-foreground"
               />
               <StatusCard

@@ -40,6 +40,14 @@ export interface ForecastMonth {
   value: number;
 }
 
+export interface MonthlyTrendPoint {
+  month: string;   // "2026-01"
+  label: string;   // "Jan"
+  receita: number;
+  despesa: number;
+  margem: number;  // receita - despesa
+}
+
 export interface FounderDashboardSnapshot {
   // Row 1 — Saude
   receitaRealizada: number;
@@ -72,6 +80,9 @@ export interface FounderDashboardSnapshot {
     total: number;
     months: ForecastMonth[];
   };
+
+  // Monthly trend — last 6 full months (+ current partial month)
+  monthlyTrend: MonthlyTrendPoint[];
 
   // Period context
   periodLabel: string; // "MTD" | "Ultimos 90 dias"
@@ -545,6 +556,38 @@ export async function getFounderDashboardSnapshot(
     }
   }
 
+  // ── Monthly Trend — last 6 months (including current partial month) ──────────
+  // Aggregates paidAll client-side — no extra DB query needed.
+
+  const monthlyTrend: MonthlyTrendPoint[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(1);
+    d.setMonth(d.getMonth() - i);
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const mStart = `${d.getFullYear()}-${mm}-01`;
+    // For current month use today as end; for past months use last day of that month
+    const mEnd = i === 0
+      ? today
+      : isoDate(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+    const mk = `${d.getFullYear()}-${mm}`;
+
+    const rec = paidReceivables
+      .filter((r) => r.paid_date && r.paid_date >= mStart && r.paid_date <= mEnd)
+      .reduce((s, r) => s + paidVal(r), 0);
+    const desp = paidPayables
+      .filter((r) => r.paid_date && r.paid_date >= mStart && r.paid_date <= mEnd)
+      .reduce((s, r) => s + paidVal(r), 0);
+
+    monthlyTrend.push({
+      month: mk,
+      label: MONTH_LABELS[mm] || mm,
+      receita: rec,
+      despesa: desp,
+      margem: rec - desp,
+    });
+  }
+
   // Suppress the avg import warning (used by callers, kept for API stability)
   void avg;
 
@@ -569,6 +612,7 @@ export async function getFounderDashboardSnapshot(
       total: forecastTotal,
       months: forecastMonths,
     },
+    monthlyTrend,
     periodLabel,
   };
 }

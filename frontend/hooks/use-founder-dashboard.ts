@@ -31,6 +31,7 @@ const EMPTY_SNAPSHOT: FounderDashboardSnapshot = {
   concentracaoTop3: 0,
   alerts: [],
   forecast90d: { total: 0, months: [] },
+  monthlyTrend: [],
   periodLabel: "MTD",
 };
 

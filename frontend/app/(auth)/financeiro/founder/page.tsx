@@ -25,6 +25,8 @@ import { FounderAlerts } from "@/components/founder-dashboard/founder-alerts";
 import { ForecastPanel } from "@/components/founder-dashboard/forecast-panel";
 import type { KpiTooltipContent } from "@/components/founder-dashboard/kpi-card";
 import { CashBalanceInput } from "@/components/founder-dashboard/cash-balance-input";
+import { MonthlyTrendChart } from "@/components/founder-dashboard/monthly-trend-chart";
+import { CashWaterfallChart } from "@/components/founder-dashboard/cash-waterfall-chart";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -329,6 +331,67 @@ export default function FinanceiroFounderPage() {
             months={d?.forecast90d.months ?? []}
             isLoading={isLoading}
           />
+        </div>
+      </div>
+
+      {/* Row 5 — Estratégico: Evolução Mensal + Waterfall Caixa 30d */}
+      <div>
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          Estratégico
+        </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          {/* Evolução mensal — takes 3/5 columns */}
+          <div className="lg:col-span-3 rounded-xl border bg-card p-4 shadow-sm">
+            <p className="text-sm font-semibold mb-1">Evolução Mensal (6 meses)</p>
+            <p className="text-xs text-muted-foreground mb-3">
+              Receita · Despesa · Margem — mês atual inclui dados parciais
+            </p>
+            {isLoading ? (
+              <div className="h-[220px] animate-pulse rounded-lg bg-muted" />
+            ) : (
+              <MonthlyTrendChart data={d?.monthlyTrend ?? []} />
+            )}
+          </div>
+
+          {/* Waterfall caixa — takes 2/5 columns */}
+          <div className="lg:col-span-2 rounded-xl border bg-card p-4 shadow-sm">
+            <p className="text-sm font-semibold mb-1">Projeção de Caixa — 30d</p>
+            <p className="text-xs text-muted-foreground mb-3">
+              Caixa atual → +AR pendente → −AP pendente = Saldo previsto
+            </p>
+            {isLoading ? (
+              <div className="h-[200px] animate-pulse rounded-lg bg-muted" />
+            ) : (
+              <CashWaterfallChart
+                caixaAtual={effectiveCaixa}
+                arNext30={d?.arNext30 ?? 0}
+                apNext30={d?.apNext30 ?? 0}
+              />
+            )}
+            {/* Summary row */}
+            {d && !isLoading && (
+              <div className="mt-3 flex justify-between text-xs text-muted-foreground border-t pt-2">
+                <span>
+                  AR: <span className="text-emerald-500 font-medium">{fmt(d.arNext30)}</span>
+                </span>
+                <span>
+                  AP: <span className="text-rose-500 font-medium">{fmt(d.apNext30)}</span>
+                </span>
+                <span>
+                  Saldo:{" "}
+                  <span
+                    className={
+                      effectiveCaixaPrevisto30d >= 0
+                        ? "text-blue-500 font-medium"
+                        : "text-red-500 font-medium"
+                    }
+                  >
+                    {fmt(effectiveCaixaPrevisto30d)}
+                  </span>
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

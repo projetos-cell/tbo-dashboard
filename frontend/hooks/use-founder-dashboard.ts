@@ -33,6 +33,14 @@ const EMPTY_SNAPSHOT: FounderDashboardSnapshot = {
   forecast90d: { total: 0, months: [] },
   monthlyTrend: [],
   periodLabel: "MTD",
+  mrrReceita: 0,
+  pontualReceita: 0,
+  pmr: null,
+  pmp: null,
+  inadimplenciaTotal: 0,
+  inadimplenciaPct: 0,
+  inadimplenciaCount: 0,
+  clientMargins: [],
 };
 
 export function useFounderDashboard(period?: PeriodValue) {

@@ -22,6 +22,14 @@ export interface ClientRevenue {
   pctTotal: number;
 }
 
+export interface ClientMargin {
+  client: string;
+  receita: number;
+  custos: number;
+  margem: number;
+  margemPct: number;
+}
+
 export interface FounderAlert {
   type: "margem" | "runway" | "concentracao" | "atraso" | "despesas";
   message: string;
@@ -83,6 +91,22 @@ export interface FounderDashboardSnapshot {
 
   // Monthly trend — last 6 full months (+ current partial month)
   monthlyTrend: MonthlyTrendPoint[];
+
+  // MRR breakdown
+  mrrReceita: number;
+  pontualReceita: number;
+
+  // Prazo Médio (days)
+  pmr: number | null; // Prazo Médio de Recebimento
+  pmp: number | null; // Prazo Médio de Pagamento
+
+  // Inadimplência
+  inadimplenciaTotal: number;
+  inadimplenciaPct: number;
+  inadimplenciaCount: number;
+
+  // Client margins (top 10)
+  clientMargins: ClientMargin[];
 
   // Period context
   periodLabel: string; // "MTD" | "Ultimos 90 dias"
@@ -594,8 +618,110 @@ export async function getFounderDashboardSnapshot(
     });
   }
 
-  // Suppress the avg import warning (used by callers, kept for API stability)
-  void avg;
+  // ── MRR vs Pontual ───────────────────────────────────────────────────────────
+  // A client is "recurring" if they appear in 2+ distinct months of paid
+  // receivables (all-time). Their period revenue is MRR; everything else is one-off.
+
+  const clientMonthSet = new Map<string, Set<string>>();
+  for (const r of paidReceivables) {
+    if (!r.counterpart || !r.paid_date) continue;
+    const mk = r.paid_date.slice(0, 7);
+    if (!clientMonthSet.has(r.counterpart)) clientMonthSet.set(r.counterpart, new Set());
+    clientMonthSet.get(r.counterpart)!.add(mk);
+  }
+  const recurringClients = new Set<string>();
+  for (const [client, months] of clientMonthSet) {
+    if (months.size >= 2) recurringClients.add(client);
+  }
+
+  let mrrReceita = 0;
+  let pontualReceita = 0;
+  for (const r of periodReceivables) {
+    const val = paidVal(r);
+    if (r.counterpart && recurringClients.has(r.counterpart)) {
+      mrrReceita += val;
+    } else {
+      pontualReceita += val;
+    }
+  }
+
+  // ── PMR / PMP — Prazo Médio de Recebimento / Pagamento ────────────────────
+  // Average delta (days) between due_date and paid_date on transactions
+  // paid in the last 6 months. Positive PMR = received after due date.
+
+  const d180ago = new Date(now);
+  d180ago.setDate(d180ago.getDate() - 180);
+  const d180agoStr = isoDate(d180ago);
+
+  const pmrDeltas: number[] = [];
+  for (const r of paidReceivables) {
+    if (!r.paid_date || !r.due_date || r.paid_date < d180agoStr) continue;
+    const delta = Math.floor(
+      (new Date(r.paid_date).getTime() - new Date(r.due_date).getTime()) / (1000 * 60 * 60 * 24)
+    );
+    pmrDeltas.push(delta);
+  }
+
+  const pmpDeltas: number[] = [];
+  for (const r of paidPayables) {
+    if (!r.paid_date || !r.due_date || r.paid_date < d180agoStr) continue;
+    const delta = Math.floor(
+      (new Date(r.paid_date).getTime() - new Date(r.due_date).getTime()) / (1000 * 60 * 60 * 24)
+    );
+    pmpDeltas.push(delta);
+  }
+
+  const pmr = avg(pmrDeltas);
+  const pmp = avg(pmpDeltas);
+
+  // ── Inadimplência ─────────────────────────────────────────────────────────
+  // Overdue receivables (status "atrasado") as % of total pending AR.
+
+  const overdueReceivables = pendingReceivables.filter(
+    (r) => r.status === "atrasado" && r.due_date && r.due_date < today
+  );
+  const inadimplenciaTotal = overdueReceivables.reduce((s, r) => s + (r.amount ?? 0), 0);
+  const totalPendingAR = pendingReceivables.reduce((s, r) => s + (r.amount ?? 0), 0);
+  const inadimplenciaPct = totalPendingAR > 0
+    ? (inadimplenciaTotal / totalPendingAR) * 100
+    : 0;
+  const inadimplenciaCount = overdueReceivables.length;
+
+  // ── Client Margins (top 10) ───────────────────────────────────────────────
+  // Cross-reference receivables (revenue per client) with payables (costs via
+  // project→client lookup). Only payables with a project_id that has an
+  // associated client are attributed.
+
+  const projectToClient = new Map<string, string>();
+  for (const r of periodReceivables) {
+    if (r.project_id && r.counterpart) {
+      projectToClient.set(r.project_id, r.counterpart);
+    }
+  }
+
+  const clientCostMap = new Map<string, number>();
+  for (const r of periodPayables) {
+    if (!r.project_id) continue;
+    const client = projectToClient.get(r.project_id);
+    if (!client) continue;
+    clientCostMap.set(client, (clientCostMap.get(client) || 0) + paidVal(r));
+  }
+
+  const clientMargins: ClientMargin[] = Array.from(clientRevMap.entries())
+    .filter(([k]) => k !== "__none__")
+    .map(([client, receita]) => {
+      const custos = clientCostMap.get(client) || 0;
+      const margem = receita - custos;
+      return {
+        client,
+        receita,
+        custos,
+        margem,
+        margemPct: receita > 0 ? (margem / receita) * 100 : 0,
+      };
+    })
+    .sort((a, b) => b.receita - a.receita)
+    .slice(0, 10);
 
   return {
     receitaRealizada,
@@ -620,5 +746,13 @@ export async function getFounderDashboardSnapshot(
     },
     monthlyTrend,
     periodLabel,
+    mrrReceita,
+    pontualReceita,
+    pmr,
+    pmp,
+    inadimplenciaTotal,
+    inadimplenciaPct,
+    inadimplenciaCount,
+    clientMargins,
   };
 }

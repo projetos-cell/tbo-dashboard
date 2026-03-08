@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import {
   RefreshCw,
   Search,
@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import dynamic from "next/dynamic";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
 const FinanceChartsPanel = dynamic(
   () =>
@@ -41,6 +42,7 @@ import type { FinanceFilters } from "@/services/finance";
 import {
   DateRangeFilter,
   type DateRangeValue,
+  type DatePreset,
   resolveDateRange,
 } from "@/components/financeiro/date-range-filter";
 
@@ -204,7 +206,40 @@ export default function FinanceiroPage() {
   const [sortField, setSortField] = useState<string>("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [showFilters, setShowFilters] = useState(false);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const [dateRange, setDateRange] = useState<DateRangeValue>({ preset: "mtd" });
+
+  // ── Sync URL params → state on mount ──────────────────────────────────────
+  useEffect(() => {
+    const preset = searchParams.get("preset") as DatePreset | null;
+    const from = searchParams.get("dr_from") ?? undefined;
+    const to = searchParams.get("dr_to") ?? undefined;
+    const validPresets: DatePreset[] = ["today", "7d", "30d", "mtd", "last_month"];
+    if (preset === "custom" && from && to) {
+      setDateRange({ preset: "custom", from, to });
+    } else if (preset && validPresets.includes(preset)) {
+      setDateRange({ preset });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleDateRangeChange = useCallback(
+    (value: DateRangeValue) => {
+      setDateRange(value);
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("preset", value.preset);
+      if (value.preset === "custom" && value.from && value.to) {
+        params.set("dr_from", value.from);
+        params.set("dr_to", value.to);
+      } else {
+        params.delete("dr_from");
+        params.delete("dr_to");
+      }
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [searchParams, router, pathname]
+  );
 
   // ── Section change handler (full reset) ───────────────────────────────────
   const handleSectionChange = useCallback((newSection: Section) => {
@@ -407,7 +442,7 @@ export default function FinanceiroPage() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap justify-end">
-          <DateRangeFilter value={dateRange} onChange={setDateRange} />
+          <DateRangeFilter value={dateRange} onChange={handleDateRangeChange} />
           <button
             onClick={() => syncMutation.mutate()}
             disabled={syncMutation.isPending}

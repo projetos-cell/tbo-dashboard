@@ -9,6 +9,7 @@ import {
   BarChart3,
   Info,
   ShieldAlert,
+  FileText,
 } from "lucide-react";
 import type { FounderAlert } from "@/services/founder-dashboard";
 
@@ -20,6 +21,7 @@ const ALERT_ICONS: Record<FounderAlert["type"], typeof AlertTriangle> = {
   concentracao: Users,
   atraso: Clock,
   despesas: BarChart3,
+  contrato: FileText,
 };
 
 const ALERT_COLORS: Record<FounderAlert["type"], string> = {
@@ -28,6 +30,7 @@ const ALERT_COLORS: Record<FounderAlert["type"], string> = {
   concentracao: "text-amber-600 dark:text-amber-400",
   atraso: "text-orange-600 dark:text-orange-400",
   despesas: "text-amber-600 dark:text-amber-400",
+  contrato: "text-blue-600 dark:text-blue-400",
 };
 
 const ALERT_BADGE_VARIANT: Record<FounderAlert["type"], "destructive" | "secondary"> = {
@@ -36,6 +39,7 @@ const ALERT_BADGE_VARIANT: Record<FounderAlert["type"], "destructive" | "seconda
   concentracao: "secondary",
   atraso: "secondary",
   despesas: "secondary",
+  contrato: "secondary",
 };
 
 // ── Inline badge ──────────────────────────────────────────────────────────────

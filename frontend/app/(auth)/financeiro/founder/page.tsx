@@ -377,6 +377,11 @@ export default function FinanceiroFounderPage() {
             sublabel={d ? `${d.headcount} colaboradores ativos` : undefined}
             icon={<Users className="h-4 w-4 text-indigo-500" />}
             colorClass="text-indigo-600 dark:text-indigo-400"
+            tooltip={{
+              description: "Receita total dividida pelo número de colaboradores ativos.",
+              formula: "receita_realizada / headcount",
+              source: "Omie (receita) + Pessoas (headcount)",
+            }}
             isLoading={isLoading}
             isEmpty={!isLoading && !!d && d.headcount === 0}
             emptyMessage="Nenhum colaborador ativo cadastrado."
@@ -389,6 +394,11 @@ export default function FinanceiroFounderPage() {
             sublabel={d ? `${fmtPct(d.folhaPct)} do total de custos` : undefined}
             icon={<Receipt className="h-4 w-4 text-rose-500" />}
             colorClass="text-rose-600 dark:text-rose-400"
+            tooltip={{
+              description: "Custos classificados como Folha de Pagamento no período.",
+              enters: "Despesas com categoria 'folha' ou 'salários'.",
+              source: "Omie (contas a pagar — categoria folha)",
+            }}
             isLoading={isLoading}
             error={errMsg}
             onRetry={() => refetch()}
@@ -399,6 +409,11 @@ export default function FinanceiroFounderPage() {
             sublabel={d ? `${fmtPct(d.operacionalPct)} do total de custos` : undefined}
             icon={<Cog className="h-4 w-4 text-slate-500" />}
             colorClass="text-slate-600 dark:text-slate-400"
+            tooltip={{
+              description: "Custos operacionais excluindo folha de pagamento.",
+              formula: "total_despesas - folha_pagamento",
+              source: "Omie (contas a pagar — exceto categoria folha)",
+            }}
             isLoading={isLoading}
             error={errMsg}
             onRetry={() => refetch()}
@@ -415,6 +430,11 @@ export default function FinanceiroFounderPage() {
                   ? "text-amber-600 dark:text-amber-400"
                   : "text-emerald-600 dark:text-emerald-400"
             }
+            tooltip={{
+              description: "Taxa de churn: percentual de clientes que deixaram de gerar receita.",
+              formula: "clientes_perdidos / clientes_ativos_mês_anterior × 100",
+              source: "Omie (receita por cliente — comparação mensal)",
+            }}
             isLoading={isLoading}
             isEmpty={!isLoading && !!d && d.churnHistory.length === 0}
             emptyMessage="Dados insuficientes para calcular churn (mínimo 2 meses)."

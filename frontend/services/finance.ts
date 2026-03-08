@@ -110,7 +110,7 @@ export interface FinanceFilters {
 
 const TABLE_TRANSACTIONS = "finance_transactions" as never;
 const TABLE_CATEGORIES = "finance_categories" as never;
-const TABLE_COST_CENTERS = "fin_cost_centers" as never;
+const TABLE_COST_CENTERS = "finance_cost_centers" as never;
 const TABLE_SNAPSHOTS = "finance_snapshots_daily" as never;
 
 export async function getFinanceTransactions(

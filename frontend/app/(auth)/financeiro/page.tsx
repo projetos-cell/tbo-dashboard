@@ -310,6 +310,15 @@ export default function FinanceiroPage() {
     return sorted;
   }, [transactions, sortField, sortDir, section]);
 
+  // ── Category name lookup map (id → name) ─────────────────────────────────
+  const categoryNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const cat of (categories ?? [])) {
+      map.set(cat.id, cat.name);
+    }
+    return map;
+  }, [categories]);
+
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleSearch = useCallback(() => {
@@ -837,6 +846,11 @@ export default function FinanceiroPage() {
                       {/* Description */}
                       <td className="px-4 py-3">
                         <span className="line-clamp-1">{tx.description}</span>
+                        {tx.category_id && categoryNameMap.get(tx.category_id) && (
+                          <span className="block text-xs text-muted-foreground mt-0.5 truncate max-w-[220px]">
+                            {categoryNameMap.get(tx.category_id)}
+                          </span>
+                        )}
                       </td>
 
                       {/* Counterpart */}

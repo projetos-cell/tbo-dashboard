@@ -1,22 +1,25 @@
 // ============================================================================
-// TBO OS — Edge Function: Omie ERP Sync v2.1
+// TBO OS — Edge Function: Omie ERP Sync v2.2
 // Pulls data from Omie JSON-RPC API → upserts into Supabase
 // Trigger: Manual call via API route
 // Query params: ?tenant_id=xxx (optional, syncs all if omitted)
 //               ?trigger=manual|webhook
 //
-// Entities synced (5):
+// Entities synced (6):
 //   1. Fornecedores     → fin_vendors
 //   2. Clientes         → fin_clients
-//   3. Contas a Pagar   → fin_payables
-//   4. Contas a Receber → fin_receivables
-//   5. Contas Correntes → fin_bank_accounts
+//   3. Categorias       → finance_categories
+//   4. Contas a Pagar   → finance_transactions (type=despesa)
+//   5. Contas a Receber → finance_transactions (type=receita)
+//   6. Contas Correntes → fin_bank_accounts
 //
-// FIXES v2.1:
-//   - PAGE_SIZE 50 → 500 (10× menos chamadas Omie, handle 1000+ registros)
-//   - Paginação usa total_de_paginas (robusto) em vez de heurística de length
-//   - N+1 eliminado: vendor/client/category maps pré-carregados por entidade
-//   - Batch upsert em payables & receivables (1 upsert/página vs 500)
+// FIXES v2.2:
+//   - syncPayables/Receivables → target finance_transactions (unified table)
+//   - omie_id prefixed: "payable_{id}" / "receivable_{id}" (avoid collision)
+//   - Added syncCategories() → finance_categories with omie_id
+//   - loadOmieNameMap() for counterpart denormalization
+//   - Status values aligned to finance_transactions_status_check constraint
+//   - Added type, date, counterpart, counterpart_doc, omie_raw fields
 // ============================================================================
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
@@ -39,6 +42,7 @@ interface OmieCredentials {
 interface SyncCounts {
   vendors_synced: number;
   clients_synced: number;
+  categories_synced: number;
   payables_synced: number;
   receivables_synced: number;
   bank_accounts_synced: number;
@@ -94,6 +98,7 @@ serve(async (req: Request) => {
       const counts: SyncCounts = {
         vendors_synced: 0,
         clients_synced: 0,
+        categories_synced: 0,
         payables_synced: 0,
         receivables_synced: 0,
         bank_accounts_synced: 0,
@@ -114,9 +119,11 @@ serve(async (req: Request) => {
       const logId = logEntry?.id;
 
       try {
-        // Sync in order: Fornecedores → Clientes → Pagar → Receber → Contas Correntes
+        // Sync order: Vendors → Clients → Categories → Payables → Receivables → BankAccounts
+        // Categories must run before Payables/Receivables so FK resolution works
         counts.vendors_synced = await syncVendors(supabase, creds, tenantId, errors);
         counts.clients_synced = await syncClients(supabase, creds, tenantId, errors);
+        counts.categories_synced = await syncCategories(supabase, creds, tenantId, errors);
         counts.payables_synced = await syncPayables(supabase, creds, tenantId, errors);
         counts.receivables_synced = await syncReceivables(supabase, creds, tenantId, errors);
         counts.bank_accounts_synced = await syncBankAccounts(supabase, creds, tenantId, errors);
@@ -151,14 +158,18 @@ serve(async (req: Request) => {
       results[tenantId] = { counts, errors };
     }
 
-    return jsonResponse({ message: "Sync concluido", results, duration_ms: Date.now() - startTime });
+    return jsonResponse({
+      message: "Sync concluido",
+      results,
+      duration_ms: Date.now() - startTime,
+    });
   } catch (err) {
     console.error("[omie-sync] Fatal:", err);
     return jsonResponse({ error: err.message }, 500);
   }
 });
 
-// ── Helper: preload omie_id → internal id map (eliminates N+1) ───────────────
+// ── Helper: preload omie_id → internal UUID map (eliminates N+1) ─────────────
 
 async function loadOmieIdMap(
   supabase: SupabaseClient,
@@ -174,6 +185,31 @@ async function loadOmieIdMap(
   const map = new Map<string, string>();
   for (const row of (data ?? [])) {
     if (row.omie_id) map.set(String(row.omie_id), row.id);
+  }
+  return map;
+}
+
+// ── Helper: preload omie_id → { name, doc } for counterpart denormalization ──
+
+async function loadOmieNameMap(
+  supabase: SupabaseClient,
+  table: string,
+  tenantId: string
+): Promise<Map<string, { name: string; doc: string | null }>> {
+  const { data } = await supabase
+    .from(table)
+    .select("omie_id, name, cnpj")
+    .eq("tenant_id", tenantId)
+    .not("omie_id", "is", null);
+
+  const map = new Map<string, { name: string; doc: string | null }>();
+  for (const row of (data ?? [])) {
+    if (row.omie_id) {
+      map.set(String(row.omie_id), {
+        name: row.name || "",
+        doc: row.cnpj || null,
+      });
+    }
   }
   return map;
 }
@@ -224,7 +260,6 @@ async function syncVendors(
         }
       }
 
-      // Use total_de_paginas for reliable pagination termination
       if (page >= (res?.total_de_paginas ?? 1)) break;
       page++;
       await delay(RATE_LIMIT_MS);
@@ -260,8 +295,8 @@ async function syncClients(
         try {
           // Skip vendors (tagged as "Fornecedor")
           const tags = c.tags || [];
-          const isVendor = tags.some((t: { tag?: string }) =>
-            (t.tag || "").toLowerCase() === "fornecedor"
+          const isVendor = tags.some(
+            (t: { tag?: string }) => (t.tag || "").toLowerCase() === "fornecedor"
           );
           if (isVendor) continue;
 
@@ -300,6 +335,73 @@ async function syncClients(
   return total;
 }
 
+async function syncCategories(
+  supabase: SupabaseClient,
+  creds: OmieCredentials,
+  tenantId: string,
+  errors: SyncError[]
+): Promise<number> {
+  let total = 0;
+  let page = 1;
+
+  try {
+    while (true) {
+      const res = await omieCall(creds, "geral/categorias/", "ListarCategorias", {
+        pagina: page,
+        registros_por_pagina: PAGE_SIZE,
+      });
+
+      const records: Array<{
+        codigo: string | number;
+        descricao: string;
+        tipo?: string;
+        inativo?: string;
+      }> = res?.categoria_cadastro || [];
+      if (records.length === 0) break;
+
+      const batch: Record<string, unknown>[] = [];
+
+      for (const cat of records) {
+        const omieId = String(cat.codigo || "");
+        if (!omieId) continue;
+
+        // Omie tipo: "R" = receita, "D" = despesa (default)
+        const tipo = (cat.tipo || "D").toUpperCase();
+        const type = tipo === "R" ? "receita" : "despesa";
+
+        batch.push({
+          tenant_id: tenantId,
+          omie_id: omieId,
+          name: cat.descricao || `Categoria ${omieId}`,
+          type,
+          is_active: cat.inativo !== "S",
+        });
+      }
+
+      if (batch.length > 0) {
+        const { error: upsertErr } = await supabase
+          .from("finance_categories")
+          .upsert(batch, { onConflict: "tenant_id,omie_id" });
+
+        if (upsertErr) {
+          errors.push({ entity: "categories", message: upsertErr.message, page });
+        } else {
+          total += batch.length;
+        }
+      }
+
+      if (page >= (res?.total_de_paginas ?? 1)) break;
+      page++;
+      await delay(RATE_LIMIT_MS);
+    }
+  } catch (e) {
+    errors.push({ entity: "categories", message: e.message });
+  }
+
+  console.log(`[omie-sync] Categories: ${total} synced`);
+  return total;
+}
+
 async function syncPayables(
   supabase: SupabaseClient,
   creds: OmieCredentials,
@@ -309,10 +411,12 @@ async function syncPayables(
   let total = 0;
   let page = 1;
 
-  // Preload FK maps — eliminates N+1 (was: 2 DB queries per record)
-  const [vendorMap, categoryMap] = await Promise.all([
-    loadOmieIdMap(supabase, "fin_vendors", tenantId),
-    loadOmieIdMap(supabase, "fin_categories", tenantId),
+  // Preload maps — eliminates N+1 lookups
+  // vendorNameMap: omie vendor id → { name, doc } for counterpart denormalization
+  // categoryIdMap: omie category id → internal UUID for FK resolution
+  const [vendorNameMap, categoryIdMap] = await Promise.all([
+    loadOmieNameMap(supabase, "fin_vendors", tenantId),
+    loadOmieIdMap(supabase, "finance_categories", tenantId),
   ]);
 
   const syncedAt = new Date().toISOString();
@@ -327,39 +431,49 @@ async function syncPayables(
       const records = res?.conta_pagar_cadastro || [];
       if (records.length === 0) break;
 
-      // Build batch for this page
       const batch: Record<string, unknown>[] = [];
 
       for (const p of records) {
         const omieId = String(p.codigo_lancamento_omie || "");
         if (!omieId) continue;
 
+        const counterpartKey = String(p.codigo_cliente_fornecedor || "");
+        const counterpartInfo = counterpartKey
+          ? vendorNameMap.get(counterpartKey)
+          : undefined;
+
         batch.push({
           tenant_id: tenantId,
-          omie_id: omieId,
-          description: p.observacao || p.numero_documento || `Conta ${omieId}`,
+          // Prefix prevents collision with receivables in unified finance_transactions
+          omie_id: `payable_${omieId}`,
+          type: "despesa",
+          description:
+            p.observacao || p.numero_documento || `Conta a pagar ${omieId}`,
           amount: parseFloat(p.valor_documento) || 0,
-          amount_paid: parseFloat(p.valor_pago) || 0,
+          paid_amount: parseFloat(p.valor_pago) || 0,
+          // date = data_emissao (document issue date), fallback to due_date
+          date: p.data_emissao
+            ? omieDate(p.data_emissao)
+            : omieDate(p.data_vencimento),
           due_date: omieDate(p.data_vencimento),
           paid_date: p.data_pagamento ? omieDate(p.data_pagamento) : null,
           status: mapPayableStatus(p.status_titulo),
-          // FK resolution via preloaded maps — O(1) instead of DB query
-          vendor_id: p.codigo_cliente_fornecedor
-            ? (vendorMap.get(String(p.codigo_cliente_fornecedor)) ?? null)
-            : null,
+          counterpart: counterpartInfo?.name ?? null,
+          counterpart_doc: counterpartInfo?.doc ?? null,
           category_id: p.codigo_categoria
-            ? (categoryMap.get(String(p.codigo_categoria)) ?? null)
+            ? (categoryIdMap.get(String(p.codigo_categoria)) ?? null)
             : null,
           payment_method: p.id_conta_corrente ? "transferencia" : null,
           notes: p.observacao || null,
           omie_synced_at: syncedAt,
+          omie_raw: p,
         });
       }
 
-      // Batch upsert (1 DB call per page instead of N)
+      // Batch upsert — 1 DB call per page (vs N per record before)
       if (batch.length > 0) {
         const { error: upsertErr } = await supabase
-          .from("fin_payables")
+          .from("finance_transactions")
           .upsert(batch, { onConflict: "tenant_id,omie_id" });
 
         if (upsertErr) {
@@ -377,7 +491,7 @@ async function syncPayables(
     errors.push({ entity: "payables", message: e.message });
   }
 
-  console.log(`[omie-sync] Payables: ${total} synced`);
+  console.log(`[omie-sync] Payables → finance_transactions: ${total} synced`);
   return total;
 }
 
@@ -390,10 +504,12 @@ async function syncReceivables(
   let total = 0;
   let page = 1;
 
-  // Preload FK maps — eliminates N+1
-  const [clientMap, categoryMap] = await Promise.all([
-    loadOmieIdMap(supabase, "fin_clients", tenantId),
-    loadOmieIdMap(supabase, "fin_categories", tenantId),
+  // Preload maps — eliminates N+1 lookups
+  // clientNameMap: omie client id → { name, doc } for counterpart denormalization
+  // categoryIdMap: omie category id → internal UUID for FK resolution
+  const [clientNameMap, categoryIdMap] = await Promise.all([
+    loadOmieNameMap(supabase, "fin_clients", tenantId),
+    loadOmieIdMap(supabase, "finance_categories", tenantId),
   ]);
 
   const syncedAt = new Date().toISOString();
@@ -408,38 +524,49 @@ async function syncReceivables(
       const records = res?.conta_receber_cadastro || [];
       if (records.length === 0) break;
 
-      // Build batch for this page
       const batch: Record<string, unknown>[] = [];
 
       for (const r of records) {
         const omieId = String(r.codigo_lancamento_omie || "");
         if (!omieId) continue;
 
+        const counterpartKey = String(r.codigo_cliente_fornecedor || "");
+        const counterpartInfo = counterpartKey
+          ? clientNameMap.get(counterpartKey)
+          : undefined;
+
         batch.push({
           tenant_id: tenantId,
-          omie_id: omieId,
-          description: r.observacao || r.numero_documento || `Recebivel ${omieId}`,
+          // Prefix prevents collision with payables in unified finance_transactions
+          omie_id: `receivable_${omieId}`,
+          type: "receita",
+          description:
+            r.observacao || r.numero_documento || `Conta a receber ${omieId}`,
           amount: parseFloat(r.valor_documento) || 0,
-          amount_paid: parseFloat(r.valor_recebido) || 0,
+          paid_amount: parseFloat(r.valor_recebido) || 0,
+          // date = data_emissao (document issue date), fallback to due_date
+          date: r.data_emissao
+            ? omieDate(r.data_emissao)
+            : omieDate(r.data_vencimento),
           due_date: omieDate(r.data_vencimento),
           paid_date: r.data_recebimento ? omieDate(r.data_recebimento) : null,
           status: mapReceivableStatus(r.status_titulo),
-          client_id: r.codigo_cliente_fornecedor
-            ? (clientMap.get(String(r.codigo_cliente_fornecedor)) ?? null)
-            : null,
+          counterpart: counterpartInfo?.name ?? null,
+          counterpart_doc: counterpartInfo?.doc ?? null,
           category_id: r.codigo_categoria
-            ? (categoryMap.get(String(r.codigo_categoria)) ?? null)
+            ? (categoryIdMap.get(String(r.codigo_categoria)) ?? null)
             : null,
           payment_method: r.id_conta_corrente ? "transferencia" : null,
           notes: r.observacao || null,
           omie_synced_at: syncedAt,
+          omie_raw: r,
         });
       }
 
-      // Batch upsert
+      // Batch upsert — 1 DB call per page (vs N per record before)
       if (batch.length > 0) {
         const { error: upsertErr } = await supabase
-          .from("fin_receivables")
+          .from("finance_transactions")
           .upsert(batch, { onConflict: "tenant_id,omie_id" });
 
         if (upsertErr) {
@@ -457,7 +584,7 @@ async function syncReceivables(
     errors.push({ entity: "receivables", message: e.message });
   }
 
-  console.log(`[omie-sync] Receivables: ${total} synced`);
+  console.log(`[omie-sync] Receivables → finance_transactions: ${total} synced`);
   return total;
 }
 
@@ -485,7 +612,6 @@ async function syncBankAccounts(
           const omieId = String(acc.nCodCC || "");
           if (!omieId) continue;
 
-          // Map Omie account type to our type
           const tipoCC = (acc.tipo_conta_corrente || "CC").toUpperCase();
           let accountType = "corrente";
           if (tipoCC === "CP" || tipoCC.includes("POUPAN")) accountType = "poupanca";
@@ -498,7 +624,11 @@ async function syncBankAccounts(
             bank_code: acc.codigo_banco || acc.cCodBanco || null,
             bank_name: acc.descricao_banco || acc.cNomeBanco || null,
             agency: acc.agencia || acc.cAgencia || null,
-            account_number: acc.conta_corrente || acc.cContaCorrente || acc.nro_conta_corrente || null,
+            account_number:
+              acc.conta_corrente ||
+              acc.cContaCorrente ||
+              acc.nro_conta_corrente ||
+              null,
             account_type: accountType,
             balance: parseFloat(acc.saldo || acc.nSaldo || "0") || 0,
             is_active: acc.inativo !== "S" && acc.cInativo !== "S",
@@ -556,7 +686,9 @@ async function omieCall(
         // Rate limited — wait and retry
         if (res.status === 429 || res.status === 503) {
           const waitMs = Math.min(2000 * Math.pow(2, attempt - 1), 16000);
-          console.warn(`[omie-sync] Rate limited on ${call}, waiting ${waitMs}ms (attempt ${attempt})`);
+          console.warn(
+            `[omie-sync] Rate limited on ${call}, waiting ${waitMs}ms (attempt ${attempt})`
+          );
           await delay(waitMs);
           continue;
         }
@@ -568,7 +700,6 @@ async function omieCall(
     } catch (e) {
       if (attempt === retries) throw e;
 
-      // Exponential backoff for network errors
       const waitMs = Math.min(1000 * Math.pow(2, attempt - 1), 8000);
       console.warn(`[omie-sync] Retry ${attempt}/${retries} for ${call}: ${e.message}`);
       await delay(waitMs);
@@ -588,26 +719,34 @@ function omieDate(dateStr: string | null | undefined): string {
   return dateStr; // Already ISO or unknown format
 }
 
-/** Map Omie payable status_titulo → TBO status */
+/**
+ * Map Omie payable status_titulo → finance_transactions status
+ * Valid: previsto | provisionado | pago | atrasado | recorrente | cancelado
+ */
 function mapPayableStatus(omieStatus: string | null | undefined): string {
   const s = (omieStatus || "").toUpperCase();
   if (s === "LIQUIDADO" || s === "PAGO") return "pago";
   if (s === "ATRASADO" || s === "VENCIDO") return "atrasado";
   if (s === "CANCELADO") return "cancelado";
-  if (s === "PARCIAL" || s === "PARCIALMENTE_LIQUIDADO") return "parcial";
-  if (s === "APROVADO") return "aprovado";
-  return "aberto";
+  // Partial payment — provisionado signals known but incomplete
+  if (s === "PARCIAL" || s === "PARCIALMENTE_LIQUIDADO") return "provisionado";
+  // "APROVADO", "ABERTO", "PENDENTE" and anything else → previsto
+  return "previsto";
 }
 
-/** Map Omie receivable status_titulo → TBO status */
+/**
+ * Map Omie receivable status_titulo → finance_transactions status
+ * Valid: previsto | provisionado | pago | atrasado | recorrente | cancelado
+ */
 function mapReceivableStatus(omieStatus: string | null | undefined): string {
   const s = (omieStatus || "").toUpperCase();
-  if (s === "LIQUIDADO" || s === "RECEBIDO") return "recebido";
+  if (s === "LIQUIDADO" || s === "RECEBIDO") return "pago";
   if (s === "ATRASADO" || s === "VENCIDO") return "atrasado";
   if (s === "CANCELADO") return "cancelado";
-  if (s === "PARCIAL" || s === "PARCIALMENTE_LIQUIDADO") return "parcial";
-  if (s === "EMITIDO" || s === "FATURADO") return "emitido";
-  return "aberto";
+  // Partial receipt — provisionado signals known but incomplete
+  if (s === "PARCIAL" || s === "PARCIALMENTE_LIQUIDADO") return "provisionado";
+  // "EMITIDO", "FATURADO", "ABERTO", "PENDENTE" and anything else → previsto
+  return "previsto";
 }
 
 /** Strip trailing CNPJ/CPF numbers and trim */

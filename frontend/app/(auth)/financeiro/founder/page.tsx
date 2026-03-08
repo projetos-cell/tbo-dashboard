@@ -27,6 +27,10 @@ import type { KpiTooltipContent } from "@/components/founder-dashboard/kpi-card"
 import { CashBalanceInput } from "@/components/founder-dashboard/cash-balance-input";
 import { MonthlyTrendChart } from "@/components/founder-dashboard/monthly-trend-chart";
 import { CashWaterfallChart } from "@/components/founder-dashboard/cash-waterfall-chart";
+import { DreTable } from "@/components/financeiro/dre-table";
+import { DreSettingsModal } from "@/components/financeiro/dre-settings-modal";
+import { RevenueConcentrationChart } from "@/components/financeiro/revenue-concentration-chart";
+import { useFinanceDRE, useRevenueConcentrationByClient, useDreSettings } from "@/hooks/use-finance";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -112,6 +116,13 @@ export default function FinanceiroFounderPage() {
   const router = useRouter();
   const [period, setPeriod] = useState<PeriodValue>({ preset: "mtd" });
   const [manualCaixa, setManualCaixa] = useState<number | null>(null);
+  const [dreSettingsOpen, setDreSettingsOpen] = useState(false);
+
+  // ── Melhorias #8 e #9 ────────────────────────────────────────────────────
+  const { data: dreData, isLoading: dreLoading } = useFinanceDRE(7);
+  const { data: dreSettings } = useDreSettings();
+  const { data: concentrationData, isLoading: concentrationLoading } =
+    useRevenueConcentrationByClient();
 
   useEffect(() => {
     if (role && !hasMinRole(role, "diretoria")) {
@@ -334,7 +345,38 @@ export default function FinanceiroFounderPage() {
         </div>
       </div>
 
-      {/* Row 5 — Estratégico: Evolução Mensal + Waterfall Caixa 30d */}
+      {/* Row 5 — Concentração de Receita (Melhoria #9) */}
+      <div>
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          Concentração de Receita
+        </h2>
+        <RevenueConcentrationChart
+          data={concentrationData}
+          isLoading={concentrationLoading}
+          topN={5}
+        />
+      </div>
+
+      {/* Row 6 — DRE Simplificado (Melhoria #8) */}
+      <div>
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          DRE Simplificado
+        </h2>
+        <div className="rounded-xl border bg-card p-4 shadow-sm">
+          <DreTable
+            data={dreData}
+            isLoading={dreLoading}
+            onConfigureClick={() => setDreSettingsOpen(true)}
+          />
+        </div>
+        <DreSettingsModal
+          open={dreSettingsOpen}
+          onClose={() => setDreSettingsOpen(false)}
+          currentTaxRate={dreSettings?.tax_rate ?? 15}
+        />
+      </div>
+
+      {/* Row 8 — Estratégico: Evolução Mensal + Waterfall Caixa 30d */}
       <div>
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           Estratégico

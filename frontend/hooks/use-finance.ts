@@ -12,7 +12,14 @@ import {
   getFinanceStatus,
   getFinanceStatusWithAmounts,
   getFounderKPIs,
+  getFinanceAging,
+  getFinanceCashFlowProjection,
+  getFinanceChartData,
   triggerFinanceSync,
+  getDreSettings,
+  upsertDreSettings,
+  getFinanceDRE,
+  getRevenueConcentrationByClient,
   type FinanceTransaction,
   type FinanceCategory,
   type FinanceCostCenter,
@@ -21,6 +28,11 @@ import {
   type FinanceStatusWithAmounts,
   type FinanceFilters,
   type FounderKPIs,
+  type FinanceAgingData,
+  type CashFlowPoint,
+  type DreSettings,
+  type DreData,
+  type RevenueConcentrationData,
 } from "@/services/finance";
 
 // ── Transactions ──────────────────────────────────────────────────────────────
@@ -75,6 +87,12 @@ export function useFinanceTransactions(filters: FinanceFilters = {}) {
           });
           qc.invalidateQueries({
             queryKey: ["finance-snapshots", tenantId],
+          });
+          qc.invalidateQueries({
+            queryKey: ["finance-aging", tenantId],
+          });
+          qc.invalidateQueries({
+            queryKey: ["finance-cashflow-projection", tenantId],
           });
         }
       )
@@ -226,6 +244,70 @@ export function useFounderKPIs() {
   });
 }
 
+// ── Aging AR/AP ───────────────────────────────────────────────────────────────
+
+export function useFinanceAging() {
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery<FinanceAgingData>({
+    queryKey: ["finance-aging", tenantId],
+    queryFn: async () => {
+      if (!tenantId)
+        return {
+          buckets: [],
+          totalAr: 0,
+          totalAp: 0,
+          totalArCount: 0,
+          totalApCount: 0,
+        };
+      const supabase = createClient();
+      return getFinanceAging(supabase, tenantId);
+    },
+    enabled: !!tenantId,
+    staleTime: 1000 * 60 * 5,
+    refetchInterval: 1000 * 60 * 10,
+  });
+}
+
+// ── Cash Flow Projection ──────────────────────────────────────────────────────
+
+export function useFinanceCashFlowProjection(days = 30) {
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery<CashFlowPoint[]>({
+    queryKey: ["finance-cashflow-projection", tenantId, days],
+    queryFn: async () => {
+      if (!tenantId) return [];
+      const supabase = createClient();
+      return getFinanceCashFlowProjection(supabase, tenantId, days);
+    },
+    enabled: !!tenantId,
+    staleTime: 1000 * 60 * 5,
+    refetchInterval: 1000 * 60 * 10,
+  });
+}
+
+// ── Chart Data (unpaginated, for client-side aggregation) ────────────────────
+
+export function useFinanceChartData(
+  filters: Omit<FinanceFilters, "page" | "pageSize" | "search"> = {},
+  enabled = true
+) {
+  const tenantId = useAuthStore((s) => s.tenantId);
+  const filterKey = JSON.stringify(filters);
+
+  return useQuery<FinanceTransaction[]>({
+    queryKey: ["finance-chart-data", tenantId, filterKey],
+    queryFn: async () => {
+      if (!tenantId) return [];
+      const supabase = createClient();
+      return getFinanceChartData(supabase, tenantId, filters);
+    },
+    enabled: !!tenantId && enabled,
+    staleTime: 1000 * 30,
+  });
+}
+
 // ── Sync mutation ─────────────────────────────────────────────────────────────
 
 export function useTriggerFinanceSync() {
@@ -243,6 +325,83 @@ export function useTriggerFinanceSync() {
       qc.invalidateQueries({ queryKey: ["finance-status-amounts", tenantId] });
       qc.invalidateQueries({ queryKey: ["finance-snapshots", tenantId] });
       qc.invalidateQueries({ queryKey: ["finance-founder-kpis", tenantId] });
+      qc.invalidateQueries({ queryKey: ["finance-dre", tenantId] });
+      qc.invalidateQueries({ queryKey: ["finance-revenue-concentration", tenantId] });
     },
+  });
+}
+
+// ── DRE Settings ─────────────────────────────────────────────────────────────
+
+export function useDreSettings() {
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery<DreSettings | null>({
+    queryKey: ["finance-dre-settings", tenantId],
+    queryFn: async () => {
+      if (!tenantId) return null;
+      const supabase = createClient();
+      return getDreSettings(supabase, tenantId);
+    },
+    enabled: !!tenantId,
+    staleTime: 1000 * 60 * 10,
+  });
+}
+
+export function useUpdateDreSettings() {
+  const qc = useQueryClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
+  const userId = useAuthStore((s) => s.user?.id);
+
+  return useMutation({
+    mutationFn: async (taxRate: number) => {
+      if (!tenantId || !userId) throw new Error("Not authenticated");
+      const supabase = createClient();
+      return upsertDreSettings(supabase, tenantId, taxRate, userId);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["finance-dre-settings", tenantId] });
+      qc.invalidateQueries({ queryKey: ["finance-dre", tenantId] });
+    },
+  });
+}
+
+// ── DRE Simplificado ─────────────────────────────────────────────────────────
+
+export function useFinanceDRE(months = 7) {
+  const tenantId = useAuthStore((s) => s.tenantId);
+  const { data: settings } = useDreSettings();
+  const taxRate = settings?.tax_rate ?? 15;
+
+  return useQuery<DreData>({
+    queryKey: ["finance-dre", tenantId, months, taxRate],
+    queryFn: async () => {
+      if (!tenantId)
+        return { columns: [], rows: [], taxRate };
+      const supabase = createClient();
+      return getFinanceDRE(supabase, tenantId, months, taxRate);
+    },
+    enabled: !!tenantId,
+    staleTime: 1000 * 60 * 5,
+    refetchInterval: 1000 * 60 * 10,
+  });
+}
+
+// ── Revenue Concentration by Client ──────────────────────────────────────────
+
+export function useRevenueConcentrationByClient(dateFrom?: string, dateTo?: string) {
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery<RevenueConcentrationData>({
+    queryKey: ["finance-revenue-concentration", tenantId, dateFrom, dateTo],
+    queryFn: async () => {
+      if (!tenantId)
+        return { clients: [], totalRevenue: 0, totalClients: 0, top5Pct: 0 };
+      const supabase = createClient();
+      return getRevenueConcentrationByClient(supabase, tenantId, dateFrom, dateTo);
+    },
+    enabled: !!tenantId,
+    staleTime: 1000 * 60 * 5,
+    refetchInterval: 1000 * 60 * 10,
   });
 }

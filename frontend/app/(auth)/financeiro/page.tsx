@@ -16,6 +16,7 @@ import {
   Filter,
   X,
 } from "lucide-react";
+import { FinanceChartsPanel } from "@/components/financeiro/finance-charts-panel";
 import {
   useFinanceTransactions,
   useFinanceCategories,
@@ -225,6 +226,13 @@ export default function FinanceiroPage() {
     const { from, to } = resolveDateRange(dateRange);
     return { ...filters, dateFrom: from, dateTo: to };
   }, [filters, dateRange]);
+
+  // ── Chart filters (strip pagination/search/type — charts handle type internally) ──
+  const chartFilters = useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { page: _p, pageSize: _ps, search: _s, type: _t, typeIn: _ti, ...rest } = effectiveFilters;
+    return rest;
+  }, [effectiveFilters]);
 
   // ── Data hooks ────────────────────────────────────────────────────────────
   const { data: txData, isLoading: txLoading } =
@@ -488,6 +496,9 @@ export default function FinanceiroPage() {
           )}
         </div>
       )}
+
+      {/* ── Charts Panel ──────────────────────────────────────────────────────── */}
+      <FinanceChartsPanel section={section} filters={chartFilters} />
 
       {/* ── Level 1: Section toggle (segmented control) ─────────────────────── */}
       <div className="inline-flex rounded-lg bg-muted p-1">

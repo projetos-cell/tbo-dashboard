@@ -596,6 +596,206 @@ export async function getFounderKPIs(
   };
 }
 
+// ── Aging AR/AP ───────────────────────────────────────────────────────────────
+
+export type AgingBucket = {
+  label: string;
+  minDays: number;
+  maxDays: number;
+  ar: number; // receivables overdue
+  ap: number; // payables overdue
+  arCount: number;
+  apCount: number;
+};
+
+export type FinanceAgingData = {
+  buckets: AgingBucket[];
+  totalAr: number;
+  totalAp: number;
+  totalArCount: number;
+  totalApCount: number;
+};
+
+const AGING_BUCKETS: Omit<AgingBucket, "ar" | "ap" | "arCount" | "apCount">[] =
+  [
+    { label: "1–30 dias", minDays: 1, maxDays: 30 },
+    { label: "31–60 dias", minDays: 31, maxDays: 60 },
+    { label: "61–90 dias", minDays: 61, maxDays: 90 },
+    { label: "90+ dias", minDays: 91, maxDays: Infinity },
+  ];
+
+export async function getFinanceAging(
+  supabase: SupabaseClient,
+  tenantId: string
+): Promise<FinanceAgingData> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().split("T")[0];
+
+  // Fetch all pending/overdue transactions with a due date in the past
+  const { data, error } = await (supabase as any)
+    .from(TABLE_TRANSACTIONS)
+    .select("type, status, amount, due_date")
+    .eq("tenant_id", tenantId)
+    .in("status", ["previsto", "atrasado", "provisionado"])
+    .not("due_date", "is", null)
+    .lt("due_date", todayStr);
+
+  if (error) throw new Error(error.message);
+
+  const rows = (data ?? []) as Pick<
+    FinanceTransaction,
+    "type" | "status" | "amount" | "due_date"
+  >[];
+
+  const buckets: AgingBucket[] = AGING_BUCKETS.map((b) => ({
+    ...b,
+    ar: 0,
+    ap: 0,
+    arCount: 0,
+    apCount: 0,
+  }));
+
+  let totalAr = 0;
+  let totalAp = 0;
+  let totalArCount = 0;
+  let totalApCount = 0;
+
+  for (const row of rows) {
+    if (!row.due_date) continue;
+    const dueDate = new Date(row.due_date);
+    const daysPast = Math.floor(
+      (today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    if (daysPast < 1) continue;
+
+    const bucket = buckets.find(
+      (b) => daysPast >= b.minDays && daysPast <= b.maxDays
+    );
+    if (!bucket) continue;
+
+    const amount = Math.abs(row.amount ?? 0);
+    if (row.type === "receita") {
+      bucket.ar += amount;
+      bucket.arCount += 1;
+      totalAr += amount;
+      totalArCount += 1;
+    } else if (row.type === "despesa") {
+      bucket.ap += amount;
+      bucket.apCount += 1;
+      totalAp += amount;
+      totalApCount += 1;
+    }
+  }
+
+  return { buckets, totalAr, totalAp, totalArCount, totalApCount };
+}
+
+// ── Cash Flow Projection ──────────────────────────────────────────────────────
+
+export type CashFlowPoint = {
+  date: string; // YYYY-MM-DD
+  label: string; // "07/03"
+  inflow: number;
+  outflow: number;
+  balance: number; // cumulative
+};
+
+export async function getFinanceCashFlowProjection(
+  supabase: SupabaseClient,
+  tenantId: string,
+  days = 30
+): Promise<CashFlowPoint[]> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().split("T")[0];
+
+  const future = new Date(today);
+  future.setDate(future.getDate() + days);
+  const futureStr = future.toISOString().split("T")[0];
+
+  const { data, error } = await (supabase as any)
+    .from(TABLE_TRANSACTIONS)
+    .select("type, amount, due_date")
+    .eq("tenant_id", tenantId)
+    .in("status", ["previsto", "provisionado"])
+    .not("due_date", "is", null)
+    .gte("due_date", todayStr)
+    .lte("due_date", futureStr);
+
+  if (error) throw new Error(error.message);
+
+  const rows = (data ?? []) as Pick<
+    FinanceTransaction,
+    "type" | "amount" | "due_date"
+  >[];
+
+  // Build a map: date → { inflow, outflow }
+  const map = new Map<string, { inflow: number; outflow: number }>();
+  for (let i = 0; i <= days; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() + i);
+    map.set(d.toISOString().split("T")[0], { inflow: 0, outflow: 0 });
+  }
+
+  for (const row of rows) {
+    if (!row.due_date) continue;
+    const entry = map.get(row.due_date);
+    if (!entry) continue;
+    const amount = Math.abs(row.amount ?? 0);
+    if (row.type === "receita") entry.inflow += amount;
+    else if (row.type === "despesa") entry.outflow += amount;
+  }
+
+  let balance = 0;
+  const points: CashFlowPoint[] = [];
+  for (const [date, { inflow, outflow }] of map.entries()) {
+    balance += inflow - outflow;
+    const d = new Date(date + "T00:00:00");
+    points.push({
+      date,
+      label: `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`,
+      inflow,
+      outflow,
+      balance,
+    });
+  }
+
+  return points.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// ── Chart data (unpaginated, for client-side aggregation) ────────────────────
+
+export async function getFinanceChartData(
+  supabase: SupabaseClient<Database>,
+  tenantId: string,
+  filters: Omit<FinanceFilters, "page" | "pageSize" | "search"> = {}
+): Promise<FinanceTransaction[]> {
+  let query = (supabase as any)
+    .from(TABLE_TRANSACTIONS)
+    .select(
+      "id, type, status, amount, paid_amount, date, due_date, category_id, cost_center_id, business_unit"
+    )
+    .eq("tenant_id", tenantId)
+    .order("date", { ascending: true })
+    .limit(500);
+
+  if (filters.type) query = query.eq("type", filters.type);
+  if (filters.typeIn?.length) query = query.in("type", filters.typeIn);
+  if (filters.statusIn?.length) query = query.in("status", filters.statusIn);
+  if (filters.status) query = query.eq("status", filters.status);
+  if (filters.category_id) query = query.eq("category_id", filters.category_id);
+  if (filters.business_unit) query = query.eq("business_unit", filters.business_unit);
+
+  const dateField = filters.dateField ?? "date";
+  if (filters.dateFrom) query = query.gte(dateField, filters.dateFrom);
+  if (filters.dateTo) query = query.lte(dateField, filters.dateTo);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as FinanceTransaction[];
+}
+
 // ── Client-side API wrappers ──────────────────────────────────────────────────
 
 export async function triggerFinanceSync(): Promise<FinanceSyncResult> {
@@ -614,4 +814,296 @@ export async function fetchFinanceStatus(): Promise<FinanceStatus> {
   const res = await fetch("/api/finance/status");
   if (!res.ok) throw new Error(`Failed to fetch status (${res.status})`);
   return res.json();
+}
+
+// ── DRE Settings ─────────────────────────────────────────────────────────────
+
+export interface DreSettings {
+  id: string;
+  tenant_id: string;
+  tax_rate: number;
+  updated_at: string;
+  updated_by: string | null;
+}
+
+export async function getDreSettings(
+  supabase: SupabaseClient,
+  tenantId: string
+): Promise<DreSettings | null> {
+  const { data, error } = await supabase
+    .from("dre_settings")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function upsertDreSettings(
+  supabase: SupabaseClient,
+  tenantId: string,
+  taxRate: number,
+  userId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("dre_settings")
+    .upsert(
+      {
+        tenant_id: tenantId,
+        tax_rate: taxRate,
+        updated_by: userId,
+      } as never,
+      { onConflict: "tenant_id" }
+    );
+
+  if (error) throw new Error(error.message);
+}
+
+// ── DRE Simplificado ─────────────────────────────────────────────────────────
+
+export interface DreMonthColumn {
+  label: string;   // e.g. "Jan/25"
+  yearMonth: string; // e.g. "2025-01"
+}
+
+export interface DreRow {
+  key: string;
+  label: string;
+  isSubtotal: boolean;
+  isNegative: boolean; // display as red/deduction
+  values: number[];    // one per column
+  variations: (number | null)[]; // MoM % change, null for first column
+}
+
+export interface DreData {
+  columns: DreMonthColumn[];
+  rows: DreRow[];
+  taxRate: number;
+}
+
+export async function getFinanceDRE(
+  supabase: SupabaseClient,
+  tenantId: string,
+  months = 7,
+  taxRate = 15
+): Promise<DreData> {
+  // Build the list of year-months to show (oldest → newest)
+  const now = new Date();
+  const columns: DreMonthColumn[] = [];
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const yearMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const label = d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });
+    columns.push({ label: label.charAt(0).toUpperCase() + label.slice(1), yearMonth });
+  }
+
+  // Fetch all paid transactions in the date range
+  const dateFrom = `${columns[0].yearMonth}-01`;
+  const dateTo = `${columns[columns.length - 1].yearMonth}-31`;
+
+  const { data: txns, error: txErr } = await supabase
+    .from("finance_transactions")
+    .select("id, type, status, paid_amount, amount, date, cost_center_id")
+    .eq("tenant_id", tenantId)
+    .eq("status", "paid")
+    .gte("date", dateFrom)
+    .lte("date", dateTo);
+
+  if (txErr) throw new Error(txErr.message);
+
+  // Fetch cost centers to classify despesas
+  const { data: costCenters, error: ccErr } = await supabase
+    .from("finance_cost_centers")
+    .select("id, code")
+    .eq("tenant_id", tenantId);
+
+  if (ccErr) throw new Error(ccErr.message);
+
+  const ccMap = new Map<string, string>(
+    (costCenters ?? []).map((cc: { id: string; code: string }) => [cc.id, cc.code])
+  );
+
+  const DIRECT_COST_CODES = new Set(["projetos_producao"]);
+  const OVERHEAD_CODES = new Set(["infraestrutura_operacao", "financeiro_encargos"]);
+
+  // Aggregate by yearMonth
+  const agg: Record<string, {
+    receitaBruta: number;
+    custosDirectos: number;
+    overhead: number;
+    outrasDespesas: number;
+  }> = {};
+
+  for (const col of columns) {
+    agg[col.yearMonth] = { receitaBruta: 0, custosDirectos: 0, overhead: 0, outrasDespesas: 0 };
+  }
+
+  for (const tx of txns ?? []) {
+    const d = new Date(tx.date);
+    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    if (!agg[ym]) continue;
+    const val = tx.paid_amount ?? tx.amount ?? 0;
+    if (tx.type === "receita") {
+      agg[ym].receitaBruta += val;
+    } else {
+      const code = tx.cost_center_id ? ccMap.get(tx.cost_center_id) ?? "" : "";
+      if (DIRECT_COST_CODES.has(code)) {
+        agg[ym].custosDirectos += val;
+      } else if (OVERHEAD_CODES.has(code)) {
+        agg[ym].overhead += val;
+      } else {
+        agg[ym].outrasDespesas += val;
+      }
+    }
+  }
+
+  // Build row arrays
+  const colValues = (fn: (a: typeof agg[string]) => number) =>
+    columns.map((c) => fn(agg[c.yearMonth]));
+
+  const calcVariations = (vals: number[]): (number | null)[] =>
+    vals.map((v, i) => {
+      if (i === 0) return null;
+      const prev = vals[i - 1];
+      if (prev === 0) return null;
+      return Math.round(((v - prev) / Math.abs(prev)) * 100);
+    });
+
+  const receitaBruta = colValues((a) => a.receitaBruta);
+  const impostos = receitaBruta.map((r) => r * (taxRate / 100));
+  const receitaLiquida = receitaBruta.map((r, i) => r - impostos[i]);
+  const custosDirectos = colValues((a) => a.custosDirectos);
+  const margemBruta = receitaLiquida.map((r, i) => r - custosDirectos[i]);
+  const overhead = colValues((a) => a.overhead);
+  const ebitda = margemBruta.map((m, i) => m - overhead[i]);
+
+  const rows: DreRow[] = [
+    {
+      key: "receita_bruta",
+      label: "(+) Receita Bruta",
+      isSubtotal: false,
+      isNegative: false,
+      values: receitaBruta,
+      variations: calcVariations(receitaBruta),
+    },
+    {
+      key: "impostos",
+      label: `(−) Impostos (${taxRate}%)`,
+      isSubtotal: false,
+      isNegative: true,
+      values: impostos,
+      variations: calcVariations(impostos),
+    },
+    {
+      key: "receita_liquida",
+      label: "(=) Receita Líquida",
+      isSubtotal: true,
+      isNegative: false,
+      values: receitaLiquida,
+      variations: calcVariations(receitaLiquida),
+    },
+    {
+      key: "custos_diretos",
+      label: "(−) Custos Diretos",
+      isSubtotal: false,
+      isNegative: true,
+      values: custosDirectos,
+      variations: calcVariations(custosDirectos),
+    },
+    {
+      key: "margem_bruta",
+      label: "(=) Margem Bruta",
+      isSubtotal: true,
+      isNegative: false,
+      values: margemBruta,
+      variations: calcVariations(margemBruta),
+    },
+    {
+      key: "overhead",
+      label: "(−) Overhead",
+      isSubtotal: false,
+      isNegative: true,
+      values: overhead,
+      variations: calcVariations(overhead),
+    },
+    {
+      key: "ebitda",
+      label: "(=) EBITDA",
+      isSubtotal: true,
+      isNegative: false,
+      values: ebitda,
+      variations: calcVariations(ebitda),
+    },
+  ];
+
+  return { columns, rows, taxRate };
+}
+
+// ── Revenue Concentration by Client ──────────────────────────────────────────
+
+export interface ClientConcentration {
+  client: string;
+  revenue: number;
+  pct: number;
+  txCount: number;
+  alertLevel: "normal" | "alta" | "critico";
+}
+
+export interface RevenueConcentrationData {
+  clients: ClientConcentration[];
+  totalRevenue: number;
+  totalClients: number;
+  top5Pct: number;
+}
+
+export async function getRevenueConcentrationByClient(
+  supabase: SupabaseClient,
+  tenantId: string,
+  dateFrom?: string,
+  dateTo?: string
+): Promise<RevenueConcentrationData> {
+  let query = supabase
+    .from("finance_transactions")
+    .select("counterpart, paid_amount, amount")
+    .eq("tenant_id", tenantId)
+    .eq("type", "receita")
+    .eq("status", "paid")
+    .not("counterpart", "is", null);
+
+  if (dateFrom) query = query.gte("date", dateFrom);
+  if (dateTo) query = query.lte("date", dateTo);
+
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+
+  // Aggregate by counterpart (client name)
+  const clientMap = new Map<string, { revenue: number; count: number }>();
+  for (const tx of data ?? []) {
+    const name: string = (tx.counterpart as string) || "Sem identificação";
+    const val: number = (tx.paid_amount as number) ?? (tx.amount as number) ?? 0;
+    const cur = clientMap.get(name) ?? { revenue: 0, count: 0 };
+    clientMap.set(name, { revenue: cur.revenue + val, count: cur.count + 1 });
+  }
+
+  const totalRevenue = Array.from(clientMap.values()).reduce((s, c) => s + c.revenue, 0);
+  const totalClients = clientMap.size;
+
+  // Sort desc by revenue
+  const sorted = Array.from(clientMap.entries())
+    .sort((a, b) => b[1].revenue - a[1].revenue);
+
+  let cumPct = 0;
+  const clients: ClientConcentration[] = sorted.map(([client, { revenue, count }]) => {
+    const pct = totalRevenue > 0 ? (revenue / totalRevenue) * 100 : 0;
+    cumPct += pct;
+    let alertLevel: ClientConcentration["alertLevel"] = "normal";
+    if (pct >= 50) alertLevel = "critico";
+    else if (pct >= 30) alertLevel = "alta";
+    return { client, revenue, pct, txCount: count, alertLevel };
+  });
+
+  const top5Pct = clients.slice(0, 5).reduce((s, c) => s + c.pct, 0);
+
+  return { clients, totalRevenue, totalClients, top5Pct };
 }

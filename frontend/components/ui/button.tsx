@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
-import { Slot } from "radix-ui"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
@@ -49,13 +48,18 @@ function Button({
   variant = "default",
   size = "default",
   asChild = false,
+  children,
   ...props
 }: ButtonPrimitive.Props &
   VariantProps<typeof buttonVariants> & { asChild?: boolean }) {
   const classes = cn(buttonVariants({ variant, size, className }))
 
-  if (asChild) {
-    return <Slot.Root data-slot="button" className={classes} {...(props as React.ComponentPropsWithoutRef<"div">)} />
+  if (asChild && React.isValidElement(children)) {
+    return React.cloneElement(children as React.ReactElement<React.HTMLAttributes<HTMLElement>>, {
+      ...props,
+      "data-slot": "button",
+      className: cn(classes, (children as React.ReactElement<React.HTMLAttributes<HTMLElement>>).props.className),
+    } as React.HTMLAttributes<HTMLElement>)
   }
 
   return (
@@ -63,7 +67,9 @@ function Button({
       data-slot="button"
       className={classes}
       {...props}
-    />
+    >
+      {children}
+    </ButtonPrimitive>
   )
 }
 

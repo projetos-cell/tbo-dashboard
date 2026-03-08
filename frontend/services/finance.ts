@@ -112,6 +112,7 @@ const TABLE_TRANSACTIONS = "finance_transactions" as never;
 const TABLE_CATEGORIES = "finance_categories" as never;
 const TABLE_COST_CENTERS = "finance_cost_centers" as never;
 const TABLE_SNAPSHOTS = "finance_snapshots_daily" as never;
+const TABLE_CASH_BALANCES = "cash_balances" as never;
 
 export async function getFinanceTransactions(
   supabase: SupabaseClient<Database>,
@@ -714,6 +715,15 @@ export async function getFinanceCashFlowProjection(
   future.setDate(future.getDate() + days);
   const futureStr = future.toISOString().split("T")[0];
 
+  // Fetch starting balance from cash_balances (most recent manual entry)
+  const { data: cbData } = await (supabase as any)
+    .from(TABLE_CASH_BALANCES)
+    .select("amount")
+    .eq("tenant_id", tenantId)
+    .order("recorded_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const { data, error } = await (supabase as any)
     .from(TABLE_TRANSACTIONS)
     .select("type, amount, due_date")
@@ -747,7 +757,8 @@ export async function getFinanceCashFlowProjection(
     else if (row.type === "despesa") entry.outflow += amount;
   }
 
-  let balance = 0;
+  // Starting balance: most recent cash_balances entry, fallback to 0
+  let balance = ((cbData as { amount?: number } | null)?.amount) ?? 0;
   const points: CashFlowPoint[] = [];
   for (const [date, { inflow, outflow }] of map.entries()) {
     balance += inflow - outflow;

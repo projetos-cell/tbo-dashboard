@@ -19,7 +19,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, BarChart2, ChevronDown, ChevronUp } from "lucide-react";
 import { AgingChart } from "./aging-chart";
 import { CategoryDonut } from "./category-donut";
-import { CashflowProjectionChart, SaldoDiarioChart } from "./cashflow-chart";
+import { SaldoDiarioChart } from "./cashflow-chart";
+import { CashFlowFullChart } from "./cashflow-full-chart";
 import { CostCenterDistribution } from "./cost-center-distribution";
 
 const fmtCompact = (v: number) =>
@@ -135,9 +136,9 @@ export function FinanceChartsPanel({ section, filters }: FinanceChartsPanelProps
       node: <CategoryDonut transactionType="receita" filters={filters} />,
     },
     {
-      title: "Fluxo previsto (30 dias)",
-      description: "Entradas e saídas projetadas",
-      node: <CashflowProjectionChart />,
+      title: "Fluxo de caixa projetado",
+      description: "Saldo acumulado projetado com burn rate",
+      node: <CashFlowFullChart />,
     },
   ];
 

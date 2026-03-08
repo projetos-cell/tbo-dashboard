@@ -3,8 +3,33 @@
 import { useState, useMemo, useCallback } from "react";
 import { addMonths, subMonths, addWeeks, subWeeks } from "date-fns";
 import { CalendarHeader, type CalendarView } from "@/components/calendar/calendar-header";
-import { MonthView } from "@/components/calendar/month-view";
-import { WeekView } from "@/components/calendar/week-view";
+import dynamic from "next/dynamic";
+
+const MonthView = dynamic(
+  () =>
+    import("@/components/calendar/month-view").then((m) => ({
+      default: m.MonthView,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[600px] animate-pulse rounded-xl bg-muted" />
+    ),
+  }
+);
+
+const WeekView = dynamic(
+  () =>
+    import("@/components/calendar/week-view").then((m) => ({
+      default: m.WeekView,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[600px] animate-pulse rounded-xl bg-muted" />
+    ),
+  }
+);
 import { EventDetail } from "@/components/calendar/event-detail";
 import { EventForm } from "@/components/calendar/event-form";
 import { useCalendarEvents, useDeleteCalendarEvent } from "@/hooks/use-calendar";

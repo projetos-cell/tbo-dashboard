@@ -110,7 +110,7 @@ export interface FinanceFilters {
 
 const TABLE_TRANSACTIONS = "finance_transactions" as never;
 const TABLE_CATEGORIES = "finance_categories" as never;
-const TABLE_COST_CENTERS = "finance_cost_centers" as never;
+const TABLE_COST_CENTERS = "fin_cost_centers" as never;
 const TABLE_SNAPSHOTS = "finance_snapshots_daily" as never;
 
 export async function getFinanceTransactions(
@@ -906,7 +906,7 @@ export async function getFinanceDRE(
     .from("finance_transactions")
     .select("id, type, status, paid_amount, amount, date, cost_center_id")
     .eq("tenant_id", tenantId)
-    .eq("status", "paid")
+    .in("status", ["pago", "parcial", "liquidado"])
     .gte("date", dateFrom)
     .lte("date", dateTo);
 
@@ -914,7 +914,7 @@ export async function getFinanceDRE(
 
   // Fetch cost centers to classify despesas
   const { data: costCenters, error: ccErr } = await supabase
-    .from("finance_cost_centers")
+    .from(TABLE_COST_CENTERS)
     .select("id, code")
     .eq("tenant_id", tenantId);
 
@@ -1068,7 +1068,7 @@ export async function getRevenueConcentrationByClient(
     .select("counterpart, paid_amount, amount")
     .eq("tenant_id", tenantId)
     .eq("type", "receita")
-    .eq("status", "paid")
+    .in("status", ["pago", "parcial", "liquidado"])
     .not("counterpart", "is", null);
 
   if (dateFrom) query = query.gte("date", dateFrom);

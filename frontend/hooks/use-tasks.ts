@@ -64,10 +64,43 @@ export function useCreateTask() {
   const supabase = createClient();
   const queryClient = useQueryClient();
 
+  type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
+
   return useMutation({
     mutationFn: (task: Database["public"]["Tables"]["os_tasks"]["Insert"]) =>
       createTask(supabase, task),
-    onSuccess: () => {
+
+    onMutate: async (newTask) => {
+      await queryClient.cancelQueries({ queryKey: ["tasks"] });
+      const previousTasks = queryClient.getQueriesData<TaskRow[]>({ queryKey: ["tasks"] });
+      const tempId = `temp-${Date.now()}`;
+      queryClient.setQueriesData<TaskRow[]>(
+        { queryKey: ["tasks"] },
+        (old) =>
+          old
+            ? [
+                ...old,
+                {
+                  ...newTask,
+                  id: tempId,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                } as unknown as TaskRow,
+              ]
+            : old
+      );
+      return { previousTasks };
+    },
+
+    onError: (_err, _variables, context) => {
+      if (context?.previousTasks) {
+        for (const [queryKey, data] of context.previousTasks) {
+          queryClient.setQueryData(queryKey, data);
+        }
+      }
+    },
+
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
@@ -183,12 +216,30 @@ export function useDeleteTask() {
   const supabase = createClient();
   const queryClient = useQueryClient();
 
+  type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
+
   return useMutation({
     mutationFn: (id: string) => deleteTask(supabase, id),
-    onSuccess: (_data, id) => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
 
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ["tasks"] });
+      const previousTasks = queryClient.getQueriesData<TaskRow[]>({ queryKey: ["tasks"] });
+      queryClient.setQueriesData<TaskRow[]>(
+        { queryKey: ["tasks"] },
+        (old) => old?.filter((task) => task.id !== id)
+      );
+      return { previousTasks };
+    },
+
+    onError: (_err, _variables, context) => {
+      if (context?.previousTasks) {
+        for (const [queryKey, data] of context.previousTasks) {
+          queryClient.setQueryData(queryKey, data);
+        }
+      }
+    },
+
+    onSuccess: (_data, id) => {
       logAuditTrail({
         userId: useAuthStore.getState().user?.id ?? "unknown",
         action: "delete",
@@ -196,6 +247,11 @@ export function useDeleteTask() {
         recordId: id,
         before: { id },
       });
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }

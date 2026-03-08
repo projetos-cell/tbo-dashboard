@@ -25,11 +25,67 @@ import { FounderAlerts } from "@/components/founder-dashboard/founder-alerts";
 import { ForecastPanel } from "@/components/founder-dashboard/forecast-panel";
 import type { KpiTooltipContent } from "@/components/founder-dashboard/kpi-card";
 import { CashBalanceInput } from "@/components/founder-dashboard/cash-balance-input";
-import { MonthlyTrendChart } from "@/components/founder-dashboard/monthly-trend-chart";
-import { CashWaterfallChart } from "@/components/founder-dashboard/cash-waterfall-chart";
-import { DreTable } from "@/components/financeiro/dre-table";
-import { DreSettingsModal } from "@/components/financeiro/dre-settings-modal";
-import { RevenueConcentrationChart } from "@/components/financeiro/revenue-concentration-chart";
+import dynamic from "next/dynamic";
+
+const MonthlyTrendChart = dynamic(
+  () =>
+    import("@/components/founder-dashboard/monthly-trend-chart").then((m) => ({
+      default: m.MonthlyTrendChart,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[220px] animate-pulse rounded-xl bg-muted" />
+    ),
+  }
+);
+
+const CashWaterfallChart = dynamic(
+  () =>
+    import("@/components/founder-dashboard/cash-waterfall-chart").then(
+      (m) => ({ default: m.CashWaterfallChart })
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[220px] animate-pulse rounded-xl bg-muted" />
+    ),
+  }
+);
+
+const DreTable = dynamic(
+  () =>
+    import("@/components/financeiro/dre-table").then((m) => ({
+      default: m.DreTable,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[400px] animate-pulse rounded-xl bg-muted" />
+    ),
+  }
+);
+
+const DreSettingsModal = dynamic(
+  () =>
+    import("@/components/financeiro/dre-settings-modal").then((m) => ({
+      default: m.DreSettingsModal,
+    })),
+  { ssr: false }
+);
+
+const RevenueConcentrationChart = dynamic(
+  () =>
+    import("@/components/financeiro/revenue-concentration-chart").then(
+      (m) => ({ default: m.RevenueConcentrationChart })
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[220px] animate-pulse rounded-xl bg-muted" />
+    ),
+  }
+);
 import { useFinanceDRE, useRevenueConcentrationByClient, useDreSettings } from "@/hooks/use-finance";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

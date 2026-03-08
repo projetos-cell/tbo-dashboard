@@ -16,7 +16,20 @@ import {
   Filter,
   X,
 } from "lucide-react";
-import { FinanceChartsPanel } from "@/components/financeiro/finance-charts-panel";
+import dynamic from "next/dynamic";
+
+const FinanceChartsPanel = dynamic(
+  () =>
+    import("@/components/financeiro/finance-charts-panel").then((m) => ({
+      default: m.FinanceChartsPanel,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[360px] animate-pulse rounded-xl bg-muted" />
+    ),
+  }
+);
 import {
   useFinanceTransactions,
   useFinanceCategories,

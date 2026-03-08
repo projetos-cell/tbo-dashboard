@@ -63,10 +63,43 @@ export function useCreateProject() {
   const supabase = useSupabase();
   const queryClient = useQueryClient();
 
+  type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
+
   return useMutation({
     mutationFn: (project: Database["public"]["Tables"]["projects"]["Insert"]) =>
       createProject(supabase, project),
-    onSuccess: () => {
+
+    onMutate: async (newProject) => {
+      await queryClient.cancelQueries({ queryKey: ["projects"] });
+      const previousProjects = queryClient.getQueriesData<ProjectRow[]>({ queryKey: ["projects"] });
+      const tempId = `temp-${Date.now()}`;
+      queryClient.setQueriesData<ProjectRow[]>(
+        { queryKey: ["projects"] },
+        (old) =>
+          old
+            ? [
+                ...old,
+                {
+                  ...newProject,
+                  id: tempId,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                } as unknown as ProjectRow,
+              ]
+            : old
+      );
+      return { previousProjects };
+    },
+
+    onError: (_err, _variables, context) => {
+      if (context?.previousProjects) {
+        for (const [queryKey, data] of context.previousProjects) {
+          queryClient.setQueryData(queryKey, data);
+        }
+      }
+    },
+
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
   });
@@ -76,6 +109,8 @@ export function useUpdateProject() {
   const supabase = useSupabase();
   const queryClient = useQueryClient();
 
+  type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
+
   return useMutation({
     mutationFn: ({
       id,
@@ -84,10 +119,42 @@ export function useUpdateProject() {
       id: string;
       updates: Database["public"]["Tables"]["projects"]["Update"];
     }) => updateProject(supabase, id, updates),
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
-      queryClient.invalidateQueries({ queryKey: ["project", variables.id] });
 
+    onMutate: async ({ id, updates }) => {
+      await queryClient.cancelQueries({ queryKey: ["projects"] });
+      await queryClient.cancelQueries({ queryKey: ["project", id] });
+
+      const previousProjects = queryClient.getQueriesData<ProjectRow[]>({ queryKey: ["projects"] });
+      const previousProject = queryClient.getQueryData<ProjectRow>(["project", id]);
+
+      queryClient.setQueriesData<ProjectRow[]>(
+        { queryKey: ["projects"] },
+        (old) =>
+          old?.map((p) => (p.id === id ? { ...p, ...updates } : p))
+      );
+
+      if (previousProject) {
+        queryClient.setQueryData<ProjectRow>(["project", id], {
+          ...previousProject,
+          ...updates,
+        });
+      }
+
+      return { previousProjects, previousProject };
+    },
+
+    onError: (_err, variables, context) => {
+      if (context?.previousProjects) {
+        for (const [queryKey, data] of context.previousProjects) {
+          queryClient.setQueryData(queryKey, data);
+        }
+      }
+      if (context?.previousProject) {
+        queryClient.setQueryData(["project", variables.id], context.previousProject);
+      }
+    },
+
+    onSuccess: (_data, variables) => {
       const action = variables.updates.status ? "status_change" : "update";
       logAuditTrail({
         userId: useAuthStore.getState().user?.id ?? "unknown",
@@ -96,6 +163,11 @@ export function useUpdateProject() {
         recordId: variables.id,
         after: variables.updates as Record<string, unknown>,
       });
+    },
+
+    onSettled: (_data, _err, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["project", variables.id] });
     },
   });
 }
@@ -116,11 +188,30 @@ export function useDeleteProject() {
   const supabase = useSupabase();
   const queryClient = useQueryClient();
 
+  type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
+
   return useMutation({
     mutationFn: (id: string) => deleteProject(supabase, id),
-    onSuccess: (_data, id) => {
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
 
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ["projects"] });
+      const previousProjects = queryClient.getQueriesData<ProjectRow[]>({ queryKey: ["projects"] });
+      queryClient.setQueriesData<ProjectRow[]>(
+        { queryKey: ["projects"] },
+        (old) => old?.filter((p) => p.id !== id)
+      );
+      return { previousProjects };
+    },
+
+    onError: (_err, _variables, context) => {
+      if (context?.previousProjects) {
+        for (const [queryKey, data] of context.previousProjects) {
+          queryClient.setQueryData(queryKey, data);
+        }
+      }
+    },
+
+    onSuccess: (_data, id) => {
       logAuditTrail({
         userId: useAuthStore.getState().user?.id ?? "unknown",
         action: "delete",
@@ -128,6 +219,10 @@ export function useDeleteProject() {
         recordId: id,
         before: { id },
       });
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
   });
 }

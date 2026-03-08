@@ -226,7 +226,7 @@ async function syncCostCenters(
         const isActive = dep.inativo !== "S";
 
         const { error } = await (supabase as any)
-          .from("finance_cost_centers")
+          .from("fin_cost_centers")
           .upsert(
             {
               tenant_id: tenantId,
@@ -289,7 +289,7 @@ async function buildCostCenterLookup(
   tenantId: string
 ): Promise<LookupMap> {
   const { data } = await (supabase as any)
-    .from("finance_cost_centers")
+    .from("fin_cost_centers")
     .select("id, omie_id")
     .eq("tenant_id", tenantId)
     .not("omie_id", "is", null);
@@ -310,7 +310,7 @@ async function buildCostCenterNameLookup(
   tenantId: string
 ): Promise<CostCenterNameMap> {
   const { data } = await (supabase as any)
-    .from("finance_cost_centers")
+    .from("fin_cost_centers")
     .select("omie_id, name")
     .eq("tenant_id", tenantId)
     .not("omie_id", "is", null);

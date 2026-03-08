@@ -129,7 +129,8 @@ function paidVal(row: { paid_amount?: number | null; amount?: number | null }): 
 type FinTxRow = {
   amount: number | null;
   paid_amount: number | null;  // field name in finance_transactions (was amount_paid in legacy tables)
-  paid_date: string | null;
+  paid_date: string | null;    // may be null — Omie doesn't always populate this field
+  date: string | null;         // transaction date — used as fallback when paid_date is null
   due_date: string | null;
   status: string | null;
   type: string | null;         // "receita" | "despesa"
@@ -185,7 +186,7 @@ export async function getFounderDashboardSnapshot(
     // 1. Paid transactions — all-time, filtered client-side for period/trends
     supabase
       .from("finance_transactions" as never)
-      .select("amount, paid_amount, paid_date, due_date, status, type, counterpart, project_id, cost_center_id, business_unit")
+      .select("amount, paid_amount, paid_date, date, due_date, status, type, counterpart, project_id, cost_center_id, business_unit")
       .eq("tenant_id", tenantId)
       .in("type", ["receita", "despesa"])
       .in("status", PAID_STATUSES),
@@ -220,7 +221,12 @@ export async function getFounderDashboardSnapshot(
 
   // ── Unpack and split by type ─────────────────────────────────────────────────
 
-  const paidAll = (paidTxRes.data ?? []) as FinTxRow[];
+  // Omie ERP doesn't always populate paid_date on sync — fall back to `date`
+  // so every period filter downstream works correctly.
+  const paidAll: FinTxRow[] = ((paidTxRes.data ?? []) as FinTxRow[]).map((r) => ({
+    ...r,
+    paid_date: r.paid_date ?? r.date,
+  }));
   const pendingAll = (pendingTxRes.data ?? []) as PendingTxRow[];
 
   const paidReceivables = paidAll.filter((r) => r.type === "receita");

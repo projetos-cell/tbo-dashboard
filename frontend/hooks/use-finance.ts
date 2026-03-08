@@ -359,7 +359,27 @@ export function useUpdateDreSettings() {
       const supabase = createClient();
       return upsertDreSettings(supabase, tenantId, taxRate, userId);
     },
-    onSuccess: () => {
+
+    onMutate: async (taxRate) => {
+      await qc.cancelQueries({ queryKey: ["finance-dre-settings", tenantId] });
+      const previousSettings = qc.getQueryData<DreSettings | null>([
+        "finance-dre-settings",
+        tenantId,
+      ]);
+      qc.setQueryData<DreSettings | null>(
+        ["finance-dre-settings", tenantId],
+        (old) => (old ? { ...old, tax_rate: taxRate } : old)
+      );
+      return { previousSettings };
+    },
+
+    onError: (_err, _variables, context) => {
+      if (context?.previousSettings !== undefined) {
+        qc.setQueryData(["finance-dre-settings", tenantId], context.previousSettings);
+      }
+    },
+
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ["finance-dre-settings", tenantId] });
       qc.invalidateQueries({ queryKey: ["finance-dre", tenantId] });
     },

@@ -40,7 +40,7 @@ export async function GET() {
         .eq("tenant_id", tenantId)
         .eq("is_active", true),
       (supabase as any)
-        .from("finance_cost_centers")
+        .from("fin_cost_centers")
         .select("id", { count: "exact" })
         .eq("tenant_id", tenantId)
         .eq("is_active", true),

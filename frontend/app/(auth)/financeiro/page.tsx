@@ -34,6 +34,7 @@ const FinanceChartsPanel = dynamic(
 import {
   useFinanceTransactions,
   useFinanceCategories,
+  useFinanceCostCenters,
   useFinanceStatus,
   useFinanceStatusWithAmounts,
   useTriggerFinanceSync,
@@ -286,6 +287,7 @@ export default function FinanceiroPage() {
   const { data: txData, isLoading: txLoading } =
     useFinanceTransactions(effectiveFilters);
   const { data: categories } = useFinanceCategories();
+  const { data: costCenters } = useFinanceCostCenters();
   const { data: status } = useFinanceStatus();
   const { from: amountsFrom, to: amountsTo } = resolveDateRange(dateRange);
   const { data: statusAmounts } = useFinanceStatusWithAmounts(amountsFrom, amountsTo);
@@ -354,6 +356,12 @@ export default function FinanceiroPage() {
     return map;
   }, [categories]);
 
+  // ── Cost center name lookup map (id → name) ───────────────────────────────
+  const costCenterNameMap = useMemo(
+    () => new Map(costCenters?.map((cc) => [cc.id, cc.name]) ?? []),
+    [costCenters]
+  );
+
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleSearch = useCallback(() => {
@@ -402,6 +410,7 @@ export default function FinanceiroPage() {
   const activeFilterCount = [
     filters.status,
     filters.category_id,
+    filters.cost_center_id,
     filters.business_unit,
     filters.project_id,
     filters.search,
@@ -410,7 +419,7 @@ export default function FinanceiroPage() {
   // ── Derived values ────────────────────────────────────────────────────────
   const typeLabels =
     section === "titulos" ? TITULOS_TYPE_LABELS : MOV_TYPE_LABELS;
-  const colCount = section === "movimentacoes" ? 9 : 8;
+  const colCount = section === "movimentacoes" ? 10 : 9;
 
   const sectionTitle =
     section === "titulos" ? "Títulos Financeiros" : "Movimentações de Caixa";
@@ -743,6 +752,27 @@ export default function FinanceiroPage() {
               <option value="Interiores">Interiores</option>
             </select>
           </div>
+
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              Centro de Custo
+            </label>
+            <select
+              value={filters.cost_center_id ?? ""}
+              onChange={(e) =>
+                handleFilterChange("cost_center_id", e.target.value)
+              }
+              className="w-full px-3 py-2 rounded-md border border-border bg-background
+                         text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="">Todos</option>
+              {(costCenters ?? []).map((cc) => (
+                <option key={cc.id} value={cc.id}>
+                  {cc.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       )}
 
@@ -804,6 +834,9 @@ export default function FinanceiroPage() {
                 />
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                   Unidade
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                  Centro de Custo
                 </th>
                 <SortableHeader
                   label="Status"
@@ -944,6 +977,17 @@ export default function FinanceiroPage() {
                         {(tx as any).business_unit ? (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted text-foreground">
                             {(tx as any).business_unit}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+
+                      {/* Cost Center */}
+                      <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                        {tx.cost_center_id ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted text-foreground">
+                            {costCenterNameMap.get(tx.cost_center_id) ?? tx.cost_center_id}
                           </span>
                         ) : (
                           "—"

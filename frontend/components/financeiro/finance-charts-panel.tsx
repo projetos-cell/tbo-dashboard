@@ -20,6 +20,7 @@ import { AlertCircle, BarChart2, ChevronDown, ChevronUp } from "lucide-react";
 import { AgingChart } from "./aging-chart";
 import { CategoryDonut } from "./category-donut";
 import { CashflowProjectionChart, SaldoDiarioChart } from "./cashflow-chart";
+import { CostCenterDistribution } from "./cost-center-distribution";
 
 const fmtCompact = (v: number) =>
   new Intl.NumberFormat("pt-BR", {
@@ -155,6 +156,11 @@ export function FinanceChartsPanel({ section, filters }: FinanceChartsPanelProps
       title: "Entradas vs Saídas por semana",
       description: "Movimentações pagas",
       node: <WeeklySummaryChart filters={filters} />,
+    },
+    {
+      title: "Despesas por centro de custo",
+      description: "Distribuição no período",
+      node: <CostCenterDistribution filters={filters} />,
     },
   ];
 

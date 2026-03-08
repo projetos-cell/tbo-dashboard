@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
@@ -14,16 +14,16 @@ import {
   Plug,
   CheckCircle2,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/tbo-ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+} from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Separator } from "@/components/tbo-ui/separator";
 import { useNotionStatus, useNotionDisconnect } from "@/hooks/use-notion-integration";
 
 const CLIENT_ID = (process.env.NEXT_PUBLIC_NOTION_CLIENT_ID ?? "").trim();
@@ -116,7 +116,7 @@ export function NotionSync() {
     <div className="space-y-6">
       <div>
         <h2 className="text-lg font-semibold">Notion</h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-gray-500">
           Sincronize dados de demandas do Notion com o dashboard.
         </p>
       </div>
@@ -146,7 +146,7 @@ export function NotionSync() {
             {connected ? (
               <CheckCircle2 className="h-4 w-4 text-green-500" />
             ) : (
-              <Plug className="h-4 w-4 text-muted-foreground" />
+              <Plug className="h-4 w-4 text-gray-500" />
             )}
             <CardTitle className="text-sm font-medium">
               {connected ? "Conectado ao Notion" : "Conectar com Notion"}
@@ -160,7 +160,7 @@ export function NotionSync() {
         </CardHeader>
         <CardContent>
           {statusLoading ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 text-sm text-gray-500">
               <Loader2 className="h-4 w-4 animate-spin" />
               Verificando conexao...
             </div>
@@ -382,12 +382,12 @@ function SyncResultDisplay({
 
       {result.unmatched_titles && result.unmatched_titles.length > 0 && (
         <details className="mt-3">
-          <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
+          <summary className="cursor-pointer text-xs text-gray-500 hover:text-gray-900">
             {result.unmatched_titles.length} demandas sem correspondencia
           </summary>
           <ul className="mt-1 max-h-40 overflow-y-auto space-y-0.5 pl-2">
             {result.unmatched_titles.map((t, i) => (
-              <li key={i} className="text-xs text-muted-foreground">
+              <li key={i} className="text-xs text-gray-500">
                 {t}
               </li>
             ))}

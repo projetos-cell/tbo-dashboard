@@ -47,11 +47,11 @@ export function MonthView({ currentDate, events, onSelectEvent }: MonthViewProps
   return (
     <div className="overflow-hidden rounded-lg border">
       {/* Weekday header */}
-      <div className="grid grid-cols-7 border-b bg-muted/40">
+      <div className="grid grid-cols-7 border-b bg-gray-100/40">
         {WEEKDAYS.map((d) => (
           <div
             key={d}
-            className="px-2 py-2 text-center text-xs font-medium text-muted-foreground"
+            className="px-2 py-2 text-center text-xs font-medium text-gray-500"
           >
             {d}
           </div>
@@ -70,14 +70,14 @@ export function MonthView({ currentDate, events, onSelectEvent }: MonthViewProps
               key={key}
               className={cn(
                 "min-h-24 border-b border-r p-1 text-xs",
-                !inMonth && "bg-muted/20 text-muted-foreground/50",
+                !inMonth && "bg-gray-100/20 text-gray-500/50",
                 idx % 7 === 6 && "border-r-0"
               )}
             >
               <div
                 className={cn(
                   "mb-0.5 flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium",
-                  isToday(day) && "bg-primary text-primary-foreground"
+                  isToday(day) && "bg-tbo-orange text-white"
                 )}
               >
                 {format(day, "d")}
@@ -100,7 +100,7 @@ export function MonthView({ currentDate, events, onSelectEvent }: MonthViewProps
                   </button>
                 ))}
                 {dayEvents.length > 3 && (
-                  <p className="px-1 text-[10px] text-muted-foreground">
+                  <p className="px-1 text-[10px] text-gray-500">
                     +{dayEvents.length - 3} mais
                   </p>
                 )}

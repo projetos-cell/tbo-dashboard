@@ -1,15 +1,15 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ExternalLink, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/tbo-ui/button";
 import { useDeleteProject } from "@/hooks/use-projects";
 import { useTablePreferences } from "@/hooks/use-table-preferences";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
-import { DataTable } from "@/components/ui/data-table";
+import { Badge } from "@/components/tbo-ui/badge";
+import { DataTable } from "@/components/tbo-ui/data-table";
 import { PROJECT_STATUS, type ProjectStatusKey } from "@/lib/constants";
 import type { ColumnDef } from "@/lib/column-types";
 import type { Database } from "@/lib/supabase/types";
@@ -103,7 +103,7 @@ export function ProjectList({ projects }: ProjectListProps) {
         sortType: "string",
         sortAccessor: (row) => row.construtora,
         cellRender: (row) => (
-          <span className="text-muted-foreground">
+          <span className="text-gray-500">
             {row.construtora || "\u2014"}
           </span>
         ),
@@ -113,7 +113,7 @@ export function ProjectList({ projects }: ProjectListProps) {
         label: "Responsavel",
         responsive: "lg" as const,
         cellRender: (row) => (
-          <span className="text-muted-foreground">
+          <span className="text-gray-500">
             {row.owner_name || "\u2014"}
           </span>
         ),
@@ -127,7 +127,7 @@ export function ProjectList({ projects }: ProjectListProps) {
         sortType: "date",
         sortAccessor: (row) => row.due_date_end,
         cellRender: (row) => (
-          <span className="text-muted-foreground text-sm">
+          <span className="text-gray-500 text-sm">
             {row.due_date_end
               ? format(new Date(row.due_date_end), "dd MMM yyyy", {
                   locale: ptBR,
@@ -148,7 +148,7 @@ export function ProjectList({ projects }: ProjectListProps) {
               href={row.notion_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-foreground"
+              className="text-gray-500 hover:text-gray-900"
               onClick={(e) => e.stopPropagation()}
             >
               <ExternalLink className="h-3.5 w-3.5" />
@@ -165,7 +165,7 @@ export function ProjectList({ projects }: ProjectListProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+            className="h-7 w-7 text-gray-500 hover:text-red-500"
             onClick={(e) => {
               e.stopPropagation();
               handleDelete(row);

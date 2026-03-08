@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useEffect } from "react";
 import { AlertTriangle, RotateCcw } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/tbo-ui/button";
+import { Card, CardContent } from "@/components/tbo-ui/card";
 
 export default function OKRsError({
   error,
@@ -20,16 +20,16 @@ export default function OKRsError({
     <div className="flex items-center justify-center min-h-[60vh] p-6">
       <Card className="max-w-md w-full">
         <CardContent className="flex flex-col items-center gap-4 pt-6">
-          <div className="rounded-full bg-destructive/10 p-3">
-            <AlertTriangle className="size-6 text-destructive" />
+          <div className="rounded-full bg-red-500/10 p-3">
+            <AlertTriangle className="size-6 text-red-500" />
           </div>
           <div className="text-center space-y-1">
             <h2 className="text-lg font-semibold">Algo deu errado</h2>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-gray-500">
               {error.message || "Ocorreu um erro inesperado. Tente novamente."}
             </p>
             {error.digest && (
-              <p className="text-xs text-muted-foreground font-mono">
+              <p className="text-xs text-gray-500 font-mono">
                 Codigo: {error.digest}
               </p>
             )}

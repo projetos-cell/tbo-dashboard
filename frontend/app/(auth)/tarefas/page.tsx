@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/tbo-ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/tbo-ui/tabs";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import { TaskFilters } from "@/components/tasks/task-filters";
 import { TaskList } from "@/components/tasks/task-list";
 import { TaskBoard } from "@/components/tasks/task-board";
@@ -53,7 +53,7 @@ export default function TarefasPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Tarefas</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500">
             Gerencie as tarefas da equipe
           </p>
         </div>

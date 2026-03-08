@@ -20,10 +20,10 @@ interface RequireRoleProps {
 function AccessDenied() {
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
-      <ShieldAlert className="h-12 w-12 text-muted-foreground/50" />
+      <ShieldAlert className="h-12 w-12 text-gray-500/50" />
       <div>
         <h2 className="text-lg font-semibold">Acesso restrito</h2>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm text-gray-500 mt-1">
           Voce nao tem permissao para acessar este modulo.
           <br />
           Fale com o founder caso precise de acesso.

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { format } from "date-fns";
@@ -14,18 +14,18 @@ import {
   History,
   Paperclip,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/tbo-ui/button";
+import { Separator } from "@/components/tbo-ui/separator";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetDescription,
-} from "@/components/ui/sheet";
-import { InlineEditable } from "@/components/ui/inline-editable";
-import { UserSelector, type UserOption } from "@/components/ui/user-selector";
+} from "@/components/tbo-ui/sheet";
+import { InlineEditable } from "@/components/tbo-ui/inline-editable";
+import { UserSelector, type UserOption } from "@/components/tbo-ui/user-selector";
 import { CommentThread } from "@/components/shared/comment-thread";
 import { ActivityFeed } from "@/components/shared/activity-feed";
 import { CustomFieldRenderer } from "@/components/shared/custom-field-renderer";
@@ -222,7 +222,7 @@ export function TaskDetail({
               {task.is_completed ? (
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
               ) : (
-                <Circle className="h-5 w-5 text-muted-foreground" />
+                <Circle className="h-5 w-5 text-gray-500" />
               )}
             </Button>
             <SheetTitle className="flex-1">
@@ -243,11 +243,11 @@ export function TaskDetail({
           <div className="flex-1 px-6 py-4 space-y-5 border-r min-w-0">
             {/* Description */}
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">
+              <p className="text-xs font-medium text-gray-500">
                 Descricao
               </p>
               <textarea
-                className="w-full min-h-[100px] text-sm bg-transparent border rounded-md p-2 resize-y focus:outline-none focus:ring-1 focus:ring-ring"
+                className="w-full min-h-[100px] text-sm bg-transparent border rounded-md p-2 resize-y focus:outline-none focus:ring-1 focus:ring-tbo-orange"
                 defaultValue={task.description || ""}
                 placeholder="Adicionar descricao..."
                 onBlur={handleDescriptionBlur}
@@ -257,7 +257,7 @@ export function TaskDetail({
             {/* Subtasks */}
             {subtasks && subtasks.length > 0 && (
               <div className="space-y-2">
-                <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <p className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
                   <ListTree className="h-3.5 w-3.5" /> Subtarefas (
                   {subtasks.filter((s) => s.is_completed).length}/
                   {subtasks.length})
@@ -266,7 +266,7 @@ export function TaskDetail({
                   {subtasks.map((sub) => (
                     <div
                       key={sub.id}
-                      className="flex items-center gap-2 rounded px-2 py-1 text-sm hover:bg-muted/50"
+                      className="flex items-center gap-2 rounded px-2 py-1 text-sm hover:bg-gray-100/50"
                     >
                       <Button
                         size="icon"
@@ -288,7 +288,7 @@ export function TaskDetail({
                         {sub.is_completed ? (
                           <CheckCircle2 className="h-4 w-4 text-green-600" />
                         ) : (
-                          <Circle className="h-4 w-4 text-muted-foreground" />
+                          <Circle className="h-4 w-4 text-gray-500" />
                         )}
                       </Button>
                       <span
@@ -345,7 +345,7 @@ export function TaskDetail({
           <div className="w-[220px] shrink-0 px-4 py-4 space-y-4 text-sm">
             {/* Status */}
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">
+              <p className="text-xs font-medium text-gray-500">
                 Status
               </p>
               <div className="flex flex-wrap gap-1">
@@ -369,7 +369,7 @@ export function TaskDetail({
 
             {/* Priority */}
             <div className="space-y-1.5">
-              <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
                 <Flag className="h-3 w-3" /> Prioridade
               </p>
               <div className="flex flex-wrap gap-1">
@@ -393,7 +393,7 @@ export function TaskDetail({
 
             {/* Assignees */}
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">
+              <p className="text-xs font-medium text-gray-500">
                 Responsaveis
               </p>
               <UserSelector
@@ -407,7 +407,7 @@ export function TaskDetail({
 
             {/* Dates */}
             <div className="space-y-1.5">
-              <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
                 <Calendar className="h-3 w-3" /> Inicio
               </p>
               <input
@@ -421,7 +421,7 @@ export function TaskDetail({
             </div>
 
             <div className="space-y-1.5">
-              <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
                 <Calendar className="h-3 w-3" /> Prazo
               </p>
               <input
@@ -459,7 +459,7 @@ export function TaskDetail({
             {/* Attachments count */}
             {attachments && attachments.length > 0 && (
               <div className="space-y-1">
-                <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
                   <Paperclip className="h-3 w-3" /> Anexos
                 </p>
                 <p className="text-xs">{attachments.length} arquivo(s)</p>
@@ -469,7 +469,7 @@ export function TaskDetail({
             <Separator />
 
             {/* Timestamps */}
-            <div className="text-[11px] text-muted-foreground space-y-0.5">
+            <div className="text-[11px] text-gray-500 space-y-0.5">
               <p>
                 Criada{" "}
                 {format(new Date(task.created_at ?? ""), "dd MMM yyyy", {
@@ -515,7 +515,7 @@ export function TaskDetail({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-7 text-xs text-destructive hover:text-destructive"
+                  className="h-7 text-xs text-red-500 hover:text-red-500"
                   onClick={() => setConfirmDelete(true)}
                 >
                   <Trash2 className="size-3 mr-1" />

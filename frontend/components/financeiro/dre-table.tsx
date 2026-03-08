@@ -17,7 +17,7 @@ function fmt(value: number): string {
 // ── Variation badge ───────────────────────────────────────────────────────────
 
 function VarBadge({ pct }: { pct: number | null }) {
-  if (pct === null) return <span className="text-muted-foreground text-[10px]">—</span>;
+  if (pct === null) return <span className="text-gray-500 text-[10px]">—</span>;
   const positive = pct >= 0;
   return (
     <span
@@ -46,16 +46,16 @@ function DreTableRow({
   return (
     <tr
       className={cn(
-        "border-b border-border",
+        "border-b border-gray-200",
         row.isSubtotal
-          ? "bg-muted/40 font-semibold"
-          : "hover:bg-muted/20 transition-colors"
+          ? "bg-gray-100/40 font-semibold"
+          : "hover:bg-gray-100/20 transition-colors"
       )}
     >
       <td
         className={cn(
           "py-2 px-3 text-xs whitespace-nowrap",
-          row.isSubtotal ? "text-foreground font-semibold" : "text-muted-foreground",
+          row.isSubtotal ? "text-gray-900 font-semibold" : "text-gray-500",
           row.isNegative && !row.isSubtotal && "pl-6"
         )}
       >
@@ -69,10 +69,10 @@ function DreTableRow({
             key={i}
             className={cn(
               "py-2 px-3 text-right text-xs tabular-nums",
-              isLast && "bg-card font-medium border-l border-border",
-              row.isSubtotal && (val >= 0 ? "text-foreground" : "text-red-600 dark:text-red-400"),
+              isLast && "bg-white font-medium border-l border-gray-200",
+              row.isSubtotal && (val >= 0 ? "text-gray-900" : "text-red-600 dark:text-red-400"),
               !row.isSubtotal && row.isNegative && "text-red-600 dark:text-red-400",
-              !row.isSubtotal && !row.isNegative && !negative && "text-foreground",
+              !row.isSubtotal && !row.isNegative && !negative && "text-gray-900",
               !row.isSubtotal && !row.isNegative && negative && "text-red-600 dark:text-red-400"
             )}
           >
@@ -92,12 +92,12 @@ function DreTableRow({
 function LoadingSkeleton({ cols }: { cols: number }) {
   return (
     <div className="animate-pulse space-y-2">
-      <div className="h-8 bg-muted rounded w-full" />
+      <div className="h-8 bg-gray-100 rounded w-full" />
       {Array.from({ length: 7 }).map((_, i) => (
         <div key={i} className="flex gap-2">
-          <div className="h-6 bg-muted rounded w-32 shrink-0" />
+          <div className="h-6 bg-gray-100 rounded w-32 shrink-0" />
           {Array.from({ length: cols }).map((__, j) => (
-            <div key={j} className="h-6 bg-muted rounded flex-1" />
+            <div key={j} className="h-6 bg-gray-100 rounded flex-1" />
           ))}
         </div>
       ))}
@@ -117,7 +117,7 @@ export function DreTable({ data, isLoading = false, onConfigureClick }: DreTable
   if (isLoading) return <LoadingSkeleton cols={7} />;
   if (!data || data.columns.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground text-center py-8">
+      <p className="text-sm text-gray-500 text-center py-8">
         Nenhum dado disponível para o DRE. Sincronize com o Omie.
       </p>
     );
@@ -128,14 +128,14 @@ export function DreTable({ data, isLoading = false, onConfigureClick }: DreTable
   return (
     <div className="overflow-x-auto">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-[10px] text-gray-500">
           Alíquota de impostos configurada:{" "}
-          <span className="font-medium text-foreground">{data.taxRate}%</span>
+          <span className="font-medium text-gray-900">{data.taxRate}%</span>
         </p>
         {onConfigureClick && (
           <button
             onClick={onConfigureClick}
-            className="text-[10px] text-primary underline-offset-2 hover:underline"
+            className="text-[10px] text-tbo-orange underline-offset-2 hover:underline"
           >
             Configurar alíquota
           </button>
@@ -143,21 +143,21 @@ export function DreTable({ data, isLoading = false, onConfigureClick }: DreTable
       </div>
       <table className="w-full text-xs border-collapse min-w-[640px]">
         <thead>
-          <tr className="border-b-2 border-border">
-            <th className="py-2 px-3 text-left font-semibold text-muted-foreground whitespace-nowrap">
+          <tr className="border-b-2 border-gray-200">
+            <th className="py-2 px-3 text-left font-semibold text-gray-500 whitespace-nowrap">
               Linha
             </th>
             {data.columns.map((col: DreMonthColumn, i: number) => (
               <th
                 key={col.yearMonth}
                 className={cn(
-                  "py-2 px-3 text-right font-semibold text-muted-foreground whitespace-nowrap",
-                  i === colCount - 1 && "bg-card border-l border-border text-foreground"
+                  "py-2 px-3 text-right font-semibold text-gray-500 whitespace-nowrap",
+                  i === colCount - 1 && "bg-white border-l border-gray-200 text-gray-900"
                 )}
               >
                 {col.label}
                 {i === colCount - 1 && (
-                  <span className="ml-1 text-[9px] font-normal text-muted-foreground">(MTD)</span>
+                  <span className="ml-1 text-[9px] font-normal text-gray-500">(MTD)</span>
                 )}
               </th>
             ))}

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import {
@@ -7,18 +7,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+} from "@/components/tbo-ui/dialog";
+import { Button } from "@/components/tbo-ui/button";
+import { Input } from "@/components/tbo-ui/input";
+import { Label } from "@/components/tbo-ui/label";
+import { Textarea } from "@/components/tbo-ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/tbo-ui/select";
 import { useCreateCheckin, useUpdateKeyResult } from "@/hooks/use-okrs";
 import { useAuthStore } from "@/stores/auth-store";
 import type { Database } from "@/lib/supabase/types";
@@ -91,7 +91,7 @@ export function OkrCheckinDialog({ kr, open, onClose }: OkrCheckinDialogProps) {
 
         {kr && (
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">{kr.title}</p>
+            <p className="text-sm text-gray-500">{kr.title}</p>
 
             <div className="grid grid-cols-2 gap-3">
               <div>

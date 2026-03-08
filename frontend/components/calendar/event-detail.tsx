@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   Sheet,
@@ -6,10 +6,10 @@ import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
-} from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+} from "@/components/tbo-ui/sheet";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/tbo-ui/button";
+import { Separator } from "@/components/tbo-ui/separator";
 import type { CalendarEvent } from "@/services/calendar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -52,7 +52,7 @@ export function EventDetail({
         <div className="space-y-4 px-4 pb-4">
           {/* Time */}
           <div className="flex items-start gap-2 text-sm">
-            <Clock className="mt-0.5 h-4 w-4 text-muted-foreground" />
+            <Clock className="mt-0.5 h-4 w-4 text-gray-500" />
             <div>
               {event.isAllDay ? (
                 <span>
@@ -64,7 +64,7 @@ export function EventDetail({
                   <p>
                     {format(start, "EEEE, dd MMM yyyy", { locale: ptBR })}
                   </p>
-                  <p className="text-muted-foreground">
+                  <p className="text-gray-500">
                     {format(start, "HH:mm")} – {format(end, "HH:mm")}
                   </p>
                 </>
@@ -75,7 +75,7 @@ export function EventDetail({
           {/* Location */}
           {event.location && (
             <div className="flex items-start gap-2 text-sm">
-              <MapPin className="mt-0.5 h-4 w-4 text-muted-foreground" />
+              <MapPin className="mt-0.5 h-4 w-4 text-gray-500" />
               <span>{event.location}</span>
             </div>
           )}
@@ -83,7 +83,7 @@ export function EventDetail({
           {/* Organizer */}
           {event.organizer && (
             <div className="flex items-start gap-2 text-sm">
-              <Users className="mt-0.5 h-4 w-4 text-muted-foreground" />
+              <Users className="mt-0.5 h-4 w-4 text-gray-500" />
               <span>{event.organizer}</span>
             </div>
           )}
@@ -99,7 +99,7 @@ export function EventDetail({
           {event.description && (
             <>
               <Separator />
-              <div className="text-sm whitespace-pre-wrap text-muted-foreground">
+              <div className="text-sm whitespace-pre-wrap text-gray-500">
                 {event.description}
               </div>
             </>

@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/tbo-ui/badge";
 import { IMPACT_METRIC_MAP } from "@/lib/performance-constants";
 
 interface ImpactMetricCardProps {
@@ -25,7 +25,7 @@ export function ImpactMetricCard({
   // Color based on score
   const barColor =
     !hasValue
-      ? "bg-muted"
+      ? "bg-gray-100"
       : score >= 75
         ? "bg-emerald-500"
         : score >= 50
@@ -64,7 +64,7 @@ export function ImpactMetricCard({
       </div>
 
       {/* Progress bar */}
-      <div className="h-1.5 rounded-full bg-muted">
+      <div className="h-1.5 rounded-full bg-gray-100">
         <div
           className={`h-1.5 rounded-full transition-all ${barColor}`}
           style={{ width: hasValue ? `${score}%` : "0%" }}
@@ -72,10 +72,10 @@ export function ImpactMetricCard({
       </div>
 
       {/* Raw value hint */}
-      <p className="text-[10px] text-muted-foreground">
+      <p className="text-[10px] text-gray-500">
         {def.description} — <span className="font-medium">{formatRaw()}</span>
         {def.isInverted && hasValue && (
-          <span className="ml-1 text-muted-foreground/60">(invertido)</span>
+          <span className="ml-1 text-gray-400">(invertido)</span>
         )}
       </p>
     </div>

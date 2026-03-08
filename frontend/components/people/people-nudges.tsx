@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Button } from "@/components/tbo-ui/button";
 import {
   Lightbulb,
   MessageSquare,
@@ -107,8 +107,8 @@ export function PeopleNudges({
       <Card className="border-dashed">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
-            <div className="h-5 w-5 animate-pulse rounded bg-muted" />
-            <div className="h-5 w-36 animate-pulse rounded bg-muted" />
+            <div className="h-5 w-5 animate-pulse rounded bg-gray-100" />
+            <div className="h-5 w-36 animate-pulse rounded bg-gray-100" />
           </div>
         </CardHeader>
         <CardContent>
@@ -116,7 +116,7 @@ export function PeopleNudges({
             {[1, 2].map((i) => (
               <div
                 key={i}
-                className="h-14 animate-pulse rounded-lg bg-muted/50"
+                className="h-14 animate-pulse rounded-lg bg-gray-100/50"
               />
             ))}
           </div>
@@ -142,7 +142,7 @@ export function PeopleNudges({
             return (
               <div
                 key={cfg.id}
-                className="flex items-center gap-3 rounded-lg border bg-background p-3 transition-colors hover:bg-muted/50"
+                className="flex items-center gap-3 rounded-lg border bg-white p-3 transition-colors hover:bg-gray-100/50"
               >
                 <div
                   className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${cfg.iconBg}`}

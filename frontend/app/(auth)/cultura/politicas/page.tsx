@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
 import { Plus, Shield } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/tbo-ui/button";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import { PolicyCard } from "@/components/cultura/policy-card";
 import { PolicyForm, type PolicyFormData } from "@/components/cultura/policy-form";
 import { PolicyDetail } from "@/components/cultura/policy-detail";
@@ -143,7 +143,7 @@ export default function PoliticasPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight">Politicas</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500">
             Politicas e diretrizes da organizacao.
           </p>
         </div>
@@ -191,7 +191,7 @@ export default function PoliticasPage() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-12 text-muted-foreground">
+        <div className="text-center py-12 text-gray-500">
           <Shield className="size-10 mx-auto mb-3 opacity-30" />
           <p className="font-medium">Nenhuma politica encontrada.</p>
           <p className="text-xs mt-1">

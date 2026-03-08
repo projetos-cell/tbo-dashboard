@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useAuditLogs } from "@/hooks/use-settings";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/tbo-ui/button";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import { Shield, ChevronLeft, ChevronRight } from "lucide-react";
 
 const ACTION_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -61,7 +61,7 @@ export function AuditLogTable() {
       </CardHeader>
       <CardContent>
         {logs.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">
+          <p className="text-sm text-gray-500 text-center py-8">
             Nenhum log de auditoria encontrado.
           </p>
         ) : (
@@ -84,13 +84,13 @@ export function AuditLogTable() {
                       </Badge>
                       <span className="text-sm font-medium">{entityLabel}</span>
                       {log.entity_id && (
-                        <span className="text-xs text-muted-foreground font-mono truncate max-w-[140px]">
+                        <span className="text-xs text-gray-500 font-mono truncate max-w-[140px]">
                           {log.entity_id.slice(0, 8)}
                         </span>
                       )}
                     </div>
                     {meta && (meta as Record<string, unknown>).changed_fields ? (
-                      <p className="text-xs text-muted-foreground mt-1 truncate">
+                      <p className="text-xs text-gray-500 mt-1 truncate">
                         Campos: {Object.keys(
                           (meta as Record<string, unknown>).changed_fields as Record<string, unknown>,
                         ).join(", ")}
@@ -98,10 +98,10 @@ export function AuditLogTable() {
                     ) : null}
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-gray-500">
                       {date.toLocaleDateString("pt-BR")}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-gray-500">
                       {date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                     </p>
                   </div>
@@ -114,7 +114,7 @@ export function AuditLogTable() {
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between pt-4 mt-4 border-t">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-500">
               Página {page + 1} de {totalPages}
             </p>
             <div className="flex gap-1">

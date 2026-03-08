@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/tbo-ui/button";
 import {
   Table,
   TableBody,
@@ -9,7 +9,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/tbo-ui/table";
 import { getPdiStatusBadgeProps, formatDate } from "@/lib/pdi-utils";
 import { Eye } from "lucide-react";
 import type { PdiRow } from "@/services/pdi";
@@ -23,7 +23,7 @@ interface PdiTableProps {
 export function PdiTable({ pdis, profileMap, onSelect }: PdiTableProps) {
   if (pdis.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
+      <div className="rounded-lg border border-dashed p-8 text-center text-gray-500">
         Nenhum PDI encontrado.
       </div>
     );
@@ -51,7 +51,7 @@ export function PdiTable({ pdis, profileMap, onSelect }: PdiTableProps) {
                 onClick={() => onSelect(pdi)}
               >
                 <TableCell className="font-medium">{pdi.title || "Sem título"}</TableCell>
-                <TableCell className="text-muted-foreground">
+                <TableCell className="text-gray-500">
                   {profileMap.get(pdi.person_id) ?? "—"}
                 </TableCell>
                 <TableCell>
@@ -59,7 +59,7 @@ export function PdiTable({ pdis, profileMap, onSelect }: PdiTableProps) {
                     {label}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
+                <TableCell className="text-sm text-gray-500">
                   {pdi.last_updated_at ? formatDate(pdi.last_updated_at) : "—"}
                 </TableCell>
                 <TableCell>

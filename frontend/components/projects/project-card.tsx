@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Calendar, User, ExternalLink } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
 import { PROJECT_STATUS, BU_COLORS, type ProjectStatusKey } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 import { format } from "date-fns";
@@ -30,30 +30,33 @@ function parseBus(raw: string | string[] | null): string[] {
 }
 
 export function ProjectCard({ project }: ProjectCardProps) {
+  const router = useRouter();
   const status = PROJECT_STATUS[project.status as ProjectStatusKey];
   const busList = parseBus(project.bus);
 
   return (
-    <Link href={`/projetos/${project.id}`}>
-      <Card className="cursor-pointer transition-shadow hover:shadow-md">
-        <CardHeader className="pb-2">
-          <div className="flex items-start justify-between gap-2">
-            <CardTitle className="text-sm font-medium leading-tight line-clamp-2">
-              {project.name}
-            </CardTitle>
-            {project.notion_url && (
-              <a
-                href={project.notion_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="shrink-0 text-muted-foreground hover:text-foreground"
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-              </a>
-            )}
-          </div>
-        </CardHeader>
+    <Card
+      className="cursor-pointer transition-shadow hover:shadow-md"
+      onClick={() => router.push(`/projetos/${project.id}`)}
+    >
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between gap-2">
+          <CardTitle className="text-sm font-medium leading-tight line-clamp-2">
+            {project.name}
+          </CardTitle>
+          {project.notion_url && (
+            <a
+              href={project.notion_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="shrink-0 text-gray-500 hover:text-gray-900"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          )}
+        </div>
+      </CardHeader>
         <CardContent className="space-y-2">
           {/* Status badge */}
           {status && (
@@ -94,13 +97,13 @@ export function ProjectCard({ project }: ProjectCardProps) {
 
           {/* Construtora */}
           {project.construtora && (
-            <p className="text-xs text-muted-foreground truncate">
+            <p className="text-xs text-gray-500 truncate">
               {project.construtora}
             </p>
           )}
 
           {/* Footer: owner + date */}
-          <div className="flex items-center justify-between pt-1 text-xs text-muted-foreground">
+          <div className="flex items-center justify-between pt-1 text-xs text-gray-500">
             {project.owner_name && (
               <div className="flex items-center gap-1 truncate">
                 <User className="h-3 w-3 shrink-0" />
@@ -120,6 +123,5 @@ export function ProjectCard({ project }: ProjectCardProps) {
           </div>
         </CardContent>
       </Card>
-    </Link>
   );
 }

@@ -39,18 +39,18 @@ function parseBRL(raw: string): number | null {
 
 function HistoryRow({ entry }: { entry: CashEntry }) {
   return (
-    <li className="flex items-center justify-between gap-2 py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
+    <li className="flex items-center justify-between gap-2 py-2 border-b border-gray-200 last:border-0">
       <div className="min-w-0">
-        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+        <p className="text-sm font-medium text-gray-900 truncate">
           {fmt(entry.amount)}
         </p>
         {entry.note && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+          <p className="text-xs text-gray-500 truncate">
             {entry.note}
           </p>
         )}
       </div>
-      <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap shrink-0">
+      <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">
         {fmtDate(entry.recorded_at)}
       </span>
     </li>
@@ -98,12 +98,12 @@ function AddEntryForm({ onClose, onSaved }: AddEntryFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="mt-3 space-y-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700"
+      className="mt-3 space-y-3 p-3 rounded-lg bg-gray-100/40 border border-gray-200"
     >
       <div>
         <label
           htmlFor="cash-amount"
-          className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1"
+          className="block text-xs font-medium text-gray-900 mb-1"
         >
           Saldo atual (R$)
         </label>
@@ -114,14 +114,7 @@ function AddEntryForm({ onClose, onSaved }: AddEntryFormProps) {
           placeholder="Ex: 150.000,00"
           value={rawAmount}
           onChange={(e) => setRawAmount(e.target.value)}
-          className="
-            w-full rounded-md border border-gray-300 dark:border-gray-600
-            bg-white dark:bg-gray-900
-            px-3 py-2 text-sm text-gray-900 dark:text-gray-100
-            placeholder:text-gray-400 dark:placeholder:text-gray-500
-            focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-            transition
-          "
+          className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-tbo-orange/20 transition"
           required
           autoFocus
         />
@@ -130,7 +123,7 @@ function AddEntryForm({ onClose, onSaved }: AddEntryFormProps) {
       <div>
         <label
           htmlFor="cash-note"
-          className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1"
+          className="block text-xs font-medium text-gray-900 mb-1"
         >
           Observação (opcional)
         </label>
@@ -140,43 +133,26 @@ function AddEntryForm({ onClose, onSaved }: AddEntryFormProps) {
           placeholder="Ex: Saldo consolidado Bradesco + Nubank"
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          className="
-            w-full rounded-md border border-gray-300 dark:border-gray-600
-            bg-white dark:bg-gray-900
-            px-3 py-2 text-sm text-gray-900 dark:text-gray-100
-            placeholder:text-gray-400 dark:placeholder:text-gray-500
-            focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-            transition
-          "
+          className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-tbo-orange/20 transition"
         />
       </div>
 
       {error && (
-        <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+        <p className="text-xs text-red-500">{error}</p>
       )}
 
       <div className="flex gap-2 justify-end">
         <button
           type="button"
           onClick={onClose}
-          className="
-            px-3 py-1.5 rounded-md text-sm font-medium
-            text-gray-600 dark:text-gray-400
-            hover:bg-gray-100 dark:hover:bg-gray-700
-            transition
-          "
+          className="px-3 py-1.5 rounded-md text-sm font-medium text-gray-500 hover:bg-gray-100 transition"
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={mutation.isPending}
-          className="
-            px-3 py-1.5 rounded-md text-sm font-semibold
-            bg-blue-600 hover:bg-blue-700 text-white
-            disabled:opacity-50 disabled:cursor-not-allowed
-            transition
-          "
+          className="px-3 py-1.5 rounded-md text-sm font-semibold bg-tbo-orange hover:bg-tbo-orange/90 text-white disabled:opacity-50 disabled:cursor-not-allowed transition"
         >
           {mutation.isPending ? "Salvando…" : "Salvar"}
         </button>
@@ -220,13 +196,13 @@ export function CashBalanceInput({
 
   return (
     <div
-      className={`rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 ${className}`}
+      className={`rounded-xl border border-gray-200 bg-white p-4 shadow-sm ${className}`}
     >
       {/* Header ──────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Wallet className="h-4 w-4 text-blue-500 shrink-0" />
-          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+          <Wallet className="h-4 w-4 text-tbo-orange shrink-0" />
+          <span className="text-sm font-semibold text-gray-900">
             Caixa Real
           </span>
         </div>
@@ -236,12 +212,7 @@ export function CashBalanceInput({
             setFormOpen((v) => !v);
             if (historyOpen) setHistoryOpen(false);
           }}
-          className="
-            flex items-center gap-1 rounded-md px-2 py-1
-            text-xs font-medium text-blue-600 dark:text-blue-400
-            hover:bg-blue-50 dark:hover:bg-blue-900/30
-            transition
-          "
+          className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-tbo-orange hover:bg-tbo-orange/10 transition"
           title="Registrar novo saldo"
         >
           {formOpen ? (
@@ -261,19 +232,19 @@ export function CashBalanceInput({
       {/* Current balance ─────────────────────────────────────────────────── */}
       <div className="mt-3">
         {isLoading ? (
-          <div className="h-7 w-32 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+          <div className="h-7 w-32 animate-pulse rounded bg-gray-100" />
         ) : latestEntry ? (
           <div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            <p className="text-2xl font-bold text-gray-900">
               {fmt(latestEntry.amount)}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            <p className="text-xs text-gray-500 mt-0.5">
               Registrado em {fmtDate(latestEntry.recorded_at)}
               {latestEntry.note && ` · ${latestEntry.note}`}
             </p>
           </div>
         ) : (
-          <p className="text-sm text-gray-400 dark:text-gray-500 italic">
+          <p className="text-sm text-gray-500 italic">
             Nenhum saldo registrado ainda.
           </p>
         )}
@@ -292,10 +263,7 @@ export function CashBalanceInput({
         <div className="mt-3">
           <button
             onClick={() => setHistoryOpen((v) => !v)}
-            className="
-              flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400
-              hover:text-gray-700 dark:hover:text-gray-200 transition
-            "
+            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 transition"
           >
             {historyOpen ? (
               <ChevronUp className="h-3.5 w-3.5" />

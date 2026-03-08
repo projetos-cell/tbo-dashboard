@@ -1,16 +1,16 @@
-"use client";
+﻿"use client";
 
 import { useState, type KeyboardEvent } from "react";
 import { MoreVertical, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Input } from "@/components/tbo-ui/input";
+import { Button } from "@/components/tbo-ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/tbo-ui/dropdown-menu";
 import { OnlineIndicator } from "./online-indicator";
 import type { MessageRow } from "@/services/chat";
 
@@ -73,7 +73,7 @@ export function MessageBubble({
     >
       {/* Sender name + online dot (only for others' messages) */}
       {!isOwn && senderName && (
-        <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground px-1 mb-0.5">
+        <span className="flex items-center gap-1 text-[11px] font-medium text-gray-500 px-1 mb-0.5">
           <OnlineIndicator userId={message.sender_id ?? ""} size="sm" />
           {senderName}
         </span>
@@ -98,8 +98,8 @@ export function MessageBubble({
           className={cn(
             "rounded-lg px-3 py-2 text-sm",
             isOwn
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-foreground",
+              ? "bg-tbo-orange text-white"
+              : "bg-gray-100 text-gray-900",
             isOptimistic && "opacity-60",
           )}
         >
@@ -110,7 +110,7 @@ export function MessageBubble({
                 onChange={(e) => setEditContent(e.target.value)}
                 onKeyDown={handleKeyDown}
                 autoFocus
-                className="h-7 text-sm bg-background text-foreground"
+                className="h-7 text-sm bg-white text-gray-900"
               />
               <div className="flex gap-1.5 justify-end">
                 <Button
@@ -152,9 +152,9 @@ export function MessageBubble({
 
       {/* Timestamp + edited badge */}
       <div className="flex items-center gap-1.5 px-1">
-        <span className="text-[10px] text-muted-foreground">{time}</span>
+        <span className="text-[10px] text-gray-500">{time}</span>
         {isEdited && (
-          <span className="text-[10px] text-muted-foreground italic">(editado)</span>
+          <span className="text-[10px] text-gray-500 italic">(editado)</span>
         )}
       </div>
     </div>
@@ -197,7 +197,7 @@ function MessageMenu({
           </DropdownMenuItem>
         )}
         {canDelete && (
-          <DropdownMenuItem onClick={onDelete} className="text-destructive">
+          <DropdownMenuItem onClick={onDelete} className="text-red-500">
             <Trash2 className="h-3.5 w-3.5 mr-2" />
             Excluir
           </DropdownMenuItem>

@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/tbo-ui/input";
+import { Badge } from "@/components/tbo-ui/badge";
 import { Search } from "lucide-react";
 import { DEAL_STAGES, type DealStageKey } from "@/lib/constants";
 
@@ -21,7 +21,7 @@ export function DealFilters({
   return (
     <div className="space-y-3">
       <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
         <Input
           placeholder="Buscar deals..."
           value={search}

@@ -26,7 +26,7 @@ export function OnlineIndicator({
       className={cn(
         "inline-block shrink-0 rounded-full",
         size === "sm" ? "h-2 w-2" : "h-2.5 w-2.5",
-        online ? "bg-emerald-500" : "bg-muted-foreground/40",
+        online ? "bg-emerald-500" : "bg-gray-100-foreground/40",
         className,
       )}
       title={online ? "Online" : "Offline"}

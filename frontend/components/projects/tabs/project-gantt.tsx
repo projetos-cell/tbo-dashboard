@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useRef, useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@/components/tbo-ui/card";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import { useTasks, useUpdateTask } from "@/hooks/use-tasks";
 import type { Database } from "@/lib/supabase/types";
 
@@ -103,7 +103,7 @@ export function ProjectGantt({ projectId }: ProjectGanttProps) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-12">
-          <p className="text-sm text-muted-foreground">{error}</p>
+          <p className="text-sm text-gray-500">{error}</p>
         </CardContent>
       </Card>
     );
@@ -113,10 +113,10 @@ export function ProjectGantt({ projectId }: ProjectGanttProps) {
     return (
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12">
-          <p className="text-muted-foreground">
+          <p className="text-gray-500">
             Nenhuma tarefa com datas para exibir no Gantt.
           </p>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-gray-500 mt-1">
             Adicione datas de inicio/fim nas tarefas para visualiza-las aqui.
           </p>
         </CardContent>

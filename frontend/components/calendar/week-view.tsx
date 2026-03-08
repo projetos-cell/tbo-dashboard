@@ -65,21 +65,21 @@ export function WeekView({ currentDate, events, onSelectEvent }: WeekViewProps) 
   return (
     <div className="overflow-hidden rounded-lg border">
       {/* Day headers */}
-      <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b bg-muted/40">
+      <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b bg-gray-100/40">
         <div />
         {weekDays.map((day) => (
           <div
             key={day.toISOString()}
             className={cn(
               "px-2 py-2 text-center text-xs",
-              isToday(day) && "font-bold text-primary"
+              isToday(day) && "font-bold text-tbo-orange"
             )}
           >
             <span className="block">{format(day, "EEE", { locale: ptBR })}</span>
             <span
               className={cn(
                 "inline-flex h-6 w-6 items-center justify-center rounded-full text-sm",
-                isToday(day) && "bg-primary text-primary-foreground"
+                isToday(day) && "bg-tbo-orange text-white"
               )}
             >
               {format(day, "d")}
@@ -91,7 +91,7 @@ export function WeekView({ currentDate, events, onSelectEvent }: WeekViewProps) 
       {/* All-day row */}
       {allDayEvents.length > 0 && (
         <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b">
-          <div className="px-1 py-1 text-[10px] text-muted-foreground">
+          <div className="px-1 py-1 text-[10px] text-gray-500">
             Dia todo
           </div>
           {weekDays.map((day) => {
@@ -124,7 +124,7 @@ export function WeekView({ currentDate, events, onSelectEvent }: WeekViewProps) 
           {HOURS.map((h) => (
             <div
               key={h}
-              className="flex h-[60px] items-start justify-end border-b pr-2 text-[10px] text-muted-foreground"
+              className="flex h-[60px] items-start justify-end border-b pr-2 text-[10px] text-gray-500"
             >
               {`${String(h).padStart(2, "0")}:00`}
             </div>

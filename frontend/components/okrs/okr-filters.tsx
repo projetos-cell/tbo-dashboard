@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/tbo-ui/input";
+import { Badge } from "@/components/tbo-ui/badge";
 import { OKR_STATUS, OKR_LEVELS } from "@/lib/constants";
 import type { OkrStatusKey, OkrLevelKey } from "@/lib/constants";
 
@@ -26,7 +26,7 @@ export function OkrFilters({
   return (
     <div className="space-y-3">
       <div className="relative max-w-sm">
-        <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+        <Search className="text-gray-500 absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
         <Input
           placeholder="Buscar objetivos..."
           value={search}
@@ -36,7 +36,7 @@ export function OkrFilters({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <span className="text-muted-foreground text-xs font-medium self-center mr-1">
+        <span className="text-gray-500 text-xs font-medium self-center mr-1">
           Nível:
         </span>
         <Badge
@@ -59,7 +59,7 @@ export function OkrFilters({
           ),
         )}
 
-        <span className="text-muted-foreground text-xs font-medium self-center ml-3 mr-1">
+        <span className="text-gray-500 text-xs font-medium self-center ml-3 mr-1">
           Status:
         </span>
         <Badge

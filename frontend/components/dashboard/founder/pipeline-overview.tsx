@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
 import { DEAL_STAGES, type DealStageKey } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 
@@ -48,14 +48,14 @@ export function PipelineOverview({ deals = [] }: Props) {
         <CardTitle className="text-base font-semibold">Pipeline CRM</CardTitle>
         <Link
           href="/comercial"
-          className="text-sm text-muted-foreground hover:underline"
+          className="text-sm text-gray-500 hover:underline"
         >
           Ver pipeline
         </Link>
       </CardHeader>
       <CardContent>
         {deals.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
+          <p className="py-6 text-center text-sm text-gray-500">
             Nenhum deal no pipeline
           </p>
         ) : (
@@ -77,7 +77,7 @@ export function PipelineOverview({ deals = [] }: Props) {
                     >
                       {stage.count}
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground truncate">
+                    <p className="mt-1 text-xs text-gray-500 truncate">
                       {stage.label}
                     </p>
                   </div>
@@ -87,7 +87,7 @@ export function PipelineOverview({ deals = [] }: Props) {
             {/* Summary row */}
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-500">
                   Pipeline ativo
                 </p>
                 <p className="text-sm font-bold">

@@ -150,8 +150,8 @@ export function DateRangeFilter({ value, onChange, className = "" }: DateRangeFi
           inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5
           text-xs font-medium transition-colors
           ${isNonDefault
-            ? "border-primary bg-primary/10 text-primary dark:bg-primary/20"
-            : "border-border bg-card text-foreground hover:bg-muted"
+            ? "border-tbo-orange bg-tbo-orange/10 text-tbo-orange dark:bg-tbo-orange/20"
+            : "border-gray-200 bg-white text-gray-900 hover:bg-gray-100"
           }
         `}
       >
@@ -167,7 +167,7 @@ export function DateRangeFilter({ value, onChange, className = "" }: DateRangeFi
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); clearFilter(); }}
-          className="ml-1 inline-flex items-center justify-center rounded-full p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          className="ml-1 inline-flex items-center justify-center rounded-full p-0.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
           aria-label="Limpar filtro de período"
         >
           <X className="h-3 w-3" />
@@ -178,8 +178,8 @@ export function DateRangeFilter({ value, onChange, className = "" }: DateRangeFi
       {open && (
         <div
           className="
-            absolute right-0 top-full z-50 mt-1 w-64 rounded-lg border border-border
-            bg-card shadow-md p-2 space-y-0.5
+            absolute right-0 top-full z-50 mt-1 w-64 rounded-lg border border-gray-200
+            bg-white shadow-md p-2 space-y-0.5
           "
         >
           {/* Presets */}
@@ -191,8 +191,8 @@ export function DateRangeFilter({ value, onChange, className = "" }: DateRangeFi
               className={`
                 w-full text-left rounded-md px-3 py-1.5 text-sm transition-colors
                 ${value.preset === preset
-                  ? "bg-primary text-primary-foreground font-medium"
-                  : "text-foreground hover:bg-muted"
+                  ? "bg-tbo-orange text-white font-medium"
+                  : "text-gray-900 hover:bg-gray-100"
                 }
               `}
             >
@@ -201,35 +201,35 @@ export function DateRangeFilter({ value, onChange, className = "" }: DateRangeFi
           ))}
 
           {/* Custom range */}
-          <div className="border-t border-border pt-2 mt-2 space-y-2 px-1">
-            <p className="text-xs font-medium text-muted-foreground">Personalizado</p>
+          <div className="border-t border-gray-200 pt-2 mt-2 space-y-2 px-1">
+            <p className="text-xs font-medium text-gray-500">Personalizado</p>
 
             <div className="flex items-center gap-2">
               <div className="flex-1">
-                <label className="text-[10px] text-muted-foreground mb-0.5 block">De</label>
+                <label className="text-[10px] text-gray-500 mb-0.5 block">De</label>
                 <input
                   type="date"
                   value={customFrom}
                   onChange={(e) => setCustomFrom(e.target.value)}
                   max={customTo || undefined}
                   className="
-                    w-full rounded-md border border-border bg-background px-2 py-1
-                    text-xs text-foreground
-                    focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary
+                    w-full rounded-md border border-gray-200 bg-white px-2 py-1
+                    text-xs text-gray-900
+                    focus:outline-none focus:ring-1 focus:ring-tbo-orange focus:border-tbo-orange
                   "
                 />
               </div>
               <div className="flex-1">
-                <label className="text-[10px] text-muted-foreground mb-0.5 block">Até</label>
+                <label className="text-[10px] text-gray-500 mb-0.5 block">Até</label>
                 <input
                   type="date"
                   value={customTo}
                   onChange={(e) => setCustomTo(e.target.value)}
                   min={customFrom || undefined}
                   className="
-                    w-full rounded-md border border-border bg-background px-2 py-1
-                    text-xs text-foreground
-                    focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary
+                    w-full rounded-md border border-gray-200 bg-white px-2 py-1
+                    text-xs text-gray-900
+                    focus:outline-none focus:ring-1 focus:ring-tbo-orange focus:border-tbo-orange
                   "
                 />
               </div>
@@ -240,7 +240,7 @@ export function DateRangeFilter({ value, onChange, className = "" }: DateRangeFi
               disabled={!customFrom || !customTo}
               onClick={applyCustom}
               className="
-                w-full rounded-md bg-primary py-1.5 text-xs font-medium text-primary-foreground
+                w-full rounded-md bg-tbo-orange py-1.5 text-xs font-medium text-white
                 transition-opacity
                 disabled:opacity-40 disabled:cursor-not-allowed
                 enabled:hover:opacity-90
@@ -252,7 +252,7 @@ export function DateRangeFilter({ value, onChange, className = "" }: DateRangeFi
 
           {/* Resolved range label */}
           {value.preset !== "custom" && (
-            <p className="text-[10px] text-muted-foreground px-1 pt-1">
+            <p className="text-[10px] text-gray-500 px-1 pt-1">
               {resolved.from === resolved.to
                 ? formatIso(resolved.from)
                 : `${formatIso(resolved.from)} — ${formatIso(resolved.to)}`}

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   CheckCircle2,
@@ -7,9 +7,9 @@ import {
   LayoutList,
   Paperclip,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Progress } from "@/components/tbo-ui/progress";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import { ActivityFeed } from "@/components/shared/activity-feed";
 import { useProjectActivity } from "@/hooks/use-activity";
 import type { ProjectStats } from "@/services/projects";
@@ -76,7 +76,7 @@ export function ProjectOverview({
           ) : (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">
+                <span className="text-gray-500">
                   {stats?.completedTasks || 0} de {stats?.totalTasks || 0}{" "}
                   tarefas
                 </span>
@@ -123,8 +123,8 @@ function StatCard({
   return (
     <Card>
       <CardContent className="flex items-center gap-3 pt-4">
-        <div className="rounded-md bg-muted p-2">
-          <Icon className={`size-4 ${color || "text-muted-foreground"}`} />
+        <div className="rounded-md bg-gray-100 p-2">
+          <Icon className={`size-4 ${color || "text-gray-500"}`} />
         </div>
         <div>
           {loading ? (
@@ -134,7 +134,7 @@ function StatCard({
               {value ?? 0}
             </p>
           )}
-          <p className="text-xs text-muted-foreground">{label}</p>
+          <p className="text-xs text-gray-500">{label}</p>
         </div>
       </CardContent>
     </Card>

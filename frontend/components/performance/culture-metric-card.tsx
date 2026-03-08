@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/tbo-ui/badge";
 import { CULTURE_METRIC_MAP } from "@/lib/performance-constants";
 
 interface CultureMetricCardProps {
@@ -25,7 +25,7 @@ export function CultureMetricCard({
   // Color based on score
   const barColor =
     !hasValue
-      ? "bg-muted"
+      ? "bg-gray-100"
       : score >= 75
         ? "bg-emerald-500"
         : score >= 50
@@ -63,7 +63,7 @@ export function CultureMetricCard({
       </div>
 
       {/* Progress bar */}
-      <div className="h-1.5 rounded-full bg-muted">
+      <div className="h-1.5 rounded-full bg-gray-100">
         <div
           className={`h-1.5 rounded-full transition-all ${barColor}`}
           style={{ width: hasValue ? `${score}%` : "0%" }}
@@ -71,7 +71,7 @@ export function CultureMetricCard({
       </div>
 
       {/* Raw value hint */}
-      <p className="text-[10px] text-muted-foreground">
+      <p className="text-[10px] text-gray-500">
         {def.description} — <span className="font-medium">{formatRaw()}</span>
       </p>
     </div>

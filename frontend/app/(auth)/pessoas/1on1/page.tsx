@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
 import {
@@ -13,17 +13,17 @@ import { PendingActionsList } from "@/components/one-on-ones/one-on-one-actions"
 import { OneOnOneForm } from "@/components/one-on-ones/one-on-one-form";
 import { OneOnOneDetail } from "@/components/one-on-ones/one-on-one-detail";
 import { ErrorState, EmptyState } from "@/components/shared";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/tbo-ui/button";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/tbo-ui/tabs";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/tbo-ui/select";
 import {
   computeOneOnOneKPIs,
   type OneOnOneRow,
@@ -132,7 +132,7 @@ export default function Reunioes1on1Page() {
 
     return (
       <div
-        className={`flex cursor-pointer items-center gap-4 rounded-lg border p-4 transition-colors hover:bg-muted/50 ${
+        className={`flex cursor-pointer items-center gap-4 rounded-lg border p-4 transition-colors hover:bg-gray-100/50 ${
           overdueItem ? "border-red-200 bg-red-50/50 dark:border-red-900/40 dark:bg-red-950/20" : ""
         }`}
         onClick={() => handleOpenDetail(item)}
@@ -150,7 +150,7 @@ export default function Reunioes1on1Page() {
               {badgeProps.label}
             </Badge>
           </div>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="flex items-center gap-3 text-xs text-gray-500">
             <span className="flex items-center gap-1">
               <CalendarDays className="h-3 w-3" />
               {formatDateTime(item.scheduled_at)}
@@ -184,7 +184,7 @@ export default function Reunioes1on1Page() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Reuniões 1:1</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500">
             Acompanhamento de reuniões individuais.
           </p>
         </div>
@@ -237,13 +237,13 @@ export default function Reunioes1on1Page() {
             {upcoming!.slice(0, 5).map((item) => (
               <div
                 key={item.id}
-                className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm hover:bg-muted/50"
+                className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm hover:bg-gray-100/50"
                 onClick={() => handleOpenDetail(item)}
               >
                 <span>
                   {getName(item.leader_id)} ↔ {getName(item.collaborator_id)}
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-gray-500">
                   {relativeLabel(item.scheduled_at)}
                 </span>
               </div>
@@ -297,7 +297,7 @@ export default function Reunioes1on1Page() {
           ) : isLoading ? (
             <div className="space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-16 animate-pulse rounded-lg border bg-muted/40" />
+                <div key={i} className="h-16 animate-pulse rounded-lg border bg-gray-100/40" />
               ))}
             </div>
           ) : scheduled.length === 0 ? (
@@ -320,7 +320,7 @@ export default function Reunioes1on1Page() {
           {isLoading ? (
             <div className="space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-16 animate-pulse rounded-lg border bg-muted/40" />
+                <div key={i} className="h-16 animate-pulse rounded-lg border bg-gray-100/40" />
               ))}
             </div>
           ) : history.length === 0 ? (

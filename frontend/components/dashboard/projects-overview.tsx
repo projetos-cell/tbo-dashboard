@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
 import { PROJECT_STATUS, BU_COLORS } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 
@@ -17,13 +17,13 @@ export function ProjectsOverview({ projects }: { projects: ProjectRow[] }) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-base font-semibold">Projetos Ativos</CardTitle>
-        <Link href="/projetos" className="text-sm text-muted-foreground hover:underline">
+        <Link href="/projetos" className="text-sm text-gray-500 hover:underline">
           Ver todos
         </Link>
       </CardHeader>
       <CardContent>
         {active.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
+          <p className="py-8 text-center text-sm text-gray-500">
             Nenhum projeto ativo
           </p>
         ) : (
@@ -41,7 +41,7 @@ export function ProjectsOverview({ projects }: { projects: ProjectRow[] }) {
                 <Link
                   key={project.id}
                   href={`/projetos/${project.id}`}
-                  className="rounded-lg border p-3 transition-colors hover:bg-muted/50"
+                  className="rounded-lg border p-3 transition-colors hover:bg-gray-100/50"
                 >
                   <p className="font-medium leading-tight">{project.name}</p>
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -76,7 +76,7 @@ export function ProjectsOverview({ projects }: { projects: ProjectRow[] }) {
                     })}
                   </div>
                   {project.construtora && (
-                    <p className="mt-1.5 text-xs text-muted-foreground">
+                    <p className="mt-1.5 text-xs text-gray-500">
                       {project.construtora}
                     </p>
                   )}

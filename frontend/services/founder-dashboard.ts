@@ -31,7 +31,7 @@ export interface ClientMargin {
 }
 
 export interface FounderAlert {
-  type: "margem" | "runway" | "concentracao" | "atraso" | "despesas";
+  type: "margem" | "runway" | "concentracao" | "atraso" | "despesas" | "contrato";
   message: string;
   value: number;
   threshold: number;
@@ -46,6 +46,7 @@ export interface ForecastMonth {
   month: string; // "2026-01", "2026-02", etc.
   label: string; // "Jan", "Fev", etc.
   value: number;
+  proposals?: number; // #10 — open proposals (pending/sent) value
 }
 
 export interface MonthlyTrendPoint {
@@ -110,6 +111,41 @@ export interface FounderDashboardSnapshot {
 
   // Period context
   periodLabel: string; // "MTD" | "Ultimos 90 dias"
+
+  // #7 — Receita por colaborador
+  receitaPorColaborador: number;
+  headcount: number;
+
+  // #8 — Contratos expirando ≤60d
+  expiringContracts: ExpiringContract[];
+
+  // #10 — Propostas no forecast
+  forecastProposalsTotal: number;
+
+  // #15 — Split de custos
+  folhaPagamento: number;
+  custosOperacionais: number;
+  folhaPct: number;
+  operacionalPct: number;
+
+  // #18 — Churn rate
+  churnRate: number;
+  churnHistory: ChurnPoint[];
+}
+
+export interface ExpiringContract {
+  id: string;
+  title: string;
+  client: string;
+  endDate: string;
+  daysRemaining: number;
+  monthlyValue: number;
+}
+
+export interface ChurnPoint {
+  month: string; // "2026-01"
+  label: string; // "Jan"
+  rate: number;  // percentage
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -200,12 +236,19 @@ export async function getFounderDashboardSnapshot(
   // finance_transactions is the authoritative table synced from Omie (600+ records).
   // Legacy tables (fin_receivables, fin_payables) are empty and no longer used.
 
+  // Date helpers for queries
+  const in60Str = isoDate(new Date(now.getTime() + 60 * 86_400_000));
+  const in90StrQ = isoDate(new Date(now.getTime() + 90 * 86_400_000));
+
   const [
     paidTxRes,      // 1. All paid transactions (receita + despesa)
     pendingTxRes,   // 2. All pending transactions (receita + despesa)
     costCentersRes, // 3. Cost centers name lookup
     projectsRes,    // 4. Projects name lookup
     bankAccountsRes,// 5. Bank accounts (real balance synced from Omie)
+    profilesRes,    // 6. Active headcount (#7)
+    contractsRes,   // 7. Contracts expiring ≤60d (#8)
+    dealsRes,       // 8. Open proposals ≤90d (#10)
   ] = await Promise.all([
     // 1. Paid transactions — all-time, filtered client-side for period/trends
     supabase
@@ -241,6 +284,31 @@ export async function getFounderDashboardSnapshot(
       .select("balance")
       .eq("tenant_id", tenantId)
       .eq("is_active", true),
+
+    // 6. Active headcount for receita por colaborador (#7)
+    supabase
+      .from("profiles" as never)
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .eq("is_active", true),
+
+    // 7. Contracts expiring within 60 days (#8)
+    supabase
+      .from("contracts" as never)
+      .select("id, title, person_name, end_date, monthly_value")
+      .eq("tenant_id", tenantId)
+      .eq("status", "active")
+      .gte("end_date", today)
+      .lte("end_date", in60Str),
+
+    // 8. Open proposals for forecast overlay (#10)
+    supabase
+      .from("crm_deals" as never)
+      .select("id, name, company, value, probability, expected_close, stage")
+      .eq("tenant_id", tenantId)
+      .not("stage", "in", "(fechado_ganho,fechado_perdido)")
+      .gte("expected_close", today)
+      .lte("expected_close", in90StrQ),
   ]);
 
   // ── Unpack and split by type ─────────────────────────────────────────────────
@@ -266,6 +334,42 @@ export async function getFounderDashboardSnapshot(
   );
   const costCenters = (costCentersRes.data ?? []) as Array<{ id: string; name: string }>;
   const ccLookup = new Map<string, string>(costCenters.map((c) => [c.id, c.name]));
+
+  // ── #7 — Headcount ──────────────────────────────────────────────────────────
+  const headcount = profilesRes.count ?? 0;
+
+  // ── #8 — Contratos expirando ≤60d ──────────────────────────────────────────
+  const rawContracts = (contractsRes.data ?? []) as Array<{
+    id: string;
+    title: string;
+    person_name: string | null;
+    end_date: string;
+    monthly_value: number | null;
+  }>;
+  const expiringContracts: ExpiringContract[] = rawContracts
+    .map((c) => ({
+      id: c.id,
+      title: c.title || "Sem título",
+      client: c.person_name || "Sem cliente",
+      endDate: c.end_date,
+      daysRemaining: Math.max(
+        0,
+        Math.floor((new Date(c.end_date).getTime() - now.getTime()) / 86_400_000)
+      ),
+      monthlyValue: c.monthly_value ?? 0,
+    }))
+    .sort((a, b) => a.daysRemaining - b.daysRemaining);
+
+  // ── #10 — Propostas abertas (deals) ────────────────────────────────────────
+  const rawDeals = (dealsRes.data ?? []) as Array<{
+    id: string;
+    name: string;
+    company: string | null;
+    value: number | null;
+    probability: number | null;
+    expected_close: string | null;
+    stage: string | null;
+  }>;
 
   // ── Date boundaries ─────────────────────────────────────────────────────────
 
@@ -478,6 +582,22 @@ export async function getFounderDashboardSnapshot(
 
   const forecastTotal = ar90.reduce((s, r) => s + (r.amount ?? 0), 0);
 
+  // ── #10 — Overlay de propostas no forecast ─────────────────────────────────
+  const proposalByMonth = new Map<string, number>();
+  for (const d of rawDeals) {
+    if (!d.expected_close || !d.value) continue;
+    const mk = d.expected_close.slice(0, 7);
+    const weighted = d.value * ((d.probability ?? 50) / 100);
+    proposalByMonth.set(mk, (proposalByMonth.get(mk) || 0) + weighted);
+  }
+  for (const fm of forecastMonths) {
+    fm.proposals = proposalByMonth.get(fm.month) || 0;
+  }
+  const forecastProposalsTotal = rawDeals.reduce(
+    (s, d) => s + (d.value ?? 0) * ((d.probability ?? 50) / 100),
+    0
+  );
+
   // ── Alerts (Founder Radar) ──────────────────────────────────────────────────
 
   const alerts: FounderAlert[] = [];
@@ -582,6 +702,18 @@ export async function getFounderDashboardSnapshot(
         message: "Despesas superando receita nos ultimos 2 meses",
         value: trendMonths.length,
         threshold: 2,
+      });
+    }
+  }
+
+  // 6. Contratos expirando em ≤30 dias (#8)
+  for (const c of expiringContracts) {
+    if (c.daysRemaining <= 30) {
+      alerts.push({
+        type: "contrato",
+        message: `Contrato "${c.title}" expira em ${c.daysRemaining} dias (${c.client})`,
+        value: c.monthlyValue,
+        threshold: 30,
       });
     }
   }
@@ -723,6 +855,55 @@ export async function getFounderDashboardSnapshot(
     .sort((a, b) => b.receita - a.receita)
     .slice(0, 10);
 
+  // ── #7 — Receita por colaborador ────────────────────────────────────────────
+  const receitaPorColaborador = headcount > 0 ? receitaRealizada / headcount : 0;
+
+  // ── #15 — Split de custos: Folha vs Operacional ────────────────────────────
+  const FOLHA_KEYWORDS = ["folha", "salário", "salario", "benefício", "beneficio", "encargo", "clt", "pj", "prolabore", "pró-labore", "inss", "fgts", "férias", "ferias", "13"];
+  let folhaPagamento = 0;
+  let custosOperacionais = 0;
+  for (const r of periodPayables) {
+    const val = paidVal(r);
+    const ccName = (r.cost_center_id ? ccLookup.get(r.cost_center_id) || "" : "").toLowerCase();
+    const isFolha = FOLHA_KEYWORDS.some((kw) => ccName.includes(kw));
+    if (isFolha) {
+      folhaPagamento += val;
+    } else {
+      custosOperacionais += val;
+    }
+  }
+  const totalCustos = folhaPagamento + custosOperacionais;
+  const folhaPct = totalCustos > 0 ? (folhaPagamento / totalCustos) * 100 : 0;
+  const operacionalPct = totalCustos > 0 ? (custosOperacionais / totalCustos) * 100 : 0;
+
+  // ── #18 — Churn rate (últimos 6 meses) ─────────────────────────────────────
+  // For each month in monthlyTrend, compute unique client sets from paid
+  // receivables. Churn = clients in prev month NOT in current / prev total.
+  const monthClientSets = new Map<string, Set<string>>();
+  for (const r of paidReceivables) {
+    if (!r.counterpart || !r.paid_date) continue;
+    const mk = r.paid_date.slice(0, 7);
+    if (!monthClientSets.has(mk)) monthClientSets.set(mk, new Set());
+    monthClientSets.get(mk)!.add(r.counterpart);
+  }
+
+  const churnHistory: ChurnPoint[] = [];
+  for (let i = 1; i < monthlyTrend.length; i++) {
+    const prevMk = monthlyTrend[i - 1].month;
+    const curMk = monthlyTrend[i].month;
+    const prevClients = monthClientSets.get(prevMk) ?? new Set<string>();
+    const curClients = monthClientSets.get(curMk) ?? new Set<string>();
+    let lost = 0;
+    for (const c of prevClients) {
+      if (!curClients.has(c)) lost++;
+    }
+    const rate = prevClients.size > 0 ? (lost / prevClients.size) * 100 : 0;
+    churnHistory.push({ month: curMk, label: monthlyTrend[i].label, rate });
+  }
+  const churnRate = churnHistory.length > 0
+    ? churnHistory[churnHistory.length - 1].rate
+    : 0;
+
   return {
     receitaRealizada,
     margemReal,
@@ -754,5 +935,20 @@ export async function getFounderDashboardSnapshot(
     inadimplenciaPct,
     inadimplenciaCount,
     clientMargins,
+    // #7
+    receitaPorColaborador,
+    headcount,
+    // #8
+    expiringContracts,
+    // #10
+    forecastProposalsTotal,
+    // #15
+    folhaPagamento,
+    custosOperacionais,
+    folhaPct,
+    operacionalPct,
+    // #18
+    churnRate,
+    churnHistory,
   };
 }

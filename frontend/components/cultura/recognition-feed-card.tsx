@@ -1,15 +1,15 @@
-"use client";
+﻿"use client";
 
 import { Heart, ThumbsUp, Trash2, MoreHorizontal } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/tbo-ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/tbo-ui/dropdown-menu";
 import { RECOGNITION_SOURCES } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 
@@ -46,7 +46,7 @@ export function RecognitionFeedCard({
             {/* Header: from → to */}
             <div className="flex items-center gap-1 text-sm flex-wrap">
               <span className="font-medium">{fromName || recognition.from_user}</span>
-              <span className="text-muted-foreground">reconheceu</span>
+              <span className="text-gray-500">reconheceu</span>
               <span className="font-medium">{toName || recognition.to_user}</span>
             </div>
 
@@ -71,17 +71,17 @@ export function RecognitionFeedCard({
 
             {/* Message */}
             {recognition.message && (
-              <p className="text-sm text-muted-foreground line-clamp-3">
+              <p className="text-sm text-gray-500 line-clamp-3">
                 &ldquo;{recognition.message}&rdquo;
               </p>
             )}
 
             {/* Footer */}
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-3 text-xs text-gray-500">
               <span>{timeAgo}</span>
               <button
                 onClick={() => onLike?.(recognition.id)}
-                className="flex items-center gap-1 hover:text-primary transition-colors"
+                className="flex items-center gap-1 hover:text-tbo-orange transition-colors"
               >
                 <ThumbsUp className="size-3" />
                 {recognition.likes ?? 0}
@@ -98,7 +98,7 @@ export function RecognitionFeedCard({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
-                  className="text-destructive"
+                  className="text-red-500"
                   onClick={() => onDelete?.(recognition.id)}
                 >
                   <Trash2 className="size-3.5 mr-1.5" />

@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Trash2, Plus, Link2 } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/tbo-ui/checkbox";
+import { Button } from "@/components/tbo-ui/button";
+import { Input } from "@/components/tbo-ui/input";
 import { useOneOnOneActions, useCreateAction, useToggleAction, useDeleteAction } from "@/hooks/use-one-on-ones";
 import { useAuthStore } from "@/stores/auth-store";
 import { formatDate } from "@/lib/one-on-one-utils";
@@ -24,14 +24,14 @@ export function PendingActionsList({ actions, isLoading, getName, onToggle }: Pe
     return (
       <div className="space-y-2">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-10 animate-pulse rounded border bg-muted/40" />
+          <div key={i} className="h-10 animate-pulse rounded border bg-gray-100/40" />
         ))}
       </div>
     );
   }
 
   if (!actions.length) {
-    return <p className="py-4 text-center text-sm text-muted-foreground">Nenhuma ação pendente</p>;
+    return <p className="py-4 text-center text-sm text-gray-500">Nenhuma ação pendente</p>;
   }
 
   return (
@@ -46,10 +46,10 @@ export function PendingActionsList({ actions, isLoading, getName, onToggle }: Pe
             />
             <span className="flex-1 text-sm">{a.text}</span>
             {a.assignee_id && (
-              <span className="text-xs text-muted-foreground">{getName(a.assignee_id)}</span>
+              <span className="text-xs text-gray-500">{getName(a.assignee_id)}</span>
             )}
             {a.due_date && (
-              <span className={`text-xs ${overdue ? "font-medium text-red-600" : "text-muted-foreground"}`}>
+              <span className={`text-xs ${overdue ? "font-medium text-red-600" : "text-gray-500"}`}>
                 {formatDate(a.due_date)}
               </span>
             )}
@@ -95,7 +95,7 @@ export function OneOnOneActions({ oneOnOneId, mode = "full" }: OneOnOneActionsPr
     return (
       <div className="space-y-2">
         {Array.from({ length: 2 }).map((_, i) => (
-          <div key={i} className="h-8 animate-pulse rounded bg-muted/40" />
+          <div key={i} className="h-8 animate-pulse rounded bg-gray-100/40" />
         ))}
       </div>
     );
@@ -116,14 +116,14 @@ export function OneOnOneActions({ oneOnOneId, mode = "full" }: OneOnOneActionsPr
       </div>
 
       {items.length === 0 && mode === "readonly" && (
-        <p className="text-sm text-muted-foreground">Nenhuma ação registrada</p>
+        <p className="text-sm text-gray-500">Nenhuma ação registrada</p>
       )}
 
       <div className="space-y-1">
         {items.map((a) => {
           const overdue = !a.completed && a.due_date && new Date(a.due_date) < new Date();
           return (
-            <div key={a.id} className="group flex items-center gap-2 rounded px-1 py-1 hover:bg-muted/50">
+            <div key={a.id} className="group flex items-center gap-2 rounded px-1 py-1 hover:bg-gray-100/50">
               <Checkbox
                 checked={!!a.completed}
                 disabled={mode === "readonly"}
@@ -131,19 +131,19 @@ export function OneOnOneActions({ oneOnOneId, mode = "full" }: OneOnOneActionsPr
                   toggleMutation.mutate({ actionId: a.id, completed: !!checked, oneOnOneId })
                 }
               />
-              <span className={`flex-1 text-sm ${a.completed ? "text-muted-foreground line-through" : ""}`}>
+              <span className={`flex-1 text-sm ${a.completed ? "text-gray-500 line-through" : ""}`}>
                 {a.text}
               </span>
               {a.pdi_link_id && (
                 <span title="Vinculado ao PDI"><Link2 className="h-3 w-3 text-blue-500" /></span>
               )}
               {a.category && (
-                <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500">
                   {a.category}
                 </span>
               )}
               {a.due_date && (
-                <span className={`text-xs ${overdue ? "font-medium text-red-600" : "text-muted-foreground"}`}>
+                <span className={`text-xs ${overdue ? "font-medium text-red-600" : "text-gray-500"}`}>
                   {formatDate(a.due_date)}
                 </span>
               )}
@@ -154,7 +154,7 @@ export function OneOnOneActions({ oneOnOneId, mode = "full" }: OneOnOneActionsPr
                   className="h-6 w-6 opacity-0 group-hover:opacity-100"
                   onClick={() => deleteMutation.mutate({ actionId: a.id, oneOnOneId })}
                 >
-                  <Trash2 className="h-3 w-3 text-destructive" />
+                  <Trash2 className="h-3 w-3 text-red-500" />
                 </Button>
               )}
             </div>

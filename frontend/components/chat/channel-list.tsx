@@ -69,7 +69,7 @@ export function ChannelList({
       {/* Direct Messages */}
       {directChannels.length > 0 && (
         <div>
-          <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 px-2">
+          <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1 px-2">
             Mensagens Diretas
           </h4>
           <ChannelSection
@@ -87,7 +87,7 @@ export function ChannelList({
       {/* Groups */}
       {groupChannels.length > 0 && (
         <div>
-          <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 px-2">
+          <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1 px-2">
             Grupos
           </h4>
           <ChannelSection
@@ -148,9 +148,9 @@ function ChannelSection({
             className={cn(
               "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
               isSelected
-                ? "bg-accent text-accent-foreground font-medium"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
-              unread > 0 && !isSelected && "font-semibold text-foreground",
+                ? "bg-gray-100 text-gray-900 font-medium"
+                : "text-gray-500 hover:bg-gray-100 hover:text-gray-900",
+              unread > 0 && !isSelected && "font-semibold text-gray-900",
             )}
           >
             {otherUserId ? (
@@ -167,7 +167,7 @@ function ChannelSection({
             )}
             <span className="truncate flex-1 text-left">{displayName}</span>
             {unread > 0 && !isSelected && (
-              <span className="ml-auto shrink-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1.5">
+              <span className="ml-auto shrink-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1.5">
                 {unread > 99 ? "99+" : unread}
               </span>
             )}

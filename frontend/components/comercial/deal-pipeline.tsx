@@ -95,8 +95,8 @@ function DroppableStageColumn({
       ref={setNodeRef}
       className={`space-y-2 min-h-[60px] rounded-lg p-2 transition-colors duration-200 ${
         isOver
-          ? "bg-primary/10 ring-2 ring-primary/30 ring-inset"
-          : "bg-muted/20"
+          ? "bg-tbo-orange/10 ring-2 ring-tbo-orange/30 ring-inset"
+          : "bg-gray-100/20"
       }`}
     >
       {children}
@@ -258,12 +258,12 @@ export function DealPipeline({
       <div className="flex gap-4 overflow-x-auto pb-4">
         {orderedStages.map((stage) => (
           <div key={stage} className="min-w-[260px] flex-1">
-            <div className="h-8 w-28 animate-pulse rounded bg-muted mb-3" />
+            <div className="h-8 w-28 animate-pulse rounded bg-gray-100 mb-3" />
             <div className="space-y-2">
               {Array.from({ length: 2 }).map((_, i) => (
                 <div
                   key={i}
-                  className="h-24 animate-pulse rounded-lg border bg-muted/40"
+                  className="h-24 animate-pulse rounded-lg border bg-gray-100/40"
                 />
               ))}
             </div>
@@ -276,9 +276,9 @@ export function DealPipeline({
   if (deals.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
-        <Briefcase className="mb-3 h-10 w-10 text-muted-foreground/50" />
+        <Briefcase className="mb-3 h-10 w-10 text-gray-500/50" />
         <p className="text-sm font-medium">Nenhum deal encontrado</p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-gray-500">
           Ajuste os filtros ou adicione novos deals ao pipeline.
         </p>
       </div>
@@ -313,12 +313,12 @@ export function DealPipeline({
                     style={{ backgroundColor: cfg.color }}
                   />
                   <span className="text-sm font-medium">{cfg.label}</span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-gray-500">
                     ({stageDeals.length})
                   </span>
                 </div>
                 {stageTotal > 0 && (
-                  <span className="text-xs font-medium text-muted-foreground">
+                  <span className="text-xs font-medium text-gray-500">
                     {formatCurrency(stageTotal)}
                   </span>
                 )}
@@ -326,7 +326,7 @@ export function DealPipeline({
 
               <DroppableStageColumn stage={stage} isOver={isOver}>
                 {stageDeals.length === 0 ? (
-                  <p className="py-6 text-center text-xs text-muted-foreground">
+                  <p className="py-6 text-center text-xs text-gray-500">
                     {isOver ? "Soltar aqui" : "Nenhum deal"}
                   </p>
                 ) : (

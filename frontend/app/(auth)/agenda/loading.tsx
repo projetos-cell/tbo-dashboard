@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton";
+﻿import { Skeleton } from "@/components/tbo-ui/skeleton";
 
 export default function AgendaLoading() {
   return (
@@ -25,7 +25,7 @@ export default function AgendaLoading() {
       {/* Calendar grid */}
       <div className="overflow-hidden rounded-lg border">
         {/* Weekday header */}
-        <div className="grid grid-cols-7 border-b bg-muted/40 p-2">
+        <div className="grid grid-cols-7 border-b bg-gray-100/40 p-2">
           {Array.from({ length: 7 }).map((_, i) => (
             <Skeleton key={i} className="mx-auto h-4 w-8" />
           ))}

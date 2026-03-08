@@ -1,13 +1,13 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Send, MoreHorizontal, Pencil, Trash2, Reply } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/tbo-ui/avatar";
+import { Button } from "@/components/tbo-ui/button";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
+import { Textarea } from "@/components/tbo-ui/textarea";
 import {
   useComments,
   useCreateComment,
@@ -86,7 +86,7 @@ export function CommentThread({ taskId, className }: CommentThreadProps) {
       />
 
       {topLevel.length === 0 && (
-        <p className="text-sm text-muted-foreground text-center py-4">
+        <p className="text-sm text-gray-500 text-center py-4">
           Nenhum comentario ainda
         </p>
       )}
@@ -234,7 +234,7 @@ function CommentItem({
           <span className="text-sm font-medium">
             {comment.author?.full_name || "Anonimo"}
           </span>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-gray-500">
             {formatDistanceToNow(new Date(comment.created_at!), {
               addSuffix: true,
               locale: ptBR,
@@ -253,9 +253,9 @@ function CommentItem({
                 <MoreHorizontal className="size-3.5" />
               </Button>
               {showMenu && (
-                <div className="absolute right-0 top-full mt-1 bg-popover border rounded-md shadow-md z-10 py-1 min-w-[120px]">
+                <div className="absolute right-0 top-full mt-1 bg-white border rounded-md shadow-md z-10 py-1 min-w-[120px]">
                   <button
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm w-full hover:bg-accent"
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm w-full hover:bg-gray-100"
                     onClick={() => {
                       setIsEditing(true);
                       setShowMenu(false);
@@ -265,7 +265,7 @@ function CommentItem({
                     Editar
                   </button>
                   <button
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm w-full hover:bg-accent text-destructive"
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm w-full hover:bg-gray-100 text-red-500"
                     onClick={() => {
                       handleDelete();
                       setShowMenu(false);
@@ -308,14 +308,14 @@ function CommentItem({
             </div>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground mt-0.5 whitespace-pre-wrap">
+          <p className="text-sm text-gray-500 mt-0.5 whitespace-pre-wrap">
             {comment.content}
           </p>
         )}
 
         {!isEditing && (
           <button
-            className="text-xs text-muted-foreground hover:text-foreground mt-1 flex items-center gap-1"
+            className="text-xs text-gray-500 hover:text-gray-900 mt-1 flex items-center gap-1"
             onClick={() => setShowReply(!showReply)}
           >
             <Reply className="size-3" />
@@ -348,7 +348,7 @@ function CommentItem({
 
         {/* Replies */}
         {replies.length > 0 && (
-          <div className="mt-3 space-y-3 pl-2 border-l-2 border-border">
+          <div className="mt-3 space-y-3 pl-2 border-l-2 border-gray-200">
             {replies.map((reply) => (
               <CommentItem
                 key={reply.id}

@@ -54,7 +54,7 @@ function CustomTooltip({
   const margPct = rec > 0 ? (marg / rec) * 100 : 0;
 
   return (
-    <div className="rounded-lg border bg-background px-3 py-2 shadow-md text-xs">
+    <div className="rounded-lg border bg-white px-3 py-2 shadow-md text-xs">
       <p className="font-semibold mb-1">{label}</p>
       <p className="text-emerald-500">Receita: {fmtBRLFull(rec)}</p>
       <p className="text-rose-500">Despesa: {fmtBRLFull(desp)}</p>
@@ -74,7 +74,7 @@ interface Props {
 export function MonthlyTrendChart({ data }: Props) {
   if (!data.length) {
     return (
-      <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
+      <div className="flex h-48 items-center justify-center text-sm text-gray-500">
         Sem dados de tendência disponíveis.
       </div>
     );

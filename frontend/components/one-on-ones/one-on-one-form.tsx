@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import {
@@ -7,19 +7,19 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+} from "@/components/tbo-ui/dialog";
+import { Button } from "@/components/tbo-ui/button";
+import { Input } from "@/components/tbo-ui/input";
+import { Textarea } from "@/components/tbo-ui/textarea";
+import { Label } from "@/components/tbo-ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { UserSelector, type UserOption } from "@/components/ui/user-selector";
+} from "@/components/tbo-ui/select";
+import { UserSelector, type UserOption } from "@/components/tbo-ui/user-selector";
 import { useCreateOneOnOne, useUpdateOneOnOne } from "@/hooks/use-one-on-ones";
 import { useProfiles } from "@/hooks/use-people";
 import { useAuthStore } from "@/stores/auth-store";
@@ -153,7 +153,7 @@ export function OneOnOneForm({ open, onOpenChange, initialData }: OneOnOneFormPr
               placeholder="Selecione o colaborador"
             />
             {leaderId && collaboratorId && leaderId === collaboratorId && (
-              <p className="text-xs text-destructive">Líder e colaborador devem ser diferentes</p>
+              <p className="text-xs text-red-500">Líder e colaborador devem ser diferentes</p>
             )}
           </div>
 

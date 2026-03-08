@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { format } from "date-fns";
@@ -16,16 +16,16 @@ import {
   MessageSquare,
   History,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/tbo-ui/button";
+import { Separator } from "@/components/tbo-ui/separator";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetDescription,
-} from "@/components/ui/sheet";
+} from "@/components/tbo-ui/sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,8 +34,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { InlineEditable } from "@/components/ui/inline-editable";
+} from "@/components/tbo-ui/dropdown-menu";
+import { InlineEditable } from "@/components/tbo-ui/inline-editable";
 import { DemandCommentThread } from "@/components/demands/demand-comment-thread";
 import { ActivityFeed } from "@/components/shared/activity-feed";
 import {
@@ -245,7 +245,7 @@ export function DemandDetail({
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
+                  className="text-red-500 focus:text-red-500"
                   onClick={() => setConfirmDelete(true)}
                 >
                   <Trash2 className="size-3.5 mr-2" />
@@ -264,11 +264,11 @@ export function DemandDetail({
           <div className="flex-1 px-6 py-4 space-y-5 border-r min-w-0">
             {/* Info / Description */}
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">
+              <p className="text-xs font-medium text-gray-500">
                 Informacoes
               </p>
               <textarea
-                className="w-full min-h-[100px] text-sm bg-transparent border rounded-md p-2 resize-y focus:outline-none focus:ring-1 focus:ring-ring"
+                className="w-full min-h-[100px] text-sm bg-transparent border rounded-md p-2 resize-y focus:outline-none focus:ring-1 focus:ring-tbo-orange"
                 defaultValue={demand.info || ""}
                 placeholder="Adicionar informacoes..."
                 onBlur={handleInfoBlur}
@@ -316,7 +316,7 @@ export function DemandDetail({
           <div className="w-[220px] shrink-0 px-4 py-4 space-y-4 text-sm">
             {/* Status */}
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">
+              <p className="text-xs font-medium text-gray-500">
                 Status
               </p>
               <div className="flex flex-wrap gap-1">
@@ -342,7 +342,7 @@ export function DemandDetail({
 
             {/* Priority */}
             <div className="space-y-1.5">
-              <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
                 <Flag className="h-3 w-3" /> Prioridade
               </p>
               <div className="flex flex-wrap gap-1">
@@ -370,12 +370,12 @@ export function DemandDetail({
 
             {/* Responsible */}
             <div className="space-y-1.5">
-              <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
                 <User className="h-3 w-3" /> Responsavel
               </p>
               <input
                 type="text"
-                className="w-full text-xs border rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-ring"
+                className="w-full text-xs border rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-tbo-orange"
                 defaultValue={demand.responsible || ""}
                 placeholder="Nome do responsavel..."
                 onBlur={handleResponsibleBlur}
@@ -384,7 +384,7 @@ export function DemandDetail({
 
             {/* BUs */}
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">
+              <p className="text-xs font-medium text-gray-500">
                 Unidades de Negocio
               </p>
               <div className="flex flex-wrap gap-1">
@@ -414,7 +414,7 @@ export function DemandDetail({
 
             {/* Dates */}
             <div className="space-y-1.5">
-              <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
                 <Calendar className="h-3 w-3" /> Inicio
               </p>
               <input
@@ -428,7 +428,7 @@ export function DemandDetail({
             </div>
 
             <div className="space-y-1.5">
-              <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
                 <Calendar className="h-3 w-3" /> Prazo
               </p>
               <input
@@ -444,7 +444,7 @@ export function DemandDetail({
             </div>
 
             <div className="space-y-1.5">
-              <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
                 <Calendar className="h-3 w-3" /> Fim previsto
               </p>
               <input
@@ -459,7 +459,7 @@ export function DemandDetail({
 
             {/* Tags */}
             <div className="space-y-1.5">
-              <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
                 <Tag className="h-3 w-3" /> Tags
               </p>
               <div className="flex flex-wrap gap-1">
@@ -472,7 +472,7 @@ export function DemandDetail({
                     {tag}
                     <button
                       onClick={() => handleRemoveTag(tag)}
-                      className="ml-0.5 hover:text-destructive"
+                      className="ml-0.5 hover:text-red-500"
                     >
                       <X className="size-2.5" />
                     </button>
@@ -494,7 +494,7 @@ export function DemandDetail({
                   />
                   {newTag.trim() && (
                     <button onClick={() => handleAddTag(newTag)}>
-                      <Plus className="size-3 text-muted-foreground hover:text-foreground" />
+                      <Plus className="size-3 text-gray-500 hover:text-gray-900" />
                     </button>
                   )}
                 </div>
@@ -503,7 +503,7 @@ export function DemandDetail({
 
             {/* Tipo de Midia */}
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">
+              <p className="text-xs font-medium text-gray-500">
                 Tipo de Midia
               </p>
               <div className="flex flex-wrap gap-1">
@@ -516,7 +516,7 @@ export function DemandDetail({
                     {tipo}
                     <button
                       onClick={() => handleRemoveTipoMidia(tipo)}
-                      className="ml-0.5 hover:text-destructive"
+                      className="ml-0.5 hover:text-red-500"
                     >
                       <X className="size-2.5" />
                     </button>
@@ -538,7 +538,7 @@ export function DemandDetail({
                   />
                   {newTipoMidia.trim() && (
                     <button onClick={() => handleAddTipoMidia(newTipoMidia)}>
-                      <Plus className="size-3 text-muted-foreground hover:text-foreground" />
+                      <Plus className="size-3 text-gray-500 hover:text-gray-900" />
                     </button>
                   )}
                 </div>
@@ -549,7 +549,7 @@ export function DemandDetail({
 
             {/* Inline text fields */}
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">
+              <p className="text-xs font-medium text-gray-500">
                 Formalizacao
               </p>
               <InlineEditable
@@ -561,7 +561,7 @@ export function DemandDetail({
             </div>
 
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">
+              <p className="text-xs font-medium text-gray-500">
                 Item Principal
               </p>
               <InlineEditable
@@ -573,7 +573,7 @@ export function DemandDetail({
             </div>
 
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">
+              <p className="text-xs font-medium text-gray-500">
                 Subitem
               </p>
               <InlineEditable
@@ -585,7 +585,7 @@ export function DemandDetail({
             </div>
 
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">
+              <p className="text-xs font-medium text-gray-500">
                 Milestones
               </p>
               <InlineEditable
@@ -617,7 +617,7 @@ export function DemandDetail({
             )}
 
             {/* Timestamps */}
-            <div className="text-[11px] text-muted-foreground space-y-0.5">
+            <div className="text-[11px] text-gray-500 space-y-0.5">
               {demand.created_at && (
                 <p>
                   Criada{" "}
@@ -665,7 +665,7 @@ export function DemandDetail({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-7 text-xs text-destructive hover:text-destructive"
+                  className="h-7 text-xs text-red-500 hover:text-red-500"
                   onClick={() => setConfirmDelete(true)}
                 >
                   <Trash2 className="size-3 mr-1" />

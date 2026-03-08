@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import {
@@ -6,12 +6,12 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
+} from "@/components/tbo-ui/sheet";
+import { Button } from "@/components/tbo-ui/button";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Input } from "@/components/tbo-ui/input";
+import { Separator } from "@/components/tbo-ui/separator";
+import { Progress } from "@/components/tbo-ui/progress";
 import { ConfirmDialog } from "@/components/shared";
 import { PdiActionsInline } from "./pdi-actions-inline";
 import { PdiGoalForm } from "./pdi-goal-form";
@@ -130,7 +130,7 @@ export function PdiDetail({ pdi, open, onOpenChange, onEdit }: PdiDetailProps) {
           {/* Header */}
           <SheetHeader className="space-y-1">
             <SheetTitle className="text-lg">{pdi.title || "PDI sem título"}</SheetTitle>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 text-sm text-gray-500">
               <User className="h-4 w-4" />
               {profileMap.get(pdi.person_id) ?? "Desconhecido"}
             </div>
@@ -158,14 +158,14 @@ export function PdiDetail({ pdi, open, onOpenChange, onEdit }: PdiDetailProps) {
           {/* Progress */}
           <div className="space-y-1">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Progresso</span>
+              <span className="text-gray-500">Progresso</span>
               <span className="font-medium">{progress}%</span>
             </div>
             <Progress value={progress} className="h-2" />
           </div>
 
           {/* Dates */}
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 text-sm text-gray-500">
             <CalendarDays className="h-4 w-4" />
             Criado em {pdi.created_at ? formatDate(pdi.created_at) : "—"}
             {pdi.last_updated_at && (
@@ -184,7 +184,7 @@ export function PdiDetail({ pdi, open, onOpenChange, onEdit }: PdiDetailProps) {
             {goalsLoading ? (
               <div className="space-y-2">
                 {Array.from({ length: 2 }).map((_, i) => (
-                  <div key={i} className="h-16 animate-pulse rounded-lg border bg-muted/40" />
+                  <div key={i} className="h-16 animate-pulse rounded-lg border bg-gray-100/40" />
                 ))}
               </div>
             ) : (
@@ -203,9 +203,9 @@ export function PdiDetail({ pdi, open, onOpenChange, onEdit }: PdiDetailProps) {
                         onClick={() => toggleGoalExpanded(goal.id)}
                       >
                         {expanded ? (
-                          <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <ChevronDown className="h-4 w-4 shrink-0 text-gray-500" />
                         ) : (
-                          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <ChevronRight className="h-4 w-4 shrink-0 text-gray-500" />
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="truncate text-sm font-medium">{goal.title}</p>
@@ -214,18 +214,18 @@ export function PdiDetail({ pdi, open, onOpenChange, onEdit }: PdiDetailProps) {
                               {goalBadge.label}
                             </Badge>
                             {totalActions > 0 && (
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-xs text-gray-500">
                                 {doneActions}/{totalActions} ações
                               </span>
                             )}
                             {goal.skill_id && (
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-xs text-gray-500">
                                 Skill vinculada
                                 {goal.target_level_percent != null && ` · Meta ${goal.target_level_percent}%`}
                               </span>
                             )}
                             {goal.target_date && (
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-xs text-gray-500">
                                 Meta: {formatDate(goal.target_date)}
                               </span>
                             )}
@@ -235,7 +235,7 @@ export function PdiDetail({ pdi, open, onOpenChange, onEdit }: PdiDetailProps) {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                            className="h-7 w-7 text-gray-500 hover:text-gray-900"
                             onClick={(e) => {
                               e.stopPropagation();
                               setEditGoalData(goal);
@@ -247,7 +247,7 @@ export function PdiDetail({ pdi, open, onOpenChange, onEdit }: PdiDetailProps) {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            className="h-7 w-7 text-gray-500 hover:text-red-500"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeleteGoal(goal.id);
@@ -262,7 +262,7 @@ export function PdiDetail({ pdi, open, onOpenChange, onEdit }: PdiDetailProps) {
                       {expanded && (
                         <div className="border-t px-3 py-3">
                           {goal.description && (
-                            <p className="mb-3 text-sm text-muted-foreground">{goal.description}</p>
+                            <p className="mb-3 text-sm text-gray-500">{goal.description}</p>
                           )}
                           <PdiActionsInline
                             goalId={goal.id}
@@ -329,7 +329,7 @@ export function PdiDetail({ pdi, open, onOpenChange, onEdit }: PdiDetailProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-destructive hover:text-destructive"
+                  className="text-red-500 hover:text-red-500"
                 >
                   <Trash2 className="mr-1 h-3 w-3" /> Excluir
                 </Button>

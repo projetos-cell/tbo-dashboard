@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
 import { useContracts } from "@/hooks/use-contracts";
@@ -10,7 +10,7 @@ import { ContractFormDialog } from "@/components/contratos/contract-form-dialog"
 import { computeContractKPIs } from "@/services/contracts";
 import { RequireRole } from "@/components/auth/require-role";
 import { ErrorState, EmptyState } from "@/components/shared";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/tbo-ui/button";
 import { Plus, FileText } from "lucide-react";
 import type { Database } from "@/lib/supabase/types";
 
@@ -61,7 +61,7 @@ export default function ContratosPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Contratos</h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-gray-500">
               Gerencie contratos, valores e prazos de vencimento.
             </p>
           </div>

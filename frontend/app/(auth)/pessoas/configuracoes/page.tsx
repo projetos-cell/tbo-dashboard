@@ -7,7 +7,7 @@ export default function PessoasConfiguracoes() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Configurações</h1>
-        <p className="text-muted-foreground">Configurações do módulo de pessoas.</p>
+        <p className="text-gray-500">Configurações do módulo de pessoas.</p>
       </div>
 
       {/* Fase 6 — Automation toggle */}

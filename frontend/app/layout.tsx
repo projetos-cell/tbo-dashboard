@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Roboto } from "next/font/google";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { Providers } from "@/components/providers";
-import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 
 const roboto = Roboto({subsets:['latin'],variable:'--font-sans'});
@@ -33,8 +31,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>
-          <TooltipProvider>{children}</TooltipProvider>
-          <Toaster />
+          {children}
         </Providers>
       </body>
     </html>

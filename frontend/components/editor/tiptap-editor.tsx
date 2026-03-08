@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -25,7 +25,7 @@ import {
   Quote,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/tbo-ui/button";
 import { useCallback } from "react";
 
 interface TiptapEditorProps {
@@ -53,7 +53,7 @@ export function TiptapEditor({
       Placeholder.configure({ placeholder }),
       Link.configure({
         openOnClick: false,
-        HTMLAttributes: { class: "text-primary underline cursor-pointer" },
+        HTMLAttributes: { class: "text-tbo-orange underline cursor-pointer" },
       }),
       Image.configure({
         HTMLAttributes: { class: "rounded-md max-w-full" },
@@ -101,12 +101,12 @@ export function TiptapEditor({
   return (
     <div
       className={cn(
-        "border rounded-md bg-background overflow-hidden",
+        "border rounded-md bg-white overflow-hidden",
         className
       )}
     >
       {editable && (
-        <div className="flex flex-wrap items-center gap-0.5 border-b px-2 py-1 bg-muted/30">
+        <div className="flex flex-wrap items-center gap-0.5 border-b px-2 py-1 bg-gray-100/30">
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBold().run()}
             active={editor.isActive("bold")}
@@ -229,7 +229,7 @@ export function TiptapEditor({
         <BubbleMenu
           editor={editor}
           tippyOptions={{ duration: 100 }}
-          className="flex items-center gap-0.5 rounded-md border bg-background p-1 shadow-md"
+          className="flex items-center gap-0.5 rounded-md border bg-white p-1 shadow-md"
         >
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBold().run()}
@@ -282,7 +282,7 @@ function ToolbarButton({
       size="icon"
       className={cn(
         size === "sm" ? "size-6" : "size-7",
-        active && "bg-accent text-accent-foreground"
+        active && "bg-gray-100 text-gray-900"
       )}
       onClick={onClick}
       disabled={disabled}

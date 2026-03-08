@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -9,7 +9,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
+} from "@/components/tbo-ui/command";
 import { NAV_ITEMS } from "@/lib/constants";
 import { useAuthStore } from "@/stores/auth-store";
 

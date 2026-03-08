@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { BarChart3, MessageSquarePlus } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Progress } from "@/components/tbo-ui/progress";
+import { Button } from "@/components/tbo-ui/button";
 import { OKR_STATUS } from "@/lib/constants";
 import type { OkrStatusKey } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
@@ -25,14 +25,14 @@ export function OkrKeyResultRow({ kr, onCheckin }: OkrKeyResultRowProps) {
     OKR_STATUS.on_track;
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border bg-background p-3">
-      <BarChart3 className="h-4 w-4 text-muted-foreground shrink-0" />
+    <div className="flex items-center gap-3 rounded-lg border bg-white p-3">
+      <BarChart3 className="h-4 w-4 text-gray-500 shrink-0" />
 
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium truncate">{kr.title}</p>
         <div className="flex items-center gap-2 mt-1">
           <Progress value={pct} className="h-1.5 flex-1" />
-          <span className="text-xs text-muted-foreground whitespace-nowrap">
+          <span className="text-xs text-gray-500 whitespace-nowrap">
             {current}
             {kr.unit ? ` ${kr.unit}` : ""} / {target}
             {kr.unit ? ` ${kr.unit}` : ""}

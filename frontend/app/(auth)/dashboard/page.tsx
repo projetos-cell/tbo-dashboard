@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useDashboardKPIs, useFounderDashboard } from "@/hooks/use-dashboard";
 import { useAuthStore } from "@/stores/auth-store";
 import { hasMinRole } from "@/lib/permissions";
 import { computeKPIs } from "@/services/dashboard";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import { ErrorState } from "@/components/shared";
 
 import { KPICards } from "@/components/dashboard/kpi-cards";
@@ -51,7 +51,7 @@ function FounderDashboard() {
         <h1 className="text-2xl font-bold tracking-tight">
           Dashboard Executivo
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-gray-500">
           Visao completa do negocio — financeiro, projetos, OKRs e alertas.
         </p>
       </div>
@@ -77,7 +77,7 @@ function GeneralDashboard() {
     <div className="space-y-6 p-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
+        <p className="text-gray-500">
           Visao geral do seu workspace.
         </p>
       </div>

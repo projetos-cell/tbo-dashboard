@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   Columns3,
@@ -10,8 +10,8 @@ import {
   BookOpen,
   Gift,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@/components/tbo-ui/card";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import {
   CULTURA_CATEGORIES,
   type CulturaCategoryKey,
@@ -96,7 +96,7 @@ export function CulturaOverviewStats({
             </div>
             <div>
               <p className="text-2xl font-bold">{stat.count}</p>
-              <p className="text-xs text-muted-foreground">{stat.label}</p>
+              <p className="text-xs text-gray-500">{stat.label}</p>
             </div>
           </CardContent>
         </Card>

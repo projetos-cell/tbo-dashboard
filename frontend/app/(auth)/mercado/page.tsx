@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
 import {
@@ -6,14 +6,14 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/components/tbo-ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/tbo-ui/select";
 import {
   BarChart,
   Bar,
@@ -102,13 +102,13 @@ function KPIBig({
 }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="rounded-lg bg-primary/10 p-2.5">
-        <Icon className="h-5 w-5 text-primary" />
+      <div className="rounded-lg bg-tbo-orange/10 p-2.5">
+        <Icon className="h-5 w-5 text-tbo-orange" />
       </div>
       <div>
-        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-xs text-gray-500">{label}</p>
         <p className="text-2xl font-bold tracking-tight">{value}</p>
-        {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+        {sub && <p className="text-xs text-gray-500">{sub}</p>}
       </div>
     </div>
   );
@@ -289,9 +289,9 @@ function EstabelecimentosGrid() {
                 key={e.tipo}
                 className="flex flex-col items-center gap-1 rounded-lg border p-3 text-center"
               >
-                <Icon className="h-5 w-5 text-muted-foreground" />
+                <Icon className="h-5 w-5 text-gray-500" />
                 <span className="text-lg font-bold">{fmtNum(e.valor)}</span>
-                <span className="text-[11px] text-muted-foreground leading-tight">
+                <span className="text-[11px] text-gray-500 leading-tight">
                   {e.tipo}
                 </span>
               </div>
@@ -310,7 +310,7 @@ function BairrosMapGrid({
 }) {
   if (bairros.length === 0) {
     return (
-      <p className="py-8 text-center text-sm text-muted-foreground">
+      <p className="py-8 text-center text-sm text-gray-500">
         Nenhum bairro encontrado para o filtro selecionado.
       </p>
     );
@@ -372,7 +372,7 @@ export default function MercadoPage() {
         <h1 className="text-2xl font-bold tracking-tight">
           Censo 2022 — Curitiba
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-gray-500">
           Populacao e domicilios — Primeiros resultados do Censo 2022.
         </p>
       </div>
@@ -397,7 +397,7 @@ export default function MercadoPage() {
           placeholder="Buscar bairro..."
           value={bairroSearch}
           onChange={(e) => setBairroSearch(e.target.value)}
-          className="h-9 rounded-md border bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          className="h-9 rounded-md border bg-white px-3 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-tbo-orange"
         />
       </div>
 
@@ -428,18 +428,18 @@ export default function MercadoPage() {
         <Card className="py-4">
           <CardContent>
             <div className="space-y-1.5">
-              <p className="text-xs text-muted-foreground">Tipo de domicilio</p>
+              <p className="text-xs text-gray-500">Tipo de domicilio</p>
               <div className="flex items-center gap-4 text-sm">
                 <span className="font-semibold">{CENSO_RESUMO.pctCasas}%</span>
-                <span className="text-muted-foreground">Casas</span>
+                <span className="text-gray-500">Casas</span>
               </div>
               <div className="flex items-center gap-4 text-sm">
                 <span className="font-semibold">{CENSO_RESUMO.pctApartamentos}%</span>
-                <span className="text-muted-foreground">Aptos</span>
+                <span className="text-gray-500">Aptos</span>
               </div>
               <div className="flex items-center gap-4 text-sm">
                 <span className="font-semibold">{CENSO_RESUMO.pctOutros}%</span>
-                <span className="text-muted-foreground">Outros</span>
+                <span className="text-gray-500">Outros</span>
               </div>
             </div>
           </CardContent>
@@ -515,8 +515,8 @@ export default function MercadoPage() {
                   onClick={() => setMapMetric(key)}
                   className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
                     mapMetric === key
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      ? "bg-tbo-orange text-white"
+                      : "bg-gray-100 text-gray-500 hover:bg-gray-100/80"
                   }`}
                 >
                   {label}
@@ -540,7 +540,7 @@ export default function MercadoPage() {
       </Card>
 
       {/* Footer */}
-      <p className="text-center text-xs text-muted-foreground">
+      <p className="text-center text-xs text-gray-500">
         Fonte: CNEFE e IBGE — Censo 2022: Agregados por Setores Censitarios |
         Desenvolvido por IPPUC — Coordenacao de Monitoramento e Pesquisa
       </p>

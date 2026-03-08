@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/tbo-ui/badge";
 import { FileText, AlertTriangle } from "lucide-react";
 import type { Database } from "@/lib/supabase/types";
 import { CONTRACT_STATUS, type ContractStatusKey } from "@/lib/constants";
@@ -39,7 +39,7 @@ export function ContractList({
         {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
-            className="h-16 animate-pulse rounded-lg border bg-muted/40"
+            className="h-16 animate-pulse rounded-lg border bg-gray-100/40"
           />
         ))}
       </div>
@@ -49,9 +49,9 @@ export function ContractList({
   if (contracts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
-        <FileText className="mb-3 h-10 w-10 text-muted-foreground/50" />
+        <FileText className="mb-3 h-10 w-10 text-gray-500/50" />
         <p className="text-sm font-medium">Nenhum contrato encontrado</p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-gray-500">
           Ajuste os filtros ou adicione novos contratos.
         </p>
       </div>
@@ -72,7 +72,7 @@ export function ContractList({
         return (
           <div
             key={contract.id}
-            className="flex cursor-pointer items-center gap-4 rounded-lg border p-4 transition-colors hover:bg-muted/50"
+            className="flex cursor-pointer items-center gap-4 rounded-lg border p-4 transition-colors hover:bg-gray-100/50"
             onClick={() => onSelect(contract)}
           >
             <div className="flex-1 min-w-0">
@@ -82,7 +82,7 @@ export function ContractList({
                   <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
                 )}
               </div>
-              <p className="text-sm text-muted-foreground truncate">
+              <p className="text-sm text-gray-500 truncate">
                 {contract.person_name ?? "Sem responsável"}
               </p>
             </div>
@@ -103,7 +103,7 @@ export function ContractList({
                 {statusConfig.label}
               </Badge>
               {contract.end_date && (
-                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                <span className="text-xs text-gray-500 whitespace-nowrap">
                   {new Date(contract.end_date).toLocaleDateString("pt-BR")}
                 </span>
               )}

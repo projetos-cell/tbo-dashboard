@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { z } from "zod";
@@ -7,10 +7,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@/components/tbo-ui/dialog";
+import { Button } from "@/components/tbo-ui/button";
+import { Input } from "@/components/tbo-ui/input";
+import { Label } from "@/components/tbo-ui/label";
 import { useCreateCalendarEvent } from "@/hooks/use-calendar";
 import { useAuthStore } from "@/stores/auth-store";
 
@@ -118,7 +118,7 @@ export function EventForm({ open, onOpenChange }: EventFormProps) {
               required
             />
             {errors.title && (
-              <p className="text-xs text-destructive">{errors.title}</p>
+              <p className="text-xs text-red-500">{errors.title}</p>
             )}
           </div>
 
@@ -132,7 +132,7 @@ export function EventForm({ open, onOpenChange }: EventFormProps) {
               required
             />
             {errors.date && (
-              <p className="text-xs text-destructive">{errors.date}</p>
+              <p className="text-xs text-red-500">{errors.date}</p>
             )}
           </div>
 

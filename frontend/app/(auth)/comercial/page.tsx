@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
 import { useDeals, useUpdateDealStage } from "@/hooks/use-commercial";
@@ -10,7 +10,7 @@ import { DealFormDialog } from "@/components/comercial/deal-form-dialog";
 import { computeDealKPIs } from "@/services/commercial";
 import { RequireRole } from "@/components/auth/require-role";
 import { ErrorState } from "@/components/shared";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/tbo-ui/button";
 import { Plus } from "lucide-react";
 import type { Database } from "@/lib/supabase/types";
 
@@ -67,7 +67,7 @@ export default function ComercialPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Comercial</h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-gray-500">
               Pipeline CRM — gerencie deals, propostas e funil de vendas.
             </p>
           </div>

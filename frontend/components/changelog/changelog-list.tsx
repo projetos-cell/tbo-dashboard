@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -12,14 +12,14 @@ import {
   AlertTriangle,
   User,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/tbo-ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/tbo-ui/dropdown-menu";
 import {
   CHANGELOG_TAGS,
   NAV_ITEMS,
@@ -57,11 +57,11 @@ export function ChangelogList({
             key={i}
             className="flex gap-4"
           >
-            <div className="h-8 w-8 animate-pulse rounded-full bg-muted/40" />
+            <div className="h-8 w-8 animate-pulse rounded-full bg-gray-100/40" />
             <div className="flex-1 space-y-2">
-              <div className="h-5 w-48 animate-pulse rounded bg-muted/40" />
-              <div className="h-4 w-full animate-pulse rounded bg-muted/40" />
-              <div className="h-4 w-3/4 animate-pulse rounded bg-muted/40" />
+              <div className="h-5 w-48 animate-pulse rounded bg-gray-100/40" />
+              <div className="h-4 w-full animate-pulse rounded bg-gray-100/40" />
+              <div className="h-4 w-3/4 animate-pulse rounded bg-gray-100/40" />
             </div>
           </div>
         ))}
@@ -72,9 +72,9 @@ export function ChangelogList({
   if (entries.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
-        <Rocket className="mb-3 h-10 w-10 text-muted-foreground/50" />
+        <Rocket className="mb-3 h-10 w-10 text-gray-500/50" />
         <p className="text-sm font-medium">Nenhuma entrada no changelog</p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-gray-500">
           Adicione a primeira entrada para registrar as mudancas.
         </p>
       </div>
@@ -145,7 +145,7 @@ export function ChangelogList({
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => onDelete(entry)}
-                        className="text-destructive"
+                        className="text-red-500"
                       >
                         <Trash2 className="size-4 mr-2" />
                         Excluir
@@ -155,7 +155,7 @@ export function ChangelogList({
                 </div>
 
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-gray-500">
                     {format(new Date(entry.published_at), "dd MMM yyyy", {
                       locale: ptBR,
                     })}
@@ -182,7 +182,7 @@ export function ChangelogList({
                   )}
 
                   {entry.author && (
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1 text-xs text-gray-500">
                       <User className="size-3" />
                       {entry.author}
                     </span>
@@ -190,7 +190,7 @@ export function ChangelogList({
                 </div>
 
                 {entry.description && (
-                  <p className="mt-2 text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
+                  <p className="mt-2 text-sm text-gray-500 whitespace-pre-line leading-relaxed">
                     {entry.description}
                   </p>
                 )}

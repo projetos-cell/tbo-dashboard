@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/tbo-ui/card";
 import { Building2, UserPlus, Star, Users } from "lucide-react";
 import type { ClientKPIs } from "@/services/clients";
 
@@ -31,7 +31,7 @@ export function ClientKPICards({ kpis }: ClientKPICardsProps) {
               </div>
               <div>
                 <p className="text-2xl font-bold">{kpis[c.key]}</p>
-                <p className="text-xs text-muted-foreground">{c.label}</p>
+                <p className="text-xs text-gray-500">{c.label}</p>
               </div>
             </CardContent>
           </Card>

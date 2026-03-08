@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/tbo-ui/card";
 import { TrendingUp, DollarSign, Target, BarChart3 } from "lucide-react";
 
 interface DealKPIs {
@@ -61,13 +61,13 @@ export function DealKPICards({ kpis }: { kpis: DealKPIs }) {
         <Card key={item.label}>
           <CardContent className="flex items-center gap-3 p-4">
             <div
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted ${item.color}`}
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 ${item.color}`}
             >
               <item.icon className="h-5 w-5" />
             </div>
             <div>
               <p className="text-lg font-bold leading-none">{item.value}</p>
-              <p className="text-xs text-muted-foreground">{item.label}</p>
+              <p className="text-xs text-gray-500">{item.label}</p>
             </div>
           </CardContent>
         </Card>

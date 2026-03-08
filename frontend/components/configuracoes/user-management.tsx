@@ -1,18 +1,18 @@
-"use client";
+﻿"use client";
 
 import { useUsers, useUpdateUserRole } from "@/hooks/use-settings";
 import { useAuthStore } from "@/stores/auth-store";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/tbo-ui/avatar";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+} from "@/components/tbo-ui/select";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import { Users } from "lucide-react";
 
 const ROLES = [
@@ -63,7 +63,7 @@ export function UserManagement() {
         {totalByRole.map((r) => (
           <Card key={r.value} className="p-3">
             <p className="text-2xl font-bold">{r.count}</p>
-            <p className="text-xs text-muted-foreground">{r.label}</p>
+            <p className="text-xs text-gray-500">{r.label}</p>
           </Card>
         ))}
       </div>
@@ -96,7 +96,7 @@ export function UserManagement() {
                     </Avatar>
                     <div>
                       <p className="text-sm font-medium leading-none">{user.full_name}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{user.email}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{user.email}</p>
                     </div>
                   </div>
 

@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState, type KeyboardEvent } from "react";
 import { Send } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Input } from "@/components/tbo-ui/input";
+import { Button } from "@/components/tbo-ui/button";
 
 interface MessageInputProps {
   onSend: (content: string) => void;

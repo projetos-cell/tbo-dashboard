@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { z } from "zod";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/tbo-ui/input";
+import { Label } from "@/components/tbo-ui/label";
+import { Button } from "@/components/tbo-ui/button";
+import { Textarea } from "@/components/tbo-ui/textarea";
+import { Badge } from "@/components/tbo-ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -14,14 +14,14 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from "@/components/tbo-ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/tbo-ui/select";
 import {
   CHANGELOG_TAGS,
   NAV_ITEMS,
@@ -152,7 +152,7 @@ export function ChangelogForm({
                 placeholder="1.0.0"
               />
               {errors.version && (
-                <p className="text-xs text-destructive">{errors.version}</p>
+                <p className="text-xs text-red-500">{errors.version}</p>
               )}
             </div>
             <div className="space-y-1.5">
@@ -164,7 +164,7 @@ export function ChangelogForm({
                 onChange={(e) => { setPublishedAt(e.target.value); setErrors((prev) => ({ ...prev, published_at: undefined })); }}
               />
               {errors.published_at && (
-                <p className="text-xs text-destructive">{errors.published_at}</p>
+                <p className="text-xs text-red-500">{errors.published_at}</p>
               )}
             </div>
           </div>
@@ -178,7 +178,7 @@ export function ChangelogForm({
               placeholder="Titulo da mudanca..."
             />
             {errors.title && (
-              <p className="text-xs text-destructive">{errors.title}</p>
+              <p className="text-xs text-red-500">{errors.title}</p>
             )}
           </div>
 

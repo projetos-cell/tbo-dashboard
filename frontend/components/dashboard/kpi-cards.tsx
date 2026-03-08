@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/tbo-ui/card";
 import type { DashboardKPIs } from "@/services/dashboard";
 import {
   FolderKanban,
@@ -67,7 +67,7 @@ export function KPICards({ kpis }: { kpis: DashboardKPIs }) {
             </div>
             <div>
               <p className="text-2xl font-bold">{kpis[key]}</p>
-              <p className="text-xs text-muted-foreground">{label}</p>
+              <p className="text-xs text-gray-500">{label}</p>
             </div>
           </CardContent>
         </Card>

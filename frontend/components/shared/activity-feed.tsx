@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/tbo-ui/avatar";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import { ACTIVITY_ACTIONS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
@@ -78,7 +78,7 @@ export function ActivityFeed({
 
   if (activities.length === 0) {
     return (
-      <p className={cn("text-sm text-muted-foreground py-8 text-center", className)}>
+      <p className={cn("text-sm text-gray-500 py-8 text-center", className)}>
         {emptyMessage}
       </p>
     );
@@ -108,24 +108,24 @@ export function ActivityFeed({
               <span className="font-medium">
                 {activity.actor?.full_name || "Alguem"}
               </span>{" "}
-              <span className="text-muted-foreground">
+              <span className="text-gray-500">
                 {formatFieldChange(activity)}
               </span>
             </p>
 
             {activity.field_name && activity.old_value && activity.new_value && (
               <div className="mt-1 flex items-center gap-2 text-xs">
-                <span className="line-through text-muted-foreground bg-destructive/10 px-1.5 py-0.5 rounded">
+                <span className="line-through text-gray-500 bg-red-500/10 px-1.5 py-0.5 rounded">
                   {activity.old_value}
                 </span>
-                <span className="text-muted-foreground">→</span>
-                <span className="text-foreground bg-primary/10 px-1.5 py-0.5 rounded">
+                <span className="text-gray-500">→</span>
+                <span className="text-gray-900 bg-tbo-orange/10 px-1.5 py-0.5 rounded">
                   {activity.new_value}
                 </span>
               </div>
             )}
 
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs text-gray-500 mt-0.5">
               {formatDistanceToNow(new Date(activity.created_at!), {
                 addSuffix: true,
                 locale: ptBR,

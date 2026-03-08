@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
 import {
@@ -16,19 +16,19 @@ import {
   BarChart3,
   MessageSquarePlus,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/tbo-ui/button";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Card, CardContent } from "@/components/tbo-ui/card";
+import { Progress } from "@/components/tbo-ui/progress";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/tbo-ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/tbo-ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,12 +38,12 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/components/tbo-ui/alert-dialog";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+} from "@/components/tbo-ui/collapsible";
 import { RequireRole } from "@/components/auth/require-role";
 import { ErrorState } from "@/components/shared";
 import { OkrCycleSelector } from "@/components/okrs/okr-cycle-selector";
@@ -98,14 +98,14 @@ function KeyResultItem({
     OKR_STATUS[(kr.status as OkrStatusKey) ?? "on_track"] ?? OKR_STATUS.on_track;
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border bg-background p-3">
-      <BarChart3 className="h-4 w-4 text-muted-foreground shrink-0" />
+    <div className="flex items-center gap-3 rounded-lg border bg-white p-3">
+      <BarChart3 className="h-4 w-4 text-gray-500 shrink-0" />
 
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium truncate">{kr.title}</p>
         <div className="flex items-center gap-2 mt-1">
           <Progress value={pct} className="h-1.5 flex-1" />
-          <span className="text-xs text-muted-foreground whitespace-nowrap">
+          <span className="text-xs text-gray-500 whitespace-nowrap">
             {current}
             {kr.unit ? ` ${kr.unit}` : ""} / {target}
             {kr.unit ? ` ${kr.unit}` : ""}
@@ -157,7 +157,7 @@ function KeyResultItem({
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            className="text-destructive"
+            className="text-red-500"
             onClick={() => onDelete(kr)}
           >
             <Trash2 className="h-3.5 w-3.5 mr-2" />
@@ -215,7 +215,7 @@ function OkrKeyResultList({
           />
         ))
       ) : (
-        <p className="text-xs text-muted-foreground py-2">
+        <p className="text-xs text-gray-500 py-2">
           Nenhum key result cadastrado.
         </p>
       )}
@@ -271,7 +271,7 @@ function ObjectiveCard({
           <button
             type="button"
             onClick={onToggle}
-            className="flex items-center gap-3 flex-1 min-w-0 text-left hover:bg-muted/40 -m-1 p-1 rounded transition-colors"
+            className="flex items-center gap-3 flex-1 min-w-0 text-left hover:bg-gray-100/40 -m-1 p-1 rounded transition-colors"
             aria-label={expanded ? "Recolher objetivo" : "Expandir objetivo"}
           >
             {expanded ? (
@@ -302,7 +302,7 @@ function ObjectiveCard({
               </div>
               <p className="text-sm font-medium truncate">{objective.title}</p>
               {objective.description && (
-                <p className="text-xs text-muted-foreground truncate mt-0.5">
+                <p className="text-xs text-gray-500 truncate mt-0.5">
                   {objective.description}
                 </p>
               )}
@@ -311,7 +311,7 @@ function ObjectiveCard({
 
           <div className="flex items-center gap-3 shrink-0">
             {objective.owner_id && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1 text-xs text-gray-500">
                 <User className="h-3 w-3" />
               </div>
             )}
@@ -348,7 +348,7 @@ function ObjectiveCard({
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  className="text-destructive"
+                  className="text-red-500"
                   onClick={() => onDelete(objective)}
                 >
                   <Trash2 className="h-3.5 w-3.5 mr-2" />
@@ -361,14 +361,14 @@ function ObjectiveCard({
 
         {/* Expanded: KRs */}
         {expanded && children && (
-          <div className="border-t px-4 py-3 space-y-2 bg-muted/20">
+          <div className="border-t px-4 py-3 space-y-2 bg-gray-100/20">
             {children}
           </div>
         )}
 
         {/* Comments section */}
         {showComments && (
-          <div className="border-t px-4 py-3 bg-muted/10">
+          <div className="border-t px-4 py-3 bg-gray-100/10">
             <OkrComments objectiveId={objective.id} />
           </div>
         )}
@@ -511,7 +511,7 @@ function OkrsContent() {
             <Target className="h-6 w-6" />
             OKRs
           </h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-gray-500 text-sm">
             Objetivos e resultados-chave
           </p>
         </div>
@@ -573,13 +573,13 @@ function OkrsContent() {
       {cycles && cycles.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="rounded-full bg-primary/10 p-4 mb-4">
-              <Target className="h-10 w-10 text-primary" />
+            <div className="rounded-full bg-tbo-orange/10 p-4 mb-4">
+              <Target className="h-10 w-10 text-tbo-orange" />
             </div>
             <h2 className="text-lg font-semibold mb-2">
               Comece definindo seus ciclos de OKR
             </h2>
-            <p className="text-muted-foreground text-sm max-w-md mb-6">
+            <p className="text-gray-500 text-sm max-w-md mb-6">
               Ciclos organizam seus objetivos por trimestre, semestre ou qualquer
               período que faça sentido para sua equipe. Crie o primeiro ciclo
               para começar a acompanhar seus OKRs.
@@ -624,8 +624,8 @@ function OkrsContent() {
             <ErrorState message={objsError.message} onRetry={() => refetchObjs()} />
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <Target className="h-12 w-12 text-muted-foreground/40 mb-3" />
-              <p className="text-muted-foreground mb-4">
+              <Target className="h-12 w-12 text-gray-500/40 mb-3" />
+              <p className="text-gray-500 mb-4">
                 {viewTab === "mine"
                   ? "Você não possui objetivos neste ciclo."
                   : "Nenhum objetivo encontrado neste ciclo."}
@@ -758,7 +758,7 @@ function OkrsContent() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-red-500 text-white hover:bg-red-500/90"
             >
               Excluir
             </AlertDialogAction>
@@ -775,7 +775,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/components/tbo-ui/dialog";
 
 export default function OkrsPage() {
   return (

@@ -1,33 +1,33 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Plus, Repeat, Clock, Users, Calendar, MoreHorizontal, Edit, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/tbo-ui/button";
+import { Card, CardContent } from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/tbo-ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+} from "@/components/tbo-ui/dialog";
+import { Input } from "@/components/tbo-ui/input";
+import { Label } from "@/components/tbo-ui/label";
+import { Textarea } from "@/components/tbo-ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/tbo-ui/select";
 import { ErrorState } from "@/components/shared";
 import {
   useRitualTypes,
@@ -127,7 +127,7 @@ export default function RituaisPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight">Rituais</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500">
             Rituais e cerimonias que fortalecem a cultura do time.
           </p>
         </div>
@@ -169,7 +169,7 @@ export default function RituaisPage() {
                     </div>
 
                     {ritual.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">
+                      <p className="text-xs text-gray-500 line-clamp-2">
                         {ritual.description}
                       </p>
                     )}
@@ -191,7 +191,7 @@ export default function RituaisPage() {
                     </div>
 
                     {ritual.default_agenda && (
-                      <p className="text-xs text-muted-foreground line-clamp-2 border-l-2 pl-2 mt-1">
+                      <p className="text-xs text-gray-500 line-clamp-2 border-l-2 pl-2 mt-1">
                         {ritual.default_agenda}
                       </p>
                     )}
@@ -222,7 +222,7 @@ export default function RituaisPage() {
                         </DropdownMenuItem>
                         {!ritual.is_system && (
                           <DropdownMenuItem
-                            className="text-destructive"
+                            className="text-red-500"
                             onClick={() => handleDelete(ritual)}
                           >
                             <Trash2 className="size-3.5 mr-1.5" />
@@ -238,7 +238,7 @@ export default function RituaisPage() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-12 text-muted-foreground">
+        <div className="text-center py-12 text-gray-500">
           <Repeat className="size-8 mx-auto mb-2 opacity-50" />
           <p>Nenhum ritual cadastrado.</p>
         </div>

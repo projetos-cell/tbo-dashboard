@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Award, Heart } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/tbo-ui/card";
+import { Avatar, AvatarFallback } from "@/components/tbo-ui/avatar";
 import type { Database } from "@/lib/supabase/types";
 
 type CulturaRow = Database["public"]["Tables"]["cultura_items"]["Row"];
@@ -46,24 +46,24 @@ export function ReconhecimentoCard({ item, onClick }: ReconhecimentoCardProps) {
                     {initials}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-gray-500">
                   {recipientName}
                 </span>
               </div>
             )}
             {item.content_html && (
-              <p className="text-xs text-muted-foreground mt-2 line-clamp-3">
+              <p className="text-xs text-gray-500 mt-2 line-clamp-3">
                 {stripHtml(item.content_html).slice(0, 150)}
               </p>
             )}
             <div className="flex items-center justify-between mt-3">
-              <span className="text-[11px] text-muted-foreground">
+              <span className="text-[11px] text-gray-500">
                 {item.created_at &&
                   format(new Date(item.created_at), "dd MMM yyyy", {
                     locale: ptBR,
                   })}
               </span>
-              <Heart className="size-3.5 text-muted-foreground/50 group-hover:text-red-400 transition-colors" />
+              <Heart className="size-3.5 text-gray-500/50 group-hover:text-red-400 transition-colors" />
             </div>
           </div>
         </div>

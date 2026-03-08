@@ -1,17 +1,17 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/tbo-ui/tabs";
+import { Button } from "@/components/tbo-ui/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
+} from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
+import { Switch } from "@/components/tbo-ui/switch";
 import {
   Table,
   TableBody,
@@ -19,20 +19,20 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/tbo-ui/table";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/tbo-ui/dropdown-menu";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/tbo-ui/select";
 import {
   Plus,
   MoreHorizontal,
@@ -123,7 +123,7 @@ export default function RelatoriosPage() {
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Relatorios</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500">
             Agendamentos de relatorios e historico de execucoes.
           </p>
         </div>
@@ -139,7 +139,7 @@ export default function RelatoriosPage() {
               <CardTitle className="text-sm font-medium">
                 Total Agendamentos
               </CardTitle>
-              <CalendarClock className="h-4 w-4 text-muted-foreground" />
+              <CalendarClock className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{kpis.totalSchedules}</div>
@@ -148,7 +148,7 @@ export default function RelatoriosPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Ativos</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+              <CheckCircle2 className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{kpis.activeSchedules}</div>
@@ -159,7 +159,7 @@ export default function RelatoriosPage() {
               <CardTitle className="text-sm font-medium">
                 Execucoes este Mes
               </CardTitle>
-              <Play className="h-4 w-4 text-muted-foreground" />
+              <Play className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{kpis.thisMonthRuns}</div>
@@ -168,7 +168,7 @@ export default function RelatoriosPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Falhas</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              <AlertTriangle className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">
@@ -229,11 +229,11 @@ export default function RelatoriosPage() {
                           <Badge variant="outline">{schedule.type}</Badge>
                         </TableCell>
                         <TableCell>
-                          <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                          <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs">
                             {schedule.cron}
                           </code>
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
+                        <TableCell className="text-sm text-gray-500">
                           {recipientCount(schedule.recipients)}
                         </TableCell>
                         <TableCell>
@@ -261,7 +261,7 @@ export default function RelatoriosPage() {
                                 Editar
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                className="text-destructive"
+                                className="text-red-500"
                                 onClick={() =>
                                   deleteScheduleMutation.mutate(schedule.id)
                                 }
@@ -335,7 +335,7 @@ export default function RelatoriosPage() {
                         <TableCell>
                           <Badge variant="outline">{run.type}</Badge>
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
+                        <TableCell className="text-sm text-gray-500">
                           {run.generated_at
                             ? format(
                                 new Date(run.generated_at),

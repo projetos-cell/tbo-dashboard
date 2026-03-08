@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
 import type { PeopleEventType, EventSeverity } from "@/services/people-events";
@@ -140,7 +140,7 @@ export function PeopleTimeline({
     return (
       <p
         className={cn(
-          "text-sm text-muted-foreground py-8 text-center",
+          "text-sm text-gray-500 py-8 text-center",
           className
         )}
       >
@@ -198,20 +198,20 @@ export function PeopleTimeline({
 
               {/* Person name (global view) */}
               {personName != null ? (
-                <p className="text-xs font-medium text-foreground mt-0.5">
+                <p className="text-xs font-medium text-gray-900 mt-0.5">
                   {personName}
                 </p>
               ) : null}
 
               {/* Metadata summary */}
               {meta.summary ? (
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   {String(meta.summary)}
                 </p>
               ) : null}
 
               {/* Timestamp */}
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-gray-500 mt-0.5">
                 {formatDistanceToNow(new Date(event.created_at), {
                   addSuffix: true,
                   locale: ptBR,

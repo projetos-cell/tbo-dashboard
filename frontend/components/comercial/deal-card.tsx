@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/tbo-ui/badge";
 import { DollarSign, User, Calendar } from "lucide-react";
 import type { Database } from "@/lib/supabase/types";
 
@@ -22,37 +22,37 @@ interface DealCardProps {
 export function DealCard({ deal, onClick }: DealCardProps) {
   return (
     <div
-      className="cursor-pointer rounded-lg border bg-card p-3 shadow-sm transition-shadow hover:shadow-md"
+      className="cursor-pointer rounded-lg border bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
       onClick={() => onClick(deal)}
     >
       <p className="font-medium text-sm leading-tight truncate">{deal.name}</p>
       {deal.company && (
-        <p className="text-xs text-muted-foreground truncate">{deal.company}</p>
+        <p className="text-xs text-gray-500 truncate">{deal.company}</p>
       )}
 
       <div className="mt-2 space-y-1">
         {deal.value != null && deal.value > 0 && (
           <div className="flex items-center gap-1 text-xs">
-            <DollarSign className="h-3 w-3 text-muted-foreground" />
+            <DollarSign className="h-3 w-3 text-gray-500" />
             <span className="font-medium">{formatCurrency(deal.value)}</span>
           </div>
         )}
         {deal.probability != null && (
-          <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+          <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
             <div
-              className="h-full rounded-full bg-primary/70"
+              className="h-full rounded-full bg-tbo-orange/70"
               style={{ width: `${Math.min(deal.probability, 100)}%` }}
             />
           </div>
         )}
         {deal.owner_name && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1 text-xs text-gray-500">
             <User className="h-3 w-3" />
             <span className="truncate">{deal.owner_name}</span>
           </div>
         )}
         {deal.expected_close && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1 text-xs text-gray-500">
             <Calendar className="h-3 w-3" />
             <span>
               {new Date(deal.expected_close).toLocaleDateString("pt-BR")}

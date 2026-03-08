@@ -23,11 +23,11 @@ export function TypingIndicator({ channelId }: TypingIndicatorProps) {
   const verb = typingUsers.length === 1 ? "está" : "estão";
 
   return (
-    <div className="flex items-center gap-1.5 px-4 py-1 text-xs text-muted-foreground">
+    <div className="flex items-center gap-1.5 px-4 py-1 text-xs text-gray-500">
       <span className="inline-flex gap-0.5">
-        <span className="animate-bounce [animation-delay:0ms] h-1 w-1 rounded-full bg-muted-foreground" />
-        <span className="animate-bounce [animation-delay:150ms] h-1 w-1 rounded-full bg-muted-foreground" />
-        <span className="animate-bounce [animation-delay:300ms] h-1 w-1 rounded-full bg-muted-foreground" />
+        <span className="animate-bounce [animation-delay:0ms] h-1 w-1 rounded-full bg-gray-100-foreground" />
+        <span className="animate-bounce [animation-delay:150ms] h-1 w-1 rounded-full bg-gray-100-foreground" />
+        <span className="animate-bounce [animation-delay:300ms] h-1 w-1 rounded-full bg-gray-100-foreground" />
       </span>
       <span>
         {names} {verb} digitando...

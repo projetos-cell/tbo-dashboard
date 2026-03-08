@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Button } from "@/components/tbo-ui/button";
+import { Input } from "@/components/tbo-ui/input";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Label } from "@/components/tbo-ui/label";
+import { Switch } from "@/components/tbo-ui/switch";
 import { RefreshCw, Loader2, Eye, EyeOff, Mic } from "lucide-react";
 import { useFirefliesSyncLogs, useTriggerFirefliesSync, useFirefliesConfig, useSaveFirefliesConfig } from "@/hooks/use-fireflies-sync";
 
@@ -54,7 +54,7 @@ export function FirefliesPanel() {
             </CardTitle>
             <div className="flex items-center gap-2">
               <span className={`inline-block h-2.5 w-2.5 rounded-full ${isConnected ? "bg-green-500" : "bg-red-400"}`} />
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm text-gray-500">
                 {isConnected ? "Conectado" : "Desconectado"}
               </span>
             </div>
@@ -75,7 +75,7 @@ export function FirefliesPanel() {
                 <button
                   type="button"
                   onClick={() => setShowKey(!showKey)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900"
                 >
                   {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -89,7 +89,7 @@ export function FirefliesPanel() {
           <div className="flex items-center justify-between">
             <div>
               <Label>Integracao ativa</Label>
-              <p className="text-xs text-muted-foreground">Habilita sincronizacao com Fireflies</p>
+              <p className="text-xs text-gray-500">Habilita sincronizacao com Fireflies</p>
             </div>
             <Switch checked={config?.enabled ?? false} onCheckedChange={handleToggleEnabled} />
           </div>
@@ -97,7 +97,7 @@ export function FirefliesPanel() {
           <div className="flex items-center justify-between">
             <div>
               <Label>Auto-sync</Label>
-              <p className="text-xs text-muted-foreground">Sincronizar automaticamente apos reunioes</p>
+              <p className="text-xs text-gray-500">Sincronizar automaticamente apos reunioes</p>
             </div>
             <Switch checked={config?.auto_sync ?? false} onCheckedChange={handleToggleAutoSync} />
           </div>
@@ -123,14 +123,14 @@ export function FirefliesPanel() {
         </CardHeader>
         <CardContent>
           {logsLoading ? (
-            <p className="text-sm text-muted-foreground">Carregando...</p>
+            <p className="text-sm text-gray-500">Carregando...</p>
           ) : logs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma sincronizacao realizada ainda.</p>
+            <p className="text-sm text-gray-500">Nenhuma sincronizacao realizada ainda.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b text-left text-muted-foreground">
+                  <tr className="border-b text-left text-gray-500">
                     <th className="pb-2 font-medium">Data</th>
                     <th className="pb-2 font-medium">Status</th>
                     <th className="pb-2 font-medium text-right">Reunioes</th>

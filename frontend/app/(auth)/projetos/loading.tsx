@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton";
+﻿import { Skeleton } from "@/components/tbo-ui/skeleton";
 
 export default function ProjetosLoading() {
   return (
@@ -27,7 +27,7 @@ export default function ProjetosLoading() {
         {[...Array(4)].map((_, i) => (
           <div key={i} className="flex-1 min-w-[280px] space-y-2">
             <Skeleton className="h-5 w-24" />
-            <div className="space-y-2 rounded-lg bg-muted/40 p-2 min-h-[200px]">
+            <div className="space-y-2 rounded-lg bg-gray-100/40 p-2 min-h-[200px]">
               {[...Array(3)].map((_, j) => (
                 <Skeleton key={j} className="h-32 rounded-lg" />
               ))}

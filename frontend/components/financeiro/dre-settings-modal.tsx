@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import {
@@ -8,10 +8,10 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@/components/tbo-ui/dialog";
+import { Button } from "@/components/tbo-ui/button";
+import { Input } from "@/components/tbo-ui/input";
+import { Label } from "@/components/tbo-ui/label";
 import { useUpdateDreSettings } from "@/hooks/use-finance";
 
 interface DreSettingsModalProps {
@@ -58,9 +58,9 @@ export function DreSettingsModal({
                 onChange={(e) => setTaxRate(e.target.value)}
                 className="w-32"
               />
-              <span className="text-sm text-muted-foreground">%</span>
+              <span className="text-sm text-gray-500">%</span>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-500">
               Padrão: 15% (ISS + COFINS + PIS para serviços)
             </p>
           </div>

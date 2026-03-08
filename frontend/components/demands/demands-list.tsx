@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/tbo-ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,8 +10,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { DataTable } from "@/components/ui/data-table";
+} from "@/components/tbo-ui/dropdown-menu";
+import { DataTable } from "@/components/tbo-ui/data-table";
 import {
   DEMAND_STATUS,
   DEMAND_PRIORITY,
@@ -86,7 +86,7 @@ export function DemandsList({ demands, onSelect }: DemandsListProps) {
               {isDone ? (
                 <Check className="h-4 w-4 text-green-600" />
               ) : (
-                <Circle className="h-4 w-4 text-muted-foreground" />
+                <Circle className="h-4 w-4 text-gray-500" />
               )}
             </div>
           );
@@ -117,7 +117,7 @@ export function DemandsList({ demands, onSelect }: DemandsListProps) {
                   onClick={(e) => e.stopPropagation()}
                   className="shrink-0"
                 >
-                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                  <ExternalLink className="h-3.5 w-3.5 text-gray-500 hover:text-gray-900" />
                 </a>
               )}
             </div>
@@ -164,7 +164,7 @@ export function DemandsList({ demands, onSelect }: DemandsListProps) {
         label: "Responsavel",
         responsive: "lg" as const,
         cellRender: (row) => (
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm text-gray-500">
             {row.responsible ?? "\u2014"}
           </span>
         ),
@@ -212,14 +212,14 @@ export function DemandsList({ demands, onSelect }: DemandsListProps) {
             row.due_date < new Date().toISOString().split("T")[0];
           return row.due_date ? (
             <span
-              className={`text-sm ${overdue ? "font-medium text-red-600" : "text-muted-foreground"}`}
+              className={`text-sm ${overdue ? "font-medium text-red-600" : "text-gray-500"}`}
             >
               {format(new Date(row.due_date + "T12:00:00"), "dd MMM yyyy", {
                 locale: ptBR,
               })}
             </span>
           ) : (
-            <span className="text-muted-foreground">{"\u2014"}</span>
+            <span className="text-gray-500">{"\u2014"}</span>
           );
         },
       },
@@ -307,7 +307,7 @@ export function DemandsList({ demands, onSelect }: DemandsListProps) {
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
+                className="text-red-500 focus:text-red-500"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleDelete(row.id);

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { z } from "zod";
@@ -8,18 +8,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+} from "@/components/tbo-ui/dialog";
+import { Input } from "@/components/tbo-ui/input";
+import { Label } from "@/components/tbo-ui/label";
+import { Button } from "@/components/tbo-ui/button";
+import { Textarea } from "@/components/tbo-ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/tbo-ui/select";
 import { CLIENT_STATUS } from "@/lib/constants";
 import { useAuthStore } from "@/stores/auth-store";
 import { useCreateClient, useUpdateClient } from "@/hooks/use-clients";
@@ -178,7 +178,7 @@ export function ClientFormDialog({
                 required
               />
               {errors.name && (
-                <p className="text-xs text-destructive">{errors.name}</p>
+                <p className="text-xs text-red-500">{errors.name}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -249,7 +249,7 @@ export function ClientFormDialog({
                 onChange={(e) => handleChange("email", e.target.value)}
               />
               {errors.email && (
-                <p className="text-xs text-destructive">{errors.email}</p>
+                <p className="text-xs text-red-500">{errors.email}</p>
               )}
             </div>
             <div className="space-y-2">

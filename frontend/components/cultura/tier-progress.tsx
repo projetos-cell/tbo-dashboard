@@ -22,7 +22,7 @@ export function TierProgress({ points, compact }: TierProgressProps) {
         <span className="font-medium" style={{ color: currentTier.color }}>
           {currentTier.name}
         </span>
-        <span className="text-muted-foreground">({points} pts)</span>
+        <span className="text-gray-500">({points} pts)</span>
       </div>
     );
   }
@@ -36,15 +36,15 @@ export function TierProgress({ points, compact }: TierProgressProps) {
             <p className="font-medium text-sm" style={{ color: currentTier.color }}>
               {currentTier.name}
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-500">
               {points} pontos acumulados
             </p>
           </div>
         </div>
         {nextTier && (
           <div className="text-right">
-            <p className="text-xs text-muted-foreground">Proximo: {nextTier.icon} {nextTier.name}</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-500">Proximo: {nextTier.icon} {nextTier.name}</p>
+            <p className="text-xs text-gray-500">
               Faltam {nextTier.minPoints - points} pts
             </p>
           </div>
@@ -52,7 +52,7 @@ export function TierProgress({ points, compact }: TierProgressProps) {
       </div>
 
       {/* Progress bar */}
-      <div className="h-2 rounded-full bg-muted overflow-hidden">
+      <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{
@@ -63,7 +63,7 @@ export function TierProgress({ points, compact }: TierProgressProps) {
       </div>
 
       {/* All tiers */}
-      <div className="flex justify-between text-xs text-muted-foreground">
+      <div className="flex justify-between text-xs text-gray-500">
         {RECOGNITION_TIERS.map((tier) => (
           <span
             key={tier.name}

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useCallback, useMemo, useEffect } from "react";
 import {
@@ -17,8 +17,8 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { MoreHorizontal, ExternalLink, Trash2, GripVertical } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/tbo-ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,7 +27,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/tbo-ui/dropdown-menu";
 import {
   DEMAND_STATUS,
   DEMAND_PRIORITY,
@@ -73,8 +73,8 @@ function DemandCard({
 
   return (
     <div
-      className={`group relative cursor-pointer rounded-lg border bg-card p-3 shadow-sm transition-shadow hover:shadow-md ${
-        isDragging ? "opacity-50 ring-2 ring-primary/40" : ""
+      className={`group relative cursor-pointer rounded-lg border bg-white p-3 shadow-sm transition-shadow hover:shadow-md ${
+        isDragging ? "opacity-50 ring-2 ring-tbo-orange/40" : ""
       }`}
       onClick={onClick}
     >
@@ -151,7 +151,7 @@ function DemandCard({
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            className="text-destructive focus:text-destructive"
+            className="text-red-500 focus:text-red-500"
             onClick={(e) => {
               e.stopPropagation();
               onDelete();
@@ -177,7 +177,7 @@ function DemandCard({
           />
         )}
         {demand.responsible && (
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-gray-500">
             {demand.responsible}
           </span>
         )}
@@ -204,7 +204,7 @@ function DemandCard({
         )}
         {demand.due_date && (
           <span
-            className={`ml-auto text-xs ${overdue ? "font-medium text-red-600" : "text-muted-foreground"}`}
+            className={`ml-auto text-xs ${overdue ? "font-medium text-red-600" : "text-gray-500"}`}
           >
             {format(new Date(demand.due_date + "T12:00:00"), "dd MMM", {
               locale: ptBR,
@@ -263,7 +263,7 @@ function DraggableDemandCard({
         className="absolute left-0 top-0 bottom-0 w-6 z-10 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover/card:opacity-60 hover:!opacity-100 transition-opacity"
         onClick={(e) => e.stopPropagation()}
       >
-        <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
+        <GripVertical className="h-3.5 w-3.5 text-gray-500" />
       </div>
       <div className="group/card">
         <DemandCard
@@ -300,8 +300,8 @@ function DroppableColumn({
       ref={setNodeRef}
       className={`min-h-[100px] space-y-2 rounded-lg p-2 transition-colors duration-200 ${
         isOver
-          ? "bg-primary/10 ring-2 ring-primary/30 ring-inset"
-          : "bg-muted/30"
+          ? "bg-tbo-orange/10 ring-2 ring-tbo-orange/30 ring-inset"
+          : "bg-gray-100/30"
       }`}
     >
       {children}
@@ -510,7 +510,7 @@ export function DemandsBoard({ demands, onSelect }: DemandsBoardProps) {
 
               <DroppableColumn status={status} isOver={isOver}>
                 {demands.length === 0 ? (
-                  <p className="py-6 text-center text-xs text-muted-foreground">
+                  <p className="py-6 text-center text-xs text-gray-500">
                     {isOver ? "Soltar aqui" : "Nenhuma demanda"}
                   </p>
                 ) : (

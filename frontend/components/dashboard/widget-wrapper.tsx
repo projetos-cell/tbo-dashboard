@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import { type ReactNode } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/tbo-ui/button";
 
 interface WidgetWrapperProps {
   id: string;
@@ -45,9 +45,9 @@ export function WidgetWrapper({
       ref={setNodeRef}
       style={style}
       className={`
-        rounded-xl border bg-card text-card-foreground shadow-sm
+        rounded-xl border bg-white text-gray-900 shadow-sm
         ${colSpan === 2 ? "lg:col-span-2" : ""}
-        ${isDragging ? "z-50 opacity-60 ring-2 ring-primary/40" : ""}
+        ${isDragging ? "z-50 opacity-60 ring-2 ring-tbo-orange/40" : ""}
       `}
     >
       {/* Header with drag handle + close */}
@@ -57,7 +57,7 @@ export function WidgetWrapper({
             ref={setActivatorNodeRef}
             {...attributes}
             {...listeners}
-            className="flex-shrink-0 cursor-grab rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex-shrink-0 cursor-grab rounded p-0.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tbo-orange"
             aria-label={`Arrastar ${label}`}
           >
             <GripVertical className="h-4 w-4" />

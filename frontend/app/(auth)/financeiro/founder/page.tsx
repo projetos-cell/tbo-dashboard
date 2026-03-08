@@ -14,7 +14,12 @@ import {
   Flame,
   Scale,
   Calculator,
+  Users,
+  Receipt,
+  Cog,
+  UserMinus,
 } from "lucide-react";
+import { AreaChart, Area, ResponsiveContainer } from "recharts";
 
 import { KpiCard } from "@/components/founder-dashboard/kpi-card";
 import { KpiGrid } from "@/components/founder-dashboard/kpi-grid";
@@ -35,7 +40,7 @@ const MonthlyTrendChart = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-[220px] animate-pulse rounded-xl bg-muted" />
+      <div className="h-[220px] animate-pulse rounded-xl bg-gray-100" />
     ),
   }
 );
@@ -48,7 +53,7 @@ const CashWaterfallChart = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-[220px] animate-pulse rounded-xl bg-muted" />
+      <div className="h-[220px] animate-pulse rounded-xl bg-gray-100" />
     ),
   }
 );
@@ -61,7 +66,7 @@ const DreTable = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-[400px] animate-pulse rounded-xl bg-muted" />
+      <div className="h-[400px] animate-pulse rounded-xl bg-gray-100" />
     ),
   }
 );
@@ -82,7 +87,7 @@ const RevenueConcentrationChart = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-[220px] animate-pulse rounded-xl bg-muted" />
+      <div className="h-[220px] animate-pulse rounded-xl bg-gray-100" />
     ),
   }
 );
@@ -208,7 +213,7 @@ export default function FinanceiroFounderPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Visão Estratégica</h1>
-          <p className="text-muted-foreground">
+          <p className="text-gray-500">
             Dashboard financeiro executivo — dados consolidados do Omie.
           </p>
         </div>
@@ -218,7 +223,7 @@ export default function FinanceiroFounderPage() {
       {/* Row 1 — Founder Metrics: Receita MTD | Margem | Caixa Atual | Runway + Caixa Real widget */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
             Founder Metrics
           </h2>
           {manualCaixa !== null && (
@@ -308,7 +313,7 @@ export default function FinanceiroFounderPage() {
 
       {/* Row 2 — Saúde Financeira: Burn Rate | Break-even | Caixa previsto (30d) */}
       <div>
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
           Saúde Financeira
         </h2>
         <KpiGrid columns={3}>
@@ -360,9 +365,98 @@ export default function FinanceiroFounderPage() {
         </KpiGrid>
       </div>
 
+      {/* Row 2.5 — Indicadores Operacionais (#7, #15, #18) */}
+      <div>
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          Indicadores Operacionais
+        </h2>
+        <KpiGrid columns={4}>
+          <KpiCard
+            title="Receita / Colaborador"
+            value={d ? fmt(d.receitaPorColaborador) : "—"}
+            sublabel={d ? `${d.headcount} colaboradores ativos` : undefined}
+            icon={<Users className="h-4 w-4 text-indigo-500" />}
+            colorClass="text-indigo-600 dark:text-indigo-400"
+            isLoading={isLoading}
+            isEmpty={!isLoading && !!d && d.headcount === 0}
+            emptyMessage="Nenhum colaborador ativo cadastrado."
+            error={errMsg}
+            onRetry={() => refetch()}
+          />
+          <KpiCard
+            title="Folha de Pagamento"
+            value={d ? fmt(d.folhaPagamento) : "—"}
+            sublabel={d ? `${fmtPct(d.folhaPct)} do total de custos` : undefined}
+            icon={<Receipt className="h-4 w-4 text-rose-500" />}
+            colorClass="text-rose-600 dark:text-rose-400"
+            isLoading={isLoading}
+            error={errMsg}
+            onRetry={() => refetch()}
+          />
+          <KpiCard
+            title="Custos Operacionais"
+            value={d ? fmt(d.custosOperacionais) : "—"}
+            sublabel={d ? `${fmtPct(d.operacionalPct)} do total de custos` : undefined}
+            icon={<Cog className="h-4 w-4 text-slate-500" />}
+            colorClass="text-slate-600 dark:text-slate-400"
+            isLoading={isLoading}
+            error={errMsg}
+            onRetry={() => refetch()}
+          />
+          <KpiCard
+            title="Churn Rate"
+            value={d ? fmtPct(d.churnRate) : "—"}
+            sublabel="Clientes perdidos (mês atual)"
+            icon={<UserMinus className="h-4 w-4 text-red-500" />}
+            colorClass={
+              d && d.churnRate > 10
+                ? "text-red-600 dark:text-red-400"
+                : d && d.churnRate > 5
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-emerald-600 dark:text-emerald-400"
+            }
+            isLoading={isLoading}
+            isEmpty={!isLoading && !!d && d.churnHistory.length === 0}
+            emptyMessage="Dados insuficientes para calcular churn (mínimo 2 meses)."
+            error={errMsg}
+            onRetry={() => refetch()}
+          />
+        </KpiGrid>
+
+        {/* Churn sparkline */}
+        {d && d.churnHistory.length > 1 && !isLoading && (
+          <div className="mt-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium text-gray-500">Evolução do Churn</p>
+              <div className="flex gap-3">
+                {d.churnHistory.slice(-3).map((p) => (
+                  <span key={p.month} className="text-xs text-gray-400">
+                    {p.label}: <span className="font-medium text-gray-600">{p.rate.toFixed(1)}%</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="h-16">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={d.churnHistory}>
+                  <Area
+                    type="monotone"
+                    dataKey="rate"
+                    stroke="#ef4444"
+                    fill="#ef4444"
+                    fillOpacity={0.1}
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Row 3 — Performance: Receita por unidade | Top clientes | Top projetos */}
       <div>
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
           Performance
         </h2>
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
@@ -383,9 +477,42 @@ export default function FinanceiroFounderPage() {
         </div>
       </div>
 
+      {/* Row 3.5 — Contratos a Vencer (#8) */}
+      {d && d.expiringContracts.length > 0 && !isLoading && (
+        <div>
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            Contratos a Vencer (60 dias)
+          </h2>
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+            <div className="divide-y divide-gray-100">
+              {d.expiringContracts.map((c) => (
+                <div key={c.id} className="flex items-center justify-between px-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-gray-900 truncate">{c.title}</p>
+                    <p className="text-xs text-gray-500">{c.client}</p>
+                  </div>
+                  <div className="text-right shrink-0 ml-4">
+                    <p className="text-sm font-medium text-gray-900">{fmt(c.monthlyValue)}/mês</p>
+                    <p className={`text-xs font-medium ${
+                      c.daysRemaining <= 15
+                        ? "text-red-600"
+                        : c.daysRemaining <= 30
+                          ? "text-amber-600"
+                          : "text-gray-500"
+                    }`}>
+                      {c.daysRemaining} dias restantes
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Row 4 — Alertas: Alertas estratégicos | Forecast */}
       <div>
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
           Alertas
         </h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -395,6 +522,7 @@ export default function FinanceiroFounderPage() {
           />
           <ForecastPanel
             total={d?.forecast90d.total ?? 0}
+            proposalsTotal={d?.forecastProposalsTotal}
             months={d?.forecast90d.months ?? []}
             isLoading={isLoading}
           />
@@ -403,7 +531,7 @@ export default function FinanceiroFounderPage() {
 
       {/* Row 5 — Concentração de Receita (Melhoria #9) */}
       <div>
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
           Concentração de Receita
         </h2>
         <RevenueConcentrationChart
@@ -415,10 +543,10 @@ export default function FinanceiroFounderPage() {
 
       {/* Row 6 — DRE Simplificado (Melhoria #8) */}
       <div>
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
           DRE Simplificado
         </h2>
-        <div className="rounded-xl border bg-card p-4 shadow-sm">
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
           <DreTable
             data={dreData}
             isLoading={dreLoading}
@@ -434,31 +562,31 @@ export default function FinanceiroFounderPage() {
 
       {/* Row 8 — Estratégico: Evolução Mensal + Waterfall Caixa 30d */}
       <div>
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
           Estratégico
         </h2>
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           {/* Evolução mensal — takes 3/5 columns */}
-          <div className="lg:col-span-3 rounded-xl border bg-card p-4 shadow-sm">
+          <div className="lg:col-span-3 rounded-xl border bg-white p-4 shadow-sm">
             <p className="text-sm font-semibold mb-1">Evolução Mensal (6 meses)</p>
-            <p className="text-xs text-muted-foreground mb-3">
+            <p className="text-xs text-gray-500 mb-3">
               Receita · Despesa · Margem — mês atual inclui dados parciais
             </p>
             {isLoading ? (
-              <div className="h-[220px] animate-pulse rounded-lg bg-muted" />
+              <div className="h-[220px] animate-pulse rounded-lg bg-gray-100" />
             ) : (
               <MonthlyTrendChart data={d?.monthlyTrend ?? []} />
             )}
           </div>
 
           {/* Waterfall caixa — takes 2/5 columns */}
-          <div className="lg:col-span-2 rounded-xl border bg-card p-4 shadow-sm">
+          <div className="lg:col-span-2 rounded-xl border bg-white p-4 shadow-sm">
             <p className="text-sm font-semibold mb-1">Projeção de Caixa — 30d</p>
-            <p className="text-xs text-muted-foreground mb-3">
+            <p className="text-xs text-gray-500 mb-3">
               Caixa atual → +AR pendente → −AP pendente = Saldo previsto
             </p>
             {isLoading ? (
-              <div className="h-[200px] animate-pulse rounded-lg bg-muted" />
+              <div className="h-[200px] animate-pulse rounded-lg bg-gray-100" />
             ) : (
               <CashWaterfallChart
                 caixaAtual={effectiveCaixa}
@@ -468,7 +596,7 @@ export default function FinanceiroFounderPage() {
             )}
             {/* Summary row */}
             {d && !isLoading && (
-              <div className="mt-3 flex justify-between text-xs text-muted-foreground border-t pt-2">
+              <div className="mt-3 flex justify-between text-xs text-gray-500 border-t pt-2">
                 <span>
                   AR: <span className="text-emerald-500 font-medium">{fmt(d.arNext30)}</span>
                 </span>

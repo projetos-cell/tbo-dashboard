@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import {
@@ -15,8 +15,8 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
+import { Button } from "@/components/tbo-ui/button";
 import { AlertCircle, TrendingUp } from "lucide-react";
 
 const fmtCompact = (v: number) =>
@@ -52,7 +52,7 @@ export function CashFlowFullChart() {
 
   if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center h-[260px] gap-2 text-destructive">
+      <div className="flex flex-col items-center justify-center h-[260px] gap-2 text-red-500">
         <AlertCircle className="h-6 w-6" />
         <p className="text-sm">Erro ao carregar projeção</p>
         <Button variant="outline" size="sm" onClick={() => refetch()}>
@@ -66,7 +66,7 @@ export function CashFlowFullChart() {
 
   if (!hasData) {
     return (
-      <div className="flex flex-col items-center justify-center h-[260px] gap-2 text-muted-foreground">
+      <div className="flex flex-col items-center justify-center h-[260px] gap-2 text-gray-500">
         <TrendingUp className="h-8 w-8" />
         <p className="text-sm font-medium">Sem títulos previstos</p>
         <p className="text-xs">Sincronize os dados do Omie para ver projeção</p>

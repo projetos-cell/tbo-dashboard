@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
 import { TASK_STATUS, TASK_PRIORITY } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 import { format, isPast, isToday } from "date-fns";
@@ -35,13 +35,13 @@ export function TasksOverview({ tasks }: { tasks: TaskRow[] }) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-base font-semibold">Tarefas Pendentes</CardTitle>
-        <Link href="/tarefas" className="text-sm text-muted-foreground hover:underline">
+        <Link href="/tarefas" className="text-sm text-gray-500 hover:underline">
           Ver todas
         </Link>
       </CardHeader>
       <CardContent>
         {visible.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
+          <p className="py-8 text-center text-sm text-gray-500">
             Nenhuma tarefa pendente
           </p>
         ) : (
@@ -74,7 +74,7 @@ export function TasksOverview({ tasks }: { tasks: TaskRow[] }) {
                         </span>
                       )}
                       {task.assignee_name && (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-gray-500">
                           {task.assignee_name}
                         </span>
                       )}
@@ -83,7 +83,7 @@ export function TasksOverview({ tasks }: { tasks: TaskRow[] }) {
                   {task.due_date && (
                     <span
                       className={`ml-2 whitespace-nowrap text-xs ${
-                        overdue ? "font-medium text-red-600" : "text-muted-foreground"
+                        overdue ? "font-medium text-red-600" : "text-gray-500"
                       }`}
                     >
                       {format(new Date(task.due_date + "T12:00:00"), "dd MMM", {

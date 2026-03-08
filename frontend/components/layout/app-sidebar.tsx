@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -13,9 +13,9 @@ import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
   SidebarGroupContent, SidebarGroupLabel, SidebarHeader,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem,
-} from "@/components/ui/sidebar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+} from "@/components/tbo-ui/sidebar";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/tbo-ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAlertCount } from "@/hooks/use-alert-count";
@@ -170,12 +170,12 @@ export function AppSidebar() {
     <Sidebar variant="inset">
       <SidebarHeader className="border-b px-4 py-3">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-tbo-orange text-white font-bold text-sm">
             T
           </div>
           <div className="flex flex-col">
             <span className="font-semibold text-sm leading-tight">TBO</span>
-            <span className="text-[10px] text-muted-foreground leading-tight">Dashboard</span>
+            <span className="text-[10px] text-gray-500 leading-tight">Dashboard</span>
           </div>
         </Link>
       </SidebarHeader>

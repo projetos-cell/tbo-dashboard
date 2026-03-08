@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
@@ -14,7 +14,7 @@ import { PersonCard } from "@/components/people/person-card";
 import { PersonDetail } from "@/components/people/person-detail";
 import { PeopleNudges } from "@/components/people/people-nudges";
 import { ErrorState, EmptyState } from "@/components/shared";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/tbo-ui/button";
 import type { Database } from "@/lib/supabase/types";
 import type { SortSpec } from "@/services/view-state";
 import {
@@ -197,7 +197,7 @@ export default function PessoasPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Pessoas</h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-gray-500">
           Gerencie sua equipe e acompanhe o status dos membros.
         </p>
       </div>
@@ -229,7 +229,7 @@ export default function PessoasPage() {
       {/* Result count */}
       {!isLoading && !error && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500">
             {totalCount === 0
               ? "Nenhum resultado"
               : totalCount === 1
@@ -248,7 +248,7 @@ export default function PessoasPage() {
           {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
-              className="h-40 animate-pulse rounded-lg border bg-muted/40"
+              className="h-40 animate-pulse rounded-lg border bg-gray-100/40"
             />
           ))}
         </div>
@@ -282,7 +282,7 @@ export default function PessoasPage() {
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm text-gray-500">
             Página {page + 1} de {totalPages}
           </span>
           <Button

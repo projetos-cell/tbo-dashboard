@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
 
 import { Info } from "lucide-react";
 import {
   Popover,
   PopoverTrigger,
   PopoverContent,
-} from "@/components/ui/popover";
+} from "@/components/tbo-ui/popover";
 import {
   Table,
   TableBody,
@@ -13,9 +13,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+} from "@/components/tbo-ui/table";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import type { ClientRevenue } from "@/services/founder-dashboard";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -61,7 +61,7 @@ export function TopClientsTable({
         : "outline";
 
   return (
-    <div className="rounded-lg border bg-card p-5">
+    <div className="rounded-lg border bg-white p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-semibold">Top Clientes por Receita</h2>
@@ -75,7 +75,7 @@ export function TopClientsTable({
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="flex h-5 w-5 items-center justify-center rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
               aria-label="Informacoes do bloco"
             >
               <Info className="h-3.5 w-3.5" />
@@ -83,10 +83,10 @@ export function TopClientsTable({
           </PopoverTrigger>
           <PopoverContent className="w-72 text-sm space-y-1" side="top">
             <p className="font-medium">Top Clientes por Receita</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-500">
               Ajuda a identificar risco de concentracao de receita.
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-500">
               Regra de alerta: Top1 &gt; 40% (atencao); Top3 &gt; 70% (risco).
             </p>
           </PopoverContent>
@@ -100,7 +100,7 @@ export function TopClientsTable({
           ))}
         </div>
       ) : data.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4 text-center">
+        <p className="text-sm text-gray-500 py-4 text-center">
           Nenhum dado disponivel no periodo.
         </p>
       ) : (
@@ -121,7 +121,7 @@ export function TopClientsTable({
                   className={isHighConcentration ? "bg-amber-500/5" : ""}
                 >
                   <TableCell className="font-medium max-w-[180px] truncate">
-                    <span className="text-xs font-mono text-muted-foreground mr-2">
+                    <span className="text-xs font-mono text-gray-500 mr-2">
                       {i + 1}.
                     </span>
                     {row.client}

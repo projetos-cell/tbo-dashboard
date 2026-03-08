@@ -3,9 +3,9 @@ export default function ProjetosCalendario() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Calendário</h1>
-        <p className="text-muted-foreground">Visualize os projetos e marcos no calendário.</p>
+        <p className="text-gray-500">Visualize os projetos e marcos no calendário.</p>
       </div>
-      <div className="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
+      <div className="rounded-lg border border-dashed p-8 text-center text-gray-500">
         Em desenvolvimento
       </div>
     </div>

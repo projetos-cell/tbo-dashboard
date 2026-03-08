@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/tbo-ui/input";
+import { Badge } from "@/components/tbo-ui/badge";
 import { Search } from "lucide-react";
 
 interface DecisionFiltersProps {
@@ -30,7 +30,7 @@ export function DecisionFilters({
       <div className="flex flex-wrap items-center gap-3">
         {/* Search */}
         <div className="relative max-w-sm flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
           <Input
             placeholder="Buscar decisoes..."
             value={search}
@@ -41,7 +41,7 @@ export function DecisionFilters({
 
         {/* Date from */}
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-muted-foreground whitespace-nowrap">De:</span>
+          <span className="text-xs text-gray-500 whitespace-nowrap">De:</span>
           <Input
             type="date"
             value={dateFrom}
@@ -52,7 +52,7 @@ export function DecisionFilters({
 
         {/* Date to */}
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-muted-foreground whitespace-nowrap">Ate:</span>
+          <span className="text-xs text-gray-500 whitespace-nowrap">Ate:</span>
           <Input
             type="date"
             value={dateTo}

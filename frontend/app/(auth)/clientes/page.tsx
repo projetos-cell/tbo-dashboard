@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
 import { useClients } from "@/hooks/use-clients";
@@ -10,7 +10,7 @@ import { ClientFormDialog } from "@/components/clientes/client-form-dialog";
 import { computeClientKPIs } from "@/services/clients";
 import { RequireRole } from "@/components/auth/require-role";
 import { ErrorState, EmptyState } from "@/components/shared";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/tbo-ui/button";
 import { Plus, Users } from "lucide-react";
 import type { Database } from "@/lib/supabase/types";
 
@@ -62,7 +62,7 @@ export default function ClientesPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Clientes</h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-gray-500">
               Gerencie sua carteira de clientes e acompanhe interações.
             </p>
           </div>

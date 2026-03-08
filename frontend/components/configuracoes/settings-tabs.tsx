@@ -35,8 +35,8 @@ export function SettingsTabs({ active, onChange, isAdmin }: SettingsTabsProps) {
             className={cn(
               "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors text-left",
               active === tab.id
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                ? "bg-gray-100 text-gray-900"
+                : "text-gray-500 hover:bg-gray-100 hover:text-gray-900",
             )}
           >
             <Icon className="h-4 w-4 shrink-0" />

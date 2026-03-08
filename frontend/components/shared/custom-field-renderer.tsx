@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useState, useCallback } from "react";
 import { format } from "date-fns";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/tbo-ui/input";
+import { Checkbox } from "@/components/tbo-ui/checkbox";
+import { Badge } from "@/components/tbo-ui/badge";
 import { cn } from "@/lib/utils";
 import type { Database, Json } from "@/lib/supabase/types";
 
@@ -100,9 +100,9 @@ export function CustomFieldRenderer({
 
   return (
     <div className={cn("space-y-1", className)}>
-      <label className="text-xs font-medium text-muted-foreground">
+      <label className="text-xs font-medium text-gray-500">
         {definition.name}
-        {definition.is_required && <span className="text-destructive ml-0.5">*</span>}
+        {definition.is_required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
 
       {fieldType === "text" && (
@@ -224,7 +224,7 @@ function SelectField({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       disabled={readOnly}
-      className="h-8 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-ring/50 focus:ring-[3px]"
+      className="h-8 w-full rounded-md border border-gray-200 bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-tbo-orange/50 focus:ring-[3px]"
     >
       <option value="">Selecionar...</option>
       {options.map((opt) => (

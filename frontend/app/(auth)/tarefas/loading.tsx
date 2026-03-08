@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton";
+﻿import { Skeleton } from "@/components/tbo-ui/skeleton";
 
 export default function TarefasLoading() {
   return (

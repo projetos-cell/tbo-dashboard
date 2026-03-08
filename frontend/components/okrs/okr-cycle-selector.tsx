@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Calendar, Plus } from "lucide-react";
 import {
@@ -7,9 +7,9 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+} from "@/components/tbo-ui/select";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/tbo-ui/button";
 import type { Database } from "@/lib/supabase/types";
 
 type CycleRow = Database["public"]["Tables"]["okr_cycles"]["Row"];
@@ -38,7 +38,7 @@ export function OkrCycleSelector({
 
   return (
     <div className="flex items-center gap-2">
-      <Calendar className="text-muted-foreground h-4 w-4" />
+      <Calendar className="text-gray-500 h-4 w-4" />
       <Select value={selectedId ?? undefined} onValueChange={onSelect}>
         <SelectTrigger className="w-[260px]">
           <SelectValue placeholder="Selecione um ciclo" />

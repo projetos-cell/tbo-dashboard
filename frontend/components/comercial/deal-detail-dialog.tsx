@@ -1,14 +1,14 @@
-"use client";
+﻿"use client";
 
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+} from "@/components/tbo-ui/sheet";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/tbo-ui/button";
+import { Separator } from "@/components/tbo-ui/separator";
 import {
   DollarSign,
   Calendar,
@@ -84,19 +84,19 @@ export function DealDetailDialog({
           <div className="space-y-2 text-sm">
             {deal.company && (
               <div className="flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <Building2 className="h-4 w-4 text-gray-500" />
                 <span>{deal.company}</span>
               </div>
             )}
             {deal.contact && (
               <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground" />
+                <User className="h-4 w-4 text-gray-500" />
                 <span>{deal.contact}</span>
               </div>
             )}
             {deal.contact_email && (
               <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-muted-foreground" />
+                <Mail className="h-4 w-4 text-gray-500" />
                 <span>{deal.contact_email}</span>
               </div>
             )}
@@ -107,12 +107,12 @@ export function DealDetailDialog({
           <div className="space-y-2 text-sm">
             {deal.value != null && (
               <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <DollarSign className="h-4 w-4 text-gray-500" />
                 <span className="font-medium">
                   {formatCurrency(deal.value)}
                 </span>
                 {deal.probability != null && (
-                  <span className="text-muted-foreground">
+                  <span className="text-gray-500">
                     ({deal.probability}% probabilidade)
                   </span>
                 )}
@@ -120,7 +120,7 @@ export function DealDetailDialog({
             )}
             {deal.expected_close && (
               <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <Calendar className="h-4 w-4 text-gray-500" />
                 <span>
                   Previsão:{" "}
                   {new Date(deal.expected_close).toLocaleDateString(
@@ -131,7 +131,7 @@ export function DealDetailDialog({
             )}
             {deal.owner_name && (
               <div className="flex items-center gap-2">
-                <Target className="h-4 w-4 text-muted-foreground" />
+                <Target className="h-4 w-4 text-gray-500" />
                 <span>Responsável: {deal.owner_name}</span>
               </div>
             )}
@@ -160,7 +160,7 @@ export function DealDetailDialog({
               <Separator />
               <div className="space-y-1 text-sm">
                 <h4 className="font-medium">Observações</h4>
-                <p className="whitespace-pre-wrap text-muted-foreground">
+                <p className="whitespace-pre-wrap text-gray-500">
                   {deal.notes}
                 </p>
               </div>

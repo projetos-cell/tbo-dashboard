@@ -1,15 +1,15 @@
-"use client";
+﻿"use client";
 
 import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/tbo-ui/input";
+import { Badge } from "@/components/tbo-ui/badge";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/tbo-ui/select";
 import {
   POLICY_CATEGORIES,
   POLICY_STATUS,
@@ -37,7 +37,7 @@ export function PolicyFilters({ filters, onChange }: PolicyFiltersProps) {
     <div className="space-y-3">
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+        <Search className="absolute left-2.5 top-2.5 size-4 text-gray-500" />
         <Input
           placeholder="Buscar por titulo, categoria, texto..."
           value={filters.search}

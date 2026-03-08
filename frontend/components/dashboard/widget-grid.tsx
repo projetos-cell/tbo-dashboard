@@ -168,11 +168,11 @@ export function WidgetGrid({ widgets, data, view }: WidgetGridProps) {
         {/* Drag overlay — smooth floating preview */}
         <DragOverlay dropAnimation={null}>
           {activeWidget ? (
-            <div className="rotate-[1deg] scale-[1.02] opacity-90 shadow-xl rounded-xl border bg-card">
+            <div className="rotate-[1deg] scale-[1.02] opacity-90 shadow-xl rounded-xl border bg-white">
               <div className="flex items-center gap-2 px-4 py-3 border-b">
                 <h3 className="text-sm font-semibold">{activeWidget.label}</h3>
               </div>
-              <div className="p-4 text-sm text-muted-foreground">
+              <div className="p-4 text-sm text-gray-500">
                 Solte para reposicionar
               </div>
             </div>

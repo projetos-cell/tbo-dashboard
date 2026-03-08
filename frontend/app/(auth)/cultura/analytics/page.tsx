@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
 import { RequireRole } from "@/components/auth/require-role";
 import { CulturaOverviewStats } from "@/components/cultura/cultura-overview-stats";
 import { ErrorState } from "@/components/shared";
@@ -57,7 +57,7 @@ function AnalyticsContent() {
         <h1 className="text-xl font-bold tracking-tight">
           Analytics de Cultura
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-gray-500">
           Metricas e insights sobre o conteudo de cultura. Visivel apenas para
           fundadores e administradores.
         </p>
@@ -106,26 +106,26 @@ function AnalyticsContent() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <p className="text-2xl font-bold">{recKPIs?.total ?? 0}</p>
-              <p className="text-xs text-muted-foreground">Total</p>
+              <p className="text-xs text-gray-500">Total</p>
             </div>
             <div>
               <p className="text-2xl font-bold">{recKPIs?.thisMonth ?? 0}</p>
-              <p className="text-xs text-muted-foreground">Este mes</p>
+              <p className="text-xs text-gray-500">Este mes</p>
             </div>
             <div>
               <p className="text-2xl font-bold">{recKPIs?.avgPerPerson?.toFixed(1) ?? "0"}</p>
-              <p className="text-xs text-muted-foreground">Media por pessoa</p>
+              <p className="text-xs text-gray-500">Media por pessoa</p>
             </div>
             <div>
               <p className="text-2xl font-bold">{recKPIs?.firefliesCount ?? 0}</p>
-              <p className="text-xs text-muted-foreground">Via Fireflies</p>
+              <p className="text-xs text-gray-500">Via Fireflies</p>
             </div>
           </div>
 
           {/* Top values */}
           {recKPIs?.byValue && recKPIs.byValue.length > 0 && (
             <div className="mt-4 pt-4 border-t">
-              <p className="text-xs font-medium text-muted-foreground mb-2">Valores mais reconhecidos</p>
+              <p className="text-xs font-medium text-gray-500 mb-2">Valores mais reconhecidos</p>
               <div className="flex flex-wrap gap-2">
                 {recKPIs.byValue.map((v: { value_id: string; count: number }) => {
                   const valDef = TBO_VALUES.find((tv) => tv.id === v.value_id);
@@ -152,19 +152,19 @@ function AnalyticsContent() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <p className="text-2xl font-bold">{rewardKPIs?.activeRewards ?? 0}</p>
-              <p className="text-xs text-muted-foreground">Recompensas ativas</p>
+              <p className="text-xs text-gray-500">Recompensas ativas</p>
             </div>
             <div>
               <p className="text-2xl font-bold">{rewardKPIs?.totalRedemptions ?? 0}</p>
-              <p className="text-xs text-muted-foreground">Resgates totais</p>
+              <p className="text-xs text-gray-500">Resgates totais</p>
             </div>
             <div>
               <p className="text-2xl font-bold">{rewardKPIs?.pendingRedemptions ?? 0}</p>
-              <p className="text-xs text-muted-foreground">Pendentes</p>
+              <p className="text-xs text-gray-500">Pendentes</p>
             </div>
             <div>
               <p className="text-2xl font-bold">R$ {rewardKPIs?.totalCostBrl?.toFixed(0) ?? "0"}</p>
-              <p className="text-xs text-muted-foreground">Custo total</p>
+              <p className="text-xs text-gray-500">Custo total</p>
             </div>
           </div>
         </CardContent>
@@ -181,15 +181,15 @@ function AnalyticsContent() {
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
               <p className="text-2xl font-bold">{rituals?.length ?? 0}</p>
-              <p className="text-xs text-muted-foreground">Total de rituais</p>
+              <p className="text-xs text-gray-500">Total de rituais</p>
             </div>
             <div>
               <p className="text-2xl font-bold">{rituals?.filter((r) => r.is_active).length ?? 0}</p>
-              <p className="text-xs text-muted-foreground">Ativos</p>
+              <p className="text-xs text-gray-500">Ativos</p>
             </div>
             <div>
               <p className="text-2xl font-bold">{rituals?.filter((r) => r.is_system).length ?? 0}</p>
-              <p className="text-xs text-muted-foreground">Sistema</p>
+              <p className="text-xs text-gray-500">Sistema</p>
             </div>
           </div>
         </CardContent>
@@ -222,11 +222,11 @@ function AnalyticsContent() {
                 <div key={key} className="space-y-1">
                   <div className="flex items-center justify-between text-sm">
                     <span>{def.label}</span>
-                    <span className="text-muted-foreground">
+                    <span className="text-gray-500">
                       {count} ({pct}%)
                     </span>
                   </div>
-                  <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all"
                       style={{
@@ -294,7 +294,7 @@ function MetricCard({
     <Card>
       <CardContent className="pt-4">
         <p className={`text-2xl font-bold ${color || ""}`}>{value}</p>
-        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-xs text-gray-500">{label}</p>
       </CardContent>
     </Card>
   );

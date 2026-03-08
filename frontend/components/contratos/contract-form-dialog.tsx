@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { z } from "zod";
@@ -8,18 +8,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+} from "@/components/tbo-ui/dialog";
+import { Input } from "@/components/tbo-ui/input";
+import { Label } from "@/components/tbo-ui/label";
+import { Button } from "@/components/tbo-ui/button";
+import { Textarea } from "@/components/tbo-ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/tbo-ui/select";
 import { CONTRACT_STATUS } from "@/lib/constants";
 import { useAuthStore } from "@/stores/auth-store";
 import { useCreateContract, useUpdateContract } from "@/hooks/use-contracts";
@@ -145,7 +145,7 @@ export function ContractFormDialog({
               required
             />
             {errors.title && (
-              <p className="text-xs text-destructive">{errors.title}</p>
+              <p className="text-xs text-red-500">{errors.title}</p>
             )}
           </div>
 

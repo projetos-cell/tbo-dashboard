@@ -1,15 +1,15 @@
-"use client";
+﻿"use client";
 
 import { Gift, Star, Edit, Trash2, MoreHorizontal } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/tbo-ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/tbo-ui/dropdown-menu";
 import { REWARD_TYPES } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 
@@ -52,7 +52,7 @@ export function RewardCatalogCard({
             </div>
 
             {reward.description && (
-              <p className="text-xs text-muted-foreground line-clamp-2">
+              <p className="text-xs text-gray-500 line-clamp-2">
                 {reward.description}
               </p>
             )}
@@ -95,7 +95,7 @@ export function RewardCatalogCard({
                   Editar
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  className="text-destructive"
+                  className="text-red-500"
                   onClick={() => onDelete?.(reward)}
                 >
                   <Trash2 className="size-3.5 mr-1.5" />

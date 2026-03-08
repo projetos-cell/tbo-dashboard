@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -12,15 +12,15 @@ import {
   Eye,
   Pencil,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/tbo-ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/components/tbo-ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,7 +29,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/tbo-ui/dropdown-menu";
 import { useDeleteDecision } from "@/hooks/use-decisions";
 import type { Database } from "@/lib/supabase/types";
 
@@ -51,9 +51,9 @@ export function DecisionsList({
   if (decisions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
-        <CheckSquare className="mb-3 h-10 w-10 text-muted-foreground/50" />
+        <CheckSquare className="mb-3 h-10 w-10 text-gray-500/50" />
         <p className="text-sm font-medium">Nenhuma decisao encontrada</p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-gray-500">
           Ajuste os filtros ou crie uma nova decisao.
         </p>
       </div>
@@ -125,7 +125,7 @@ export function DecisionsList({
                     </DropdownMenuGroup>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
-                      className="text-destructive focus:text-destructive"
+                      className="text-red-500 focus:text-red-500"
                       onClick={(e) => handleDelete(e, decision.id)}
                     >
                       <Trash2 className="size-3.5 mr-2" />
@@ -143,7 +143,7 @@ export function DecisionsList({
             </CardHeader>
 
             <CardContent className="pt-0">
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
                 {/* Decided by */}
                 {decision.decided_by && (
                   <span className="flex items-center gap-1">
@@ -179,7 +179,7 @@ export function DecisionsList({
 
               {/* Created date */}
               {decision.created_at && (
-                <p className="mt-2 text-[11px] text-muted-foreground">
+                <p className="mt-2 text-[11px] text-gray-500">
                   {format(new Date(decision.created_at), "dd MMM yyyy", {
                     locale: ptBR,
                   })}

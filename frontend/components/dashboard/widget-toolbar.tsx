@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
 
 import { Eye, RotateCcw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/tbo-ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+} from "@/components/tbo-ui/popover";
 import { useDashboardStore } from "@/stores/dashboard-store";
 import type { WidgetDef } from "@/lib/dashboard-widgets";
 
@@ -38,16 +38,16 @@ export function WidgetToolbar({ view, widgets }: WidgetToolbarProps) {
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-56 p-2">
-          <p className="mb-2 px-2 text-xs font-medium text-muted-foreground">
+          <p className="mb-2 px-2 text-xs font-medium text-gray-500">
             Widgets ocultos
           </p>
           {hiddenWidgets.map((w) => (
             <button
               key={w.id}
               onClick={() => showWidget(view, w.id)}
-              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted transition-colors"
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-gray-100 transition-colors"
             >
-              <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+              <Eye className="h-3.5 w-3.5 text-gray-500" />
               {w.label}
             </button>
           ))}
@@ -58,7 +58,7 @@ export function WidgetToolbar({ view, widgets }: WidgetToolbarProps) {
       <Button
         variant="ghost"
         size="sm"
-        className="gap-1.5 text-muted-foreground"
+        className="gap-1.5 text-gray-500"
         onClick={() => resetLayout(view)}
       >
         <RotateCcw className="h-3.5 w-3.5" />

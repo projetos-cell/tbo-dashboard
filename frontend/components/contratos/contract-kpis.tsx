@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/tbo-ui/card";
 import { FileText, CheckCircle, DollarSign, AlertTriangle } from "lucide-react";
 import type { ContractKPIs } from "@/services/contracts";
 
@@ -43,7 +43,7 @@ export function ContractKPICards({ kpis }: ContractKPICardsProps) {
                 <p className="text-2xl font-bold">
                   {c.format === "currency" ? formatCurrency(value) : value}
                 </p>
-                <p className="text-xs text-muted-foreground">{c.label}</p>
+                <p className="text-xs text-gray-500">{c.label}</p>
               </div>
             </CardContent>
           </Card>

@@ -111,14 +111,14 @@ function CustomTooltip({
     row.kind === "negative" ? "−" : "";
 
   return (
-    <div className="rounded-lg border bg-background px-3 py-2 shadow-md text-xs">
+    <div className="rounded-lg border bg-white px-3 py-2 shadow-md text-xs">
       <p className="font-semibold mb-1">{label ?? row.label}</p>
       <p>
         {sign}
         {fmtBRLFull(row.kind === "negative" ? row.value : row.value)}
       </p>
       {(row.kind === "positive" || row.kind === "negative") && (
-        <p className="text-muted-foreground">
+        <p className="text-gray-500">
           Saldo: {fmtBRLFull(row.total)}
         </p>
       )}

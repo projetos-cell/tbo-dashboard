@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { ChevronDown, ChevronRight, User } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Card, CardContent } from "@/components/tbo-ui/card";
+import { Progress } from "@/components/tbo-ui/progress";
 import { OKR_STATUS, OKR_LEVELS } from "@/lib/constants";
 import type { OkrStatusKey, OkrLevelKey } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
@@ -35,7 +35,7 @@ export function OkrObjectiveCard({
         <button
           type="button"
           onClick={onToggle}
-          className="flex w-full items-center gap-3 p-4 text-left hover:bg-muted/40 transition-colors"
+          className="flex w-full items-center gap-3 p-4 text-left hover:bg-gray-100/40 transition-colors"
         >
           {expanded ? (
             <ChevronDown className="h-4 w-4 shrink-0" />
@@ -62,7 +62,7 @@ export function OkrObjectiveCard({
             </div>
             <p className="text-sm font-medium truncate">{objective.title}</p>
             {objective.description && (
-              <p className="text-xs text-muted-foreground truncate mt-0.5">
+              <p className="text-xs text-gray-500 truncate mt-0.5">
                 {objective.description}
               </p>
             )}
@@ -70,7 +70,7 @@ export function OkrObjectiveCard({
 
           <div className="flex items-center gap-3 shrink-0">
             {objective.owner_id && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1 text-xs text-gray-500">
                 <User className="h-3 w-3" />
               </div>
             )}
@@ -84,7 +84,7 @@ export function OkrObjectiveCard({
         </button>
 
         {expanded && children && (
-          <div className="border-t px-4 py-3 space-y-2 bg-muted/20">
+          <div className="border-t px-4 py-3 space-y-2 bg-gray-100/20">
             {children}
           </div>
         )}

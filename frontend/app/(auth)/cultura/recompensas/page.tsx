@@ -1,18 +1,18 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Plus, Gift, Star, Clock, CheckCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/tbo-ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/tbo-ui/tabs";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/components/tbo-ui/dialog";
 import { RewardCatalogCard } from "@/components/cultura/reward-catalog-card";
 import { TierProgress } from "@/components/cultura/tier-progress";
 import { ErrorState } from "@/components/shared";
@@ -78,7 +78,7 @@ export default function RecompensasPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight">TBO Rewards</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500">
             Resgate recompensas com seus pontos de reconhecimento.
           </p>
         </div>
@@ -88,27 +88,27 @@ export default function RecompensasPage() {
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+            <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
               <Gift className="size-3.5" />
               Recompensas
             </div>
             <p className="text-2xl font-bold">{kpis?.activeRewards ?? 0}</p>
-            <p className="text-xs text-muted-foreground">ativas</p>
+            <p className="text-xs text-gray-500">ativas</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+            <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
               <Star className="size-3.5" />
               Meu saldo
             </div>
             <p className="text-2xl font-bold">{balance?.balance ?? 0}</p>
-            <p className="text-xs text-muted-foreground">pontos</p>
+            <p className="text-xs text-gray-500">pontos</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+            <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
               <Clock className="size-3.5" />
               Pendentes
             </div>
@@ -117,7 +117,7 @@ export default function RecompensasPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+            <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
               <CheckCircle className="size-3.5" />
               Total resgates
             </div>
@@ -163,7 +163,7 @@ export default function RecompensasPage() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 text-muted-foreground">
+            <div className="text-center py-12 text-gray-500">
               <Gift className="size-8 mx-auto mb-2 opacity-50" />
               <p>Nenhuma recompensa disponivel.</p>
             </div>
@@ -183,7 +183,7 @@ export default function RecompensasPage() {
                         <p className="text-sm font-medium">
                           Resgate #{r.id.slice(0, 8)}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-gray-500">
                           {r.points_spent} pontos
                           {r.created_at && (
                             <> &middot; {new Date(r.created_at).toLocaleDateString("pt-BR")}</>
@@ -202,7 +202,7 @@ export default function RecompensasPage() {
               })}
             </div>
           ) : (
-            <div className="text-center py-8 text-muted-foreground text-sm">
+            <div className="text-center py-8 text-gray-500 text-sm">
               Voce ainda nao fez nenhum resgate.
             </div>
           )}
@@ -229,7 +229,7 @@ export default function RecompensasPage() {
                             <p className="text-sm font-medium">
                               {userMap.get(r.user_id) ?? r.user_id.slice(0, 8)}
                             </p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-gray-500">
                               {r.points_spent} pts &middot;{" "}
                               {r.created_at && new Date(r.created_at).toLocaleDateString("pt-BR")}
                             </p>
@@ -266,7 +266,7 @@ export default function RecompensasPage() {
                       ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Nenhum resgate pendente.</p>
+                  <p className="text-sm text-gray-500">Nenhum resgate pendente.</p>
                 )}
               </CardContent>
             </Card>
@@ -283,16 +283,16 @@ export default function RecompensasPage() {
           {redeemingReward && (
             <div className="space-y-4">
               <div className="text-center space-y-2">
-                <Gift className="size-8 mx-auto text-primary" />
+                <Gift className="size-8 mx-auto text-tbo-orange" />
                 <p className="font-medium">{redeemingReward.name}</p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-500">
                   {redeemingReward.description}
                 </p>
                 <Badge variant="secondary" className="text-sm">
                   {redeemingReward.points_required} pontos
                 </Badge>
               </div>
-              <div className="text-sm text-center text-muted-foreground">
+              <div className="text-sm text-center text-gray-500">
                 Seu saldo apos resgate:{" "}
                 <span className="font-semibold">
                   {(balance?.balance ?? 0) - (redeemingReward.points_required ?? 0)} pts

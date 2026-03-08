@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Plus, Award, TrendingUp, Users, Zap } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/tbo-ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/tbo-ui/tabs";
 import { RecognitionFeedCard } from "@/components/cultura/recognition-feed-card";
 import { RecognitionForm } from "@/components/cultura/recognition-form";
 import { TierProgress } from "@/components/cultura/tier-progress";
@@ -80,7 +80,7 @@ export default function ReconhecimentosPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight">Reconhecimentos</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500">
             Reconheca colegas pelos valores da empresa.
           </p>
         </div>
@@ -94,7 +94,7 @@ export default function ReconhecimentosPage() {
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+            <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
               <Award className="size-3.5" />
               Total
             </div>
@@ -103,7 +103,7 @@ export default function ReconhecimentosPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+            <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
               <TrendingUp className="size-3.5" />
               Este mes
             </div>
@@ -112,7 +112,7 @@ export default function ReconhecimentosPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+            <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
               <Users className="size-3.5" />
               Media/pessoa
             </div>
@@ -121,7 +121,7 @@ export default function ReconhecimentosPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+            <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
               <Zap className="size-3.5" />
               Fireflies
             </div>
@@ -144,15 +144,15 @@ export default function ReconhecimentosPage() {
           <CardContent className="space-y-3">
             <div className="flex items-center gap-6 text-sm">
               <div>
-                <span className="text-muted-foreground">Ganhos:</span>{" "}
+                <span className="text-gray-500">Ganhos:</span>{" "}
                 <span className="font-semibold text-green-600">{balance.earned}</span>
               </div>
               <div>
-                <span className="text-muted-foreground">Gastos:</span>{" "}
+                <span className="text-gray-500">Gastos:</span>{" "}
                 <span className="font-semibold text-amber-600">{balance.spent}</span>
               </div>
               <div>
-                <span className="text-muted-foreground">Saldo:</span>{" "}
+                <span className="text-gray-500">Saldo:</span>{" "}
                 <span className="font-bold">{balance.balance}</span>
               </div>
             </div>
@@ -199,7 +199,7 @@ export default function ReconhecimentosPage() {
               />
             ))
           ) : (
-            <div className="text-center py-12 text-muted-foreground">
+            <div className="text-center py-12 text-gray-500">
               <Award className="size-8 mx-auto mb-2 opacity-50" />
               <p>Nenhum reconhecimento ainda.</p>
               <p className="text-xs">Seja o primeiro a reconhecer um colega!</p>
@@ -236,7 +236,7 @@ export default function ReconhecimentosPage() {
               </div>
             ))
           ) : (
-            <div className="text-center py-8 text-muted-foreground text-sm">
+            <div className="text-center py-8 text-gray-500 text-sm">
               Nenhum reconhecimento pendente de revisao.
             </div>
           )}
@@ -257,7 +257,7 @@ export default function ReconhecimentosPage() {
                       className="flex items-center justify-between text-sm py-1"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground w-4">{idx + 1}.</span>
+                        <span className="text-gray-500 w-4">{idx + 1}.</span>
                         <span className="font-medium">
                           {userMap.get(item.user_id) ?? item.user_id.slice(0, 8)}
                         </span>
@@ -267,7 +267,7 @@ export default function ReconhecimentosPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Nenhum dado ainda.</p>
+                <p className="text-sm text-gray-500">Nenhum dado ainda.</p>
               )}
             </CardContent>
           </Card>

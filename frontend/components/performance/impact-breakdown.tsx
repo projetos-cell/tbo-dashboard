@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Button } from "@/components/tbo-ui/button";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Separator } from "@/components/tbo-ui/separator";
 import { ImpactMetricCard } from "./impact-metric-card";
 import { ScoreBadge } from "./score-badge";
 import { IMPACT_METRICS } from "@/lib/performance-constants";
@@ -105,24 +105,24 @@ export function ImpactBreakdown({
             {Array.from({ length: 3 }).map((_, i) => (
               <div
                 key={i}
-                className="h-10 animate-pulse rounded bg-muted/40"
+                className="h-10 animate-pulse rounded bg-gray-100/40"
               />
             ))}
           </div>
         ) : !hasData ? (
           <div className="py-4 text-center">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-gray-500">
               Metricas de impacto nao calculadas.
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-gray-500 mt-1">
               Clique em &quot;Calcular&quot; para gerar.
             </p>
           </div>
         ) : (
           <>
             {/* Score composto */}
-            <div className="flex items-center justify-between rounded-md bg-muted/30 px-3 py-2">
-              <span className="text-xs font-medium text-muted-foreground">
+            <div className="flex items-center justify-between rounded-md bg-gray-100/30 px-3 py-2">
+              <span className="text-xs font-medium text-gray-500">
                 Score Composto
               </span>
               <span className="text-lg font-bold">
@@ -150,7 +150,7 @@ export function ImpactBreakdown({
 
             {/* Computed at timestamp */}
             {impactRow?.computed_at && (
-              <p className="text-[10px] text-muted-foreground text-right">
+              <p className="text-[10px] text-gray-500 text-right">
                 Calculado em{" "}
                 {new Date(impactRow.computed_at).toLocaleString("pt-BR")}
               </p>

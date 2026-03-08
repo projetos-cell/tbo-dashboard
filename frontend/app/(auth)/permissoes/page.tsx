@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
 import { RequireRole } from "@/components/auth/require-role";
@@ -10,12 +10,12 @@ import {
   useCreateRole,
   useDeleteRole,
 } from "@/hooks/use-roles";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Button } from "@/components/tbo-ui/button";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Checkbox } from "@/components/tbo-ui/checkbox";
+import { Input } from "@/components/tbo-ui/input";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import { ErrorState } from "@/components/shared";
 import {
   Table,
@@ -24,15 +24,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/tbo-ui/table";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+} from "@/components/tbo-ui/dialog";
+import { Label } from "@/components/tbo-ui/label";
 import {
   Shield,
   ShieldCheck,
@@ -138,7 +138,7 @@ function PermissoesContent() {
           <h1 className="text-2xl font-bold tracking-tight">
             Permissoes & Seguranca
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500">
             Gerencie roles, permissoes e controle de acesso por modulo.
           </p>
         </div>
@@ -153,7 +153,7 @@ function PermissoesContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Roles</CardTitle>
-            <Shield className="h-4 w-4 text-muted-foreground" />
+            <Shield className="h-4 w-4 text-gray-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{kpis.total}</div>
@@ -162,7 +162,7 @@ function PermissoesContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Roles do Sistema</CardTitle>
-            <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+            <ShieldCheck className="h-4 w-4 text-gray-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{kpis.system}</div>
@@ -171,7 +171,7 @@ function PermissoesContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Roles Customizadas</CardTitle>
-            <ShieldPlus className="h-4 w-4 text-muted-foreground" />
+            <ShieldPlus className="h-4 w-4 text-gray-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{kpis.custom}</div>
@@ -194,8 +194,8 @@ function PermissoesContent() {
                 ))
               ) : roles.length === 0 ? (
                 <div className="flex flex-col items-center py-8 text-center">
-                  <Users className="mb-2 h-8 w-8 text-muted-foreground/50" />
-                  <p className="text-sm text-muted-foreground">
+                  <Users className="mb-2 h-8 w-8 text-gray-500/50" />
+                  <p className="text-sm text-gray-500">
                     Nenhuma role encontrada
                   </p>
                 </div>
@@ -204,8 +204,8 @@ function PermissoesContent() {
                   <button
                     key={role.id}
                     onClick={() => setSelectedRoleId(role.id)}
-                    className={`flex w-full items-center gap-3 rounded-md border px-3 py-2.5 text-left text-sm transition-colors hover:bg-accent ${selectedRoleId === role.id
-                      ? "border-primary bg-accent"
+                    className={`flex w-full items-center gap-3 rounded-md border px-3 py-2.5 text-left text-sm transition-colors hover:bg-gray-100 ${selectedRoleId === role.id
+                      ? "border-tbo-orange bg-gray-100"
                       : "border-transparent"
                       }`}
                   >
@@ -217,7 +217,7 @@ function PermissoesContent() {
                     />
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-medium">{role.name}</div>
-                      <div className="truncate text-xs text-muted-foreground">
+                      <div className="truncate text-xs text-gray-500">
                         {role.slug}
                       </div>
                     </div>
@@ -245,9 +245,9 @@ function PermissoesContent() {
           {!selectedRole ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                <Shield className="mb-3 h-10 w-10 text-muted-foreground/40" />
+                <Shield className="mb-3 h-10 w-10 text-gray-500/40" />
                 <p className="text-sm font-medium">Selecione uma role</p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-gray-500 mt-1">
                   Clique em uma role na lista ao lado para visualizar e editar suas
                   permissoes.
                 </p>
@@ -268,7 +268,7 @@ function PermissoesContent() {
                       {selectedRole.name}
                     </CardTitle>
                     {selectedRole.description && (
-                      <p className="text-sm text-muted-foreground mt-1">
+                      <p className="text-sm text-gray-500 mt-1">
                         {selectedRole.description}
                       </p>
                     )}
@@ -295,8 +295,8 @@ function PermissoesContent() {
                   </div>
                 ) : permissions.length === 0 ? (
                   <div className="flex flex-col items-center py-12 text-center">
-                    <ShieldCheck className="mb-2 h-8 w-8 text-muted-foreground/40" />
-                    <p className="text-sm text-muted-foreground">
+                    <ShieldCheck className="mb-2 h-8 w-8 text-gray-500/40" />
+                    <p className="text-sm text-gray-500">
                       Nenhuma permissao configurada para esta role.
                     </p>
                   </div>

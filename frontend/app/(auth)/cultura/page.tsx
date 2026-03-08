@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -15,8 +15,8 @@ import {
   Star,
   TrendingUp,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
 import { CulturaOverviewStats } from "@/components/cultura/cultura-overview-stats";
 import { CulturaItemCard } from "@/components/cultura/cultura-item-card";
 import { CulturaItemDetail } from "@/components/cultura/cultura-item-detail";
@@ -84,7 +84,7 @@ export default function CulturaPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Cultura</h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-gray-500 mt-1">
           Visao geral dos pilares, rituais, politicas e reconhecimentos da
           empresa.
         </p>
@@ -101,55 +101,55 @@ export default function CulturaPage() {
       {/* Quick-access cards for specialized modules */}
       <div className="grid gap-3 sm:grid-cols-3">
         <Link href="/cultura/reconhecimentos" className="group">
-          <Card className="h-full transition-colors group-hover:border-primary/40">
+          <Card className="h-full transition-colors group-hover:border-tbo-orange/40">
             <CardContent className="p-4 flex items-center gap-3">
               <div className="rounded-lg p-2.5 bg-amber-500/10">
                 <Award className="size-5 text-amber-500" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm">Reconhecimentos</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-gray-500">
                   {recKPIs?.total ?? 0} total &middot;{" "}
                   {recKPIs?.thisMonth ?? 0} este mes
                 </p>
               </div>
-              <ArrowRight className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              <ArrowRight className="size-4 text-gray-500 group-hover:text-tbo-orange transition-colors" />
             </CardContent>
           </Card>
         </Link>
 
         <Link href="/cultura/recompensas" className="group">
-          <Card className="h-full transition-colors group-hover:border-primary/40">
+          <Card className="h-full transition-colors group-hover:border-tbo-orange/40">
             <CardContent className="p-4 flex items-center gap-3">
               <div className="rounded-lg p-2.5 bg-pink-500/10">
                 <Gift className="size-5 text-pink-500" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm">TBO Rewards</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-gray-500">
                   {rewardKPIs?.activeRewards ?? 0} recompensas &middot;{" "}
                   {rewardKPIs?.pendingRedemptions ?? 0} pendentes
                 </p>
               </div>
-              <ArrowRight className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              <ArrowRight className="size-4 text-gray-500 group-hover:text-tbo-orange transition-colors" />
             </CardContent>
           </Card>
         </Link>
 
         <Link href="/cultura/rituais" className="group">
-          <Card className="h-full transition-colors group-hover:border-primary/40">
+          <Card className="h-full transition-colors group-hover:border-tbo-orange/40">
             <CardContent className="p-4 flex items-center gap-3">
               <div className="rounded-lg p-2.5 bg-blue-500/10">
                 <Repeat className="size-5 text-blue-500" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm">Rituais</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-gray-500">
                   {rituals?.filter((r) => r.is_active).length ?? 0} ativos de{" "}
                   {rituals?.length ?? 0}
                 </p>
               </div>
-              <ArrowRight className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              <ArrowRight className="size-4 text-gray-500 group-hover:text-tbo-orange transition-colors" />
             </CardContent>
           </Card>
         </Link>
@@ -177,7 +177,7 @@ export default function CulturaPage() {
               {link && (
                 <Link
                   href={link}
-                  className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
+                  className="text-xs text-gray-500 hover:text-tbo-orange flex items-center gap-1"
                 >
                   Ver todos
                   <ArrowRight className="size-3" />

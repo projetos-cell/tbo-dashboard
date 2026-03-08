@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import {
@@ -16,10 +16,10 @@ import {
   CheckSquare,
   Link,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/tbo-ui/button";
+import { Input } from "@/components/tbo-ui/input";
+import { Label } from "@/components/tbo-ui/label";
+import { Badge } from "@/components/tbo-ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -27,7 +27,7 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from "@/components/tbo-ui/dialog";
 import {
   useFieldDefinitions,
   useCreateFieldDefinition,
@@ -128,9 +128,9 @@ export function CustomFieldConfig({
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Carregando...</p>
+        <p className="text-sm text-gray-500">Carregando...</p>
       ) : definitions?.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-4">
+        <p className="text-sm text-gray-500 text-center py-4">
           Nenhum campo personalizado configurado
         </p>
       ) : (
@@ -147,8 +147,8 @@ export function CustomFieldConfig({
                 key={field.id}
                 className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm group"
               >
-                <GripVertical className="size-4 text-muted-foreground cursor-grab" />
-                <IconComp className="size-4 text-muted-foreground" />
+                <GripVertical className="size-4 text-gray-500 cursor-grab" />
+                <IconComp className="size-4 text-gray-500" />
                 <span className="flex-1">{field.name}</span>
                 <Badge variant="secondary" className="text-[10px]">
                   {typeDef?.label || field.field_type}
@@ -156,7 +156,7 @@ export function CustomFieldConfig({
                 {field.is_required && (
                   <Badge
                     variant="outline"
-                    className="text-[10px] text-destructive"
+                    className="text-[10px] text-red-500"
                   >
                     Obrigatorio
                   </Badge>
@@ -174,7 +174,7 @@ export function CustomFieldConfig({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="size-6 text-destructive"
+                    className="size-6 text-red-500"
                     onClick={() => handleDelete(field)}
                     aria-label="Remover"
                   >
@@ -304,8 +304,8 @@ function FieldDialog({
                     className={cn(
                       "flex flex-col items-center gap-1 rounded-md border p-2 text-xs transition-colors",
                       fieldType === key
-                        ? "border-primary bg-primary/5"
-                        : "hover:bg-accent"
+                        ? "border-tbo-orange bg-tbo-orange/5"
+                        : "hover:bg-gray-100"
                     )}
                   >
                     <IconComp className="size-4" />

@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { RequireRole } from "@/components/auth/require-role";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Button } from "@/components/tbo-ui/button";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import {
   DollarSign,
   TrendingUp,
@@ -100,7 +100,7 @@ function InteligenciaContent() {
         <h1 className="text-2xl font-bold tracking-tight">
           Inteligencia & BI
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-gray-500">
           Dashboards analiticos e insights do negocio.
         </p>
       </div>
@@ -134,7 +134,7 @@ function InteligenciaContent() {
                   {isLoading ? <Skeleton className="h-7 w-20" /> : kpi.value}
                 </div>
                 {kpi.description && (
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-gray-500 mt-1">
                     {kpi.description}
                   </p>
                 )}
@@ -163,7 +163,7 @@ function InteligenciaContent() {
                   <CardTitle className="text-base font-semibold">
                     {section.title}
                   </CardTitle>
-                  <p className="text-sm text-muted-foreground mt-0.5">
+                  <p className="text-sm text-gray-500 mt-0.5">
                     {section.description}
                   </p>
                 </div>
@@ -189,7 +189,7 @@ function InteligenciaContent() {
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium">Relatorios Automatizados</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs text-gray-500 mt-0.5">
               Gere relatorios consolidados com dados de todos os modulos do
               sistema.
             </p>
@@ -203,9 +203,9 @@ function InteligenciaContent() {
       {/* AI Insights Placeholder */}
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-          <Brain className="mb-3 h-10 w-10 text-muted-foreground/40" />
+          <Brain className="mb-3 h-10 w-10 text-gray-500/40" />
           <p className="text-sm font-medium">Insights com IA</p>
-          <p className="text-xs text-muted-foreground mt-1 max-w-md">
+          <p className="text-xs text-gray-500 mt-1 max-w-md">
             Em breve, a inteligencia artificial analisara seus dados e sugerira
             acoes estrategicas com base em tendencias e padroes identificados.
           </p>

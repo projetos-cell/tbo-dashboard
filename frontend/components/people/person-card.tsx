@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Card, CardContent } from "@/components/tbo-ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/tbo-ui/avatar";
 import { PEOPLE_STATUS, BU_COLORS } from "@/lib/constants";
 import { getInitials } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
@@ -39,7 +39,7 @@ export function PersonCard({ person, snapshot, onClick }: PersonCardProps) {
             <p className="truncate text-sm font-medium">
               {person.full_name ?? "Sem nome"}
             </p>
-            <p className="truncate text-xs text-muted-foreground">
+            <p className="truncate text-xs text-gray-500">
               {person.cargo ?? "—"}
             </p>
           </div>
@@ -66,7 +66,7 @@ export function PersonCard({ person, snapshot, onClick }: PersonCardProps) {
           )}
         </div>
 
-        <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+        <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
           {person.email && (
             <span className="flex items-center gap-1 truncate">
               <Mail className="h-3 w-3 shrink-0" />

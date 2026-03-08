@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo } from "react";
 import { useFinanceChartData, useFinanceCategories } from "@/hooks/use-finance";
@@ -11,8 +11,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
+import { Button } from "@/components/tbo-ui/button";
 import { AlertCircle, Tag } from "lucide-react";
 
 const COLORS = [
@@ -63,7 +63,7 @@ export function CategoryDonut({ transactionType, filters }: CategoryDonutProps) 
 
   if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center h-[220px] gap-2 text-destructive">
+      <div className="flex flex-col items-center justify-center h-[220px] gap-2 text-red-500">
         <AlertCircle className="h-6 w-6" />
         <p className="text-sm">Erro ao carregar categorias</p>
         <Button variant="outline" size="sm" onClick={() => refetch()}>
@@ -75,7 +75,7 @@ export function CategoryDonut({ transactionType, filters }: CategoryDonutProps) 
 
   if (!chartData.length) {
     return (
-      <div className="flex flex-col items-center justify-center h-[220px] gap-2 text-muted-foreground">
+      <div className="flex flex-col items-center justify-center h-[220px] gap-2 text-gray-500">
         <Tag className="h-8 w-8" />
         <p className="text-sm font-medium">Sem transações no período</p>
         <p className="text-xs">Ajuste o filtro de data para ver distribuição</p>

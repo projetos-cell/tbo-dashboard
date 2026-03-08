@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import { use, useState } from "react";
 import dynamic from "next/dynamic";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/tbo-ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/tbo-ui/tabs";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import { ErrorState } from "@/components/shared";
 import { ProjectTopbar } from "@/components/projects/project-topbar";
 import { ProjectOverview } from "@/components/projects/tabs/project-overview";
@@ -16,7 +16,7 @@ const ProjectGantt = dynamic(
   () => import("@/components/projects/tabs/project-gantt").then((m) => ({ default: m.ProjectGantt })),
   {
     ssr: false,
-    loading: () => <div className="h-64 animate-pulse rounded-lg bg-muted" />,
+    loading: () => <div className="h-64 animate-pulse rounded-lg bg-gray-100" />,
   }
 );
 import { DemandsList } from "@/components/demands/demands-list";
@@ -30,7 +30,7 @@ import {
 import { useProject, useProjectDemands, useProjectStats } from "@/hooks/use-projects";
 import { useProfiles } from "@/hooks/use-people";
 import { useUser } from "@/hooks/use-user";
-import type { UserOption } from "@/components/ui/user-selector";
+import type { UserOption } from "@/components/tbo-ui/user-selector";
 import type { Database } from "@/lib/supabase/types";
 
 type DemandRow = Database["public"]["Tables"]["demands"]["Row"];
@@ -143,7 +143,7 @@ export default function ProjectDetailPage({
               onSelect={(d) => setSelectedDemand(d)}
             />
           ) : (
-            <div className="text-sm text-muted-foreground text-center py-8">
+            <div className="text-sm text-gray-500 text-center py-8">
               {allDemands.length === 0
                 ? "Nenhuma demanda neste projeto."
                 : "Nenhuma demanda encontrada com os filtros aplicados."}
@@ -158,7 +158,7 @@ export default function ProjectDetailPage({
               onSelect={(d) => setSelectedDemand(d)}
             />
           ) : (
-            <div className="text-sm text-muted-foreground text-center py-8">
+            <div className="text-sm text-gray-500 text-center py-8">
               Nenhuma demanda neste projeto.
             </div>
           )}

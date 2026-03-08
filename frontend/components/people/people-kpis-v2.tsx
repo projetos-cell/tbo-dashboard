@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/tbo-ui/card";
 import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
-} from "@/components/ui/tooltip";
+} from "@/components/tbo-ui/tooltip";
 import type { PeopleKPIsV2 } from "@/services/people";
 import {
   Users,
@@ -138,7 +138,7 @@ export function PeopleKPICardsV2({
         {Array.from({ length: 8 }).map((_, i) => (
           <div
             key={i}
-            className="h-[72px] animate-pulse rounded-lg border bg-muted/40"
+            className="h-[72px] animate-pulse rounded-lg border bg-gray-100/40"
           />
         ))}
       </div>
@@ -158,7 +158,7 @@ export function PeopleKPICardsV2({
             <TooltipTrigger asChild>
               <Card
                 className={`cursor-pointer transition-all hover:shadow-md ${
-                  isActive ? "ring-2 ring-primary" : ""
+                  isActive ? "ring-2 ring-tbo-orange" : ""
                 }`}
                 onClick={() => onKPIClick(key)}
               >
@@ -168,7 +168,7 @@ export function PeopleKPICardsV2({
                   </div>
                   <div className="min-w-0">
                     <p className="text-2xl font-bold">{value}</p>
-                    <p className="truncate text-xs text-muted-foreground">
+                    <p className="truncate text-xs text-gray-500">
                       {cfg.label}
                     </p>
                   </div>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { format } from "date-fns";
@@ -12,16 +12,16 @@ import {
   User,
   Users,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/tbo-ui/button";
+import { Separator } from "@/components/tbo-ui/separator";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetDescription,
-} from "@/components/ui/sheet";
+} from "@/components/tbo-ui/sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,8 +30,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { InlineEditable } from "@/components/ui/inline-editable";
+} from "@/components/tbo-ui/dropdown-menu";
+import { InlineEditable } from "@/components/tbo-ui/inline-editable";
 import { useUpdateDecision, useDeleteDecision } from "@/hooks/use-decisions";
 import type { Database } from "@/lib/supabase/types";
 
@@ -140,7 +140,7 @@ export function DecisionDetail({
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
+                  className="text-red-500 focus:text-red-500"
                   onClick={() => setConfirmDelete(true)}
                 >
                   <Trash2 className="size-3.5 mr-2" />
@@ -159,11 +159,11 @@ export function DecisionDetail({
           <div className="flex-1 px-6 py-4 space-y-5 border-r min-w-0">
             {/* Description */}
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">
+              <p className="text-xs font-medium text-gray-500">
                 Descricao
               </p>
               <textarea
-                className="w-full min-h-[120px] text-sm bg-transparent border rounded-md p-2 resize-y focus:outline-none focus:ring-1 focus:ring-ring"
+                className="w-full min-h-[120px] text-sm bg-transparent border rounded-md p-2 resize-y focus:outline-none focus:ring-1 focus:ring-tbo-orange"
                 defaultValue={decision.description || ""}
                 placeholder="Adicionar descricao..."
                 onBlur={handleDescriptionBlur}
@@ -174,7 +174,7 @@ export function DecisionDetail({
 
             {/* Tasks created */}
             <div className="space-y-1.5">
-              <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
                 <CheckSquare className="h-3 w-3" /> Tarefas criadas
               </p>
               {decision.tasks_created && decision.tasks_created.length > 0 ? (
@@ -182,15 +182,15 @@ export function DecisionDetail({
                   {decision.tasks_created.map((task, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center gap-2 text-sm text-foreground"
+                      className="flex items-center gap-2 text-sm text-gray-900"
                     >
-                      <CheckSquare className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <CheckSquare className="h-3.5 w-3.5 text-gray-500 shrink-0" />
                       <span className="truncate">{task}</span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground italic">
+                <p className="text-xs text-gray-500 italic">
                   Nenhuma tarefa vinculada
                 </p>
               )}
@@ -201,12 +201,12 @@ export function DecisionDetail({
           <div className="w-[220px] shrink-0 px-4 py-4 space-y-4 text-sm">
             {/* Decided by */}
             <div className="space-y-1.5">
-              <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
                 <Users className="h-3 w-3" /> Decidido por
               </p>
               <input
                 type="text"
-                className="w-full text-xs border rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-ring"
+                className="w-full text-xs border rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-tbo-orange"
                 defaultValue={decision.decided_by || ""}
                 placeholder="Nome..."
                 onBlur={handleDecidedByBlur}
@@ -215,12 +215,12 @@ export function DecisionDetail({
 
             {/* Project */}
             <div className="space-y-1.5">
-              <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
                 <FolderOpen className="h-3 w-3" /> Projeto
               </p>
               <input
                 type="text"
-                className="w-full text-xs border rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-ring"
+                className="w-full text-xs border rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-tbo-orange"
                 defaultValue={decision.project_id || ""}
                 placeholder="ID do projeto..."
                 onBlur={handleProjectIdBlur}
@@ -229,12 +229,12 @@ export function DecisionDetail({
 
             {/* Meeting */}
             <div className="space-y-1.5">
-              <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
                 <Calendar className="h-3 w-3" /> Reuniao
               </p>
               <input
                 type="text"
-                className="w-full text-xs border rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-ring"
+                className="w-full text-xs border rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-tbo-orange"
                 defaultValue={decision.meeting_id || ""}
                 placeholder="ID da reuniao..."
                 onBlur={handleMeetingIdBlur}
@@ -244,7 +244,7 @@ export function DecisionDetail({
             <Separator />
 
             {/* Timestamps */}
-            <div className="text-[11px] text-muted-foreground space-y-0.5">
+            <div className="text-[11px] text-gray-500 space-y-0.5">
               {decision.created_at && (
                 <p>
                   Criada{" "}
@@ -266,7 +266,7 @@ export function DecisionDetail({
             {/* Created by */}
             {decision.created_by && (
               <div className="space-y-1.5">
-                <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
                   <User className="h-3 w-3" /> Criado por
                 </p>
                 <p className="text-xs">{decision.created_by}</p>
@@ -304,7 +304,7 @@ export function DecisionDetail({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-7 text-xs text-destructive hover:text-destructive"
+                  className="h-7 text-xs text-red-500 hover:text-red-500"
                   onClick={() => setConfirmDelete(true)}
                 >
                   <Trash2 className="size-3 mr-1" />

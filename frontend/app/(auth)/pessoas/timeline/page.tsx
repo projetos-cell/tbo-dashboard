@@ -1,14 +1,14 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/tbo-ui/select";
 import { PeopleTimeline } from "@/components/people/people-timeline";
 import { usePeopleEvents } from "@/hooks/use-people-events";
 import { useProfiles } from "@/hooks/use-people";
@@ -71,7 +71,7 @@ export default function PessoasTimelinePage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Timeline</h1>
-        <p className="text-muted-foreground">
+        <p className="text-gray-500">
           Histórico de eventos organizacionais por pessoa
         </p>
       </div>

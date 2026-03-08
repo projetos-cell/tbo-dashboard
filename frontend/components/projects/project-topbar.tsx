@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -11,11 +11,11 @@ import {
   Settings,
   ExternalLink,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { InlineEditable } from "@/components/ui/inline-editable";
-import { DateRangePicker, type DateRange } from "@/components/ui/date-range-picker";
-import { UserSelector, type UserOption } from "@/components/ui/user-selector";
+import { Button } from "@/components/tbo-ui/button";
+import { Badge } from "@/components/tbo-ui/badge";
+import { InlineEditable } from "@/components/tbo-ui/inline-editable";
+import { DateRangePicker, type DateRange } from "@/components/tbo-ui/date-range-picker";
+import { UserSelector, type UserOption } from "@/components/tbo-ui/user-selector";
 import { useUpdateProject, useDeleteProject } from "@/hooks/use-projects";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -103,7 +103,7 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
             )}
           </div>
           {project.code && (
-            <p className="text-sm text-muted-foreground">{project.code}</p>
+            <p className="text-sm text-gray-500">{project.code}</p>
           )}
         </div>
 
@@ -131,7 +131,7 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
               <MoreHorizontal className="size-4" />
             </Button>
             {showMenu && (
-              <div className="absolute right-0 top-full mt-1 bg-popover border rounded-md shadow-md z-20 py-1 min-w-[160px]">
+              <div className="absolute right-0 top-full mt-1 bg-white border rounded-md shadow-md z-20 py-1 min-w-[160px]">
                 <MenuButton icon={Copy} label="Duplicar" onClick={() => setShowMenu(false)} />
                 <MenuButton icon={Archive} label="Arquivar" onClick={() => setShowMenu(false)} />
                 <MenuButton icon={Settings} label="Configuracoes" onClick={() => setShowMenu(false)} />
@@ -154,7 +154,7 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
       {/* Secondary row */}
       <div className="flex items-center gap-4 pl-12">
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground text-xs">Responsavel:</span>
+          <span className="text-gray-500 text-xs">Responsavel:</span>
           <UserSelector
             mode="single"
             selected={users.find((u) => u.full_name === project.owner_name)?.id || null}
@@ -164,7 +164,7 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
           />
         </div>
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground text-xs">Periodo:</span>
+          <span className="text-gray-500 text-xs">Periodo:</span>
           <DateRangePicker
             value={{
               start: project.due_date_start
@@ -207,11 +207,11 @@ function StatusDropdown({
         {statusCfg?.label || current}
       </Badge>
       {open && (
-        <div className="absolute left-0 top-full mt-1 bg-popover border rounded-md shadow-md z-20 py-1 min-w-[140px]">
+        <div className="absolute left-0 top-full mt-1 bg-white border rounded-md shadow-md z-20 py-1 min-w-[140px]">
           {Object.entries(PROJECT_STATUS).map(([key, cfg]) => (
             <button
               key={key}
-              className="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-accent"
+              className="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100"
               onClick={() => {
                 onChange(key);
                 setOpen(false);
@@ -243,8 +243,8 @@ function MenuButton({
 }) {
   return (
     <button
-      className={`flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-accent ${
-        danger ? "text-destructive" : ""
+      className={`flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 ${
+        danger ? "text-red-500" : ""
       }`}
       onClick={onClick}
     >

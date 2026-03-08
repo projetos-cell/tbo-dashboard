@@ -91,7 +91,7 @@ export function MessageList({
 
   if (messages.length === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center text-muted-foreground text-sm">
+      <div className="flex flex-1 items-center justify-center text-gray-500 text-sm">
         Nenhuma mensagem ainda. Comece a conversa!
       </div>
     );
@@ -107,7 +107,7 @@ export function MessageList({
 
       {isFetchingNextPage && (
         <div className="flex justify-center py-2">
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
         </div>
       )}
 

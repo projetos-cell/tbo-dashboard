@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
@@ -14,10 +14,10 @@ import {
   RefreshCw,
   Bell,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/tbo-ui/button";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/tbo-ui/avatar";
 import { ErrorState, EmptyState } from "@/components/shared";
 import {
   useNotifications,
@@ -153,7 +153,7 @@ export default function AlertsPage() {
           <h1 className="text-2xl font-bold tracking-tight">
             Alertas & Notificações
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500">
             Acompanhe menções, atribuições e atualizações em suas tarefas.
           </p>
         </div>
@@ -257,8 +257,8 @@ function KpiCard({
   color?: string;
 }) {
   return (
-    <div className="rounded-lg border bg-card p-4">
-      <p className="text-sm text-muted-foreground">{label}</p>
+    <div className="rounded-lg border bg-white p-4">
+      <p className="text-sm text-gray-500">{label}</p>
       <p
         className="text-2xl font-bold mt-1"
         style={color ? { color } : undefined}
@@ -306,7 +306,7 @@ function NotificationCard({
   return (
     <div
       onClick={onClick}
-      className={`group flex items-start gap-3 rounded-lg border p-4 transition-colors cursor-pointer hover:bg-muted/50 ${
+      className={`group flex items-start gap-3 rounded-lg border p-4 transition-colors cursor-pointer hover:bg-gray-100/50 ${
         !notification.read
           ? "bg-blue-50/50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-900"
           : ""
@@ -324,8 +324,8 @@ function NotificationCard({
             </AvatarFallback>
           </Avatar>
         ) : (
-          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-            <TriggerIcon className="h-4 w-4 text-muted-foreground" />
+          <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
+            <TriggerIcon className="h-4 w-4 text-gray-500" />
           </div>
         )}
       </div>
@@ -339,8 +339,8 @@ function NotificationCard({
           <p
             className={`text-sm font-medium truncate ${
               !notification.read
-                ? "text-foreground"
-                : "text-muted-foreground"
+                ? "text-gray-900"
+                : "text-gray-500"
             }`}
           >
             {notification.title}
@@ -348,7 +348,7 @@ function NotificationCard({
         </div>
 
         {notification.body && (
-          <p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">
+          <p className="text-sm text-gray-500 line-clamp-1 mt-0.5">
             {notification.body}
           </p>
         )}
@@ -365,7 +365,7 @@ function NotificationCard({
             <TriggerIcon className="h-3 w-3 mr-1" />
             {trigger.label}
           </Badge>
-          <span className="text-xs text-muted-foreground">{timeLabel}</span>
+          <span className="text-xs text-gray-500">{timeLabel}</span>
         </div>
       </div>
 
@@ -385,7 +385,7 @@ function NotificationCard({
         <Button
           variant="ghost"
           size="sm"
-          className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+          className="h-7 w-7 p-0 text-red-500 hover:text-red-500"
           onClick={onDelete}
           title="Excluir"
         >

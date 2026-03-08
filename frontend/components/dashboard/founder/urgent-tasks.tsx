@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
 import { TASK_STATUS, TASK_PRIORITY } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 import { format, isPast, isToday } from "date-fns";
@@ -47,14 +47,14 @@ export function UrgentTasks({ tasks }: Props) {
         </CardTitle>
         <Link
           href="/tarefas"
-          className="text-sm text-muted-foreground hover:underline"
+          className="text-sm text-gray-500 hover:underline"
         >
           Ver todas
         </Link>
       </CardHeader>
       <CardContent>
         {urgent.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
+          <p className="py-6 text-center text-sm text-gray-500">
             Nenhuma tarefa urgente
           </p>
         ) : (
@@ -98,7 +98,7 @@ export function UrgentTasks({ tasks }: Props) {
                         </span>
                       )}
                       {task.assignee_name && (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-gray-500">
                           {task.assignee_name}
                         </span>
                       )}
@@ -106,7 +106,7 @@ export function UrgentTasks({ tasks }: Props) {
                   </div>
                   {task.due_date && (
                     <span
-                      className={`ml-2 whitespace-nowrap text-xs ${overdue ? "font-bold text-red-600" : "text-muted-foreground"}`}
+                      className={`ml-2 whitespace-nowrap text-xs ${overdue ? "font-bold text-red-600" : "text-gray-500"}`}
                     >
                       {overdue && "⚠ "}
                       {format(new Date(task.due_date + "T12:00:00"), "dd MMM", {

@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useMemo } from "react";
 import { SCORECARD_SKILLS, SKILL_MAP } from "@/lib/performance-constants";
 import type { SkillScoreRow } from "@/services/performance";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/tbo-ui/badge";
 import {
   Table,
   TableBody,
@@ -11,7 +11,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/tbo-ui/table";
 
 // ---------------------------------------------------------------------------
 // Skill Table — shows 10 skills with actual vs expected + gap
@@ -60,10 +60,10 @@ export function SkillTable({ scores }: SkillTableProps) {
                 {hasScore ? (
                   <span className="font-semibold">{actual}%</span>
                 ) : (
-                  <span className="text-muted-foreground">—</span>
+                  <span className="text-gray-500">—</span>
                 )}
               </TableCell>
-              <TableCell className="text-center text-muted-foreground">
+              <TableCell className="text-center text-gray-500">
                 {expected}%
               </TableCell>
               <TableCell className="text-center">
@@ -77,7 +77,7 @@ export function SkillTable({ scores }: SkillTableProps) {
                     {gap}%
                   </span>
                 ) : (
-                  <span className="text-muted-foreground">—</span>
+                  <span className="text-gray-500">—</span>
                 )}
               </TableCell>
               <TableCell className="text-center">
@@ -92,7 +92,7 @@ export function SkillTable({ scores }: SkillTableProps) {
                     </Badge>
                   )
                 ) : (
-                  <span className="text-muted-foreground text-xs">Sem avaliação</span>
+                  <span className="text-gray-500 text-xs">Sem avaliação</span>
                 )}
               </TableCell>
             </TableRow>

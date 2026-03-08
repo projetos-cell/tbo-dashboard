@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Input } from "@/components/tbo-ui/input";
 import {
   Table,
   TableBody,
@@ -10,7 +10,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/tbo-ui/table";
 import { ScoreBadge, TrendIndicator } from "./score-badge";
 import { getScoreBand, getStatusIcon } from "@/lib/performance-constants";
 import type { PerformanceSnapshotRow } from "@/services/performance";
@@ -111,7 +111,7 @@ export function PerformanceTable({
     return (
       <div className="space-y-2">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-12 animate-pulse rounded-lg border bg-muted/40" />
+          <div key={i} className="h-12 animate-pulse rounded-lg border bg-gray-100/40" />
         ))}
       </div>
     );
@@ -124,7 +124,7 @@ export function PerformanceTable({
     >
       <span className="flex items-center gap-1">
         {label}
-        <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
+        <ArrowUpDown className="h-3 w-3 text-gray-500" />
       </span>
     </TableHead>
   );
@@ -132,7 +132,7 @@ export function PerformanceTable({
   return (
     <div className="space-y-3">
       <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
         <Input
           placeholder="Buscar por nome..."
           value={search}
@@ -159,7 +159,7 @@ export function PerformanceTable({
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                   Nenhum registro encontrado.
                 </TableCell>
               </TableRow>
@@ -170,16 +170,16 @@ export function PerformanceTable({
                 return (
                   <TableRow
                     key={s.id}
-                    className="cursor-pointer hover:bg-muted/50"
+                    className="cursor-pointer hover:bg-gray-100/50"
                     onClick={() => onSelect(s)}
                   >
                     <TableCell className="font-medium">
                       {getName(s.employee_id)}
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
+                    <TableCell className="text-gray-500 text-sm">
                       {getArea(s.employee_id) || "—"}
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
+                    <TableCell className="text-gray-500 text-sm">
                       {getCargo(s.employee_id) || "—"}
                     </TableCell>
                     <TableCell>

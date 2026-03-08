@@ -41,6 +41,16 @@ const EMPTY_SNAPSHOT: FounderDashboardSnapshot = {
   inadimplenciaPct: 0,
   inadimplenciaCount: 0,
   clientMargins: [],
+  receitaPorColaborador: 0,
+  headcount: 0,
+  expiringContracts: [],
+  forecastProposalsTotal: 0,
+  folhaPagamento: 0,
+  custosOperacionais: 0,
+  folhaPct: 0,
+  operacionalPct: 0,
+  churnRate: 0,
+  churnHistory: [],
 };
 
 export function useFounderDashboard(period?: PeriodValue) {

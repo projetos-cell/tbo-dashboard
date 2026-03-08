@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
 import { PROJECT_STATUS, BU_COLORS } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 
@@ -25,14 +25,14 @@ export function ActiveProjects({ projects }: Props) {
         </CardTitle>
         <Link
           href="/projetos"
-          className="text-sm text-muted-foreground hover:underline"
+          className="text-sm text-gray-500 hover:underline"
         >
           Ver todos
         </Link>
       </CardHeader>
       <CardContent>
         {active.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
+          <p className="py-6 text-center text-sm text-gray-500">
             Nenhum projeto ativo
           </p>
         ) : (
@@ -50,7 +50,7 @@ export function ActiveProjects({ projects }: Props) {
                 <Link
                   key={project.id}
                   href={`/projetos/${project.id}`}
-                  className="flex items-center justify-between rounded-lg border px-3 py-2 transition-colors hover:bg-muted/50"
+                  className="flex items-center justify-between rounded-lg border px-3 py-2 transition-colors hover:bg-gray-100/50"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">
@@ -93,7 +93,7 @@ export function ActiveProjects({ projects }: Props) {
                     </div>
                   </div>
                   {project.construtora && (
-                    <p className="ml-3 shrink-0 text-xs text-muted-foreground">
+                    <p className="ml-3 shrink-0 text-xs text-gray-500">
                       {project.construtora}
                     </p>
                   )}

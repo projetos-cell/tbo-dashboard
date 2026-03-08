@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo } from "react";
 import {
@@ -6,11 +6,11 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+} from "@/components/tbo-ui/sheet";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/tbo-ui/button";
+import { Separator } from "@/components/tbo-ui/separator";
 import { ScoreBadge, TrendIndicator } from "./score-badge";
 import { SkillRadar } from "./skill-radar";
 import { SkillTable } from "./skill-table";
@@ -99,7 +99,7 @@ export function ScoreIndividualSheet({
             <span>{getName(snapshot.employee_id)}</span>
             <ScoreBadge score={snapshot.final_score} showLabel size="md" />
           </SheetTitle>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 text-sm text-gray-500">
             <span>{getArea(snapshot.employee_id)}</span>
             {getCargo(snapshot.employee_id) && (
               <>
@@ -117,7 +117,7 @@ export function ScoreIndividualSheet({
           <div className="grid grid-cols-3 gap-3">
             <Card>
               <CardContent className="p-3 text-center">
-                <p className="text-[10px] text-muted-foreground">Skill (35%)</p>
+                <p className="text-[10px] text-gray-500">Skill (35%)</p>
                 <p className="text-lg font-bold">
                   {snapshot.skill_score?.toFixed(1) ?? "—"}
                 </p>
@@ -125,7 +125,7 @@ export function ScoreIndividualSheet({
             </Card>
             <Card>
               <CardContent className="p-3 text-center">
-                <p className="text-[10px] text-muted-foreground">Impact (45%)</p>
+                <p className="text-[10px] text-gray-500">Impact (45%)</p>
                 <p className="text-lg font-bold">
                   {snapshot.impact_score?.toFixed(1) ?? "—"}
                 </p>
@@ -133,7 +133,7 @@ export function ScoreIndividualSheet({
             </Card>
             <Card>
               <CardContent className="p-3 text-center">
-                <p className="text-[10px] text-muted-foreground">Culture (20%)</p>
+                <p className="text-[10px] text-gray-500">Culture (20%)</p>
                 <p className="text-lg font-bold">
                   {snapshot.culture_score?.toFixed(1) ?? "—"}
                 </p>
@@ -144,13 +144,13 @@ export function ScoreIndividualSheet({
           {/* Trend + Gap */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <TrendingUp className="h-4 w-4 text-gray-500" />
               <span className="text-sm">Tendencia:</span>
               <TrendIndicator trend={snapshot.trend} />
             </div>
             {nextBand && (
               <div className="flex items-center gap-2">
-                <Target className="h-4 w-4 text-muted-foreground" />
+                <Target className="h-4 w-4 text-gray-500" />
                 <span className="text-sm">
                   Faltam <span className="font-semibold">{nextBand.gap} pts</span> para{" "}
                   {nextBand.label}
@@ -234,9 +234,9 @@ export function ScoreIndividualSheet({
                   {history.map((h) => (
                     <div
                       key={h.id}
-                      className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-muted/50"
+                      className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-gray-100/50"
                     >
-                      <span className="text-muted-foreground">
+                      <span className="text-gray-500">
                         {formatPeriodLabel(h.period)}
                       </span>
                       <div className="flex items-center gap-2">

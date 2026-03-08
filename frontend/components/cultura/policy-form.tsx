@@ -1,13 +1,13 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { z } from "zod";
 import dynamic from "next/dynamic";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/tbo-ui/input";
+import { Label } from "@/components/tbo-ui/label";
+import { Button } from "@/components/tbo-ui/button";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Textarea } from "@/components/tbo-ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -15,14 +15,14 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from "@/components/tbo-ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/tbo-ui/select";
 import {
   POLICY_CATEGORIES,
   type PolicyCategoryKey,
@@ -37,7 +37,7 @@ const TiptapEditor = dynamic(
     })),
   {
     ssr: false,
-    loading: () => <div className="h-32 animate-pulse rounded-lg bg-muted" />,
+    loading: () => <div className="h-32 animate-pulse rounded-lg bg-gray-100" />,
   }
 );
 
@@ -185,13 +185,13 @@ export function PolicyForm({
           <div
             className={cn(
               "h-1 flex-1 rounded-full transition-colors",
-              step >= 1 ? "bg-primary" : "bg-muted"
+              step >= 1 ? "bg-tbo-orange" : "bg-gray-100"
             )}
           />
           <div
             className={cn(
               "h-1 flex-1 rounded-full transition-colors",
-              step >= 2 ? "bg-primary" : "bg-muted"
+              step >= 2 ? "bg-tbo-orange" : "bg-gray-100"
             )}
           />
         </div>
@@ -210,7 +210,7 @@ export function PolicyForm({
                 placeholder="Ex.: Politica Antiassedio"
               />
               {errors.title && (
-                <p className="text-xs text-destructive">{errors.title}</p>
+                <p className="text-xs text-red-500">{errors.title}</p>
               )}
             </div>
 
@@ -240,7 +240,7 @@ export function PolicyForm({
                 ))}
               </div>
               {errors.category && (
-                <p className="text-xs text-destructive">{errors.category}</p>
+                <p className="text-xs text-red-500">{errors.category}</p>
               )}
             </div>
 
@@ -252,7 +252,7 @@ export function PolicyForm({
                 onChange={(e) => setImageUrl(e.target.value)}
                 placeholder="https://exemplo.com/imagem.jpg"
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-gray-500">
                 Opcional. Se vazio, sera usado um placeholder.
               </p>
             </div>
@@ -265,8 +265,8 @@ export function PolicyForm({
                   className={cn(
                     "text-xs",
                     summary.length > 320
-                      ? "text-destructive"
-                      : "text-muted-foreground"
+                      ? "text-red-500"
+                      : "text-gray-500"
                   )}
                 >
                   {summary.length}/320
@@ -282,7 +282,7 @@ export function PolicyForm({
                 rows={3}
               />
               {errors.summary && (
-                <p className="text-xs text-destructive">{errors.summary}</p>
+                <p className="text-xs text-red-500">{errors.summary}</p>
               )}
             </div>
           </div>

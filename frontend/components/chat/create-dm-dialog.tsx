@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Search, X } from "lucide-react";
@@ -8,11 +8,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+} from "@/components/tbo-ui/dialog";
+import { Input } from "@/components/tbo-ui/input";
+import { Button } from "@/components/tbo-ui/button";
+import { Badge } from "@/components/tbo-ui/badge";
+import { ScrollArea } from "@/components/tbo-ui/scroll-area";
 import { useProfiles } from "@/hooks/use-people";
 import { useChatStore } from "@/stores/chat-store";
 import { useAuthStore } from "@/stores/auth-store";
@@ -100,7 +100,7 @@ export function CreateDMDialog() {
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-gray-500">
             Selecione uma pessoa para DM ou várias para criar um grupo.
           </p>
 
@@ -115,7 +115,7 @@ export function CreateDMDialog() {
                     <button
                       type="button"
                       onClick={() => removeUser(id)}
-                      className="ml-0.5 rounded-full hover:bg-muted-foreground/20 p-0.5"
+                      className="ml-0.5 rounded-full hover:bg-gray-100-foreground/20 p-0.5"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -127,7 +127,7 @@ export function CreateDMDialog() {
 
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-500" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -140,7 +140,7 @@ export function CreateDMDialog() {
           <ScrollArea className="h-48 rounded border">
             <div className="p-1">
               {filteredProfiles.length === 0 ? (
-                <p className="text-xs text-muted-foreground p-2 text-center">
+                <p className="text-xs text-gray-500 p-2 text-center">
                   Nenhum resultado
                 </p>
               ) : (
@@ -149,13 +149,13 @@ export function CreateDMDialog() {
                     key={p.id}
                     type="button"
                     onClick={() => toggleUser(p.id)}
-                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-muted transition-colors"
+                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-gray-100 transition-colors"
                   >
-                    <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-medium shrink-0">
+                    <div className="h-6 w-6 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-medium shrink-0">
                       {(p.full_name ?? "?").charAt(0).toUpperCase()}
                     </div>
                     <span className="truncate">{p.full_name}</span>
-                    <span className="text-xs text-muted-foreground truncate ml-auto">
+                    <span className="text-xs text-gray-500 truncate ml-auto">
                       {p.email}
                     </span>
                   </button>

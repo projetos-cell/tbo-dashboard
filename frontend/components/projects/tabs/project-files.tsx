@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { format } from "date-fns";
@@ -14,10 +14,10 @@ import {
   Grid3X3,
   List,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { FileDropzone } from "@/components/ui/file-dropzone";
+import { Card, CardContent } from "@/components/tbo-ui/card";
+import { Button } from "@/components/tbo-ui/button";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
+import { FileDropzone } from "@/components/tbo-ui/file-dropzone";
 import {
   useAttachments,
   useUploadAttachment,
@@ -106,7 +106,7 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
       {attachments && attachments.length > 0 && (
         <>
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-gray-500">
               {attachments.length}{" "}
               {attachments.length === 1 ? "arquivo" : "arquivos"}
             </p>
@@ -141,18 +141,18 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
                   <Card key={att.id} className="group">
                     <CardContent className="p-3">
                       {isImage ? (
-                        <div className="h-24 rounded-md bg-muted flex items-center justify-center overflow-hidden mb-2">
-                          <Image className="size-8 text-muted-foreground" />
+                        <div className="h-24 rounded-md bg-gray-100 flex items-center justify-center overflow-hidden mb-2">
+                          <Image className="size-8 text-gray-500" />
                         </div>
                       ) : (
-                        <div className="h-24 rounded-md bg-muted flex items-center justify-center mb-2">
-                          <Icon className="size-8 text-muted-foreground" />
+                        <div className="h-24 rounded-md bg-gray-100 flex items-center justify-center mb-2">
+                          <Icon className="size-8 text-gray-500" />
                         </div>
                       )}
                       <p className="text-sm font-medium truncate">
                         {att.file_name}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-gray-500">
                         {formatSize(att.file_size)}
                         {att.created_at &&
                           ` • ${format(new Date(att.created_at), "dd MMM", { locale: ptBR })}`}
@@ -170,7 +170,7 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-7 text-xs text-destructive"
+                          className="h-7 text-xs text-red-500"
                           onClick={() => handleDelete(att)}
                         >
                           <Trash2 className="size-3" />
@@ -190,14 +190,14 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
                     key={att.id}
                     className="flex items-center gap-3 px-4 py-2.5 group"
                   >
-                    <Icon className="size-4 text-muted-foreground shrink-0" />
+                    <Icon className="size-4 text-gray-500 shrink-0" />
                     <span className="text-sm flex-1 truncate">
                       {att.file_name}
                     </span>
-                    <span className="text-xs text-muted-foreground shrink-0">
+                    <span className="text-xs text-gray-500 shrink-0">
                       {formatSize(att.file_size)}
                     </span>
-                    <span className="text-xs text-muted-foreground shrink-0">
+                    <span className="text-xs text-gray-500 shrink-0">
                       {att.created_at &&
                         format(new Date(att.created_at), "dd MMM yyyy", {
                           locale: ptBR,
@@ -216,7 +216,7 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="size-7 text-destructive"
+                        className="size-7 text-red-500"
                         onClick={() => handleDelete(att)}
                         aria-label="Excluir arquivo"
                       >
@@ -232,7 +232,7 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
       )}
 
       {(!attachments || attachments.length === 0) && (
-        <p className="text-sm text-muted-foreground text-center py-4">
+        <p className="text-sm text-gray-500 text-center py-4">
           Nenhum arquivo anexado
         </p>
       )}

@@ -32,8 +32,8 @@ export function CulturaSidebar() {
   const role = useAuthStore((s) => s.role);
 
   return (
-    <nav className="w-52 shrink-0 border-r bg-muted/30 p-3 space-y-1 hidden md:block">
-      <h2 className="px-2 mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+    <nav className="w-52 shrink-0 border-r bg-gray-100/30 p-3 space-y-1 hidden md:block">
+      <h2 className="px-2 mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
         Cultura
       </h2>
       {CULTURA_NAV_ITEMS.map((item) => {
@@ -60,8 +60,8 @@ export function CulturaSidebar() {
             className={cn(
               "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
               isActive
-                ? "bg-primary/10 text-primary font-medium"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                ? "bg-tbo-orange/10 text-tbo-orange font-medium"
+                : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
             )}
           >
             <Icon className="size-4" />

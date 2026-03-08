@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   AlertDialog,
@@ -10,7 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from "@/components/tbo-ui/alert-dialog";
 import { type ReactNode } from "react";
 
 interface ConfirmDialogProps {
@@ -46,7 +46,7 @@ export function ConfirmDialog({
             onClick={onConfirm}
             className={
               variant === "destructive"
-                ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                ? "bg-red-500 text-white hover:bg-red-500/90"
                 : undefined
             }
           >

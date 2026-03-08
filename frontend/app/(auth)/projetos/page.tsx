@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
 import { LayoutGrid, List, Plus, FolderKanban } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/tbo-ui/button";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import { ErrorState, EmptyState } from "@/components/shared";
 import { ProjectBoard } from "@/components/projects/project-board";
 import { ProjectList } from "@/components/projects/project-list";
@@ -65,7 +65,7 @@ export default function ProjetosPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Projetos</h1>
-          <p className="text-muted-foreground">
+          <p className="text-gray-500">
             Gerencie seus projetos e acompanhe o progresso.
           </p>
         </div>
@@ -156,8 +156,8 @@ function KpiCard({
   color?: string;
 }) {
   return (
-    <div className="rounded-lg border bg-card p-4">
-      <p className="text-sm text-muted-foreground">{label}</p>
+    <div className="rounded-lg border bg-white p-4">
+      <p className="text-sm text-gray-500">{label}</p>
       <p
         className="text-2xl font-bold mt-1"
         style={color ? { color } : undefined}

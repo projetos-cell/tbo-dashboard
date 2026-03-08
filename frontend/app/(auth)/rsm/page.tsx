@@ -1,17 +1,17 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/tbo-ui/tabs";
+import { Button } from "@/components/tbo-ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+} from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import {
   Table,
   TableBody,
@@ -19,20 +19,20 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/tbo-ui/table";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/tbo-ui/dropdown-menu";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/tbo-ui/select";
 import {
   Plus,
   MoreHorizontal,
@@ -114,7 +114,7 @@ export default function RsmPage() {
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Social Media</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500">
             Gerencie contas, posts e ideias de redes sociais.
           </p>
         </div>
@@ -128,7 +128,7 @@ export default function RsmPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Contas Ativas</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <Users className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{kpis.totalAccounts}</div>
@@ -137,7 +137,7 @@ export default function RsmPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Seguidores</CardTitle>
-              <Heart className="h-4 w-4 text-muted-foreground" />
+              <Heart className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
@@ -148,7 +148,7 @@ export default function RsmPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Posts este Mes</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
+              <FileText className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{kpis.postsThisMonth}</div>
@@ -157,7 +157,7 @@ export default function RsmPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Agendados</CardTitle>
-              <CalendarClock className="h-4 w-4 text-muted-foreground" />
+              <CalendarClock className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{kpis.scheduledPosts}</div>
@@ -212,8 +212,8 @@ export default function RsmPage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-sm text-muted-foreground">
-                        <span className="font-semibold text-foreground">
+                      <p className="text-sm text-gray-500">
+                        <span className="font-semibold text-gray-900">
                           {(account.followers_count ?? 0).toLocaleString("pt-BR")}
                         </span>{" "}
                         seguidores
@@ -294,14 +294,14 @@ export default function RsmPage() {
                             {post.status}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
+                        <TableCell className="text-sm text-gray-500">
                           {post.published_date
                             ? format(new Date(post.published_date), "dd/MM/yyyy", {
                                 locale: ptBR,
                               })
                             : "-"}
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
+                        <TableCell className="text-sm text-gray-500">
                           {post.scheduled_date
                             ? format(new Date(post.scheduled_date), "dd/MM/yyyy", {
                                 locale: ptBR,
@@ -321,7 +321,7 @@ export default function RsmPage() {
                                 Editar
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                className="text-destructive"
+                                className="text-red-500"
                                 onClick={() => deletePostMutation.mutate(post.id)}
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
@@ -407,7 +407,7 @@ export default function RsmPage() {
                             {idea.status}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
+                        <TableCell className="text-sm text-gray-500">
                           {idea.assigned_to ?? "-"}
                         </TableCell>
                         <TableCell>
@@ -423,7 +423,7 @@ export default function RsmPage() {
                                 Editar
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                className="text-destructive"
+                                className="text-red-500"
                                 onClick={() => deleteIdeaMutation.mutate(idea.id)}
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />

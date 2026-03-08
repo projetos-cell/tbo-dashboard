@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Progress } from "@/components/tbo-ui/progress";
+import { Badge } from "@/components/tbo-ui/badge";
 import type { OkrSnapshot } from "@/services/dashboard";
 import { Target } from "lucide-react";
 
@@ -40,14 +40,14 @@ export function OkrSnapshotCard({ snapshots }: Props) {
         </CardTitle>
         <Link
           href="/okrs"
-          className="text-sm text-muted-foreground hover:underline"
+          className="text-sm text-gray-500 hover:underline"
         >
           Ver OKRs
         </Link>
       </CardHeader>
       <CardContent>
         {snapshots.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
+          <p className="py-6 text-center text-sm text-gray-500">
             Nenhum ciclo OKR ativo
           </p>
         ) : (
@@ -55,7 +55,7 @@ export function OkrSnapshotCard({ snapshots }: Props) {
             {/* Overall progress */}
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-500">
                   Progresso geral do ciclo
                 </p>
                 <p className={`text-2xl font-bold ${getProgressColor(avgProgress)}`}>
@@ -85,7 +85,7 @@ export function OkrSnapshotCard({ snapshots }: Props) {
                     value={snap.progress}
                     className={`h-1.5 ${getProgressBg(snap.progress)}`}
                   />
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-gray-500">
                     {snap.keyResultsCompleted}/{snap.keyResultsCount} KRs
                     concluidos
                   </p>

@@ -19,7 +19,7 @@ export function ClientGrid({ clients, isLoading, onSelect }: ClientGridProps) {
         {Array.from({ length: 8 }).map((_, i) => (
           <div
             key={i}
-            className="h-48 animate-pulse rounded-lg border bg-muted/40"
+            className="h-48 animate-pulse rounded-lg border bg-gray-100/40"
           />
         ))}
       </div>
@@ -29,9 +29,9 @@ export function ClientGrid({ clients, isLoading, onSelect }: ClientGridProps) {
   if (clients.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
-        <Building2 className="mb-3 h-10 w-10 text-muted-foreground/50" />
+        <Building2 className="mb-3 h-10 w-10 text-gray-500/50" />
         <p className="text-sm font-medium">Nenhum cliente encontrado</p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-gray-500">
           Ajuste os filtros ou adicione novos clientes.
         </p>
       </div>

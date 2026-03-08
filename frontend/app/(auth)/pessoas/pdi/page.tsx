@@ -1,15 +1,15 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/tbo-ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
+} from "@/components/tbo-ui/select";
+import { Input } from "@/components/tbo-ui/input";
 import { PdiKPICards } from "@/components/pdi/pdi-kpis";
 import { PdiTable } from "@/components/pdi/pdi-table";
 import { PdiDetail } from "@/components/pdi/pdi-detail";
@@ -87,7 +87,7 @@ export default function PDIPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">PDI - Plano de Desenvolvimento</h1>
-          <p className="text-muted-foreground">
+          <p className="text-gray-500">
             Planos de desenvolvimento individual dos colaboradores.
           </p>
         </div>
@@ -109,7 +109,7 @@ export default function PDIPage() {
       {/* Filters */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -136,7 +136,7 @@ export default function PDIPage() {
       {isLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-14 animate-pulse rounded-lg border bg-muted/40" />
+            <div key={i} className="h-14 animate-pulse rounded-lg border bg-gray-100/40" />
           ))}
         </div>
       ) : (

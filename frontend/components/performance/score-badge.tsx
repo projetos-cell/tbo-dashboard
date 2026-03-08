@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/tbo-ui/badge";
 import {
   getScoreBand,
   TREND_CONFIG,
@@ -41,7 +41,7 @@ interface TrendIndicatorProps {
 }
 
 export function TrendIndicator({ trend }: TrendIndicatorProps) {
-  if (!trend) return <span className="text-xs text-muted-foreground">→</span>;
+  if (!trend) return <span className="text-xs text-gray-500">→</span>;
   const config = TREND_CONFIG[trend];
   return (
     <span className={`text-sm font-medium ${config.color}`} title={config.label}>

@@ -1,19 +1,19 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Send, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/tbo-ui/avatar";
+import { Button } from "@/components/tbo-ui/button";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
+import { Textarea } from "@/components/tbo-ui/textarea";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/tbo-ui/dropdown-menu";
 import {
   useDemandComments,
   useCreateDemandComment,
@@ -84,7 +84,7 @@ export function DemandCommentThread({
       />
 
       {(!comments || comments.length === 0) && (
-        <p className="text-sm text-muted-foreground text-center py-4">
+        <p className="text-sm text-gray-500 text-center py-4">
           Nenhum comentario ainda
         </p>
       )}
@@ -199,7 +199,7 @@ function CommentItem({
           <span className="text-sm font-medium">
             {comment.author_id?.slice(0, 8) || "Anonimo"}
           </span>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-gray-500">
             {comment.created_at &&
               formatDistanceToNow(new Date(comment.created_at), {
                 addSuffix: true,
@@ -227,7 +227,7 @@ function CommentItem({
                   Editar
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
+                  className="text-red-500 focus:text-red-500"
                   onClick={handleDelete}
                 >
                   <Trash2 className="size-3.5 mr-2" />
@@ -273,7 +273,7 @@ function CommentItem({
             </div>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground mt-0.5 whitespace-pre-wrap">
+          <p className="text-sm text-gray-500 mt-0.5 whitespace-pre-wrap">
             {comment.content}
           </p>
         )}

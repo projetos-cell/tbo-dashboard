@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo } from "react";
 import { format } from "date-fns";
@@ -24,13 +24,13 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+} from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/tbo-ui/button";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
+import { Separator } from "@/components/tbo-ui/separator";
+import { ScrollArea } from "@/components/tbo-ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/tbo-ui/tabs";
 import { usePolicyById, usePolicyRevisions } from "@/hooks/use-policies";
 import { POLICY_CATEGORIES, POLICY_STATUS } from "@/lib/constants";
 import { sanitizeHtml } from "@/lib/sanitize";
@@ -87,7 +87,7 @@ export function PolicyDetail({
   if (!policy) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Politica nao encontrada.</p>
+        <p className="text-gray-500">Politica nao encontrada.</p>
         <Button variant="link" onClick={onBack} className="mt-2">
           Voltar
         </Button>
@@ -153,7 +153,7 @@ export function PolicyDetail({
           </div>
 
           {/* Meta row */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-[11px] text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-[11px] text-gray-500">
             <span className="font-medium">v{policy.version}</span>
             {policy.updated_at && (
               <span className="flex items-center gap-1">
@@ -166,7 +166,7 @@ export function PolicyDetail({
             {policy.next_review_at && (
               <span
                 className={`flex items-center gap-1 ${
-                  isOverdue ? "text-destructive font-medium" : ""
+                  isOverdue ? "text-red-500 font-medium" : ""
                 }`}
               >
                 <CalendarClock className="size-3" />
@@ -192,7 +192,7 @@ export function PolicyDetail({
       </div>
 
       {policy.summary && (
-        <p className="text-sm text-muted-foreground -mt-1 pl-11">
+        <p className="text-sm text-gray-500 -mt-1 pl-11">
           {policy.summary}
         </p>
       )}
@@ -236,17 +236,17 @@ export function PolicyDetail({
                         prose-headings:font-semibold prose-headings:tracking-tight
                         prose-h2:text-base prose-h2:mt-8 prose-h2:mb-3 prose-h2:pb-2 prose-h2:border-b
                         prose-h3:text-sm prose-h3:mt-6 prose-h3:mb-2
-                        prose-p:leading-relaxed prose-p:text-muted-foreground
-                        prose-li:text-muted-foreground prose-li:leading-relaxed
-                        prose-strong:text-foreground prose-strong:font-semibold
-                        prose-hr:my-6 prose-hr:border-border
+                        prose-p:leading-relaxed prose-p:text-gray-500
+                        prose-li:text-gray-500 prose-li:leading-relaxed
+                        prose-strong:text-gray-900 prose-strong:font-semibold
+                        prose-hr:my-6 prose-hr:border-gray-200
                         prose-ul:my-3 prose-ol:my-3"
                       dangerouslySetInnerHTML={{ __html: contentHtml }}
                     />
                   </div>
                 </ScrollArea>
               ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                <div className="flex items-center justify-center h-full text-gray-500 text-sm">
                   Nenhum conteudo adicionado.
                 </div>
               )}
@@ -271,7 +271,7 @@ export function PolicyDetail({
                       key={rev.id}
                       className="flex items-start gap-3 py-3 border-b last:border-0"
                     >
-                      <div className="flex items-center justify-center size-7 rounded-full bg-muted text-xs font-semibold shrink-0 mt-0.5">
+                      <div className="flex items-center justify-center size-7 rounded-full bg-gray-100 text-xs font-semibold shrink-0 mt-0.5">
                         v{rev.version}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -279,12 +279,12 @@ export function PolicyDetail({
                           Versao {rev.version}
                         </p>
                         {rev.change_note && (
-                          <p className="text-xs text-muted-foreground mt-0.5">
+                          <p className="text-xs text-gray-500 mt-0.5">
                             {rev.change_note}
                           </p>
                         )}
                       </div>
-                      <span className="text-[11px] text-muted-foreground shrink-0">
+                      <span className="text-[11px] text-gray-500 shrink-0">
                         {rev.updated_at &&
                           format(
                             new Date(rev.updated_at),
@@ -296,7 +296,7 @@ export function PolicyDetail({
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground py-4 text-center">
+                <p className="text-sm text-gray-500 py-4 text-center">
                   Nenhuma revisao registrada.
                 </p>
               )}
@@ -378,7 +378,7 @@ function DetailField({
 }) {
   return (
     <div className="space-y-1">
-      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+      <p className="text-[11px] uppercase tracking-wider text-gray-500">
         {label}
       </p>
       <p className="font-medium" style={color ? { color } : undefined}>

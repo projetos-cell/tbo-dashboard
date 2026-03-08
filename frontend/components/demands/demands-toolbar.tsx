@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import {
@@ -7,8 +7,8 @@ import {
   Filter,
   X,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/tbo-ui/button";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -17,7 +17,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/tbo-ui/dropdown-menu";
 import {
   DEMAND_STATUS,
   DEMAND_PRIORITY,
@@ -171,7 +171,7 @@ export function DemandsToolbar({
       <input
         type="text"
         placeholder="Buscar demandas..."
-        className="h-8 w-48 rounded-md border bg-transparent px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+        className="h-8 w-48 rounded-md border bg-transparent px-2 text-sm focus:outline-none focus:ring-1 focus:ring-tbo-orange"
         value={filters.search}
         onChange={(e) =>
           onFiltersChange({ ...filters, search: e.target.value })
@@ -287,7 +287,7 @@ export function DemandsToolbar({
       )}
 
       {/* Count */}
-      <span className="ml-auto text-xs text-muted-foreground">
+      <span className="ml-auto text-xs text-gray-500">
         {filteredCount} demanda{filteredCount !== 1 ? "s" : ""}
       </span>
     </div>

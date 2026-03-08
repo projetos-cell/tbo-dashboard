@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Plus, BookOpen } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/tbo-ui/button";
+import { Card, CardContent } from "@/components/tbo-ui/card";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import { CulturaItemCard } from "@/components/cultura/cultura-item-card";
 import { CulturaItemForm } from "@/components/cultura/cultura-item-form";
 import { CulturaItemDetail } from "@/components/cultura/cultura-item-detail";
@@ -92,7 +92,7 @@ export default function ManualPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight">Manual</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500">
             Manual da cultura e guias de referencia.
           </p>
         </div>
@@ -135,18 +135,18 @@ export default function ManualPage() {
                     {item.title}
                   </h3>
                   {item.content_html && (
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">
+                    <p className="text-xs text-gray-500 truncate mt-0.5">
                       {stripHtml(item.content_html).slice(0, 100)}
                     </p>
                   )}
                 </div>
-                <BookOpen className="size-4 text-muted-foreground/40 shrink-0" />
+                <BookOpen className="size-4 text-gray-500/40 shrink-0" />
               </CardContent>
             </Card>
           ))}
         </div>
       ) : (
-        <div className="text-center py-12 text-muted-foreground">
+        <div className="text-center py-12 text-gray-500">
           <BookOpen className="size-8 mx-auto mb-2 opacity-40" />
           <p>Nenhuma pagina do manual cadastrada.</p>
         </div>

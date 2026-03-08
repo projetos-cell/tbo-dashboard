@@ -1,16 +1,16 @@
-"use client";
+﻿"use client";
 
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/tbo-ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@/components/tbo-ui/dialog";
+import { Input } from "@/components/tbo-ui/input";
+import { Label } from "@/components/tbo-ui/label";
 import { TASK_STATUS, TASK_PRIORITY } from "@/lib/constants";
 import { useCreateTask } from "@/hooks/use-tasks";
 import { useAuthStore } from "@/stores/auth-store";
@@ -118,7 +118,7 @@ export function TaskForm({ open, onOpenChange, projectId }: TaskFormProps) {
               required
             />
             {errors.title && (
-              <p className="text-xs text-destructive">{errors.title}</p>
+              <p className="text-xs text-red-500">{errors.title}</p>
             )}
           </div>
 
@@ -130,7 +130,7 @@ export function TaskForm({ open, onOpenChange, projectId }: TaskFormProps) {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Detalhes da tarefa..."
               rows={3}
-              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="flex w-full rounded-md border border-gray-200 bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tbo-orange"
             />
           </div>
 
@@ -141,7 +141,7 @@ export function TaskForm({ open, onOpenChange, projectId }: TaskFormProps) {
                 id="task-status"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tbo-orange"
               >
                 {Object.entries(TASK_STATUS).map(([key, cfg]) => (
                   <option key={key} value={key}>
@@ -157,7 +157,7 @@ export function TaskForm({ open, onOpenChange, projectId }: TaskFormProps) {
                 id="task-priority"
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tbo-orange"
               >
                 {Object.entries(TASK_PRIORITY).map(([key, cfg]) => (
                   <option key={key} value={key}>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
@@ -13,10 +13,10 @@ import {
   UserCheck,
   Clock,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/tbo-ui/button";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Input } from "@/components/tbo-ui/input";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import {
   Table,
   TableBody,
@@ -24,15 +24,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/tbo-ui/table";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+} from "@/components/tbo-ui/dialog";
+import { Label } from "@/components/tbo-ui/label";
 import { RequireRole } from "@/components/auth/require-role";
 import { ErrorState, EmptyState } from "@/components/shared";
 import {
@@ -122,7 +122,7 @@ export default function PortalClientePage() {
             <h1 className="text-2xl font-bold tracking-tight">
               Portal do Cliente
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-gray-500">
               Gerencie o acesso dos clientes ao portal externo.
             </p>
           </div>
@@ -144,7 +144,7 @@ export default function PortalClientePage() {
             <KpiCard
               label="Total acessos"
               value={kpis.total}
-              icon={<Users className="h-4 w-4 text-muted-foreground" />}
+              icon={<Users className="h-4 w-4 text-gray-500" />}
             />
             <KpiCard
               label="Ativos"
@@ -162,14 +162,14 @@ export default function PortalClientePage() {
                   : "—"
               }
               isText
-              icon={<Clock className="h-4 w-4 text-muted-foreground" />}
+              icon={<Clock className="h-4 w-4 text-gray-500" />}
             />
           </div>
         )}
 
         {/* Search filter */}
         <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
           <Input
             placeholder="Buscar por nome ou email..."
             value={search}
@@ -210,7 +210,7 @@ export default function PortalClientePage() {
                     <TableCell className="font-medium">
                       {access.client_name}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-gray-500">
                       {access.client_email}
                     </TableCell>
                     <TableCell>
@@ -236,7 +236,7 @@ export default function PortalClientePage() {
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-gray-500">
                       {access.last_login
                         ? format(
                           new Date(access.last_login),
@@ -245,7 +245,7 @@ export default function PortalClientePage() {
                         )
                         : "—"}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-gray-500">
                       {access.created_at
                         ? format(
                           new Date(access.created_at),
@@ -287,7 +287,7 @@ export default function PortalClientePage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-500"
                           onClick={() => handleDelete(access.id)}
                           title="Excluir"
                         >
@@ -367,10 +367,10 @@ function KpiCard({
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg border bg-card p-4">
+    <div className="rounded-lg border bg-white p-4">
       <div className="flex items-center gap-2">
         {icon}
-        <p className="text-sm text-muted-foreground">{label}</p>
+        <p className="text-sm text-gray-500">{label}</p>
       </div>
       <p
         className={`mt-1 font-bold ${isText ? "text-base" : "text-2xl"}`}

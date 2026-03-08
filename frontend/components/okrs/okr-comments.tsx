@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/tbo-ui/button";
+import { Textarea } from "@/components/tbo-ui/textarea";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,7 +14,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/components/tbo-ui/alert-dialog";
 import {
   useOkrComments,
   useCreateOkrComment,
@@ -98,13 +98,13 @@ export function OkrComments({ objectiveId }: OkrCommentsProps) {
 
       {/* Comment list */}
       {!comments || comments.length === 0 ? (
-        <p className="text-xs text-muted-foreground">Nenhum comentario.</p>
+        <p className="text-xs text-gray-500">Nenhum comentario.</p>
       ) : (
         <div className="space-y-3">
           {comments.map((c) => (
             <div
               key={c.id}
-              className="rounded-lg border bg-muted/30 p-3 space-y-1"
+              className="rounded-lg border bg-gray-100/30 p-3 space-y-1"
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
@@ -113,7 +113,7 @@ export function OkrComments({ objectiveId }: OkrCommentsProps) {
                       ? userEmail ?? c.author_id
                       : c.author_id}
                   </span>
-                  <span className="text-xs text-muted-foreground shrink-0">
+                  <span className="text-xs text-gray-500 shrink-0">
                     {formatRelativeTime(c.created_at)}
                   </span>
                 </div>
@@ -121,11 +121,11 @@ export function OkrComments({ objectiveId }: OkrCommentsProps) {
                 {c.author_id === userId && (
                   <button
                     type="button"
-                    className="inline-flex items-center justify-center h-5 w-5 rounded hover:bg-muted shrink-0"
+                    className="inline-flex items-center justify-center h-5 w-5 rounded hover:bg-gray-100 shrink-0"
                     aria-label="Excluir comentario"
                     onClick={() => setDeletingId(c.id)}
                   >
-                    <X className="h-3 w-3 text-muted-foreground" />
+                    <X className="h-3 w-3 text-gray-500" />
                   </button>
                 )}
               </div>

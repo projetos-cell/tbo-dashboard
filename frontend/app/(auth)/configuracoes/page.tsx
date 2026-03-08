@@ -35,7 +35,7 @@ function SettingsContent() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Configurações</h1>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-gray-500 text-sm">
           Gerencie seu perfil, aparência e configurações do sistema
         </p>
       </div>

@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/tbo-ui/card";
 import type { PeopleKPIs } from "@/services/people";
 import { Users, UserCheck, Palmtree, Building2 } from "lucide-react";
 
@@ -24,7 +24,7 @@ export function PeopleKPICards({ kpis }: { kpis: PeopleKPIs }) {
             </div>
             <div>
               <p className="text-2xl font-bold">{value}</p>
-              <p className="text-xs text-muted-foreground">{label}</p>
+              <p className="text-xs text-gray-500">{label}</p>
             </div>
           </CardContent>
         </Card>

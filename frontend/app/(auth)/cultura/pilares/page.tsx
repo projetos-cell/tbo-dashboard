@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/tbo-ui/button";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import { CulturaItemCard } from "@/components/cultura/cultura-item-card";
 import { CulturaItemForm } from "@/components/cultura/cultura-item-form";
 import { CulturaItemDetail } from "@/components/cultura/cultura-item-detail";
@@ -91,7 +91,7 @@ export default function PilaresPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight">Pilares</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500">
             Os pilares fundamentais da cultura organizacional.
           </p>
         </div>
@@ -134,7 +134,7 @@ export default function PilaresPage() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-12 text-muted-foreground">
+        <div className="text-center py-12 text-gray-500">
           <p>Nenhum pilar cadastrado.</p>
         </div>
       )}

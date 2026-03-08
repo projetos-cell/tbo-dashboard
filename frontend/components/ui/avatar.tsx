@@ -1,19 +1,19 @@
 "use client"
 
 import * as React from "react"
-import { Avatar } from "@base-ui/react/avatar"
+import { Avatar as AvatarPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 
-function AvatarRoot({
+function Avatar({
   className,
   size = "default",
   ...props
-}: React.ComponentProps<typeof Avatar.Root> & {
+}: React.ComponentProps<typeof AvatarPrimitive.Root> & {
   size?: "default" | "sm" | "lg"
 }) {
   return (
-    <Avatar.Root
+    <AvatarPrimitive.Root
       data-slot="avatar"
       data-size={size}
       className={cn(
@@ -28,9 +28,9 @@ function AvatarRoot({
 function AvatarImage({
   className,
   ...props
-}: React.ComponentProps<typeof Avatar.Image>) {
+}: React.ComponentProps<typeof AvatarPrimitive.Image>) {
   return (
-    <Avatar.Image
+    <AvatarPrimitive.Image
       data-slot="avatar-image"
       className={cn("aspect-square size-full", className)}
       {...props}
@@ -41,9 +41,9 @@ function AvatarImage({
 function AvatarFallback({
   className,
   ...props
-}: React.ComponentProps<typeof Avatar.Fallback>) {
+}: React.ComponentProps<typeof AvatarPrimitive.Fallback>) {
   return (
-    <Avatar.Fallback
+    <AvatarPrimitive.Fallback
       data-slot="avatar-fallback"
       className={cn(
         "bg-muted text-muted-foreground flex size-full items-center justify-center rounded-full text-sm group-data-[size=sm]/avatar:text-xs",
@@ -100,7 +100,7 @@ function AvatarGroupCount({
 }
 
 export {
-  AvatarRoot as Avatar,
+  Avatar,
   AvatarImage,
   AvatarFallback,
   AvatarBadge,

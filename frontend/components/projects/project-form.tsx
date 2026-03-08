@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/components/tbo-ui/button";
+import { Input } from "@/components/tbo-ui/input";
+import { Label } from "@/components/tbo-ui/label";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/components/tbo-ui/dialog";
 import { useCreateProject } from "@/hooks/use-projects";
 import { useAuthStore } from "@/stores/auth-store";
 
@@ -90,7 +90,7 @@ export function ProjectForm({ open, onOpenChange }: ProjectFormProps) {
               required
             />
             {errors.name && (
-              <p className="text-xs text-destructive">{errors.name}</p>
+              <p className="text-xs text-red-500">{errors.name}</p>
             )}
           </div>
           <div className="space-y-2">

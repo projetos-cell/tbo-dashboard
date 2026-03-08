@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo } from "react";
 import { MessageSquare, Hash, Plus, Settings, MessageCircle, Search } from "lucide-react";
@@ -27,13 +27,13 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useChatStore } from "@/stores/chat-store";
 import { hasPermission, type RoleSlug } from "@/lib/permissions";
 import { canPerformChannelAction } from "@/lib/chat-permissions";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
+import { Button } from "@/components/tbo-ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@/components/tbo-ui/tooltip";
 
 export function ChatLayout() {
   const tenantId = useAuthStore((s) => s.tenantId);
@@ -131,9 +131,9 @@ export function ChatLayout() {
   return (
     <div className="flex h-[calc(100vh-8rem)] rounded-lg border overflow-hidden">
       {/* Sidebar — channels */}
-      <div className="w-60 shrink-0 border-r bg-muted/30 p-3 overflow-y-auto">
+      <div className="w-60 shrink-0 border-r bg-gray-100/30 p-3 overflow-y-auto">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
             Canais
           </h3>
           <div className="flex items-center gap-0.5">
@@ -174,7 +174,7 @@ export function ChatLayout() {
             ))}
           </div>
         ) : !channels || channels.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Nenhum canal.</p>
+          <p className="text-xs text-gray-500">Nenhum canal.</p>
         ) : (
           <ChannelList
             channels={channels}
@@ -195,10 +195,10 @@ export function ChatLayout() {
           <>
             {/* Channel header */}
             <div className="flex items-center gap-2 border-b px-4 py-2.5">
-              <Hash className="h-4 w-4 text-muted-foreground" />
+              <Hash className="h-4 w-4 text-gray-500" />
               <span className="font-medium text-sm">{selectedChannel.name}</span>
               {selectedChannel.description && (
-                <span className="text-xs text-muted-foreground ml-2 truncate flex-1">
+                <span className="text-xs text-gray-500 ml-2 truncate flex-1">
                   {selectedChannel.description}
                 </span>
               )}
@@ -261,7 +261,7 @@ export function ChatLayout() {
             />
           </>
         ) : (
-          <div className="flex flex-1 flex-col items-center justify-center text-muted-foreground gap-3">
+          <div className="flex flex-1 flex-col items-center justify-center text-gray-500 gap-3">
             <MessageSquare className="h-12 w-12 opacity-30" />
             <p className="text-sm">Selecione um canal para começar</p>
           </div>

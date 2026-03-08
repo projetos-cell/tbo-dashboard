@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
 import { useFinanceChartData } from "@/hooks/use-finance";
@@ -13,9 +13,9 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Button } from "@/components/tbo-ui/button";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import { AlertCircle, BarChart2, ChevronDown, ChevronUp } from "lucide-react";
 import { AgingChart } from "./aging-chart";
 import { CategoryDonut } from "./category-donut";
@@ -77,7 +77,7 @@ function WeeklySummaryChart({ filters }: WeeklyChartProps) {
 
   if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center h-[220px] gap-2 text-destructive">
+      <div className="flex flex-col items-center justify-center h-[220px] gap-2 text-red-500">
         <AlertCircle className="h-6 w-6" />
         <p className="text-sm">Erro ao carregar dados semanais</p>
         <Button variant="outline" size="sm" onClick={() => refetch()}>
@@ -89,7 +89,7 @@ function WeeklySummaryChart({ filters }: WeeklyChartProps) {
 
   if (!chartData.length) {
     return (
-      <div className="flex flex-col items-center justify-center h-[220px] gap-2 text-muted-foreground">
+      <div className="flex flex-col items-center justify-center h-[220px] gap-2 text-gray-500">
         <BarChart2 className="h-8 w-8" />
         <p className="text-sm font-medium">Sem movimentações pagas no período</p>
         <p className="text-xs">Ajuste o filtro de data para ver comparativo semanal</p>
@@ -172,7 +172,7 @@ export function FinanceChartsPanel({ section, filters }: FinanceChartsPanelProps
       <Button
         variant="ghost"
         size="sm"
-        className="mb-2 h-8 gap-1.5 text-muted-foreground hover:text-foreground"
+        className="mb-2 h-8 gap-1.5 text-gray-500 hover:text-gray-900"
         onClick={() => setOpen((p) => !p)}
       >
         <BarChart2 className="h-4 w-4" />
@@ -186,7 +186,7 @@ export function FinanceChartsPanel({ section, filters }: FinanceChartsPanelProps
             <Card key={c.title} className="overflow-hidden">
               <CardHeader className="pb-1 pt-3 px-4">
                 <CardTitle className="text-sm font-medium">{c.title}</CardTitle>
-                <p className="text-xs text-muted-foreground">{c.description}</p>
+                <p className="text-xs text-gray-500">{c.description}</p>
               </CardHeader>
               <CardContent className="px-2 pb-2">{c.node}</CardContent>
             </Card>

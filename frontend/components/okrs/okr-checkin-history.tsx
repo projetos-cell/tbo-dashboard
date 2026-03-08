@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { ArrowRight } from "lucide-react";
 import {
@@ -8,9 +8,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+} from "@/components/tbo-ui/table";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import { useCheckins } from "@/hooks/use-okrs";
 
 interface OkrCheckinHistoryProps {
@@ -53,7 +53,7 @@ export function OkrCheckinHistory({ keyResultId }: OkrCheckinHistoryProps) {
 
   if (!checkins || checkins.length === 0) {
     return (
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-gray-500">
         Nenhum check-in registrado.
       </p>
     );
@@ -83,7 +83,7 @@ export function OkrCheckinHistory({ keyResultId }: OkrCheckinHistoryProps) {
                 <TableCell className="text-xs">
                   <span className="inline-flex items-center gap-1">
                     {ci.previous_value ?? 0}
-                    <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                    <ArrowRight className="h-3 w-3 text-gray-500" />
                     {ci.new_value}
                   </span>
                 </TableCell>
@@ -96,7 +96,7 @@ export function OkrCheckinHistory({ keyResultId }: OkrCheckinHistoryProps) {
                     {conf.label}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
+                <TableCell className="text-xs text-gray-500 max-w-[200px] truncate">
                   {ci.notes || "-"}
                 </TableCell>
               </TableRow>

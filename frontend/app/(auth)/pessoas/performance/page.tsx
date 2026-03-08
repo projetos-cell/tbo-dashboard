@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
 import { useProfiles } from "@/hooks/use-people";
@@ -16,17 +16,17 @@ import {
   CultureComputeDialog,
 } from "@/components/performance";
 import { ErrorState, EmptyState } from "@/components/shared";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/tbo-ui/button";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/tbo-ui/tabs";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/tbo-ui/select";
 import {
   currentPeriod,
   formatPeriodLabel,
@@ -158,7 +158,7 @@ export default function PerformancePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Performance</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500">
             Scorecard TBO 2.0 — Avaliacao estrategica de performance.
           </p>
         </div>
@@ -222,7 +222,7 @@ export default function PerformancePage() {
           ) : isLoading ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-40 animate-pulse rounded-lg border bg-muted/40" />
+                <div key={i} className="h-40 animate-pulse rounded-lg border bg-gray-100/40" />
               ))}
             </div>
           ) : (snapshots ?? []).length === 0 ? (
@@ -258,7 +258,7 @@ export default function PerformancePage() {
                             {count} ({pct.toFixed(0)}%)
                           </span>
                         </div>
-                        <div className="h-2 rounded-full bg-muted">
+                        <div className="h-2 rounded-full bg-gray-100">
                           <div
                             className="h-2 rounded-full transition-all"
                             style={{
@@ -287,11 +287,11 @@ export default function PerformancePage() {
                     return (
                       <div
                         key={s.id}
-                        className="flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-muted/50"
+                        className="flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-gray-100/50"
                         onClick={() => handleSelectSnapshot(s)}
                       >
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-muted-foreground w-4">
+                          <span className="text-xs font-bold text-gray-500 w-4">
                             {i + 1}.
                           </span>
                           <span className="font-medium">
@@ -307,7 +307,7 @@ export default function PerformancePage() {
                     );
                   })}
                   {topPerformers.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-4">
+                    <p className="text-sm text-gray-500 text-center py-4">
                       Nenhum dado disponivel.
                     </p>
                   )}

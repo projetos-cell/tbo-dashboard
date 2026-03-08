@@ -1,17 +1,17 @@
-"use client";
+﻿"use client";
 
 import { useState, useCallback } from "react";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/tbo-ui/input";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/tbo-ui/button";
+import { Checkbox } from "@/components/tbo-ui/checkbox";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+} from "@/components/tbo-ui/popover";
+import { ScrollArea } from "@/components/tbo-ui/scroll-area";
+import { Separator } from "@/components/tbo-ui/separator";
 import { PEOPLE_STATUS } from "@/lib/constants";
 import {
   type PeopleFiltersSpec,
@@ -107,7 +107,7 @@ export function PeopleFilters({
       {/* Row 1: Search + Advanced filter button + Sort */}
       <div className="flex items-center gap-2">
         <div className="relative max-w-sm flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
           <Input
             placeholder="Buscar por nome ou email..."
             value={search}
@@ -211,8 +211,8 @@ export function PeopleFilters({
                   key={`${opt.value.field}-${opt.value.dir}`}
                   className={`w-full rounded-sm px-3 py-1.5 text-left text-sm transition-colors ${
                     isActive
-                      ? "bg-accent font-medium text-accent-foreground"
-                      : "hover:bg-accent/50"
+                      ? "bg-gray-100 font-medium text-gray-900"
+                      : "hover:bg-gray-100/50"
                   }`}
                   onClick={() => {
                     onSortChange([opt.value]);
@@ -259,7 +259,7 @@ export function PeopleFilters({
       {/* Active filter tags (removable) */}
       {activeFilterCount > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs text-muted-foreground">Filtros:</span>
+          <span className="text-xs text-gray-500">Filtros:</span>
           {filters.area?.map((v) => (
             <FilterTag
               key={`area-${v}`}
@@ -345,15 +345,15 @@ function FilterSection({
   if (options.length === 0) {
     return (
       <div>
-        <p className="text-xs font-medium text-muted-foreground">{label}</p>
-        <p className="py-1 text-xs text-muted-foreground/60">Nenhuma opção</p>
+        <p className="text-xs font-medium text-gray-500">{label}</p>
+        <p className="py-1 text-xs text-gray-400">Nenhuma opção</p>
       </div>
     );
   }
 
   return (
     <div>
-      <p className="mb-1 text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="mb-1 text-xs font-medium text-gray-500">{label}</p>
       <div className="space-y-1">
         {options.map((opt, i) => {
           const value = optionValues?.[i] ?? opt;
@@ -361,7 +361,7 @@ function FilterSection({
           return (
             <label
               key={value}
-              className="flex cursor-pointer items-center gap-2 rounded-sm px-1 py-0.5 text-sm hover:bg-accent/50"
+              className="flex cursor-pointer items-center gap-2 rounded-sm px-1 py-0.5 text-sm hover:bg-gray-100/50"
             >
               <Checkbox
                 checked={isChecked}
@@ -391,7 +391,7 @@ function FilterTag({ label, onRemove }: { label: string; onRemove: () => void })
       {label}
       <button
         onClick={onRemove}
-        className="ml-0.5 rounded-full p-0.5 hover:bg-muted-foreground/20"
+        className="ml-0.5 rounded-full p-0.5 hover:bg-gray-100-foreground/20"
       >
         <X className="h-3 w-3" />
       </button>

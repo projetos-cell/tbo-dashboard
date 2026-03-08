@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { DataTable } from "@/components/ui/data-table";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/tbo-ui/button";
+import { DataTable } from "@/components/tbo-ui/data-table";
 import { TASK_STATUS, TASK_PRIORITY } from "@/lib/constants";
 import { useUpdateTask } from "@/hooks/use-tasks";
 import { useTablePreferences } from "@/hooks/use-table-preferences";
@@ -59,7 +59,7 @@ export function TaskList({ tasks, onSelect }: TaskListProps) {
             {row.is_completed ? (
               <Check className="h-4 w-4 text-green-600" />
             ) : (
-              <Circle className="h-4 w-4 text-muted-foreground" />
+              <Circle className="h-4 w-4 text-gray-500" />
             )}
           </Button>
         ),
@@ -118,7 +118,7 @@ export function TaskList({ tasks, onSelect }: TaskListProps) {
         label: "Responsavel",
         responsive: "lg" as const,
         cellRender: (row) => (
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm text-gray-500">
             {row.assignee_name ?? "—"}
           </span>
         ),
@@ -137,14 +137,14 @@ export function TaskList({ tasks, onSelect }: TaskListProps) {
             row.due_date < new Date().toISOString().split("T")[0];
           return row.due_date ? (
             <span
-              className={`text-sm ${overdue ? "font-medium text-red-600" : "text-muted-foreground"}`}
+              className={`text-sm ${overdue ? "font-medium text-red-600" : "text-gray-500"}`}
             >
               {format(new Date(row.due_date + "T12:00:00"), "dd MMM yyyy", {
                 locale: ptBR,
               })}
             </span>
           ) : (
-            <span className="text-muted-foreground">—</span>
+            <span className="text-gray-500">—</span>
           );
         },
       },

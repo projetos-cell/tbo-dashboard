@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
 
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/tbo-ui/badge";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@/components/tbo-ui/tooltip";
 import {
   MessageSquare,
   Target,
@@ -30,14 +30,14 @@ import {
 // ---------------------------------------------------------------------------
 
 const ONE_ON_ONE_COLORS: Record<OneOnOneStatus | string, string> = {
-  Nunca: "text-muted-foreground",
+  Nunca: "text-gray-500",
   Pendente: "text-orange-600 dark:text-orange-400",
 };
 // Numeric "Xd" defaults to green-ish
 const DEFAULT_1ON1_COLOR = "text-emerald-600 dark:text-emerald-400";
 
 const PDI_COLORS: Record<PdiStatusDisplay, string> = {
-  Sem: "text-muted-foreground",
+  Sem: "text-gray-500",
   "Em dia": "text-emerald-600 dark:text-emerald-400",
   Atrasado: "text-red-600 dark:text-red-400",
   Desatualizado: "text-orange-600 dark:text-orange-400",
@@ -117,7 +117,7 @@ export function PersonSnapshotBar({ snapshot }: PersonSnapshotBarProps) {
               <span
                 className={`inline-flex items-center gap-1 text-[11px] font-medium ${
                   score === null
-                    ? "text-muted-foreground"
+                    ? "text-gray-500"
                     : score < 60
                       ? "text-red-600 dark:text-red-400"
                       : score < 80
@@ -143,7 +143,7 @@ export function PersonSnapshotBar({ snapshot }: PersonSnapshotBarProps) {
                 className={`inline-flex items-center gap-1 text-[11px] font-medium ${
                   overloaded
                     ? "text-red-600 dark:text-red-400"
-                    : "text-muted-foreground"
+                    : "text-gray-500"
                 }`}
               >
                 {overloaded ? (

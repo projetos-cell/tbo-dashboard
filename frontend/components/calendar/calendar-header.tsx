@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/tbo-ui/button";
 import {
   ChevronLeft,
   ChevronRight,
@@ -36,7 +36,7 @@ export function CalendarHeader({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-2">
-        <CalendarIcon className="h-5 w-5 text-muted-foreground" />
+        <CalendarIcon className="h-5 w-5 text-gray-500" />
         <h2 className="text-lg font-semibold capitalize">{title}</h2>
       </div>
 

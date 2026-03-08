@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
 import {
   FolderPlus,
   ListPlus,
@@ -34,7 +34,7 @@ export function QuickActions() {
               <Link
                 key={action.href}
                 href={action.href}
-                className="flex items-center gap-2 rounded-lg border p-3 text-sm transition-colors hover:bg-muted/50"
+                className="flex items-center gap-2 rounded-lg border p-3 text-sm transition-colors hover:bg-gray-100/50"
               >
                 <div className={`rounded-md p-1.5 ${action.color}`}>
                   <Icon className="h-4 w-4" />

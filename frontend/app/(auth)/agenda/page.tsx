@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo, useCallback } from "react";
 import { addMonths, subMonths, addWeeks, subWeeks } from "date-fns";
@@ -13,7 +13,7 @@ const MonthView = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-[600px] animate-pulse rounded-xl bg-muted" />
+      <div className="h-[600px] animate-pulse rounded-xl bg-gray-100" />
     ),
   }
 );
@@ -26,7 +26,7 @@ const WeekView = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-[600px] animate-pulse rounded-xl bg-muted" />
+      <div className="h-[600px] animate-pulse rounded-xl bg-gray-100" />
     ),
   }
 );
@@ -36,7 +36,7 @@ import { useCalendarEvents, useDeleteCalendarEvent } from "@/hooks/use-calendar"
 import { ErrorState } from "@/components/shared";
 import { getMonthRange, getWeekRange } from "@/services/calendar";
 import type { CalendarEvent } from "@/services/calendar";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/tbo-ui/button";
 import { Plus } from "lucide-react";
 
 export default function AgendaPage() {
@@ -87,7 +87,7 @@ export default function AgendaPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Agenda</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500">
             Visualize e gerencie os eventos do time.
           </p>
         </div>

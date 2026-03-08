@@ -1,12 +1,7 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import { Info, TrendingUp } from "lucide-react";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   BarChart,
   Bar,
@@ -14,7 +9,6 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  Cell,
 } from "recharts";
 import type { ForecastMonth } from "@/services/founder-dashboard";
 
@@ -40,12 +34,22 @@ function ForecastTooltip({
 }) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
+  const proposals = d.proposals ?? 0;
   return (
-    <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-md">
-      <p className="text-xs font-medium text-foreground">{d.label}</p>
-      <p className="text-sm font-bold text-blue-600 dark:text-blue-400">
-        {fmt(d.value)}
-      </p>
+    <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-md space-y-1">
+      <p className="text-xs font-medium text-gray-900">{d.label}</p>
+      <div className="flex items-center gap-2">
+        <span className="h-2 w-2 rounded-full bg-blue-500" />
+        <span className="text-xs text-gray-500">Confirmado:</span>
+        <span className="text-xs font-semibold">{fmt(d.value)}</span>
+      </div>
+      {proposals > 0 && (
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-amber-400" />
+          <span className="text-xs text-gray-500">Propostas:</span>
+          <span className="text-xs font-semibold">{fmt(proposals)}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -54,68 +58,88 @@ function ForecastTooltip({
 
 interface ForecastPanelProps {
   total: number;
+  proposalsTotal?: number;
   months: ForecastMonth[];
   isLoading?: boolean;
 }
 
-export function ForecastPanel({ total, months, isLoading }: ForecastPanelProps) {
-  // Gradient colors per bar (month 1 → 3)
-  const barColors = ["#3b82f6", "#6366f1", "#8b5cf6"];
+export function ForecastPanel({ total, proposalsTotal, months, isLoading }: ForecastPanelProps) {
+  const [tooltipOpen, setTooltipOpen] = useState(false);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!tooltipOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (tooltipRef.current && !tooltipRef.current.contains(e.target as Node)) {
+        setTooltipOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [tooltipOpen]);
+
+  const hasProposals = (proposalsTotal ?? 0) > 0;
 
   return (
-    <div className="rounded-lg border bg-card p-5">
+    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-sm font-semibold">Forecast de Receita (90 dias)</h2>
-          <p className="text-xs text-muted-foreground">
-            Baseado em Contas a Receber
+          <p className="text-xs text-gray-500">
+            Contas a Receber + Propostas
           </p>
         </div>
         <div className="flex items-center gap-1">
-          <Popover>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                aria-label="Informacoes do bloco"
-              >
-                <Info className="h-3.5 w-3.5" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-72 text-sm space-y-1" side="top">
-              <p className="font-medium">Forecast 90 dias</p>
-              <p className="text-xs text-muted-foreground">
-                Baseado em Contas a Receber (vencimentos) no Omie.
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Propostas nao entram neste calculo.
-              </p>
-            </PopoverContent>
-          </Popover>
-          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <div ref={tooltipRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setTooltipOpen((v) => !v)}
+              className="flex h-5 w-5 items-center justify-center rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+              aria-label="Informações do bloco"
+            >
+              <Info className="h-3.5 w-3.5" />
+            </button>
+            {tooltipOpen && (
+              <div className="absolute right-0 bottom-full mb-2 z-50 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-3 space-y-1">
+                <p className="text-sm font-medium text-gray-900">Forecast 90 dias</p>
+                <p className="text-xs text-gray-500">
+                  Baseado em Contas a Receber (vencimentos) no Omie.
+                </p>
+                <p className="text-xs text-gray-500">
+                  Propostas aparecem empilhadas (ponderadas por probabilidade).
+                </p>
+              </div>
+            )}
+          </div>
+          <TrendingUp className="h-4 w-4 text-gray-500" />
         </div>
       </div>
 
       {isLoading ? (
         <div className="space-y-3">
-          <Skeleton className="h-8 w-40" />
-          <Skeleton className="h-40 w-full" />
+          <div className="animate-pulse bg-gray-100 rounded-lg h-8 w-40" />
+          <div className="animate-pulse bg-gray-100 rounded-lg h-40 w-full" />
         </div>
       ) : months.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4 text-center">
-          Nenhum recebivel previsto nos proximos 90 dias.
+        <p className="text-sm text-gray-500 py-4 text-center">
+          Nenhum recebível previsto nos próximos 90 dias.
         </p>
       ) : (
         <>
           {/* Total */}
           <div className="mb-4">
-            <p className="text-xs text-muted-foreground">Total previsto</p>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            <p className="text-xs text-gray-500">Total confirmado</p>
+            <p className="text-2xl font-bold text-tbo-orange">
               {fmt(total)}
             </p>
+            {hasProposals && (
+              <p className="text-xs text-amber-600 mt-0.5">
+                + {fmt(proposalsTotal ?? 0)} em propostas
+              </p>
+            )}
           </div>
 
-          {/* Recharts Bar Chart */}
+          {/* Recharts Stacked Bar Chart */}
           <div className="h-44">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
@@ -140,17 +164,24 @@ export function ForecastPanel({ total, months, isLoading }: ForecastPanelProps) 
                   content={<ForecastTooltip />}
                   cursor={{ fill: "var(--color-muted)", opacity: 0.3 }}
                 />
-                <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={56}>
-                  {months.map((_, idx) => (
-                    <Cell
-                      key={`cell-${idx}`}
-                      fill={barColors[idx % barColors.length]}
-                      fillOpacity={0.85}
-                    />
-                  ))}
-                </Bar>
+                <Bar dataKey="value" stackId="forecast" fill="#3b82f6" fillOpacity={0.85} maxBarSize={56} />
+                <Bar dataKey="proposals" stackId="forecast" fill="#f59e0b" fillOpacity={0.5} radius={[6, 6, 0, 0]} maxBarSize={56} />
               </BarChart>
             </ResponsiveContainer>
+          </div>
+
+          {/* Legend */}
+          <div className="flex items-center gap-4 mt-2">
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-sm bg-blue-500 opacity-85" />
+              <span className="text-xs text-gray-500">Confirmado</span>
+            </div>
+            {hasProposals && (
+              <div className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-sm bg-amber-400 opacity-50" />
+                <span className="text-xs text-gray-500">Propostas</span>
+              </div>
+            )}
           </div>
         </>
       )}

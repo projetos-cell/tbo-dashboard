@@ -1,14 +1,14 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef } from "react";
 import { z } from "zod";
 import { useProfile, useUpdateProfile, useUploadAvatar } from "@/hooks/use-settings";
 import { useAuthStore } from "@/stores/auth-store";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/tbo-ui/button";
+import { Input } from "@/components/tbo-ui/input";
+import { Label } from "@/components/tbo-ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/tbo-ui/avatar";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/tbo-ui/card";
 import { Camera, Loader2 } from "lucide-react";
 
 const profileSchema = z.object({
@@ -117,8 +117,8 @@ export function ProfileForm() {
           />
           <div>
             <p className="font-medium">{profile?.full_name ?? "Usuário"}</p>
-            <p className="text-sm text-muted-foreground">{profile?.email}</p>
-            <span className="inline-block mt-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary capitalize">
+            <p className="text-sm text-gray-500">{profile?.email}</p>
+            <span className="inline-block mt-1 rounded-full bg-tbo-orange/10 px-2 py-0.5 text-xs font-medium text-tbo-orange capitalize">
               {role ?? profile?.role ?? "colaborador"}
             </span>
           </div>
@@ -139,7 +139,7 @@ export function ProfileForm() {
               onChange={(e) => { setFullName(e.target.value); setDirty(true); setErrors((prev) => ({ ...prev, full_name: undefined })); }}
             />
             {errors.full_name && (
-              <p className="text-xs text-destructive">{errors.full_name}</p>
+              <p className="text-xs text-red-500">{errors.full_name}</p>
             )}
           </div>
           <div className="space-y-2">

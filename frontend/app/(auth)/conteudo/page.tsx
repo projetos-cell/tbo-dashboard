@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
 import { RequireRole } from "@/components/auth/require-role";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Button } from "@/components/tbo-ui/button";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Input } from "@/components/tbo-ui/input";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import {
   Table,
   TableBody,
@@ -14,7 +14,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/tbo-ui/table";
 import {
   FileText,
   Search,
@@ -55,7 +55,7 @@ function ConteudoContent() {
           <h1 className="text-2xl font-bold tracking-tight">
             Conteudo & Paginas
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500">
             Gerencie paginas e documentos do workspace.
           </p>
         </div>
@@ -104,7 +104,7 @@ function ConteudoContent() {
 
       {/* Search */}
       <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
         <Input
           placeholder="Buscar paginas por titulo..."
           className="pl-9"
@@ -156,7 +156,7 @@ function ConteudoContent() {
                         {page.title || "Sem titulo"}
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="text-sm text-gray-500">
                       {page.space_id ? (
                         <Badge variant="outline" className="text-xs">
                           {page.space_id.substring(0, 8)}
@@ -169,7 +169,7 @@ function ConteudoContent() {
                       {page.has_blocks ? (
                         <Badge variant="secondary">Sim</Badge>
                       ) : (
-                        <span className="text-muted-foreground text-sm">Nao</span>
+                        <span className="text-gray-500 text-sm">Nao</span>
                       )}
                     </TableCell>
                     <TableCell className="text-sm">

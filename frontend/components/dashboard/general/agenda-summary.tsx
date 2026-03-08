@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
 import { CalendarDays, Clock } from "lucide-react";
 import { format, isToday, isTomorrow, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -20,7 +20,7 @@ export function AgendaSummary() {
         </CardTitle>
         <Link
           href="/agenda"
-          className="text-sm text-muted-foreground hover:underline"
+          className="text-sm text-gray-500 hover:underline"
         >
           Ver agenda
         </Link>
@@ -29,12 +29,12 @@ export function AgendaSummary() {
         <div className="space-y-3">
           <div className="rounded-lg border p-3">
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
+              <Clock className="h-4 w-4 text-gray-500" />
               <div>
                 <p className="text-sm font-medium">
                   {format(today, "EEEE, dd 'de' MMMM", { locale: ptBR })}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-gray-500">
                   Acesse a agenda para ver seus compromissos
                 </p>
               </div>
@@ -44,30 +44,30 @@ export function AgendaSummary() {
           <div className="grid grid-cols-3 gap-2">
             <Link
               href="/agenda"
-              className="rounded-lg border p-2 text-center transition-colors hover:bg-muted/50"
+              className="rounded-lg border p-2 text-center transition-colors hover:bg-gray-100/50"
             >
               <p className="text-lg font-bold text-blue-600">
                 {format(today, "dd")}
               </p>
-              <p className="text-xs text-muted-foreground">Hoje</p>
+              <p className="text-xs text-gray-500">Hoje</p>
             </Link>
             <Link
               href="/agenda"
-              className="rounded-lg border p-2 text-center transition-colors hover:bg-muted/50"
+              className="rounded-lg border p-2 text-center transition-colors hover:bg-gray-100/50"
             >
               <p className="text-lg font-bold">
                 {format(addDays(today, 1), "dd")}
               </p>
-              <p className="text-xs text-muted-foreground">Amanha</p>
+              <p className="text-xs text-gray-500">Amanha</p>
             </Link>
             <Link
               href="/agenda"
-              className="rounded-lg border p-2 text-center transition-colors hover:bg-muted/50"
+              className="rounded-lg border p-2 text-center transition-colors hover:bg-gray-100/50"
             >
               <p className="text-lg font-bold">
                 {format(addDays(today, 2), "dd")}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-gray-500">
                 {format(addDays(today, 2), "EEE", { locale: ptBR })}
               </p>
             </Link>

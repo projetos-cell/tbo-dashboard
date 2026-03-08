@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { RequireRole } from "@/components/auth/require-role";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Button } from "@/components/tbo-ui/button";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import {
   DollarSign,
   Percent,
@@ -98,7 +98,7 @@ function DiretoriaContent() {
         <h1 className="text-2xl font-bold tracking-tight">
           Painel da Diretoria
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-gray-500">
           Visao executiva consolidada do negocio.
         </p>
       </div>
@@ -123,7 +123,7 @@ function DiretoriaContent() {
                 <div className="text-2xl font-bold">
                   {isLoading ? <Skeleton className="h-7 w-24" /> : kpi.value}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-gray-500 mt-1">
                   {kpi.description}
                 </p>
               </CardContent>
@@ -149,7 +149,7 @@ function DiretoriaContent() {
                 "--"
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-gray-500 mt-1">
               {kpis ? `${kpis.openDeals} deals em aberto` : "Valor total do funil"}
             </p>
           </CardContent>
@@ -169,7 +169,7 @@ function DiretoriaContent() {
                 "--"
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-gray-500 mt-1">
               Pagamentos pendentes
             </p>
           </CardContent>
@@ -189,7 +189,7 @@ function DiretoriaContent() {
                 "--"
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-gray-500 mt-1">
               Media dos Key Results
             </p>
           </CardContent>
@@ -213,7 +213,7 @@ function DiretoriaContent() {
                 </div>
               </CardHeader>
               <CardContent className="flex-1">
-                <p className="text-sm text-muted-foreground mb-4">
+                <p className="text-sm text-gray-500 mb-4">
                   {section.description}
                 </p>
               </CardContent>
@@ -233,7 +233,7 @@ function DiretoriaContent() {
       {/* Footer note */}
       <Card>
         <CardContent className="py-3">
-          <p className="text-xs text-muted-foreground text-center">
+          <p className="text-xs text-gray-500 text-center">
             Dados consolidados automaticamente dos modulos do sistema. Ultima
             atualizacao: tempo real.
           </p>

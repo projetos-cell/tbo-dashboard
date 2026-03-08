@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { RequireRole } from "@/components/auth/require-role";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/tbo-ui/tabs";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
+import { Button } from "@/components/tbo-ui/button";
 import {
   Table,
   TableBody,
@@ -14,7 +14,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/tbo-ui/table";
 import {
   ClipboardCheck,
   Clock,
@@ -51,8 +51,8 @@ function formatDate(dateStr: string | null) {
 function EmptyTabState({ message }: { message: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
-      <ClipboardCheck className="mb-3 h-8 w-8 text-muted-foreground/40" />
-      <p className="text-sm text-muted-foreground">{message}</p>
+      <ClipboardCheck className="mb-3 h-8 w-8 text-gray-500/40" />
+      <p className="text-sm text-gray-500">{message}</p>
     </div>
   );
 }
@@ -204,7 +204,7 @@ function RevisoesContent() {
         <h1 className="text-2xl font-bold tracking-tight">
           Revisoes & Aprovacoes
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-gray-500">
           Acompanhe revisoes pendentes e aprovacoes de entregas.
         </p>
       </div>
@@ -309,12 +309,12 @@ function RevisoesContent() {
       {/* Integration Note */}
       <Card>
         <CardContent className="flex items-center gap-4 py-4">
-          <FileCheck className="h-8 w-8 shrink-0 text-muted-foreground/60" />
+          <FileCheck className="h-8 w-8 shrink-0 text-gray-400" />
           <div className="flex-1">
             <p className="text-sm font-medium">
               O modulo de revisoes esta integrado com os Projetos
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs text-gray-500 mt-0.5">
               Acesse Projetos para gerenciar revisoes e aprovacoes de forma
               completa.
             </p>

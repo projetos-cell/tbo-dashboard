@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { RequireRole } from "@/components/auth/require-role";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import {
   Table,
   TableBody,
@@ -11,7 +11,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/tbo-ui/table";
 import {
   Database as DatabaseIcon,
   RefreshCcw,
@@ -87,7 +87,7 @@ function SystemHealthContent() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">System Health</h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-gray-500">
           Monitoramento e status dos servicos e integracoes.
         </p>
       </div>
@@ -117,13 +117,13 @@ function SystemHealthContent() {
               <CardContent className="flex flex-col items-center gap-3 py-5">
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
-                  <DatabaseIcon className="h-5 w-5 text-muted-foreground" />
+                  <DatabaseIcon className="h-5 w-5 text-gray-500" />
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-medium">Supabase</p>
-                  <p className="text-xs text-muted-foreground">Operacional</p>
+                  <p className="text-xs text-gray-500">Operacional</p>
                 </div>
-                <p className="text-[10px] text-muted-foreground/70">
+                <p className="text-[10px] text-gray-500/70">
                   Verificado: Agora
                 </p>
               </CardContent>
@@ -139,13 +139,13 @@ function SystemHealthContent() {
                   <CardContent className="flex flex-col items-center gap-3 py-5">
                     <div className="flex items-center gap-2">
                       <span className={`h-2.5 w-2.5 rounded-full ${config.dot}`} />
-                      <Icon className="h-5 w-5 text-muted-foreground" />
+                      <Icon className="h-5 w-5 text-gray-500" />
                     </div>
                     <div className="text-center">
                       <p className="text-sm font-medium capitalize">{integ.provider}</p>
-                      <p className="text-xs text-muted-foreground">{config.label}</p>
+                      <p className="text-xs text-gray-500">{config.label}</p>
                     </div>
-                    <p className="text-[10px] text-muted-foreground/70">
+                    <p className="text-[10px] text-gray-500/70">
                       Ultimo sync: {timeAgo(integ.lastSyncAt)}
                     </p>
                   </CardContent>
@@ -168,39 +168,39 @@ function SystemHealthContent() {
           {/* Specific Sync Status */}
           <div>
             <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              <BarChart3 className="h-4 w-4 text-gray-500" />
               Metricas de Sincronizacao
             </h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                  <CardTitle className="text-sm font-medium text-gray-500">
                     Sincronizacoes Recentes
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{data?.totalSyncs ?? 0}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-gray-500 mt-1">
                     Ultimas 50 sincronizacoes
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                  <CardTitle className="text-sm font-medium text-gray-500">
                     Taxa de Sucesso
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{data?.successRate ?? 100}%</div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-gray-500 mt-1">
                     Disponibilidade recente
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                  <CardTitle className="text-sm font-medium text-gray-500">
                     Erros Recentes
                   </CardTitle>
                 </CardHeader>
@@ -208,14 +208,14 @@ function SystemHealthContent() {
                   <div className={`text-2xl font-bold ${(data?.errorCount ?? 0) > 0 ? "text-red-500" : ""}`}>
                     {data?.errorCount ?? 0}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-gray-500 mt-1">
                     Erros de sincronizacao
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                  <CardTitle className="text-sm font-medium text-gray-500">
                     Fireflies
                   </CardTitle>
                 </CardHeader>
@@ -225,7 +225,7 @@ function SystemHealthContent() {
                       ? `${data.fireflies.meetings_created ?? 0} reunioes`
                       : "--"}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-gray-500 mt-1">
                     {data?.fireflies
                       ? `Ultimo sync: ${timeAgo(data.fireflies.started_at)}`
                       : "Sem dados de sync"}
@@ -240,7 +240,7 @@ function SystemHealthContent() {
       {/* Last Errors Section */}
       <div>
         <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+          <AlertTriangle className="h-4 w-4 text-gray-500" />
           Ultimos Erros
         </h2>
         <Card>
@@ -266,10 +266,10 @@ function SystemHealthContent() {
                     <TableCell colSpan={4}>
                       <div className="flex flex-col items-center justify-center py-10 text-center">
                         <CheckCircle2 className="mb-2 h-8 w-8 text-green-500/60" />
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-gray-500">
                           Nenhum erro registrado recentemente.
                         </p>
-                        <p className="text-xs text-muted-foreground/70 mt-1">
+                        <p className="text-xs text-gray-500/70 mt-1">
                           Todos os servicos estao operando normalmente.
                         </p>
                       </div>
@@ -293,7 +293,7 @@ function SystemHealthContent() {
                       <TableCell className="capitalize font-medium">
                         {err.provider}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="text-sm text-gray-500">
                         {err.entity_type ?? "sync"}
                       </TableCell>
                       <TableCell className="text-sm">

@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import { Target, AlertTriangle, CheckCircle, ListTodo } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/tbo-ui/card";
 import type { PdiKPIs } from "@/services/pdi";
 
 interface PdiKPICardsProps {
@@ -21,7 +21,7 @@ export function PdiKPICards({ kpis, isLoading }: PdiKPICardsProps) {
     return (
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-20 animate-pulse rounded-lg border bg-muted/40" />
+          <div key={i} className="h-20 animate-pulse rounded-lg border bg-gray-100/40" />
         ))}
       </div>
     );
@@ -36,7 +36,7 @@ export function PdiKPICards({ kpis, isLoading }: PdiKPICardsProps) {
               <Icon className={`h-5 w-5 ${text}`} />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">{label}</p>
+              <p className="text-xs text-gray-500">{label}</p>
               <p className="text-xl font-bold">{kpis[key]}</p>
             </div>
           </CardContent>

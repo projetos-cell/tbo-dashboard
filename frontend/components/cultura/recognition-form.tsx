@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Send, AlertTriangle } from "lucide-react";
@@ -7,18 +7,18 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+} from "@/components/tbo-ui/dialog";
+import { Button } from "@/components/tbo-ui/button";
+import { Label } from "@/components/tbo-ui/label";
+import { Textarea } from "@/components/tbo-ui/textarea";
+import { Badge } from "@/components/tbo-ui/badge";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/tbo-ui/select";
 import { TBO_VALUES } from "@/lib/constants";
 
 interface RecognitionFormProps {
@@ -136,7 +136,7 @@ export function RecognitionForm({
               rows={3}
               maxLength={500}
             />
-            <p className="text-xs text-muted-foreground text-right">
+            <p className="text-xs text-gray-500 text-right">
               {message.length}/500
             </p>
           </div>

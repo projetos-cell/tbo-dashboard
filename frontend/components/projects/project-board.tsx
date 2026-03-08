@@ -175,7 +175,7 @@ export function ProjectBoard({ projects }: ProjectBoardProps) {
                   style={{ backgroundColor: statusConfig.color }}
                 />
                 <h3 className="text-sm font-medium">{statusConfig.label}</h3>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-gray-500">
                   {statusProjects.length}
                 </span>
               </div>
@@ -186,9 +186,9 @@ export function ProjectBoard({ projects }: ProjectBoardProps) {
                 items={statusProjects.map((p) => p.id)}
                 strategy={verticalListSortingStrategy}
               >
-                <div className="flex flex-col gap-2 rounded-lg bg-muted/40 p-2 min-h-[100px]">
+                <div className="flex flex-col gap-2 rounded-lg bg-gray-100/40 p-2 min-h-[100px]">
                   {statusProjects.length === 0 ? (
-                    <p className="py-8 text-center text-xs text-muted-foreground">
+                    <p className="py-8 text-center text-xs text-gray-500">
                       Nenhum projeto
                     </p>
                   ) : (

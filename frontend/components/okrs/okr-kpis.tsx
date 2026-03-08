@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import { Target, TrendingUp, AlertTriangle, CheckCircle } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/tbo-ui/card";
 
 interface OkrKpiData {
   total: number;
@@ -57,7 +57,7 @@ export function OkrKpis({ data }: OkrKpisProps) {
             </div>
             <div>
               <p className="text-2xl font-bold">{c.value}</p>
-              <p className="text-muted-foreground text-xs">{c.label}</p>
+              <p className="text-gray-500 text-xs">{c.label}</p>
             </div>
           </CardContent>
         </Card>

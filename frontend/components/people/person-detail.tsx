@@ -1,15 +1,15 @@
-"use client";
+﻿"use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/tbo-ui/avatar";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Separator } from "@/components/tbo-ui/separator";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetDescription,
-} from "@/components/ui/sheet";
+} from "@/components/tbo-ui/sheet";
 import { PEOPLE_STATUS, BU_COLORS } from "@/lib/constants";
 import { getInitials } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
@@ -51,7 +51,7 @@ export function PersonDetail({ person, open, onOpenChange }: PersonDetailProps) 
             </Avatar>
             <div>
               <SheetTitle>{person.full_name ?? "Sem nome"}</SheetTitle>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-500">
                 {person.cargo ?? "—"}
               </p>
             </div>
@@ -95,19 +95,19 @@ export function PersonDetail({ person, open, onOpenChange }: PersonDetailProps) 
           <div className="space-y-3 text-sm">
             {person.email && (
               <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-muted-foreground" />
+                <Mail className="h-4 w-4 text-gray-500" />
                 <span>{person.email}</span>
               </div>
             )}
             {person.phone && (
               <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted-foreground" />
+                <Phone className="h-4 w-4 text-gray-500" />
                 <span>{person.phone}</span>
               </div>
             )}
             {(person.address_city || person.address_state) && (
               <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
+                <MapPin className="h-4 w-4 text-gray-500" />
                 <span>
                   {[person.address_city, person.address_state]
                     .filter(Boolean)
@@ -122,19 +122,19 @@ export function PersonDetail({ person, open, onOpenChange }: PersonDetailProps) 
           {/* Professional info */}
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div className="space-y-1">
-              <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
                 <Briefcase className="h-3.5 w-3.5" /> Departamento
               </p>
               <span>{person.department ?? "—"}</span>
             </div>
             <div className="space-y-1">
-              <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
                 <Building2 className="h-3.5 w-3.5" /> Contrato
               </p>
               <span>{person.contract_type ?? "—"}</span>
             </div>
             <div className="space-y-1">
-              <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
                 <Calendar className="h-3.5 w-3.5" /> Início
               </p>
               <span>
@@ -146,7 +146,7 @@ export function PersonDetail({ person, open, onOpenChange }: PersonDetailProps) 
               </span>
             </div>
             <div className="space-y-1">
-              <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
                 <Calendar className="h-3.5 w-3.5" /> Aniversário
               </p>
               <span>
@@ -178,7 +178,7 @@ function PersonMiniTimeline({ personId }: { personId: string }) {
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
         Últimos eventos
       </p>
       <PeopleTimeline

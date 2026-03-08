@@ -44,7 +44,7 @@ const CustomTooltip = ({
 }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border bg-background p-3 shadow-lg text-xs space-y-1.5">
+    <div className="rounded-lg border bg-white p-3 shadow-lg text-xs space-y-1.5">
       <p className="font-semibold text-sm">{label}</p>
       {payload.map((p) => (
         <div key={p.name} className="flex items-center gap-2">
@@ -52,7 +52,7 @@ const CustomTooltip = ({
             className="inline-block w-2.5 h-2.5 rounded-sm flex-shrink-0"
             style={{ backgroundColor: p.color }}
           />
-          <span className="text-muted-foreground">{p.name}:</span>
+          <span className="text-gray-500">{p.name}:</span>
           <span className="font-medium">{fmt.format(p.value)}</span>
         </div>
       ))}
@@ -86,8 +86,8 @@ export function CashflowArea() {
             onClick={() => setDays(opt.value)}
             className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
               days === opt.value
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:text-foreground"
+                ? "bg-tbo-orange text-white"
+                : "bg-gray-100 text-gray-500 hover:text-gray-900"
             }`}
           >
             {opt.label}
@@ -97,18 +97,18 @@ export function CashflowArea() {
 
       {isLoading && (
         <div className="h-[220px] flex items-center justify-center">
-          <div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          <div className="w-6 h-6 rounded-full border-2 border-tbo-orange border-t-transparent animate-spin" />
         </div>
       )}
 
       {isError && (
-        <div className="h-[220px] flex items-center justify-center text-sm text-destructive">
+        <div className="h-[220px] flex items-center justify-center text-sm text-red-500">
           Erro ao carregar projeção de caixa.
         </div>
       )}
 
       {!isLoading && !isError && points.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2">
+        <div className="flex flex-col items-center justify-center py-10 text-gray-500 gap-2">
           <TrendingUp className="w-8 h-8 opacity-40" />
           <p className="text-sm">Nenhum título previsto nos próximos {days} dias</p>
         </div>

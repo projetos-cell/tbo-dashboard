@@ -1,14 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { CalendarDays, ChevronDown } from "lucide-react";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -22,7 +15,7 @@ export interface PeriodValue {
 
 const PRESET_LABELS: Record<PeriodPreset, string> = {
   mtd: "MTD",
-  last3m: "Ultimos 3 meses",
+  last3m: "Últimos 3 meses",
   ytd: "YTD",
   custom: "Personalizado",
 };
@@ -38,6 +31,18 @@ export function PeriodFilter({ value, onChange }: PeriodFilterProps) {
   const [open, setOpen] = useState(false);
   const [customFrom, setCustomFrom] = useState(value.from ?? "");
   const [customTo, setCustomTo] = useState(value.to ?? "");
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
 
   function select(preset: PeriodPreset) {
     if (preset === "custom") return; // handled by Apply button
@@ -57,67 +62,68 @@ export function PeriodFilter({ value, onChange }: PeriodFilterProps) {
       : PRESET_LABELS[value.preset];
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5 text-xs font-medium"
-        >
-          <CalendarDays className="h-3.5 w-3.5" />
-          {displayLabel}
-          <ChevronDown className="h-3 w-3 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-64 p-2" align="end">
-        <div className="space-y-1">
-          {(["mtd", "last3m", "ytd"] as PeriodPreset[]).map((preset) => (
-            <button
-              key={preset}
-              type="button"
-              className={`w-full text-left rounded-md px-3 py-1.5 text-sm transition-colors ${
-                value.preset === preset
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-muted"
-              }`}
-              onClick={() => select(preset)}
-            >
-              {PRESET_LABELS[preset]}
-            </button>
-          ))}
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-900 hover:bg-gray-100 transition-colors shadow-sm"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <CalendarDays className="h-3.5 w-3.5 text-gray-500" />
+        {displayLabel}
+        <ChevronDown className="h-3 w-3 opacity-50" />
+      </button>
 
-          {/* Custom range */}
-          <div className="border-t pt-2 mt-2 space-y-2">
-            <p className="text-xs font-medium text-muted-foreground px-1">
-              Personalizado
-            </p>
-            <div className="flex items-center gap-2 px-1">
-              <Input
-                type="date"
-                value={customFrom}
-                onChange={(e) => setCustomFrom(e.target.value)}
-                className="h-7 text-xs"
-              />
-              <span className="text-xs text-muted-foreground">a</span>
-              <Input
-                type="date"
-                value={customTo}
-                onChange={(e) => setCustomTo(e.target.value)}
-                className="h-7 text-xs"
-              />
+      {open && (
+        <div className="absolute right-0 top-full mt-1.5 z-50 w-64 rounded-xl border border-gray-200 bg-white shadow-lg p-2">
+          <div className="space-y-1">
+            {(["mtd", "last3m", "ytd"] as PeriodPreset[]).map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                className={`w-full text-left rounded-lg px-3 py-1.5 text-sm transition-colors ${
+                  value.preset === preset
+                    ? "bg-tbo-orange text-white"
+                    : "hover:bg-gray-100 text-gray-900"
+                }`}
+                onClick={() => select(preset)}
+              >
+                {PRESET_LABELS[preset]}
+              </button>
+            ))}
+
+            {/* Custom range */}
+            <div className="border-t border-gray-200 pt-2 mt-2 space-y-2">
+              <p className="text-xs font-medium text-gray-500 px-1">
+                Personalizado
+              </p>
+              <div className="flex items-center gap-2 px-1">
+                <input
+                  type="date"
+                  value={customFrom}
+                  onChange={(e) => setCustomFrom(e.target.value)}
+                  className="h-7 w-full rounded-lg border border-gray-200 bg-white px-2 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-tbo-orange/20"
+                />
+                <span className="text-xs text-gray-500 shrink-0">a</span>
+                <input
+                  type="date"
+                  value={customTo}
+                  onChange={(e) => setCustomTo(e.target.value)}
+                  className="h-7 w-full rounded-lg border border-gray-200 bg-white px-2 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-tbo-orange/20"
+                />
+              </div>
+              <button
+                type="button"
+                className="w-full h-7 rounded-lg bg-tbo-orange text-white text-xs font-medium hover:bg-tbo-orange/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!customFrom || !customTo}
+                onClick={applyCustom}
+              >
+                Aplicar
+              </button>
             </div>
-            <Button
-              size="sm"
-              className="w-full h-7 text-xs"
-              disabled={!customFrom || !customTo}
-              onClick={applyCustom}
-            >
-              Aplicar
-            </Button>
           </div>
         </div>
-      </PopoverContent>
-    </Popover>
+      )}
+    </div>
   );
 }
 
@@ -149,7 +155,7 @@ export function resolvePeriodBounds(period: PeriodValue): {
       const d = new Date(now);
       d.setMonth(d.getMonth() - 3);
       const from = d.toISOString().split("T")[0];
-      return { from, to: today, label: "Ultimos 3 meses" };
+      return { from, to: today, label: "Últimos 3 meses" };
     }
     case "ytd": {
       const from = `${now.getFullYear()}-01-01`;

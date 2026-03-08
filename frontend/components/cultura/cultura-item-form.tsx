@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { z } from "zod";
 import dynamic from "next/dynamic";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/tbo-ui/input";
+import { Label } from "@/components/tbo-ui/label";
+import { Button } from "@/components/tbo-ui/button";
+import { Badge } from "@/components/tbo-ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -14,14 +14,14 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from "@/components/tbo-ui/dialog";
 
 // Heavy: TipTap rich-text editor — lazy load with SSR disabled
 const TiptapEditor = dynamic(
   () => import("@/components/editor/tiptap-editor").then((m) => ({ default: m.TiptapEditor })),
   {
     ssr: false,
-    loading: () => <div className="h-32 animate-pulse rounded-lg bg-muted" />,
+    loading: () => <div className="h-32 animate-pulse rounded-lg bg-gray-100" />,
   }
 );
 import {
@@ -149,7 +149,7 @@ export function CulturaItemForm({
               placeholder="Titulo do item..."
             />
             {errors.title && (
-              <p className="text-xs text-destructive">{errors.title}</p>
+              <p className="text-xs text-red-500">{errors.title}</p>
             )}
           </div>
 

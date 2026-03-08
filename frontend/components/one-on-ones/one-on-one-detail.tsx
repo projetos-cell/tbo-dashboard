@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import {
@@ -6,11 +6,11 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
+} from "@/components/tbo-ui/sheet";
+import { Button } from "@/components/tbo-ui/button";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Textarea } from "@/components/tbo-ui/textarea";
+import { Separator } from "@/components/tbo-ui/separator";
 import { ConfirmDialog } from "@/components/shared";
 import { OneOnOneActions } from "./one-on-one-actions";
 import { useUpdateOneOnOne, useDeleteOneOnOne } from "@/hooks/use-one-on-ones";
@@ -112,7 +112,7 @@ export function OneOnOneDetail({ oneOnOne, open, onOpenChange }: OneOnOneDetailP
               <SheetTitle className="text-lg">
                 {getName(oneOnOne.leader_id)} ↔ {getName(oneOnOne.collaborator_id)}
               </SheetTitle>
-              <p className="text-sm text-muted-foreground">Reunião 1:1</p>
+              <p className="text-sm text-gray-500">Reunião 1:1</p>
             </SheetHeader>
 
             {/* Quick status actions */}
@@ -161,12 +161,12 @@ export function OneOnOneDetail({ oneOnOne, open, onOpenChange }: OneOnOneDetailP
             {/* Date & Recurrence */}
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm">
-                <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                <CalendarDays className="h-4 w-4 text-gray-500" />
                 <span>{formatDateTime(oneOnOne.scheduled_at)}</span>
               </div>
               {oneOnOne.recurrence && (
                 <div className="flex items-center gap-2 text-sm">
-                  <Repeat className="h-4 w-4 text-muted-foreground" />
+                  <Repeat className="h-4 w-4 text-gray-500" />
                   <span>{recurrenceLabel(oneOnOne.recurrence)}</span>
                 </div>
               )}
@@ -212,7 +212,7 @@ export function OneOnOneDetail({ oneOnOne, open, onOpenChange }: OneOnOneDetailP
                   autoFocus
                 />
               ) : (
-                <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                <p className="whitespace-pre-wrap text-sm text-gray-500">
                   {oneOnOne.notes || "Sem notas"}
                 </p>
               )}
@@ -232,7 +232,7 @@ export function OneOnOneDetail({ oneOnOne, open, onOpenChange }: OneOnOneDetailP
               >
                 <Target className="mr-1 h-4 w-4" /> Criar PDI
               </Button>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-gray-500">
                 Criar plano de desenvolvimento para o colaborador
               </span>
             </div>
@@ -243,7 +243,7 @@ export function OneOnOneDetail({ oneOnOne, open, onOpenChange }: OneOnOneDetailP
                 <Separator />
                 <div className="space-y-2">
                   <h4 className="text-sm font-semibold">Resumo da Transcrição</h4>
-                  <p className="whitespace-pre-wrap rounded-lg bg-muted/50 p-3 text-sm">
+                  <p className="whitespace-pre-wrap rounded-lg bg-gray-100/50 p-3 text-sm">
                     {oneOnOne.transcript_summary}
                   </p>
                 </div>
@@ -254,7 +254,7 @@ export function OneOnOneDetail({ oneOnOne, open, onOpenChange }: OneOnOneDetailP
 
             {/* Delete */}
             <div className="flex items-center justify-between pt-2">
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-gray-500">
                 Criada em {oneOnOne.created_at ? formatDateTime(oneOnOne.created_at) : "—"}
               </p>
               <ConfirmDialog
@@ -262,7 +262,7 @@ export function OneOnOneDetail({ oneOnOne, open, onOpenChange }: OneOnOneDetailP
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-destructive hover:text-destructive"
+                    className="text-red-500 hover:text-red-500"
                   >
                     <Trash2 className="mr-1 h-3 w-3" /> Excluir
                   </Button>

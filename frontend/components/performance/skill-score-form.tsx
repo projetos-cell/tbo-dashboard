@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo, useEffect } from "react";
 import {
@@ -7,12 +7,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
+} from "@/components/tbo-ui/dialog";
+import { Button } from "@/components/tbo-ui/button";
+import { Slider } from "@/components/tbo-ui/slider";
+import { Textarea } from "@/components/tbo-ui/textarea";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Label } from "@/components/tbo-ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { SCORECARD_SKILLS } from "@/lib/performance-constants";
 import { useSkillScores, useUpsertSkillScores, useGenerateSnapshot } from "@/hooks/use-performance";
@@ -120,7 +120,7 @@ export function SkillScoreForm({
           <DialogTitle>
             Avaliar Skills — {employeeName}
           </DialogTitle>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-gray-500">
             Periodo: {p}
           </p>
         </DialogHeader>

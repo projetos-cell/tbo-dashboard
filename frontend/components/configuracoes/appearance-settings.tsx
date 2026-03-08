@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Label } from "@/components/tbo-ui/label";
 import { cn } from "@/lib/utils";
 import { Sun, Moon, Monitor } from "lucide-react";
 
@@ -68,8 +68,8 @@ export function AppearanceSettings() {
                 className={cn(
                   "flex flex-col items-center gap-2 rounded-lg border p-4 transition-colors",
                   active
-                    ? "border-primary bg-primary/5 text-primary"
-                    : "border-border text-muted-foreground hover:bg-muted",
+                    ? "border-tbo-orange bg-tbo-orange/5 text-tbo-orange"
+                    : "border-gray-200 text-gray-500 hover:bg-gray-100",
                 )}
               >
                 <Icon className="h-5 w-5" />

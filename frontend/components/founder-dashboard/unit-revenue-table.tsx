@@ -1,12 +1,7 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import { Info } from "lucide-react";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   BarChart,
   Bar,
@@ -15,7 +10,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
-  Legend,
 } from "recharts";
 import type { UnitRevenue } from "@/services/founder-dashboard";
 
@@ -80,21 +74,21 @@ function UnitTooltip({
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
-    <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-md space-y-1">
-      <p className="text-xs font-medium text-foreground">{d.unit}</p>
+    <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-md space-y-1">
+      <p className="text-xs font-medium text-gray-900">{d.unit}</p>
       <div className="flex items-center gap-2">
         <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
-        <span className="text-xs text-muted-foreground">Receita:</span>
+        <span className="text-xs text-gray-500">Receita:</span>
         <span className="text-xs font-semibold">{fmt(d.receita)}</span>
       </div>
       <div className="flex items-center gap-2">
         <span className="h-2 w-2 rounded-full bg-red-400 shrink-0" />
-        <span className="text-xs text-muted-foreground">Custos:</span>
+        <span className="text-xs text-gray-500">Custos:</span>
         <span className="text-xs font-semibold">{fmt(d.custos)}</span>
       </div>
       <div className="flex items-center gap-2">
         <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0" />
-        <span className="text-xs text-muted-foreground">Margem:</span>
+        <span className="text-xs text-gray-500">Margem:</span>
         <span
           className={`text-xs font-semibold ${
             d.margemPct < 30 ? "text-red-500" : "text-emerald-500"
@@ -114,11 +108,11 @@ function UnitLegend() {
     <div className="flex items-center justify-center gap-4 mt-1">
       <div className="flex items-center gap-1.5">
         <span className="h-2.5 w-2.5 rounded-sm bg-emerald-500" />
-        <span className="text-xs text-muted-foreground">Receita</span>
+        <span className="text-xs text-gray-500">Receita</span>
       </div>
       <div className="flex items-center gap-1.5">
         <span className="h-2.5 w-2.5 rounded-sm bg-red-400" />
-        <span className="text-xs text-muted-foreground">Custos</span>
+        <span className="text-xs text-gray-500">Custos</span>
       </div>
     </div>
   );
@@ -133,43 +127,57 @@ interface UnitRevenueTableProps {
 
 export function UnitRevenueTable({ data, isLoading }: UnitRevenueTableProps) {
   const chartData = toChartData(data);
+  const [tooltipOpen, setTooltipOpen] = useState(false);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!tooltipOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (tooltipRef.current && !tooltipRef.current.contains(e.target as Node)) {
+        setTooltipOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [tooltipOpen]);
 
   return (
-    <div className="rounded-lg border bg-card p-5">
+    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-semibold">Receita por Unidade (MTD)</h2>
-        <Popover>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              aria-label="Informacoes do bloco"
-            >
-              <Info className="h-3.5 w-3.5" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-72 text-sm space-y-1" side="top">
-            <p className="font-medium">Receita por Unidade de Negocio</p>
-            <p className="text-xs text-muted-foreground">
-              Receita e custos agrupados por centro de custo/unidade.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Se um projeto cruzar unidades, a regra e a do centro de custo da
-              transacao no Omie.
-            </p>
-          </PopoverContent>
-        </Popover>
+        <div ref={tooltipRef} className="relative">
+          <button
+            type="button"
+            onClick={() => setTooltipOpen((v) => !v)}
+            className="flex h-5 w-5 items-center justify-center rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+            aria-label="Informações do bloco"
+          >
+            <Info className="h-3.5 w-3.5" />
+          </button>
+          {tooltipOpen && (
+            <div className="absolute right-0 bottom-full mb-2 z-50 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-3 space-y-1">
+              <p className="text-sm font-medium text-gray-900">Receita por Unidade de Negócio</p>
+              <p className="text-xs text-gray-500">
+                Receita e custos agrupados por centro de custo/unidade.
+              </p>
+              <p className="text-xs text-gray-500">
+                Se um projeto cruzar unidades, a regra é a do centro de custo da
+                transação no Omie.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {isLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-8 w-full" />
+            <div key={i} className="animate-pulse bg-gray-100 rounded-lg h-8 w-full" />
           ))}
         </div>
       ) : data.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4 text-center">
-          Nenhum dado disponivel no periodo.
+        <p className="text-sm text-gray-500 py-4 text-center">
+          Nenhum dado disponível no período.
         </p>
       ) : (
         <>
@@ -227,7 +235,7 @@ export function UnitRevenueTable({ data, isLoading }: UnitRevenueTableProps) {
           <UnitLegend />
 
           {/* Summary table below */}
-          <div className="mt-3 pt-3 border-t border-border">
+          <div className="mt-3 pt-3 border-t border-gray-200">
             <div className="space-y-1.5">
               {chartData.map((row, i) => (
                 <div key={row.unit} className="flex items-center justify-between gap-2">
@@ -239,12 +247,12 @@ export function UnitRevenueTable({ data, isLoading }: UnitRevenueTableProps) {
                           UNIT_COLORS[i % UNIT_COLORS.length],
                       }}
                     />
-                    <span className="text-xs text-foreground truncate">
+                    <span className="text-xs text-gray-900 truncate">
                       {row.unit}
                     </span>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-gray-500">
                       {fmt(row.receita)}
                     </span>
                     <span

@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/tbo-ui/badge";
 import { TASK_STATUS, TASK_PRIORITY } from "@/lib/constants";
 import { useUpdateTask } from "@/hooks/use-tasks";
 import { useUndoStack } from "@/hooks/use-undo-stack";
@@ -34,7 +34,7 @@ function TaskCard({ task, onClick }: { task: TaskRow; onClick?: () => void }) {
 
   return (
     <div
-      className="cursor-pointer rounded-lg border bg-card p-3 shadow-sm transition-shadow hover:shadow-md"
+      className="cursor-pointer rounded-lg border bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
       onClick={onClick}
     >
       <p className="text-sm font-medium leading-tight">{task.title}</p>
@@ -47,11 +47,11 @@ function TaskCard({ task, onClick }: { task: TaskRow; onClick?: () => void }) {
           />
         )}
         {task.assignee_name && (
-          <span className="text-xs text-muted-foreground">{task.assignee_name}</span>
+          <span className="text-xs text-gray-500">{task.assignee_name}</span>
         )}
         {task.due_date && (
           <span
-            className={`ml-auto text-xs ${overdue ? "font-medium text-red-600" : "text-muted-foreground"}`}
+            className={`ml-auto text-xs ${overdue ? "font-medium text-red-600" : "text-gray-500"}`}
           >
             {format(new Date(task.due_date + "T12:00:00"), "dd MMM", { locale: ptBR })}
           </span>
@@ -222,9 +222,9 @@ export function TaskBoard({ tasks, onSelect }: TaskBoardProps) {
                 items={columnTasks.map((t) => t.id)}
                 strategy={verticalListSortingStrategy}
               >
-                <div className="min-h-[100px] space-y-2 rounded-lg bg-muted/30 p-2">
+                <div className="min-h-[100px] space-y-2 rounded-lg bg-gray-100/30 p-2">
                   {columnTasks.length === 0 ? (
-                    <p className="py-6 text-center text-xs text-muted-foreground">
+                    <p className="py-6 text-center text-xs text-gray-500">
                       Nenhuma tarefa
                     </p>
                   ) : (

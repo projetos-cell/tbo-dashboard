@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import {
@@ -7,19 +7,19 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+} from "@/components/tbo-ui/dialog";
+import { Button } from "@/components/tbo-ui/button";
+import { Input } from "@/components/tbo-ui/input";
+import { Label } from "@/components/tbo-ui/label";
+import { Textarea } from "@/components/tbo-ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { UserSelector } from "@/components/ui/user-selector";
+} from "@/components/tbo-ui/select";
+import { UserSelector } from "@/components/tbo-ui/user-selector";
 import { useCreateObjective, useUpdateObjective } from "@/hooks/use-okrs";
 import { useProfiles } from "@/hooks/use-people";
 import { useAuthStore } from "@/stores/auth-store";

@@ -78,7 +78,7 @@ export type TrendDirection = "up" | "down" | "stable";
 export const TREND_CONFIG: Record<TrendDirection, { icon: string; label: string; color: string }> = {
   up:     { icon: "↑", label: "Subindo",  color: "text-emerald-600" },
   down:   { icon: "↓", label: "Caindo",   color: "text-red-600" },
-  stable: { icon: "→", label: "Estável",  color: "text-muted-foreground" },
+  stable: { icon: "→", label: "Estável",  color: "text-gray-500" },
 };
 
 // ---------------------------------------------------------------------------

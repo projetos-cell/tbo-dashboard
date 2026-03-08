@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo, Fragment } from "react";
 import { format } from "date-fns";
@@ -13,10 +13,10 @@ import {
   CalendarDays,
   Tag,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/tbo-ui/button";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Input } from "@/components/tbo-ui/input";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import { ErrorState, EmptyState } from "@/components/shared";
 import {
   Select,
@@ -24,7 +24,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/tbo-ui/select";
 import {
   Table,
   TableBody,
@@ -32,7 +32,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/tbo-ui/table";
 import { RequireRole } from "@/components/auth/require-role";
 import { useAuditLogs } from "@/hooks/use-admin";
 import { computeAdminKPIs } from "@/services/admin";
@@ -105,7 +105,7 @@ export default function AdminPage() {
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Admin Portal</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500">
             Visualize logs de auditoria e atividades do sistema.
           </p>
         </div>
@@ -122,7 +122,7 @@ export default function AdminPage() {
             <KpiCard
               label="Total ações"
               value={kpis.totalActions}
-              icon={<Activity className="h-4 w-4 text-muted-foreground" />}
+              icon={<Activity className="h-4 w-4 text-gray-500" />}
             />
             <KpiCard
               label="Usuários únicos"
@@ -140,7 +140,7 @@ export default function AdminPage() {
               label="Tipo mais frequente"
               value={kpis.topEntityType}
               isText
-              icon={<Tag className="h-4 w-4 text-muted-foreground" />}
+              icon={<Tag className="h-4 w-4 text-gray-500" />}
             />
           </div>
         )}
@@ -148,7 +148,7 @@ export default function AdminPage() {
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
             <Input
               placeholder="Buscar ação, entidade, usuário..."
               value={search}
@@ -244,12 +244,12 @@ export default function AdminPage() {
                       >
                         <TableCell>
                           {isExpanded ? (
-                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            <ChevronDown className="h-4 w-4 text-gray-500" />
                           ) : (
-                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                            <ChevronRight className="h-4 w-4 text-gray-500" />
                           )}
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-xs">
+                        <TableCell className="text-gray-500 text-xs">
                           {log.created_at
                             ? format(
                               new Date(log.created_at),
@@ -272,13 +272,13 @@ export default function AdminPage() {
                             {log.action}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-muted-foreground">
+                        <TableCell className="text-gray-500">
                           {log.entity_type}
                         </TableCell>
                         <TableCell className="max-w-[200px] truncate">
                           {log.entity_name || log.entity_id}
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
+                        <TableCell className="text-xs text-gray-500">
                           {log.from_state || log.to_state ? (
                             <span>
                               {log.from_state && (
@@ -310,11 +310,11 @@ export default function AdminPage() {
                       {/* Expanded details */}
                       {isExpanded && (
                         <TableRow>
-                          <TableCell colSpan={7} className="bg-muted/30 p-4">
+                          <TableCell colSpan={7} className="bg-gray-100/30 p-4">
                             <div className="space-y-3">
                               {log.reason && (
                                 <div>
-                                  <p className="text-xs font-medium text-muted-foreground mb-1">
+                                  <p className="text-xs font-medium text-gray-500 mb-1">
                                     Motivo
                                   </p>
                                   <p className="text-sm">{log.reason}</p>
@@ -322,20 +322,20 @@ export default function AdminPage() {
                               )}
                               {log.details && (
                                 <div>
-                                  <p className="text-xs font-medium text-muted-foreground mb-1">
+                                  <p className="text-xs font-medium text-gray-500 mb-1">
                                     Detalhes
                                   </p>
-                                  <pre className="text-xs bg-muted rounded p-3 overflow-x-auto max-h-48">
+                                  <pre className="text-xs bg-gray-100 rounded p-3 overflow-x-auto max-h-48">
                                     {JSON.stringify(log.details, null, 2)}
                                   </pre>
                                 </div>
                               )}
                               {log.metadata && (
                                 <div>
-                                  <p className="text-xs font-medium text-muted-foreground mb-1">
+                                  <p className="text-xs font-medium text-gray-500 mb-1">
                                     Metadata
                                   </p>
-                                  <pre className="text-xs bg-muted rounded p-3 overflow-x-auto max-h-48">
+                                  <pre className="text-xs bg-gray-100 rounded p-3 overflow-x-auto max-h-48">
                                     {JSON.stringify(log.metadata, null, 2)}
                                   </pre>
                                 </div>
@@ -343,7 +343,7 @@ export default function AdminPage() {
                               {!log.reason &&
                                 !log.details &&
                                 !log.metadata && (
-                                  <p className="text-sm text-muted-foreground">
+                                  <p className="text-sm text-gray-500">
                                     Nenhum detalhe adicional disponível.
                                   </p>
                                 )}
@@ -379,10 +379,10 @@ function KpiCard({
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg border bg-card p-4">
+    <div className="rounded-lg border bg-white p-4">
       <div className="flex items-center gap-2">
         {icon}
-        <p className="text-sm text-muted-foreground">{label}</p>
+        <p className="text-sm text-gray-500">{label}</p>
       </div>
       <p
         className={`mt-1 font-bold ${isText ? "text-base" : "text-2xl"}`}

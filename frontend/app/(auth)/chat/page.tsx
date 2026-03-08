@@ -8,7 +8,7 @@ function ChatContent() {
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Chat</h1>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-gray-500 text-sm">
           Comunicação em tempo real do time
         </p>
       </div>

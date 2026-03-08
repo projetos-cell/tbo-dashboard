@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -16,16 +16,16 @@ import {
   ShieldCheck,
   FileText,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/tbo-ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/tbo-ui/dropdown-menu";
 import { POLICY_CATEGORIES, POLICY_STATUS } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 
@@ -75,7 +75,7 @@ export function PolicyCard({
       <CardContent className="p-4">
         <div className="flex gap-3">
           {/* Thumbnail */}
-          <div className="shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-muted">
+          <div className="shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
             {policy.image_url ? (
               <img
                 src={policy.image_url}
@@ -104,7 +104,7 @@ export function PolicyCard({
             </div>
 
             {policy.summary && (
-              <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+              <p className="text-xs text-gray-500 line-clamp-2 mb-2">
                 {policy.summary}
               </p>
             )}
@@ -130,14 +130,14 @@ export function PolicyCard({
                 </Badge>
               )}
               {policy.version > 1 && (
-                <span className="text-[10px] text-muted-foreground">
+                <span className="text-[10px] text-gray-500">
                   v{policy.version}
                 </span>
               )}
               {policy.next_review_at && (
                 <span
                   className={`text-[10px] flex items-center gap-0.5 ${
-                    isOverdue ? "text-destructive" : "text-muted-foreground"
+                    isOverdue ? "text-red-500" : "text-gray-500"
                   }`}
                 >
                   <CalendarClock className="size-3" />
@@ -178,7 +178,7 @@ export function PolicyCard({
                 {policy.status !== "archived" && (
                   <DropdownMenuItem
                     onClick={() => onArchive?.(policy)}
-                    className="text-destructive"
+                    className="text-red-500"
                   >
                     <Archive className="size-4 mr-2" />
                     Arquivar

@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
 import type { AlertItem } from "@/services/dashboard";
 import {
   AlertTriangle,
@@ -50,7 +50,7 @@ export function AlertsPanel({ alerts }: Props) {
             <p className="text-sm font-medium text-green-600">
               Tudo em ordem!
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-500">
               Nenhum alerta no momento
             </p>
           </div>
@@ -64,12 +64,12 @@ export function AlertsPanel({ alerts }: Props) {
                   href={alert.href}
                   className={`flex items-start gap-3 rounded-lg border px-3 py-2 transition-colors hover:opacity-80 ${SEVERITY_STYLES[alert.severity]}`}
                 >
-                  <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                  <Icon className="mt-0.5 h-4 w-4 shrink-0 text-gray-500" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">
                       {alert.title}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-gray-500">
                       {alert.detail}
                     </p>
                   </div>

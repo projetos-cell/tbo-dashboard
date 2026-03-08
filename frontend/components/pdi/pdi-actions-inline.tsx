@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/tbo-ui/button";
+import { Input } from "@/components/tbo-ui/input";
+import { Checkbox } from "@/components/tbo-ui/checkbox";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   useCreatePdiAction,
@@ -77,17 +77,17 @@ export function PdiActionsInline({ goalId, pdiId, actions, mode = "full" }: PdiA
             disabled={mode === "readonly"}
           />
           <span
-            className={`flex-1 ${action.completed ? "text-muted-foreground line-through" : ""}`}
+            className={`flex-1 ${action.completed ? "text-gray-500 line-through" : ""}`}
           >
             {action.text}
           </span>
           {action.one_on_one_action_id && (
-            <span title="Vinculada a 1:1"><Link2 className="h-3 w-3 text-muted-foreground" /></span>
+            <span title="Vinculada a 1:1"><Link2 className="h-3 w-3 text-gray-500" /></span>
           )}
           {action.due_date && (
             <span
               className={`flex items-center gap-1 text-xs ${
-                !action.completed && isOverdue(action.due_date) ? "text-red-500" : "text-muted-foreground"
+                !action.completed && isOverdue(action.due_date) ? "text-red-500" : "text-gray-500"
               }`}
             >
               <CalendarDays className="h-3 w-3" />
@@ -98,7 +98,7 @@ export function PdiActionsInline({ goalId, pdiId, actions, mode = "full" }: PdiA
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 text-muted-foreground hover:text-destructive"
+              className="h-6 w-6 text-gray-500 hover:text-red-500"
               onClick={() => handleDelete(action.id)}
             >
               <Trash2 className="h-3 w-3" />

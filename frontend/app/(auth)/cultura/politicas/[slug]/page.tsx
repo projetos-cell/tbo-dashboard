@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
 
 import { use } from "react";
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/tbo-ui/button";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
 import { PolicyDetail } from "@/components/cultura/policy-detail";
 import { PolicyForm, type PolicyFormData } from "@/components/cultura/policy-form";
 import { usePolicy, useUpdatePolicy } from "@/hooks/use-policies";
@@ -57,7 +57,7 @@ export default function PolicySlugPage({ params }: PolicySlugPageProps) {
   if (!policy) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Politica nao encontrada.</p>
+        <p className="text-gray-500">Politica nao encontrada.</p>
         <Button
           variant="link"
           onClick={() => router.push("/cultura/politicas")}

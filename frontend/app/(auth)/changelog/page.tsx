@@ -1,17 +1,17 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
 import { Plus, Search, BookOpen } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/tbo-ui/button";
+import { Input } from "@/components/tbo-ui/input";
+import { Badge } from "@/components/tbo-ui/badge";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/tbo-ui/select";
 import { ChangelogList } from "@/components/changelog/changelog-list";
 import { ChangelogForm } from "@/components/changelog/changelog-form";
 import {
@@ -118,7 +118,7 @@ export default function ChangelogPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Changelog</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500">
             Historico de atualizacoes e mudancas da plataforma.
           </p>
         </div>
@@ -131,7 +131,7 @@ export default function ChangelogPage() {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-500" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -199,7 +199,7 @@ export default function ChangelogPage() {
 
       {/* Stats */}
       {!isLoading && entries.length > 0 && (
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <div className="flex items-center gap-3 text-xs text-gray-500">
           <span>
             {filtered.length} de {entries.length} entradas
           </span>

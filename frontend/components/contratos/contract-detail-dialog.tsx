@@ -1,14 +1,14 @@
-"use client";
+﻿"use client";
 
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+} from "@/components/tbo-ui/sheet";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/tbo-ui/button";
+import { Separator } from "@/components/tbo-ui/separator";
 import {
   Calendar,
   DollarSign,
@@ -86,7 +86,7 @@ export function ContractDetailDialog({
           <div className="space-y-2 text-sm">
             {contract.person_name && (
               <div className="flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <Building2 className="h-4 w-4 text-gray-500" />
                 <span>{contract.person_name}</span>
               </div>
             )}
@@ -97,7 +97,7 @@ export function ContractDetailDialog({
           <div className="space-y-2 text-sm">
             {contract.monthly_value != null && (
               <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <DollarSign className="h-4 w-4 text-gray-500" />
                 <span className="font-medium">
                   {formatCurrency(contract.monthly_value)}
                 </span>
@@ -105,7 +105,7 @@ export function ContractDetailDialog({
             )}
             {contract.start_date && (
               <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <Calendar className="h-4 w-4 text-gray-500" />
                 <span>
                   Início:{" "}
                   {new Date(contract.start_date).toLocaleDateString("pt-BR")}
@@ -114,7 +114,7 @@ export function ContractDetailDialog({
             )}
             {contract.end_date && (
               <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <Calendar className="h-4 w-4 text-gray-500" />
                 <span>
                   Término:{" "}
                   {new Date(contract.end_date).toLocaleDateString("pt-BR")}
@@ -129,7 +129,7 @@ export function ContractDetailDialog({
               <Separator />
               <div className="space-y-1 text-sm">
                 <h4 className="font-medium">Descrição</h4>
-                <p className="whitespace-pre-wrap text-muted-foreground">
+                <p className="whitespace-pre-wrap text-gray-500">
                   {contract.description}
                 </p>
               </div>

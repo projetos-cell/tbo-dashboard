@@ -1,13 +1,13 @@
-"use client";
+﻿"use client";
 
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ArrowLeft, Clock, Pencil, History } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/tbo-ui/button";
+import { Skeleton } from "@/components/tbo-ui/skeleton";
+import { Separator } from "@/components/tbo-ui/separator";
 import { useCulturaItem, useCulturaVersions } from "@/hooks/use-cultura";
 import { CULTURA_CATEGORIES, CULTURA_STATUS } from "@/lib/constants";
 import { sanitizeHtml } from "@/lib/sanitize";
@@ -40,7 +40,7 @@ export function CulturaItemDetail({
   if (!item) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Item nao encontrado.</p>
+        <p className="text-gray-500">Item nao encontrado.</p>
         <Button variant="link" onClick={onBack} className="mt-2">
           Voltar
         </Button>
@@ -77,7 +77,7 @@ export function CulturaItemDetail({
               </Badge>
             )}
           </div>
-          <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+          <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
             {item.updated_at && (
               <span className="flex items-center gap-1">
                 <Clock className="size-3" />
@@ -112,7 +112,7 @@ export function CulturaItemDetail({
               dangerouslySetInnerHTML={{ __html: sanitizeHtml(item.content) }}
             />
           ) : (
-            <p className="text-muted-foreground text-sm">
+            <p className="text-gray-500 text-sm">
               Nenhum conteudo adicionado.
             </p>
           )}
@@ -137,11 +137,11 @@ export function CulturaItemDetail({
                 >
                   <div>
                     <span className="font-medium">v{v.version}</span>
-                    <span className="text-muted-foreground ml-2">
+                    <span className="text-gray-500 ml-2">
                       {v.title}
                     </span>
                   </div>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-gray-500">
                     {v.created_at &&
                       format(new Date(v.created_at), "dd/MM/yyyy HH:mm", {
                         locale: ptBR,

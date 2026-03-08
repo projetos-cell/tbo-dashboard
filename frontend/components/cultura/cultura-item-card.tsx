@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -15,15 +15,15 @@ import {
   Trash2,
   Eye,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/tbo-ui/card";
+import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/tbo-ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/tbo-ui/dropdown-menu";
 import { CULTURA_CATEGORIES, CULTURA_STATUS } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 
@@ -77,7 +77,7 @@ export function CulturaItemCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h3
-                className="text-sm font-medium truncate cursor-pointer hover:text-primary"
+                className="text-sm font-medium truncate cursor-pointer hover:text-tbo-orange"
                 onClick={() => onView?.(item)}
               >
                 {item.title}
@@ -94,12 +94,12 @@ export function CulturaItemCard({
             </div>
 
             {item.content_html && (
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+              <p className="text-xs text-gray-500 mt-1 line-clamp-2">
                 {stripHtml(item.content_html).slice(0, 120)}
               </p>
             )}
 
-            <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
               {item.updated_at && (
                 <span>
                   {format(new Date(item.updated_at), "dd MMM yyyy", {
@@ -134,7 +134,7 @@ export function CulturaItemCard({
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => onDelete?.(item)}
-                  className="text-destructive"
+                  className="text-red-500"
                 >
                   <Trash2 className="size-4 mr-2" />
                   Excluir

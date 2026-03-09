@@ -108,9 +108,24 @@ export function useFounderDashboard(period?: PeriodValue) {
       )
       .subscribe();
 
+    const channelStmt = supabase
+      .channel(`founder-dash-stmt:${tenantId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "finance_bank_statements",
+          filter: `tenant_id=eq.${tenantId}`,
+        },
+        invalidate,
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channelTx);
       supabase.removeChannel(channelBank);
+      supabase.removeChannel(channelStmt);
     };
   }, [tenantId, qc]);
 

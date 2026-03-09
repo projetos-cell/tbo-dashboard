@@ -21,6 +21,7 @@ import { AgingChart } from "./aging-chart";
 import { CategoryDonut } from "./category-donut";
 import { SaldoDiarioChart } from "./cashflow-chart";
 import { CashFlowFullChart } from "./cashflow-full-chart";
+import { BankStatementCashFlowChart } from "./bank-statement-chart";
 import { CostCenterDistribution } from "./cost-center-distribution";
 
 const fmtCompact = (v: number) =>
@@ -144,7 +145,12 @@ export function FinanceChartsPanel({ section, filters }: FinanceChartsPanelProps
 
   const movimentacoesCharts = [
     {
-      title: "Saldo histórico",
+      title: "Extrato bancário real",
+      description: "Entradas, saídas e saldo do Omie",
+      node: <BankStatementCashFlowChart days={90} />,
+    },
+    {
+      title: "Saldo histórico (snapshots)",
       description: "Últimos 90 dias",
       node: <SaldoDiarioChart days={90} />,
     },

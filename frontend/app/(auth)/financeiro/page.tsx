@@ -23,6 +23,7 @@ import { OperationalIndicatorsSection } from "@/features/financeiro/components/s
 import { ExpiringContractsSection } from "@/features/financeiro/components/sections/expiring-contracts-section";
 import { DreSection } from "@/features/financeiro/components/sections/dre-section";
 import { StrategicSection } from "@/features/financeiro/components/sections/strategic-section";
+import { OmieSyncButton } from "@/features/financeiro/components/omie-sync-button";
 
 const RevenueConcentrationChart = dynamic(
   () =>
@@ -65,7 +66,10 @@ function FinanceiroContent() {
             Dashboard financeiro executivo — dados consolidados do Omie.
           </p>
         </div>
-        <PeriodFilter value={period} onChange={setPeriod} />
+        <div className="flex items-center gap-2">
+          <OmieSyncButton />
+          <PeriodFilter value={period} onChange={setPeriod} />
+        </div>
       </div>
 
       <FounderMetricsSection

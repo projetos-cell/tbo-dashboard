@@ -30,20 +30,20 @@ ALTER TABLE finance_vendors ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "tenant_select_finance_vendors"
     ON finance_vendors FOR SELECT
-    USING (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_insert_finance_vendors"
     ON finance_vendors FOR INSERT
-    WITH CHECK (tenant_id = ANY(get_user_tenant_ids()));
+    WITH CHECK (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_update_finance_vendors"
     ON finance_vendors FOR UPDATE
-    USING (tenant_id = ANY(get_user_tenant_ids()))
-    WITH CHECK (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()))
+    WITH CHECK (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_delete_finance_vendors"
     ON finance_vendors FOR DELETE
-    USING (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 -- Index para lookups por omie_id
 CREATE INDEX IF NOT EXISTS idx_finance_vendors_tenant_omie
@@ -74,20 +74,20 @@ ALTER TABLE finance_clients ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "tenant_select_finance_clients"
     ON finance_clients FOR SELECT
-    USING (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_insert_finance_clients"
     ON finance_clients FOR INSERT
-    WITH CHECK (tenant_id = ANY(get_user_tenant_ids()));
+    WITH CHECK (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_update_finance_clients"
     ON finance_clients FOR UPDATE
-    USING (tenant_id = ANY(get_user_tenant_ids()))
-    WITH CHECK (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()))
+    WITH CHECK (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_delete_finance_clients"
     ON finance_clients FOR DELETE
-    USING (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 -- Index para lookups por omie_id
 CREATE INDEX IF NOT EXISTS idx_finance_clients_tenant_omie
@@ -119,20 +119,20 @@ ALTER TABLE finance_bank_accounts ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "tenant_select_finance_bank_accounts"
     ON finance_bank_accounts FOR SELECT
-    USING (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_insert_finance_bank_accounts"
     ON finance_bank_accounts FOR INSERT
-    WITH CHECK (tenant_id = ANY(get_user_tenant_ids()));
+    WITH CHECK (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_update_finance_bank_accounts"
     ON finance_bank_accounts FOR UPDATE
-    USING (tenant_id = ANY(get_user_tenant_ids()))
-    WITH CHECK (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()))
+    WITH CHECK (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_delete_finance_bank_accounts"
     ON finance_bank_accounts FOR DELETE
-    USING (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 -- Index para lookups por omie_id
 CREATE INDEX IF NOT EXISTS idx_finance_bank_accounts_tenant_omie

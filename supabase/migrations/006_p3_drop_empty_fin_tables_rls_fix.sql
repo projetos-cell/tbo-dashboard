@@ -34,20 +34,20 @@ ALTER TABLE fin_cost_centers ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "tenant_select_fin_cost_centers"
     ON fin_cost_centers FOR SELECT
-    USING (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_insert_fin_cost_centers"
     ON fin_cost_centers FOR INSERT
-    WITH CHECK (tenant_id = ANY(get_user_tenant_ids()));
+    WITH CHECK (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_update_fin_cost_centers"
     ON fin_cost_centers FOR UPDATE
-    USING (tenant_id = ANY(get_user_tenant_ids()))
-    WITH CHECK (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()))
+    WITH CHECK (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_delete_fin_cost_centers"
     ON fin_cost_centers FOR DELETE
-    USING (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 -- ── 3. RLS para fin_categories ────────────────────────────────────────────────
 -- Atualmente SEM RLS — vulnerabilidade crítica.
@@ -56,20 +56,20 @@ ALTER TABLE fin_categories ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "tenant_select_fin_categories"
     ON fin_categories FOR SELECT
-    USING (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_insert_fin_categories"
     ON fin_categories FOR INSERT
-    WITH CHECK (tenant_id = ANY(get_user_tenant_ids()));
+    WITH CHECK (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_update_fin_categories"
     ON fin_categories FOR UPDATE
-    USING (tenant_id = ANY(get_user_tenant_ids()))
-    WITH CHECK (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()))
+    WITH CHECK (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_delete_fin_categories"
     ON fin_categories FOR DELETE
-    USING (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 -- ── 4. RLS para fin_transactions ──────────────────────────────────────────────
 -- Atualmente SEM RLS — vulnerabilidade crítica.
@@ -79,80 +79,80 @@ ALTER TABLE fin_transactions ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "tenant_select_fin_transactions"
     ON fin_transactions FOR SELECT
-    USING (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_insert_fin_transactions"
     ON fin_transactions FOR INSERT
-    WITH CHECK (tenant_id = ANY(get_user_tenant_ids()));
+    WITH CHECK (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_update_fin_transactions"
     ON fin_transactions FOR UPDATE
-    USING (tenant_id = ANY(get_user_tenant_ids()))
-    WITH CHECK (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()))
+    WITH CHECK (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_delete_fin_transactions"
     ON fin_transactions FOR DELETE
-    USING (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 -- ── 5. RLS para fin_vendors (temporário até drop pós-migração de código) ──────
 ALTER TABLE fin_vendors ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "tenant_select_fin_vendors"
     ON fin_vendors FOR SELECT
-    USING (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_insert_fin_vendors"
     ON fin_vendors FOR INSERT
-    WITH CHECK (tenant_id = ANY(get_user_tenant_ids()));
+    WITH CHECK (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_update_fin_vendors"
     ON fin_vendors FOR UPDATE
-    USING (tenant_id = ANY(get_user_tenant_ids()))
-    WITH CHECK (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()))
+    WITH CHECK (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_delete_fin_vendors"
     ON fin_vendors FOR DELETE
-    USING (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 -- ── 6. RLS para fin_clients (temporário até drop pós-migração de código) ──────
 ALTER TABLE fin_clients ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "tenant_select_fin_clients"
     ON fin_clients FOR SELECT
-    USING (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_insert_fin_clients"
     ON fin_clients FOR INSERT
-    WITH CHECK (tenant_id = ANY(get_user_tenant_ids()));
+    WITH CHECK (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_update_fin_clients"
     ON fin_clients FOR UPDATE
-    USING (tenant_id = ANY(get_user_tenant_ids()))
-    WITH CHECK (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()))
+    WITH CHECK (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_delete_fin_clients"
     ON fin_clients FOR DELETE
-    USING (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 -- ── 7. RLS para fin_bank_accounts (temporário até drop pós-migração de código) ─
 ALTER TABLE fin_bank_accounts ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "tenant_select_fin_bank_accounts"
     ON fin_bank_accounts FOR SELECT
-    USING (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_insert_fin_bank_accounts"
     ON fin_bank_accounts FOR INSERT
-    WITH CHECK (tenant_id = ANY(get_user_tenant_ids()));
+    WITH CHECK (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_update_fin_bank_accounts"
     ON fin_bank_accounts FOR UPDATE
-    USING (tenant_id = ANY(get_user_tenant_ids()))
-    WITH CHECK (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()))
+    WITH CHECK (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 CREATE POLICY "tenant_delete_fin_bank_accounts"
     ON fin_bank_accounts FOR DELETE
-    USING (tenant_id = ANY(get_user_tenant_ids()));
+    USING (tenant_id IN (SELECT tenant_members.tenant_id FROM tenant_members WHERE tenant_members.user_id = auth.uid()));
 
 -- ── PRÓXIMO PASSO (Migration 007 — após deploy e verificação) ─────────────────
 -- Quando o código estiver 100% migrado para finance_vendors/clients/bank_accounts:

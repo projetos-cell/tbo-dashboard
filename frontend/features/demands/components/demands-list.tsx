@@ -330,7 +330,7 @@ export function DemandsList({ demands, onSelect }: DemandsListProps) {
       columnDefs={columnDefs}
       data={demands}
       rowKey={(row) => row.id}
-      savedPrefs={columnPrefs}
+      savedPrefs={columnPrefs ?? undefined}
       onPrefsChange={saveColumns}
       onPrefsReset={reset}
       defaultSort={sortPref}

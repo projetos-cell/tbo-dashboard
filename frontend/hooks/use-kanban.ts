@@ -50,7 +50,7 @@ export function useKanban(): UseKanbanReturn {
   const query = useQuery<KanbanTask[], Error>({
     queryKey: QUERY_KEY,
     queryFn: async (): Promise<KanbanTask[]> => {
-      const { data, error } = await supabase.from("kanban_tasks").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("kanban_tasks" as never).select("*").order("created_at", { ascending: false });
 
       if (error) throw new Error(error.message);
 
@@ -83,7 +83,7 @@ export function useKanban(): UseKanbanReturn {
 
     // Step 7 — mutationFn: persiste no Supabase
     mutationFn: async (payload: MoveTaskPayload): Promise<void> => {
-      const { error } = await supabase.from("kanban_tasks").update({ status: payload.status }).eq("id", payload.id);
+      const { error } = await supabase.from("kanban_tasks" as never).update({ status: payload.status } as never).eq("id", payload.id);
 
       if (error) throw new Error(error.message);
     },
@@ -108,7 +108,7 @@ export function useKanban(): UseKanbanReturn {
   const createTaskMutation = useMutation<KanbanTask, Error, CreateTaskPayload>({
     mutationFn: async (payload: CreateTaskPayload): Promise<KanbanTask> => {
       const { data, error } = await supabase
-        .from("kanban_tasks")
+        .from("kanban_tasks" as never)
         .insert(payload as never)
         .select("*")
         .single();

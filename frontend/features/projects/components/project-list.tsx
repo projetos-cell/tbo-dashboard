@@ -187,7 +187,7 @@ export function ProjectList({ projects }: ProjectListProps) {
       columnDefs={columnDefs}
       data={projects}
       rowKey={(row) => row.id}
-      savedPrefs={columnPrefs}
+      savedPrefs={columnPrefs ?? undefined}
       onPrefsChange={saveColumns}
       onPrefsReset={reset}
       defaultSort={sortPref}

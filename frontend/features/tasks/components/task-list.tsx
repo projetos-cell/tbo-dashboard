@@ -158,7 +158,7 @@ export function TaskList({ tasks, onSelect }: TaskListProps) {
       columnDefs={columnDefs}
       data={tasks}
       rowKey={(row) => row.id}
-      savedPrefs={columnPrefs}
+      savedPrefs={columnPrefs ?? undefined}
       onPrefsChange={saveColumns}
       onPrefsReset={reset}
       defaultSort={sortPref}

@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react';
 
-export function useMediaQuery() {
-  const [isOpen, setIsOpen] = useState(false);
+export function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(false);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(max-width: 768px)');
-    setIsOpen(mediaQuery.matches);
+    const mediaQuery = window.matchMedia(query);
+    setMatches(mediaQuery.matches);
 
     const handler = (e: MediaQueryListEvent) => {
-      setIsOpen(e.matches);
+      setMatches(e.matches);
     };
 
     mediaQuery.addEventListener('change', handler);
     return () => mediaQuery.removeEventListener('change', handler);
-  }, []);
+  }, [query]);
 
-  return { isOpen };
+  return matches;
 }

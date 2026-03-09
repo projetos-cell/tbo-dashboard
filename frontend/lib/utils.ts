@@ -5,6 +5,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function getInitials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
 export function formatBytes(bytes: number, opts: { decimals?: number; sizeType?: "accurate" | "normal" } = {}) {
   const { decimals = 0, sizeType = "normal" } = opts;
 

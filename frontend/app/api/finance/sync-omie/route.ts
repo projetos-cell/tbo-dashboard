@@ -201,6 +201,8 @@ async function syncVendors(
   const errors: string[] = [];
   const allRecords: Record<string, unknown>[] = [];
 
+  // Omie uses the same "geral/clientes/" endpoint for both clients and vendors.
+  // We import all as vendors too (the distinction is which ones appear in AP).
   try {
     let page = 1;
     let hasMore = true;
@@ -210,19 +212,19 @@ async function syncVendors(
 
       const data = await omieCall(
         creds,
-        "geral/fornecedores/",
-        "ListarFornecedores",
+        "geral/clientes/",
+        "ListarClientes",
         [{ pagina: page, registros_por_pagina: PAGE_SIZE }]
       );
 
-      const fornecedores = (data.cadastro || []) as Array<Record<string, unknown>>;
+      const registros = (data.clientes_cadastro || []) as Array<Record<string, unknown>>;
       const totalRecords = (data.total_de_registros as number) || 0;
       console.log(
-        `[sync-omie] Vendors — page ${page}: ${fornecedores.length} records (total: ${totalRecords})`
+        `[sync-omie] Vendors — page ${page}: ${registros.length} records (total: ${totalRecords})`
       );
 
-      for (const f of fornecedores) {
-        const omieId = String(f.codigo_fornecedor || "");
+      for (const f of registros) {
+        const omieId = String(f.codigo_cliente_omie || "");
         if (!omieId) continue;
 
         allRecords.push({
@@ -335,31 +337,32 @@ async function syncBankAccounts(
 
       const data = await omieCall(
         creds,
-        "financas/contacorrente/",
+        "geral/contacorrente/",
         "ListarContasCorrentes",
         [{ pagina: page, registros_por_pagina: PAGE_SIZE }]
       );
 
-      const contas = (data.conta_corrente_lista || []) as Array<Record<string, unknown>>;
+      // Omie returns the array under "ListarContasCorrentes" (same name as the method)
+      const contas = (data.ListarContasCorrentes || data.conta_corrente_lista || []) as Array<Record<string, unknown>>;
       const totalRecords = (data.total_de_registros as number) || 0;
       console.log(
         `[sync-omie] Bank Accounts — page ${page}: ${contas.length} records (total: ${totalRecords})`
       );
 
       for (const cc of contas) {
-        const omieId = String(cc.nCodCC || cc.cCodCC || "");
+        const omieId = String(cc.nCodCC || cc.cCodCCInt || "");
         if (!omieId) continue;
 
         allRecords.push({
           tenant_id: tenantId,
           omie_id: omieId,
-          name: String(cc.cDescricao || `Conta ${omieId}`),
-          bank_code: cc.nCodBanco ? String(cc.nCodBanco) : null,
-          bank_name: cc.cDescricaoBanco ? String(cc.cDescricaoBanco) : null,
-          agency: cc.cNumAgencia ? String(cc.cNumAgencia) : null,
-          account_number: cc.cNumConta ? String(cc.cNumConta) : null,
-          account_type: cc.cTipo ? String(cc.cTipo) : "corrente",
-          balance: Number(cc.nSaldo || 0),
+          name: String(cc.descricao || cc.cDescricao || `Conta ${omieId}`),
+          bank_code: cc.codigo_banco ? String(cc.codigo_banco) : (cc.nCodBanco ? String(cc.nCodBanco) : null),
+          bank_name: cc.descricao_banco ? String(cc.descricao_banco) : (cc.cDescricaoBanco ? String(cc.cDescricaoBanco) : null),
+          agency: cc.agencia ? String(cc.agencia) : (cc.cNumAgencia ? String(cc.cNumAgencia) : null),
+          account_number: cc.numero_conta ? String(cc.numero_conta) : (cc.cNumConta ? String(cc.cNumConta) : null),
+          account_type: cc.tipo_conta_corrente ? String(cc.tipo_conta_corrente) : (cc.cTipo ? String(cc.cTipo) : "corrente"),
+          balance: Number(cc.saldo_inicial || cc.nSaldo || 0),
           is_active: String(cc.cInativo || "N").toUpperCase() !== "S",
           omie_synced_at: new Date().toISOString(),
         });
@@ -963,7 +966,8 @@ async function syncExtratoBancario(
             ]
           );
 
-          const movimentos = (data.extrato || data.movimentos || []) as Array<
+          // Omie returns the array under "listaMovimentos"
+          const movimentos = (data.listaMovimentos || data.extrato || data.movimentos || []) as Array<
             Record<string, unknown>
           >;
 
@@ -972,26 +976,28 @@ async function syncExtratoBancario(
           );
 
           for (const mov of movimentos) {
-            const nCodMov = mov.nCodMov || mov.nCodMovCC || mov.nIdMov;
+            const nCodMov = mov.nCodLancamento || mov.nCodMov || mov.nCodMovCC;
             if (!nCodMov) continue;
 
             const omieId = `extrato_${bankOmieId}_${nCodMov}`;
-            const valor = Number(mov.nValor || mov.nValorMov || 0);
-            const isCredit = valor >= 0;
+            const valor = Number(mov.nValorDocumento || mov.nValor || 0);
+            // cNatureza: "E" = entrada (credit), "S" = saída (debit)
+            const natureza = String(mov.cNatureza || "").toUpperCase();
+            const isCredit = natureza === "E" || (!natureza && valor >= 0);
 
             allRecords.push({
               tenant_id: tenantId,
               bank_account_id: bankUuid,
               omie_id: omieId,
-              date: parseOmieDate(mov.dMov || mov.dDataMov) || new Date().toISOString().split("T")[0],
+              date: parseOmieDate(mov.dDataLancamento || mov.dMov) || new Date().toISOString().split("T")[0],
               description: String(
-                mov.cDescMov || mov.cDescricao || mov.cObs || "Movimento"
+                mov.cDesCliente || mov.cObservacoes || mov.cDescMov || "Movimento"
               ),
               amount: Math.abs(valor),
               balance: mov.nSaldo != null ? Number(mov.nSaldo) : null,
               type: isCredit ? "credit" : "debit",
-              category: mov.cCategoria ? String(mov.cCategoria) : null,
-              document_number: mov.cDocumento ? String(mov.cDocumento) : null,
+              category: mov.cCodCategoria ? String(mov.cCodCategoria) : null,
+              document_number: mov.cNumero ? String(mov.cNumero) : (mov.cDocumentoFiscal ? String(mov.cDocumentoFiscal) : null),
               omie_raw: mov,
             });
           }

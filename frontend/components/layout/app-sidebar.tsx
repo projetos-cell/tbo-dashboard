@@ -3,19 +3,47 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutDashboard, ListChecks, MessageSquare, FolderKanban,
-  Calendar, Users, DollarSign, Briefcase, Building2, FileText,
-  Target, HeartHandshake, Share2, BarChart3,
-  Bell, Settings, LogOut, History, PenTool, CheckCircle, Lightbulb,
-  Presentation, Lock, Shield, Activity, Globe,
+  LayoutDashboard,
+  ListChecks,
+  MessageSquare,
+  FolderKanban,
+  Calendar,
+  Users,
+  DollarSign,
+  Briefcase,
+  Building2,
+  FileText,
+  Target,
+  HeartHandshake,
+  Share2,
+  BarChart3,
+  Bell,
+  Settings,
+  LogOut,
+  History,
+  PenTool,
+  CheckCircle,
+  Lightbulb,
+  Presentation,
+  Lock,
+  Shield,
+  Activity,
+  Globe,
 } from "lucide-react";
 import {
-  Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
-  SidebarGroupContent, SidebarGroupLabel, SidebarHeader,
-  SidebarMenu, SidebarMenuButton, SidebarMenuItem,
-} from "@/components/tbo-ui/sidebar";
-import { Badge } from "@/components/tbo-ui/badge";
-import { Button } from "@/components/tbo-ui/button";
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAlertCount } from "@/hooks/use-alert-count";
@@ -95,7 +123,7 @@ function AlertsFixedItem({ pathname, canSee }: { pathname: string; canSee: (m: s
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={isActive}>
-              <Link href="/alerts" className="flex items-center justify-between w-full">
+              <Link href="/alerts" className="flex w-full items-center justify-between">
                 <span className="flex items-center gap-2">
                   <Bell className="h-4 w-4" />
                   <span>Alertas</span>
@@ -103,7 +131,7 @@ function AlertsFixedItem({ pathname, canSee }: { pathname: string; canSee: (m: s
                 {count > 0 && (
                   <Badge
                     variant="destructive"
-                    className="h-5 min-w-[20px] px-1.5 text-[10px] font-semibold leading-none"
+                    className="h-5 min-w-[20px] px-1.5 text-[10px] leading-none font-semibold"
                   >
                     {count > 99 ? "99+" : count}
                   </Badge>
@@ -117,7 +145,12 @@ function AlertsFixedItem({ pathname, canSee }: { pathname: string; canSee: (m: s
   );
 }
 
-function NavSection({ label, items, canSee, pathname }: {
+function NavSection({
+  label,
+  items,
+  canSee,
+  pathname,
+}: {
   label: string;
   items: NavItem[];
   canSee: (m: string) => boolean;
@@ -156,8 +189,7 @@ export function AppSidebar() {
   const router = useRouter();
   const modules = useAuthStore((s) => s.modules);
 
-  const canSee = (module: string) =>
-    modules.includes("*") || modules.includes(module);
+  const canSee = (module: string) => modules.includes("*") || modules.includes(module);
 
   async function handleLogout() {
     const supabase = createClient();
@@ -170,12 +202,12 @@ export function AppSidebar() {
     <Sidebar variant="inset">
       <SidebarHeader className="border-b px-4 py-3">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-tbo-orange text-white font-bold text-sm">
+          <div className="bg-tbo-orange flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-white">
             T
           </div>
           <div className="flex flex-col">
-            <span className="font-semibold text-sm leading-tight">TBO</span>
-            <span className="text-[10px] text-gray-500 leading-tight">Dashboard</span>
+            <span className="text-sm leading-tight font-semibold">TBO</span>
+            <span className="text-[10px] leading-tight text-gray-500">Dashboard</span>
           </div>
         </Link>
       </SidebarHeader>
@@ -190,7 +222,7 @@ export function AppSidebar() {
         <NavSection label="Sistema" items={SISTEMA} canSee={canSee} pathname={pathname} />
       </SidebarContent>
 
-      <SidebarFooter className="border-t p-2 space-y-1">
+      <SidebarFooter className="space-y-1 border-t p-2">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === "/changelog"}>
@@ -201,11 +233,7 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-2"
-          onClick={handleLogout}
-        >
+        <Button variant="ghost" className="w-full justify-start gap-2" onClick={handleLogout}>
           <LogOut className="h-4 w-4" />
           Sair
         </Button>

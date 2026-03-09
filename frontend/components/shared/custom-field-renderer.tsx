@@ -2,16 +2,14 @@
 
 import { useState, useCallback } from "react";
 import { format } from "date-fns";
-import { Input } from "@/components/tbo-ui/input";
-import { Checkbox } from "@/components/tbo-ui/checkbox";
-import { Badge } from "@/components/tbo-ui/badge";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Database, Json } from "@/lib/supabase/types";
 
-type FieldDefinition =
-  Database["public"]["Tables"]["custom_field_definitions"]["Row"];
-type FieldValue =
-  Database["public"]["Tables"]["custom_field_values"]["Row"];
+type FieldDefinition = Database["public"]["Tables"]["custom_field_definitions"]["Row"];
+type FieldValue = Database["public"]["Tables"]["custom_field_values"]["Row"];
 
 interface CustomFieldRendererProps {
   definition: FieldDefinition;
@@ -37,7 +35,7 @@ export function CustomFieldRenderer({
         value_text: text || null,
       });
     },
-    [definition.id, onChange]
+    [definition.id, onChange],
   );
 
   const handleNumberChange = useCallback(
@@ -47,7 +45,7 @@ export function CustomFieldRenderer({
         value_number: num ? Number(num) : null,
       });
     },
-    [definition.id, onChange]
+    [definition.id, onChange],
   );
 
   const handleDateChange = useCallback(
@@ -57,7 +55,7 @@ export function CustomFieldRenderer({
         value_date: date ? new Date(date + "T00:00:00").toISOString() : null,
       });
     },
-    [definition.id, onChange]
+    [definition.id, onChange],
   );
 
   const handleCheckboxChange = useCallback(
@@ -67,7 +65,7 @@ export function CustomFieldRenderer({
         value_text: checked ? "true" : "false",
       });
     },
-    [definition.id, onChange]
+    [definition.id, onChange],
   );
 
   const handleSelectChange = useCallback(
@@ -77,23 +75,19 @@ export function CustomFieldRenderer({
         value_text: selected || null,
       });
     },
-    [definition.id, onChange]
+    [definition.id, onChange],
   );
 
   const handleMultiSelectChange = useCallback(
     (option: string) => {
-      const current: string[] = value?.value_json
-        ? (value.value_json as string[])
-        : [];
-      const updated = current.includes(option)
-        ? current.filter((o) => o !== option)
-        : [...current, option];
+      const current: string[] = value?.value_json ? (value.value_json as string[]) : [];
+      const updated = current.includes(option) ? current.filter((o) => o !== option) : [...current, option];
       onChange({
         definition_id: definition.id,
         value_json: updated as unknown as Json,
       });
     },
-    [definition.id, value?.value_json, onChange]
+    [definition.id, value, onChange],
   );
 
   const options = (definition.options as string[]) || [];
@@ -102,15 +96,11 @@ export function CustomFieldRenderer({
     <div className={cn("space-y-1", className)}>
       <label className="text-xs font-medium text-gray-500">
         {definition.name}
-        {definition.is_required && <span className="text-red-500 ml-0.5">*</span>}
+        {definition.is_required && <span className="ml-0.5 text-red-500">*</span>}
       </label>
 
       {fieldType === "text" && (
-        <TextFieldInline
-          value={value?.value_text || ""}
-          onChange={handleTextChange}
-          readOnly={readOnly}
-        />
+        <TextFieldInline value={value?.value_text || ""} onChange={handleTextChange} readOnly={readOnly} />
       )}
 
       {fieldType === "number" && (
@@ -126,11 +116,7 @@ export function CustomFieldRenderer({
       {fieldType === "date" && (
         <Input
           type="date"
-          value={
-            value?.value_date
-              ? format(new Date(value.value_date), "yyyy-MM-dd")
-              : ""
-          }
+          value={value?.value_date ? format(new Date(value.value_date), "yyyy-MM-dd") : ""}
           onChange={(e) => handleDateChange(e.target.value)}
           className="h-8 text-sm"
           readOnly={readOnly}
@@ -138,17 +124,13 @@ export function CustomFieldRenderer({
       )}
 
       {fieldType === "checkbox" && (
-        <div className="flex items-center gap-2 h-8">
+        <div className="flex h-8 items-center gap-2">
           <Checkbox
             checked={value?.value_text === "true"}
-            onCheckedChange={(checked) =>
-              handleCheckboxChange(checked === true)
-            }
+            onCheckedChange={(checked) => handleCheckboxChange(checked === true)}
             disabled={readOnly}
           />
-          <span className="text-sm">
-            {value?.value_text === "true" ? "Sim" : "Nao"}
-          </span>
+          <span className="text-sm">{value?.value_text === "true" ? "Sim" : "Nao"}</span>
         </div>
       )}
 
@@ -224,7 +206,7 @@ function SelectField({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       disabled={readOnly}
-      className="h-8 w-full rounded-md border border-gray-200 bg-transparent px-3 text-sm outline-none focus:border-ring focus:ring-tbo-orange/50 focus:ring-[3px]"
+      className="focus:border-ring focus:ring-tbo-orange/50 h-8 w-full rounded-md border border-gray-200 bg-transparent px-3 text-sm outline-none focus:ring-[3px]"
     >
       <option value="">Selecionar...</option>
       {options.map((opt) => (
@@ -255,10 +237,7 @@ function MultiSelectField({
           <Badge
             key={opt}
             variant={isSelected ? "default" : "outline"}
-            className={cn(
-              "cursor-pointer text-xs",
-              readOnly && "cursor-default"
-            )}
+            className={cn("cursor-pointer text-xs", readOnly && "cursor-default")}
             onClick={() => {
               if (!readOnly) onChange(opt);
             }}

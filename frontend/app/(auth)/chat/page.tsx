@@ -1,7 +1,7 @@
 "use client";
 
-import { RequireRole } from "@/components/auth/require-role";
-import { ChatLayout } from "@/components/chat/chat-layout";
+import { RequireRole } from "@/features/auth/components/require-role";
+import { ChatLayout } from "@/features/chat/components/chat-layout";
 
 function ChatContent() {
   return (

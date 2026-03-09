@@ -1,6 +1,6 @@
 "use client";
 
-import { CulturaSidebar } from "@/components/cultura/cultura-sidebar";
+import { CulturaSidebar } from "@/features/cultura/components/cultura-sidebar";
 
 export default function CulturaLayout({
   children,

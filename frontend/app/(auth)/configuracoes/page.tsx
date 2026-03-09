@@ -2,16 +2,16 @@
 
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { RequireRole } from "@/components/auth/require-role";
+import { RequireRole } from "@/features/auth/components/require-role";
 import { useAuthStore } from "@/stores/auth-store";
-import { SettingsTabs } from "@/components/configuracoes/settings-tabs";
-import { ProfileForm } from "@/components/configuracoes/profile-form";
-import { AppearanceSettings } from "@/components/configuracoes/appearance-settings";
-import { NotionSync } from "@/components/configuracoes/notion-sync";
-import { UserManagement } from "@/components/configuracoes/user-management";
-import { AuditLogTable } from "@/components/configuracoes/audit-log-table";
-import { RdStationPanel } from "@/components/integrations/rd-station-panel";
-import { FirefliesPanel } from "@/components/integrations/fireflies-panel";
+import { SettingsTabs } from "@/features/configuracoes/components/settings-tabs";
+import { ProfileForm } from "@/features/configuracoes/components/profile-form";
+import { AppearanceSettings } from "@/features/configuracoes/components/appearance-settings";
+import { NotionSync } from "@/features/configuracoes/components/notion-sync";
+import { UserManagement } from "@/features/configuracoes/components/user-management";
+import { AuditLogTable } from "@/features/configuracoes/components/audit-log-table";
+import { RdStationPanel } from "@/features/integrations/components/rd-station-panel";
+import { FirefliesPanel } from "@/features/integrations/components/fireflies-panel";
 import type { SettingsTabId } from "@/lib/constants";
 
 const VALID_TABS: SettingsTabId[] = [

@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { Plus, Award, TrendingUp, Users, Zap } from "lucide-react";
-import { Button } from "@/components/tbo-ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
-import { Badge } from "@/components/tbo-ui/badge";
-import { Skeleton } from "@/components/tbo-ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/tbo-ui/tabs";
-import { RecognitionFeedCard } from "@/components/cultura/recognition-feed-card";
-import { RecognitionForm } from "@/components/cultura/recognition-form";
-import { TierProgress } from "@/components/cultura/tier-progress";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RecognitionFeedCard } from "@/features/cultura/components/recognition-feed-card";
+import { RecognitionForm } from "@/features/cultura/components/recognition-form";
+import { TierProgress } from "@/features/cultura/components/tier-progress";
 import { ErrorState } from "@/components/shared";
 import {
   useRecognitions,
@@ -21,8 +21,8 @@ import {
   useUnreviewedRecognitions,
   useReviewRecognition,
   useCheckRateLimit,
-} from "@/hooks/use-reconhecimentos";
-import { usePeople } from "@/hooks/use-people";
+} from "@/features/cultura/hooks/use-reconhecimentos";
+import { usePeople } from "@/features/people/hooks/use-people";
 import { useAuthStore } from "@/stores/auth-store";
 import type { Database } from "@/lib/supabase/types";
 

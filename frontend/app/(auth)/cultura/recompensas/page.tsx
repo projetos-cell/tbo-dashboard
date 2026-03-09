@@ -2,19 +2,19 @@
 
 import { useState } from "react";
 import { Plus, Gift, Star, Clock, CheckCircle } from "lucide-react";
-import { Button } from "@/components/tbo-ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
-import { Badge } from "@/components/tbo-ui/badge";
-import { Skeleton } from "@/components/tbo-ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/tbo-ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/tbo-ui/dialog";
-import { RewardCatalogCard } from "@/components/cultura/reward-catalog-card";
-import { TierProgress } from "@/components/cultura/tier-progress";
+} from "@/components/ui/dialog";
+import { RewardCatalogCard } from "@/features/cultura/components/reward-catalog-card";
+import { TierProgress } from "@/features/cultura/components/tier-progress";
 import { ErrorState } from "@/components/shared";
 import {
   useRewards,
@@ -22,9 +22,9 @@ import {
   useRedemptions,
   useCreateRedemption,
   useUpdateRedemptionStatus,
-} from "@/hooks/use-rewards";
-import { usePointsBalance } from "@/hooks/use-reconhecimentos";
-import { usePeople } from "@/hooks/use-people";
+} from "@/features/cultura/hooks/use-rewards";
+import { usePointsBalance } from "@/features/cultura/hooks/use-reconhecimentos";
+import { usePeople } from "@/features/people/hooks/use-people";
 import { useAuthStore } from "@/stores/auth-store";
 import type { Database } from "@/lib/supabase/types";
 

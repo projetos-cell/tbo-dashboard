@@ -82,20 +82,15 @@ export function ModuleSidebar({ title, items, basePath }: ModuleSidebarProps) {
   const role = useAuthStore((s) => s.role);
 
   return (
-    <nav className="w-52 shrink-0 border-r bg-gray-100/30 p-3 space-y-1 hidden md:block">
-      <h2 className="px-2 mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
-        {title}
-      </h2>
+    <nav className="hidden w-52 shrink-0 space-y-1 border-r bg-gray-100/30 p-3 md:block">
+      <h2 className="mb-3 px-2 text-xs font-semibold tracking-wider text-gray-500 uppercase">{title}</h2>
       {items.map((item) => {
         if (item.min_role && !hasMinRole(role as RoleSlug, item.min_role)) {
           return null;
         }
 
         const Icon = ICON_MAP[item.icon] || LayoutDashboard;
-        const isActive =
-          item.href === basePath
-            ? pathname === basePath
-            : pathname.startsWith(item.href);
+        const isActive = item.href === basePath ? pathname === basePath : pathname.startsWith(item.href);
 
         return (
           <Link
@@ -105,7 +100,7 @@ export function ModuleSidebar({ title, items, basePath }: ModuleSidebarProps) {
               "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
               isActive
                 ? "bg-tbo-orange/10 text-tbo-orange font-medium"
-                : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                : "text-gray-500 hover:bg-gray-100 hover:text-gray-900",
             )}
           >
             <Icon className="size-4" />

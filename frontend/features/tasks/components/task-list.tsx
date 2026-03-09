@@ -1,0 +1,170 @@
+﻿"use client";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/ui/data-table";
+import { TASK_STATUS, TASK_PRIORITY } from "@/lib/constants";
+import { useUpdateTask } from "@/features/tasks/hooks/use-tasks";
+import { useTablePreferences } from "@/hooks/use-table-preferences";
+import type { ColumnDef } from "@/lib/column-types";
+import type { Database } from "@/lib/supabase/types";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Check, Circle } from "lucide-react";
+import { useMemo, useCallback } from "react";
+
+type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
+
+const TABLE_ID = "tarefas";
+
+interface TaskListProps {
+  tasks: TaskRow[];
+  onSelect: (task: TaskRow) => void;
+}
+
+export function TaskList({ tasks, onSelect }: TaskListProps) {
+  const updateTask = useUpdateTask();
+  const { columnPrefs, sortPref, saveColumns, saveSort, reset } = useTablePreferences(TABLE_ID);
+
+  const toggleComplete = useCallback(
+    (task: TaskRow, e: React.MouseEvent) => {
+      e.stopPropagation();
+      updateTask.mutate({
+        id: task.id,
+        updates: {
+          status: task.is_completed ? "pendente" : "concluida",
+          is_completed: !task.is_completed,
+        },
+      });
+    },
+    [updateTask]
+  );
+
+  const columnDefs: ColumnDef<TaskRow>[] = useMemo(
+    () => [
+      {
+        id: "check",
+        label: "",
+        width: "w-10",
+        hideable: false,
+        reorderable: false,
+        cellRender: (row) => (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6"
+            onClick={(e) => toggleComplete(row, e)}
+            aria-label="Alternar conclusao"
+          >
+            {row.is_completed ? (
+              <Check className="h-4 w-4 text-green-600" />
+            ) : (
+              <Circle className="h-4 w-4 text-gray-500" />
+            )}
+          </Button>
+        ),
+      },
+      {
+        id: "title",
+        label: "Titulo",
+        hideable: false,
+        sortable: true,
+        sortType: "string",
+        sortAccessor: (row) => row.title,
+        cellRender: (row) => (
+          <span className={row.is_completed ? "line-through opacity-60" : ""}>
+            {row.title}
+          </span>
+        ),
+      },
+      {
+        id: "status",
+        label: "Status",
+        responsive: "md" as const,
+        sortable: true,
+        sortType: "string",
+        sortAccessor: (row) => row.status,
+        cellRender: (row) => {
+          const statusCfg = TASK_STATUS[row.status as keyof typeof TASK_STATUS];
+          return statusCfg ? (
+            <Badge
+              variant="secondary"
+              className="text-xs"
+              style={{ backgroundColor: statusCfg.bg, color: statusCfg.color }}
+            >
+              {statusCfg.label}
+            </Badge>
+          ) : null;
+        },
+      },
+      {
+        id: "priority",
+        label: "Prioridade",
+        responsive: "md" as const,
+        sortable: true,
+        sortType: "string",
+        sortAccessor: (row) => row.priority,
+        cellRender: (row) => {
+          const priCfg = TASK_PRIORITY[row.priority as keyof typeof TASK_PRIORITY];
+          return priCfg ? (
+            <span className="text-xs font-medium" style={{ color: priCfg.color }}>
+              {priCfg.label}
+            </span>
+          ) : null;
+        },
+      },
+      {
+        id: "assignee",
+        label: "Responsavel",
+        responsive: "lg" as const,
+        cellRender: (row) => (
+          <span className="text-sm text-gray-500">
+            {row.assignee_name ?? "—"}
+          </span>
+        ),
+      },
+      {
+        id: "due_date",
+        label: "Prazo",
+        responsive: "lg" as const,
+        sortable: true,
+        sortType: "date",
+        sortAccessor: (row) => row.due_date,
+        cellRender: (row) => {
+          const overdue =
+            row.due_date &&
+            !row.is_completed &&
+            row.due_date < new Date().toISOString().split("T")[0];
+          return row.due_date ? (
+            <span
+              className={`text-sm ${overdue ? "font-medium text-red-600" : "text-gray-500"}`}
+            >
+              {format(new Date(row.due_date + "T12:00:00"), "dd MMM yyyy", {
+                locale: ptBR,
+              })}
+            </span>
+          ) : (
+            <span className="text-gray-500">—</span>
+          );
+        },
+      },
+    ],
+    [toggleComplete]
+  );
+
+  return (
+    <DataTable
+      tableId={TABLE_ID}
+      columnDefs={columnDefs}
+      data={tasks}
+      rowKey={(row) => row.id}
+      savedPrefs={columnPrefs}
+      onPrefsChange={saveColumns}
+      onPrefsReset={reset}
+      defaultSort={sortPref}
+      onSortChange={saveSort}
+      onRowClick={onSelect}
+      emptyMessage="Nenhuma tarefa encontrada"
+    />
+  );
+}

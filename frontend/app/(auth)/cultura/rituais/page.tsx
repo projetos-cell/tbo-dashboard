@@ -2,32 +2,32 @@
 
 import { useState } from "react";
 import { Plus, Repeat, Clock, Users, Calendar, MoreHorizontal, Edit, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
-import { Button } from "@/components/tbo-ui/button";
-import { Card, CardContent } from "@/components/tbo-ui/card";
-import { Badge } from "@/components/tbo-ui/badge";
-import { Skeleton } from "@/components/tbo-ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/tbo-ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/tbo-ui/dialog";
-import { Input } from "@/components/tbo-ui/input";
-import { Label } from "@/components/tbo-ui/label";
-import { Textarea } from "@/components/tbo-ui/textarea";
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/tbo-ui/select";
+} from "@/components/ui/select";
 import { ErrorState } from "@/components/shared";
 import {
   useRitualTypes,
@@ -35,8 +35,8 @@ import {
   useUpdateRitualType,
   useDeleteRitualType,
   useToggleRitualTypeActive,
-} from "@/hooks/use-ritual-types";
-import { FREQUENCY_LABELS } from "@/services/ritual-types";
+} from "@/features/cultura/hooks/use-ritual-types";
+import { FREQUENCY_LABELS } from "@/features/cultura/services/ritual-types";
 import { useAuthStore } from "@/stores/auth-store";
 import type { Database } from "@/lib/supabase/types";
 

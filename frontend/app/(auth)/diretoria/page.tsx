@@ -1,10 +1,10 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { RequireRole } from "@/components/auth/require-role";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
-import { Button } from "@/components/tbo-ui/button";
-import { Skeleton } from "@/components/tbo-ui/skeleton";
+import { RequireRole } from "@/features/auth/components/require-role";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DollarSign,
   Percent,

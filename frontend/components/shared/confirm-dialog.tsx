@@ -10,7 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/tbo-ui/alert-dialog";
+} from "@/components/ui/alert-dialog";
 import { type ReactNode } from "react";
 
 interface ConfirmDialogProps {
@@ -44,11 +44,7 @@ export function ConfirmDialog({
           <AlertDialogCancel>{cancelLabel}</AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
-            className={
-              variant === "destructive"
-                ? "bg-red-500 text-white hover:bg-red-500/90"
-                : undefined
-            }
+            className={variant === "destructive" ? "bg-red-500 text-white hover:bg-red-500/90" : undefined}
           >
             {confirmLabel}
           </AlertDialogAction>

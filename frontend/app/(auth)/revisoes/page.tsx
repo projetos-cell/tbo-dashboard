@@ -1,12 +1,12 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { RequireRole } from "@/components/auth/require-role";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
-import { Badge } from "@/components/tbo-ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/tbo-ui/tabs";
-import { Skeleton } from "@/components/tbo-ui/skeleton";
-import { Button } from "@/components/tbo-ui/button";
+import { RequireRole } from "@/features/auth/components/require-role";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -14,7 +14,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/tbo-ui/table";
+} from "@/components/ui/table";
 import {
   ClipboardCheck,
   Clock,

@@ -2,8 +2,8 @@
 
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/tbo-ui/avatar";
-import { Skeleton } from "@/components/tbo-ui/skeleton";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ACTIVITY_ACTIONS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
@@ -65,7 +65,7 @@ export function ActivityFeed({
       <div className={cn("space-y-4", className)}>
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="flex items-start gap-3">
-            <Skeleton className="size-8 rounded-full shrink-0" />
+            <Skeleton className="size-8 shrink-0 rounded-full" />
             <div className="flex-1 space-y-1">
               <Skeleton className="h-4 w-3/4" />
               <Skeleton className="h-3 w-24" />
@@ -77,55 +77,40 @@ export function ActivityFeed({
   }
 
   if (activities.length === 0) {
-    return (
-      <p className={cn("text-sm text-gray-500 py-8 text-center", className)}>
-        {emptyMessage}
-      </p>
-    );
+    return <p className={cn("py-8 text-center text-sm text-gray-500", className)}>{emptyMessage}</p>;
   }
 
   return (
     <div className={cn("space-y-1", className)}>
       {activities.map((activity, index) => (
-        <div
-          key={activity.id}
-          className="flex items-start gap-3 py-2 relative"
-        >
+        <div key={activity.id} className="relative flex items-start gap-3 py-2">
           {/* Timeline connector */}
           {index < activities.length - 1 && (
-            <div className="absolute left-4 top-10 bottom-0 w-px bg-border -translate-x-1/2" />
+            <div className="bg-border absolute top-10 bottom-0 left-4 w-px -translate-x-1/2" />
           )}
 
-          <Avatar className="size-8 shrink-0 z-10">
+          <Avatar className="z-10 size-8 shrink-0">
             <AvatarImage src={activity.actor?.avatar_url || undefined} />
-            <AvatarFallback className="text-[10px]">
-              {getInitials(activity.actor?.full_name || null)}
-            </AvatarFallback>
+            <AvatarFallback className="text-[10px]">{getInitials(activity.actor?.full_name || null)}</AvatarFallback>
           </Avatar>
 
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-sm">
-              <span className="font-medium">
-                {activity.actor?.full_name || "Alguem"}
-              </span>{" "}
-              <span className="text-gray-500">
-                {formatFieldChange(activity)}
-              </span>
+              <span className="font-medium">{activity.actor?.full_name || "Alguem"}</span>{" "}
+              <span className="text-gray-500">{formatFieldChange(activity)}</span>
             </p>
 
             {activity.field_name && activity.old_value && activity.new_value && (
               <div className="mt-1 flex items-center gap-2 text-xs">
-                <span className="line-through text-gray-500 bg-red-500/10 px-1.5 py-0.5 rounded">
+                <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-gray-500 line-through">
                   {activity.old_value}
                 </span>
                 <span className="text-gray-500">→</span>
-                <span className="text-gray-900 bg-tbo-orange/10 px-1.5 py-0.5 rounded">
-                  {activity.new_value}
-                </span>
+                <span className="bg-tbo-orange/10 rounded px-1.5 py-0.5 text-gray-900">{activity.new_value}</span>
               </div>
             )}
 
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="mt-0.5 text-xs text-gray-500">
               {formatDistanceToNow(new Date(activity.created_at!), {
                 addSuffix: true,
                 locale: ptBR,

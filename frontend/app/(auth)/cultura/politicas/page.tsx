@@ -2,22 +2,22 @@
 
 import { useState, useMemo } from "react";
 import { Plus, Shield } from "lucide-react";
-import { Button } from "@/components/tbo-ui/button";
-import { Skeleton } from "@/components/tbo-ui/skeleton";
-import { PolicyCard } from "@/components/cultura/policy-card";
-import { PolicyForm, type PolicyFormData } from "@/components/cultura/policy-form";
-import { PolicyDetail } from "@/components/cultura/policy-detail";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PolicyCard } from "@/features/cultura/components/policy-card";
+import { PolicyForm, type PolicyFormData } from "@/features/cultura/components/policy-form";
+import { PolicyDetail } from "@/features/cultura/components/policy-detail";
 import {
   PolicyFilters,
   type PolicyFilterValues,
-} from "@/components/cultura/policy-filters";
+} from "@/features/cultura/components/policy-filters";
 import {
   usePolicies,
   useCreatePolicy,
   useUpdatePolicy,
   useArchivePolicy,
   useDuplicatePolicy,
-} from "@/hooks/use-policies";
+} from "@/features/cultura/hooks/use-policies";
 import { useAuthStore } from "@/stores/auth-store";
 import { ErrorState } from "@/components/shared";
 import type { Database } from "@/lib/supabase/types";

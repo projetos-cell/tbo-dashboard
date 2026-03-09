@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState, useMemo } from "react";
-import { RequireRole } from "@/components/auth/require-role";
+import { RequireRole } from "@/features/auth/components/require-role";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   useRoles,
@@ -10,12 +10,12 @@ import {
   useCreateRole,
   useDeleteRole,
 } from "@/hooks/use-roles";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
-import { Button } from "@/components/tbo-ui/button";
-import { Badge } from "@/components/tbo-ui/badge";
-import { Checkbox } from "@/components/tbo-ui/checkbox";
-import { Input } from "@/components/tbo-ui/input";
-import { Skeleton } from "@/components/tbo-ui/skeleton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/shared";
 import {
   Table,
@@ -24,15 +24,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/tbo-ui/table";
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/tbo-ui/dialog";
-import { Label } from "@/components/tbo-ui/label";
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import {
   Shield,
   ShieldCheck,

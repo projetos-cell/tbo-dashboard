@@ -1,8 +1,8 @@
 ﻿import { cookies } from "next/headers";
-import { SidebarProvider, SidebarInset } from "@/components/tbo-ui/sidebar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { Header } from "@/components/layout/header";
-import { RoleLoader } from "@/components/auth/role-loader";
+import { RoleLoader } from "@/features/auth/components/role-loader";
 
 export const dynamic = "force-dynamic";
 

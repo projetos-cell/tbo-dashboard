@@ -14,10 +14,10 @@ import {
   RefreshCw,
   Bell,
 } from "lucide-react";
-import { Button } from "@/components/tbo-ui/button";
-import { Badge } from "@/components/tbo-ui/badge";
-import { Skeleton } from "@/components/tbo-ui/skeleton";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/tbo-ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ErrorState, EmptyState } from "@/components/shared";
 import {
   useNotifications,

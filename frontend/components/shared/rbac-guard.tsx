@@ -19,12 +19,7 @@ interface RBACGuardProps {
   fallback?: ReactNode;
 }
 
-export function RBACGuard({
-  children,
-  minRole,
-  allowedRoles,
-  fallback = null,
-}: RBACGuardProps) {
+export function RBACGuard({ children, minRole, allowedRoles, fallback = null }: RBACGuardProps) {
   const role = useAuthStore((s) => s.role);
   const userRole = role as Role;
 

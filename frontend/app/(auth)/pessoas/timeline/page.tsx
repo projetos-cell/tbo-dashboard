@@ -1,18 +1,18 @@
 ﻿"use client";
 
 import { useState, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/tbo-ui/select";
-import { PeopleTimeline } from "@/components/people/people-timeline";
-import { usePeopleEvents } from "@/hooks/use-people-events";
-import { useProfiles } from "@/hooks/use-people";
-import type { PeopleEventType, EventSeverity, PeopleEventsFilter } from "@/services/people-events";
+} from "@/components/ui/select";
+import { PeopleTimeline } from "@/features/people/components/people-timeline";
+import { usePeopleEvents } from "@/features/people/hooks/use-people-events";
+import { useProfiles } from "@/features/people/hooks/use-people";
+import type { PeopleEventType, EventSeverity, PeopleEventsFilter } from "@/features/people/services/people-events";
 
 // ---------------------------------------------------------------------------
 // Event type & severity options for filters

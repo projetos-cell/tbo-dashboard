@@ -16,19 +16,19 @@ import {
   BarChart3,
   MessageSquarePlus,
 } from "lucide-react";
-import { Button } from "@/components/tbo-ui/button";
-import { Badge } from "@/components/tbo-ui/badge";
-import { Card, CardContent } from "@/components/tbo-ui/card";
-import { Progress } from "@/components/tbo-ui/progress";
-import { Skeleton } from "@/components/tbo-ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/tbo-ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/tbo-ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,23 +38,23 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/tbo-ui/alert-dialog";
+} from "@/components/ui/alert-dialog";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/tbo-ui/collapsible";
-import { RequireRole } from "@/components/auth/require-role";
+} from "@/components/ui/collapsible";
+import { RequireRole } from "@/features/auth/components/require-role";
 import { ErrorState } from "@/components/shared";
-import { OkrCycleSelector } from "@/components/okrs/okr-cycle-selector";
-import { OkrKpis } from "@/components/okrs/okr-kpis";
-import { OkrFilters } from "@/components/okrs/okr-filters";
-import { OkrObjectiveDialog } from "@/components/okrs/okr-objective-dialog";
-import { OkrKeyResultDialog } from "@/components/okrs/okr-key-result-dialog";
-import { OkrCycleDialog } from "@/components/okrs/okr-cycle-dialog";
-import { OkrCheckinDialog } from "@/components/okrs/okr-checkin-dialog";
-import { OkrComments } from "@/components/okrs/okr-comments";
-import { OkrCheckinHistory } from "@/components/okrs/okr-checkin-history";
+import { OkrCycleSelector } from "@/features/okrs/components/okr-cycle-selector";
+import { OkrKpis } from "@/features/okrs/components/okr-kpis";
+import { OkrFilters } from "@/features/okrs/components/okr-filters";
+import { OkrObjectiveDialog } from "@/features/okrs/components/okr-objective-dialog";
+import { OkrKeyResultDialog } from "@/features/okrs/components/okr-key-result-dialog";
+import { OkrCycleDialog } from "@/features/okrs/components/okr-cycle-dialog";
+import { OkrCheckinDialog } from "@/features/okrs/components/okr-checkin-dialog";
+import { OkrComments } from "@/features/okrs/components/okr-comments";
+import { OkrCheckinHistory } from "@/features/okrs/components/okr-checkin-history";
 import {
   useCycles,
   useActiveCycle,
@@ -62,9 +62,9 @@ import {
   useKeyResults,
   useDeleteObjective,
   useDeleteKeyResult,
-} from "@/hooks/use-okrs";
+} from "@/features/okrs/hooks/use-okrs";
 import { useAuthStore } from "@/stores/auth-store";
-import { computeOkrKPIs } from "@/services/okrs";
+import { computeOkrKPIs } from "@/features/okrs/services/okrs";
 import { useToast } from "@/hooks/use-toast";
 import { OKR_STATUS, OKR_LEVELS } from "@/lib/constants";
 import type { OkrStatusKey, OkrLevelKey } from "@/lib/constants";
@@ -775,7 +775,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/tbo-ui/dialog";
+} from "@/components/ui/dialog";
 
 export default function OkrsPage() {
   return (

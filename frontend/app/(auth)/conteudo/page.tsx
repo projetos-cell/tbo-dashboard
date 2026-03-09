@@ -1,12 +1,12 @@
 ﻿"use client";
 
 import { useState, useMemo } from "react";
-import { RequireRole } from "@/components/auth/require-role";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
-import { Button } from "@/components/tbo-ui/button";
-import { Badge } from "@/components/tbo-ui/badge";
-import { Input } from "@/components/tbo-ui/input";
-import { Skeleton } from "@/components/tbo-ui/skeleton";
+import { RequireRole } from "@/features/auth/components/require-role";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -14,7 +14,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/tbo-ui/table";
+} from "@/components/ui/table";
 import {
   FileText,
   Search,

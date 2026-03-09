@@ -1,17 +1,17 @@
 ﻿"use client";
 
 import { useState, useMemo } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/tbo-ui/tabs";
-import { Button } from "@/components/tbo-ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/tbo-ui/card";
-import { Badge } from "@/components/tbo-ui/badge";
-import { Skeleton } from "@/components/tbo-ui/skeleton";
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -19,20 +19,20 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/tbo-ui/table";
+} from "@/components/ui/table";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/tbo-ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/tbo-ui/select";
+} from "@/components/ui/select";
 import {
   Plus,
   MoreHorizontal,
@@ -46,7 +46,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { RequireRole } from "@/components/auth/require-role";
+import { RequireRole } from "@/features/auth/components/require-role";
 import { useRsmAccounts, useRsmPosts, useRsmIdeas, useDeleteRsmPost, useDeleteRsmIdea } from "@/hooks/use-rsm";
 import { computeRsmKPIs } from "@/services/rsm";
 import { ErrorState, EmptyState } from "@/components/shared";

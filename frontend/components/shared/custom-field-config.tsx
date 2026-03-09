@@ -7,7 +7,6 @@ import {
   Pencil,
   Trash2,
   X,
-  Check,
   Type,
   Hash,
   Calendar,
@@ -16,10 +15,10 @@ import {
   CheckSquare,
   Link,
 } from "lucide-react";
-import { Button } from "@/components/tbo-ui/button";
-import { Input } from "@/components/tbo-ui/input";
-import { Label } from "@/components/tbo-ui/label";
-import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -27,20 +26,19 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from "@/components/tbo-ui/dialog";
+} from "@/components/ui/dialog";
 import {
   useFieldDefinitions,
   useCreateFieldDefinition,
   useUpdateFieldDefinition,
   useDeleteFieldDefinition,
-} from "@/hooks/use-custom-fields";
+} from "@/features/configuracoes/hooks/use-custom-fields";
 import { useAuthStore } from "@/stores/auth-store";
 import { CUSTOM_FIELD_TYPES, type CustomFieldTypeKey } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { Database, Json } from "@/lib/supabase/types";
 
-type FieldDefinition =
-  Database["public"]["Tables"]["custom_field_definitions"]["Row"];
+type FieldDefinition = Database["public"]["Tables"]["custom_field_definitions"]["Row"];
 
 const FIELD_ICONS: Record<string, React.ElementType> = {
   type: Type,
@@ -57,10 +55,7 @@ interface CustomFieldConfigProps {
   className?: string;
 }
 
-export function CustomFieldConfig({
-  projectId,
-  className,
-}: CustomFieldConfigProps) {
+export function CustomFieldConfig({ projectId, className }: CustomFieldConfigProps) {
   const { data: definitions, isLoading } = useFieldDefinitions(projectId);
   const createField = useCreateFieldDefinition();
   const updateField = useUpdateFieldDefinition();
@@ -68,9 +63,7 @@ export function CustomFieldConfig({
   const tenantId = useAuthStore((s) => s.tenantId);
 
   const [showDialog, setShowDialog] = useState(false);
-  const [editingField, setEditingField] = useState<FieldDefinition | null>(
-    null
-  );
+  const [editingField, setEditingField] = useState<FieldDefinition | null>(null);
 
   const handleCreate = () => {
     setEditingField(null);
@@ -86,12 +79,7 @@ export function CustomFieldConfig({
     await deleteField.mutateAsync({ id: field.id, projectId });
   };
 
-  const handleSave = async (data: {
-    name: string;
-    field_type: string;
-    options: string[];
-    is_required: boolean;
-  }) => {
+  const handleSave = async (data: { name: string; field_type: string; options: string[]; is_required: boolean }) => {
     if (editingField) {
       await updateField.mutateAsync({
         id: editingField.id,
@@ -122,7 +110,7 @@ export function CustomFieldConfig({
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium">Campos personalizados</h3>
         <Button size="sm" variant="outline" onClick={handleCreate}>
-          <Plus className="size-3.5 mr-1" />
+          <Plus className="mr-1 size-3.5" />
           Novo campo
         </Button>
       </div>
@@ -130,38 +118,27 @@ export function CustomFieldConfig({
       {isLoading ? (
         <p className="text-sm text-gray-500">Carregando...</p>
       ) : definitions?.length === 0 ? (
-        <p className="text-sm text-gray-500 text-center py-4">
-          Nenhum campo personalizado configurado
-        </p>
+        <p className="py-4 text-center text-sm text-gray-500">Nenhum campo personalizado configurado</p>
       ) : (
         <div className="space-y-1">
           {definitions?.map((field) => {
-            const typeDef =
-              CUSTOM_FIELD_TYPES[field.field_type as CustomFieldTypeKey];
-            const IconComp = typeDef
-              ? FIELD_ICONS[typeDef.icon] || Type
-              : Type;
+            const typeDef = CUSTOM_FIELD_TYPES[field.field_type as CustomFieldTypeKey];
+            const IconComp = typeDef ? FIELD_ICONS[typeDef.icon] || Type : Type;
 
             return (
-              <div
-                key={field.id}
-                className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm group"
-              >
-                <GripVertical className="size-4 text-gray-500 cursor-grab" />
+              <div key={field.id} className="group flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
+                <GripVertical className="size-4 cursor-grab text-gray-500" />
                 <IconComp className="size-4 text-gray-500" />
                 <span className="flex-1">{field.name}</span>
                 <Badge variant="secondary" className="text-[10px]">
                   {typeDef?.label || field.field_type}
                 </Badge>
                 {field.is_required && (
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] text-red-500"
-                  >
+                  <Badge variant="outline" className="text-[10px] text-red-500">
                     Obrigatorio
                   </Badge>
                 )}
-                <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -187,12 +164,7 @@ export function CustomFieldConfig({
         </div>
       )}
 
-      <FieldDialog
-        open={showDialog}
-        onOpenChange={setShowDialog}
-        field={editingField}
-        onSave={handleSave}
-      />
+      <FieldDialog open={showDialog} onOpenChange={setShowDialog} field={editingField} onSave={handleSave} />
     </div>
   );
 }
@@ -206,20 +178,11 @@ function FieldDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   field: FieldDefinition | null;
-  onSave: (data: {
-    name: string;
-    field_type: string;
-    options: string[];
-    is_required: boolean;
-  }) => Promise<void>;
+  onSave: (data: { name: string; field_type: string; options: string[]; is_required: boolean }) => Promise<void>;
 }) {
   const [name, setName] = useState(field?.name || "");
-  const [fieldType, setFieldType] = useState<string>(
-    field?.field_type || "text"
-  );
-  const [options, setOptions] = useState<string[]>(
-    (field?.options as string[]) || []
-  );
+  const [fieldType, setFieldType] = useState<string>(field?.field_type || "text");
+  const [options, setOptions] = useState<string[]>((field?.options as string[]) || []);
   const [isRequired, setIsRequired] = useState(field?.is_required || false);
   const [newOption, setNewOption] = useState("");
   const [saving, setSaving] = useState(false);
@@ -269,12 +232,8 @@ function FieldDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>
-            {field ? "Editar campo" : "Novo campo personalizado"}
-          </DialogTitle>
-          <DialogDescription>
-            Configure o campo personalizado para as tarefas deste projeto.
-          </DialogDescription>
+          <DialogTitle>{field ? "Editar campo" : "Novo campo personalizado"}</DialogTitle>
+          <DialogDescription>Configure o campo personalizado para as tarefas deste projeto.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -303,9 +262,7 @@ function FieldDialog({
                     onClick={() => setFieldType(key)}
                     className={cn(
                       "flex flex-col items-center gap-1 rounded-md border p-2 text-xs transition-colors",
-                      fieldType === key
-                        ? "border-tbo-orange bg-tbo-orange/5"
-                        : "hover:bg-gray-100"
+                      fieldType === key ? "border-tbo-orange bg-tbo-orange/5" : "hover:bg-gray-100",
                     )}
                   >
                     <IconComp className="size-4" />
@@ -331,31 +288,22 @@ function FieldDialog({
                     }
                   }}
                 />
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="outline"
-                  onClick={addOption}
-                  aria-label="Adicionar opcao"
-                >
+                <Button type="button" size="icon" variant="outline" onClick={addOption} aria-label="Adicionar opcao">
                   <Plus className="size-4" />
                 </Button>
               </div>
-              <div className="flex flex-wrap gap-1.5 mt-2">
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {options.map((opt) => (
                   <Badge key={opt} variant="secondary" className="gap-1">
                     {opt}
-                    <X
-                      className="size-3 cursor-pointer"
-                      onClick={() => removeOption(opt)}
-                    />
+                    <X className="size-3 cursor-pointer" onClick={() => removeOption(opt)} />
                   </Badge>
                 ))}
               </div>
             </div>
           )}
 
-          <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
             <input
               type="checkbox"
               checked={isRequired}

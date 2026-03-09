@@ -382,8 +382,7 @@ export const PESSOAS_NAV_ITEMS: readonly SubNavItem[] = [
 ] as const;
 
 export const FINANCEIRO_NAV_ITEMS: readonly SubNavItem[] = [
-  { href: "/financeiro", label: "Transações", icon: "list" },
-  { href: "/financeiro/founder", label: "Estratégico", icon: "bar-chart-3", min_role: "diretoria" },
+  { href: "/financeiro", label: "Visão Geral", icon: "bar-chart-3" },
 ] as const;
 
 export const COMERCIAL_NAV_ITEMS: readonly SubNavItem[] = [

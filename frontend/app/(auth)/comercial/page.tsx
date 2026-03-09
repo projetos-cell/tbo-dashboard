@@ -1,16 +1,16 @@
 ﻿"use client";
 
 import { useState, useMemo } from "react";
-import { useDeals, useUpdateDealStage } from "@/hooks/use-commercial";
-import { DealKPICards } from "@/components/comercial/deal-kpis";
-import { DealFilters } from "@/components/comercial/deal-filters";
-import { DealPipeline } from "@/components/comercial/deal-pipeline";
-import { DealDetailDialog } from "@/components/comercial/deal-detail-dialog";
-import { DealFormDialog } from "@/components/comercial/deal-form-dialog";
-import { computeDealKPIs } from "@/services/commercial";
-import { RequireRole } from "@/components/auth/require-role";
+import { useDeals, useUpdateDealStage } from "@/features/comercial/hooks/use-commercial";
+import { DealKPICards } from "@/features/comercial/components/deal-kpis";
+import { DealFilters } from "@/features/comercial/components/deal-filters";
+import { DealPipeline } from "@/features/comercial/components/deal-pipeline";
+import { DealDetailDialog } from "@/features/comercial/components/deal-detail-dialog";
+import { DealFormDialog } from "@/features/comercial/components/deal-form-dialog";
+import { computeDealKPIs } from "@/features/comercial/services/commercial";
+import { RequireRole } from "@/features/auth/components/require-role";
 import { ErrorState } from "@/components/shared";
-import { Button } from "@/components/tbo-ui/button";
+import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import type { Database } from "@/lib/supabase/types";
 

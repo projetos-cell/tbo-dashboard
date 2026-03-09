@@ -6,14 +6,14 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-} from "@/components/tbo-ui/card";
+} from "@/components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/tbo-ui/select";
+} from "@/components/ui/select";
 import {
   BarChart,
   Bar,
@@ -51,7 +51,7 @@ import {
   ESTABELECIMENTOS,
   BAIRROS_VARIACAO,
   REGIONAIS,
-} from "@/lib/censo-curitiba-data";
+} from "@/features/mercado/utils/censo-curitiba-data";
 
 // ---------- helpers ----------
 

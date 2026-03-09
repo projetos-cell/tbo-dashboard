@@ -1,4 +1,4 @@
-﻿import { Skeleton } from "@/components/tbo-ui/skeleton";
+﻿import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ChatLoading() {
   return (

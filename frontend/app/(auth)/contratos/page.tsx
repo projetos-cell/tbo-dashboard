@@ -1,16 +1,16 @@
 ﻿"use client";
 
 import { useState, useMemo } from "react";
-import { useContracts } from "@/hooks/use-contracts";
-import { ContractKPICards } from "@/components/contratos/contract-kpis";
-import { ContractFilters } from "@/components/contratos/contract-filters";
-import { ContractList } from "@/components/contratos/contract-list";
-import { ContractDetailDialog } from "@/components/contratos/contract-detail-dialog";
-import { ContractFormDialog } from "@/components/contratos/contract-form-dialog";
-import { computeContractKPIs } from "@/services/contracts";
-import { RequireRole } from "@/components/auth/require-role";
+import { useContracts } from "@/features/contratos/hooks/use-contracts";
+import { ContractKPICards } from "@/features/contratos/components/contract-kpis";
+import { ContractFilters } from "@/features/contratos/components/contract-filters";
+import { ContractList } from "@/features/contratos/components/contract-list";
+import { ContractDetailDialog } from "@/features/contratos/components/contract-detail-dialog";
+import { ContractFormDialog } from "@/features/contratos/components/contract-form-dialog";
+import { computeContractKPIs } from "@/features/contratos/services/contracts";
+import { RequireRole } from "@/features/auth/components/require-role";
 import { ErrorState, EmptyState } from "@/components/shared";
-import { Button } from "@/components/tbo-ui/button";
+import { Button } from "@/components/ui/button";
 import { Plus, FileText } from "lucide-react";
 import type { Database } from "@/lib/supabase/types";
 

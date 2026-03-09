@@ -1,25 +1,25 @@
 ﻿"use client";
 
 import { useState, useMemo } from "react";
-import { Button } from "@/components/tbo-ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/tbo-ui/select";
-import { Input } from "@/components/tbo-ui/input";
-import { PdiKPICards } from "@/components/pdi/pdi-kpis";
-import { PdiTable } from "@/components/pdi/pdi-table";
-import { PdiDetail } from "@/components/pdi/pdi-detail";
-import { PdiForm } from "@/components/pdi/pdi-form";
-import { usePdis, useOpenPdiActionsCount } from "@/hooks/use-pdi";
-import { useProfiles } from "@/hooks/use-people";
-import { computePdiKPIs } from "@/services/pdi";
-import { PDI_STATUS_KEYS, PDI_STATUS } from "@/lib/pdi-utils";
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { PdiKPICards } from "@/features/pdi/components/pdi-kpis";
+import { PdiTable } from "@/features/pdi/components/pdi-table";
+import { PdiDetail } from "@/features/pdi/components/pdi-detail";
+import { PdiForm } from "@/features/pdi/components/pdi-form";
+import { usePdis, useOpenPdiActionsCount } from "@/features/pdi/hooks/use-pdi";
+import { useProfiles } from "@/features/people/hooks/use-people";
+import { computePdiKPIs } from "@/features/pdi/services/pdi";
+import { PDI_STATUS_KEYS, PDI_STATUS } from "@/features/pdi/utils/pdi-utils";
 import { Plus, Search } from "lucide-react";
-import type { PdiRow } from "@/services/pdi";
+import type { PdiRow } from "@/features/pdi/services/pdi";
 
 export default function PDIPage() {
   const { data: pdis, isLoading } = usePdis();

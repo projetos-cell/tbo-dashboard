@@ -1,5 +1,5 @@
-﻿import { Skeleton } from "@/components/tbo-ui/skeleton";
-import { Card, CardContent } from "@/components/tbo-ui/card";
+﻿import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function PessoasLoading() {
   return (

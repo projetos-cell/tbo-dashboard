@@ -2,17 +2,17 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { Button } from "@/components/tbo-ui/button";
-import { Skeleton } from "@/components/tbo-ui/skeleton";
-import { CulturaItemCard } from "@/components/cultura/cultura-item-card";
-import { CulturaItemForm } from "@/components/cultura/cultura-item-form";
-import { CulturaItemDetail } from "@/components/cultura/cultura-item-detail";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { CulturaItemCard } from "@/features/cultura/components/cultura-item-card";
+import { CulturaItemForm } from "@/features/cultura/components/cultura-item-form";
+import { CulturaItemDetail } from "@/features/cultura/components/cultura-item-detail";
 import {
   useCulturaItems,
   useCreateCulturaItem,
   useUpdateCulturaItem,
   useDeleteCulturaItem,
-} from "@/hooks/use-cultura";
+} from "@/features/cultura/hooks/use-cultura";
 import { useAuthStore } from "@/stores/auth-store";
 import { ErrorState } from "@/components/shared";
 import type { Database } from "@/lib/supabase/types";

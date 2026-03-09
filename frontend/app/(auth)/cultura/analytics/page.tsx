@@ -1,14 +1,14 @@
 ﻿"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
-import { Badge } from "@/components/tbo-ui/badge";
-import { RequireRole } from "@/components/auth/require-role";
-import { CulturaOverviewStats } from "@/components/cultura/cultura-overview-stats";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { RequireRole } from "@/features/auth/components/require-role";
+import { CulturaOverviewStats } from "@/features/cultura/components/cultura-overview-stats";
 import { ErrorState } from "@/components/shared";
-import { useCulturaItems } from "@/hooks/use-cultura";
-import { useRecognitionKPIs } from "@/hooks/use-reconhecimentos";
-import { useRitualTypes } from "@/hooks/use-ritual-types";
-import { useRewardsKPIs } from "@/hooks/use-rewards";
+import { useCulturaItems } from "@/features/cultura/hooks/use-cultura";
+import { useRecognitionKPIs } from "@/features/cultura/hooks/use-reconhecimentos";
+import { useRitualTypes } from "@/features/cultura/hooks/use-ritual-types";
+import { useRewardsKPIs } from "@/features/cultura/hooks/use-rewards";
 import {
   CULTURA_CATEGORIES,
   CULTURA_STATUS,

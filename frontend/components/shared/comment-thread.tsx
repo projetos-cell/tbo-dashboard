@@ -4,16 +4,11 @@ import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Send, MoreHorizontal, Pencil, Trash2, Reply } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/tbo-ui/avatar";
-import { Button } from "@/components/tbo-ui/button";
-import { Skeleton } from "@/components/tbo-ui/skeleton";
-import { Textarea } from "@/components/tbo-ui/textarea";
-import {
-  useComments,
-  useCreateComment,
-  useUpdateComment,
-  useDeleteComment,
-} from "@/hooks/use-comments";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { useComments, useCreateComment, useUpdateComment, useDeleteComment } from "@/hooks/use-comments";
 import { useAuthStore } from "@/stores/auth-store";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
@@ -49,15 +44,14 @@ export function CommentThread({ taskId, className }: CommentThreadProps) {
   const topLevel = (comments || []).filter((c) => !c.parent_id);
   const replies = (comments || []).filter((c) => c.parent_id);
 
-  const getReplies = (parentId: string) =>
-    replies.filter((r) => r.parent_id === parentId);
+  const getReplies = (parentId: string) => replies.filter((r) => r.parent_id === parentId);
 
   if (isLoading) {
     return (
       <div className={cn("space-y-4", className)}>
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="flex gap-3">
-            <Skeleton className="size-8 rounded-full shrink-0" />
+            <Skeleton className="size-8 shrink-0 rounded-full" />
             <div className="flex-1 space-y-1">
               <Skeleton className="h-4 w-32" />
               <Skeleton className="h-12 w-full" />
@@ -85,11 +79,7 @@ export function CommentThread({ taskId, className }: CommentThreadProps) {
         }
       />
 
-      {topLevel.length === 0 && (
-        <p className="text-sm text-gray-500 text-center py-4">
-          Nenhum comentario ainda
-        </p>
-      )}
+      {topLevel.length === 0 && <p className="py-4 text-center text-sm text-gray-500">Nenhum comentario ainda</p>}
 
       {topLevel.map((comment) => (
         <CommentItem
@@ -105,7 +95,7 @@ export function CommentThread({ taskId, className }: CommentThreadProps) {
 }
 
 function CommentComposer({
-  taskId,
+  taskId: _taskId, // eslint-disable-line @typescript-eslint/no-unused-vars
   userId,
   onSubmit,
   parentId,
@@ -164,13 +154,7 @@ function CommentComposer({
           <Send className="size-3.5" />
         </Button>
         {onCancel && (
-          <Button
-            size="icon"
-            variant="ghost"
-            className="size-8"
-            onClick={onCancel}
-            aria-label="Cancelar"
-          >
+          <Button size="icon" variant="ghost" className="size-8" onClick={onCancel} aria-label="Cancelar">
             ✕
           </Button>
         )}
@@ -222,18 +206,14 @@ function CommentItem({
 
   return (
     <div className="flex gap-3">
-      <Avatar className="size-7 shrink-0 mt-0.5">
+      <Avatar className="mt-0.5 size-7 shrink-0">
         <AvatarImage src={comment.author?.avatar_url || undefined} />
-        <AvatarFallback className="text-[9px]">
-          {getInitials(comment.author?.full_name || null)}
-        </AvatarFallback>
+        <AvatarFallback className="text-[9px]">{getInitials(comment.author?.full_name || null)}</AvatarFallback>
       </Avatar>
 
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">
-            {comment.author?.full_name || "Anonimo"}
-          </span>
+          <span className="text-sm font-medium">{comment.author?.full_name || "Anonimo"}</span>
           <span className="text-xs text-gray-500">
             {formatDistanceToNow(new Date(comment.created_at!), {
               addSuffix: true,
@@ -253,9 +233,9 @@ function CommentItem({
                 <MoreHorizontal className="size-3.5" />
               </Button>
               {showMenu && (
-                <div className="absolute right-0 top-full mt-1 bg-white border rounded-md shadow-md z-10 py-1 min-w-[120px]">
+                <div className="absolute top-full right-0 z-10 mt-1 min-w-[120px] rounded-md border bg-white py-1 shadow-md">
                   <button
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm w-full hover:bg-gray-100"
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-gray-100"
                     onClick={() => {
                       setIsEditing(true);
                       setShowMenu(false);
@@ -265,7 +245,7 @@ function CommentItem({
                     Editar
                   </button>
                   <button
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm w-full hover:bg-gray-100 text-red-500"
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-red-500 hover:bg-gray-100"
                     onClick={() => {
                       handleDelete();
                       setShowMenu(false);
@@ -299,7 +279,14 @@ function CommentItem({
               }}
             />
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => { setIsEditing(false); setEditContent(comment.content); }}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditContent(comment.content);
+                }}
+              >
                 Cancelar
               </Button>
               <Button size="sm" onClick={handleSaveEdit}>
@@ -308,14 +295,12 @@ function CommentItem({
             </div>
           </div>
         ) : (
-          <p className="text-sm text-gray-500 mt-0.5 whitespace-pre-wrap">
-            {comment.content}
-          </p>
+          <p className="mt-0.5 text-sm whitespace-pre-wrap text-gray-500">{comment.content}</p>
         )}
 
         {!isEditing && (
           <button
-            className="text-xs text-gray-500 hover:text-gray-900 mt-1 flex items-center gap-1"
+            className="mt-1 flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900"
             onClick={() => setShowReply(!showReply)}
           >
             <Reply className="size-3" />
@@ -348,15 +333,9 @@ function CommentItem({
 
         {/* Replies */}
         {replies.length > 0 && (
-          <div className="mt-3 space-y-3 pl-2 border-l-2 border-gray-200">
+          <div className="mt-3 space-y-3 border-l-2 border-gray-200 pl-2">
             {replies.map((reply) => (
-              <CommentItem
-                key={reply.id}
-                comment={reply}
-                taskId={taskId}
-                currentUserId={currentUserId}
-                replies={[]}
-              />
+              <CommentItem key={reply.id} comment={reply} taskId={taskId} currentUserId={currentUserId} replies={[]} />
             ))}
           </div>
         )}

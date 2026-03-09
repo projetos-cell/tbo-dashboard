@@ -6,28 +6,28 @@ import {
   useUpcomingOneOnOnes,
   useOverdueOneOnOnes,
   usePendingOneOnOneActions,
-} from "@/hooks/use-one-on-ones";
-import { useProfiles } from "@/hooks/use-people";
-import { OneOnOneKPICards } from "@/components/one-on-ones/one-on-one-kpis";
-import { PendingActionsList } from "@/components/one-on-ones/one-on-one-actions";
-import { OneOnOneForm } from "@/components/one-on-ones/one-on-one-form";
-import { OneOnOneDetail } from "@/components/one-on-ones/one-on-one-detail";
+} from "@/features/one-on-ones/hooks/use-one-on-ones";
+import { useProfiles } from "@/features/people/hooks/use-people";
+import { OneOnOneKPICards } from "@/features/one-on-ones/components/one-on-one-kpis";
+import { PendingActionsList } from "@/features/one-on-ones/components/one-on-one-actions";
+import { OneOnOneForm } from "@/features/one-on-ones/components/one-on-one-form";
+import { OneOnOneDetail } from "@/features/one-on-ones/components/one-on-one-detail";
 import { ErrorState, EmptyState } from "@/components/shared";
-import { Button } from "@/components/tbo-ui/button";
-import { Badge } from "@/components/tbo-ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/tbo-ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/tbo-ui/select";
+} from "@/components/ui/select";
 import {
   computeOneOnOneKPIs,
   type OneOnOneRow,
-} from "@/services/one-on-ones";
+} from "@/features/one-on-ones/services/one-on-ones";
 import {
   ONE_ON_ONE_STATUS,
   STATUS_KEYS,
@@ -36,8 +36,8 @@ import {
   relativeLabel,
   isOverdue,
   type OneOnOneStatusKey,
-} from "@/lib/one-on-one-utils";
-import { useToggleAction } from "@/hooks/use-one-on-ones";
+} from "@/features/one-on-ones/utils/one-on-one-utils";
+import { useToggleAction } from "@/features/one-on-ones/hooks/use-one-on-ones";
 import {
   Plus,
   CalendarDays,

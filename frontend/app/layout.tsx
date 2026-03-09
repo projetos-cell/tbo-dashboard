@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Roboto } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
+import NextTopLoader from "nextjs-toploader";
+import { PROJECT_CONFIG } from "@/config/project-config";
 import { Providers } from "@/components/providers";
 import "./globals.css";
-
-const roboto = Roboto({subsets:['latin'],variable:'--font-sans'});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TBO Dashboard",
-  description: "TBO OS — Dashboard de gestão integrada",
+  title: PROJECT_CONFIG.name,
+  description: PROJECT_CONFIG.description,
 };
 
 export default function RootLayout({
@@ -26,13 +26,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning className={roboto.variable}>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <Providers>
-          {children}
-        </Providers>
+    <html lang="pt-BR" suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <NextTopLoader showSpinner={false} />
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

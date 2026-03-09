@@ -37,3 +37,24 @@ export function formatMonths(value: number): string {
   if (value >= 24) return `${(value / 12).toFixed(0)} anos`;
   return `${value.toFixed(1)} meses`;
 }
+
+/**
+ * Generic date formatting using Intl.DateTimeFormat
+ */
+export function formatDate(
+  date: Date | string | number | undefined,
+  opts: Intl.DateTimeFormatOptions = {}
+) {
+  if (!date) return '';
+
+  try {
+    return new Intl.DateTimeFormat('pt-BR', {
+      month: opts.month ?? 'long',
+      day: opts.day ?? 'numeric',
+      year: opts.year ?? 'numeric',
+      ...opts
+    }).format(new Date(date));
+  } catch (_err) {
+    return '';
+  }
+}

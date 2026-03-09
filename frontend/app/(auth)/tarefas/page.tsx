@@ -1,23 +1,24 @@
 ﻿"use client";
 
 import { useState, useMemo } from "react";
-import { Button } from "@/components/tbo-ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/tbo-ui/tabs";
-import { Skeleton } from "@/components/tbo-ui/skeleton";
-import { TaskFilters } from "@/components/tasks/task-filters";
-import { TaskList } from "@/components/tasks/task-list";
-import { TaskBoard } from "@/components/tasks/task-board";
-import { TaskDetail } from "@/components/tasks/task-detail";
-import { TaskForm } from "@/components/tasks/task-form";
-import { useTasks } from "@/hooks/use-tasks";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ViewToggle, type ViewMode } from "@/components/shared/view-toggle";
+import { TaskFilters } from "@/features/tasks/components/task-filters";
+import { TaskList } from "@/features/tasks/components/task-list";
+import { TaskCompactList } from "@/features/tasks/components/task-compact-list";
+import { TaskBoard } from "@/features/tasks/components/task-board";
+import { TaskDetail } from "@/features/tasks/components/task-detail";
+import { TaskForm } from "@/features/tasks/components/task-form";
+import { useTasks } from "@/features/tasks/hooks/use-tasks";
 import { ErrorState, EmptyState } from "@/components/shared";
 import type { Database } from "@/lib/supabase/types";
-import { Plus, LayoutList, Kanban, CheckSquare } from "lucide-react";
+import { Plus, CheckSquare } from "lucide-react";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 
 export default function TarefasPage() {
-  const [view, setView] = useState<"list" | "board">("board");
+  const [view, setView] = useState<ViewMode>("board");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
@@ -58,19 +59,7 @@ export default function TarefasPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Tabs
-            value={view}
-            onValueChange={(v) => setView(v as "list" | "board")}
-          >
-            <TabsList>
-              <TabsTrigger value="board" className="gap-1.5">
-                <Kanban className="h-4 w-4" /> Board
-              </TabsTrigger>
-              <TabsTrigger value="list" className="gap-1.5">
-                <LayoutList className="h-4 w-4" /> Lista
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <ViewToggle value={view} onChange={setView} />
           <Button onClick={() => setShowCreate(true)}>
             <Plus className="mr-1.5 h-4 w-4" /> Nova Tarefa
           </Button>
@@ -103,6 +92,8 @@ export default function TarefasPage() {
         />
       ) : view === "board" ? (
         <TaskBoard tasks={filtered} onSelect={setSelectedTask} />
+      ) : view === "list" ? (
+        <TaskCompactList tasks={filtered} onSelect={setSelectedTask} />
       ) : (
         <TaskList tasks={filtered} onSelect={setSelectedTask} />
       )}

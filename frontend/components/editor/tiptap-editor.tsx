@@ -25,7 +25,7 @@ import {
   Quote,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/tbo-ui/button";
+import { Button } from "@/components/ui/button";
 import { useCallback } from "react";
 
 interface TiptapEditorProps {
@@ -68,10 +68,7 @@ export function TiptapEditor({
     },
     editorProps: {
       attributes: {
-        class: cn(
-          "prose prose-sm dark:prose-invert max-w-none focus:outline-none px-3 py-2",
-          minHeight
-        ),
+        class: cn("prose prose-sm dark:prose-invert max-w-none focus:outline-none px-3 py-2", minHeight),
       },
     },
   });
@@ -99,14 +96,9 @@ export function TiptapEditor({
   if (!editor) return null;
 
   return (
-    <div
-      className={cn(
-        "border rounded-md bg-white overflow-hidden",
-        className
-      )}
-    >
+    <div className={cn("overflow-hidden rounded-md border bg-white", className)}>
       {editable && (
-        <div className="flex flex-wrap items-center gap-0.5 border-b px-2 py-1 bg-gray-100/30">
+        <div className="flex flex-wrap items-center gap-0.5 border-b bg-gray-100/30 px-2 py-1">
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBold().run()}
             active={editor.isActive("bold")}
@@ -139,27 +131,21 @@ export function TiptapEditor({
           <Divider />
 
           <ToolbarButton
-            onClick={() =>
-              editor.chain().focus().toggleHeading({ level: 1 }).run()
-            }
+            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
             active={editor.isActive("heading", { level: 1 })}
             title="Título 1"
           >
             <Heading1 className="size-4" />
           </ToolbarButton>
           <ToolbarButton
-            onClick={() =>
-              editor.chain().focus().toggleHeading({ level: 2 }).run()
-            }
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
             active={editor.isActive("heading", { level: 2 })}
             title="Título 2"
           >
             <Heading2 className="size-4" />
           </ToolbarButton>
           <ToolbarButton
-            onClick={() =>
-              editor.chain().focus().toggleHeading({ level: 3 }).run()
-            }
+            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
             active={editor.isActive("heading", { level: 3 })}
             title="Título 3"
           >
@@ -245,11 +231,7 @@ export function TiptapEditor({
           >
             <Italic className="size-3.5" />
           </ToolbarButton>
-          <ToolbarButton
-            onClick={addLink}
-            active={editor.isActive("link")}
-            size="sm"
-          >
+          <ToolbarButton onClick={addLink} active={editor.isActive("link")} size="sm">
             <LinkIcon className="size-3.5" />
           </ToolbarButton>
         </BubbleMenu>
@@ -280,10 +262,7 @@ function ToolbarButton({
       type="button"
       variant="ghost"
       size="icon"
-      className={cn(
-        size === "sm" ? "size-6" : "size-7",
-        active && "bg-gray-100 text-gray-900"
-      )}
+      className={cn(size === "sm" ? "size-6" : "size-7", active && "bg-gray-100 text-gray-900")}
       onClick={onClick}
       disabled={disabled}
       title={title}
@@ -295,5 +274,5 @@ function ToolbarButton({
 }
 
 function Divider() {
-  return <div className="mx-1 h-5 w-px bg-border" />;
+  return <div className="bg-border mx-1 h-5 w-px" />;
 }

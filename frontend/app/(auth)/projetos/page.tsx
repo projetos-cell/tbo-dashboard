@@ -1,19 +1,21 @@
 ﻿"use client";
 
 import { useState, useMemo } from "react";
-import { LayoutGrid, List, Plus, FolderKanban } from "lucide-react";
-import { Button } from "@/components/tbo-ui/button";
-import { Skeleton } from "@/components/tbo-ui/skeleton";
+import { Plus, FolderKanban } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState, EmptyState } from "@/components/shared";
-import { ProjectBoard } from "@/components/projects/project-board";
-import { ProjectList } from "@/components/projects/project-list";
-import { ProjectFilters } from "@/components/projects/project-filters";
-import { ProjectForm } from "@/components/projects/project-form";
-import { useProjects } from "@/hooks/use-projects";
+import { ViewToggle, type ViewMode } from "@/components/shared/view-toggle";
+import { ProjectBoard } from "@/features/projects/components/project-board";
+import { ProjectList } from "@/features/projects/components/project-list";
+import { ProjectCompactList } from "@/features/projects/components/project-compact-list";
+import { ProjectFilters } from "@/features/projects/components/project-filters";
+import { ProjectForm } from "@/features/projects/components/project-form";
+import { useProjects } from "@/features/projects/hooks/use-projects";
 import { useUser } from "@/hooks/use-user";
 
 export default function ProjetosPage() {
-  const [view, setView] = useState<"board" | "list">("board");
+  const [view, setView] = useState<ViewMode>("board");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [formOpen, setFormOpen] = useState(false);
@@ -70,25 +72,7 @@ export default function ProjetosPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* View toggle */}
-          <div className="flex items-center rounded-lg border p-0.5">
-            <Button
-              variant={view === "board" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-7 px-2"
-              onClick={() => setView("board")}
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={view === "list" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-7 px-2"
-              onClick={() => setView("list")}
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
+          <ViewToggle value={view} onChange={setView} />
           <Button onClick={() => setFormOpen(true)}>
             <Plus className="h-4 w-4 mr-1" />
             Novo Projeto
@@ -136,6 +120,8 @@ export default function ProjetosPage() {
         />
       ) : view === "board" ? (
         <ProjectBoard projects={filtered} />
+      ) : view === "list" ? (
+        <ProjectCompactList projects={filtered} />
       ) : (
         <ProjectList projects={filtered} />
       )}

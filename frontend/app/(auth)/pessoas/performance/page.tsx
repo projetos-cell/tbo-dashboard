@@ -1,12 +1,12 @@
 ﻿"use client";
 
 import { useState, useMemo } from "react";
-import { useProfiles } from "@/hooks/use-people";
-import { usePeople } from "@/hooks/use-people";
+import { useProfiles } from "@/features/people/hooks/use-people";
+import { usePeople } from "@/features/people/hooks/use-people";
 import {
   usePerformanceSnapshots,
   computePerformanceKPIs,
-} from "@/hooks/use-performance";
+} from "@/features/performance/hooks/use-performance";
 import {
   PerformanceKPICards,
   PerformanceTable,
@@ -14,26 +14,26 @@ import {
   SkillScoreForm,
   ImpactComputeDialog,
   CultureComputeDialog,
-} from "@/components/performance";
+} from "@/features/performance/components";
 import { ErrorState, EmptyState } from "@/components/shared";
-import { Button } from "@/components/tbo-ui/button";
-import { Badge } from "@/components/tbo-ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/tbo-ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/tbo-ui/select";
+} from "@/components/ui/select";
 import {
   currentPeriod,
   formatPeriodLabel,
   SCORE_BANDS,
   getScoreBand,
-} from "@/lib/performance-constants";
-import type { PerformanceSnapshotRow } from "@/services/performance";
+} from "@/features/performance/utils/performance-constants";
+import type { PerformanceSnapshotRow } from "@/features/performance/services/performance";
 import {
   TrendingUp,
   BarChart3,

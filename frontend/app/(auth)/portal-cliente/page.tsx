@@ -13,10 +13,10 @@ import {
   UserCheck,
   Clock,
 } from "lucide-react";
-import { Button } from "@/components/tbo-ui/button";
-import { Badge } from "@/components/tbo-ui/badge";
-import { Input } from "@/components/tbo-ui/input";
-import { Skeleton } from "@/components/tbo-ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -24,16 +24,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/tbo-ui/table";
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/tbo-ui/dialog";
-import { Label } from "@/components/tbo-ui/label";
-import { RequireRole } from "@/components/auth/require-role";
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { RequireRole } from "@/features/auth/components/require-role";
 import { ErrorState, EmptyState } from "@/components/shared";
 import {
   usePortalAccess,
@@ -41,7 +41,7 @@ import {
   useUpdateAccess,
   useDeleteAccess,
   useRevokeAccess,
-} from "@/hooks/use-portal-cliente";
+} from "@/features/clientes/hooks/use-portal-cliente";
 import { computePortalKPIs } from "@/services/portal-cliente";
 import { useAuthStore } from "@/stores/auth-store";
 import type { Database } from "@/lib/supabase/types";

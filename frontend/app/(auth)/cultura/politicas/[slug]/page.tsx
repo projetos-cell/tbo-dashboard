@@ -4,11 +4,11 @@ import { use } from "react";
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/tbo-ui/button";
-import { Skeleton } from "@/components/tbo-ui/skeleton";
-import { PolicyDetail } from "@/components/cultura/policy-detail";
-import { PolicyForm, type PolicyFormData } from "@/components/cultura/policy-form";
-import { usePolicy, useUpdatePolicy } from "@/hooks/use-policies";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PolicyDetail } from "@/features/cultura/components/policy-detail";
+import { PolicyForm, type PolicyFormData } from "@/features/cultura/components/policy-form";
+import { usePolicy, useUpdatePolicy } from "@/features/cultura/hooks/use-policies";
 import { useAuthStore } from "@/stores/auth-store";
 
 interface PolicySlugPageProps {

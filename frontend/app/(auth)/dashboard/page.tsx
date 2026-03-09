@@ -1,18 +1,18 @@
 ﻿"use client";
 
-import { useDashboardKPIs, useFounderDashboard } from "@/hooks/use-dashboard";
+import { useDashboardKPIs, useFounderDashboard } from "@/features/dashboard/hooks/use-dashboard";
 import { useAuthStore } from "@/stores/auth-store";
 import { hasMinRole } from "@/lib/permissions";
-import { computeKPIs } from "@/services/dashboard";
-import { Skeleton } from "@/components/tbo-ui/skeleton";
+import { computeKPIs } from "@/features/dashboard/services/dashboard";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/shared";
 
-import { KPICards } from "@/components/dashboard/kpi-cards";
-import { WidgetGrid } from "@/components/dashboard/widget-grid";
+import { KPICards } from "@/features/dashboard/components/kpi-cards";
+import { WidgetGrid } from "@/features/dashboard/components/widget-grid";
 import {
   FOUNDER_WIDGETS,
   GENERAL_WIDGETS,
-} from "@/lib/dashboard-widgets";
+} from "@/features/dashboard/utils/dashboard-widgets";
 
 function DashboardSkeleton() {
   return (

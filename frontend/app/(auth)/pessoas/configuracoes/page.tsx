@@ -1,6 +1,6 @@
 "use client";
 
-import { PeopleAutomationSettings } from "@/components/people/people-automation-settings";
+import { PeopleAutomationSettings } from "@/features/people/components/people-automation-settings";
 
 export default function PessoasConfiguracoes() {
   return (

@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 import { AlertTriangle, RotateCcw } from "lucide-react";
-import { Button } from "@/components/tbo-ui/button";
-import { Card, CardContent } from "@/components/tbo-ui/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function AuthError({
   error,

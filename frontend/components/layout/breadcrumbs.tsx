@@ -9,7 +9,7 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/tbo-ui/breadcrumb";
+} from "@/components/ui/breadcrumb";
 import { NAV_ITEMS } from "@/lib/constants";
 import React from "react";
 

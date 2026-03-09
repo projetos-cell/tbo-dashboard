@@ -2,35 +2,35 @@
 
 import { use, useState } from "react";
 import dynamic from "next/dynamic";
-import { Button } from "@/components/tbo-ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/tbo-ui/tabs";
-import { Skeleton } from "@/components/tbo-ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/shared";
-import { ProjectTopbar } from "@/components/projects/project-topbar";
-import { ProjectOverview } from "@/components/projects/tabs/project-overview";
-import { ProjectFiles } from "@/components/projects/tabs/project-files";
-import { ProjectActivityTab } from "@/components/projects/tabs/project-activity";
+import { ProjectTopbar } from "@/features/projects/components/project-topbar";
+import { ProjectOverview } from "@/features/projects/components/tabs/project-overview";
+import { ProjectFiles } from "@/features/projects/components/tabs/project-files";
+import { ProjectActivityTab } from "@/features/projects/components/tabs/project-activity";
 
 // Heavy: frappe-gantt library — lazy load with SSR disabled
 const ProjectGantt = dynamic(
-  () => import("@/components/projects/tabs/project-gantt").then((m) => ({ default: m.ProjectGantt })),
+  () => import("@/features/projects/components/tabs/project-gantt").then((m) => ({ default: m.ProjectGantt })),
   {
     ssr: false,
     loading: () => <div className="h-64 animate-pulse rounded-lg bg-gray-100" />,
   }
 );
-import { DemandsList } from "@/components/demands/demands-list";
-import { DemandsBoard } from "@/components/demands/demands-board";
-import { DemandDetail } from "@/components/demands/demand-detail";
+import { DemandsList } from "@/features/demands/components/demands-list";
+import { DemandsBoard } from "@/features/demands/components/demands-board";
+import { DemandDetail } from "@/features/demands/components/demand-detail";
 import {
   DemandsToolbar,
   applyDemandsFilters,
   type DemandsFilters,
-} from "@/components/demands/demands-toolbar";
-import { useProject, useProjectDemands, useProjectStats } from "@/hooks/use-projects";
-import { useProfiles } from "@/hooks/use-people";
+} from "@/features/demands/components/demands-toolbar";
+import { useProject, useProjectDemands, useProjectStats } from "@/features/projects/hooks/use-projects";
+import { useProfiles } from "@/features/people/hooks/use-people";
 import { useUser } from "@/hooks/use-user";
-import type { UserOption } from "@/components/tbo-ui/user-selector";
+import type { UserOption } from "@/components/ui/user-selector";
 import type { Database } from "@/lib/supabase/types";
 
 type DemandRow = Database["public"]["Tables"]["demands"]["Row"];

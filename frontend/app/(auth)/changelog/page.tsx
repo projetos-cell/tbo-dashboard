@@ -2,24 +2,24 @@
 
 import { useState, useMemo } from "react";
 import { Plus, Search, BookOpen } from "lucide-react";
-import { Button } from "@/components/tbo-ui/button";
-import { Input } from "@/components/tbo-ui/input";
-import { Badge } from "@/components/tbo-ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/tbo-ui/select";
-import { ChangelogList } from "@/components/changelog/changelog-list";
-import { ChangelogForm } from "@/components/changelog/changelog-form";
+} from "@/components/ui/select";
+import { ChangelogList } from "@/features/changelog/components/changelog-list";
+import { ChangelogForm } from "@/features/changelog/components/changelog-form";
 import {
   useChangelog,
   useCreateChangelog,
   useUpdateChangelog,
   useDeleteChangelog,
-} from "@/hooks/use-changelog";
+} from "@/features/changelog/hooks/use-changelog";
 import { ErrorState, EmptyState } from "@/components/shared";
 import {
   CHANGELOG_TAGS,

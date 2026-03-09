@@ -10,7 +10,7 @@ import {
   createRole,
   updateRole,
   deleteRole,
-} from "@/services/permissions";
+} from "@/features/auth/services/permissions";
 import { logAuditTrail } from "@/lib/audit-trail";
 import type { Database } from "@/lib/supabase/types";
 

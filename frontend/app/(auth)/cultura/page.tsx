@@ -15,16 +15,16 @@ import {
   Star,
   TrendingUp,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
-import { Badge } from "@/components/tbo-ui/badge";
-import { CulturaOverviewStats } from "@/components/cultura/cultura-overview-stats";
-import { CulturaItemCard } from "@/components/cultura/cultura-item-card";
-import { CulturaItemDetail } from "@/components/cultura/cultura-item-detail";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { CulturaOverviewStats } from "@/features/cultura/components/cultura-overview-stats";
+import { CulturaItemCard } from "@/features/cultura/components/cultura-item-card";
+import { CulturaItemDetail } from "@/features/cultura/components/cultura-item-detail";
 import { ErrorState, EmptyState } from "@/components/shared";
-import { useCulturaItems } from "@/hooks/use-cultura";
-import { useRecognitionKPIs } from "@/hooks/use-reconhecimentos";
-import { useRitualTypes } from "@/hooks/use-ritual-types";
-import { useRewardsKPIs } from "@/hooks/use-rewards";
+import { useCulturaItems } from "@/features/cultura/hooks/use-cultura";
+import { useRecognitionKPIs } from "@/features/cultura/hooks/use-reconhecimentos";
+import { useRitualTypes } from "@/features/cultura/hooks/use-ritual-types";
+import { useRewardsKPIs } from "@/features/cultura/hooks/use-rewards";
 import {
   CULTURA_CATEGORIES,
   type CulturaCategoryKey,

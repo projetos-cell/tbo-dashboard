@@ -2,12 +2,12 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { addMonths, subMonths, addWeeks, subWeeks } from "date-fns";
-import { CalendarHeader, type CalendarView } from "@/components/calendar/calendar-header";
+import { CalendarHeader, type CalendarView } from "@/features/calendar/components/calendar-header";
 import dynamic from "next/dynamic";
 
 const MonthView = dynamic(
   () =>
-    import("@/components/calendar/month-view").then((m) => ({
+    import("@/features/calendar/components/month-view").then((m) => ({
       default: m.MonthView,
     })),
   {
@@ -20,7 +20,7 @@ const MonthView = dynamic(
 
 const WeekView = dynamic(
   () =>
-    import("@/components/calendar/week-view").then((m) => ({
+    import("@/features/calendar/components/week-view").then((m) => ({
       default: m.WeekView,
     })),
   {
@@ -30,13 +30,13 @@ const WeekView = dynamic(
     ),
   }
 );
-import { EventDetail } from "@/components/calendar/event-detail";
-import { EventForm } from "@/components/calendar/event-form";
-import { useCalendarEvents, useDeleteCalendarEvent } from "@/hooks/use-calendar";
+import { EventDetail } from "@/features/calendar/components/event-detail";
+import { EventForm } from "@/features/calendar/components/event-form";
+import { useCalendarEvents, useDeleteCalendarEvent } from "@/features/calendar/hooks/use-calendar";
 import { ErrorState } from "@/components/shared";
-import { getMonthRange, getWeekRange } from "@/services/calendar";
-import type { CalendarEvent } from "@/services/calendar";
-import { Button } from "@/components/tbo-ui/button";
+import { getMonthRange, getWeekRange } from "@/features/calendar/services/calendar";
+import type { CalendarEvent } from "@/features/calendar/services/calendar";
+import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
 export default function AgendaPage() {

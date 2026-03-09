@@ -1,0 +1,90 @@
+"use client";
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { createClient } from "@/lib/supabase/client";
+import { useAuthStore } from "@/stores/auth-store";
+import { logAuditTrail } from "@/lib/audit-trail";
+import type { Database } from "@/lib/supabase/types";
+import {
+  getContracts,
+  getContractById,
+  createContract,
+  updateContract,
+} from "@/features/contratos/services/contracts";
+
+export function useContracts(filters?: {
+  status?: string;
+  search?: string;
+  clientId?: string;
+}) {
+  const supabase = createClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery({
+    queryKey: ["contracts", tenantId, filters],
+    queryFn: () => getContracts(supabase, tenantId!, filters),
+    staleTime: 1000 * 60 * 5,
+    enabled: !!tenantId,
+  });
+}
+
+export function useContract(id: string | undefined) {
+  const supabase = createClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery({
+    queryKey: ["contract", id],
+    queryFn: () => getContractById(supabase, id!, tenantId!),
+    staleTime: 1000 * 60 * 5,
+    enabled: !!id && !!tenantId,
+  });
+}
+
+export function useCreateContract() {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: Database["public"]["Tables"]["contracts"]["Insert"]) =>
+      createContract(supabase, input),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "create",
+        table: "contracts",
+        recordId: (data as Record<string, unknown>)?.id as string ?? "unknown",
+        after: variables as unknown as Record<string, unknown>,
+      });
+    },
+  });
+}
+
+export function useUpdateContract() {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      updates,
+    }: {
+      id: string;
+      updates: Database["public"]["Tables"]["contracts"]["Update"];
+    }) => updateContract(supabase, id, updates),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+      queryClient.invalidateQueries({ queryKey: ["contract"] });
+
+      const action = variables.updates.status ? "status_change" : "update";
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action,
+        table: "contracts",
+        recordId: variables.id,
+        after: variables.updates as Record<string, unknown>,
+      });
+    },
+  });
+}

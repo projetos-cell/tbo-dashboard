@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
 import { hasMinRole } from "@/lib/permissions";
-import { useFounderDashboard } from "@/hooks/use-founder-dashboard";
+import { useFounderDashboard } from "@/features/founder-dashboard/hooks/use-founder-dashboard";
 import {
   PeriodFilter,
   type PeriodValue,
-} from "@/components/founder-dashboard/period-filter";
+} from "@/features/founder-dashboard/components/period-filter";
 import {
   TrendingUp,
   BarChart3,
@@ -20,31 +20,29 @@ import {
   Clock,
   AlertTriangle,
   Users,
+  Receipt,
+  Cog,
+  UserMinus,
 } from "lucide-react";
+import { AreaChart, Area, ResponsiveContainer } from "recharts";
 
-import { KpiCard } from "@/components/founder-dashboard/kpi-card";
-import { KpiGrid } from "@/components/founder-dashboard/kpi-grid";
-import { UnitRevenueTable } from "@/components/founder-dashboard/unit-revenue-table";
-import { TopProjectsTable } from "@/components/founder-dashboard/top-projects-table";
-import { RevenueConcentration } from "@/components/founder-dashboard/revenue-concentration";
-import { FounderAlerts } from "@/components/founder-dashboard/founder-alerts";
-import { ForecastPanel } from "@/components/founder-dashboard/forecast-panel";
-import type { KpiTooltipContent } from "@/components/founder-dashboard/kpi-card";
-import { CashBalanceInput } from "@/components/founder-dashboard/cash-balance-input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/tbo-ui/card";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/tbo-ui/tabs";
+import { KpiCard } from "@/features/founder-dashboard/components/kpi-card";
+import { KpiGrid } from "@/features/founder-dashboard/components/kpi-grid";
+import { UnitRevenueTable } from "@/features/founder-dashboard/components/unit-revenue-table";
+import { TopProjectsTable } from "@/features/founder-dashboard/components/top-projects-table";
+import { RevenueConcentration } from "@/features/founder-dashboard/components/revenue-concentration";
+import { FounderAlerts } from "@/features/founder-dashboard/components/founder-alerts";
+import { ForecastPanel } from "@/features/founder-dashboard/components/forecast-panel";
+import type { KpiTooltipContent } from "@/features/founder-dashboard/components/kpi-card";
+import { CashBalanceInput } from "@/features/founder-dashboard/components/cash-balance-input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import dynamic from "next/dynamic";
 
 // ── Dynamic chart imports (no SSR) ──────────────────────────────────────────
 
 const MonthlyTrendChart = dynamic(
   () =>
-    import("@/components/founder-dashboard/monthly-trend-chart").then((m) => ({
+    import("@/features/founder-dashboard/components/monthly-trend-chart").then((m) => ({
       default: m.MonthlyTrendChart,
     })),
   {
@@ -57,7 +55,7 @@ const MonthlyTrendChart = dynamic(
 
 const CashWaterfallChart = dynamic(
   () =>
-    import("@/components/founder-dashboard/cash-waterfall-chart").then(
+    import("@/features/founder-dashboard/components/cash-waterfall-chart").then(
       (m) => ({ default: m.CashWaterfallChart })
     ),
   {
@@ -70,7 +68,7 @@ const CashWaterfallChart = dynamic(
 
 const DreTable = dynamic(
   () =>
-    import("@/components/financeiro/dre-table").then((m) => ({
+    import("@/features/financeiro/components/dre-table").then((m) => ({
       default: m.DreTable,
     })),
   {
@@ -83,7 +81,7 @@ const DreTable = dynamic(
 
 const DreSettingsModal = dynamic(
   () =>
-    import("@/components/financeiro/dre-settings-modal").then((m) => ({
+    import("@/features/financeiro/components/dre-settings-modal").then((m) => ({
       default: m.DreSettingsModal,
     })),
   { ssr: false }
@@ -91,7 +89,7 @@ const DreSettingsModal = dynamic(
 
 const RevenueConcentrationChart = dynamic(
   () =>
-    import("@/components/financeiro/revenue-concentration-chart").then(
+    import("@/features/financeiro/components/revenue-concentration-chart").then(
       (m) => ({ default: m.RevenueConcentrationChart })
     ),
   {
@@ -106,7 +104,7 @@ import {
   useFinanceDRE,
   useRevenueConcentrationByClient,
   useDreSettings,
-} from "@/hooks/use-finance";
+} from "@/features/financeiro/hooks/use-finance";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -263,430 +261,602 @@ export default function FinanceiroPage() {
         <PeriodFilter value={period} onChange={setPeriod} />
       </div>
 
-      {/* KPI Cards row */}
-      <div className="flex flex-col xl:flex-row gap-4">
-        <div className="flex-1 min-w-0">
-          <KpiGrid columns={4}>
-            <KpiCard
-              title="Receita MTD"
-              value={d ? fmt(d.receitaRealizada) : "—"}
-              sublabel={
-                d && d.receitaRealizada > 0
-                  ? `Recorrente: ${fmt(d.mrrReceita)} | Pontual: ${fmt(d.pontualReceita)}`
-                  : d?.periodLabel
-                    ? `${d.periodLabel} (pagas)`
-                    : "MTD (pagas)"
-              }
-              icon={<TrendingUp className="h-4 w-4 text-emerald-500" />}
-              colorClass="text-emerald-600 dark:text-emerald-400"
-              tooltip={TOOLTIP_RECEITA}
-              isLoading={isLoading}
-              isEmpty={!isLoading && !!d && d.receitaRealizada === 0}
-              emptyMessage="Nenhuma receita paga neste período."
-              error={errMsg}
-              onRetry={() => refetch()}
-            />
-            <KpiCard
-              title="Margem"
-              value={
-                d
-                  ? `${fmt(d.margemReal)} (${fmtPct(d.margemPct)})`
-                  : "—"
-              }
-              sublabel="Receita - Custos diretos"
-              icon={<BarChart3 className="h-4 w-4 text-blue-500" />}
-              colorClass={
-                d && d.margemPct >= 30
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : "text-red-600 dark:text-red-400"
-              }
-              tooltip={TOOLTIP_MARGEM}
-              isLoading={isLoading}
-              isEmpty={!isLoading && !!d && d.receitaRealizada === 0}
-              emptyMessage="Nenhuma receita paga neste período."
-              error={errMsg}
-              onRetry={() => refetch()}
-            />
-            <KpiCard
-              title="Caixa Atual"
-              value={effectiveCaixa}
-              sublabel={
-                manualCaixa !== null
-                  ? "Entrada manual (Caixa Real)"
-                  : "Saldo consolidado"
-              }
-              icon={<Wallet className="h-4 w-4 text-violet-500" />}
-              colorClass={
-                effectiveCaixa >= 0
-                  ? "text-violet-600 dark:text-violet-400"
-                  : "text-red-600 dark:text-red-400"
-              }
-              tooltip={TOOLTIP_CAIXA}
-              isLoading={isLoading}
-              error={errMsg}
-              onRetry={() => refetch()}
-            />
-            <KpiCard
-              title="Runway"
-              value={d ? fmtMonths(effectiveRunway) : "—"}
-              sublabel="Meses de sobrevivência"
-              icon={<ShieldAlert className="h-4 w-4 text-orange-500" />}
-              colorClass={
-                effectiveRunway >= 6
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : effectiveRunway >= 3
-                    ? "text-amber-600 dark:text-amber-400"
-                    : "text-red-600 dark:text-red-400"
-              }
-              tooltip={TOOLTIP_RUNWAY}
-              isLoading={isLoading}
-              isEmpty={
-                !isLoading &&
-                !!d &&
-                effectiveCaixa === 0 &&
-                d.burnRate === 0
-              }
-              emptyMessage="Registre o saldo bancário (Caixa Real) para calcular o runway."
-              error={errMsg}
-              onRetry={() => refetch()}
-            />
-          </KpiGrid>
+      {/* ── Founder Metrics ──────────────────────────────────────────────── */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            Founder Metrics
+          </h2>
+          {manualCaixa !== null && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 dark:bg-violet-900/30 px-2 py-0.5 text-xs font-medium text-violet-700 dark:text-violet-300">
+              <Wallet className="h-3 w-3" />
+              Caixa manual ativo
+            </span>
+          )}
         </div>
-        <CashBalanceInput
-          onBalanceChange={setManualCaixa}
-          className="xl:w-72 shrink-0"
+        <div className="flex flex-col xl:flex-row gap-4">
+          <div className="flex-1 min-w-0">
+            <KpiGrid columns={4}>
+              <KpiCard
+                title="Receita MTD"
+                value={d ? fmt(d.receitaRealizada) : "—"}
+                sublabel={
+                  d && d.receitaRealizada > 0
+                    ? `Recorrente: ${fmt(d.mrrReceita)} | Pontual: ${fmt(d.pontualReceita)}`
+                    : d?.periodLabel
+                      ? `${d.periodLabel} (pagas)`
+                      : "MTD (pagas)"
+                }
+                icon={<TrendingUp className="h-4 w-4 text-emerald-500" />}
+                colorClass="text-emerald-600 dark:text-emerald-400"
+                tooltip={TOOLTIP_RECEITA}
+                isLoading={isLoading}
+                isEmpty={!isLoading && !!d && d.receitaRealizada === 0}
+                emptyMessage="Nenhuma receita paga neste período."
+                error={errMsg}
+                onRetry={() => refetch()}
+              />
+              <KpiCard
+                title="Margem"
+                value={
+                  d
+                    ? `${fmt(d.margemReal)} (${fmtPct(d.margemPct)})`
+                    : "—"
+                }
+                sublabel="Receita - Custos diretos"
+                icon={<BarChart3 className="h-4 w-4 text-blue-500" />}
+                colorClass={
+                  d && d.margemPct >= 30
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-red-600 dark:text-red-400"
+                }
+                tooltip={TOOLTIP_MARGEM}
+                isLoading={isLoading}
+                isEmpty={!isLoading && !!d && d.receitaRealizada === 0}
+                emptyMessage="Nenhuma receita paga neste período."
+                error={errMsg}
+                onRetry={() => refetch()}
+              />
+              <KpiCard
+                title="Caixa Atual"
+                value={effectiveCaixa}
+                sublabel={
+                  manualCaixa !== null
+                    ? "Entrada manual (Caixa Real)"
+                    : "Saldo consolidado"
+                }
+                icon={<Wallet className="h-4 w-4 text-violet-500" />}
+                colorClass={
+                  effectiveCaixa >= 0
+                    ? "text-violet-600 dark:text-violet-400"
+                    : "text-red-600 dark:text-red-400"
+                }
+                tooltip={TOOLTIP_CAIXA}
+                isLoading={isLoading}
+                error={errMsg}
+                onRetry={() => refetch()}
+              />
+              <KpiCard
+                title="Runway"
+                value={d ? fmtMonths(effectiveRunway) : "—"}
+                sublabel="Meses de sobrevivência"
+                icon={<ShieldAlert className="h-4 w-4 text-orange-500" />}
+                colorClass={
+                  effectiveRunway >= 6
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : effectiveRunway >= 3
+                      ? "text-amber-600 dark:text-amber-400"
+                      : "text-red-600 dark:text-red-400"
+                }
+                tooltip={TOOLTIP_RUNWAY}
+                isLoading={isLoading}
+                isEmpty={
+                  !isLoading &&
+                  !!d &&
+                  effectiveCaixa === 0 &&
+                  d.burnRate === 0
+                }
+                emptyMessage="Registre o saldo bancário (Caixa Real) para calcular o runway."
+                error={errMsg}
+                onRetry={() => refetch()}
+              />
+            </KpiGrid>
+          </div>
+          <CashBalanceInput
+            onBalanceChange={setManualCaixa}
+            className="xl:w-72 shrink-0"
+          />
+        </div>
+      </div>
+
+      {/* ── Saúde Financeira ─────────────────────────────────────────────── */}
+      <div>
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          Saúde Financeira
+        </h2>
+        <KpiGrid columns={3}>
+          <KpiCard
+            title="Burn Rate"
+            value={d ? d.burnRate : 0}
+            sublabel="Média mensal (90 dias)"
+            icon={<Flame className="h-4 w-4 text-red-500" />}
+            colorClass="text-red-600 dark:text-red-400"
+            tooltip={TOOLTIP_BURN}
+            isLoading={isLoading}
+            isEmpty={!isLoading && !!d && d.burnRate === 0}
+            emptyMessage="Sem despesas pagas nos últimos 90 dias."
+            error={errMsg}
+            onRetry={() => refetch()}
+          />
+          <KpiCard
+            title="Break-even"
+            value={d ? d.breakEven : 0}
+            sublabel="Receita mínima mensal"
+            icon={<Scale className="h-4 w-4 text-amber-500" />}
+            colorClass="text-amber-600 dark:text-amber-400"
+            tooltip={TOOLTIP_BREAKEVEN}
+            isLoading={isLoading}
+            isEmpty={!isLoading && !!d && d.breakEven === 0}
+            emptyMessage="Sem dados de custos para calcular o ponto de equilíbrio."
+            error={errMsg}
+            onRetry={() => refetch()}
+          />
+          <KpiCard
+            title="Caixa Previsto (30d)"
+            value={d ? effectiveCaixaPrevisto30d : 0}
+            sublabel={
+              d
+                ? `AR ${fmt(d.arNext30)} | AP ${fmt(d.apNext30)}`
+                : undefined
+            }
+            icon={<Calculator className="h-4 w-4 text-blue-500" />}
+            colorClass={
+              effectiveCaixaPrevisto30d >= 0
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-red-600 dark:text-red-400"
+            }
+            tooltip={TOOLTIP_CAIXA_PREVISTO}
+            isLoading={isLoading}
+            error={errMsg}
+            onRetry={() => refetch()}
+          />
+          <KpiCard
+            title="PMR"
+            value={d && d.pmr !== null ? `${d.pmr.toFixed(0)} dias` : "—"}
+            sublabel="Prazo médio de recebimento (6 meses)"
+            icon={<Clock className="h-4 w-4 text-teal-500" />}
+            colorClass={
+              d && d.pmr !== null && d.pmr <= 5
+                ? "text-emerald-600 dark:text-emerald-400"
+                : d && d.pmr !== null && d.pmr <= 15
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-red-600 dark:text-red-400"
+            }
+            tooltip={TOOLTIP_PMR}
+            isLoading={isLoading}
+            isEmpty={!isLoading && !!d && d.pmr === null}
+            emptyMessage="Sem títulos baixados nos últimos 6 meses."
+            error={errMsg}
+            onRetry={() => refetch()}
+          />
+          <KpiCard
+            title="PMP"
+            value={d && d.pmp !== null ? `${d.pmp.toFixed(0)} dias` : "—"}
+            sublabel="Prazo médio de pagamento (6 meses)"
+            icon={<Clock className="h-4 w-4 text-indigo-500" />}
+            colorClass={
+              d && d.pmp !== null && d.pmp <= 5
+                ? "text-emerald-600 dark:text-emerald-400"
+                : d && d.pmp !== null && d.pmp <= 15
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-red-600 dark:text-red-400"
+            }
+            tooltip={TOOLTIP_PMP}
+            isLoading={isLoading}
+            isEmpty={!isLoading && !!d && d.pmp === null}
+            emptyMessage="Sem títulos pagos nos últimos 6 meses."
+            error={errMsg}
+            onRetry={() => refetch()}
+          />
+          <KpiCard
+            title="Inadimplência"
+            value={d ? fmtPct(d.inadimplenciaPct) : "—"}
+            sublabel={
+              d && d.inadimplenciaCount > 0
+                ? `${d.inadimplenciaCount} título${d.inadimplenciaCount > 1 ? "s" : ""} · ${fmt(d.inadimplenciaTotal)}`
+                : "Nenhum título atrasado"
+            }
+            icon={<AlertTriangle className="h-4 w-4 text-orange-500" />}
+            colorClass={
+              d && d.inadimplenciaPct <= 5
+                ? "text-emerald-600 dark:text-emerald-400"
+                : d && d.inadimplenciaPct <= 15
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-red-600 dark:text-red-400"
+            }
+            tooltip={TOOLTIP_INADIMPLENCIA}
+            isLoading={isLoading}
+            isEmpty={
+              !isLoading &&
+              !!d &&
+              d.inadimplenciaPct === 0 &&
+              d.inadimplenciaCount === 0
+            }
+            emptyMessage="Nenhum título a receber em atraso — excelente!"
+            error={errMsg}
+            onRetry={() => refetch()}
+          />
+        </KpiGrid>
+      </div>
+
+      {/* ── Margem por Cliente ───────────────────────────────────────────── */}
+      {d && d.clientMargins.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <Users className="h-4 w-4 text-gray-500" />
+              Margem por Cliente (Top 10)
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Receita vs custos diretos atribuídos via projetos no período
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-xs text-muted-foreground">
+                    <th className="text-left py-2 font-medium">Cliente</th>
+                    <th className="text-right py-2 font-medium">Receita</th>
+                    <th className="text-right py-2 font-medium">Custos</th>
+                    <th className="text-right py-2 font-medium">Margem</th>
+                    <th className="text-right py-2 font-medium">%</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {d.clientMargins.map((cm) => (
+                    <tr
+                      key={cm.client}
+                      className="border-b last:border-0 hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="py-2 font-medium truncate max-w-[200px]">
+                        {cm.client}
+                      </td>
+                      <td className="py-2 text-right text-emerald-600">
+                        {fmt(cm.receita)}
+                      </td>
+                      <td className="py-2 text-right text-rose-500">
+                        {fmt(cm.custos)}
+                      </td>
+                      <td
+                        className={`py-2 text-right font-medium ${
+                          cm.margem >= 0 ? "text-emerald-600" : "text-red-600"
+                        }`}
+                      >
+                        {fmt(cm.margem)}
+                      </td>
+                      <td
+                        className={`py-2 text-right ${
+                          cm.margemPct >= 30
+                            ? "text-emerald-600"
+                            : cm.margemPct >= 15
+                              ? "text-amber-600"
+                              : "text-red-600"
+                        }`}
+                      >
+                        {fmtPct(cm.margemPct)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Indicadores Operacionais ─────────────────────────────────────── */}
+      <div>
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          Indicadores Operacionais
+        </h2>
+        <KpiGrid columns={4}>
+          <KpiCard
+            title="Receita / Colaborador"
+            value={d ? fmt(d.receitaPorColaborador) : "—"}
+            sublabel={d ? `${d.headcount} colaboradores ativos` : undefined}
+            icon={<Users className="h-4 w-4 text-indigo-500" />}
+            colorClass="text-indigo-600 dark:text-indigo-400"
+            tooltip={{
+              description:
+                "Receita total dividida pelo número de colaboradores ativos.",
+              formula: "receita_realizada / headcount",
+              source: "Omie (receita) + Pessoas (headcount)",
+            }}
+            isLoading={isLoading}
+            isEmpty={!isLoading && !!d && d.headcount === 0}
+            emptyMessage="Nenhum colaborador ativo cadastrado."
+            error={errMsg}
+            onRetry={() => refetch()}
+          />
+          <KpiCard
+            title="Folha de Pagamento"
+            value={d ? fmt(d.folhaPagamento) : "—"}
+            sublabel={
+              d ? `${fmtPct(d.folhaPct)} do total de custos` : undefined
+            }
+            icon={<Receipt className="h-4 w-4 text-rose-500" />}
+            colorClass="text-rose-600 dark:text-rose-400"
+            tooltip={{
+              description:
+                "Custos classificados como Folha de Pagamento no período.",
+              enters: "Despesas com categoria 'folha' ou 'salários'.",
+              source: "Omie (contas a pagar — categoria folha)",
+            }}
+            isLoading={isLoading}
+            error={errMsg}
+            onRetry={() => refetch()}
+          />
+          <KpiCard
+            title="Custos Operacionais"
+            value={d ? fmt(d.custosOperacionais) : "—"}
+            sublabel={
+              d ? `${fmtPct(d.operacionalPct)} do total de custos` : undefined
+            }
+            icon={<Cog className="h-4 w-4 text-slate-500" />}
+            colorClass="text-slate-600 dark:text-slate-400"
+            tooltip={{
+              description:
+                "Custos operacionais excluindo folha de pagamento.",
+              formula: "total_despesas - folha_pagamento",
+              source: "Omie (contas a pagar — exceto categoria folha)",
+            }}
+            isLoading={isLoading}
+            error={errMsg}
+            onRetry={() => refetch()}
+          />
+          <KpiCard
+            title="Churn Rate"
+            value={d ? fmtPct(d.churnRate) : "—"}
+            sublabel="Clientes perdidos (mês atual)"
+            icon={<UserMinus className="h-4 w-4 text-red-500" />}
+            colorClass={
+              d && d.churnRate > 10
+                ? "text-red-600 dark:text-red-400"
+                : d && d.churnRate > 5
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-emerald-600 dark:text-emerald-400"
+            }
+            tooltip={{
+              description:
+                "Taxa de churn: percentual de clientes que deixaram de gerar receita.",
+              formula:
+                "clientes_perdidos / clientes_ativos_mês_anterior × 100",
+              source: "Omie (receita por cliente — comparação mensal)",
+            }}
+            isLoading={isLoading}
+            isEmpty={!isLoading && !!d && d.churnHistory.length === 0}
+            emptyMessage="Dados insuficientes para calcular churn (mínimo 2 meses)."
+            error={errMsg}
+            onRetry={() => refetch()}
+          />
+        </KpiGrid>
+
+        {/* Churn sparkline */}
+        {d && d.churnHistory.length > 1 && !isLoading && (
+          <div className="mt-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium text-gray-500">
+                Evolução do Churn
+              </p>
+              <div className="flex gap-3">
+                {d.churnHistory.slice(-3).map((p) => (
+                  <span key={p.month} className="text-xs text-gray-400">
+                    {p.label}:{" "}
+                    <span className="font-medium text-gray-600">
+                      {p.rate.toFixed(1)}%
+                    </span>
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="h-16">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={d.churnHistory}>
+                  <Area
+                    type="monotone"
+                    dataKey="rate"
+                    stroke="#ef4444"
+                    fill="#ef4444"
+                    fillOpacity={0.1}
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Performance ──────────────────────────────────────────────────── */}
+      <div>
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          Performance
+        </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+          <UnitRevenueTable
+            data={d?.unitRevenue ?? []}
+            isLoading={isLoading}
+          />
+          <div className="lg:col-span-2">
+            <RevenueConcentration
+              data={d?.allClientsByRevenue ?? []}
+              isLoading={isLoading}
+            />
+          </div>
+          <TopProjectsTable
+            data={d?.topProjectsByMargin ?? []}
+            isLoading={isLoading}
+          />
+        </div>
+      </div>
+
+      {/* ── Contratos a Vencer ───────────────────────────────────────────── */}
+      {d && d.expiringContracts.length > 0 && !isLoading && (
+        <div>
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            Contratos a Vencer (60 dias)
+          </h2>
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+            <div className="divide-y divide-gray-100">
+              {d.expiringContracts.map((c) => (
+                <div
+                  key={c.id}
+                  className="flex items-center justify-between px-4 py-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {c.title}
+                    </p>
+                    <p className="text-xs text-gray-500">{c.client}</p>
+                  </div>
+                  <div className="text-right shrink-0 ml-4">
+                    <p className="text-sm font-medium text-gray-900">
+                      {fmt(c.monthlyValue)}/mês
+                    </p>
+                    <p
+                      className={`text-xs font-medium ${
+                        c.daysRemaining <= 15
+                          ? "text-red-600"
+                          : c.daysRemaining <= 30
+                            ? "text-amber-600"
+                            : "text-gray-500"
+                      }`}
+                    >
+                      {c.daysRemaining} dias restantes
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Alertas ──────────────────────────────────────────────────────── */}
+      <div>
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          Alertas
+        </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <FounderAlerts alerts={d?.alerts ?? []} isLoading={isLoading} />
+          <ForecastPanel
+            total={d?.forecast90d.total ?? 0}
+            proposalsTotal={d?.forecastProposalsTotal}
+            months={d?.forecast90d.months ?? []}
+            isLoading={isLoading}
+          />
+        </div>
+      </div>
+
+      {/* ── Concentração de Receita ──────────────────────────────────────── */}
+      <div>
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          Concentração de Receita
+        </h2>
+        <RevenueConcentrationChart
+          data={concentrationData}
+          isLoading={concentrationLoading}
+          topN={5}
         />
       </div>
 
-      {/* Tabbed content */}
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList variant="line">
-          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-          <TabsTrigger value="dre">DRE</TabsTrigger>
-          <TabsTrigger value="projections">Projeções</TabsTrigger>
-          <TabsTrigger value="health">Saúde Financeira</TabsTrigger>
-        </TabsList>
-
-        {/* Tab: Visão Geral */}
-        <TabsContent value="overview" className="space-y-6 pt-4">
-          {/* Charts row */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-            <Card className="lg:col-span-3">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold">
-                  Evolução Mensal (6 meses)
-                </CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  Receita · Despesa · Margem — mês atual inclui dados parciais
-                </p>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <div className="h-[220px] animate-pulse rounded-lg bg-gray-100" />
-                ) : (
-                  <MonthlyTrendChart data={d?.monthlyTrend ?? []} />
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="lg:col-span-2">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold">
-                  Projeção de Caixa — 30d
-                </CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  Caixa atual → +AR → −AP = Saldo previsto
-                </p>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <div className="h-[200px] animate-pulse rounded-lg bg-gray-100" />
-                ) : (
-                  <CashWaterfallChart
-                    caixaAtual={effectiveCaixa}
-                    arNext30={d?.arNext30 ?? 0}
-                    apNext30={d?.apNext30 ?? 0}
-                  />
-                )}
-                {d && !isLoading && (
-                  <div className="mt-3 flex justify-between text-xs text-muted-foreground border-t pt-2">
-                    <span>
-                      AR:{" "}
-                      <span className="text-emerald-500 font-medium">
-                        {fmt(d.arNext30)}
-                      </span>
-                    </span>
-                    <span>
-                      AP:{" "}
-                      <span className="text-rose-500 font-medium">
-                        {fmt(d.apNext30)}
-                      </span>
-                    </span>
-                    <span>
-                      Saldo:{" "}
-                      <span
-                        className={
-                          effectiveCaixaPrevisto30d >= 0
-                            ? "text-blue-500 font-medium"
-                            : "text-red-500 font-medium"
-                        }
-                      >
-                        {fmt(effectiveCaixaPrevisto30d)}
-                      </span>
-                    </span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Performance tables */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-            <UnitRevenueTable
-              data={d?.unitRevenue ?? []}
-              isLoading={isLoading}
-            />
-            <div className="lg:col-span-2">
-              <RevenueConcentration
-                data={d?.allClientsByRevenue ?? []}
-                isLoading={isLoading}
-              />
-            </div>
-            <TopProjectsTable
-              data={d?.topProjectsByMargin ?? []}
-              isLoading={isLoading}
-            />
-          </div>
-        </TabsContent>
-
-        {/* Tab: DRE */}
-        <TabsContent value="dre" className="space-y-6 pt-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">
-                DRE Simplificado
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <DreTable
-                data={dreData}
-                isLoading={dreLoading}
-                onConfigureClick={() => setDreSettingsOpen(true)}
-              />
-            </CardContent>
-          </Card>
-          <DreSettingsModal
-            open={dreSettingsOpen}
-            onClose={() => setDreSettingsOpen(false)}
-            currentTaxRate={dreSettings?.tax_rate ?? 15}
+      {/* ── DRE Simplificado ─────────────────────────────────────────────── */}
+      <div>
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          DRE Simplificado
+        </h2>
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <DreTable
+            data={dreData}
+            isLoading={dreLoading}
+            onConfigureClick={() => setDreSettingsOpen(true)}
           />
+        </div>
+        <DreSettingsModal
+          open={dreSettingsOpen}
+          onClose={() => setDreSettingsOpen(false)}
+          currentTaxRate={dreSettings?.tax_rate ?? 15}
+        />
+      </div>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">
-                Concentração de Receita
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RevenueConcentrationChart
-                data={concentrationData}
-                isLoading={concentrationLoading}
-                topN={5}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Tab: Projeções */}
-        <TabsContent value="projections" className="space-y-6 pt-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <FounderAlerts
-              alerts={d?.alerts ?? []}
-              isLoading={isLoading}
-            />
-            <ForecastPanel
-              total={d?.forecast90d.total ?? 0}
-              months={d?.forecast90d.months ?? []}
-              isLoading={isLoading}
-            />
+      {/* ── Estratégico ──────────────────────────────────────────────────── */}
+      <div>
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          Estratégico
+        </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <div className="lg:col-span-3 rounded-xl border bg-white p-4 shadow-sm">
+            <p className="text-sm font-semibold mb-1">
+              Evolução Mensal (6 meses)
+            </p>
+            <p className="text-xs text-gray-500 mb-3">
+              Receita · Despesa · Margem — mês atual inclui dados parciais
+            </p>
+            {isLoading ? (
+              <div className="h-[220px] animate-pulse rounded-lg bg-gray-100" />
+            ) : (
+              <MonthlyTrendChart data={d?.monthlyTrend ?? []} />
+            )}
           </div>
-        </TabsContent>
 
-        {/* Tab: Saúde Financeira */}
-        <TabsContent value="health" className="space-y-6 pt-4">
-          <KpiGrid columns={3}>
-            <KpiCard
-              title="Burn Rate"
-              value={d ? d.burnRate : 0}
-              sublabel="Média mensal (90 dias)"
-              icon={<Flame className="h-4 w-4 text-red-500" />}
-              colorClass="text-red-600 dark:text-red-400"
-              tooltip={TOOLTIP_BURN}
-              isLoading={isLoading}
-              isEmpty={!isLoading && !!d && d.burnRate === 0}
-              emptyMessage="Sem despesas pagas nos últimos 90 dias."
-              error={errMsg}
-              onRetry={() => refetch()}
-            />
-            <KpiCard
-              title="Break-even"
-              value={d ? d.breakEven : 0}
-              sublabel="Receita mínima mensal"
-              icon={<Scale className="h-4 w-4 text-amber-500" />}
-              colorClass="text-amber-600 dark:text-amber-400"
-              tooltip={TOOLTIP_BREAKEVEN}
-              isLoading={isLoading}
-              isEmpty={!isLoading && !!d && d.breakEven === 0}
-              emptyMessage="Sem dados de custos para calcular o ponto de equilíbrio."
-              error={errMsg}
-              onRetry={() => refetch()}
-            />
-            <KpiCard
-              title="Caixa Previsto (30d)"
-              value={d ? effectiveCaixaPrevisto30d : 0}
-              sublabel={
-                d
-                  ? `AR ${fmt(d.arNext30)} | AP ${fmt(d.apNext30)}`
-                  : undefined
-              }
-              icon={<Calculator className="h-4 w-4 text-blue-500" />}
-              colorClass={
-                effectiveCaixaPrevisto30d >= 0
-                  ? "text-blue-600 dark:text-blue-400"
-                  : "text-red-600 dark:text-red-400"
-              }
-              tooltip={TOOLTIP_CAIXA_PREVISTO}
-              isLoading={isLoading}
-              error={errMsg}
-              onRetry={() => refetch()}
-            />
-            <KpiCard
-              title="PMR"
-              value={d && d.pmr !== null ? `${d.pmr.toFixed(0)} dias` : "—"}
-              sublabel="Prazo médio de recebimento (6 meses)"
-              icon={<Clock className="h-4 w-4 text-teal-500" />}
-              colorClass={
-                d && d.pmr !== null && d.pmr <= 5
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : d && d.pmr !== null && d.pmr <= 15
-                    ? "text-amber-600 dark:text-amber-400"
-                    : "text-red-600 dark:text-red-400"
-              }
-              tooltip={TOOLTIP_PMR}
-              isLoading={isLoading}
-              isEmpty={!isLoading && !!d && d.pmr === null}
-              emptyMessage="Sem títulos baixados nos últimos 6 meses."
-              error={errMsg}
-              onRetry={() => refetch()}
-            />
-            <KpiCard
-              title="PMP"
-              value={d && d.pmp !== null ? `${d.pmp.toFixed(0)} dias` : "—"}
-              sublabel="Prazo médio de pagamento (6 meses)"
-              icon={<Clock className="h-4 w-4 text-indigo-500" />}
-              colorClass={
-                d && d.pmp !== null && d.pmp <= 5
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : d && d.pmp !== null && d.pmp <= 15
-                    ? "text-amber-600 dark:text-amber-400"
-                    : "text-red-600 dark:text-red-400"
-              }
-              tooltip={TOOLTIP_PMP}
-              isLoading={isLoading}
-              isEmpty={!isLoading && !!d && d.pmp === null}
-              emptyMessage="Sem títulos pagos nos últimos 6 meses."
-              error={errMsg}
-              onRetry={() => refetch()}
-            />
-            <KpiCard
-              title="Inadimplência"
-              value={d ? fmtPct(d.inadimplenciaPct) : "—"}
-              sublabel={
-                d && d.inadimplenciaCount > 0
-                  ? `${d.inadimplenciaCount} título${d.inadimplenciaCount > 1 ? "s" : ""} · ${fmt(d.inadimplenciaTotal)}`
-                  : "Nenhum título atrasado"
-              }
-              icon={<AlertTriangle className="h-4 w-4 text-orange-500" />}
-              colorClass={
-                d && d.inadimplenciaPct <= 5
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : d && d.inadimplenciaPct <= 15
-                    ? "text-amber-600 dark:text-amber-400"
-                    : "text-red-600 dark:text-red-400"
-              }
-              tooltip={TOOLTIP_INADIMPLENCIA}
-              isLoading={isLoading}
-              isEmpty={!isLoading && !!d && d.inadimplenciaPct === 0 && d.inadimplenciaCount === 0}
-              emptyMessage="Nenhum título a receber em atraso — excelente!"
-              error={errMsg}
-              onRetry={() => refetch()}
-            />
-          </KpiGrid>
-
-          {/* Client Margins table */}
-          {d && d.clientMargins.length > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <Users className="h-4 w-4 text-gray-500" />
-                  Margem por Cliente (Top 10)
-                </CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  Receita vs custos diretos atribuídos via projetos no período
-                </p>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b text-xs text-muted-foreground">
-                        <th className="text-left py-2 font-medium">Cliente</th>
-                        <th className="text-right py-2 font-medium">Receita</th>
-                        <th className="text-right py-2 font-medium">Custos</th>
-                        <th className="text-right py-2 font-medium">Margem</th>
-                        <th className="text-right py-2 font-medium">%</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {d.clientMargins.map((cm) => (
-                        <tr key={cm.client} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
-                          <td className="py-2 font-medium truncate max-w-[200px]">
-                            {cm.client}
-                          </td>
-                          <td className="py-2 text-right text-emerald-600">
-                            {fmt(cm.receita)}
-                          </td>
-                          <td className="py-2 text-right text-rose-500">
-                            {fmt(cm.custos)}
-                          </td>
-                          <td
-                            className={`py-2 text-right font-medium ${
-                              cm.margem >= 0 ? "text-emerald-600" : "text-red-600"
-                            }`}
-                          >
-                            {fmt(cm.margem)}
-                          </td>
-                          <td
-                            className={`py-2 text-right ${
-                              cm.margemPct >= 30
-                                ? "text-emerald-600"
-                                : cm.margemPct >= 15
-                                  ? "text-amber-600"
-                                  : "text-red-600"
-                            }`}
-                          >
-                            {fmtPct(cm.margemPct)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
+          <div className="lg:col-span-2 rounded-xl border bg-white p-4 shadow-sm">
+            <p className="text-sm font-semibold mb-1">
+              Projeção de Caixa — 30d
+            </p>
+            <p className="text-xs text-gray-500 mb-3">
+              Caixa atual → +AR pendente → −AP pendente = Saldo previsto
+            </p>
+            {isLoading ? (
+              <div className="h-[200px] animate-pulse rounded-lg bg-gray-100" />
+            ) : (
+              <CashWaterfallChart
+                caixaAtual={effectiveCaixa}
+                arNext30={d?.arNext30 ?? 0}
+                apNext30={d?.apNext30 ?? 0}
+              />
+            )}
+            {d && !isLoading && (
+              <div className="mt-3 flex justify-between text-xs text-gray-500 border-t pt-2">
+                <span>
+                  AR:{" "}
+                  <span className="text-emerald-500 font-medium">
+                    {fmt(d.arNext30)}
+                  </span>
+                </span>
+                <span>
+                  AP:{" "}
+                  <span className="text-rose-500 font-medium">
+                    {fmt(d.apNext30)}
+                  </span>
+                </span>
+                <span>
+                  Saldo:{" "}
+                  <span
+                    className={
+                      effectiveCaixaPrevisto30d >= 0
+                        ? "text-blue-500 font-medium"
+                        : "text-red-500 font-medium"
+                    }
+                  >
+                    {fmt(effectiveCaixaPrevisto30d)}
+                  </span>
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

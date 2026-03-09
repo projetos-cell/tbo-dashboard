@@ -2,19 +2,19 @@
 
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { usePeople, usePeopleKPIs, usePeopleFilterOptions, usePeopleSnapshot, usePeopleNudges } from "@/hooks/use-people";
-import { usePeopleAutomations } from "@/hooks/use-people-automations";
+import { usePeople, usePeopleKPIs, usePeopleFilterOptions, usePeopleSnapshot, usePeopleNudges } from "@/features/people/hooks/use-people";
+import { usePeopleAutomations } from "@/features/people/hooks/use-people-automations";
 import { useViewState } from "@/hooks/use-view-state";
 import {
   PeopleKPICardsV2,
   type PeopleKPIKey,
-} from "@/components/people/people-kpis-v2";
-import { PeopleFilters } from "@/components/people/people-filters";
-import { PersonCard } from "@/components/people/person-card";
-import { PersonDetail } from "@/components/people/person-detail";
-import { PeopleNudges } from "@/components/people/people-nudges";
+} from "@/features/people/components/people-kpis-v2";
+import { PeopleFilters } from "@/features/people/components/people-filters";
+import { PersonCard } from "@/features/people/components/person-card";
+import { PersonDetail } from "@/features/people/components/person-detail";
+import { PeopleNudges } from "@/features/people/components/people-nudges";
 import { ErrorState, EmptyState } from "@/components/shared";
-import { Button } from "@/components/tbo-ui/button";
+import { Button } from "@/components/ui/button";
 import type { Database } from "@/lib/supabase/types";
 import type { SortSpec } from "@/services/view-state";
 import {
@@ -25,7 +25,7 @@ import {
   filtersToJson,
   jsonToFilters,
   hasActiveFilters,
-} from "@/lib/people-filters";
+} from "@/features/people/utils/people-filters";
 import { Users, ChevronLeft, ChevronRight } from "lucide-react";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];

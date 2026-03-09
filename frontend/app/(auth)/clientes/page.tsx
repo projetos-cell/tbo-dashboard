@@ -1,16 +1,16 @@
 ﻿"use client";
 
 import { useState, useMemo } from "react";
-import { useClients } from "@/hooks/use-clients";
-import { ClientKPICards } from "@/components/clientes/client-kpis";
-import { ClientFilters } from "@/components/clientes/client-filters";
-import { ClientGrid } from "@/components/clientes/client-grid";
-import { ClientDetailDialog } from "@/components/clientes/client-detail-dialog";
-import { ClientFormDialog } from "@/components/clientes/client-form-dialog";
-import { computeClientKPIs } from "@/services/clients";
-import { RequireRole } from "@/components/auth/require-role";
+import { useClients } from "@/features/clientes/hooks/use-clients";
+import { ClientKPICards } from "@/features/clientes/components/client-kpis";
+import { ClientFilters } from "@/features/clientes/components/client-filters";
+import { ClientGrid } from "@/features/clientes/components/client-grid";
+import { ClientDetailDialog } from "@/features/clientes/components/client-detail-dialog";
+import { ClientFormDialog } from "@/features/clientes/components/client-form-dialog";
+import { computeClientKPIs } from "@/features/clientes/services/clients";
+import { RequireRole } from "@/features/auth/components/require-role";
 import { ErrorState, EmptyState } from "@/components/shared";
-import { Button } from "@/components/tbo-ui/button";
+import { Button } from "@/components/ui/button";
 import { Plus, Users } from "lucide-react";
 import type { Database } from "@/lib/supabase/types";
 

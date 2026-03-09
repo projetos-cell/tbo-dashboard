@@ -240,6 +240,8 @@ export async function getFounderDashboardSnapshot(
   const in60Str = isoDate(new Date(now.getTime() + 60 * 86_400_000));
   const in90StrQ = isoDate(new Date(now.getTime() + 90 * 86_400_000));
 
+  const currentMonth = monthKey(now);
+
   const [
     paidTxRes,      // 1. All paid transactions (receita + despesa)
     pendingTxRes,   // 2. All pending transactions (receita + despesa)
@@ -249,6 +251,7 @@ export async function getFounderDashboardSnapshot(
     profilesRes,    // 6. Active headcount (#7)
     contractsRes,   // 7. Contracts expiring ≤60d (#8)
     dealsRes,       // 8. Open proposals ≤90d (#10)
+    opIndicatorsRes,// 9. Manual operational indicators for current month
   ] = await Promise.all([
     // 1. Paid transactions — all-time, filtered client-side for period/trends
     supabase
@@ -309,6 +312,14 @@ export async function getFounderDashboardSnapshot(
       .not("stage", "in", "(fechado_ganho,fechado_perdido)")
       .gte("expected_close", today)
       .lte("expected_close", in90StrQ),
+
+    // 9. Manual operational indicators for current month
+    supabase
+      .from("finance_operational_indicators" as never)
+      .select("headcount, folha_pagamento, custos_fixos, meta_receita, meta_margem, churn_clientes_perdidos")
+      .eq("tenant_id", tenantId)
+      .eq("month", currentMonth)
+      .maybeSingle(),
   ]);
 
   // ── Unpack and split by type ─────────────────────────────────────────────────
@@ -335,8 +346,18 @@ export async function getFounderDashboardSnapshot(
   const costCenters = (costCentersRes.data ?? []) as Array<{ id: string; name: string }>;
   const ccLookup = new Map<string, string>(costCenters.map((c) => [c.id, c.name]));
 
-  // ── #7 — Headcount ──────────────────────────────────────────────────────────
-  const headcount = profilesRes.count ?? 0;
+  // ── Manual operational indicators (overrides) ──────────────────────────────
+  const opManual = opIndicatorsRes.data as {
+    headcount: number | null;
+    folha_pagamento: number | null;
+    custos_fixos: number | null;
+    meta_receita: number | null;
+    meta_margem: number | null;
+    churn_clientes_perdidos: number | null;
+  } | null;
+
+  // ── #7 — Headcount (manual override if available) ─────────────────────────
+  const headcount = opManual?.headcount ?? (profilesRes.count ?? 0);
 
   // ── #8 — Contratos expirando ≤60d ──────────────────────────────────────────
   const rawContracts = (contractsRes.data ?? []) as Array<{
@@ -872,6 +893,10 @@ export async function getFounderDashboardSnapshot(
       custosOperacionais += val;
     }
   }
+  // Apply manual overrides for folha and custos fixos when available
+  if (opManual?.folha_pagamento != null) folhaPagamento = opManual.folha_pagamento;
+  if (opManual?.custos_fixos != null) custosOperacionais = opManual.custos_fixos;
+
   const totalCustos = folhaPagamento + custosOperacionais;
   const folhaPct = totalCustos > 0 ? (folhaPagamento / totalCustos) * 100 : 0;
   const operacionalPct = totalCustos > 0 ? (custosOperacionais / totalCustos) * 100 : 0;
@@ -900,9 +925,13 @@ export async function getFounderDashboardSnapshot(
     const rate = prevClients.size > 0 ? (lost / prevClients.size) * 100 : 0;
     churnHistory.push({ month: curMk, label: monthlyTrend[i].label, rate });
   }
-  const churnRate = churnHistory.length > 0
-    ? churnHistory[churnHistory.length - 1].rate
-    : 0;
+  // Churn: if manual churn_clientes_perdidos is set, compute rate from that
+  const latestMonthClients = monthClientSets.get(currentMonth)?.size ?? 0;
+  const churnRate = opManual?.churn_clientes_perdidos != null && latestMonthClients > 0
+    ? (opManual.churn_clientes_perdidos / latestMonthClients) * 100
+    : churnHistory.length > 0
+      ? churnHistory[churnHistory.length - 1].rate
+      : 0;
 
   return {
     receitaRealizada,

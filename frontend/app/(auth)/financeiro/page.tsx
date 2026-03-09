@@ -19,11 +19,12 @@ import { useLatestCashBalance } from "@/features/financeiro/hooks/use-cash-entri
 import { FounderMetricsSection } from "@/features/financeiro/components/sections/founder-metrics-section";
 import { FinancialHealthSection } from "@/features/financeiro/components/sections/financial-health-section";
 import { ClientMarginTable } from "@/features/financeiro/components/sections/client-margin-table";
-import { OperationalIndicatorsSection } from "@/features/financeiro/components/sections/operational-indicators-section";
 import { ExpiringContractsSection } from "@/features/financeiro/components/sections/expiring-contracts-section";
 import { DreSection } from "@/features/financeiro/components/sections/dre-section";
 import { StrategicSection } from "@/features/financeiro/components/sections/strategic-section";
 import { OmieSyncButton } from "@/features/financeiro/components/omie-sync-button";
+import Link from "next/link";
+import { Users, Receipt, UserMinus, ArrowRight } from "lucide-react";
 
 const RevenueConcentrationChart = dynamic(
   () =>
@@ -112,12 +113,52 @@ function FinanceiroContent() {
 
       <ClientMarginTable clientMargins={d?.clientMargins ?? []} />
 
-      <OperationalIndicatorsSection
-        d={d}
-        isLoading={isLoading}
-        errMsg={errMsg}
-        onRetry={refetch}
-      />
+      {/* ── Indicadores Operacionais (resumo) ─────────────────────────── */}
+      <div>
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          Indicadores Operacionais
+        </h2>
+        <Link
+          href="/financeiro/operacional"
+          className="block rounded-xl border bg-white p-4 shadow-sm hover:border-tbo-orange/30 hover:shadow-md transition group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-indigo-500" />
+                <div>
+                  <p className="text-xs text-gray-500">Receita/Colab.</p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {d ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(d.receitaPorColaborador) : "—"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Receipt className="h-4 w-4 text-rose-500" />
+                <div>
+                  <p className="text-xs text-gray-500">Folha</p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {d ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(d.folhaPagamento) : "—"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <UserMinus className="h-4 w-4 text-red-500" />
+                <div>
+                  <p className="text-xs text-gray-500">Churn</p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {d ? `${d.churnRate.toFixed(1)}%` : "—"}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 text-sm font-medium text-tbo-orange group-hover:gap-2.5 transition-all">
+              Ver detalhes
+              <ArrowRight className="h-4 w-4" />
+            </div>
+          </div>
+        </Link>
+      </div>
 
       <ExpiringContractsSection contracts={d?.expiringContracts ?? []} />
 

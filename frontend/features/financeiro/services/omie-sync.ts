@@ -9,12 +9,14 @@ export interface OmieSyncLog {
   started_at: string;
   finished_at: string | null;
   status: "running" | "success" | "partial" | "error";
+  current_phase: string | null;
   vendors_synced: number;
   clients_synced: number;
   payables_synced: number;
   receivables_synced: number;
   categories_synced: number;
   bank_accounts_synced: number;
+  extrato_synced: number;
   duration_ms: number | null;
   trigger_source: "manual" | "cron" | "webhook";
   errors: { entity: string; message: string }[];

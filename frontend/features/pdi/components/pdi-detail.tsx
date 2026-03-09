@@ -192,7 +192,7 @@ export function PdiDetail({ pdi, open, onOpenChange, onEdit }: PdiDetailProps) {
                 {(goals ?? []).map((goal) => {
                   const expanded = expandedGoals.has(goal.id);
                   const goalBadge = getGoalStatusBadgeProps(goal.status);
-                  const doneActions = goal.pdi_actions.filter((a) => a.completed).length;
+                  const doneActions = goal.pdi_actions.filter((a: { completed: boolean }) => a.completed).length;
                   const totalActions = goal.pdi_actions.length;
 
                   return (

@@ -113,6 +113,7 @@ const TABLE_CATEGORIES = "finance_categories";
 const TABLE_COST_CENTERS = "finance_cost_centers";
 const TABLE_SNAPSHOTS = "finance_snapshots_daily";
 const TABLE_CASH_ENTRIES = "fin_cash_entries";
+const TABLE_BANK_STATEMENTS = "finance_bank_statements";
 
 export async function getFinanceTransactions(
   supabase: SupabaseClient<Database>,
@@ -715,7 +716,16 @@ export async function getFinanceCashFlowProjection(
   future.setDate(future.getDate() + days);
   const futureStr = future.toISOString().split("T")[0];
 
-  // Fetch starting balance from fin_cash_entries (most recent manual entry)
+  // Fetch starting balance: prefer real balance from bank_statements, fallback to manual cash entries
+  const { data: bsBalance } = await supabase
+    .from(TABLE_BANK_STATEMENTS)
+    .select("balance")
+    .eq("tenant_id", tenantId)
+    .not("balance", "is", null)
+    .order("date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const { data: cbData } = await supabase
     .from(TABLE_CASH_ENTRIES)
     .select("amount")
@@ -757,8 +767,11 @@ export async function getFinanceCashFlowProjection(
     else if (row.type === "despesa") entry.outflow += amount;
   }
 
-  // Starting balance: most recent cash_balances entry, fallback to 0
-  let balance = ((cbData as { amount?: number } | null)?.amount) ?? 0;
+  // Starting balance: real bank statement > manual cash entry > 0
+  let balance =
+    (bsBalance as { balance?: number } | null)?.balance ??
+    (cbData as { amount?: number } | null)?.amount ??
+    0;
   const points: CashFlowPoint[] = [];
   for (const [date, { inflow, outflow }] of map.entries()) {
     balance += inflow - outflow;
@@ -848,7 +861,7 @@ export async function getDreSettings(
     .maybeSingle();
 
   if (error) throw new Error(error.message);
-  return data;
+  return data as DreSettings | null;
 }
 
 export async function upsertDreSettings(
@@ -1117,4 +1130,130 @@ export async function getRevenueConcentrationByClient(
   const top5Pct = clients.slice(0, 5).reduce((s, c) => s + c.pct, 0);
 
   return { clients, totalRevenue, totalClients, top5Pct };
+}
+
+// ── Bank Statements (Extrato Bancário) ──────────────────────────────────────
+
+export interface BankStatement {
+  id: string;
+  tenant_id: string;
+  bank_account_id: string | null;
+  omie_id: string | null;
+  date: string;
+  description: string | null;
+  amount: number;
+  balance: number | null;
+  type: "credit" | "debit";
+  category: string | null;
+  document_number: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BankStatementFilters {
+  dateFrom?: string;
+  dateTo?: string;
+  bankAccountId?: string;
+  type?: "credit" | "debit";
+  page?: number;
+  pageSize?: number;
+}
+
+/** Get bank statements with optional filters and pagination */
+export async function getBankStatements(
+  supabase: SupabaseClient<Database>,
+  tenantId: string,
+  filters: BankStatementFilters = {}
+): Promise<{ data: BankStatement[]; count: number }> {
+  const page = filters.page ?? 1;
+  const pageSize = filters.pageSize ?? 50;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  let query = supabase
+    .from(TABLE_BANK_STATEMENTS)
+    .select("*", { count: "exact" })
+    .eq("tenant_id", tenantId)
+    .order("date", { ascending: false })
+    .range(from, to);
+
+  if (filters.dateFrom) query = query.gte("date", filters.dateFrom);
+  if (filters.dateTo) query = query.lte("date", filters.dateTo);
+  if (filters.bankAccountId) query = query.eq("bank_account_id", filters.bankAccountId);
+  if (filters.type) query = query.eq("type", filters.type);
+
+  const { data, error, count } = await query;
+  if (error) throw new Error(error.message);
+  return { data: (data ?? []) as BankStatement[], count: count ?? 0 };
+}
+
+/** Get the most recent bank statement balance (real cash position) */
+export async function getLatestBankStatementBalance(
+  supabase: SupabaseClient<Database>,
+  tenantId: string
+): Promise<{ balance: number; date: string } | null> {
+  const { data, error } = await supabase
+    .from(TABLE_BANK_STATEMENTS)
+    .select("balance, date")
+    .eq("tenant_id", tenantId)
+    .not("balance", "is", null)
+    .order("date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  return { balance: data.balance as number, date: data.date as string };
+}
+
+/** Get daily aggregated cash flow from bank statements (real historical data) */
+export async function getBankStatementCashFlow(
+  supabase: SupabaseClient<Database>,
+  tenantId: string,
+  dateFrom: string,
+  dateTo: string
+): Promise<CashFlowPoint[]> {
+  const { data, error } = await supabase
+    .from(TABLE_BANK_STATEMENTS)
+    .select("date, amount, type, balance")
+    .eq("tenant_id", tenantId)
+    .gte("date", dateFrom)
+    .lte("date", dateTo)
+    .order("date", { ascending: true });
+
+  if (error) throw new Error(error.message);
+
+  type BsRow = { date: string; amount: number; type: string; balance: number | null };
+
+  // Aggregate by date
+  const map = new Map<string, { inflow: number; outflow: number; lastBalance: number | null }>();
+  for (const row of (data ?? []) as BsRow[]) {
+    const entry = map.get(row.date) ?? { inflow: 0, outflow: 0, lastBalance: null };
+    const amt = Math.abs(row.amount ?? 0);
+    if (row.type === "credit") entry.inflow += amt;
+    else entry.outflow += amt;
+    if (row.balance != null) entry.lastBalance = row.balance;
+    map.set(row.date, entry);
+  }
+
+  const points: CashFlowPoint[] = [];
+  let runningBalance = 0;
+  for (const [date, { inflow, outflow, lastBalance }] of [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+    // Use actual balance from extrato when available, otherwise accumulate
+    if (lastBalance != null) {
+      runningBalance = lastBalance;
+    } else {
+      runningBalance += inflow - outflow;
+    }
+    const d = new Date(date + "T00:00:00");
+    points.push({
+      date,
+      label: `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`,
+      inflow,
+      outflow,
+      balance: runningBalance,
+    });
+  }
+
+  return points;
 }

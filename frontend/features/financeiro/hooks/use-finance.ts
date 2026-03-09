@@ -20,6 +20,9 @@ import {
   upsertDreSettings,
   getFinanceDRE,
   getRevenueConcentrationByClient,
+  getBankStatements,
+  getBankStatementCashFlow,
+  getLatestBankStatementBalance,
   type FinanceTransaction,
   type FinanceCategory,
   type FinanceCostCenter,
@@ -33,6 +36,8 @@ import {
   type DreSettings,
   type DreData,
   type RevenueConcentrationData,
+  type BankStatement,
+  type BankStatementFilters,
 } from "@/features/financeiro/services/finance";
 
 // ── Transactions ──────────────────────────────────────────────────────────────
@@ -317,7 +322,7 @@ export function useTriggerFinanceSync() {
   return useMutation({
     mutationFn: triggerFinanceSync,
     onSuccess: () => {
-      // Invalidate everything finance-related (including founder KPIs)
+      // Invalidate everything finance-related (including founder KPIs + bank statements)
       qc.invalidateQueries({ queryKey: ["finance-transactions", tenantId] });
       qc.invalidateQueries({ queryKey: ["finance-categories", tenantId] });
       qc.invalidateQueries({ queryKey: ["finance-cost-centers", tenantId] });
@@ -327,6 +332,9 @@ export function useTriggerFinanceSync() {
       qc.invalidateQueries({ queryKey: ["finance-founder-kpis", tenantId] });
       qc.invalidateQueries({ queryKey: ["finance-dre", tenantId] });
       qc.invalidateQueries({ queryKey: ["finance-revenue-concentration", tenantId] });
+      qc.invalidateQueries({ queryKey: ["finance-bank-statements", tenantId] });
+      qc.invalidateQueries({ queryKey: ["finance-bank-balance-latest", tenantId] });
+      qc.invalidateQueries({ queryKey: ["finance-bank-cashflow", tenantId] });
     },
   });
 }
@@ -423,5 +431,53 @@ export function useRevenueConcentrationByClient(dateFrom?: string, dateTo?: stri
     enabled: !!tenantId,
     staleTime: 1000 * 60 * 5,
     refetchInterval: 1000 * 60 * 10,
+  });
+}
+
+// ── Bank Statements (Extrato Bancário) ──────────────────────────────────────
+
+export function useBankStatements(filters: BankStatementFilters = {}) {
+  const tenantId = useAuthStore((s) => s.tenantId);
+  const filterKey = JSON.stringify(filters);
+
+  return useQuery<{ data: BankStatement[]; count: number }>({
+    queryKey: ["finance-bank-statements", tenantId, filterKey],
+    queryFn: async () => {
+      if (!tenantId) return { data: [], count: 0 };
+      const supabase = createClient();
+      return getBankStatements(supabase, tenantId, filters);
+    },
+    enabled: !!tenantId,
+    staleTime: 1000 * 60,
+  });
+}
+
+export function useLatestBankBalance() {
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery<{ balance: number; date: string } | null>({
+    queryKey: ["finance-bank-balance-latest", tenantId],
+    queryFn: async () => {
+      if (!tenantId) return null;
+      const supabase = createClient();
+      return getLatestBankStatementBalance(supabase, tenantId);
+    },
+    enabled: !!tenantId,
+    staleTime: 1000 * 60 * 2,
+  });
+}
+
+export function useBankStatementCashFlow(dateFrom: string, dateTo: string) {
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery<CashFlowPoint[]>({
+    queryKey: ["finance-bank-cashflow", tenantId, dateFrom, dateTo],
+    queryFn: async () => {
+      if (!tenantId) return [];
+      const supabase = createClient();
+      return getBankStatementCashFlow(supabase, tenantId, dateFrom, dateTo);
+    },
+    enabled: !!tenantId && !!dateFrom && !!dateTo,
+    staleTime: 1000 * 60 * 5,
   });
 }

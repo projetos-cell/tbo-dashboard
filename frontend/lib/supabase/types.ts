@@ -3543,6 +3543,128 @@ export type Database = {
           },
         ]
       }
+      finance_bank_accounts: {
+        Row: {
+          id: string
+          tenant_id: string
+          omie_id: string | null
+          name: string
+          bank_name: string | null
+          agency: string | null
+          account_number: string | null
+          type: string | null
+          balance: number | null
+          is_active: boolean
+          omie_raw: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          omie_id?: string | null
+          name: string
+          bank_name?: string | null
+          agency?: string | null
+          account_number?: string | null
+          type?: string | null
+          balance?: number | null
+          is_active?: boolean
+          omie_raw?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          omie_id?: string | null
+          name?: string
+          bank_name?: string | null
+          agency?: string | null
+          account_number?: string | null
+          type?: string | null
+          balance?: number | null
+          is_active?: boolean
+          omie_raw?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_bank_accounts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_bank_statements: {
+        Row: {
+          id: string
+          tenant_id: string
+          bank_account_id: string | null
+          omie_id: string | null
+          date: string
+          description: string | null
+          amount: number
+          balance: number | null
+          type: string
+          category: string | null
+          document_number: string | null
+          omie_raw: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          bank_account_id?: string | null
+          omie_id?: string | null
+          date: string
+          description?: string | null
+          amount?: number
+          balance?: number | null
+          type?: string
+          category?: string | null
+          document_number?: string | null
+          omie_raw?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          bank_account_id?: string | null
+          omie_id?: string | null
+          date?: string
+          description?: string | null
+          amount?: number
+          balance?: number | null
+          type?: string
+          category?: string | null
+          document_number?: string | null
+          omie_raw?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_bank_statements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_bank_statements_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "finance_bank_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       finance_snapshots_daily: {
         Row: {
           created_at: string

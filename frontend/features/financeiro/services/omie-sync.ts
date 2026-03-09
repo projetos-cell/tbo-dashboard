@@ -39,7 +39,7 @@ export interface OmieTestResult {
 
 /** Trigger a manual Omie sync */
 export async function triggerOmieSync(): Promise<OmieSyncResult> {
-  const res = await fetch("/api/omie-sync", { method: "POST" });
+  const res = await fetch("/api/finance/sync-omie", { method: "POST" });
   return res.json();
 }
 

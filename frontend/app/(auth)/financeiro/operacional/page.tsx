@@ -261,7 +261,7 @@ function OperacionalContent() {
 
   // Dashboard data for the KPI section
   const { data: dashData, isLoading: dashLoading, error: dashError, refetch } =
-    useFounderDashboard({ preset: "mtd" });
+    useFounderDashboard({ preset: "ytd" });
 
   const handleFieldChange = useCallback(
     (key: keyof UpsertOperationalIndicatorInput, val: number | null) => {

@@ -881,12 +881,17 @@ export async function getFounderDashboardSnapshot(
 
   // ── #15 — Split de custos: Folha vs Operacional ────────────────────────────
   const FOLHA_KEYWORDS = ["folha", "salário", "salario", "benefício", "beneficio", "encargo", "clt", "pj", "prolabore", "pró-labore", "inss", "fgts", "férias", "ferias", "13"];
+  // Nomes de colaboradores/PJs — match no campo counterpart (fornecedor) do Omie
+  const FOLHA_VENDORS = ["ruy", "arqfreelas", "nathalia", "rafaela", "lucca", "marco", "nelson", "celso", "mariane", "tiago", "eduarda", "carol lima"];
   let folhaPagamento = 0;
   let custosOperacionais = 0;
   for (const r of periodPayables) {
     const val = paidVal(r);
     const ccName = (r.cost_center_id ? ccLookup.get(r.cost_center_id) || "" : "").toLowerCase();
-    const isFolha = FOLHA_KEYWORDS.some((kw) => ccName.includes(kw));
+    const counterpart = (String((r as Record<string, unknown>).counterpart ?? "")).toLowerCase();
+    const isFolha =
+      FOLHA_KEYWORDS.some((kw) => ccName.includes(kw)) ||
+      FOLHA_VENDORS.some((name) => counterpart.includes(name));
     if (isFolha) {
       folhaPagamento += val;
     } else {

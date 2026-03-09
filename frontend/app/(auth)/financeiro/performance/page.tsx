@@ -12,7 +12,7 @@ import { TopProjectsTable } from "@/features/founder-dashboard/components/top-pr
 import { RevenueConcentration } from "@/features/founder-dashboard/components/revenue-concentration";
 
 function PerformanceContent() {
-  const [period, setPeriod] = useState<PeriodValue>({ preset: "mtd" });
+  const [period, setPeriod] = useState<PeriodValue>({ preset: "ytd" });
   const { data: d, isLoading } = useFounderDashboard(period);
 
   return (

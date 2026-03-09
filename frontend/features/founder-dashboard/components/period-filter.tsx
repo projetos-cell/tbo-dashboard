@@ -5,7 +5,7 @@ import { CalendarDays, ChevronDown } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-export type PeriodPreset = "mtd" | "last3m" | "ytd" | "custom";
+export type PeriodPreset = "mtd" | "last3m" | "semester" | "ytd" | "custom";
 
 export interface PeriodValue {
   preset: PeriodPreset;
@@ -16,6 +16,7 @@ export interface PeriodValue {
 const PRESET_LABELS: Record<PeriodPreset, string> = {
   mtd: "MTD",
   last3m: "Últimos 3 meses",
+  semester: "Semestre",
   ytd: "YTD",
   custom: "Personalizado",
 };
@@ -76,7 +77,7 @@ export function PeriodFilter({ value, onChange }: PeriodFilterProps) {
       {open && (
         <div className="absolute right-0 top-full mt-1.5 z-50 w-64 rounded-xl border border-gray-200 bg-white shadow-lg p-2">
           <div className="space-y-1">
-            {(["mtd", "last3m", "ytd"] as PeriodPreset[]).map((preset) => (
+            {(["mtd", "last3m", "semester", "ytd"] as PeriodPreset[]).map((preset) => (
               <button
                 key={preset}
                 type="button"
@@ -156,6 +157,12 @@ export function resolvePeriodBounds(period: PeriodValue): {
       d.setMonth(d.getMonth() - 3);
       const from = d.toISOString().split("T")[0];
       return { from, to: today, label: "Últimos 3 meses" };
+    }
+    case "semester": {
+      // Current semester: Jan-Jun or Jul-Dec
+      const semStart = now.getMonth() < 6 ? 1 : 7;
+      const from = `${now.getFullYear()}-${String(semStart).padStart(2, "0")}-01`;
+      return { from, to: today, label: "Semestre" };
     }
     case "ytd": {
       const from = `${now.getFullYear()}-01-01`;

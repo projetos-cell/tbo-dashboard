@@ -20,7 +20,7 @@ import Link from "next/link";
 import { Users, Receipt, UserMinus, ArrowRight } from "lucide-react";
 
 function FinanceiroContent() {
-  const [period, setPeriod] = useState<PeriodValue>({ preset: "mtd" });
+  const [period, setPeriod] = useState<PeriodValue>({ preset: "ytd" });
   const { data: manualCaixa } = useLatestCashBalance();
 
   const { data, isLoading, error, refetch } = useFounderDashboard(period);

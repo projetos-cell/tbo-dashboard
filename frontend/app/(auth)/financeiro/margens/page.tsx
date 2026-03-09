@@ -10,7 +10,7 @@ import {
 import { ClientMarginTable } from "@/features/financeiro/components/sections/client-margin-table";
 
 function MargensContent() {
-  const [period, setPeriod] = useState<PeriodValue>({ preset: "mtd" });
+  const [period, setPeriod] = useState<PeriodValue>({ preset: "ytd" });
   const { data: d, isLoading } = useFounderDashboard(period);
 
   return (

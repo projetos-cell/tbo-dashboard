@@ -56,7 +56,7 @@ export async function getOmieSyncLogs(
   supabase: SupabaseClient<Database>,
   tenantId: string
 ): Promise<OmieSyncLog[]> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from("omie_sync_log")
     .select("*")
     .eq("tenant_id", tenantId)
@@ -72,7 +72,7 @@ export async function getLatestOmieSync(
   supabase: SupabaseClient<Database>,
   tenantId: string
 ): Promise<OmieSyncLog | null> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from("omie_sync_log")
     .select("*")
     .eq("tenant_id", tenantId)

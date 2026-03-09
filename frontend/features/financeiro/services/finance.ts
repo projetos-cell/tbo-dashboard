@@ -108,11 +108,11 @@ export interface FinanceFilters {
 
 // ── Supabase query helpers ────────────────────────────────────────────────────
 
-const TABLE_TRANSACTIONS = "finance_transactions" as never;
-const TABLE_CATEGORIES = "finance_categories" as never;
-const TABLE_COST_CENTERS = "finance_cost_centers" as never;
-const TABLE_SNAPSHOTS = "finance_snapshots_daily" as never;
-const TABLE_CASH_BALANCES = "cash_balances" as never;
+const TABLE_TRANSACTIONS = "finance_transactions";
+const TABLE_CATEGORIES = "finance_categories";
+const TABLE_COST_CENTERS = "finance_cost_centers";
+const TABLE_SNAPSHOTS = "finance_snapshots_daily";
+const TABLE_CASH_ENTRIES = "fin_cash_entries";
 
 export async function getFinanceTransactions(
   supabase: SupabaseClient<Database>,
@@ -124,7 +124,7 @@ export async function getFinanceTransactions(
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
-  let query = (supabase as any)
+  let query = supabase
     .from(TABLE_TRANSACTIONS)
     .select("*", { count: "exact" })
     .eq("tenant_id", tenantId)
@@ -179,7 +179,7 @@ export async function getFinanceCategories(
   tenantId: string,
   activeOnly = true
 ): Promise<FinanceCategory[]> {
-  let query = (supabase as any)
+  let query = supabase
     .from(TABLE_CATEGORIES)
     .select("*")
     .eq("tenant_id", tenantId)
@@ -197,7 +197,7 @@ export async function getFinanceCostCenters(
   tenantId: string,
   activeOnly = true
 ): Promise<FinanceCostCenter[]> {
-  let query = (supabase as any)
+  let query = supabase
     .from(TABLE_COST_CENTERS)
     .select("*")
     .eq("tenant_id", tenantId)
@@ -219,7 +219,7 @@ export async function getFinanceSnapshots(
   since.setDate(since.getDate() - days);
   const sinceStr = since.toISOString().split("T")[0];
 
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from(TABLE_SNAPSHOTS)
     .select("*")
     .eq("tenant_id", tenantId)
@@ -236,16 +236,16 @@ export async function getFinanceStatus(
 ): Promise<FinanceStatus> {
   // Fetch all in parallel
   const [txRes, catRes, ccRes] = await Promise.all([
-    (supabase as any)
+    supabase
       .from(TABLE_TRANSACTIONS)
       .select("type, status, omie_synced_at", { count: "exact" })
       .eq("tenant_id", tenantId),
-    (supabase as any)
+    supabase
       .from(TABLE_CATEGORIES)
       .select("id", { count: "exact" })
       .eq("tenant_id", tenantId)
       .eq("is_active", true),
-    (supabase as any)
+    supabase
       .from(TABLE_COST_CENTERS)
       .select("id", { count: "exact" })
       .eq("tenant_id", tenantId)
@@ -307,7 +307,7 @@ export async function getFinanceStatusWithAmounts(
   dateFrom?: string,
   dateTo?: string
 ): Promise<FinanceStatusWithAmounts> {
-  let query = (supabase as any)
+  let query = supabase
     .from(TABLE_TRANSACTIONS)
     .select("type, status, amount, paid_amount")
     .eq("tenant_id", tenantId);
@@ -400,7 +400,7 @@ export async function getFounderKPIs(
   // Fetch MTD transactions and upcoming payables/receivables
   const [mtdRes, apRes, arRes, ccRes, latestSnap] = await Promise.all([
     // MTD paid transactions
-    (supabase as any)
+    supabase
       .from(TABLE_TRANSACTIONS)
       .select("type, amount, paid_amount, cost_center_id, category_id, business_unit, project_id")
       .eq("tenant_id", tenantId)
@@ -408,7 +408,7 @@ export async function getFounderKPIs(
       .gte("date", monthStart)
       .lte("date", today),
     // AP next 30d (pending despesas)
-    (supabase as any)
+    supabase
       .from(TABLE_TRANSACTIONS)
       .select("amount")
       .eq("tenant_id", tenantId)
@@ -416,7 +416,7 @@ export async function getFounderKPIs(
       .in("status", ["previsto", "provisionado", "atrasado"])
       .lte("due_date", in30Str),
     // AR next 30d (pending receitas)
-    (supabase as any)
+    supabase
       .from(TABLE_TRANSACTIONS)
       .select("amount")
       .eq("tenant_id", tenantId)
@@ -424,12 +424,12 @@ export async function getFounderKPIs(
       .in("status", ["previsto", "provisionado", "atrasado"])
       .lte("due_date", in30Str),
     // All cost centers for name lookup
-    (supabase as any)
+    supabase
       .from(TABLE_COST_CENTERS)
       .select("id, code, name")
       .eq("tenant_id", tenantId),
     // Latest snapshot for accumulated balance
-    (supabase as any)
+    supabase
       .from(TABLE_SNAPSHOTS)
       .select("saldo_acumulado")
       .eq("tenant_id", tenantId)
@@ -509,7 +509,7 @@ export async function getFounderKPIs(
 
   let categoryRanking: FounderKPIs["categoryRanking"] = [];
   if (topCatIds.length > 0) {
-    const { data: cats } = await (supabase as any)
+    const { data: cats } = await supabase
       .from(TABLE_CATEGORIES)
       .select("id, name, type")
       .in("id", topCatIds);
@@ -559,8 +559,8 @@ export async function getFounderKPIs(
   let projectRanking: FounderKPIs["projectRanking"] = [];
   if (allProjectIds.length > 0) {
     // Look up project names from the projects table
-    const { data: projRows } = await (supabase as any)
-      .from("projects" as never)
+    const { data: projRows } = await supabase
+      .from("projects")
       .select("id, name")
       .in("id", allProjectIds.slice(0, 10));
     const projLookup = new Map(
@@ -589,7 +589,7 @@ export async function getFounderKPIs(
     margemPct,
     apNext30,
     arNext30,
-    saldoAcumulado: (latestSnap.data as any)?.saldo_acumulado ?? 0,
+    saldoAcumulado: latestSnap.data?.saldo_acumulado ?? 0,
     costCenterRanking,
     categoryRanking,
     buRevenue,
@@ -626,7 +626,7 @@ const AGING_BUCKETS: Omit<AgingBucket, "ar" | "ap" | "arCount" | "apCount">[] =
   ];
 
 export async function getFinanceAging(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   tenantId: string
 ): Promise<FinanceAgingData> {
   const today = new Date();
@@ -634,7 +634,7 @@ export async function getFinanceAging(
   const todayStr = today.toISOString().split("T")[0];
 
   // Fetch all pending/overdue transactions with a due date in the past
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from(TABLE_TRANSACTIONS)
     .select("type, status, amount, due_date")
     .eq("tenant_id", tenantId)
@@ -703,7 +703,7 @@ export type CashFlowPoint = {
 };
 
 export async function getFinanceCashFlowProjection(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   tenantId: string,
   days = 30
 ): Promise<CashFlowPoint[]> {
@@ -715,16 +715,16 @@ export async function getFinanceCashFlowProjection(
   future.setDate(future.getDate() + days);
   const futureStr = future.toISOString().split("T")[0];
 
-  // Fetch starting balance from cash_balances (most recent manual entry)
-  const { data: cbData } = await (supabase as any)
-    .from(TABLE_CASH_BALANCES)
+  // Fetch starting balance from fin_cash_entries (most recent manual entry)
+  const { data: cbData } = await supabase
+    .from(TABLE_CASH_ENTRIES)
     .select("amount")
     .eq("tenant_id", tenantId)
     .order("recorded_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from(TABLE_TRANSACTIONS)
     .select("type, amount, due_date")
     .eq("tenant_id", tenantId)
@@ -782,7 +782,7 @@ export async function getFinanceChartData(
   tenantId: string,
   filters: Omit<FinanceFilters, "page" | "pageSize" | "search"> = {}
 ): Promise<FinanceTransaction[]> {
-  let query = (supabase as any)
+  let query = supabase
     .from(TABLE_TRANSACTIONS)
     .select(
       "id, type, status, amount, paid_amount, date, due_date, category_id, cost_center_id, business_unit"
@@ -832,13 +832,13 @@ export async function fetchFinanceStatus(): Promise<FinanceStatus> {
 export interface DreSettings {
   id: string;
   tenant_id: string;
-  tax_rate: number;
-  updated_at: string;
+  tax_rate: number | null;
+  updated_at: string | null;
   updated_by: string | null;
 }
 
 export async function getDreSettings(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   tenantId: string
 ): Promise<DreSettings | null> {
   const { data, error } = await supabase
@@ -852,7 +852,7 @@ export async function getDreSettings(
 }
 
 export async function upsertDreSettings(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   tenantId: string,
   taxRate: number,
   userId: string
@@ -864,7 +864,7 @@ export async function upsertDreSettings(
         tenant_id: tenantId,
         tax_rate: taxRate,
         updated_by: userId,
-      } as never,
+      },
       { onConflict: "tenant_id" }
     );
 
@@ -894,7 +894,7 @@ export interface DreData {
 }
 
 export async function getFinanceDRE(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   tenantId: string,
   months = 7,
   taxRate = 15
@@ -932,7 +932,7 @@ export async function getFinanceDRE(
   if (ccErr) throw new Error(ccErr.message);
 
   const ccMap = new Map<string, string>(
-    (costCenters ?? []).map((cc: { id: string; code: string }) => [cc.id, cc.code])
+    (costCenters ?? []).map((cc) => [cc.id, cc.code ?? ""] as [string, string])
   );
 
   const DIRECT_COST_CODES = new Set(["projetos_producao"]);
@@ -1069,7 +1069,7 @@ export interface RevenueConcentrationData {
 }
 
 export async function getRevenueConcentrationByClient(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   tenantId: string,
   dateFrom?: string,
   dateTo?: string

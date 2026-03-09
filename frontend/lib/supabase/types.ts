@@ -2582,6 +2582,45 @@ export type Database = {
           },
         ]
       }
+      dre_settings: {
+        Row: {
+          id: string
+          tenant_id: string
+          tax_rate: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          tax_rate?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          tax_rate?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dre_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dre_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dynamic_templates: {
         Row: {
           category: string | null
@@ -2717,6 +2756,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "fin_balance_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_cash_entries: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          note: string | null
+          recorded_at: string
+          tenant_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          recorded_at?: string
+          tenant_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          recorded_at?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_cash_entries_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -3383,6 +3457,278 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_categories: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean | null
+          name: string
+          omie_id: number | null
+          tenant_id: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          omie_id?: number | null
+          tenant_id: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          omie_id?: number | null
+          tenant_id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_cost_centers: {
+        Row: {
+          code: string | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          name: string
+          omie_id: number | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          omie_id?: number | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          omie_id?: number | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_cost_centers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_snapshots_daily: {
+        Row: {
+          created_at: string
+          id: string
+          payables_open: number | null
+          receivables_open: number | null
+          saldo_acumulado: number | null
+          saldo_dia: number | null
+          snapshot_date: string
+          tenant_id: string
+          total_despesas: number | null
+          total_receitas: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payables_open?: number | null
+          receivables_open?: number | null
+          saldo_acumulado?: number | null
+          saldo_dia?: number | null
+          snapshot_date: string
+          tenant_id: string
+          total_despesas?: number | null
+          total_receitas?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payables_open?: number | null
+          receivables_open?: number | null
+          saldo_acumulado?: number | null
+          saldo_dia?: number | null
+          snapshot_date?: string
+          tenant_id?: string
+          total_despesas?: number | null
+          total_receitas?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_snapshots_daily_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_transactions: {
+        Row: {
+          amount: number
+          bank_account: string | null
+          business_unit: string | null
+          category_id: string | null
+          cost_center_id: string | null
+          counterpart: string | null
+          counterpart_doc: string | null
+          created_at: string
+          created_by: string | null
+          date: string
+          description: string
+          due_date: string | null
+          id: string
+          notes: string | null
+          omie_id: number | null
+          omie_raw: Json | null
+          omie_synced_at: string | null
+          paid_amount: number | null
+          paid_date: string | null
+          payment_method: string | null
+          project_id: string | null
+          responsible_id: string | null
+          status: string | null
+          tags: string[] | null
+          tenant_id: string
+          type: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          amount: number
+          bank_account?: string | null
+          business_unit?: string | null
+          category_id?: string | null
+          cost_center_id?: string | null
+          counterpart?: string | null
+          counterpart_doc?: string | null
+          created_at?: string
+          created_by?: string | null
+          date: string
+          description: string
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          omie_id?: number | null
+          omie_raw?: Json | null
+          omie_synced_at?: string | null
+          paid_amount?: number | null
+          paid_date?: string | null
+          payment_method?: string | null
+          project_id?: string | null
+          responsible_id?: string | null
+          status?: string | null
+          tags?: string[] | null
+          tenant_id: string
+          type: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          amount?: number
+          bank_account?: string | null
+          business_unit?: string | null
+          category_id?: string | null
+          cost_center_id?: string | null
+          counterpart?: string | null
+          counterpart_doc?: string | null
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          description?: string
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          omie_id?: number | null
+          omie_raw?: Json | null
+          omie_synced_at?: string | null
+          paid_amount?: number | null
+          paid_date?: string | null
+          payment_method?: string | null
+          project_id?: string | null
+          responsible_id?: string | null
+          status?: string | null
+          tags?: string[] | null
+          tenant_id?: string
+          type?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_transactions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "finance_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_transactions_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "finance_cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_transactions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_transactions_responsible_id_fkey"
+            columns: ["responsible_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_transactions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_transactions_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -4414,7 +4760,10 @@ export type Database = {
       }
       omie_sync_log: {
         Row: {
+          bank_accounts_synced: number | null
+          categories_synced: number | null
           clients_synced: number | null
+          duration_ms: number | null
           errors: Json | null
           finished_at: string | null
           id: string
@@ -4423,11 +4772,15 @@ export type Database = {
           started_at: string | null
           status: string | null
           tenant_id: string
+          trigger_source: string | null
           triggered_by: string | null
           vendors_synced: number | null
         }
         Insert: {
+          bank_accounts_synced?: number | null
+          categories_synced?: number | null
           clients_synced?: number | null
+          duration_ms?: number | null
           errors?: Json | null
           finished_at?: string | null
           id?: string
@@ -4436,11 +4789,15 @@ export type Database = {
           started_at?: string | null
           status?: string | null
           tenant_id: string
+          trigger_source?: string | null
           triggered_by?: string | null
           vendors_synced?: number | null
         }
         Update: {
+          bank_accounts_synced?: number | null
+          categories_synced?: number | null
           clients_synced?: number | null
+          duration_ms?: number | null
           errors?: Json | null
           finished_at?: string | null
           id?: string
@@ -4449,6 +4806,7 @@ export type Database = {
           started_at?: string | null
           status?: string | null
           tenant_id?: string
+          trigger_source?: string | null
           triggered_by?: string | null
           vendors_synced?: number | null
         }

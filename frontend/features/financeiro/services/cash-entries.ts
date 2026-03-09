@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/types";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -23,7 +24,7 @@ export interface CreateCashEntryInput {
  * Returns the most recent N cash entries for a tenant, ordered by recorded_at DESC.
  */
 export async function getCashEntries(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   tenantId: string,
   limit = 20,
 ): Promise<CashEntry[]> {
@@ -42,7 +43,7 @@ export async function getCashEntries(
  * Returns only the latest cash balance amount, or null if no entries exist.
  */
 export async function getLatestCashBalance(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   tenantId: string,
 ): Promise<number | null> {
   const { data, error } = await supabase
@@ -61,23 +62,21 @@ export async function getLatestCashBalance(
  * Inserts a new cash entry and returns the created row.
  */
 export async function createCashEntry(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   tenantId: string,
   input: CreateCashEntryInput,
 ): Promise<CashEntry> {
-  const payload: Record<string, unknown> = {
+  type InsertRow = Database["public"]["Tables"]["fin_cash_entries"]["Insert"];
+  const payload: InsertRow = {
     tenant_id: tenantId,
     amount: input.amount,
     note: input.note ?? null,
+    ...(input.recorded_at ? { recorded_at: input.recorded_at } : {}),
   };
-
-  if (input.recorded_at) {
-    payload.recorded_at = input.recorded_at;
-  }
 
   const { data, error } = await supabase
     .from("fin_cash_entries")
-    .insert(payload as never)
+    .insert(payload)
     .select("id, tenant_id, amount, note, recorded_at, created_at")
     .single();
 

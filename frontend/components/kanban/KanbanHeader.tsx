@@ -13,6 +13,7 @@ export type KanbanView = "board" | "list" | "table";
 export interface KanbanHeaderProps {
   view: KanbanView;
   onViewChange: (view: KanbanView) => void;
+  title?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -29,11 +30,11 @@ const VIEW_OPTIONS: { value: KanbanView; label: string; icon: React.ComponentTyp
 // Component
 // ---------------------------------------------------------------------------
 
-export function KanbanHeader({ view, onViewChange }: KanbanHeaderProps) {
+export function KanbanHeader({ view, onViewChange, title = "Kanban Board" }: KanbanHeaderProps) {
   return (
     <div className="flex flex-col gap-3">
       {/* Title */}
-      <h1 className="text-foreground text-3xl font-bold tracking-tight">Kanban Board</h1>
+      <h1 className="text-foreground text-3xl font-bold tracking-tight">{title}</h1>
 
       {/* View toggle */}
       <Tabs value={view} onValueChange={(v) => onViewChange(v as KanbanView)}>

@@ -1,6 +1,12 @@
 "use client";
 
-import { RefreshCw, CheckCircle2, AlertCircle, Clock, Loader2 } from "lucide-react";
+import {
+  IconCheck,
+  IconLoader2,
+  IconAlertTriangle,
+  IconRefresh,
+  IconCloudOff,
+} from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -10,38 +16,162 @@ import {
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { useOmieSyncLogs, useTriggerOmieSync } from "../hooks/use-omie-sync";
-import { isStaleSyncLog } from "../services/omie-sync";
+import { isStaleSyncLog, type OmieSyncLog } from "../services/omie-sync";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth-store";
+import { cn } from "@/lib/utils";
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+type SyncState = "syncing" | "success" | "partial" | "error" | "stale" | "never";
 
 function formatRelativeTime(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "agora mesmo";
+  const secs = Math.floor(diff / 1000);
+  if (secs < 60) return `há ${secs}s`;
+  const mins = Math.floor(secs / 60);
   if (mins < 60) return `há ${mins}min`;
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `há ${hrs}h`;
   return `há ${Math.floor(hrs / 24)}d`;
 }
 
-function SyncStatusIcon({ status }: { status: string }) {
-  if (status === "running")
-    return <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-500" />;
-  if (status === "success")
-    return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />;
-  if (status === "partial")
-    return <AlertCircle className="h-3.5 w-3.5 text-amber-500" />;
-  if (status === "error")
-    return <AlertCircle className="h-3.5 w-3.5 text-red-500" />;
-  return <Clock className="h-3.5 w-3.5 text-muted-foreground" />;
+function resolveSyncState(
+  latest: OmieSyncLog | null,
+  isStale: boolean,
+  isPending: boolean
+): SyncState {
+  if (isPending) return "syncing";
+  if (!latest) return "never";
+  if (isStale) return "stale";
+  if (latest.status === "running") return "syncing";
+  if (latest.status === "success") return "success";
+  if (latest.status === "partial") return "partial";
+  if (latest.status === "error") return "error";
+  return "never";
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  running: "Sincronizando...",
-  success: "Sincronizado",
-  partial: "Parcial",
-  error: "Erro",
+function getTotalRecords(log: OmieSyncLog): number {
+  return (
+    (log.vendors_synced ?? 0) +
+    (log.clients_synced ?? 0) +
+    (log.payables_synced ?? 0) +
+    (log.receivables_synced ?? 0) +
+    (log.categories_synced ?? 0) +
+    (log.bank_accounts_synced ?? 0)
+  );
+}
+
+// ── Style maps ───────────────────────────────────────────────────────────────
+
+const STATE_CONFIG: Record<
+  SyncState,
+  {
+    container: string;
+    dot: string;
+    label: string;
+    actionLabel: string;
+  }
+> = {
+  success: {
+    container: "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800",
+    dot: "bg-emerald-500",
+    label: "Sincronizado",
+    actionLabel: "Sync",
+  },
+  syncing: {
+    container: "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800",
+    dot: "bg-blue-500 animate-pulse",
+    label: "Sincronizando...",
+    actionLabel: "",
+  },
+  partial: {
+    container: "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800",
+    dot: "bg-amber-500",
+    label: "Sync parcial",
+    actionLabel: "Sync",
+  },
+  error: {
+    container: "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800",
+    dot: "bg-red-500",
+    label: "Erro na sync",
+    actionLabel: "Tentar novamente",
+  },
+  stale: {
+    container: "bg-gray-50 border-gray-200 dark:bg-gray-900/50 dark:border-gray-700",
+    dot: "bg-gray-400",
+    label: "Sync travada",
+    actionLabel: "Forçar nova sync",
+  },
+  never: {
+    container: "bg-gray-50 border-gray-200 dark:bg-gray-900/50 dark:border-gray-700",
+    dot: "bg-gray-400",
+    label: "Nunca sincronizado",
+    actionLabel: "Sincronizar agora",
+  },
 };
+
+// ── Sub-components ───────────────────────────────────────────────────────────
+
+function StatusIcon({ state }: { state: SyncState }) {
+  const size = 14;
+  if (state === "syncing")
+    return <IconLoader2 size={size} className="animate-spin text-blue-600" />;
+  if (state === "success")
+    return <IconCheck size={size} className="text-emerald-600" />;
+  if (state === "partial")
+    return <IconAlertTriangle size={size} className="text-amber-600" />;
+  if (state === "error")
+    return <IconAlertTriangle size={size} className="text-red-600" />;
+  return <IconCloudOff size={size} className="text-muted-foreground" />;
+}
+
+function MetaInfo({
+  state,
+  latest,
+}: {
+  state: SyncState;
+  latest: OmieSyncLog | null;
+}) {
+  if (state === "never") {
+    return (
+      <span className="text-muted-foreground">Conecte ao Omie para começar</span>
+    );
+  }
+
+  if (!latest) return null;
+
+  const parts: string[] = [];
+
+  if (state === "syncing") {
+    parts.push(`Iniciado ${formatRelativeTime(latest.started_at)}`);
+  } else {
+    const timeRef = latest.finished_at ?? latest.started_at;
+    parts.push(formatRelativeTime(timeRef));
+
+    if (state === "success" || state === "partial") {
+      const total = getTotalRecords(latest);
+      if (total > 0) parts.push(`${total} registros`);
+    }
+
+    if (state === "error" && latest.errors?.[0]) {
+      const msg = latest.errors[0].message;
+      parts.push(msg.length > 40 ? `${msg.slice(0, 40)}…` : msg);
+    }
+
+    if (state === "stale") {
+      parts.push("Rodando há mais de 5min");
+    }
+  }
+
+  return (
+    <span className="text-muted-foreground truncate max-w-[200px]">
+      {parts.join(" · ")}
+    </span>
+  );
+}
+
+// ── Main component ───────────────────────────────────────────────────────────
 
 export function OmieSyncButton() {
   const { data: logs } = useOmieSyncLogs();
@@ -51,7 +181,9 @@ export function OmieSyncButton() {
 
   const latest = logs?.[0] ?? null;
   const isStale = isStaleSyncLog(latest);
-  const isSyncing = latest?.status === "running" && !isStale;
+  const state = resolveSyncState(latest, isStale, trigger.isPending);
+  const config = STATE_CONFIG[state];
+  const isDisabled = state === "syncing" || trigger.isPending;
 
   async function handleSync() {
     try {
@@ -59,7 +191,6 @@ export function OmieSyncButton() {
       toast.success("Sincronização iniciada", {
         description: "Os dados do Omie serão atualizados em instantes.",
       });
-      // Refresh finance queries after a short delay
       setTimeout(() => {
         qc.invalidateQueries({ queryKey: ["founder-dashboard"] });
         qc.invalidateQueries({ queryKey: ["finance"] });
@@ -74,59 +205,97 @@ export function OmieSyncButton() {
     }
   }
 
+  // Tooltip com detalhes extras
   const tooltipLines: string[] = [];
   if (latest) {
-    tooltipLines.push(
-      `Último sync: ${formatRelativeTime(latest.started_at)}`
-    );
-    if (latest.status === "success" || latest.status === "partial") {
-      const total =
-        (latest.vendors_synced ?? 0) +
-        (latest.clients_synced ?? 0) +
-        (latest.payables_synced ?? 0) +
-        (latest.receivables_synced ?? 0);
-      tooltipLines.push(`${total} registros sincronizados`);
-      if (latest.duration_ms)
-        tooltipLines.push(`${(latest.duration_ms / 1000).toFixed(1)}s`);
+    const timeRef = latest.finished_at ?? latest.started_at;
+    tooltipLines.push(`Último sync: ${new Date(timeRef).toLocaleString("pt-BR")}`);
+    if (latest.trigger_source) {
+      const sources = { manual: "Manual", cron: "Automático", webhook: "Webhook" };
+      tooltipLines.push(`Origem: ${sources[latest.trigger_source] ?? latest.trigger_source}`);
     }
-    if (latest.status === "error" && latest.errors?.[0]) {
-      tooltipLines.push(`Erro: ${latest.errors[0].message}`);
+    if (latest.duration_ms) {
+      tooltipLines.push(`Duração: ${(latest.duration_ms / 1000).toFixed(1)}s`);
     }
-  } else {
-    tooltipLines.push("Nenhum sync registrado");
+    if (state === "success" || state === "partial") {
+      const total = getTotalRecords(latest);
+      tooltipLines.push(
+        `Registros: ${total} (${latest.vendors_synced ?? 0} forn · ${latest.clients_synced ?? 0} cli · ${latest.payables_synced ?? 0} AP · ${latest.receivables_synced ?? 0} AR)`
+      );
+    }
+    if (latest.errors && latest.errors.length > 0) {
+      tooltipLines.push(`${latest.errors.length} erro(s) registrado(s)`);
+    }
   }
 
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSync}
-            disabled={isSyncing || trigger.isPending}
-            className="gap-1.5 text-xs h-8"
+          <div
+            className={cn(
+              "flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs transition-colors",
+              config.container
+            )}
           >
-            {isSyncing || trigger.isPending ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <RefreshCw className="h-3.5 w-3.5" />
+            {/* Status indicator */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <StatusIcon state={state} />
+              <span className="font-medium">{config.label}</span>
+            </div>
+
+            {/* Separator */}
+            <div className="h-3 w-px bg-current opacity-15 shrink-0" />
+
+            {/* Meta info */}
+            <MetaInfo state={state} latest={latest} />
+
+            {/* Action button */}
+            {state !== "syncing" && (
+              <>
+                <div className="h-3 w-px bg-current opacity-15 shrink-0" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSync}
+                  disabled={isDisabled}
+                  className={cn(
+                    "h-auto px-1.5 py-0.5 text-xs font-medium gap-1",
+                    state === "error" && "text-red-700 hover:text-red-800 hover:bg-red-100",
+                    state === "success" && "text-emerald-700 hover:text-emerald-800 hover:bg-emerald-100",
+                    state === "partial" && "text-amber-700 hover:text-amber-800 hover:bg-amber-100",
+                    (state === "stale" || state === "never") && "text-gray-700 hover:text-gray-800 hover:bg-gray-100"
+                  )}
+                >
+                  <IconRefresh size={12} />
+                  <span className="hidden sm:inline">{config.actionLabel}</span>
+                </Button>
+              </>
             )}
-            {latest && !trigger.isPending ? (
-              <span className="flex items-center gap-1">
-                <SyncStatusIcon status={latest.status} />
-                <span>{STATUS_LABEL[latest.status] ?? "Omie"}</span>
-              </span>
-            ) : (
-              <span>Sincronizar Omie</span>
+
+            {/* Syncing loader */}
+            {state === "syncing" && (
+              <IconLoader2 size={12} className="animate-spin text-blue-500 shrink-0" />
             )}
-          </Button>
+          </div>
         </TooltipTrigger>
-        <TooltipContent side="bottom" className="text-xs">
-          {tooltipLines.map((l, i) => (
-            <p key={i}>{l}</p>
-          ))}
-          {!isSyncing && <p className="mt-1 text-muted-foreground">Clique para sincronizar</p>}
+        <TooltipContent side="bottom" align="end" className="text-xs max-w-xs">
+          {tooltipLines.length > 0 ? (
+            tooltipLines.map((line, i) => (
+              <p key={i} className={i === 0 ? "font-medium" : "text-muted-foreground"}>
+                {line}
+              </p>
+            ))
+          ) : (
+            <p className="text-muted-foreground">
+              Nenhuma sincronização registrada ainda
+            </p>
+          )}
+          {!isDisabled && (
+            <p className="mt-1 text-muted-foreground border-t pt-1">
+              Clique no botão para sincronizar
+            </p>
+          )}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

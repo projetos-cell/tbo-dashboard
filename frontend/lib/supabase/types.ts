@@ -3609,6 +3609,12 @@ export type Database = {
           omie_id: number | null
           omie_raw: Json | null
           omie_synced_at: string | null
+          omie_juros: number | null
+          omie_multa: number | null
+          omie_desconto: number | null
+          omie_num_titulo: string | null
+          omie_categoria_codigo: string | null
+          omie_departamento_codigo: string | null
           paid_amount: number | null
           paid_date: string | null
           payment_method: string | null
@@ -3639,6 +3645,12 @@ export type Database = {
           omie_id?: number | null
           omie_raw?: Json | null
           omie_synced_at?: string | null
+          omie_juros?: number | null
+          omie_multa?: number | null
+          omie_desconto?: number | null
+          omie_num_titulo?: string | null
+          omie_categoria_codigo?: string | null
+          omie_departamento_codigo?: string | null
           paid_amount?: number | null
           paid_date?: string | null
           payment_method?: string | null
@@ -3669,6 +3681,12 @@ export type Database = {
           omie_id?: number | null
           omie_raw?: Json | null
           omie_synced_at?: string | null
+          omie_juros?: number | null
+          omie_multa?: number | null
+          omie_desconto?: number | null
+          omie_num_titulo?: string | null
+          omie_categoria_codigo?: string | null
+          omie_departamento_codigo?: string | null
           paid_amount?: number | null
           paid_date?: string | null
           payment_method?: string | null

@@ -226,7 +226,7 @@ async function syncCostCenters(
         const isActive = dep.inativo !== "S";
 
         const { error } = await (supabase as any)
-          .from("fin_cost_centers")
+          .from("finance_cost_centers")
           .upsert(
             {
               tenant_id: tenantId,
@@ -289,7 +289,7 @@ async function buildCostCenterLookup(
   tenantId: string
 ): Promise<LookupMap> {
   const { data } = await (supabase as any)
-    .from("fin_cost_centers")
+    .from("finance_cost_centers")
     .select("id, omie_id")
     .eq("tenant_id", tenantId)
     .not("omie_id", "is", null);
@@ -310,7 +310,7 @@ async function buildCostCenterNameLookup(
   tenantId: string
 ): Promise<CostCenterNameMap> {
   const { data } = await (supabase as any)
-    .from("fin_cost_centers")
+    .from("finance_cost_centers")
     .select("omie_id, name")
     .eq("tenant_id", tenantId)
     .not("omie_id", "is", null);
@@ -423,7 +423,6 @@ async function syncContasPagar(
   ccNameLookup: CostCenterNameMap
 ): Promise<{ inserted: number; updated: number; errors: string[] }> {
   let inserted = 0;
-  let updated = 0;
   const errors: string[] = [];
 
   try {
@@ -492,30 +491,28 @@ async function syncContasPagar(
           omie_id: omieId,
           omie_synced_at: new Date().toISOString(),
           omie_raw: conta,
+          // P2: campos granulares indexados
+          omie_juros: Number(conta.nValorJuros || 0),
+          omie_multa: Number(conta.nValorMulta || 0),
+          omie_desconto: Number(conta.nValorDesconto || 0),
+          omie_num_titulo: conta.cNumTitulo ? String(conta.cNumTitulo) : null,
+          omie_categoria_codigo: conta.codigo_categoria
+            ? String(conta.codigo_categoria)
+            : null,
+          omie_departamento_codigo: conta.codigo_departamento
+            ? String(conta.codigo_departamento)
+            : null,
           updated_by: userId,
         };
 
-        const { data: existing } = await (supabase as any)
+        const { error } = await (supabase as any)
           .from("finance_transactions")
-          .select("id")
-          .eq("tenant_id", tenantId)
-          .eq("omie_id", omieId)
-          .maybeSingle();
-
-        if (existing) {
-          const { error } = await (supabase as any)
-            .from("finance_transactions")
-            .update(record as never)
-            .eq("id", existing.id);
-          if (error) errors.push(`CP ${omieId}: ${error.message}`);
-          else updated++;
-        } else {
-          const { error } = await (supabase as any)
-            .from("finance_transactions")
-            .insert({ ...record, created_by: userId } as never);
-          if (error) errors.push(`CP ${omieId}: ${error.message}`);
-          else inserted++;
-        }
+          .upsert(
+            { ...record, created_by: userId } as never,
+            { onConflict: "tenant_id,omie_id", ignoreDuplicates: false }
+          );
+        if (error) errors.push(`CP ${omieId}: ${error.message}`);
+        else inserted++;
       }
 
       const totalPages = Math.ceil(totalRecords / PAGE_SIZE);
@@ -531,9 +528,9 @@ async function syncContasPagar(
   }
 
   console.log(
-    `[sync-omie] Contas a Pagar done: ${inserted} inserted, ${updated} updated, ${errors.length} errors`
+    `[sync-omie] Contas a Pagar done: ${inserted} upserted, ${errors.length} errors`
   );
-  return { inserted, updated, errors };
+  return { inserted, updated: 0, errors };
 }
 
 // ── Sync contas a receber from Omie ───────────────────────────────────────────
@@ -548,7 +545,6 @@ async function syncContasReceber(
   ccNameLookup: CostCenterNameMap
 ): Promise<{ inserted: number; updated: number; errors: string[] }> {
   let inserted = 0;
-  let updated = 0;
   const errors: string[] = [];
 
   try {
@@ -618,30 +614,28 @@ async function syncContasReceber(
           omie_id: omieId,
           omie_synced_at: new Date().toISOString(),
           omie_raw: conta,
+          // P2: campos granulares indexados
+          omie_juros: Number(conta.nValorJuros || 0),
+          omie_multa: Number(conta.nValorMulta || 0),
+          omie_desconto: Number(conta.nValorDesconto || 0),
+          omie_num_titulo: conta.cNumTitulo ? String(conta.cNumTitulo) : null,
+          omie_categoria_codigo: conta.codigo_categoria
+            ? String(conta.codigo_categoria)
+            : null,
+          omie_departamento_codigo: conta.codigo_departamento
+            ? String(conta.codigo_departamento)
+            : null,
           updated_by: userId,
         };
 
-        const { data: existing } = await (supabase as any)
+        const { error } = await (supabase as any)
           .from("finance_transactions")
-          .select("id")
-          .eq("tenant_id", tenantId)
-          .eq("omie_id", omieId)
-          .maybeSingle();
-
-        if (existing) {
-          const { error } = await (supabase as any)
-            .from("finance_transactions")
-            .update(record as never)
-            .eq("id", existing.id);
-          if (error) errors.push(`CR ${omieId}: ${error.message}`);
-          else updated++;
-        } else {
-          const { error } = await (supabase as any)
-            .from("finance_transactions")
-            .insert({ ...record, created_by: userId } as never);
-          if (error) errors.push(`CR ${omieId}: ${error.message}`);
-          else inserted++;
-        }
+          .upsert(
+            { ...record, created_by: userId } as never,
+            { onConflict: "tenant_id,omie_id", ignoreDuplicates: false }
+          );
+        if (error) errors.push(`CR ${omieId}: ${error.message}`);
+        else inserted++;
       }
 
       const totalRecords2 = (data.total_de_registros as number) || 0;
@@ -658,9 +652,9 @@ async function syncContasReceber(
   }
 
   console.log(
-    `[sync-omie] Contas a Receber done: ${inserted} inserted, ${updated} updated, ${errors.length} errors`
+    `[sync-omie] Contas a Receber done: ${inserted} upserted, ${errors.length} errors`
   );
-  return { inserted, updated, errors };
+  return { inserted, updated: 0, errors };
 }
 
 // ── POST /api/finance/sync-omie ───────────────────────────────────────────────

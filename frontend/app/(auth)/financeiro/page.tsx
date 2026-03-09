@@ -1,50 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import dynamic from "next/dynamic";
 import { RBACGuard } from "@/components/rbac-guard";
 import { useFounderDashboard } from "@/features/founder-dashboard/hooks/use-founder-dashboard";
 import {
   PeriodFilter,
   type PeriodValue,
 } from "@/features/founder-dashboard/components/period-filter";
-import { UnitRevenueTable } from "@/features/founder-dashboard/components/unit-revenue-table";
-import { TopProjectsTable } from "@/features/founder-dashboard/components/top-projects-table";
-import { RevenueConcentration } from "@/features/founder-dashboard/components/revenue-concentration";
 import { FounderAlerts } from "@/features/founder-dashboard/components/founder-alerts";
 import { ForecastPanel } from "@/features/founder-dashboard/components/forecast-panel";
-import { useRevenueConcentrationByClient } from "@/features/financeiro/hooks/use-finance";
 import { useLatestCashBalance } from "@/features/financeiro/hooks/use-cash-entries";
 
 import { FounderMetricsSection } from "@/features/financeiro/components/sections/founder-metrics-section";
 import { FinancialHealthSection } from "@/features/financeiro/components/sections/financial-health-section";
-import { ClientMarginTable } from "@/features/financeiro/components/sections/client-margin-table";
 import { ExpiringContractsSection } from "@/features/financeiro/components/sections/expiring-contracts-section";
-import { DreSection } from "@/features/financeiro/components/sections/dre-section";
 import { StrategicSection } from "@/features/financeiro/components/sections/strategic-section";
 import { OmieSyncButton } from "@/features/financeiro/components/omie-sync-button";
 import Link from "next/link";
 import { Users, Receipt, UserMinus, ArrowRight } from "lucide-react";
 
-const RevenueConcentrationChart = dynamic(
-  () =>
-    import("@/features/financeiro/components/revenue-concentration-chart").then(
-      (m) => ({ default: m.RevenueConcentrationChart })
-    ),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="h-[220px] animate-pulse rounded-xl bg-gray-100" />
-    ),
-  }
-);
-
 function FinanceiroContent() {
   const [period, setPeriod] = useState<PeriodValue>({ preset: "mtd" });
   const { data: manualCaixa } = useLatestCashBalance();
-
-  const { data: concentrationData, isLoading: concentrationLoading } =
-    useRevenueConcentrationByClient();
 
   const { data, isLoading, error, refetch } = useFounderDashboard(period);
 
@@ -90,28 +67,6 @@ function FinanceiroContent() {
         effectiveCaixaPrevisto30d={effectiveCaixaPrevisto30d}
         onRetry={refetch}
       />
-
-      {/* ── Performance ──────────────────────────────────────────────────── */}
-      <div>
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-          Performance
-        </h2>
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          <UnitRevenueTable data={d?.unitRevenue ?? []} isLoading={isLoading} />
-          <div className="lg:col-span-2">
-            <RevenueConcentration
-              data={d?.allClientsByRevenue ?? []}
-              isLoading={isLoading}
-            />
-          </div>
-          <TopProjectsTable
-            data={d?.topProjectsByMargin ?? []}
-            isLoading={isLoading}
-          />
-        </div>
-      </div>
-
-      <ClientMarginTable clientMargins={d?.clientMargins ?? []} />
 
       {/* ── Indicadores Operacionais (resumo) ─────────────────────────── */}
       <div>
@@ -177,20 +132,6 @@ function FinanceiroContent() {
           />
         </div>
       </div>
-
-      {/* ── Concentração de Receita ──────────────────────────────────────── */}
-      <div>
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-          Concentração de Receita
-        </h2>
-        <RevenueConcentrationChart
-          data={concentrationData}
-          isLoading={concentrationLoading}
-          topN={5}
-        />
-      </div>
-
-      <DreSection />
 
       <StrategicSection
         d={d}

@@ -384,6 +384,10 @@ export const PESSOAS_NAV_ITEMS: readonly SubNavItem[] = [
 export const FINANCEIRO_NAV_ITEMS: readonly SubNavItem[] = [
   { href: "/financeiro", label: "Visão Geral", icon: "bar-chart-3" },
   { href: "/financeiro/operacional", label: "Operacional", icon: "activity" },
+  { href: "/financeiro/dre", label: "DRE", icon: "file-text" },
+  { href: "/financeiro/performance", label: "Performance", icon: "trending-up" },
+  { href: "/financeiro/margens", label: "Margens", icon: "users" },
+  { href: "/financeiro/concentracao", label: "Concentração", icon: "pie-chart" },
 ] as const;
 
 export const COMERCIAL_NAV_ITEMS: readonly SubNavItem[] = [

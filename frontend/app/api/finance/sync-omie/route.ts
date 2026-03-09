@@ -745,13 +745,14 @@ async function syncContasPagar(
           status,
           description: String(conta.observacao || conta.complemento || "Conta a pagar"),
           amount: Number(conta.valor_documento || 0),
-          paid_amount: Number(conta.valor_pago || 0),
+          // Omie's ListarContasPagar doesn't return valor_pago — use valor_documento when paid
+          paid_amount: Number(conta.valor_pago || (status === "pago" ? conta.valor_documento : 0) || 0),
           date:
             parseOmieDate(conta.data_emissao) ||
             parseOmieDate(conta.data_vencimento) ||
             new Date().toISOString().split("T")[0],
           due_date: parseOmieDate(conta.data_vencimento),
-          paid_date: parseOmieDate(conta.data_pagamento),
+          paid_date: parseOmieDate(conta.data_pagamento) || (status === "pago" ? parseOmieDate(conta.data_previsao) : null),
           counterpart: conta.nome_fornecedor ? String(conta.nome_fornecedor) : null,
           counterpart_doc: conta.cnpj_cpf_fornecedor ? String(conta.cnpj_cpf_fornecedor) : null,
           category_id: resolveCategoryId(conta, catLookup),
@@ -855,13 +856,14 @@ async function syncContasReceber(
           status,
           description: String(conta.observacao || conta.complemento || "Conta a receber"),
           amount: Number(conta.valor_documento || 0),
-          paid_amount: Number(conta.valor_recebido || conta.valor_pago || 0),
+          // Omie's ListarContasReceber doesn't return valor_recebido — use valor_documento when paid
+          paid_amount: Number(conta.valor_recebido || conta.valor_pago || (status === "pago" ? conta.valor_documento : 0) || 0),
           date:
             parseOmieDate(conta.data_emissao) ||
             parseOmieDate(conta.data_vencimento) ||
             new Date().toISOString().split("T")[0],
           due_date: parseOmieDate(conta.data_vencimento),
-          paid_date: parseOmieDate(conta.data_recebimento) || parseOmieDate(conta.data_pagamento),
+          paid_date: parseOmieDate(conta.data_recebimento) || parseOmieDate(conta.data_pagamento) || (status === "pago" ? parseOmieDate(conta.data_previsao) : null),
           counterpart: conta.nome_cliente ? String(conta.nome_cliente) : null,
           counterpart_doc: conta.cnpj_cpf_cliente ? String(conta.cnpj_cpf_cliente) : null,
           category_id: resolveCategoryId(conta, catLookup),

@@ -241,7 +241,7 @@ async function syncVendors(
           const omieId = String(v.codigo_cliente_omie || "");
           if (!omieId) continue;
 
-          await supabase.from("fin_vendors").upsert({
+          await supabase.from("finance_vendors").upsert({
             tenant_id: tenantId,
             omie_id: omieId,
             name: cleanName(v.nome_fantasia || v.razao_social || `Fornecedor ${omieId}`),
@@ -303,7 +303,7 @@ async function syncClients(
           const omieId = String(c.codigo_cliente_omie || "");
           if (!omieId) continue;
 
-          await supabase.from("fin_clients").upsert({
+          await supabase.from("finance_clients").upsert({
             tenant_id: tenantId,
             omie_id: omieId,
             name: cleanName(c.nome_fantasia || c.razao_social || `Cliente ${omieId}`),
@@ -415,7 +415,7 @@ async function syncPayables(
   // vendorNameMap: omie vendor id → { name, doc } for counterpart denormalization
   // categoryIdMap: omie category id → internal UUID for FK resolution
   const [vendorNameMap, categoryIdMap] = await Promise.all([
-    loadOmieNameMap(supabase, "fin_vendors", tenantId),
+    loadOmieNameMap(supabase, "finance_vendors", tenantId),
     loadOmieIdMap(supabase, "finance_categories", tenantId),
   ]);
 
@@ -508,7 +508,7 @@ async function syncReceivables(
   // clientNameMap: omie client id → { name, doc } for counterpart denormalization
   // categoryIdMap: omie category id → internal UUID for FK resolution
   const [clientNameMap, categoryIdMap] = await Promise.all([
-    loadOmieNameMap(supabase, "fin_clients", tenantId),
+    loadOmieNameMap(supabase, "finance_clients", tenantId),
     loadOmieIdMap(supabase, "finance_categories", tenantId),
   ]);
 
@@ -617,7 +617,7 @@ async function syncBankAccounts(
           if (tipoCC === "CP" || tipoCC.includes("POUPAN")) accountType = "poupanca";
           else if (tipoCC === "CI" || tipoCC.includes("INVEST")) accountType = "investimento";
 
-          await supabase.from("fin_bank_accounts").upsert({
+          await supabase.from("finance_bank_accounts").upsert({
             tenant_id: tenantId,
             omie_id: omieId,
             name: acc.descricao || acc.cDescricao || `Conta ${omieId}`,

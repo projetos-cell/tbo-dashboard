@@ -268,7 +268,7 @@ export async function getFounderDashboardSnapshot(
 
     // 3. Cost centers for unit revenue name mapping
     supabase
-      .from("fin_cost_centers" as never)
+      .from("finance_cost_centers" as never)
       .select("id, name")
       .eq("tenant_id", tenantId),
 
@@ -280,7 +280,7 @@ export async function getFounderDashboardSnapshot(
 
     // 5. Bank accounts — real cash balance synced from Omie
     supabase
-      .from("fin_bank_accounts" as never)
+      .from("finance_bank_accounts" as never)
       .select("balance")
       .eq("tenant_id", tenantId)
       .eq("is_active", true),

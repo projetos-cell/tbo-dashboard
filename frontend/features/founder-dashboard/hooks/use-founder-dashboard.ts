@@ -101,7 +101,7 @@ export function useFounderDashboard(period?: PeriodValue) {
         {
           event: "*",
           schema: "public",
-          table: "fin_bank_accounts",
+          table: "finance_bank_accounts",
           filter: `tenant_id=eq.${tenantId}`,
         },
         invalidate,

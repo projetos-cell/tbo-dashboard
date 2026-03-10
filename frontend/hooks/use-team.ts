@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import {
   fetchTeamMembers,
@@ -12,6 +13,7 @@ import {
   deleteTeamMember,
 } from "@/services/team";
 import type {
+  TeamMember,
   TeamFilters,
   InviteUserInput,
   UpdateUserInput,
@@ -62,8 +64,26 @@ export function useInviteTeamMember() {
 
   return useMutation({
     mutationFn: (input: InviteUserInput) => inviteTeamMember(supabase, input),
-    onSuccess: () => {
+    onSuccess: (_data, input) => {
       queryClient.invalidateQueries({ queryKey: teamKeys.all });
+      toast.success("Membro convidado", {
+        description: `${input.full_name} foi adicionado a equipe.`,
+      });
+    },
+    onError: (error) => {
+      const msg = error instanceof Error ? error.message : "Erro desconhecido";
+      if (msg.includes("violates foreign key") || msg.includes("auth")) {
+        toast.error("Erro ao convidar", {
+          description:
+            "O convite requer uma Edge Function para criar o usuario no auth. Contate o admin.",
+        });
+      } else if (msg.includes("duplicate") || msg.includes("unique")) {
+        toast.error("E-mail ja cadastrado", {
+          description: "Ja existe um membro com este e-mail.",
+        });
+      } else {
+        toast.error("Erro ao convidar membro", { description: msg });
+      }
     },
   });
 }
@@ -77,6 +97,14 @@ export function useUpdateTeamMember() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: teamKeys.detail(data.id) });
       queryClient.invalidateQueries({ queryKey: teamKeys.all });
+      toast.success("Membro atualizado", {
+        description: `Dados de ${data.full_name} salvos com sucesso.`,
+      });
+    },
+    onError: (error) => {
+      toast.error("Erro ao atualizar membro", {
+        description: error instanceof Error ? error.message : "Tente novamente.",
+      });
     },
   });
 }
@@ -90,6 +118,14 @@ export function useChangeUserRole() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: teamKeys.detail(data.id) });
       queryClient.invalidateQueries({ queryKey: teamKeys.all });
+      toast.success("Permissao alterada", {
+        description: `${data.full_name} agora e ${data.role}.`,
+      });
+    },
+    onError: (error) => {
+      toast.error("Erro ao alterar permissao", {
+        description: error instanceof Error ? error.message : "Tente novamente.",
+      });
     },
   });
 }
@@ -101,9 +137,34 @@ export function useToggleUserActive() {
   return useMutation({
     mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
       toggleUserActive(supabase, id, is_active),
+    onMutate: async ({ id, is_active }) => {
+      await queryClient.cancelQueries({ queryKey: teamKeys.all });
+      const previousLists = queryClient.getQueriesData<TeamMember[]>({
+        queryKey: teamKeys.all,
+      });
+      queryClient.setQueriesData<TeamMember[]>(
+        { queryKey: ["team", "list"] },
+        (old) =>
+          old?.map((m) => (m.id === id ? { ...m, is_active } : m))
+      );
+      return { previousLists };
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: teamKeys.detail(data.id) });
       queryClient.invalidateQueries({ queryKey: teamKeys.all });
+      toast.success(data.is_active ? "Membro reativado" : "Membro desativado", {
+        description: `${data.full_name} foi ${data.is_active ? "reativado" : "desativado"}.`,
+      });
+    },
+    onError: (error, _vars, context) => {
+      if (context?.previousLists) {
+        for (const [key, data] of context.previousLists) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+      toast.error("Erro ao alterar status", {
+        description: error instanceof Error ? error.message : "Tente novamente.",
+      });
     },
   });
 }
@@ -116,6 +177,14 @@ export function useDeleteTeamMember() {
     mutationFn: (id: string) => deleteTeamMember(supabase, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: teamKeys.all });
+      toast.success("Membro excluido", {
+        description: "O membro foi removido permanentemente.",
+      });
+    },
+    onError: (error) => {
+      toast.error("Erro ao excluir membro", {
+        description: error instanceof Error ? error.message : "Tente novamente.",
+      });
     },
   });
 }

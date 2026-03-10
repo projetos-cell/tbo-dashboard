@@ -157,7 +157,7 @@ export function EditUserDialog({
                   <FormLabel>Nivel de acesso</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value}
                     disabled={!canEdit}
                   >
                     <FormControl>

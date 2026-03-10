@@ -2,7 +2,6 @@
 
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -10,6 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import { IconAlertTriangle } from "@tabler/icons-react";
 import { useDeleteTeamMember } from "@/hooks/use-team";
 import type { TeamMember } from "@/schemas/team";
@@ -33,7 +33,7 @@ export function DeleteUserDialog({
       await deleteMember.mutateAsync(member.id);
       onOpenChange(false);
     } catch {
-      // Error handling via toast/boundary
+      // Toast de erro tratado pelo mutation hook
     }
   }
 
@@ -56,14 +56,16 @@ export function DeleteUserDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction
+          <AlertDialogCancel disabled={deleteMember.isPending}>
+            Cancelar
+          </AlertDialogCancel>
+          <Button
+            variant="destructive"
             onClick={handleConfirm}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             disabled={deleteMember.isPending}
           >
             {deleteMember.isPending ? "Excluindo..." : "Sim, excluir"}
-          </AlertDialogAction>
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

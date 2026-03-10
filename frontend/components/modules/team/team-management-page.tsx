@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -72,6 +72,21 @@ import { EditUserDialog } from "./edit-user-dialog";
 import { DeleteUserDialog } from "./delete-user-dialog";
 
 // ────────────────────────────────────────────────────
+// Debounce hook (input debounce, not data fetching)
+// ────────────────────────────────────────────────────
+
+function useDebouncedValue<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+
+  return debounced;
+}
+
+// ────────────────────────────────────────────────────
 // Props
 // ────────────────────────────────────────────────────
 
@@ -96,28 +111,50 @@ export function TeamManagementPage({
 }: TeamManagementPageProps) {
   // State
   const [filters, setFilters] = useState<TeamFilters>({});
+  const [searchInput, setSearchInput] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editMember, setEditMember] = useState<TeamMember | null>(null);
   const [deleteMember, setDeleteMember] = useState<TeamMember | null>(null);
 
-  // Data
+  // Debounce search to avoid excessive queries
+  const debouncedSearch = useDebouncedValue(searchInput, 300);
+
+  // Build actual filters with debounced search
+  const activeFilters = useMemo<TeamFilters>(
+    () => ({
+      ...filters,
+      search: debouncedSearch || undefined,
+    }),
+    [filters, debouncedSearch]
+  );
+
+  // Data — filtered query
   const {
     data: members = [],
     isLoading,
     refetch,
-  } = useTeamMembers(filters);
+  } = useTeamMembers(activeFilters);
+
+  // Unfiltered query for global stats (cached — same staleTime)
+  const hasActiveFilters = !!(filters.role || filters.is_active !== undefined || debouncedSearch);
+  const { data: allMembers } = useTeamMembers();
+  const statsSource = allMembers ?? members;
+
   const toggleActive = useToggleUserActive();
 
   // Permission checks
   const canManageUsers = hasMinRole(currentUserRole, "diretoria");
   const canDeleteUsers = currentUserRole === "founder";
 
-  function canActOn(target: TeamMember): boolean {
-    if (target.id === currentUserId) return false;
-    if (currentUserRole === "founder") return true;
-    return ROLE_HIERARCHY[currentUserRole] > ROLE_HIERARCHY[target.role];
-  }
+  const canActOn = useCallback(
+    (target: TeamMember): boolean => {
+      if (target.id === currentUserId) return false;
+      if (currentUserRole === "founder") return true;
+      return ROLE_HIERARCHY[currentUserRole] > ROLE_HIERARCHY[target.role];
+    },
+    [currentUserId, currentUserRole]
+  );
 
   // Columns
   const columns = useMemo(
@@ -233,7 +270,7 @@ export function TeamManagementPage({
         size: 60,
       }),
     ],
-    [canManageUsers, canDeleteUsers, currentUserId, currentUserRole]
+    [canManageUsers, canDeleteUsers, canActOn, toggleActive]
   );
 
   // Table instance
@@ -249,18 +286,18 @@ export function TeamManagementPage({
     initialState: { pagination: { pageSize: 15 } },
   });
 
-  // Stats
+  // Stats — always from unfiltered source
   const stats = useMemo(() => {
-    const active = members.filter((m) => m.is_active).length;
-    const byRole = members.reduce(
+    const active = statsSource.filter((m) => m.is_active).length;
+    const byRole = statsSource.reduce(
       (acc, m) => {
         acc[m.role] = (acc[m.role] || 0) + 1;
         return acc;
       },
       {} as Record<string, number>
     );
-    return { total: members.length, active, byRole };
-  }, [members]);
+    return { total: statsSource.length, active, byRole };
+  }, [statsSource]);
 
   // ────────────────────────────────────────────────
   // Render
@@ -311,7 +348,9 @@ export function TeamManagementPage({
           ).map((role) => (
             <Card
               key={role}
-              className="cursor-pointer transition-colors hover:border-brand/40"
+              className={`cursor-pointer transition-colors hover:border-brand/40 ${
+                filters.role === role ? "border-brand/60 bg-brand/5" : ""
+              }`}
               onClick={() =>
                 setFilters((f) => ({
                   ...f,
@@ -352,13 +391,8 @@ export function TeamManagementPage({
               <Input
                 placeholder="Buscar por nome ou e-mail..."
                 className="pl-9"
-                value={filters.search ?? ""}
-                onChange={(e) =>
-                  setFilters((f) => ({
-                    ...f,
-                    search: e.target.value || undefined,
-                  }))
-                }
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
               />
             </div>
             <Select
@@ -472,7 +506,7 @@ export function TeamManagementPage({
                         <p className="text-sm">
                           Nenhum membro encontrado
                         </p>
-                        {canManageUsers && (
+                        {canManageUsers && !hasActiveFilters && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -480,6 +514,18 @@ export function TeamManagementPage({
                           >
                             <IconUserPlus size={14} className="mr-1" />
                             Convidar primeiro membro
+                          </Button>
+                        )}
+                        {hasActiveFilters && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setFilters({});
+                              setSearchInput("");
+                            }}
+                          >
+                            Limpar filtros
                           </Button>
                         )}
                       </div>

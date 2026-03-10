@@ -59,22 +59,44 @@ export async function inviteTeamMember(
   supabase: SupabaseClient,
   input: InviteUserInput
 ): Promise<TeamMember> {
-  // In production, this should use a Supabase Edge Function
-  // that calls supabase.auth.admin.inviteUserByEmail()
-  // because profiles.id has FK to auth.users(id)
-  const { data, error } = await supabase
-    .from("profiles")
-    .insert({
-      email: input.email,
-      full_name: input.full_name,
-      role: input.role,
-      department: input.department || null,
-    } as never)
-    .select()
-    .single();
+  // Calls Edge Function that uses auth.admin.inviteUserByEmail()
+  // to create the auth.users record first, then inserts profile.
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
 
-  if (error) throw error;
-  return data as TeamMember;
+  if (!accessToken) {
+    throw new Error("Sessao expirada. Faca login novamente.");
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl) {
+    throw new Error("SUPABASE_URL nao configurada.");
+  }
+
+  const response = await fetch(
+    `${supabaseUrl}/functions/v1/invite-team-member`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        email: input.email,
+        full_name: input.full_name,
+        role: input.role,
+        department: input.department || null,
+      }),
+    }
+  );
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.error || `Erro ${response.status}`);
+  }
+
+  return result.data as TeamMember;
 }
 
 export async function updateTeamMember(

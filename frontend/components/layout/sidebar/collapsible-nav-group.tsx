@@ -13,6 +13,7 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
@@ -61,7 +62,7 @@ export function CollapsibleNavGroup({ group, canSee }: CollapsibleNavGroupProps)
             }
 
             return (
-              <Collapsible key={item.href} defaultOpen={isActive} asChild>
+              <Collapsible key={item.href} defaultOpen={isActive} className="group/collapsible">
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
                     <Link href={item.href}>
@@ -71,12 +72,12 @@ export function CollapsibleNavGroup({ group, canSee }: CollapsibleNavGroupProps)
                   </SidebarMenuButton>
 
                   <CollapsibleTrigger asChild>
-                    <button
-                      className="absolute top-1/2 right-1 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-sm transition-colors hover:bg-sidebar-accent group-data-[collapsible=icon]:hidden"
+                    <SidebarMenuAction
+                      className="data-[state=open]:rotate-90"
                       aria-label={`Expandir ${item.label}`}
                     >
-                      <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                    </button>
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </SidebarMenuAction>
                   </CollapsibleTrigger>
 
                   <CollapsibleContent>

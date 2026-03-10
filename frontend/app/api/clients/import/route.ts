@@ -1,16 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-// ── Supabase service-role client ────────────────────────────────────────────────
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-function getServiceClient() {
-  return createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-}
+import { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 // ── Types ────────────────────────────────────────────────────────────────────────
 
@@ -183,8 +173,7 @@ function classifyClient(
 
 // ── Main import logic ───────────────────────────────────────────────────────────
 
-async function importClients(tenantId: string) {
-  const db = getServiceClient();
+async function importClients(tenantId: string, db: SupabaseClient) {
   const results = {
     omie_imported: 0,
     rd_imported: 0,
@@ -462,47 +451,59 @@ async function importClients(tenantId: string) {
     });
   }
 
-  // Upsert in batches of 100
-  for (let i = 0; i < upsertBatch.length; i += 100) {
-    const batch = upsertBatch.slice(i, i + 100);
+  // Upsert using find-then-update/insert pattern
+  // (partial unique indexes don't work with PostgREST upsert)
+  for (const item of upsertBatch) {
+    try {
+      let existingId: string | null = null;
 
-    // Separate by source for proper conflict resolution
-    const withOmie = batch.filter((b) => b.omie_id);
-    const withRd = batch.filter((b) => b.rd_id && !b.omie_id);
-    const manual = batch.filter((b) => !b.omie_id && !b.rd_id);
-
-    if (withOmie.length > 0) {
-      const { error } = await db
-        .from("clients")
-        .upsert(withOmie as never, {
-          onConflict: "tenant_id,omie_id",
-          ignoreDuplicates: false,
-        });
-      if (error) results.errors.push(`Upsert omie batch: ${error.message}`);
-    }
-
-    if (withRd.length > 0) {
-      const { error } = await db
-        .from("clients")
-        .upsert(withRd as never, {
-          onConflict: "tenant_id,rd_id",
-          ignoreDuplicates: false,
-        });
-      if (error) results.errors.push(`Upsert rd batch: ${error.message}`);
-    }
-
-    if (manual.length > 0) {
-      // For manual/merged without unique keys, insert only if not exists by name
-      for (const item of manual) {
-        const { error } = await db
+      // Try to find existing client by omie_id or rd_id
+      if (item.omie_id) {
+        const { data } = await db
           .from("clients")
-          .upsert(item as never, { onConflict: "tenant_id,omie_id" })
-          .select();
-        if (error && !error.message.includes("duplicate")) {
-          // Try insert
-          await db.from("clients").insert(item as never);
-        }
+          .select("id")
+          .eq("tenant_id", tenantId)
+          .eq("omie_id", item.omie_id as string)
+          .maybeSingle();
+        if (data) existingId = data.id;
       }
+
+      if (!existingId && item.rd_id) {
+        const { data } = await db
+          .from("clients")
+          .select("id")
+          .eq("tenant_id", tenantId)
+          .eq("rd_id", item.rd_id as string)
+          .maybeSingle();
+        if (data) existingId = data.id;
+      }
+
+      // Fallback: match by name + tenant
+      if (!existingId) {
+        const { data } = await db
+          .from("clients")
+          .select("id")
+          .eq("tenant_id", tenantId)
+          .eq("name", item.name as string)
+          .maybeSingle();
+        if (data) existingId = data.id;
+      }
+
+      if (existingId) {
+        // Update existing
+        const { id: _, tenant_id: __, ...updates } = item as Record<string, unknown>;
+        await db
+          .from("clients")
+          .update(updates as never)
+          .eq("id", existingId);
+      } else {
+        // Insert new
+        await db.from("clients").insert(item as never);
+      }
+    } catch (err) {
+      results.errors.push(
+        `Client ${item.name}: ${err instanceof Error ? err.message : "unknown"}`,
+      );
     }
   }
 
@@ -549,7 +550,15 @@ async function importClients(tenantId: string) {
 
 export async function POST(req: NextRequest) {
   try {
-    // Auth: extract tenant from header or body
+    const db = await createClient();
+
+    // Verify authenticated user
+    const { data: { user }, error: authErr } = await db.auth.getUser();
+    if (authErr || !user) {
+      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+    }
+
+    // Extract tenant from body
     const body = await req.json().catch(() => ({}));
     const tenantId = body.tenant_id;
 
@@ -560,7 +569,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const results = await importClients(tenantId);
+    const results = await importClients(tenantId, db);
 
     return NextResponse.json({
       success: true,

@@ -263,6 +263,8 @@ export function useFinanceAging() {
           totalAp: 0,
           totalArCount: 0,
           totalApCount: 0,
+          projectedAr: 0,
+          projectedArCount: 0,
         };
       const supabase = createClient();
       return getFinanceAging(supabase, tenantId);
@@ -385,7 +387,7 @@ export function useOverdueEntries(type: "ar" | "ap" | "all" = "all") {
     queryKey: ["finance-overdue-entries", tenantId, type],
     queryFn: async () => {
       if (!tenantId)
-        return { entries: [], totalAr: 0, totalAp: 0, totalArCount: 0, totalApCount: 0 };
+        return { entries: [], projectedEntries: [], totalAr: 0, totalAp: 0, totalArCount: 0, totalApCount: 0, projectedAr: 0, projectedArCount: 0 };
       const supabase = createClient();
       return getOverdueEntries(supabase, tenantId, type);
     },

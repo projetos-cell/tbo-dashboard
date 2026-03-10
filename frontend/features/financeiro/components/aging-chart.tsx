@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useFinanceAging } from "@/features/financeiro/hooks/use-finance";
 import {
@@ -30,7 +30,7 @@ export function AgingChart() {
   const { data, isLoading, isError, refetch } = useFinanceAging();
 
   if (isLoading) {
-    return <Skeleton className="h-[220px] w-full rounded-lg" />;
+    return <Skeleton className="h-[400px] w-full rounded-lg" />;
   }
 
   if (isError) {
@@ -45,19 +45,23 @@ export function AgingChart() {
     );
   }
 
-  const hasBuckets = data?.buckets.some((b) => b.ar > 0 || b.ap > 0);
+  const overdueBuckets = (data?.buckets ?? []).filter((b) => b.direction === "past");
+  const projectedBuckets = (data?.buckets ?? []).filter((b) => b.direction === "future");
 
-  if (!hasBuckets) {
+  const hasOverdue = overdueBuckets.some((b) => b.ar > 0 || b.ap > 0);
+  const hasProjected = projectedBuckets.some((b) => b.ar > 0);
+
+  if (!hasOverdue && !hasProjected) {
     return (
       <div className="flex flex-col items-center justify-center h-[220px] gap-2 text-gray-500">
         <Clock className="h-8 w-8" />
-        <p className="text-sm font-medium">Nenhum título em atraso</p>
-        <p className="text-xs">Todos os títulos estão em dia</p>
+        <p className="text-sm font-medium">Nenhum título pendente</p>
+        <p className="text-xs">Todos os títulos estão em dia e sem projeções</p>
       </div>
     );
   }
 
-  const chartData = data!.buckets
+  const overdueData = overdueBuckets
     .filter((b) => b.ar > 0 || b.ap > 0)
     .map((b) => ({
       bucket: b.label,
@@ -65,25 +69,68 @@ export function AgingChart() {
       "A Pagar": b.ap,
     }));
 
+  const projectedData = projectedBuckets
+    .filter((b) => b.ar > 0)
+    .map((b) => ({
+      bucket: b.label,
+      "AR Projetado": b.ar,
+    }));
+
   return (
-    <ResponsiveContainer width="100%" height={220}>
-      <BarChart
-        data={chartData}
-        layout="vertical"
-        margin={{ top: 4, right: 16, left: 0, bottom: 4 }}
-      >
-        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-        <XAxis type="number" tickFormatter={fmtCompact} tick={{ fontSize: 11 }} />
-        <YAxis type="category" dataKey="bucket" width={84} tick={{ fontSize: 11 }} />
-        <Tooltip
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          formatter={(v: any, name: any) => [fmtFull(v ?? 0), name]}
-          labelStyle={{ fontWeight: 600 }}
-        />
-        <Legend iconSize={10} wrapperStyle={{ fontSize: 12 }} />
-        <Bar dataKey="A Receber" fill="#22c55e" radius={[0, 4, 4, 0]} maxBarSize={20} />
-        <Bar dataKey="A Pagar" fill="#ef4444" radius={[0, 4, 4, 0]} maxBarSize={20} />
-      </BarChart>
-    </ResponsiveContainer>
+    <div className="space-y-6">
+      {/* Overdue Chart */}
+      {hasOverdue && (
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            Vencidos
+          </p>
+          <ResponsiveContainer width="100%" height={Math.max(120, overdueData.length * 44)}>
+            <BarChart
+              data={overdueData}
+              layout="vertical"
+              margin={{ top: 4, right: 16, left: 0, bottom: 4 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" tickFormatter={fmtCompact} tick={{ fontSize: 11 }} />
+              <YAxis type="category" dataKey="bucket" width={84} tick={{ fontSize: 11 }} />
+              <Tooltip
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                formatter={(v: any, name: any) => [fmtFull(v ?? 0), name]}
+                labelStyle={{ fontWeight: 600 }}
+              />
+              <Legend iconSize={10} wrapperStyle={{ fontSize: 12 }} />
+              <Bar dataKey="A Receber" fill="#22c55e" radius={[0, 4, 4, 0]} maxBarSize={20} />
+              <Bar dataKey="A Pagar" fill="#ef4444" radius={[0, 4, 4, 0]} maxBarSize={20} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Projected AR Chart */}
+      {hasProjected && (
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            A Receber — Projeção 12 meses
+          </p>
+          <ResponsiveContainer width="100%" height={Math.max(120, projectedData.length * 44)}>
+            <BarChart
+              data={projectedData}
+              layout="vertical"
+              margin={{ top: 4, right: 16, left: 0, bottom: 4 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" tickFormatter={fmtCompact} tick={{ fontSize: 11 }} />
+              <YAxis type="category" dataKey="bucket" width={84} tick={{ fontSize: 11 }} />
+              <Tooltip
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                formatter={(v: any, name: any) => [fmtFull(v ?? 0), name]}
+                labelStyle={{ fontWeight: 600 }}
+              />
+              <Bar dataKey="AR Projetado" fill="#3b82f6" radius={[0, 4, 4, 0]} maxBarSize={20} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </div>
   );
 }

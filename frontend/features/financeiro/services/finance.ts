@@ -604,8 +604,9 @@ export type AgingBucket = {
   label: string;
   minDays: number;
   maxDays: number;
-  ar: number; // receivables overdue
-  ap: number; // payables overdue
+  direction: "past" | "future"; // past = overdue, future = projected
+  ar: number;
+  ap: number;
   arCount: number;
   apCount: number;
 };
@@ -616,15 +617,27 @@ export type FinanceAgingData = {
   totalAp: number;
   totalArCount: number;
   totalApCount: number;
+  // Projected AR (future — up to 12 months)
+  projectedAr: number;
+  projectedArCount: number;
 };
 
-const AGING_BUCKETS: Omit<AgingBucket, "ar" | "ap" | "arCount" | "apCount">[] =
-  [
-    { label: "1–30 dias", minDays: 1, maxDays: 30 },
-    { label: "31–60 dias", minDays: 31, maxDays: 60 },
-    { label: "61–90 dias", minDays: 61, maxDays: 90 },
-    { label: "90+ dias", minDays: 91, maxDays: Infinity },
-  ];
+type BucketDef = Omit<AgingBucket, "ar" | "ap" | "arCount" | "apCount">;
+
+const OVERDUE_BUCKETS: BucketDef[] = [
+  { label: "1–30 dias", minDays: 1, maxDays: 30, direction: "past" },
+  { label: "31–60 dias", minDays: 31, maxDays: 60, direction: "past" },
+  { label: "61–90 dias", minDays: 61, maxDays: 90, direction: "past" },
+  { label: "90+ dias", minDays: 91, maxDays: Infinity, direction: "past" },
+];
+
+const PROJECTED_BUCKETS: BucketDef[] = [
+  { label: "1–30 dias", minDays: 1, maxDays: 30, direction: "future" },
+  { label: "31–60 dias", minDays: 31, maxDays: 60, direction: "future" },
+  { label: "61–90 dias", minDays: 61, maxDays: 90, direction: "future" },
+  { label: "3–6 meses", minDays: 91, maxDays: 180, direction: "future" },
+  { label: "6–12 meses", minDays: 181, maxDays: 365, direction: "future" },
+];
 
 export async function getFinanceAging(
   supabase: SupabaseClient<Database>,
@@ -634,14 +647,19 @@ export async function getFinanceAging(
   today.setHours(0, 0, 0, 0);
   const todayStr = today.toISOString().split("T")[0];
 
-  // Fetch all pending/overdue transactions with a due date in the past
+  // 12 months from today for projected AR
+  const futureLimit = new Date(today);
+  futureLimit.setMonth(futureLimit.getMonth() + 12);
+  const futureLimitStr = futureLimit.toISOString().split("T")[0];
+
+  // Fetch ALL pending transactions: overdue (past) + projected AR (future up to 12m)
   const { data, error } = await supabase
     .from(TABLE_TRANSACTIONS)
     .select("type, status, amount, due_date")
     .eq("tenant_id", tenantId)
     .in("status", ["previsto", "atrasado", "provisionado"])
     .not("due_date", "is", null)
-    .lt("due_date", todayStr);
+    .lte("due_date", futureLimitStr);
 
   if (error) throw new Error(error.message);
 
@@ -650,7 +668,15 @@ export async function getFinanceAging(
     "type" | "status" | "amount" | "due_date"
   >[];
 
-  const buckets: AgingBucket[] = AGING_BUCKETS.map((b) => ({
+  const overdueBuckets: AgingBucket[] = OVERDUE_BUCKETS.map((b) => ({
+    ...b,
+    ar: 0,
+    ap: 0,
+    arCount: 0,
+    apCount: 0,
+  }));
+
+  const projBuckets: AgingBucket[] = PROJECTED_BUCKETS.map((b) => ({
     ...b,
     ar: 0,
     ap: 0,
@@ -662,35 +688,60 @@ export async function getFinanceAging(
   let totalAp = 0;
   let totalArCount = 0;
   let totalApCount = 0;
+  let projectedAr = 0;
+  let projectedArCount = 0;
 
   for (const row of rows) {
     if (!row.due_date) continue;
-    const dueDate = new Date(row.due_date);
-    const daysPast = Math.floor(
+    const dueDate = new Date(row.due_date + "T00:00:00");
+    const diffDays = Math.floor(
       (today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)
     );
-    if (daysPast < 1) continue;
-
-    const bucket = buckets.find(
-      (b) => daysPast >= b.minDays && daysPast <= b.maxDays
-    );
-    if (!bucket) continue;
-
     const amount = Math.abs(row.amount ?? 0);
-    if (row.type === "receita") {
+
+    if (diffDays >= 1) {
+      // Overdue (past due)
+      const bucket = overdueBuckets.find(
+        (b) => diffDays >= b.minDays && diffDays <= b.maxDays
+      );
+      if (!bucket) continue;
+
+      if (row.type === "receita") {
+        bucket.ar += amount;
+        bucket.arCount += 1;
+        totalAr += amount;
+        totalArCount += 1;
+      } else if (row.type === "despesa") {
+        bucket.ap += amount;
+        bucket.apCount += 1;
+        totalAp += amount;
+        totalApCount += 1;
+      }
+    } else if (diffDays <= 0 && row.type === "receita") {
+      // Projected AR (future)
+      const daysAhead = Math.abs(diffDays) + 1; // tomorrow = 1
+      const bucket = projBuckets.find(
+        (b) => daysAhead >= b.minDays && daysAhead <= b.maxDays
+      );
+      if (!bucket) continue;
+
       bucket.ar += amount;
       bucket.arCount += 1;
-      totalAr += amount;
-      totalArCount += 1;
-    } else if (row.type === "despesa") {
-      bucket.ap += amount;
-      bucket.apCount += 1;
-      totalAp += amount;
-      totalApCount += 1;
+      projectedAr += amount;
+      projectedArCount += 1;
     }
+    // AP future entries are excluded — only AR is projected
   }
 
-  return { buckets, totalAr, totalAp, totalArCount, totalApCount };
+  return {
+    buckets: [...overdueBuckets, ...projBuckets],
+    totalAr,
+    totalAp,
+    totalArCount,
+    totalApCount,
+    projectedAr,
+    projectedArCount,
+  };
 }
 
 // ── Cash Flow Projection ──────────────────────────────────────────────────────
@@ -1013,16 +1064,20 @@ export interface OverdueEntry {
   counterpart: string | null;
   amount: number;
   due_date: string;
-  days_overdue: number;
+  days_overdue: number; // positive = overdue, negative = days until due
   category_name: string | null;
+  isProjected: boolean; // true = future AR entry
 }
 
 export interface OverdueEntriesData {
   entries: OverdueEntry[];
+  projectedEntries: OverdueEntry[]; // AR entries with due_date in the future (up to 12m)
   totalAr: number;
   totalAp: number;
   totalArCount: number;
   totalApCount: number;
+  projectedAr: number;
+  projectedArCount: number;
 }
 
 export async function getOverdueEntries(
@@ -1034,13 +1089,21 @@ export async function getOverdueEntries(
   today.setHours(0, 0, 0, 0);
   const todayStr = today.toISOString().split("T")[0];
 
+  // 12 months from today for projected AR
+  const futureLimit = new Date(today);
+  futureLimit.setMonth(futureLimit.getMonth() + 12);
+  const futureLimitStr = futureLimit.toISOString().split("T")[0];
+
+  // For AR (or "all"), we fetch up to 12 months ahead; for AP-only, just overdue
+  const upperBound = type === "ap" ? todayStr : futureLimitStr;
+
   let query = supabase
     .from(TABLE_TRANSACTIONS)
     .select("id, type, status, description, counterpart, amount, due_date, category_id")
     .eq("tenant_id", tenantId)
     .in("status", ["previsto", "atrasado", "provisionado"])
     .not("due_date", "is", null)
-    .lt("due_date", todayStr)
+    .lte("due_date", upperBound)
     .order("due_date", { ascending: true });
 
   if (type === "ar") query = query.eq("type", "receita");
@@ -1077,23 +1140,21 @@ export async function getOverdueEntries(
   let totalAp = 0;
   let totalArCount = 0;
   let totalApCount = 0;
+  let projectedAr = 0;
+  let projectedArCount = 0;
 
-  const entries: OverdueEntry[] = rows.map((row) => {
-    const dueDate = new Date(row.due_date);
-    const daysOverdue = Math.floor(
+  const entries: OverdueEntry[] = [];
+  const projectedEntries: OverdueEntry[] = [];
+
+  for (const row of rows) {
+    const dueDate = new Date(row.due_date + "T00:00:00");
+    const diffDays = Math.floor(
       (today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)
     );
     const amount = Math.abs(row.amount ?? 0);
+    const isProjected = diffDays < 1 && row.type === "receita";
 
-    if (row.type === "receita") {
-      totalAr += amount;
-      totalArCount += 1;
-    } else {
-      totalAp += amount;
-      totalApCount += 1;
-    }
-
-    return {
+    const entry: OverdueEntry = {
       id: row.id,
       type: row.type,
       status: row.status,
@@ -1101,12 +1162,37 @@ export async function getOverdueEntries(
       counterpart: row.counterpart,
       amount,
       due_date: row.due_date,
-      days_overdue: daysOverdue,
+      days_overdue: diffDays,
       category_name: row.category_id ? catLookup.get(row.category_id) ?? null : null,
+      isProjected,
     };
-  });
 
-  return { entries, totalAr, totalAp, totalArCount, totalApCount };
+    if (isProjected) {
+      projectedAr += amount;
+      projectedArCount += 1;
+      projectedEntries.push(entry);
+    } else {
+      if (row.type === "receita") {
+        totalAr += amount;
+        totalArCount += 1;
+      } else {
+        totalAp += amount;
+        totalApCount += 1;
+      }
+      entries.push(entry);
+    }
+  }
+
+  return {
+    entries,
+    projectedEntries,
+    totalAr,
+    totalAp,
+    totalArCount,
+    totalApCount,
+    projectedAr,
+    projectedArCount,
+  };
 }
 
 // ── Bank Statements (Extrato Bancário) ──────────────────────────────────────

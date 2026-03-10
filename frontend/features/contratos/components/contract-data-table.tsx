@@ -298,7 +298,7 @@ export function ContractDataTable({
             )}
             <div className={showCategory ? "col-span-2" : "col-span-3"}>
               <SortHeader
-                label="Responsável"
+                label="Cliente"
                 column="person_name"
                 sort={sort}
                 onSort={handleSort}

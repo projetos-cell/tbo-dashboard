@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, type ReactNode } from "react";
-import { Info, RefreshCw } from "lucide-react";
+import { Info, RefreshCw, TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -18,6 +18,10 @@ export interface KpiCardProps {
   value: string | number;
   sublabel?: string;
   variation?: string;
+  /** Numeric delta (%) vs previous period. Positive = green, negative = red. Use invertColor to flip. */
+  variationValue?: number | null;
+  /** If true, positive variationValue renders as red (e.g. burn rate going up is bad) */
+  invertColor?: boolean;
   icon: ReactNode;
   colorClass?: string;
   tooltip: KpiTooltipContent;
@@ -48,6 +52,8 @@ export function KpiCard({
   value,
   sublabel,
   variation,
+  variationValue,
+  invertColor = false,
   icon,
   colorClass = "text-gray-900",
   tooltip,
@@ -127,16 +133,55 @@ export function KpiCard({
           <p className={`text-2xl font-bold tabular-nums ${colorClass}`}>
             {typeof value === "number" ? formatDisplayValue(value) : value}
           </p>
-          {(sublabel || variation) && (
-            <p className="text-xs text-gray-500 mt-1">
-              {sublabel}
-              {sublabel && variation && " | "}
-              {variation}
-            </p>
+          {(sublabel || variation || variationValue != null) && (
+            <div className="flex items-center gap-1.5 mt-1">
+              {(sublabel || variation) && (
+                <p className="text-xs text-gray-500">
+                  {sublabel}
+                  {sublabel && variation && " | "}
+                  {variation}
+                </p>
+              )}
+              {variationValue != null && <VariationBadge value={variationValue} invert={invertColor} />}
+            </div>
           )}
         </>
       )}
     </div>
+  );
+}
+
+// ── Variation Badge ──────────────────────────────────────────────────────────
+
+function VariationBadge({ value, invert }: { value: number; invert: boolean }) {
+  if (value === 0 || !isFinite(value)) {
+    return (
+      <span className="inline-flex items-center gap-0.5 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
+        <Minus className="h-2.5 w-2.5" />
+        0%
+      </span>
+    );
+  }
+
+  const isPositive = value > 0;
+  const isGood = invert ? !isPositive : isPositive;
+  const formatted = `${isPositive ? "+" : ""}${value.toFixed(1)}%`;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+        isGood
+          ? "bg-emerald-50 text-emerald-700"
+          : "bg-red-50 text-red-700"
+      }`}
+    >
+      {isPositive ? (
+        <TrendingUp className="h-2.5 w-2.5" />
+      ) : (
+        <TrendingDown className="h-2.5 w-2.5" />
+      )}
+      {formatted}
+    </span>
   );
 }
 

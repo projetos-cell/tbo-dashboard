@@ -16,10 +16,9 @@ import {
   getFinanceCashFlowProjection,
   getFinanceChartData,
   triggerFinanceSync,
-  getDreSettings,
-  upsertDreSettings,
-  getFinanceDRE,
   getRevenueConcentrationByClient,
+  getOverdueEntries,
+  getPayrollBreakdown,
   getBankStatements,
   getBankStatementCashFlow,
   getLatestBankStatementBalance,
@@ -33,9 +32,9 @@ import {
   type FounderKPIs,
   type FinanceAgingData,
   type CashFlowPoint,
-  type DreSettings,
-  type DreData,
   type RevenueConcentrationData,
+  type OverdueEntriesData,
+  type PayrollBreakdownData,
   type BankStatement,
   type BankStatementFilters,
 } from "@/features/financeiro/services/finance";
@@ -330,7 +329,6 @@ export function useTriggerFinanceSync() {
       qc.invalidateQueries({ queryKey: ["finance-status-amounts", tenantId] });
       qc.invalidateQueries({ queryKey: ["finance-snapshots", tenantId] });
       qc.invalidateQueries({ queryKey: ["finance-founder-kpis", tenantId] });
-      qc.invalidateQueries({ queryKey: ["finance-dre", tenantId] });
       qc.invalidateQueries({ queryKey: ["finance-revenue-concentration", tenantId] });
       qc.invalidateQueries({ queryKey: ["finance-bank-statements", tenantId] });
       qc.invalidateQueries({ queryKey: ["finance-bank-balance-latest", tenantId] });
@@ -339,81 +337,6 @@ export function useTriggerFinanceSync() {
   });
 }
 
-// ── DRE Settings ─────────────────────────────────────────────────────────────
-
-export function useDreSettings() {
-  const tenantId = useAuthStore((s) => s.tenantId);
-
-  return useQuery<DreSettings | null>({
-    queryKey: ["finance-dre-settings", tenantId],
-    queryFn: async () => {
-      if (!tenantId) return null;
-      const supabase = createClient();
-      return getDreSettings(supabase, tenantId);
-    },
-    enabled: !!tenantId,
-    staleTime: 1000 * 60 * 10,
-  });
-}
-
-export function useUpdateDreSettings() {
-  const qc = useQueryClient();
-  const tenantId = useAuthStore((s) => s.tenantId);
-  const userId = useAuthStore((s) => s.user?.id);
-
-  return useMutation({
-    mutationFn: async (taxRate: number) => {
-      if (!tenantId || !userId) throw new Error("Not authenticated");
-      const supabase = createClient();
-      return upsertDreSettings(supabase, tenantId, taxRate, userId);
-    },
-
-    onMutate: async (taxRate) => {
-      await qc.cancelQueries({ queryKey: ["finance-dre-settings", tenantId] });
-      const previousSettings = qc.getQueryData<DreSettings | null>([
-        "finance-dre-settings",
-        tenantId,
-      ]);
-      qc.setQueryData<DreSettings | null>(
-        ["finance-dre-settings", tenantId],
-        (old) => (old ? { ...old, tax_rate: taxRate } : old)
-      );
-      return { previousSettings };
-    },
-
-    onError: (_err, _variables, context) => {
-      if (context?.previousSettings !== undefined) {
-        qc.setQueryData(["finance-dre-settings", tenantId], context.previousSettings);
-      }
-    },
-
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: ["finance-dre-settings", tenantId] });
-      qc.invalidateQueries({ queryKey: ["finance-dre", tenantId] });
-    },
-  });
-}
-
-// ── DRE Simplificado ─────────────────────────────────────────────────────────
-
-export function useFinanceDRE(months = 7) {
-  const tenantId = useAuthStore((s) => s.tenantId);
-  const { data: settings } = useDreSettings();
-  const taxRate = settings?.tax_rate ?? 15;
-
-  return useQuery<DreData>({
-    queryKey: ["finance-dre", tenantId, months, taxRate],
-    queryFn: async () => {
-      if (!tenantId)
-        return { columns: [], rows: [], taxRate };
-      const supabase = createClient();
-      return getFinanceDRE(supabase, tenantId, months, taxRate);
-    },
-    enabled: !!tenantId,
-    staleTime: 1000 * 60 * 5,
-    refetchInterval: 1000 * 60 * 10,
-  });
-}
 
 // ── Revenue Concentration by Client ──────────────────────────────────────────
 
@@ -431,6 +354,44 @@ export function useRevenueConcentrationByClient(dateFrom?: string, dateTo?: stri
     enabled: !!tenantId,
     staleTime: 1000 * 60 * 5,
     refetchInterval: 1000 * 60 * 10,
+  });
+}
+
+// ── Payroll Breakdown (Auto-detect from transactions) ────────────────────────
+
+export function usePayrollBreakdown(dateFrom: string, dateTo: string) {
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery<PayrollBreakdownData>({
+    queryKey: ["finance-payroll-breakdown", tenantId, dateFrom, dateTo],
+    queryFn: async () => {
+      if (!tenantId)
+        return { vendors: [], totalFolha: 0, totalOperacional: 0, headcount: 0 };
+      const supabase = createClient();
+      return getPayrollBreakdown(supabase, tenantId, dateFrom, dateTo);
+    },
+    enabled: !!tenantId && !!dateFrom && !!dateTo,
+    staleTime: 1000 * 60 * 2,
+    refetchInterval: 1000 * 60 * 5,
+  });
+}
+
+// ── Overdue Entries (Contas a Pagar/Receber) ────────────────────────────────
+
+export function useOverdueEntries(type: "ar" | "ap" | "all" = "all") {
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery<OverdueEntriesData>({
+    queryKey: ["finance-overdue-entries", tenantId, type],
+    queryFn: async () => {
+      if (!tenantId)
+        return { entries: [], totalAr: 0, totalAp: 0, totalArCount: 0, totalApCount: 0 };
+      const supabase = createClient();
+      return getOverdueEntries(supabase, tenantId, type);
+    },
+    enabled: !!tenantId,
+    staleTime: 1000 * 60 * 2,
+    refetchInterval: 1000 * 60 * 5,
   });
 }
 

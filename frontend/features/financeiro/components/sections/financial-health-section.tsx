@@ -39,6 +39,8 @@ export function FinancialHealthSection({
           title="Burn Rate"
           value={d ? d.burnRate : 0}
           sublabel="Média mensal (90 dias)"
+          variationValue={d?.burnRateDelta}
+          invertColor
           icon={<Flame className="h-4 w-4 text-red-500" />}
           colorClass="text-red-600 dark:text-red-400"
           tooltip={TOOLTIP_BURN}
@@ -69,6 +71,7 @@ export function FinancialHealthSection({
               ? `AR ${fmt(d.arNext30)} | AP ${fmt(d.apNext30)}`
               : undefined
           }
+          variationValue={d?.caixaPrevistoDelta}
           icon={<Calculator className="h-4 w-4 text-blue-500" />}
           colorClass={
             effectiveCaixaPrevisto30d >= 0

@@ -51,6 +51,10 @@ const EMPTY_SNAPSHOT: FounderDashboardSnapshot = {
   operacionalPct: 0,
   churnRate: 0,
   churnHistory: [],
+  receitaDelta: null,
+  margemDelta: null,
+  burnRateDelta: null,
+  caixaPrevistoDelta: null,
 };
 
 export function useFounderDashboard(period?: PeriodValue) {

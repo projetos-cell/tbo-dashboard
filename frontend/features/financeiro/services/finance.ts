@@ -840,229 +840,6 @@ export async function fetchFinanceStatus(): Promise<FinanceStatus> {
   return res.json();
 }
 
-// ── DRE Settings ─────────────────────────────────────────────────────────────
-
-export interface DreSettings {
-  id: string;
-  tenant_id: string;
-  tax_rate: number | null;
-  updated_at: string | null;
-  updated_by: string | null;
-}
-
-export async function getDreSettings(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
-): Promise<DreSettings | null> {
-  const { data, error } = await supabase
-    .from("dre_settings")
-    .select("*")
-    .eq("tenant_id", tenantId)
-    .maybeSingle();
-
-  if (error) throw new Error(error.message);
-  return data as DreSettings | null;
-}
-
-export async function upsertDreSettings(
-  supabase: SupabaseClient<Database>,
-  tenantId: string,
-  taxRate: number,
-  userId: string
-): Promise<void> {
-  const { error } = await supabase
-    .from("dre_settings")
-    .upsert(
-      {
-        tenant_id: tenantId,
-        tax_rate: taxRate,
-        updated_by: userId,
-      },
-      { onConflict: "tenant_id" }
-    );
-
-  if (error) throw new Error(error.message);
-}
-
-// ── DRE Simplificado ─────────────────────────────────────────────────────────
-
-export interface DreMonthColumn {
-  label: string;   // e.g. "Jan/25"
-  yearMonth: string; // e.g. "2025-01"
-}
-
-export interface DreRow {
-  key: string;
-  label: string;
-  isSubtotal: boolean;
-  isNegative: boolean; // display as red/deduction
-  values: number[];    // one per column
-  variations: (number | null)[]; // MoM % change, null for first column
-}
-
-export interface DreData {
-  columns: DreMonthColumn[];
-  rows: DreRow[];
-  taxRate: number;
-}
-
-export async function getFinanceDRE(
-  supabase: SupabaseClient<Database>,
-  tenantId: string,
-  months = 7,
-  taxRate = 15
-): Promise<DreData> {
-  // Build the list of year-months to show (oldest → newest)
-  const now = new Date();
-  const columns: DreMonthColumn[] = [];
-  for (let i = months - 1; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const yearMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const label = d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });
-    columns.push({ label: label.charAt(0).toUpperCase() + label.slice(1), yearMonth });
-  }
-
-  // Fetch all paid transactions in the date range
-  const dateFrom = `${columns[0].yearMonth}-01`;
-  const dateTo = `${columns[columns.length - 1].yearMonth}-31`;
-
-  const { data: txns, error: txErr } = await supabase
-    .from("finance_transactions")
-    .select("id, type, status, paid_amount, amount, date, cost_center_id")
-    .eq("tenant_id", tenantId)
-    .in("status", ["pago", "parcial", "liquidado"])
-    .gte("date", dateFrom)
-    .lte("date", dateTo);
-
-  if (txErr) throw new Error(txErr.message);
-
-  // Fetch cost centers to classify despesas
-  const { data: costCenters, error: ccErr } = await supabase
-    .from(TABLE_COST_CENTERS)
-    .select("id, code")
-    .eq("tenant_id", tenantId);
-
-  if (ccErr) throw new Error(ccErr.message);
-
-  const ccMap = new Map<string, string>(
-    (costCenters ?? []).map((cc) => [cc.id, cc.code ?? ""] as [string, string])
-  );
-
-  const DIRECT_COST_CODES = new Set(["projetos_producao"]);
-  const OVERHEAD_CODES = new Set(["infraestrutura_operacao", "financeiro_encargos"]);
-
-  // Aggregate by yearMonth
-  const agg: Record<string, {
-    receitaBruta: number;
-    custosDirectos: number;
-    overhead: number;
-    outrasDespesas: number;
-  }> = {};
-
-  for (const col of columns) {
-    agg[col.yearMonth] = { receitaBruta: 0, custosDirectos: 0, overhead: 0, outrasDespesas: 0 };
-  }
-
-  for (const tx of txns ?? []) {
-    const d = new Date(tx.date);
-    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    if (!agg[ym]) continue;
-    const val = tx.paid_amount ?? tx.amount ?? 0;
-    if (tx.type === "receita") {
-      agg[ym].receitaBruta += val;
-    } else {
-      const code = tx.cost_center_id ? ccMap.get(tx.cost_center_id) ?? "" : "";
-      if (DIRECT_COST_CODES.has(code)) {
-        agg[ym].custosDirectos += val;
-      } else if (OVERHEAD_CODES.has(code)) {
-        agg[ym].overhead += val;
-      } else {
-        agg[ym].outrasDespesas += val;
-      }
-    }
-  }
-
-  // Build row arrays
-  const colValues = (fn: (a: typeof agg[string]) => number) =>
-    columns.map((c) => fn(agg[c.yearMonth]));
-
-  const calcVariations = (vals: number[]): (number | null)[] =>
-    vals.map((v, i) => {
-      if (i === 0) return null;
-      const prev = vals[i - 1];
-      if (prev === 0) return null;
-      return Math.round(((v - prev) / Math.abs(prev)) * 100);
-    });
-
-  const receitaBruta = colValues((a) => a.receitaBruta);
-  const impostos = receitaBruta.map((r) => r * (taxRate / 100));
-  const receitaLiquida = receitaBruta.map((r, i) => r - impostos[i]);
-  const custosDirectos = colValues((a) => a.custosDirectos);
-  const margemBruta = receitaLiquida.map((r, i) => r - custosDirectos[i]);
-  const overhead = colValues((a) => a.overhead);
-  const ebitda = margemBruta.map((m, i) => m - overhead[i]);
-
-  const rows: DreRow[] = [
-    {
-      key: "receita_bruta",
-      label: "(+) Receita Bruta",
-      isSubtotal: false,
-      isNegative: false,
-      values: receitaBruta,
-      variations: calcVariations(receitaBruta),
-    },
-    {
-      key: "impostos",
-      label: `(−) Impostos (${taxRate}%)`,
-      isSubtotal: false,
-      isNegative: true,
-      values: impostos,
-      variations: calcVariations(impostos),
-    },
-    {
-      key: "receita_liquida",
-      label: "(=) Receita Líquida",
-      isSubtotal: true,
-      isNegative: false,
-      values: receitaLiquida,
-      variations: calcVariations(receitaLiquida),
-    },
-    {
-      key: "custos_diretos",
-      label: "(−) Custos Diretos",
-      isSubtotal: false,
-      isNegative: true,
-      values: custosDirectos,
-      variations: calcVariations(custosDirectos),
-    },
-    {
-      key: "margem_bruta",
-      label: "(=) Margem Bruta",
-      isSubtotal: true,
-      isNegative: false,
-      values: margemBruta,
-      variations: calcVariations(margemBruta),
-    },
-    {
-      key: "overhead",
-      label: "(−) Overhead",
-      isSubtotal: false,
-      isNegative: true,
-      values: overhead,
-      variations: calcVariations(overhead),
-    },
-    {
-      key: "ebitda",
-      label: "(=) EBITDA",
-      isSubtotal: true,
-      isNegative: false,
-      values: ebitda,
-      variations: calcVariations(ebitda),
-    },
-  ];
-
-  return { columns, rows, taxRate };
-}
 
 // ── Revenue Concentration by Client ──────────────────────────────────────────
 
@@ -1130,6 +907,206 @@ export async function getRevenueConcentrationByClient(
   const top5Pct = clients.slice(0, 5).reduce((s, c) => s + c.pct, 0);
 
   return { clients, totalRevenue, totalClients, top5Pct };
+}
+
+// ── Payroll Breakdown (Auto-detect from transactions) ────────────────────────
+
+export const FOLHA_KEYWORDS = [
+  "folha", "salário", "salario", "benefício", "beneficio", "encargo",
+  "clt", "pj", "prolabore", "pró-labore", "inss", "fgts", "férias", "ferias", "13",
+];
+
+export const FOLHA_VENDORS = [
+  "ruy", "arqfreelas", "nathalia", "rafaela", "lucca", "marco",
+  "nelson", "celso", "mariane", "tiago", "eduarda", "carol lima",
+];
+
+export interface PayrollVendor {
+  vendor: string;
+  total: number;
+  count: number;
+}
+
+export interface PayrollBreakdownData {
+  vendors: PayrollVendor[];
+  totalFolha: number;
+  totalOperacional: number;
+  headcount: number;
+}
+
+export async function getPayrollBreakdown(
+  supabase: SupabaseClient<Database>,
+  tenantId: string,
+  dateFrom: string,
+  dateTo: string
+): Promise<PayrollBreakdownData> {
+  // Fetch all despesas in the period
+  const { data, error } = await supabase
+    .from(TABLE_TRANSACTIONS)
+    .select("id, counterpart, amount, paid_amount, cost_center_id, status")
+    .eq("tenant_id", tenantId)
+    .eq("type", "despesa")
+    .in("status", ["pago", "parcial", "liquidado", "previsto", "provisionado", "atrasado"])
+    .gte("date", dateFrom)
+    .lte("date", dateTo);
+
+  if (error) throw new Error(error.message);
+
+  // Fetch cost center names for keyword matching
+  const ccIds = [...new Set((data ?? []).filter((r) => r.cost_center_id).map((r) => r.cost_center_id!))];
+  const ccLookup = new Map<string, string>();
+  if (ccIds.length > 0) {
+    const { data: ccs } = await supabase
+      .from(TABLE_COST_CENTERS)
+      .select("id, name")
+      .in("id", ccIds.slice(0, 100));
+    for (const cc of (ccs ?? []) as Array<{ id: string; name: string }>) {
+      ccLookup.set(cc.id, cc.name);
+    }
+  }
+
+  const vendorMap = new Map<string, { total: number; count: number }>();
+  let totalFolha = 0;
+  let totalOperacional = 0;
+
+  for (const row of data ?? []) {
+    const val = Math.abs((row.paid_amount as number) || (row.amount as number) || 0);
+    const ccName = (row.cost_center_id ? ccLookup.get(row.cost_center_id) ?? "" : "").toLowerCase();
+    const counterpart = String((row as Record<string, unknown>).counterpart ?? "").toLowerCase();
+
+    const isFolha =
+      FOLHA_KEYWORDS.some((kw) => ccName.includes(kw)) ||
+      FOLHA_VENDORS.some((name) => counterpart.includes(name));
+
+    if (isFolha) {
+      totalFolha += val;
+      // Group by vendor name (title case)
+      const vendorName = counterpart
+        ? counterpart.split(" ").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
+        : "Sem identificação";
+      const cur = vendorMap.get(vendorName) ?? { total: 0, count: 0 };
+      vendorMap.set(vendorName, { total: cur.total + val, count: cur.count + 1 });
+    } else {
+      totalOperacional += val;
+    }
+  }
+
+  const vendors: PayrollVendor[] = Array.from(vendorMap.entries())
+    .map(([vendor, { total, count }]) => ({ vendor, total, count }))
+    .sort((a, b) => b.total - a.total);
+
+  return {
+    vendors,
+    totalFolha,
+    totalOperacional,
+    headcount: vendors.length,
+  };
+}
+
+// ── Overdue Entries (Contas a Pagar / Receber em Atraso) ─────────────────────
+
+export interface OverdueEntry {
+  id: string;
+  type: "receita" | "despesa";
+  status: string;
+  description: string;
+  counterpart: string | null;
+  amount: number;
+  due_date: string;
+  days_overdue: number;
+  category_name: string | null;
+}
+
+export interface OverdueEntriesData {
+  entries: OverdueEntry[];
+  totalAr: number;
+  totalAp: number;
+  totalArCount: number;
+  totalApCount: number;
+}
+
+export async function getOverdueEntries(
+  supabase: SupabaseClient<Database>,
+  tenantId: string,
+  type: "ar" | "ap" | "all" = "all"
+): Promise<OverdueEntriesData> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().split("T")[0];
+
+  let query = supabase
+    .from(TABLE_TRANSACTIONS)
+    .select("id, type, status, description, counterpart, amount, due_date, category_id")
+    .eq("tenant_id", tenantId)
+    .in("status", ["previsto", "atrasado", "provisionado"])
+    .not("due_date", "is", null)
+    .lt("due_date", todayStr)
+    .order("due_date", { ascending: true });
+
+  if (type === "ar") query = query.eq("type", "receita");
+  else if (type === "ap") query = query.eq("type", "despesa");
+
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+
+  const rows = (data ?? []) as Array<{
+    id: string;
+    type: "receita" | "despesa";
+    status: string;
+    description: string;
+    counterpart: string | null;
+    amount: number;
+    due_date: string;
+    category_id: string | null;
+  }>;
+
+  // Fetch category names for display
+  const catIds = [...new Set(rows.filter((r) => r.category_id).map((r) => r.category_id!))];
+  const catLookup = new Map<string, string>();
+  if (catIds.length > 0) {
+    const { data: cats } = await supabase
+      .from(TABLE_CATEGORIES)
+      .select("id, name")
+      .in("id", catIds.slice(0, 50));
+    for (const c of (cats ?? []) as Array<{ id: string; name: string }>) {
+      catLookup.set(c.id, c.name);
+    }
+  }
+
+  let totalAr = 0;
+  let totalAp = 0;
+  let totalArCount = 0;
+  let totalApCount = 0;
+
+  const entries: OverdueEntry[] = rows.map((row) => {
+    const dueDate = new Date(row.due_date);
+    const daysOverdue = Math.floor(
+      (today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    const amount = Math.abs(row.amount ?? 0);
+
+    if (row.type === "receita") {
+      totalAr += amount;
+      totalArCount += 1;
+    } else {
+      totalAp += amount;
+      totalApCount += 1;
+    }
+
+    return {
+      id: row.id,
+      type: row.type,
+      status: row.status,
+      description: row.description,
+      counterpart: row.counterpart,
+      amount,
+      due_date: row.due_date,
+      days_overdue: daysOverdue,
+      category_name: row.category_id ? catLookup.get(row.category_id) ?? null : null,
+    };
+  });
+
+  return { entries, totalAr, totalAp, totalArCount, totalApCount };
 }
 
 // ── Bank Statements (Extrato Bancário) ──────────────────────────────────────

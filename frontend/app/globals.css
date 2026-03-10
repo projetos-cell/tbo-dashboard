@@ -218,3 +218,37 @@
     opacity: 1;
   }
 }
+
+/* ── Print styles ─────────────────────────────────────────────────────────── */
+@media print {
+  /* Hide navigation, sidebar, header, and elements marked no-print */
+  nav,
+  header,
+  [data-sidebar],
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    font-size: 12px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Remove shadows, borders on cards for cleaner print */
+  .shadow-sm,
+  .shadow {
+    box-shadow: none !important;
+  }
+
+  /* Page breaks */
+  .print-break {
+    page-break-before: always;
+  }
+
+  /* Ensure charts don't overflow */
+  .recharts-wrapper {
+    max-width: 100% !important;
+  }
+}

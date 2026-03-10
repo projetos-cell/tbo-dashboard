@@ -131,6 +131,12 @@ export interface FounderDashboardSnapshot {
   // #18 — Churn rate
   churnRate: number;
   churnHistory: ChurnPoint[];
+
+  // Deltas vs previous equivalent period (% change, null = no prev data)
+  receitaDelta: number | null;
+  margemDelta: number | null;   // difference in percentage points
+  burnRateDelta: number | null;
+  caixaPrevistoDelta: number | null;
 }
 
 export interface ExpiringContract {
@@ -938,6 +944,63 @@ export async function getFounderDashboardSnapshot(
       ? churnHistory[churnHistory.length - 1].rate
       : 0;
 
+  // ── Deltas vs previous equivalent period ────────────────────────────────────
+  // Compute the same metrics for the previous period of equal duration and
+  // express the change as a percentage (or pp for margemPct).
+
+  const periodDurationMs =
+    new Date(periodTo).getTime() - new Date(periodFrom).getTime();
+  const periodDays = Math.max(1, Math.round(periodDurationMs / 86_400_000));
+
+  const prevToDate = new Date(new Date(periodFrom).getTime() - 86_400_000); // day before current periodFrom
+  const prevFromDate = new Date(prevToDate.getTime() - periodDurationMs);
+  const prevFrom = prevFromDate.toISOString().slice(0, 10);
+  const prevTo = prevToDate.toISOString().slice(0, 10);
+
+  const prevReceivables = paidReceivables.filter(
+    (r) => r.paid_date && r.paid_date >= prevFrom && r.paid_date <= prevTo
+  );
+  const prevPayables = paidPayables.filter(
+    (r) => r.paid_date && r.paid_date >= prevFrom && r.paid_date <= prevTo
+  );
+
+  const prevReceita = prevReceivables.reduce((s, r) => s + paidVal(r), 0);
+  const prevDespesa = prevPayables.reduce((s, r) => s + paidVal(r), 0);
+  const prevMargem = prevReceita - prevDespesa;
+  const prevMargemPct = prevReceita > 0 ? (prevMargem / prevReceita) * 100 : 0;
+
+  // Previous burn rate: 90d window ending at prevTo
+  const prevBurn90Start = new Date(prevToDate.getTime() - 90 * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  const prevBurn90 = paidPayables
+    .filter((r) => r.paid_date && r.paid_date >= prevBurn90Start && r.paid_date <= prevTo)
+    .reduce((s, r) => s + paidVal(r), 0);
+  const prevBurnRate = prevBurn90 / 3;
+
+  // Previous caixa previsto (approximation using pending at that point)
+  const prevIn30Str = new Date(prevToDate.getTime() + 30 * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  const prevApNext30 = pendingPayables
+    .filter((r) => r.due_date && r.due_date > prevTo && r.due_date <= prevIn30Str)
+    .reduce((s, r) => s + (r.amount ?? 0), 0);
+  const prevArNext30 = pendingReceivables
+    .filter((r) => r.due_date && r.due_date > prevTo && r.due_date <= prevIn30Str)
+    .reduce((s, r) => s + (r.amount ?? 0), 0);
+  const prevCaixaPrevisto = caixaAtual + prevArNext30 - prevApNext30;
+
+  function pctDelta(current: number, prev: number): number | null {
+    if (prev === 0) return current === 0 ? null : null; // can't divide by zero
+    return ((current - prev) / Math.abs(prev)) * 100;
+  }
+
+  const receitaDelta = prevReceita > 0 ? pctDelta(receitaRealizada, prevReceita) : null;
+  const margemDelta = prevReceita > 0 ? margemPct - prevMargemPct : null; // pp difference
+  const burnRateDelta = prevBurnRate > 0 ? pctDelta(burnRate, prevBurnRate) : null;
+  const caixaPrevistoDelta =
+    prevCaixaPrevisto !== 0 ? pctDelta(caixaPrevisto30d, prevCaixaPrevisto) : null;
+
   return {
     receitaRealizada,
     margemReal,
@@ -984,5 +1047,10 @@ export async function getFounderDashboardSnapshot(
     // #18
     churnRate,
     churnHistory,
+    // Deltas vs previous period
+    receitaDelta,
+    margemDelta,
+    burnRateDelta,
+    caixaPrevistoDelta,
   };
 }

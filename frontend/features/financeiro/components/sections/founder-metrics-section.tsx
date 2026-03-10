@@ -58,6 +58,7 @@ export function FounderMetricsSection({
                     ? `${d.periodLabel} (pagas)`
                     : "MTD (pagas)"
               }
+              variationValue={d?.receitaDelta}
               icon={<TrendingUp className="h-4 w-4 text-emerald-500" />}
               colorClass="text-emerald-600 dark:text-emerald-400"
               tooltip={TOOLTIP_RECEITA}
@@ -75,6 +76,7 @@ export function FounderMetricsSection({
                   : "—"
               }
               sublabel="Receita - Custos diretos"
+              variationValue={d?.margemDelta}
               icon={<BarChart3 className="h-4 w-4 text-blue-500" />}
               colorClass={
                 d && d.margemPct >= 30

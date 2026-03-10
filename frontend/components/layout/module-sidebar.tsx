@@ -32,6 +32,8 @@ import {
   Building,
   User,
   CheckCircle,
+  FileWarning,
+  Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
@@ -69,6 +71,8 @@ const ICON_MAP: Record<string, React.ElementType> = {
   building: Building,
   user: User,
   "check-circle": CheckCircle,
+  "file-warning": FileWarning,
+  wallet: Wallet,
 };
 
 interface ModuleSidebarProps {
@@ -82,7 +86,7 @@ export function ModuleSidebar({ title, items, basePath }: ModuleSidebarProps) {
   const role = useAuthStore((s) => s.role);
 
   return (
-    <nav className="hidden w-52 shrink-0 space-y-1 border-r bg-gray-100/30 p-3 md:block">
+    <nav data-sidebar className="hidden w-52 shrink-0 space-y-1 border-r bg-gray-100/30 p-3 md:block">
       <h2 className="mb-3 px-2 text-xs font-semibold tracking-wider text-gray-500 uppercase">{title}</h2>
       {items.map((item) => {
         if (item.min_role && !hasMinRole(role as RoleSlug, item.min_role)) {

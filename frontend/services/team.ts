@@ -68,7 +68,7 @@ export async function inviteTeamMember(
     throw new Error("Sessao expirada. Faca login novamente.");
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   if (!supabaseUrl) {
     throw new Error("SUPABASE_URL nao configurada.");
   }

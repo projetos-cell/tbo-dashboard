@@ -65,7 +65,7 @@ export function useInviteTeamMember() {
   return useMutation({
     mutationFn: (input: InviteUserInput) => inviteTeamMember(supabase, input),
     onSuccess: (_data, input) => {
-      queryClient.invalidateQueries({ queryKey: teamKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["team", "list"] });
       toast.success("Membro convidado", {
         description: `${input.full_name} foi adicionado a equipe.`,
       });
@@ -96,7 +96,7 @@ export function useUpdateTeamMember() {
     mutationFn: (input: UpdateUserInput) => updateTeamMember(supabase, input),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: teamKeys.detail(data.id) });
-      queryClient.invalidateQueries({ queryKey: teamKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["team", "list"] });
       toast.success("Membro atualizado", {
         description: `Dados de ${data.full_name} salvos com sucesso.`,
       });
@@ -117,7 +117,7 @@ export function useChangeUserRole() {
     mutationFn: (input: ChangeRoleInput) => changeUserRole(supabase, input),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: teamKeys.detail(data.id) });
-      queryClient.invalidateQueries({ queryKey: teamKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["team", "list"] });
       toast.success("Permissao alterada", {
         description: `${data.full_name} agora e ${data.role}.`,
       });
@@ -138,9 +138,9 @@ export function useToggleUserActive() {
     mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
       toggleUserActive(supabase, id, is_active),
     onMutate: async ({ id, is_active }) => {
-      await queryClient.cancelQueries({ queryKey: teamKeys.all });
+      await queryClient.cancelQueries({ queryKey: ["team", "list"] });
       const previousLists = queryClient.getQueriesData<TeamMember[]>({
-        queryKey: teamKeys.all,
+        queryKey: ["team", "list"],
       });
       queryClient.setQueriesData<TeamMember[]>(
         { queryKey: ["team", "list"] },
@@ -150,8 +150,7 @@ export function useToggleUserActive() {
       return { previousLists };
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: teamKeys.detail(data.id) });
-      queryClient.invalidateQueries({ queryKey: teamKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["team", "list"] });
       toast.success(data.is_active ? "Membro reativado" : "Membro desativado", {
         description: `${data.full_name} foi ${data.is_active ? "reativado" : "desativado"}.`,
       });
@@ -176,7 +175,7 @@ export function useDeleteTeamMember() {
   return useMutation({
     mutationFn: (id: string) => deleteTeamMember(supabase, id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: teamKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["team", "list"] });
       toast.success("Membro excluido", {
         description: "O membro foi removido permanentemente.",
       });

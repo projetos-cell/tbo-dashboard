@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -129,19 +129,22 @@ export function TeamManagementPage({
     [filters, debouncedSearch]
   );
 
-  // Data — filtered query
+  // Data — filtered query for table
+  const hasActiveFilters = !!(filters.role || filters.is_active !== undefined || debouncedSearch);
   const {
     data: members = [],
     isLoading,
     refetch,
   } = useTeamMembers(activeFilters);
 
-  // Unfiltered query for global stats (cached — same staleTime)
-  const hasActiveFilters = !!(filters.role || filters.is_active !== undefined || debouncedSearch);
+  // Unfiltered query for stats — cached 5min, only fetches when filters active
   const { data: allMembers } = useTeamMembers();
-  const statsSource = allMembers ?? members;
+  const statsSource = hasActiveFilters ? (allMembers ?? members) : members;
 
+  // Use ref to avoid recreating columns on every mutation state change
   const toggleActive = useToggleUserActive();
+  const toggleActiveRef = useRef(toggleActive);
+  toggleActiveRef.current = toggleActive;
 
   // Permission checks
   const canManageUsers = hasMinRole(currentUserRole, "diretoria");
@@ -231,7 +234,7 @@ export function TeamManagementPage({
                 {canManageUsers && (
                   <DropdownMenuItem
                     onClick={() =>
-                      toggleActive.mutate({
+                      toggleActiveRef.current.mutate({
                         id: m.id,
                         is_active: !m.is_active,
                       })
@@ -270,7 +273,7 @@ export function TeamManagementPage({
         size: 60,
       }),
     ],
-    [canManageUsers, canDeleteUsers, canActOn, toggleActive]
+    [canManageUsers, canDeleteUsers, canActOn]
   );
 
   // Table instance

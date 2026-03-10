@@ -33,10 +33,14 @@ export default function ComercialPage() {
 
   const updateStage = useUpdateDealStage();
   const rdSync = useRdSyncDeals();
-  const { data: rdConfig } = useRdConfig();
+  const { data: rdConfig, isLoading: rdConfigLoading } = useRdConfig();
   const hasRd = !!rdConfig?.api_token && rdConfig.enabled;
 
   function handleSyncRd() {
+    if (!hasRd) {
+      toast.error("RD Station não configurado. Vá em Integrações para adicionar seu token.");
+      return;
+    }
     rdSync.mutate(undefined, {
       onSuccess: (data) => {
         toast.success(
@@ -90,21 +94,19 @@ export default function ComercialPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {hasRd && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSyncRd}
-                disabled={rdSync.isPending}
-              >
-                {rdSync.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                )}
-                Sync RD Station
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSyncRd}
+              disabled={rdSync.isPending || rdConfigLoading}
+            >
+              {rdSync.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-4 w-4" />
+              )}
+              Sync RD Station
+            </Button>
             <Button onClick={handleNew}>
               <Plus className="mr-2 h-4 w-4" />
               Novo Deal

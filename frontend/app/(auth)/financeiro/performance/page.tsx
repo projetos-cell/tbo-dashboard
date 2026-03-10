@@ -1,18 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense } from "react";
 import { RBACGuard } from "@/components/rbac-guard";
 import { useFounderDashboard } from "@/features/founder-dashboard/hooks/use-founder-dashboard";
-import {
-  PeriodFilter,
-  type PeriodValue,
-} from "@/features/founder-dashboard/components/period-filter";
+import { PeriodFilter } from "@/features/founder-dashboard/components/period-filter";
+import { usePersistedPeriod } from "@/hooks/use-persisted-period";
 import { UnitRevenueTable } from "@/features/founder-dashboard/components/unit-revenue-table";
 import { TopProjectsTable } from "@/features/founder-dashboard/components/top-projects-table";
 import { RevenueConcentration } from "@/features/founder-dashboard/components/revenue-concentration";
 
 function PerformanceContent() {
-  const [period, setPeriod] = useState<PeriodValue>({ preset: "ytd" });
+  const [period, setPeriod] = usePersistedPeriod("ytd");
   const { data: d, isLoading } = useFounderDashboard(period);
 
   return (

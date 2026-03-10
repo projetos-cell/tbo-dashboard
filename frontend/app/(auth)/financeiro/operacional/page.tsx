@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, Suspense } from "react";
+import { useQueryParam } from "@/hooks/use-query-param";
 import {
   Users,
   Receipt,
@@ -204,7 +205,7 @@ function InlineField({ field, value, onChange }: InlineFieldProps) {
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 function OperacionalContent() {
-  const [month, setMonth] = useState(getCurrentMonth);
+  const [month, setMonthParam] = useQueryParam("month", getCurrentMonth());
   const [localValues, setLocalValues] = useState<
     Partial<Record<keyof UpsertOperationalIndicatorInput, number | null>>
   >({});
@@ -288,7 +289,7 @@ function OperacionalContent() {
       {/* Month selector */}
       <div className="flex items-center gap-3">
         <button
-          onClick={() => setMonth((m) => shiftMonth(m, -1))}
+          onClick={() => setMonthParam(shiftMonth(month, -1))}
           className="p-1.5 rounded-md hover:bg-gray-100 transition"
           title="Mês anterior"
         >
@@ -306,7 +307,7 @@ function OperacionalContent() {
           )}
         </div>
         <button
-          onClick={() => setMonth((m) => shiftMonth(m, 1))}
+          onClick={() => setMonthParam(shiftMonth(month, 1))}
           disabled={isCurrentMonth}
           className="p-1.5 rounded-md hover:bg-gray-100 transition disabled:opacity-30 disabled:cursor-not-allowed"
           title="Próximo mês"

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense } from "react";
 import { RBACGuard } from "@/components/rbac-guard";
+import { useQueryParam } from "@/hooks/use-query-param";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AgingChart } from "@/features/financeiro/components/aging-chart";
@@ -14,7 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 function ContasContent() {
-  const [tab, setTab] = useState<"all" | "ar" | "ap">("all");
+  const [tabRaw, setTab] = useQueryParam("tipo", "all");
+  const tab = (["all", "ar", "ap"].includes(tabRaw) ? tabRaw : "all") as "all" | "ar" | "ap";
   const { data: aging } = useFinanceAging();
   const { data, isLoading, isError, refetch } = useOverdueEntries(tab);
 

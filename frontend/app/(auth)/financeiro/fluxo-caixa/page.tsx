@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense } from "react";
 import { RBACGuard } from "@/components/rbac-guard";
+import { useQueryParamNumber } from "@/hooks/use-query-param";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CashflowProjectionChart, SaldoDiarioChart } from "@/features/financeiro/components/cashflow-chart";
 import { useFinanceCashFlowProjection } from "@/features/financeiro/hooks/use-finance";
 import { fmt } from "@/features/financeiro/lib/formatters";
 
 function FluxoCaixaContent() {
-  const [projDays, setProjDays] = useState<30 | 60 | 90>(30);
-  const [histDays, setHistDays] = useState<30 | 90 | 180>(90);
+  const [projDays, setProjDays] = useQueryParamNumber("proj", 30 as 30 | 60 | 90, [30, 60, 90] as const);
+  const [histDays, setHistDays] = useQueryParamNumber("hist", 90 as 30 | 90 | 180, [30, 90, 180] as const);
   const { data: projData } = useFinanceCashFlowProjection(projDays);
 
   // Summary from projection data

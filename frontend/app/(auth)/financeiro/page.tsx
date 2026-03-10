@@ -1,12 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense } from "react";
 import { RBACGuard } from "@/components/rbac-guard";
 import { useFounderDashboard } from "@/features/founder-dashboard/hooks/use-founder-dashboard";
-import {
-  PeriodFilter,
-  type PeriodValue,
-} from "@/features/founder-dashboard/components/period-filter";
+import { PeriodFilter } from "@/features/founder-dashboard/components/period-filter";
+import { usePersistedPeriod } from "@/hooks/use-persisted-period";
 import { FounderAlerts } from "@/features/founder-dashboard/components/founder-alerts";
 import { ForecastPanel } from "@/features/founder-dashboard/components/forecast-panel";
 import { useLatestCashBalance } from "@/features/financeiro/hooks/use-cash-entries";
@@ -20,7 +18,7 @@ import Link from "next/link";
 import { Users, Receipt, UserMinus, ArrowRight } from "lucide-react";
 
 function FinanceiroContent() {
-  const [period, setPeriod] = useState<PeriodValue>({ preset: "ytd" });
+  const [period, setPeriod] = usePersistedPeriod("ytd");
   const { data: manualCaixa } = useLatestCashBalance();
 
   const { data, isLoading, error, refetch } = useFounderDashboard(period);

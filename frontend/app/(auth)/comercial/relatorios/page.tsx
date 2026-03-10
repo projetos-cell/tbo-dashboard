@@ -9,12 +9,20 @@ import {
   computeTopOwners,
   computeStageDistribution,
   computePipelineByOwner,
+  computeProductMix,
+  computeBUDistribution,
+  computeAvgPriceByBU,
+  computeStrategicInsights,
   type CommercialKPIs,
   type MonthlyData,
   type ClientData,
   type OwnerData,
   type StageDistribution,
   type PipelineByOwner,
+  type ProductData,
+  type BUDistribution,
+  type BUAvgPrice,
+  type StrategicInsight,
 } from "@/features/comercial/services/commercial-analytics";
 import { formatCurrency } from "@/features/comercial/lib/format-currency";
 import { RequireRole } from "@/features/auth/components/require-role";
@@ -50,6 +58,12 @@ import {
   Users,
   Award,
   BarChart3,
+  Package,
+  Lightbulb,
+  CheckCircle2,
+  AlertTriangle,
+  Info,
+  Zap,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -579,6 +593,297 @@ function PipelineByOwnerChart({ data }: { data: PipelineByOwner[] }) {
   );
 }
 
+// ── BU Donut Chart ───────────────────────────────────────────────────────────
+
+function BUDonutChart({ data }: { data: BUDistribution[] }) {
+  if (!data.length) {
+    return (
+      <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+        Sem dados de unidade de negócio.
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <ResponsiveContainer width="100%" height={220}>
+        <PieChart>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            innerRadius={55}
+            outerRadius={90}
+            dataKey="revenue"
+            nameKey="bu"
+            paddingAngle={2}
+          >
+            {data.map((entry) => (
+              <Cell key={entry.bu} fill={entry.color} />
+            ))}
+          </Pie>
+          <Tooltip
+            formatter={currencyFormatter}
+            contentStyle={{
+              fontSize: 12,
+              borderRadius: 8,
+              border: "1px solid hsl(var(--border))",
+            }}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+      <div className="flex flex-wrap justify-center gap-3 text-xs">
+        {data.map((d) => (
+          <div key={d.bu} className="flex items-center gap-1.5">
+            <span
+              className="h-2.5 w-2.5 rounded-full"
+              style={{ backgroundColor: d.color }}
+            />
+            <span className="text-muted-foreground">
+              {d.bu} ({fmtPct(d.pct)})
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Top Products Chart ───────────────────────────────────────────────────────
+
+const PRODUCT_BAR_COLORS = [
+  "hsl(262 60% 60%)", "hsl(213 90% 60%)", "hsl(160 60% 45%)",
+  "hsl(35 90% 55%)", "hsl(340 60% 55%)", "hsl(190 70% 45%)",
+  "hsl(280 50% 55%)", "hsl(100 50% 45%)", "hsl(15 80% 55%)",
+  "hsl(230 60% 60%)",
+];
+
+function TopProductsChart({ data }: { data: ProductData[] }) {
+  const top10 = data.slice(0, 10);
+
+  if (!top10.length) {
+    return (
+      <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+        Sem dados de produtos.
+      </div>
+    );
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={Math.max(240, top10.length * 32)}>
+      <BarChart
+        data={top10}
+        layout="vertical"
+        margin={{ top: 0, right: 8, left: 0, bottom: 0 }}
+      >
+        <CartesianGrid
+          strokeDasharray="3 3"
+          className="stroke-border"
+          horizontal={false}
+        />
+        <XAxis
+          type="number"
+          tickFormatter={fmtCompact}
+          tick={{ fontSize: 10 }}
+          tickLine={false}
+          axisLine={false}
+        />
+        <YAxis
+          type="category"
+          dataKey="name"
+          tick={{ fontSize: 10 }}
+          tickLine={false}
+          axisLine={false}
+          width={130}
+        />
+        <Tooltip
+          formatter={currencyFormatter}
+          contentStyle={{
+            fontSize: 12,
+            borderRadius: 8,
+            border: "1px solid hsl(var(--border))",
+          }}
+        />
+        <Bar dataKey="totalRevenue" name="Receita Total" radius={[0, 4, 4, 0]} maxBarSize={20}>
+          {top10.map((_, i) => (
+            <Cell key={i} fill={PRODUCT_BAR_COLORS[i % PRODUCT_BAR_COLORS.length]} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+// ── Avg Price by BU Chart ────────────────────────────────────────────────────
+
+function AvgPriceByBUChart({ data }: { data: BUAvgPrice[] }) {
+  if (!data.length) {
+    return (
+      <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+        Sem dados de preço médio.
+      </div>
+    );
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={Math.max(200, data.length * 36)}>
+      <BarChart
+        data={data}
+        layout="vertical"
+        margin={{ top: 0, right: 8, left: 0, bottom: 0 }}
+      >
+        <CartesianGrid
+          strokeDasharray="3 3"
+          className="stroke-border"
+          horizontal={false}
+        />
+        <XAxis
+          type="number"
+          tickFormatter={fmtCompact}
+          tick={{ fontSize: 10 }}
+          tickLine={false}
+          axisLine={false}
+        />
+        <YAxis
+          type="category"
+          dataKey="bu"
+          tick={{ fontSize: 11 }}
+          tickLine={false}
+          axisLine={false}
+          width={100}
+        />
+        <Tooltip
+          formatter={currencyFormatter}
+          contentStyle={{
+            fontSize: 12,
+            borderRadius: 8,
+            border: "1px solid hsl(var(--border))",
+          }}
+        />
+        <Bar dataKey="avgPrice" name="Preço Médio" radius={[0, 4, 4, 0]} maxBarSize={20}>
+          {data.map((entry) => (
+            <Cell key={entry.bu} fill={entry.color} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+// ── Product Ranking Table ────────────────────────────────────────────────────
+
+function ProductRankingTable({ data }: { data: ProductData[] }) {
+  if (!data.length) {
+    return (
+      <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
+        Sem dados de produtos.
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b text-left text-xs uppercase tracking-wider text-muted-foreground">
+            <th className="pb-2 pr-3 font-medium">#</th>
+            <th className="pb-2 pr-3 font-medium">Produto / Serviço</th>
+            <th className="pb-2 pr-3 font-medium">Unidade de Negócio</th>
+            <th className="pb-2 pr-3 text-right font-medium">Qtd Vendida</th>
+            <th className="pb-2 pr-3 text-right font-medium">Preço Médio Unit.</th>
+            <th className="pb-2 pr-3 text-right font-medium">Receita Total</th>
+            <th className="pb-2 pr-3 text-right font-medium">% do Total</th>
+            <th className="pb-2 font-medium">Representatividade</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.slice(0, 15).map((p, i) => (
+            <tr key={p.name} className="border-b last:border-0 hover:bg-muted/30">
+              <td className="py-2.5 pr-3 text-xs text-muted-foreground">
+                {i + 1}
+              </td>
+              <td className="py-2.5 pr-3 font-medium">{p.name}</td>
+              <td className="py-2.5 pr-3">
+                <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium">
+                  {p.bu}
+                </span>
+              </td>
+              <td className="py-2.5 pr-3 text-right tabular-nums">
+                {p.qtdSold}
+              </td>
+              <td className="py-2.5 pr-3 text-right tabular-nums">
+                {p.avgUnitPrice > 0 ? formatCurrency(p.avgUnitPrice) : "–"}
+              </td>
+              <td className="py-2.5 pr-3 text-right tabular-nums font-medium">
+                {formatCurrency(p.totalRevenue)}
+              </td>
+              <td className="py-2.5 pr-3 text-right tabular-nums">
+                {fmtPct(p.pctOfTotal)}
+              </td>
+              <td className="py-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="h-1.5 w-20 overflow-hidden rounded-full bg-gray-100">
+                    <div
+                      className="h-full rounded-full bg-blue-500 transition-all"
+                      style={{ width: `${Math.min(p.pctOfTotal * 4, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── Strategic Insights Section ───────────────────────────────────────────────
+
+const INSIGHT_STYLES: Record<StrategicInsight["type"], { icon: typeof CheckCircle2; color: string; bg: string }> = {
+  success: { icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50" },
+  warning: { icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-50" },
+  info: { icon: Info, color: "text-blue-600", bg: "bg-blue-50" },
+  opportunity: { icon: Zap, color: "text-purple-600", bg: "bg-purple-50" },
+};
+
+function InsightsSection({ insights }: { insights: StrategicInsight[] }) {
+  if (!insights.length) {
+    return (
+      <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
+        Dados insuficientes para gerar insights.
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-3 md:grid-cols-2">
+      {insights.map((insight, i) => {
+        const style = INSIGHT_STYLES[insight.type];
+        const Icon = style.icon;
+        return (
+          <div
+            key={i}
+            className="flex gap-3 rounded-lg border p-4"
+          >
+            <div
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${style.bg} ${style.color}`}
+            >
+              <Icon className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">{insight.title}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {insight.description}
+              </p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Loading Skeleton ──────────────────────────────────────────────────────────
 
 function DashboardSkeleton() {
@@ -628,6 +933,13 @@ export default function ComercialRelatorios() {
   const pipelineByOwner = useMemo(
     () => computePipelineByOwner(deals),
     [deals],
+  );
+  const products = useMemo(() => computeProductMix(deals), [deals]);
+  const buDist = useMemo(() => computeBUDistribution(deals), [deals]);
+  const buAvgPrice = useMemo(() => computeAvgPriceByBU(deals), [deals]);
+  const insights = useMemo(
+    () => computeStrategicInsights(deals, kpis, clients, products, buDist),
+    [deals, kpis, clients, products, buDist],
   );
 
   return (
@@ -765,6 +1077,100 @@ export default function ComercialRelatorios() {
                 </CardContent>
               </Card>
             )}
+
+            {/* ── Mix de Produtos & Serviços ─────────────────────── */}
+            {products.length > 0 && (
+              <>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                    Mix de Produtos & Serviços
+                  </p>
+                </div>
+
+                {/* Row 6: BU Donut + Top Products + Avg Price */}
+                <div className="grid gap-6 md:grid-cols-3">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">
+                        Faturamento por Unidade de Negócio
+                      </CardTitle>
+                      <p className="text-xs text-muted-foreground">
+                        Participação no revenue total
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      <BUDonutChart data={buDist} />
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">
+                        Top 10 Produtos Mais Vendidos
+                      </CardTitle>
+                      <p className="text-xs text-muted-foreground">
+                        Por valor total (R$)
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      <TopProductsChart data={products} />
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">
+                        Preço Médio por Unidade
+                      </CardTitle>
+                      <p className="text-xs text-muted-foreground">
+                        Ticket unitário médio (R$)
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      <AvgPriceByBUChart data={buAvgPrice} />
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Row 7: Product Ranking Table */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Package className="h-4 w-4 text-muted-foreground" />
+                      Tabela de Produtos — Top 15 por Receita
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      Desempenho completo · inclui preço médio unitário por produto
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <ProductRankingTable data={products} />
+                  </CardContent>
+                </Card>
+              </>
+            )}
+
+            {/* ── Insights & Recomendações Estratégicas ──────────── */}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Insights & Recomendações Estratégicas
+              </p>
+            </div>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Lightbulb className="h-4 w-4 text-muted-foreground" />
+                  Análise Automática
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Recomendações geradas a partir dos dados do pipeline
+                </p>
+              </CardHeader>
+              <CardContent>
+                <InsightsSection insights={insights} />
+              </CardContent>
+            </Card>
           </>
         )}
       </div>

@@ -253,6 +253,281 @@ export interface PipelineByOwner {
   billed: number;
 }
 
+// ── BU Classification ───────────────────────────────────────────────────────
+
+const BU_KEYWORDS: Record<string, string[]> = {
+  "Render 3D": [
+    "imagens estáticas", "imagem estática", "render", "modelagem 3d",
+    "plantas humanizadas", "implantações humanizadas", "implantação humanizada",
+    "imagens 360", "imagem 360", "perspectiva", "maquete eletrônica",
+    "maquete 3d", "tour virtual", "still",
+  ],
+  Audiovisual: [
+    "animação", "animacao", "teaser", "filme", "vídeo", "video",
+    "motion", "lançamento", "audiovisual",
+  ],
+  Marketing: [
+    "plano de marketing", "gestão campanha", "gestao campanha",
+    "campanha online", "mídia", "midia", "tráfego", "trafego",
+    "social media", "marketing digital", "inbound",
+  ],
+  Branding: [
+    "identidade visual", "brand", "logo", "naming", "comunicação visual",
+    "comunicacao visual", "landing page", "manual de marca",
+  ],
+  Interiores: [
+    "interiores", "interior", "decoração", "decoracao", "proj. conceitual",
+    "projeto conceitual",
+  ],
+  Arquitetura: [
+    "proj. arquitetônico", "projeto arquitetônico", "proj. arquitetonico",
+    "projeto arquitetonico", "arquitetura",
+  ],
+  Lumion: ["lumion"],
+};
+
+function classifyBU(dealName: string): string {
+  const lower = dealName.toLowerCase();
+  for (const [bu, keywords] of Object.entries(BU_KEYWORDS)) {
+    if (keywords.some((kw) => lower.includes(kw))) return bu;
+  }
+  return "Outros";
+}
+
+// ── Product Mix ─────────────────────────────────────────────────────────────
+
+export interface ProductData {
+  name: string;
+  bu: string;
+  qtdSold: number;
+  avgUnitPrice: number;
+  totalRevenue: number;
+  pctOfTotal: number;
+}
+
+export function computeProductMix(deals: DealRow[]): ProductData[] {
+  const won = deals.filter((d) => d.stage === "fechado_ganho");
+  const products = new Map<string, { bu: string; count: number; revenue: number }>();
+
+  for (const d of won) {
+    const name = d.name || "Sem nome";
+    const existing = products.get(name) ?? {
+      bu: classifyBU(name),
+      count: 0,
+      revenue: 0,
+    };
+    existing.count++;
+    existing.revenue += d.value ?? 0;
+    products.set(name, existing);
+  }
+
+  const totalRevenue = Array.from(products.values()).reduce(
+    (s, p) => s + p.revenue,
+    0,
+  );
+
+  return Array.from(products.entries())
+    .map(([name, v]) => ({
+      name,
+      bu: v.bu,
+      qtdSold: v.count,
+      avgUnitPrice: v.count > 0 ? v.revenue / v.count : 0,
+      totalRevenue: v.revenue,
+      pctOfTotal: totalRevenue > 0 ? (v.revenue / totalRevenue) * 100 : 0,
+    }))
+    .sort((a, b) => b.totalRevenue - a.totalRevenue);
+}
+
+// ── BU Distribution ─────────────────────────────────────────────────────────
+
+export interface BUDistribution {
+  bu: string;
+  revenue: number;
+  count: number;
+  pct: number;
+  color: string;
+}
+
+const BU_COLORS_MAP: Record<string, string> = {
+  "Render 3D": "#a78bfa",
+  Audiovisual: "#f472b6",
+  Marketing: "#34d399",
+  Branding: "#60a5fa",
+  Interiores: "#818cf8",
+  Arquitetura: "#fbbf24",
+  Lumion: "#a3e635",
+  Outros: "#94a3b8",
+};
+
+export function computeBUDistribution(deals: DealRow[]): BUDistribution[] {
+  const won = deals.filter((d) => d.stage === "fechado_ganho");
+  const bus = new Map<string, { revenue: number; count: number }>();
+
+  for (const d of won) {
+    const bu = classifyBU(d.name || "");
+    const existing = bus.get(bu) ?? { revenue: 0, count: 0 };
+    existing.revenue += d.value ?? 0;
+    existing.count++;
+    bus.set(bu, existing);
+  }
+
+  const totalRevenue = Array.from(bus.values()).reduce(
+    (s, b) => s + b.revenue,
+    0,
+  );
+
+  return Array.from(bus.entries())
+    .map(([bu, v]) => ({
+      bu,
+      revenue: v.revenue,
+      count: v.count,
+      pct: totalRevenue > 0 ? (v.revenue / totalRevenue) * 100 : 0,
+      color: BU_COLORS_MAP[bu] ?? "#94a3b8",
+    }))
+    .sort((a, b) => b.revenue - a.revenue);
+}
+
+// ── Average Price by BU ─────────────────────────────────────────────────────
+
+export interface BUAvgPrice {
+  bu: string;
+  avgPrice: number;
+  color: string;
+}
+
+export function computeAvgPriceByBU(deals: DealRow[]): BUAvgPrice[] {
+  const won = deals.filter((d) => d.stage === "fechado_ganho");
+  const bus = new Map<string, { total: number; count: number }>();
+
+  for (const d of won) {
+    const bu = classifyBU(d.name || "");
+    const existing = bus.get(bu) ?? { total: 0, count: 0 };
+    existing.total += d.value ?? 0;
+    existing.count++;
+    bus.set(bu, existing);
+  }
+
+  return Array.from(bus.entries())
+    .map(([bu, v]) => ({
+      bu,
+      avgPrice: v.count > 0 ? v.total / v.count : 0,
+      color: BU_COLORS_MAP[bu] ?? "#94a3b8",
+    }))
+    .sort((a, b) => b.avgPrice - a.avgPrice);
+}
+
+// ── Strategic Insights ──────────────────────────────────────────────────────
+
+export interface StrategicInsight {
+  type: "success" | "warning" | "info" | "opportunity";
+  title: string;
+  description: string;
+}
+
+export function computeStrategicInsights(
+  deals: DealRow[],
+  kpis: CommercialKPIs,
+  clients: ClientData[],
+  products: ProductData[],
+  buDist: BUDistribution[],
+): StrategicInsight[] {
+  const insights: StrategicInsight[] = [];
+
+  // 1. Client concentration risk
+  const top3ClientPct = clients
+    .slice(0, 3)
+    .reduce((s, c) => s + c.participation, 0);
+  if (top3ClientPct > 50) {
+    insights.push({
+      type: "warning",
+      title: "Concentração de Receita",
+      description: `Os 3 maiores clientes representam ${top3ClientPct.toFixed(0)}% do faturamento. Diversificar base reduz risco.`,
+    });
+  }
+
+  // 2. Conversion rate
+  if (kpis.conversionRate > 0 && kpis.conversionRate < 25) {
+    insights.push({
+      type: "opportunity",
+      title: "Taxa de Conversão Baixa",
+      description: `Conversão atual de ${kpis.conversionRate.toFixed(1)}%. Revisar qualificação de leads e processo de proposta pode elevar resultado.`,
+    });
+  } else if (kpis.conversionRate >= 40) {
+    insights.push({
+      type: "success",
+      title: "Alta Conversão",
+      description: `Taxa de ${kpis.conversionRate.toFixed(1)}% indica qualificação sólida e proposta aderente ao mercado.`,
+    });
+  }
+
+  // 3. Top product dominance
+  if (products.length > 0 && products[0].pctOfTotal > 30) {
+    insights.push({
+      type: "info",
+      title: `"${products[0].name}" Domina o Mix`,
+      description: `Representa ${products[0].pctOfTotal.toFixed(1)}% da receita. Avaliar oportunidade de cross-sell com outros serviços.`,
+    });
+  }
+
+  // 4. BU diversification
+  if (buDist.length > 0 && buDist[0].pct > 50) {
+    insights.push({
+      type: "warning",
+      title: `Dependência de ${buDist[0].bu}`,
+      description: `${buDist[0].pct.toFixed(0)}% do faturamento vem de uma BU. Fortalecer BUs secundárias para sustentabilidade.`,
+    });
+  } else if (buDist.length >= 3) {
+    const topThree = buDist.slice(0, 3);
+    const balanced = topThree.every((b) => b.pct < 40);
+    if (balanced) {
+      insights.push({
+        type: "success",
+        title: "Mix Diversificado",
+        description: `Receita bem distribuída entre ${topThree.map((b) => b.bu).join(", ")}. Reduz risco operacional.`,
+      });
+    }
+  }
+
+  // 5. Average ticket
+  if (kpis.avgTicket > 0) {
+    const highValueProducts = products.filter(
+      (p) => p.avgUnitPrice > kpis.avgTicket * 2,
+    );
+    if (highValueProducts.length > 0) {
+      insights.push({
+        type: "opportunity",
+        title: "Produtos de Alto Valor",
+        description: `${highValueProducts.map((p) => p.name).slice(0, 3).join(", ")} têm ticket ${((highValueProducts[0].avgUnitPrice / kpis.avgTicket) * 100 - 100).toFixed(0)}% acima da média. Priorizar venda ativa destes.`,
+      });
+    }
+  }
+
+  // 6. Pipeline health
+  const openValue = deals
+    .filter((d) => d.stage !== "fechado_ganho" && d.stage !== "fechado_perdido")
+    .reduce((s, d) => s + (d.value ?? 0), 0);
+  if (openValue > 0 && kpis.totalBilled > 0) {
+    const pipelineRatio = openValue / kpis.totalBilled;
+    if (pipelineRatio < 0.5) {
+      insights.push({
+        type: "warning",
+        title: "Pipeline Abaixo do Ideal",
+        description: `Pipeline ativo = ${(pipelineRatio * 100).toFixed(0)}% do faturado. Ideal > 100%. Acelerar prospecção.`,
+      });
+    } else if (pipelineRatio > 2) {
+      insights.push({
+        type: "success",
+        title: "Pipeline Robusto",
+        description: `${(pipelineRatio * 100).toFixed(0)}% do faturado em pipeline. Base sólida para próximos meses.`,
+      });
+    }
+  }
+
+  return insights;
+}
+
+// ── Pipeline by Owner ────────────────────────────────────────────────────────
+
 export function computePipelineByOwner(deals: DealRow[]): PipelineByOwner[] {
   const map = new Map<string, { pipeline: string; deals: number; won: number; billed: number }>();
 

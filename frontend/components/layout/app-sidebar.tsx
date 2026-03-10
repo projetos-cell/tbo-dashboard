@@ -1,117 +1,32 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import {
-  LayoutDashboard,
-  ListChecks,
-  MessageSquare,
-  FolderKanban,
-  Calendar,
-  Users,
-  DollarSign,
-  Briefcase,
-  Building2,
-  FileText,
-  Target,
-  HeartHandshake,
-  Share2,
-  BarChart3,
-  Bell,
-  Settings,
-  LogOut,
-  History,
-  PenTool,
-  CheckCircle,
-  Lightbulb,
-  Presentation,
-  Lock,
-  Shield,
-  Activity,
-  Globe,
-} from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Bell, LogOut, Search } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
+  SidebarInput,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
 } from "@/components/ui/sidebar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAlertCount } from "@/hooks/use-alert-count";
+import { useLogout } from "@/hooks/use-logout";
+import { useSidebarSearch } from "@/hooks/use-sidebar-search";
+import { getIcon } from "@/lib/icons";
+import { SIDEBAR_NAV_GROUPS, FOOTER_NAV_ITEMS } from "@/lib/navigation";
+import { CollapsibleNavGroup } from "@/components/layout/sidebar/collapsible-nav-group";
 
-const ICON_MAP: Record<string, React.ElementType> = {
-  "layout-dashboard": LayoutDashboard,
-  "list-checks": ListChecks,
-  "message-square": MessageSquare,
-  "folder-kanban": FolderKanban,
-  calendar: Calendar,
-  users: Users,
-  "dollar-sign": DollarSign,
-  briefcase: Briefcase,
-  "building-2": Building2,
-  "file-text": FileText,
-  target: Target,
-  "heart-handshake": HeartHandshake,
-  "share-2": Share2,
-  "bar-chart-3": BarChart3,
-  bell: Bell,
-  settings: Settings,
-  history: History,
-  "pen-tool": PenTool,
-  "check-circle": CheckCircle,
-  lightbulb: Lightbulb,
-  presentation: Presentation,
-  lock: Lock,
-  shield: Shield,
-  activity: Activity,
-  globe: Globe,
-};
-
-interface NavItem {
-  href: string;
-  label: string;
-  icon: string;
-  module: string;
-}
-
-const FAVORITOS: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: "layout-dashboard", module: "dashboard" },
-  { href: "/tarefas", label: "Tarefas", icon: "list-checks", module: "tarefas" },
-  { href: "/chat", label: "Chat", icon: "message-square", module: "chat" },
-];
-
-const OPERACAO: NavItem[] = [
-  { href: "/projetos", label: "Projetos", icon: "folder-kanban", module: "projetos" },
-  { href: "/agenda", label: "Agenda", icon: "calendar", module: "agenda" },
-  { href: "/pessoas", label: "Pessoas", icon: "users", module: "pessoas" },
-];
-
-const NEGOCIOS: NavItem[] = [
-  { href: "/financeiro", label: "Financeiro", icon: "dollar-sign", module: "financeiro" },
-  { href: "/comercial", label: "Comercial", icon: "briefcase", module: "comercial" },
-  { href: "/clientes", label: "Clientes", icon: "building-2", module: "clientes" },
-  { href: "/contratos", label: "Contratos", icon: "file-text", module: "contratos" },
-  { href: "/okrs", label: "OKRs", icon: "target", module: "okrs" },
-];
-
-const SISTEMA: NavItem[] = [
-  { href: "/cultura", label: "Cultura", icon: "heart-handshake", module: "cultura" },
-  { href: "/rsm", label: "Redes Sociais", icon: "share-2", module: "rsm" },
-  { href: "/relatorios", label: "Relatorios", icon: "bar-chart-3", module: "relatorios" },
-  { href: "/configuracoes", label: "Configuracoes", icon: "settings", module: "configuracoes" },
-  { href: "/admin/equipe", label: "Equipe", icon: "shield", module: "admin" },
-];
-
-function AlertsFixedItem({ pathname, canSee }: { pathname: string; canSee: (m: string) => boolean }) {
+function AlertsItem({ pathname, canSee }: { pathname: string; canSee: (m: string) => boolean }) {
   const count = useAlertCount();
 
   if (!canSee("alerts")) return null;
@@ -124,61 +39,17 @@ function AlertsFixedItem({ pathname, canSee }: { pathname: string; canSee: (m: s
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={isActive}>
-              <Link href="/alerts" className="flex w-full items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <Bell className="h-4 w-4" />
-                  <span>Alertas</span>
-                </span>
-                {count > 0 && (
-                  <Badge
-                    variant="destructive"
-                    className="h-5 min-w-[20px] px-1.5 text-[10px] leading-none font-semibold"
-                  >
-                    {count > 99 ? "99+" : count}
-                  </Badge>
-                )}
+              <Link href="/alerts">
+                <Bell className="h-4 w-4" />
+                <span>Alertas</span>
               </Link>
             </SidebarMenuButton>
+            {count > 0 && (
+              <SidebarMenuBadge className="bg-destructive text-destructive-foreground text-[10px]">
+                {count > 99 ? "99+" : count}
+              </SidebarMenuBadge>
+            )}
           </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  );
-}
-
-function NavSection({
-  label,
-  items,
-  canSee,
-  pathname,
-}: {
-  label: string;
-  items: NavItem[];
-  canSee: (m: string) => boolean;
-  pathname: string;
-}) {
-  const visible = items.filter((i) => canSee(i.module));
-  if (visible.length === 0) return null;
-
-  return (
-    <SidebarGroup>
-      <SidebarGroupLabel>{label}</SidebarGroupLabel>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {visible.map((item) => {
-            const Icon = ICON_MAP[item.icon] ?? FolderKanban;
-            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-            return (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton asChild isActive={isActive}>
-                  <Link href={item.href}>
-                    <Icon className="h-4 w-4" />
-                    <span>{item.label}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            );
-          })}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
@@ -187,17 +58,11 @@ function NavSection({
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const modules = useAuthStore((s) => s.modules);
+  const logout = useLogout();
+  const { query, setQuery, filteredGroups } = useSidebarSearch(SIDEBAR_NAV_GROUPS);
 
   const canSee = (module: string) => modules.includes("*") || modules.includes(module);
-
-  async function handleLogout() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  }
 
   return (
     <Sidebar variant="inset">
@@ -214,31 +79,53 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {/* Alertas fixo no topo — sempre visível, não participa do drag-and-drop */}
-        <AlertsFixedItem pathname={pathname} canSee={canSee} />
+        {/* Search */}
+        <SidebarGroup className="px-2 py-2">
+          <SidebarGroupContent>
+            <div className="relative">
+              <Search className="text-muted-foreground absolute top-1/2 left-2 h-3.5 w-3.5 -translate-y-1/2" />
+              <SidebarInput
+                placeholder="Buscar..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="pl-7"
+              />
+            </div>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
-        <NavSection label="Favoritos" items={FAVORITOS} canSee={canSee} pathname={pathname} />
-        <NavSection label="Operacao" items={OPERACAO} canSee={canSee} pathname={pathname} />
-        <NavSection label="Negocios" items={NEGOCIOS} canSee={canSee} pathname={pathname} />
-        <NavSection label="Sistema" items={SISTEMA} canSee={canSee} pathname={pathname} />
+        {/* Alertas — fixed at top */}
+        <AlertsItem pathname={pathname} canSee={canSee} />
+
+        {/* Nav groups */}
+        {filteredGroups.map((group) => (
+          <CollapsibleNavGroup key={group.label} group={group} canSee={canSee} />
+        ))}
       </SidebarContent>
 
       <SidebarFooter className="space-y-1 border-t p-2">
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname === "/changelog"}>
-              <Link href="/changelog">
-                <History className="h-4 w-4" />
-                <span>Changelog</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          {FOOTER_NAV_ITEMS.map((item) => {
+            const Icon = getIcon(item.icon);
+            return (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton asChild isActive={pathname === item.href}>
+                  <Link href={item.href}>
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
         </SidebarMenu>
-        <Button variant="ghost" className="w-full justify-start gap-2" onClick={handleLogout}>
+        <Button variant="ghost" className="w-full justify-start gap-2" onClick={logout}>
           <LogOut className="h-4 w-4" />
           Sair
         </Button>
       </SidebarFooter>
+
+      <SidebarRail />
     </Sidebar>
   );
 }

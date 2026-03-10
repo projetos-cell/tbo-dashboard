@@ -20,13 +20,14 @@ import {
 import { Search, LogOut, Settings, User } from "lucide-react";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { CommandSearch } from "@/components/layout/command-search";
-import { createClient } from "@/lib/supabase/client";
+import { useLogout } from "@/hooks/use-logout";
 
 export function Header() {
   const router = useRouter();
   const { user } = useUser();
   const { data: profile } = useProfile();
   const roleLabel = useAuthStore((s) => s.roleLabel);
+  const handleLogout = useLogout();
 
   const displayName = profile?.full_name || user?.email || "Usuario";
   const initials = profile?.full_name
@@ -39,13 +40,6 @@ export function Header() {
     : user?.email
       ? user.email.slice(0, 2).toUpperCase()
       : "TB";
-
-  async function handleLogout() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  }
 
   return (
     <>

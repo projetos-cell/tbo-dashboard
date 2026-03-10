@@ -271,7 +271,7 @@ export const CULTURA_NAV_ITEMS = [
   { href: "/cultura/reconhecimentos", label: "Reconhecimentos", icon: "award" },
   { href: "/cultura/recompensas", label: "Recompensas", icon: "gift" },
   { href: "/cultura/manual", label: "Manual", icon: "book-open" },
-  { href: "/cultura/analytics", label: "Analytics", icon: "bar-chart-3", founders_only: true },
+  { href: "/cultura/analytics", label: "Analytics", icon: "bar-chart-3", min_role: "diretoria" as const },
 ] as const;
 
 // ─── TBO Company Values ─────────────────────────────────────────────

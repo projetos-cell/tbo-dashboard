@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState, useMemo } from "react";
-import { useDeals, useUpdateDealStage, useRdSyncDeals } from "@/features/comercial/hooks/use-commercial";
+import { useDeals, useUpdateDealStage, useRdSyncDeals, usePipelines } from "@/features/comercial/hooks/use-commercial";
 import { DealKPICards } from "@/features/comercial/components/deal-kpis";
 import { DealFilters } from "@/features/comercial/components/deal-filters";
 import { DealPipeline } from "@/features/comercial/components/deal-pipeline";
@@ -11,6 +11,7 @@ import { computeDealKPIs } from "@/features/comercial/services/commercial";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { ErrorState } from "@/components/shared";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/lib/supabase/types";
@@ -24,10 +25,14 @@ export default function ComercialPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<DealRow | null>(null);
+  const [pipelineFilter, setPipelineFilter] = useState("all");
+
+  const { data: pipelines = [] } = usePipelines();
 
   const { data: deals = [], isLoading, error, refetch } = useDeals({
     stage: stageFilter || undefined,
     search: search || undefined,
+    pipeline: pipelineFilter !== "all" ? pipelineFilter : undefined,
   });
 
   const updateStage = useUpdateDealStage();
@@ -108,6 +113,22 @@ export default function ComercialPage() {
         </div>
 
         <DealKPICards kpis={kpis} />
+
+        {pipelines.length > 0 && (
+          <Tabs value={pipelineFilter} onValueChange={setPipelineFilter}>
+            <TabsList>
+              <TabsTrigger value="all">Todos os Funis</TabsTrigger>
+              {pipelines.map((p) => (
+                <TabsTrigger key={p.pipeline_name} value={p.pipeline_name}>
+                  {p.pipeline_name}
+                  <span className="ml-1.5 text-xs text-muted-foreground">
+                    ({p.deal_count})
+                  </span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        )}
 
         <DealFilters
           search={search}

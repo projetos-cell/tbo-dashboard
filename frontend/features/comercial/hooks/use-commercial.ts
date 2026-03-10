@@ -10,13 +10,15 @@ import {
   createDeal,
   updateDeal,
   updateDealStage,
+  getDealPipelines,
 } from "@/features/comercial/services/commercial";
-import { getRdConfig, getRdSyncLogs } from "@/features/comercial/services/rdstation";
 
 interface DealFilters {
   stage?: string;
   search?: string;
   owner_id?: string;
+  pipeline?: string;
+  owner_name?: string;
 }
 
 export function useDeals(filters?: DealFilters) {
@@ -133,30 +135,16 @@ export function useRdSyncDeals() {
   });
 }
 
-export function useRdConfig() {
+export function usePipelines() {
   const tenantId = useAuthStore((s) => s.tenantId);
 
   return useQuery({
-    queryKey: ["rd-config", tenantId],
+    queryKey: ["deal-pipelines", tenantId],
     queryFn: async () => {
       const supabase = createClient();
-      return getRdConfig(supabase, tenantId!);
+      return getDealPipelines(supabase, tenantId!);
     },
     staleTime: 1000 * 60 * 10,
-    enabled: !!tenantId,
-  });
-}
-
-export function useRdSyncLogs(limit = 5) {
-  const tenantId = useAuthStore((s) => s.tenantId);
-
-  return useQuery({
-    queryKey: ["rd-sync-logs", tenantId, limit],
-    queryFn: async () => {
-      const supabase = createClient();
-      return getRdSyncLogs(supabase, tenantId!, limit);
-    },
-    staleTime: 1000 * 60 * 2,
     enabled: !!tenantId,
   });
 }

@@ -2,17 +2,10 @@
 
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, User, Calendar } from "lucide-react";
+import { formatCurrency } from "@/features/comercial/lib/format-currency";
 import type { Database } from "@/lib/supabase/types";
 
 type DealRow = Database["public"]["Tables"]["crm_deals"]["Row"];
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 0,
-  }).format(value);
-}
 
 interface DealCardProps {
   deal: DealRow;

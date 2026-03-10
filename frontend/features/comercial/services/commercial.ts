@@ -7,6 +7,8 @@ interface DealFilters {
   stage?: string;
   search?: string;
   owner_id?: string;
+  pipeline?: string;
+  owner_name?: string;
 }
 
 export async function getDeals(
@@ -26,9 +28,23 @@ export async function getDeals(
   if (filters?.owner_id) {
     query = query.eq("owner_id", filters.owner_id);
   }
+  if (filters?.pipeline) {
+    query = query.eq("rd_pipeline_name" as never, filters.pipeline);
+  }
+  if (filters?.owner_name) {
+    query = query.eq("owner_name", filters.owner_name);
+  }
   if (filters?.search) {
+    // Sanitize: escape PostgREST special chars to prevent filter injection
+    const safe = filters.search
+      .replace(/\\/g, "\\\\")
+      .replace(/%/g, "\\%")
+      .replace(/,/g, "\\,")
+      .replace(/\(/g, "\\(")
+      .replace(/\)/g, "\\)")
+      .replace(/\./g, "\\.");
     query = query.or(
-      `name.ilike.%${filters.search}%,company.ilike.%${filters.search}%,contact.ilike.%${filters.search}%`,
+      `name.ilike.%${safe}%,company.ilike.%${safe}%,contact.ilike.%${safe}%`,
     );
   }
 
@@ -84,6 +100,44 @@ export async function updateDealStage(
   stage: string,
 ) {
   return updateDeal(supabase, id, { stage });
+}
+
+export interface PipelineOption {
+  pipeline_name: string;
+  owner_name: string | null;
+  deal_count: number;
+}
+
+export async function getDealPipelines(
+  supabase: SupabaseClient<Database>,
+  tenantId: string,
+): Promise<PipelineOption[]> {
+  const { data, error } = await supabase
+    .from("crm_deals")
+    .select("rd_pipeline_name, owner_name" as never)
+    .eq("tenant_id", tenantId)
+    .not("rd_pipeline_name" as never, "is", null);
+
+  if (error) throw error;
+
+  const rows = (data ?? []) as unknown as Array<{ rd_pipeline_name: string; owner_name: string | null }>;
+  const map = new Map<string, { owner_name: string | null; count: number }>();
+
+  for (const r of rows) {
+    const key = r.rd_pipeline_name;
+    const existing = map.get(key);
+    if (existing) {
+      existing.count++;
+    } else {
+      map.set(key, { owner_name: r.owner_name, count: 1 });
+    }
+  }
+
+  return Array.from(map.entries()).map(([name, v]) => ({
+    pipeline_name: name,
+    owner_name: v.owner_name,
+    deal_count: v.count,
+  }));
 }
 
 const CLOSED_STAGES = ["fechado_ganho", "fechado_perdido"];

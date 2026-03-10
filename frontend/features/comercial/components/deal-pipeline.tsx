@@ -8,26 +8,19 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  useDroppable,
-  useDraggable,
   type DragStartEvent,
   type DragEndEvent,
   type DragOverEvent,
 } from "@dnd-kit/core";
 import { DealCard } from "./deal-card";
+import { DraggableDeal } from "./draggable-deal";
+import { DroppableStageColumn } from "./droppable-stage-column";
+import { formatCurrency } from "@/features/comercial/lib/format-currency";
 import { DEAL_STAGES, type DealStageKey } from "@/lib/constants";
 import { Briefcase } from "lucide-react";
 import type { Database } from "@/lib/supabase/types";
 
 type DealRow = Database["public"]["Tables"]["crm_deals"]["Row"];
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 0,
-  }).format(value);
-}
 
 interface DealPipelineProps {
   deals: DealRow[];
@@ -39,72 +32,6 @@ interface DealPipelineProps {
 const orderedStages = Object.entries(DEAL_STAGES)
   .sort(([, a], [, b]) => a.order - b.order)
   .map(([key]) => key as DealStageKey);
-
-/* ─────────────────────── Draggable Deal wrapper ─────────────────────── */
-
-function DraggableDeal({
-  deal,
-  onSelect,
-  isDragActive,
-}: {
-  deal: DealRow;
-  onSelect: (deal: DealRow) => void;
-  isDragActive: boolean;
-}) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } =
-    useDraggable({
-      id: deal.id,
-      data: { deal, stage: deal.stage },
-    });
-
-  const style = transform
-    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
-    : undefined;
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={isDragging ? "z-50 opacity-50" : ""}
-      {...listeners}
-      {...attributes}
-    >
-      <DealCard deal={deal} onClick={onSelect} />
-    </div>
-  );
-}
-
-/* ─────────────────────── Droppable Stage Column ─────────────────────── */
-
-function DroppableStageColumn({
-  stage,
-  children,
-  isOver,
-}: {
-  stage: string;
-  children: React.ReactNode;
-  isOver: boolean;
-}) {
-  const { setNodeRef } = useDroppable({
-    id: stage,
-    data: { type: "column", stage },
-  });
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={`space-y-2 min-h-[60px] rounded-lg p-2 transition-colors duration-200 ${
-        isOver
-          ? "bg-tbo-orange/10 ring-2 ring-tbo-orange/30 ring-inset"
-          : "bg-gray-100/20"
-      }`}
-    >
-      {children}
-    </div>
-  );
-}
-
-/* ─────────────────────── Main Pipeline Component ─────────────────────── */
 
 export function DealPipeline({
   deals,

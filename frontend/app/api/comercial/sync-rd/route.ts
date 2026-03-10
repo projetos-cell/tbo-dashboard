@@ -7,6 +7,7 @@ interface RdDeal {
   id: string;
   name: string;
   amount_total?: number;
+  deal_pipeline_id?: string;
   deal_stage?: { id: string; name: string };
   organization?: { id: string; name: string } | null;
   contacts?: Array<{ id: string; name: string; emails?: Array<{ email: string }> }>;
@@ -20,6 +21,13 @@ interface RdDeal {
   deal_source?: { id: string; name: string } | null;
   rating?: number;
   custom_fields?: Record<string, unknown>;
+}
+
+interface RdPipeline {
+  _id?: string;
+  id: string;
+  name: string;
+  stages?: Array<{ id: string; name: string }>;
 }
 
 interface StageRow {
@@ -40,39 +48,56 @@ async function rdFetchAll<T>(
   const all: T[] = [];
   let page = 1;
   let hasMore = true;
+  const MAX_RETRIES = 3;
 
   while (hasMore) {
     const sep = endpoint.includes("?") ? "&" : "?";
     const url = `${RD_BASE}${endpoint}${sep}token=${token}&page=${page}&limit=${limit}`;
-    const res = await fetch(url, {
-      headers: { Accept: "application/json" },
-    });
 
-    if (!res.ok) {
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      const res = await fetch(url, {
+        headers: { Accept: "application/json" },
+      });
+
+      if (res.ok) {
+        const body = await res.json();
+
+        let items: T[];
+        if (Array.isArray(body)) {
+          items = body;
+        } else {
+          const key = Object.keys(body).find((k) => Array.isArray(body[k]));
+          items = key ? body[key] : [];
+        }
+
+        if (items.length === 0) {
+          hasMore = false;
+        } else {
+          all.push(...items);
+          page++;
+          if (all.length >= 5000) hasMore = false;
+        }
+
+        lastError = null;
+        break;
+      }
+
       if (res.status === 429) {
-        await new Promise((r) => setTimeout(r, 2000));
+        const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
+        await new Promise((r) => setTimeout(r, delay));
+        lastError = new Error(`RD Station rate limited (429) after ${MAX_RETRIES} retries`);
         continue;
       }
+
+      // Non-retryable error
+      hasMore = false;
+      lastError = null;
       break;
     }
 
-    const body = await res.json();
-
-    let items: T[];
-    if (Array.isArray(body)) {
-      items = body;
-    } else {
-      const key = Object.keys(body).find((k) => Array.isArray(body[k]));
-      items = key ? body[key] : [];
-    }
-
-    if (items.length === 0) {
-      hasMore = false;
-    } else {
-      all.push(...items);
-      page++;
-      if (all.length >= 5000) break;
-    }
+    if (lastError) throw lastError;
   }
 
   return all;
@@ -98,11 +123,11 @@ const RD_STAGE_MAP: Record<string, string> = {
   "perdido": "fechado_perdido",
   "lost": "fechado_perdido",
   "fechado perdido": "fechado_perdido",
-  "prospecção": "prospeccao",
-  "prospeccao": "prospeccao",
-  "prospecting": "prospeccao",
-  "contato inicial": "prospeccao",
-  "initial contact": "prospeccao",
+  "prospecção": "lead",
+  "prospeccao": "lead",
+  "prospecting": "lead",
+  "contato inicial": "lead",
+  "initial contact": "lead",
 };
 
 function mapRdStage(
@@ -119,7 +144,7 @@ function mapRdStage(
   }
 
   if (!rdStageName) {
-    return stages[0]?.id ?? "prospeccao";
+    return stages[0]?.id ?? "lead";
   }
 
   const normalized = rdStageName.toLowerCase().trim();
@@ -153,7 +178,7 @@ function mapRdStage(
   return (
     stages.find(
       (s) => !s.id.startsWith("fechado"),
-    )?.id ?? stages[0]?.id ?? "prospeccao"
+    )?.id ?? stages[0]?.id ?? "lead"
   );
 }
 
@@ -223,8 +248,21 @@ export async function POST(req: NextRequest) {
 
     const syncId = (syncLog as Record<string, unknown>).id as string;
 
-    // 3. Fetch deals from RD Station
+    // 3. Fetch pipelines from RD Station (to map pipeline names)
     const token = rdConfig.api_token;
+    let pipelineMap = new Map<string, string>();
+
+    try {
+      const pipelines = await rdFetchAll<RdPipeline>("/deal_pipelines", token);
+      for (const p of pipelines) {
+        const pid = p._id ?? p.id;
+        pipelineMap.set(pid, p.name);
+      }
+    } catch {
+      // Non-fatal: pipeline names won't be mapped but deals still sync
+    }
+
+    // 4. Fetch deals from RD Station
     let rdDeals: RdDeal[] = [];
 
     try {
@@ -242,7 +280,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: msg }, { status: 502 });
     }
 
-    // 4. Load our stages for mapping
+    // 5. Load our stages for mapping
     const { data: stages } = await db
       .from("crm_stages")
       .select("id, label, sort_order")
@@ -250,13 +288,28 @@ export async function POST(req: NextRequest) {
 
     const stageList = (stages ?? []) as StageRow[];
 
-    // 5. Upsert deals into crm_deals
+    // 6. Pre-fetch existing deals in one query (eliminates N+1)
+    const rdDealIds = rdDeals.map((d) => d.id);
+    const { data: existingDeals } = await db
+      .from("crm_deals")
+      .select("id, rd_deal_id")
+      .eq("tenant_id", tenantId)
+      .in("rd_deal_id", rdDealIds);
+
+    const existingMap = new Map(
+      (existingDeals ?? []).map((d) => [d.rd_deal_id, d.id]),
+    );
+
+    // 7. Build insert / update batches
     const results = {
       created: 0,
       updated: 0,
       skipped: 0,
       errors: [] as string[],
     };
+
+    const toInsert: Record<string, unknown>[] = [];
+    const toUpdate: { dbId: string; data: Record<string, unknown> }[] = [];
 
     for (const rd of rdDeals) {
       try {
@@ -273,6 +326,10 @@ export async function POST(req: NextRequest) {
         const contact = rd.contacts?.[0];
         const contactEmail = contact?.emails?.[0]?.email ?? null;
 
+        const rdPipelineId = rd.deal_pipeline_id ?? null;
+        const rdPipelineName = rdPipelineId ? (pipelineMap.get(rdPipelineId) ?? null) : null;
+        const rdUserId = rd.user ? ((rd.user as Record<string, unknown>)._id as string ?? (rd.user as Record<string, unknown>).id as string ?? null) : null;
+
         const dealData: Record<string, unknown> = {
           tenant_id: tenantId,
           name: rd.name,
@@ -285,30 +342,20 @@ export async function POST(req: NextRequest) {
           owner_name: rd.user?.name ?? null,
           source: "rdstation",
           rd_deal_id: rd.id,
+          rd_pipeline_id: rdPipelineId,
+          rd_pipeline_name: rdPipelineName,
+          rd_user_id: rdUserId,
           expected_close: rd.prediction_date ?? null,
           updated_at: new Date().toISOString(),
         };
 
-        // Find existing by rd_deal_id
-        const { data: existing } = await db
-          .from("crm_deals")
-          .select("id")
-          .eq("tenant_id", tenantId)
-          .eq("rd_deal_id", rd.id)
-          .maybeSingle();
+        const existingId = existingMap.get(rd.id);
 
-        if (existing) {
-          // Update existing
+        if (existingId) {
           const { tenant_id: _, ...updates } = dealData;
-          await db
-            .from("crm_deals")
-            .update(updates as never)
-            .eq("id", existing.id);
-          results.updated++;
+          toUpdate.push({ dbId: existingId, data: updates });
         } else {
-          // Insert new
-          await db.from("crm_deals").insert(dealData as never);
-          results.created++;
+          toInsert.push(dealData);
         }
       } catch (err) {
         results.errors.push(
@@ -317,7 +364,36 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 6. Update sync log
+    // 8. Batch insert new deals
+    if (toInsert.length > 0) {
+      const BATCH_SIZE = 100;
+      for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
+        const batch = toInsert.slice(i, i + BATCH_SIZE);
+        const { error: insertErr } = await db
+          .from("crm_deals")
+          .insert(batch as never);
+        if (insertErr) {
+          results.errors.push(`Batch insert: ${insertErr.message}`);
+        } else {
+          results.created += batch.length;
+        }
+      }
+    }
+
+    // 9. Batch update existing deals (individual updates — Supabase lacks bulk update)
+    for (const item of toUpdate) {
+      const { error: updateErr } = await db
+        .from("crm_deals")
+        .update(item.data as never)
+        .eq("id", item.dbId);
+      if (updateErr) {
+        results.errors.push(`Update ${item.dbId}: ${updateErr.message}`);
+      } else {
+        results.updated++;
+      }
+    }
+
+    // 10. Update sync log
     await db
       .from("rd_sync_log" as never)
       .update({
@@ -328,7 +404,7 @@ export async function POST(req: NextRequest) {
       } as never)
       .eq("id", syncId);
 
-    // 7. Update rd_config.last_sync
+    // 11. Update rd_config.last_sync
     await db
       .from("rd_config" as never)
       .update({ last_sync: new Date().toISOString() } as never)

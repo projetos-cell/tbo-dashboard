@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState, useMemo } from "react";
-import { useDeals, useUpdateDealStage, useRdSyncDeals, useRdConfig } from "@/features/comercial/hooks/use-commercial";
+import { useDeals, useUpdateDealStage, useRdSyncDeals } from "@/features/comercial/hooks/use-commercial";
 import { DealKPICards } from "@/features/comercial/components/deal-kpis";
 import { DealFilters } from "@/features/comercial/components/deal-filters";
 import { DealPipeline } from "@/features/comercial/components/deal-pipeline";
@@ -11,7 +11,6 @@ import { computeDealKPIs } from "@/features/comercial/services/commercial";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { ErrorState } from "@/components/shared";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Plus, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/lib/supabase/types";
@@ -33,14 +32,8 @@ export default function ComercialPage() {
 
   const updateStage = useUpdateDealStage();
   const rdSync = useRdSyncDeals();
-  const { data: rdConfig, isLoading: rdConfigLoading } = useRdConfig();
-  const hasRd = !!rdConfig?.api_token && rdConfig.enabled;
 
   function handleSyncRd() {
-    if (!hasRd) {
-      toast.error("RD Station não configurado. Vá em Integrações para adicionar seu token.");
-      return;
-    }
     rdSync.mutate(undefined, {
       onSuccess: (data) => {
         toast.success(
@@ -98,7 +91,7 @@ export default function ComercialPage() {
               variant="outline"
               size="sm"
               onClick={handleSyncRd}
-              disabled={rdSync.isPending || rdConfigLoading}
+              disabled={rdSync.isPending}
             >
               {rdSync.isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

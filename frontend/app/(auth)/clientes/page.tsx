@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState, useMemo } from "react";
-import { useClients } from "@/features/clientes/hooks/use-clients";
+import { useClients, useImportClients } from "@/features/clientes/hooks/use-clients";
 import { ClientKPICards } from "@/features/clientes/components/client-kpis";
 import { ClientFilters } from "@/features/clientes/components/client-filters";
 import { ClientGrid } from "@/features/clientes/components/client-grid";
@@ -11,7 +11,8 @@ import { computeClientKPIs } from "@/features/clientes/services/clients";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { ErrorState, EmptyState } from "@/components/shared";
 import { Button } from "@/components/ui/button";
-import { Plus, Users } from "lucide-react";
+import { Plus, Users, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 import type { Database } from "@/lib/supabase/types";
 
 type ClientRow = Database["public"]["Tables"]["clients"]["Row"];
@@ -29,7 +30,24 @@ export default function ClientesPage() {
     search: search || undefined,
   });
 
+  const importMutation = useImportClients();
+
   const kpis = useMemo(() => computeClientKPIs(clients), [clients]);
+
+  function handleImport() {
+    importMutation.mutate(undefined, {
+      onSuccess: (result) => {
+        toast.success(
+          `Importados: ${result.omie_imported} Omie + ${result.rd_imported} RD Station` +
+          (result.merged ? ` (${result.merged} mesclados)` : "") +
+          (result.projects_linked ? ` · ${result.projects_linked} projetos vinculados` : "")
+        );
+      },
+      onError: (err) => {
+        toast.error(`Erro na importação: ${err.message}`);
+      },
+    });
+  }
 
   function handleSelect(client: ClientRow) {
     setSelectedClient(client);
@@ -66,10 +84,20 @@ export default function ClientesPage() {
               Gerencie sua carteira de clientes e acompanhe interações.
             </p>
           </div>
-          <Button onClick={handleNewClient}>
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Cliente
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={handleImport}
+              disabled={importMutation.isPending}
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${importMutation.isPending ? "animate-spin" : ""}`} />
+              {importMutation.isPending ? "Importando…" : "Sincronizar Omie + RD"}
+            </Button>
+            <Button onClick={handleNewClient}>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Cliente
+            </Button>
+          </div>
         </div>
 
         {/* KPIs */}

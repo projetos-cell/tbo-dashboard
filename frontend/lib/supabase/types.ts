@@ -1014,10 +1014,13 @@ export type Database = {
           next_action: string | null
           next_action_date: string | null
           notes: string | null
+          omie_id: string | null
           phone: string | null
+          rd_id: string | null
           relationship_status: string | null
           sales_owner: string | null
           segment: string | null
+          source: string | null
           state: string | null
           status: string
           tenant_id: string
@@ -1037,10 +1040,13 @@ export type Database = {
           next_action?: string | null
           next_action_date?: string | null
           notes?: string | null
+          omie_id?: string | null
           phone?: string | null
+          rd_id?: string | null
           relationship_status?: string | null
           sales_owner?: string | null
           segment?: string | null
+          source?: string | null
           state?: string | null
           status?: string
           tenant_id: string
@@ -1060,10 +1066,13 @@ export type Database = {
           next_action?: string | null
           next_action_date?: string | null
           notes?: string | null
+          omie_id?: string | null
           phone?: string | null
+          rd_id?: string | null
           relationship_status?: string | null
           sales_owner?: string | null
           segment?: string | null
+          source?: string | null
           state?: string | null
           status?: string
           tenant_id?: string
@@ -6859,6 +6868,7 @@ export type Database = {
           bus: string[] | null
           client: string | null
           client_company: string | null
+          client_id: string | null
           code: string | null
           construtora: string | null
           created_at: string | null
@@ -6885,6 +6895,7 @@ export type Database = {
           bus?: string[] | null
           client?: string | null
           client_company?: string | null
+          client_id?: string | null
           code?: string | null
           construtora?: string | null
           created_at?: string | null
@@ -6910,6 +6921,7 @@ export type Database = {
         Update: {
           bus?: string[] | null
           client?: string | null
+          client_id?: string | null
           client_company?: string | null
           code?: string | null
           construtora?: string | null

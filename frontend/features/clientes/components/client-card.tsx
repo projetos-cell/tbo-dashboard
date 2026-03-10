@@ -48,13 +48,18 @@ export function ClientCard({ client, onClick }: ClientCardProps) {
           </div>
         </div>
 
-        <div className="mt-3 flex items-center gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
           <Badge
             variant="secondary"
             style={{ backgroundColor: statusConfig.bg, color: statusConfig.color }}
           >
             {statusConfig.label}
           </Badge>
+          {client.source && client.source !== "manual" && (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal text-gray-400">
+              {client.source === "omie" ? "Omie" : client.source === "rdstation" ? "RD" : client.source === "merged" ? "Omie+RD" : client.source}
+            </Badge>
+          )}
           {client.segment && (
             <Badge variant="outline" className="text-xs">
               {client.segment}

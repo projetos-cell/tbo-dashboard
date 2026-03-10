@@ -99,3 +99,39 @@ export function useCreateInteraction() {
     },
   });
 }
+
+// ── Import from Omie + RD Station ─────────────────────────────────────────────
+
+export interface ImportResult {
+  success: boolean;
+  omie_imported: number;
+  rd_imported: number;
+  merged: number;
+  classified: Record<string, number>;
+  projects_linked: number;
+  errors: string[];
+}
+
+export function useImportClients() {
+  const tenantId = useAuthStore((s) => s.tenantId);
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (): Promise<ImportResult> => {
+      if (!tenantId) throw new Error("Tenant não encontrado");
+      const res = await fetch("/api/clients/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tenant_id: tenantId }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Erro desconhecido" }));
+        throw new Error(err.error ?? `Erro ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+    },
+  });
+}

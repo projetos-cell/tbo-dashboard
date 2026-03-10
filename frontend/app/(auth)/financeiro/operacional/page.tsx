@@ -1,33 +1,25 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect, Suspense } from "react";
 import { useQueryParam } from "@/hooks/use-query-param";
 import {
   Users,
   Receipt,
   Cog,
-  Target,
-  TrendingUp,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
-  Save,
-  StickyNote,
   DollarSign,
+  RefreshCw,
 } from "lucide-react";
 import { RBACGuard } from "@/components/rbac-guard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  useOperationalIndicators,
-  useUpsertOperationalIndicator,
-} from "@/features/financeiro/hooks/use-operational-indicators";
-import { usePayrollBreakdown, useFounderKPIs } from "@/features/financeiro/hooks/use-finance";
+import { Button } from "@/components/ui/button";
+import { useSheetPayroll, useFounderKPIs } from "@/features/financeiro/hooks/use-finance";
 import { OperationalIndicatorsSection } from "@/features/financeiro/components/sections/operational-indicators-section";
 import { useFounderDashboard } from "@/features/founder-dashboard/hooks/use-founder-dashboard";
 import { fmt, fmtPct } from "@/features/financeiro/lib/formatters";
-import type { UpsertOperationalIndicatorInput } from "@/features/financeiro/services/operational-indicators";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -48,233 +40,36 @@ function formatMonthLabel(month: string): string {
   return date.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 }
 
-function getMonthRange(month: string): { from: string; to: string } {
-  const [y, m] = month.split("-").map(Number);
-  const from = `${y}-${String(m).padStart(2, "0")}-01`;
-  const lastDay = new Date(y, m, 0).getDate();
-  const to = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-  return { from, to };
-}
-
-function parseBRL(raw: string): number | null {
-  const cleaned = raw
-    .replace(/[^\d,.-]/g, "")
-    .replace(/\.(?=\d{3}[,.])/g, "")
-    .replace(",", ".");
-  const n = parseFloat(cleaned);
-  return isNaN(n) ? null : n;
-}
-
-function fmtBRL(value: number): string {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 2,
-  }).format(value);
-}
-
-// ── InlineField (for manual inputs) ──────────────────────────────────────────
-
-interface FieldDef {
-  key: keyof UpsertOperationalIndicatorInput;
-  label: string;
-  placeholder: string;
-  icon: React.ReactNode;
-  type: "currency" | "percent";
-  description: string;
-}
-
-const MANUAL_FIELDS: FieldDef[] = [
-  {
-    key: "meta_receita",
-    label: "Meta de Receita",
-    placeholder: "Ex: 200.000,00",
-    icon: <Target className="h-4 w-4 text-emerald-500" />,
-    type: "currency",
-    description: "Meta de receita para o mês",
-  },
-  {
-    key: "meta_margem",
-    label: "Meta de Margem (%)",
-    placeholder: "Ex: 35",
-    icon: <TrendingUp className="h-4 w-4 text-blue-500" />,
-    type: "percent",
-    description: "Meta de margem líquida em percentual",
-  },
-];
-
-interface InlineFieldProps {
-  field: FieldDef;
-  value: number | null | undefined;
-  onChange: (key: keyof UpsertOperationalIndicatorInput, val: number | null) => void;
-}
-
-function InlineField({ field, value, onChange }: InlineFieldProps) {
-  const [editing, setEditing] = useState(false);
-  const [rawValue, setRawValue] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (editing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [editing]);
-
-  function startEdit() {
-    if (value !== null && value !== undefined) {
-      if (field.type === "currency") {
-        setRawValue(
-          value.toLocaleString("pt-BR", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          }),
-        );
-      } else {
-        setRawValue(String(value));
-      }
-    } else {
-      setRawValue("");
-    }
-    setEditing(true);
-  }
-
-  function commitEdit() {
-    setEditing(false);
-    if (rawValue.trim() === "") {
-      onChange(field.key, null);
-      return;
-    }
-
-    let parsed: number | null = null;
-    if (field.type === "currency") {
-      parsed = parseBRL(rawValue);
-    } else {
-      parsed = parseFloat(rawValue.replace(",", "."));
-      if (parsed !== null && isNaN(parsed)) parsed = null;
-    }
-    onChange(field.key, parsed);
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter") commitEdit();
-    else if (e.key === "Escape") setEditing(false);
-  }
-
-  function displayValue(): string {
-    if (value === null || value === undefined) return "—";
-    if (field.type === "currency") return fmtBRL(value);
-    if (field.type === "percent") return `${value}%`;
-    return String(value);
-  }
-
-  return (
-    <div className="flex items-center gap-3 py-3 border-b border-gray-100 last:border-0 group">
-      <div className="shrink-0">{field.icon}</div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900">{field.label}</p>
-        <p className="text-xs text-gray-500">{field.description}</p>
-      </div>
-      <div className="w-40 shrink-0">
-        {editing ? (
-          <input
-            ref={inputRef}
-            type="text"
-            inputMode="decimal"
-            value={rawValue}
-            onChange={(e) => setRawValue(e.target.value)}
-            onBlur={commitEdit}
-            onKeyDown={handleKeyDown}
-            placeholder={field.placeholder}
-            className="w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-right text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-tbo-orange/30 focus:border-tbo-orange transition"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={startEdit}
-            className="w-full text-right px-3 py-1.5 rounded-md text-sm font-medium text-gray-900 hover:bg-gray-50 transition cursor-text group-hover:bg-gray-50"
-          >
-            {displayValue()}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 function OperacionalContent() {
   const [month, setMonthParam] = useQueryParam("month", getCurrentMonth());
-  const [localValues, setLocalValues] = useState<
-    Partial<Record<keyof UpsertOperationalIndicatorInput, number | null>>
-  >({});
-  const [notes, setNotes] = useState("");
-  const [dirty, setDirty] = useState(false);
 
-  const { from, to } = getMonthRange(month);
-
-  // Auto-detected payroll data
-  const { data: payroll, isLoading: payrollLoading } = usePayrollBreakdown(from, to);
-
-  // Manual indicators (meta_receita, meta_margem)
-  const { data: indicators, isLoading: indicatorsLoading } = useOperationalIndicators(month);
-  const mutation = useUpsertOperationalIndicator();
+  // Google Sheets payroll data
+  const {
+    data: payroll,
+    isLoading: payrollLoading,
+    isError: payrollError,
+    refetch: refetchPayroll,
+    isFetching,
+  } = useSheetPayroll(month);
 
   // Founder KPIs for receita
   const { data: kpis } = useFounderKPIs();
 
-  // Dashboard for the operational section
-  const { data: dashData, isLoading: dashLoading, error: dashError, refetch } =
-    useFounderDashboard({ preset: "ytd" });
-
-  // Sync manual fields when data loads
-  useEffect(() => {
-    if (indicators) {
-      setLocalValues({
-        meta_receita: indicators.meta_receita as number | null,
-        meta_margem: indicators.meta_margem as number | null,
-      });
-      setNotes(indicators.notes ?? "");
-      setDirty(false);
-    } else if (!indicatorsLoading) {
-      setLocalValues({});
-      setNotes("");
-      setDirty(false);
-    }
-  }, [indicators, indicatorsLoading]);
-
-  const handleFieldChange = useCallback(
-    (key: keyof UpsertOperationalIndicatorInput, val: number | null) => {
-      setLocalValues((prev) => ({ ...prev, [key]: val }));
-      setDirty(true);
-    },
-    [],
-  );
-
-  function handleSave() {
-    const input: UpsertOperationalIndicatorInput = {
-      month,
-      headcount: null,
-      folha_pagamento: null,
-      custos_fixos: null,
-      meta_receita: localValues.meta_receita ?? null,
-      meta_margem: localValues.meta_margem ?? null,
-      churn_clientes_perdidos: null,
-      notes: notes.trim() || null,
-    };
-
-    mutation.mutate(input, {
-      onSuccess: () => setDirty(false),
-    });
-  }
+  // Dashboard for operational section
+  const {
+    data: dashData,
+    isLoading: dashLoading,
+    error: dashError,
+    refetch,
+  } = useFounderDashboard({ preset: "ytd" });
 
   const isCurrentMonth = month === getCurrentMonth();
   const receitaPerColaborador =
     payroll && payroll.headcount > 0 && kpis
       ? kpis.receitaMTD / payroll.headcount
       : 0;
-  const totalCustos = (payroll?.totalFolha ?? 0) + (payroll?.totalOperacional ?? 0);
 
   return (
     <div className="space-y-6">
@@ -282,7 +77,7 @@ function OperacionalContent() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Indicadores Operacionais</h1>
         <p className="text-sm text-muted-foreground">
-          Equipe e custos detectados automaticamente via transações Omie.
+          Equipe e custos via orçamento TBO (Google Sheets).
         </p>
       </div>
 
@@ -316,7 +111,7 @@ function OperacionalContent() {
         </button>
       </div>
 
-      {/* KPI summary cards (all auto-detected) */}
+      {/* KPI summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -331,7 +126,7 @@ function OperacionalContent() {
             ) : (
               <>
                 <p className="text-xl font-bold text-indigo-600">{payroll?.headcount ?? 0}</p>
-                <p className="text-xs text-muted-foreground">colaboradores com pagamento</p>
+                <p className="text-xs text-muted-foreground">colaboradores com salário</p>
               </>
             )}
           </CardContent>
@@ -349,9 +144,7 @@ function OperacionalContent() {
             ) : (
               <>
                 <p className="text-xl font-bold text-rose-600">{fmt(payroll?.totalFolha ?? 0)}</p>
-                <p className="text-xs text-muted-foreground">
-                  {totalCustos > 0 ? fmtPct(((payroll?.totalFolha ?? 0) / totalCustos) * 100) : "0%"} dos custos
-                </p>
+                <p className="text-xs text-muted-foreground">salários totais</p>
               </>
             )}
           </CardContent>
@@ -360,7 +153,7 @@ function OperacionalContent() {
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground uppercase flex items-center gap-1">
               <Cog className="size-3.5 text-slate-500" />
-              Custos Operacionais
+              Desp. Pessoas (seção)
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -368,10 +161,8 @@ function OperacionalContent() {
               <Skeleton className="h-7 w-24" />
             ) : (
               <>
-                <p className="text-xl font-bold text-slate-600">{fmt(payroll?.totalOperacional ?? 0)}</p>
-                <p className="text-xs text-muted-foreground">
-                  {totalCustos > 0 ? fmtPct(((payroll?.totalOperacional ?? 0) / totalCustos) * 100) : "0%"} dos custos
-                </p>
+                <p className="text-xl font-bold text-slate-600">{fmt(payroll?.totalDespesas ?? 0)}</p>
+                <p className="text-xs text-muted-foreground">subtotal planilha</p>
               </>
             )}
           </CardContent>
@@ -396,14 +187,26 @@ function OperacionalContent() {
         </Card>
       </div>
 
-      {/* Equipe & Folha — auto-detected table */}
+      {/* Equipe & Folha — from Google Sheets */}
       <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-semibold">Equipe & Folha (auto-detectado)</CardTitle>
-            <Badge variant="outline" className="text-xs">
-              {payroll?.vendors.length ?? 0} colaboradores
-            </Badge>
+            <CardTitle className="text-sm font-semibold">Equipe & Folha</CardTitle>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs">
+                {payroll?.headcount ?? 0} colaboradores
+              </Badge>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => refetchPayroll()}
+                disabled={isFetching}
+                title="Atualizar dados da planilha"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -413,11 +216,22 @@ function OperacionalContent() {
                 <Skeleton key={i} className="h-10 w-full" />
               ))}
             </div>
-          ) : !payroll?.vendors.length ? (
+          ) : payrollError ? (
+            <div className="flex flex-col items-center justify-center py-8 gap-2 text-red-500">
+              <Cog className="h-8 w-8" />
+              <p className="text-sm font-medium">Erro ao carregar planilha</p>
+              <p className="text-xs text-muted-foreground">
+                Verifique se a planilha está compartilhada como &quot;qualquer pessoa com o link&quot;.
+              </p>
+              <Button variant="outline" size="sm" onClick={() => refetchPayroll()}>
+                Tentar novamente
+              </Button>
+            </div>
+          ) : !payroll?.members.length ? (
             <div className="flex flex-col items-center justify-center py-8 gap-2 text-muted-foreground">
               <Users className="h-8 w-8" />
-              <p className="text-sm font-medium">Nenhum pagamento de folha detectado</p>
-              <p className="text-xs">Verifique se há transações com fornecedores da equipe no período.</p>
+              <p className="text-sm font-medium">Nenhum colaborador encontrado</p>
+              <p className="text-xs">Verifique a aba &quot;Fluxo de Caixa 2026&quot; na planilha.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -425,24 +239,42 @@ function OperacionalContent() {
                 <thead>
                   <tr className="border-b text-left text-muted-foreground">
                     <th className="pb-2 font-medium">Colaborador</th>
-                    <th className="pb-2 font-medium text-right">Valor Pago</th>
-                    <th className="pb-2 font-medium text-right">Pagamentos</th>
+                    <th className="pb-2 font-medium">Cargo</th>
+                    <th className="pb-2 font-medium">Área</th>
+                    <th className="pb-2 font-medium text-right">Salário</th>
                     <th className="pb-2 font-medium text-right">% Folha</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {payroll.vendors.map((v) => (
-                    <tr key={v.vendor} className="border-b last:border-0">
-                      <td className="py-2 font-medium">{v.vendor}</td>
-                      <td className="py-2 text-right text-rose-600">{fmt(v.total)}</td>
-                      <td className="py-2 text-right text-muted-foreground">{v.count}</td>
-                      <td className="py-2 text-right text-muted-foreground">
-                        {payroll.totalFolha > 0
-                          ? fmtPct((v.total / payroll.totalFolha) * 100)
-                          : "0%"}
-                      </td>
-                    </tr>
-                  ))}
+                  {payroll.members
+                    .filter((m) => m.salary > 0)
+                    .sort((a, b) => b.salary - a.salary)
+                    .map((m) => (
+                      <tr key={m.name} className="border-b last:border-0">
+                        <td className="py-2 font-medium">{m.name}</td>
+                        <td className="py-2 text-muted-foreground">{m.role || "—"}</td>
+                        <td className="py-2">
+                          <Badge
+                            variant="outline"
+                            className={
+                              m.section === "vendas"
+                                ? "text-blue-700 border-blue-300 bg-blue-50"
+                                : "text-indigo-700 border-indigo-300 bg-indigo-50"
+                            }
+                          >
+                            {m.section === "vendas" ? "Vendas" : "Equipe"}
+                          </Badge>
+                        </td>
+                        <td className="py-2 text-right text-rose-600 font-medium">
+                          {fmt(m.salary)}
+                        </td>
+                        <td className="py-2 text-right text-muted-foreground">
+                          {payroll.totalFolha > 0
+                            ? fmtPct((m.salary / payroll.totalFolha) * 100)
+                            : "0%"}
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
               <div className="mt-3 pt-3 border-t flex justify-between text-sm font-medium">
@@ -450,88 +282,6 @@ function OperacionalContent() {
                 <span className="text-rose-600">{fmt(payroll.totalFolha)}</span>
               </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Manual inputs — only metas */}
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Target className="h-4 w-4 text-tbo-orange" />
-              <CardTitle className="text-sm font-semibold">Metas Manuais</CardTitle>
-              {indicators && (
-                <span className="text-xs text-gray-400">
-                  Atualizado em{" "}
-                  {new Date(indicators.updated_at).toLocaleDateString("pt-BR", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
-              )}
-            </div>
-            <button
-              onClick={handleSave}
-              disabled={!dirty || mutation.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold bg-tbo-orange hover:bg-tbo-orange/90 text-white disabled:opacity-40 disabled:cursor-not-allowed transition"
-            >
-              <Save className="h-3.5 w-3.5" />
-              {mutation.isPending ? "Salvando..." : "Salvar"}
-            </button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {indicatorsLoading ? (
-            <div className="space-y-4">
-              {Array.from({ length: 2 }).map((_, i) => (
-                <div key={i} className="h-12 animate-pulse rounded bg-gray-100" />
-              ))}
-            </div>
-          ) : (
-            <>
-              <div>
-                {MANUAL_FIELDS.map((field) => (
-                  <InlineField
-                    key={field.key}
-                    field={field}
-                    value={localValues[field.key]}
-                    onChange={handleFieldChange}
-                  />
-                ))}
-              </div>
-
-              {/* Notes field */}
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <div className="flex items-center gap-2 mb-2">
-                  <StickyNote className="h-4 w-4 text-gray-400" />
-                  <label className="text-sm font-medium text-gray-900">
-                    Observações
-                  </label>
-                </div>
-                <textarea
-                  value={notes}
-                  onChange={(e) => {
-                    setNotes(e.target.value);
-                    setDirty(true);
-                  }}
-                  placeholder="Contexto sobre metas deste mês..."
-                  rows={2}
-                  className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-tbo-orange/20 transition resize-none"
-                />
-              </div>
-            </>
-          )}
-
-          {mutation.isError && (
-            <p className="mt-3 text-xs text-red-500">
-              Erro ao salvar: {mutation.error.message}
-            </p>
-          )}
-          {mutation.isSuccess && !dirty && (
-            <p className="mt-3 text-xs text-emerald-600">Metas salvas com sucesso.</p>
           )}
         </CardContent>
       </Card>

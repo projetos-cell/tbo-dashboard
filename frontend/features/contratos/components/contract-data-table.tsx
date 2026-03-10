@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -7,13 +8,25 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   MoreVertical,
   Pencil,
   Download,
   RefreshCw,
+  Trash2,
   AlertTriangle,
 } from "lucide-react";
 import type { Database } from "@/lib/supabase/types";
@@ -32,6 +45,7 @@ interface ContractDataTableProps {
   showCategory?: boolean;
   onEdit: (contract: ContractRow) => void;
   onSelect: (contract: ContractRow) => void;
+  onDelete: (contract: ContractRow) => void;
 }
 
 function formatCurrency(value: number) {
@@ -60,13 +74,24 @@ function isExpiring(contract: ContractRow, days = 30): boolean {
   return diff >= 0 && diff <= days;
 }
 
+/** Resolve a downloadable URL — tries file_url first, then source_path */
+function getFileUrl(contract: ContractRow): string | null {
+  if (contract.file_url) return contract.file_url;
+  if (contract.source_path && contract.source_path.startsWith("http"))
+    return contract.source_path;
+  return null;
+}
+
 export function ContractDataTable({
   contracts,
   isLoading,
   showCategory = true,
   onEdit,
   onSelect,
+  onDelete,
 }: ContractDataTableProps) {
+  const [deleteTarget, setDeleteTarget] = useState<ContractRow | null>(null);
+
   if (isLoading) {
     return (
       <div className="rounded-xl border border-border/50 overflow-hidden">
@@ -106,240 +131,284 @@ export function ContractDataTable({
   }
 
   return (
-    <div className="rounded-xl border border-border/50 overflow-hidden">
-      {/* Header */}
-      <div className="bg-muted/30 px-4 py-3 hidden md:block">
-        <div className="grid grid-cols-12 gap-4 items-center">
-          <div className="col-span-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            Nome / Objeto
-          </div>
-          {showCategory && (
-            <div className="col-span-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Tipo
+    <>
+      <div className="rounded-xl border border-border/50 overflow-hidden">
+        {/* Header */}
+        <div className="bg-muted/30 px-4 py-3 hidden md:block">
+          <div className="grid grid-cols-12 gap-4 items-center">
+            <div className="col-span-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Nome / Objeto
             </div>
-          )}
-          <div
-            className={`${showCategory ? "col-span-2" : "col-span-3"} text-xs font-medium text-muted-foreground uppercase tracking-wider`}
-          >
-            Responsável
-          </div>
-          <div className="col-span-2 text-xs font-medium text-muted-foreground uppercase tracking-wider text-right">
-            Valor
-          </div>
-          <div className="col-span-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            Vigência / Status
-          </div>
-          <div className="col-span-1 text-xs font-medium text-muted-foreground uppercase tracking-wider text-right">
-            Ações
+            {showCategory && (
+              <div className="col-span-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Tipo
+              </div>
+            )}
+            <div
+              className={`${showCategory ? "col-span-2" : "col-span-3"} text-xs font-medium text-muted-foreground uppercase tracking-wider`}
+            >
+              Responsável
+            </div>
+            <div className="col-span-2 text-xs font-medium text-muted-foreground uppercase tracking-wider text-right">
+              Valor
+            </div>
+            <div className="col-span-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Vigência / Status
+            </div>
+            <div className="col-span-1 text-xs font-medium text-muted-foreground uppercase tracking-wider text-right">
+              Ações
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Rows */}
-      <div className="divide-y divide-border/50">
-        {contracts.map((contract) => {
-          const statusCfg =
-            CONTRACT_STATUS[contract.status as ContractStatusKey] ?? {
-              label: contract.status ?? "—",
-              color: "#6b7280",
-              bg: "rgba(107,114,128,0.12)",
-            };
-          const categoryCfg =
-            CONTRACT_CATEGORY[contract.category as ContractCategoryKey];
-          const expiring = isExpiring(contract);
+        {/* Rows */}
+        <div className="divide-y divide-border/50">
+          {contracts.map((contract) => {
+            const statusCfg =
+              CONTRACT_STATUS[contract.status as ContractStatusKey] ?? {
+                label: contract.status ?? "—",
+                color: "#6b7280",
+                bg: "rgba(107,114,128,0.12)",
+              };
+            const categoryCfg =
+              CONTRACT_CATEGORY[contract.category as ContractCategoryKey];
+            const expiring = isExpiring(contract);
+            const downloadUrl = getFileUrl(contract);
 
-          return (
-            <div
-              key={contract.id}
-              className="group px-4 py-3 transition-colors hover:bg-muted/20 cursor-pointer"
-              onClick={() => onSelect(contract)}
-            >
-              {/* Desktop layout */}
-              <div className="hidden md:grid grid-cols-12 gap-4 items-center">
-                {/* Nome / Objeto */}
-                <div className="col-span-4 min-w-0">
-                  <p className="font-medium text-sm truncate">
-                    {contract.title}
-                  </p>
-                  {contract.file_name && (
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">
-                      {contract.file_name}
-                    </p>
-                  )}
-                </div>
-
-                {/* Tipo badge */}
-                {showCategory && (
-                  <div className="col-span-1">
-                    {categoryCfg ? (
-                      <Badge
-                        variant="secondary"
-                        className="text-[10px] px-1.5 py-0"
-                        style={{
-                          backgroundColor: categoryCfg.bg,
-                          color: categoryCfg.color,
-                        }}
-                      >
-                        {categoryCfg.label}
-                      </Badge>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
-                  </div>
-                )}
-
-                {/* Responsável / PO */}
-                <div
-                  className={`${showCategory ? "col-span-2" : "col-span-3"} flex items-center gap-2 min-w-0`}
-                >
-                  {contract.person_name ? (
-                    <>
-                      <Avatar className="h-7 w-7 shrink-0">
-                        <AvatarFallback className="text-[10px] bg-muted">
-                          {getInitials(contract.person_name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm truncate">
-                        {contract.person_name}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">—</span>
-                  )}
-                </div>
-
-                {/* Valor */}
-                <div className="col-span-2 text-right">
-                  {contract.monthly_value != null &&
-                  contract.monthly_value > 0 ? (
-                    <span className="text-sm font-medium">
-                      {formatCurrency(contract.monthly_value)}
-                    </span>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">—</span>
-                  )}
-                </div>
-
-                {/* Vigência / Status */}
-                <div className="col-span-2 flex items-center gap-2">
-                  <Badge
-                    variant="secondary"
-                    className="text-[10px] px-1.5 py-0 shrink-0"
-                    style={{
-                      backgroundColor: statusCfg.bg,
-                      color: statusCfg.color,
-                    }}
-                  >
-                    {statusCfg.label}
-                  </Badge>
-                  {contract.end_date && (
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
-                      {new Date(contract.end_date).toLocaleDateString("pt-BR")}
-                    </span>
-                  )}
-                  {expiring && (
-                    <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                  )}
-                </div>
-
-                {/* Ações */}
-                <div
-                  className="col-span-1 flex justify-end"
-                  onClick={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
-                >
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-40">
-                      <DropdownMenuItem onClick={() => onEdit(contract)}>
-                        <Pencil className="mr-2 h-3.5 w-3.5" />
-                        Editar
-                      </DropdownMenuItem>
-                      {contract.file_url && (
-                        <DropdownMenuItem asChild>
-                          <a
-                            href={contract.file_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <Download className="mr-2 h-3.5 w-3.5" />
-                            Baixar PDF
-                          </a>
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem onClick={() => onEdit(contract)}>
-                        <RefreshCw className="mr-2 h-3.5 w-3.5" />
-                        Renovar
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-
-              {/* Mobile layout */}
-              <div className="md:hidden space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
+            return (
+              <div
+                key={contract.id}
+                className="group px-4 py-3 transition-colors hover:bg-muted/20 cursor-pointer"
+                onClick={() => onSelect(contract)}
+              >
+                {/* Desktop layout */}
+                <div className="hidden md:grid grid-cols-12 gap-4 items-center">
+                  {/* Nome / Objeto */}
+                  <div className="col-span-4 min-w-0">
                     <p className="font-medium text-sm truncate">
                       {contract.title}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {contract.person_name ?? "Sem responsável"}
-                    </p>
+                    {contract.file_name && (
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">
+                        {contract.file_name}
+                      </p>
+                    )}
                   </div>
-                  <Badge
-                    variant="secondary"
-                    className="text-[10px] px-1.5 py-0 shrink-0"
-                    style={{
-                      backgroundColor: statusCfg.bg,
-                      color: statusCfg.color,
-                    }}
+
+                  {/* Tipo badge */}
+                  {showCategory && (
+                    <div className="col-span-1">
+                      {categoryCfg ? (
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] px-1.5 py-0"
+                          style={{
+                            backgroundColor: categoryCfg.bg,
+                            color: categoryCfg.color,
+                          }}
+                        >
+                          {categoryCfg.label}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Responsável / PO */}
+                  <div
+                    className={`${showCategory ? "col-span-2" : "col-span-3"} flex items-center gap-2 min-w-0`}
                   >
-                    {statusCfg.label}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {categoryCfg && (
-                      <Badge
-                        variant="secondary"
-                        className="text-[10px] px-1.5 py-0"
-                        style={{
-                          backgroundColor: categoryCfg.bg,
-                          color: categoryCfg.color,
-                        }}
-                      >
-                        {categoryCfg.label}
-                      </Badge>
-                    )}
-                    {contract.end_date && (
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(contract.end_date).toLocaleDateString(
-                          "pt-BR"
-                        )}
-                      </span>
+                    {contract.person_name ? (
+                      <>
+                        <Avatar className="h-7 w-7 shrink-0">
+                          <AvatarFallback className="text-[10px] bg-muted">
+                            {getInitials(contract.person_name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm truncate">
+                          {contract.person_name}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">—</span>
                     )}
                   </div>
-                  {contract.monthly_value != null &&
-                    contract.monthly_value > 0 && (
+
+                  {/* Valor */}
+                  <div className="col-span-2 text-right">
+                    {contract.monthly_value != null &&
+                    contract.monthly_value > 0 ? (
                       <span className="text-sm font-medium">
                         {formatCurrency(contract.monthly_value)}
                       </span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">—</span>
                     )}
+                  </div>
+
+                  {/* Vigência / Status */}
+                  <div className="col-span-2 flex items-center gap-2">
+                    <Badge
+                      variant="secondary"
+                      className="text-[10px] px-1.5 py-0 shrink-0"
+                      style={{
+                        backgroundColor: statusCfg.bg,
+                        color: statusCfg.color,
+                      }}
+                    >
+                      {statusCfg.label}
+                    </Badge>
+                    {contract.end_date && (
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {new Date(contract.end_date).toLocaleDateString("pt-BR")}
+                      </span>
+                    )}
+                    {expiring && (
+                      <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                    )}
+                  </div>
+
+                  {/* Ações */}
+                  <div
+                    className="col-span-1 flex justify-end"
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                  >
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        <DropdownMenuItem onClick={() => onEdit(contract)}>
+                          <Pencil className="mr-2 h-3.5 w-3.5" />
+                          Editar
+                        </DropdownMenuItem>
+                        {downloadUrl && (
+                          <DropdownMenuItem asChild>
+                            <a
+                              href={downloadUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <Download className="mr-2 h-3.5 w-3.5" />
+                              Baixar PDF
+                            </a>
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => onEdit(contract)}>
+                          <RefreshCw className="mr-2 h-3.5 w-3.5" />
+                          Renovar
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                          onClick={() => setDeleteTarget(contract)}
+                        >
+                          <Trash2 className="mr-2 h-3.5 w-3.5" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+
+                {/* Mobile layout */}
+                <div className="md:hidden space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm truncate">
+                        {contract.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {contract.person_name ?? "Sem responsável"}
+                      </p>
+                    </div>
+                    <Badge
+                      variant="secondary"
+                      className="text-[10px] px-1.5 py-0 shrink-0"
+                      style={{
+                        backgroundColor: statusCfg.bg,
+                        color: statusCfg.color,
+                      }}
+                    >
+                      {statusCfg.label}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {categoryCfg && (
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] px-1.5 py-0"
+                          style={{
+                            backgroundColor: categoryCfg.bg,
+                            color: categoryCfg.color,
+                          }}
+                        >
+                          {categoryCfg.label}
+                        </Badge>
+                      )}
+                      {contract.end_date && (
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(contract.end_date).toLocaleDateString(
+                            "pt-BR"
+                          )}
+                        </span>
+                      )}
+                    </div>
+                    {contract.monthly_value != null &&
+                      contract.monthly_value > 0 && (
+                        <span className="text-sm font-medium">
+                          {formatCurrency(contract.monthly_value)}
+                        </span>
+                      )}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
-    </div>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir contrato</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir{" "}
+              <strong>{deleteTarget?.title}</strong>? Esta ação não pode ser
+              desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={() => {
+                if (deleteTarget) {
+                  onDelete(deleteTarget);
+                  setDeleteTarget(null);
+                }
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

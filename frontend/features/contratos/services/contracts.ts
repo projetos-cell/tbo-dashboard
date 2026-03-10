@@ -81,6 +81,15 @@ export async function updateContract(
   return data as unknown as ContractRow;
 }
 
+// ─── Delete ──────────────────────────────────────────────────────────
+export async function deleteContract(
+  supabase: SupabaseClient<Database>,
+  id: string
+): Promise<void> {
+  const { error } = await supabase.from("contracts").delete().eq("id", id);
+  if (error) throw error;
+}
+
 // ─── KPIs ─────────────────────────────────────────────────────────────
 export interface ContractKPIs {
   total: number;

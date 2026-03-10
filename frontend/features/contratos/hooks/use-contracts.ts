@@ -10,6 +10,7 @@ import {
   getContractById,
   createContract,
   updateContract,
+  deleteContract,
   type ContractFilters,
 } from "@/features/contratos/services/contracts";
 
@@ -82,6 +83,26 @@ export function useUpdateContract() {
         table: "contracts",
         recordId: variables.id,
         after: variables.updates as Record<string, unknown>,
+      });
+    },
+  });
+}
+
+export function useDeleteContract() {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => deleteContract(supabase, id),
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+      queryClient.invalidateQueries({ queryKey: ["contract"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "delete",
+        table: "contracts",
+        recordId: id,
       });
     },
   });

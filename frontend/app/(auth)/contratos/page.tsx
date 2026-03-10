@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useContracts } from "@/features/contratos/hooks/use-contracts";
+import {
+  useContracts,
+  useDeleteContract,
+} from "@/features/contratos/hooks/use-contracts";
 import { ContractKPICards } from "@/features/contratos/components/contract-kpis";
 import { ContractDataTable } from "@/features/contratos/components/contract-data-table";
 import { ContractDetailDialog } from "@/features/contratos/components/contract-detail-dialog";
@@ -11,6 +14,7 @@ import { computeTabKPIs } from "@/features/contratos/services/contracts";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { ErrorState, EmptyState } from "@/components/shared";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 import { FileText, Search } from "lucide-react";
 import { CONTRACT_TABS } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
@@ -28,6 +32,9 @@ export default function ContratosPage() {
   const [editingContract, setEditingContract] =
     useState<ContractRow | null>(null);
   const [defaultCategory, setDefaultCategory] = useState<string | undefined>();
+
+  const { toast } = useToast();
+  const deleteMut = useDeleteContract();
 
   // ─── Tab config ───────────────────────────────────────────────────
   const currentTab = CONTRACT_TABS.find((t) => t.key === activeTab) ?? CONTRACT_TABS[0];
@@ -66,6 +73,24 @@ export default function ContratosPage() {
     setEditingContract(null);
     setDefaultCategory(category);
     setFormOpen(true);
+  }
+
+  async function handleDelete(contract: ContractRow) {
+    try {
+      await deleteMut.mutateAsync(contract.id);
+      setDetailOpen(false);
+      setSelectedContract(null);
+      toast({
+        title: "Contrato excluído",
+        description: `"${contract.title}" foi removido com sucesso.`,
+      });
+    } catch {
+      toast({
+        title: "Erro ao excluir",
+        description: "Não foi possível excluir o contrato. Tente novamente.",
+        variant: "destructive",
+      });
+    }
   }
 
   // ─── Error state ──────────────────────────────────────────────────
@@ -156,6 +181,7 @@ export default function ContratosPage() {
             showCategory={activeTab === "all"}
             onEdit={handleEdit}
             onSelect={handleSelect}
+            onDelete={handleDelete}
           />
         )}
 
@@ -165,6 +191,7 @@ export default function ContratosPage() {
           open={detailOpen}
           onOpenChange={setDetailOpen}
           onEdit={handleEdit}
+          onDelete={handleDelete}
         />
 
         <ContractFormDialog

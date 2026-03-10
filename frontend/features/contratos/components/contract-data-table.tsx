@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -28,6 +28,9 @@ import {
   RefreshCw,
   Trash2,
   AlertTriangle,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
 } from "lucide-react";
 import type { Database } from "@/lib/supabase/types";
 import {
@@ -39,6 +42,20 @@ import {
 
 type ContractRow = Database["public"]["Tables"]["contracts"]["Row"];
 
+// ─── Sort types ───────────────────────────────────────────────────────
+type SortColumn =
+  | "title"
+  | "category"
+  | "person_name"
+  | "monthly_value"
+  | "end_date"
+  | "status";
+type SortDirection = "asc" | "desc";
+interface SortState {
+  column: SortColumn;
+  direction: SortDirection;
+}
+
 interface ContractDataTableProps {
   contracts: ContractRow[];
   isLoading: boolean;
@@ -47,6 +64,8 @@ interface ContractDataTableProps {
   onSelect: (contract: ContractRow) => void;
   onDelete: (contract: ContractRow) => void;
 }
+
+// ─── Helpers ──────────────────────────────────────────────────────────
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -82,6 +101,106 @@ function getFileUrl(contract: ContractRow): string | null {
   return null;
 }
 
+/** Generic comparator for sort */
+function compareValues(
+  a: ContractRow,
+  b: ContractRow,
+  column: SortColumn,
+  direction: SortDirection
+): number {
+  let valA: string | number | null;
+  let valB: string | number | null;
+
+  switch (column) {
+    case "title":
+      valA = a.title?.toLowerCase() ?? "";
+      valB = b.title?.toLowerCase() ?? "";
+      break;
+    case "category":
+      valA = a.category?.toLowerCase() ?? "";
+      valB = b.category?.toLowerCase() ?? "";
+      break;
+    case "person_name":
+      valA = a.person_name?.toLowerCase() ?? "";
+      valB = b.person_name?.toLowerCase() ?? "";
+      break;
+    case "monthly_value":
+      valA = a.monthly_value ?? 0;
+      valB = b.monthly_value ?? 0;
+      break;
+    case "end_date":
+      valA = a.end_date ?? "";
+      valB = b.end_date ?? "";
+      break;
+    case "status":
+      valA = a.status?.toLowerCase() ?? "";
+      valB = b.status?.toLowerCase() ?? "";
+      break;
+    default:
+      return 0;
+  }
+
+  // Nulls / empty always go last
+  if (!valA && valB) return 1;
+  if (valA && !valB) return -1;
+  if (!valA && !valB) return 0;
+
+  let result: number;
+  if (typeof valA === "number" && typeof valB === "number") {
+    result = valA - valB;
+  } else {
+    result = String(valA).localeCompare(String(valB), "pt-BR");
+  }
+
+  return direction === "desc" ? -result : result;
+}
+
+// ─── Sort header component ───────────────────────────────────────────
+
+function SortHeader({
+  label,
+  column,
+  sort,
+  onSort,
+  className = "",
+}: {
+  label: string;
+  column: SortColumn;
+  sort: SortState | null;
+  onSort: (column: SortColumn) => void;
+  className?: string;
+}) {
+  const isActive = sort?.column === column;
+
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onSort(column);
+      }}
+      className={`flex items-center gap-1 text-xs font-medium uppercase tracking-wider transition-colors select-none ${
+        isActive
+          ? "text-[#f97316]"
+          : "text-muted-foreground hover:text-foreground"
+      } ${className}`}
+    >
+      {label}
+      {isActive ? (
+        sort.direction === "asc" ? (
+          <ArrowUp className="h-3 w-3" />
+        ) : (
+          <ArrowDown className="h-3 w-3" />
+        )
+      ) : (
+        <ArrowUpDown className="h-3 w-3 opacity-0 group-hover/header:opacity-40 transition-opacity" />
+      )}
+    </button>
+  );
+}
+
+// ─── Main component ──────────────────────────────────────────────────
+
 export function ContractDataTable({
   contracts,
   isLoading,
@@ -91,28 +210,51 @@ export function ContractDataTable({
   onDelete,
 }: ContractDataTableProps) {
   const [deleteTarget, setDeleteTarget] = useState<ContractRow | null>(null);
+  const [sort, setSort] = useState<SortState | null>(null);
+
+  // Toggle sort: none → asc → desc → none
+  function handleSort(column: SortColumn) {
+    setSort((prev) => {
+      if (prev?.column !== column) return { column, direction: "asc" };
+      if (prev.direction === "asc") return { column, direction: "desc" };
+      return null; // reset
+    });
+  }
+
+  // Sorted contracts
+  const sorted = useMemo(() => {
+    if (!sort) return contracts;
+    return [...contracts].sort((a, b) =>
+      compareValues(a, b, sort.column, sort.direction)
+    );
+  }, [contracts, sort]);
 
   if (isLoading) {
     return (
       <div className="rounded-xl border border-border/50 overflow-hidden">
         <div className="bg-muted/30 px-4 py-3">
           <div className="grid grid-cols-12 gap-4">
-            {["Nome / Objeto", "Tipo", "Responsável", "Valor", "Vigência", ""].map(
-              (h) => (
-                <div
-                  key={h}
-                  className={`text-xs font-medium text-muted-foreground uppercase tracking-wider ${
-                    h === "Nome / Objeto"
-                      ? "col-span-4"
-                      : h === ""
-                        ? "col-span-1"
-                        : "col-span-2"
-                  }`}
-                >
-                  {h}
-                </div>
-              )
-            )}
+            {[
+              "Nome / Objeto",
+              "Tipo",
+              "Responsável",
+              "Valor",
+              "Vigência",
+              "",
+            ].map((h) => (
+              <div
+                key={h}
+                className={`text-xs font-medium text-muted-foreground uppercase tracking-wider ${
+                  h === "Nome / Objeto"
+                    ? "col-span-4"
+                    : h === ""
+                      ? "col-span-1"
+                      : "col-span-2"
+                }`}
+              >
+                {h}
+              </div>
+            ))}
           </div>
         </div>
         <div className="divide-y divide-border/50">
@@ -134,26 +276,50 @@ export function ContractDataTable({
     <>
       <div className="rounded-xl border border-border/50 overflow-hidden">
         {/* Header */}
-        <div className="bg-muted/30 px-4 py-3 hidden md:block">
+        <div className="bg-muted/30 px-4 py-3 hidden md:block group/header">
           <div className="grid grid-cols-12 gap-4 items-center">
-            <div className="col-span-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Nome / Objeto
+            <div className="col-span-4">
+              <SortHeader
+                label="Nome / Objeto"
+                column="title"
+                sort={sort}
+                onSort={handleSort}
+              />
             </div>
             {showCategory && (
-              <div className="col-span-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Tipo
+              <div className="col-span-1">
+                <SortHeader
+                  label="Tipo"
+                  column="category"
+                  sort={sort}
+                  onSort={handleSort}
+                />
               </div>
             )}
-            <div
-              className={`${showCategory ? "col-span-2" : "col-span-3"} text-xs font-medium text-muted-foreground uppercase tracking-wider`}
-            >
-              Responsável
+            <div className={showCategory ? "col-span-2" : "col-span-3"}>
+              <SortHeader
+                label="Responsável"
+                column="person_name"
+                sort={sort}
+                onSort={handleSort}
+              />
             </div>
-            <div className="col-span-2 text-xs font-medium text-muted-foreground uppercase tracking-wider text-right">
-              Valor
+            <div className="col-span-2">
+              <SortHeader
+                label="Valor"
+                column="monthly_value"
+                sort={sort}
+                onSort={handleSort}
+                className="justify-end"
+              />
             </div>
-            <div className="col-span-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Vigência / Status
+            <div className="col-span-2">
+              <SortHeader
+                label="Vigência"
+                column="end_date"
+                sort={sort}
+                onSort={handleSort}
+              />
             </div>
             <div className="col-span-1 text-xs font-medium text-muted-foreground uppercase tracking-wider text-right">
               Ações
@@ -161,9 +327,37 @@ export function ContractDataTable({
           </div>
         </div>
 
+        {/* Sort indicator bar */}
+        {sort && (
+          <div className="px-4 py-1.5 bg-[#f97316]/5 border-b border-[#f97316]/10 flex items-center justify-between">
+            <span className="text-xs text-[#f97316]">
+              Ordenado por{" "}
+              <span className="font-medium">
+                {
+                  {
+                    title: "Nome",
+                    category: "Tipo",
+                    person_name: "Responsável",
+                    monthly_value: "Valor",
+                    end_date: "Vigência",
+                    status: "Status",
+                  }[sort.column]
+                }
+              </span>{" "}
+              ({sort.direction === "asc" ? "A → Z" : "Z → A"})
+            </span>
+            <button
+              onClick={() => setSort(null)}
+              className="text-xs text-[#f97316] hover:text-[#ea580c] font-medium"
+            >
+              Limpar
+            </button>
+          </div>
+        )}
+
         {/* Rows */}
         <div className="divide-y divide-border/50">
-          {contracts.map((contract) => {
+          {sorted.map((contract) => {
             const statusCfg =
               CONTRACT_STATUS[contract.status as ContractStatusKey] ?? {
                 label: contract.status ?? "—",
@@ -210,7 +404,9 @@ export function ContractDataTable({
                           {categoryCfg.label}
                         </Badge>
                       ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <span className="text-xs text-muted-foreground">
+                          —
+                        </span>
                       )}
                     </div>
                   )}
@@ -261,7 +457,9 @@ export function ContractDataTable({
                     </Badge>
                     {contract.end_date && (
                       <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {new Date(contract.end_date).toLocaleDateString("pt-BR")}
+                        {new Date(contract.end_date).toLocaleDateString(
+                          "pt-BR"
+                        )}
                       </span>
                     )}
                     {expiring && (

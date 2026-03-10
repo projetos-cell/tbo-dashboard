@@ -30,7 +30,7 @@ export function useTasks(filters?: {
 
   return useQuery({
     queryKey: ["tasks", tenantId, filters],
-    queryFn: () => getTasks(supabase, tenantId!, filters),
+    queryFn: () => getTasks(supabase, filters),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -42,7 +42,7 @@ export function useTask(id: string | undefined) {
 
   return useQuery({
     queryKey: ["task", id],
-    queryFn: () => getTaskById(supabase, id!, tenantId!),
+    queryFn: () => getTaskById(supabase, id!),
     staleTime: 1000 * 60 * 5,
     enabled: !!id && !!tenantId,
   });
@@ -54,7 +54,7 @@ export function useSubtasks(parentId: string | undefined) {
 
   return useQuery({
     queryKey: ["subtasks", parentId],
-    queryFn: () => getSubtasks(supabase, parentId!, tenantId!),
+    queryFn: () => getSubtasks(supabase, parentId!),
     staleTime: 1000 * 60 * 5,
     enabled: !!parentId && !!tenantId,
   });

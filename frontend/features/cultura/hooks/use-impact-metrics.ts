@@ -30,7 +30,7 @@ export function useImpactMetrics(
   return useQuery({
     queryKey: ["impact-metrics", tenantId, employeeId, period],
     queryFn: () =>
-      getImpactMetrics(supabase, tenantId!, employeeId!, period!),
+      getImpactMetrics(supabase, employeeId!, period!),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!employeeId && !!period,
   });
@@ -43,7 +43,7 @@ export function useAllImpactMetrics(period?: string) {
 
   return useQuery({
     queryKey: ["impact-metrics-all", tenantId, period],
-    queryFn: () => getImpactMetricsByPeriod(supabase, tenantId!, period!),
+    queryFn: () => getImpactMetricsByPeriod(supabase, period!),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!period,
   });
@@ -59,7 +59,7 @@ export function useImpactConfig() {
 
   return useQuery({
     queryKey: ["impact-config", tenantId],
-    queryFn: () => getImpactConfig(supabase, tenantId!),
+    queryFn: () => getImpactConfig(supabase),
     staleTime: 1000 * 60 * 10,
     enabled: !!tenantId,
   });

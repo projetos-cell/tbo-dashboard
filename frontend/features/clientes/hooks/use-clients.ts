@@ -23,7 +23,7 @@ export function useClients(filters?: {
 
   return useQuery({
     queryKey: ["clients", tenantId, filters],
-    queryFn: () => getClients(supabase, tenantId!, filters),
+    queryFn: () => getClients(supabase, filters),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -35,7 +35,7 @@ export function useClient(id: string | undefined) {
 
   return useQuery({
     queryKey: ["client", id],
-    queryFn: () => getClientById(supabase, id!, tenantId!),
+    queryFn: () => getClientById(supabase, id!),
     staleTime: 1000 * 60 * 5,
     enabled: !!id && !!tenantId,
   });
@@ -79,7 +79,7 @@ export function useClientInteractions(clientId: string | undefined) {
 
   return useQuery({
     queryKey: ["client-interactions", clientId],
-    queryFn: () => getClientInteractions(supabase, clientId!, tenantId!),
+    queryFn: () => getClientInteractions(supabase, clientId!),
     staleTime: 1000 * 60 * 5,
     enabled: !!clientId && !!tenantId,
   });

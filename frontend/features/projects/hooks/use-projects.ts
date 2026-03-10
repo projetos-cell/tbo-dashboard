@@ -29,7 +29,7 @@ export function useProjects() {
 
   return useQuery({
     queryKey: ["projects", tenantId],
-    queryFn: () => getProjects(supabase, tenantId!),
+    queryFn: () => getProjects(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -41,7 +41,7 @@ export function useProject(id: string) {
 
   return useQuery({
     queryKey: ["project", id],
-    queryFn: () => getProjectById(supabase, id, tenantId!),
+    queryFn: () => getProjectById(supabase, id),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!id,
   });
@@ -53,7 +53,7 @@ export function useProjectDemands(projectId: string) {
 
   return useQuery({
     queryKey: ["project-demands", projectId],
-    queryFn: () => getProjectDemands(supabase, projectId, tenantId!),
+    queryFn: () => getProjectDemands(supabase, projectId),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!projectId,
   });
@@ -178,7 +178,7 @@ export function useProjectStats(projectId: string) {
 
   return useQuery({
     queryKey: ["project-stats", projectId],
-    queryFn: () => getProjectStats(supabase, projectId, tenantId!),
+    queryFn: () => getProjectStats(supabase, projectId),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!projectId,
   });

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   Sheet,
@@ -15,9 +15,16 @@ import {
   Building2,
   ExternalLink,
   AlertTriangle,
+  User,
 } from "lucide-react";
 import type { Database } from "@/lib/supabase/types";
-import { CONTRACT_STATUS, type ContractStatusKey } from "@/lib/constants";
+import {
+  CONTRACT_STATUS,
+  CONTRACT_CATEGORY,
+  CONTRACT_TYPE,
+  type ContractStatusKey,
+  type ContractCategoryKey,
+} from "@/lib/constants";
 
 type ContractRow = Database["public"]["Tables"]["contracts"]["Row"];
 
@@ -45,13 +52,21 @@ export function ContractDetailDialog({
 
   const statusConfig =
     CONTRACT_STATUS[contract.status as ContractStatusKey] ?? {
-      label: contract.status,
+      label: contract.status ?? "—",
       color: "#6b7280",
       bg: "rgba(107,114,128,0.12)",
     };
 
+  const categoryConfig = contract.category
+    ? CONTRACT_CATEGORY[contract.category as ContractCategoryKey]
+    : undefined;
+
+  const typeConfig = contract.type
+    ? CONTRACT_TYPE[contract.type as keyof typeof CONTRACT_TYPE]
+    : undefined;
+
   const isExpiring =
-    contract.status === "ativo" &&
+    contract.status === "active" &&
     contract.end_date &&
     (new Date(contract.end_date).getTime() - Date.now()) /
       (1000 * 60 * 60 * 24) <=
@@ -62,7 +77,7 @@ export function ContractDetailDialog({
       <SheetContent className="overflow-y-auto sm:max-w-lg">
         <SheetHeader>
           <SheetTitle className="text-left">{contract.title}</SheetTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Badge
               variant="secondary"
               style={{
@@ -72,6 +87,22 @@ export function ContractDetailDialog({
             >
               {statusConfig.label}
             </Badge>
+            {categoryConfig && (
+              <Badge
+                variant="secondary"
+                style={{
+                  backgroundColor: categoryConfig.bg,
+                  color: categoryConfig.color,
+                }}
+              >
+                {categoryConfig.label}
+              </Badge>
+            )}
+            {typeConfig && (
+              <Badge variant="outline" className="text-xs">
+                {typeConfig.label}
+              </Badge>
+            )}
             {isExpiring && (
               <Badge variant="destructive" className="gap-1">
                 <AlertTriangle className="h-3 w-3" />
@@ -86,7 +117,7 @@ export function ContractDetailDialog({
           <div className="space-y-2 text-sm">
             {contract.person_name && (
               <div className="flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-gray-500" />
+                <User className="h-4 w-4 text-gray-500" />
                 <span>{contract.person_name}</span>
               </div>
             )}
@@ -101,6 +132,7 @@ export function ContractDetailDialog({
                 <span className="font-medium">
                   {formatCurrency(contract.monthly_value)}
                 </span>
+                <span className="text-xs text-muted-foreground">/ mês</span>
               </div>
             )}
             {contract.start_date && (
@@ -158,8 +190,7 @@ export function ContractDetailDialog({
             <>
               <Separator />
               <Button
-                variant="outline"
-                className="w-full"
+                className="w-full bg-[#f97316] hover:bg-[#ea580c] text-white"
                 onClick={() => onEdit(contract)}
               >
                 Editar Contrato

@@ -61,7 +61,6 @@ type SB = SupabaseClient<Database>;
  */
 async function fetchOnTimeDelivery(
   supabase: SB,
-  tenantId: string,
   employeeId: string,
   period: string
 ): Promise<RawMetricResult> {
@@ -70,7 +69,6 @@ async function fetchOnTimeDelivery(
   const { data, error } = await supabase
     .from("os_tasks" as never)
     .select("id, due_date, completed_at, is_completed" as never)
-    .eq("tenant_id", tenantId)
     .eq("assignee_id", employeeId)
     .eq("is_completed", true)
     .gte("completed_at", start)
@@ -134,7 +132,6 @@ async function fetchOnTimeDelivery(
  */
 async function fetchReworkRate(
   supabase: SB,
-  tenantId: string,
   employeeId: string,
   period: string
 ): Promise<RawMetricResult> {
@@ -143,7 +140,6 @@ async function fetchReworkRate(
   const { data, error } = await supabase
     .from("os_tasks" as never)
     .select("id, completed_at, updated_at, is_completed" as never)
-    .eq("tenant_id", tenantId)
     .eq("assignee_id", employeeId)
     .eq("is_completed", true)
     .gte("completed_at", start)
@@ -208,7 +204,6 @@ async function fetchProjectMargin(): Promise<RawMetricResult> {
  */
 async function fetchOKRCompletion(
   supabase: SB,
-  tenantId: string,
   employeeId: string,
   period: string
 ): Promise<RawMetricResult> {
@@ -218,7 +213,6 @@ async function fetchOKRCompletion(
   const { data, error } = await supabase
     .from("okr_key_results" as never)
     .select("id, status, current_value, target_value" as never)
-    .eq("tenant_id", tenantId)
     .eq("owner_id", employeeId)
     .lte("created_at", end);
 
@@ -283,7 +277,6 @@ async function fetchOKRCompletion(
  */
 async function fetchDecisionParticipation(
   supabase: SB,
-  tenantId: string,
   _employeeId: string,
   period: string,
   employeeName: string
@@ -303,7 +296,6 @@ async function fetchDecisionParticipation(
   const { data, error } = await supabase
     .from("decisions" as never)
     .select("id" as never)
-    .eq("tenant_id", tenantId)
     .ilike("decided_by", `%${employeeName}%`)
     .gte("created_at", start)
     .lte("created_at", end);
@@ -326,7 +318,6 @@ async function fetchDecisionParticipation(
  */
 async function fetchRecognitionsReceived(
   supabase: SB,
-  tenantId: string,
   employeeId: string,
   period: string
 ): Promise<RawMetricResult> {
@@ -335,7 +326,6 @@ async function fetchRecognitionsReceived(
   const { data, error } = await supabase
     .from("recognitions" as never)
     .select("id" as never)
-    .eq("tenant_id", tenantId)
     .eq("to_user", employeeId)
     .gte("created_at", start)
     .lte("created_at", end);
@@ -419,12 +409,12 @@ export async function computeEmployeeImpact(
 ): Promise<ImpactMetricRow> {
   // Fetch all 6 metrics in parallel
   const results = await Promise.allSettled([
-    fetchOnTimeDelivery(supabase, tenantId, employeeId, period),
-    fetchReworkRate(supabase, tenantId, employeeId, period),
+    fetchOnTimeDelivery(supabase, employeeId, period),
+    fetchReworkRate(supabase, employeeId, period),
     fetchProjectMargin(),
-    fetchOKRCompletion(supabase, tenantId, employeeId, period),
-    fetchDecisionParticipation(supabase, tenantId, employeeId, period, employeeName),
-    fetchRecognitionsReceived(supabase, tenantId, employeeId, period),
+    fetchOKRCompletion(supabase, employeeId, period),
+    fetchDecisionParticipation(supabase, employeeId, period, employeeName),
+    fetchRecognitionsReceived(supabase, employeeId, period),
   ]);
 
   const metrics: RawMetricResult[] = results.map((r, i) => {
@@ -440,7 +430,7 @@ export async function computeEmployeeImpact(
   });
 
   // Get configs for normalization
-  const configs = await getImpactConfig(supabase, tenantId);
+  const configs = await getImpactConfig(supabase);
 
   // Normalize each metric
   const configMap = new Map((configs ?? []).map((c) => [c.metric_id, c]));
@@ -515,7 +505,6 @@ export async function computeAllEmployeesImpact(
   const { data: skillScores, error } = await supabase
     .from("employee_skill_scores" as never)
     .select("employee_id" as never)
-    .eq("tenant_id", tenantId)
     .eq("period", period);
 
   if (error) throw error;
@@ -552,14 +541,12 @@ export async function computeAllEmployeesImpact(
 
 export async function getImpactMetrics(
   supabase: SB,
-  tenantId: string,
   employeeId: string,
   period: string
 ): Promise<ImpactMetricRow | null> {
   const { data, error } = await supabase
     .from("employee_impact_metrics" as never)
     .select("*")
-    .eq("tenant_id", tenantId)
     .eq("employee_id", employeeId)
     .eq("period", period)
     .maybeSingle();
@@ -570,13 +557,11 @@ export async function getImpactMetrics(
 
 export async function getImpactMetricsByPeriod(
   supabase: SB,
-  tenantId: string,
   period: string
 ): Promise<ImpactMetricRow[]> {
   const { data, error } = await supabase
     .from("employee_impact_metrics" as never)
     .select("*")
-    .eq("tenant_id", tenantId)
     .eq("period", period);
 
   if (error) throw error;
@@ -584,13 +569,11 @@ export async function getImpactMetricsByPeriod(
 }
 
 export async function getImpactConfig(
-  supabase: SB,
-  tenantId: string
+  supabase: SB
 ): Promise<ImpactConfigRow[]> {
   const { data, error } = await supabase
     .from("impact_metric_config" as never)
-    .select("*")
-    .eq("tenant_id", tenantId);
+    .select("*");
 
   if (error) throw error;
   return (data ?? []) as unknown as ImpactConfigRow[];

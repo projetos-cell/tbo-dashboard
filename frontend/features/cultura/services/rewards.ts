@@ -13,13 +13,11 @@ const REDEMPTION_COLS =
 
 export async function getRewards(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   activeOnly = true
 ): Promise<RewardRow[]> {
   let query = supabase
     .from("recognition_rewards")
     .select(REWARD_COLS)
-    .eq("tenant_id", tenantId)
     .order("points_required", { ascending: true });
 
   if (activeOnly) query = query.eq("active", true);
@@ -69,13 +67,11 @@ export async function deleteReward(
 
 export async function getRedemptions(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   opts: { userId?: string; status?: string } = {}
 ): Promise<RedemptionRow[]> {
   let query = supabase
     .from("recognition_redemptions")
     .select(REDEMPTION_COLS)
-    .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false });
 
   if (opts.userId) query = query.eq("user_id", opts.userId);
@@ -135,15 +131,13 @@ export interface RewardsKPIs {
 }
 
 export async function getRewardsKPIs(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
+  supabase: SupabaseClient<Database>
 ): Promise<RewardsKPIs> {
   const [rewardsRes, redemptionsRes] = await Promise.all([
-    supabase.from("recognition_rewards").select("id,active").eq("tenant_id", tenantId),
+    supabase.from("recognition_rewards").select("id,active"),
     supabase
       .from("recognition_redemptions")
-      .select("id,status,points_spent,created_at")
-      .eq("tenant_id", tenantId),
+      .select("id,status,points_spent,created_at"),
   ]);
 
   const rewards = rewardsRes.data ?? [];

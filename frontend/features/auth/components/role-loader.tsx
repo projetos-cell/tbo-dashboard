@@ -14,8 +14,10 @@ import { fetchUserRole } from "@/features/auth/services/auth";
 export function RoleLoader() {
   const user = useAuthStore((s) => s.user);
   const role = useAuthStore((s) => s.role);
+  const tenantId = useAuthStore((s) => s.tenantId);
   const setRole = useAuthStore((s) => s.setRole);
   const setUser = useAuthStore((s) => s.setUser);
+  const setTenantId = useAuthStore((s) => s.setTenantId);
   const setLoading = useAuthStore((s) => s.setLoading);
 
   useEffect(() => {
@@ -45,13 +47,18 @@ export function RoleLoader() {
           activeUser.email
         );
         setRole(info.roleSlug, info.roleLabel, info.modules);
+
+        // 3. Reconcile tenantId: tenant_members is source of truth
+        if (info.tenantId && info.tenantId !== tenantId) {
+          setTenantId(info.tenantId);
+        }
       }
 
       setLoading(false);
     }
 
     hydrate();
-  }, [user, role, setUser, setRole, setLoading]);
+  }, [user, role, tenantId, setUser, setRole, setTenantId, setLoading]);
 
   return null;
 }

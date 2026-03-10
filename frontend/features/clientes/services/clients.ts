@@ -6,7 +6,6 @@ type InteractionRow = Database["public"]["Tables"]["client_interactions"]["Row"]
 
 export async function getClients(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   filters?: {
     status?: string;
     search?: string;
@@ -16,7 +15,6 @@ export async function getClients(
   let query = supabase
     .from("clients")
     .select()
-    .eq("tenant_id", tenantId)
     .order("name", { ascending: true });
 
   if (filters?.status) query = query.eq("status", filters.status);
@@ -31,13 +29,11 @@ export async function getClients(
 export async function getClientById(
   supabase: SupabaseClient<Database>,
   id: string,
-  tenantId: string
 ): Promise<ClientRow | null> {
   const { data, error } = await supabase
     .from("clients")
     .select()
     .eq("id", id)
-    .eq("tenant_id", tenantId)
     .single();
 
   if (error) throw error;
@@ -77,13 +73,11 @@ export async function updateClient(
 export async function getClientInteractions(
   supabase: SupabaseClient<Database>,
   clientId: string,
-  tenantId: string
 ): Promise<InteractionRow[]> {
   const { data, error } = await supabase
     .from("client_interactions")
     .select()
     .eq("client_id", clientId)
-    .eq("tenant_id", tenantId)
     .order("date", { ascending: false });
 
   if (error) throw error;

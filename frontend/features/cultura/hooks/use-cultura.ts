@@ -27,7 +27,7 @@ export function useCulturaItems(category?: string) {
 
   return useQuery({
     queryKey: ["cultura-items", tenantId, category],
-    queryFn: () => getCulturaItems(supabase, tenantId!, category),
+    queryFn: () => getCulturaItems(supabase, category),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -39,7 +39,7 @@ export function useCulturaItem(id: string) {
 
   return useQuery({
     queryKey: ["cultura-item", id],
-    queryFn: () => getCulturaItem(supabase, id, tenantId!),
+    queryFn: () => getCulturaItem(supabase, id),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!id,
   });

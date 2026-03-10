@@ -34,7 +34,7 @@ export function usePolicies(filters?: PolicyFilters) {
 
   return useQuery({
     queryKey: ["policies", tenantId, filters],
-    queryFn: () => getPolicies(supabase, tenantId!, filters),
+    queryFn: () => getPolicies(supabase, filters),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -46,7 +46,7 @@ export function usePolicy(slug: string) {
 
   return useQuery({
     queryKey: ["policy", slug],
-    queryFn: () => getPolicy(supabase, tenantId!, slug),
+    queryFn: () => getPolicy(supabase, slug),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!slug,
   });
@@ -58,7 +58,7 @@ export function usePolicyById(id: string) {
 
   return useQuery({
     queryKey: ["policy-by-id", id],
-    queryFn: () => getPolicyById(supabase, tenantId!, id),
+    queryFn: () => getPolicyById(supabase, id),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!id,
   });

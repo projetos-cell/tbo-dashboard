@@ -59,7 +59,6 @@ type SB = SupabaseClient<Database>;
  */
 async function fetchValuesAlignment(
   supabase: SB,
-  tenantId: string,
   employeeId: string,
   period: string
 ): Promise<RawCultureResult> {
@@ -68,7 +67,6 @@ async function fetchValuesAlignment(
   const { data, error } = await supabase
     .from("recognitions" as never)
     .select("id, value_id" as never)
-    .eq("tenant_id", tenantId)
     .eq("to_user", employeeId)
     .gte("created_at", start)
     .lte("created_at", end);
@@ -112,7 +110,6 @@ async function fetchValuesAlignment(
  */
 async function fetchFeedbackEngagement(
   supabase: SB,
-  tenantId: string,
   employeeId: string,
   period: string
 ): Promise<RawCultureResult> {
@@ -121,7 +118,6 @@ async function fetchFeedbackEngagement(
   const { data, error } = await supabase
     .from("feedbacks" as never)
     .select("id" as never)
-    .eq("tenant_id", tenantId)
     .eq("to_user", employeeId)
     .gte("created_at", start)
     .lte("created_at", end);
@@ -144,7 +140,6 @@ async function fetchFeedbackEngagement(
  */
 async function fetchFeedbackGiven(
   supabase: SB,
-  tenantId: string,
   employeeId: string,
   period: string
 ): Promise<RawCultureResult> {
@@ -153,7 +148,6 @@ async function fetchFeedbackGiven(
   const { data, error } = await supabase
     .from("feedbacks" as never)
     .select("id" as never)
-    .eq("tenant_id", tenantId)
     .eq("from_user", employeeId)
     .gte("created_at", start)
     .lte("created_at", end);
@@ -177,7 +171,6 @@ async function fetchFeedbackGiven(
  */
 async function fetchOneOnOneParticipation(
   supabase: SB,
-  tenantId: string,
   employeeId: string,
   period: string
 ): Promise<RawCultureResult> {
@@ -186,7 +179,6 @@ async function fetchOneOnOneParticipation(
   const { data, error } = await supabase
     .from("one_on_ones" as never)
     .select("id, status" as never)
-    .eq("tenant_id", tenantId)
     .eq("collaborator_id", employeeId)
     .gte("scheduled_date", start)
     .lte("scheduled_date", end);
@@ -233,7 +225,6 @@ async function fetchOneOnOneParticipation(
  */
 async function fetchCollaborationIndex(
   supabase: SB,
-  tenantId: string,
   employeeId: string,
   period: string
 ): Promise<RawCultureResult> {
@@ -243,7 +234,6 @@ async function fetchCollaborationIndex(
   const { data: recData, error: recErr } = await supabase
     .from("recognitions" as never)
     .select("id" as never)
-    .eq("tenant_id", tenantId)
     .eq("from_user", employeeId)
     .gte("created_at", start)
     .lte("created_at", end);
@@ -254,7 +244,6 @@ async function fetchCollaborationIndex(
   const { data: fbData, error: fbErr } = await supabase
     .from("feedbacks" as never)
     .select("id" as never)
-    .eq("tenant_id", tenantId)
     .eq("from_user", employeeId)
     .gte("created_at", start)
     .lte("created_at", end);
@@ -280,7 +269,6 @@ async function fetchCollaborationIndex(
  */
 async function fetchPeerReviewScore(
   supabase: SB,
-  tenantId: string,
   employeeId: string,
   period: string
 ): Promise<RawCultureResult> {
@@ -289,7 +277,6 @@ async function fetchPeerReviewScore(
   const { data, error } = await supabase
     .from("performance_reviews" as never)
     .select("id, average" as never)
-    .eq("tenant_id", tenantId)
     .eq("target_user", employeeId)
     .eq("review_type", "peer")
     .eq("is_submitted", true)
@@ -395,12 +382,12 @@ export async function computeEmployeeCulture(
 ): Promise<CultureMetricRow> {
   // Fetch all 6 metrics in parallel
   const results = await Promise.allSettled([
-    fetchValuesAlignment(supabase, tenantId, employeeId, period),
-    fetchFeedbackEngagement(supabase, tenantId, employeeId, period),
-    fetchFeedbackGiven(supabase, tenantId, employeeId, period),
-    fetchOneOnOneParticipation(supabase, tenantId, employeeId, period),
-    fetchCollaborationIndex(supabase, tenantId, employeeId, period),
-    fetchPeerReviewScore(supabase, tenantId, employeeId, period),
+    fetchValuesAlignment(supabase, employeeId, period),
+    fetchFeedbackEngagement(supabase, employeeId, period),
+    fetchFeedbackGiven(supabase, employeeId, period),
+    fetchOneOnOneParticipation(supabase, employeeId, period),
+    fetchCollaborationIndex(supabase, employeeId, period),
+    fetchPeerReviewScore(supabase, employeeId, period),
   ]);
 
   const metrics: RawCultureResult[] = results.map((r, i) => {
@@ -415,7 +402,7 @@ export async function computeEmployeeCulture(
   });
 
   // Get configs for normalization
-  const configs = await getCultureConfig(supabase, tenantId);
+  const configs = await getCultureConfig(supabase);
 
   // Normalize each metric
   const configMap = new Map((configs ?? []).map((c) => [c.metric_id, c]));
@@ -489,7 +476,6 @@ export async function computeAllEmployeesCulture(
   const { data: skillScores, error } = await supabase
     .from("employee_skill_scores" as never)
     .select("employee_id" as never)
-    .eq("tenant_id", tenantId)
     .eq("period", period);
 
   if (error) throw error;
@@ -524,14 +510,12 @@ export async function computeAllEmployeesCulture(
 
 export async function getCultureMetrics(
   supabase: SB,
-  tenantId: string,
   employeeId: string,
   period: string
 ): Promise<CultureMetricRow | null> {
   const { data, error } = await supabase
     .from("employee_culture_metrics" as never)
     .select("*")
-    .eq("tenant_id", tenantId)
     .eq("employee_id", employeeId)
     .eq("period", period)
     .maybeSingle();
@@ -542,13 +526,11 @@ export async function getCultureMetrics(
 
 export async function getCultureMetricsByPeriod(
   supabase: SB,
-  tenantId: string,
   period: string
 ): Promise<CultureMetricRow[]> {
   const { data, error } = await supabase
     .from("employee_culture_metrics" as never)
     .select("*")
-    .eq("tenant_id", tenantId)
     .eq("period", period);
 
   if (error) throw error;
@@ -556,13 +538,11 @@ export async function getCultureMetricsByPeriod(
 }
 
 export async function getCultureConfig(
-  supabase: SB,
-  tenantId: string
+  supabase: SB
 ): Promise<CultureConfigRow[]> {
   const { data, error } = await supabase
     .from("culture_metric_config" as never)
-    .select("*")
-    .eq("tenant_id", tenantId);
+    .select("*");
 
   if (error) throw error;
   return (data ?? []) as unknown as CultureConfigRow[];

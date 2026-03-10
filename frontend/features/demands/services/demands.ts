@@ -7,14 +7,12 @@ const FULL_COLS = "*";
 
 export async function getDemandById(
   supabase: SupabaseClient<Database>,
-  id: string,
-  tenantId: string
+  id: string
 ): Promise<DemandRow | null> {
   const { data, error } = await supabase
     .from("demands")
     .select(FULL_COLS)
     .eq("id", id)
-    .eq("tenant_id", tenantId)
     .single();
 
   if (error) throw error;

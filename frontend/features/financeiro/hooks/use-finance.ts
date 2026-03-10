@@ -53,7 +53,7 @@ export function useFinanceTransactions(filters: FinanceFilters = {}) {
     queryFn: async () => {
       if (!tenantId) return { data: [], count: 0 };
       const supabase = createClient();
-      return getFinanceTransactions(supabase, tenantId, filters);
+      return getFinanceTransactions(supabase, filters);
     },
     enabled: !!tenantId,
     staleTime: 1000 * 30,
@@ -120,7 +120,7 @@ export function useFinanceCategories() {
     queryFn: async () => {
       if (!tenantId) return [];
       const supabase = createClient();
-      return getFinanceCategories(supabase, tenantId);
+      return getFinanceCategories(supabase);
     },
     enabled: !!tenantId,
     staleTime: 1000 * 60 * 5, // Categories rarely change
@@ -137,7 +137,7 @@ export function useFinanceCostCenters() {
     queryFn: async () => {
       if (!tenantId) return [];
       const supabase = createClient();
-      return getFinanceCostCenters(supabase, tenantId);
+      return getFinanceCostCenters(supabase);
     },
     enabled: !!tenantId,
     staleTime: 1000 * 60 * 5,
@@ -154,7 +154,7 @@ export function useFinanceSnapshots(days = 30) {
     queryFn: async () => {
       if (!tenantId) return [];
       const supabase = createClient();
-      return getFinanceSnapshots(supabase, tenantId, days);
+      return getFinanceSnapshots(supabase, days);
     },
     enabled: !!tenantId,
     staleTime: 1000 * 60 * 10,
@@ -182,7 +182,7 @@ export function useFinanceStatus() {
           costCentersCount: 0,
         };
       const supabase = createClient();
-      return getFinanceStatus(supabase, tenantId);
+      return getFinanceStatus(supabase);
     },
     enabled: !!tenantId,
     staleTime: 1000 * 30,
@@ -209,7 +209,7 @@ export function useFinanceStatusWithAmounts(dateFrom?: string, dateTo?: string) 
           gap: 0,
         };
       const supabase = createClient();
-      return getFinanceStatusWithAmounts(supabase, tenantId, dateFrom, dateTo);
+      return getFinanceStatusWithAmounts(supabase, dateFrom, dateTo);
     },
     enabled: !!tenantId,
     staleTime: 1000 * 30,
@@ -240,7 +240,7 @@ export function useFounderKPIs() {
           projectRanking: [],
         };
       const supabase = createClient();
-      return getFounderKPIs(supabase, tenantId);
+      return getFounderKPIs(supabase);
     },
     enabled: !!tenantId,
     staleTime: 1000 * 60 * 2,
@@ -267,7 +267,7 @@ export function useFinanceAging() {
           projectedArCount: 0,
         };
       const supabase = createClient();
-      return getFinanceAging(supabase, tenantId);
+      return getFinanceAging(supabase);
     },
     enabled: !!tenantId,
     staleTime: 1000 * 60 * 5,
@@ -285,7 +285,7 @@ export function useFinanceCashFlowProjection(days = 30) {
     queryFn: async () => {
       if (!tenantId) return [];
       const supabase = createClient();
-      return getFinanceCashFlowProjection(supabase, tenantId, days);
+      return getFinanceCashFlowProjection(supabase, days);
     },
     enabled: !!tenantId,
     staleTime: 1000 * 60 * 5,
@@ -307,7 +307,7 @@ export function useFinanceChartData(
     queryFn: async () => {
       if (!tenantId) return [];
       const supabase = createClient();
-      return getFinanceChartData(supabase, tenantId, filters);
+      return getFinanceChartData(supabase, filters);
     },
     enabled: !!tenantId && enabled,
     staleTime: 1000 * 30,
@@ -351,7 +351,7 @@ export function useRevenueConcentrationByClient(dateFrom?: string, dateTo?: stri
       if (!tenantId)
         return { clients: [], totalRevenue: 0, totalClients: 0, top5Pct: 0 };
       const supabase = createClient();
-      return getRevenueConcentrationByClient(supabase, tenantId, dateFrom, dateTo);
+      return getRevenueConcentrationByClient(supabase, dateFrom, dateTo);
     },
     enabled: !!tenantId,
     staleTime: 1000 * 60 * 5,
@@ -370,7 +370,7 @@ export function usePayrollBreakdown(dateFrom: string, dateTo: string) {
       if (!tenantId)
         return { vendors: [], totalFolha: 0, totalOperacional: 0, headcount: 0 };
       const supabase = createClient();
-      return getPayrollBreakdown(supabase, tenantId, dateFrom, dateTo);
+      return getPayrollBreakdown(supabase, dateFrom, dateTo);
     },
     enabled: !!tenantId && !!dateFrom && !!dateTo,
     staleTime: 1000 * 60 * 2,
@@ -426,7 +426,7 @@ export function useOverdueEntries(type: "ar" | "ap" | "all" = "all") {
       if (!tenantId)
         return { entries: [], projectedEntries: [], totalAr: 0, totalAp: 0, totalArCount: 0, totalApCount: 0, projectedAr: 0, projectedArCount: 0 };
       const supabase = createClient();
-      return getOverdueEntries(supabase, tenantId, type);
+      return getOverdueEntries(supabase, type);
     },
     enabled: !!tenantId,
     staleTime: 1000 * 60 * 2,
@@ -445,7 +445,7 @@ export function useBankStatements(filters: BankStatementFilters = {}) {
     queryFn: async () => {
       if (!tenantId) return { data: [], count: 0 };
       const supabase = createClient();
-      return getBankStatements(supabase, tenantId, filters);
+      return getBankStatements(supabase, filters);
     },
     enabled: !!tenantId,
     staleTime: 1000 * 60,
@@ -460,7 +460,7 @@ export function useLatestBankBalance() {
     queryFn: async () => {
       if (!tenantId) return null;
       const supabase = createClient();
-      return getLatestBankStatementBalance(supabase, tenantId);
+      return getLatestBankStatementBalance(supabase);
     },
     enabled: !!tenantId,
     staleTime: 1000 * 60 * 2,
@@ -475,7 +475,7 @@ export function useBankStatementCashFlow(dateFrom: string, dateTo: string) {
     queryFn: async () => {
       if (!tenantId) return [];
       const supabase = createClient();
-      return getBankStatementCashFlow(supabase, tenantId, dateFrom, dateTo);
+      return getBankStatementCashFlow(supabase, dateFrom, dateTo);
     },
     enabled: !!tenantId && !!dateFrom && !!dateTo,
     staleTime: 1000 * 60 * 5,

@@ -11,13 +11,11 @@ const VERSION_COLS = "id,item_id,version,title,content,edited_by,created_at";
 
 export async function getCulturaItems(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   category?: string
 ): Promise<CulturaRow[]> {
   let query = supabase
     .from("cultura_items")
     .select(ITEM_COLS)
-    .eq("tenant_id", tenantId)
     .order("order_index", { ascending: true });
 
   if (category) query = query.eq("category", category);
@@ -29,14 +27,12 @@ export async function getCulturaItems(
 
 export async function getCulturaItem(
   supabase: SupabaseClient<Database>,
-  id: string,
-  tenantId: string
+  id: string
 ): Promise<CulturaRow | null> {
   const { data, error } = await supabase
     .from("cultura_items")
     .select(ITEM_COLS)
     .eq("id", id)
-    .eq("tenant_id", tenantId)
     .single();
 
   if (error) throw error;

@@ -65,7 +65,7 @@ export async function isAutomationEnabled(
     .eq("id", tenantId)
     .single();
 
-  if (error || !data) return true; // default ON if no settings row
+  if (error || !data) return true;
 
   const settings = data.settings as Record<string, unknown> | null;
   if (!settings) return true;
@@ -101,7 +101,6 @@ export async function setAutomationEnabled(
 
 async function getExistingAutoTasks(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   personIds: string[]
 ): Promise<Map<string, Set<string>>> {
   if (personIds.length === 0) return new Map();
@@ -109,7 +108,6 @@ async function getExistingAutoTasks(
   const { data, error } = await supabase
     .from("person_tasks" as never)
     .select("person_id,category" as never)
-    .eq("tenant_id" as never, tenantId as never)
     .in("person_id" as never, personIds as never)
     .in("category" as never, [
       "auto_1on1",
@@ -216,7 +214,6 @@ export async function runPeopleAutomations(
   const { data: profiles, error: profilesError } = await supabase
     .from("profiles")
     .select("id,full_name,manager_id,media_avaliacao,status")
-    .eq("tenant_id", tenantId)
     .in("status", ["active", "onboarding"])
     .limit(1000);
 
@@ -235,7 +232,7 @@ export async function runPeopleAutomations(
   const personIds = typedProfiles.map((p) => p.id);
 
   // 3. Fetch snapshots (1:1, PDI, tasks) — single batch
-  const snapshots = await getPeopleSnapshots(supabase, tenantId, personIds);
+  const snapshots = await getPeopleSnapshots(supabase, personIds);
 
   // Merge performance_score from profiles
   for (const p of typedProfiles) {
@@ -245,7 +242,7 @@ export async function runPeopleAutomations(
   }
 
   // 4. Fetch existing auto-tasks for dedup
-  const existingTasks = await getExistingAutoTasks(supabase, tenantId, personIds);
+  const existingTasks = await getExistingAutoTasks(supabase, personIds);
 
   // 5. Evaluate triggers
   const now = Date.now();
@@ -345,7 +342,7 @@ export async function runPeopleAutomations(
           tasksCreated.push({ trigger: "auto_overload", personId: profile.id, personName: name, taskTitle: title });
           logPeopleEvent(supabase, tenantId, profile.id, actorId, "auto_task_created", "warning", { trigger: "auto_overload", summary: title });
           // Overload-specific event (deduped — max 1 per 24h)
-          const recentOverload = await hasRecentEvent(supabase, tenantId, profile.id, "overload_detected", 24);
+          const recentOverload = await hasRecentEvent(supabase, profile.id, "overload_detected", 24);
           if (!recentOverload) {
             logPeopleEvent(supabase, tenantId, profile.id, actorId, "overload_detected", "warning", {
               summary: `${snapshot.active_tasks_count} tarefas ativas (limite: ${THRESHOLDS.overloadTasks})`,

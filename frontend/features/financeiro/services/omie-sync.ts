@@ -55,13 +55,11 @@ export async function testOmieConnection(): Promise<OmieTestResult> {
 
 /** Get recent Omie sync logs (last 20) */
 export async function getOmieSyncLogs(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
+  supabase: SupabaseClient<Database>
 ): Promise<OmieSyncLog[]> {
   const { data, error } = await supabase
     .from("omie_sync_log")
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("started_at", { ascending: false })
     .limit(20);
 
@@ -71,13 +69,11 @@ export async function getOmieSyncLogs(
 
 /** Get the latest Omie sync log */
 export async function getLatestOmieSync(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
+  supabase: SupabaseClient<Database>
 ): Promise<OmieSyncLog | null> {
   const { data, error } = await supabase
     .from("omie_sync_log")
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("started_at", { ascending: false })
     .limit(1)
     .maybeSingle();

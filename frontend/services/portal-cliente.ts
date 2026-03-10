@@ -5,13 +5,11 @@ type PortalAccessRow =
   Database["public"]["Tables"]["client_portal_access"]["Row"];
 
 export async function listPortalAccess(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
+  supabase: SupabaseClient<Database>
 ): Promise<PortalAccessRow[]> {
   const { data, error } = await supabase
     .from("client_portal_access")
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false });
 
   if (error) throw error;

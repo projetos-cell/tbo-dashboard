@@ -20,7 +20,7 @@ export function usePersonEvents(personId: string | undefined, limit = 50) {
 
   return useQuery({
     queryKey: ["people-events", "person", personId, tenantId],
-    queryFn: () => getPersonEvents(supabase, tenantId!, personId!, limit),
+    queryFn: () => getPersonEvents(supabase, personId!, limit),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!personId,
   });
@@ -33,7 +33,7 @@ export function usePeopleEvents(filters?: PeopleEventsFilter, limit = 100) {
 
   return useQuery({
     queryKey: ["people-events", "all", tenantId, filters],
-    queryFn: () => getAllPeopleEvents(supabase, tenantId!, filters, limit),
+    queryFn: () => getAllPeopleEvents(supabase, filters, limit),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });

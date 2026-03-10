@@ -33,7 +33,7 @@ export function useRecognitions(opts: { limit?: number; offset?: number; source?
 
   return useQuery({
     queryKey: ["recognitions", tenantId, opts],
-    queryFn: () => getRecognitions(supabase, tenantId!, opts),
+    queryFn: () => getRecognitions(supabase, opts),
     staleTime: 1000 * 60 * 2,
     enabled: !!tenantId,
   });
@@ -46,7 +46,7 @@ export function useRecognitionsForUser(userId: string) {
 
   return useQuery({
     queryKey: ["recognitions", tenantId, "user", userId],
-    queryFn: () => getRecognitionsForUser(supabase, tenantId!, userId),
+    queryFn: () => getRecognitionsForUser(supabase, userId),
     staleTime: 1000 * 60 * 2,
     enabled: !!tenantId && !!userId,
   });
@@ -59,7 +59,7 @@ export function useUnreviewedRecognitions() {
 
   return useQuery({
     queryKey: ["recognitions", tenantId, "unreviewed"],
-    queryFn: () => getUnreviewedRecognitions(supabase, tenantId!),
+    queryFn: () => getUnreviewedRecognitions(supabase),
     staleTime: 1000 * 60 * 2,
     enabled: !!tenantId,
   });
@@ -72,7 +72,7 @@ export function useRecognitionKPIs() {
 
   return useQuery({
     queryKey: ["recognition-kpis", tenantId],
-    queryFn: () => getRecognitionKPIs(supabase, tenantId!),
+    queryFn: () => getRecognitionKPIs(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -85,7 +85,7 @@ export function usePointsBalance(userId?: string) {
 
   return useQuery({
     queryKey: ["points-balance", tenantId, userId],
-    queryFn: () => getPointsBalance(supabase, tenantId!, userId!),
+    queryFn: () => getPointsBalance(supabase, userId!),
     staleTime: 1000 * 60 * 2,
     enabled: !!tenantId && !!userId,
   });
@@ -156,7 +156,7 @@ export function useCheckRateLimit(fromUserId?: string, maxPerDay = 5) {
 
   return useQuery({
     queryKey: ["rate-limit", tenantId, fromUserId],
-    queryFn: () => checkRateLimit(supabase, tenantId!, fromUserId!, maxPerDay),
+    queryFn: () => checkRateLimit(supabase, fromUserId!, maxPerDay),
     staleTime: 1000 * 60 * 1,
     enabled: !!tenantId && !!fromUserId,
   });
@@ -174,7 +174,7 @@ export function useCheckDuplicate(
 
   return useQuery({
     queryKey: ["duplicate-check", tenantId, fromUser, toUser, valueId],
-    queryFn: () => checkDuplicate(supabase, tenantId!, fromUser!, toUser!, valueId!, windowHours),
+    queryFn: () => checkDuplicate(supabase, fromUser!, toUser!, valueId!, windowHours),
     staleTime: 1000 * 60 * 1,
     enabled: !!tenantId && !!fromUser && !!toUser && !!valueId,
   });

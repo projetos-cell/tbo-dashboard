@@ -7,13 +7,11 @@ type DemandRow = Database["public"]["Tables"]["demands"]["Row"];
 const FULL_COLS = "*";
 
 export async function getProjects(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
+  supabase: SupabaseClient<Database>
 ): Promise<ProjectRow[]> {
   const { data, error } = await supabase
     .from("projects")
     .select(FULL_COLS)
-    .eq("tenant_id", tenantId)
     .order("name");
 
   if (error) throw error;
@@ -22,14 +20,12 @@ export async function getProjects(
 
 export async function getProjectById(
   supabase: SupabaseClient<Database>,
-  id: string,
-  tenantId: string
+  id: string
 ): Promise<ProjectRow | null> {
   const { data, error } = await supabase
     .from("projects")
     .select(FULL_COLS)
     .eq("id", id)
-    .eq("tenant_id", tenantId)
     .single();
 
   if (error) throw error;
@@ -38,14 +34,12 @@ export async function getProjectById(
 
 export async function getProjectDemands(
   supabase: SupabaseClient<Database>,
-  projectId: string,
-  tenantId: string
+  projectId: string
 ): Promise<DemandRow[]> {
   const { data, error } = await supabase
     .from("demands")
     .select("*")
     .eq("project_id", projectId)
-    .eq("tenant_id", tenantId)
     .order("due_date", { ascending: true });
 
   if (error) throw error;
@@ -100,25 +94,21 @@ export interface ProjectStats {
 
 export async function getProjectStats(
   supabase: SupabaseClient<Database>,
-  projectId: string,
-  tenantId: string
+  projectId: string
 ): Promise<ProjectStats> {
   const [demandsRes, sectionsRes, attachRes] = await Promise.all([
     supabase
       .from("demands")
       .select("id,status,feito,due_date", { count: "exact" })
-      .eq("project_id", projectId)
-      .eq("tenant_id", tenantId),
+      .eq("project_id", projectId),
     supabase
       .from("os_sections")
       .select("id", { count: "exact" })
-      .eq("project_id", projectId)
-      .eq("tenant_id", tenantId),
+      .eq("project_id", projectId),
     supabase
       .from("project_attachments")
       .select("id", { count: "exact" })
-      .eq("project_id", projectId)
-      .eq("tenant_id", tenantId),
+      .eq("project_id", projectId),
   ]);
 
   const demands = (demandsRes.data ?? []) as {

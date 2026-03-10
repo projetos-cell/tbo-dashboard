@@ -10,12 +10,10 @@ type CheckinRow = Database["public"]["Tables"]["okr_checkins"]["Row"];
 
 export async function getCycles(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
 ) {
   const { data, error } = await supabase
     .from("okr_cycles")
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("start_date", { ascending: false });
   if (error) throw error;
   return data as CycleRow[];
@@ -23,12 +21,10 @@ export async function getCycles(
 
 export async function getActiveCycle(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
 ) {
   const { data, error } = await supabase
     .from("okr_cycles")
     .select("*")
-    .eq("tenant_id", tenantId)
     .eq("is_active", true)
     .limit(1)
     .maybeSingle();
@@ -83,13 +79,11 @@ export interface ObjectiveFilters {
 
 export async function getObjectives(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   filters?: ObjectiveFilters,
 ) {
   let query = supabase
     .from("okr_objectives")
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("created_at");
 
   if (filters?.cycleId) query = query.eq("period", filters.cycleId);
@@ -145,13 +139,11 @@ export async function deleteObjective(
 
 export async function getKeyResults(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   objectiveId: string,
 ) {
   const { data, error } = await supabase
     .from("okr_key_results")
     .select("*")
-    .eq("tenant_id", tenantId)
     .eq("objective_id", objectiveId)
     .order("created_at");
   if (error) throw error;

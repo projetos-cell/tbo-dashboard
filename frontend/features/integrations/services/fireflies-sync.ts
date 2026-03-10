@@ -27,13 +27,11 @@ export interface FirefliesConfig {
 
 export async function getFirefliesSyncLogs(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   limit = 20,
 ) {
   const { data, error } = await supabase
     .from("fireflies_sync_log" as never)
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
@@ -56,12 +54,10 @@ export async function triggerFirefliesSync(
 
 export async function getFirefliesConfig(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
 ) {
   const { data, error } = await supabase
     .from("fireflies_config" as never)
     .select("*")
-    .eq("tenant_id", tenantId)
     .maybeSingle();
   if (error) throw error;
   return data as unknown as FirefliesConfig | null;

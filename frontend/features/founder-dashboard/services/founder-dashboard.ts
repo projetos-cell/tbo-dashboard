@@ -231,7 +231,6 @@ export interface PeriodBounds {
 
 export async function getFounderDashboardSnapshot(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   period?: PeriodBounds
 ): Promise<FounderDashboardSnapshot> {
   const now = new Date();
@@ -263,7 +262,6 @@ export async function getFounderDashboardSnapshot(
     supabase
       .from("finance_transactions" as never)
       .select("amount, paid_amount, paid_date, date, due_date, status, type, counterpart, project_id, cost_center_id, business_unit")
-      .eq("tenant_id", tenantId)
       .in("type", ["receita", "despesa"])
       .in("status", PAID_STATUSES),
 
@@ -271,41 +269,35 @@ export async function getFounderDashboardSnapshot(
     supabase
       .from("finance_transactions" as never)
       .select("amount, due_date, status, type, counterpart")
-      .eq("tenant_id", tenantId)
       .in("type", ["receita", "despesa"])
       .in("status", PENDING_STATUSES),
 
     // 3. Cost centers for unit revenue name mapping
     supabase
       .from("finance_cost_centers" as never)
-      .select("id, name")
-      .eq("tenant_id", tenantId),
+      .select("id, name"),
 
     // 4. Projects for name lookup
     supabase
       .from("projects" as never)
-      .select("id, name")
-      .eq("tenant_id", tenantId),
+      .select("id, name"),
 
     // 5. Bank accounts — real cash balance synced from Omie
     supabase
       .from("finance_bank_accounts" as never)
       .select("balance")
-      .eq("tenant_id", tenantId)
       .eq("is_active", true),
 
     // 6. Active headcount for receita por colaborador (#7)
     supabase
       .from("profiles" as never)
       .select("id", { count: "exact", head: true })
-      .eq("tenant_id", tenantId)
       .eq("is_active", true),
 
     // 7. Contracts expiring within 60 days (#8)
     supabase
       .from("contracts" as never)
       .select("id, title, person_name, end_date, monthly_value")
-      .eq("tenant_id", tenantId)
       .eq("status", "active")
       .gte("end_date", today)
       .lte("end_date", in60Str),
@@ -314,7 +306,6 @@ export async function getFounderDashboardSnapshot(
     supabase
       .from("crm_deals" as never)
       .select("id, name, company, value, probability, expected_close, stage")
-      .eq("tenant_id", tenantId)
       .not("stage", "in", "(fechado_ganho,fechado_perdido)")
       .gte("expected_close", today)
       .lte("expected_close", in90StrQ),
@@ -323,7 +314,6 @@ export async function getFounderDashboardSnapshot(
     supabase
       .from("finance_operational_indicators" as never)
       .select("headcount, folha_pagamento, custos_fixos, meta_receita, meta_margem, churn_clientes_perdidos")
-      .eq("tenant_id", tenantId)
       .eq("month", currentMonth)
       .maybeSingle(),
   ]);

@@ -24,7 +24,7 @@ export function useOperationalIndicators(month: string) {
     queryFn: async () => {
       if (!tenantId) return null;
       const supabase = createClient();
-      return getOperationalIndicators(supabase, tenantId, month);
+      return getOperationalIndicators(supabase, month);
     },
     enabled: !!tenantId && !!month,
     staleTime: 1000 * 60,

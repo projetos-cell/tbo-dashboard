@@ -33,14 +33,12 @@ function toCalendarEvent(row: EventRow): CalendarEvent {
 
 export async function getCalendarEvents(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   timeMin: string,
   timeMax: string
 ): Promise<CalendarEvent[]> {
   const { data, error } = await supabase
     .from("calendar_events")
     .select()
-    .eq("tenant_id", tenantId)
     .gte("start_at", timeMin)
     .lte("start_at", timeMax)
     .order("start_at", { ascending: true });

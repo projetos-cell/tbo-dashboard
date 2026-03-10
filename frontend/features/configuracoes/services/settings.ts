@@ -55,12 +55,10 @@ export async function uploadAvatar(
 
 export async function getUsers(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
 ): Promise<ProfileRow[]> {
   const { data, error } = await supabase
     .from("profiles")
     .select()
-    .eq("tenant_id", tenantId)
     .order("full_name", { ascending: true });
   if (error) throw error;
   return (data ?? []) as ProfileRow[];
@@ -85,7 +83,6 @@ export async function updateUserRole(
 
 export async function getAuditLogs(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   opts: { limit?: number; offset?: number; action?: string; entityType?: string } = {},
 ): Promise<{ data: AuditLogRow[]; count: number }> {
   const limit = opts.limit ?? 25;
@@ -94,7 +91,6 @@ export async function getAuditLogs(
   let query = supabase
     .from("audit_logs")
     .select("*", { count: "exact" })
-    .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 

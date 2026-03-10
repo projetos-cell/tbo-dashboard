@@ -19,7 +19,7 @@ export function useProjectActivity(projectId: string, limit = 50) {
 
   return useQuery({
     queryKey: ["project-activity", projectId, limit],
-    queryFn: () => getProjectActivity(supabase, projectId, tenantId!, limit),
+    queryFn: () => getProjectActivity(supabase, projectId, limit),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!projectId,
   });
@@ -31,7 +31,7 @@ export function useTaskActivity(taskId: string, limit = 30) {
 
   return useQuery({
     queryKey: ["task-activity", taskId, limit],
-    queryFn: () => getTaskActivity(supabase, taskId, tenantId!, limit),
+    queryFn: () => getTaskActivity(supabase, taskId, limit),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!taskId,
   });

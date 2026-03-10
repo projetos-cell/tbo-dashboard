@@ -10,6 +10,8 @@ export interface UserRoleInfo {
   roleSlug: RoleSlug;
   roleLabel: string;
   modules: string[];
+  /** tenant_id from tenant_members (source of truth) */
+  tenantId: string | null;
 }
 
 /**
@@ -27,29 +29,34 @@ export async function fetchUserRole(
   userId: string,
   userEmail?: string | null
 ): Promise<UserRoleInfo> {
-  // Super-admin override -- hardcoded emails always get founder
-  if (isSuperAdmin(userEmail)) {
-    return {
-      roleSlug: "founder",
-      roleLabel: "Founder",
-      modules: getModulesForRole("founder"),
-    };
-  }
+  // Always query tenant_members to get the authoritative tenant_id + role
+  let tenantId: string | null = null;
 
   try {
-    // Query tenant_members joined with roles to get the slug.
-    // Uses `any` for the client generic because tenant_members/roles
-    // are not yet in the generated Database types.
     const { data, error } = await supabase
       .from("tenant_members")
-      .select("roles ( slug, label )")
+      .select("tenant_id, roles ( slug, label )")
       .eq("user_id", userId)
       .eq("is_active", true)
       .limit(1)
       .single();
 
+    if (!error && data) {
+      tenantId = (data as Record<string, unknown>).tenant_id as string | null;
+    }
+
+    // Super-admin override -- hardcoded emails always get founder
+    if (isSuperAdmin(userEmail)) {
+      return {
+        roleSlug: "founder",
+        roleLabel: "Founder",
+        modules: getModulesForRole("founder"),
+        tenantId,
+      };
+    }
+
     if (error || !data) {
-      return buildDefault();
+      return buildDefault(tenantId);
     }
 
     // Supabase returns the joined row as an object (single relation)
@@ -58,7 +65,7 @@ export async function fetchUserRole(
       label: string;
     } | null;
     if (!role?.slug) {
-      return buildDefault();
+      return buildDefault(tenantId);
     }
 
     const slug = mapDbSlugToRole(role.slug);
@@ -66,9 +73,10 @@ export async function fetchUserRole(
       roleSlug: slug,
       roleLabel: role.label ?? slug,
       modules: getModulesForRole(slug),
+      tenantId,
     };
   } catch {
-    return buildDefault();
+    return buildDefault(tenantId);
   }
 }
 
@@ -111,10 +119,11 @@ function mapDbSlugToRole(dbSlug: string): RoleSlug {
   return mapping[dbSlug] ?? DEFAULT_ROLE;
 }
 
-function buildDefault(): UserRoleInfo {
+function buildDefault(tenantId: string | null = null): UserRoleInfo {
   return {
     roleSlug: DEFAULT_ROLE,
     roleLabel: "Colaborador",
     modules: getModulesForRole(DEFAULT_ROLE),
+    tenantId,
   };
 }

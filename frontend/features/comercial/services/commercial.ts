@@ -34,13 +34,11 @@ interface DealFilters {
 
 export async function getDeals(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   filters?: DealFilters,
 ) {
   let query = supabase
     .from("crm_deals")
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("updated_at", { ascending: false, nullsFirst: false });
 
   if (filters?.stage) {
@@ -134,12 +132,10 @@ export interface PipelineOption {
 
 export async function getDealPipelines(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
 ): Promise<PipelineOption[]> {
   const { data, error } = await supabase
     .from("crm_deals")
     .select("rd_pipeline_name, owner_name" as never)
-    .eq("tenant_id", tenantId)
     .not("rd_pipeline_name" as never, "is", null);
 
   if (error) throw error;
@@ -171,12 +167,10 @@ export async function getDealPipelines(
 
 export async function getRdPipelines(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
 ): Promise<RdPipelineRow[]> {
   const { data, error } = await supabase
     .from("rd_pipelines" as never)
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("name");
 
   if (error) throw error;
@@ -201,13 +195,11 @@ export async function getRdPipelineById(
 
 export async function getDealOwners(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   pipelineId?: string,
 ): Promise<string[]> {
   let query = supabase
     .from("crm_deals")
     .select("owner_name" as never)
-    .eq("tenant_id", tenantId)
     .not("owner_name", "is", null);
 
   if (pipelineId) {

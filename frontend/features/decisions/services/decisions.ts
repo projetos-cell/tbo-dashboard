@@ -7,12 +7,10 @@ const FULL_COLS = "*";
 
 export async function getDecisions(
   supabase: SupabaseClient<Database>,
-  tenantId: string
 ): Promise<DecisionRow[]> {
   const { data, error } = await supabase
     .from("decisions")
     .select(FULL_COLS)
-    .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
@@ -22,13 +20,11 @@ export async function getDecisions(
 export async function getDecisionById(
   supabase: SupabaseClient<Database>,
   id: string,
-  tenantId: string
 ): Promise<DecisionRow | null> {
   const { data, error } = await supabase
     .from("decisions")
     .select(FULL_COLS)
     .eq("id", id)
-    .eq("tenant_id", tenantId)
     .single();
 
   if (error) throw error;

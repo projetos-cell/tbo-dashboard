@@ -19,8 +19,7 @@ export function useIntelligenceKpis() {
 
   return useQuery({
     queryKey: ["intelligence", "kpis", tenantId],
-    queryFn: () => getIntelligenceKpis(supabase, tenantId!),
+    queryFn: () => getIntelligenceKpis(supabase),
     staleTime: 1000 * 60 * 5,
-    enabled: !!tenantId,
   });
 }

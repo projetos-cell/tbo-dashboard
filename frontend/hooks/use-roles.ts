@@ -28,7 +28,7 @@ export function useRoles() {
 
   return useQuery({
     queryKey: ["roles", tenantId],
-    queryFn: () => listRoles(supabase, tenantId!),
+    queryFn: () => listRoles(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });

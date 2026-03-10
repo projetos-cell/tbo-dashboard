@@ -31,13 +31,11 @@ export type OneOnOneWithActions = OneOnOneRow & {
 
 export async function getOneOnOnes(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   filters?: OneOnOneFilters
 ): Promise<OneOnOneRow[]> {
   let query = supabase
     .from("one_on_ones")
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("scheduled_at", { ascending: false });
 
   if (filters?.status) {
@@ -52,13 +50,11 @@ export async function getOneOnOnes(
 export async function getOneOnOneById(
   supabase: SupabaseClient<Database>,
   id: string,
-  tenantId: string
 ): Promise<OneOnOneWithActions> {
   const { data, error } = await supabase
     .from("one_on_ones")
     .select("*, one_on_one_actions(*)")
     .eq("id", id)
-    .eq("tenant_id", tenantId)
     .single();
 
   if (error) throw error;
@@ -67,14 +63,12 @@ export async function getOneOnOneById(
 
 export async function getUpcomingOneOnOnes(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   limit = 10
 ): Promise<OneOnOneRow[]> {
   const now = new Date().toISOString();
   const { data, error } = await supabase
     .from("one_on_ones")
     .select("*")
-    .eq("tenant_id", tenantId)
     .eq("status", "scheduled")
     .gte("scheduled_at", now)
     .order("scheduled_at", { ascending: true })
@@ -86,13 +80,11 @@ export async function getUpcomingOneOnOnes(
 
 export async function getOverdueOneOnOnes(
   supabase: SupabaseClient<Database>,
-  tenantId: string
 ): Promise<OneOnOneRow[]> {
   const now = new Date().toISOString();
   const { data, error } = await supabase
     .from("one_on_ones")
     .select("*")
-    .eq("tenant_id", tenantId)
     .eq("status", "scheduled")
     .lt("scheduled_at", now)
     .order("scheduled_at", { ascending: false })
@@ -144,12 +136,10 @@ export async function deleteOneOnOne(
 
 export async function getPendingActions(
   supabase: SupabaseClient<Database>,
-  tenantId: string
 ): Promise<ActionRow[]> {
   const { data, error } = await supabase
     .from("one_on_one_actions")
     .select("*")
-    .eq("tenant_id", tenantId)
     .eq("completed", false)
     .order("due_date", { ascending: true, nullsFirst: false });
 
@@ -160,12 +150,10 @@ export async function getPendingActions(
 export async function getOneOnOneActions(
   supabase: SupabaseClient<Database>,
   oneOnOneId: string,
-  tenantId: string
 ): Promise<ActionRow[]> {
   const { data, error } = await supabase
     .from("one_on_one_actions")
     .select("*")
-    .eq("tenant_id", tenantId)
     .eq("one_on_one_id", oneOnOneId)
     .order("created_at");
 
@@ -190,7 +178,6 @@ export async function createAction(
 export async function toggleAction(
   supabase: SupabaseClient<Database>,
   actionId: string,
-  tenantId: string,
   completed: boolean
 ): Promise<ActionRow> {
   const { data, error } = await supabase
@@ -200,7 +187,6 @@ export async function toggleAction(
       completed_at: completed ? new Date().toISOString() : null,
     } as never)
     .eq("id", actionId)
-    .eq("tenant_id", tenantId)
     .select("*")
     .single();
 
@@ -211,13 +197,11 @@ export async function toggleAction(
 export async function deleteAction(
   supabase: SupabaseClient<Database>,
   actionId: string,
-  tenantId: string
 ): Promise<void> {
   const { error } = await supabase
     .from("one_on_one_actions")
     .delete()
-    .eq("id", actionId)
-    .eq("tenant_id", tenantId);
+    .eq("id", actionId);
 
   if (error) throw error;
 }

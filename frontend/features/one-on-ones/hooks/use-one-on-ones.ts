@@ -37,7 +37,7 @@ export function useOneOnOnes(filters?: OneOnOneFilters) {
 
   return useQuery({
     queryKey: ["one-on-ones", tenantId, filters],
-    queryFn: () => getOneOnOnes(supabase, tenantId!, filters),
+    queryFn: () => getOneOnOnes(supabase, filters),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -49,7 +49,7 @@ export function useOneOnOne(id: string | null) {
 
   return useQuery({
     queryKey: ["one-on-one", id],
-    queryFn: () => getOneOnOneById(supabase, id!, tenantId!),
+    queryFn: () => getOneOnOneById(supabase, id!),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!id,
   });
@@ -61,7 +61,7 @@ export function useUpcomingOneOnOnes() {
 
   return useQuery({
     queryKey: ["one-on-ones-upcoming", tenantId],
-    queryFn: () => getUpcomingOneOnOnes(supabase, tenantId!),
+    queryFn: () => getUpcomingOneOnOnes(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -73,7 +73,7 @@ export function useOverdueOneOnOnes() {
 
   return useQuery({
     queryKey: ["one-on-ones-overdue", tenantId],
-    queryFn: () => getOverdueOneOnOnes(supabase, tenantId!),
+    queryFn: () => getOverdueOneOnOnes(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -85,7 +85,7 @@ export function usePendingOneOnOneActions() {
 
   return useQuery({
     queryKey: ["one-on-one-pending-actions", tenantId],
-    queryFn: () => getPendingActions(supabase, tenantId!),
+    queryFn: () => getPendingActions(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -97,7 +97,7 @@ export function useOneOnOneActions(oneOnOneId: string | null) {
 
   return useQuery({
     queryKey: ["one-on-one-actions", oneOnOneId],
-    queryFn: () => getOneOnOneActions(supabase, oneOnOneId!, tenantId!),
+    queryFn: () => getOneOnOneActions(supabase, oneOnOneId!),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!oneOnOneId,
   });
@@ -214,7 +214,7 @@ export function useToggleAction() {
       actionId: string;
       completed: boolean;
       oneOnOneId: string;
-    }) => toggleAction(supabase, actionId, tenantId!, completed),
+    }) => toggleAction(supabase, actionId, completed),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["one-on-one-actions", variables.oneOnOneId] });
       queryClient.invalidateQueries({ queryKey: ["one-on-one-pending-actions"] });
@@ -235,7 +235,7 @@ export function useDeleteAction() {
     }: {
       actionId: string;
       oneOnOneId: string;
-    }) => deleteAction(supabase, actionId, tenantId!),
+    }) => deleteAction(supabase, actionId),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["one-on-one-actions", variables.oneOnOneId] });
       queryClient.invalidateQueries({ queryKey: ["one-on-one-pending-actions"] });

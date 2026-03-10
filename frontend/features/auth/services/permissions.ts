@@ -5,13 +5,11 @@ type RoleRow = Database["public"]["Tables"]["roles"]["Row"];
 type RolePermissionRow = Database["public"]["Tables"]["role_permissions"]["Row"];
 
 export async function listRoles(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
+  supabase: SupabaseClient<Database>
 ): Promise<RoleRow[]> {
   const { data, error } = await supabase
     .from("roles")
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("sort_order");
 
   if (error) throw error;

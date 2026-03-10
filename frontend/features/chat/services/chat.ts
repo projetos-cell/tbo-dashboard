@@ -10,12 +10,10 @@ export type ReactionRow = Database["public"]["Tables"]["chat_reactions"]["Row"];
 
 export async function getChannels(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
 ) {
   const { data, error } = await supabase
     .from("chat_channels")
     .select("*")
-    .eq("tenant_id", tenantId)
     .eq("is_archived", false)
     .order("name");
   if (error) throw error;
@@ -77,12 +75,10 @@ export async function archiveChannel(
 /** Channels with member join for DM display names */
 export async function getChannelsWithMembers(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
 ) {
   const { data, error } = await supabase
     .from("chat_channels")
     .select("*, chat_channel_members(user_id, role)")
-    .eq("tenant_id", tenantId)
     .eq("is_archived", false)
     .order("name");
   if (error) throw error;
@@ -176,7 +172,6 @@ export async function updateLastRead(
 export async function getMessages(
   supabase: SupabaseClient<Database>,
   channelId: string,
-  tenantId: string,
   opts: { limit?: number; before?: string } = {},
 ) {
   const limit = opts.limit ?? 50;
@@ -185,7 +180,6 @@ export async function getMessages(
     .from("chat_messages")
     .select("*")
     .eq("channel_id", channelId)
-    .eq("tenant_id", tenantId)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -289,7 +283,6 @@ export async function findOrCreateDirectChannel(
   const { data: existing } = await supabase
     .from("chat_channels")
     .select("*, chat_channel_members(user_id)")
-    .eq("tenant_id", tenantId)
     .eq("type", "direct")
     .eq("is_archived", false);
 
@@ -362,14 +355,12 @@ export async function removeReaction(
   messageId: string,
   userId: string,
   emoji: string,
-  tenantId: string,
 ) {
   const { error } = await supabase
     .from("chat_reactions")
     .delete()
     .eq("message_id", messageId)
     .eq("user_id", userId)
-    .eq("emoji", emoji)
-    .eq("tenant_id", tenantId);
+    .eq("emoji", emoji);
   if (error) throw error;
 }

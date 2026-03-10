@@ -48,7 +48,7 @@ export function usePdis(filters?: PdiFilters) {
 
   return useQuery({
     queryKey: ["pdis", tenantId, filters],
-    queryFn: () => getPdis(supabase, tenantId!, filters),
+    queryFn: () => getPdis(supabase, filters),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -60,7 +60,7 @@ export function usePdi(id: string | null) {
 
   return useQuery({
     queryKey: ["pdi", id],
-    queryFn: () => getPdiById(supabase, id!, tenantId!),
+    queryFn: () => getPdiById(supabase, id!),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!id,
   });
@@ -72,7 +72,7 @@ export function usePdiGoals(pdiId: string | null) {
 
   return useQuery({
     queryKey: ["pdi-goals", pdiId],
-    queryFn: () => getPdiGoals(supabase, pdiId!, tenantId!),
+    queryFn: () => getPdiGoals(supabase, pdiId!),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!pdiId,
   });
@@ -84,7 +84,7 @@ export function useOpenPdiActionsCount() {
 
   return useQuery({
     queryKey: ["pdi-open-actions-count", tenantId],
-    queryFn: () => getOpenPdiActionsCount(supabase, tenantId!),
+    queryFn: () => getOpenPdiActionsCount(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -96,7 +96,7 @@ export function usePersonSkills(personId: string | null) {
 
   return useQuery({
     queryKey: ["person-skills", personId, tenantId],
-    queryFn: () => getPersonSkills(supabase, personId!, tenantId!),
+    queryFn: () => getPersonSkills(supabase, personId!),
     staleTime: 1000 * 60 * 10,
     enabled: !!tenantId && !!personId,
   });
@@ -233,7 +233,7 @@ export function useDeletePdiGoal() {
 
   return useMutation({
     mutationFn: ({ id, pdiId }: { id: string; pdiId: string }) =>
-      deletePdiGoal(supabase, id, tenantId!),
+      deletePdiGoal(supabase, id),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["pdi-goals", variables.pdiId] });
       queryClient.invalidateQueries({ queryKey: ["pdi", variables.pdiId] });
@@ -275,7 +275,7 @@ export function useTogglePdiAction() {
       completed: boolean;
       goalId: string;
       pdiId: string;
-    }) => togglePdiAction(supabase, actionId, tenantId!, completed),
+    }) => togglePdiAction(supabase, actionId, completed),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["pdi-goals", variables.pdiId] });
       queryClient.invalidateQueries({ queryKey: ["pdi", variables.pdiId] });
@@ -296,7 +296,7 @@ export function useDeletePdiAction() {
       actionId: string;
       goalId: string;
       pdiId: string;
-    }) => deletePdiAction(supabase, actionId, tenantId!),
+    }) => deletePdiAction(supabase, actionId),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["pdi-goals", variables.pdiId] });
       queryClient.invalidateQueries({ queryKey: ["pdi", variables.pdiId] });

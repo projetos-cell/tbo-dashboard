@@ -10,19 +10,16 @@ import {
   getContractById,
   createContract,
   updateContract,
+  type ContractFilters,
 } from "@/features/contratos/services/contracts";
 
-export function useContracts(filters?: {
-  status?: string;
-  search?: string;
-  clientId?: string;
-}) {
+export function useContracts(filters?: ContractFilters) {
   const supabase = createClient();
   const tenantId = useAuthStore((s) => s.tenantId);
 
   return useQuery({
     queryKey: ["contracts", tenantId, filters],
-    queryFn: () => getContracts(supabase, tenantId!, filters),
+    queryFn: () => getContracts(supabase, filters),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -34,7 +31,7 @@ export function useContract(id: string | undefined) {
 
   return useQuery({
     queryKey: ["contract", id],
-    queryFn: () => getContractById(supabase, id!, tenantId!),
+    queryFn: () => getContractById(supabase, id!),
     staleTime: 1000 * 60 * 5,
     enabled: !!id && !!tenantId,
   });
@@ -54,7 +51,8 @@ export function useCreateContract() {
         userId: useAuthStore.getState().user?.id ?? "unknown",
         action: "create",
         table: "contracts",
-        recordId: (data as Record<string, unknown>)?.id as string ?? "unknown",
+        recordId:
+          (data as Record<string, unknown>)?.id as string ?? "unknown",
         after: variables as unknown as Record<string, unknown>,
       });
     },

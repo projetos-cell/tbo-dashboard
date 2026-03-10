@@ -23,7 +23,7 @@ export function useCashEntries(limit = 20) {
     queryFn: async () => {
       if (!tenantId) return [];
       const supabase = createClient();
-      return getCashEntries(supabase, tenantId, limit);
+      return getCashEntries(supabase, limit);
     },
     enabled: !!tenantId,
     staleTime: 1000 * 60,
@@ -70,7 +70,7 @@ export function useLatestCashBalance() {
     queryFn: async () => {
       if (!tenantId) return null;
       const supabase = createClient();
-      return getLatestCashBalance(supabase, tenantId);
+      return getLatestCashBalance(supabase);
     },
     enabled: !!tenantId,
     staleTime: 1000 * 60,

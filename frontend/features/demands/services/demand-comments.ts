@@ -9,14 +9,12 @@ const COMMENT_COLS =
 
 export async function getDemandComments(
   supabase: SupabaseClient<Database>,
-  demandId: string,
-  tenantId: string
+  demandId: string
 ): Promise<DemandCommentRow[]> {
   const { data, error } = await supabase
     .from("demand_comments")
     .select(COMMENT_COLS)
     .eq("demand_id", demandId)
-    .eq("tenant_id", tenantId)
     .order("created_at", { ascending: true });
 
   if (error) throw error;

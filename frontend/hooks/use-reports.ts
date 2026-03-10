@@ -24,7 +24,7 @@ export function useReportSchedules() {
 
   return useQuery({
     queryKey: ["report-schedules", tenantId],
-    queryFn: () => listSchedules(supabase, tenantId!),
+    queryFn: () => listSchedules(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -75,7 +75,7 @@ export function useReportRuns(filters?: {
 
   return useQuery({
     queryKey: ["report-runs", tenantId, filters],
-    queryFn: () => listRuns(supabase, tenantId!, filters),
+    queryFn: () => listRuns(supabase, filters),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });

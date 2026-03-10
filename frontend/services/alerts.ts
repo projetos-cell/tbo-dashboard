@@ -19,14 +19,12 @@ export interface NotificationFilters {
 export async function listNotifications(
   supabase: SupabaseClient<Database>,
   userId: string,
-  tenantId: string,
   filters?: NotificationFilters
 ): Promise<NotificationRow[]> {
   let query = supabase
     .from("notifications")
     .select("*")
     .eq("user_id", userId)
-    .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false })
     .limit(200);
 
@@ -54,14 +52,12 @@ export async function markAsRead(
 
 export async function markAllAsRead(
   supabase: SupabaseClient<Database>,
-  userId: string,
-  tenantId: string
+  userId: string
 ): Promise<void> {
   const { error } = await supabase
     .from("notifications")
     .update({ read: true } as never)
     .eq("user_id", userId)
-    .eq("tenant_id", tenantId)
     .eq("read", false);
 
   if (error) throw error;

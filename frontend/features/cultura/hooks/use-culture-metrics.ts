@@ -30,7 +30,7 @@ export function useCultureMetrics(
   return useQuery({
     queryKey: ["culture-metrics", tenantId, employeeId, period],
     queryFn: () =>
-      getCultureMetrics(supabase, tenantId!, employeeId!, period!),
+      getCultureMetrics(supabase, employeeId!, period!),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!employeeId && !!period,
   });
@@ -43,7 +43,7 @@ export function useAllCultureMetrics(period?: string) {
 
   return useQuery({
     queryKey: ["culture-metrics-all", tenantId, period],
-    queryFn: () => getCultureMetricsByPeriod(supabase, tenantId!, period!),
+    queryFn: () => getCultureMetricsByPeriod(supabase, period!),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!period,
   });
@@ -59,7 +59,7 @@ export function useCultureConfig() {
 
   return useQuery({
     queryKey: ["culture-config", tenantId],
-    queryFn: () => getCultureConfig(supabase, tenantId!),
+    queryFn: () => getCultureConfig(supabase),
     staleTime: 1000 * 60 * 10,
     enabled: !!tenantId,
   });

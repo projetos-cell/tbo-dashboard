@@ -25,13 +25,11 @@ export interface RecentSyncError {
 
 /** Get integration configs for the tenant */
 export async function getIntegrationConfigs(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
+  supabase: SupabaseClient<Database>
 ): Promise<IntegrationConfigRow[]> {
   const { data, error } = await supabase
     .from("integration_configs")
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("provider", { ascending: true });
 
   if (error) throw error;
@@ -40,13 +38,11 @@ export async function getIntegrationConfigs(
 
 /** Get recent sync_logs (last 50) */
 export async function getRecentSyncLogs(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
+  supabase: SupabaseClient<Database>
 ): Promise<SyncLogRow[]> {
   const { data, error } = await supabase
     .from("sync_logs")
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false })
     .limit(50);
 
@@ -56,13 +52,11 @@ export async function getRecentSyncLogs(
 
 /** Get recent sync errors from sync_logs */
 export async function getRecentSyncErrors(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
+  supabase: SupabaseClient<Database>
 ): Promise<SyncLogRow[]> {
   const { data, error } = await supabase
     .from("sync_logs")
     .select("*")
-    .eq("tenant_id", tenantId)
     .eq("status", "error")
     .order("created_at", { ascending: false })
     .limit(20);
@@ -73,13 +67,11 @@ export async function getRecentSyncErrors(
 
 /** Get the latest Fireflies sync log */
 export async function getLatestFirefliesSync(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
+  supabase: SupabaseClient<Database>
 ): Promise<FirefliesSyncRow | null> {
   const { data, error } = await supabase
     .from("fireflies_sync_log")
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("started_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -90,13 +82,11 @@ export async function getLatestFirefliesSync(
 
 /** Get the latest Omie sync log */
 export async function getLatestOmieSync(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
+  supabase: SupabaseClient<Database>
 ) {
   const { data, error } = await (supabase as any)
     .from("omie_sync_log")
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("started_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -107,13 +97,11 @@ export async function getLatestOmieSync(
 
 /** Get the latest Reportei sync run */
 export async function getLatestReporteiSync(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
+  supabase: SupabaseClient<Database>
 ): Promise<ReporteiSyncRow | null> {
   const { data, error } = await supabase
     .from("reportei_sync_runs")
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("started_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -124,17 +112,16 @@ export async function getLatestReporteiSync(
 
 /** Aggregate system health data */
 export async function getSystemHealthSummary(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
+  supabase: SupabaseClient<Database>
 ) {
   const [configs, errors, fireflies, reportei, omie, recentLogs] =
     await Promise.all([
-      getIntegrationConfigs(supabase, tenantId),
-      getRecentSyncErrors(supabase, tenantId),
-      getLatestFirefliesSync(supabase, tenantId),
-      getLatestReporteiSync(supabase, tenantId),
-      getLatestOmieSync(supabase, tenantId),
-      getRecentSyncLogs(supabase, tenantId),
+      getIntegrationConfigs(supabase),
+      getRecentSyncErrors(supabase),
+      getLatestFirefliesSync(supabase),
+      getLatestReporteiSync(supabase),
+      getLatestOmieSync(supabase),
+      getRecentSyncLogs(supabase),
     ]);
 
   const integrations: IntegrationStatus[] = configs.map((c) => ({

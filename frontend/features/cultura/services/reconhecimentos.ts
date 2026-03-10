@@ -10,7 +10,6 @@ const COLS =
 // ─── List recognitions (paginated, ordered) ───
 export async function getRecognitions(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   opts: { limit?: number; offset?: number; source?: string } = {}
 ): Promise<{ data: RecognitionRow[]; count: number }> {
   const { limit = 50, offset = 0, source } = opts;
@@ -18,7 +17,6 @@ export async function getRecognitions(
   let query = supabase
     .from("recognitions")
     .select(COLS, { count: "exact" })
-    .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -32,13 +30,11 @@ export async function getRecognitions(
 // ─── Get recognitions for a specific user ───
 export async function getRecognitionsForUser(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   userId: string
 ): Promise<RecognitionRow[]> {
   const { data, error } = await supabase
     .from("recognitions")
     .select(COLS)
-    .eq("tenant_id", tenantId)
     .eq("to_user", userId)
     .order("created_at", { ascending: false });
 
@@ -96,13 +92,11 @@ export async function deleteRecognition(
 
 // ─── Get unreviewed (Fireflies auto-detected) ───
 export async function getUnreviewedRecognitions(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
+  supabase: SupabaseClient<Database>
 ): Promise<RecognitionRow[]> {
   const { data, error } = await supabase
     .from("recognitions")
     .select(COLS)
-    .eq("tenant_id", tenantId)
     .eq("reviewed", false)
     .order("created_at", { ascending: false });
 
@@ -139,13 +133,11 @@ export interface RecognitionKPIs {
 }
 
 export async function getRecognitionKPIs(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
+  supabase: SupabaseClient<Database>
 ): Promise<RecognitionKPIs> {
   const { data: all, error } = await supabase
     .from("recognitions")
-    .select("id,to_user,value_id,value_name,value_emoji,source,reviewed,created_at")
-    .eq("tenant_id", tenantId);
+    .select("id,to_user,value_id,value_name,value_emoji,source,reviewed,created_at");
 
   if (error) throw error;
   const items = all ?? [];
@@ -194,14 +186,12 @@ export async function getRecognitionKPIs(
 // ─── Get points balance for a user ───
 export async function getPointsBalance(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   userId: string
 ): Promise<{ earned: number; spent: number; balance: number }> {
   // Points earned (received recognitions)
   const { data: recognitions } = await supabase
     .from("recognitions")
     .select("points")
-    .eq("tenant_id", tenantId)
     .eq("to_user", userId);
 
   const earned = (recognitions ?? []).reduce((sum, r) => sum + (r.points ?? 1), 0);
@@ -210,7 +200,6 @@ export async function getPointsBalance(
   const { data: redemptions } = await supabase
     .from("recognition_redemptions")
     .select("points_spent")
-    .eq("tenant_id", tenantId)
     .eq("user_id", userId)
     .in("status", ["approved", "delivered"]);
 
@@ -222,7 +211,6 @@ export async function getPointsBalance(
 // ─── Anti-fraud: check rate limit ───
 export async function checkRateLimit(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   fromUserId: string,
   maxPerDay: number = 5
 ): Promise<{ allowed: boolean; count: number }> {
@@ -232,7 +220,6 @@ export async function checkRateLimit(
   const { data, error } = await supabase
     .from("recognitions")
     .select("id")
-    .eq("tenant_id", tenantId)
     .eq("from_user", fromUserId)
     .gte("created_at", todayStart.toISOString());
 
@@ -244,7 +231,6 @@ export async function checkRateLimit(
 // ─── Anti-fraud: check duplicate ───
 export async function checkDuplicate(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   fromUser: string,
   toUser: string,
   valueId: string,
@@ -255,7 +241,6 @@ export async function checkDuplicate(
   const { data } = await supabase
     .from("recognitions")
     .select("id")
-    .eq("tenant_id", tenantId)
     .eq("from_user", fromUser)
     .eq("to_user", toUser)
     .eq("value_id", valueId)

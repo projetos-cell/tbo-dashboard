@@ -45,7 +45,7 @@ export function useCycles() {
 
   return useQuery({
     queryKey: ["okr-cycles", tenantId],
-    queryFn: () => getCycles(supabase, tenantId!),
+    queryFn: () => getCycles(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -57,7 +57,7 @@ export function useActiveCycle() {
 
   return useQuery({
     queryKey: ["okr-active-cycle", tenantId],
-    queryFn: () => getActiveCycle(supabase, tenantId!),
+    queryFn: () => getActiveCycle(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -117,7 +117,7 @@ export function useObjectives(filters?: ObjectiveFilters) {
 
   return useQuery({
     queryKey: ["okr-objectives", tenantId, filters],
-    queryFn: () => getObjectives(supabase, tenantId!, filters),
+    queryFn: () => getObjectives(supabase, filters),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -199,7 +199,7 @@ export function useKeyResults(objectiveId: string | null) {
 
   return useQuery({
     queryKey: ["okr-key-results", tenantId, objectiveId],
-    queryFn: () => getKeyResults(supabase, tenantId!, objectiveId!),
+    queryFn: () => getKeyResults(supabase, objectiveId!),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!objectiveId,
   });

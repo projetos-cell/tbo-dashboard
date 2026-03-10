@@ -61,7 +61,7 @@ export function useUsers() {
 
   return useQuery({
     queryKey: ["users", tenantId],
-    queryFn: () => getUsers(supabase, tenantId!),
+    queryFn: () => getUsers(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -94,7 +94,7 @@ export function useAuditLogs(opts: {
   return useQuery({
     queryKey: ["audit-logs", tenantId, page, opts.action, opts.entityType],
     queryFn: () =>
-      getAuditLogs(supabase, tenantId!, {
+      getAuditLogs(supabase, {
         limit,
         offset: page * limit,
         action: opts.action,

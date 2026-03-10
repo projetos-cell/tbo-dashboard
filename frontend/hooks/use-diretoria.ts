@@ -19,7 +19,7 @@ export function useExecutiveKpis() {
 
   return useQuery({
     queryKey: ["diretoria", "kpis", tenantId],
-    queryFn: () => getExecutiveKpis(supabase, tenantId!),
+    queryFn: () => getExecutiveKpis(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });

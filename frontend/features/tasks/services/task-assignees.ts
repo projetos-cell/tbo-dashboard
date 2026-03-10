@@ -7,14 +7,12 @@ const ASSIGNEE_COLS = "id,tenant_id,task_id,user_id,role,created_at";
 
 export async function getAssignees(
   supabase: SupabaseClient<Database>,
-  taskId: string,
-  tenantId: string
+  taskId: string
 ): Promise<AssigneeRow[]> {
   const { data, error } = await supabase
     .from("task_assignees")
     .select(ASSIGNEE_COLS)
-    .eq("task_id", taskId)
-    .eq("tenant_id", tenantId);
+    .eq("task_id", taskId);
 
   if (error) throw error;
   return data ?? [];

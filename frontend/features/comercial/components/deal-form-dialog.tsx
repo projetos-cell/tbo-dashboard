@@ -23,6 +23,7 @@ import {
 import { DEAL_STAGES, DEAL_SOURCES } from "@/lib/constants";
 import { useAuthStore } from "@/stores/auth-store";
 import { useCreateDeal, useUpdateDeal } from "@/features/comercial/hooks/use-commercial";
+import { toast } from "sonner";
 import type { Database } from "@/lib/supabase/types";
 
 type DealRow = Database["public"]["Tables"]["crm_deals"]["Row"];
@@ -118,7 +119,10 @@ export function DealFormDialog({
       return;
     }
     setErrors({});
-    if (!tenantId) return;
+    if (!tenantId) {
+      toast.error("Sessão expirada. Faça login novamente.");
+      return;
+    }
 
     const payload = {
       name: form.name.trim(),
@@ -135,13 +139,19 @@ export function DealFormDialog({
       notes: form.notes || null,
     };
 
-    if (isEditing && deal) {
-      await updateDeal.mutateAsync({ id: deal.id, updates: payload });
-    } else {
-      await createDeal.mutateAsync({ ...payload, tenant_id: tenantId });
+    try {
+      if (isEditing && deal) {
+        await updateDeal.mutateAsync({ id: deal.id, updates: payload });
+        toast.success("Deal atualizado com sucesso.");
+      } else {
+        await createDeal.mutateAsync({ ...payload, tenant_id: tenantId });
+        toast.success("Deal criado com sucesso.");
+      }
+      onOpenChange(false);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro desconhecido";
+      toast.error(`Erro ao salvar deal: ${message}`);
     }
-
-    onOpenChange(false);
   }
 
   const isPending = createDeal.isPending || updateDeal.isPending;

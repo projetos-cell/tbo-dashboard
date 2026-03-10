@@ -10,13 +10,11 @@ const VAL_COLS = "id,tenant_id,definition_id,task_id,value_text,value_number,val
 export async function getDefinitions(
   supabase: SupabaseClient<Database>,
   projectId: string,
-  tenantId: string
 ): Promise<FieldDefRow[]> {
   const { data, error } = await supabase
     .from("custom_field_definitions")
     .select(DEF_COLS)
     .eq("project_id", projectId)
-    .eq("tenant_id", tenantId)
     .order("order_index", { ascending: true });
 
   if (error) throw error;
@@ -67,13 +65,11 @@ export async function deleteDefinition(
 export async function getValues(
   supabase: SupabaseClient<Database>,
   taskId: string,
-  tenantId: string
 ): Promise<FieldValRow[]> {
   const { data, error } = await supabase
     .from("custom_field_values")
     .select(VAL_COLS)
-    .eq("task_id", taskId)
-    .eq("tenant_id", tenantId);
+    .eq("task_id", taskId);
 
   if (error) throw error;
   return data ?? [];

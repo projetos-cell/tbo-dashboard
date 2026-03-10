@@ -23,7 +23,7 @@ export function useOmieSyncLogs() {
     queryFn: async () => {
       if (!tenantId) return [];
       const supabase = createClient();
-      return getOmieSyncLogs(supabase, tenantId);
+      return getOmieSyncLogs(supabase);
     },
     enabled: !!tenantId,
     staleTime: 1000 * 30, // 30s — syncs change frequently

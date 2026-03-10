@@ -7,7 +7,6 @@ const TASK_COLS =
 
 export async function getTasks(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   filters?: {
     status?: string;
     assignee_name?: string;
@@ -18,7 +17,6 @@ export async function getTasks(
   let query = supabase
     .from("os_tasks")
     .select(TASK_COLS)
-    .eq("tenant_id", tenantId)
     .is("parent_id", null)
     .order("order_index", { ascending: true });
 
@@ -34,14 +32,12 @@ export async function getTasks(
 
 export async function getTaskById(
   supabase: SupabaseClient<Database>,
-  id: string,
-  tenantId: string
+  id: string
 ): Promise<TaskRow | null> {
   const { data, error } = await supabase
     .from("os_tasks")
     .select(TASK_COLS)
     .eq("id", id)
-    .eq("tenant_id", tenantId)
     .single();
 
   if (error) throw error;
@@ -50,14 +46,12 @@ export async function getTaskById(
 
 export async function getSubtasks(
   supabase: SupabaseClient<Database>,
-  parentId: string,
-  tenantId: string
+  parentId: string
 ): Promise<TaskRow[]> {
   const { data, error } = await supabase
     .from("os_tasks")
     .select(TASK_COLS)
     .eq("parent_id", parentId)
-    .eq("tenant_id", tenantId)
     .order("order_index", { ascending: true });
 
   if (error) throw error;

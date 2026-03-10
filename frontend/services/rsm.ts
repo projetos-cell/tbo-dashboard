@@ -8,13 +8,11 @@ type RsmIdeaRow = Database["public"]["Tables"]["rsm_ideas"]["Row"];
 // ── Accounts ──────────────────────────────────────────────────
 
 export async function listAccounts(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
+  supabase: SupabaseClient<Database>
 ): Promise<RsmAccountRow[]> {
   const { data, error } = await supabase
     .from("rsm_accounts")
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("platform");
   if (error) throw error;
   return (data ?? []) as RsmAccountRow[];
@@ -24,7 +22,6 @@ export async function listAccounts(
 
 export async function listPosts(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   filters?: {
     accountId?: string;
     status?: string;
@@ -33,7 +30,6 @@ export async function listPosts(
   let query = supabase
     .from("rsm_posts")
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false });
 
   if (filters?.accountId) query = query.eq("account_id", filters.accountId);
@@ -87,7 +83,6 @@ export async function deletePost(
 
 export async function listIdeas(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   filters?: {
     status?: string;
   }
@@ -95,7 +90,6 @@ export async function listIdeas(
   let query = supabase
     .from("rsm_ideas")
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false });
 
   if (filters?.status) query = query.eq("status", filters.status);

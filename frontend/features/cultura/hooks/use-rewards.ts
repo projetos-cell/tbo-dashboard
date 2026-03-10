@@ -30,7 +30,7 @@ export function useRewards(activeOnly = true) {
 
   return useQuery({
     queryKey: ["rewards", tenantId, activeOnly],
-    queryFn: () => getRewards(supabase, tenantId!, activeOnly),
+    queryFn: () => getRewards(supabase, activeOnly),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -43,7 +43,7 @@ export function useRewardsKPIs() {
 
   return useQuery({
     queryKey: ["rewards-kpis", tenantId],
-    queryFn: () => getRewardsKPIs(supabase, tenantId!),
+    queryFn: () => getRewardsKPIs(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -56,7 +56,7 @@ export function useRedemptions(opts: { userId?: string; status?: string } = {}) 
 
   return useQuery({
     queryKey: ["redemptions", tenantId, opts],
-    queryFn: () => getRedemptions(supabase, tenantId!, opts),
+    queryFn: () => getRedemptions(supabase, opts),
     staleTime: 1000 * 60 * 2,
     enabled: !!tenantId,
   });

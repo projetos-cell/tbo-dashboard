@@ -31,7 +31,7 @@ export async function getPeople(
   // KPI presets that need server-side RPC (or custom query)
   if (filters?.kpi) {
     if (filters.kpi === "critical_score") {
-      return getPeopleByCriticalScore(supabase, tenantId, filters, sort, pagination);
+      return getPeopleByCriticalScore(supabase, filters, sort, pagination);
     }
     return getPeopleByKPI(supabase, tenantId, filters.kpi, filters, sort, pagination);
   }
@@ -39,7 +39,7 @@ export async function getPeople(
   // Fase 4 — Priority sort needs snapshot data from multiple tables
   const isPrioritySort = sort?.[0]?.field === PRIORITY_SORT_FIELD;
   if (isPrioritySort) {
-    return getPeopleSortedByPriority(supabase, tenantId, filters, pagination);
+    return getPeopleSortedByPriority(supabase, filters, pagination);
   }
 
   const page = pagination?.page ?? 0;
@@ -47,8 +47,7 @@ export async function getPeople(
 
   let query = supabase
     .from("profiles")
-    .select("*", { count: "exact" })
-    .eq("tenant_id", tenantId);
+    .select("*", { count: "exact" });
 
   // Status filter (multi-select)
   if (filters?.status?.length) {
@@ -118,15 +117,13 @@ export async function getPeople(
 
 async function getPeopleSortedByPriority(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   filters?: PeopleFiltersSpec,
   pagination?: { page: number; pageSize: number }
 ): Promise<PeopleListResult> {
   // 1. Fetch ALL matching profiles (no pagination yet — we need full list to sort)
   let query = supabase
     .from("profiles")
-    .select("*", { count: "exact" })
-    .eq("tenant_id", tenantId);
+    .select("*", { count: "exact" });
 
   if (filters?.status?.length) query = query.in("status", filters.status);
   if (filters?.search) {
@@ -153,7 +150,7 @@ async function getPeopleSortedByPriority(
 
   // 2. Fetch snapshot data for all these profiles (batch — no N+1)
   const personIds = profiles.map((p) => p.id);
-  const snapshots = await getPeopleSnapshots(supabase, tenantId, personIds);
+  const snapshots = await getPeopleSnapshots(supabase, personIds);
 
   // Merge performance_score from profile.media_avaliacao
   for (const p of profiles) {
@@ -220,7 +217,6 @@ async function getPeopleByKPI(
   let query = supabase
     .from("profiles")
     .select("*", { count: "exact" })
-    .eq("tenant_id", tenantId)
     .in("id", personIds);
 
   // Apply additional filters on top of KPI results
@@ -247,14 +243,12 @@ async function getPeopleByKPI(
 
 export async function getPersonById(
   supabase: SupabaseClient<Database>,
-  id: string,
-  tenantId: string
+  id: string
 ): Promise<ProfileRow | null> {
   const { data, error } = await supabase
     .from("profiles")
     .select()
     .eq("id", id)
-    .eq("tenant_id", tenantId)
     .single();
 
   if (error) throw error;
@@ -278,13 +272,11 @@ export async function updatePerson(
 }
 
 export async function getTeams(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
+  supabase: SupabaseClient<Database>
 ): Promise<TeamRow[]> {
   const { data, error } = await supabase
     .from("teams")
     .select()
-    .eq("tenant_id", tenantId)
     .eq("is_active", true)
     .order("name");
 
@@ -301,13 +293,11 @@ export interface PeopleKPIs {
 
 /** Lightweight profiles query for user pickers — returns id, name, avatar, email */
 export async function getProfiles(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
+  supabase: SupabaseClient<Database>
 ): Promise<Pick<ProfileRow, "id" | "full_name" | "avatar_url" | "email">[]> {
   const { data, error } = await supabase
     .from("profiles")
     .select("id,full_name,avatar_url,email")
-    .eq("tenant_id", tenantId)
     .eq("is_active", true)
     .order("full_name");
 
@@ -378,7 +368,6 @@ export async function getPeopleKPIs(
 
 async function getPeopleByCriticalScore(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   filters?: PeopleFiltersSpec,
   sort?: SortSpec[],
   pagination?: { page: number; pageSize: number }
@@ -389,7 +378,6 @@ async function getPeopleByCriticalScore(
   let query = supabase
     .from("profiles")
     .select("*", { count: "exact" })
-    .eq("tenant_id", tenantId)
     .not("media_avaliacao", "is", null)
     .lt("media_avaliacao", 50);
 
@@ -436,13 +424,11 @@ export interface PeopleNudgeCounts {
  * Used by the nudge system (Fase 5) — separate from at_risk (< 60).
  */
 export async function getCriticalScoreCount(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
+  supabase: SupabaseClient<Database>
 ): Promise<number> {
   const { count, error } = await supabase
     .from("profiles")
     .select("id", { count: "exact", head: true })
-    .eq("tenant_id", tenantId)
     .not("media_avaliacao", "is", null)
     .lt("media_avaliacao", 50);
 

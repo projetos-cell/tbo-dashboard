@@ -93,7 +93,6 @@ export function computePriorityScore(snapshot: PersonSnapshot): number {
 
 export async function getPeopleSnapshots(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   personIds: string[]
 ): Promise<PeopleSnapshotMap> {
   if (personIds.length === 0) return {};
@@ -103,7 +102,6 @@ export async function getPeopleSnapshots(
     supabase
       .from("one_on_ones" as never)
       .select("collaborator_id,scheduled_at" as never)
-      .eq("tenant_id" as never, tenantId as never)
       .in("collaborator_id" as never, personIds as never)
       .order("scheduled_at" as never, { ascending: false } as never),
 
@@ -111,7 +109,6 @@ export async function getPeopleSnapshots(
     supabase
       .from("pdis" as never)
       .select("person_id,status,last_updated_at" as never)
-      .eq("tenant_id" as never, tenantId as never)
       .in("person_id" as never, personIds as never)
       .order("last_updated_at" as never, { ascending: false } as never),
 
@@ -119,7 +116,6 @@ export async function getPeopleSnapshots(
     supabase
       .from("person_tasks" as never)
       .select("person_id,status" as never)
-      .eq("tenant_id" as never, tenantId as never)
       .in("person_id" as never, personIds as never)
       .neq("status" as never, "done" as never),
   ]);

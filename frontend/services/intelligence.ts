@@ -12,8 +12,7 @@ export interface IntelligenceKpis {
 
 /** Aggregate KPIs across modules for the intelligence dashboard */
 export async function getIntelligenceKpis(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
+  supabase: SupabaseClient<Database>
 ): Promise<IntelligenceKpis> {
   const [receivablesRes, payablesRes, dealsRes, teamRes, okrRes] =
     await Promise.all([
@@ -21,31 +20,26 @@ export async function getIntelligenceKpis(
       supabase
         .from("fin_receivables")
         .select("amount")
-        .eq("tenant_id", tenantId)
         .in("status", ["pendente", "em_aberto", "aberto"]),
       // Total payables (open)
       supabase
         .from("fin_payables")
         .select("amount")
-        .eq("tenant_id", tenantId)
         .in("status", ["pendente", "em_aberto", "aberto"]),
       // Pipeline deals (not closed)
       supabase
         .from("crm_deals")
         .select("value, stage")
-        .eq("tenant_id", tenantId)
         .not("stage", "in", '("ganho","perdido","cancelado")'),
       // Active team members
       supabase
         .from("colaboradores")
         .select("id", { count: "exact", head: true })
-        .eq("tenant_id", tenantId)
         .eq("status", "ativo"),
       // OKR Key Results progress
       supabase
         .from("okr_key_results")
-        .select("current_value, target_value, start_value")
-        .eq("tenant_id", tenantId),
+        .select("current_value, target_value, start_value"),
     ]);
 
   if (receivablesRes.error) throw receivablesRes.error;

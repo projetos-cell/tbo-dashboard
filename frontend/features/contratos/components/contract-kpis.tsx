@@ -1,11 +1,18 @@
-﻿"use client";
+"use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { FileText, CheckCircle, DollarSign, AlertTriangle } from "lucide-react";
-import type { ContractKPIs } from "@/features/contratos/services/contracts";
+import {
+  FileText,
+  TrendingUp,
+  TrendingDown,
+  AlertTriangle,
+  CheckCircle,
+} from "lucide-react";
+import type { TabKPIs } from "@/features/contratos/services/contracts";
 
 interface ContractKPICardsProps {
-  kpis: ContractKPIs;
+  kpis: TabKPIs;
+  tab: string;
 }
 
 function formatCurrency(value: number) {
@@ -17,33 +24,82 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-const cards = [
-  { key: "total" as const, label: "Total", icon: FileText, color: "#6b7280", format: "number" },
-  { key: "ativos" as const, label: "Ativos", icon: CheckCircle, color: "#22c55e", format: "number" },
-  { key: "ativosValue" as const, label: "Valor Ativos", icon: DollarSign, color: "#3b82f6", format: "currency" },
-  { key: "expiringSoon" as const, label: "Expirando", icon: AlertTriangle, color: "#f59e0b", format: "number" },
-];
+interface KPICardDef {
+  label: string;
+  value: number | string;
+  icon: typeof FileText;
+  color: string;
+  isCurrency: boolean;
+}
 
-export function ContractKPICards({ kpis }: ContractKPICardsProps) {
+function getCardsForTab(kpis: TabKPIs, tab: string): KPICardDef[] {
+  const isCurrencyField = (label: string) =>
+    label.includes("Receita") || label.includes("Custo");
+
+  const iconMap: Record<string, typeof FileText> = {
+    "Total Contratos": FileText,
+    "Total Terceirizados": FileText,
+    "Total Colaboradores": FileText,
+    Ativos: CheckCircle,
+    "Receita Ativa": TrendingUp,
+    "Receita Mensal": TrendingUp,
+    "Custo Ativo": TrendingDown,
+    "Custo Mensal": TrendingDown,
+    "Alertas Vencimento": AlertTriangle,
+  };
+
+  const colorMap: Record<string, string> = {
+    "Total Contratos": "#6b7280",
+    "Total Terceirizados": "#6b7280",
+    "Total Colaboradores": "#6b7280",
+    Ativos: "#22c55e",
+    "Receita Ativa": "#f97316",
+    "Receita Mensal": "#f97316",
+    "Custo Ativo": "#3b82f6",
+    "Custo Mensal": "#3b82f6",
+    "Alertas Vencimento": "#f59e0b",
+  };
+
+  const labels = [kpis.label1, kpis.label2, kpis.label3, kpis.label4];
+  const values = [kpis.value1, kpis.value2, kpis.value3, kpis.value4];
+
+  return labels.map((label, i) => ({
+    label,
+    value: values[i],
+    icon: iconMap[label] ?? FileText,
+    color: colorMap[label] ?? "#6b7280",
+    isCurrency: isCurrencyField(label),
+  }));
+}
+
+export function ContractKPICards({ kpis, tab }: ContractKPICardsProps) {
+  const cards = getCardsForTab(kpis, tab);
+
   return (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
       {cards.map((c) => {
         const Icon = c.icon;
-        const value = kpis[c.key];
         return (
-          <Card key={c.key}>
+          <Card
+            key={c.label}
+            className="border-border/50 transition-shadow hover:shadow-sm"
+          >
             <CardContent className="flex items-center gap-3 p-4">
               <div
-                className="flex h-9 w-9 items-center justify-center rounded-lg"
-                style={{ backgroundColor: `${c.color}18` }}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                style={{ backgroundColor: `${c.color}14` }}
               >
                 <Icon className="h-5 w-5" style={{ color: c.color }} />
               </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  {c.format === "currency" ? formatCurrency(value) : value}
+              <div className="min-w-0">
+                <p className="text-2xl font-bold tracking-tight">
+                  {c.isCurrency
+                    ? formatCurrency(c.value as number)
+                    : c.value}
                 </p>
-                <p className="text-xs text-gray-500">{c.label}</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {c.label}
+                </p>
               </div>
             </CardContent>
           </Card>

@@ -7,13 +7,11 @@ type ReportRunRow = Database["public"]["Tables"]["report_runs"]["Row"];
 // ── Schedules ─────────────────────────────────────────────────
 
 export async function listSchedules(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
+  supabase: SupabaseClient<Database>
 ): Promise<ReportScheduleRow[]> {
   const { data, error } = await supabase
     .from("report_schedules")
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("name");
   if (error) throw error;
   return (data ?? []) as ReportScheduleRow[];
@@ -62,7 +60,6 @@ export async function deleteSchedule(
 
 export async function listRuns(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   filters?: {
     scheduleId?: string;
     status?: string;
@@ -71,7 +68,6 @@ export async function listRuns(
   let query = supabase
     .from("report_runs")
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("generated_at", { ascending: false });
 
   if (filters?.scheduleId) query = query.eq("schedule_id", filters.scheduleId);

@@ -1390,6 +1390,7 @@ export type Database = {
       }
       contracts: {
         Row: {
+          category: string | null
           created_at: string | null
           created_by: string | null
           description: string | null
@@ -1400,6 +1401,7 @@ export type Database = {
           monthly_value: number | null
           person_id: string | null
           person_name: string | null
+          source_path: string | null
           start_date: string | null
           status: string | null
           tenant_id: string
@@ -1408,6 +1410,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          category?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -1418,6 +1421,7 @@ export type Database = {
           monthly_value?: number | null
           person_id?: string | null
           person_name?: string | null
+          source_path?: string | null
           start_date?: string | null
           status?: string | null
           tenant_id: string
@@ -1426,6 +1430,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          category?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -1436,6 +1441,7 @@ export type Database = {
           monthly_value?: number | null
           person_id?: string | null
           person_name?: string | null
+          source_path?: string | null
           start_date?: string | null
           status?: string | null
           tenant_id?: string

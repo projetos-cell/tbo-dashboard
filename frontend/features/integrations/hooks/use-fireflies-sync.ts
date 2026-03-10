@@ -11,7 +11,7 @@ export function useFirefliesSyncLogs() {
   const tenantId = useAuthStore((s) => s.tenantId);
   return useQuery({
     queryKey: ["fireflies-sync-logs", tenantId],
-    queryFn: () => getFirefliesSyncLogs(supabase, tenantId!),
+    queryFn: () => getFirefliesSyncLogs(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
     refetchInterval: 15_000,
@@ -32,7 +32,7 @@ export function useFirefliesConfig() {
   const tenantId = useAuthStore((s) => s.tenantId);
   return useQuery({
     queryKey: ["fireflies-config", tenantId],
-    queryFn: () => getFirefliesConfig(supabase, tenantId!),
+    queryFn: () => getFirefliesConfig(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });

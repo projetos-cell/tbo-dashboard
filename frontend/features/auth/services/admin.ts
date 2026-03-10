@@ -5,7 +5,6 @@ type AuditLogRow = Database["public"]["Tables"]["audit_log"]["Row"];
 
 export async function listAuditLogs(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   filters?: {
     action?: string;
     entity_type?: string;
@@ -18,7 +17,6 @@ export async function listAuditLogs(
   let query = supabase
     .from("audit_log")
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false })
     .limit(200);
 

@@ -41,13 +41,11 @@ const SELECT_COLS =
  */
 export async function getOperationalIndicators(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   month: string,
 ): Promise<OperationalIndicator | null> {
   const { data, error } = await supabase
     .from(TABLE as never)
     .select(SELECT_COLS)
-    .eq("tenant_id", tenantId)
     .eq("month", month)
     .maybeSingle();
 
@@ -60,14 +58,12 @@ export async function getOperationalIndicators(
  */
 export async function getOperationalIndicatorsRange(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   fromMonth: string,
   toMonth: string,
 ): Promise<OperationalIndicator[]> {
   const { data, error } = await supabase
     .from(TABLE as never)
     .select(SELECT_COLS)
-    .eq("tenant_id", tenantId)
     .gte("month", fromMonth)
     .lte("month", toMonth)
     .order("month", { ascending: true });

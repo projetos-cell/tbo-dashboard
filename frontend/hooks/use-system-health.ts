@@ -23,7 +23,7 @@ export function useSystemHealth() {
 
   return useQuery({
     queryKey: ["system-health", tenantId],
-    queryFn: () => getSystemHealthSummary(supabase, tenantId!),
+    queryFn: () => getSystemHealthSummary(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
     refetchInterval: 60_000, // refresh every minute
@@ -36,7 +36,7 @@ export function useRecentSyncErrors() {
 
   return useQuery({
     queryKey: ["system-health", "errors", tenantId],
-    queryFn: () => getRecentSyncErrors(supabase, tenantId!),
+    queryFn: () => getRecentSyncErrors(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -48,7 +48,7 @@ export function useIntegrationConfigs() {
 
   return useQuery({
     queryKey: ["system-health", "integrations", tenantId],
-    queryFn: () => getIntegrationConfigs(supabase, tenantId!),
+    queryFn: () => getIntegrationConfigs(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });

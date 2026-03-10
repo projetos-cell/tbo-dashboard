@@ -16,7 +16,7 @@ export function useCalendarEvents(timeMin: string, timeMax: string) {
 
   return useQuery({
     queryKey: ["calendar-events", tenantId, timeMin, timeMax],
-    queryFn: () => getCalendarEvents(supabase, tenantId!, timeMin, timeMax),
+    queryFn: () => getCalendarEvents(supabase, timeMin, timeMax),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!timeMin && !!timeMax,
   });

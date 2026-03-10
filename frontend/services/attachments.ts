@@ -8,13 +8,11 @@ const ATTACH_COLS =
 
 export async function getAttachments(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   filters?: { task_id?: string; project_id?: string }
 ): Promise<AttachmentRow[]> {
   let query = supabase
     .from("project_attachments")
     .select(ATTACH_COLS)
-    .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false });
 
   if (filters?.task_id) query = query.eq("task_id", filters.task_id);

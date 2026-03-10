@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
 import { logAuditTrail } from "@/lib/audit-trail";
+import { toast } from "sonner";
 import {
   getDeals,
   getDealById,
@@ -31,7 +32,7 @@ export function useDeals(filters?: DealFilters) {
     queryKey: ["deals", tenantId, filters],
     queryFn: async () => {
       const supabase = createClient();
-      return getDeals(supabase, tenantId!, filters);
+      return getDeals(supabase, filters);
     },
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
@@ -70,6 +71,9 @@ export function useCreateDeal() {
         after: variables as unknown as Record<string, unknown>,
       });
     },
+    onError: (err) => {
+      toast.error(`Erro ao criar deal: ${err.message}`);
+    },
   });
 }
 
@@ -96,6 +100,9 @@ export function useUpdateDeal() {
         recordId: variables.id,
         after: variables.updates as Record<string, unknown>,
       });
+    },
+    onError: (err) => {
+      toast.error(`Erro ao atualizar deal: ${err.message}`);
     },
   });
 }
@@ -145,7 +152,7 @@ export function usePipelines() {
     queryKey: ["deal-pipelines", tenantId],
     queryFn: async () => {
       const supabase = createClient();
-      return getDealPipelines(supabase, tenantId!);
+      return getDealPipelines(supabase);
     },
     staleTime: 1000 * 60 * 10,
     enabled: !!tenantId,
@@ -161,7 +168,7 @@ export function useRdPipelines() {
     queryKey: ["rd-pipelines", tenantId],
     queryFn: async () => {
       const supabase = createClient();
-      return getRdPipelines(supabase, tenantId!);
+      return getRdPipelines(supabase);
     },
     staleTime: 1000 * 60 * 10,
     enabled: !!tenantId,
@@ -177,7 +184,7 @@ export function useDealOwners(pipelineId?: string) {
     queryKey: ["deal-owners", tenantId, pipelineId],
     queryFn: async () => {
       const supabase = createClient();
-      return getDealOwners(supabase, tenantId!, pipelineId);
+      return getDealOwners(supabase, pipelineId);
     },
     staleTime: 1000 * 60 * 10,
     enabled: !!tenantId,
@@ -202,6 +209,9 @@ export function useUpdateDealStage() {
         after: { stage: variables.stage },
         metadata: { field: "stage" },
       });
+    },
+    onError: (err) => {
+      toast.error(`Erro ao mover deal: ${err.message}`);
     },
   });
 }

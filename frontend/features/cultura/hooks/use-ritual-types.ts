@@ -28,7 +28,7 @@ export function useRitualTypes(includeInactive = false) {
 
   return useQuery({
     queryKey: ["ritual-types", tenantId, includeInactive],
-    queryFn: () => getRitualTypes(supabase, tenantId!, includeInactive),
+    queryFn: () => getRitualTypes(supabase, includeInactive),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });

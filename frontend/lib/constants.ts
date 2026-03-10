@@ -105,15 +105,46 @@ export const INTERACTION_TYPES = {
 
 export type InteractionTypeKey = keyof typeof INTERACTION_TYPES;
 
-// Contract status configuration
+// Contract status configuration (aligned with DB check constraint)
 export const CONTRACT_STATUS = {
-  ativo: { label: "Ativo", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
-  pendente: { label: "Pendente", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
-  finalizado: { label: "Finalizado", color: "#94a3b8", bg: "rgba(148,163,184,0.12)" },
-  cancelado: { label: "Cancelado", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+  draft: { label: "Rascunho", color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
+  active: { label: "Ativo", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  expired: { label: "Expirado", color: "#94a3b8", bg: "rgba(148,163,184,0.12)" },
+  cancelled: { label: "Cancelado", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+  renewed: { label: "Renovado", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
 } as const;
 
 export type ContractStatusKey = keyof typeof CONTRACT_STATUS;
+
+// Contract category configuration
+export const CONTRACT_CATEGORY = {
+  cliente: { label: "Cliente", color: "#f97316", bg: "rgba(249,115,22,0.12)" },
+  equipe: { label: "Equipe", color: "#8b5cf6", bg: "rgba(139,92,246,0.12)" },
+  fornecedor: { label: "Fornecedor", color: "#06b6d4", bg: "rgba(6,182,212,0.12)" },
+  distrato: { label: "Distrato", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+} as const;
+
+export type ContractCategoryKey = keyof typeof CONTRACT_CATEGORY;
+
+// Contract type configuration (DB check constraint)
+export const CONTRACT_TYPE = {
+  pj: { label: "PJ" },
+  nda: { label: "NDA" },
+  aditivo: { label: "Aditivo" },
+  freelancer: { label: "Freelancer" },
+  clt: { label: "CLT" },
+  outro: { label: "Outro" },
+} as const;
+
+export type ContractTypeKey = keyof typeof CONTRACT_TYPE;
+
+// Tab configuration for contracts page
+export const CONTRACT_TABS = [
+  { key: "all", label: "Visão Geral", categories: undefined },
+  { key: "clientes", label: "Clientes", categories: ["cliente"] as const },
+  { key: "terceirizados", label: "Terceirizados", categories: ["fornecedor", "equipe"] as const },
+  { key: "colaboradores", label: "Colaboradores", categories: ["equipe"] as const },
+] as const;
 
 // ─── Deal pipeline stages (CRM) ──────────────────────────────────────
 export const DEAL_STAGES = {

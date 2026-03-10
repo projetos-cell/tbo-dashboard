@@ -29,13 +29,11 @@ export interface RdConfig {
 
 export async function getRdSyncLogs(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   limit = 20,
 ) {
   const { data, error } = await supabase
     .from("rd_sync_log" as never)
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
@@ -58,12 +56,10 @@ export async function triggerRdSync(
 
 export async function getRdConfig(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
 ) {
   const { data, error } = await supabase
     .from("rd_config" as never)
     .select("*")
-    .eq("tenant_id", tenantId)
     .maybeSingle();
   if (error) throw error;
   return data as unknown as RdConfig | null;

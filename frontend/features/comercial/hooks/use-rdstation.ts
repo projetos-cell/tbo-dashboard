@@ -11,7 +11,7 @@ export function useRdSyncLogs() {
     queryKey: ["rd-sync-logs", tenantId],
     queryFn: () => {
       const supabase = createClient();
-      return getRdSyncLogs(supabase, tenantId!);
+      return getRdSyncLogs(supabase);
     },
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
@@ -38,7 +38,7 @@ export function useRdConfig() {
     queryKey: ["rd-config", tenantId],
     queryFn: () => {
       const supabase = createClient();
-      return getRdConfig(supabase, tenantId!);
+      return getRdConfig(supabase);
     },
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,

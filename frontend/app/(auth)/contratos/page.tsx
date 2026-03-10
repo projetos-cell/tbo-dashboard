@@ -1,36 +1,55 @@
-﻿"use client";
+"use client";
 
 import { useState, useMemo } from "react";
 import { useContracts } from "@/features/contratos/hooks/use-contracts";
 import { ContractKPICards } from "@/features/contratos/components/contract-kpis";
-import { ContractFilters } from "@/features/contratos/components/contract-filters";
-import { ContractList } from "@/features/contratos/components/contract-list";
+import { ContractDataTable } from "@/features/contratos/components/contract-data-table";
 import { ContractDetailDialog } from "@/features/contratos/components/contract-detail-dialog";
 import { ContractFormDialog } from "@/features/contratos/components/contract-form-dialog";
-import { computeContractKPIs } from "@/features/contratos/services/contracts";
+import { NewContractDropdown } from "@/features/contratos/components/new-contract-dropdown";
+import { computeTabKPIs } from "@/features/contratos/services/contracts";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { ErrorState, EmptyState } from "@/components/shared";
-import { Button } from "@/components/ui/button";
-import { Plus, FileText } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { FileText, Search } from "lucide-react";
+import { CONTRACT_TABS } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 
 type ContractRow = Database["public"]["Tables"]["contracts"]["Row"];
 
 export default function ContratosPage() {
+  // ─── State ────────────────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [selectedContract, setSelectedContract] = useState<ContractRow | null>(null);
+  const [selectedContract, setSelectedContract] =
+    useState<ContractRow | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
-  const [editingContract, setEditingContract] = useState<ContractRow | null>(null);
+  const [editingContract, setEditingContract] =
+    useState<ContractRow | null>(null);
+  const [defaultCategory, setDefaultCategory] = useState<string | undefined>();
 
-  const { data: contracts = [], isLoading, error, refetch } = useContracts({
-    status: statusFilter || undefined,
+  // ─── Tab config ───────────────────────────────────────────────────
+  const currentTab = CONTRACT_TABS.find((t) => t.key === activeTab) ?? CONTRACT_TABS[0];
+
+  // ─── Data ─────────────────────────────────────────────────────────
+  const {
+    data: contracts = [],
+    isLoading,
+    error,
+    refetch,
+  } = useContracts({
+    categories: currentTab.categories ?? undefined,
     search: search || undefined,
   });
 
-  const kpis = useMemo(() => computeContractKPIs(contracts), [contracts]);
+  // ─── KPIs dinâmicos por tab ───────────────────────────────────────
+  const kpis = useMemo(
+    () => computeTabKPIs(contracts, activeTab),
+    [contracts, activeTab]
+  );
 
+  // ─── Handlers ─────────────────────────────────────────────────────
   function handleSelect(contract: ContractRow) {
     setSelectedContract(contract);
     setDetailOpen(true);
@@ -39,14 +58,17 @@ export default function ContratosPage() {
   function handleEdit(contract: ContractRow) {
     setDetailOpen(false);
     setEditingContract(contract);
+    setDefaultCategory(undefined);
     setFormOpen(true);
   }
 
-  function handleNew() {
+  function handleNewWithCategory(category: string) {
     setEditingContract(null);
+    setDefaultCategory(category);
     setFormOpen(true);
   }
 
+  // ─── Error state ──────────────────────────────────────────────────
   if (error) {
     return (
       <RequireRole module="contratos">
@@ -58,43 +80,86 @@ export default function ContratosPage() {
   return (
     <RequireRole module="contratos">
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        {/* ── Header ───────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Contratos</h1>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground">
               Gerencie contratos, valores e prazos de vencimento.
             </p>
           </div>
-          <Button onClick={handleNew}>
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Contrato
-          </Button>
+          <div className="flex items-center gap-3">
+            {/* Busca global */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar contratos..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 w-[240px]"
+              />
+            </div>
+            <NewContractDropdown onSelect={handleNewWithCategory} />
+          </div>
         </div>
 
-        <ContractKPICards kpis={kpis} />
+        {/* ── Tabs ─────────────────────────────────────────────────── */}
+        <div className="border-b border-border/50">
+          <nav className="-mb-px flex gap-6" aria-label="Tabs">
+            {CONTRACT_TABS.map((tab) => {
+              const isActive = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`
+                    relative pb-3 text-sm font-medium transition-colors
+                    ${
+                      isActive
+                        ? "text-[#f97316]"
+                        : "text-muted-foreground hover:text-foreground"
+                    }
+                  `}
+                >
+                  {tab.label}
+                  {isActive && (
+                    <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-[#f97316]" />
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
 
-        <ContractFilters
-          search={search}
-          onSearchChange={setSearch}
-          statusFilter={statusFilter}
-          onStatusChange={setStatusFilter}
-        />
+        {/* ── KPI Cards ────────────────────────────────────────────── */}
+        <ContractKPICards kpis={kpis} tab={activeTab} />
 
-        {!isLoading && !contracts.length ? (
+        {/* ── Data Table ───────────────────────────────────────────── */}
+        {!isLoading && contracts.length === 0 ? (
           <EmptyState
             icon={FileText}
             title="Nenhum contrato encontrado"
-            description="Cadastre o primeiro contrato para controlar valores e prazos."
-            cta={{ label: "Novo Contrato", onClick: handleNew }}
+            description={
+              search
+                ? `Nenhum resultado para "${search}". Tente outro termo.`
+                : "Cadastre o primeiro contrato para controlar valores e prazos."
+            }
+            cta={{
+              label: "Novo Contrato",
+              onClick: () => handleNewWithCategory("cliente"),
+            }}
           />
         ) : (
-          <ContractList
+          <ContractDataTable
             contracts={contracts}
             isLoading={isLoading}
+            showCategory={activeTab === "all"}
+            onEdit={handleEdit}
             onSelect={handleSelect}
           />
         )}
 
+        {/* ── Dialogs ──────────────────────────────────────────────── */}
         <ContractDetailDialog
           contract={selectedContract}
           open={detailOpen}
@@ -106,6 +171,7 @@ export default function ContratosPage() {
           open={formOpen}
           onOpenChange={setFormOpen}
           contract={editingContract}
+          defaultCategory={defaultCategory}
         />
       </div>
     </RequireRole>

@@ -55,23 +55,19 @@ export interface FounderDashboardData extends DashboardData {
 
 export async function getDashboardData(
   supabase: SupabaseClient<Database>,
-  tenantId: string
 ): Promise<DashboardData> {
   const [projectsRes, tasksRes, demandsRes] = await Promise.all([
     supabase
       .from("projects")
       .select()
-      .eq("tenant_id", tenantId)
       .order("name"),
     supabase
       .from("os_tasks")
       .select()
-      .eq("tenant_id", tenantId)
       .order("due_date", { ascending: true }),
     supabase
       .from("demands")
       .select()
-      .eq("tenant_id", tenantId)
       .order("due_date", { ascending: true }),
   ]);
 
@@ -88,15 +84,13 @@ export async function getDashboardData(
 
 export async function getFounderDashboardData(
   supabase: SupabaseClient<Database>,
-  tenantId: string
 ): Promise<FounderDashboardData> {
-  const baseData = await getDashboardData(supabase, tenantId);
+  const baseData = await getDashboardData(supabase);
 
   // Fetch CRM deals for the pipeline widget
   const dealsRes = await supabase
     .from("crm_deals")
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("updated_at", { ascending: false, nullsFirst: false });
   const deals = (dealsRes.data ?? []) as DealRow[];
 
@@ -104,7 +98,6 @@ export async function getFounderDashboardData(
   const cycleRes = await supabase
     .from("okr_cycles" as never)
     .select("id")
-    .eq("tenant_id", tenantId)
     .eq("is_active", true)
     .limit(1)
     .maybeSingle();
@@ -114,7 +107,6 @@ export async function getFounderDashboardData(
     const objRes = await supabase
       .from("okr_objectives" as never)
       .select("id, title, progress, status")
-      .eq("tenant_id", tenantId)
       .eq("period", (cycleRes.data as Record<string, unknown>).id as string);
 
     if (objRes.data) {

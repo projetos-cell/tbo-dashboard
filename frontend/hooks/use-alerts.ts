@@ -18,7 +18,7 @@ export function useNotifications(filters?: NotificationFilters) {
 
   return useQuery({
     queryKey: ["notifications", userId, filters],
-    queryFn: () => listNotifications(supabase, userId!, tenantId!, filters),
+    queryFn: () => listNotifications(supabase, userId!, filters),
     staleTime: 1000 * 60 * 5,
     enabled: !!userId && !!tenantId,
   });
@@ -66,7 +66,7 @@ export function useMarkAllAsRead() {
   const tenantId = useAuthStore((s) => s.tenantId);
 
   return useMutation({
-    mutationFn: () => markAllAsRead(supabase, userId!, tenantId!),
+    mutationFn: () => markAllAsRead(supabase, userId!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },

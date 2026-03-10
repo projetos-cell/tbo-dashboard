@@ -77,7 +77,6 @@ export async function logPeopleEvent(
 
 export async function hasRecentEvent(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   personId: string,
   eventType: PeopleEventType,
   withinHours = 24
@@ -88,7 +87,6 @@ export async function hasRecentEvent(
     const { data, error } = await supabase
       .from("people_events" as never)
       .select("id" as never)
-      .eq("tenant_id" as never, tenantId as never)
       .eq("person_id" as never, personId as never)
       .eq("event_type" as never, eventType as never)
       .gte("created_at" as never, since as never)
@@ -111,14 +109,12 @@ export async function hasRecentEvent(
 
 export async function getPersonEvents(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   personId: string,
   limit = 50
 ): Promise<EventRow[]> {
   const { data, error } = await supabase
     .from("people_events" as never)
     .select("*" as never)
-    .eq("tenant_id" as never, tenantId as never)
     .eq("person_id" as never, personId as never)
     .order("created_at" as never, { ascending: false } as never)
     .limit(limit);
@@ -137,14 +133,12 @@ export async function getPersonEvents(
 
 export async function getAllPeopleEvents(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   filters?: PeopleEventsFilter,
   limit = 100
 ): Promise<EventRow[]> {
   let query = supabase
     .from("people_events" as never)
-    .select("*" as never)
-    .eq("tenant_id" as never, tenantId as never);
+    .select("*" as never);
 
   if (filters?.personId) {
     query = query.eq("person_id" as never, filters.personId as never);

@@ -139,14 +139,12 @@ type SB = SupabaseClient<Database>;
 
 export async function getSkillScores(
   supabase: SB,
-  tenantId: string,
   employeeId: string,
   period?: string
 ): Promise<SkillScoreRow[]> {
   let query = supabase
     .from("employee_skill_scores" as never)
     .select("*")
-    .eq("tenant_id", tenantId)
     .eq("employee_id", employeeId);
 
   if (period) {
@@ -162,13 +160,11 @@ export async function getSkillScores(
 
 export async function getSkillScoresByPeriod(
   supabase: SB,
-  tenantId: string,
   period: string
 ): Promise<SkillScoreRow[]> {
   const { data, error } = await supabase
     .from("employee_skill_scores" as never)
     .select("*")
-    .eq("tenant_id", tenantId)
     .eq("period", period)
     .order("employee_id" as never);
 
@@ -240,13 +236,11 @@ export async function upsertSkillScoresBatch(
 
 export async function getPerformanceSnapshots(
   supabase: SB,
-  tenantId: string,
   period?: string
 ): Promise<PerformanceSnapshotRow[]> {
   let query = supabase
     .from("employee_performance_snapshot" as never)
-    .select("*")
-    .eq("tenant_id", tenantId);
+    .select("*");
 
   if (period) {
     query = query.eq("period", period);
@@ -261,13 +255,11 @@ export async function getPerformanceSnapshots(
 
 export async function getEmployeeSnapshots(
   supabase: SB,
-  tenantId: string,
   employeeId: string
 ): Promise<PerformanceSnapshotRow[]> {
   const { data, error } = await supabase
     .from("employee_performance_snapshot" as never)
     .select("*")
-    .eq("tenant_id", tenantId)
     .eq("employee_id", employeeId)
     .order("period" as never, { ascending: true });
 
@@ -307,12 +299,10 @@ export async function upsertSnapshot(
 
 export async function getScorecardConfig(
   supabase: SB,
-  tenantId: string
 ): Promise<ScorecardConfigRow | null> {
   const { data, error } = await supabase
     .from("scorecard_config" as never)
     .select("*")
-    .eq("tenant_id", tenantId)
     .maybeSingle();
 
   if (error) throw error;
@@ -404,21 +394,21 @@ export async function generateEmployeeSnapshot(
   const targetPeriod = period ?? currentPeriod();
 
   // Get current skill scores
-  const scores = await getSkillScores(supabase, tenantId, employeeId, targetPeriod);
+  const scores = await getSkillScores(supabase, employeeId, targetPeriod);
   const skillScore = computeSkillScore(scores);
 
   // Get impact score from pre-computed impact metrics (Fase 2)
-  const impactRow = await getImpactMetrics(supabase, tenantId, employeeId, targetPeriod);
+  const impactRow = await getImpactMetrics(supabase, employeeId, targetPeriod);
   const impactScore = impactRow?.impact_score ?? null;
 
   // Get culture score from pre-computed culture metrics (Fase 3)
-  const cultureRow = await getCultureMetrics(supabase, tenantId, employeeId, targetPeriod);
+  const cultureRow = await getCultureMetrics(supabase, employeeId, targetPeriod);
   const cultureScore = cultureRow?.culture_score ?? null;
 
   const finalScore = computeFinalScore(skillScore, impactScore, cultureScore);
 
   // Get previous snapshot for trend
-  const history = await getEmployeeSnapshots(supabase, tenantId, employeeId);
+  const history = await getEmployeeSnapshots(supabase, employeeId);
   const previousSnapshot = history.length > 0 ? history[history.length - 1] : null;
   const trend = computeTrend(finalScore, previousSnapshot?.final_score ?? null);
 

@@ -18,7 +18,7 @@ export function usePortalAccess() {
 
   return useQuery({
     queryKey: ["portal-access", tenantId],
-    queryFn: () => listPortalAccess(supabase, tenantId!),
+    queryFn: () => listPortalAccess(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });

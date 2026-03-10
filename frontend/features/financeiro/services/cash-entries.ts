@@ -25,13 +25,11 @@ export interface CreateCashEntryInput {
  */
 export async function getCashEntries(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   limit = 20,
 ): Promise<CashEntry[]> {
   const { data, error } = await supabase
     .from("fin_cash_entries")
     .select("id, tenant_id, amount, note, recorded_at, created_at")
-    .eq("tenant_id", tenantId)
     .order("recorded_at", { ascending: false })
     .limit(limit);
 
@@ -44,12 +42,10 @@ export async function getCashEntries(
  */
 export async function getLatestCashBalance(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
 ): Promise<number | null> {
   const { data, error } = await supabase
     .from("fin_cash_entries")
     .select("amount")
-    .eq("tenant_id", tenantId)
     .order("recorded_at", { ascending: false })
     .limit(1)
     .maybeSingle();

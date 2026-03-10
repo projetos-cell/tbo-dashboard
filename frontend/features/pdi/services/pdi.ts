@@ -42,13 +42,11 @@ export interface PdiKPIs {
 
 export async function getPdis(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   filters?: PdiFilters
 ): Promise<PdiRow[]> {
   let query = supabase
     .from("pdis")
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false });
 
   if (filters?.status) {
@@ -66,13 +64,11 @@ export async function getPdis(
 export async function getPdiById(
   supabase: SupabaseClient<Database>,
   id: string,
-  tenantId: string
 ): Promise<PdiWithGoals> {
   const { data, error } = await supabase
     .from("pdis")
     .select("*, pdi_goals(*, pdi_actions(*))")
     .eq("id", id)
-    .eq("tenant_id", tenantId)
     .single();
 
   if (error) throw error;
@@ -122,13 +118,11 @@ export async function deletePdi(
 export async function getPdiGoals(
   supabase: SupabaseClient<Database>,
   pdiId: string,
-  tenantId: string
 ): Promise<PdiGoalWithActions[]> {
   const { data, error } = await supabase
     .from("pdi_goals")
     .select("*, pdi_actions(*)")
     .eq("pdi_id", pdiId)
-    .eq("tenant_id", tenantId)
     .order("sort_order")
     .order("created_at");
 
@@ -169,13 +163,11 @@ export async function updatePdiGoal(
 export async function deletePdiGoal(
   supabase: SupabaseClient<Database>,
   id: string,
-  tenantId: string
 ): Promise<void> {
   const { error } = await supabase
     .from("pdi_goals")
     .delete()
-    .eq("id", id)
-    .eq("tenant_id", tenantId);
+    .eq("id", id);
   if (error) throw error;
 }
 
@@ -198,7 +190,6 @@ export async function createPdiAction(
 export async function togglePdiAction(
   supabase: SupabaseClient<Database>,
   actionId: string,
-  tenantId: string,
   completed: boolean
 ): Promise<PdiActionRow> {
   const { data, error } = await supabase
@@ -208,7 +199,6 @@ export async function togglePdiAction(
       completed_at: completed ? new Date().toISOString() : null,
     } as never)
     .eq("id", actionId)
-    .eq("tenant_id", tenantId)
     .select("*")
     .single();
 
@@ -219,13 +209,11 @@ export async function togglePdiAction(
 export async function deletePdiAction(
   supabase: SupabaseClient<Database>,
   actionId: string,
-  tenantId: string
 ): Promise<void> {
   const { error } = await supabase
     .from("pdi_actions")
     .delete()
-    .eq("id", actionId)
-    .eq("tenant_id", tenantId);
+    .eq("id", actionId);
   if (error) throw error;
 }
 
@@ -260,12 +248,10 @@ export async function unlinkOneOnOneActionFromPdi(
 
 export async function getOpenPdiActionsCount(
   supabase: SupabaseClient<Database>,
-  tenantId: string
 ): Promise<number> {
   const { count, error } = await supabase
     .from("pdi_actions")
     .select("*", { count: "exact", head: true })
-    .eq("tenant_id", tenantId)
     .eq("completed", false);
 
   if (error) throw error;
@@ -279,13 +265,11 @@ export type PersonSkillRow = Database["public"]["Tables"]["person_skills"]["Row"
 export async function getPersonSkills(
   supabase: SupabaseClient<Database>,
   personId: string,
-  tenantId: string
 ): Promise<PersonSkillRow[]> {
   const { data, error } = await supabase
     .from("person_skills")
     .select("*")
     .eq("person_id", personId)
-    .eq("tenant_id", tenantId)
     .order("skill_name");
 
   if (error) throw error;

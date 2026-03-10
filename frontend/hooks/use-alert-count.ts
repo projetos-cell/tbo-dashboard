@@ -20,7 +20,6 @@ export function useAlertCount(): number {
         .from("notifications")
         .select("*", { count: "exact", head: true })
         .eq("user_id", userId!)
-        .eq("tenant_id", tenantId!)
         .eq("read", false);
 
       if (error) throw error;

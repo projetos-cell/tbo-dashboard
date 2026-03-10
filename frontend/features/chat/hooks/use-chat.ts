@@ -43,7 +43,7 @@ export function useChannels() {
 
   return useQuery({
     queryKey: ["chat-channels", tenantId],
-    queryFn: () => getChannels(supabase, tenantId!),
+    queryFn: () => getChannels(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -55,7 +55,7 @@ export function useChannelsWithMembers() {
 
   return useQuery({
     queryKey: ["chat-channels-members", tenantId],
-    queryFn: () => getChannelsWithMembers(supabase, tenantId!),
+    queryFn: () => getChannelsWithMembers(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -71,7 +71,7 @@ export function useMessages(channelId: string | null) {
   const query = useInfiniteQuery({
     queryKey: ["chat-messages", channelId, tenantId],
     queryFn: ({ pageParam }) =>
-      getMessages(supabase, channelId!, tenantId!, {
+      getMessages(supabase, channelId!, {
         limit: MSG_PAGE_SIZE,
         before: pageParam,
       }),
@@ -486,7 +486,7 @@ export function useRemoveReaction() {
       messageId: string;
       userId: string;
       emoji: string;
-    }) => removeReaction(supabase, messageId, userId, emoji, tenantId!),
+    }) => removeReaction(supabase, messageId, userId, emoji),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["chat-messages"] }),
   });
 }

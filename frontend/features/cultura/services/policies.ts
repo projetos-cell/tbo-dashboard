@@ -32,13 +32,11 @@ function generateSlug(title: string): string {
 // ─── List policies ───────────────────────────────────────────────────
 export async function getPolicies(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   filters?: PolicyFilters
 ): Promise<PolicyRow[]> {
   let query = supabase
     .from("policies")
-    .select(POLICY_COLS)
-    .eq("tenant_id", tenantId);
+    .select(POLICY_COLS);
 
   if (filters?.status) query = query.eq("status", filters.status);
   if (filters?.category) query = query.eq("category", filters.category);
@@ -71,13 +69,11 @@ export async function getPolicies(
 // ─── Get by slug ─────────────────────────────────────────────────────
 export async function getPolicy(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   slug: string
 ): Promise<PolicyRow | null> {
   const { data, error } = await supabase
     .from("policies")
     .select(POLICY_COLS)
-    .eq("tenant_id", tenantId)
     .eq("slug", slug)
     .single();
 
@@ -88,13 +84,11 @@ export async function getPolicy(
 // ─── Get by ID ───────────────────────────────────────────────────────
 export async function getPolicyById(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   id: string
 ): Promise<PolicyRow | null> {
   const { data, error } = await supabase
     .from("policies")
     .select(POLICY_COLS)
-    .eq("tenant_id", tenantId)
     .eq("id", id)
     .single();
 
@@ -222,7 +216,7 @@ export async function duplicatePolicy(
   tenantId: string,
   userId: string
 ): Promise<PolicyRow> {
-  const original = await getPolicyById(supabase, tenantId, id);
+  const original = await getPolicyById(supabase, id);
   if (!original) throw new Error("Politica nao encontrada");
 
   return createPolicy(supabase, {

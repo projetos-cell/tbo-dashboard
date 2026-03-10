@@ -69,7 +69,7 @@ export function useFounderDashboard(period?: PeriodValue) {
     queryFn: async () => {
       if (!tenantId) return EMPTY_SNAPSHOT;
       const supabase = createClient();
-      return getFounderDashboardSnapshot(supabase, tenantId, bounds);
+      return getFounderDashboardSnapshot(supabase, bounds);
     },
     enabled: !!tenantId,
     staleTime: 1000 * 60 * 2,

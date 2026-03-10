@@ -14,45 +14,38 @@ export interface ExecutiveKpis {
 
 /** Aggregate executive KPIs for the board dashboard */
 export async function getExecutiveKpis(
-  supabase: SupabaseClient<Database>,
-  tenantId: string
+  supabase: SupabaseClient<Database>
 ): Promise<ExecutiveKpis> {
   const [receivablesRes, payablesRes, paidPayablesRes, dealsRes, teamRes, okrRes] =
     await Promise.all([
       // All receivables for MRR approximation
       supabase
         .from("fin_receivables")
-        .select("amount, status")
-        .eq("tenant_id", tenantId),
+        .select("amount, status"),
       // Open payables
       supabase
         .from("fin_payables")
         .select("amount, status")
-        .eq("tenant_id", tenantId)
         .in("status", ["pendente", "em_aberto", "aberto"]),
       // Paid payables this month for burn rate
       supabase
         .from("fin_payables")
         .select("amount")
-        .eq("tenant_id", tenantId)
         .eq("status", "pago"),
       // Pipeline deals
       supabase
         .from("crm_deals")
         .select("value, stage")
-        .eq("tenant_id", tenantId)
         .not("stage", "in", '("ganho","perdido","cancelado")'),
       // Team count
       supabase
         .from("colaboradores")
         .select("id", { count: "exact", head: true })
-        .eq("tenant_id", tenantId)
         .eq("status", "ativo"),
       // OKR progress
       supabase
         .from("okr_key_results")
-        .select("current_value, target_value, start_value")
-        .eq("tenant_id", tenantId),
+        .select("current_value, target_value, start_value"),
     ]);
 
   if (receivablesRes.error) throw receivablesRes.error;

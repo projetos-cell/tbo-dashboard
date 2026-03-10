@@ -18,13 +18,11 @@ export const FREQUENCY_LABELS: Record<string, string> = {
 // ─── List ritual types ───
 export async function getRitualTypes(
   supabase: SupabaseClient<Database>,
-  tenantId: string,
   includeInactive = false
 ): Promise<RitualTypeRow[]> {
   let query = supabase
     .from("ritual_types")
     .select(COLS)
-    .eq("tenant_id", tenantId)
     .order("sort_order", { ascending: true });
 
   if (!includeInactive) query = query.eq("is_active", true);

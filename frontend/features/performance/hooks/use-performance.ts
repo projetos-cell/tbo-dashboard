@@ -31,7 +31,7 @@ export function useSkillScores(employeeId: string | undefined, period?: string) 
 
   return useQuery({
     queryKey: ["skill-scores", tenantId, employeeId, period],
-    queryFn: () => getSkillScores(supabase, tenantId!, employeeId!, period),
+    queryFn: () => getSkillScores(supabase, employeeId!, period),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!employeeId,
   });
@@ -45,7 +45,7 @@ export function useAllSkillScores(period?: string) {
 
   return useQuery({
     queryKey: ["skill-scores-all", tenantId, p],
-    queryFn: () => getSkillScoresByPeriod(supabase, tenantId!, p),
+    queryFn: () => getSkillScoresByPeriod(supabase, p),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -104,7 +104,7 @@ export function usePerformanceSnapshots(period?: string) {
 
   return useQuery({
     queryKey: ["performance-snapshots", tenantId, period],
-    queryFn: () => getPerformanceSnapshots(supabase, tenantId!, period),
+    queryFn: () => getPerformanceSnapshots(supabase, period),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -117,7 +117,7 @@ export function useEmployeeSnapshots(employeeId: string | undefined) {
 
   return useQuery({
     queryKey: ["employee-snapshots", tenantId, employeeId],
-    queryFn: () => getEmployeeSnapshots(supabase, tenantId!, employeeId!),
+    queryFn: () => getEmployeeSnapshots(supabase, employeeId!),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!employeeId,
   });
@@ -149,7 +149,7 @@ export function useScorecardConfig() {
 
   return useQuery({
     queryKey: ["scorecard-config", tenantId],
-    queryFn: () => getScorecardConfig(supabase, tenantId!),
+    queryFn: () => getScorecardConfig(supabase),
     staleTime: 1000 * 60 * 10,
     enabled: !!tenantId,
   });

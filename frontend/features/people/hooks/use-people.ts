@@ -50,7 +50,7 @@ export function usePerson(id: string | undefined) {
 
   return useQuery({
     queryKey: ["person", id],
-    queryFn: () => getPersonById(supabase, id!, tenantId!),
+    queryFn: () => getPersonById(supabase, id!),
     staleTime: 1000 * 60 * 5,
     enabled: !!id && !!tenantId,
   });
@@ -121,7 +121,7 @@ export function useTeams() {
 
   return useQuery({
     queryKey: ["teams", tenantId],
-    queryFn: () => getTeams(supabase, tenantId!),
+    queryFn: () => getTeams(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -159,7 +159,7 @@ export function usePeopleNudges(): {
 
   const criticalQuery = useQuery({
     queryKey: ["people-critical-score-count", tenantId],
-    queryFn: () => getCriticalScoreCount(supabase, tenantId!),
+    queryFn: () => getCriticalScoreCount(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -191,7 +191,7 @@ export function useProfiles() {
 
   return useQuery({
     queryKey: ["profiles", tenantId],
-    queryFn: () => getProfiles(supabase, tenantId!),
+    queryFn: () => getProfiles(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
@@ -221,31 +221,26 @@ export function usePeopleFilterOptions() {
           supabase
             .from("profiles")
             .select("bu")
-            .eq("tenant_id", tenantId!)
             .not("bu", "is", null)
             .order("bu"),
           supabase
             .from("profiles")
             .select("department")
-            .eq("tenant_id", tenantId!)
             .not("department", "is", null)
             .order("department"),
           supabase
             .from("profiles")
             .select("nivel_atual")
-            .eq("tenant_id", tenantId!)
             .not("nivel_atual", "is", null)
             .order("nivel_atual"),
           supabase
             .from("profiles")
             .select("contract_type")
-            .eq("tenant_id", tenantId!)
             .not("contract_type", "is", null)
             .order("contract_type"),
           supabase
             .from("profiles")
             .select("id,full_name")
-            .eq("tenant_id", tenantId!)
             .eq("is_coordinator", true)
             .order("full_name"),
         ]);
@@ -285,7 +280,7 @@ export function usePeopleSnapshot(
   return useQuery<PeopleSnapshotMap>({
     queryKey: ["people-snapshot", tenantId, idsKey],
     queryFn: async () => {
-      const snapshots = await getPeopleSnapshots(supabase, tenantId!, personIds);
+      const snapshots = await getPeopleSnapshots(supabase, personIds);
 
       // Merge performance_score from profiles (already fetched, avoids extra query)
       if (people) {

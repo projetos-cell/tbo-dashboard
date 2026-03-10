@@ -11,6 +11,7 @@ import {
   updateDeal,
   updateDealStage,
 } from "@/features/comercial/services/commercial";
+import { getRdConfig, getRdSyncLogs } from "@/features/comercial/services/rdstation";
 
 interface DealFilters {
   stage?: string;
@@ -91,6 +92,72 @@ export function useUpdateDeal() {
         after: variables.updates as Record<string, unknown>,
       });
     },
+  });
+}
+
+// ── RD Station Sync ─────────────────────────────────────────────────────────────
+
+export function useRdSyncDeals() {
+  const qc = useQueryClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/comercial/sync-rd", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tenant_id: tenantId }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Erro de rede" }));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["deals"] });
+      qc.invalidateQueries({ queryKey: ["rd-sync-logs"] });
+
+      logAuditTrail({
+        userId: useAuthStore.getState().user?.id ?? "unknown",
+        action: "update",
+        table: "crm_deals",
+        recordId: "rd_sync",
+        metadata: {
+          source: "rdstation",
+          created: data.created,
+          updated: data.updated,
+        },
+      });
+    },
+  });
+}
+
+export function useRdConfig() {
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery({
+    queryKey: ["rd-config", tenantId],
+    queryFn: async () => {
+      const supabase = createClient();
+      return getRdConfig(supabase, tenantId!);
+    },
+    staleTime: 1000 * 60 * 10,
+    enabled: !!tenantId,
+  });
+}
+
+export function useRdSyncLogs(limit = 5) {
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery({
+    queryKey: ["rd-sync-logs", tenantId, limit],
+    queryFn: async () => {
+      const supabase = createClient();
+      return getRdSyncLogs(supabase, tenantId!, limit);
+    },
+    staleTime: 1000 * 60 * 2,
+    enabled: !!tenantId,
   });
 }
 

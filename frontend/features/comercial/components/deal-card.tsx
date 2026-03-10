@@ -25,7 +25,21 @@ export function DealCard({ deal, onClick }: DealCardProps) {
       className="cursor-pointer rounded-lg border bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
       onClick={() => onClick(deal)}
     >
-      <p className="font-medium text-sm leading-tight truncate">{deal.name}</p>
+      <div className="flex items-center gap-1.5">
+        <p className="font-medium text-sm leading-tight truncate flex-1">{deal.name}</p>
+        {deal.source && deal.source !== "manual" && (
+          <Badge
+            variant="outline"
+            className={
+              deal.source === "rdstation"
+                ? "text-[10px] px-1.5 py-0 h-4 border-blue-300 text-blue-600 bg-blue-50 shrink-0"
+                : "text-[10px] px-1.5 py-0 h-4 border-gray-300 text-gray-600 shrink-0"
+            }
+          >
+            {deal.source === "rdstation" ? "RD" : deal.source}
+          </Badge>
+        )}
+      </div>
       {deal.company && (
         <p className="text-xs text-gray-500 truncate">{deal.company}</p>
       )}

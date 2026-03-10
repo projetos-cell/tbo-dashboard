@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState, useMemo } from "react";
-import { useDeals, useUpdateDealStage } from "@/features/comercial/hooks/use-commercial";
+import { useDeals, useUpdateDealStage, useRdSyncDeals, useRdConfig } from "@/features/comercial/hooks/use-commercial";
 import { DealKPICards } from "@/features/comercial/components/deal-kpis";
 import { DealFilters } from "@/features/comercial/components/deal-filters";
 import { DealPipeline } from "@/features/comercial/components/deal-pipeline";
@@ -11,7 +11,9 @@ import { computeDealKPIs } from "@/features/comercial/services/commercial";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { ErrorState } from "@/components/shared";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, RefreshCw, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import type { Database } from "@/lib/supabase/types";
 
 type DealRow = Database["public"]["Tables"]["crm_deals"]["Row"];
@@ -30,6 +32,22 @@ export default function ComercialPage() {
   });
 
   const updateStage = useUpdateDealStage();
+  const rdSync = useRdSyncDeals();
+  const { data: rdConfig } = useRdConfig();
+  const hasRd = !!rdConfig?.api_token && rdConfig.enabled;
+
+  function handleSyncRd() {
+    rdSync.mutate(undefined, {
+      onSuccess: (data) => {
+        toast.success(
+          `Sync RD Station concluído: ${data.created} novos, ${data.updated} atualizados`,
+        );
+      },
+      onError: (err) => {
+        toast.error(`Erro no sync: ${err.message}`);
+      },
+    });
+  }
 
   const kpis = useMemo(() => computeDealKPIs(deals), [deals]);
 
@@ -71,10 +89,27 @@ export default function ComercialPage() {
               Pipeline CRM — gerencie deals, propostas e funil de vendas.
             </p>
           </div>
-          <Button onClick={handleNew}>
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Deal
-          </Button>
+          <div className="flex items-center gap-2">
+            {hasRd && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSyncRd}
+                disabled={rdSync.isPending}
+              >
+                {rdSync.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                )}
+                Sync RD Station
+              </Button>
+            )}
+            <Button onClick={handleNew}>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Deal
+            </Button>
+          </div>
         </div>
 
         <DealKPICards kpis={kpis} />

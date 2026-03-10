@@ -8,7 +8,7 @@ import type {
 } from "@/schemas/team";
 
 // ────────────────────────────────────────────────────
-// Queries
+// Queries — read from profiles table
 // ────────────────────────────────────────────────────
 
 export async function fetchTeamMembers(
@@ -16,7 +16,7 @@ export async function fetchTeamMembers(
   filters?: TeamFilters
 ): Promise<TeamMember[]> {
   let query = supabase
-    .from("team_members")
+    .from("profiles")
     .select("*")
     .order("created_at", { ascending: false });
 
@@ -42,7 +42,7 @@ export async function fetchTeamMember(
   id: string
 ): Promise<TeamMember> {
   const { data, error } = await supabase
-    .from("team_members")
+    .from("profiles")
     .select("*")
     .eq("id", id)
     .single();
@@ -52,18 +52,18 @@ export async function fetchTeamMember(
 }
 
 // ────────────────────────────────────────────────────
-// Mutations
+// Mutations — write to profiles table
 // ────────────────────────────────────────────────────
 
 export async function inviteTeamMember(
   supabase: SupabaseClient,
   input: InviteUserInput
 ): Promise<TeamMember> {
-  // Insert directly into team_members
   // In production, this should use a Supabase Edge Function
   // that calls supabase.auth.admin.inviteUserByEmail()
+  // because profiles.id has FK to auth.users(id)
   const { data, error } = await supabase
-    .from("team_members")
+    .from("profiles")
     .insert({
       email: input.email,
       full_name: input.full_name,
@@ -84,7 +84,7 @@ export async function updateTeamMember(
   const { id, ...updates } = input;
 
   const { data, error } = await supabase
-    .from("team_members")
+    .from("profiles")
     .update(updates as never)
     .eq("id", id)
     .select()
@@ -99,7 +99,7 @@ export async function changeUserRole(
   input: ChangeRoleInput
 ): Promise<TeamMember> {
   const { data, error } = await supabase
-    .from("team_members")
+    .from("profiles")
     .update({ role: input.role } as never)
     .eq("id", input.id)
     .select()
@@ -115,7 +115,7 @@ export async function toggleUserActive(
   is_active: boolean
 ): Promise<TeamMember> {
   const { data, error } = await supabase
-    .from("team_members")
+    .from("profiles")
     .update({ is_active } as never)
     .eq("id", id)
     .select()
@@ -130,7 +130,7 @@ export async function deleteTeamMember(
   id: string
 ): Promise<void> {
   const { error } = await supabase
-    .from("team_members")
+    .from("profiles")
     .delete()
     .eq("id", id);
 

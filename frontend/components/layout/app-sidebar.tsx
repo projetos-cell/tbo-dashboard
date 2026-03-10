@@ -108,6 +108,7 @@ const SISTEMA: NavItem[] = [
   { href: "/rsm", label: "Redes Sociais", icon: "share-2", module: "rsm" },
   { href: "/relatorios", label: "Relatorios", icon: "bar-chart-3", module: "relatorios" },
   { href: "/configuracoes", label: "Configuracoes", icon: "settings", module: "configuracoes" },
+  { href: "/admin/equipe", label: "Equipe", icon: "shield", module: "admin" },
 ];
 
 function AlertsFixedItem({ pathname, canSee }: { pathname: string; canSee: (m: string) => boolean }) {

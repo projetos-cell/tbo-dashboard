@@ -61,8 +61,11 @@ import {
 } from "@tabler/icons-react";
 import { useTeamMembers, useToggleUserActive } from "@/hooks/use-team";
 import type { TeamMember, TeamFilters } from "@/schemas/team";
-import type { TBORole } from "@/constants/roles";
-import { hasPermission, ROLE_HIERARCHY } from "@/constants/roles";
+import {
+  type RoleSlug,
+  hasMinRole,
+  ROLE_HIERARCHY,
+} from "@/lib/permissions";
 import { RoleBadge, StatusBadge, UserAvatar, ROLE_CONFIG } from "./team-ui";
 import { InviteUserDialog } from "./invite-user-dialog";
 import { EditUserDialog } from "./edit-user-dialog";
@@ -74,7 +77,7 @@ import { DeleteUserDialog } from "./delete-user-dialog";
 
 type TeamManagementPageProps = {
   currentUserId: string;
-  currentUserRole: TBORole;
+  currentUserRole: RoleSlug;
 };
 
 // ────────────────────────────────────────────────────
@@ -107,12 +110,12 @@ export function TeamManagementPage({
   const toggleActive = useToggleUserActive();
 
   // Permission checks
-  const canManageUsers = hasPermission(currentUserRole, "product_owner");
-  const canDeleteUsers = hasPermission(currentUserRole, "socio");
+  const canManageUsers = hasMinRole(currentUserRole, "diretoria");
+  const canDeleteUsers = currentUserRole === "founder";
 
   function canActOn(target: TeamMember): boolean {
     if (target.id === currentUserId) return false;
-    if (currentUserRole === "socio") return true;
+    if (currentUserRole === "founder") return true;
     return ROLE_HIERARCHY[currentUserRole] > ROLE_HIERARCHY[target.role];
   }
 
@@ -162,26 +165,6 @@ export function TeamManagementPage({
         header: "Status",
         cell: (info) => <StatusBadge isActive={info.getValue()} />,
         size: 100,
-      }),
-      columnHelper.accessor("last_sign_in_at", {
-        header: "Ultimo acesso",
-        cell: (info) => {
-          const val = info.getValue();
-          if (!val)
-            return (
-              <span className="text-xs text-muted-foreground">Nunca</span>
-            );
-          return (
-            <span className="text-xs text-muted-foreground">
-              {new Date(val).toLocaleDateString("pt-BR", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-              })}
-            </span>
-          );
-        },
-        size: 130,
       }),
       columnHelper.display({
         id: "actions",
@@ -317,14 +300,13 @@ export function TeamManagementPage({
         </div>
 
         {/* Stats cards */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {(
             [
-              "socio",
-              "product_owner",
+              "founder",
+              "diretoria",
+              "lider",
               "colaborador",
-              "viewer",
-              "guest",
             ] as const
           ).map((role) => (
             <Card
@@ -384,7 +366,7 @@ export function TeamManagementPage({
               onValueChange={(v) =>
                 setFilters((f) => ({
                   ...f,
-                  role: v === "all" ? undefined : (v as TBORole),
+                  role: v === "all" ? undefined : (v as RoleSlug),
                 }))
               }
             >
@@ -395,11 +377,10 @@ export function TeamManagementPage({
                 <SelectItem value="all">Todos os niveis</SelectItem>
                 {(
                   [
-                    "socio",
-                    "product_owner",
+                    "founder",
+                    "diretoria",
+                    "lider",
                     "colaborador",
-                    "viewer",
-                    "guest",
                   ] as const
                 ).map((role) => (
                   <SelectItem key={role} value={role}>

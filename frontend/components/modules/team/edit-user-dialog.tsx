@@ -37,14 +37,16 @@ import {
 } from "@/schemas/team";
 import { useUpdateTeamMember } from "@/hooks/use-team";
 import { ROLE_CONFIG } from "./team-ui";
-import type { TBORole } from "@/constants/roles";
-import { hasPermission } from "@/constants/roles";
+import {
+  type RoleSlug,
+  ROLE_HIERARCHY,
+} from "@/lib/permissions";
 
 type EditUserDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   member: TeamMember | null;
-  currentUserRole: TBORole;
+  currentUserRole: RoleSlug;
 };
 
 export function EditUserDialog({
@@ -79,15 +81,17 @@ export function EditUserDialog({
   }, [member, form]);
 
   const assignableRoles = (
-    ["socio", "product_owner", "colaborador", "viewer", "guest"] as const
+    ["founder", "diretoria", "lider", "colaborador"] as const
   ).filter((role) => {
-    if (currentUserRole === "socio") return true;
-    return !hasPermission(role, currentUserRole);
+    if (currentUserRole === "founder") return true;
+    return ROLE_HIERARCHY[currentUserRole] > ROLE_HIERARCHY[role];
   });
 
   const canEdit =
-    currentUserRole === "socio" ||
-    (member ? !hasPermission(member.role, currentUserRole) : false);
+    currentUserRole === "founder" ||
+    (member
+      ? ROLE_HIERARCHY[currentUserRole] > ROLE_HIERARCHY[member.role]
+      : false);
 
   async function onSubmit(data: UpdateUserInput) {
     try {

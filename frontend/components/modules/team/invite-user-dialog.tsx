@@ -37,8 +37,10 @@ import {
 import { InviteUserSchema, type InviteUserInput } from "@/schemas/team";
 import { useInviteTeamMember } from "@/hooks/use-team";
 import { ROLE_CONFIG, RoleBadge } from "./team-ui";
-import type { TBORole } from "@/constants/roles";
-import { hasPermission } from "@/constants/roles";
+import {
+  type RoleSlug,
+  ROLE_HIERARCHY,
+} from "@/lib/permissions";
 
 // ────────────────────────────────────────────────────
 // Stepper steps
@@ -69,7 +71,7 @@ const STEPS = [
 type InviteUserDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  currentUserRole: TBORole;
+  currentUserRole: RoleSlug;
 };
 
 // ────────────────────────────────────────────────────
@@ -95,10 +97,10 @@ export function InviteUserDialog({
   });
 
   const assignableRoles = (
-    ["socio", "product_owner", "colaborador", "viewer", "guest"] as const
+    ["founder", "diretoria", "lider", "colaborador"] as const
   ).filter((role) => {
-    if (currentUserRole === "socio") return true;
-    return !hasPermission(role, currentUserRole);
+    if (currentUserRole === "founder") return true;
+    return ROLE_HIERARCHY[currentUserRole] > ROLE_HIERARCHY[role];
   });
 
   function handleClose() {
@@ -272,7 +274,7 @@ export function InviteUserDialog({
                   <span className="font-medium">{values.email}</span>
 
                   <span className="text-muted-foreground">Acesso</span>
-                  <RoleBadge role={values.role as TBORole} />
+                  <RoleBadge role={values.role as RoleSlug} />
 
                   {values.department && (
                     <>

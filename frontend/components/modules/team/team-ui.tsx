@@ -1,43 +1,37 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { TBORole } from "@/constants/roles";
+import type { RoleSlug } from "@/lib/permissions";
 
 // ────────────────────────────────────────────────────
 // Role display config
 // ────────────────────────────────────────────────────
 
 export const ROLE_CONFIG: Record<
-  TBORole,
+  RoleSlug,
   { label: string; description: string; className: string }
 > = {
-  socio: {
-    label: "Socio",
+  founder: {
+    label: "Founder",
     description: "Acesso total — Owner + Admin",
     className: "bg-brand/15 text-brand border-brand/30",
   },
-  product_owner: {
-    label: "Product Owner",
-    description: "Gerencia modulos e equipe do squad",
+  diretoria: {
+    label: "Diretoria",
+    description: "Gerencia modulos e equipe",
     className:
       "bg-violet-500/15 text-violet-700 border-violet-500/30 dark:text-violet-400",
+  },
+  lider: {
+    label: "Lider",
+    description: "Lidera squad e execucao",
+    className:
+      "bg-sky-500/15 text-sky-700 border-sky-500/30 dark:text-sky-400",
   },
   colaborador: {
     label: "Colaborador",
     description: "Acesso padrao — execucao e visualizacao",
     className:
-      "bg-sky-500/15 text-sky-700 border-sky-500/30 dark:text-sky-400",
-  },
-  viewer: {
-    label: "Viewer",
-    description: "Somente leitura — clientes e stakeholders",
-    className:
       "bg-gray-500/15 text-gray-600 border-gray-500/30 dark:text-gray-400",
-  },
-  guest: {
-    label: "Guest",
-    description: "Acesso pontual externo — freelancers e parceiros",
-    className:
-      "bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-400",
   },
 };
 
@@ -46,7 +40,7 @@ export const ROLE_CONFIG: Record<
 // ────────────────────────────────────────────────────
 
 type RoleBadgeProps = {
-  role: TBORole;
+  role: RoleSlug;
   className?: string;
 };
 

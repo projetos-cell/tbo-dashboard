@@ -37,6 +37,7 @@ export const ROLE_MODULES: Record<RoleSlug, string[]> = {
     "relatorios",
     "intelligence",
     "audit-logs",
+    "admin",
   ],
   lider: [
     "dashboard",

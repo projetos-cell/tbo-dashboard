@@ -81,6 +81,87 @@ export async function updateContract(
   return data as unknown as ContractRow;
 }
 
+// ─── File Upload ─────────────────────────────────────────────────────
+
+const BUCKET = "contracts";
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+const ALLOWED_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+
+function slugify(str: string): string {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .substring(0, 80);
+}
+
+export interface UploadResult {
+  publicUrl: string;
+  fileName: string;
+  storagePath: string;
+}
+
+/**
+ * Upload a contract file to Supabase Storage.
+ *
+ * Path convention: {category}/{person}/{shortId}_{titleSlug}.{ext}
+ * Returns public URL + display name for the DB record.
+ */
+export async function uploadContractFile(
+  supabase: SupabaseClient<Database>,
+  file: File,
+  meta: { contractId: string; title: string; category: string; personName?: string }
+): Promise<UploadResult> {
+  // ── Validate ─────────────────────────────────────────────────────
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error(`Arquivo excede o limite de ${MAX_FILE_SIZE / 1024 / 1024}MB.`);
+  }
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    throw new Error("Tipo de arquivo não permitido. Envie PDF, JPG, PNG, DOC ou DOCX.");
+  }
+
+  // ── Build paths ──────────────────────────────────────────────────
+  const ext = file.name.includes(".")
+    ? `.${file.name.split(".").pop()?.toLowerCase()}`
+    : "";
+  const categorySlug = slugify(meta.category || "geral");
+  const personSlug = slugify(meta.personName || "sem-responsavel");
+  const shortId = meta.contractId.substring(0, 8);
+  const titleSlug = slugify(meta.title);
+
+  const storagePath = `${categorySlug}/${personSlug}/${shortId}_${titleSlug}${ext}`;
+  const displayName = `${meta.title}${ext}`;
+
+  // ── Upload ───────────────────────────────────────────────────────
+  const { error: uploadError } = await supabase.storage
+    .from(BUCKET)
+    .upload(storagePath, file, {
+      contentType: file.type,
+      upsert: true,
+    });
+
+  if (uploadError) throw new Error(`Erro no upload: ${uploadError.message}`);
+
+  // ── Public URL ───────────────────────────────────────────────────
+  const { data: urlData } = supabase.storage
+    .from(BUCKET)
+    .getPublicUrl(storagePath);
+
+  return {
+    publicUrl: urlData.publicUrl,
+    fileName: displayName,
+    storagePath,
+  };
+}
+
 // ─── Delete ──────────────────────────────────────────────────────────
 export async function deleteContract(
   supabase: SupabaseClient<Database>,

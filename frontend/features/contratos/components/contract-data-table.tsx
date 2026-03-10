@@ -39,6 +39,11 @@ import {
   type ContractStatusKey,
   type ContractCategoryKey,
 } from "@/lib/constants";
+import {
+  InlineSelect,
+  type InlineSelectOption,
+} from "@/components/ui/inline-select";
+import { InlineCurrency } from "@/components/ui/inline-currency";
 
 type ContractRow = Database["public"]["Tables"]["contracts"]["Row"];
 
@@ -63,7 +68,30 @@ interface ContractDataTableProps {
   onEdit: (contract: ContractRow) => void;
   onSelect: (contract: ContractRow) => void;
   onDelete: (contract: ContractRow) => void;
+  onInlineUpdate?: (
+    id: string,
+    updates: Partial<ContractRow>,
+  ) => void;
 }
+
+// ─── Inline select option arrays ─────────────────────────────────────
+const CATEGORY_OPTIONS: InlineSelectOption[] = Object.entries(
+  CONTRACT_CATEGORY,
+).map(([key, cfg]) => ({
+  value: key,
+  label: cfg.label,
+  color: cfg.color,
+  bg: cfg.bg,
+}));
+
+const STATUS_OPTIONS: InlineSelectOption[] = Object.entries(
+  CONTRACT_STATUS,
+).map(([key, cfg]) => ({
+  value: key,
+  label: cfg.label,
+  color: cfg.color,
+  bg: cfg.bg,
+}));
 
 // ─── Helpers ──────────────────────────────────────────────────────────
 
@@ -208,6 +236,7 @@ export function ContractDataTable({
   onEdit,
   onSelect,
   onDelete,
+  onInlineUpdate,
 }: ContractDataTableProps) {
   const [deleteTarget, setDeleteTarget] = useState<ContractRow | null>(null);
   const [sort, setSort] = useState<SortState | null>(null);
@@ -389,25 +418,18 @@ export function ContractDataTable({
                     )}
                   </div>
 
-                  {/* Tipo badge */}
+                  {/* Tipo badge — inline edit */}
                   {showCategory && (
                     <div className="col-span-1">
-                      {categoryCfg ? (
-                        <Badge
-                          variant="secondary"
-                          className="text-[10px] px-1.5 py-0"
-                          style={{
-                            backgroundColor: categoryCfg.bg,
-                            color: categoryCfg.color,
-                          }}
-                        >
-                          {categoryCfg.label}
-                        </Badge>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">
-                          —
-                        </span>
-                      )}
+                      <InlineSelect
+                        value={contract.category}
+                        options={CATEGORY_OPTIONS}
+                        onSave={(v) =>
+                          onInlineUpdate?.(contract.id, { category: v })
+                        }
+                        disabled={!onInlineUpdate}
+                        fallbackLabel="—"
+                      />
                     </div>
                   )}
 
@@ -431,30 +453,28 @@ export function ContractDataTable({
                     )}
                   </div>
 
-                  {/* Valor */}
+                  {/* Valor — inline edit */}
                   <div className="col-span-2 text-right">
-                    {contract.monthly_value != null &&
-                    contract.monthly_value > 0 ? (
-                      <span className="text-sm font-medium">
-                        {formatCurrency(contract.monthly_value)}
-                      </span>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">—</span>
-                    )}
+                    <InlineCurrency
+                      value={contract.monthly_value}
+                      onSave={(v) =>
+                        onInlineUpdate?.(contract.id, { monthly_value: v })
+                      }
+                      disabled={!onInlineUpdate}
+                    />
                   </div>
 
-                  {/* Vigência / Status */}
+                  {/* Vigência / Status — inline edit */}
                   <div className="col-span-2 flex items-center gap-2">
-                    <Badge
-                      variant="secondary"
-                      className="text-[10px] px-1.5 py-0 shrink-0"
-                      style={{
-                        backgroundColor: statusCfg.bg,
-                        color: statusCfg.color,
-                      }}
-                    >
-                      {statusCfg.label}
-                    </Badge>
+                    <InlineSelect
+                      value={contract.status}
+                      options={STATUS_OPTIONS}
+                      onSave={(v) =>
+                        onInlineUpdate?.(contract.id, { status: v })
+                      }
+                      disabled={!onInlineUpdate}
+                      fallbackLabel="—"
+                    />
                     {contract.end_date && (
                       <span className="text-xs text-muted-foreground whitespace-nowrap">
                         {new Date(contract.end_date).toLocaleDateString(

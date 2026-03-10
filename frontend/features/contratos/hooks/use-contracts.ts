@@ -100,6 +100,8 @@ export function useUpdateContract() {
   const supabase = createClient();
   const queryClient = useQueryClient();
 
+  type ContractRow = Database["public"]["Tables"]["contracts"]["Row"];
+
   return useMutation({
     mutationFn: ({
       id,
@@ -108,6 +110,37 @@ export function useUpdateContract() {
       id: string;
       updates: Database["public"]["Tables"]["contracts"]["Update"];
     }) => updateContract(supabase, id, updates),
+
+    // ── Optimistic update (inline edit) ───────────────────────────
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: ["contracts"] });
+
+      const previousContracts = queryClient.getQueriesData<ContractRow[]>({
+        queryKey: ["contracts"],
+      });
+
+      queryClient.setQueriesData<ContractRow[]>(
+        { queryKey: ["contracts"] },
+        (old) =>
+          old?.map((c) =>
+            c.id === variables.id
+              ? { ...c, ...(variables.updates as Partial<ContractRow>) }
+              : c,
+          ),
+      );
+
+      return { previousContracts };
+    },
+
+    // ── Rollback on error ─────────────────────────────────────────
+    onError: (_err, _variables, context) => {
+      if (context?.previousContracts) {
+        for (const [queryKey, data] of context.previousContracts) {
+          queryClient.setQueryData(queryKey, data);
+        }
+      }
+    },
+
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["contracts"] });
       queryClient.invalidateQueries({ queryKey: ["contract"] });

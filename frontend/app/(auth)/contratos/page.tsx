@@ -5,6 +5,7 @@ import {
   useContracts,
   useContractPersonNames,
   useDeleteContract,
+  useUpdateContract,
 } from "@/features/contratos/hooks/use-contracts";
 import { ContractKPICards } from "@/features/contratos/components/contract-kpis";
 import { ContractDataTable } from "@/features/contratos/components/contract-data-table";
@@ -42,6 +43,7 @@ export default function ContratosPage() {
 
   const { toast } = useToast();
   const deleteMut = useDeleteContract();
+  const updateMut = useUpdateContract();
   const personNames = useContractPersonNames();
 
   // ─── Tab config ───────────────────────────────────────────────────
@@ -114,6 +116,24 @@ export default function ContratosPage() {
     setDefaultCategory(category);
     setFormOpen(true);
   }
+
+  const handleInlineUpdate = useCallback(
+    (id: string, updates: Partial<ContractRow>) => {
+      updateMut.mutate(
+        { id, updates },
+        {
+          onError: () =>
+            toast({
+              title: "Erro ao atualizar",
+              description:
+                "Não foi possível salvar a alteração. Tente novamente.",
+              variant: "destructive",
+            }),
+        },
+      );
+    },
+    [updateMut, toast],
+  );
 
   async function handleDelete(contract: ContractRow) {
     try {
@@ -236,6 +256,7 @@ export default function ContratosPage() {
             onEdit={handleEdit}
             onSelect={handleSelect}
             onDelete={handleDelete}
+            onInlineUpdate={handleInlineUpdate}
           />
         )}
 

@@ -11,6 +11,8 @@ import {
   updateDeal,
   updateDealStage,
   getDealPipelines,
+  getRdPipelines,
+  getDealOwners,
 } from "@/features/comercial/services/commercial";
 
 interface DealFilters {
@@ -19,6 +21,7 @@ interface DealFilters {
   owner_id?: string;
   pipeline?: string;
   owner_name?: string;
+  rd_stage_id?: string;
 }
 
 export function useDeals(filters?: DealFilters) {
@@ -143,6 +146,38 @@ export function usePipelines() {
     queryFn: async () => {
       const supabase = createClient();
       return getDealPipelines(supabase, tenantId!);
+    },
+    staleTime: 1000 * 60 * 10,
+    enabled: !!tenantId,
+  });
+}
+
+// ── RD Pipelines (with stages from RD Station) ──────────────────────────────────
+
+export function useRdPipelines() {
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery({
+    queryKey: ["rd-pipelines", tenantId],
+    queryFn: async () => {
+      const supabase = createClient();
+      return getRdPipelines(supabase, tenantId!);
+    },
+    staleTime: 1000 * 60 * 10,
+    enabled: !!tenantId,
+  });
+}
+
+// ── Owners (distinct from deals) ────────────────────────────────────────────────
+
+export function useDealOwners(pipelineId?: string) {
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery({
+    queryKey: ["deal-owners", tenantId, pipelineId],
+    queryFn: async () => {
+      const supabase = createClient();
+      return getDealOwners(supabase, tenantId!, pipelineId);
     },
     staleTime: 1000 * 60 * 10,
     enabled: !!tenantId,

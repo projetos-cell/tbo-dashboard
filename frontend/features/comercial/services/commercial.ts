@@ -3,12 +3,33 @@ import type { Database } from "@/lib/supabase/types";
 
 type DealRow = Database["public"]["Tables"]["crm_deals"]["Row"];
 
+// ── RD Pipeline types ───────────────────────────────────────────────────────────
+
+export interface RdPipelineStage {
+  id: string;
+  name: string;
+  order: number;
+}
+
+export interface RdPipelineRow {
+  id: string;
+  tenant_id: string;
+  rd_pipeline_id: string;
+  name: string;
+  stages: RdPipelineStage[];
+  owner_name: string | null;
+  deal_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
 interface DealFilters {
   stage?: string;
   search?: string;
   owner_id?: string;
   pipeline?: string;
   owner_name?: string;
+  rd_stage_id?: string;
 }
 
 export async function getDeals(
@@ -29,10 +50,13 @@ export async function getDeals(
     query = query.eq("owner_id", filters.owner_id);
   }
   if (filters?.pipeline) {
-    query = query.eq("rd_pipeline_name" as never, filters.pipeline);
+    query = query.eq("rd_pipeline_id" as never, filters.pipeline);
   }
   if (filters?.owner_name) {
     query = query.eq("owner_name", filters.owner_name);
+  }
+  if (filters?.rd_stage_id) {
+    query = query.eq("rd_stage_id" as never, filters.rd_stage_id);
   }
   if (filters?.search) {
     // Sanitize: escape PostgREST special chars to prevent filter injection
@@ -120,7 +144,10 @@ export async function getDealPipelines(
 
   if (error) throw error;
 
-  const rows = (data ?? []) as unknown as Array<{ rd_pipeline_name: string; owner_name: string | null }>;
+  const rows = (data ?? []) as unknown as Array<{
+    rd_pipeline_name: string;
+    owner_name: string | null;
+  }>;
   const map = new Map<string, { owner_name: string | null; count: number }>();
 
   for (const r of rows) {
@@ -138,6 +165,61 @@ export async function getDealPipelines(
     owner_name: v.owner_name,
     deal_count: v.count,
   }));
+}
+
+// ── RD Pipelines (with stages from RD Station) ──────────────────────────────────
+
+export async function getRdPipelines(
+  supabase: SupabaseClient<Database>,
+  tenantId: string,
+): Promise<RdPipelineRow[]> {
+  const { data, error } = await supabase
+    .from("rd_pipelines" as never)
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .order("name");
+
+  if (error) throw error;
+  return (data ?? []) as unknown as RdPipelineRow[];
+}
+
+export async function getRdPipelineById(
+  supabase: SupabaseClient<Database>,
+  pipelineId: string,
+): Promise<RdPipelineRow | null> {
+  const { data, error } = await supabase
+    .from("rd_pipelines" as never)
+    .select("*")
+    .eq("rd_pipeline_id", pipelineId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as unknown as RdPipelineRow | null;
+}
+
+// ── Owners (distinct from deals) ────────────────────────────────────────────────
+
+export async function getDealOwners(
+  supabase: SupabaseClient<Database>,
+  tenantId: string,
+  pipelineId?: string,
+): Promise<string[]> {
+  let query = supabase
+    .from("crm_deals")
+    .select("owner_name" as never)
+    .eq("tenant_id", tenantId)
+    .not("owner_name", "is", null);
+
+  if (pipelineId) {
+    query = query.eq("rd_pipeline_id" as never, pipelineId);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const rows = (data ?? []) as unknown as Array<{ owner_name: string }>;
+  const unique = new Set(rows.map((r) => r.owner_name));
+  return Array.from(unique).sort();
 }
 
 const CLOSED_STAGES = ["fechado_ganho", "fechado_perdido"];

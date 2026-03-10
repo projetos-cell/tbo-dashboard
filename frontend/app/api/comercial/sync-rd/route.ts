@@ -10,7 +10,11 @@ interface RdDeal {
   deal_pipeline_id?: string;
   deal_stage?: { id: string; name: string };
   organization?: { id: string; name: string } | null;
-  contacts?: Array<{ id: string; name: string; emails?: Array<{ email: string }> }>;
+  contacts?: Array<{
+    id: string;
+    name: string;
+    emails?: Array<{ email: string }>;
+  }>;
   user?: { id: string; name: string } | null;
   win?: boolean;
   closed_at?: string;
@@ -23,11 +27,16 @@ interface RdDeal {
   custom_fields?: Record<string, unknown>;
 }
 
+interface RdPipelineStage {
+  id: string;
+  name: string;
+}
+
 interface RdPipeline {
   _id?: string;
   id: string;
   name: string;
-  stages?: Array<{ id: string; name: string }>;
+  stages?: RdPipelineStage[];
 }
 
 interface StageRow {
@@ -87,7 +96,9 @@ async function rdFetchAll<T>(
       if (res.status === 429) {
         const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
         await new Promise((r) => setTimeout(r, delay));
-        lastError = new Error(`RD Station rate limited (429) after ${MAX_RETRIES} retries`);
+        lastError = new Error(
+          `RD Station rate limited (429) after ${MAX_RETRIES} retries`,
+        );
         continue;
       }
 
@@ -103,29 +114,28 @@ async function rdFetchAll<T>(
   return all;
 }
 
-// ── Stage mapping ────────────────────────────────────────────────────────────────
+// ── Stage mapping (fallback for deals without proper RD stage) ───────────────────
 
 const RD_STAGE_MAP: Record<string, string> = {
-  // Common RD stage names → our crm_stages labels
-  "qualificação": "qualificacao",
-  "qualificacao": "qualificacao",
-  "qualification": "qualificacao",
-  "proposta": "proposta",
-  "proposal": "proposta",
-  "negociação": "negociacao",
-  "negociacao": "negociacao",
-  "negotiation": "negociacao",
-  "fechamento": "fechamento",
-  "closing": "fechamento",
-  "ganho": "fechado_ganho",
-  "won": "fechado_ganho",
+  qualificação: "qualificacao",
+  qualificacao: "qualificacao",
+  qualification: "qualificacao",
+  proposta: "proposta",
+  proposal: "proposta",
+  negociação: "negociacao",
+  negociacao: "negociacao",
+  negotiation: "negociacao",
+  fechamento: "fechamento",
+  closing: "fechamento",
+  ganho: "fechado_ganho",
+  won: "fechado_ganho",
   "fechado ganho": "fechado_ganho",
-  "perdido": "fechado_perdido",
-  "lost": "fechado_perdido",
+  perdido: "fechado_perdido",
+  lost: "fechado_perdido",
   "fechado perdido": "fechado_perdido",
-  "prospecção": "lead",
-  "prospeccao": "lead",
-  "prospecting": "lead",
+  prospecção: "lead",
+  prospeccao: "lead",
+  prospecting: "lead",
   "contato inicial": "lead",
   "initial contact": "lead",
 };
@@ -140,7 +150,9 @@ function mapRdStage(
     return stages.find((s) => s.id === "fechado_ganho")?.id ?? "fechado_ganho";
   }
   if (isClosed) {
-    return stages.find((s) => s.id === "fechado_perdido")?.id ?? "fechado_perdido";
+    return (
+      stages.find((s) => s.id === "fechado_perdido")?.id ?? "fechado_perdido"
+    );
   }
 
   if (!rdStageName) {
@@ -149,24 +161,20 @@ function mapRdStage(
 
   const normalized = rdStageName.toLowerCase().trim();
 
-  // Direct match by id
   const directMatch = stages.find((s) => s.id === normalized);
   if (directMatch) return directMatch.id;
 
-  // Match by label
   const labelMatch = stages.find(
     (s) => s.label.toLowerCase() === normalized,
   );
   if (labelMatch) return labelMatch.id;
 
-  // Mapped match
   const mapped = RD_STAGE_MAP[normalized];
   if (mapped) {
     const stageMatch = stages.find((s) => s.id === mapped);
     if (stageMatch) return stageMatch.id;
   }
 
-  // Fuzzy: partial match
   const fuzzy = stages.find(
     (s) =>
       s.label.toLowerCase().includes(normalized) ||
@@ -174,11 +182,10 @@ function mapRdStage(
   );
   if (fuzzy) return fuzzy.id;
 
-  // Default: first non-closed stage
   return (
-    stages.find(
-      (s) => !s.id.startsWith("fechado"),
-    )?.id ?? stages[0]?.id ?? "lead"
+    stages.find((s) => !s.id.startsWith("fechado"))?.id ??
+    stages[0]?.id ??
+    "lead"
   );
 }
 
@@ -214,7 +221,10 @@ export async function POST(req: NextRequest) {
       .eq("enabled", true)
       .maybeSingle();
 
-    const rdConfig = rdConfigRaw as { api_token: string; enabled: boolean } | null;
+    const rdConfig = rdConfigRaw as {
+      api_token: string;
+      enabled: boolean;
+    } | null;
 
     if (!rdConfig?.api_token) {
       return NextResponse.json(
@@ -248,18 +258,48 @@ export async function POST(req: NextRequest) {
 
     const syncId = (syncLog as Record<string, unknown>).id as string;
 
-    // 3. Fetch pipelines from RD Station (to map pipeline names)
+    // 3. Fetch pipelines from RD Station (with stages)
     const token = rdConfig.api_token;
-    let pipelineMap = new Map<string, string>();
+    const pipelineMap = new Map<
+      string,
+      { name: string; stages: RdPipelineStage[] }
+    >();
+    let rdPipelines: RdPipeline[] = [];
 
     try {
-      const pipelines = await rdFetchAll<RdPipeline>("/deal_pipelines", token);
-      for (const p of pipelines) {
+      rdPipelines = await rdFetchAll<RdPipeline>("/deal_pipelines", token);
+      for (const p of rdPipelines) {
         const pid = p._id ?? p.id;
-        pipelineMap.set(pid, p.name);
+        pipelineMap.set(pid, {
+          name: p.name,
+          stages: p.stages ?? [],
+        });
       }
     } catch {
-      // Non-fatal: pipeline names won't be mapped but deals still sync
+      // Non-fatal: pipeline names/stages won't be mapped but deals still sync
+    }
+
+    // 3b. Upsert pipelines into rd_pipelines table
+    for (const p of rdPipelines) {
+      const pid = p._id ?? p.id;
+      const pipelineStages = (p.stages ?? []).map((s, idx) => ({
+        id: s.id,
+        name: s.name,
+        order: idx,
+      }));
+
+      await db
+        .from("rd_pipelines" as never)
+        .upsert(
+          {
+            tenant_id: tenantId,
+            rd_pipeline_id: pid,
+            name: p.name,
+            stages: pipelineStages,
+            updated_at: new Date().toISOString(),
+          } as never,
+          { onConflict: "tenant_id,rd_pipeline_id" },
+        );
     }
 
     // 4. Fetch deals from RD Station
@@ -268,7 +308,8 @@ export async function POST(req: NextRequest) {
     try {
       rdDeals = await rdFetchAll<RdDeal>("/deals", token);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "RD Station fetch failed";
+      const msg =
+        err instanceof Error ? err.message : "RD Station fetch failed";
       await db
         .from("rd_sync_log" as never)
         .update({
@@ -280,7 +321,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: msg }, { status: 502 });
     }
 
-    // 5. Load our stages for mapping
+    // 5. Load our stages for fallback mapping
     const { data: stages } = await db
       .from("crm_stages")
       .select("id, label, sort_order")
@@ -300,7 +341,10 @@ export async function POST(req: NextRequest) {
       (existingDeals ?? []).map((d) => [d.rd_deal_id, d.id]),
     );
 
-    // 7. Build insert / update batches
+    // 7. Count deals per pipeline for stats
+    const pipelineDealCounts = new Map<string, number>();
+
+    // 8. Build insert / update batches
     const results = {
       created: 0,
       updated: 0,
@@ -327,8 +371,28 @@ export async function POST(req: NextRequest) {
         const contactEmail = contact?.emails?.[0]?.email ?? null;
 
         const rdPipelineId = rd.deal_pipeline_id ?? null;
-        const rdPipelineName = rdPipelineId ? (pipelineMap.get(rdPipelineId) ?? null) : null;
-        const rdUserId = rd.user ? ((rd.user as Record<string, unknown>)._id as string ?? (rd.user as Record<string, unknown>).id as string ?? null) : null;
+        const pipelineInfo = rdPipelineId
+          ? pipelineMap.get(rdPipelineId)
+          : null;
+        const rdPipelineName = pipelineInfo?.name ?? null;
+
+        // Store original RD stage info
+        const rdStageId = rd.deal_stage?.id ?? null;
+        const rdStageName = rd.deal_stage?.name ?? null;
+
+        const rdUserId = rd.user
+          ? ((rd.user as Record<string, unknown>)._id as string ??
+            (rd.user as Record<string, unknown>).id as string ??
+            null)
+          : null;
+
+        // Track pipeline deal counts
+        if (rdPipelineId) {
+          pipelineDealCounts.set(
+            rdPipelineId,
+            (pipelineDealCounts.get(rdPipelineId) ?? 0) + 1,
+          );
+        }
 
         const dealData: Record<string, unknown> = {
           tenant_id: tenantId,
@@ -338,12 +402,20 @@ export async function POST(req: NextRequest) {
           contact_email: contactEmail,
           stage,
           value: rd.amount_total ?? null,
-          probability: isWon ? 100 : isClosed ? 0 : rd.rating ? rd.rating * 20 : null,
+          probability: isWon
+            ? 100
+            : isClosed
+              ? 0
+              : rd.rating
+                ? rd.rating * 20
+                : null,
           owner_name: rd.user?.name ?? null,
           source: "rdstation",
           rd_deal_id: rd.id,
           rd_pipeline_id: rdPipelineId,
           rd_pipeline_name: rdPipelineName,
+          rd_stage_id: rdStageId,
+          rd_stage_name: rdStageName,
           rd_user_id: rdUserId,
           expected_close: rd.prediction_date ?? null,
           updated_at: new Date().toISOString(),
@@ -364,7 +436,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 8. Batch insert new deals
+    // 9. Batch insert new deals
     if (toInsert.length > 0) {
       const BATCH_SIZE = 100;
       for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
@@ -380,7 +452,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 9. Batch update existing deals (individual updates — Supabase lacks bulk update)
+    // 10. Batch update existing deals
     for (const item of toUpdate) {
       const { error: updateErr } = await db
         .from("crm_deals")
@@ -393,7 +465,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 10. Update sync log
+    // 11. Update pipeline deal counts
+    for (const [pid, count] of pipelineDealCounts) {
+      await db
+        .from("rd_pipelines" as never)
+        .update({ deal_count: count, updated_at: new Date().toISOString() } as never)
+        .eq("tenant_id", tenantId)
+        .eq("rd_pipeline_id", pid);
+    }
+
+    // 12. Update sync log
     await db
       .from("rd_sync_log" as never)
       .update({
@@ -404,7 +485,7 @@ export async function POST(req: NextRequest) {
       } as never)
       .eq("id", syncId);
 
-    // 11. Update rd_config.last_sync
+    // 13. Update rd_config.last_sync
     await db
       .from("rd_config" as never)
       .update({ last_sync: new Date().toISOString() } as never)
@@ -415,6 +496,7 @@ export async function POST(req: NextRequest) {
       deals_total: rdDeals.length,
       created: results.created,
       updated: results.updated,
+      pipelines_synced: rdPipelines.length,
       errors: results.errors,
     });
   } catch (err) {

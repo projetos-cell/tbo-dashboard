@@ -306,7 +306,11 @@ export function InviteUserDialog({
                   <IconArrowRight size={16} className="ml-1" />
                 </Button>
               ) : (
-                <Button type="submit" disabled={invite.isPending}>
+                <Button
+                  type="button"
+                  disabled={invite.isPending}
+                  onClick={form.handleSubmit(onSubmit)}
+                >
                   {invite.isPending ? (
                     "Enviando..."
                   ) : (

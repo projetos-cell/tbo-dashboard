@@ -146,6 +146,53 @@ export const CONTRACT_TABS = [
   { key: "colaboradores", label: "Colaboradores", categories: ["equipe"] as const },
 ] as const;
 
+// ─── Contract advanced filter options ────────────────────────────────
+export const CONTRACT_RENEWAL_WINDOWS = [
+  { value: 30, label: "30 dias" },
+  { value: 60, label: "60 dias" },
+  { value: 90, label: "90 dias" },
+] as const;
+
+export const CONTRACT_SORT_OPTIONS = [
+  { value: "created_desc", label: "Data de criação (recente)" },
+  { value: "created_asc", label: "Data de criação (antiga)" },
+  { value: "end_date_asc", label: "Vencimento (mais próximo)" },
+  { value: "end_date_desc", label: "Vencimento (mais distante)" },
+  { value: "value_desc", label: "Valor (maior)" },
+  { value: "value_asc", label: "Valor (menor)" },
+  { value: "title_asc", label: "Nome (A → Z)" },
+  { value: "title_desc", label: "Nome (Z → A)" },
+] as const;
+
+export type ContractSortValue = (typeof CONTRACT_SORT_OPTIONS)[number]["value"];
+
+/** Dynamic status filters — computed client-side from DB fields */
+export const CONTRACT_DYNAMIC_STATUS = {
+  awaiting_signature: {
+    label: "Aguardando Assinatura",
+    color: "#eab308",
+    bg: "rgba(234,179,8,0.12)",
+    match: (c: { status: string | null; file_url: string | null }) =>
+      c.status === "draft" && !c.file_url,
+  },
+  legal_review: {
+    label: "Em Revisão Jurídica",
+    color: "#a855f7",
+    bg: "rgba(168,85,247,0.12)",
+    match: (c: { status: string | null; file_url: string | null }) =>
+      c.status === "draft" && !!c.file_url,
+  },
+  archived: {
+    label: "Arquivado",
+    color: "#64748b",
+    bg: "rgba(100,116,139,0.12)",
+    match: (c: { status: string | null }) =>
+      c.status === "expired" || c.status === "cancelled",
+  },
+} as const;
+
+export type ContractDynamicStatusKey = keyof typeof CONTRACT_DYNAMIC_STATUS;
+
 // ─── Deal pipeline stages (CRM) ──────────────────────────────────────
 export const DEAL_STAGES = {
   lead: { label: "Lead", color: "#6366f1", bg: "rgba(99,102,241,0.12)", order: 0 },

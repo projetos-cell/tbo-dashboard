@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   useContracts,
+  useContractPersonNames,
   useDeleteContract,
 } from "@/features/contratos/hooks/use-contracts";
 import { ContractKPICards } from "@/features/contratos/components/contract-kpis";
@@ -10,7 +11,12 @@ import { ContractDataTable } from "@/features/contratos/components/contract-data
 import { ContractDetailDialog } from "@/features/contratos/components/contract-detail-dialog";
 import { ContractFormDialog } from "@/features/contratos/components/contract-form-dialog";
 import { NewContractDropdown } from "@/features/contratos/components/new-contract-dropdown";
+import {
+  ContractFiltersPanel,
+  ActiveFiltersBadges,
+} from "@/features/contratos/components/contract-filters-panel";
 import { computeTabKPIs } from "@/features/contratos/services/contracts";
+import type { ContractFilters } from "@/features/contratos/services/contracts";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { ErrorState, EmptyState } from "@/components/shared";
 import { Input } from "@/components/ui/input";
@@ -25,6 +31,7 @@ export default function ContratosPage() {
   // ─── State ────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
+  const [advancedFilters, setAdvancedFilters] = useState<ContractFilters>({});
   const [selectedContract, setSelectedContract] =
     useState<ContractRow | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -35,9 +42,25 @@ export default function ContratosPage() {
 
   const { toast } = useToast();
   const deleteMut = useDeleteContract();
+  const personNames = useContractPersonNames();
 
   // ─── Tab config ───────────────────────────────────────────────────
-  const currentTab = CONTRACT_TABS.find((t) => t.key === activeTab) ?? CONTRACT_TABS[0];
+  const currentTab =
+    CONTRACT_TABS.find((t) => t.key === activeTab) ?? CONTRACT_TABS[0];
+  const lockedCategories = currentTab.categories ?? undefined;
+
+  // ─── Merge filters ────────────────────────────────────────────────
+  const mergedFilters: ContractFilters = useMemo(
+    () => ({
+      ...advancedFilters,
+      search: search || undefined,
+      // Tab categories override advanced category filter
+      categories: lockedCategories
+        ? [...lockedCategories]
+        : advancedFilters.categories,
+    }),
+    [advancedFilters, search, lockedCategories],
+  );
 
   // ─── Data ─────────────────────────────────────────────────────────
   const {
@@ -45,15 +68,32 @@ export default function ContratosPage() {
     isLoading,
     error,
     refetch,
-  } = useContracts({
-    categories: currentTab.categories ?? undefined,
-    search: search || undefined,
-  });
+  } = useContracts(mergedFilters);
 
   // ─── KPIs dinâmicos por tab ───────────────────────────────────────
   const kpis = useMemo(
     () => computeTabKPIs(contracts, activeTab),
-    [contracts, activeTab]
+    [contracts, activeTab],
+  );
+
+  // ─── Filter handlers ──────────────────────────────────────────────
+  const handleFiltersChange = useCallback(
+    (next: ContractFilters) => {
+      // Keep search separate from advanced filters
+      const { search: _s, categories: _c, ...rest } = next;
+      setAdvancedFilters(rest);
+    },
+    [],
+  );
+
+  // Reset advanced filters when switching tabs
+  const handleTabChange = useCallback(
+    (tabKey: string) => {
+      setActiveTab(tabKey);
+      // Keep non-category filters, reset categories to let tab take over
+      setAdvancedFilters((prev) => ({ ...prev, categories: undefined }));
+    },
+    [],
   );
 
   // ─── Handlers ─────────────────────────────────────────────────────
@@ -113,7 +153,7 @@ export default function ContratosPage() {
               Gerencie contratos, valores e prazos de vencimento.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {/* Busca global */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -121,12 +161,26 @@ export default function ContratosPage() {
                 placeholder="Buscar contratos..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 w-[240px]"
+                className="pl-9 w-[220px]"
               />
             </div>
+            {/* Filtros avançados */}
+            <ContractFiltersPanel
+              filters={mergedFilters}
+              onChange={handleFiltersChange}
+              personNames={personNames}
+              lockedCategories={lockedCategories}
+            />
             <NewContractDropdown onSelect={handleNewWithCategory} />
           </div>
         </div>
+
+        {/* ── Active filter badges ────────────────────────────────── */}
+        <ActiveFiltersBadges
+          filters={mergedFilters}
+          onChange={handleFiltersChange}
+          lockedCategories={lockedCategories}
+        />
 
         {/* ── Tabs ─────────────────────────────────────────────────── */}
         <div className="border-b border-border/50">
@@ -136,7 +190,7 @@ export default function ContratosPage() {
               return (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
+                  onClick={() => handleTabChange(tab.key)}
                   className={`
                     relative pb-3 text-sm font-medium transition-colors
                     ${

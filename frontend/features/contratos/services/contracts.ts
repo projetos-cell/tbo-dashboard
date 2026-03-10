@@ -1,13 +1,55 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
+import type { ContractSortValue, ContractDynamicStatusKey } from "@/lib/constants";
 
 type ContractRow = Database["public"]["Tables"]["contracts"]["Row"];
 
 // ─── Filters ──────────────────────────────────────────────────────────
 export interface ContractFilters {
-  status?: string;
+  // Básicos
   search?: string;
+  statuses?: readonly string[];
   categories?: readonly string[];
+  types?: readonly string[];
+  personName?: string;
+  // Ordenação
+  sortBy?: ContractSortValue;
+  // Temporalidade
+  endDateFrom?: string;          // ISO date — início do range de vencimento
+  endDateTo?: string;            // ISO date — fim do range de vencimento
+  renewalWindowDays?: number;    // 30 | 60 | 90 — vencendo dentro de N dias
+  // Financeiro
+  valueMin?: number;
+  valueMax?: number;
+  // Status dinâmicos (computed client-side)
+  dynamicStatuses?: readonly ContractDynamicStatusKey[];
+}
+
+/** Build sort params from the sortBy token */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function applySorting(query: any, sortBy?: ContractSortValue) {
+  switch (sortBy) {
+    case "created_desc":
+      return query.order("created_at", { ascending: false, nullsFirst: false });
+    case "created_asc":
+      return query.order("created_at", { ascending: true });
+    case "end_date_asc":
+      return query.order("end_date", { ascending: true, nullsFirst: false });
+    case "end_date_desc":
+      return query.order("end_date", { ascending: false, nullsFirst: false });
+    case "value_desc":
+      return query.order("monthly_value", { ascending: false, nullsFirst: false });
+    case "value_asc":
+      return query.order("monthly_value", { ascending: true, nullsFirst: false });
+    case "title_asc":
+      return query.order("title", { ascending: true });
+    case "title_desc":
+      return query.order("title", { ascending: false });
+    default:
+      return query
+        .order("status", { ascending: true })
+        .order("monthly_value", { ascending: false, nullsFirst: false });
+  }
 }
 
 // ─── Queries ──────────────────────────────────────────────────────────
@@ -15,25 +57,94 @@ export async function getContracts(
   supabase: SupabaseClient<Database>,
   filters?: ContractFilters
 ): Promise<ContractRow[]> {
-  let query = supabase
-    .from("contracts")
-    .select()
-    .order("status", { ascending: true })
-    .order("monthly_value", { ascending: false, nullsFirst: false });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let query: any = supabase.from("contracts").select();
 
-  if (filters?.status) query = query.eq("status", filters.status);
+  // ── Status (múltiplos) ──────────────────────────────────────────
+  if (filters?.statuses?.length) {
+    query = query.in("status", [...filters.statuses]);
+  }
+
+  // ── Categorias ──────────────────────────────────────────────────
   if (filters?.categories?.length) {
     query = query.in("category", [...filters.categories]);
   }
+
+  // ── Tipos de contrato ───────────────────────────────────────────
+  if (filters?.types?.length) {
+    query = query.in("type", [...filters.types]);
+  }
+
+  // ── Responsável (exact match) ───────────────────────────────────
+  if (filters?.personName) {
+    query = query.eq("person_name", filters.personName);
+  }
+
+  // ── Busca textual ───────────────────────────────────────────────
   if (filters?.search) {
     query = query.or(
       `title.ilike.%${filters.search}%,person_name.ilike.%${filters.search}%`
     );
   }
 
+  // ── Faixa de vencimento ─────────────────────────────────────────
+  if (filters?.endDateFrom) {
+    query = query.gte("end_date", filters.endDateFrom);
+  }
+  if (filters?.endDateTo) {
+    query = query.lte("end_date", filters.endDateTo);
+  }
+
+  // ── Janela de renovação (vencendo em N dias) ────────────────────
+  if (filters?.renewalWindowDays) {
+    const today = new Date();
+    const future = new Date(today);
+    future.setDate(future.getDate() + filters.renewalWindowDays);
+    query = query
+      .eq("status", "active")
+      .gte("end_date", today.toISOString().split("T")[0])
+      .lte("end_date", future.toISOString().split("T")[0]);
+  }
+
+  // ── Faixa de valor ──────────────────────────────────────────────
+  if (filters?.valueMin != null) {
+    query = query.gte("monthly_value", filters.valueMin);
+  }
+  if (filters?.valueMax != null) {
+    query = query.lte("monthly_value", filters.valueMax);
+  }
+
+  // ── Ordenação ───────────────────────────────────────────────────
+  query = applySorting(query, filters?.sortBy);
+
   const { data, error } = await query;
   if (error) throw error;
   return (data ?? []) as ContractRow[];
+}
+
+/** Apply dynamic status filters client-side (after DB fetch) */
+export function applyDynamicStatusFilters(
+  contracts: ContractRow[],
+  dynamicStatuses: readonly ContractDynamicStatusKey[]
+): ContractRow[] {
+  if (!dynamicStatuses.length) return contracts;
+
+  const { CONTRACT_DYNAMIC_STATUS } = require("@/lib/constants");
+  return contracts.filter((c) =>
+    dynamicStatuses.some((key) => {
+      const cfg = CONTRACT_DYNAMIC_STATUS[key];
+      return cfg?.match(c);
+    })
+  );
+}
+
+/** Extract unique person_name values from contracts */
+export function getUniquePersonNames(contracts: ContractRow[]): string[] {
+  const names = new Set<string>();
+  for (const c of contracts) {
+    if (c.person_name) names.add(c.person_name);
+  }
+  return Array.from(names).sort((a, b) => a.localeCompare(b, "pt-BR"));
 }
 
 export async function getContractById(

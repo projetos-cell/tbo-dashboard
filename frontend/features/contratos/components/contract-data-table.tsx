@@ -243,25 +243,23 @@ export function ContractDataTable({
                 </div>
 
                 {/* Ações */}
-                <div className="col-span-1 flex justify-end">
+                <div
+                  className="col-span-1 flex justify-end"
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => e.stopPropagation()}
                       >
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-40">
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onEdit(contract);
-                        }}
-                      >
+                      <DropdownMenuItem onClick={() => onEdit(contract)}>
                         <Pencil className="mr-2 h-3.5 w-3.5" />
                         Editar
                       </DropdownMenuItem>
@@ -271,19 +269,13 @@ export function ContractDataTable({
                             href={contract.file_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
                           >
                             <Download className="mr-2 h-3.5 w-3.5" />
                             Baixar PDF
                           </a>
                         </DropdownMenuItem>
                       )}
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onEdit(contract);
-                        }}
-                      >
+                      <DropdownMenuItem onClick={() => onEdit(contract)}>
                         <RefreshCw className="mr-2 h-3.5 w-3.5" />
                         Renovar
                       </DropdownMenuItem>

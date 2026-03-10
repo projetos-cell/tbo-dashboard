@@ -142,7 +142,7 @@ export type ContractTypeKey = keyof typeof CONTRACT_TYPE;
 export const CONTRACT_TABS = [
   { key: "all", label: "Visão Geral", categories: undefined },
   { key: "clientes", label: "Clientes", categories: ["cliente"] as const },
-  { key: "terceirizados", label: "Terceirizados", categories: ["fornecedor", "equipe"] as const },
+  { key: "terceirizados", label: "Terceirizados", categories: ["fornecedor"] as const },
   { key: "colaboradores", label: "Colaboradores", categories: ["equipe"] as const },
 ] as const;
 

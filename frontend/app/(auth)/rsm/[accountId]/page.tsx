@@ -9,20 +9,21 @@ import { Badge } from "@/components/ui/badge";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { ErrorState } from "@/components/shared";
 import { useRsmAccount, useRsmMetrics, useRsmPosts } from "@/hooks/use-rsm";
-import { PortalRsmDashboard } from "@/app/(public)/portal/[token]/dashboard";
+import { RsmAccountDashboard } from "./_components/rsm-account-dashboard";
+import { RsmPostsDiagnostics } from "./_components/rsm-posts-diagnostics";
 
 interface Props {
   params: Promise<{ accountId: string }>;
 }
 
 const PLATFORM_COLORS: Record<string, string> = {
-  instagram: "bg-pink-100 text-pink-800",
-  facebook: "bg-blue-100 text-blue-800",
-  linkedin: "bg-sky-100 text-sky-800",
-  tiktok: "bg-slate-100 text-slate-800",
-  youtube: "bg-red-100 text-red-800",
-  twitter: "bg-cyan-100 text-cyan-800",
-  x: "bg-slate-100 text-slate-800",
+  instagram: "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300",
+  facebook: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  linkedin: "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300",
+  tiktok: "bg-slate-100 text-slate-800 dark:bg-slate-800/50 dark:text-slate-300",
+  youtube: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+  twitter: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300",
+  x: "bg-slate-100 text-slate-800 dark:bg-slate-800/50 dark:text-slate-300",
 };
 
 export default function RsmAccountDetailPage({ params }: Props) {
@@ -61,7 +62,7 @@ export default function RsmAccountDetailPage({ params }: Props) {
 
   return (
     <RequireRole module="rsm">
-      <div className="space-y-4">
+      <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
           <Button
@@ -121,14 +122,10 @@ export default function RsmAccountDetailPage({ params }: Props) {
 
         {/* Dashboard */}
         {!isLoading && account && (
-          <div className="rounded-xl overflow-hidden" style={{ background: "#080c10", color: "#e8e8e8" }}>
-            <PortalRsmDashboard
-              clientName={account.handle}
-              accounts={[account]}
-              metrics={metrics}
-              posts={posts}
-            />
-          </div>
+          <>
+            <RsmAccountDashboard account={account} metrics={metrics} />
+            <RsmPostsDiagnostics account={account} metrics={metrics} posts={posts} />
+          </>
         )}
       </div>
     </RequireRole>

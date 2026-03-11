@@ -49,8 +49,11 @@ export function RsmAccountDashboard({ account, metrics }: Props) {
   const maxCity = Math.max(...Object.values(topCities), 1);
   const maxAge = Math.max(...Object.values(ageRanges), 1);
 
-  // Follower growth
-  const maxFollowers = Math.max(...metrics.map((x) => x.followers ?? 0), 1);
+  // Follower growth (relative scale for visible growth)
+  const followerValues = metrics.map((x) => x.followers ?? 0);
+  const maxFollowers = Math.max(...followerValues, 1);
+  const minFollowers = Math.min(...followerValues);
+  const followerRange = maxFollowers - minFollowers || 1;
   const avgGrowth =
     metrics.length > 1
       ? Math.round(
@@ -106,13 +109,13 @@ export function RsmAccountDashboard({ account, metrics }: Props) {
             </div>
             <div className="flex h-10 overflow-hidden rounded-lg">
               <div
-                className="flex items-center justify-center bg-orange-500 text-xs font-semibold text-white"
+                className="flex items-center justify-center bg-orange-500 hover:bg-orange-400 text-xs font-semibold text-white transition-colors cursor-default"
                 style={{ flex: Number(reachData.paidPct) }}
               >
                 Pago · {reachData.paidPct}%
               </div>
               <div
-                className="flex items-center justify-center bg-blue-600 text-xs text-white"
+                className="flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-xs text-white transition-colors cursor-default"
                 style={{ flex: Number(reachData.orgPct) }}
               >
                 {Number(reachData.orgPct) > 3 ? `${reachData.orgPct}%` : ""}
@@ -133,16 +136,22 @@ export function RsmAccountDashboard({ account, metrics }: Props) {
         <CardContent>
           <div className="flex items-end gap-2 h-40">
             {metrics.map((m, i) => {
-              const pct = ((m.followers ?? 0) / maxFollowers) * 100;
+              const val = m.followers ?? 0;
+              const relativePct = ((val - minFollowers) / followerRange) * 100;
+              const pct = 20 + relativePct * 0.8; // base 20% + 80% range
               const month = MONTHS_PT[new Date(m.date).getMonth() + 1] ?? "";
+              const isLast = i === metrics.length - 1;
               return (
-                <div key={i} className="flex flex-1 flex-col items-center justify-end h-full gap-1">
-                  <span className="text-[11px] font-medium text-primary tabular-nums">
-                    {fmtNum(m.followers ?? 0)}
+                <div
+                  key={i}
+                  className="group relative flex flex-1 flex-col items-center justify-end h-full gap-1 cursor-default"
+                >
+                  <span className={`text-[11px] font-medium tabular-nums ${isLast ? "text-primary" : "text-muted-foreground"}`}>
+                    {fmtNum(val)}
                   </span>
                   <div
-                    className="w-full rounded-t-md bg-primary/80"
-                    style={{ height: `${Math.max(pct, 4)}%` }}
+                    className={`w-full rounded-t-md transition-colors ${isLast ? "bg-primary" : "bg-primary/60 group-hover:bg-primary/80"}`}
+                    style={{ height: `${Math.max(pct, 8)}%` }}
                   />
                   <span className="text-[11px] text-muted-foreground uppercase tracking-wide">
                     {month}
@@ -199,15 +208,15 @@ export function RsmAccountDashboard({ account, metrics }: Props) {
                   .sort((a, b) => b[1] - a[1])
                   .slice(0, 6)
                   .map(([city, count]) => (
-                    <div key={city} className="flex items-center gap-3">
-                      <span className="w-28 shrink-0 text-right text-sm text-muted-foreground">{city}</span>
+                    <div key={city} className="group flex items-center gap-3 cursor-default">
+                      <span className="w-28 shrink-0 text-right text-sm text-muted-foreground group-hover:text-foreground transition-colors">{city}</span>
                       <div className="flex-1 h-6 rounded bg-muted overflow-hidden">
                         <div
-                          className="h-full rounded bg-primary"
+                          className="h-full rounded bg-primary/70 group-hover:bg-primary transition-all"
                           style={{ width: `${(count / maxCity) * 100}%` }}
                         />
                       </div>
-                      <span className="w-14 shrink-0 text-right text-sm font-medium tabular-nums">
+                      <span className="w-14 shrink-0 text-right text-sm font-medium tabular-nums group-hover:text-primary transition-colors">
                         {fmtNum(count)}
                       </span>
                     </div>
@@ -230,13 +239,13 @@ export function RsmAccountDashboard({ account, metrics }: Props) {
                 const pct = (count / maxAge) * 100;
                 const isPeak = pct >= 90;
                 return (
-                  <div key={range} className="flex flex-1 flex-col items-center justify-end h-full gap-1">
+                  <div key={range} className="group flex flex-1 flex-col items-center justify-end h-full gap-1 cursor-default">
                     <div
-                      className={`w-full rounded-t-md ${isPeak ? "bg-primary" : pct > 20 ? "bg-primary/50" : "bg-muted"}`}
+                      className={`w-full rounded-t-md transition-all ${isPeak ? "bg-primary" : pct > 20 ? "bg-primary/50 group-hover:bg-primary/70" : "bg-muted group-hover:bg-primary/30"}`}
                       style={{ height: `${Math.max(pct, 4)}%` }}
                     />
-                    <span className="text-[11px] text-muted-foreground">{range}</span>
-                    <span className={`text-[10px] tabular-nums ${isPeak ? "font-semibold text-primary" : "text-muted-foreground"}`}>
+                    <span className="text-[11px] text-muted-foreground group-hover:text-foreground transition-colors">{range}</span>
+                    <span className={`text-[10px] tabular-nums transition-colors ${isPeak ? "font-semibold text-primary" : "text-muted-foreground group-hover:text-foreground"}`}>
                       {fmtNum(count)}
                     </span>
                   </div>
@@ -268,7 +277,7 @@ function KpiCard({
   accent?: boolean;
 }) {
   return (
-    <Card>
+    <Card className="transition-all hover:shadow-md hover:border-primary/20">
       <CardContent className="pt-5">
         <div className="flex items-center gap-2 text-muted-foreground mb-2">
           {icon}
@@ -290,7 +299,7 @@ function KpiCard({
 
 function MiniKpi({ label, value, className }: { label: string; value: string; className?: string }) {
   return (
-    <div className="rounded-lg bg-muted/50 p-3 text-center">
+    <div className="rounded-lg bg-muted/50 p-3 text-center transition-colors hover:bg-muted/80 cursor-default">
       <div className={`text-lg font-semibold ${className ?? ""}`}>{value}</div>
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">{label}</div>
     </div>

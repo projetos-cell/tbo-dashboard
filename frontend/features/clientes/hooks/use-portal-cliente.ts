@@ -10,6 +10,7 @@ import {
   updateAccess,
   deleteAccess,
   revokeAccess,
+  getPortalAccessByClientId,
 } from "@/services/portal-cliente";
 
 export function usePortalAccess() {
@@ -21,6 +22,17 @@ export function usePortalAccess() {
     queryFn: () => listPortalAccess(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
+  });
+}
+
+export function usePortalAccessByClient(clientId: string | null) {
+  const supabase = createClient();
+
+  return useQuery({
+    queryKey: ["portal-access", "by-client", clientId],
+    queryFn: () => getPortalAccessByClientId(supabase, clientId!),
+    staleTime: 1000 * 60 * 5,
+    enabled: !!clientId,
   });
 }
 

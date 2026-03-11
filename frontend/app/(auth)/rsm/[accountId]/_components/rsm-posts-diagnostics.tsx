@@ -98,7 +98,7 @@ export function RsmPostsDiagnostics({ account, metrics, posts }: Props) {
                 </TableHeader>
                 <TableBody>
                   {topPosts.map((p, i) => (
-                    <TableRow key={i}>
+                    <TableRow key={i} className="transition-colors hover:bg-muted/50">
                       <TableCell className="max-w-[280px] truncate font-medium">{p.title}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtNum(p.views)}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtNum(p.reach)}</TableCell>
@@ -202,7 +202,7 @@ function FormatCard({
       ];
 
   return (
-    <Card className={highlight ? "border-primary/30 bg-primary/[0.02]" : ""}>
+    <Card className={`transition-all hover:shadow-md hover:border-primary/20 ${highlight ? "border-primary/30 bg-primary/[0.02]" : ""}`}>
       <CardHeader className="pb-2">
         <div className="flex items-center gap-2">
           <CardTitle className={`text-sm ${highlight ? "text-primary" : ""}`}>
@@ -276,7 +276,7 @@ function InsightCard({
         : "border-l-primary";
 
   return (
-    <div className={`flex gap-3 p-4 rounded-lg bg-muted/50 border-l-[3px] ${borderClass}`}>
+    <div className={`flex gap-3 p-4 rounded-lg bg-muted/50 border-l-[3px] transition-colors hover:bg-muted/80 ${borderClass}`}>
       <span className="shrink-0 mt-0.5 text-muted-foreground">{icon}</span>
       <p className="text-sm text-muted-foreground leading-relaxed">{children}</p>
     </div>

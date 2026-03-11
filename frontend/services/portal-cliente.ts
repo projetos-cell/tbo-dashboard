@@ -72,6 +72,23 @@ export async function revokeAccess(
   return data;
 }
 
+export async function getPortalAccessByClientId(
+  supabase: SupabaseClient<Database>,
+  clientId: string
+): Promise<PortalAccessRow | null> {
+  const { data, error } = await supabase
+    .from("client_portal_access")
+    .select("*")
+    .eq("client_id", clientId)
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
 export interface PortalKPIs {
   total: number;
   active: number;

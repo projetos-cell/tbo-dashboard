@@ -1,16 +1,19 @@
 "use client";
 
-import { use } from "react";
+import { use, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Share2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { ErrorState } from "@/components/shared";
 import { useRsmAccount, useRsmMetrics, useRsmPosts } from "@/hooks/use-rsm";
+import { usePortalAccessByClient } from "@/features/clientes/hooks/use-portal-cliente";
+import { useToast } from "@/hooks/use-toast";
 import { RsmAccountDashboard } from "./_components/rsm-account-dashboard";
 import { RsmPostsDiagnostics } from "./_components/rsm-posts-diagnostics";
+import { RsmRecommendedActions } from "./_components/rsm-recommended-actions";
 
 interface Props {
   params: Promise<{ accountId: string }>;
@@ -50,6 +53,23 @@ export default function RsmAccountDetailPage({ params }: Props) {
     error: postsError,
     refetch: refetchPosts,
   } = useRsmPosts({ accountId, status: "published" });
+
+  const { data: portalAccess } = usePortalAccessByClient(
+    account?.client_id ?? null
+  );
+
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
+
+  const handleShareLink = useCallback(() => {
+    if (!portalAccess?.access_token) return;
+    const url = `${window.location.origin}/portal/${portalAccess.access_token}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      toast({ title: "Link copiado!", description: "Link de visualização copiado para a área de transferência." });
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [portalAccess, toast]);
 
   const isLoading = loadingAccount || loadingMetrics || loadingPosts;
   const error = accountError || metricsError || postsError;
@@ -94,6 +114,21 @@ export default function RsmAccountDetailPage({ params }: Props) {
                   >
                     {account.platform}
                   </Badge>
+                  {portalAccess?.access_token && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="ml-2 gap-1.5 text-xs"
+                      onClick={handleShareLink}
+                    >
+                      {copied ? (
+                        <Check className="h-3.5 w-3.5 text-green-500" />
+                      ) : (
+                        <Share2 className="h-3.5 w-3.5" />
+                      )}
+                      {copied ? "Copiado!" : "Compartilhar"}
+                    </Button>
+                  )}
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Dashboard de performance da conta
@@ -125,6 +160,7 @@ export default function RsmAccountDetailPage({ params }: Props) {
           <>
             <RsmAccountDashboard account={account} metrics={metrics} />
             <RsmPostsDiagnostics account={account} metrics={metrics} posts={posts} />
+            <RsmRecommendedActions account={account} metrics={metrics} posts={posts} />
           </>
         )}
       </div>

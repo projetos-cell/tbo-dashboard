@@ -121,12 +121,12 @@ export function CreateChannelDialog() {
 
           {/* Description */}
           <div className="space-y-1.5">
-            <Label htmlFor="ch-desc">Descri\u00e7\u00e3o (opcional)</Label>
+            <Label htmlFor="ch-desc">Descrição (opcional)</Label>
             <Input
               id="ch-desc"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Sobre o que \u00e9 esse canal?"
+              placeholder="Sobre o que é esse canal?"
               maxLength={200}
             />
           </div>
@@ -139,7 +139,7 @@ export function CreateChannelDialog() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="channel">Canal p\u00fablico</SelectItem>
+                <SelectItem value="channel">Canal público</SelectItem>
                 <SelectItem value="private">Canal privado</SelectItem>
               </SelectContent>
             </Select>

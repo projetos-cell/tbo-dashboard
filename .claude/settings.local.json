@@ -4,7 +4,8 @@
       "Bash(find:*)",
       "Bash(wc:*)",
       "Bash(grep:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "mcp__49a89ace-c4d7-4bdd-882e-f7a4a590fddb__get_access_to_vercel_url"
     ]
   }
 }

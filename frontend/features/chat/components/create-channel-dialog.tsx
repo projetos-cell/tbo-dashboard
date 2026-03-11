@@ -33,6 +33,15 @@ import { useAuthStore } from "@/stores/auth-store";
 import { getInitials } from "@/features/chat/utils/profile-utils";
 import { cn } from "@/lib/utils";
 
+/** "Nathália Runge Martins Rodrigues" → "Nathália R." */
+function abbreviateName(full: string): string {
+  const parts = full.trim().split(/\s+/);
+  if (parts.length <= 1) return full;
+  const first = parts[0];
+  const lastInitial = parts[parts.length - 1][0]?.toUpperCase() ?? "";
+  return `${first} ${lastInitial}.`;
+}
+
 export function CreateChannelDialog() {
   const open = useChatStore((s) => s.isCreateChannelOpen);
   const setOpen = useChatStore((s) => s.setCreateChannelOpen);
@@ -163,7 +172,7 @@ export function CreateChannelDialog() {
                   const p = profiles?.find((pr) => pr.id === id);
                   return (
                     <Badge key={id} variant="secondary" className="gap-1 pr-1">
-                      {p?.full_name ?? id.slice(0, 8)}
+                      {p?.full_name ? abbreviateName(p.full_name) : id.slice(0, 8)}
                       <button
                         type="button"
                         onClick={() => removeMember(id)}

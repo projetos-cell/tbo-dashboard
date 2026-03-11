@@ -375,6 +375,18 @@ export const REWARD_TYPES = {
   produto: { label: "Produto", icon: "package", color: "#3b82f6" },
   beneficio: { label: "Benefício", icon: "heart", color: "#ef4444" },
   folga: { label: "Day Off", icon: "calendar", color: "#22c55e" },
+  digital: { label: "Digital", icon: "monitor", color: "#8b5cf6" },
+  "bem-estar": { label: "Bem-estar", icon: "heart", color: "#ec4899" },
+  aprendizado: { label: "Aprendizado", icon: "graduation-cap", color: "#f59e0b" },
+  gastronomia: { label: "Gastronomia", icon: "utensils", color: "#ef4444" },
+  lifestyle: { label: "Lifestyle", icon: "palette", color: "#d946ef" },
+  liberdade: { label: "Liberdade", icon: "sun", color: "#22c55e" },
+  saude: { label: "Saúde", icon: "activity", color: "#14b8a6" },
+  lazer: { label: "Lazer", icon: "film", color: "#f97316" },
+  branding: { label: "Branding", icon: "award", color: "#0ea5e9" },
+  utilidade: { label: "Utilidade", icon: "credit-card", color: "#64748b" },
+  cultura: { label: "Cultura", icon: "book-open", color: "#a855f7" },
+  mimo: { label: "Mimo", icon: "coffee", color: "#fb923c" },
 } as const;
 
 // ─── Recognition tiers ──────────────────────────────────────────────

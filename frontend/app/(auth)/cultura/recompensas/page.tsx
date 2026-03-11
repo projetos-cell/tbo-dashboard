@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
-import { Plus, Gift, Star, Clock, CheckCircle } from "lucide-react";
+import { Gift, Star, Clock, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,11 +13,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { RewardCatalogCard } from "@/features/cultura/components/reward-catalog-card";
+import { RewardsTierCatalog } from "@/features/cultura/components/rewards-tier-catalog";
 import { TierProgress } from "@/features/cultura/components/tier-progress";
 import { ErrorState } from "@/components/shared";
 import {
-  useRewards,
   useRewardsKPIs,
   useRedemptions,
   useCreateRedemption,
@@ -26,9 +25,8 @@ import {
 import { usePointsBalance } from "@/features/cultura/hooks/use-reconhecimentos";
 import { usePeople } from "@/features/people/hooks/use-people";
 import { useAuthStore } from "@/stores/auth-store";
+import { REWARD_CATEGORIES, type CatalogReward } from "@/features/cultura/data/rewards-catalog";
 import type { Database } from "@/lib/supabase/types";
-
-type RewardRow = Database["public"]["Tables"]["recognition_rewards"]["Row"];
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   pending: { label: "Pendente", color: "#f59e0b" },
@@ -41,20 +39,31 @@ export default function RecompensasPage() {
   const { user, tenantId, role } = useAuthStore();
   const canManage = role === "founder" || role === "diretoria";
   const [tab, setTab] = useState("catalogo");
-  const [redeemingReward, setRedeemingReward] = useState<RewardRow | null>(null);
+  const [redeemingReward, setRedeemingReward] = useState<CatalogReward | null>(
+    null
+  );
 
-  const { data: rewards, isLoading, error, refetch } = useRewards(!canManage);
   const { data: kpis } = useRewardsKPIs();
-  const { data: balance } = usePointsBalance(user?.id);
+  const { data: balance, isLoading } = usePointsBalance(user?.id);
   const { data: myRedemptions } = useRedemptions({ userId: user?.id });
-  const { data: allRedemptions } = useRedemptions(canManage ? {} : { userId: user?.id });
+  const { data: allRedemptions } = useRedemptions(
+    canManage ? {} : { userId: user?.id }
+  );
   const { data: people } = usePeople();
 
   const createRedemption = useCreateRedemption();
   const updateStatus = useUpdateRedemptionStatus();
 
   const peopleList = people?.data ?? people ?? [];
-  const userMap = new Map((peopleList as { id: string; full_name?: string | null; email?: string | null }[]).map((p) => [p.id, p.full_name ?? p.email ?? p.id]));
+  const userMap = new Map(
+    (
+      peopleList as {
+        id: string;
+        full_name?: string | null;
+        email?: string | null;
+      }[]
+    ).map((p) => [p.id, p.full_name ?? p.email ?? p.id])
+  );
 
   const handleRedeem = async () => {
     if (!redeemingReward || !user || !tenantId) return;
@@ -62,15 +71,14 @@ export default function RecompensasPage() {
       tenant_id: tenantId,
       user_id: user.id,
       reward_id: redeemingReward.id,
-      points_spent: redeemingReward.points_required ?? 0,
+      points_spent: redeemingReward.points,
       status: "pending",
+      notes: redeemingReward.name,
     } as Database["public"]["Tables"]["recognition_redemptions"]["Insert"]);
     setRedeemingReward(null);
   };
 
-  if (error) {
-    return <ErrorState message={error.message} onRetry={() => refetch()} />;
-  }
+  const userBalance = balance?.balance ?? 0;
 
   return (
     <div className="space-y-4">
@@ -78,7 +86,7 @@ export default function RecompensasPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight">TBO Rewards</h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Resgate recompensas com seus pontos de reconhecimento.
           </p>
         </div>
@@ -88,40 +96,44 @@ export default function RecompensasPage() {
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
               <Gift className="size-3.5" />
               Recompensas
             </div>
             <p className="text-2xl font-bold">{kpis?.activeRewards ?? 0}</p>
-            <p className="text-xs text-gray-500">ativas</p>
+            <p className="text-xs text-muted-foreground">ativas</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
               <Star className="size-3.5" />
               Meu saldo
             </div>
-            <p className="text-2xl font-bold">{balance?.balance ?? 0}</p>
-            <p className="text-xs text-gray-500">pontos</p>
+            <p className="text-2xl font-bold">{userBalance}</p>
+            <p className="text-xs text-muted-foreground">pontos</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
               <Clock className="size-3.5" />
               Pendentes
             </div>
-            <p className="text-2xl font-bold">{kpis?.pendingRedemptions ?? 0}</p>
+            <p className="text-2xl font-bold">
+              {kpis?.pendingRedemptions ?? 0}
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
               <CheckCircle className="size-3.5" />
               Total resgates
             </div>
-            <p className="text-2xl font-bold">{kpis?.totalRedemptions ?? 0}</p>
+            <p className="text-2xl font-bold">
+              {kpis?.totalRedemptions ?? 0}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -138,35 +150,31 @@ export default function RecompensasPage() {
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
-          <TabsTrigger value="catalogo">Catalogo</TabsTrigger>
+          <TabsTrigger value="catalogo">Catálogo</TabsTrigger>
           <TabsTrigger value="meus">Meus Resgates</TabsTrigger>
           {canManage && <TabsTrigger value="admin">Gerenciar</TabsTrigger>}
         </TabsList>
 
-        {/* Catalog tab */}
-        <TabsContent value="catalogo" className="mt-3">
+        {/* Catalog tab — tiered rewards */}
+        <TabsContent value="catalogo" className="mt-4">
           {isLoading ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-6">
               {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-40" />
-              ))}
-            </div>
-          ) : (rewards ?? []).length > 0 ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {(rewards ?? []).map((reward) => (
-                <RewardCatalogCard
-                  key={reward.id}
-                  reward={reward}
-                  userBalance={balance?.balance ?? 0}
-                  onRedeem={setRedeemingReward}
-                />
+                <div key={i} className="space-y-3">
+                  <Skeleton className="h-16 rounded-lg" />
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {Array.from({ length: 3 }).map((_, j) => (
+                      <Skeleton key={j} className="h-44" />
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 text-gray-500">
-              <Gift className="size-8 mx-auto mb-2 opacity-50" />
-              <p>Nenhuma recompensa disponivel.</p>
-            </div>
+            <RewardsTierCatalog
+              userBalance={userBalance}
+              onRedeem={setRedeemingReward}
+            />
           )}
         </TabsContent>
 
@@ -175,24 +183,36 @@ export default function RecompensasPage() {
           {(myRedemptions ?? []).length > 0 ? (
             <div className="space-y-2">
               {(myRedemptions ?? []).map((r) => {
-                const statusInfo = STATUS_LABELS[r.status ?? "pending"] ?? STATUS_LABELS.pending;
+                const statusInfo =
+                  STATUS_LABELS[r.status ?? "pending"] ?? STATUS_LABELS.pending;
                 return (
                   <Card key={r.id}>
                     <CardContent className="p-4 flex items-center justify-between">
                       <div className="space-y-1">
                         <p className="text-sm font-medium">
-                          Resgate #{r.id.slice(0, 8)}
+                          {(r as Record<string, unknown>).notes
+                            ? String((r as Record<string, unknown>).notes)
+                            : `Resgate #${r.id.slice(0, 8)}`}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted-foreground">
                           {r.points_spent} pontos
                           {r.created_at && (
-                            <> &middot; {new Date(r.created_at).toLocaleDateString("pt-BR")}</>
+                            <>
+                              {" "}
+                              &middot;{" "}
+                              {new Date(r.created_at).toLocaleDateString(
+                                "pt-BR"
+                              )}
+                            </>
                           )}
                         </p>
                       </div>
                       <Badge
                         variant="outline"
-                        style={{ color: statusInfo.color, borderColor: statusInfo.color }}
+                        style={{
+                          color: statusInfo.color,
+                          borderColor: statusInfo.color,
+                        }}
                       >
                         {statusInfo.label}
                       </Badge>
@@ -202,8 +222,8 @@ export default function RecompensasPage() {
               })}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500 text-sm">
-              Voce ainda nao fez nenhum resgate.
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              Você ainda não fez nenhum resgate.
             </div>
           )}
         </TabsContent>
@@ -213,10 +233,13 @@ export default function RecompensasPage() {
           <TabsContent value="admin" className="mt-3 space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-medium">Resgates Pendentes</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Resgates Pendentes
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                {(allRedemptions ?? []).filter((r) => r.status === "pending").length > 0 ? (
+                {(allRedemptions ?? []).filter((r) => r.status === "pending")
+                  .length > 0 ? (
                   <div className="space-y-2">
                     {(allRedemptions ?? [])
                       .filter((r) => r.status === "pending")
@@ -227,11 +250,18 @@ export default function RecompensasPage() {
                         >
                           <div className="space-y-0.5">
                             <p className="text-sm font-medium">
-                              {userMap.get(r.user_id) ?? r.user_id.slice(0, 8)}
+                              {userMap.get(r.user_id) ??
+                                r.user_id.slice(0, 8)}
                             </p>
-                            <p className="text-xs text-gray-500">
-                              {r.points_spent} pts &middot;{" "}
-                              {r.created_at && new Date(r.created_at).toLocaleDateString("pt-BR")}
+                            <p className="text-xs text-muted-foreground">
+                              {(r as Record<string, unknown>).notes
+                                ? String((r as Record<string, unknown>).notes)
+                                : `Resgate #${r.id.slice(0, 8)}`}{" "}
+                              &middot; {r.points_spent} pts &middot;{" "}
+                              {r.created_at &&
+                                new Date(r.created_at).toLocaleDateString(
+                                  "pt-BR"
+                                )}
                             </p>
                           </div>
                           <div className="flex gap-1.5">
@@ -266,7 +296,9 @@ export default function RecompensasPage() {
                       ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500">Nenhum resgate pendente.</p>
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum resgate pendente.
+                  </p>
                 )}
               </CardContent>
             </Card>
@@ -275,7 +307,10 @@ export default function RecompensasPage() {
       </Tabs>
 
       {/* Redeem confirmation dialog */}
-      <Dialog open={!!redeemingReward} onOpenChange={() => setRedeemingReward(null)}>
+      <Dialog
+        open={!!redeemingReward}
+        onOpenChange={() => setRedeemingReward(null)}
+      >
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Confirmar Resgate</DialogTitle>
@@ -285,17 +320,32 @@ export default function RecompensasPage() {
               <div className="text-center space-y-2">
                 <Gift className="size-8 mx-auto text-tbo-orange" />
                 <p className="font-medium">{redeemingReward.name}</p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   {redeemingReward.description}
                 </p>
-                <Badge variant="secondary" className="text-sm">
-                  {redeemingReward.points_required} pontos
-                </Badge>
+                <div className="flex items-center justify-center gap-2">
+                  <Badge variant="secondary" className="text-sm">
+                    {redeemingReward.points} pontos
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px]"
+                    style={{
+                      color:
+                        REWARD_CATEGORIES[redeemingReward.category].color,
+                      backgroundColor:
+                        REWARD_CATEGORIES[redeemingReward.category].bg,
+                      borderColor: "transparent",
+                    }}
+                  >
+                    {REWARD_CATEGORIES[redeemingReward.category].label}
+                  </Badge>
+                </div>
               </div>
-              <div className="text-sm text-center text-gray-500">
-                Seu saldo apos resgate:{" "}
+              <div className="text-sm text-center text-muted-foreground">
+                Seu saldo após resgate:{" "}
                 <span className="font-semibold">
-                  {(balance?.balance ?? 0) - (redeemingReward.points_required ?? 0)} pts
+                  {userBalance - redeemingReward.points} pts
                 </span>
               </div>
               <div className="flex gap-2">
@@ -311,7 +361,9 @@ export default function RecompensasPage() {
                   onClick={handleRedeem}
                   disabled={createRedemption.isPending}
                 >
-                  {createRedemption.isPending ? "Resgatando..." : "Confirmar"}
+                  {createRedemption.isPending
+                    ? "Resgatando..."
+                    : "Confirmar"}
                 </Button>
               </div>
             </div>

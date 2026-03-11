@@ -51,14 +51,14 @@ export default async function PortalPage({ params }: Props) {
 
   // 4. Fetch metrics for all accounts
   const accountIds = accounts.map((a) => a.id);
-  const { data: metrics = [] } = await supabase
+  const { data: metricsData } = await supabase
     .from("rsm_metrics")
     .select("*")
     .in("account_id", accountIds)
     .order("date", { ascending: true });
 
   // 5. Fetch published posts
-  const { data: posts = [] } = await supabase
+  const { data: postsData } = await supabase
     .from("rsm_posts")
     .select("*")
     .in("account_id", accountIds)
@@ -70,8 +70,8 @@ export default async function PortalPage({ params }: Props) {
     <PortalRsmDashboard
       clientName={access.client_name}
       accounts={accounts}
-      metrics={metrics}
-      posts={posts}
+      metrics={metricsData ?? []}
+      posts={postsData ?? []}
     />
   );
 }

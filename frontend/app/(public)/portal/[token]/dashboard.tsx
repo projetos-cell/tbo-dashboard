@@ -357,8 +357,8 @@ export function PortalRsmDashboard({
             }}
           >
             {metrics.map((m, i) => {
-              const maxF = Math.max(...metrics.map((x) => x.followers), 1);
-              const pct = (m.followers / maxF) * 100;
+              const maxF = Math.max(...metrics.map((x) => x.followers ?? 0), 1);
+              const pct = ((m.followers ?? 0) / maxF) * 100;
               const month =
                 MONTHS_PT[new Date(m.date).getMonth() + 1] ?? "";
               return (
@@ -396,7 +396,7 @@ export function PortalRsmDashboard({
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {fmtNum(m.followers)}
+                      {fmtNum(m.followers ?? 0)}
                     </span>
                   </div>
                   <span

@@ -5,6 +5,7 @@ export type ChannelRow = Database["public"]["Tables"]["chat_channels"]["Row"];
 export type MessageRow = Database["public"]["Tables"]["chat_messages"]["Row"];
 export type MemberRow = Database["public"]["Tables"]["chat_channel_members"]["Row"];
 export type ReactionRow = Database["public"]["Tables"]["chat_reactions"]["Row"];
+export type SectionRow = Database["public"]["Tables"]["chat_channel_sections"]["Row"];
 
 // ── Channels ─────────────────────────────────────────────────────────
 
@@ -325,6 +326,60 @@ export async function createGroupDM(
   return channel;
 }
 
+// ── Sections ────────────────────────────────────────────────────────
+
+export async function getSections(
+  supabase: SupabaseClient<Database>,
+  tenantId: string,
+) {
+  const { data, error } = await supabase
+    .from("chat_channel_sections")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .order("sort_order");
+  if (error) throw error;
+  return data as SectionRow[];
+}
+
+export async function createSection(
+  supabase: SupabaseClient<Database>,
+  section: Database["public"]["Tables"]["chat_channel_sections"]["Insert"],
+) {
+  const { data, error } = await supabase
+    .from("chat_channel_sections")
+    .insert(section as never)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as unknown as SectionRow;
+}
+
+export async function updateSection(
+  supabase: SupabaseClient<Database>,
+  id: string,
+  updates: Database["public"]["Tables"]["chat_channel_sections"]["Update"],
+) {
+  const { data, error } = await supabase
+    .from("chat_channel_sections")
+    .update(updates as never)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as unknown as SectionRow;
+}
+
+export async function deleteSection(
+  supabase: SupabaseClient<Database>,
+  id: string,
+) {
+  const { error } = await supabase
+    .from("chat_channel_sections")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+}
+
 // ── Reactions ────────────────────────────────────────────────────────
 
 export async function getReactions(
@@ -363,4 +418,32 @@ export async function removeReaction(
     .eq("user_id", userId)
     .eq("emoji", emoji);
   if (error) throw error;
+}
+
+// ── Pin Messages ──────────────────────────────────────────────────────
+
+export async function togglePinMessage(
+  supabase: SupabaseClient<Database>,
+  messageId: string,
+  pinned: boolean,
+) {
+  const { error } = await supabase
+    .from("chat_messages")
+    .update({ is_pinned: pinned } as never)
+    .eq("id", messageId);
+  if (error) throw error;
+}
+
+export async function getPinnedMessages(
+  supabase: SupabaseClient<Database>,
+  channelId: string,
+) {
+  const { data, error } = await supabase
+    .from("chat_messages")
+    .select("*")
+    .eq("channel_id", channelId)
+    .eq("is_pinned", true)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data as MessageRow[];
 }

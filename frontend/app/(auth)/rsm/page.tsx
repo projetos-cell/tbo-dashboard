@@ -44,6 +44,10 @@ import {
   Pencil,
   Trash2,
   BarChart3,
+  RefreshCw,
+  Settings2,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -51,6 +55,9 @@ import { RequireRole } from "@/features/auth/components/require-role";
 import { useRsmAccounts, useRsmPosts, useRsmIdeas, useDeleteRsmPost, useDeleteRsmIdea } from "@/hooks/use-rsm";
 import { computeRsmKPIs } from "@/services/rsm";
 import { ErrorState, EmptyState } from "@/components/shared";
+import { useSyncInstagram, useInstagramSyncStatus } from "@/hooks/use-instagram-sync";
+import { InstagramConfigDialog } from "./_components/instagram-config-dialog";
+import { formatDistanceToNow } from "date-fns";
 
 const PLATFORM_COLORS: Record<string, string> = {
   instagram: "bg-pink-100 text-pink-800",
@@ -82,6 +89,11 @@ export default function RsmPage() {
   const [tab, setTab] = useState("contas");
   const [postStatusFilter, setPostStatusFilter] = useState("all");
   const [ideaStatusFilter, setIdeaStatusFilter] = useState("all");
+  const [configOpen, setConfigOpen] = useState(false);
+
+  // Instagram sync
+  const syncMutation = useSyncInstagram();
+  const { data: syncStatus } = useInstagramSyncStatus();
 
   // Queries
   const { data: accounts = [], isLoading: loadingAccounts, error: accountsError, refetch: refetchAccounts } = useRsmAccounts();
@@ -114,12 +126,50 @@ export default function RsmPage() {
     <RequireRole module="rsm">
       <div className="space-y-4">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Social Media</h1>
-          <p className="text-sm text-gray-500">
-            Gerencie contas, posts e ideias de redes sociais.
-          </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Social Media</h1>
+            <p className="text-sm text-gray-500">
+              Gerencie contas, posts e ideias de redes sociais.
+            </p>
+            {syncStatus && (
+              <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                {syncStatus.status === "success" ? (
+                  <CheckCircle2 className="h-3 w-3 text-green-500" />
+                ) : syncStatus.status === "error" ? (
+                  <AlertCircle className="h-3 w-3 text-red-500" />
+                ) : null}
+                <span>
+                  Ultimo sync:{" "}
+                  {formatDistanceToNow(new Date(syncStatus.finished_at ?? syncStatus.created_at), {
+                    addSuffix: true,
+                    locale: ptBR,
+                  })}
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setConfigOpen(true)}
+            >
+              <Settings2 className="mr-1.5 h-4 w-4" />
+              Config
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => syncMutation.mutate(7)}
+              disabled={syncMutation.isPending}
+            >
+              <RefreshCw className={`mr-1.5 h-4 w-4 ${syncMutation.isPending ? "animate-spin" : ""}`} />
+              {syncMutation.isPending ? "Sincronizando..." : "Sync Instagram"}
+            </Button>
+          </div>
         </div>
+
+        <InstagramConfigDialog open={configOpen} onOpenChange={setConfigOpen} />
 
         {primaryError && (
           <ErrorState message={primaryError.message} onRetry={primaryRefetch} />

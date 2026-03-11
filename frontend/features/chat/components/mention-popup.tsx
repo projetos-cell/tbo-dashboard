@@ -1,0 +1,146 @@
+"use client";
+
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
+import type { ProfileInfo } from "@/features/chat/utils/profile-utils";
+import { getInitials } from "@/features/chat/utils/profile-utils";
+
+export interface MentionOption {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+}
+
+interface MentionPopupProps {
+  options: MentionOption[];
+  query: string;
+  onSelect: (option: MentionOption) => void;
+  onClose: () => void;
+  /** Anchor position relative to parent (bottom-left of the @ cursor) */
+  position?: { top: number; left: number };
+}
+
+export function MentionPopup({
+  options,
+  query,
+  onSelect,
+  onClose,
+  position,
+}: MentionPopupProps) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const filtered = options.filter((o) =>
+    o.name.toLowerCase().includes(query.toLowerCase()),
+  );
+
+  // Reset active index when filtered list changes
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [query]);
+
+  // Scroll active item into view
+  useEffect(() => {
+    const el = listRef.current?.children[activeIndex] as HTMLElement | undefined;
+    el?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex]);
+
+  if (filtered.length === 0) return null;
+
+  function handleKeyDown(e: KeyboardEvent) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => (i + 1) % filtered.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => (i - 1 + filtered.length) % filtered.length);
+    } else if (e.key === "Enter" || e.key === "Tab") {
+      e.preventDefault();
+      if (filtered[activeIndex]) {
+        onSelect(filtered[activeIndex]);
+      }
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      onClose();
+    }
+  }
+
+  return (
+    <div
+      className="absolute z-50 w-64 max-h-48 overflow-y-auto rounded-lg border bg-popover shadow-md"
+      style={position ? { bottom: position.top, left: position.left } : { bottom: "100%", left: 0 }}
+      ref={listRef}
+      onKeyDown={handleKeyDown}
+    >
+      {filtered.map((option, idx) => (
+        <button
+          key={option.id}
+          type="button"
+          className={cn(
+            "flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors",
+            idx === activeIndex ? "bg-accent text-accent-foreground" : "hover:bg-muted",
+          )}
+          onClick={() => onSelect(option)}
+          onMouseEnter={() => setActiveIndex(idx)}
+        >
+          <Avatar size="sm">
+            {option.avatarUrl && (
+              <AvatarImage src={option.avatarUrl} alt={option.name} />
+            )}
+            <AvatarFallback>{getInitials(option.name)}</AvatarFallback>
+          </Avatar>
+          <span className="truncate">{option.name}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ── Mention parser utilities ──────────────────────────────────────────
+
+const MENTION_REGEX = /<@([a-f0-9-]+)>/g;
+
+/**
+ * Parse message content and split into text and mention segments.
+ */
+export function parseMentions(
+  content: string,
+  profileMap: Record<string, ProfileInfo>,
+): Array<{ type: "text"; value: string } | { type: "mention"; userId: string; name: string }> {
+  const segments: Array<
+    { type: "text"; value: string } | { type: "mention"; userId: string; name: string }
+  > = [];
+
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  // Reset regex
+  MENTION_REGEX.lastIndex = 0;
+
+  while ((match = MENTION_REGEX.exec(content)) !== null) {
+    // Text before this mention
+    if (match.index > lastIndex) {
+      segments.push({ type: "text", value: content.slice(lastIndex, match.index) });
+    }
+    const userId = match[1];
+    const profile = profileMap[userId];
+    segments.push({
+      type: "mention",
+      userId,
+      name: profile?.name ?? "Usuário",
+    });
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Remaining text after last mention
+  if (lastIndex < content.length) {
+    segments.push({ type: "text", value: content.slice(lastIndex) });
+  }
+
+  return segments;
+}

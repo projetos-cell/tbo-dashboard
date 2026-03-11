@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, useEffect, useLayoutEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { useRef, useEffect, useLayoutEffect, useMemo } from "react";
+import { IconLoader2 } from "@tabler/icons-react";
 import { MessageBubble } from "./message-bubble";
 import type { MessageRow } from "@/features/chat/services/chat";
 import type { ProfileInfo } from "@/features/chat/utils/profile-utils";
+import { useMessageAttachments, buildAttachmentMap } from "@/features/chat/hooks/use-chat";
 
 interface MessageListProps {
   messages: MessageRow[];
@@ -15,6 +16,7 @@ interface MessageListProps {
   fetchNextPage: () => void;
   onEditMessage?: (messageId: string, content: string) => void;
   onDeleteMessage?: (messageId: string) => void;
+  onTogglePin?: (messageId: string, pinned: boolean) => void;
   canDeleteOthers?: boolean;
 }
 
@@ -47,6 +49,7 @@ export function MessageList({
   fetchNextPage,
   onEditMessage,
   onDeleteMessage,
+  onTogglePin,
   canDeleteOthers,
 }: MessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -54,6 +57,17 @@ export function MessageList({
   const topSentinelRef = useRef<HTMLDivElement>(null);
   const prevScrollHeightRef = useRef(0);
   const isInitialRef = useRef(true);
+
+  // Fetch attachments for all visible messages (only file/image types)
+  const fileMessageIds = useMemo(
+    () => messages.filter((m) => m.message_type === "file").map((m) => m.id),
+    [messages],
+  );
+  const { data: attachmentsData } = useMessageAttachments(fileMessageIds);
+  const attachmentMap = useMemo(
+    () => buildAttachmentMap(attachmentsData),
+    [attachmentsData],
+  );
 
   // Auto-scroll to bottom on initial load
   useEffect(() => {
@@ -125,14 +139,14 @@ export function MessageList({
   return (
     <div
       ref={containerRef}
-      className="flex flex-1 flex-col gap-1 overflow-y-auto px-4 py-3"
+      className="flex flex-1 flex-col overflow-y-auto py-3"
     >
       {/* Top sentinel for infinite scroll */}
       <div ref={topSentinelRef} className="shrink-0 h-1" />
 
       {isFetchingNextPage && (
         <div className="flex justify-center py-2">
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          <IconLoader2 className="h-4 w-4 animate-spin text-muted-foreground" />
         </div>
       )}
 
@@ -170,8 +184,11 @@ export function MessageList({
                 }
                 showAvatar={showAvatar}
                 canDelete={canDeleteOthers}
+                attachments={attachmentMap[msg.id]}
+                profileMap={profileMap}
                 onEdit={onEditMessage}
                 onDelete={onDeleteMessage}
+                onTogglePin={onTogglePin}
               />
             </div>
           </div>

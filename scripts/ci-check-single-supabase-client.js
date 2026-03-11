@@ -16,11 +16,16 @@ import { readFileSync, readdirSync, statSync } from 'fs';
 import { join, extname } from 'path';
 
 const ROOT = process.cwd();
-const SKIP_DIRS = ['node_modules', 'supabase', 'archive', 'database', 'docs', 'dist', '.git'];
-const SCAN_EXTS = ['.js', '.html', '.htm', '.ts'];
+const SKIP_DIRS = ['node_modules', '.next', 'supabase', 'archive', 'database', 'docs', 'dist', '.git'];
+const SCAN_EXTS = ['.js', '.ts', '.tsx'];
 
 // Arquivos onde createClient() é PERMITIDO
 const ALLOWED_FILES = [
+  'frontend/lib/supabase/client.ts',
+  'frontend/lib/supabase/server.ts',
+  'frontend/lib/supabase/middleware.ts',
+  'frontend/lib/supabase/admin.ts',
+  // Legacy (mantidos durante migração)
   'src/infra/supabase/client.js',
   'utils/supabase.js',
   'js/supabase-client.js'

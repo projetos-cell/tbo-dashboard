@@ -13,7 +13,9 @@ import { useAuthStore } from "@/stores/auth-store";
 import { logAuditTrail } from "@/lib/audit-trail";
 import { toast } from "sonner";
 import type { Database } from "@/lib/supabase/types";
-import type { MessageRow, ChannelRow } from "@/features/chat/services/chat";
+import type { MessageRow, ChannelRow, SectionRow } from "@/features/chat/services/chat";
+import type { ChatAttachmentRow } from "@/features/chat/services/chat-attachments";
+import { getAttachmentsByMessageIds } from "@/features/chat/services/chat-attachments";
 import {
   getChannels,
   getChannelsWithMembers,
@@ -32,6 +34,12 @@ import {
   removeReaction,
   updateLastRead,
   getUnreadCounts,
+  getSections,
+  createSection,
+  updateSection,
+  deleteSection,
+  togglePinMessage,
+  getPinnedMessages,
 } from "@/features/chat/services/chat";
 
 const MSG_PAGE_SIZE = 50;
@@ -225,6 +233,35 @@ export function flattenMessages(
   return [...data.pages].reverse().flat();
 }
 
+// ── Message Attachments ──────────────────────────────────────────────
+
+export function useMessageAttachments(messageIds: string[]) {
+  const supabase = createClient();
+  const stableKey = messageIds.join(",");
+
+  return useQuery({
+    queryKey: ["chat-attachments", stableKey],
+    queryFn: () => getAttachmentsByMessageIds(supabase, messageIds),
+    staleTime: 1000 * 60 * 5,
+    enabled: messageIds.length > 0,
+  });
+}
+
+/** Build a map of messageId -> ChatAttachmentRow[] */
+export function buildAttachmentMap(
+  attachments: ChatAttachmentRow[] | undefined,
+): Record<string, ChatAttachmentRow[]> {
+  if (!attachments) return {};
+  const map: Record<string, ChatAttachmentRow[]> = {};
+  for (const a of attachments) {
+    const mid = a.message_id;
+    if (!mid) continue;
+    if (!map[mid]) map[mid] = [];
+    map[mid].push(a);
+  }
+  return map;
+}
+
 // ── Send Message (with optimistic insert) ────────────────────────────
 
 export function useSendMessage() {
@@ -246,7 +283,7 @@ export function useSendMessage() {
         channel_id: newMsg.channel_id,
         sender_id: newMsg.sender_id,
         content: newMsg.content ?? null,
-        message_type: "text",
+        message_type: newMsg.message_type ?? "text",
         metadata: null,
         created_at: new Date().toISOString(),
         edited_at: null,
@@ -305,6 +342,32 @@ export function useDeleteMessage() {
           recordId: messageId,
         });
       }
+    },
+  });
+}
+
+// ── Pin Messages ────────────────────────────────────────────────────
+
+export function usePinnedMessages(channelId: string | null) {
+  const supabase = createClient();
+  return useQuery({
+    queryKey: ["chat-pinned", channelId],
+    queryFn: () => getPinnedMessages(supabase, channelId!),
+    enabled: !!channelId,
+    staleTime: 1000 * 60 * 2,
+  });
+}
+
+export function useTogglePin() {
+  const supabase = createClient();
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ messageId, pinned }: { messageId: string; pinned: boolean }) =>
+      togglePinMessage(supabase, messageId, pinned),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat-pinned"] });
+      qc.invalidateQueries({ queryKey: ["chat-messages"] });
     },
   });
 }
@@ -587,5 +650,78 @@ export function useUnreadCounts() {
     staleTime: 1000 * 30,
     refetchInterval: 1000 * 60,
     enabled: !!userId && !!tenantId,
+  });
+}
+
+// ── Sections ────────────────────────────────────────────────────────
+
+export function useSections() {
+  const supabase = createClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery({
+    queryKey: ["chat-sections", tenantId],
+    queryFn: () => getSections(supabase, tenantId!),
+    staleTime: 1000 * 60 * 5,
+    enabled: !!tenantId,
+  });
+}
+
+export function useCreateSection() {
+  const supabase = createClient();
+  const qc = useQueryClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
+  const userId = useAuthStore((s) => s.user?.id);
+
+  return useMutation({
+    mutationFn: (input: { name: string; sortOrder?: number }) => {
+      if (!tenantId || !userId) throw new Error("Usuário não autenticado");
+      return createSection(supabase, {
+        tenant_id: tenantId,
+        name: input.name,
+        sort_order: input.sortOrder ?? 0,
+        created_by: userId,
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat-sections"] });
+      toast.success("Seção criada");
+    },
+    onError: (error) => {
+      toast.error("Erro ao criar seção", {
+        description: error instanceof Error ? error.message : "Tente novamente",
+      });
+    },
+  });
+}
+
+export function useUpdateSection() {
+  const supabase = createClient();
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      updates,
+    }: {
+      id: string;
+      updates: { name?: string; sort_order?: number };
+    }) => updateSection(supabase, id, updates as never),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat-sections"] });
+    },
+  });
+}
+
+export function useDeleteSection() {
+  const supabase = createClient();
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (sectionId: string) => deleteSection(supabase, sectionId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat-sections"] });
+      toast.success("Seção removida");
+    },
   });
 }

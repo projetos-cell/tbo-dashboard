@@ -12,9 +12,13 @@ import { readFileSync, readdirSync, statSync } from 'fs';
 import { join, extname } from 'path';
 
 const ROOT = process.cwd();
-const SCAN_DIRS = ['src', 'utils', 'modules', 'js', 'api', 'pages'];
-const SKIP_DIRS = ['node_modules', 'supabase', 'archive', 'database', 'docs', '.git'];
+const SCAN_DIRS = ['frontend'];
+const SKIP_DIRS = ['node_modules', '.next', 'supabase', 'archive', 'database', 'docs', '.git', 'scripts'];
+// API routes são server-side e podem usar service_role legitimamente
+const SKIP_PATHS = ['frontend/app/api'];
 const SCAN_EXTS = ['.js', '.html', '.htm', '.ts'];
+
+function normalize(p) { return p.replace(/\\/g, '/'); }
 
 // Padrões que indicam service_role no frontend
 const PATTERNS = [
@@ -48,6 +52,9 @@ function scanDir(dirPath) {
   for (const entry of entries) {
     if (SKIP_DIRS.includes(entry)) continue;
     const fullPath = join(dirPath, entry);
+    const relPath = normalize(fullPath.replace(ROOT + '/', '').replace(ROOT + '\\', ''));
+    // Skip server-side API routes (they can legitimately use service_role)
+    if (SKIP_PATHS.some(sp => relPath.startsWith(sp))) continue;
     const stat = statSync(fullPath);
 
     if (stat.isDirectory()) {

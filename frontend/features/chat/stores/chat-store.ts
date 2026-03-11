@@ -48,6 +48,11 @@ interface ChatState {
   toggleSearch: () => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+
+  // Collapsible sections
+  collapsedSections: Set<string>;
+  toggleSection: (sectionId: string) => void;
+  isSectionCollapsed: (sectionId: string) => boolean;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -104,4 +109,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
   toggleSearch: () => set((s) => ({ isSearchOpen: !s.isSearchOpen })),
   searchQuery: "",
   setSearchQuery: (query) => set({ searchQuery: query }),
+
+  // ── Collapsible sections ───────────────────────────────────
+  collapsedSections: new Set<string>(),
+  toggleSection: (sectionId) =>
+    set((s) => {
+      const next = new Set(s.collapsedSections);
+      if (next.has(sectionId)) {
+        next.delete(sectionId);
+      } else {
+        next.add(sectionId);
+      }
+      return { collapsedSections: next };
+    }),
+  isSectionCollapsed: (sectionId) => get().collapsedSections.has(sectionId),
 }));

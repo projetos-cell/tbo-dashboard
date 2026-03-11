@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import {
-  Shield,
-  ShieldCheck,
-  UserMinus,
-  Archive,
-  Search,
-  Plus,
-  X,
-} from "lucide-react";
+  IconShield,
+  IconShieldCheck,
+  IconUserMinus,
+  IconArchive,
+  IconSearch,
+  IconPlus,
+  IconX,
+} from "@tabler/icons-react";
 import {
   Sheet,
   SheetContent,
@@ -209,11 +209,11 @@ export function ChannelSettingsDrawer({ channel }: ChannelSettingsDrawerProps) {
                 >
                   {isAddingMembers ? (
                     <>
-                      <X className="h-3 w-3" /> Fechar
+                      <IconX className="h-3 w-3" /> Fechar
                     </>
                   ) : (
                     <>
-                      <Plus className="h-3 w-3" /> Adicionar
+                      <IconPlus className="h-3 w-3" /> Adicionar
                     </>
                   )}
                 </Button>
@@ -235,9 +235,9 @@ export function ChannelSettingsDrawer({ channel }: ChannelSettingsDrawerProps) {
                               p.filter((m) => m !== id),
                             )
                           }
-                          className="ml-0.5 rounded-full hover:bg-gray-100-foreground/20 p-0.5"
+                          className="ml-0.5 rounded-full hover:bg-muted-foreground/20 p-0.5"
                         >
-                          <X className="h-3 w-3" />
+                          <IconX className="h-3 w-3" />
                         </button>
                       </Badge>
                     ))}
@@ -245,7 +245,7 @@ export function ChannelSettingsDrawer({ channel }: ChannelSettingsDrawerProps) {
                 )}
 
                 <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-500" />
+                  <IconSearch className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                   <Input
                     value={memberSearch}
                     onChange={(e) => setMemberSearch(e.target.value)}
@@ -257,7 +257,7 @@ export function ChannelSettingsDrawer({ channel }: ChannelSettingsDrawerProps) {
                 <ScrollArea className="h-28 rounded border">
                   <div className="p-1">
                     {filteredProfiles.length === 0 ? (
-                      <p className="text-xs text-gray-500 p-2 text-center">
+                      <p className="text-xs text-muted-foreground p-2 text-center">
                         Nenhum resultado
                       </p>
                     ) : (
@@ -268,9 +268,9 @@ export function ChannelSettingsDrawer({ channel }: ChannelSettingsDrawerProps) {
                           onClick={() =>
                             setSelectedNewMembers((prev) => [...prev, p.id])
                           }
-                          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-gray-100 transition-colors"
+                          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-muted transition-colors"
                         >
-                          <div className="h-5 w-5 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-medium shrink-0">
+                          <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-medium shrink-0">
                             {(p.full_name ?? "?").charAt(0).toUpperCase()}
                           </div>
                           <span className="truncate text-xs">{p.full_name}</span>
@@ -297,7 +297,7 @@ export function ChannelSettingsDrawer({ channel }: ChannelSettingsDrawerProps) {
 
             {/* Members list */}
             {loadingMembers ? (
-              <p className="text-xs text-gray-500">Carregando...</p>
+              <p className="text-xs text-muted-foreground">Carregando...</p>
             ) : (
               <ScrollArea className="h-52 rounded border">
                 <div className="p-1">
@@ -309,14 +309,14 @@ export function ChannelSettingsDrawer({ channel }: ChannelSettingsDrawerProps) {
                     return (
                       <div
                         key={m.user_id}
-                        className="flex items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-gray-100/50 transition-colors"
+                        className="flex items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-muted/50 transition-colors"
                       >
-                        <div className="h-6 w-6 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-medium shrink-0">
+                        <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-medium shrink-0">
                           {memberName.charAt(0).toUpperCase()}
                         </div>
                         <span className="truncate flex-1">{memberName}</span>
                         {isMe && (
-                          <span className="text-[10px] text-gray-500">
+                          <span className="text-[10px] text-muted-foreground">
                             (você)
                           </span>
                         )}
@@ -343,9 +343,9 @@ export function ChannelSettingsDrawer({ channel }: ChannelSettingsDrawerProps) {
                               }
                             >
                               {isAdmin ? (
-                                <Shield className="h-3 w-3" />
+                                <IconShield className="h-3 w-3" />
                               ) : (
-                                <ShieldCheck className="h-3 w-3" />
+                                <IconShieldCheck className="h-3 w-3" />
                               )}
                             </Button>
                             <Button
@@ -355,7 +355,7 @@ export function ChannelSettingsDrawer({ channel }: ChannelSettingsDrawerProps) {
                               title="Remover do canal"
                               onClick={() => handleRemoveMember(m.user_id)}
                             >
-                              <UserMinus className="h-3 w-3" />
+                              <IconUserMinus className="h-3 w-3" />
                             </Button>
                           </div>
                         )}
@@ -382,7 +382,7 @@ export function ChannelSettingsDrawer({ channel }: ChannelSettingsDrawerProps) {
                       size="sm"
                       className="gap-1.5"
                     >
-                      <Archive className="h-3.5 w-3.5" />
+                      <IconArchive className="h-3.5 w-3.5" />
                       Arquivar Canal
                     </Button>
                   </AlertDialogTrigger>

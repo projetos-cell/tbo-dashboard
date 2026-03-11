@@ -580,6 +580,7 @@ export type Database = {
           deleted_at: string | null
           edited_at: string | null
           id: string
+          is_pinned: boolean | null
           message_type: string | null
           metadata: Json | null
           reply_to: string | null
@@ -592,6 +593,7 @@ export type Database = {
           deleted_at?: string | null
           edited_at?: string | null
           id?: string
+          is_pinned?: boolean | null
           message_type?: string | null
           metadata?: Json | null
           reply_to?: string | null
@@ -604,6 +606,7 @@ export type Database = {
           deleted_at?: string | null
           edited_at?: string | null
           id?: string
+          is_pinned?: boolean | null
           message_type?: string | null
           metadata?: Json | null
           reply_to?: string | null

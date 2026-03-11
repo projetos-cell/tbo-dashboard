@@ -2,15 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  MessageSquare,
-  Hash,
-  Plus,
-  Settings,
-  MessageCircle,
-  Search,
-  ArrowLeft,
-  Lock,
-} from "lucide-react";
+  IconMessageCircle2,
+  IconHash,
+  IconPlus,
+  IconSettings,
+  IconMessage,
+  IconSearch,
+  IconArrowLeft,
+  IconLock,
+} from "@tabler/icons-react";
 import { ChannelList } from "./channel-list";
 import { MessageList } from "./message-list";
 import { MessageInput } from "./message-input";
@@ -33,8 +33,14 @@ import {
   useDeleteMessage,
   useMarkAsRead,
   useUnreadCounts,
+  useSections,
+  useTogglePin,
   flattenMessages,
 } from "@/features/chat/hooks/use-chat";
+import {
+  uploadChatFile,
+  createAttachmentRecord,
+} from "@/features/chat/services/chat-attachments";
 import { useProfiles } from "@/features/people/hooks/use-people";
 import { useTypingIndicator } from "@/features/chat/hooks/use-typing-indicator";
 import { useChatPresence } from "@/features/chat/hooks/use-presence";
@@ -42,8 +48,8 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useChatStore } from "@/features/chat/stores/chat-store";
 import { hasPermission, type RoleSlug } from "@/lib/permissions";
 import { canPerformChannelAction } from "@/features/chat/utils/chat-permissions";
-import { buildProfileMap } from "@/features/chat/utils/profile-utils";
-import { getInitials } from "@/features/chat/utils/profile-utils";
+import { buildProfileMap, getInitials } from "@/features/chat/utils/profile-utils";
+import type { MentionOption } from "./mention-popup";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
@@ -70,6 +76,7 @@ export function ChatLayout() {
 
   const { data: channels, isLoading: loadingChannels } =
     useChannelsWithMembers();
+  const { data: sections } = useSections();
   const { data: profiles } = useProfiles();
   const messagesQuery = useMessages(selectedChannelId);
   const { data: unreadData } = useUnreadCounts();
@@ -79,6 +86,7 @@ export function ChatLayout() {
   const sendMsg = useSendMessage();
   const editMsg = useEditMessage();
   const deleteMsg = useDeleteMessage();
+  const togglePin = useTogglePin();
   const markAsRead = useMarkAsRead();
 
   const messages = flattenMessages(messagesQuery.data);
@@ -111,6 +119,22 @@ export function ChatLayout() {
     [profiles],
   );
 
+  // Build mention options from channel members (excluding self)
+  const mentionOptions: MentionOption[] = useMemo(() => {
+    if (!selectedChannel?.chat_channel_members || !userId) return [];
+    return selectedChannel.chat_channel_members
+      .filter((m) => m.user_id !== userId)
+      .map((m) => {
+        const p = profileMap[m.user_id];
+        return {
+          id: m.user_id,
+          name: p?.name ?? "Usuário",
+          avatarUrl: p?.avatarUrl,
+        };
+      })
+      .filter((o) => o.name !== "Usuário");
+  }, [selectedChannel, userId, profileMap]);
+
   // Sync unread counts to store
   const setUnreadCounts = useChatStore((s) => s.setUnreadCounts);
   useEffect(() => {
@@ -132,13 +156,29 @@ export function ChatLayout() {
     setShowConversation(true);
   }
 
-  function handleSend(content: string) {
+  async function handleSend(content: string, files?: File[]) {
     if (!selectedChannelId || !tenantId || !userId) return;
-    sendMsg.mutate({
+
+    // Send the message first
+    const message = await sendMsg.mutateAsync({
       channel_id: selectedChannelId,
       sender_id: userId,
       content,
+      message_type: files?.length ? "file" : "text",
     });
+
+    // Upload files and create attachment records
+    if (files?.length && message?.id) {
+      const supabase = (await import("@/lib/supabase/client")).createClient();
+      for (const file of files) {
+        try {
+          const { url } = await uploadChatFile(supabase, tenantId, selectedChannelId, file);
+          await createAttachmentRecord(supabase, message.id, file, url);
+        } catch {
+          // File upload failed silently — message already sent
+        }
+      }
+    }
   }
 
   function handleEdit(messageId: string, content: string) {
@@ -147,6 +187,10 @@ export function ChatLayout() {
 
   function handleDelete(messageId: string) {
     deleteMsg.mutate({ messageId });
+  }
+
+  function handleTogglePin(messageId: string, pinned: boolean) {
+    togglePin.mutate({ messageId, pinned });
   }
 
   const unreadCounts = useChatStore((s) => s.unreadCounts);
@@ -164,20 +208,20 @@ export function ChatLayout() {
           name: p?.name ?? selectedChannel.name ?? "DM",
           avatarUrl: p?.avatarUrl,
           otherUserId: other.user_id,
-          icon: null as typeof Hash | null,
+          icon: null as typeof IconHash | null,
         };
       }
     }
-    const IconMap: Record<string, typeof Hash> = {
-      channel: Hash,
-      private: Lock,
-      group: null as unknown as typeof Hash,
+    const IconMap: Record<string, typeof IconHash> = {
+      channel: IconHash,
+      private: IconLock,
+      group: null as unknown as typeof IconHash,
     };
     return {
       name: selectedChannel.name ?? "",
       avatarUrl: undefined as string | undefined,
       otherUserId: undefined as string | undefined,
-      icon: IconMap[selectedChannel.type ?? "channel"] ?? Hash,
+      icon: IconMap[selectedChannel.type ?? "channel"] ?? IconHash,
     };
   }, [selectedChannel, userId, profileMap]);
 
@@ -202,7 +246,7 @@ export function ChatLayout() {
                   className="h-7 w-7"
                   onClick={() => setCreateDMOpen(true)}
                 >
-                  <MessageCircle className="h-4 w-4" />
+                  <IconMessage size={16} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">Nova conversa</TooltipContent>
@@ -216,7 +260,7 @@ export function ChatLayout() {
                     className="h-7 w-7"
                     onClick={() => setCreateChannelOpen(true)}
                   >
-                    <Plus className="h-4 w-4" />
+                    <IconPlus size={16} />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">Criar canal</TooltipContent>
@@ -241,7 +285,7 @@ export function ChatLayout() {
             </div>
           ) : !channels || channels.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-              <MessageSquare className="h-8 w-8 opacity-30 mb-2" />
+              <IconMessageCircle2 size={32} className="opacity-30 mb-2" />
               <p className="text-xs">Nenhum canal ainda</p>
             </div>
           ) : (
@@ -252,6 +296,7 @@ export function ChatLayout() {
               unreadCounts={unreadCounts}
               currentUserId={userId}
               profileMap={profileMap}
+              sections={sections ?? []}
             />
           )}
         </div>
@@ -277,7 +322,7 @@ export function ChatLayout() {
                 className="h-8 w-8 md:hidden shrink-0"
                 onClick={() => setShowConversation(false)}
               >
-                <ArrowLeft className="h-4 w-4" />
+                <IconArrowLeft size={16} />
               </Button>
 
               {/* Avatar / Icon */}
@@ -301,7 +346,7 @@ export function ChatLayout() {
                   />
                 </span>
               ) : headerInfo.icon ? (
-                <headerInfo.icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                <headerInfo.icon size={16} className="text-muted-foreground shrink-0" />
               ) : null}
 
               <div className="flex flex-col flex-1 min-w-0">
@@ -324,7 +369,7 @@ export function ChatLayout() {
                       className="h-8 w-8"
                       onClick={toggleSearch}
                     >
-                      <Search className="h-4 w-4" />
+                      <IconSearch size={16} />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Buscar mensagens</TooltipContent>
@@ -337,7 +382,7 @@ export function ChatLayout() {
                       className="h-8 w-8"
                       onClick={() => setChannelSettingsOpen(true)}
                     >
-                      <Settings className="h-4 w-4" />
+                      <IconSettings size={16} />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Configurações</TooltipContent>
@@ -360,6 +405,7 @@ export function ChatLayout() {
                 fetchNextPage={messagesQuery.fetchNextPage}
                 onEditMessage={handleEdit}
                 onDeleteMessage={handleDelete}
+                onTogglePin={handleTogglePin}
                 canDeleteOthers={canDeleteOthers}
               />
             )}
@@ -372,11 +418,12 @@ export function ChatLayout() {
               onSend={handleSend}
               disabled={sendMsg.isPending || !canSendMessage}
               onTyping={sendTyping}
+              mentionOptions={mentionOptions}
             />
           </>
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center text-muted-foreground gap-3">
-            <MessageSquare className="h-12 w-12 opacity-20" />
+            <IconMessageCircle2 size={48} className="opacity-20" />
             <p className="text-sm">Selecione uma conversa para começar</p>
           </div>
         )}

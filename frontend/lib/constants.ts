@@ -507,13 +507,3 @@ export const OKRS_NAV_ITEMS: readonly SubNavItem[] = [
   { href: "/okrs/dashboard", label: "Dashboard", icon: "bar-chart-3" },
   { href: "/okrs/configuracoes", label: "Configurações", icon: "settings" },
 ] as const;
-
-/** Map of module prefix → nav items + title for the L2 sidebar */
-export const MODULE_NAV_CONFIG: Record<string, { title: string; items: readonly SubNavItem[] }> = {
-  "/projetos": { title: "Projetos", items: PROJETOS_NAV_ITEMS },
-  "/pessoas": { title: "Pessoas", items: PESSOAS_NAV_ITEMS },
-  "/financeiro": { title: "Financeiro", items: FINANCEIRO_NAV_ITEMS },
-  "/comercial": { title: "Comercial", items: COMERCIAL_NAV_ITEMS },
-  "/clientes": { title: "Clientes", items: CLIENTES_NAV_ITEMS },
-  "/okrs": { title: "OKRs", items: OKRS_NAV_ITEMS },
-};

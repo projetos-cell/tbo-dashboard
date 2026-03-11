@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { Search, X } from "lucide-react";
+import { IconSearch, IconX } from "@tabler/icons-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -41,10 +41,10 @@ export function MessageSearch({ channels }: MessageSearchProps) {
   }
 
   return (
-    <div className="absolute inset-0 z-20 flex flex-col bg-white">
+    <div className="absolute inset-0 z-50 flex flex-col bg-background">
       {/* Search header */}
       <div className="flex items-center gap-2 border-b px-4 py-2.5">
-        <Search className="h-4 w-4 text-gray-500 shrink-0" />
+        <IconSearch className="h-4 w-4 text-muted-foreground shrink-0" />
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -61,7 +61,7 @@ export function MessageSearch({ channels }: MessageSearchProps) {
             setQuery("");
           }}
         >
-          <X className="h-4 w-4" />
+          <IconX className="h-4 w-4" />
         </Button>
       </div>
 
@@ -69,15 +69,15 @@ export function MessageSearch({ channels }: MessageSearchProps) {
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1">
           {query.trim().length < 2 ? (
-            <p className="text-xs text-gray-500 text-center py-8">
+            <p className="text-xs text-muted-foreground text-center py-8">
               Digite pelo menos 2 caracteres para buscar.
             </p>
           ) : isLoading ? (
-            <p className="text-xs text-gray-500 text-center py-8">
+            <p className="text-xs text-muted-foreground text-center py-8">
               Buscando...
             </p>
           ) : !results || results.length === 0 ? (
-            <p className="text-xs text-gray-500 text-center py-8">
+            <p className="text-xs text-muted-foreground text-center py-8">
               Nenhuma mensagem encontrada.
             </p>
           ) : (
@@ -95,7 +95,6 @@ export function MessageSearch({ channels }: MessageSearchProps) {
                 minute: "2-digit",
               });
 
-              // Truncate content snippet
               const snippet =
                 (msg.content?.length ?? 0) > 120
                   ? msg.content!.slice(0, 120) + "..."
@@ -106,17 +105,17 @@ export function MessageSearch({ channels }: MessageSearchProps) {
                   key={msg.id}
                   type="button"
                   onClick={() => handleSelect(msg.channel_id)}
-                  className="flex flex-col gap-0.5 w-full rounded-md px-3 py-2 text-left hover:bg-gray-100 transition-colors"
+                  className="flex flex-col gap-0.5 w-full rounded-md px-3 py-2 text-left hover:bg-accent transition-colors"
                 >
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <span className="font-medium text-gray-900">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">
                       {senderName}
                     </span>
                     <span>em</span>
                     <span className="font-medium">#{channelName}</span>
                     <span className="ml-auto">{time}</span>
                   </div>
-                  <p className="text-sm text-gray-900/80 line-clamp-2">
+                  <p className="text-sm text-foreground/80 line-clamp-2">
                     {snippet}
                   </p>
                 </button>

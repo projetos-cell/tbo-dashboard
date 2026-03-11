@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Search, Check } from "lucide-react";
+import { IconX, IconSearch, IconCheck } from "@tabler/icons-react";
 import {
   Dialog,
   DialogContent,
@@ -178,7 +178,7 @@ export function CreateChannelDialog() {
                         onClick={() => removeMember(id)}
                         className="ml-0.5 rounded-full hover:bg-muted-foreground/20 p-0.5 transition-colors"
                       >
-                        <X className="h-3 w-3" />
+                        <IconX className="h-3 w-3" />
                       </button>
                     </Badge>
                   );
@@ -188,7 +188,7 @@ export function CreateChannelDialog() {
 
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+              <IconSearch className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 value={memberSearch}
                 onChange={(e) => setMemberSearch(e.target.value)}
@@ -237,7 +237,7 @@ export function CreateChannelDialog() {
                           {p.email}
                         </span>
                         {isSelected && (
-                          <Check className="h-4 w-4 text-primary shrink-0" />
+                          <IconCheck className="h-4 w-4 text-primary shrink-0" />
                         )}
                       </button>
                     );

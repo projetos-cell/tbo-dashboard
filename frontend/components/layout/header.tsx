@@ -92,9 +92,11 @@ function ThemeToggle() {
 function NotificationItem({
   notification,
   onMarkRead,
+  onClose,
 }: {
   notification: NotificationRow;
   onMarkRead: (id: string) => void;
+  onClose: () => void;
 }) {
   const router = useRouter();
   const timeLabel = notification.created_at
@@ -108,6 +110,7 @@ function NotificationItem({
     <button
       onClick={() => {
         if (!notification.read) onMarkRead(notification.id);
+        onClose();
         if (notification.action_url) router.push(notification.action_url);
       }}
       className="flex w-full items-start gap-3 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-accent/50"
@@ -200,6 +203,7 @@ function NotificationBell() {
                   key={n.id}
                   notification={n}
                   onMarkRead={(id) => markRead.mutate(id)}
+                  onClose={() => setOpen(false)}
                 />
               ))}
             </div>

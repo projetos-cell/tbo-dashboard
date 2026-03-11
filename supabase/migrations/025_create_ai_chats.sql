@@ -1,6 +1,6 @@
 -- ============================================================================
 -- TBO OS — Migration 025: AI Chat Conversations
--- Tabela para persistir conversas com a IA (Aura)
+-- Tabela para persistir conversas com a TAI (TBO Artificial Intelligence)
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS public.ai_chats (

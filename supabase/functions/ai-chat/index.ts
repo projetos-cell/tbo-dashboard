@@ -1,5 +1,5 @@
 // ============================================================================
-// TBO OS — Edge Function: AI Chat (Aura)
+// TBO OS — Edge Function: AI Chat (TAI)
 // MVP: Chat direto com Claude. Preparado para RAG (V1) e Function Calling (V2)
 // ============================================================================
 
@@ -10,7 +10,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
 
-const SYSTEM_PROMPT = `Você é a Aura, assistente de IA da TBO — uma agência de marketing imobiliário de alto padrão sediada em Goiânia.
+const SYSTEM_PROMPT = `Você é a TAI, assistente de IA da TBO — uma agência de marketing imobiliário de alto padrão sediada em Goiânia.
 
 ## Seu papel
 - Especialista em marketing imobiliário, branding, direção criativa e estratégia

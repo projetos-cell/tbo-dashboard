@@ -262,7 +262,7 @@ export function AIChatPanel({
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 text-sm font-medium">
             <IconSparkles className="h-4 w-4 text-violet-500" />
-            Aura
+            TAI
           </div>
         </div>
         {messages.length > 0 && (

@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Call Supabase Edge Function
-    const edgeFnUrl = `${SUPABASE_URL}/functions/v1/ai-chat`;
+    const edgeFnUrl = `${SUPABASE_URL}/functions/v1/tai-chat`;
     const response = await fetch(edgeFnUrl, {
       method: "POST",
       headers: {

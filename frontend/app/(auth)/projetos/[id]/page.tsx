@@ -1,6 +1,7 @@
 ﻿"use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -47,8 +48,21 @@ export default function ProjectDetailPage({
   const { data: stats, isLoading: statsLoading } = useProjectStats(id);
   const { data: profiles } = useProfiles();
   const { data: demands } = useProjectDemands(id);
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedDemand, setSelectedDemand] = useState<DemandRow | null>(null);
+
+  // Deep-link: ?demanda=<id> opens drawer automatically
+  useEffect(() => {
+    const demandId = searchParams.get("demanda");
+    if (demandId && demands && demands.length > 0) {
+      const target = demands.find((d) => d.id === demandId);
+      if (target) {
+        setSelectedDemand(target);
+        if (activeTab === "overview") setActiveTab("list");
+      }
+    }
+  }, [searchParams, demands]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Demand filters & sorting
   const [filters, setFilters] = useState<DemandsFilters>({

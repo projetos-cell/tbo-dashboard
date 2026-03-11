@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useState } from "react";
+import { z } from "zod";
 import { Send, AlertTriangle } from "lucide-react";
 import {
   Dialog,
@@ -20,6 +21,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TBO_VALUES } from "@/lib/constants";
+
+const recognitionSchema = z.object({
+  to_user: z.string().min(1, "Selecione a pessoa"),
+  value_id: z.string().min(1, "Selecione um valor"),
+  message: z.string().min(1, "Escreva uma mensagem").max(500, "Maximo 500 caracteres"),
+});
 
 interface RecognitionFormProps {
   open: boolean;
@@ -54,7 +61,8 @@ export function RecognitionForm({
   const availableUsers = users.filter((u) => u.id !== currentUserId);
 
   const handleSubmit = () => {
-    if (!toUser || !valueId || !message.trim()) return;
+    const result = recognitionSchema.safeParse({ to_user: toUser, value_id: valueId, message: message.trim() });
+    if (!result.success) return;
     const val = TBO_VALUES.find((v) => v.id === valueId)!;
     onSubmit({
       to_user: toUser,

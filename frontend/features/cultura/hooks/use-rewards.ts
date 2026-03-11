@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
+import { toast } from "sonner";
 import {
   getRewards,
   createReward,
@@ -73,7 +74,9 @@ export function useCreateReward() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rewards"] });
       queryClient.invalidateQueries({ queryKey: ["rewards-kpis"] });
+      toast.success("Recompensa criada");
     },
+    onError: () => toast.error("Erro ao criar recompensa"),
   });
 }
 
@@ -93,7 +96,9 @@ export function useUpdateReward() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rewards"] });
       queryClient.invalidateQueries({ queryKey: ["rewards-kpis"] });
+      toast.success("Recompensa atualizada");
     },
+    onError: () => toast.error("Erro ao atualizar recompensa"),
   });
 }
 
@@ -107,7 +112,9 @@ export function useDeleteReward() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rewards"] });
       queryClient.invalidateQueries({ queryKey: ["rewards-kpis"] });
+      toast.success("Recompensa excluída");
     },
+    onError: () => toast.error("Erro ao excluir recompensa"),
   });
 }
 
@@ -123,7 +130,9 @@ export function useCreateRedemption() {
       queryClient.invalidateQueries({ queryKey: ["redemptions"] });
       queryClient.invalidateQueries({ queryKey: ["rewards-kpis"] });
       queryClient.invalidateQueries({ queryKey: ["points-balance"] });
+      toast.success("Resgate solicitado!");
     },
+    onError: () => toast.error("Erro ao solicitar resgate"),
   });
 }
 
@@ -148,6 +157,8 @@ export function useUpdateRedemptionStatus() {
       queryClient.invalidateQueries({ queryKey: ["redemptions"] });
       queryClient.invalidateQueries({ queryKey: ["rewards-kpis"] });
       queryClient.invalidateQueries({ queryKey: ["points-balance"] });
+      toast.success("Status do resgate atualizado");
     },
+    onError: () => toast.error("Erro ao atualizar resgate"),
   });
 }

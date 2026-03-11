@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
+import { toast } from "sonner";
 import {
   getRecognitions,
   getRecognitionsForUser,
@@ -103,7 +104,9 @@ export function useCreateRecognition() {
       queryClient.invalidateQueries({ queryKey: ["recognitions"] });
       queryClient.invalidateQueries({ queryKey: ["recognition-kpis"] });
       queryClient.invalidateQueries({ queryKey: ["points-balance"] });
+      toast.success("Reconhecimento enviado!");
     },
+    onError: () => toast.error("Erro ao enviar reconhecimento"),
   });
 }
 
@@ -117,6 +120,7 @@ export function useLikeRecognition() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recognitions"] });
     },
+    onError: () => toast.error("Erro ao curtir reconhecimento"),
   });
 }
 
@@ -130,7 +134,9 @@ export function useDeleteRecognition() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recognitions"] });
       queryClient.invalidateQueries({ queryKey: ["recognition-kpis"] });
+      toast.success("Reconhecimento excluído");
     },
+    onError: () => toast.error("Erro ao excluir reconhecimento"),
   });
 }
 
@@ -142,10 +148,12 @@ export function useReviewRecognition() {
   return useMutation({
     mutationFn: ({ id, approved }: { id: string; approved: boolean }) =>
       reviewRecognition(supabase, id, approved),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["recognitions"] });
       queryClient.invalidateQueries({ queryKey: ["recognition-kpis"] });
+      toast.success(variables.approved ? "Reconhecimento aprovado" : "Reconhecimento rejeitado");
     },
+    onError: () => toast.error("Erro ao revisar reconhecimento"),
   });
 }
 

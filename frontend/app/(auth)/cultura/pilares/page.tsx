@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Columns3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CulturaItemCard } from "@/features/cultura/components/cultura-item-card";
@@ -14,7 +14,7 @@ import {
   useDeleteCulturaItem,
 } from "@/features/cultura/hooks/use-cultura";
 import { useAuthStore } from "@/stores/auth-store";
-import { ErrorState } from "@/components/shared";
+import { ErrorState, ConfirmDialog, EmptyState } from "@/components/shared";
 import type { Database } from "@/lib/supabase/types";
 
 type CulturaRow = Database["public"]["Tables"]["cultura_items"]["Row"];
@@ -30,6 +30,7 @@ export default function PilaresPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<CulturaRow | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
+  const [deletingItem, setDeletingItem] = useState<CulturaRow | null>(null);
 
   const handleSave = async (data: {
     title: string;
@@ -38,34 +39,36 @@ export default function PilaresPage() {
     category: string;
     status: string;
   }) => {
-    if (editingItem) {
-      await updateItem.mutateAsync({
-        id: editingItem.id,
-        updates: {
+    try {
+      if (editingItem) {
+        await updateItem.mutateAsync({
+          id: editingItem.id,
+          updates: {
+            title: data.title,
+            content: data.content,
+            content_html: data.content_html,
+            status: data.status,
+          },
+          editedBy: user?.id,
+        });
+      } else {
+        await createItem.mutateAsync({
           title: data.title,
           content: data.content,
           content_html: data.content_html,
+          category: "pilar",
           status: data.status,
-        },
-        editedBy: user?.id,
-      });
-    } else {
-      await createItem.mutateAsync({
-        title: data.title,
-        content: data.content,
-        content_html: data.content_html,
-        category: "pilar",
-        status: data.status,
-        tenant_id: tenantId!,
-        author_id: user?.id,
-      } as Database["public"]["Tables"]["cultura_items"]["Insert"]);
+          tenant_id: tenantId!,
+          author_id: user?.id,
+        } as Database["public"]["Tables"]["cultura_items"]["Insert"]);
+      }
+    } catch {
+      // handled by mutation onError
     }
   };
 
-  const handleDelete = async (item: CulturaRow) => {
-    const confirmed = window.confirm(`Excluir "${item.title}"?`);
-    if (!confirmed) return;
-    await deleteItem.mutateAsync(item.id);
+  const handleDelete = (item: CulturaRow) => {
+    setDeletingItem(item);
   };
 
   if (viewingId) {
@@ -112,7 +115,14 @@ export default function PilaresPage() {
       {isLoading ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-28" />
+            <div key={i} className="rounded-lg border p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Skeleton className="size-6 rounded" />
+                <Skeleton className="h-4 w-36" />
+              </div>
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-1/2" />
+            </div>
           ))}
         </div>
       ) : error ? (
@@ -134,9 +144,12 @@ export default function PilaresPage() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-12 text-gray-500">
-          <p>Nenhum pilar cadastrado.</p>
-        </div>
+        <EmptyState
+          icon={Columns3}
+          title="Nenhum pilar cadastrado"
+          description="Defina os pilares fundamentais da cultura organizacional."
+          cta={canEdit ? { label: "Novo pilar", onClick: () => { setEditingItem(null); setShowForm(true); } } : undefined}
+        />
       )}
 
       <CulturaItemForm
@@ -145,6 +158,23 @@ export default function PilaresPage() {
         item={editingItem}
         defaultCategory="pilar"
         onSave={handleSave}
+      />
+
+      <ConfirmDialog
+        open={!!deletingItem}
+        onOpenChange={(open) => !open && setDeletingItem(null)}
+        title={`Excluir "${deletingItem?.title}"?`}
+        description="Esta acao nao pode ser desfeita."
+        confirmLabel="Excluir"
+        onConfirm={async () => {
+          try {
+            if (deletingItem) await deleteItem.mutateAsync(deletingItem.id);
+          } catch {
+            // handled by mutation onError
+          } finally {
+            setDeletingItem(null);
+          }
+        }}
       />
     </div>
   );

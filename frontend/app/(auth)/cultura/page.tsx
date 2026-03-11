@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Columns3,
   Repeat,
@@ -12,8 +13,6 @@ import {
   BookOpen,
   ArrowRight,
   Gift,
-  Star,
-  TrendingUp,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +51,7 @@ const CATEGORY_LINKS: Record<string, string> = {
 };
 
 export default function CulturaPage() {
+  const router = useRouter();
   const { data: items, isLoading, error, refetch } = useCulturaItems();
   const { data: recKPIs } = useRecognitionKPIs();
   const { data: rituals } = useRitualTypes();
@@ -204,6 +204,7 @@ export default function CulturaPage() {
           icon={Heart}
           title="Nenhum item de cultura cadastrado ainda"
           description="Comece adicionando pilares, rituais ou politicas."
+          cta={{ label: "Ver pilares", onClick: () => router.push("/cultura/pilares") }}
         />
       )}
     </div>

@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
+import { toast } from "sonner";
 import {
   getPolicies,
   getPolicy,
@@ -84,7 +85,9 @@ export function useCreatePolicy() {
       createPolicy(supabase, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["policies"] });
+      toast.success("Política criada");
     },
+    onError: () => toast.error("Erro ao criar política"),
   });
 }
 
@@ -109,7 +112,9 @@ export function useUpdatePolicy() {
       queryClient.invalidateQueries({ queryKey: ["policy"] });
       queryClient.invalidateQueries({ queryKey: ["policy-by-id", variables.id] });
       queryClient.invalidateQueries({ queryKey: ["policy-revisions", variables.id] });
+      toast.success("Política atualizada");
     },
+    onError: () => toast.error("Erro ao atualizar política"),
   });
 }
 
@@ -122,7 +127,9 @@ export function useArchivePolicy() {
       archivePolicy(supabase, id, userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["policies"] });
+      toast.success("Política arquivada");
     },
+    onError: () => toast.error("Erro ao arquivar política"),
   });
 }
 
@@ -134,7 +141,9 @@ export function useDeletePolicy() {
     mutationFn: (id: string) => deletePolicy(supabase, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["policies"] });
+      toast.success("Política excluída");
     },
+    onError: () => toast.error("Erro ao excluir política"),
   });
 }
 
@@ -148,6 +157,8 @@ export function useDuplicatePolicy() {
       duplicatePolicy(supabase, id, tenantId!, userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["policies"] });
+      toast.success("Política duplicada");
     },
+    onError: () => toast.error("Erro ao duplicar política"),
   });
 }

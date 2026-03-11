@@ -63,7 +63,15 @@ export function CulturaOverviewStats({
     return (
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-20" />
+          <Card key={i}>
+            <CardContent className="p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <Skeleton className="size-4 rounded" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+              <Skeleton className="h-7 w-10" />
+            </CardContent>
+          </Card>
         ))}
       </div>
     );

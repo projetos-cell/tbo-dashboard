@@ -15,7 +15,7 @@ import {
   useDeleteCulturaItem,
 } from "@/features/cultura/hooks/use-cultura";
 import { useAuthStore } from "@/stores/auth-store";
-import { ErrorState } from "@/components/shared";
+import { ErrorState, ConfirmDialog, EmptyState } from "@/components/shared";
 import type { Database } from "@/lib/supabase/types";
 
 type CulturaRow = Database["public"]["Tables"]["cultura_items"]["Row"];
@@ -31,6 +31,7 @@ export default function ManualPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<CulturaRow | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
+  const [deletingItem, setDeletingItem] = useState<CulturaRow | null>(null);
 
   const handleSave = async (data: {
     title: string;
@@ -39,34 +40,36 @@ export default function ManualPage() {
     category: string;
     status: string;
   }) => {
-    if (editingItem) {
-      await updateItem.mutateAsync({
-        id: editingItem.id,
-        updates: {
+    try {
+      if (editingItem) {
+        await updateItem.mutateAsync({
+          id: editingItem.id,
+          updates: {
+            title: data.title,
+            content: data.content,
+            content_html: data.content_html,
+            status: data.status,
+          },
+          editedBy: user?.id,
+        });
+      } else {
+        await createItem.mutateAsync({
           title: data.title,
           content: data.content,
           content_html: data.content_html,
+          category: "manual",
           status: data.status,
-        },
-        editedBy: user?.id,
-      });
-    } else {
-      await createItem.mutateAsync({
-        title: data.title,
-        content: data.content,
-        content_html: data.content_html,
-        category: "manual",
-        status: data.status,
-        tenant_id: tenantId!,
-        author_id: user?.id,
-      } as Database["public"]["Tables"]["cultura_items"]["Insert"]);
+          tenant_id: tenantId!,
+          author_id: user?.id,
+        } as Database["public"]["Tables"]["cultura_items"]["Insert"]);
+      }
+    } catch {
+      // handled by mutation onError
     }
   };
 
-  const handleDelete = async (item: CulturaRow) => {
-    const confirmed = window.confirm(`Excluir "${item.title}"?`);
-    if (!confirmed) return;
-    await deleteItem.mutateAsync(item.id);
+  const handleDelete = (item: CulturaRow) => {
+    setDeletingItem(item);
   };
 
   if (viewingId) {
@@ -111,9 +114,17 @@ export default function ManualPage() {
       </div>
 
       {isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-20" />
+        <div className="space-y-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="flex items-center gap-4 py-3 px-4">
+                <Skeleton className="size-8 rounded-md" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-3/5" />
+                  <Skeleton className="h-3 w-2/5" />
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       ) : error ? (
@@ -146,10 +157,12 @@ export default function ManualPage() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-12 text-gray-500">
-          <BookOpen className="size-8 mx-auto mb-2 opacity-40" />
-          <p>Nenhuma pagina do manual cadastrada.</p>
-        </div>
+        <EmptyState
+          icon={BookOpen}
+          title="Nenhuma pagina do manual cadastrada"
+          description="Crie guias e referencias para a cultura do time."
+          cta={canEdit ? { label: "Nova pagina", onClick: () => { setEditingItem(null); setShowForm(true); } } : undefined}
+        />
       )}
 
       <CulturaItemForm
@@ -158,6 +171,23 @@ export default function ManualPage() {
         item={editingItem}
         defaultCategory="manual"
         onSave={handleSave}
+      />
+
+      <ConfirmDialog
+        open={!!deletingItem}
+        onOpenChange={(open) => !open && setDeletingItem(null)}
+        title={`Excluir "${deletingItem?.title}"?`}
+        description="Esta acao nao pode ser desfeita."
+        confirmLabel="Excluir"
+        onConfirm={async () => {
+          try {
+            if (deletingItem) await deleteItem.mutateAsync(deletingItem.id);
+          } catch {
+            // handled by mutation onError
+          } finally {
+            setDeletingItem(null);
+          }
+        }}
       />
     </div>
   );

@@ -2,20 +2,15 @@
 
 import { useState } from "react";
 import { Gift, Star, Clock, CheckCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { RewardsTierCatalog } from "@/features/cultura/components/rewards-tier-catalog";
+import { RedeemConfirmDialog } from "@/features/cultura/components/redeem-confirm-dialog";
+import { RedemptionPendingList } from "@/features/cultura/components/redemption-pending-list";
 import { TierProgress } from "@/features/cultura/components/tier-progress";
-import { ErrorState } from "@/components/shared";
+import { ErrorState, EmptyState } from "@/components/shared";
 import {
   useRewardsKPIs,
   useRedemptions,
@@ -25,7 +20,7 @@ import {
 import { usePointsBalance } from "@/features/cultura/hooks/use-reconhecimentos";
 import { usePeople } from "@/features/people/hooks/use-people";
 import { useAuthStore } from "@/stores/auth-store";
-import { REWARD_CATEGORIES, type CatalogReward } from "@/features/cultura/data/rewards-catalog";
+import type { CatalogReward } from "@/features/cultura/data/rewards-catalog";
 import type { Database } from "@/lib/supabase/types";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -67,15 +62,19 @@ export default function RecompensasPage() {
 
   const handleRedeem = async () => {
     if (!redeemingReward || !user || !tenantId) return;
-    await createRedemption.mutateAsync({
-      tenant_id: tenantId,
-      user_id: user.id,
-      reward_id: redeemingReward.id,
-      points_spent: redeemingReward.points,
-      status: "pending",
-      notes: redeemingReward.name,
-    } as Database["public"]["Tables"]["recognition_redemptions"]["Insert"]);
-    setRedeemingReward(null);
+    try {
+      await createRedemption.mutateAsync({
+        tenant_id: tenantId,
+        user_id: user.id,
+        reward_id: redeemingReward.id,
+        points_spent: redeemingReward.points,
+        status: "pending",
+        notes: redeemingReward.name,
+      } as Database["public"]["Tables"]["recognition_redemptions"]["Insert"]);
+      setRedeemingReward(null);
+    } catch {
+      // handled by mutation onError
+    }
   };
 
   const userBalance = balance?.balance ?? 0;
@@ -222,154 +221,47 @@ export default function RecompensasPage() {
               })}
             </div>
           ) : (
-            <div className="text-center py-8 text-muted-foreground text-sm">
-              Você ainda não fez nenhum resgate.
-            </div>
+            <EmptyState
+              icon={Gift}
+              title="Nenhum resgate ainda"
+              description="Explore o catalogo e resgate recompensas com seus pontos!"
+              cta={{ label: "Ver catalogo", onClick: () => setTab("catalogo") }}
+            />
           )}
         </TabsContent>
 
         {/* Admin tab */}
         {canManage && (
           <TabsContent value="admin" className="mt-3 space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium">
-                  Resgates Pendentes
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {(allRedemptions ?? []).filter((r) => r.status === "pending")
-                  .length > 0 ? (
-                  <div className="space-y-2">
-                    {(allRedemptions ?? [])
-                      .filter((r) => r.status === "pending")
-                      .map((r) => (
-                        <div
-                          key={r.id}
-                          className="flex items-center justify-between py-2 border-b last:border-0"
-                        >
-                          <div className="space-y-0.5">
-                            <p className="text-sm font-medium">
-                              {userMap.get(r.user_id) ??
-                                r.user_id.slice(0, 8)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {(r as Record<string, unknown>).notes
-                                ? String((r as Record<string, unknown>).notes)
-                                : `Resgate #${r.id.slice(0, 8)}`}{" "}
-                              &middot; {r.points_spent} pts &middot;{" "}
-                              {r.created_at &&
-                                new Date(r.created_at).toLocaleDateString(
-                                  "pt-BR"
-                                )}
-                            </p>
-                          </div>
-                          <div className="flex gap-1.5">
-                            <Button
-                              size="sm"
-                              variant="default"
-                              onClick={() =>
-                                updateStatus.mutate({
-                                  id: r.id,
-                                  status: "approved",
-                                  approvedBy: user?.id,
-                                })
-                              }
-                            >
-                              Aprovar
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() =>
-                                updateStatus.mutate({
-                                  id: r.id,
-                                  status: "rejected",
-                                  approvedBy: user?.id,
-                                })
-                              }
-                            >
-                              Rejeitar
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Nenhum resgate pendente.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+            <RedemptionPendingList
+              redemptions={allRedemptions ?? []}
+              userMap={userMap}
+              onApprove={(id) =>
+                updateStatus.mutate({
+                  id,
+                  status: "approved",
+                  approvedBy: user?.id,
+                })
+              }
+              onReject={(id) =>
+                updateStatus.mutate({
+                  id,
+                  status: "rejected",
+                  approvedBy: user?.id,
+                })
+              }
+            />
           </TabsContent>
         )}
       </Tabs>
 
-      {/* Redeem confirmation dialog */}
-      <Dialog
-        open={!!redeemingReward}
-        onOpenChange={() => setRedeemingReward(null)}
-      >
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Confirmar Resgate</DialogTitle>
-          </DialogHeader>
-          {redeemingReward && (
-            <div className="space-y-4">
-              <div className="text-center space-y-2">
-                <Gift className="size-8 mx-auto text-tbo-orange" />
-                <p className="font-medium">{redeemingReward.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {redeemingReward.description}
-                </p>
-                <div className="flex items-center justify-center gap-2">
-                  <Badge variant="secondary" className="text-sm">
-                    {redeemingReward.points} pontos
-                  </Badge>
-                  <Badge
-                    variant="outline"
-                    className="text-[10px]"
-                    style={{
-                      color:
-                        REWARD_CATEGORIES[redeemingReward.category].color,
-                      backgroundColor:
-                        REWARD_CATEGORIES[redeemingReward.category].bg,
-                      borderColor: "transparent",
-                    }}
-                  >
-                    {REWARD_CATEGORIES[redeemingReward.category].label}
-                  </Badge>
-                </div>
-              </div>
-              <div className="text-sm text-center text-muted-foreground">
-                Seu saldo após resgate:{" "}
-                <span className="font-semibold">
-                  {userBalance - redeemingReward.points} pts
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setRedeemingReward(null)}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  className="flex-1"
-                  onClick={handleRedeem}
-                  disabled={createRedemption.isPending}
-                >
-                  {createRedemption.isPending
-                    ? "Resgatando..."
-                    : "Confirmar"}
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <RedeemConfirmDialog
+        reward={redeemingReward}
+        onClose={() => setRedeemingReward(null)}
+        onConfirm={handleRedeem}
+        isPending={createRedemption.isPending}
+        userBalance={userBalance}
+      />
     </div>
   );
 }

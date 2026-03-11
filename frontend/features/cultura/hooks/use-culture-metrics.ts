@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
+import { toast } from "sonner";
 import { logAuditTrail } from "@/lib/audit-trail";
 import {
   getCultureMetrics,
@@ -79,7 +80,9 @@ export function useUpsertCultureConfig() {
     }) => upsertCultureConfig(supabase, tenantId!, config),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["culture-config"] });
+      toast.success("Configuração de cultura salva");
     },
+    onError: () => toast.error("Erro ao salvar configuração"),
   });
 }
 
@@ -118,7 +121,9 @@ export function useComputeCulture() {
         recordId: variables.employeeId,
         after: { period: variables.period },
       });
+      toast.success("Cultura calculada para o colaborador");
     },
+    onError: () => toast.error("Erro ao calcular cultura"),
   });
 }
 
@@ -151,6 +156,8 @@ export function useComputeAllCulture() {
         recordId: "batch",
         after: { count: data.length },
       });
+      toast.success(`Cultura calculada para ${data.length} colaboradores`);
     },
+    onError: () => toast.error("Erro ao calcular cultura em lote"),
   });
 }

@@ -9,8 +9,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecognitionFeedCard } from "@/features/cultura/components/recognition-feed-card";
 import { RecognitionForm } from "@/features/cultura/components/recognition-form";
+import { RecognitionRanking } from "@/features/cultura/components/recognition-ranking";
 import { TierProgress } from "@/features/cultura/components/tier-progress";
-import { ErrorState } from "@/components/shared";
+import { ErrorState, ConfirmDialog, EmptyState } from "@/components/shared";
 import {
   useRecognitions,
   useRecognitionKPIs,
@@ -31,6 +32,7 @@ export default function ReconhecimentosPage() {
   const canManage = role === "founder" || role === "diretoria";
   const [showForm, setShowForm] = useState(false);
   const [tab, setTab] = useState("feed");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const { data: recognitionsData, isLoading, error, refetch } = useRecognitions({ limit: 50 });
   const { data: kpis } = useRecognitionKPIs();
@@ -55,19 +57,23 @@ export default function ReconhecimentosPage() {
     value_emoji: string;
     message: string;
   }) => {
-    await createRecognition.mutateAsync({
-      tenant_id: tenantId!,
-      from_user: user!.id,
-      to_user: data.to_user,
-      value_id: data.value_id,
-      value_name: data.value_name,
-      value_emoji: data.value_emoji,
-      message: data.message,
-      points: role === "founder" ? 2 : 1,
-      source: "manual",
-      reviewed: true,
-    } as Database["public"]["Tables"]["recognitions"]["Insert"]);
-    setShowForm(false);
+    try {
+      await createRecognition.mutateAsync({
+        tenant_id: tenantId!,
+        from_user: user!.id,
+        to_user: data.to_user,
+        value_id: data.value_id,
+        value_name: data.value_name,
+        value_emoji: data.value_emoji,
+        message: data.message,
+        points: role === "founder" ? 2 : 1,
+        source: "manual",
+        reviewed: true,
+      } as Database["public"]["Tables"]["recognitions"]["Insert"]);
+      setShowForm(false);
+    } catch {
+      // handled by mutation onError
+    }
   };
 
   if (error) {
@@ -181,7 +187,23 @@ export default function ReconhecimentosPage() {
         {/* Feed tab */}
         <TabsContent value="feed" className="space-y-3 mt-3">
           {isLoading ? (
-            Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24" />)
+            Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-4 flex gap-3">
+                  <Skeleton className="size-10 rounded-full shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-3 w-3" />
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                    <Skeleton className="h-5 w-24 rounded-full" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-3/4" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))
           ) : recognitions.length > 0 ? (
             recognitions.map((r) => (
               <RecognitionFeedCard
@@ -190,20 +212,17 @@ export default function ReconhecimentosPage() {
                 fromName={userMap.get(r.from_user)}
                 toName={userMap.get(r.to_user)}
                 onLike={(id) => likeRecognition.mutate(id)}
-                onDelete={(id) => {
-                  if (window.confirm("Excluir este reconhecimento?")) {
-                    deleteRecognition.mutate(id);
-                  }
-                }}
+                onDelete={(id) => setDeletingId(id)}
                 canDelete={canManage}
               />
             ))
           ) : (
-            <div className="text-center py-12 text-gray-500">
-              <Award className="size-8 mx-auto mb-2 opacity-50" />
-              <p>Nenhum reconhecimento ainda.</p>
-              <p className="text-xs">Seja o primeiro a reconhecer um colega!</p>
-            </div>
+            <EmptyState
+              icon={Award}
+              title="Nenhum reconhecimento ainda"
+              description="Seja o primeiro a reconhecer um colega!"
+              cta={{ label: "Reconhecer", onClick: () => setShowForm(true) }}
+            />
           )}
         </TabsContent>
 
@@ -244,59 +263,30 @@ export default function ReconhecimentosPage() {
 
         {/* Ranking tab */}
         <TabsContent value="top" className="mt-3">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">Top Reconhecidos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {(kpis?.topRecognized ?? []).length > 0 ? (
-                <div className="space-y-2">
-                  {kpis!.topRecognized.map((item, idx) => (
-                    <div
-                      key={item.user_id}
-                      className="flex items-center justify-between text-sm py-1"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-500 w-4">{idx + 1}.</span>
-                        <span className="font-medium">
-                          {userMap.get(item.user_id) ?? item.user_id.slice(0, 8)}
-                        </span>
-                      </div>
-                      <Badge variant="secondary">{item.count} reconhecimentos</Badge>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500">Nenhum dado ainda.</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* By value breakdown */}
-          {(kpis?.byValue ?? []).length > 0 && (
-            <Card className="mt-3">
-              <CardHeader>
-                <CardTitle className="text-sm font-medium">Por Valor</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {kpis!.byValue.map((v) => (
-                    <div
-                      key={v.value_id}
-                      className="flex items-center justify-between text-sm py-1"
-                    >
-                      <span>
-                        {v.value_emoji} {v.value_name}
-                      </span>
-                      <Badge variant="outline">{v.count}</Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <RecognitionRanking
+            topRecognized={kpis?.topRecognized ?? []}
+            byValue={kpis?.byValue ?? []}
+            userMap={userMap}
+          />
         </TabsContent>
       </Tabs>
+
+      <ConfirmDialog
+        open={!!deletingId}
+        onOpenChange={(open) => !open && setDeletingId(null)}
+        title="Excluir reconhecimento?"
+        description="Esta acao nao pode ser desfeita."
+        confirmLabel="Excluir"
+        onConfirm={async () => {
+          try {
+            if (deletingId) await deleteRecognition.mutateAsync(deletingId);
+          } catch {
+            // handled by mutation onError
+          } finally {
+            setDeletingId(null);
+          }
+        }}
+      />
 
       {/* Recognition form dialog */}
       <RecognitionForm

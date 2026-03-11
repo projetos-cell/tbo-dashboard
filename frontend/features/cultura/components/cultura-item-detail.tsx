@@ -31,8 +31,19 @@ export function CulturaItemDetail({
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-64 w-full" />
+        <div className="flex items-center gap-3">
+          <Skeleton className="size-8 rounded" />
+          <div className="space-y-2 flex-1">
+            <Skeleton className="h-5 w-48" />
+            <div className="flex gap-2">
+              <Skeleton className="h-5 w-16 rounded-full" />
+              <Skeleton className="h-5 w-14 rounded-full" />
+            </div>
+          </div>
+          <Skeleton className="h-8 w-20 rounded-md" />
+        </div>
+        <Skeleton className="h-px w-full" />
+        <Skeleton className="h-[calc(100vh-14rem)] w-full rounded-lg" />
       </div>
     );
   }

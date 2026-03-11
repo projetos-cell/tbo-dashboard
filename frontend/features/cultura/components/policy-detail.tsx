@@ -19,12 +19,7 @@ import {
   BookOpen,
   Settings2,
 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -32,6 +27,8 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePolicyById, usePolicyRevisions } from "@/features/cultura/hooks/use-policies";
+import { PolicyRevisionsList } from "./policy-revisions-list";
+import { PolicyMetadataGrid } from "./policy-metadata-grid";
 import { POLICY_CATEGORIES, POLICY_STATUS } from "@/lib/constants";
 import { sanitizeHtml } from "@/lib/sanitize";
 
@@ -75,11 +72,26 @@ export function PolicyDetail({
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <Skeleton className="size-8 rounded" />
-          <Skeleton className="h-6 w-64" />
+        <div className="flex items-start gap-3">
+          <Skeleton className="size-8 rounded mt-0.5" />
+          <div className="flex-1 space-y-2">
+            <div className="flex items-center gap-2">
+              <Skeleton className="size-7 rounded-md" />
+              <Skeleton className="h-5 w-56" />
+              <Skeleton className="h-5 w-16 rounded-full" />
+              <Skeleton className="h-5 w-14 rounded-full" />
+            </div>
+            <div className="flex gap-3">
+              <Skeleton className="h-3 w-8" />
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-3 w-28" />
+            </div>
+          </div>
+          <Skeleton className="h-8 w-20 rounded-md" />
         </div>
-        <Skeleton className="h-[calc(100vh-16rem)] w-full rounded-lg" />
+        <Skeleton className="h-3 w-80 ml-11" />
+        <Skeleton className="h-px w-full" />
+        <Skeleton className="h-[calc(100vh-22rem)] w-full rounded-lg" />
       </div>
     );
   }
@@ -256,134 +268,19 @@ export function PolicyDetail({
 
         {/* Revisions tab */}
         <TabsContent value="revisoes" className="mt-3">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <History className="size-4" />
-                Historico de versoes
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {revisions && revisions.length > 0 ? (
-                <div className="space-y-0">
-                  {revisions.map((rev, i) => (
-                    <div
-                      key={rev.id}
-                      className="flex items-start gap-3 py-3 border-b last:border-0"
-                    >
-                      <div className="flex items-center justify-center size-7 rounded-full bg-gray-100 text-xs font-semibold shrink-0 mt-0.5">
-                        v{rev.version}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">
-                          Versao {rev.version}
-                        </p>
-                        {rev.change_note && (
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            {rev.change_note}
-                          </p>
-                        )}
-                      </div>
-                      <span className="text-[11px] text-gray-500 shrink-0">
-                        {rev.updated_at &&
-                          format(
-                            new Date(rev.updated_at),
-                            "dd MMM yyyy 'as' HH:mm",
-                            { locale: ptBR }
-                          )}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500 py-4 text-center">
-                  Nenhuma revisao registrada.
-                </p>
-              )}
-            </CardContent>
-          </Card>
+          <PolicyRevisionsList revisions={revisions} />
         </TabsContent>
 
         {/* Config / Details tab */}
         <TabsContent value="config" className="mt-3">
-          <Card>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 text-sm">
-                <DetailField
-                  label="Status"
-                  value={statusDef?.label || policy.status}
-                  color={statusDef?.color}
-                />
-                <DetailField
-                  label="Categoria"
-                  value={catDef?.label || policy.category}
-                  color={catDef?.color}
-                />
-                <DetailField
-                  label="Versao"
-                  value={String(policy.version)}
-                />
-                <DetailField
-                  label="Ciclo de revisao"
-                  value={
-                    policy.review_cycle_days
-                      ? `${policy.review_cycle_days} dias`
-                      : "Nao definido"
-                  }
-                />
-                {policy.effective_date && (
-                  <DetailField
-                    label="Data de vigencia"
-                    value={format(
-                      new Date(policy.effective_date),
-                      "dd/MM/yyyy"
-                    )}
-                  />
-                )}
-                {policy.next_review_at && (
-                  <DetailField
-                    label="Proxima revisao"
-                    value={`${format(
-                      new Date(policy.next_review_at),
-                      "dd/MM/yyyy"
-                    )}${isOverdue ? " (atrasada)" : ""}`}
-                    color={isOverdue ? "hsl(var(--destructive))" : undefined}
-                  />
-                )}
-                <DetailField
-                  label="Criado em"
-                  value={format(
-                    new Date(policy.created_at),
-                    "dd/MM/yyyy HH:mm",
-                    { locale: ptBR }
-                  )}
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <PolicyMetadataGrid
+            policy={policy}
+            statusDef={statusDef}
+            catDef={catDef}
+            isOverdue={!!isOverdue}
+          />
         </TabsContent>
       </Tabs>
-    </div>
-  );
-}
-
-function DetailField({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: string;
-  color?: string;
-}) {
-  return (
-    <div className="space-y-1">
-      <p className="text-[11px] uppercase tracking-wider text-gray-500">
-        {label}
-      </p>
-      <p className="font-medium" style={color ? { color } : undefined}>
-        {value}
-      </p>
     </div>
   );
 }

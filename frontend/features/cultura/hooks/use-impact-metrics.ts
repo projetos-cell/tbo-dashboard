@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
+import { toast } from "sonner";
 import { logAuditTrail } from "@/lib/audit-trail";
 import {
   getImpactMetrics,
@@ -80,7 +81,9 @@ export function useUpsertImpactConfig() {
     }) => upsertImpactConfig(supabase, tenantId!, config),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["impact-config"] });
+      toast.success("Configuração de impacto salva");
     },
+    onError: () => toast.error("Erro ao salvar configuração"),
   });
 }
 
@@ -121,7 +124,9 @@ export function useComputeImpact() {
         recordId: variables.employeeId,
         after: { period: variables.period },
       });
+      toast.success("Impacto calculado para o colaborador");
     },
+    onError: () => toast.error("Erro ao calcular impacto"),
   });
 }
 
@@ -156,6 +161,8 @@ export function useComputeAllImpact() {
         recordId: "batch",
         after: { count: data.length },
       });
+      toast.success(`Impacto calculado para ${data.length} colaboradores`);
     },
+    onError: () => toast.error("Erro ao calcular impacto em lote"),
   });
 }

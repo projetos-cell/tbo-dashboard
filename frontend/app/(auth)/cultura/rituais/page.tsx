@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState } from "react";
-import { Plus, Repeat, Clock, Users, Calendar, MoreHorizontal, Edit, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
+import { Plus, Repeat, Clock, Calendar, MoreHorizontal, Edit, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,23 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ErrorState } from "@/components/shared";
+import { ErrorState, ConfirmDialog, EmptyState } from "@/components/shared";
 import {
   useRitualTypes,
   useCreateRitualType,
@@ -37,12 +21,11 @@ import {
   useToggleRitualTypeActive,
 } from "@/features/cultura/hooks/use-ritual-types";
 import { FREQUENCY_LABELS } from "@/features/cultura/services/ritual-types";
+import { RitualFormDialog, type RitualFormData } from "@/features/cultura/components/ritual-form-dialog";
 import { useAuthStore } from "@/stores/auth-store";
 import type { Database } from "@/lib/supabase/types";
 
 type RitualTypeRow = Database["public"]["Tables"]["ritual_types"]["Row"];
-
-const FREQUENCY_OPTIONS = Object.entries(FREQUENCY_LABELS);
 
 export default function RituaisPage() {
   const { user, tenantId, role } = useAuthStore();
@@ -56,65 +39,53 @@ export default function RituaisPage() {
 
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<RitualTypeRow | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    frequency: "weekly",
-    duration_minutes: 60,
-    default_agenda: "",
-  });
+  const [deletingRitual, setDeletingRitual] = useState<RitualTypeRow | null>(null);
 
   const openCreate = () => {
     setEditing(null);
-    setFormData({ name: "", description: "", frequency: "weekly", duration_minutes: 60, default_agenda: "" });
     setShowForm(true);
   };
 
   const openEdit = (ritual: RitualTypeRow) => {
     setEditing(ritual);
-    setFormData({
-      name: ritual.name ?? "",
-      description: ritual.description ?? "",
-      frequency: ritual.frequency ?? "weekly",
-      duration_minutes: ritual.duration_minutes ?? 60,
-      default_agenda: ritual.default_agenda ?? "",
-    });
     setShowForm(true);
   };
 
-  const handleSave = async () => {
-    if (!formData.name.trim()) return;
-    if (editing) {
-      await updateRitual.mutateAsync({
-        id: editing.id,
-        updates: {
-          name: formData.name,
-          description: formData.description,
-          frequency: formData.frequency,
-          duration_minutes: formData.duration_minutes,
-          default_agenda: formData.default_agenda,
-        },
-      });
-    } else {
-      await createRitual.mutateAsync({
-        tenant_id: tenantId!,
-        name: formData.name,
-        description: formData.description,
-        frequency: formData.frequency,
-        duration_minutes: formData.duration_minutes,
-        default_agenda: formData.default_agenda,
-        created_by: user?.id,
-        is_system: false,
-        is_active: true,
-      } as Database["public"]["Tables"]["ritual_types"]["Insert"]);
+  const handleSave = async (data: RitualFormData) => {
+    try {
+      if (editing) {
+        await updateRitual.mutateAsync({
+          id: editing.id,
+          updates: {
+            name: data.name,
+            description: data.description,
+            frequency: data.frequency,
+            duration_minutes: data.duration_minutes,
+            default_agenda: data.default_agenda,
+          },
+        });
+      } else {
+        await createRitual.mutateAsync({
+          tenant_id: tenantId!,
+          name: data.name,
+          description: data.description,
+          frequency: data.frequency,
+          duration_minutes: data.duration_minutes,
+          default_agenda: data.default_agenda,
+          created_by: user?.id,
+          is_system: false,
+          is_active: true,
+        } as Database["public"]["Tables"]["ritual_types"]["Insert"]);
+      }
+      setShowForm(false);
+    } catch {
+      // handled by mutation onError
     }
-    setShowForm(false);
   };
 
-  const handleDelete = async (ritual: RitualTypeRow) => {
+  const handleDelete = (ritual: RitualTypeRow) => {
     if (ritual.is_system) return;
-    if (!window.confirm(`Excluir "${ritual.name}"?`)) return;
-    await deleteRitual.mutateAsync(ritual.id);
+    setDeletingRitual(ritual);
   };
 
   if (error) {
@@ -143,7 +114,21 @@ export default function RituaisPage() {
       {isLoading ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-36" />
+            <Card key={i} className="relative overflow-hidden">
+              <Skeleton className="h-1 w-full rounded-none" />
+              <CardContent className="p-4 pt-5 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="size-4 rounded" />
+                  <Skeleton className="h-4 w-28" />
+                </div>
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-2/3" />
+                <div className="flex gap-2 pt-1">
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                  <Skeleton className="h-5 w-12 rounded-full" />
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       ) : (rituals ?? []).length > 0 ? (
@@ -238,89 +223,38 @@ export default function RituaisPage() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-12 text-gray-500">
-          <Repeat className="size-8 mx-auto mb-2 opacity-50" />
-          <p>Nenhum ritual cadastrado.</p>
-        </div>
+        <EmptyState
+          icon={Repeat}
+          title="Nenhum ritual cadastrado"
+          description="Crie rituais e cerimonias que fortalecem a cultura do time."
+          cta={canEdit ? { label: "Novo ritual", onClick: openCreate } : undefined}
+        />
       )}
 
-      {/* Form dialog */}
-      <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editing ? "Editar Ritual" : "Novo Ritual"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>Nome</Label>
-              <Input
-                value={formData.name}
-                onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
-                placeholder="Ex: Daily Standup"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Descricao</Label>
-              <Textarea
-                value={formData.description}
-                onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))}
-                placeholder="Para que serve este ritual?"
-                rows={2}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Frequencia</Label>
-                <Select
-                  value={formData.frequency}
-                  onValueChange={(v) => setFormData((p) => ({ ...p, frequency: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {FREQUENCY_OPTIONS.map(([key, label]) => (
-                      <SelectItem key={key} value={key}>{label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Duracao (min)</Label>
-                <Input
-                  type="number"
-                  value={formData.duration_minutes}
-                  onChange={(e) =>
-                    setFormData((p) => ({ ...p, duration_minutes: parseInt(e.target.value) || 0 }))
-                  }
-                  min={5}
-                  max={480}
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Agenda padrao</Label>
-              <Textarea
-                value={formData.default_agenda}
-                onChange={(e) => setFormData((p) => ({ ...p, default_agenda: e.target.value }))}
-                placeholder="1. Check-in\n2. Atualizacoes\n3. Bloqueios\n4. Proximos passos"
-                rows={3}
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowForm(false)}>
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleSave}
-                disabled={!formData.name.trim() || createRitual.isPending || updateRitual.isPending}
-              >
-                {createRitual.isPending || updateRitual.isPending ? "Salvando..." : "Salvar"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <RitualFormDialog
+        open={showForm}
+        onOpenChange={setShowForm}
+        editing={editing}
+        onSave={handleSave}
+        isSaving={createRitual.isPending || updateRitual.isPending}
+      />
+
+      <ConfirmDialog
+        open={!!deletingRitual}
+        onOpenChange={(open) => !open && setDeletingRitual(null)}
+        title={`Excluir "${deletingRitual?.name}"?`}
+        description="Esta acao nao pode ser desfeita."
+        confirmLabel="Excluir"
+        onConfirm={async () => {
+          try {
+            if (deletingRitual) await deleteRitual.mutateAsync(deletingRitual.id);
+          } catch {
+            // handled by mutation onError
+          } finally {
+            setDeletingRitual(null);
+          }
+        }}
+      />
     </div>
   );
 }

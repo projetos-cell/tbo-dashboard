@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
+import { toast } from "sonner";
 import {
   getRitualTypes,
   getRitualType,
@@ -56,7 +57,9 @@ export function useCreateRitualType() {
       createRitualType(supabase, ritualType),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ritual-types"] });
+      toast.success("Ritual criado");
     },
+    onError: () => toast.error("Erro ao criar ritual"),
   });
 }
 
@@ -76,7 +79,9 @@ export function useUpdateRitualType() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["ritual-types"] });
       queryClient.invalidateQueries({ queryKey: ["ritual-type", variables.id] });
+      toast.success("Ritual atualizado");
     },
+    onError: () => toast.error("Erro ao atualizar ritual"),
   });
 }
 
@@ -89,7 +94,9 @@ export function useDeleteRitualType() {
     mutationFn: (id: string) => deleteRitualType(supabase, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ritual-types"] });
+      toast.success("Ritual excluído");
     },
+    onError: () => toast.error("Erro ao excluir ritual"),
   });
 }
 
@@ -101,8 +108,10 @@ export function useToggleRitualTypeActive() {
   return useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       toggleRitualTypeActive(supabase, id, isActive),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["ritual-types"] });
+      toast.success(variables.isActive ? "Ritual ativado" : "Ritual desativado");
     },
+    onError: () => toast.error("Erro ao alterar status do ritual"),
   });
 }

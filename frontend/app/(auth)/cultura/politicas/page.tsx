@@ -19,7 +19,7 @@ import {
   useDuplicatePolicy,
 } from "@/features/cultura/hooks/use-policies";
 import { useAuthStore } from "@/stores/auth-store";
-import { ErrorState } from "@/components/shared";
+import { ErrorState, ConfirmDialog, EmptyState } from "@/components/shared";
 import type { Database } from "@/lib/supabase/types";
 
 type PolicyRow = Database["public"]["Tables"]["policies"]["Row"];
@@ -70,12 +70,29 @@ export default function PoliticasPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState<PolicyRow | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
+  const [archivingPolicy, setArchivingPolicy] = useState<PolicyRow | null>(null);
 
   const handleSave = async (data: PolicyFormData) => {
-    if (editingPolicy) {
-      await updatePolicy.mutateAsync({
-        id: editingPolicy.id,
-        updates: {
+    try {
+      if (editingPolicy) {
+        await updatePolicy.mutateAsync({
+          id: editingPolicy.id,
+          updates: {
+            title: data.title,
+            category: data.category,
+            summary: data.summary,
+            image_url: data.image_url || null,
+            content_md: data.content_md,
+            status: data.status,
+            effective_date: data.effective_date || null,
+            review_cycle_days: data.review_cycle_days,
+          },
+          editedBy: user?.id,
+          changeNote: data.change_note,
+        });
+      } else {
+        await createPolicy.mutateAsync({
+          tenant_id: tenantId!,
           title: data.title,
           category: data.category,
           summary: data.summary,
@@ -84,38 +101,26 @@ export default function PoliticasPage() {
           status: data.status,
           effective_date: data.effective_date || null,
           review_cycle_days: data.review_cycle_days,
-        },
-        editedBy: user?.id,
-        changeNote: data.change_note,
-      });
-    } else {
-      await createPolicy.mutateAsync({
-        tenant_id: tenantId!,
-        title: data.title,
-        category: data.category,
-        summary: data.summary,
-        image_url: data.image_url || null,
-        content_md: data.content_md,
-        status: data.status,
-        effective_date: data.effective_date || null,
-        review_cycle_days: data.review_cycle_days,
-        created_by: user?.id,
-        updated_by: user?.id,
-      });
+          created_by: user?.id,
+          updated_by: user?.id,
+        });
+      }
+    } catch {
+      // handled by mutation onError
     }
   };
 
-  const handleArchive = async (policy: PolicyRow) => {
-    const confirmed = window.confirm(
-      `Arquivar "${policy.title}"? A politica nao sera mais exibida na listagem principal.`
-    );
-    if (!confirmed) return;
-    await archivePolicy.mutateAsync({ id: policy.id, userId: user?.id });
+  const handleArchive = (policy: PolicyRow) => {
+    setArchivingPolicy(policy);
   };
 
   const handleDuplicate = async (policy: PolicyRow) => {
     if (!user?.id) return;
-    await duplicatePolicy.mutateAsync({ id: policy.id, userId: user.id });
+    try {
+      await duplicatePolicy.mutateAsync({ id: policy.id, userId: user.id });
+    } catch {
+      // handled by mutation onError
+    }
   };
 
   // Detail view
@@ -168,7 +173,18 @@ export default function PoliticasPage() {
       {isLoading ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-28" />
+            <div key={i} className="rounded-lg border p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Skeleton className="size-7 rounded-md" />
+                <Skeleton className="h-4 w-36" />
+              </div>
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-2/3" />
+              <div className="flex gap-2">
+                <Skeleton className="h-5 w-16 rounded-full" />
+                <Skeleton className="h-5 w-14 rounded-full" />
+              </div>
+            </div>
           ))}
         </div>
       ) : error ? (
@@ -191,16 +207,36 @@ export default function PoliticasPage() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-12 text-gray-500">
-          <Shield className="size-10 mx-auto mb-3 opacity-30" />
-          <p className="font-medium">Nenhuma politica encontrada.</p>
-          <p className="text-xs mt-1">
-            {filters.search || filters.status || filters.category
-              ? "Tente ajustar os filtros."
-              : "Clique em 'Nova politica' para comecar."}
-          </p>
-        </div>
+        <EmptyState
+          icon={Shield}
+          title="Nenhuma politica encontrada"
+          description={filters.search || filters.status || filters.category
+            ? "Tente ajustar os filtros."
+            : "Crie politicas e diretrizes para a organizacao."}
+          cta={!filters.search && !filters.status && !filters.category && canEdit
+            ? { label: "Nova politica", onClick: () => { setEditingPolicy(null); setShowForm(true); } }
+            : undefined}
+        />
       )}
+
+      <ConfirmDialog
+        open={!!archivingPolicy}
+        onOpenChange={(open) => !open && setArchivingPolicy(null)}
+        title={`Arquivar "${archivingPolicy?.title}"?`}
+        description="A politica nao sera mais exibida na listagem principal."
+        confirmLabel="Arquivar"
+        variant="default"
+        onConfirm={async () => {
+          try {
+            if (archivingPolicy)
+              await archivePolicy.mutateAsync({ id: archivingPolicy.id, userId: user?.id });
+          } catch {
+            // handled by mutation onError
+          } finally {
+            setArchivingPolicy(null);
+          }
+        }}
+      />
 
       {/* Form modal */}
       <PolicyForm

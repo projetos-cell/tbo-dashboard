@@ -67,14 +67,23 @@ export function AppSidebar() {
   return (
     <Sidebar variant="inset">
       <SidebarHeader className="border-b px-4 py-3">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="bg-tbo-orange flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-white">
-            T
-          </div>
-          <div className="flex flex-col">
-            <span className="text-sm leading-tight font-semibold">TBO</span>
-            <span className="text-[10px] leading-tight text-gray-500">Dashboard</span>
-          </div>
+        <Link href="/dashboard" className="flex items-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-tbo.svg"
+            alt="TBO"
+            width={80}
+            height={32}
+            className="block dark:hidden"
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-tbo-dark.svg"
+            alt="TBO"
+            width={80}
+            height={32}
+            className="hidden dark:block"
+          />
         </Link>
       </SidebarHeader>
 

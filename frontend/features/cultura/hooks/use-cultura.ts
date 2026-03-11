@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
+import { toast } from "sonner";
 import {
   getCulturaItems,
   getCulturaItem,
@@ -65,7 +66,9 @@ export function useCreateCulturaItem() {
       createCulturaItem(supabase, item),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cultura-items"] });
+      toast.success("Item de cultura criado");
     },
+    onError: () => toast.error("Erro ao criar item de cultura"),
   });
 }
 
@@ -87,7 +90,9 @@ export function useUpdateCulturaItem() {
       queryClient.invalidateQueries({ queryKey: ["cultura-items"] });
       queryClient.invalidateQueries({ queryKey: ["cultura-item", variables.id] });
       queryClient.invalidateQueries({ queryKey: ["cultura-versions", variables.id] });
+      toast.success("Item atualizado");
     },
+    onError: () => toast.error("Erro ao atualizar item"),
   });
 }
 
@@ -99,6 +104,8 @@ export function useDeleteCulturaItem() {
     mutationFn: (id: string) => deleteCulturaItem(supabase, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cultura-items"] });
+      toast.success("Item excluído");
     },
+    onError: () => toast.error("Erro ao excluir item"),
   });
 }

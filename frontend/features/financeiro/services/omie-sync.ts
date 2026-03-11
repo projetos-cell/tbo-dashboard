@@ -47,7 +47,7 @@ export async function triggerOmieSync(): Promise<OmieSyncResult> {
 
 /** Test Omie API connection */
 export async function testOmieConnection(): Promise<OmieTestResult> {
-  const res = await fetch("/api/omie-sync/test");
+  const res = await fetch("/api/finance/sync-omie/test");
   return res.json();
 }
 

@@ -64,10 +64,12 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Token de autenticacao ausente' });
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL || 'https://olnndpultyllyhzxuyxh.supabase.co';
-  // Anon key e publica por design — fallback hardcoded para quando env var nao esta definida
-  const supabaseKey = process.env.SUPABASE_ANON_KEY
-    || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sbm5kcHVsdHlsbHloenh1eXhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyOTUxNjMsImV4cCI6MjA4Njg3MTE2M30.PPhMqKsYKcRB6GFmWxogcc0HIggkojK0DumiB1NDAXU';
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    return res.status(500).json({ error: 'Configuracao do servidor incompleta — SUPABASE_URL e SUPABASE_ANON_KEY sao obrigatorios' });
+  }
 
   let user;
   try {

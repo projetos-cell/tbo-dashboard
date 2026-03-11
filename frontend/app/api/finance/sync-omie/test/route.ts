@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 const OMIE_BASE_URL = "https://app.omie.com.br/api/v1";
 
 /**
- * GET /api/omie-sync/test — Test Omie connection
+ * GET /api/finance/sync-omie/test — Test Omie connection
  * Validates credentials by calling ListarCategorias with page size 1
  */
 export async function GET() {
@@ -26,7 +26,7 @@ export async function GET() {
     }
 
     // Fetch Omie credentials from integration_configs
-    const { data: config } = await (supabase as any)
+    const { data: config } = await (supabase as never as { from: (t: string) => { select: (s: string) => { eq: (c: string, v: unknown) => { eq: (c: string, v: unknown) => { eq: (c: string, v: unknown) => { maybeSingle: () => Promise<{ data: { settings: { app_key?: string; app_secret?: string } } | null }> } } } } } })
       .from("integration_configs")
       .select("settings")
       .eq("tenant_id", profile.tenant_id)
@@ -80,7 +80,7 @@ export async function GET() {
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal error";
-    console.error("[omie-sync/test] Error:", message);
+    console.error("[finance/sync-omie/test] Error:", message);
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

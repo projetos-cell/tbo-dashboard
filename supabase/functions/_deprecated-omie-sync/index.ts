@@ -710,8 +710,8 @@ async function omieCall(
 // ── Mapping Helpers ──────────────────────────────────────────────────────────
 
 /** Convert Omie date "DD/MM/YYYY" → "YYYY-MM-DD" */
-function omieDate(dateStr: string | null | undefined): string {
-  if (!dateStr) return new Date().toISOString().split("T")[0];
+function omieDate(dateStr: string | null | undefined): string | null {
+  if (!dateStr) return null;
   const parts = dateStr.split("/");
   if (parts.length === 3) {
     return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
@@ -768,7 +768,7 @@ function jsonResponse(data: unknown, status = 200): Response {
     status,
     headers: {
       "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Origin": "https://tbo-dashboard-main.vercel.app",
     },
   });
 }

@@ -20,6 +20,9 @@ import {
   resolveCostCenterId,
   deriveBUFromCostCenter,
 } from "./_lookups";
+import { createSyncLogger } from "./_logger";
+
+const log = createSyncLogger("sync-transactions");
 
 // ── Sync contas a pagar → finance_transactions ──────────────────────────────
 
@@ -44,12 +47,12 @@ export async function syncContasPagar(
 
     while (hasMore) {
       if (!hasTimeRemaining(startTime, maxDurationSec)) {
-        console.log("[sync-omie] Contas a Pagar — aborting, time limit approaching");
+        log.warn("Contas a Pagar aborting, time limit approaching");
         errors.push("Contas a pagar: abortado por limite de tempo");
         break;
       }
 
-      console.log(`[sync-omie] Contas a Pagar — page ${page}...`);
+      log.info("Contas a Pagar fetching page", { page });
 
       const data = await omieCall(
         creds,
@@ -60,9 +63,7 @@ export async function syncContasPagar(
 
       const contas = (data.conta_pagar_cadastro || []) as Array<Record<string, unknown>>;
       const totalRecords = (data.total_de_registros as number) || 0;
-      console.log(
-        `[sync-omie] Contas a Pagar — page ${page}: ${contas.length} records (total: ${totalRecords})`
-      );
+      log.info("Contas a Pagar page fetched", { page, count: contas.length, total: totalRecords });
 
       for (const conta of contas) {
         const rawOmieId = String(conta.codigo_lancamento_omie || "");
@@ -129,7 +130,7 @@ export async function syncContasPagar(
   const result = await batchUpsert(supabase, "finance_transactions", allRecords, "tenant_id,omie_id");
   errors.push(...result.errors);
 
-  console.log(`[sync-omie] Contas a Pagar done: ${result.inserted} upserted, ${errors.length} errors`);
+  log.info("Contas a Pagar done", { upserted: result.inserted, errors: errors.length });
   return { inserted: result.inserted, updated: 0, errors };
 }
 
@@ -157,12 +158,12 @@ export async function syncContasReceber(
 
     while (hasMore) {
       if (!hasTimeRemaining(startTime, maxDurationSec)) {
-        console.log("[sync-omie] Contas a Receber — aborting, time limit approaching");
+        log.warn("Contas a Receber aborting, time limit approaching");
         errors.push("Contas a receber: abortado por limite de tempo");
         break;
       }
 
-      console.log(`[sync-omie] Contas a Receber — page ${page}...`);
+      log.info("Contas a Receber fetching page", { page });
 
       const data = await omieCall(
         creds,
@@ -173,9 +174,7 @@ export async function syncContasReceber(
 
       const contas = (data.conta_receber_cadastro || []) as Array<Record<string, unknown>>;
       const totalRecords = (data.total_de_registros as number) || 0;
-      console.log(
-        `[sync-omie] Contas a Receber — page ${page}: ${contas.length} records (total: ${totalRecords})`
-      );
+      log.info("Contas a Receber page fetched", { page, count: contas.length, total: totalRecords });
 
       for (const conta of contas) {
         const rawOmieId = String(conta.codigo_lancamento_omie || "");
@@ -259,6 +258,6 @@ export async function syncContasReceber(
   const result = await batchUpsert(supabase, "finance_transactions", allRecords, "tenant_id,omie_id");
   errors.push(...result.errors);
 
-  console.log(`[sync-omie] Contas a Receber done: ${result.inserted} upserted, ${errors.length} errors`);
+  log.info("Contas a Receber done", { upserted: result.inserted, errors: errors.length });
   return { inserted: result.inserted, updated: 0, errors };
 }

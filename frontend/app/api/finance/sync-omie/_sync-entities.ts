@@ -6,6 +6,9 @@ import {
   omieCall,
   batchUpsert,
 } from "./_shared";
+import { createSyncLogger } from "./_logger";
+
+const log = createSyncLogger("sync-entities");
 
 // ── Sync vendors → finance_vendors ───────────────────────────────────────────
 
@@ -22,7 +25,7 @@ export async function syncVendors(
     let hasMore = true;
 
     while (hasMore) {
-      console.log(`[sync-omie] Vendors — page ${page}...`);
+      log.info("Vendors fetching page", { page });
 
       const data = await omieCall(
         creds,
@@ -33,9 +36,7 @@ export async function syncVendors(
 
       const registros = (data.clientes_cadastro || []) as Array<Record<string, unknown>>;
       const totalRecords = (data.total_de_registros as number) || 0;
-      console.log(
-        `[sync-omie] Vendors — page ${page}: ${registros.length} records (total: ${totalRecords})`
-      );
+      log.info("Vendors page fetched", { page, count: registros.length, total: totalRecords });
 
       for (const f of registros) {
         const omieId = String(f.codigo_cliente_omie || "");
@@ -65,7 +66,7 @@ export async function syncVendors(
   const result = await batchUpsert(supabase, "finance_vendors", allRecords, "tenant_id,omie_id");
   errors.push(...result.errors);
 
-  console.log(`[sync-omie] Vendors done: ${result.inserted} upserted, ${errors.length} errors`);
+  log.info("Vendors done", { upserted: result.inserted, errors: errors.length });
   return { inserted: result.inserted, updated: 0, errors };
 }
 
@@ -84,7 +85,7 @@ export async function syncClients(
     let hasMore = true;
 
     while (hasMore) {
-      console.log(`[sync-omie] Clients — page ${page}...`);
+      log.info("Clients fetching page", { page });
 
       const data = await omieCall(
         creds,
@@ -95,9 +96,7 @@ export async function syncClients(
 
       const clientes = (data.clientes_cadastro || []) as Array<Record<string, unknown>>;
       const totalRecords = (data.total_de_registros as number) || 0;
-      console.log(
-        `[sync-omie] Clients — page ${page}: ${clientes.length} records (total: ${totalRecords})`
-      );
+      log.info("Clients page fetched", { page, count: clientes.length, total: totalRecords });
 
       for (const c of clientes) {
         const omieId = String(c.codigo_cliente_omie || "");
@@ -128,7 +127,7 @@ export async function syncClients(
   const result = await batchUpsert(supabase, "finance_clients", allRecords, "tenant_id,omie_id");
   errors.push(...result.errors);
 
-  console.log(`[sync-omie] Clients done: ${result.inserted} upserted, ${errors.length} errors`);
+  log.info("Clients done", { upserted: result.inserted, errors: errors.length });
   return { inserted: result.inserted, updated: 0, errors };
 }
 
@@ -147,7 +146,7 @@ export async function syncBankAccounts(
     let hasMore = true;
 
     while (hasMore) {
-      console.log(`[sync-omie] Bank Accounts — page ${page}...`);
+      log.info("Bank Accounts fetching page", { page });
 
       const data = await omieCall(
         creds,
@@ -158,9 +157,7 @@ export async function syncBankAccounts(
 
       const contas = (data.ListarContasCorrentes || data.conta_corrente_lista || []) as Array<Record<string, unknown>>;
       const totalRecords = (data.total_de_registros as number) || 0;
-      console.log(
-        `[sync-omie] Bank Accounts — page ${page}: ${contas.length} records (total: ${totalRecords})`
-      );
+      log.info("Bank Accounts page fetched", { page, count: contas.length, total: totalRecords });
 
       for (const cc of contas) {
         const omieId = String(cc.nCodCC || cc.cCodCCInt || "");
@@ -193,7 +190,7 @@ export async function syncBankAccounts(
   const result = await batchUpsert(supabase, "finance_bank_accounts", allRecords, "tenant_id,omie_id");
   errors.push(...result.errors);
 
-  console.log(`[sync-omie] Bank Accounts done: ${result.inserted} upserted, ${errors.length} errors`);
+  log.info("Bank Accounts done", { upserted: result.inserted, errors: errors.length });
   return { inserted: result.inserted, updated: 0, errors };
 }
 
@@ -212,7 +209,7 @@ export async function syncCategories(
     let hasMore = true;
 
     while (hasMore) {
-      console.log(`[sync-omie] Categorias — page ${page}...`);
+      log.info("Categorias fetching page", { page });
 
       const data = await omieCall(
         creds,
@@ -227,9 +224,7 @@ export async function syncCategories(
         id_tipo_lancamento?: string;
       }>;
 
-      console.log(
-        `[sync-omie] Categorias — page ${page}: ${categorias.length} records`
-      );
+      log.info("Categorias page fetched", { page, count: categorias.length });
 
       for (const cat of categorias) {
         const tipo = cat.id_tipo_lancamento === "R" ? "receita" : "despesa";
@@ -257,7 +252,7 @@ export async function syncCategories(
   const result = await batchUpsert(supabase, "finance_categories", allRecords, "tenant_id,omie_id");
   errors.push(...result.errors);
 
-  console.log(`[sync-omie] Categorias done: ${result.inserted} upserted, ${errors.length} errors`);
+  log.info("Categorias done", { upserted: result.inserted, errors: errors.length });
   return { inserted: result.inserted, updated: 0, errors };
 }
 
@@ -276,7 +271,7 @@ export async function syncCostCenters(
     let hasMore = true;
 
     while (hasMore) {
-      console.log(`[sync-omie] Departamentos (Cost Centers) — page ${page}...`);
+      log.info("Departamentos fetching page", { page });
 
       const data = await omieCall(
         creds,
@@ -291,9 +286,7 @@ export async function syncCostCenters(
         inativo?: string;
       }>;
 
-      console.log(
-        `[sync-omie] Departamentos — page ${page}: ${departamentos.length} records`
-      );
+      log.info("Departamentos page fetched", { page, count: departamentos.length });
 
       for (const dep of departamentos) {
         const omieId = String(dep.codigo || "");
@@ -322,6 +315,6 @@ export async function syncCostCenters(
   const result = await batchUpsert(supabase, "finance_cost_centers", allRecords, "tenant_id,omie_id");
   errors.push(...result.errors);
 
-  console.log(`[sync-omie] Departamentos done: ${result.inserted} upserted, ${errors.length} errors`);
+  log.info("Departamentos done", { upserted: result.inserted, errors: errors.length });
   return { inserted: result.inserted, updated: 0, errors };
 }

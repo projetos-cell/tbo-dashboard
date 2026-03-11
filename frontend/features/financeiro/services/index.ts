@@ -6,3 +6,6 @@ export * from "./finance-aging";
 export * from "./finance-cashflow";
 export * from "./finance-kpis";
 export * from "./finance-payroll";
+export * from "./cash-entries";
+export * from "./operational-indicators";
+export * from "./omie-sync";

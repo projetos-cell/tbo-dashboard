@@ -12,6 +12,9 @@ import {
 } from "./_lookups";
 import { syncContasPagar, syncContasReceber } from "./_sync-transactions";
 import { syncExtratoBancario } from "./_sync-extrato";
+import { createSyncLogger } from "./_logger";
+
+const log = createSyncLogger("sync-omie");
 
 // Allow up to 5 minutes for full historical sync on Vercel
 export const maxDuration = 300;
@@ -102,11 +105,10 @@ export async function POST() {
 
     syncLogId = (logRow as { id: string } | null)?.id ?? null;
 
-    console.log("[sync-omie] ════════════════════════════════════════════════");
-    console.log("[sync-omie] Starting full sync for tenant:", tenantId);
+    log.info("Starting full sync", { tenantId });
 
     // ── Phase 0: Vendors + Clients ──────────────────────────────────────────
-    console.log("[sync-omie] Phase 0a: Vendors...");
+    log.info("Phase 0a: Vendors");
     const vendorResult = await syncVendors(supabase, tenantId, creds);
     vendorsSynced = vendorResult.inserted;
     vendorResult.errors.forEach((e) => syncErrors.push({ entity: "vendors", message: e }));
@@ -117,7 +119,7 @@ export async function POST() {
 
     await sleep(INTER_PHASE_DELAY_MS);
 
-    console.log("[sync-omie] Phase 0b: Clients...");
+    log.info("Phase 0b: Clients");
     const clientResult = await syncClients(supabase, tenantId, creds);
     clientsSynced = clientResult.inserted;
     clientResult.errors.forEach((e) => syncErrors.push({ entity: "clients", message: e }));
@@ -129,7 +131,7 @@ export async function POST() {
     await sleep(INTER_PHASE_DELAY_MS);
 
     // ── Phase 1: Categories ─────────────────────────────────────────────────
-    console.log("[sync-omie] Phase 1: Categories...");
+    log.info("Phase 1: Categories");
     const catResult = await syncCategories(supabase, tenantId, creds);
     categoriesSynced = catResult.inserted;
     catResult.errors.forEach((e) => syncErrors.push({ entity: "categories", message: e }));
@@ -141,7 +143,7 @@ export async function POST() {
     await sleep(INTER_PHASE_DELAY_MS);
 
     // ── Phase 2: Cost Centers ───────────────────────────────────────────────
-    console.log("[sync-omie] Phase 2: Cost Centers (Departamentos)...");
+    log.info("Phase 2: Cost Centers");
     const ccResult = await syncCostCenters(supabase, tenantId, creds);
     ccResult.errors.forEach((e) => syncErrors.push({ entity: "cost_centers", message: e }));
     await updateSyncProgress(supabase, syncLogId, { errors: syncErrors });
@@ -149,7 +151,7 @@ export async function POST() {
     await sleep(INTER_PHASE_DELAY_MS);
 
     // ── Phase 3: Bank Accounts ──────────────────────────────────────────────
-    console.log("[sync-omie] Phase 3: Bank Accounts...");
+    log.info("Phase 3: Bank Accounts");
     const baResult = await syncBankAccounts(supabase, tenantId, creds);
     bankAccountsSynced = baResult.inserted;
     baResult.errors.forEach((e) => syncErrors.push({ entity: "bank_accounts", message: e }));
@@ -161,18 +163,16 @@ export async function POST() {
     await sleep(INTER_PHASE_DELAY_MS);
 
     // ── Build lookup maps ───────────────────────────────────────────────────
-    console.log("[sync-omie] Building lookup maps...");
+    log.info("Building lookup maps");
     const catLookup = await buildCategoryLookup(supabase, tenantId);
     const ccLookup = await buildCostCenterLookup(supabase, tenantId);
     const ccInfoLookup = await buildCostCenterInfoLookup(supabase, tenantId);
     const baLookup = await buildBankAccountLookup(supabase, tenantId);
     const clientNameMap = await buildClientNameLookup(supabase, tenantId);
-    console.log(
-      `[sync-omie] Lookups: ${catLookup.size} categories, ${ccLookup.size} cost centers, ${baLookup.size} bank accounts, ${clientNameMap.size} clients`
-    );
+    log.info("Lookups built", { categories: catLookup.size, costCenters: ccLookup.size, bankAccounts: baLookup.size, clients: clientNameMap.size });
 
     // ── Phase 4: Contas a Pagar ─────────────────────────────────────────────
-    console.log("[sync-omie] Phase 4: Contas a Pagar...");
+    log.info("Phase 4: Contas a Pagar");
     const cpResult = await syncContasPagar(
       supabase, tenantId, creds, user.id,
       catLookup, ccLookup, ccInfoLookup, baLookup, startTime, maxDuration
@@ -187,7 +187,7 @@ export async function POST() {
     await sleep(INTER_PHASE_DELAY_MS);
 
     // ── Phase 5: Contas a Receber ───────────────────────────────────────────
-    console.log("[sync-omie] Phase 5: Contas a Receber...");
+    log.info("Phase 5: Contas a Receber");
     const crResult = await syncContasReceber(
       supabase, tenantId, creds, user.id,
       catLookup, ccLookup, ccInfoLookup, baLookup, clientNameMap, startTime, maxDuration
@@ -203,7 +203,7 @@ export async function POST() {
 
     // ── Phase 6: Extrato Bancário ───────────────────────────────────────────
     if (hasTimeRemaining(startTime, maxDuration)) {
-      console.log("[sync-omie] Phase 6: Extrato Bancário...");
+      log.info("Phase 6: Extrato Bancario");
       const extResult = await syncExtratoBancario(
         supabase, tenantId, creds, baLookup, startTime, maxDuration
       );
@@ -214,7 +214,7 @@ export async function POST() {
         errors: syncErrors,
       });
     } else {
-      console.log("[sync-omie] Phase 6: Extrato — skipped (time limit)");
+      log.warn("Phase 6: Extrato skipped, time limit reached");
       syncErrors.push({ entity: "extrato", message: "Skipped — time limit reached" });
     }
 
@@ -223,10 +223,7 @@ export async function POST() {
       categoriesSynced + ccResult.inserted + payablesSynced +
       receivablesSynced + extratoSynced;
 
-    console.log("[sync-omie] ════════════════════════════════════════════════");
-    console.log(
-      `[sync-omie] Sync complete: ${totalInserted} total upserted, ${syncErrors.length} errors`
-    );
+    log.info("Sync complete", { totalUpserted: totalInserted, errors: syncErrors.length });
 
     responsePayload = {
       ok: true,
@@ -245,7 +242,7 @@ export async function POST() {
     };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal error";
-    console.error("[finance/sync-omie] Error:", message);
+    log.error("Sync handler error", { message });
     syncErrors.push({ entity: "handler", message });
     responsePayload = { ok: false, error: message };
     responseStatus = 500;

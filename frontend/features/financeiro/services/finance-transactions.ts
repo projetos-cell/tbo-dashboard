@@ -133,12 +133,18 @@ export async function getFinanceSnapshots(
 // ── Status ───────────────────────────────────────────────────────────────────
 
 export async function getFinanceStatus(
-  supabase: FinanceSupabase
+  supabase: FinanceSupabase,
+  months = 12
 ): Promise<FinanceStatus> {
+  const since = new Date();
+  since.setMonth(since.getMonth() - months);
+  const sinceStr = since.toISOString().split("T")[0];
+
   const [txRes, catRes, ccRes] = await Promise.all([
     supabase
       .from(TABLE_TRANSACTIONS)
-      .select("type, status, omie_synced_at", { count: "exact" }),
+      .select("type, status, omie_synced_at", { count: "exact" })
+      .gte("date", sinceStr),
     supabase
       .from(TABLE_CATEGORIES)
       .select("id", { count: "exact" })

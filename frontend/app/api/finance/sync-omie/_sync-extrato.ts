@@ -13,6 +13,9 @@ import {
   formatOmieDateParam,
   hasTimeRemaining,
 } from "./_shared";
+import { createSyncLogger } from "./_logger";
+
+const log = createSyncLogger("sync-extrato");
 
 // ── Sync extrato bancário → finance_bank_statements ─────────────────────────
 
@@ -31,7 +34,7 @@ export async function syncExtratoBancario(
   const bankAccounts = Array.from(baLookup.entries()); // [omie_id, uuid][]
 
   if (bankAccounts.length === 0) {
-    console.log("[sync-omie] Extrato — no bank accounts to sync");
+    log.info("Extrato skipped, no bank accounts");
     return { inserted: 0, updated: 0, errors: [] };
   }
 
@@ -41,12 +44,12 @@ export async function syncExtratoBancario(
 
   for (const [bankOmieId, bankUuid] of bankAccounts) {
     if (!hasTimeRemaining(startTime, maxDurationSec)) {
-      console.log("[sync-omie] Extrato — aborting, time limit approaching");
+      log.warn("Extrato aborting, time limit approaching");
       errors.push("Extrato: abortado por limite de tempo");
       break;
     }
 
-    console.log(`[sync-omie] Extrato — bank account ${bankOmieId}...`);
+    log.info("Extrato fetching bank account", { bankOmieId });
 
     try {
       // Omie ListarExtrato uses periods, not pagination
@@ -63,9 +66,7 @@ export async function syncExtratoBancario(
           )
         );
 
-        console.log(
-          `[sync-omie] Extrato ${bankOmieId}: ${formatOmieDateParam(currentStart)} → ${formatOmieDateParam(currentEnd)}`
-        );
+        log.info("Extrato fetching period", { bankOmieId, from: formatOmieDateParam(currentStart), to: formatOmieDateParam(currentEnd) });
 
         try {
           const data = await omieCall(
@@ -86,9 +87,7 @@ export async function syncExtratoBancario(
             Record<string, unknown>
           >;
 
-          console.log(
-            `[sync-omie] Extrato ${bankOmieId}: ${movimentos.length} movements`
-          );
+          log.info("Extrato movements fetched", { bankOmieId, count: movimentos.length });
 
           for (const mov of movimentos) {
             const nCodMov = mov.nCodLancamento || mov.nCodMov || mov.nCodMovCC;
@@ -120,7 +119,7 @@ export async function syncExtratoBancario(
           // Some accounts may not have extrato — skip gracefully
           const msg = err instanceof Error ? err.message : String(err);
           if (msg.includes("Não existem registros") || msg.includes("Nao existem")) {
-            console.log(`[sync-omie] Extrato ${bankOmieId}: no records for period`);
+            log.info("Extrato no records for period", { bankOmieId });
           } else {
             errors.push(`Extrato ${bankOmieId}: ${msg}`);
           }
@@ -145,12 +144,10 @@ export async function syncExtratoBancario(
     );
     errors.push(...result.errors);
 
-    console.log(
-      `[sync-omie] Extrato done: ${result.inserted} upserted, ${errors.length} errors`
-    );
+    log.info("Extrato done", { upserted: result.inserted, errors: errors.length });
     return { inserted: result.inserted, updated: 0, errors };
   }
 
-  console.log(`[sync-omie] Extrato done: 0 records, ${errors.length} errors`);
+  log.info("Extrato done, no records", { errors: errors.length });
   return { inserted: 0, updated: 0, errors };
 }

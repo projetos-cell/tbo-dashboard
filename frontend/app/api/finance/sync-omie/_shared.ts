@@ -88,6 +88,10 @@ export function formatOmieDateParam(date: Date): string {
 
 // ── Omie API caller ──────────────────────────────────────────────────────────
 
+import { createSyncLogger } from "./_logger";
+
+const log = createSyncLogger("omie-api");
+
 export async function omieCall(
   creds: OmieCredentials,
   endpoint: string,
@@ -114,9 +118,7 @@ export async function omieCall(
       attempt < MAX_RETRIES
     ) {
       const waitSec = parseOmieWaitSeconds(text);
-      console.log(
-        `[sync-omie] Rate limited on ${call}, waiting ${waitSec}s (attempt ${attempt + 1}/${MAX_RETRIES})...`
-      );
+      log.warn("Rate limited", { call, waitSec, attempt: attempt + 1, maxRetries: MAX_RETRIES });
       await sleep(waitSec * 1000);
       continue;
     }
@@ -136,9 +138,7 @@ export async function omieCall(
       const fault = String(data.faultstring);
       if (fault.includes("Consumo redundante") && attempt < MAX_RETRIES) {
         const waitSec = parseOmieWaitSeconds(fault);
-        console.log(
-          `[sync-omie] Rate limited (fault) on ${call}, waiting ${waitSec}s (attempt ${attempt + 1}/${MAX_RETRIES})...`
-        );
+        log.warn("Rate limited (fault)", { call, waitSec, attempt: attempt + 1, maxRetries: MAX_RETRIES });
         await sleep(waitSec * 1000);
         continue;
       }

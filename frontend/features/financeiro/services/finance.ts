@@ -1034,6 +1034,7 @@ export interface OverdueEntry {
   due_date: string;
   days_overdue: number; // positive = overdue, negative = days until due
   category_name: string | null;
+  cost_center_name: string | null;
   isProjected: boolean; // true = future AR entry
 }
 
@@ -1066,7 +1067,7 @@ export async function getOverdueEntries(
 
   let query = supabase
     .from(TABLE_TRANSACTIONS)
-    .select("id, type, status, description, counterpart, amount, due_date, category_id")
+    .select("id, type, status, description, counterpart, amount, due_date, category_id, cost_center_id")
     .in("status", ["previsto", "atrasado", "provisionado"])
     .not("due_date", "is", null)
     .lte("due_date", upperBound)
@@ -1087,6 +1088,7 @@ export async function getOverdueEntries(
     amount: number;
     due_date: string;
     category_id: string | null;
+    cost_center_id: string | null;
   }>;
 
   // Fetch category names for display
@@ -1099,6 +1101,19 @@ export async function getOverdueEntries(
       .in("id", catIds.slice(0, 50));
     for (const c of (cats ?? []) as Array<{ id: string; name: string }>) {
       catLookup.set(c.id, c.name);
+    }
+  }
+
+  // Fetch cost center names for display
+  const ccIds = [...new Set(rows.filter((r) => r.cost_center_id).map((r) => r.cost_center_id!))];
+  const ccLookup = new Map<string, string>();
+  if (ccIds.length > 0) {
+    const { data: ccs } = await supabase
+      .from(TABLE_COST_CENTERS)
+      .select("id, name")
+      .in("id", ccIds.slice(0, 50));
+    for (const c of (ccs ?? []) as Array<{ id: string; name: string }>) {
+      ccLookup.set(c.id, c.name);
     }
   }
 
@@ -1130,6 +1145,7 @@ export async function getOverdueEntries(
       due_date: row.due_date,
       days_overdue: diffDays,
       category_name: row.category_id ? catLookup.get(row.category_id) ?? null : null,
+      cost_center_name: row.cost_center_id ? ccLookup.get(row.cost_center_id) ?? null : null,
       isProjected,
     };
 

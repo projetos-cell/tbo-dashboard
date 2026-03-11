@@ -28,6 +28,7 @@ function EntryTable({
     type: "receita" | "despesa";
     description: string;
     counterpart: string | null;
+    cost_center_name: string | null;
     amount: number;
     due_date: string;
     days_overdue: number;
@@ -56,8 +57,9 @@ function EntryTable({
             <th className="pb-2 font-medium">Tipo</th>
             <th className="pb-2 font-medium">Descrição</th>
             <th className="pb-2 font-medium">Cliente/Fornecedor</th>
-            <th className="pb-2 font-medium text-right">Valor</th>
-            <th className="pb-2 font-medium">Vencimento</th>
+            <th className="pb-2 font-medium">Centro de Custos</th>
+            <th className="pb-2 font-medium text-right pr-4">Valor</th>
+            <th className="pb-2 font-medium pl-4">Vencimento</th>
             <th className="pb-2 font-medium text-right">
               {isProjected ? "Prazo" : "Atraso"}
             </th>
@@ -82,16 +84,19 @@ function EntryTable({
                 {entry.description}
               </td>
               <td className="py-2 text-muted-foreground">
-                {entry.counterpart ?? "—"}
+                {entry.counterpart || "Sem identificação"}
+              </td>
+              <td className="py-2 text-muted-foreground text-xs">
+                {entry.cost_center_name ?? "—"}
               </td>
               <td
-                className={`py-2 text-right font-medium ${
+                className={`py-2 text-right font-medium pr-4 ${
                   entry.type === "receita" ? "text-emerald-600" : "text-red-600"
                 }`}
               >
                 {fmt(entry.amount)}
               </td>
-              <td className="py-2 text-muted-foreground">
+              <td className="py-2 text-muted-foreground pl-4">
                 {new Date(entry.due_date + "T00:00:00").toLocaleDateString("pt-BR")}
               </td>
               <td className="py-2 text-right">

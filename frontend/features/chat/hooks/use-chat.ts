@@ -11,6 +11,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
 import { logAuditTrail } from "@/lib/audit-trail";
+import { toast } from "sonner";
 import type { Database } from "@/lib/supabase/types";
 import type { MessageRow, ChannelRow } from "@/features/chat/services/chat";
 import {
@@ -52,6 +53,47 @@ export function useChannels() {
 export function useChannelsWithMembers() {
   const supabase = createClient();
   const tenantId = useAuthStore((s) => s.tenantId);
+  const qc = useQueryClient();
+
+  // Realtime subscription for channel changes (create, update, archive)
+  useEffect(() => {
+    if (!tenantId) return;
+
+    const channel = supabase
+      .channel("chat-channels-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "chat_channels",
+        },
+        () => {
+          // Any channel change → refetch both channel queries
+          qc.invalidateQueries({ queryKey: ["chat-channels"] });
+          qc.invalidateQueries({ queryKey: ["chat-channels-members"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "chat_channel_members",
+        },
+        () => {
+          // Member changes → refetch channel list + member queries
+          qc.invalidateQueries({ queryKey: ["chat-channels-members"] });
+          qc.invalidateQueries({ queryKey: ["chat-channel-members"] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenantId]);
 
   return useQuery({
     queryKey: ["chat-channels-members", tenantId],
@@ -284,24 +326,28 @@ export function useCreateChannel() {
       type?: string;
       memberIds?: string[];
     }) => {
+      if (!tenantId || !userId) {
+        throw new Error("Usuário não autenticado");
+      }
       const channel = await createChannel(supabase, {
-        tenant_id: tenantId!,
+        tenant_id: tenantId,
         name: input.name,
         description: input.description ?? null,
         type: input.type ?? "channel",
-        created_by: userId!,
+        created_by: userId,
       });
       // Add creator + selected members
-      const allMembers = [...new Set([userId!, ...(input.memberIds ?? [])])];
+      const allMembers = [...new Set([userId, ...(input.memberIds ?? [])])];
       await addChannelMembers(supabase, channel.id, allMembers, "member");
       // Promote creator to admin
-      if (userId) {
-        await updateMemberRole(supabase, channel.id, userId, "admin");
-      }
+      await updateMemberRole(supabase, channel.id, userId, "admin");
       return channel;
     },
     onSuccess: (channel) => {
+      // Invalidate BOTH channel queries so sidebar updates immediately
       qc.invalidateQueries({ queryKey: ["chat-channels"] });
+      qc.invalidateQueries({ queryKey: ["chat-channels-members"] });
+      toast.success(`Canal "${channel.name}" criado com sucesso`);
       if (userId) {
         logAuditTrail({
           userId,
@@ -311,6 +357,11 @@ export function useCreateChannel() {
           after: { name: channel.name, type: channel.type },
         });
       }
+    },
+    onError: (error) => {
+      toast.error("Erro ao criar canal", {
+        description: error instanceof Error ? error.message : "Tente novamente",
+      });
     },
   });
 }
@@ -332,6 +383,8 @@ export function useUpdateChannel() {
     }) => updateChannel(supabase, id, updates),
     onSuccess: (channel) => {
       qc.invalidateQueries({ queryKey: ["chat-channels"] });
+      qc.invalidateQueries({ queryKey: ["chat-channels-members"] });
+      toast.success("Canal atualizado");
       if (userId) {
         logAuditTrail({
           userId,
@@ -341,6 +394,11 @@ export function useUpdateChannel() {
           after: { name: channel.name },
         });
       }
+    },
+    onError: (error) => {
+      toast.error("Erro ao atualizar canal", {
+        description: error instanceof Error ? error.message : "Tente novamente",
+      });
     },
   });
 }
@@ -356,6 +414,8 @@ export function useArchiveChannel() {
     mutationFn: (channelId: string) => archiveChannel(supabase, channelId),
     onSuccess: (_data, channelId) => {
       qc.invalidateQueries({ queryKey: ["chat-channels"] });
+      qc.invalidateQueries({ queryKey: ["chat-channels-members"] });
+      toast.success("Canal arquivado");
       if (userId) {
         logAuditTrail({
           userId,
@@ -365,6 +425,11 @@ export function useArchiveChannel() {
           after: { is_archived: true },
         });
       }
+    },
+    onError: (error) => {
+      toast.error("Erro ao arquivar canal", {
+        description: error instanceof Error ? error.message : "Tente novamente",
+      });
     },
   });
 }

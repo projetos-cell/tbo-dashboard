@@ -14,7 +14,6 @@ export function AIChatHero() {
 
   const handleSubmit = useCallback((message: string) => {
     // TODO: Conectar com API Claude via Edge Function
-    console.info("[AIChatHero] submit:", message);
     setInputValue(undefined);
   }, []);
 

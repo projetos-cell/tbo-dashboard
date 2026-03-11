@@ -248,12 +248,10 @@ export function useSendMessage() {
         content: newMsg.content ?? null,
         message_type: "text",
         metadata: null,
-        tenant_id: tenantId,
         created_at: new Date().toISOString(),
         edited_at: null,
         deleted_at: null,
-        parent_message_id: null,
-        search_vector: null,
+        reply_to: null,
       } as unknown as MessageRow;
 
       qc.setQueryData<InfiniteData<MessageRow[], string | undefined>>(

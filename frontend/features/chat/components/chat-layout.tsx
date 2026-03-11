@@ -138,8 +138,7 @@ export function ChatLayout() {
       channel_id: selectedChannelId,
       sender_id: userId,
       content,
-      tenant_id: tenantId,
-    } as never);
+    });
   }
 
   function handleEdit(messageId: string, content: string) {

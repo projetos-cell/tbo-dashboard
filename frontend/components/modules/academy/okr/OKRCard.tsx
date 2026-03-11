@@ -41,7 +41,7 @@ export function OKRCard({
   return (
     <Link
       href={`/okrs/individuais?objective=${objectiveId}`}
-      className="group block rounded-2xl border border-border/30 bg-secondary/20 p-6 backdrop-blur-sm transition-colors hover:border-primary/20 hover:bg-secondary/30"
+      className="group block rounded-2xl border border-border/30 bg-secondary/20 p-6 backdrop-blur-sm transition-colors hover:border-primary/20 hover:bg-secondary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
     >
       <div className="mb-4 flex items-start justify-between">
         <h4 className="font-semibold group-hover:text-primary transition-colors">

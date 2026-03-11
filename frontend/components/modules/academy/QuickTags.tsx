@@ -18,7 +18,7 @@ export function QuickTags({ onTagClick }: QuickTagsProps) {
         <button
           key={tag}
           onClick={() => onTagClick?.(tag)}
-          className="cursor-pointer rounded-full border border-border/50 bg-secondary/30 px-4 py-2 text-sm backdrop-blur-sm transition-colors hover:bg-secondary/50"
+          className="cursor-pointer rounded-full border border-border/50 bg-secondary/30 px-4 py-2 text-sm backdrop-blur-sm transition-colors hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
         >
           {tag}
         </button>

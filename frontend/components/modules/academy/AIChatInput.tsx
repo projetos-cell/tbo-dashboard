@@ -64,7 +64,7 @@ export function AIChatInput({ onSubmit, externalValue }: AIChatInputProps) {
         <button
           onClick={handleSubmit}
           disabled={value.trim().length < 3}
-          className="ml-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary transition-colors hover:bg-primary/20 disabled:opacity-40 disabled:hover:bg-primary/10"
+          className="ml-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary transition-colors hover:bg-primary/20 disabled:opacity-40 disabled:hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
           aria-label="Enviar mensagem"
         >
           <IconArrowRight className="h-4 w-4" />

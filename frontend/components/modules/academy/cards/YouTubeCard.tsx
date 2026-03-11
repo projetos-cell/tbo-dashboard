@@ -10,7 +10,7 @@ export function YouTubeCard() {
       href={YOUTUBE_URL}
       target="_blank"
       rel="noopener noreferrer"
-      className="group relative col-span-1 overflow-hidden rounded-3xl border border-white/5 bg-secondary/20 p-6 backdrop-blur-md transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl"
+      className="group relative col-span-1 overflow-hidden rounded-3xl border border-white/5 bg-secondary/20 p-6 backdrop-blur-md transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
     >
       <div className="absolute right-4 top-4 opacity-0 transition-opacity group-hover:opacity-100">
         <IconExternalLink className="h-4 w-4 text-muted-foreground" />

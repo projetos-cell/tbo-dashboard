@@ -29,7 +29,7 @@ export function SocialLinks() {
           href={link.href}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2 rounded-2xl bg-secondary/20 p-3 px-4 backdrop-blur-sm transition-colors hover:bg-secondary/40"
+          className="flex items-center gap-2 rounded-2xl bg-secondary/20 p-3 px-4 backdrop-blur-sm transition-colors hover:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
           aria-label={link.label}
         >
           <link.icon className="h-4 w-4 text-muted-foreground" />

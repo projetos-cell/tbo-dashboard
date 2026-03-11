@@ -1,11 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { IconLoader2, IconTargetArrow, IconArrowRight } from "@tabler/icons-react";
+import {
+  IconLoader2,
+  IconTargetArrow,
+  IconArrowRight,
+  IconAlertTriangle,
+  IconRefresh,
+} from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { OKRCard } from "./okr/OKRCard";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const MAX_VISIBLE = 2;
 
@@ -36,7 +43,7 @@ export function OKRProgressSection() {
   const userId = useAuthStore((s) => s.user?.id);
   const user = useAuthStore((s) => s.user);
 
-  const { data: objectives, isLoading } = useQuery({
+  const { data: objectives, isLoading, isError, refetch } = useQuery({
     queryKey: ["academy-okrs", userId],
     queryFn: async () => {
       const supabase = createClient();
@@ -84,7 +91,46 @@ export function OKRProgressSection() {
         )}
       </div>
 
-      {visibleOkrs.length > 0 ? (
+      {isError ? (
+        <div className="flex min-h-[120px] flex-col items-center justify-center gap-3 rounded-2xl border border-destructive/20 bg-destructive/5 p-6">
+          <IconAlertTriangle className="h-6 w-6 text-destructive" />
+          <p className="text-sm font-medium text-destructive">
+            Erro ao carregar OKRs
+          </p>
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-2 rounded-lg bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
+          >
+            <IconRefresh className="h-4 w-4" />
+            Tentar novamente
+          </button>
+        </div>
+      ) : isLoading ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          {[0, 1].map((i) => (
+            <div key={i} className="rounded-2xl border border-border/30 bg-secondary/20 p-6 space-y-4">
+              <div className="flex items-start justify-between">
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-5 w-10" />
+              </div>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-1.5 w-full rounded-full" />
+                </div>
+                <div className="space-y-1.5">
+                  <Skeleton className="h-4 w-5/6" />
+                  <Skeleton className="h-1.5 w-full rounded-full" />
+                </div>
+              </div>
+              <div className="flex justify-between">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : visibleOkrs.length > 0 ? (
         <>
           <div className="grid gap-4 md:grid-cols-2">
             {visibleOkrs.map((okr) => (
@@ -103,7 +149,7 @@ export function OKRProgressSection() {
             <div className="flex justify-center pt-1">
               <Link
                 href="/okrs/individuais"
-                className="group flex items-center gap-1.5 rounded-full border border-border/50 bg-secondary/30 px-5 py-2 text-sm font-medium transition-colors hover:bg-secondary/50"
+                className="group flex items-center gap-1.5 rounded-full border border-border/50 bg-secondary/30 px-5 py-2 text-sm font-medium transition-colors hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
               >
                 Ver todos os {allOkrs.length} OKRs
                 <IconArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -111,7 +157,7 @@ export function OKRProgressSection() {
             </div>
           )}
         </>
-      ) : !isLoading ? (
+      ) : (
         <div className="flex min-h-[120px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border/50 bg-secondary/10 p-6">
           <p className="font-medium text-muted-foreground">
             Nenhum OKR atribuído
@@ -120,7 +166,7 @@ export function OKRProgressSection() {
             Seus objetivos e resultados-chave aparecerão aqui.
           </p>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

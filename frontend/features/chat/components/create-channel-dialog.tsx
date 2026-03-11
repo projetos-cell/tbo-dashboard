@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
-import { Plus, X, Search } from "lucide-react";
+import { X, Search, Check } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,10 +21,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from "@/components/ui/avatar";
 import { useProfiles } from "@/features/people/hooks/use-people";
 import { useCreateChannel } from "@/features/chat/hooks/use-chat";
 import { useChatStore } from "@/features/chat/stores/chat-store";
 import { useAuthStore } from "@/stores/auth-store";
+import { getInitials } from "@/features/chat/utils/profile-utils";
+import { cn } from "@/lib/utils";
 
 export function CreateChannelDialog() {
   const open = useChatStore((s) => s.isCreateChannelOpen);
@@ -41,9 +48,13 @@ export function CreateChannelDialog() {
   const { data: profiles } = useProfiles();
   const createChannel = useCreateChannel();
 
-  const filteredProfiles = (profiles ?? []).filter((p) => {
-    if (p.id === userId) return false;
-    if (selectedMembers.includes(p.id)) return false;
+  // All available profiles (excluding self)
+  const availableProfiles = (profiles ?? []).filter(
+    (p) => p.id !== userId,
+  );
+
+  // Filtered for search (but keep selected ones visible with check)
+  const filteredProfiles = availableProfiles.filter((p) => {
     if (!memberSearch) return true;
     return (
       p.full_name?.toLowerCase().includes(memberSearch.toLowerCase()) ||
@@ -110,12 +121,12 @@ export function CreateChannelDialog() {
 
           {/* Description */}
           <div className="space-y-1.5">
-            <Label htmlFor="ch-desc">Descrição (opcional)</Label>
+            <Label htmlFor="ch-desc">Descri\u00e7\u00e3o (opcional)</Label>
             <Input
               id="ch-desc"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Sobre o que é esse canal?"
+              placeholder="Sobre o que \u00e9 esse canal?"
               maxLength={200}
             />
           </div>
@@ -128,7 +139,7 @@ export function CreateChannelDialog() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="channel">Canal público</SelectItem>
+                <SelectItem value="channel">Canal p\u00fablico</SelectItem>
                 <SelectItem value="private">Canal privado</SelectItem>
               </SelectContent>
             </Select>
@@ -136,7 +147,14 @@ export function CreateChannelDialog() {
 
           {/* Members */}
           <div className="space-y-1.5">
-            <Label>Membros</Label>
+            <Label>
+              Membros
+              {selectedMembers.length > 0 && (
+                <span className="text-muted-foreground font-normal ml-1.5">
+                  ({selectedMembers.length} selecionado{selectedMembers.length > 1 ? "s" : ""})
+                </span>
+              )}
+            </Label>
 
             {/* Selected members badges */}
             {selectedMembers.length > 0 && (
@@ -149,7 +167,7 @@ export function CreateChannelDialog() {
                       <button
                         type="button"
                         onClick={() => removeMember(id)}
-                        className="ml-0.5 rounded-full hover:bg-gray-100-foreground/20 p-0.5"
+                        className="ml-0.5 rounded-full hover:bg-muted-foreground/20 p-0.5 transition-colors"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -159,9 +177,9 @@ export function CreateChannelDialog() {
               </div>
             )}
 
-            {/* Search + list */}
+            {/* Search */}
             <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-500" />
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 value={memberSearch}
                 onChange={(e) => setMemberSearch(e.target.value)}
@@ -170,29 +188,51 @@ export function CreateChannelDialog() {
               />
             </div>
 
-            <ScrollArea className="h-36 rounded border">
+            {/* Member list */}
+            <ScrollArea className="h-48 rounded-md border">
               <div className="p-1">
                 {filteredProfiles.length === 0 ? (
-                  <p className="text-xs text-gray-500 p-2 text-center">
+                  <p className="text-xs text-muted-foreground p-3 text-center">
                     Nenhum resultado
                   </p>
                 ) : (
-                  filteredProfiles.slice(0, 30).map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => toggleMember(p.id)}
-                      className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-gray-100 transition-colors"
-                    >
-                      <div className="h-6 w-6 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-medium shrink-0">
-                        {(p.full_name ?? "?").charAt(0).toUpperCase()}
-                      </div>
-                      <span className="truncate">{p.full_name}</span>
-                      <span className="text-xs text-gray-500 truncate ml-auto">
-                        {p.email}
-                      </span>
-                    </button>
-                  ))
+                  filteredProfiles.slice(0, 30).map((p) => {
+                    const isSelected = selectedMembers.includes(p.id);
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => toggleMember(p.id)}
+                        className={cn(
+                          "flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors",
+                          isSelected
+                            ? "bg-accent text-accent-foreground"
+                            : "hover:bg-accent/50",
+                        )}
+                      >
+                        <Avatar size="sm" className="shrink-0">
+                          {p.avatar_url && (
+                            <AvatarImage
+                              src={p.avatar_url}
+                              alt={p.full_name ?? ""}
+                            />
+                          )}
+                          <AvatarFallback className="text-[10px]">
+                            {getInitials(p.full_name ?? "?")}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="truncate flex-1 text-left">
+                          {p.full_name}
+                        </span>
+                        <span className="text-xs text-muted-foreground truncate max-w-[160px]">
+                          {p.email}
+                        </span>
+                        {isSelected && (
+                          <Check className="h-4 w-4 text-primary shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })
                 )}
               </div>
             </ScrollArea>

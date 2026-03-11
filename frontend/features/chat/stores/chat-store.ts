@@ -53,6 +53,18 @@ interface ChatState {
   collapsedSections: Set<string>;
   toggleSection: (sectionId: string) => void;
   isSectionCollapsed: (sectionId: string) => boolean;
+
+  // Archived channels
+  showArchivedChannels: boolean;
+  setShowArchivedChannels: (show: boolean) => void;
+
+  // Create section dialog
+  isCreateSectionOpen: boolean;
+  setCreateSectionOpen: (open: boolean) => void;
+
+  // Inline rename
+  renamingSectionId: string | null;
+  setRenamingSectionId: (id: string | null) => void;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -123,4 +135,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
       return { collapsedSections: next };
     }),
   isSectionCollapsed: (sectionId) => get().collapsedSections.has(sectionId),
+
+  // ── Archived channels ────────────────────────────────────────
+  showArchivedChannels: false,
+  setShowArchivedChannels: (show) => set({ showArchivedChannels: show }),
+
+  // ── Create section dialog ────────────────────────────────────
+  isCreateSectionOpen: false,
+  setCreateSectionOpen: (open) => set({ isCreateSectionOpen: open }),
+
+  // ── Inline rename ────────────────────────────────────────────
+  renamingSectionId: null,
+  setRenamingSectionId: (id) => set({ renamingSectionId: id }),
 }));

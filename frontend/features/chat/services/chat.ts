@@ -73,6 +73,52 @@ export async function archiveChannel(
   if (error) throw error;
 }
 
+export async function unarchiveChannel(
+  supabase: SupabaseClient<Database>,
+  id: string,
+) {
+  const { error } = await supabase
+    .from("chat_channels")
+    .update({ is_archived: false } as never)
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteChannelPermanently(
+  supabase: SupabaseClient<Database>,
+  id: string,
+) {
+  // Delete members first (FK constraint)
+  await supabase.from("chat_channel_members").delete().eq("channel_id", id);
+  // Delete messages + attachments
+  const { data: msgs } = await supabase
+    .from("chat_messages")
+    .select("id")
+    .eq("channel_id", id);
+  if (msgs && msgs.length > 0) {
+    const msgIds = msgs.map((m) => m.id);
+    await supabase.from("chat_reactions").delete().in("message_id", msgIds);
+    await supabase.from("chat_attachments").delete().in("message_id", msgIds);
+    await supabase.from("chat_messages").delete().eq("channel_id", id);
+  }
+  // Delete channel
+  const { error } = await supabase.from("chat_channels").delete().eq("id", id);
+  if (error) throw error;
+}
+
+/** Get archived channels for sidebar display */
+export async function getArchivedChannels(
+  supabase: SupabaseClient<Database>,
+) {
+  const { data, error } = await supabase
+    .from("chat_channels")
+    .select("*, chat_channel_members(user_id, role)")
+    .eq("is_archived", true)
+    .order("name");
+  if (error) throw error;
+  return data as (ChannelRow & { chat_channel_members: { user_id: string; role: string }[] })[];
+}
+
 /** Channels with member join for DM display names */
 export async function getChannelsWithMembers(
   supabase: SupabaseClient<Database>,

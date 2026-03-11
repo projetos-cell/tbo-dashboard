@@ -26,6 +26,9 @@ import {
   createChannel,
   updateChannel,
   archiveChannel,
+  unarchiveChannel,
+  deleteChannelPermanently,
+  getArchivedChannels,
   addChannelMembers,
   removeChannelMember,
   updateMemberRole,
@@ -162,10 +165,17 @@ export function useMessages(channelId: string | null) {
               (old) => {
                 if (!old) return old;
                 const firstPage = old.pages[0] ?? [];
-                // Deduplicate (optimistic update may have added it)
+                // Deduplicate: skip if real ID already exists
                 if (firstPage.some((m) => m.id === newMsg.id)) return old;
+                // Remove optimistic entries from same sender with same content
+                const cleaned = firstPage.filter(
+                  (m) =>
+                    !m.id.startsWith("optimistic-") ||
+                    m.sender_id !== newMsg.sender_id ||
+                    m.content !== newMsg.content,
+                );
                 const pages = [...old.pages];
-                pages[0] = [...firstPage, newMsg];
+                pages[0] = [...cleaned, newMsg];
                 return { ...old, pages };
               },
             );
@@ -492,6 +502,84 @@ export function useArchiveChannel() {
         description: error instanceof Error ? error.message : "Tente novamente",
       });
     },
+  });
+}
+
+// ── Unarchive Channel ────────────────────────────────────────────────
+
+export function useUnarchiveChannel() {
+  const supabase = createClient();
+  const qc = useQueryClient();
+  const userId = useAuthStore((s) => s.user?.id);
+
+  return useMutation({
+    mutationFn: (channelId: string) => unarchiveChannel(supabase, channelId),
+    onSuccess: (_data, channelId) => {
+      qc.invalidateQueries({ queryKey: ["chat-channels"] });
+      qc.invalidateQueries({ queryKey: ["chat-channels-members"] });
+      qc.invalidateQueries({ queryKey: ["chat-archived-channels"] });
+      toast.success("Canal desarquivado");
+      if (userId) {
+        logAuditTrail({
+          userId,
+          action: "update",
+          table: "chat_channels",
+          recordId: channelId,
+          after: { is_archived: false },
+        });
+      }
+    },
+    onError: (error) => {
+      toast.error("Erro ao desarquivar canal", {
+        description: error instanceof Error ? error.message : "Tente novamente",
+      });
+    },
+  });
+}
+
+// ── Delete Channel Permanently ──────────────────────────────────────
+
+export function useDeleteChannelPermanently() {
+  const supabase = createClient();
+  const qc = useQueryClient();
+  const userId = useAuthStore((s) => s.user?.id);
+
+  return useMutation({
+    mutationFn: (channelId: string) =>
+      deleteChannelPermanently(supabase, channelId),
+    onSuccess: (_data, channelId) => {
+      qc.invalidateQueries({ queryKey: ["chat-channels"] });
+      qc.invalidateQueries({ queryKey: ["chat-channels-members"] });
+      qc.invalidateQueries({ queryKey: ["chat-archived-channels"] });
+      toast.success("Canal deletado permanentemente");
+      if (userId) {
+        logAuditTrail({
+          userId,
+          action: "delete",
+          table: "chat_channels",
+          recordId: channelId,
+        });
+      }
+    },
+    onError: (error) => {
+      toast.error("Erro ao deletar canal", {
+        description: error instanceof Error ? error.message : "Tente novamente",
+      });
+    },
+  });
+}
+
+// ── Archived Channels ───────────────────────────────────────────────
+
+export function useArchivedChannels() {
+  const supabase = createClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery({
+    queryKey: ["chat-archived-channels", tenantId],
+    queryFn: () => getArchivedChannels(supabase),
+    staleTime: 1000 * 60 * 5,
+    enabled: !!tenantId,
   });
 }
 

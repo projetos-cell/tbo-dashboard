@@ -13,6 +13,16 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -58,6 +68,7 @@ export function MessageBubble({
 }: MessageBubbleProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content ?? "");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const time = new Date(message.created_at ?? "").toLocaleTimeString("pt-BR", {
     hour: "2-digit",
@@ -91,7 +102,10 @@ export function MessageBubble({
   }
 
   return (
-    <div className="group relative flex items-start gap-3 px-4 py-1 hover:bg-muted/50 transition-colors">
+    <div
+      id={`msg-${message.id}`}
+      className="group relative flex items-start gap-3 px-4 py-1 hover:bg-muted/50 transition-colors"
+    >
       {/* Avatar */}
       {showAvatar ? (
         <Avatar size="sm" className="mt-0.5 shrink-0">
@@ -186,11 +200,32 @@ export function MessageBubble({
               setEditContent(message.content ?? "");
               setIsEditing(true);
             }}
-            onDelete={() => onDelete?.(message.id)}
+            onDelete={() => setShowDeleteConfirm(true)}
             onTogglePin={() => onTogglePin?.(message.id, !message.is_pinned)}
           />
         </div>
       )}
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir mensagem</AlertDialogTitle>
+            <AlertDialogDescription>
+              Essa ação não pode ser desfeita. A mensagem será removida para todos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={() => onDelete?.(message.id)}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

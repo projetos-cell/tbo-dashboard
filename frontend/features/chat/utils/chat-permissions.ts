@@ -10,7 +10,8 @@ export type ChannelAction =
   | "delete_message"
   | "manage_members"
   | "edit_channel"
-  | "archive_channel";
+  | "archive_channel"
+  | "pin_message";
 
 interface ChannelPermissionContext {
   /** Global role slug (founder, diretoria, lider, colaborador) */
@@ -61,6 +62,9 @@ export function canPerformChannelAction(
       return isChannelAdmin || isCreator;
 
     case "archive_channel":
+      return isChannelAdmin || isCreator;
+
+    case "pin_message":
       return isChannelAdmin || isCreator;
 
     default:

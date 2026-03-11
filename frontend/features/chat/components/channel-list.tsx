@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import {
   IconHash,
   IconLock,
@@ -8,6 +8,14 @@ import {
   IconMessage,
   IconChevronDown,
   IconChevronRight,
+  IconArchive,
+  IconTrash,
+  IconPencil,
+  IconFolder,
+  IconFolderPlus,
+  IconArrowBackUp,
+  IconDots,
+  IconPlus,
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import {
@@ -15,6 +23,35 @@ import {
   AvatarImage,
   AvatarFallback,
 } from "@/components/ui/avatar";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { OnlineIndicator } from "./online-indicator";
 import type { ProfileInfo } from "@/features/chat/utils/profile-utils";
 import { getInitials } from "@/features/chat/utils/profile-utils";
@@ -30,12 +67,21 @@ export interface ChannelWithMembers extends ChannelRow {
 
 interface ChannelListProps {
   channels: ChannelWithMembers[];
+  archivedChannels?: ChannelWithMembers[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   unreadCounts?: Record<string, number>;
   currentUserId?: string;
   profileMap?: Record<string, ProfileInfo>;
   sections?: SectionRow[];
+  onArchiveChannel?: (id: string) => void;
+  onDeleteChannel?: (id: string) => void;
+  onUnarchiveChannel?: (id: string) => void;
+  onMoveToSection?: (channelId: string, sectionId: string | null) => void;
+  onCreateSection?: (name: string) => void;
+  onRenameSection?: (id: string, name: string) => void;
+  onDeleteSection?: (id: string) => void;
+  canManageChannels?: boolean;
 }
 
 const typeIcons: Record<string, typeof IconHash> = {
@@ -57,7 +103,7 @@ function resolveDMInfo(
   return undefined;
 }
 
-/* ── Reusable channel item ─────────────────────────────────────────── */
+/* ── Channel Item with Context Menu ────────────────────────────────── */
 
 function ChannelItem({
   channel,
@@ -66,6 +112,13 @@ function ChannelItem({
   unreadCounts,
   currentUserId,
   profileMap,
+  sections,
+  onArchiveChannel,
+  onDeleteChannel,
+  onMoveToSection,
+  canManageChannels,
+  isArchived,
+  onUnarchiveChannel,
 }: {
   channel: ChannelWithMembers;
   selectedId: string | null;
@@ -73,13 +126,21 @@ function ChannelItem({
   unreadCounts: Record<string, number>;
   currentUserId?: string;
   profileMap: Record<string, ProfileInfo>;
+  sections?: SectionRow[];
+  onArchiveChannel?: (id: string) => void;
+  onDeleteChannel?: (id: string) => void;
+  onMoveToSection?: (channelId: string, sectionId: string | null) => void;
+  canManageChannels?: boolean;
+  isArchived?: boolean;
+  onUnarchiveChannel?: (id: string) => void;
 }) {
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const unread = unreadCounts[channel.id] ?? 0;
   const isSelected = selectedId === channel.id;
   const isDM = channel.type === "direct";
   const isGroup = channel.type === "group";
+  const isPublicType = channel.type === "channel" || channel.type === "private";
 
-  // DM-specific display
   const dmProfile = isDM
     ? resolveDMInfo(channel, currentUserId, profileMap)
     : undefined;
@@ -95,7 +156,7 @@ function ChannelItem({
 
   const Icon = typeIcons[channel.type ?? "channel"] ?? IconHash;
 
-  return (
+  const channelButton = (
     <button
       type="button"
       onClick={() => onSelect(channel.id)}
@@ -134,23 +195,170 @@ function ChannelItem({
       )}
     </button>
   );
+
+  // No context menu for DMs/groups or non-managers
+  if ((!isPublicType && !isArchived) || !canManageChannels) {
+    return channelButton;
+  }
+
+  const currentSectionId = (channel as unknown as Record<string, unknown>).section_id as string | null;
+
+  return (
+    <>
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          {channelButton}
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-52">
+          {isArchived ? (
+            <>
+              <ContextMenuItem
+                onClick={() => onUnarchiveChannel?.(channel.id)}
+              >
+                <IconArrowBackUp size={14} className="mr-2" />
+                Desarquivar
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem
+                onClick={() => setDeleteOpen(true)}
+                className="text-destructive focus:text-destructive"
+              >
+                <IconTrash size={14} className="mr-2" />
+                Deletar permanentemente
+              </ContextMenuItem>
+            </>
+          ) : (
+            <>
+              {/* Move to section */}
+              {sections && sections.length > 0 && onMoveToSection && (
+                <ContextMenuSub>
+                  <ContextMenuSubTrigger>
+                    <IconFolder size={14} className="mr-2" />
+                    Mover para seção
+                  </ContextMenuSubTrigger>
+                  <ContextMenuSubContent className="w-48">
+                    <ContextMenuItem
+                      onClick={() => onMoveToSection(channel.id, null)}
+                      disabled={!currentSectionId}
+                    >
+                      Sem seção
+                    </ContextMenuItem>
+                    {sections.map((s) => (
+                      <ContextMenuItem
+                        key={s.id}
+                        onClick={() => onMoveToSection(channel.id, s.id)}
+                        disabled={currentSectionId === s.id}
+                      >
+                        {s.name}
+                      </ContextMenuItem>
+                    ))}
+                  </ContextMenuSubContent>
+                </ContextMenuSub>
+              )}
+              <ContextMenuItem
+                onClick={() => onArchiveChannel?.(channel.id)}
+              >
+                <IconArchive size={14} className="mr-2" />
+                Arquivar canal
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem
+                onClick={() => setDeleteOpen(true)}
+                className="text-destructive focus:text-destructive"
+              >
+                <IconTrash size={14} className="mr-2" />
+                Deletar permanentemente
+              </ContextMenuItem>
+            </>
+          )}
+        </ContextMenuContent>
+      </ContextMenu>
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deletar canal permanentemente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Todas as mensagens, arquivos e membros do canal{" "}
+              <strong>#{channel.name}</strong> serão removidos. Esta ação não
+              pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => onDeleteChannel?.(channel.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Deletar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
 }
 
-/* ── Collapsible Section Header ────────────────────────────────────── */
+/* ── Collapsible Section Header with Context Menu ──────────────────── */
 
 function SectionHeader({
   label,
   sectionId,
   count,
+  isCustom,
+  onRenameSection,
+  onDeleteSection,
 }: {
   label: string;
   sectionId: string;
   count: number;
+  isCustom?: boolean;
+  onRenameSection?: (id: string, name: string) => void;
+  onDeleteSection?: (id: string) => void;
 }) {
   const collapsed = useChatStore((s) => s.collapsedSections.has(sectionId));
   const toggleSection = useChatStore((s) => s.toggleSection);
+  const renamingSectionId = useChatStore((s) => s.renamingSectionId);
+  const setRenamingSectionId = useChatStore((s) => s.setRenamingSectionId);
 
-  return (
+  const [renameValue, setRenameValue] = useState(label);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const isRenaming = renamingSectionId === sectionId;
+
+  useEffect(() => {
+    if (isRenaming) {
+      setRenameValue(label);
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  }, [isRenaming, label]);
+
+  function handleRenameSubmit() {
+    const trimmed = renameValue.trim();
+    if (trimmed && trimmed !== label) {
+      onRenameSection?.(sectionId, trimmed);
+    }
+    setRenamingSectionId(null);
+  }
+
+  if (isRenaming && isCustom) {
+    return (
+      <div className="flex items-center gap-1 px-2 py-1">
+        <Input
+          ref={inputRef}
+          value={renameValue}
+          onChange={(e) => setRenameValue(e.target.value)}
+          onBlur={handleRenameSubmit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleRenameSubmit();
+            if (e.key === "Escape") setRenamingSectionId(null);
+          }}
+          className="h-6 text-[10px] font-semibold uppercase tracking-wider px-1"
+        />
+      </div>
+    );
+  }
+
+  const headerButton = (
     <button
       type="button"
       onClick={() => toggleSection(sectionId)}
@@ -177,20 +385,113 @@ function SectionHeader({
       )}
     </button>
   );
+
+  if (!isCustom) return headerButton;
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        {headerButton}
+      </ContextMenuTrigger>
+      <ContextMenuContent className="w-48">
+        <ContextMenuItem onClick={() => toggleSection(sectionId)}>
+          {collapsed ? (
+            <>
+              <IconChevronDown size={14} className="mr-2" />
+              Expandir seção
+            </>
+          ) : (
+            <>
+              <IconChevronRight size={14} className="mr-2" />
+              Recolher seção
+            </>
+          )}
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onClick={() => setRenamingSectionId(sectionId)}>
+          <IconPencil size={14} className="mr-2" />
+          Renomear seção
+        </ContextMenuItem>
+        <ContextMenuItem
+          onClick={() => onDeleteSection?.(sectionId)}
+          className="text-destructive focus:text-destructive"
+        >
+          <IconTrash size={14} className="mr-2" />
+          Deletar seção
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
+  );
+}
+
+/* ── Inline Create Section ─────────────────────────────────────────── */
+
+function InlineCreateSection({
+  onSubmit,
+  onCancel,
+}: {
+  onSubmit: (name: string) => void;
+  onCancel: () => void;
+}) {
+  const [value, setValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  function handleSubmit() {
+    const trimmed = value.trim();
+    if (trimmed) {
+      onSubmit(trimmed);
+    }
+    onCancel();
+  }
+
+  return (
+    <div className="flex items-center gap-1 px-2 py-1">
+      <IconFolderPlus size={12} className="shrink-0 text-muted-foreground" />
+      <Input
+        ref={inputRef}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={handleSubmit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleSubmit();
+          if (e.key === "Escape") onCancel();
+        }}
+        placeholder="Nome da seção..."
+        className="h-6 text-[10px] font-semibold uppercase tracking-wider px-1"
+      />
+    </div>
+  );
 }
 
 /* ── Main ChannelList ──────────────────────────────────────────────── */
 
 export function ChannelList({
   channels,
+  archivedChannels = [],
   selectedId,
   onSelect,
   unreadCounts = {},
   currentUserId,
   profileMap = {},
   sections = [],
+  onArchiveChannel,
+  onDeleteChannel,
+  onUnarchiveChannel,
+  onMoveToSection,
+  onCreateSection,
+  onRenameSection,
+  onDeleteSection,
+  canManageChannels = false,
 }: ChannelListProps) {
   const collapsedSections = useChatStore((s) => s.collapsedSections);
+  const showArchivedChannels = useChatStore((s) => s.showArchivedChannels);
+  const setShowArchivedChannels = useChatStore((s) => s.setShowArchivedChannels);
+  const isCreateSectionOpen = useChatStore((s) => s.isCreateSectionOpen);
+  const setCreateSectionOpen = useChatStore((s) => s.setCreateSectionOpen);
 
   // Group channels by type and section
   const { sectionedChannels, unsectionedChannels, directChannels, groupChannels } =
@@ -201,7 +502,6 @@ export function ChannelList({
       const directs = channels.filter((ch) => ch.type === "direct");
       const groups = channels.filter((ch) => ch.type === "group");
 
-      // If no custom sections, return all public channels as unsectioned
       if (sections.length === 0) {
         return {
           sectionedChannels: new Map<string, ChannelWithMembers[]>(),
@@ -211,7 +511,6 @@ export function ChannelList({
         };
       }
 
-      // Group public channels by section_id
       const bySection = new Map<string, ChannelWithMembers[]>();
       const noSection: ChannelWithMembers[] = [];
 
@@ -240,14 +539,26 @@ export function ChannelList({
     unreadCounts,
     currentUserId,
     profileMap,
+    sections,
+    onArchiveChannel,
+    onDeleteChannel,
+    onMoveToSection,
+    canManageChannels,
   };
 
   return (
     <div className="space-y-1">
+      {/* Create Section inline */}
+      {isCreateSectionOpen && (
+        <InlineCreateSection
+          onSubmit={(name) => onCreateSection?.(name)}
+          onCancel={() => setCreateSectionOpen(false)}
+        />
+      )}
+
       {/* Sectioned channels (custom sections from DB) */}
       {sections.map((section) => {
         const sectionChannels = sectionedChannels.get(section.id) ?? [];
-        if (sectionChannels.length === 0) return null;
         const isCollapsed = collapsedSections.has(section.id);
 
         return (
@@ -256,12 +567,21 @@ export function ChannelList({
               label={section.name}
               sectionId={section.id}
               count={sectionChannels.length}
+              isCustom
+              onRenameSection={onRenameSection}
+              onDeleteSection={onDeleteSection}
             />
             {!isCollapsed && (
               <div className="space-y-0.5">
-                {sectionChannels.map((ch) => (
-                  <ChannelItem key={ch.id} channel={ch} {...sharedItemProps} />
-                ))}
+                {sectionChannels.length === 0 ? (
+                  <p className="text-[10px] text-muted-foreground px-4 py-1 italic">
+                    Nenhum canal nesta seção
+                  </p>
+                ) : (
+                  sectionChannels.map((ch) => (
+                    <ChannelItem key={ch.id} channel={ch} {...sharedItemProps} />
+                  ))
+                )}
               </div>
             )}
           </div>
@@ -316,6 +636,58 @@ export function ChannelList({
             <div className="space-y-0.5">
               {groupChannels.map((ch) => (
                 <ChannelItem key={ch.id} channel={ch} {...sharedItemProps} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Archived channels */}
+      {archivedChannels.length > 0 && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowArchivedChannels(!showArchivedChannels)}
+            className="flex w-full items-center gap-1 px-2 py-1 group cursor-pointer"
+          >
+            {showArchivedChannels ? (
+              <IconChevronDown
+                size={12}
+                className="shrink-0 text-muted-foreground group-hover:text-foreground transition-colors"
+              />
+            ) : (
+              <IconChevronRight
+                size={12}
+                className="shrink-0 text-muted-foreground group-hover:text-foreground transition-colors"
+              />
+            )}
+            <IconArchive
+              size={11}
+              className="shrink-0 text-muted-foreground group-hover:text-foreground transition-colors"
+            />
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider group-hover:text-foreground transition-colors">
+              Arquivados
+            </span>
+            <span className="text-[9px] text-muted-foreground ml-auto">
+              {archivedChannels.length}
+            </span>
+          </button>
+          {showArchivedChannels && (
+            <div className="space-y-0.5 opacity-60">
+              {archivedChannels.map((ch) => (
+                <ChannelItem
+                  key={ch.id}
+                  channel={ch}
+                  selectedId={selectedId}
+                  onSelect={onSelect}
+                  unreadCounts={unreadCounts}
+                  currentUserId={currentUserId}
+                  profileMap={profileMap}
+                  canManageChannels={canManageChannels}
+                  isArchived
+                  onUnarchiveChannel={onUnarchiveChannel}
+                  onDeleteChannel={onDeleteChannel}
+                />
               ))}
             </div>
           )}

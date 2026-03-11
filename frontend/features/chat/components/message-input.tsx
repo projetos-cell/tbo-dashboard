@@ -1,17 +1,20 @@
 "use client";
 
-import { useState, useRef, useCallback, type KeyboardEvent } from "react";
+import { useState, useRef, useCallback, type KeyboardEvent, type DragEvent } from "react";
 import {
   IconSend,
   IconPaperclip,
   IconX,
   IconFile,
+  IconUpload,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { isImageFile } from "@/features/chat/services/chat-attachments";
 import { MentionPopup, type MentionOption } from "./mention-popup";
 import { EmojiPicker } from "./emoji-picker";
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 export interface PendingFile {
   file: File;
@@ -36,8 +39,10 @@ export function MessageInput({
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionStart, setMentionStart] = useState(-1);
+  const [isDragOver, setIsDragOver] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dragCounterRef = useRef(0);
 
   function handleSend() {
     const trimmed = content.trim();
@@ -125,16 +130,60 @@ export function MessageInput({
     }
   }
 
-  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
-    const newPending: PendingFile[] = files.map((file) => ({
+  function addFiles(files: File[]) {
+    const valid = files.filter((f) => {
+      if (f.size > MAX_FILE_SIZE) {
+        // TODO: toast feedback could be added here
+        return false;
+      }
+      return true;
+    });
+    if (valid.length === 0) return;
+    const newPending: PendingFile[] = valid.map((file) => ({
       file,
       previewUrl: isImageFile(file.type)
         ? URL.createObjectURL(file)
         : undefined,
     }));
     setPendingFiles((prev) => [...prev, ...newPending]);
+  }
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    addFiles(Array.from(e.target.files ?? []));
     if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  // ── Drag & drop handlers ──
+  function handleDragEnter(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current++;
+    if (e.dataTransfer.types.includes("Files")) {
+      setIsDragOver(true);
+    }
+  }
+
+  function handleDragLeave(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) {
+      setIsDragOver(false);
+    }
+  }
+
+  function handleDragOver(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  function handleDrop(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current = 0;
+    setIsDragOver(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) addFiles(files);
   }
 
   function removeFile(index: number) {
@@ -153,7 +202,23 @@ export function MessageInput({
   }
 
   return (
-    <div className="border-t p-3">
+    <div
+      className="relative border-t p-3"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {/* Drag overlay */}
+      {isDragOver && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center rounded-lg border-2 border-dashed border-primary bg-primary/5">
+          <div className="flex items-center gap-2 text-sm font-medium text-primary">
+            <IconUpload size={20} />
+            Solte arquivos aqui
+          </div>
+        </div>
+      )}
+
       {/* Pending files preview */}
       {pendingFiles.length > 0 && (
         <div className="flex gap-2 mb-2 flex-wrap px-1">

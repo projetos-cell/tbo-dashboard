@@ -175,7 +175,71 @@ export async function notifyTaskAssigned(
   });
 }
 
-// ─── C) Task updated notification ───
+// ─── C) Chat mention notification ───
+
+const MENTION_REGEX = /<@([a-f0-9-]+)>/g;
+
+/** Extract unique user IDs from mention patterns in message content */
+export function extractMentionIds(content: string): string[] {
+  const ids = new Set<string>();
+  let match: RegExpExecArray | null;
+  MENTION_REGEX.lastIndex = 0;
+  while ((match = MENTION_REGEX.exec(content)) !== null) {
+    ids.add(match[1]);
+  }
+  return Array.from(ids);
+}
+
+/**
+ * Called after sending a chat message that contains @mentions.
+ * Creates a mention notification for each mentioned user (excluding self).
+ */
+export async function notifyOnChatMention(
+  supabase: SupabaseClient<Database>,
+  params: {
+    tenantId: string;
+    senderId: string;
+    senderName: string;
+    channelId: string;
+    channelName: string;
+    messageContent: string;
+    mentionedUserIds: string[];
+  }
+): Promise<void> {
+  const {
+    tenantId,
+    senderId,
+    senderName,
+    channelId,
+    channelName,
+    messageContent,
+    mentionedUserIds,
+  } = params;
+
+  const preview =
+    messageContent.length > 120
+      ? messageContent.slice(0, 120) + "..."
+      : messageContent;
+
+  for (const userId of new Set(mentionedUserIds)) {
+    if (userId === senderId) continue; // A.9: never notify self
+    await insertNotification(supabase, {
+      user_id: userId,
+      tenant_id: tenantId,
+      actor_id: senderId,
+      trigger_type: "mention",
+      type: "chat",
+      entity_type: "chat_channel",
+      entity_id: channelId,
+      title: `${senderName} mencionou você em #${channelName}`,
+      body: preview,
+      action_url: `/chat?channel=${channelId}`,
+      read: false,
+    });
+  }
+}
+
+// ─── D) Task updated notification ───
 
 const TRACKED_FIELDS = [
   "status",

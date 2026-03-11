@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   IconMessageCircle2,
   IconHash,
@@ -10,7 +10,9 @@ import {
   IconSearch,
   IconArrowLeft,
   IconLock,
+  IconFolderPlus,
 } from "@tabler/icons-react";
+import { PinnedBanner } from "./pinned-banner";
 import { ChannelList } from "./channel-list";
 import { MessageList } from "./message-list";
 import { MessageInput } from "./message-input";
@@ -35,12 +37,24 @@ import {
   useUnreadCounts,
   useSections,
   useTogglePin,
+  useArchivedChannels,
+  useArchiveChannel,
+  useUnarchiveChannel,
+  useDeleteChannelPermanently,
+  useUpdateChannel,
+  useCreateSection,
+  useUpdateSection,
+  useDeleteSection,
   flattenMessages,
 } from "@/features/chat/hooks/use-chat";
 import {
   uploadChatFile,
   createAttachmentRecord,
 } from "@/features/chat/services/chat-attachments";
+import {
+  extractMentionIds,
+  notifyOnChatMention,
+} from "@/services/notification-triggers";
 import { useProfiles } from "@/features/people/hooks/use-people";
 import { useTypingIndicator } from "@/features/chat/hooks/use-typing-indicator";
 import { useChatPresence } from "@/features/chat/hooks/use-presence";
@@ -58,6 +72,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export function ChatLayout() {
   const tenantId = useAuthStore((s) => s.tenantId);
@@ -70,13 +85,38 @@ export function ChatLayout() {
   const setCreateDMOpen = useChatStore((s) => s.setCreateDMOpen);
   const setChannelSettingsOpen = useChatStore((s) => s.setChannelSettingsOpen);
   const toggleSearch = useChatStore((s) => s.toggleSearch);
+  const isSearchOpen = useChatStore((s) => s.isSearchOpen);
+  const setSearchQuery = useChatStore((s) => s.setSearchQuery);
+
+  // Ctrl/Cmd+F opens search, Escape closes it
+  const handleSearchKeyboard = useCallback(
+    (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
+        e.preventDefault();
+        if (!isSearchOpen) toggleSearch();
+      }
+      if (e.key === "Escape" && isSearchOpen) {
+        toggleSearch();
+        setSearchQuery("");
+      }
+    },
+    [isSearchOpen, toggleSearch, setSearchQuery],
+  );
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleSearchKeyboard);
+    return () => document.removeEventListener("keydown", handleSearchKeyboard);
+  }, [handleSearchKeyboard]);
 
   // Mobile: show conversation panel vs sidebar
   const [showConversation, setShowConversation] = useState(false);
 
+  const setCreateSectionOpen = useChatStore((s) => s.setCreateSectionOpen);
+
   const { data: channels, isLoading: loadingChannels } =
     useChannelsWithMembers();
   const { data: sections } = useSections();
+  const { data: archivedChannels } = useArchivedChannels();
   const { data: profiles } = useProfiles();
   const messagesQuery = useMessages(selectedChannelId);
   const { data: unreadData } = useUnreadCounts();
@@ -88,6 +128,13 @@ export function ChatLayout() {
   const deleteMsg = useDeleteMessage();
   const togglePin = useTogglePin();
   const markAsRead = useMarkAsRead();
+  const archiveChannelMut = useArchiveChannel();
+  const unarchiveChannelMut = useUnarchiveChannel();
+  const deleteChannelMut = useDeleteChannelPermanently();
+  const updateChannelMut = useUpdateChannel();
+  const createSectionMut = useCreateSection();
+  const updateSectionMut = useUpdateSection();
+  const deleteSectionMut = useDeleteSection();
 
   const messages = flattenMessages(messagesQuery.data);
   const selectedChannel = channels?.find((c) => c.id === selectedChannelId);
@@ -112,6 +159,27 @@ export function ChatLayout() {
       | undefined,
     isCreator: selectedChannel?.created_by === userId,
   });
+
+  const channelPermCtx = useMemo(
+    () => ({
+      userRole,
+      channelMemberRole: myMemberRole,
+      channelSettings: null as null,
+      isCreator: selectedChannel?.created_by === userId,
+    }),
+    [userRole, myMemberRole, selectedChannel, userId],
+  );
+  const canPin = canPerformChannelAction("pin_message", channelPermCtx);
+
+  // Scroll to a specific message by ID (used by pinned banner)
+  const handleScrollToMessage = useCallback((messageId: string) => {
+    const el = document.getElementById(`msg-${messageId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("bg-primary/10");
+      setTimeout(() => el.classList.remove("bg-primary/10"), 2000);
+    }
+  }, []);
 
   // Build profile map for avatars + names
   const profileMap = useMemo(
@@ -151,6 +219,38 @@ export function ChatLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedChannelId, userId]);
 
+  const canManageChannels = hasPermission(userRole, "chat.create_channel");
+
+  function handleArchiveChannel(id: string) {
+    archiveChannelMut.mutate(id);
+    if (selectedChannelId === id) setSelectedChannelId(null);
+  }
+
+  function handleDeleteChannel(id: string) {
+    deleteChannelMut.mutate(id);
+    if (selectedChannelId === id) setSelectedChannelId(null);
+  }
+
+  function handleUnarchiveChannel(id: string) {
+    unarchiveChannelMut.mutate(id);
+  }
+
+  function handleMoveToSection(channelId: string, sectionId: string | null) {
+    updateChannelMut.mutate({ id: channelId, updates: { section_id: sectionId } });
+  }
+
+  function handleCreateSection(name: string) {
+    createSectionMut.mutate({ name });
+  }
+
+  function handleRenameSection(id: string, name: string) {
+    updateSectionMut.mutate({ id, updates: { name } });
+  }
+
+  function handleDeleteSection(id: string) {
+    deleteSectionMut.mutate(id);
+  }
+
   function handleSelectChannel(id: string) {
     setSelectedChannelId(id);
     setShowConversation(true);
@@ -167,16 +267,52 @@ export function ChatLayout() {
       message_type: files?.length ? "file" : "text",
     });
 
+    const supabase = (await import("@/lib/supabase/client")).createClient();
+
+    // A.8: Notify mentioned users (fire-and-forget)
+    const mentionedIds = extractMentionIds(content);
+    if (mentionedIds.length > 0) {
+      const senderName = profileMap[userId]?.name ?? "Alguém";
+      const channelName = selectedChannel?.name ?? "chat";
+      notifyOnChatMention(supabase, {
+        tenantId,
+        senderId: userId,
+        senderName,
+        channelId: selectedChannelId,
+        channelName,
+        messageContent: content,
+        mentionedUserIds: mentionedIds,
+      }).catch(() => {});
+    }
+
     // Upload files and create attachment records
     if (files?.length && message?.id) {
-      const supabase = (await import("@/lib/supabase/client")).createClient();
+      const toastId = toast.loading(
+        `Enviando ${files.length} arquivo${files.length > 1 ? "s" : ""}...`,
+      );
+      let successCount = 0;
+      let failCount = 0;
+
       for (const file of files) {
         try {
           const { url } = await uploadChatFile(supabase, tenantId, selectedChannelId, file);
           await createAttachmentRecord(supabase, message.id, file, url);
+          successCount++;
         } catch {
-          // File upload failed silently — message already sent
+          failCount++;
         }
+      }
+
+      if (failCount === 0) {
+        toast.success(
+          `${successCount} arquivo${successCount > 1 ? "s" : ""} enviado${successCount > 1 ? "s" : ""}`,
+          { id: toastId },
+        );
+      } else {
+        toast.error(
+          `${failCount} arquivo${failCount > 1 ? "s" : ""} falhou. ${successCount} enviado${successCount > 1 ? "s" : ""}.`,
+          { id: toastId },
+        );
       }
     }
   }
@@ -252,19 +388,34 @@ export function ChatLayout() {
               <TooltipContent side="bottom">Nova conversa</TooltipContent>
             </Tooltip>
             {canCreateChannel && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => setCreateChannelOpen(true)}
-                  >
-                    <IconPlus size={16} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Criar canal</TooltipContent>
-              </Tooltip>
+              <>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => setCreateSectionOpen(true)}
+                    >
+                      <IconFolderPlus size={16} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Criar seção</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => setCreateChannelOpen(true)}
+                    >
+                      <IconPlus size={16} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Criar canal</TooltipContent>
+                </Tooltip>
+              </>
             )}
           </div>
         </div>
@@ -291,12 +442,21 @@ export function ChatLayout() {
           ) : (
             <ChannelList
               channels={channels}
+              archivedChannels={archivedChannels ?? []}
               selectedId={selectedChannelId}
               onSelect={handleSelectChannel}
               unreadCounts={unreadCounts}
               currentUserId={userId}
               profileMap={profileMap}
               sections={sections ?? []}
+              onArchiveChannel={handleArchiveChannel}
+              onDeleteChannel={handleDeleteChannel}
+              onUnarchiveChannel={handleUnarchiveChannel}
+              onMoveToSection={handleMoveToSection}
+              onCreateSection={handleCreateSection}
+              onRenameSection={handleRenameSection}
+              onDeleteSection={handleDeleteSection}
+              canManageChannels={canManageChannels}
             />
           )}
         </div>
@@ -390,6 +550,13 @@ export function ChatLayout() {
               </div>
             </div>
 
+            {/* Pinned message banner */}
+            <PinnedBanner
+              channelId={selectedChannelId}
+              profileMap={profileMap}
+              onClickMessage={handleScrollToMessage}
+            />
+
             {/* Messages */}
             {messagesQuery.isLoading ? (
               <div className="flex flex-1 items-center justify-center">
@@ -405,7 +572,7 @@ export function ChatLayout() {
                 fetchNextPage={messagesQuery.fetchNextPage}
                 onEditMessage={handleEdit}
                 onDeleteMessage={handleDelete}
-                onTogglePin={handleTogglePin}
+                onTogglePin={canPin ? handleTogglePin : undefined}
                 canDeleteOthers={canDeleteOthers}
               />
             )}

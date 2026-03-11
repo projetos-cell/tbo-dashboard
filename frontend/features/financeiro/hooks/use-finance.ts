@@ -37,7 +37,7 @@ import {
   type PayrollBreakdownData,
   type BankStatement,
   type BankStatementFilters,
-} from "@/features/financeiro/services/finance";
+} from "@/features/financeiro/services";
 
 // ── Transactions ──────────────────────────────────────────────────────────────
 

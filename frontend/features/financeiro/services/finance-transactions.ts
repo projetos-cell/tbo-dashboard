@@ -1,0 +1,283 @@
+import type { FinanceSupabase } from "./finance-types";
+import {
+  TABLE_TRANSACTIONS,
+  TABLE_CATEGORIES,
+  TABLE_COST_CENTERS,
+  TABLE_SNAPSHOTS,
+  type FinanceTransaction,
+  type FinanceCategory,
+  type FinanceCostCenter,
+  type FinanceSnapshot,
+  type FinanceStatus,
+  type FinanceStatusWithAmounts,
+  type FinanceFilters,
+  type FinanceSyncResult,
+} from "./finance-types";
+
+// ── Transactions (paginated) ─────────────────────────────────────────────────
+
+export async function getFinanceTransactions(
+  supabase: FinanceSupabase,
+  filters: FinanceFilters = {}
+): Promise<{ data: FinanceTransaction[]; count: number }> {
+  const page = filters.page ?? 1;
+  const pageSize = filters.pageSize ?? 50;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  let query = supabase
+    .from(TABLE_TRANSACTIONS)
+    .select("*", { count: "exact" })
+    .order("date", { ascending: false });
+
+  if (filters.type) query = query.eq("type", filters.type);
+  if (filters.typeIn?.length) query = query.in("type", filters.typeIn);
+  if (filters.status) query = query.eq("status", filters.status);
+  if (filters.statusIn?.length) query = query.in("status", filters.statusIn);
+  if (filters.category_id) query = query.eq("category_id", filters.category_id);
+  if (filters.cost_center_id)
+    query = query.eq("cost_center_id", filters.cost_center_id);
+  if (filters.business_unit)
+    query = query.eq("business_unit", filters.business_unit);
+  if (filters.project_id)
+    query = query.eq("project_id", filters.project_id);
+  if (filters.dateField === "paid_date") {
+    if (filters.dateFrom && filters.dateTo) {
+      query = query.or(
+        `and(paid_date.gte.${filters.dateFrom},paid_date.lte.${filters.dateTo}),` +
+        `and(paid_date.is.null,date.gte.${filters.dateFrom},date.lte.${filters.dateTo})`
+      );
+    } else if (filters.dateFrom) {
+      query = query.or(
+        `paid_date.gte.${filters.dateFrom},and(paid_date.is.null,date.gte.${filters.dateFrom})`
+      );
+    } else if (filters.dateTo) {
+      query = query.or(
+        `paid_date.lte.${filters.dateTo},and(paid_date.is.null,date.lte.${filters.dateTo})`
+      );
+    }
+  } else {
+    if (filters.dateFrom) query = query.gte("date", filters.dateFrom);
+    if (filters.dateTo) query = query.lte("date", filters.dateTo);
+  }
+  if (filters.search)
+    query = query.ilike("description", `%${filters.search}%`);
+
+  query = query.range(from, to);
+
+  const { data, error, count } = await query;
+  if (error) throw error;
+
+  return {
+    data: (data ?? []) as FinanceTransaction[],
+    count: count ?? 0,
+  };
+}
+
+// ── Categories ───────────────────────────────────────────────────────────────
+
+export async function getFinanceCategories(
+  supabase: FinanceSupabase,
+  activeOnly = true
+): Promise<FinanceCategory[]> {
+  let query = supabase
+    .from(TABLE_CATEGORIES)
+    .select("*")
+    .order("name");
+
+  if (activeOnly) query = query.eq("is_active", true);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as FinanceCategory[];
+}
+
+// ── Cost Centers ─────────────────────────────────────────────────────────────
+
+export async function getFinanceCostCenters(
+  supabase: FinanceSupabase,
+  activeOnly = true
+): Promise<FinanceCostCenter[]> {
+  let query = supabase
+    .from(TABLE_COST_CENTERS)
+    .select("*")
+    .order("code");
+
+  if (activeOnly) query = query.eq("is_active", true);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as FinanceCostCenter[];
+}
+
+// ── Snapshots ────────────────────────────────────────────────────────────────
+
+export async function getFinanceSnapshots(
+  supabase: FinanceSupabase,
+  days = 30
+): Promise<FinanceSnapshot[]> {
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+  const sinceStr = since.toISOString().split("T")[0];
+
+  const { data, error } = await supabase
+    .from(TABLE_SNAPSHOTS)
+    .select("*")
+    .gte("snapshot_date", sinceStr)
+    .order("snapshot_date", { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []) as FinanceSnapshot[];
+}
+
+// ── Status ───────────────────────────────────────────────────────────────────
+
+export async function getFinanceStatus(
+  supabase: FinanceSupabase
+): Promise<FinanceStatus> {
+  const [txRes, catRes, ccRes] = await Promise.all([
+    supabase
+      .from(TABLE_TRANSACTIONS)
+      .select("type, status, omie_synced_at", { count: "exact" }),
+    supabase
+      .from(TABLE_CATEGORIES)
+      .select("id", { count: "exact" })
+      .eq("is_active", true),
+    supabase
+      .from(TABLE_COST_CENTERS)
+      .select("id", { count: "exact" })
+      .eq("is_active", true),
+  ]);
+
+  const transactions = (txRes.data ?? []) as Array<{
+    type: string;
+    status: string;
+    omie_synced_at: string | null;
+  }>;
+
+  const receitas = transactions.filter((t) => t.type === "receita").length;
+  const despesas = transactions.filter((t) => t.type === "despesa").length;
+  const pending = transactions.filter((t) => t.status === "previsto" || t.status === "provisionado").length;
+  const paid = transactions.filter((t) => t.status === "pago" || t.status === "liquidado" || t.status === "parcial").length;
+  const overdue = transactions.filter((t) => t.status === "atrasado").length;
+
+  const syncDates = transactions
+    .map((t) => t.omie_synced_at)
+    .filter(Boolean)
+    .sort()
+    .reverse();
+
+  return {
+    totalTransactions: txRes.count ?? 0,
+    totalReceitas: receitas,
+    totalDespesas: despesas,
+    pendingCount: pending,
+    paidCount: paid,
+    overdueCount: overdue,
+    lastSyncAt: syncDates[0] ?? null,
+    categoriesCount: catRes.count ?? 0,
+    costCentersCount: ccRes.count ?? 0,
+  };
+}
+
+// ── Status with monetary amounts ─────────────────────────────────────────────
+
+export async function getFinanceStatusWithAmounts(
+  supabase: FinanceSupabase,
+  dateFrom?: string,
+  dateTo?: string
+): Promise<FinanceStatusWithAmounts> {
+  let query = supabase
+    .from(TABLE_TRANSACTIONS)
+    .select("type, status, amount, paid_amount");
+
+  if (dateFrom) query = query.gte("date", dateFrom);
+  if (dateTo) query = query.lte("date", dateTo);
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const rows = (data ?? []) as Array<{
+    type: string;
+    status: string;
+    amount: number;
+    paid_amount: number;
+  }>;
+
+  const isAR = (r: typeof rows[0]) =>
+    r.type === "receita" &&
+    (r.status === "previsto" || r.status === "provisionado" || r.status === "atrasado");
+
+  const isAP = (r: typeof rows[0]) =>
+    r.type === "despesa" &&
+    (r.status === "previsto" || r.status === "provisionado" || r.status === "atrasado");
+
+  const isPending = (r: typeof rows[0]) =>
+    r.status === "previsto" || r.status === "provisionado";
+
+  const arRows = rows.filter(isAR);
+  const apRows = rows.filter(isAP);
+
+  const arAmount = arRows.reduce((s, r) => s + (r.paid_amount || r.amount || 0), 0);
+  const apAmount = apRows.reduce((s, r) => s + (r.paid_amount || r.amount || 0), 0);
+
+  return {
+    arCount: arRows.length,
+    arAmount,
+    apCount: apRows.length,
+    apAmount,
+    pendingCount: rows.filter(isPending).length,
+    overdueCount: rows.filter((r) => r.status === "atrasado").length,
+    gap: arAmount - apAmount,
+  };
+}
+
+// ── Chart data (unpaginated) ─────────────────────────────────────────────────
+
+export async function getFinanceChartData(
+  supabase: FinanceSupabase,
+  filters: Omit<FinanceFilters, "page" | "pageSize" | "search"> = {}
+): Promise<FinanceTransaction[]> {
+  let query = supabase
+    .from(TABLE_TRANSACTIONS)
+    .select(
+      "id, type, status, amount, paid_amount, date, due_date, category_id, cost_center_id, business_unit"
+    )
+    .order("date", { ascending: true })
+    .limit(500);
+
+  if (filters.type) query = query.eq("type", filters.type);
+  if (filters.typeIn?.length) query = query.in("type", filters.typeIn);
+  if (filters.statusIn?.length) query = query.in("status", filters.statusIn);
+  if (filters.status) query = query.eq("status", filters.status);
+  if (filters.category_id) query = query.eq("category_id", filters.category_id);
+  if (filters.business_unit) query = query.eq("business_unit", filters.business_unit);
+
+  const dateField = filters.dateField ?? "date";
+  if (filters.dateFrom) query = query.gte(dateField, filters.dateFrom);
+  if (filters.dateTo) query = query.lte(dateField, filters.dateTo);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as FinanceTransaction[];
+}
+
+// ── Client-side API wrappers ─────────────────────────────────────────────────
+
+export async function triggerFinanceSync(): Promise<FinanceSyncResult> {
+  const res = await fetch("/api/finance/sync-omie", { method: "POST" });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    return {
+      ok: false,
+      message: body.error ?? `Sync failed (${res.status})`,
+    };
+  }
+  return res.json();
+}
+
+export async function fetchFinanceStatus(): Promise<FinanceStatus> {
+  const res = await fetch("/api/finance/status");
+  if (!res.ok) throw new Error(`Failed to fetch status (${res.status})`);
+  return res.json();
+}

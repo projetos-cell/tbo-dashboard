@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import type { RevenueConcentrationData, ClientConcentration } from "@/features/financeiro/services/finance";
+import type { RevenueConcentrationData, ClientConcentration } from "@/features/financeiro/services";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

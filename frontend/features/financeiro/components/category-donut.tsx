@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useFinanceChartData, useFinanceCategories } from "@/features/financeiro/hooks/use-finance";
-import type { FinanceFilters } from "@/features/financeiro/services/finance";
+import type { FinanceFilters } from "@/features/financeiro/services";
 import {
   PieChart,
   Pie,

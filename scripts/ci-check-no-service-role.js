@@ -2,21 +2,21 @@
 /**
  * CI Guardrail: Verifica que NÃO existe service_role key em código frontend.
  *
- * Escaneia todos os arquivos JS/HTML na raiz e pastas src/, utils/, modules/, js/
- * (excluindo supabase/functions/, archive/, node_modules/).
+ * Escaneia frontend/ (excluindo node_modules/, .next/, supabase/, archive/, etc.).
+ * API routes (frontend/app/api/) são server-side e podem usar service_role.
  *
  * Retorna exit code 1 se encontrar violação.
  */
 
-import { readFileSync, readdirSync, statSync } from 'fs';
-import { join, extname } from 'path';
+const fs = require('fs');
+const path = require('path');
 
 const ROOT = process.cwd();
 const SCAN_DIRS = ['frontend'];
 const SKIP_DIRS = ['node_modules', '.next', 'supabase', 'archive', 'database', 'docs', '.git', 'scripts'];
 // API routes são server-side e podem usar service_role legitimamente
 const SKIP_PATHS = ['frontend/app/api'];
-const SCAN_EXTS = ['.js', '.html', '.htm', '.ts'];
+const SCAN_EXTS = ['.js', '.html', '.htm', '.ts', '.tsx'];
 
 function normalize(p) { return p.replace(/\\/g, '/'); }
 
@@ -29,12 +29,12 @@ const PATTERNS = [
 let violations = 0;
 
 function scanFile(filePath) {
-  const content = readFileSync(filePath, 'utf-8');
+  const content = fs.readFileSync(filePath, 'utf-8');
   for (const pattern of PATTERNS) {
     pattern.lastIndex = 0;
     const match = pattern.exec(content);
     if (match) {
-      const relPath = filePath.replace(ROOT + '/', '').replace(ROOT + '\\', '');
+      const relPath = normalize(filePath.replace(ROOT + '/', '').replace(ROOT + '\\', ''));
       console.error(`  FAIL: ${relPath} — contém "${match[0].substring(0, 40)}..."`);
       violations++;
     }
@@ -44,22 +44,22 @@ function scanFile(filePath) {
 function scanDir(dirPath) {
   let entries;
   try {
-    entries = readdirSync(dirPath);
+    entries = fs.readdirSync(dirPath);
   } catch {
     return;
   }
 
   for (const entry of entries) {
     if (SKIP_DIRS.includes(entry)) continue;
-    const fullPath = join(dirPath, entry);
+    const fullPath = path.join(dirPath, entry);
     const relPath = normalize(fullPath.replace(ROOT + '/', '').replace(ROOT + '\\', ''));
     // Skip server-side API routes (they can legitimately use service_role)
     if (SKIP_PATHS.some(sp => relPath.startsWith(sp))) continue;
-    const stat = statSync(fullPath);
+    const stat = fs.statSync(fullPath);
 
     if (stat.isDirectory()) {
       scanDir(fullPath);
-    } else if (SCAN_EXTS.includes(extname(entry).toLowerCase())) {
+    } else if (SCAN_EXTS.includes(path.extname(entry).toLowerCase())) {
       scanFile(fullPath);
     }
   }
@@ -68,18 +68,18 @@ function scanDir(dirPath) {
 console.log('=== CI: Verificando ausência de service_role no frontend ===\n');
 
 // Escanear root files
-for (const entry of readdirSync(ROOT)) {
+for (const entry of fs.readdirSync(ROOT)) {
   if (SKIP_DIRS.includes(entry)) continue;
-  const fullPath = join(ROOT, entry);
-  const stat = statSync(fullPath);
-  if (!stat.isDirectory() && SCAN_EXTS.includes(extname(entry).toLowerCase())) {
+  const fullPath = path.join(ROOT, entry);
+  const stat = fs.statSync(fullPath);
+  if (!stat.isDirectory() && SCAN_EXTS.includes(path.extname(entry).toLowerCase())) {
     scanFile(fullPath);
   }
 }
 
 // Escanear subdirs
 for (const dir of SCAN_DIRS) {
-  scanDir(join(ROOT, dir));
+  scanDir(path.join(ROOT, dir));
 }
 
 console.log('');

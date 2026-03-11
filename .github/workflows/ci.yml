@@ -125,13 +125,13 @@ jobs:
           node-version: '20'
 
       - name: Check no service_role in frontend
-        run: node --experimental-modules scripts/ci-check-no-service-role.js
+        run: node scripts/ci-check-no-service-role.js
 
       - name: Check single Supabase client
-        run: node --experimental-modules scripts/ci-check-single-supabase-client.js
+        run: node scripts/ci-check-single-supabase-client.js
 
       - name: Validate structure
-        run: node --experimental-modules scripts/validate-build.js
+        run: node scripts/validate-build.js
 
   # ── 5. Migration Validation ───────────────────────────────────────────
   migrations:

@@ -144,17 +144,17 @@ export async function getOverdueEntries(
 ): Promise<OverdueEntriesData> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const todayStr = today.toISOString().split("T")[0];
 
   const futureLimit = new Date(today);
   futureLimit.setMonth(futureLimit.getMonth() + 12);
   const futureLimitStr = futureLimit.toISOString().split("T")[0];
 
-  const upperBound = type === "ap" ? todayStr : futureLimitStr;
+  // AP and AR both show future (a vencer) + overdue
+  const upperBound = futureLimitStr;
 
   let query = supabase
     .from(TABLE_TRANSACTIONS)
-    .select("id, type, status, description, counterpart, amount, due_date, category_id, cost_center_id")
+    .select("id, type, status, description, counterpart, counterpart_doc, amount, paid_amount, due_date, date, category_id, cost_center_id, omie_num_titulo, omie_juros, omie_multa, omie_desconto, payment_method, notes")
     .in("status", ["previsto", "atrasado", "provisionado"])
     .not("due_date", "is", null)
     .lte("due_date", upperBound)
@@ -172,10 +172,19 @@ export async function getOverdueEntries(
     status: string;
     description: string;
     counterpart: string | null;
+    counterpart_doc: string | null;
     amount: number;
+    paid_amount: number;
     due_date: string;
+    date: string | null;
     category_id: string | null;
     cost_center_id: string | null;
+    omie_num_titulo: string | null;
+    omie_juros: number | null;
+    omie_multa: number | null;
+    omie_desconto: number | null;
+    payment_method: string | null;
+    notes: string | null;
   }>;
 
   // Fetch category names
@@ -220,7 +229,8 @@ export async function getOverdueEntries(
       (today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)
     );
     const amount = Math.abs(row.amount ?? 0);
-    const isProjected = diffDays < 1 && row.type === "receita";
+    // For AR: future entries are projected. For AP: future entries are also "projected" (a vencer)
+    const isProjected = diffDays < 1;
 
     const entry: OverdueEntry = {
       id: row.id,
@@ -228,17 +238,28 @@ export async function getOverdueEntries(
       status: row.status,
       description: row.description,
       counterpart: row.counterpart,
+      counterpart_doc: row.counterpart_doc,
       amount,
+      paid_amount: Math.abs(row.paid_amount ?? 0),
       due_date: row.due_date,
+      date: row.date,
       days_overdue: diffDays,
       category_name: row.category_id ? catLookup.get(row.category_id) ?? null : null,
       cost_center_name: row.cost_center_id ? ccLookup.get(row.cost_center_id) ?? null : null,
+      omie_num_titulo: row.omie_num_titulo,
+      omie_juros: row.omie_juros ?? 0,
+      omie_multa: row.omie_multa ?? 0,
+      omie_desconto: row.omie_desconto ?? 0,
+      payment_method: row.payment_method,
+      notes: row.notes,
       isProjected,
     };
 
     if (isProjected) {
-      projectedAr += amount;
-      projectedArCount += 1;
+      if (row.type === "receita") {
+        projectedAr += amount;
+        projectedArCount += 1;
+      }
       projectedEntries.push(entry);
     } else {
       if (row.type === "receita") {

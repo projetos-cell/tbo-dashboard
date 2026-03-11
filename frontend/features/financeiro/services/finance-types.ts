@@ -240,11 +240,20 @@ export interface OverdueEntry {
   status: string;
   description: string;
   counterpart: string | null;
+  counterpart_doc: string | null;
   amount: number;
+  paid_amount: number;
   due_date: string;
+  date: string | null;
   days_overdue: number;
   category_name: string | null;
   cost_center_name: string | null;
+  omie_num_titulo: string | null;
+  omie_juros: number;
+  omie_multa: number;
+  omie_desconto: number;
+  payment_method: string | null;
+  notes: string | null;
   isProjected: boolean;
 }
 

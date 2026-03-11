@@ -25,7 +25,7 @@ export interface ContractFilters {
   dynamicStatuses?: readonly ContractDynamicStatusKey[];
 }
 
-/** Build sort params from the sortBy token */
+/** Build sort params from the sortBy token — query builder type is not narrowable per-table */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function applySorting(query: any, sortBy?: ContractSortValue) {
   switch (sortBy) {

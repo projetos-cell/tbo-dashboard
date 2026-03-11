@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, LogOut, Search } from "lucide-react";
+import { LogOut, Search } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -12,49 +12,17 @@ import {
   SidebarHeader,
   SidebarInput,
   SidebarMenu,
-  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth-store";
-import { useAlertCount } from "@/hooks/use-alert-count";
 import { useLogout } from "@/hooks/use-logout";
 import { useSidebarSearch } from "@/hooks/use-sidebar-search";
 import { getIcon } from "@/lib/icons";
 import { SIDEBAR_NAV_GROUPS, FOOTER_NAV_ITEMS } from "@/lib/navigation";
 import { CollapsibleNavGroup } from "@/components/layout/sidebar/collapsible-nav-group";
-
-function AlertsItem({ pathname, canSee }: { pathname: string; canSee: (m: string) => boolean }) {
-  const count = useAlertCount();
-
-  if (!canSee("alerts")) return null;
-
-  const isActive = pathname === "/alerts" || pathname.startsWith("/alerts/");
-
-  return (
-    <SidebarGroup>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={isActive}>
-              <Link href="/alerts">
-                <Bell className="h-4 w-4" />
-                <span>Alertas</span>
-              </Link>
-            </SidebarMenuButton>
-            {count > 0 && (
-              <SidebarMenuBadge className="bg-destructive text-destructive-foreground text-[10px]">
-                {count > 99 ? "99+" : count}
-              </SidebarMenuBadge>
-            )}
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  );
-}
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -102,9 +70,6 @@ export function AppSidebar() {
             </div>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {/* Alertas — fixed at top */}
-        <AlertsItem pathname={pathname} canSee={canSee} />
 
         {/* Nav groups */}
         {filteredGroups.map((group) => (

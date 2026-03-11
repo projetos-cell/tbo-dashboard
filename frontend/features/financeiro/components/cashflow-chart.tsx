@@ -84,8 +84,7 @@ export function CashflowProjectionChart() {
         <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
         <YAxis tickFormatter={fmtCompact} tick={{ fontSize: 10 }} width={72} />
         <Tooltip
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          formatter={(v: any, name: any) => [fmtFull(v ?? 0), name]}
+          formatter={(v: number | undefined, name: string | undefined) => [fmtFull(v ?? 0), name ?? ""]}
           labelStyle={{ fontWeight: 600 }}
         />
         <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="4 4" />
@@ -166,8 +165,7 @@ export function SaldoDiarioChart({ days = 90 }: { days?: number }) {
         <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
         <YAxis tickFormatter={fmtCompact} tick={{ fontSize: 10 }} width={72} />
         <Tooltip
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          formatter={(v: any, name: any) => [fmtFull(v ?? 0), name]}
+          formatter={(v: number | undefined, name: string | undefined) => [fmtFull(v ?? 0), name ?? ""]}
           labelStyle={{ fontWeight: 600 }}
         />
         <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="4 4" />

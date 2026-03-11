@@ -70,10 +70,6 @@ export function AIChatInput({ onSubmit, externalValue }: AIChatInputProps) {
           <IconArrowRight className="h-4 w-4" />
         </button>
       </div>
-      <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-        <IconSparkles className="h-3 w-3" />
-        Powered by Aura
-      </p>
     </div>
   );
 }

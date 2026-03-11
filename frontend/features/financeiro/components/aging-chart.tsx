@@ -94,8 +94,7 @@ export function AgingChart() {
               <XAxis type="number" tickFormatter={fmtCompact} tick={{ fontSize: 11 }} />
               <YAxis type="category" dataKey="bucket" width={84} tick={{ fontSize: 11 }} />
               <Tooltip
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                formatter={(v: any, name: any) => [fmtFull(v ?? 0), name]}
+                formatter={(v: number | undefined, name: string | undefined) => [fmtFull(v ?? 0), name ?? ""]}
                 labelStyle={{ fontWeight: 600 }}
               />
               <Legend iconSize={10} wrapperStyle={{ fontSize: 12 }} />
@@ -122,8 +121,7 @@ export function AgingChart() {
               <XAxis type="number" tickFormatter={fmtCompact} tick={{ fontSize: 11 }} />
               <YAxis type="category" dataKey="bucket" width={84} tick={{ fontSize: 11 }} />
               <Tooltip
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                formatter={(v: any, name: any) => [fmtFull(v ?? 0), name]}
+                formatter={(v: number | undefined, name: string | undefined) => [fmtFull(v ?? 0), name ?? ""]}
                 labelStyle={{ fontWeight: 600 }}
               />
               <Bar dataKey="AR Projetado" fill="#3b82f6" radius={[0, 4, 4, 0]} maxBarSize={20} />

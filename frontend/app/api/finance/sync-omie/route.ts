@@ -590,6 +590,28 @@ async function buildBankAccountLookup(
   return map;
 }
 
+// ── Client name lookup (omie_id → name + cnpj) for receivables ──────────────
+
+type ClientNameInfo = { name: string; cnpj: string | null };
+type ClientNameMap = Map<string, ClientNameInfo>;
+
+async function buildClientNameLookup(
+  supabase: SupabaseClient,
+  tenantId: string
+): Promise<ClientNameMap> {
+  const { data } = await (supabase as never as { from: (t: string) => { select: (s: string) => { eq: (c: string, v: string) => { not: (c: string, op: string, v: null) => Promise<{ data: Array<{ omie_id: string; name: string; cnpj: string | null }> | null }> } } } })
+    .from("finance_clients")
+    .select("omie_id, name, cnpj")
+    .eq("tenant_id", tenantId)
+    .not("omie_id", "is", null);
+
+  const map = new Map<string, ClientNameInfo>();
+  for (const row of (data ?? []) as Array<{ omie_id: string; name: string; cnpj: string | null }>) {
+    map.set(String(row.omie_id), { name: row.name, cnpj: row.cnpj });
+  }
+  return map;
+}
+
 // ── Derive business_unit from cost center ────────────────────────────────────
 
 const BU_NAME_PATTERNS: Array<{ pattern: RegExp; bu: string }> = [
@@ -802,6 +824,7 @@ async function syncContasReceber(
   ccLookup: LookupMap,
   ccInfoLookup: CostCenterInfoMap,
   baLookup: LookupMap,
+  clientNameMap: ClientNameMap,
   startTime: number
 ): Promise<SyncResult> {
   const errors: string[] = [];
@@ -864,8 +887,25 @@ async function syncContasReceber(
             new Date().toISOString().split("T")[0],
           due_date: parseOmieDate(conta.data_vencimento),
           paid_date: parseOmieDate(conta.data_recebimento) || parseOmieDate(conta.data_pagamento) || (status === "pago" ? parseOmieDate(conta.data_previsao) : null),
-          counterpart: conta.nome_cliente ? String(conta.nome_cliente) : null,
-          counterpart_doc: conta.cnpj_cpf_cliente ? String(conta.cnpj_cpf_cliente) : null,
+          counterpart: (() => {
+            // OMIE ListarContasReceber doesn't return nome_cliente — resolve via lookup
+            if (conta.nome_cliente) return String(conta.nome_cliente);
+            const codCliForn = conta.codigo_cliente_fornecedor ? String(conta.codigo_cliente_fornecedor) : null;
+            if (codCliForn) {
+              const client = clientNameMap.get(codCliForn);
+              if (client) return client.name;
+            }
+            return null;
+          })(),
+          counterpart_doc: (() => {
+            if (conta.cnpj_cpf_cliente) return String(conta.cnpj_cpf_cliente);
+            const codCliForn = conta.codigo_cliente_fornecedor ? String(conta.codigo_cliente_fornecedor) : null;
+            if (codCliForn) {
+              const client = clientNameMap.get(codCliForn);
+              if (client?.cnpj) return client.cnpj;
+            }
+            return null;
+          })(),
           category_id: resolveCategoryId(conta, catLookup),
           cost_center_id: resolveCostCenterId(conta, ccLookup),
           business_unit: deriveBUFromCostCenter(conta, ccInfoLookup),
@@ -1192,8 +1232,9 @@ export async function POST() {
     const ccLookup = await buildCostCenterLookup(supabase, tenantId);
     const ccInfoLookup = await buildCostCenterInfoLookup(supabase, tenantId);
     const baLookup = await buildBankAccountLookup(supabase, tenantId);
+    const clientNameMap = await buildClientNameLookup(supabase, tenantId);
     console.log(
-      `[sync-omie] Lookups: ${catLookup.size} categories, ${ccLookup.size} cost centers, ${baLookup.size} bank accounts`
+      `[sync-omie] Lookups: ${catLookup.size} categories, ${ccLookup.size} cost centers, ${baLookup.size} bank accounts, ${clientNameMap.size} clients`
     );
 
     // ── Phase 4: Contas a Pagar ─────────────────────────────────────────────
@@ -1215,7 +1256,7 @@ export async function POST() {
     console.log("[sync-omie] Phase 5: Contas a Receber...");
     const crResult = await syncContasReceber(
       supabase, tenantId, creds, user.id,
-      catLookup, ccLookup, ccInfoLookup, baLookup, startTime
+      catLookup, ccLookup, ccInfoLookup, baLookup, clientNameMap, startTime
     );
     receivablesSynced = crResult.inserted;
     crResult.errors.forEach((e) => syncErrors.push({ entity: "receivables", message: e }));

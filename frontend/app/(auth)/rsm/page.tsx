@@ -1,6 +1,7 @@
 ﻿"use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -77,6 +78,7 @@ const IDEA_STATUS_COLORS: Record<string, string> = {
 };
 
 export default function RsmPage() {
+  const router = useRouter();
   const [tab, setTab] = useState("contas");
   const [postStatusFilter, setPostStatusFilter] = useState("all");
   const [ideaStatusFilter, setIdeaStatusFilter] = useState("all");
@@ -190,7 +192,11 @@ export default function RsmPage() {
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {accounts.map((account) => (
-                  <Card key={account.id}>
+                  <Card
+                    key={account.id}
+                    className="cursor-pointer transition-shadow hover:shadow-md hover:ring-1 hover:ring-border"
+                    onClick={() => router.push(`/rsm/${account.id}`)}
+                  >
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
                         <Badge

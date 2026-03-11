@@ -5,8 +5,10 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   listAccounts,
+  getAccount,
   listPosts,
   listIdeas,
+  listMetrics,
   createPost,
   updatePost,
   deletePost,
@@ -31,6 +33,30 @@ export function useRsmAccounts() {
     queryFn: () => listAccounts(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
+  });
+}
+
+export function useRsmAccount(accountId: string) {
+  const supabase = useSupabase();
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery({
+    queryKey: ["rsm-account", accountId],
+    queryFn: () => getAccount(supabase, accountId),
+    staleTime: 1000 * 60 * 5,
+    enabled: !!tenantId && !!accountId,
+  });
+}
+
+export function useRsmMetrics(accountId: string) {
+  const supabase = useSupabase();
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery({
+    queryKey: ["rsm-metrics", accountId],
+    queryFn: () => listMetrics(supabase, accountId),
+    staleTime: 1000 * 60 * 5,
+    enabled: !!tenantId && !!accountId,
   });
 }
 

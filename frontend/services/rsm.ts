@@ -138,6 +138,36 @@ export async function deleteIdea(
   if (error) throw error;
 }
 
+// ── Single Account ───────────────────────────────────────────
+
+export async function getAccount(
+  supabase: SupabaseClient<Database>,
+  accountId: string
+): Promise<RsmAccountRow> {
+  const { data, error } = await supabase
+    .from("rsm_accounts")
+    .select("*")
+    .eq("id", accountId)
+    .single();
+  if (error) throw error;
+  return data as RsmAccountRow;
+}
+
+// ── Metrics ──────────────────────────────────────────────────
+
+export async function listMetrics(
+  supabase: SupabaseClient<Database>,
+  accountId: string
+): Promise<Database["public"]["Tables"]["rsm_metrics"]["Row"][]> {
+  const { data, error } = await supabase
+    .from("rsm_metrics")
+    .select("*")
+    .eq("account_id", accountId)
+    .order("date", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as Database["public"]["Tables"]["rsm_metrics"]["Row"][];
+}
+
 // ── KPI helpers (client-side aggregation) ─────────────────────
 
 export interface RsmKPIs {

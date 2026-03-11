@@ -475,8 +475,6 @@ export const FINANCEIRO_NAV_ITEMS: readonly SubNavItem[] = [
   { href: "/financeiro", label: "Visão Geral", icon: "bar-chart-3" },
   { href: "/financeiro/operacional", label: "Operacional", icon: "activity" },
   { href: "/financeiro/performance", label: "Performance", icon: "trending-up" },
-  { href: "/financeiro/margens", label: "Margens", icon: "users" },
-  { href: "/financeiro/concentracao", label: "Concentração", icon: "pie-chart" },
   { href: "/financeiro/fluxo-caixa", label: "Fluxo de Caixa", icon: "trending-up" },
   { href: "/financeiro/contas", label: "Contas", icon: "file-warning" },
 ] as const;

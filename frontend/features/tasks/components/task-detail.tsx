@@ -1,20 +1,27 @@
-﻿"use client";
+"use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Calendar,
-  Flag,
-  Trash2,
+  Check,
   CheckCircle2,
   Circle,
+  FolderOpen,
+  GitBranch,
+  Link2,
   ListTree,
   MessageSquare,
-  History,
+  MoreHorizontal,
   Paperclip,
+  Plus,
+  ThumbsUp,
+  Trash2,
+  Users,
+  X,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -52,13 +59,29 @@ import type { Database, Json } from "@/lib/supabase/types";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 
+// ─── Helpers ────────────────────────────────────────────────────
+
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
+// ─── Props ──────────────────────────────────────────────────────
+
 interface TaskDetailProps {
   task: TaskRow | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   users?: UserOption[];
   projectId?: string;
+  projectName?: string;
 }
+
+// ─── Component ──────────────────────────────────────────────────
 
 export function TaskDetail({
   task,
@@ -66,6 +89,7 @@ export function TaskDetail({
   onOpenChange,
   users = [],
   projectId,
+  projectName,
 }: TaskDetailProps) {
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
@@ -82,9 +106,6 @@ export function TaskDetail({
   const tenantId = useAuthStore((s) => s.tenantId);
 
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [bottomTab, setBottomTab] = useState<"comments" | "activity">(
-    "comments"
-  );
 
   if (!task) return null;
 
@@ -96,6 +117,8 @@ export function TaskDetail({
     task.due_date < new Date().toISOString().split("T")[0];
 
   const assigneeIds = (assignees || []).map((a) => a.user_id);
+
+  // ─── Handlers ───────────────────────────────────────────
 
   const handleStatusChange = (status: string) => {
     updateTask.mutate({
@@ -204,69 +227,223 @@ export function TaskDetail({
     return fieldValues?.find((v) => v.definition_id === defId);
   };
 
+  // Assignee name for display
+  const assigneeName = task.assignee_name
+    || users.find((u) => assigneeIds.includes(u.id))?.full_name
+    || null;
+
+  // Resolve project display name
+  const resolvedProjectName = projectName || (task.project_id ? "Projeto vinculado" : null);
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-2xl overflow-y-auto p-0"
+        className="w-full sm:max-w-xl overflow-y-auto p-0 flex flex-col"
       >
-        <SheetHeader className="px-6 pt-6 pb-2">
-          <div className="flex items-start gap-3">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="mt-0.5 h-6 w-6 shrink-0"
-              onClick={toggleComplete}
-              aria-label="Alternar conclusao"
-            >
-              {task.is_completed ? (
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-              ) : (
-                <Circle className="h-5 w-5 text-gray-500" />
-              )}
+        {/* ── Top bar: Mark complete + actions ── */}
+        <div className="flex items-center justify-between px-5 pt-4 pb-2">
+          <Button
+            size="sm"
+            variant={task.is_completed ? "default" : "outline"}
+            className={`h-7 gap-1.5 text-xs font-medium ${
+              task.is_completed
+                ? "bg-green-600 hover:bg-green-700 text-white"
+                : ""
+            }`}
+            onClick={toggleComplete}
+          >
+            <Check className="h-3.5 w-3.5" />
+            {task.is_completed ? "Concluída" : "Marcar como concluída"}
+          </Button>
+
+          <div className="flex items-center gap-0.5">
+            <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Curtir">
+              <ThumbsUp className="h-3.5 w-3.5" />
             </Button>
-            <SheetTitle className="flex-1">
+            <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Anexar">
+              <Paperclip className="h-3.5 w-3.5" />
+            </Button>
+            <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Copiar link">
+              <Link2 className="h-3.5 w-3.5" />
+            </Button>
+            <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Mais opções">
+              <MoreHorizontal className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+
+        <SheetHeader className="sr-only">
+          <SheetTitle>Detalhes da tarefa</SheetTitle>
+          <SheetDescription>Painel lateral com detalhes da tarefa</SheetDescription>
+        </SheetHeader>
+
+        {/* ── Main scrollable content ── */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-6 pb-6 space-y-0">
+            {/* 1. Title */}
+            <div className="py-3">
               <InlineEditable
                 value={task.title}
                 onSave={handleTitleSave}
                 variant="h2"
+                placeholder="Nome da tarefa..."
               />
-            </SheetTitle>
-          </div>
-          <SheetDescription className="sr-only">
-            Detalhes da tarefa
-          </SheetDescription>
-        </SheetHeader>
+            </div>
 
-        <div className="flex gap-0 min-h-[60vh]">
-          {/* Left column — main content */}
-          <div className="flex-1 px-6 py-4 space-y-5 border-r min-w-0">
-            {/* Description */}
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium text-gray-500">
-                Descricao
-              </p>
+            {/* ── Property rows (Asana grid) ── */}
+            <div className="divide-y divide-border/50">
+              {/* 2. Assignee / Responsável */}
+              <PropertyRow label="Responsável" icon={<Users className="h-3.5 w-3.5" />}>
+                {assigneeName ? (
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-5 w-5">
+                      <AvatarFallback className="text-[9px] font-semibold bg-blue-100 text-blue-700">
+                        {getInitials(assigneeName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm">{assigneeName}</span>
+                  </div>
+                ) : (
+                  <UserSelector
+                    mode="multi"
+                    selected={assigneeIds}
+                    onChange={handleAssigneesChange}
+                    users={users}
+                    className="w-full"
+                  />
+                )}
+              </PropertyRow>
+
+              {/* 3. Status */}
+              <PropertyRow label="Status">
+                <div className="flex flex-wrap gap-1">
+                  {Object.entries(TASK_STATUS).map(([key, cfg]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => handleStatusChange(key)}
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+                        task.status === key
+                          ? "text-white shadow-sm"
+                          : "bg-muted/60 text-muted-foreground hover:bg-muted"
+                      }`}
+                      style={
+                        task.status === key
+                          ? { backgroundColor: cfg.color }
+                          : undefined
+                      }
+                    >
+                      {cfg.label}
+                    </button>
+                  ))}
+                </div>
+              </PropertyRow>
+
+              {/* 4. Priority / Prioridade */}
+              <PropertyRow label="Prioridade">
+                <div className="flex flex-wrap gap-1">
+                  {Object.entries(TASK_PRIORITY).map(([key, cfg]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => handlePriorityChange(key)}
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+                        task.priority === key
+                          ? "text-white shadow-sm"
+                          : "bg-muted/60 text-muted-foreground hover:bg-muted"
+                      }`}
+                      style={
+                        task.priority === key
+                          ? { backgroundColor: cfg.color }
+                          : undefined
+                      }
+                    >
+                      {cfg.label}
+                    </button>
+                  ))}
+                </div>
+              </PropertyRow>
+
+              {/* 5. Due date / Prazo */}
+              <PropertyRow label="Prazo" icon={<Calendar className="h-3.5 w-3.5" />}>
+                <input
+                  type="date"
+                  className={`text-sm border-0 bg-transparent p-0 focus:outline-none focus:ring-0 ${
+                    overdue ? "text-red-600 font-medium" : "text-foreground"
+                  } ${!task.due_date ? "text-muted-foreground" : ""}`}
+                  value={task.due_date || ""}
+                  onChange={(e) => handleDateChange("due_date", e.target.value)}
+                />
+                {!task.due_date && (
+                  <span className="text-sm text-muted-foreground">Sem prazo</span>
+                )}
+              </PropertyRow>
+
+              {/* 6. Start date / Início */}
+              <PropertyRow label="Início" icon={<Calendar className="h-3.5 w-3.5" />}>
+                <input
+                  type="date"
+                  className="text-sm border-0 bg-transparent p-0 focus:outline-none focus:ring-0"
+                  value={task.start_date || ""}
+                  onChange={(e) => handleDateChange("start_date", e.target.value)}
+                />
+                {!task.start_date && (
+                  <span className="text-sm text-muted-foreground">Sem data</span>
+                )}
+              </PropertyRow>
+
+              {/* 7. Project / Projeto */}
+              <PropertyRow label="Projeto" icon={<FolderOpen className="h-3.5 w-3.5" />}>
+                <span className={`text-sm ${resolvedProjectName ? "" : "text-muted-foreground"}`}>
+                  {resolvedProjectName || "Adicionar a projetos"}
+                </span>
+              </PropertyRow>
+
+              {/* 8. Dependencies / Dependências */}
+              <PropertyRow label="Dependências" icon={<GitBranch className="h-3.5 w-3.5" />}>
+                <span className="text-sm text-muted-foreground">
+                  Adicionar dependências
+                </span>
+              </PropertyRow>
+
+              {/* Custom fields */}
+              {fieldDefs && fieldDefs.length > 0 && (
+                <>
+                  {fieldDefs.map((def) => {
+                    const fv = getFieldValue(def.id);
+                    return (
+                      <div key={def.id} className="py-2.5">
+                        <CustomFieldRenderer
+                          definition={def}
+                          value={fv || null}
+                          onChange={(val) => handleFieldChange(def.id, val)}
+                        />
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+
+            {/* 9. Description / Descrição */}
+            <div className="pt-4 pb-2">
               <textarea
-                className="w-full min-h-[100px] text-sm bg-transparent border rounded-md p-2 resize-y focus:outline-none focus:ring-1 focus:ring-tbo-orange"
+                className="w-full min-h-[80px] text-sm bg-transparent border-0 p-0 resize-y focus:outline-none placeholder:text-muted-foreground/60"
                 defaultValue={task.description || ""}
-                placeholder="Adicionar descricao..."
+                placeholder="Adicionar mais detalhes a esta tarefa..."
                 onBlur={handleDescriptionBlur}
               />
             </div>
 
-            {/* Subtasks */}
-            {subtasks && subtasks.length > 0 && (
-              <div className="space-y-2">
-                <p className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
-                  <ListTree className="h-3.5 w-3.5" /> Subtarefas (
-                  {subtasks.filter((s) => s.is_completed).length}/
-                  {subtasks.length})
-                </p>
-                <div className="space-y-1">
+            {/* 10. Subtasks */}
+            <div className="space-y-1">
+              {subtasks && subtasks.length > 0 && (
+                <div className="space-y-0.5 mb-2">
                   {subtasks.map((sub) => (
                     <div
                       key={sub.id}
-                      className="flex items-center gap-2 rounded px-2 py-1 text-sm hover:bg-gray-100/50"
+                      className="flex items-center gap-2 rounded-md px-1 py-1 text-sm hover:bg-muted/50 transition-colors"
                     >
                       <Button
                         size="icon"
@@ -277,9 +454,7 @@ export function TaskDetail({
                           updateTask.mutate({
                             id: sub.id,
                             updates: {
-                              status: sub.is_completed
-                                ? "pendente"
-                                : "concluida",
+                              status: sub.is_completed ? "pendente" : "concluida",
                               is_completed: !sub.is_completed,
                             },
                           })
@@ -288,7 +463,7 @@ export function TaskDetail({
                         {sub.is_completed ? (
                           <CheckCircle2 className="h-4 w-4 text-green-600" />
                         ) : (
-                          <Circle className="h-4 w-4 text-gray-500" />
+                          <Circle className="h-4 w-4 text-gray-400" />
                         )}
                       </Button>
                       <span
@@ -301,231 +476,130 @@ export function TaskDetail({
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-
-            <Separator />
-
-            {/* Comments / Activity tabs */}
-            <div>
-              <div className="flex gap-1 mb-3">
-                <Button
-                  size="sm"
-                  variant={bottomTab === "comments" ? "secondary" : "ghost"}
-                  className="h-7 text-xs"
-                  onClick={() => setBottomTab("comments")}
-                >
-                  <MessageSquare className="size-3 mr-1" />
-                  Comentarios
-                </Button>
-                <Button
-                  size="sm"
-                  variant={bottomTab === "activity" ? "secondary" : "ghost"}
-                  className="h-7 text-xs"
-                  onClick={() => setBottomTab("activity")}
-                >
-                  <History className="size-3 mr-1" />
-                  Atividade
-                </Button>
-              </div>
-
-              {bottomTab === "comments" ? (
-                <CommentThread taskId={task.id} />
-              ) : (
-                <ActivityFeed
-                  activities={activities || []}
-                  isLoading={false}
-                  emptyMessage="Nenhuma atividade"
-                />
               )}
+
+              <button
+                type="button"
+                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Adicionar subtarefa
+              </button>
+            </div>
+
+            <Separator className="my-4" />
+
+            {/* 11. Activity feed / Histórico */}
+            <div className="space-y-3">
+              <ActivityFeed
+                activities={activities || []}
+                isLoading={false}
+                emptyMessage="Nenhuma atividade"
+              />
+            </div>
+
+            {/* 12. Comment input */}
+            <div className="pt-4">
+              <CommentThread taskId={task.id} />
             </div>
           </div>
+        </div>
 
-          {/* Right sidebar */}
-          <div className="w-[220px] shrink-0 px-4 py-4 space-y-4 text-sm">
-            {/* Status */}
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium text-gray-500">
-                Status
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {Object.entries(TASK_STATUS).map(([key, cfg]) => (
-                  <Badge
-                    key={key}
-                    variant={task.status === key ? "default" : "outline"}
-                    className="cursor-pointer text-[10px]"
-                    style={
-                      task.status === key
-                        ? { backgroundColor: cfg.color, color: "#fff" }
-                        : undefined
-                    }
-                    onClick={() => handleStatusChange(key)}
-                  >
-                    {cfg.label}
-                  </Badge>
-                ))}
-              </div>
-            </div>
+        {/* ── Footer: Collaborators + actions ── */}
+        <div className="border-t px-5 py-2.5 flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground mr-1">Colaboradores</span>
+            {(assignees || []).slice(0, 3).map((a) => {
+              const u = users.find((usr) => usr.id === a.user_id);
+              const name = u?.full_name || task.assignee_name || "?";
+              return (
+                <Avatar key={a.user_id} className="h-5 w-5">
+                  <AvatarFallback className="text-[8px] font-semibold bg-gray-200 text-gray-600">
+                    {getInitials(name)}
+                  </AvatarFallback>
+                </Avatar>
+              );
+            })}
+            <button
+              type="button"
+              className="h-5 w-5 rounded-full border border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:border-gray-400 transition-colors"
+            >
+              <Plus className="h-3 w-3" />
+            </button>
+          </div>
 
-            {/* Priority */}
-            <div className="space-y-1.5">
-              <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
-                <Flag className="h-3 w-3" /> Prioridade
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {Object.entries(TASK_PRIORITY).map(([key, cfg]) => (
-                  <Badge
-                    key={key}
-                    variant={task.priority === key ? "default" : "outline"}
-                    className="cursor-pointer text-[10px]"
-                    style={
-                      task.priority === key
-                        ? { backgroundColor: cfg.color, color: "#fff" }
-                        : undefined
-                    }
-                    onClick={() => handlePriorityChange(key)}
-                  >
-                    {cfg.label}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            {/* Assignees */}
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium text-gray-500">
-                Responsaveis
-              </p>
-              <UserSelector
-                mode="multi"
-                selected={assigneeIds}
-                onChange={handleAssigneesChange}
-                users={users}
-                className="w-full"
-              />
-            </div>
-
-            {/* Dates */}
-            <div className="space-y-1.5">
-              <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
-                <Calendar className="h-3 w-3" /> Inicio
-              </p>
-              <input
-                type="date"
-                className="w-full text-xs border rounded px-2 py-1 bg-transparent"
-                value={task.start_date || ""}
-                onChange={(e) =>
-                  handleDateChange("start_date", e.target.value)
-                }
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
-                <Calendar className="h-3 w-3" /> Prazo
-              </p>
-              <input
-                type="date"
-                className={`w-full text-xs border rounded px-2 py-1 bg-transparent ${
-                  overdue ? "text-red-600 border-red-300" : ""
-                }`}
-                value={task.due_date || ""}
-                onChange={(e) =>
-                  handleDateChange("due_date", e.target.value)
-                }
-              />
-            </div>
-
-            {/* Custom fields */}
-            {fieldDefs && fieldDefs.length > 0 && (
-              <>
-                <Separator />
-                <div className="space-y-3">
-                  {fieldDefs.map((def) => {
-                    const fv = getFieldValue(def.id);
-                    return (
-                      <CustomFieldRenderer
-                        key={def.id}
-                        definition={def}
-                        value={fv || null}
-                        onChange={(val) => handleFieldChange(def.id, val)}
-                      />
-                    );
-                  })}
-                </div>
-              </>
-            )}
-
+          <div className="flex items-center gap-2">
             {/* Attachments count */}
             {attachments && attachments.length > 0 && (
-              <div className="space-y-1">
-                <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
-                  <Paperclip className="h-3 w-3" /> Anexos
-                </p>
-                <p className="text-xs">{attachments.length} arquivo(s)</p>
-              </div>
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Paperclip className="h-3 w-3" />
+                {attachments.length}
+              </span>
             )}
 
-            <Separator />
-
             {/* Timestamps */}
-            <div className="text-[11px] text-gray-500 space-y-0.5">
-              <p>
-                Criada{" "}
-                {format(new Date(task.created_at ?? ""), "dd MMM yyyy", {
-                  locale: ptBR,
-                })}
-              </p>
-              {task.completed_at && (
-                <p>
-                  Concluida{" "}
-                  {format(new Date(task.completed_at), "dd MMM yyyy", {
-                    locale: ptBR,
-                  })}
-                </p>
-              )}
-            </div>
+            <span className="text-[11px] text-muted-foreground">
+              {task.created_at &&
+                format(new Date(task.created_at), "dd MMM yyyy", { locale: ptBR })}
+            </span>
 
             {/* Delete */}
-            <div>
-              {confirmDelete ? (
-                <div className="space-y-1.5">
-                  <p className="text-xs text-red-600">Excluir tarefa?</p>
-                  <div className="flex gap-1">
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      className="h-6 text-xs"
-                      onClick={handleDelete}
-                      disabled={deleteTask.isPending}
-                    >
-                      Confirmar
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 text-xs"
-                      onClick={() => setConfirmDelete(false)}
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                </div>
-              ) : (
+            {confirmDelete ? (
+              <div className="flex items-center gap-1">
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="h-6 text-[10px] px-2"
+                  onClick={handleDelete}
+                  disabled={deleteTask.isPending}
+                >
+                  Confirmar
+                </Button>
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-7 text-xs text-red-500 hover:text-red-500"
-                  onClick={() => setConfirmDelete(true)}
+                  className="h-6 text-[10px] px-2"
+                  onClick={() => setConfirmDelete(false)}
                 >
-                  <Trash2 className="size-3 mr-1" />
-                  Excluir
+                  <X className="h-3 w-3" />
                 </Button>
-              )}
-            </div>
+              </div>
+            ) : (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6 text-red-400 hover:text-red-600"
+                onClick={() => setConfirmDelete(true)}
+                aria-label="Excluir tarefa"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
           </div>
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+// ─── Property Row (Asana-style key-value row) ──────────────────
+
+function PropertyRow({
+  label,
+  icon,
+  children,
+}: {
+  label: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-3 py-2.5 min-h-[36px]">
+      <div className="flex items-center gap-1.5 w-[120px] shrink-0">
+        {icon && <span className="text-muted-foreground">{icon}</span>}
+        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      </div>
+      <div className="flex-1 min-w-0">{children}</div>
+    </div>
   );
 }

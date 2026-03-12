@@ -22,6 +22,12 @@ export interface MyTasksOrder {
   sort_order: number;
 }
 
+export interface MyTasksColumnPref {
+  id: string;
+  visible: boolean;
+  width: number;
+}
+
 export interface MyTasksPreferences {
   user_id: string;
   tenant_id: string;
@@ -31,6 +37,7 @@ export interface MyTasksPreferences {
   group_by: string;
   show_completed: boolean;
   filters: Record<string, unknown>;
+  columns: MyTasksColumnPref[];
   updated_at: string;
 }
 

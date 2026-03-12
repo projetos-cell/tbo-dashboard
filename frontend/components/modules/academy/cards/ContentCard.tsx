@@ -54,7 +54,7 @@ export function ContentCard({
   const ActionIcon = CtaIcon ?? CardIcon
 
   const inner = (
-    <div className="relative flex h-full min-h-[220px] flex-col justify-end p-6 md:p-8">
+    <div className="relative flex h-full flex-col justify-end p-6 md:p-8">
       {/* Ícone decorativo de fundo */}
       <CardIcon
         aria-hidden
@@ -97,7 +97,7 @@ export function ContentCard({
   )
 
   const base = cn(
-    "group relative overflow-hidden rounded-3xl border border-white/5 backdrop-blur-md",
+    "group relative h-full overflow-hidden rounded-3xl border border-white/5 backdrop-blur-md",
     gradient,
     className,
   )

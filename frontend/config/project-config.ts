@@ -3,9 +3,9 @@ import packageJson from "../package.json";
 const currentYear = new Date().getFullYear();
 
 export const PROJECT_CONFIG = {
-  name: "Next.js Colocation Template - Scalable Folder Structure Guide",
+  name: "TBO OS",
   description:
-    "A modular and practical Next.js template demonstrating a colocated, feature-first folder structure powered by the App Router and TypeScript.",
+    "Sistema operacional interno da TBO — gestão de projetos, pessoas, finanças e inteligência.",
   version: packageJson.version,
   copyright: `© ${currentYear}, All Rights Reserved.`,
 };

@@ -102,6 +102,61 @@ export function useCancelClicksignEnvelope() {
 }
 
 /**
+ * Imports signed/running envelopes from Clicksign into contracts.
+ * Skips envelopes already linked to existing contracts.
+ */
+export function useImportClicksignContracts() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/contracts/import-clicksign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!response.ok) {
+        const err = await response
+          .json()
+          .catch(() => ({ error: "Erro ao importar" }));
+        throw new Error(err.error || "Erro ao importar contratos do Clicksign");
+      }
+
+      return response.json() as Promise<{
+        ok: boolean;
+        imported: number;
+        skipped: number;
+        total: number;
+        errors?: Array<{ envelopeId: string; error: string }>;
+        message: string;
+      }>;
+    },
+
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+
+      if (data.imported > 0) {
+        toast.success(
+          `${data.imported} contratos importados do Clicksign`
+        );
+      } else {
+        toast.info(data.message);
+      }
+
+      if (data.errors?.length) {
+        toast.warning(
+          `${data.errors.length} envelopes com erro durante importacao`
+        );
+      }
+    },
+
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+/**
  * Resends notification to signers of a Clicksign envelope.
  */
 export function useNotifyClicksignSigners() {

@@ -22,7 +22,9 @@ import { RequireRole } from "@/features/auth/components/require-role";
 import { ErrorState, EmptyState } from "@/components/shared";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useImportClicksignContracts } from "@/features/contratos/hooks/use-clicksign";
+import { FileText, Search, Download, Loader2 } from "lucide-react";
 import { CONTRACT_TABS } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 
@@ -44,6 +46,7 @@ export default function ContratosPage() {
   const { toast } = useToast();
   const deleteMut = useDeleteContract();
   const updateMut = useUpdateContract();
+  const importClicksign = useImportClicksignContracts();
   const personNames = useContractPersonNames();
 
   // ─── Tab config ───────────────────────────────────────────────────
@@ -191,6 +194,19 @@ export default function ContratosPage() {
               personNames={personNames}
               lockedCategories={lockedCategories}
             />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => importClicksign.mutate()}
+              disabled={importClicksign.isPending}
+            >
+              {importClicksign.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Importar Clicksign
+            </Button>
             <NewContractDropdown onSelect={handleNewWithCategory} />
           </div>
         </div>

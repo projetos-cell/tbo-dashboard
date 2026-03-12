@@ -54,7 +54,7 @@ export function AppSidebar() {
 
   // Initialize sidebar store with default nav groups
   const initFromDefaults = useSidebarStore((s) => s.initFromDefaults);
-  const getOrderedGroups = useSidebarStore((s) => s.getOrderedGroups);
+  const groupOrder = useSidebarStore((s) => s.groupOrder);
 
   useEffect(() => {
     initFromDefaults(SIDEBAR_NAV_GROUPS);
@@ -88,10 +88,16 @@ export function AppSidebar() {
 
   // Ordered groups (respecting saved order)
   const displayGroups = useMemo(() => {
-    // When searching, use filtered groups directly
     if (query.trim()) return filteredGroups;
-    return getOrderedGroups(SIDEBAR_NAV_GROUPS);
-  }, [query, filteredGroups, getOrderedGroups]);
+    if (groupOrder.length === 0) return [...SIDEBAR_NAV_GROUPS];
+    const groupMap = new Map(SIDEBAR_NAV_GROUPS.map((g) => [g.label, g]));
+    const ordered = groupOrder.flatMap((label) => {
+      const g = groupMap.get(label);
+      if (g) { groupMap.delete(label); return [g]; }
+      return [];
+    });
+    return [...ordered, ...groupMap.values()];
+  }, [query, filteredGroups, groupOrder]);
 
   const groupIds = useMemo(
     () => displayGroups.map((g) => `group::${g.label}`),

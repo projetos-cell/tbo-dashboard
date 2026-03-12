@@ -67,7 +67,7 @@ export const SortableNavItem = memo(function SortableNavItem({
     transition,
     isDragging,
   } = useSortable({
-    id: `${groupLabel}::${item.href}`,
+    id: item.href,
     data: { type: "item", item, groupLabel },
     disabled: isDragOverlay,
   });

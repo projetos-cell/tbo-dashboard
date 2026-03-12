@@ -46,17 +46,25 @@ export const SortableNavGroup = memo(function SortableNavGroup({
   const [isHovered, setIsHovered] = useState(false);
   const collapsedGroups = useSidebarStore((s) => s.collapsedGroups);
   const toggleGroup = useSidebarStore((s) => s.toggleGroup);
-  const getOrderedItems = useSidebarStore((s) => s.getOrderedItems);
+  const groupItemOrder = useSidebarStore((s) => s.groupItemOrder);
 
   const isCollapsed = collapsedGroups.has(group.label);
-  const orderedItems = useMemo(
-    () => getOrderedItems(group, canSee),
-    [getOrderedItems, group, canSee],
-  );
+  const orderedItems = useMemo(() => {
+    const order = groupItemOrder[group.label];
+    const visible = group.items.filter((i) => canSee(i.module));
+    if (!order) return visible;
+    const itemMap = new Map(visible.map((i) => [i.href, i]));
+    const result = order.flatMap((href) => {
+      const item = itemMap.get(href);
+      if (item) { itemMap.delete(href); return [item]; }
+      return [];
+    });
+    return [...result, ...itemMap.values()];
+  }, [groupItemOrder, group, canSee]);
 
   const itemIds = useMemo(
-    () => orderedItems.map((i) => `${group.label}::${i.href}`),
-    [orderedItems, group.label],
+    () => orderedItems.map((i) => i.href),
+    [orderedItems],
   );
 
   const {

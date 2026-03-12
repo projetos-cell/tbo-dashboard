@@ -141,7 +141,7 @@ export const SortableNavItem = memo(function SortableNavItem({
       const newIndex = subItemIds.indexOf(over.id as string);
       if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
 
-      const newOrder = arrayMove(orderedSubItems, oldIndex, newIndex).map((s) => s.href);
+      const newOrder = arrayMove([...orderedSubItems], oldIndex, newIndex).map((s) => s.href);
       reorderSubItems(item.href, newOrder);
     },
     [subItemIds, orderedSubItems, item.href, reorderSubItems],

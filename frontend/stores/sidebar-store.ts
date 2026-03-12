@@ -12,6 +12,8 @@ interface SidebarOrderState {
   groupOrder: string[];
   /** Set of collapsed group labels */
   collapsedGroups: Set<string>;
+  /** Map of parent item href → ordered array of sub-item hrefs */
+  subItemOrder: Record<string, string[]>;
 
   /** Initialize from default nav groups (no-op if already initialized) */
   initFromDefaults: (groups: readonly NavGroup[]) => void;
@@ -28,6 +30,8 @@ interface SidebarOrderState {
     toGroup: string,
     toIndex: number,
   ) => void;
+  /** Reorder sub-items within a parent item */
+  reorderSubItems: (parentHref: string, orderedHrefs: string[]) => void;
   /** Get items in display order for a group */
   getOrderedItems: (
     group: NavGroup,
@@ -41,15 +45,17 @@ interface SidebarOrderState {
 interface UndoEntry {
   groupItemOrder: Record<string, string[]>;
   groupOrder: string[];
+  subItemOrder: Record<string, string[]>;
 }
 
 const MAX_UNDO = 20;
 let undoStack: UndoEntry[] = [];
 
-function pushUndo(state: Pick<SidebarOrderState, "groupItemOrder" | "groupOrder">) {
+function pushUndo(state: Pick<SidebarOrderState, "groupItemOrder" | "groupOrder" | "subItemOrder">) {
   undoStack.push({
     groupItemOrder: { ...state.groupItemOrder },
     groupOrder: [...state.groupOrder],
+    subItemOrder: { ...state.subItemOrder },
   });
   if (undoStack.length > MAX_UNDO) undoStack.shift();
 }
@@ -60,6 +66,7 @@ export const useSidebarStore = create<SidebarOrderState>()(
       groupItemOrder: {},
       groupOrder: [],
       collapsedGroups: new Set<string>(),
+      subItemOrder: {},
 
       initFromDefaults(groups) {
         const current = get();
@@ -112,6 +119,13 @@ export const useSidebarStore = create<SidebarOrderState>()(
         });
       },
 
+      reorderSubItems(parentHref, orderedHrefs) {
+        pushUndo(get());
+        set((s) => ({
+          subItemOrder: { ...s.subItemOrder, [parentHref]: orderedHrefs },
+        }));
+      },
+
       getOrderedItems(group, canSee) {
         const order = get().groupItemOrder[group.label];
         const visible = group.items.filter((i) => canSee(i.module));
@@ -158,6 +172,7 @@ export const useSidebarStore = create<SidebarOrderState>()(
         groupItemOrder: state.groupItemOrder,
         groupOrder: state.groupOrder,
         collapsedGroups: Array.from(state.collapsedGroups),
+        subItemOrder: state.subItemOrder,
       }),
       merge: (persisted, current) => {
         const p = persisted as Record<string, unknown>;
@@ -167,6 +182,7 @@ export const useSidebarStore = create<SidebarOrderState>()(
           collapsedGroups: new Set(
             (p?.collapsedGroups as string[] | undefined) ?? [],
           ),
+          subItemOrder: (p?.subItemOrder as Record<string, string[]> | undefined) ?? {},
         };
       },
     },
@@ -180,6 +196,7 @@ export function undoSidebarReorder() {
   useSidebarStore.setState({
     groupItemOrder: entry.groupItemOrder,
     groupOrder: entry.groupOrder,
+    subItemOrder: entry.subItemOrder,
   });
   return true;
 }

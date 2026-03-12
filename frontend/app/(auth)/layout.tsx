@@ -3,6 +3,7 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { Header } from "@/components/layout/header";
 import { RoleLoader } from "@/features/auth/components/role-loader";
+import { OnboardingGate } from "@/features/onboarding/components/onboarding-gate";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ export default async function AuthLayout({
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
       <RoleLoader />
+      <OnboardingGate />
       <AppSidebar />
       <SidebarInset>
         <Header />

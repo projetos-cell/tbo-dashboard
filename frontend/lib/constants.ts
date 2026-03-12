@@ -291,11 +291,13 @@ export const NAV_ITEMS = [
 
 // Settings tabs
 export const SETTINGS_TABS = [
-  { id: "perfil", label: "Perfil & Conta", icon: "user" },
-  { id: "aparencia", label: "Aparência", icon: "palette" },
-  { id: "integracoes", label: "Integrações", icon: "plug" },
-  { id: "usuarios", label: "Usuários", icon: "users" },
-  { id: "audit", label: "Logs de Auditoria", icon: "shield" },
+  { id: "perfil", label: "Perfil & Conta", icon: "user", group: "pessoal" },
+  { id: "aparencia", label: "Aparência", icon: "palette", group: "pessoal" },
+  { id: "notificacoes", label: "Notificações", icon: "bell", group: "pessoal" },
+  { id: "workspace", label: "Workspace", icon: "building", group: "admin" },
+  { id: "integracoes", label: "Integrações", icon: "plug", group: "admin" },
+  { id: "usuarios", label: "Usuários", icon: "users", group: "admin" },
+  { id: "audit", label: "Logs de Auditoria", icon: "shield", group: "admin" },
 ] as const;
 
 export type SettingsTabId = (typeof SETTINGS_TABS)[number]["id"];

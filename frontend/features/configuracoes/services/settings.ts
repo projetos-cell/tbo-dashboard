@@ -81,23 +81,36 @@ export async function updateUserRole(
 
 // ── Audit Logs ───────────────────────────────────────────────────────
 
+export type AuditLogWithUser = AuditLogRow & {
+  profiles: { full_name: string; avatar_url: string | null } | null;
+};
+
 export async function getAuditLogs(
   supabase: SupabaseClient<Database>,
-  opts: { limit?: number; offset?: number; action?: string; entityType?: string } = {},
-): Promise<{ data: AuditLogRow[]; count: number }> {
+  opts: {
+    limit?: number;
+    offset?: number;
+    action?: string;
+    entityType?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  } = {},
+): Promise<{ data: AuditLogWithUser[]; count: number }> {
   const limit = opts.limit ?? 25;
   const offset = opts.offset ?? 0;
 
   let query = supabase
     .from("audit_logs")
-    .select("*", { count: "exact" })
+    .select("*, profiles!audit_logs_user_id_fkey(full_name, avatar_url)", { count: "exact" })
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
   if (opts.action) query = query.eq("action", opts.action);
   if (opts.entityType) query = query.eq("entity_type", opts.entityType);
+  if (opts.dateFrom) query = query.gte("created_at", opts.dateFrom);
+  if (opts.dateTo) query = query.lte("created_at", opts.dateTo);
 
   const { data, error, count } = await query;
   if (error) throw error;
-  return { data: (data ?? []) as AuditLogRow[], count: count ?? 0 };
+  return { data: (data ?? []) as unknown as AuditLogWithUser[], count: count ?? 0 };
 }

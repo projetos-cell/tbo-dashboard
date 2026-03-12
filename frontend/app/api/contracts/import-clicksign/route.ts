@@ -68,7 +68,7 @@ export async function POST() {
 
     const existingIds = new Set(
       (existingContracts ?? []).map(
-        (c) => (c as Record<string, unknown>).clicksign_envelope_id as string
+        (c) => (c as unknown as Record<string, unknown>).clicksign_envelope_id as string
       )
     );
 

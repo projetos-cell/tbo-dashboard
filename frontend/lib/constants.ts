@@ -263,7 +263,7 @@ export const DEMAND_BOARD_COLUMNS = [
 export const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: "layout-dashboard", module: "dashboard" },
   { href: "/projetos", label: "Projetos", icon: "folder-kanban", module: "projetos" },
-  { href: "/tarefas", label: "Tarefas", icon: "list-checks", module: "tarefas" },
+  { href: "/tarefas", label: "Minhas Tarefas", icon: "list-checks", module: "tarefas" },
   { href: "/pessoas", label: "Pessoas", icon: "users", module: "pessoas" },
   { href: "/agenda", label: "Agenda", icon: "calendar", module: "agenda" },
   { href: "/financeiro", label: "Financeiro", icon: "dollar-sign", module: "financeiro" },

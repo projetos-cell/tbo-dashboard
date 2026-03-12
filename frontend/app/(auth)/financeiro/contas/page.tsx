@@ -163,11 +163,11 @@ function EntryTable({
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div className="truncate text-sm">
-                            {entry.counterpart || "Sem identificação"}
+                            {entry.counterpart || entry.description || "Sem identificação"}
                           </div>
                         </TooltipTrigger>
                         <TooltipContent side="top" className="max-w-xs">
-                          <p className="font-medium">{entry.counterpart || "—"}</p>
+                          <p className="font-medium">{entry.counterpart || entry.description || "—"}</p>
                           {entry.counterpart_doc && (
                             <p className="text-xs text-muted-foreground">{entry.counterpart_doc}</p>
                           )}

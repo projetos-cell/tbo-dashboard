@@ -27,7 +27,7 @@ export async function getPayrollBreakdown(
 ): Promise<PayrollBreakdownData> {
   const { data, error } = await supabase
     .from(TABLE_TRANSACTIONS)
-    .select("id, counterpart, amount, paid_amount, cost_center_id, status")
+    .select("id, counterpart, description, amount, paid_amount, cost_center_id, status")
     .eq("type", "despesa")
     .in("status", ["pago", "parcial", "liquidado", "previsto", "provisionado", "atrasado"])
     .gte("date", dateFrom)
@@ -55,7 +55,9 @@ export async function getPayrollBreakdown(
   for (const row of data ?? []) {
     const val = Math.abs((row.paid_amount as number) || (row.amount as number) || 0);
     const ccName = (row.cost_center_id ? ccLookup.get(row.cost_center_id) ?? "" : "").toLowerCase();
-    const counterpart = String((row as Record<string, unknown>).counterpart ?? "").toLowerCase();
+    const rawCounterpart = String((row as Record<string, unknown>).counterpart ?? "");
+    const counterpart = rawCounterpart.toLowerCase();
+    const resolvedName = rawCounterpart || String((row as Record<string, unknown>).description ?? "");
 
     const isFolha =
       FOLHA_KEYWORDS.some((kw) => ccName.includes(kw)) ||
@@ -63,8 +65,8 @@ export async function getPayrollBreakdown(
 
     if (isFolha) {
       totalFolha += val;
-      const vendorName = counterpart
-        ? counterpart.split(" ").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
+      const vendorName = resolvedName
+        ? resolvedName.split(" ").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
         : "Sem identificação";
       const cur = vendorMap.get(vendorName) ?? { total: 0, count: 0 };
       vendorMap.set(vendorName, { total: cur.total + val, count: cur.count + 1 });

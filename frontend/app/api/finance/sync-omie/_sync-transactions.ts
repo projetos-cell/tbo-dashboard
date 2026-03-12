@@ -96,7 +96,9 @@ export async function syncContasPagar(
             new Date().toISOString().split("T")[0],
           due_date: parseOmieDate(conta.data_vencimento),
           paid_date: parseOmieDate(conta.data_pagamento) || (status === "pago" ? parseOmieDate(conta.data_previsao) : null),
-          counterpart: conta.nome_fornecedor ? String(conta.nome_fornecedor) : null,
+          counterpart: conta.nome_fornecedor
+            ? String(conta.nome_fornecedor)
+            : (conta.observacao || conta.complemento ? String(conta.observacao || conta.complemento) : null),
           counterpart_doc: conta.cnpj_cpf_fornecedor ? String(conta.cnpj_cpf_fornecedor) : null,
           category_id: resolveCategoryId(conta, catLookup),
           cost_center_id: resolveCostCenterId(conta, ccLookup),

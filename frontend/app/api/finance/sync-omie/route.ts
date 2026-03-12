@@ -202,8 +202,10 @@ export async function POST() {
     await sleep(INTER_PHASE_DELAY_MS);
 
     // ── Phase 6: Extrato Bancário ───────────────────────────────────────────
+    // Extrato runs as a separate cron job (/api/finance/sync-extrato).
+    // If time allows, run it opportunistically; skipping is NOT an error.
     if (hasTimeRemaining(startTime, maxDuration)) {
-      log.info("Phase 6: Extrato Bancario");
+      log.info("Phase 6: Extrato Bancario (opportunistic)");
       const extResult = await syncExtratoBancario(
         supabase, tenantId, creds, baLookup, startTime, maxDuration
       );
@@ -214,8 +216,7 @@ export async function POST() {
         errors: syncErrors,
       });
     } else {
-      log.warn("Phase 6: Extrato skipped, time limit reached");
-      syncErrors.push({ entity: "extrato", message: "Skipped — time limit reached" });
+      log.info("Phase 6: Extrato skipped (will run via cron)");
     }
 
     const totalInserted =

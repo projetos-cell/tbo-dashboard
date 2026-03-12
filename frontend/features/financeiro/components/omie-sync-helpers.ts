@@ -125,7 +125,15 @@ export function buildTooltipLines(
   }
 
   if (latest.errors && latest.errors.length > 0) {
-    lines.push(`${latest.errors.length} erro(s) registrado(s)`);
+    lines.push(`⚠ ${latest.errors.length} erro(s):`);
+    latest.errors.slice(0, 3).forEach((e) => {
+      const label = e.entity ? `[${e.entity}] ` : "";
+      const msg = e.message.length > 60 ? `${e.message.slice(0, 60)}…` : e.message;
+      lines.push(`  ${label}${msg}`);
+    });
+    if (latest.errors.length > 3) {
+      lines.push(`  …e mais ${latest.errors.length - 3} erro(s)`);
+    }
   }
 
   return lines;

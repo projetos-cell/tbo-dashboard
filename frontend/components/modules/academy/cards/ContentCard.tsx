@@ -2,7 +2,6 @@
 
 import type { SVGProps } from "react"
 import { IconClock, IconExternalLink } from "@tabler/icons-react"
-import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
 type TablerIconProps = SVGProps<SVGSVGElement> & {
@@ -15,26 +14,14 @@ export type TablerIcon = React.ForwardRefExoticComponent<
 
 export type ContentCardProps = {
   title: string
-  /** Rótulo de categoria em caixa alta — ex: "ÁUDIO", "LEITURA", "VÍDEO" */
   label: string
   description: string
-  /** Ícone Tabler usado tanto na decoração de fundo quanto no CTA */
   icon: TablerIcon
-  /**
-   * Classe(s) do degradê — deve ser uma string Tailwind completa para garantir
-   * que o PurgeCSS/Oxide detecte as classes estáticas.
-   * Ex: "bg-gradient-to-br from-purple-900/40 via-blue-900/30 to-secondary/20"
-   */
   gradient: string
-  /** Texto do botão de ação na base do card */
   ctaLabel?: string
-  /** Ícone opcional para o CTA (usa `icon` como fallback) */
   ctaIcon?: TablerIcon
-  /** Quando definido, exibe badge e desabilita clique */
   status?: string
-  /** URL externa — torna o card inteiro um link clicável */
   href?: string
-  /** Classes extras para grid span, altura, etc. */
   className?: string
 }
 
@@ -54,47 +41,44 @@ export function ContentCard({
   const ActionIcon = CtaIcon ?? CardIcon
 
   const inner = (
-    /* Layout horizontal: texto à esquerda, CTA à direita */
-    <div className="relative flex h-full items-center justify-between gap-4 px-6 py-4">
-      {/* Ícone decorativo de fundo — centralizado verticalmente, à direita */}
+    <div className="relative flex h-full items-center justify-between gap-6 px-5 py-0">
+      {/* Ícone decorativo de fundo */}
       <CardIcon
         aria-hidden
-        className="pointer-events-none absolute right-5 top-1/2 h-20 w-20 -translate-y-1/2 text-foreground opacity-10 transition-opacity duration-300 group-hover:opacity-[0.15]"
+        className="pointer-events-none absolute right-4 top-1/2 h-16 w-16 -translate-y-1/2 text-white opacity-[0.07] transition-opacity duration-300 group-hover:opacity-[0.12]"
       />
 
-      {/* Coluna de texto */}
+      {/* Texto — label empilhada sobre título */}
       <div className="relative flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+        <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-white/40">
           {label}
         </span>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-2xl font-bold leading-none">{title}</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-[17px] font-bold leading-none text-white/90">{title}</h3>
           {status && (
-            <Badge variant="secondary" className="gap-1 text-[10px]">
-              <IconClock className="h-3 w-3" />
+            <span className="inline-flex items-center gap-1 rounded-full border border-white/10 px-2 py-0.5 text-[9px] font-medium text-white/40">
+              <IconClock className="h-2.5 w-2.5" />
               {status}
-            </Badge>
+            </span>
           )}
         </div>
-
-        <p className="mt-1 line-clamp-1 text-xs leading-snug text-muted-foreground">
+        <p className="mt-0.5 line-clamp-1 text-[11px] leading-snug text-white/45">
           {description}
         </p>
       </div>
 
-      {/* CTA — encolhe, não quebra */}
+      {/* CTA */}
       <div className="relative shrink-0">
         {isComingSoon ? (
-          <span className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-full border border-border/30 px-4 py-2 text-xs font-medium text-muted-foreground/50">
-            <ActionIcon className="h-3.5 w-3.5" />
+          <span className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-full border border-white/10 px-3.5 py-1.5 text-[11px] font-medium text-white/30">
+            <ActionIcon className="h-3 w-3" />
             {ctaLabel ?? status}
           </span>
         ) : ctaLabel ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-white/5 px-4 py-2 text-xs font-medium transition-colors duration-200 group-hover:border-white/20 group-hover:bg-white/10">
-            <ActionIcon className="h-3.5 w-3.5" />
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-[11px] font-medium text-white/70 transition-all duration-200 group-hover:border-white/25 group-hover:bg-white/10 group-hover:text-white/90">
+            <ActionIcon className="h-3 w-3" />
             {ctaLabel}
-            <IconExternalLink className="h-3 w-3 opacity-50" />
+            <IconExternalLink className="h-2.5 w-2.5 opacity-50" />
           </span>
         ) : null}
       </div>
@@ -102,7 +86,7 @@ export function ContentCard({
   )
 
   const base = cn(
-    "group relative h-full overflow-hidden rounded-2xl border border-white/5 backdrop-blur-md",
+    "group relative h-full overflow-hidden rounded-xl border border-white/5 backdrop-blur-md",
     gradient,
     className,
   )
@@ -115,8 +99,8 @@ export function ContentCard({
         rel="noopener noreferrer"
         className={cn(
           base,
-          "cursor-pointer transition-all duration-300 hover:scale-[1.015] hover:shadow-2xl",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background",
+          "cursor-pointer transition-all duration-200 hover:scale-[1.012] hover:shadow-xl",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 ring-offset-background",
         )}
       >
         {inner}

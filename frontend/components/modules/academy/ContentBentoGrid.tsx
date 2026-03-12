@@ -22,14 +22,14 @@ export function ContentBentoGrid() {
     <div className="space-y-4">
       <h2 className="text-2xl font-bold tracking-tight">Conteúdos</h2>
 
-      {/* auto-rows-[130px] + 2 colunas → cards ~580 px de largura, todos mesma altura */}
-      <div className="grid auto-rows-[130px] grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-2">
+      {/* auto-rows-[84px] + 2 colunas — cards compactos, todos mesma altura */}
+      <div className="grid auto-rows-[84px] grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-2">
         <ContentCard
           title="Podcast"
           label="Áudio"
           description="Conversas sobre mercado imobiliário, branding e processo criativo."
           icon={IconMicrophone}
-          gradient="bg-gradient-to-br from-purple-900/40 via-blue-900/30 to-secondary/20"
+          gradient="bg-gradient-to-r from-purple-950/90 via-blue-950/80 to-slate-900/90"
           ctaLabel="Em breve"
           ctaIcon={IconMicrophone}
           status="Em breve"
@@ -40,7 +40,7 @@ export function ContentBentoGrid() {
           label="Leitura"
           description="Artigos sobre branding, marketing e mercado imobiliário."
           icon={IconBook}
-          gradient="bg-gradient-to-br from-emerald-900/40 via-teal-900/20 to-secondary/20"
+          gradient="bg-gradient-to-r from-emerald-950/90 via-teal-950/80 to-slate-900/90"
           ctaLabel="Ler newsletter"
           ctaIcon={IconBook}
           href={LINKEDIN_NEWSLETTER}
@@ -51,7 +51,7 @@ export function ContentBentoGrid() {
           label="Vídeo"
           description="Cases, bastidores e conteúdo TBO."
           icon={IconBrandYoutube}
-          gradient="bg-gradient-to-br from-red-900/40 via-rose-900/20 to-secondary/20"
+          gradient="bg-gradient-to-r from-red-950/90 via-rose-950/80 to-slate-900/90"
           ctaLabel="Assistir"
           ctaIcon={IconBrandYoutube}
           href={YOUTUBE_URL}
@@ -62,7 +62,7 @@ export function ContentBentoGrid() {
           label="Web"
           description="Portfólio de projetos, cases e apresentação institucional."
           icon={IconWorld}
-          gradient="bg-gradient-to-br from-sky-900/40 via-cyan-900/20 to-secondary/20"
+          gradient="bg-gradient-to-r from-sky-950/90 via-cyan-950/80 to-slate-900/90"
           ctaLabel="Visitar site"
           ctaIcon={IconWorld}
           href={SITE_URL}
@@ -73,7 +73,7 @@ export function ContentBentoGrid() {
           label="Rede profissional"
           description="Novidades, posicionamento e cultura da TBO no LinkedIn."
           icon={IconBrandLinkedin}
-          gradient="bg-gradient-to-br from-blue-900/50 via-indigo-900/30 to-secondary/20"
+          gradient="bg-gradient-to-r from-blue-950/90 via-indigo-950/80 to-slate-900/90"
           ctaLabel="Seguir"
           ctaIcon={IconBrandLinkedin}
           href={LINKEDIN_URL}
@@ -84,7 +84,7 @@ export function ContentBentoGrid() {
           label="Social"
           description="Visual e bastidores do trabalho criativo da TBO."
           icon={IconBrandInstagram}
-          gradient="bg-gradient-to-br from-pink-900/40 via-purple-900/30 to-secondary/20"
+          gradient="bg-gradient-to-r from-pink-950/90 via-purple-950/80 to-slate-900/90"
           ctaLabel="Seguir"
           ctaIcon={IconBrandInstagram}
           href={INSTAGRAM_URL}

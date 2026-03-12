@@ -11,7 +11,6 @@ import {
   buildClientNameLookup,
 } from "./_lookups";
 import { syncContasPagar, syncContasReceber } from "./_sync-transactions";
-import { syncExtratoBancario } from "./_sync-extrato";
 import { createSyncLogger } from "./_logger";
 
 const log = createSyncLogger("sync-omie");
@@ -31,7 +30,6 @@ export async function POST() {
   let categoriesSynced = 0;
   let payablesSynced = 0;
   let receivablesSynced = 0;
-  let extratoSynced = 0;
   const syncErrors: SyncLogError[] = [];
 
   let syncLogId: string | null = null;
@@ -199,30 +197,12 @@ export async function POST() {
       errors: syncErrors,
     });
 
-    await sleep(INTER_PHASE_DELAY_MS);
-
-    // ── Phase 6: Extrato Bancário ───────────────────────────────────────────
-    // Extrato runs as a separate cron job (/api/finance/sync-extrato).
-    // If time allows, run it opportunistically; skipping is NOT an error.
-    if (hasTimeRemaining(startTime, maxDuration)) {
-      log.info("Phase 6: Extrato Bancario (opportunistic)");
-      const extResult = await syncExtratoBancario(
-        supabase, tenantId, creds, baLookup, startTime, maxDuration
-      );
-      extratoSynced = extResult.inserted;
-      extResult.errors.forEach((e) => syncErrors.push({ entity: "extrato", message: e }));
-      await updateSyncProgress(supabase, syncLogId, {
-        extrato_synced: extratoSynced,
-        errors: syncErrors,
-      });
-    } else {
-      log.info("Phase 6: Extrato skipped (will run via cron)");
-    }
+    // Phase 6 (Extrato Bancário) runs exclusively via /api/finance/sync-extrato cron.
 
     const totalInserted =
       vendorsSynced + clientsSynced + bankAccountsSynced +
       categoriesSynced + ccResult.inserted + payablesSynced +
-      receivablesSynced + extratoSynced;
+      receivablesSynced;
 
     log.info("Sync complete", { totalUpserted: totalInserted, errors: syncErrors.length });
 
@@ -237,7 +217,6 @@ export async function POST() {
         costCenters: ccResult.inserted,
         payables: payablesSynced,
         receivables: receivablesSynced,
-        extrato: extratoSynced,
       },
       errors: syncErrors.length > 0 ? syncErrors.slice(0, 20) : undefined,
     };
@@ -267,7 +246,6 @@ export async function POST() {
         categories_synced: categoriesSynced,
         payables_synced: payablesSynced,
         receivables_synced: receivablesSynced,
-        extrato_synced: extratoSynced,
         errors: syncErrors,
       });
     }

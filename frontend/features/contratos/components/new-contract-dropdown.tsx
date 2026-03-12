@@ -7,7 +7,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Building2, Users, FileX, Truck } from "lucide-react";
+import { Plus, Building2, Users, FileX, Truck, PenTool } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 
 interface NewContractDropdownProps {
   onSelect: (category: string) => void;
@@ -41,6 +43,8 @@ const options = [
 ];
 
 export function NewContractDropdown({ onSelect }: NewContractDropdownProps) {
+  const router = useRouter();
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -68,6 +72,19 @@ export function NewContractDropdown({ onSelect }: NewContractDropdownProps) {
             </DropdownMenuItem>
           );
         })}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => router.push("/contratos/novo")}
+          className="flex items-start gap-3 py-2.5"
+        >
+          <PenTool className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+          <div>
+            <p className="text-sm font-medium">Contrato Completo</p>
+            <p className="text-xs text-muted-foreground">
+              Escopo, signatarios e Clicksign
+            </p>
+          </div>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

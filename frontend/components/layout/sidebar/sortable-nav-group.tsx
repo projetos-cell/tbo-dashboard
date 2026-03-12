@@ -27,8 +27,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SortableNavItem } from "./sortable-nav-item";
 import { useSidebarStore } from "@/stores/sidebar-store";
+import { SIDEBAR_NAV_GROUPS } from "@/lib/navigation";
 import type { NavGroup, NavGroupItem } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
+
+/** Flat map of every item across all groups — needed for cross-group moves */
+const ALL_ITEMS_MAP = new Map<string, NavGroupItem>(
+  SIDEBAR_NAV_GROUPS.flatMap((g) => g.items.map((i) => [i.href, i])),
+);
 
 interface SortableNavGroupProps {
   group: NavGroup;
@@ -51,15 +57,17 @@ export const SortableNavGroup = memo(function SortableNavGroup({
   const isCollapsed = collapsedGroups.has(group.label);
   const orderedItems = useMemo(() => {
     const order = groupItemOrder[group.label];
-    const visible = group.items.filter((i) => canSee(i.module));
-    if (!order) return visible;
-    const itemMap = new Map(visible.map((i) => [i.href, i]));
-    const result = order.flatMap((href) => {
-      const item = itemMap.get(href);
-      if (item) { itemMap.delete(href); return [item]; }
-      return [];
+    if (!order) {
+      // No saved order yet — show native items only
+      return group.items.filter((i) => canSee(i.module));
+    }
+    // Saved order exists: trust it completely.
+    // Look up items from the global map so cross-group moves work.
+    return order.flatMap((href) => {
+      const item = ALL_ITEMS_MAP.get(href);
+      if (!item || !canSee(item.module)) return [];
+      return [item];
     });
-    return [...result, ...itemMap.values()];
   }, [groupItemOrder, group, canSee]);
 
   const itemIds = useMemo(

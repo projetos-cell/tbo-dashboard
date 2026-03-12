@@ -41,8 +41,13 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
+import { SIDEBAR_NAV_GROUPS } from "@/lib/navigation";
 import { getIcon } from "@/lib/icons";
 import { useAuthStore } from "@/stores/auth-store";
 import { hasMinRole } from "@/lib/permissions";
@@ -74,6 +79,7 @@ export const SortableNavItem = memo(function SortableNavItem({
 
   const subItemOrder = useSidebarStore((s) => s.subItemOrder);
   const reorderSubItems = useSidebarStore((s) => s.reorderSubItems);
+  const moveItemBetweenGroups = useSidebarStore((s) => s.moveItemBetweenGroups);
 
   const {
     attributes,
@@ -208,10 +214,25 @@ export const SortableNavItem = memo(function SortableNavItem({
             Copiar link
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => onAction?.("move-to", item, groupLabel)}>
-            <MoveRight className="mr-2 h-3.5 w-3.5" />
-            Mover para...
-          </DropdownMenuItem>
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <MoveRight className="mr-2 h-3.5 w-3.5" />
+              Mover para...
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              {SIDEBAR_NAV_GROUPS.filter((g) => g.label !== groupLabel).map((g) => (
+                <DropdownMenuItem
+                  key={g.label}
+                  onClick={() => {
+                    moveItemBetweenGroups(item.href, groupLabel, g.label, 0);
+                    toast.success(`"${item.label}" movido para ${g.label}`);
+                  }}
+                >
+                  {g.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
           <DropdownMenuItem
             onClick={() => onAction?.("hide", item, groupLabel)}
             className="text-muted-foreground"

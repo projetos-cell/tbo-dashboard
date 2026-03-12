@@ -134,9 +134,6 @@ export function AppSidebar() {
         case "hide":
           toast.info(`"${item.label}" oculto da sidebar`);
           break;
-        case "move-to":
-          toast.info("Mover para... (em breve)");
-          break;
       }
     },
     [],

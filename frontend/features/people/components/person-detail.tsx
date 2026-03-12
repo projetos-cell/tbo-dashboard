@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { PeopleTimeline } from "@/features/people/components/people-timeline";
 import { usePersonEvents } from "@/features/people/hooks/use-people-events";
+import { PersonPdiSection } from "@/features/people/components/person-pdi-section";
+import { PersonRewardsSection } from "@/features/people/components/person-rewards-section";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -158,6 +160,16 @@ export function PersonDetail({ person, open, onOpenChange }: PersonDetailProps) 
               </span>
             </div>
           </div>
+
+          <Separator />
+
+          {/* PDI */}
+          <PersonPdiSection personId={person.id} />
+
+          <Separator />
+
+          {/* Reconhecimentos & pontos */}
+          <PersonRewardsSection personId={person.id} />
 
           <Separator />
 

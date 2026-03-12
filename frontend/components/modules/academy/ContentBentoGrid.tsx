@@ -7,6 +7,7 @@ import {
   IconWorld,
   IconBrandLinkedin,
   IconBrandInstagram,
+  IconBrandBehance,
 } from "@tabler/icons-react"
 import { ContentCard } from "./cards/ContentCard"
 
@@ -15,7 +16,8 @@ const LINKEDIN_NEWSLETTER =
 const YOUTUBE_URL = "https://www.youtube.com/@wearetbo"
 const SITE_URL = "https://wearetbo.com.br/"
 const LINKEDIN_URL = "https://www.linkedin.com/company/agenciatbo"
-const INSTAGRAM_URL = "https://instagram.com/agenciatbo"
+const INSTAGRAM_URL = "https://www.instagram.com/weare.tbo/"
+const BEHANCE_URL = "https://www.behance.net/wearetbo"
 
 export function ContentBentoGrid() {
   return (
@@ -88,6 +90,17 @@ export function ContentBentoGrid() {
           ctaLabel="Seguir"
           ctaIcon={IconBrandInstagram}
           href={INSTAGRAM_URL}
+        />
+
+        <ContentCard
+          title="Behance"
+          label="Portfólio"
+          description="Cases e projetos criativos da TBO com processo e resultado."
+          icon={IconBrandBehance}
+          gradient="bg-gradient-to-r from-blue-950/90 via-sky-950/80 to-slate-900/90"
+          ctaLabel="Ver portfólio"
+          ctaIcon={IconBrandBehance}
+          href={BEHANCE_URL}
         />
       </div>
     </div>

@@ -54,10 +54,10 @@ export type TaskStatusKey = keyof typeof TASK_STATUS;
 
 // Task priority configuration
 export const TASK_PRIORITY = {
-  urgente: { label: "Urgente", color: "#ef4444", sort: 0 },
-  alta: { label: "Alta", color: "#f59e0b", sort: 1 },
-  media: { label: "Média", color: "#3b82f6", sort: 2 },
-  baixa: { label: "Baixa", color: "#6b7280", sort: 3 },
+  urgente: { label: "Urgente", color: "#ef4444", bg: "rgba(239,68,68,0.12)", sort: 0 },
+  alta: { label: "Alta", color: "#f59e0b", bg: "rgba(245,158,11,0.12)", sort: 1 },
+  media: { label: "Média", color: "#3b82f6", bg: "rgba(59,130,246,0.12)", sort: 2 },
+  baixa: { label: "Baixa", color: "#6b7280", bg: "rgba(107,114,128,0.12)", sort: 3 },
 } as const;
 
 export type TaskPriorityKey = keyof typeof TASK_PRIORITY;

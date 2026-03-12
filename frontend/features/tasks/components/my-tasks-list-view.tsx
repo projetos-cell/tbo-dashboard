@@ -1,56 +1,40 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
-import { Badge } from "@/components/ui/badge";
+import { useState, useCallback, useMemo, Fragment } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { MyTaskRow } from "./my-task-row";
+import { Table, TableBody, TableRow, TableCell } from "@/components/ui/table";
+import { MyTasksTableHeader } from "./my-tasks-table-header";
+import { MyTasksSectionRow } from "./my-tasks-section-row";
+import { MyTaskTableRow } from "./my-task-table-row";
 import { QuickAddTask } from "./quick-add-task";
 import {
   useMyTasksSections,
   useCreateSection,
   useUpdateSection,
   useDeleteSection,
-  useReorderSections,
   useMoveTaskToSection,
-  useBatchUpdateTaskOrder,
   groupTasksBySection,
 } from "@/features/tasks/hooks/use-my-tasks";
+import { useProjects } from "@/features/projects/hooks/use-projects";
 import { useUndoStack } from "@/hooks/use-undo-stack";
 import { useUndoKeyboard } from "@/hooks/use-undo-keyboard";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/stores/auth-store";
 import type { MyTaskWithSection } from "@/features/tasks/services/my-tasks";
-import type { MyTasksSection } from "@/features/tasks/services/my-tasks";
 import type { Database } from "@/lib/supabase/types";
 import {
   DndContext,
   DragOverlay,
-  closestCorners,
   pointerWithin,
   type DragEndEvent,
   type DragStartEvent,
-  type DragOverEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
-import {
-  ChevronDown,
-  ChevronRight,
-  MoreHorizontal,
-  Plus,
-  Pencil,
-  Trash2,
-} from "lucide-react";
+import { Plus } from "lucide-react";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 
@@ -65,122 +49,12 @@ function DroppableSection({
   const { setNodeRef, isOver } = useDroppable({ id });
 
   return (
-    <div
+    <tbody
       ref={setNodeRef}
-      className={`min-h-[4px] rounded-md transition-colors ${
-        isOver ? "bg-primary/5 ring-1 ring-primary/20" : ""
-      }`}
+      className={isOver ? "bg-primary/5 ring-1 ring-primary/20" : ""}
     >
       {children}
-    </div>
-  );
-}
-
-// ─── Section header ─────────────────────────────────────────
-function SectionHeader({
-  section,
-  taskCount,
-  isCollapsed,
-  onToggle,
-  onRename,
-  onDelete,
-}: {
-  section: MyTasksSection;
-  taskCount: number;
-  isCollapsed: boolean;
-  onToggle: () => void;
-  onRename: (name: string) => void;
-  onDelete: () => void;
-}) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(section.name);
-
-  const handleSubmitRename = useCallback(() => {
-    const trimmed = editName.trim();
-    if (trimmed && trimmed !== section.name) {
-      onRename(trimmed);
-    }
-    setIsEditing(false);
-  }, [editName, section.name, onRename]);
-
-  return (
-    <div className="group flex items-center gap-2 py-2">
-      <button
-        onClick={onToggle}
-        className="shrink-0 rounded p-0.5 text-gray-500 hover:bg-gray-100"
-      >
-        {isCollapsed ? (
-          <ChevronRight className="h-4 w-4" />
-        ) : (
-          <ChevronDown className="h-4 w-4" />
-        )}
-      </button>
-
-      {isEditing ? (
-        <Input
-          value={editName}
-          onChange={(e) => setEditName(e.target.value)}
-          onBlur={handleSubmitRename}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") handleSubmitRename();
-            if (e.key === "Escape") {
-              setEditName(section.name);
-              setIsEditing(false);
-            }
-          }}
-          className="h-7 w-48 text-sm font-semibold"
-          autoFocus
-        />
-      ) : (
-        <h3
-          className="cursor-pointer text-sm font-semibold text-gray-700"
-          onDoubleClick={() => {
-            if (!section.is_default) {
-              setEditName(section.name);
-              setIsEditing(true);
-            }
-          }}
-        >
-          {section.name}
-        </h3>
-      )}
-
-      <Badge variant="secondary" className="h-5 text-[10px]">
-        {taskCount}
-      </Badge>
-
-      {!section.is_default && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
-            >
-              <MoreHorizontal className="h-3.5 w-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onClick={() => {
-                setEditName(section.name);
-                setIsEditing(true);
-              }}
-            >
-              <Pencil className="mr-2 h-3.5 w-3.5" />
-              Renomear
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-red-600 focus:text-red-600"
-              onClick={onDelete}
-            >
-              <Trash2 className="mr-2 h-3.5 w-3.5" />
-              Excluir seção
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
-    </div>
+    </tbody>
   );
 }
 
@@ -196,10 +70,21 @@ export function MyTasksListView({ tasks, onSelect }: MyTasksListViewProps) {
   const updateSection = useUpdateSection();
   const deleteSection = useDeleteSection();
   const moveTask = useMoveTaskToSection();
-  const batchUpdate = useBatchUpdateTaskOrder();
   const tenantId = useAuthStore((s) => s.tenantId);
   const { toast } = useToast();
   const undo = useUndoStack();
+
+  // Projects lookup for project_id → name
+  const { data: projects } = useProjects();
+  const projectMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (projects) {
+      for (const p of projects) {
+        map.set(p.id, p.name ?? p.id);
+      }
+    }
+    return map;
+  }, [projects]);
 
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
     new Set()
@@ -257,34 +142,28 @@ export function MyTasksListView({ tasks, onSelect }: MyTasksListViewProps) {
 
       // Determine target section
       let targetSectionId: string | null = null;
-
-      // Check if dropped on a section droppable
       const overIdStr = over.id as string;
       const isSection = sections.some((s) => s.id === overIdStr);
 
       if (isSection) {
         targetSectionId = overIdStr;
       } else {
-        // Dropped on another task — use that task's section
         const overTask = tasks.find((t) => t.id === overIdStr);
         if (overTask) {
           targetSectionId = overTask.my_section_id;
         }
       }
 
-      // If section didn't change, skip
       if (targetSectionId === task.my_section_id) return;
 
       const oldSectionId = task.my_section_id;
 
-      // Undo stack
       undo.push({
         type: "MOVE_TASK_SECTION",
         payload: { taskId, toSection: targetSectionId },
         inverse: { taskId, toSection: oldSectionId },
       });
 
-      // Calculate new sort order (append to end)
       const targetTasks = tasks.filter(
         (t) => t.my_section_id === targetSectionId && t.id !== taskId
       );
@@ -339,99 +218,120 @@ export function MyTasksListView({ tasks, onSelect }: MyTasksListViewProps) {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="space-y-1">
-        {sortedSections.map((section) => {
-          const sectionTasks = grouped.get(section.id) ?? [];
-          const isCollapsed = collapsedSections.has(section.id);
+      <div className="rounded-lg border">
+        <Table>
+          <MyTasksTableHeader />
 
-          return (
-            <div key={section.id} className="mb-4">
-              <SectionHeader
-                section={section}
-                taskCount={sectionTasks.length}
-                isCollapsed={isCollapsed}
-                onToggle={() => toggleCollapse(section.id)}
-                onRename={(name) =>
-                  updateSection.mutate({ id: section.id, updates: { name } })
-                }
-                onDelete={() => deleteSection.mutate(section.id)}
-              />
+          {sortedSections.map((section) => {
+            const sectionTasks = grouped.get(section.id) ?? [];
+            const isCollapsed = collapsedSections.has(section.id);
 
-              {!isCollapsed && (
-                <DroppableSection id={section.id}>
+            return (
+              <DroppableSection key={section.id} id={section.id}>
+                <MyTasksSectionRow
+                  section={section}
+                  taskCount={sectionTasks.length}
+                  isCollapsed={isCollapsed}
+                  onToggle={() => toggleCollapse(section.id)}
+                  onRename={(name) =>
+                    updateSection.mutate({ id: section.id, updates: { name } })
+                  }
+                  onDelete={() => deleteSection.mutate(section.id)}
+                />
+
+                {!isCollapsed && (
                   <SortableContext
                     id={section.id}
                     items={sectionTasks.map((t) => t.id)}
                     strategy={verticalListSortingStrategy}
                   >
-                    <div className="space-y-1 pl-6">
-                      {sectionTasks.length === 0 && (
-                        <p className="py-3 text-center text-xs text-gray-400">
+                    {sectionTasks.length === 0 && (
+                      <TableRow>
+                        <TableCell
+                          colSpan={6}
+                          className="py-3 text-center text-xs text-gray-400"
+                        >
                           Nenhuma tarefa nesta seção
-                        </p>
-                      )}
-                      {sectionTasks.map((task) => (
-                        <MyTaskRow
-                          key={task.id}
-                          task={task}
-                          onClick={() => onSelect(task as TaskRow)}
-                        />
-                      ))}
-                      <QuickAddTask
-                        sectionId={section.id}
-                        sortOrder={
-                          sectionTasks.length > 0
-                            ? sectionTasks[sectionTasks.length - 1]
-                                .my_sort_order + 1
-                            : 0
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {sectionTasks.map((task) => (
+                      <MyTaskTableRow
+                        key={task.id}
+                        task={task}
+                        projectName={
+                          task.project_id
+                            ? projectMap.get(task.project_id)
+                            : undefined
                         }
+                        onClick={() => onSelect(task as TaskRow)}
                       />
-                    </div>
+                    ))}
+                    <TableRow className="hover:bg-transparent border-0">
+                      <TableCell colSpan={6} className="py-0 px-0">
+                        <QuickAddTask
+                          sectionId={section.id}
+                          sortOrder={
+                            sectionTasks.length > 0
+                              ? sectionTasks[sectionTasks.length - 1]
+                                  .my_sort_order + 1
+                              : 0
+                          }
+                        />
+                      </TableCell>
+                    </TableRow>
                   </SortableContext>
-                </DroppableSection>
-              )}
-            </div>
-          );
-        })}
+                )}
+              </DroppableSection>
+            );
+          })}
 
-        {/* Unassigned tasks (no section) */}
-        {grouped.has("__unassigned__") && (
-          <div className="mb-4">
-            <div className="flex items-center gap-2 py-2">
-              <h3 className="text-sm font-semibold text-gray-500">
-                Sem seção
-              </h3>
-              <Badge variant="secondary" className="h-5 text-[10px]">
-                {grouped.get("__unassigned__")!.length}
-              </Badge>
-            </div>
-            <div className="space-y-1 pl-6">
+          {/* Unassigned tasks (no section) */}
+          {grouped.has("__unassigned__") && (
+            <TableBody>
+              <TableRow className="bg-muted/20 hover:bg-muted/30">
+                <TableCell
+                  colSpan={6}
+                  className="py-1.5 px-2 text-sm font-semibold text-gray-500"
+                >
+                  Sem seção ({grouped.get("__unassigned__")!.length})
+                </TableCell>
+              </TableRow>
               {grouped.get("__unassigned__")!.map((task) => (
-                <MyTaskRow
+                <MyTaskTableRow
                   key={task.id}
                   task={task}
+                  projectName={
+                    task.project_id
+                      ? projectMap.get(task.project_id)
+                      : undefined
+                  }
                   onClick={() => onSelect(task as TaskRow)}
                 />
               ))}
-            </div>
-          </div>
-        )}
-
-        {/* Add section button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-gray-500"
-          onClick={handleAddSection}
-        >
-          <Plus className="mr-1.5 h-4 w-4" />
-          Adicionar seção
-        </Button>
+            </TableBody>
+          )}
+        </Table>
       </div>
+
+      {/* Add section button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="mt-2 text-gray-500"
+        onClick={handleAddSection}
+      >
+        <Plus className="mr-1.5 h-4 w-4" />
+        Adicionar seção
+      </Button>
 
       <DragOverlay>
         {activeTask ? (
-          <MyTaskRow task={activeTask} isDragOverlay />
+          <table className="w-full">
+            <tbody>
+              <MyTaskTableRow task={activeTask} isDragOverlay />
+            </tbody>
+          </table>
         ) : null}
       </DragOverlay>
     </DndContext>

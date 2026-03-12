@@ -30,7 +30,7 @@ export type ContentCardProps = {
   ctaLabel?: string
   /** Ícone opcional para o CTA (usa `icon` como fallback) */
   ctaIcon?: TablerIcon
-  /** Quando definido, exibe badge e desabilita clique (card ainda clicável se `href` também definido) */
+  /** Quando definido, exibe badge e desabilita clique */
   status?: string
   /** URL externa — torna o card inteiro um link clicável */
   href?: string
@@ -54,50 +54,55 @@ export function ContentCard({
   const ActionIcon = CtaIcon ?? CardIcon
 
   const inner = (
-    <div className="relative flex h-full flex-col justify-end p-6 md:p-8">
-      {/* Ícone decorativo de fundo */}
+    /* Layout horizontal: texto à esquerda, CTA à direita */
+    <div className="relative flex h-full items-center justify-between gap-4 px-6 py-4">
+      {/* Ícone decorativo de fundo — centralizado verticalmente, à direita */}
       <CardIcon
         aria-hidden
-        className="pointer-events-none absolute right-3 top-3 h-28 w-28 text-foreground opacity-10 transition-opacity duration-300 group-hover:opacity-[0.15]"
+        className="pointer-events-none absolute right-5 top-1/2 h-20 w-20 -translate-y-1/2 text-foreground opacity-10 transition-opacity duration-300 group-hover:opacity-[0.15]"
       />
 
-      {/* Label */}
-      <span className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-        {label}
-      </span>
+      {/* Coluna de texto */}
+      <div className="relative flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+          {label}
+        </span>
 
-      {/* Título + badge de status */}
-      <div className="mb-2 flex flex-wrap items-center gap-3">
-        <h3 className="text-3xl font-bold leading-none">{title}</h3>
-        {status && (
-          <Badge variant="secondary" className="gap-1 text-xs">
-            <IconClock className="h-3 w-3" />
-            {status}
-          </Badge>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="text-2xl font-bold leading-none">{title}</h3>
+          {status && (
+            <Badge variant="secondary" className="gap-1 text-[10px]">
+              <IconClock className="h-3 w-3" />
+              {status}
+            </Badge>
+          )}
+        </div>
+
+        <p className="mt-1 line-clamp-1 text-xs leading-snug text-muted-foreground">
+          {description}
+        </p>
       </div>
 
-      {/* Descrição */}
-      <p className="mb-6 leading-relaxed text-muted-foreground">{description}</p>
-
-      {/* CTA */}
-      {isComingSoon ? (
-        <span className="inline-flex w-fit cursor-not-allowed items-center gap-2 rounded-full border border-border/30 px-5 py-2.5 text-sm font-medium text-muted-foreground/50">
-          <ActionIcon className="h-4 w-4" />
-          {ctaLabel ?? status}
-        </span>
-      ) : ctaLabel ? (
-        <span className="inline-flex w-fit items-center gap-2 rounded-full border border-border/40 bg-white/5 px-5 py-2.5 text-sm font-medium transition-colors duration-200 group-hover:border-white/20 group-hover:bg-white/10">
-          <ActionIcon className="h-4 w-4" />
-          {ctaLabel}
-          <IconExternalLink className="h-3.5 w-3.5 opacity-50" />
-        </span>
-      ) : null}
+      {/* CTA — encolhe, não quebra */}
+      <div className="relative shrink-0">
+        {isComingSoon ? (
+          <span className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-full border border-border/30 px-4 py-2 text-xs font-medium text-muted-foreground/50">
+            <ActionIcon className="h-3.5 w-3.5" />
+            {ctaLabel ?? status}
+          </span>
+        ) : ctaLabel ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-white/5 px-4 py-2 text-xs font-medium transition-colors duration-200 group-hover:border-white/20 group-hover:bg-white/10">
+            <ActionIcon className="h-3.5 w-3.5" />
+            {ctaLabel}
+            <IconExternalLink className="h-3 w-3 opacity-50" />
+          </span>
+        ) : null}
+      </div>
     </div>
   )
 
   const base = cn(
-    "group relative h-full overflow-hidden rounded-3xl border border-white/5 backdrop-blur-md",
+    "group relative h-full overflow-hidden rounded-2xl border border-white/5 backdrop-blur-md",
     gradient,
     className,
   )
@@ -110,7 +115,7 @@ export function ContentCard({
         rel="noopener noreferrer"
         className={cn(
           base,
-          "cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl",
+          "cursor-pointer transition-all duration-300 hover:scale-[1.015] hover:shadow-2xl",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background",
         )}
       >

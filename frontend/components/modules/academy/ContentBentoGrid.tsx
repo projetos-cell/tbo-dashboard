@@ -22,8 +22,8 @@ export function ContentBentoGrid() {
     <div className="space-y-4">
       <h2 className="text-2xl font-bold tracking-tight">Conteúdos</h2>
 
-      {/* auto-rows-[260px] garante altura uniforme em todos os cards */}
-      <div className="grid auto-rows-[260px] grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3">
+      {/* auto-rows-[130px] + 2 colunas → cards ~580 px de largura, todos mesma altura */}
+      <div className="grid auto-rows-[130px] grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-2">
         <ContentCard
           title="Podcast"
           label="Áudio"

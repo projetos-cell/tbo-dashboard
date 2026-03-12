@@ -102,12 +102,16 @@ export const useSidebarStore = create<SidebarOrderState>()(
       },
 
       moveItemBetweenGroups(itemHref, fromGroup, toGroup, toIndex) {
+        if (fromGroup === toGroup) return;
         pushUndo(get());
         set((s) => {
           const fromItems = (s.groupItemOrder[fromGroup] ?? []).filter(
             (h) => h !== itemHref,
           );
-          const toItems = [...(s.groupItemOrder[toGroup] ?? [])];
+          // Prevent duplicate: remove from target first, then insert
+          const toItems = (s.groupItemOrder[toGroup] ?? []).filter(
+            (h) => h !== itemHref,
+          );
           toItems.splice(toIndex, 0, itemHref);
           return {
             groupItemOrder: {

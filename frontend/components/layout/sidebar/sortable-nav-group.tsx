@@ -58,16 +58,28 @@ export const SortableNavGroup = memo(function SortableNavGroup({
   const orderedItems = useMemo(() => {
     const order = groupItemOrder[group.label];
     if (!order) {
-      // No saved order yet — show native items only
       return group.items.filter((i) => canSee(i.module));
     }
-    // Saved order exists: trust it completely.
-    // Look up items from the global map so cross-group moves work.
-    return order.flatMap((href) => {
+
+    // Deduplicate: track seen hrefs to fix corrupt state from repeated moves
+    const seen = new Set<string>();
+    const result = order.flatMap((href) => {
+      if (seen.has(href)) return [];
+      seen.add(href);
       const item = ALL_ITEMS_MAP.get(href);
       if (!item || !canSee(item.module)) return [];
       return [item];
     });
+
+    // Append native items not yet tracked in any group (new nav additions)
+    const allTracked = new Set(Object.values(groupItemOrder).flat());
+    for (const item of group.items) {
+      if (!allTracked.has(item.href) && canSee(item.module)) {
+        result.push(item);
+      }
+    }
+
+    return result;
   }, [groupItemOrder, group, canSee]);
 
   const itemIds = useMemo(

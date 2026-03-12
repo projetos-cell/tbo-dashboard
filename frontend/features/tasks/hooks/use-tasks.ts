@@ -123,9 +123,7 @@ export function useUpdateTask() {
       updates: Database["public"]["Tables"]["os_tasks"]["Update"];
       previousTask?: TaskRow | null;
     }) => {
-      // Include updated_by in every update
-      const userId = useAuthStore.getState().user?.id;
-      return updateTask(supabase, id, { ...updates, updated_by: userId });
+      return updateTask(supabase, id, updates);
     },
 
     onMutate: async (variables) => {

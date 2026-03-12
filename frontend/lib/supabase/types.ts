@@ -5780,14 +5780,13 @@ export type Database = {
           order_index: number
           parent_id: string | null
           priority: string | null
-          project_id: string
+          project_id: string | null
           section_id: string | null
           start_date: string | null
           status: string
           tenant_id: string
           title: string
           updated_at: string | null
-          updated_by: string | null
         }
         Insert: {
           assignee_id?: string | null
@@ -5803,14 +5802,13 @@ export type Database = {
           order_index?: number
           parent_id?: string | null
           priority?: string | null
-          project_id: string
+          project_id?: string | null
           section_id?: string | null
           start_date?: string | null
           status?: string
           tenant_id: string
           title?: string
           updated_at?: string | null
-          updated_by?: string | null
         }
         Update: {
           assignee_id?: string | null
@@ -5826,14 +5824,13 @@ export type Database = {
           order_index?: number
           parent_id?: string | null
           priority?: string | null
-          project_id?: string
+          project_id?: string | null
           section_id?: string | null
           start_date?: string | null
           status?: string
           tenant_id?: string
           title?: string
           updated_at?: string | null
-          updated_by?: string | null
         }
         Relationships: [
           {

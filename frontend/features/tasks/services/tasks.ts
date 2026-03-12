@@ -3,7 +3,7 @@ import type { Database } from "@/lib/supabase/types";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 const TASK_COLS =
-  "id,tenant_id,project_id,section_id,parent_id,title,description,status,assignee_id,assignee_name,start_date,due_date,completed_at,priority,order_index,is_completed,legacy_demand_id,created_by,created_at,updated_at,updated_by";
+  "id,tenant_id,project_id,section_id,parent_id,title,description,status,assignee_id,assignee_name,start_date,due_date,completed_at,priority,order_index,is_completed,legacy_demand_id,created_by,created_at,updated_at";
 
 export async function getTasks(
   supabase: SupabaseClient<Database>,

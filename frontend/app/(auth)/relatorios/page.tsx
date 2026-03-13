@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,6 +57,7 @@ import {
 } from "@/hooks/use-reports";
 import { computeReportsKPIs } from "@/services/reports";
 import { ErrorState, EmptyState } from "@/components/shared";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import type { Json } from "@/lib/supabase/types";
 
 const RUN_STATUS_COLORS: Record<string, string> = {
@@ -76,6 +77,7 @@ function recipientCount(recipients: Json | null): number {
 export default function RelatoriosPage() {
   const [tab, setTab] = useState("agendamentos");
   const [runStatusFilter, setRunStatusFilter] = useState("all");
+  const [pendingDeleteSchedule, setPendingDeleteSchedule] = useState<string | null>(null);
 
   // Queries
   const { data: schedules = [], isLoading: loadingSchedules, error: schedulesError, refetch: refetchSchedules } =
@@ -263,7 +265,7 @@ export default function RelatoriosPage() {
                               <DropdownMenuItem
                                 className="text-red-500"
                                 onClick={() =>
-                                  deleteScheduleMutation.mutate(schedule.id)
+                                  setPendingDeleteSchedule(schedule.id)
                                 }
                               >
                                 <IconTrash className="mr-2 h-4 w-4" />
@@ -391,6 +393,18 @@ export default function RelatoriosPage() {
             )}
           </TabsContent>
         </Tabs>
+
+        <ConfirmDialog
+          open={pendingDeleteSchedule !== null}
+          onOpenChange={(open) => { if (!open) setPendingDeleteSchedule(null); }}
+          title="Excluir agendamento"
+          description="Tem certeza que deseja excluir este agendamento? Esta acao nao pode ser desfeita."
+          confirmLabel="Excluir"
+          onConfirm={() => {
+            if (pendingDeleteSchedule) deleteScheduleMutation.mutate(pendingDeleteSchedule);
+            setPendingDeleteSchedule(null);
+          }}
+        />
       </div>
     </RequireRole>
   );

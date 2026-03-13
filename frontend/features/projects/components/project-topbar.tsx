@@ -19,6 +19,7 @@ import { UserSelector, type UserOption } from "@/components/ui/user-selector";
 import { useUpdateProject, useDeleteProject } from "@/features/projects/hooks/use-projects";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { PROJECT_STATUS, type ProjectStatusKey } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 
@@ -35,6 +36,7 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [showMenu, setShowMenu] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const status = PROJECT_STATUS[project.status as ProjectStatusKey];
 
@@ -66,15 +68,14 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
     });
   };
 
-  const handleDelete = () => {
-    const confirmed = window.confirm(
-      `Excluir "${project.name}"? Esta acao nao pode ser desfeita.`
-    );
-    if (!confirmed) return;
+  const handleDeleteConfirm = () => {
     deleteProject.mutate(project.id, {
       onSuccess: () => {
         toast({ title: "Projeto excluido" });
         router.push("/projetos");
+      },
+      onError: () => {
+        toast({ title: "Erro ao excluir", description: "Nao foi possivel excluir o projeto.", variant: "destructive" });
       },
     });
   };
@@ -142,7 +143,7 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
                   danger
                   onClick={() => {
                     setShowMenu(false);
-                    handleDelete();
+                    setDeleteOpen(true);
                   }}
                 />
               </div>
@@ -150,6 +151,15 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Excluir projeto"
+        description={`Excluir "${project.name}"? Esta acao nao pode ser desfeita.`}
+        confirmLabel="Excluir"
+        onConfirm={handleDeleteConfirm}
+      />
 
       {/* Secondary row */}
       <div className="flex items-center gap-4 pl-12">

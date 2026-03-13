@@ -23,6 +23,7 @@ import {
   useUploadAttachment,
   useDeleteAttachment,
 } from "@/hooks/use-attachments";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
@@ -58,6 +59,7 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
   const uploadAttachment = useUploadAttachment();
   const deleteAttachment = useDeleteAttachment();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [pendingDelete, setPendingDelete] = useState<Attachment | null>(null);
 
   const handleUpload = async (files: File[]) => {
     for (const file of files) {
@@ -75,14 +77,13 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
     }
   };
 
-  const handleDelete = async (attachment: Attachment) => {
-    const confirmed = window.confirm(
-      `Excluir "${attachment.file_name}"?`
-    );
-    if (!confirmed) return;
+  const handleDeleteConfirm = async () => {
+    if (!pendingDelete) return;
+    const att = pendingDelete;
+    setPendingDelete(null);
     await deleteAttachment.mutateAsync({
-      id: attachment.id,
-      filePath: attachment.file_path,
+      id: att.id,
+      filePath: att.file_path,
     });
   };
 
@@ -171,7 +172,7 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
                           size="sm"
                           variant="ghost"
                           className="h-7 text-xs text-red-500"
-                          onClick={() => handleDelete(att)}
+                          onClick={() => setPendingDelete(att)}
                         >
                           <IconTrash className="size-3" />
                         </Button>
@@ -217,7 +218,7 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
                         size="icon"
                         variant="ghost"
                         className="size-7 text-red-500"
-                        onClick={() => handleDelete(att)}
+                        onClick={() => setPendingDelete(att)}
                         aria-label="Excluir arquivo"
                       >
                         <IconTrash className="size-3.5" />
@@ -236,6 +237,19 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
           Nenhum arquivo anexado
         </p>
       )}
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => { if (!open) setPendingDelete(null); }}
+        title="Excluir arquivo"
+        description={
+          pendingDelete
+            ? `Excluir "${pendingDelete.file_name}"? Esta acao nao pode ser desfeita.`
+            : "Esta acao nao pode ser desfeita."
+        }
+        confirmLabel="Excluir"
+        onConfirm={handleDeleteConfirm}
+      />
     </div>
   );
 }

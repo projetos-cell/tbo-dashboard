@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { format } from "date-fns";
@@ -10,10 +10,11 @@ import { useTablePreferences } from "@/hooks/use-table-preferences";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { PROJECT_STATUS, type ProjectStatusKey } from "@/lib/constants";
 import type { ColumnDef } from "@/lib/column-types";
 import type { Database } from "@/lib/supabase/types";
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useState } from "react";
 
 type Project = Database["public"]["Tables"]["projects"]["Row"];
 
@@ -27,31 +28,28 @@ export function ProjectList({ projects }: ProjectListProps) {
   const deleteProject = useDeleteProject();
   const { toast } = useToast();
   const { columnPrefs, sortPref, saveColumns, saveSort, reset } = useTablePreferences(TABLE_ID);
+  const [pendingDelete, setPendingDelete] = useState<Project | null>(null);
 
-  const handleDelete = useCallback(
-    (project: Project) => {
-      const confirmed = window.confirm(
-        `Tem certeza que deseja excluir "${project.name}"?`
-      );
-      if (!confirmed) return;
-      deleteProject.mutate(project.id, {
-        onSuccess: () => {
-          toast({
-            title: "Excluido",
-            description: `"${project.name}" foi removido.`,
-          });
-        },
-        onError: () => {
-          toast({
-            title: "Erro",
-            description: "Nao foi possivel excluir.",
-            variant: "destructive",
-          });
-        },
-      });
-    },
-    [deleteProject, toast]
-  );
+  const handleDeleteConfirm = useCallback(() => {
+    if (!pendingDelete) return;
+    const project = pendingDelete;
+    setPendingDelete(null);
+    deleteProject.mutate(project.id, {
+      onSuccess: () => {
+        toast({
+          title: "Excluido",
+          description: `"${project.name}" foi removido.`,
+        });
+      },
+      onError: () => {
+        toast({
+          title: "Erro",
+          description: "Nao foi possivel excluir.",
+          variant: "destructive",
+        });
+      },
+    });
+  }, [pendingDelete, deleteProject, toast]);
 
   const columnDefs: ColumnDef<Project>[] = useMemo(
     () => [
@@ -168,7 +166,7 @@ export function ProjectList({ projects }: ProjectListProps) {
             className="h-7 w-7 text-gray-500 hover:text-red-500"
             onClick={(e) => {
               e.stopPropagation();
-              handleDelete(row);
+              setPendingDelete(row);
             }}
             disabled={deleteProject.isPending}
             aria-label="Excluir projeto"
@@ -178,21 +176,35 @@ export function ProjectList({ projects }: ProjectListProps) {
         ),
       },
     ],
-    [handleDelete, deleteProject.isPending]
+    [deleteProject.isPending]
   );
 
   return (
-    <DataTable
-      tableId={TABLE_ID}
-      columnDefs={columnDefs}
-      data={projects}
-      rowKey={(row) => row.id}
-      savedPrefs={columnPrefs ?? undefined}
-      onPrefsChange={saveColumns}
-      onPrefsReset={reset}
-      defaultSort={sortPref}
-      onSortChange={saveSort}
-      emptyMessage="Nenhum projeto encontrado."
-    />
+    <>
+      <DataTable
+        tableId={TABLE_ID}
+        columnDefs={columnDefs}
+        data={projects}
+        rowKey={(row) => row.id}
+        savedPrefs={columnPrefs ?? undefined}
+        onPrefsChange={saveColumns}
+        onPrefsReset={reset}
+        defaultSort={sortPref}
+        onSortChange={saveSort}
+        emptyMessage="Nenhum projeto encontrado."
+      />
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => { if (!open) setPendingDelete(null); }}
+        title="Excluir projeto"
+        description={
+          pendingDelete
+            ? `Tem certeza que deseja excluir "${pendingDelete.name}"? Esta acao nao pode ser desfeita.`
+            : "Esta acao nao pode ser desfeita."
+        }
+        confirmLabel="Excluir"
+        onConfirm={handleDeleteConfirm}
+      />
+    </>
   );
 }

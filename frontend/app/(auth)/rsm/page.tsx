@@ -55,6 +55,7 @@ import { RequireRole } from "@/features/auth/components/require-role";
 import { useRsmAccounts, useRsmPosts, useRsmIdeas, useDeleteRsmPost, useDeleteRsmIdea } from "@/hooks/use-rsm";
 import { computeRsmKPIs } from "@/services/rsm";
 import { ErrorState, EmptyState } from "@/components/shared";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { useSyncInstagram, useInstagramSyncStatus } from "@/hooks/use-instagram-sync";
 import { InstagramConfigDialog } from "./_components/instagram-config-dialog";
 import { formatDistanceToNow } from "date-fns";
@@ -90,6 +91,8 @@ export default function RsmPage() {
   const [postStatusFilter, setPostStatusFilter] = useState("all");
   const [ideaStatusFilter, setIdeaStatusFilter] = useState("all");
   const [configOpen, setConfigOpen] = useState(false);
+  const [pendingDeletePost, setPendingDeletePost] = useState<string | null>(null);
+  const [pendingDeleteIdea, setPendingDeleteIdea] = useState<string | null>(null);
 
   // Instagram sync
   const syncMutation = useSyncInstagram();
@@ -378,7 +381,7 @@ export default function RsmPage() {
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-red-500"
-                                onClick={() => deletePostMutation.mutate(post.id)}
+                                onClick={() => setPendingDeletePost(post.id)}
                               >
                                 <IconTrash className="mr-2 h-4 w-4" />
                                 Excluir
@@ -480,7 +483,7 @@ export default function RsmPage() {
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-red-500"
-                                onClick={() => deleteIdeaMutation.mutate(idea.id)}
+                                onClick={() => setPendingDeleteIdea(idea.id)}
                               >
                                 <IconTrash className="mr-2 h-4 w-4" />
                                 Excluir
@@ -496,6 +499,30 @@ export default function RsmPage() {
             )}
           </TabsContent>
         </Tabs>
+
+        <ConfirmDialog
+          open={pendingDeletePost !== null}
+          onOpenChange={(open) => { if (!open) setPendingDeletePost(null); }}
+          title="Excluir post"
+          description="Tem certeza que deseja excluir este post? Esta acao nao pode ser desfeita."
+          confirmLabel="Excluir"
+          onConfirm={() => {
+            if (pendingDeletePost) deletePostMutation.mutate(pendingDeletePost);
+            setPendingDeletePost(null);
+          }}
+        />
+
+        <ConfirmDialog
+          open={pendingDeleteIdea !== null}
+          onOpenChange={(open) => { if (!open) setPendingDeleteIdea(null); }}
+          title="Excluir ideia"
+          description="Tem certeza que deseja excluir esta ideia? Esta acao nao pode ser desfeita."
+          confirmLabel="Excluir"
+          onConfirm={() => {
+            if (pendingDeleteIdea) deleteIdeaMutation.mutate(pendingDeleteIdea);
+            setPendingDeleteIdea(null);
+          }}
+        />
       </div>
     </RequireRole>
   );

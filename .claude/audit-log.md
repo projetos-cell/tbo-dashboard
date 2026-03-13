@@ -698,3 +698,50 @@ Nenhuma neste ciclo.
 ### Debt técnico
 
 - 86 arquivos iniciavam com lucide-react; agora ~66 restantes após este ciclo (20 migrados)
+
+---
+
+## Ciclo 20 — 2026-03-13 15:08
+
+**Módulo**: Projetos, RSM, Relatorios  
+**Branch**: `claude/improve-20260313-1508`  
+**Build**: ✅ TypeScript clean (tsc --noEmit sem erros) + BUILD_ID gerado  
+
+### Estado do módulo
+
+| Arquivo | Antes | Depois | Problema |
+|---|---|---|---|
+| `features/projects/components/project-list.tsx` | 🔧 | ✅ | `window.confirm` → `ConfirmDialog` controlado |
+| `features/projects/components/project-topbar.tsx` | 🔧 | ✅ | `window.confirm` → `ConfirmDialog` controlado |
+| `features/projects/components/tabs/project-files.tsx` | 🔧 | ✅ | `window.confirm` → `ConfirmDialog` controlado |
+| `app/(auth)/rsm/page.tsx` | ⚠️ | ✅ | Delete post/ideia sem dialog → `ConfirmDialog` |
+| `app/(auth)/relatorios/page.tsx` | ⚠️ | ✅ | Delete agendamento sem dialog → `ConfirmDialog` |
+
+### Implementado
+
+- fix(projetos): `project-list.tsx` — `window.confirm` substituído por `ConfirmDialog` controlado com estado `pendingDelete`
+- fix(projetos): `project-topbar.tsx` — `window.confirm` substituído por `ConfirmDialog` + error toast em onError
+- fix(projetos): `project-files.tsx` — `window.confirm` substituído por `ConfirmDialog` controlado com estado `pendingDelete`
+- fix(rsm): `rsm/page.tsx` — delete post sem confirmação → `ConfirmDialog` com `pendingDeletePost`
+- fix(rsm): `rsm/page.tsx` — delete ideia sem confirmação → `ConfirmDialog` com `pendingDeleteIdea`
+- fix(relatorios): `relatorios/page.tsx` — delete agendamento sem confirmação → `ConfirmDialog` com `pendingDeleteSchedule`
+
+### Componente reutilizado
+
+- `components/shared/confirm-dialog.tsx` — já existia, aplicado consistentemente nos 5 locais identificados
+
+### Migrations aplicadas
+
+Nenhuma — sem alterações de schema.
+
+### Próximo ciclo (sugestões)
+
+- `comercial-relatorios-components.tsx` (~890 linhas) — dividir em sub-componentes
+- `demand-detail-sidebar.tsx` (455 linhas) — acima do limite de 200 linhas
+- `contract-detail-dialog.tsx` (461 linhas) — acima do limite
+- Verificar se há outros módulos com `window.confirm` ou `window.alert` remanescentes
+
+### Debt técnico
+
+- Build via `pnpm build` falha com erro de lock (dev server Turbopack em execução paralela); TypeScript sem erros e BUILD_ID gerado na tentativa anterior confirmam integridade do código
+

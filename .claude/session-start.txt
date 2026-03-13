@@ -1,10 +1,7 @@
-7d869e6 feat(tarefas): F14 — curtidas/likes em tarefas e comentários
-90e9f71 chore: adicionar audit-log do ciclo 2026-03-13 ciclo 6
-93be580 refactor(okrs): migrar lucide → Tabler Icons em todos os componentes do módulo
-2cb7be3 refactor(tarefas): split my-tasks-list-view 358→167L via extração de table body
-299d8c3 refactor(okrs): extrair componentes + migrar lucide → Tabler Icons na page
-24fdf8f chore: adicionar audit-log do ciclo 2026-03-13 ciclo 5
-288941a chore(tarefas): remover task-detail.tsx orphaned (744 linhas, zero imports)
-abdbfe9 feat(tarefas): integrar CommentThread ao TaskDetailSheet com seção de comentários
-ea11e7d refactor(tarefas): migrar Lucide → Tabler Icons no CommentThread
-1413543 feat(tarefas): F12 subtarefas — DnD reordering, click-to-open navigation stack, depth >1 block
+96b8803 feat(tarefas): F13 — anexos com upload, preview, delete e auto-add colaborador
+8746de2 chore: adicionar audit-log do ciclo 2026-03-13 ciclo 9
+9c54d98 refactor(tarefas): split task-dependencies-section 326L → task-dependency-item + task-dependency-add-button + section (179L)
+dc6c27d refactor(tarefas): split task-subtasks-section 332L → task-subtask-row + task-subtask-add-form + section (166L)
+2c3d11b feat(tarefas): F11 — campos personalizados com stepper de criação e edição inline
+ .claude/session-start.txt | 15 +++++----------
+ 1 file changed, 5 insertions(+), 10 deletions(-)

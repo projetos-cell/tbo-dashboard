@@ -17,7 +17,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Landmark } from "lucide-react";
+import { IconAlertCircle, IconBuildingBank } from "@tabler/icons-react";
 
 const fmtCompact = (v: number) =>
   new Intl.NumberFormat("pt-BR", {
@@ -45,7 +45,7 @@ export function BankStatementCashFlowChart({ days = 90 }: { days?: number }) {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center h-[260px] gap-2 text-red-500">
-        <AlertCircle className="h-6 w-6" />
+        <IconAlertCircle className="h-6 w-6" />
         <p className="text-sm">Erro ao carregar extrato</p>
         <Button variant="outline" size="sm" onClick={() => refetch()}>
           Tentar novamente
@@ -57,7 +57,7 @@ export function BankStatementCashFlowChart({ days = 90 }: { days?: number }) {
   if (!data?.length) {
     return (
       <div className="flex flex-col items-center justify-center h-[260px] gap-2 text-gray-500">
-        <Landmark className="h-8 w-8" />
+        <IconBuildingBank className="h-8 w-8" />
         <p className="text-sm font-medium">Sem dados de extrato bancário</p>
         <p className="text-xs">Sincronize o Omie para importar movimentações</p>
       </div>
@@ -81,7 +81,7 @@ export function BankStatementCashFlowChart({ days = 90 }: { days?: number }) {
       {latestBalance && (
         <div className="flex items-center justify-end gap-2">
           <Badge variant="outline" className="text-xs font-normal gap-1">
-            <Landmark className="h-3 w-3" />
+            <IconBuildingBank className="h-3 w-3" />
             Saldo real: {fmtCompact(latestBalance.balance)}
           </Badge>
         </div>

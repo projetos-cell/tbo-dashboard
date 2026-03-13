@@ -5,15 +5,15 @@ import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  CheckCheck,
-  Trash2,
-  Inbox,
-  AtSign,
-  MessageSquare,
-  UserPlus,
-  RefreshCw,
-  Bell,
-} from "lucide-react";
+  IconChecks,
+  IconTrash,
+  IconInbox,
+  IconAt,
+  IconMessage,
+  IconUserPlus,
+  IconRefresh,
+  IconBell,
+} from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,10 +34,10 @@ import type { NotificationRow, NotificationFilters } from "@/services/alerts";
 type FilterTab = "all" | "unread" | "mentions" | "assignments";
 
 const FILTER_TABS: { value: FilterTab; label: string; icon: React.ElementType }[] = [
-  { value: "all", label: "Todas", icon: Bell },
-  { value: "unread", label: "Não lidas", icon: Inbox },
-  { value: "mentions", label: "Menções", icon: AtSign },
-  { value: "assignments", label: "Responsabilidades", icon: UserPlus },
+  { value: "all", label: "Todas", icon: IconBell },
+  { value: "unread", label: "Não lidas", icon: IconInbox },
+  { value: "mentions", label: "Menções", icon: IconAt },
+  { value: "assignments", label: "Responsabilidades", icon: IconUserPlus },
 ];
 
 function getFiltersForTab(tab: FilterTab): NotificationFilters | undefined {
@@ -59,22 +59,22 @@ const TRIGGER_CONFIG: Record<
   string,
   { label: string; icon: React.ElementType; bg: string; color: string }
 > = {
-  mention: { label: "Menção", icon: AtSign, bg: "#dbeafe", color: "#1d4ed8" },
+  mention: { label: "Menção", icon: IconAt, bg: "#dbeafe", color: "#1d4ed8" },
   thread_reply: {
     label: "Comentário",
-    icon: MessageSquare,
+    icon: IconMessage,
     bg: "#dcfce7",
     color: "#15803d",
   },
   task_assigned: {
     label: "Atribuição",
-    icon: UserPlus,
+    icon: IconUserPlus,
     bg: "#fef9c3",
     color: "#a16207",
   },
   task_updated: {
     label: "Atualização",
-    icon: RefreshCw,
+    icon: IconRefresh,
     bg: "#f3e8ff",
     color: "#7c3aed",
   },
@@ -82,7 +82,7 @@ const TRIGGER_CONFIG: Record<
 
 const DEFAULT_TRIGGER = {
   label: "Sistema",
-  icon: Bell,
+  icon: IconBell,
   bg: "#f1f5f9",
   color: "#475569",
 };
@@ -162,7 +162,7 @@ export default function AlertsPage() {
           onClick={() => markAllRead.mutate()}
           disabled={kpis.unread === 0 || markAllRead.isPending}
         >
-          <CheckCheck className="mr-2 h-4 w-4" />
+          <IconChecks className="mr-2 h-4 w-4" />
           Marcar todos como lido
         </Button>
       </div>
@@ -215,7 +215,7 @@ export default function AlertsPage() {
         </div>
       ) : notifications.length === 0 ? (
         <EmptyState
-          icon={Inbox}
+          icon={IconInbox}
           title="Nenhuma notificação"
           description={
             activeTab === "all"
@@ -379,7 +379,7 @@ function NotificationCard({
             onClick={onMarkRead}
             title="Marcar como lida"
           >
-            <CheckCheck className="h-3.5 w-3.5" />
+            <IconChecks className="h-3.5 w-3.5" />
           </Button>
         )}
         <Button
@@ -389,7 +389,7 @@ function NotificationCard({
           onClick={onDelete}
           title="Excluir"
         >
-          <Trash2 className="h-3.5 w-3.5" />
+          <IconTrash className="h-3.5 w-3.5" />
         </Button>
       </div>
     </div>

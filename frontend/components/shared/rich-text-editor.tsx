@@ -9,19 +9,19 @@ import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import Mention from "@tiptap/extension-mention";
 import {
-  Bold,
-  Italic,
-  Strikethrough,
-  List,
-  ListOrdered,
-  CheckSquare,
-  Link2,
-  Heading2,
-  Quote,
-  Code,
-  Undo,
-  Redo,
-} from "lucide-react";
+  IconBold,
+  IconItalic,
+  IconStrikethrough,
+  IconList,
+  IconListNumbers,
+  IconSquareCheck,
+  IconLink,
+  IconH2,
+  IconBlockquote,
+  IconCode,
+  IconArrowBackUp,
+  IconArrowForwardUp,
+} from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { createMentionSuggestion, type MentionDataProvider } from "./mention-suggestion";
 
@@ -174,76 +174,76 @@ function Toolbar({ editor }: { editor: Editor }) {
       <ToolbarButton
         active={editor.isActive("heading", { level: 2 })}
         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        icon={<Heading2 className="h-3.5 w-3.5" />}
+        icon={<IconH2 className="h-3.5 w-3.5" />}
         title="Título"
       />
       <ToolbarButton
         active={editor.isActive("bold")}
         onClick={() => editor.chain().focus().toggleBold().run()}
-        icon={<Bold className="h-3.5 w-3.5" />}
+        icon={<IconBold className="h-3.5 w-3.5" />}
         title="Negrito"
       />
       <ToolbarButton
         active={editor.isActive("italic")}
         onClick={() => editor.chain().focus().toggleItalic().run()}
-        icon={<Italic className="h-3.5 w-3.5" />}
+        icon={<IconItalic className="h-3.5 w-3.5" />}
         title="Itálico"
       />
       <ToolbarButton
         active={editor.isActive("strike")}
         onClick={() => editor.chain().focus().toggleStrike().run()}
-        icon={<Strikethrough className="h-3.5 w-3.5" />}
+        icon={<IconStrikethrough className="h-3.5 w-3.5" />}
         title="Tachado"
       />
       <div className="mx-1 h-4 w-px bg-border" />
       <ToolbarButton
         active={editor.isActive("bulletList")}
         onClick={() => editor.chain().focus().toggleBulletList().run()}
-        icon={<List className="h-3.5 w-3.5" />}
+        icon={<IconList className="h-3.5 w-3.5" />}
         title="Lista"
       />
       <ToolbarButton
         active={editor.isActive("orderedList")}
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        icon={<ListOrdered className="h-3.5 w-3.5" />}
+        icon={<IconListNumbers className="h-3.5 w-3.5" />}
         title="Lista numerada"
       />
       <ToolbarButton
         active={editor.isActive("taskList")}
         onClick={() => editor.chain().focus().toggleTaskList().run()}
-        icon={<CheckSquare className="h-3.5 w-3.5" />}
+        icon={<IconSquareCheck className="h-3.5 w-3.5" />}
         title="Checklist"
       />
       <div className="mx-1 h-4 w-px bg-border" />
       <ToolbarButton
         active={editor.isActive("blockquote")}
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
-        icon={<Quote className="h-3.5 w-3.5" />}
+        icon={<IconBlockquote className="h-3.5 w-3.5" />}
         title="Citação"
       />
       <ToolbarButton
         active={editor.isActive("code")}
         onClick={() => editor.chain().focus().toggleCode().run()}
-        icon={<Code className="h-3.5 w-3.5" />}
+        icon={<IconCode className="h-3.5 w-3.5" />}
         title="Código"
       />
       <ToolbarButton
         active={editor.isActive("link")}
         onClick={addLink}
-        icon={<Link2 className="h-3.5 w-3.5" />}
+        icon={<IconLink className="h-3.5 w-3.5" />}
         title="Link"
       />
       <div className="mx-1 h-4 w-px bg-border" />
       <ToolbarButton
         onClick={() => editor.chain().focus().undo().run()}
         disabled={!editor.can().undo()}
-        icon={<Undo className="h-3.5 w-3.5" />}
+        icon={<IconArrowBackUp className="h-3.5 w-3.5" />}
         title="Desfazer"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().redo().run()}
         disabled={!editor.can().redo()}
-        icon={<Redo className="h-3.5 w-3.5" />}
+        icon={<IconArrowForwardUp className="h-3.5 w-3.5" />}
         title="Refazer"
       />
     </div>

@@ -4,15 +4,15 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  Calendar,
-  CheckSquare,
-  FolderOpen,
-  MoreHorizontal,
-  Trash2,
-  Users,
-  Eye,
-  Pencil,
-} from "lucide-react";
+  IconCalendar,
+  IconSquareCheck,
+  IconFolderOpen,
+  IconDots,
+  IconTrash,
+  IconUsers,
+  IconEye,
+  IconPencil,
+} from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -63,7 +63,7 @@ export function DecisionsList({
   if (decisions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
-        <CheckSquare className="mb-3 h-10 w-10 text-gray-500/50" />
+        <IconSquareCheck className="mb-3 h-10 w-10 text-gray-500/50" />
         <p className="text-sm font-medium">Nenhuma decisão encontrada</p>
         <p className="text-xs text-gray-500">
           Ajuste os filtros ou crie uma nova decisão.
@@ -114,7 +114,7 @@ export function DecisionsList({
                       onClick={(e) => e.stopPropagation()}
                       aria-label="Acoes"
                     >
-                      <MoreHorizontal className="h-3.5 w-3.5" />
+                      <IconDots className="h-3.5 w-3.5" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
@@ -126,7 +126,7 @@ export function DecisionsList({
                           onSelect(decision);
                         }}
                       >
-                        <Eye className="size-3.5 mr-2" />
+                        <IconEye className="size-3.5 mr-2" />
                         Ver detalhes
                       </DropdownMenuItem>
                       <DropdownMenuItem
@@ -135,7 +135,7 @@ export function DecisionsList({
                           onEdit(decision);
                         }}
                       >
-                        <Pencil className="size-3.5 mr-2" />
+                        <IconPencil className="size-3.5 mr-2" />
                         Editar
                       </DropdownMenuItem>
                     </DropdownMenuGroup>
@@ -144,7 +144,7 @@ export function DecisionsList({
                       className="text-red-500 focus:text-red-500"
                       onClick={(e) => handleDeleteRequest(e, decision)}
                     >
-                      <Trash2 className="size-3.5 mr-2" />
+                      <IconTrash className="size-3.5 mr-2" />
                       Excluir
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -163,7 +163,7 @@ export function DecisionsList({
                 {/* Decided by */}
                 {decision.decided_by && (
                   <span className="flex items-center gap-1">
-                    <Users className="h-3 w-3" />
+                    <IconUsers className="h-3 w-3" />
                     {decision.decided_by}
                   </span>
                 )}
@@ -171,7 +171,7 @@ export function DecisionsList({
                 {/* Project link */}
                 {decision.project_id && (
                   <Badge variant="outline" className="text-[10px] gap-1">
-                    <FolderOpen className="h-2.5 w-2.5" />
+                    <IconFolderOpen className="h-2.5 w-2.5" />
                     Projeto
                   </Badge>
                 )}
@@ -179,7 +179,7 @@ export function DecisionsList({
                 {/* Meeting link */}
                 {decision.meeting_id && (
                   <Badge variant="outline" className="text-[10px] gap-1">
-                    <Calendar className="h-2.5 w-2.5" />
+                    <IconCalendar className="h-2.5 w-2.5" />
                     Reunião
                   </Badge>
                 )}
@@ -187,7 +187,7 @@ export function DecisionsList({
                 {/* Tasks count */}
                 {tasksCount > 0 && (
                   <Badge variant="secondary" className="text-[10px] gap-1">
-                    <CheckSquare className="h-2.5 w-2.5" />
+                    <IconSquareCheck className="h-2.5 w-2.5" />
                     {tasksCount} {tasksCount === 1 ? "tarefa" : "tarefas"}
                   </Badge>
                 )}

@@ -11,7 +11,7 @@ import { computeClientKPIs } from "@/features/clientes/services/clients";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { ErrorState, EmptyState } from "@/components/shared";
 import { Button } from "@/components/ui/button";
-import { Plus, Users, RefreshCw } from "lucide-react";
+import { IconPlus, IconUsers, IconRefresh } from "@tabler/icons-react";
 import { toast } from "sonner";
 import type { Database } from "@/lib/supabase/types";
 
@@ -90,11 +90,11 @@ export default function ClientesPage() {
               onClick={handleImport}
               disabled={importMutation.isPending}
             >
-              <RefreshCw className={`mr-2 h-4 w-4 ${importMutation.isPending ? "animate-spin" : ""}`} />
+              <IconRefresh className={`mr-2 h-4 w-4 ${importMutation.isPending ? "animate-spin" : ""}`} />
               {importMutation.isPending ? "Importando…" : "Sincronizar Omie + RD"}
             </Button>
             <Button onClick={handleNewClient}>
-              <Plus className="mr-2 h-4 w-4" />
+              <IconPlus className="mr-2 h-4 w-4" />
               Novo Cliente
             </Button>
           </div>
@@ -114,7 +114,7 @@ export default function ClientesPage() {
         {/* Grid */}
         {!isLoading && !clients.length ? (
           <EmptyState
-            icon={Users}
+            icon={IconUsers}
             title="Nenhum cliente encontrado"
             description="Cadastre o primeiro cliente para gerenciar sua carteira."
             cta={{ label: "Novo Cliente", onClick: handleNewClient }}

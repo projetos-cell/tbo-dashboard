@@ -4,15 +4,15 @@ import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  Plus,
-  Search,
-  Shield,
-  ShieldOff,
-  Trash2,
-  Users,
-  UserCheck,
-  Clock,
-} from "lucide-react";
+  IconPlus,
+  IconSearch,
+  IconShield,
+  IconShieldOff,
+  IconTrash,
+  IconUsers,
+  IconUserCheck,
+  IconClock,
+} from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -127,7 +127,7 @@ export default function PortalClientePage() {
             </p>
           </div>
           <Button onClick={() => setFormOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
+            <IconPlus className="mr-2 h-4 w-4" />
             Novo Acesso
           </Button>
         </div>
@@ -144,13 +144,13 @@ export default function PortalClientePage() {
             <KpiCard
               label="Total acessos"
               value={kpis.total}
-              icon={<Users className="h-4 w-4 text-gray-500" />}
+              icon={<IconUsers className="h-4 w-4 text-gray-500" />}
             />
             <KpiCard
               label="Ativos"
               value={kpis.active}
               color="#22c55e"
-              icon={<UserCheck className="h-4 w-4 text-green-500" />}
+              icon={<IconUserCheck className="h-4 w-4 text-green-500" />}
             />
             <KpiCard
               label="Último login"
@@ -162,14 +162,14 @@ export default function PortalClientePage() {
                   : "—"
               }
               isText
-              icon={<Clock className="h-4 w-4 text-gray-500" />}
+              icon={<IconClock className="h-4 w-4 text-gray-500" />}
             />
           </div>
         )}
 
         {/* Search filter */}
         <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+          <IconSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
           <Input
             placeholder="Buscar por nome ou email..."
             value={search}
@@ -187,7 +187,7 @@ export default function PortalClientePage() {
           </div>
         ) : filtered.length === 0 ? (
           <EmptyState
-            icon={Users}
+            icon={IconUsers}
             title="Nenhum acesso configurado"
             description="Adicione clientes ao portal para que possam acompanhar seus projetos."
           />
@@ -268,9 +268,9 @@ export default function PortalClientePage() {
                           }
                         >
                           {access.is_active ? (
-                            <ShieldOff className="h-4 w-4" />
+                            <IconShieldOff className="h-4 w-4" />
                           ) : (
-                            <Shield className="h-4 w-4" />
+                            <IconShield className="h-4 w-4" />
                           )}
                         </Button>
                         {access.is_active && (
@@ -281,7 +281,7 @@ export default function PortalClientePage() {
                             onClick={() => handleRevoke(access.id)}
                             title="Revogar acesso"
                           >
-                            <ShieldOff className="h-4 w-4" />
+                            <IconShieldOff className="h-4 w-4" />
                           </Button>
                         )}
                         <Button
@@ -291,7 +291,7 @@ export default function PortalClientePage() {
                           onClick={() => handleDelete(access.id)}
                           title="Excluir"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <IconTrash className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>

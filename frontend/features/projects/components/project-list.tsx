@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ExternalLink, Trash2 } from "lucide-react";
+import { IconExternalLink, IconTrash } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { useDeleteProject } from "@/features/projects/hooks/use-projects";
 import { useTablePreferences } from "@/hooks/use-table-preferences";
@@ -151,7 +151,7 @@ export function ProjectList({ projects }: ProjectListProps) {
               className="text-gray-500 hover:text-gray-900"
               onClick={(e) => e.stopPropagation()}
             >
-              <ExternalLink className="h-3.5 w-3.5" />
+              <IconExternalLink className="h-3.5 w-3.5" />
             </a>
           ) : null,
       },
@@ -173,7 +173,7 @@ export function ProjectList({ projects }: ProjectListProps) {
             disabled={deleteProject.isPending}
             aria-label="Excluir projeto"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <IconTrash className="h-3.5 w-3.5" />
           </Button>
         ),
       },

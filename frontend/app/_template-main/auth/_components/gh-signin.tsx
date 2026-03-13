@@ -1,10 +1,10 @@
 import { Button } from "@/components/ui/button";
-import { Github } from "lucide-react";
+import { IconBrandGithub } from "@tabler/icons-react";
 
 export default function GHSignin() {
   return (
     <Button variant="outline" className="w-full">
-      <Github />
+      <IconBrandGithub />
       Continue with GitHub
     </Button>
   );

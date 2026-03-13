@@ -16,14 +16,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  ClipboardCheck,
-  Clock,
-  CheckCircle2,
-  Loader2,
-  ExternalLink,
-  FileCheck,
-  XCircle,
-} from "lucide-react";
+  IconClipboardCheck,
+  IconClock,
+  IconCircleCheck,
+  IconLoader2,
+  IconExternalLink,
+  IconFileCheck,
+  IconCircleX,
+} from "@tabler/icons-react";
 import {
   usePendingReviews,
   useInProgressReviews,
@@ -51,7 +51,7 @@ function formatDate(dateStr: string | null) {
 function EmptyTabState({ message }: { message: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
-      <ClipboardCheck className="mb-3 h-8 w-8 text-gray-500/40" />
+      <IconClipboardCheck className="mb-3 h-8 w-8 text-gray-500/40" />
       <p className="text-sm text-gray-500">{message}</p>
     </div>
   );
@@ -139,19 +139,19 @@ function RevisoesContent() {
     {
       title: "Pendentes",
       value: kpisLoading ? "--" : String(kpis?.pendentes ?? 0),
-      icon: Clock,
+      icon: IconClock,
       color: "text-yellow-500",
     },
     {
       title: "Em Revisao",
       value: kpisLoading ? "--" : String(kpis?.emRevisao ?? 0),
-      icon: Loader2,
+      icon: IconLoader2,
       color: "text-blue-500",
     },
     {
       title: "Aprovadas",
       value: kpisLoading ? "--" : String(kpis?.aprovadas ?? 0),
-      icon: CheckCircle2,
+      icon: IconCircleCheck,
       color: "text-green-500",
     },
   ];
@@ -243,7 +243,7 @@ function RevisoesContent() {
       <Tabs defaultValue="pendentes">
         <TabsList>
           <TabsTrigger value="pendentes">
-            <Clock className="mr-1.5 h-3.5 w-3.5" />
+            <IconClock className="mr-1.5 h-3.5 w-3.5" />
             Pendentes
             {pending.data && pending.data.length > 0 && (
               <Badge variant="secondary" className="ml-1.5 text-xs">
@@ -252,7 +252,7 @@ function RevisoesContent() {
             )}
           </TabsTrigger>
           <TabsTrigger value="andamento">
-            <Loader2 className="mr-1.5 h-3.5 w-3.5" />
+            <IconLoader2 className="mr-1.5 h-3.5 w-3.5" />
             Em Andamento
             {inProgress.data && inProgress.data.length > 0 && (
               <Badge variant="secondary" className="ml-1.5 text-xs">
@@ -261,7 +261,7 @@ function RevisoesContent() {
             )}
           </TabsTrigger>
           <TabsTrigger value="concluidas">
-            <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+            <IconCircleCheck className="mr-1.5 h-3.5 w-3.5" />
             Concluidas
           </TabsTrigger>
         </TabsList>
@@ -309,7 +309,7 @@ function RevisoesContent() {
       {/* Integration Note */}
       <Card>
         <CardContent className="flex items-center gap-4 py-4">
-          <FileCheck className="h-8 w-8 shrink-0 text-gray-400" />
+          <IconFileCheck className="h-8 w-8 shrink-0 text-gray-400" />
           <div className="flex-1">
             <p className="text-sm font-medium">
               O modulo de revisoes esta integrado com os Projetos
@@ -322,7 +322,7 @@ function RevisoesContent() {
           <Button variant="outline" size="sm" asChild>
             <Link href="/projetos">
               Ir para Projetos
-              <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+              <IconExternalLink className="ml-1.5 h-3.5 w-3.5" />
             </Link>
           </Button>
         </CardContent>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useCallback } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import { IconArrowDown, IconArrowUp, IconArrowsUpDown } from "@tabler/icons-react";
 import {
   Table,
   TableBody,
@@ -121,9 +121,9 @@ export function DataTable<T>({
             const isSorted = sort?.columnId === col.id;
             const SortIcon = isSorted
               ? sort?.direction === "asc"
-                ? ArrowUp
-                : ArrowDown
-              : ArrowUpDown;
+                ? IconArrowUp
+                : IconArrowDown
+              : IconArrowsUpDown;
 
             return (
               <TableHead

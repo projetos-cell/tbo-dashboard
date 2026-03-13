@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Tag } from "lucide-react";
+import { IconAlertCircle, IconTag } from "@tabler/icons-react";
 
 const COLORS = [
   "#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#3b82f6",
@@ -64,7 +64,7 @@ export function CategoryDonut({ transactionType, filters }: CategoryDonutProps) 
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center h-[220px] gap-2 text-red-500">
-        <AlertCircle className="h-6 w-6" />
+        <IconAlertCircle className="h-6 w-6" />
         <p className="text-sm">Erro ao carregar categorias</p>
         <Button variant="outline" size="sm" onClick={() => refetch()}>
           Tentar novamente
@@ -76,7 +76,7 @@ export function CategoryDonut({ transactionType, filters }: CategoryDonutProps) 
   if (!chartData.length) {
     return (
       <div className="flex flex-col items-center justify-center h-[220px] gap-2 text-gray-500">
-        <Tag className="h-8 w-8" />
+        <IconTag className="h-8 w-8" />
         <p className="text-sm font-medium">Sem transações no período</p>
         <p className="text-xs">Ajuste o filtro de data para ver distribuição</p>
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { TrendingUp, BarChart3, ShieldAlert, Wallet } from "lucide-react";
+import { IconTrendingUp, IconChartBar, IconShield, IconWallet } from "@tabler/icons-react";
 import { KpiCard } from "@/features/founder-dashboard/components/kpi-card";
 import { KpiGrid } from "@/features/founder-dashboard/components/kpi-grid";
 import { CashBalanceInput } from "@/features/founder-dashboard/components/cash-balance-input";
@@ -40,7 +40,7 @@ export function FounderMetricsSection({
         </h2>
         {manualCaixa !== null && (
           <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 dark:bg-violet-900/30 px-2 py-0.5 text-xs font-medium text-violet-700 dark:text-violet-300">
-            <Wallet className="h-3 w-3" />
+            <IconWallet className="h-3 w-3" />
             Caixa manual ativo
           </span>
         )}
@@ -59,7 +59,7 @@ export function FounderMetricsSection({
                     : "MTD (pagas)"
               }
               variationValue={d?.receitaDelta}
-              icon={<TrendingUp className="h-4 w-4 text-emerald-500" />}
+              icon={<IconTrendingUp className="h-4 w-4 text-emerald-500" />}
               colorClass="text-emerald-600 dark:text-emerald-400"
               tooltip={TOOLTIP_RECEITA}
               isLoading={isLoading}
@@ -77,7 +77,7 @@ export function FounderMetricsSection({
               }
               sublabel="Receita - Custos diretos"
               variationValue={d?.margemDelta}
-              icon={<BarChart3 className="h-4 w-4 text-blue-500" />}
+              icon={<IconChartBar className="h-4 w-4 text-blue-500" />}
               colorClass={
                 d && d.margemPct >= 30
                   ? "text-emerald-600 dark:text-emerald-400"
@@ -98,7 +98,7 @@ export function FounderMetricsSection({
                   ? "Entrada manual (Caixa Real)"
                   : "Saldo consolidado"
               }
-              icon={<Wallet className="h-4 w-4 text-violet-500" />}
+              icon={<IconWallet className="h-4 w-4 text-violet-500" />}
               colorClass={
                 effectiveCaixa >= 0
                   ? "text-violet-600 dark:text-violet-400"
@@ -113,7 +113,7 @@ export function FounderMetricsSection({
               title="Runway"
               value={d ? fmtMonths(effectiveRunway) : "—"}
               sublabel="Meses de sobrevivência"
-              icon={<ShieldAlert className="h-4 w-4 text-orange-500" />}
+              icon={<IconShield className="h-4 w-4 text-orange-500" />}
               colorClass={
                 effectiveRunway >= 6
                   ? "text-emerald-600 dark:text-emerald-400"

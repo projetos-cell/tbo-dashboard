@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { PlusCircle, X, ChevronDown, ChevronUp, Wallet } from "lucide-react";
+import { IconCirclePlus, IconX, IconChevronDown, IconChevronUp, IconWallet } from "@tabler/icons-react";
 import { useCashEntries, useCreateCashEntry } from "@/features/financeiro/hooks/use-cash-entries";
 import type { CashEntry } from "@/features/financeiro/services/cash-entries";
 
@@ -201,7 +201,7 @@ export function CashBalanceInput({
       {/* Header ──────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Wallet className="h-4 w-4 text-tbo-orange shrink-0" />
+          <IconWallet className="h-4 w-4 text-tbo-orange shrink-0" />
           <span className="text-sm font-semibold text-gray-900">
             Caixa Real
           </span>
@@ -217,12 +217,12 @@ export function CashBalanceInput({
         >
           {formOpen ? (
             <>
-              <X className="h-3.5 w-3.5" />
+              <IconX className="h-3.5 w-3.5" />
               Fechar
             </>
           ) : (
             <>
-              <PlusCircle className="h-3.5 w-3.5" />
+              <IconCirclePlus className="h-3.5 w-3.5" />
               Registrar
             </>
           )}
@@ -266,9 +266,9 @@ export function CashBalanceInput({
             className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 transition"
           >
             {historyOpen ? (
-              <ChevronUp className="h-3.5 w-3.5" />
+              <IconChevronUp className="h-3.5 w-3.5" />
             ) : (
-              <ChevronDown className="h-3.5 w-3.5" />
+              <IconChevronDown className="h-3.5 w-3.5" />
             )}
             {historyOpen ? "Ocultar" : "Ver"} histórico ({entries.length}{" "}
             {entries.length === 1 ? "entrada" : "entradas"})

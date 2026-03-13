@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { IconLoader2 } from "@tabler/icons-react";
 import {
   useInstagramConfig,
   useSaveInstagramConfig,
@@ -115,7 +115,7 @@ export function InstagramConfigDialog({ open, onOpenChange }: Props) {
             disabled={!isValid || saveMutation.isPending}
           >
             {saveMutation.isPending && (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
             )}
             Salvar
           </Button>

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { CalendarIcon } from "lucide-react"
+import { IconCalendar } from "@tabler/icons-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -83,7 +83,7 @@ export function DateRangePicker({
             className
           )}
         >
-          <CalendarIcon className="size-3.5 shrink-0" />
+          <IconCalendar className="size-3.5 shrink-0" />
           <span className="truncate">{label}</span>
         </Button>
       </PopoverTrigger>

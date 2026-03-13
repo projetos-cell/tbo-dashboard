@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { Info } from "lucide-react";
+import { IconInfoCircle } from "@tabler/icons-react";
 import {
   Popover,
   PopoverTrigger,
@@ -78,7 +78,7 @@ export function TopClientsTable({
               className="flex h-5 w-5 items-center justify-center rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
               aria-label="Informacoes do bloco"
             >
-              <Info className="h-3.5 w-3.5" />
+              <IconInfoCircle className="h-3.5 w-3.5" />
             </button>
           </PopoverTrigger>
           <PopoverContent className="w-72 text-sm space-y-1" side="top">

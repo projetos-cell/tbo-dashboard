@@ -26,7 +26,7 @@ import {
   jsonToFilters,
   hasActiveFilters,
 } from "@/features/people/utils/people-filters";
-import { Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { IconUsers, IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -254,7 +254,7 @@ export default function PessoasPage() {
         </div>
       ) : people.length === 0 ? (
         <EmptyState
-          icon={Users}
+          icon={IconUsers}
           title="Nenhuma pessoa encontrada"
           description="Ajuste os filtros ou adicione novos membros à equipe."
         />
@@ -280,7 +280,7 @@ export default function PessoasPage() {
             disabled={page === 0}
             onClick={() => setPage((p) => Math.max(0, p - 1))}
           >
-            <ChevronLeft className="h-4 w-4" />
+            <IconChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-sm text-gray-500">
             Página {page + 1} de {totalPages}
@@ -291,7 +291,7 @@ export default function PessoasPage() {
             disabled={page >= totalPages - 1}
             onClick={() => setPage((p) => p + 1)}
           >
-            <ChevronRight className="h-4 w-4" />
+            <IconChevronRight className="h-4 w-4" />
           </Button>
         </div>
       )}

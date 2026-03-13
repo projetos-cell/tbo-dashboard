@@ -21,7 +21,7 @@ import { ErrorState } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Plus, RefreshCw, Loader2, GitBranch } from "lucide-react";
+import { IconPlus, IconRefresh, IconLoader2, IconGitBranch } from "@tabler/icons-react";
 import { toast } from "sonner";
 import type { Database } from "@/lib/supabase/types";
 
@@ -177,14 +177,14 @@ export default function ComercialPage() {
               disabled={rdSync.isPending}
             >
               {rdSync.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                <RefreshCw className="mr-2 h-4 w-4" />
+                <IconRefresh className="mr-2 h-4 w-4" />
               )}
               Sync RD Station
             </Button>
             <Button onClick={handleNew}>
-              <Plus className="mr-2 h-4 w-4" />
+              <IconPlus className="mr-2 h-4 w-4" />
               Novo Deal
             </Button>
           </div>
@@ -197,7 +197,7 @@ export default function ComercialPage() {
         {rdPipelines.length > 0 && (
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
-              <GitBranch className="h-3.5 w-3.5" />
+              <IconGitBranch className="h-3.5 w-3.5" />
               <span>Funis RD Station</span>
             </div>
             <Tabs

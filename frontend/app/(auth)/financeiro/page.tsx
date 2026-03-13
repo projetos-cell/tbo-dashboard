@@ -15,7 +15,7 @@ import { ExpiringContractsSection } from "@/features/financeiro/components/secti
 import { StrategicSection } from "@/features/financeiro/components/sections/strategic-section";
 import { OmieSyncButton } from "@/features/financeiro/components/omie-sync-button";
 import Link from "next/link";
-import { Users, Receipt, UserMinus, ArrowRight } from "lucide-react";
+import { IconUsers, IconReceipt, IconUserMinus, IconArrowRight } from "@tabler/icons-react";
 
 function FinanceiroContent() {
   const [period, setPeriod] = usePersistedPeriod("ytd");
@@ -78,7 +78,7 @@ function FinanceiroContent() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-indigo-500" />
+                <IconUsers className="h-4 w-4 text-indigo-500" />
                 <div>
                   <p className="text-xs text-gray-500">Receita/Colab.</p>
                   <p className="text-sm font-semibold text-gray-900">
@@ -87,7 +87,7 @@ function FinanceiroContent() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Receipt className="h-4 w-4 text-rose-500" />
+                <IconReceipt className="h-4 w-4 text-rose-500" />
                 <div>
                   <p className="text-xs text-gray-500">Folha</p>
                   <p className="text-sm font-semibold text-gray-900">
@@ -96,7 +96,7 @@ function FinanceiroContent() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <UserMinus className="h-4 w-4 text-red-500" />
+                <IconUserMinus className="h-4 w-4 text-red-500" />
                 <div>
                   <p className="text-xs text-gray-500">Churn</p>
                   <p className="text-sm font-semibold text-gray-900">
@@ -107,7 +107,7 @@ function FinanceiroContent() {
             </div>
             <div className="flex items-center gap-1.5 text-sm font-medium text-tbo-orange group-hover:gap-2.5 transition-all">
               Ver detalhes
-              <ArrowRight className="h-4 w-4" />
+              <IconArrowRight className="h-4 w-4" />
             </div>
           </div>
         </Link>

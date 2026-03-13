@@ -7,7 +7,7 @@ import {
 } from "@dnd-kit/sortable";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ChevronRight, GripVertical, MoreHorizontal, Plus } from "lucide-react";
+import { IconChevronRight, IconGripVertical, IconDots, IconPlus } from "@tabler/icons-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -139,12 +139,12 @@ export const SortableNavGroup = memo(function SortableNavGroup({
               {...listeners}
               aria-label={`Arrastar grupo ${group.label}`}
             >
-              <GripVertical className="h-3 w-3" />
+              <IconGripVertical className="h-3 w-3" />
             </button>
 
             <CollapsibleTrigger asChild>
               <SidebarGroupLabel className="flex-1 cursor-pointer pl-4">
-                <ChevronRight
+                <IconChevronRight
                   className={cn(
                     "mr-1 h-3 w-3 transition-transform duration-200",
                     !isCollapsed && "rotate-90",
@@ -171,7 +171,7 @@ export const SortableNavGroup = memo(function SortableNavGroup({
                 }}
                 aria-label={`Adicionar em ${group.label}`}
               >
-                <Plus className="h-3 w-3" />
+                <IconPlus className="h-3 w-3" />
               </button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -181,7 +181,7 @@ export const SortableNavGroup = memo(function SortableNavGroup({
                     onClick={(e) => e.stopPropagation()}
                     aria-label={`Opções de ${group.label}`}
                   >
-                    <MoreHorizontal className="h-3 w-3" />
+                    <IconDots className="h-3 w-3" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="right" align="start" className="w-48">

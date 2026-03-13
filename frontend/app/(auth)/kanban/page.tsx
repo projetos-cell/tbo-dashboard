@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { IconPlus } from "@tabler/icons-react";
 
 import { useKanban } from "@/hooks/use-kanban";
 import { KanbanColumn } from "@/components/kanban/KanbanColumn";
@@ -59,7 +59,7 @@ export default function KanbanPage() {
         <KanbanHeader view={view} onViewChange={setView} />
 
         <Button>
-          <Plus className="mr-1.5 h-4 w-4" />
+          <IconPlus className="mr-1.5 h-4 w-4" />
           Nova Tarefa
         </Button>
       </div>

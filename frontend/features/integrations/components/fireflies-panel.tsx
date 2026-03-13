@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { RefreshCw, Loader2, Eye, EyeOff, Mic } from "lucide-react";
+import { IconRefresh, IconLoader2, IconEye, IconEyeOff, IconMicrophone } from "@tabler/icons-react";
 import { useFirefliesSyncLogs, useTriggerFirefliesSync, useFirefliesConfig, useSaveFirefliesConfig } from "@/features/integrations/hooks/use-fireflies-sync";
 
 const STATUS_BADGE: Record<string, { label: string; variant: "default" | "secondary" | "destructive" }> = {
@@ -49,7 +49,7 @@ export function FirefliesPanel() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Mic className="h-4 w-4" />
+              <IconMicrophone className="h-4 w-4" />
               Fireflies.ai
             </CardTitle>
             <div className="flex items-center gap-2">
@@ -77,11 +77,11 @@ export function FirefliesPanel() {
                   onClick={() => setShowKey(!showKey)}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900"
                 >
-                  {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showKey ? <IconEyeOff className="h-4 w-4" /> : <IconEye className="h-4 w-4" />}
                 </button>
               </div>
               <Button onClick={handleSaveKey} disabled={!keyDirty || saveConfig.isPending}>
-                {saveConfig.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+                {saveConfig.isPending ? <IconLoader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
               </Button>
             </div>
           </div>
@@ -108,9 +108,9 @@ export function FirefliesPanel() {
             className="w-full"
           >
             {triggerSync.isPending ? (
-              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              <IconLoader2 className="mr-1.5 h-4 w-4 animate-spin" />
             ) : (
-              <RefreshCw className="mr-1.5 h-4 w-4" />
+              <IconRefresh className="mr-1.5 h-4 w-4" />
             )}
             Sincronizar Agora
           </Button>

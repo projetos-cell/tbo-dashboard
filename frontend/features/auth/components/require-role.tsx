@@ -3,7 +3,7 @@
 import { useAuthStore } from "@/stores/auth-store";
 import type { RoleSlug } from "@/lib/permissions";
 import { hasMinRole } from "@/lib/permissions";
-import { ShieldAlert } from "lucide-react";
+import { IconShieldExclamation } from "@tabler/icons-react";
 
 interface RequireRoleProps {
   /** Roles that can see this content (whitelist) */
@@ -20,7 +20,7 @@ interface RequireRoleProps {
 function AccessDenied() {
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
-      <ShieldAlert className="h-12 w-12 text-gray-500/50" />
+      <IconShieldExclamation className="h-12 w-12 text-gray-500/50" />
       <div>
         <h2 className="text-lg font-semibold">Acesso restrito</h2>
         <p className="text-sm text-gray-500 mt-1">

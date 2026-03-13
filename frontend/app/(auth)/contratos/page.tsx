@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { useImportClicksignContracts } from "@/features/contratos/hooks/use-clicksign";
-import { FileText, Search, Download, Loader2 } from "lucide-react";
+import { IconFileText, IconSearch, IconDownload, IconLoader2 } from "@tabler/icons-react";
 import { CONTRACT_TABS } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 
@@ -179,7 +179,7 @@ export default function ContratosPage() {
           <div className="flex items-center gap-2">
             {/* Busca global */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <IconSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Buscar contratos..."
                 value={search}
@@ -201,9 +201,9 @@ export default function ContratosPage() {
               disabled={importClicksign.isPending}
             >
               {importClicksign.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                <Download className="mr-2 h-4 w-4" />
+                <IconDownload className="mr-2 h-4 w-4" />
               )}
               Importar Clicksign
             </Button>
@@ -252,7 +252,7 @@ export default function ContratosPage() {
         {/* ── Data Table ───────────────────────────────────────────── */}
         {!isLoading && contracts.length === 0 ? (
           <EmptyState
-            icon={FileText}
+            icon={IconFileText}
             title="Nenhum contrato encontrado"
             description={
               search

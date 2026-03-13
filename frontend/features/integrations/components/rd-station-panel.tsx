@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { RefreshCw, Check, X, Loader2, Eye, EyeOff, Plug } from "lucide-react";
+import { IconRefresh, IconCheck, IconX, IconLoader2, IconEye, IconEyeOff, IconPlug } from "@tabler/icons-react";
 import { useRdSyncLogs, useTriggerRdSync, useRdConfig, useSaveRdConfig } from "@/features/comercial/hooks/use-rdstation";
 
 const STATUS_BADGE: Record<string, { label: string; variant: "default" | "secondary" | "destructive" }> = {
@@ -46,7 +46,7 @@ export function RdStationPanel() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Plug className="h-4 w-4" />
+              <IconPlug className="h-4 w-4" />
               RD Station CRM
             </CardTitle>
             <div className="flex items-center gap-2">
@@ -74,11 +74,11 @@ export function RdStationPanel() {
                   onClick={() => setShowToken(!showToken)}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900"
                 >
-                  {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showToken ? <IconEyeOff className="h-4 w-4" /> : <IconEye className="h-4 w-4" />}
                 </button>
               </div>
               <Button onClick={handleSaveToken} disabled={!tokenDirty || saveConfig.isPending}>
-                {saveConfig.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+                {saveConfig.isPending ? <IconLoader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
               </Button>
             </div>
           </div>
@@ -97,9 +97,9 @@ export function RdStationPanel() {
             className="w-full"
           >
             {triggerSync.isPending ? (
-              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              <IconLoader2 className="mr-1.5 h-4 w-4 animate-spin" />
             ) : (
-              <RefreshCw className="mr-1.5 h-4 w-4" />
+              <IconRefresh className="mr-1.5 h-4 w-4" />
             )}
             Sincronizar Agora
           </Button>

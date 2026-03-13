@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { CalendarDays, ChevronDown } from "lucide-react";
+import { IconCalendar, IconChevronDown } from "@tabler/icons-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -69,9 +69,9 @@ export function PeriodFilter({ value, onChange }: PeriodFilterProps) {
         className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-900 hover:bg-gray-100 transition-colors shadow-sm"
         onClick={() => setOpen((v) => !v)}
       >
-        <CalendarDays className="h-3.5 w-3.5 text-gray-500" />
+        <IconCalendar className="h-3.5 w-3.5 text-gray-500" />
         {displayLabel}
-        <ChevronDown className="h-3 w-3 opacity-50" />
+        <IconChevronDown className="h-3 w-3 opacity-50" />
       </button>
 
       {open && (

@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState } from "react";
-import { Trash2, Plus, Link2 } from "lucide-react";
+import { IconTrash, IconPlus, IconLink } from "@tabler/icons-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -135,7 +135,7 @@ export function OneOnOneActions({ oneOnOneId, mode = "full" }: OneOnOneActionsPr
                 {a.text}
               </span>
               {a.pdi_link_id && (
-                <span title="Vinculado ao PDI"><Link2 className="h-3 w-3 text-blue-500" /></span>
+                <span title="Vinculado ao PDI"><IconLink className="h-3 w-3 text-blue-500" /></span>
               )}
               {a.category && (
                 <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500">
@@ -154,7 +154,7 @@ export function OneOnOneActions({ oneOnOneId, mode = "full" }: OneOnOneActionsPr
                   className="h-6 w-6 opacity-0 group-hover:opacity-100"
                   onClick={() => deleteMutation.mutate({ actionId: a.id, oneOnOneId })}
                 >
-                  <Trash2 className="h-3 w-3 text-red-500" />
+                  <IconTrash className="h-3 w-3 text-red-500" />
                 </Button>
               )}
             </div>
@@ -184,7 +184,7 @@ export function OneOnOneActions({ oneOnOneId, mode = "full" }: OneOnOneActionsPr
             onClick={handleCreate}
             disabled={!newText.trim() || createMutation.isPending}
           >
-            <Plus className="mr-1 h-3 w-3" /> Adicionar
+            <IconPlus className="mr-1 h-3 w-3" /> Adicionar
           </Button>
         </div>
       )}

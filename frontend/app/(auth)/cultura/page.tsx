@@ -4,16 +4,16 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Columns3,
-  Repeat,
-  Shield,
-  Award,
-  Heart,
-  FileText,
-  BookOpen,
-  ArrowRight,
-  Gift,
-} from "lucide-react";
+  IconColumns3,
+  IconRepeat,
+  IconShield,
+  IconAward,
+  IconHeart,
+  IconFileText,
+  IconBookmark,
+  IconArrowRight,
+  IconGift,
+} from "@tabler/icons-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CulturaOverviewStats } from "@/features/cultura/components/cultura-overview-stats";
@@ -33,13 +33,13 @@ import type { Database } from "@/lib/supabase/types";
 type CulturaRow = Database["public"]["Tables"]["cultura_items"]["Row"];
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
-  pilar: Columns3,
-  ritual: Repeat,
-  politica: Shield,
-  reconhecimento: Award,
-  valor: Heart,
-  documento: FileText,
-  manual: BookOpen,
+  pilar: IconColumns3,
+  ritual: IconRepeat,
+  politica: IconShield,
+  reconhecimento: IconAward,
+  valor: IconHeart,
+  documento: IconFileText,
+  manual: IconBookmark,
 };
 
 const CATEGORY_LINKS: Record<string, string> = {
@@ -106,7 +106,7 @@ export default function CulturaPage() {
           <Card className="h-full transition-colors group-hover:border-tbo-orange/40">
             <CardContent className="p-4 flex items-center gap-3">
               <div className="rounded-lg p-2.5 bg-amber-500/10">
-                <Award className="size-5 text-amber-500" />
+                <IconAward className="size-5 text-amber-500" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm">Reconhecimentos</p>
@@ -115,7 +115,7 @@ export default function CulturaPage() {
                   {recKPIs?.thisMonth ?? 0} este mes
                 </p>
               </div>
-              <ArrowRight className="size-4 text-gray-500 group-hover:text-tbo-orange transition-colors" />
+              <IconArrowRight className="size-4 text-gray-500 group-hover:text-tbo-orange transition-colors" />
             </CardContent>
           </Card>
         </Link>
@@ -124,7 +124,7 @@ export default function CulturaPage() {
           <Card className="h-full transition-colors group-hover:border-tbo-orange/40">
             <CardContent className="p-4 flex items-center gap-3">
               <div className="rounded-lg p-2.5 bg-pink-500/10">
-                <Gift className="size-5 text-pink-500" />
+                <IconGift className="size-5 text-pink-500" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm">TBO Rewards</p>
@@ -133,7 +133,7 @@ export default function CulturaPage() {
                   {rewardKPIs?.pendingRedemptions ?? 0} pendentes
                 </p>
               </div>
-              <ArrowRight className="size-4 text-gray-500 group-hover:text-tbo-orange transition-colors" />
+              <IconArrowRight className="size-4 text-gray-500 group-hover:text-tbo-orange transition-colors" />
             </CardContent>
           </Card>
         </Link>
@@ -142,7 +142,7 @@ export default function CulturaPage() {
           <Card className="h-full transition-colors group-hover:border-tbo-orange/40">
             <CardContent className="p-4 flex items-center gap-3">
               <div className="rounded-lg p-2.5 bg-blue-500/10">
-                <Repeat className="size-5 text-blue-500" />
+                <IconRepeat className="size-5 text-blue-500" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm">Rituais</p>
@@ -151,7 +151,7 @@ export default function CulturaPage() {
                   {rituals?.length ?? 0}
                 </p>
               </div>
-              <ArrowRight className="size-4 text-gray-500 group-hover:text-tbo-orange transition-colors" />
+              <IconArrowRight className="size-4 text-gray-500 group-hover:text-tbo-orange transition-colors" />
             </CardContent>
           </Card>
         </Link>
@@ -167,7 +167,7 @@ export default function CulturaPage() {
         const catItems = recentByCategory[key] || [];
         if (catItems.length === 0) return null;
         const link = CATEGORY_LINKS[key];
-        const Icon = CATEGORY_ICONS[key] || FileText;
+        const Icon = CATEGORY_ICONS[key] || IconFileText;
 
         return (
           <Card key={key}>
@@ -182,7 +182,7 @@ export default function CulturaPage() {
                   className="text-xs text-gray-500 hover:text-tbo-orange flex items-center gap-1"
                 >
                   Ver todos
-                  <ArrowRight className="size-3" />
+                  <IconArrowRight className="size-3" />
                 </Link>
               )}
             </CardHeader>
@@ -203,7 +203,7 @@ export default function CulturaPage() {
 
       {!isLoading && (!items || items.length === 0) && (
         <EmptyState
-          icon={Heart}
+          icon={IconHeart}
           title="Nenhum item de cultura cadastrado ainda"
           description="Comece adicionando pilares, rituais ou politicas."
           cta={{ label: "Ver pilares", onClick: () => router.push("/cultura/pilares") }}

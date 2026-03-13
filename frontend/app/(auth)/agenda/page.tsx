@@ -37,7 +37,7 @@ import { ErrorState } from "@/components/shared";
 import { getMonthRange, getWeekRange } from "@/features/calendar/services/calendar";
 import type { CalendarEvent } from "@/features/calendar/services/calendar";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { IconPlus } from "@tabler/icons-react";
 
 export default function AgendaPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -92,7 +92,7 @@ export default function AgendaPage() {
           </p>
         </div>
         <Button onClick={() => setFormOpen(true)}>
-          <Plus className="mr-1.5 h-4 w-4" />
+          <IconPlus className="mr-1.5 h-4 w-4" />
           Novo Evento
         </Button>
       </div>

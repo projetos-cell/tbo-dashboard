@@ -1,12 +1,5 @@
-42a890c feat(tbo-os): ciclo 17 — organograma onNodeClick + fix lucide-react em pessoas
-6197d16 chore: adicionar audit-log do ciclo 2026-03-13 ciclo 16
-e584ff2 feat(tbo-os): ciclo 15 — decisions loading state + reconhecimentos loading + OKR KR history
-e7c87ab feat(tbo-os): ciclo 15 — decisions confirm dialog + pessoas reconhecimentos + okrs company/individuais
-1f45c64 docs(cultura): relatório de melhoria contínua 2026-03-13
-556ed9c feat(cultura): ciclo 15 — drag & drop universal em pilares, valores e rituais
-bd67b45 feat(tbo-os): ciclo 14 — colaboradores directory + decisões page + icons
-c38f73c feat(cultura): admin CRUD recompensas + fluxo delivered + validacao inline reconhecimento + skeletons KPI
-70ede56 feat(chat): ciclo 13 — split módulo chat (channel-list 698L + chat-layout 607L + settings-drawer 412L)
-9fe8c10 chore: adicionar audit-log do ciclo 2026-03-13 ciclo 13
- .claude/session-start.txt | 5 +----
- 1 file changed, 1 insertion(+), 4 deletions(-)
+Ciclo 20 - 2026-03-13 15:08 - Estado inicial
+Branch: main
+Last commit: e6a8beb feat(cultura): ciclo 19
+Modified files: ~100+ (git status M)
+Build status: pending

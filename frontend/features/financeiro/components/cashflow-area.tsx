@@ -11,7 +11,7 @@ import {
   ReferenceLine,
   ResponsiveContainer,
 } from "recharts";
-import { TrendingUp } from "lucide-react";
+import { IconTrendingUp } from "@tabler/icons-react";
 import { useFinanceCashFlowProjection } from "@/features/financeiro/hooks/use-finance";
 
 const fmt = new Intl.NumberFormat("pt-BR", {
@@ -109,7 +109,7 @@ export function CashflowArea() {
 
       {!isLoading && !isError && points.length === 0 && (
         <div className="flex flex-col items-center justify-center py-10 text-gray-500 gap-2">
-          <TrendingUp className="w-8 h-8 opacity-40" />
+          <IconTrendingUp className="w-8 h-8 opacity-40" />
           <p className="text-sm">Nenhum título previsto nos próximos {days} dias</p>
         </div>
       )}

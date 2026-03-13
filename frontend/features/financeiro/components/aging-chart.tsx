@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Clock } from "lucide-react";
+import { IconAlertCircle, IconClock } from "@tabler/icons-react";
 
 const fmtCompact = (v: number) =>
   new Intl.NumberFormat("pt-BR", {
@@ -36,7 +36,7 @@ export function AgingChart() {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center h-[220px] gap-2 text-red-500">
-        <AlertCircle className="h-6 w-6" />
+        <IconAlertCircle className="h-6 w-6" />
         <p className="text-sm">Erro ao carregar inadimplência</p>
         <Button variant="outline" size="sm" onClick={() => refetch()}>
           Tentar novamente
@@ -54,7 +54,7 @@ export function AgingChart() {
   if (!hasOverdue && !hasProjected) {
     return (
       <div className="flex flex-col items-center justify-center h-[220px] gap-2 text-gray-500">
-        <Clock className="h-8 w-8" />
+        <IconClock className="h-8 w-8" />
         <p className="text-sm font-medium">Nenhum título pendente</p>
         <p className="text-xs">Todos os títulos estão em dia e sem projeções</p>
       </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Camera } from "lucide-react";
+import { IconCamera } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -73,7 +73,7 @@ export function StepProfile({
             onClick={() => fileRef.current?.click()}
             className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border bg-background shadow-sm hover:bg-accent transition-colors"
           >
-            <Camera className="h-3 w-3" />
+            <IconCamera className="h-3 w-3" />
           </button>
           <input
             ref={fileRef}

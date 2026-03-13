@@ -13,18 +13,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Database as DatabaseIcon,
-  RefreshCcw,
-  Mic,
-  HardDrive,
-  Activity,
-  AlertTriangle,
-  BarChart3,
-  Server,
-  CheckCircle2,
-  XCircle,
-  Clock,
-} from "lucide-react";
+  IconDatabase,
+  IconRefresh,
+  IconMicrophone,
+  IconActivity,
+  IconAlertTriangle,
+  IconChartBar,
+  IconServer,
+  IconCircleCheck,
+  IconCircleX,
+  IconClock,
+} from "@tabler/icons-react";
 import { useSystemHealth } from "@/hooks/use-system-health";
 import { ErrorState, EmptyState } from "@/components/shared";
 import type { Database } from "@/lib/supabase/types";
@@ -69,11 +68,11 @@ const STATUS_CONFIG: Record<
 };
 
 const PROVIDER_ICONS: Record<string, React.ElementType> = {
-  notion: RefreshCcw,
-  fireflies: Mic,
-  omie: DatabaseIcon,
-  reportei: BarChart3,
-  storage: HardDrive,
+  notion: IconRefresh,
+  fireflies: IconMicrophone,
+  omie: IconDatabase,
+  reportei: IconChartBar,
+  storage: IconServer,
 };
 
 function SystemHealthContent() {
@@ -117,7 +116,7 @@ function SystemHealthContent() {
               <CardContent className="flex flex-col items-center gap-3 py-5">
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
-                  <DatabaseIcon className="h-5 w-5 text-gray-500" />
+                  <IconDatabase className="h-5 w-5 text-gray-500" />
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-medium">Supabase</p>
@@ -133,7 +132,7 @@ function SystemHealthContent() {
             {integrations.map((integ) => {
               const status = deriveStatus(integ.lastSyncStatus, integ.isActive);
               const config = STATUS_CONFIG[status];
-              const Icon = PROVIDER_ICONS[integ.provider.toLowerCase()] ?? Activity;
+              const Icon = PROVIDER_ICONS[integ.provider.toLowerCase()] ?? IconActivity;
               return (
                 <Card key={integ.provider}>
                   <CardContent className="flex flex-col items-center gap-3 py-5">
@@ -157,7 +156,7 @@ function SystemHealthContent() {
             {integrations.length === 0 && (
               <div className="col-span-full">
                 <EmptyState
-                  icon={Activity}
+                  icon={IconActivity}
                   title="Nenhuma integração configurada"
                   description="Configure integrações com OMIE, Fireflies e outros serviços para monitorar o status aqui."
                 />
@@ -168,7 +167,7 @@ function SystemHealthContent() {
           {/* Specific Sync Status */}
           <div>
             <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-gray-500" />
+              <IconChartBar className="h-4 w-4 text-gray-500" />
               Metricas de Sincronizacao
             </h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -240,7 +239,7 @@ function SystemHealthContent() {
       {/* Last Errors Section */}
       <div>
         <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-gray-500" />
+          <IconAlertTriangle className="h-4 w-4 text-gray-500" />
           Ultimos Erros
         </h2>
         <Card>
@@ -265,7 +264,7 @@ function SystemHealthContent() {
                   <TableRow>
                     <TableCell colSpan={4}>
                       <div className="flex flex-col items-center justify-center py-10 text-center">
-                        <CheckCircle2 className="mb-2 h-8 w-8 text-green-500/60" />
+                        <IconCircleCheck className="mb-2 h-8 w-8 text-green-500/60" />
                         <p className="text-sm text-gray-500">
                           Nenhum erro registrado recentemente.
                         </p>
@@ -301,7 +300,7 @@ function SystemHealthContent() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="destructive">
-                          <XCircle className="mr-1 h-3 w-3" />
+                          <IconCircleX className="mr-1 h-3 w-3" />
                           Erro
                         </Badge>
                       </TableCell>

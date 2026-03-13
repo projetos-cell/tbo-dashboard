@@ -6,15 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  DollarSign,
-  TrendingUp,
-  Users,
-  Target,
-  ArrowRight,
-  FileBarChart,
-  Brain,
-  BarChart3,
-} from "lucide-react";
+  IconCurrencyDollar,
+  IconTrendingUp,
+  IconUsers,
+  IconTarget,
+  IconArrowRight,
+  IconChartBar,
+  IconBrain,
+  IconChartBar as IconBarChart3,
+} from "@tabler/icons-react";
 import { useIntelligenceKpis } from "@/hooks/use-intelligence";
 import { ErrorState, EmptyState } from "@/components/shared";
 
@@ -32,7 +32,7 @@ const INTELLIGENCE_SECTIONS = [
     title: "Visao Financeira",
     description: "DRE, margens e fluxo de caixa",
     href: "/financeiro",
-    icon: DollarSign,
+    icon: IconCurrencyDollar,
     color: "text-green-500",
     bgColor: "bg-green-500/10",
   },
@@ -40,7 +40,7 @@ const INTELLIGENCE_SECTIONS = [
     title: "Pipeline Comercial",
     description: "Funil de vendas e forecast",
     href: "/comercial",
-    icon: TrendingUp,
+    icon: IconTrendingUp,
     color: "text-blue-500",
     bgColor: "bg-blue-500/10",
   },
@@ -48,7 +48,7 @@ const INTELLIGENCE_SECTIONS = [
     title: "Desempenho da Equipe",
     description: "Produtividade e alocacao",
     href: "/pessoas",
-    icon: Users,
+    icon: IconUsers,
     color: "text-purple-500",
     bgColor: "bg-purple-500/10",
   },
@@ -56,7 +56,7 @@ const INTELLIGENCE_SECTIONS = [
     title: "OKRs & Metas",
     description: "Progresso de objetivos",
     href: "/okrs",
-    icon: Target,
+    icon: IconTarget,
     color: "text-orange-500",
     bgColor: "bg-orange-500/10",
   },
@@ -69,26 +69,26 @@ function InteligenciaContent() {
     {
       title: "Recebiveis em Aberto",
       value: kpis ? formatCurrency(kpis.totalReceivables) : "--",
-      icon: DollarSign,
+      icon: IconCurrencyDollar,
       color: "text-green-500",
     },
     {
       title: "Pipeline Comercial",
       value: kpis ? formatCurrency(kpis.pipelineTotal) : "--",
       description: kpis ? `${kpis.openDeals} deals abertos` : undefined,
-      icon: TrendingUp,
+      icon: IconTrendingUp,
       color: "text-blue-500",
     },
     {
       title: "Equipe Ativa",
       value: kpis ? String(kpis.teamCount) : "--",
-      icon: Users,
+      icon: IconUsers,
       color: "text-purple-500",
     },
     {
       title: "Progresso OKRs",
       value: kpis ? `${kpis.okrAvgProgress}%` : "--",
-      icon: Target,
+      icon: IconTarget,
       color: "text-orange-500",
     },
   ];
@@ -111,7 +111,7 @@ function InteligenciaContent() {
 
       {!isLoading && !error && !kpis && (
         <EmptyState
-          icon={Brain}
+          icon={IconBrain}
           title="Sem dados de inteligência"
           description="Os dados analíticos aparecerão aqui assim que houver informações nos módulos conectados."
         />
@@ -172,7 +172,7 @@ function InteligenciaContent() {
                 <Button variant="ghost" size="sm" className="px-0" asChild>
                   <Link href={section.href}>
                     Acessar
-                    <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                    <IconArrowRight className="ml-1 h-3.5 w-3.5" />
                   </Link>
                 </Button>
               </CardContent>
@@ -185,7 +185,7 @@ function InteligenciaContent() {
       <Card>
         <CardContent className="flex items-center gap-4 py-4">
           <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-slate-500/10">
-            <FileBarChart className="h-5 w-5 text-slate-500" />
+            <IconChartBar className="h-5 w-5 text-slate-500" />
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium">Relatorios Automatizados</p>
@@ -203,7 +203,7 @@ function InteligenciaContent() {
       {/* AI Insights Placeholder */}
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-          <Brain className="mb-3 h-10 w-10 text-gray-500/40" />
+          <IconBrain className="mb-3 h-10 w-10 text-gray-500/40" />
           <p className="text-sm font-medium">Insights com IA</p>
           <p className="text-xs text-gray-500 mt-1 max-w-md">
             Em breve, a inteligencia artificial analisara seus dados e sugerira

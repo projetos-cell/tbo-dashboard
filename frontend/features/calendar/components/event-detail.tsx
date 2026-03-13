@@ -14,12 +14,12 @@ import type { CalendarEvent } from "@/features/calendar/services/calendar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  Clock,
-  MapPin,
-  Users,
-  Trash2,
-  ExternalLink,
-} from "lucide-react";
+  IconClock,
+  IconMapPin,
+  IconUsers,
+  IconTrash,
+  IconExternalLink,
+} from "@tabler/icons-react";
 
 interface EventDetailProps {
   event: CalendarEvent | null;
@@ -52,7 +52,7 @@ export function EventDetail({
         <div className="space-y-4 px-4 pb-4">
           {/* Time */}
           <div className="flex items-start gap-2 text-sm">
-            <Clock className="mt-0.5 h-4 w-4 text-gray-500" />
+            <IconClock className="mt-0.5 h-4 w-4 text-gray-500" />
             <div>
               {event.isAllDay ? (
                 <span>
@@ -75,7 +75,7 @@ export function EventDetail({
           {/* Location */}
           {event.location && (
             <div className="flex items-start gap-2 text-sm">
-              <MapPin className="mt-0.5 h-4 w-4 text-gray-500" />
+              <IconMapPin className="mt-0.5 h-4 w-4 text-gray-500" />
               <span>{event.location}</span>
             </div>
           )}
@@ -83,7 +83,7 @@ export function EventDetail({
           {/* Organizer */}
           {event.organizer && (
             <div className="flex items-start gap-2 text-sm">
-              <Users className="mt-0.5 h-4 w-4 text-gray-500" />
+              <IconUsers className="mt-0.5 h-4 w-4 text-gray-500" />
               <span>{event.organizer}</span>
             </div>
           )}
@@ -115,7 +115,7 @@ export function EventDetail({
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                  <IconExternalLink className="mr-1.5 h-3.5 w-3.5" />
                   Abrir no Google
                 </a>
               </Button>
@@ -126,7 +126,7 @@ export function EventDetail({
                 size="sm"
                 onClick={() => onDelete(event.id)}
               >
-                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                <IconTrash className="mr-1.5 h-3.5 w-3.5" />
                 Excluir
               </Button>
             )}

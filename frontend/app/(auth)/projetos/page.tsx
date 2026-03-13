@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState, useMemo } from "react";
-import { Plus, FolderKanban } from "lucide-react";
+import { IconPlus, IconLayoutKanban } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState, EmptyState } from "@/components/shared";
@@ -74,7 +74,7 @@ export default function ProjetosPage() {
         <div className="flex items-center gap-2">
           <ViewToggle value={view} onChange={setView} />
           <Button onClick={() => setFormOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" />
+            <IconPlus className="h-4 w-4 mr-1" />
             Novo Projeto
           </Button>
         </div>
@@ -113,7 +113,7 @@ export default function ProjetosPage() {
         </div>
       ) : !projects?.length ? (
         <EmptyState
-          icon={FolderKanban}
+          icon={IconLayoutKanban}
           title="Nenhum projeto encontrado"
           description="Crie seu primeiro projeto para organizar o trabalho da equipe."
           cta={{ label: "Novo Projeto", onClick: () => setFormOpen(true) }}

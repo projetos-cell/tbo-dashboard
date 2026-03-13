@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AlertCircle, TrendingUp, Target, Zap } from "lucide-react";
+import { IconAlertCircle, IconTrendingUp, IconTarget, IconBolt } from "@tabler/icons-react";
 import {
   fmtNum,
   extractTopPosts,
@@ -124,13 +124,13 @@ export function RsmPostsDiagnostics({ account, metrics, posts }: Props) {
       <div>
         <h3 className="text-lg font-semibold mb-4">Diagnóstico</h3>
         <div className="space-y-3">
-          <InsightCard icon={<TrendingUp className="h-4 w-4" />} variant="info">
+          <InsightCard icon={<IconTrendingUp className="h-4 w-4" />} variant="info">
             <strong>Crescimento consistente (+{growthPct}%)</strong> — de ~{fmtNum(firstFollowers)} para{" "}
             {fmtNum(followers)} seguidores em {metrics.length} meses.
           </InsightCard>
 
           {(reels.interactions as number) > 0 && (
-            <InsightCard icon={<Target className="h-4 w-4" />} variant="info">
+            <InsightCard icon={<IconTarget className="h-4 w-4" />} variant="info">
               <strong>Reels dominam o engajamento</strong> —{" "}
               {fmtNum((reels.interactions as number) ?? 0)} interações nos Reels vs{" "}
               {fmtNum((feed.interactions as number) ?? 0)} no feed (
@@ -142,21 +142,21 @@ export function RsmPostsDiagnostics({ account, metrics, posts }: Props) {
           )}
 
           {Number(paidPct) > 90 && (
-            <InsightCard icon={<AlertCircle className="h-4 w-4" />} variant="warn">
+            <InsightCard icon={<IconAlertCircle className="h-4 w-4" />} variant="warn">
               <strong>Dependência de mídia paga</strong> — {paidPct}% do alcance total vem de ads.
               Estratégia orgânica precisa ser fortalecida.
             </InsightCard>
           )}
 
           {(stories.reach_30d as number) === 0 && (
-            <InsightCard icon={<Zap className="h-4 w-4" />} variant="alert">
+            <InsightCard icon={<IconBolt className="h-4 w-4" />} variant="alert">
               <strong>Stories zerados nos últimos 30 dias</strong> — alcance 0 indica interrupção total.
               Reativação recomendada.
             </InsightCard>
           )}
 
           {Object.keys(topCities).length > 0 && (
-            <InsightCard icon={<Target className="h-4 w-4" />} variant="info">
+            <InsightCard icon={<IconTarget className="h-4 w-4" />} variant="info">
               <strong>Audiência alinhada ao negócio</strong> —{" "}
               {((Object.values(topCities)[0] ?? 0) / Math.max(followers, 1) * 100).toFixed(1)}%
               concentrado em {Object.keys(topCities)[0]}.

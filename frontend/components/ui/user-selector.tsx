@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Check, ChevronsUpDown, X } from "lucide-react"
+import { IconCheck, IconSelector, IconX } from "@tabler/icons-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -109,7 +109,7 @@ export function UserSelector(props: UserSelectorProps) {
               onClick={(e) => removeOne(u.id, e)}
               className="ml-0.5 hover:text-destructive"
             >
-              <X className="size-2.5" />
+              <IconX className="size-2.5" />
             </button>
           </span>
         ))}
@@ -132,7 +132,7 @@ export function UserSelector(props: UserSelectorProps) {
           className={cn("justify-between gap-1.5 font-normal", className)}
         >
           <span className="min-w-0 flex-1 text-left">{triggerLabel}</span>
-          <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
+          <IconSelector className="size-3.5 shrink-0 text-muted-foreground" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-0" align="start">
@@ -168,7 +168,7 @@ export function UserSelector(props: UserSelectorProps) {
                   </Avatar>
                   <span className="flex-1 text-left truncate">{user.full_name}</span>
                   {isSelected && (
-                    <Check className="size-3.5 text-primary shrink-0" />
+                    <IconCheck className="size-3.5 text-primary shrink-0" />
                   )}
                 </button>
               )

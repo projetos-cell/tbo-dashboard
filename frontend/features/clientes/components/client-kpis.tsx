@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { Building2, UserPlus, Star, Users } from "lucide-react";
+import { IconBuilding, IconUserPlus, IconStar, IconUsers } from "@tabler/icons-react";
 import type { ClientKPIs } from "@/features/clientes/services/clients";
 
 interface ClientKPICardsProps {
@@ -9,10 +9,10 @@ interface ClientKPICardsProps {
 }
 
 const cards = [
-  { key: "total" as const, label: "Total", icon: Building2, color: "#6b7280" },
-  { key: "ativos" as const, label: "Ativos", icon: Users, color: "#22c55e" },
-  { key: "leads" as const, label: "Leads", icon: UserPlus, color: "#8b5cf6" },
-  { key: "vip" as const, label: "VIP", icon: Star, color: "#f59e0b" },
+  { key: "total" as const, label: "Total", icon: IconBuilding, color: "#6b7280" },
+  { key: "ativos" as const, label: "Ativos", icon: IconUsers, color: "#22c55e" },
+  { key: "leads" as const, label: "Leads", icon: IconUserPlus, color: "#8b5cf6" },
+  { key: "vip" as const, label: "VIP", icon: IconStar, color: "#f59e0b" },
 ];
 
 export function ClientKPICards({ kpis }: ClientKPICardsProps) {

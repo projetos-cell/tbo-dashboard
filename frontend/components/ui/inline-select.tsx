@@ -8,7 +8,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Check } from "lucide-react";
+import { IconCheck } from "@tabler/icons-react";
 
 export interface InlineSelectOption {
   value: string;
@@ -101,7 +101,7 @@ export function InlineSelect({
               />
               <span className="flex-1 text-left">{opt.label}</span>
               {opt.value === value && (
-                <Check className="h-3.5 w-3.5 text-muted-foreground" />
+                <IconCheck className="h-3.5 w-3.5 text-muted-foreground" />
               )}
             </button>
           ))}

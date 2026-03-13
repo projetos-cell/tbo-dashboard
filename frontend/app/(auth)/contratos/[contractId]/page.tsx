@@ -2,7 +2,7 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { ArrowLeft, Send, XCircle, Bell, FileText, Download } from "lucide-react";
+import { IconArrowLeft, IconSend, IconCircleX, IconBell, IconFileText, IconDownload } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -121,7 +121,7 @@ export default function ContractDetailPage({ params }: PageProps) {
         <div className="flex items-center gap-3 min-w-0">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/contratos">
-              <ArrowLeft className="h-4 w-4" />
+              <IconArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
           <div className="min-w-0">
@@ -148,7 +148,7 @@ export default function ContractDetailPage({ params }: PageProps) {
               onClick={() => sendToClicksign.mutate(contractId)}
               disabled={sendToClicksign.isPending}
             >
-              <Send className="h-4 w-4 mr-1" />
+              <IconSend className="h-4 w-4 mr-1" />
               Enviar para Assinatura
             </Button>
           )}
@@ -159,7 +159,7 @@ export default function ContractDetailPage({ params }: PageProps) {
               onClick={() => notifySigners.mutate(contractId)}
               disabled={notifySigners.isPending}
             >
-              <Bell className="h-4 w-4 mr-1" />
+              <IconBell className="h-4 w-4 mr-1" />
               Lembrete
             </Button>
           )}
@@ -170,7 +170,7 @@ export default function ContractDetailPage({ params }: PageProps) {
               onClick={() => cancelClicksign.mutate(contractId)}
               disabled={cancelClicksign.isPending}
             >
-              <XCircle className="h-4 w-4 mr-1" />
+              <IconCircleX className="h-4 w-4 mr-1" />
               Cancelar Envelope
             </Button>
           )}
@@ -215,7 +215,7 @@ export default function ContractDetailPage({ params }: PageProps) {
                 rel="noopener noreferrer"
                 className="text-sm text-primary hover:underline flex items-center gap-1"
               >
-                <Download className="h-3.5 w-3.5" />
+                <IconDownload className="h-3.5 w-3.5" />
                 {fileName ?? "Download"}
               </a>
             ) : (

@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { Eye, RotateCcw } from "lucide-react";
+import { IconEye, IconRefresh } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -33,7 +33,7 @@ export function WidgetToolbar({ view, widgets }: WidgetToolbarProps) {
       <Popover>
         <PopoverTrigger asChild>
           <Button variant="outline" size="sm" className="gap-1.5">
-            <Eye className="h-3.5 w-3.5" />
+            <IconEye className="h-3.5 w-3.5" />
             {hiddenWidgets.length} oculto{hiddenWidgets.length > 1 ? "s" : ""}
           </Button>
         </PopoverTrigger>
@@ -47,7 +47,7 @@ export function WidgetToolbar({ view, widgets }: WidgetToolbarProps) {
               onClick={() => showWidget(view, w.id)}
               className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-gray-100 transition-colors"
             >
-              <Eye className="h-3.5 w-3.5 text-gray-500" />
+              <IconEye className="h-3.5 w-3.5 text-gray-500" />
               {w.label}
             </button>
           ))}
@@ -61,7 +61,7 @@ export function WidgetToolbar({ view, widgets }: WidgetToolbarProps) {
         className="gap-1.5 text-gray-500"
         onClick={() => resetLayout(view)}
       >
-        <RotateCcw className="h-3.5 w-3.5" />
+        <IconRefresh className="h-3.5 w-3.5" />
         Resetar layout
       </Button>
     </div>

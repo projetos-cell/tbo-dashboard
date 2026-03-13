@@ -9,7 +9,7 @@ import { DecisionForm } from "@/features/decisions/components/decision-form";
 import { ErrorState } from "@/components/shared";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { IconPlus } from "@tabler/icons-react";
 import type { Database } from "@/lib/supabase/types";
 
 type DecisionRow = Database["public"]["Tables"]["decisions"]["Row"];
@@ -64,7 +64,7 @@ export default function DecisionsPage() {
           </p>
         </div>
         <Button onClick={() => setFormOpen(true)} className="gap-2 shrink-0">
-          <Plus className="size-4" />
+          <IconPlus className="size-4" />
           Nova Decisão
         </Button>
       </div>

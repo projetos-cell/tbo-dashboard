@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Eye, MousePointerClick, UserSearch, TrendingUp } from "lucide-react";
+import { IconUsers, IconEye, IconPointer, IconUserSearch, IconTrendingUp } from "@tabler/icons-react";
 import {
   fmtNum,
   MONTHS_PT,
@@ -67,27 +67,27 @@ export function RsmAccountDashboard({ account, metrics }: Props) {
       {/* KPI Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
-          icon={<Users className="h-4 w-4" />}
+          icon={<IconUsers className="h-4 w-4" />}
           label="Seguidores"
           value={fmtNum(followers)}
           sub={`de ~${fmtNum(firstFollowers)} em ${MONTHS_PT[new Date(firstMetric?.date ?? "").getMonth() + 1] ?? ""}/${String(new Date(firstMetric?.date ?? "").getFullYear()).slice(2)}`}
           badge={`+${growthPct}%`}
         />
         <KpiCard
-          icon={<Eye className="h-4 w-4" />}
+          icon={<IconEye className="h-4 w-4" />}
           label="Visualizações Totais"
           value={fmtNum(totalViews)}
           sub="orgânicas + pagas"
           accent
         />
         <KpiCard
-          icon={<MousePointerClick className="h-4 w-4" />}
+          icon={<IconPointer className="h-4 w-4" />}
           label="Interações Totais"
           value={fmtNum(totalInteractions)}
           sub="curtidas, comentários, saves, shares"
         />
         <KpiCard
-          icon={<UserSearch className="h-4 w-4" />}
+          icon={<IconUserSearch className="h-4 w-4" />}
           label="Visitas ao Perfil"
           value={fmtNum(profileVisits)}
           sub="no período analisado"
@@ -289,7 +289,7 @@ function KpiCard({
         {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
         {badge && (
           <Badge variant="secondary" className="mt-2 bg-blue-500/10 text-blue-600 dark:text-blue-400">
-            <TrendingUp className="h-3 w-3 mr-1" /> {badge}
+            <IconTrendingUp className="h-3 w-3 mr-1" /> {badge}
           </Badge>
         )}
       </CardContent>

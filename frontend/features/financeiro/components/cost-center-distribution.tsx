@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Layers } from "lucide-react";
+import { IconAlertCircle, IconStack2 } from "@tabler/icons-react";
 
 const COLORS = [
   "#6366f1", "#f59e0b", "#ef4444", "#3b82f6", "#22c55e",
@@ -64,7 +64,7 @@ export function CostCenterDistribution({ filters }: CostCenterDistributionProps)
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center h-[220px] gap-2 text-red-500">
-        <AlertCircle className="h-6 w-6" />
+        <IconAlertCircle className="h-6 w-6" />
         <p className="text-sm">Erro ao carregar centros de custo</p>
         <Button variant="outline" size="sm" onClick={() => refetch()}>
           Tentar novamente
@@ -76,7 +76,7 @@ export function CostCenterDistribution({ filters }: CostCenterDistributionProps)
   if (!chartData.length) {
     return (
       <div className="flex flex-col items-center justify-center h-[220px] gap-2 text-gray-500">
-        <Layers className="h-8 w-8" />
+        <IconStack2 className="h-8 w-8" />
         <p className="text-sm font-medium">Sem despesas no período</p>
         <p className="text-xs">Ajuste o filtro de data para ver distribuição</p>
       </div>

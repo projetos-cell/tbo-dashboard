@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Sparkles, X } from "lucide-react";
+import { IconSparkles, IconX } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth-store";
 import { useOnboardingStatus } from "../hooks/use-onboarding";
@@ -43,7 +43,7 @@ export function OnboardingGate() {
     <>
       {showBanner && (
         <div className="flex items-center gap-3 border-b bg-muted/50 px-4 py-2.5 text-sm">
-          <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+          <IconSparkles className="h-4 w-4 shrink-0 text-primary" />
           <span className="flex-1 text-muted-foreground">
             Seu perfil está incompleto.
           </span>
@@ -61,7 +61,7 @@ export function OnboardingGate() {
             className="text-muted-foreground hover:text-foreground transition-colors"
             aria-label="Fechar aviso"
           >
-            <X className="h-4 w-4" />
+            <IconX className="h-4 w-4" />
           </button>
         </div>
       )}

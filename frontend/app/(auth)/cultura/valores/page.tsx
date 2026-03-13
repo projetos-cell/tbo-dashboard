@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Plus, Heart, GripVertical } from "lucide-react";
+import { IconPlus, IconHeart, IconGripVertical } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -62,7 +62,7 @@ function SortableCard({
           aria-label="Arrastar para reordenar"
           tabIndex={-1}
         >
-          <GripVertical className="size-3 text-gray-400" />
+          <IconGripVertical className="size-3 text-gray-400" />
         </button>
       )}
       {children}
@@ -172,7 +172,7 @@ export default function ValoresPage() {
         </div>
         {canEdit && (
           <Button size="sm" onClick={() => { setEditingItem(null); setShowForm(true); }}>
-            <Plus className="size-4 mr-1" />
+            <IconPlus className="size-4 mr-1" />
             Novo valor
           </Button>
         )}
@@ -213,7 +213,7 @@ export default function ValoresPage() {
         </DndContext>
       ) : (
         <EmptyState
-          icon={Heart}
+          icon={IconHeart}
           title="Nenhum valor cadastrado"
           description="Defina os valores que orientam a cultura e as decisoes da empresa."
           cta={canEdit ? { label: "Novo valor", onClick: () => { setEditingItem(null); setShowForm(true); } } : undefined}

@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useRouter } from "next/navigation";
-import { Calendar, User, ExternalLink } from "lucide-react";
+import { IconCalendar, IconUser, IconExternalLink } from "@tabler/icons-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PROJECT_STATUS, BU_COLORS, type ProjectStatusKey } from "@/lib/constants";
@@ -52,7 +52,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
               onClick={(e) => e.stopPropagation()}
               className="shrink-0 text-gray-500 hover:text-gray-900"
             >
-              <ExternalLink className="h-3.5 w-3.5" />
+              <IconExternalLink className="h-3.5 w-3.5" />
             </a>
           )}
         </div>
@@ -106,13 +106,13 @@ export function ProjectCard({ project }: ProjectCardProps) {
           <div className="flex items-center justify-between pt-1 text-xs text-gray-500">
             {project.owner_name && (
               <div className="flex items-center gap-1 truncate">
-                <User className="h-3 w-3 shrink-0" />
+                <IconUser className="h-3 w-3 shrink-0" />
                 <span className="truncate">{project.owner_name}</span>
               </div>
             )}
             {project.due_date_end && (
               <div className="flex items-center gap-1 shrink-0">
-                <Calendar className="h-3 w-3" />
+                <IconCalendar className="h-3 w-3" />
                 <span>
                   {format(new Date(project.due_date_end), "dd MMM", {
                     locale: ptBR,

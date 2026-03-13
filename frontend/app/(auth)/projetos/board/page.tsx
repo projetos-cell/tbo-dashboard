@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { IconPlus } from "@tabler/icons-react";
 
 import { useProjetosKanban } from "@/hooks/use-projetos-kanban";
 import { KanbanColumn } from "@/components/kanban/KanbanColumn";
@@ -41,7 +41,7 @@ export default function ProjetosBoard() {
         <KanbanHeader title="Board de Projetos" view={view} onViewChange={setView} />
 
         <Button>
-          <Plus className="mr-1.5 h-4 w-4" />
+          <IconPlus className="mr-1.5 h-4 w-4" />
           Novo Projeto
         </Button>
       </div>

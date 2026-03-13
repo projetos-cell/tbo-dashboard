@@ -4,14 +4,14 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  Calendar,
-  CheckSquare,
-  FolderOpen,
-  MoreHorizontal,
-  Trash2,
-  User,
-  Users,
-} from "lucide-react";
+  IconCalendar,
+  IconSquareCheck,
+  IconFolderOpen,
+  IconDots,
+  IconTrash,
+  IconUser,
+  IconUsers,
+} from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -131,7 +131,7 @@ export function DecisionDetail({
                   className="h-7 w-7 shrink-0"
                   aria-label="Acoes"
                 >
-                  <MoreHorizontal className="h-4 w-4" />
+                  <IconDots className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
@@ -143,7 +143,7 @@ export function DecisionDetail({
                   className="text-red-500 focus:text-red-500"
                   onClick={() => setConfirmDelete(true)}
                 >
-                  <Trash2 className="size-3.5 mr-2" />
+                  <IconTrash className="size-3.5 mr-2" />
                   Excluir
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -175,7 +175,7 @@ export function DecisionDetail({
             {/* Tasks created */}
             <div className="space-y-1.5">
               <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
-                <CheckSquare className="h-3 w-3" /> Tarefas criadas
+                <IconSquareCheck className="h-3 w-3" /> Tarefas criadas
               </p>
               {decision.tasks_created && decision.tasks_created.length > 0 ? (
                 <div className="space-y-1">
@@ -184,7 +184,7 @@ export function DecisionDetail({
                       key={idx}
                       className="flex items-center gap-2 text-sm text-gray-900"
                     >
-                      <CheckSquare className="h-3.5 w-3.5 text-gray-500 shrink-0" />
+                      <IconSquareCheck className="h-3.5 w-3.5 text-gray-500 shrink-0" />
                       <span className="truncate">{task}</span>
                     </div>
                   ))}
@@ -202,7 +202,7 @@ export function DecisionDetail({
             {/* Decided by */}
             <div className="space-y-1.5">
               <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
-                <Users className="h-3 w-3" /> Decidido por
+                <IconUsers className="h-3 w-3" /> Decidido por
               </p>
               <input
                 type="text"
@@ -216,7 +216,7 @@ export function DecisionDetail({
             {/* Project */}
             <div className="space-y-1.5">
               <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
-                <FolderOpen className="h-3 w-3" /> Projeto
+                <IconFolderOpen className="h-3 w-3" /> Projeto
               </p>
               <input
                 type="text"
@@ -230,7 +230,7 @@ export function DecisionDetail({
             {/* Meeting */}
             <div className="space-y-1.5">
               <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
-                <Calendar className="h-3 w-3" /> Reuniao
+                <IconCalendar className="h-3 w-3" /> Reuniao
               </p>
               <input
                 type="text"
@@ -267,7 +267,7 @@ export function DecisionDetail({
             {decision.created_by && (
               <div className="space-y-1.5">
                 <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
-                  <User className="h-3 w-3" /> Criado por
+                  <IconUser className="h-3 w-3" /> Criado por
                 </p>
                 <p className="text-xs">{decision.created_by}</p>
               </div>
@@ -307,7 +307,7 @@ export function DecisionDetail({
                   className="h-7 text-xs text-red-500 hover:text-red-500"
                   onClick={() => setConfirmDelete(true)}
                 >
-                  <Trash2 className="size-3 mr-1" />
+                  <IconTrash className="size-3 mr-1" />
                   Excluir
                 </Button>
               )}

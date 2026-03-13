@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Instagram } from "lucide-react";
+import { IconBrandInstagram } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RsmAccountDashboard } from "@/app/(auth)/rsm/[accountId]/_components/rsm-account-dashboard";
@@ -130,7 +130,7 @@ function AccountSections({
 
 function PlatformIcon({ platform }: { platform: string | null }) {
   if (platform === "instagram") {
-    return <Instagram className="h-5 w-5 text-pink-500" />;
+    return <IconBrandInstagram className="h-5 w-5 text-pink-500" />;
   }
   return (
     <Badge variant="outline" className="text-xs capitalize">

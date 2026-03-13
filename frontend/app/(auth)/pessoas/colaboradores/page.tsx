@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PEOPLE_STATUS } from "@/lib/constants";
-import { Search, Users, X } from "lucide-react";
+import { IconSearch, IconUsers, IconX } from "@tabler/icons-react";
 import type { Database } from "@/lib/supabase/types";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
@@ -64,7 +64,7 @@ export default function ColaboradoresPage() {
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative max-w-sm flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <IconSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar por nome, cargo ou e-mail..."
               value={search}
@@ -74,7 +74,7 @@ export default function ColaboradoresPage() {
           </div>
           {hasFilters && (
             <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1.5">
-              <X className="size-3.5" />
+              <IconX className="size-3.5" />
               Limpar filtros
             </Button>
           )}
@@ -110,7 +110,7 @@ export default function ColaboradoresPage() {
       {/* Count */}
       {!isLoading && !isError && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Users className="size-4" />
+          <IconUsers className="size-4" />
           <span>
             {people.length} {people.length === 1 ? "colaborador" : "colaboradores"}
             {hasFilters && ` de ${data?.count ?? 0} no total`}
@@ -162,7 +162,7 @@ export default function ColaboradoresPage() {
       {/* Empty */}
       {!isLoading && !isError && people.length === 0 && (
         <EmptyState
-          icon={Users}
+          icon={IconUsers}
           title={hasFilters ? "Nenhum resultado encontrado" : "Nenhum colaborador cadastrado"}
           description={
             hasFilters

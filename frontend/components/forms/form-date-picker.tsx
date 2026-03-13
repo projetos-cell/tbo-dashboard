@@ -2,7 +2,7 @@
 
 import { FieldPath, FieldValues } from "react-hook-form";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { IconCalendar } from "@tabler/icons-react";
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -52,7 +52,7 @@ function FormDatePicker<
                   disabled={disabled}
                 >
                   {field.value ? format(field.value, "PPP") : <span>{placeholder}</span>}
-                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                  <IconCalendar className="ml-auto h-4 w-4 opacity-50" />
                 </Button>
               </FormControl>
             </PopoverTrigger>

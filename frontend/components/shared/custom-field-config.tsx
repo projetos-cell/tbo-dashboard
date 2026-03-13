@@ -2,19 +2,19 @@
 
 import { useState } from "react";
 import {
-  Plus,
-  GripVertical,
-  Pencil,
-  Trash2,
-  X,
-  Type,
-  Hash,
-  Calendar,
-  List,
-  ListChecks,
-  CheckSquare,
-  Link,
-} from "lucide-react";
+  IconPlus,
+  IconGripVertical,
+  IconPencil,
+  IconTrash,
+  IconX,
+  IconLetterCase,
+  IconHash,
+  IconCalendar,
+  IconList,
+  IconChecklist,
+  IconSquareCheck,
+  IconLink,
+} from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,13 +41,13 @@ import type { Database, Json } from "@/lib/supabase/types";
 type FieldDefinition = Database["public"]["Tables"]["custom_field_definitions"]["Row"];
 
 const FIELD_ICONS: Record<string, React.ElementType> = {
-  type: Type,
-  hash: Hash,
-  calendar: Calendar,
-  list: List,
-  "list-checks": ListChecks,
-  "check-square": CheckSquare,
-  link: Link,
+  type: IconLetterCase,
+  hash: IconHash,
+  calendar: IconCalendar,
+  list: IconList,
+  "list-checks": IconChecklist,
+  "check-square": IconSquareCheck,
+  link: IconLink,
 };
 
 interface CustomFieldConfigProps {
@@ -110,7 +110,7 @@ export function CustomFieldConfig({ projectId, className }: CustomFieldConfigPro
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium">Campos personalizados</h3>
         <Button size="sm" variant="outline" onClick={handleCreate}>
-          <Plus className="mr-1 size-3.5" />
+          <IconPlus className="mr-1 size-3.5" />
           Novo campo
         </Button>
       </div>
@@ -123,11 +123,11 @@ export function CustomFieldConfig({ projectId, className }: CustomFieldConfigPro
         <div className="space-y-1">
           {definitions?.map((field) => {
             const typeDef = CUSTOM_FIELD_TYPES[field.field_type as CustomFieldTypeKey];
-            const IconComp = typeDef ? FIELD_ICONS[typeDef.icon] || Type : Type;
+            const IconComp = typeDef ? FIELD_ICONS[typeDef.icon] || IconLetterCase : IconLetterCase;
 
             return (
               <div key={field.id} className="group flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
-                <GripVertical className="size-4 cursor-grab text-gray-500" />
+                <IconGripVertical className="size-4 cursor-grab text-gray-500" />
                 <IconComp className="size-4 text-gray-500" />
                 <span className="flex-1">{field.name}</span>
                 <Badge variant="secondary" className="text-[10px]">
@@ -146,7 +146,7 @@ export function CustomFieldConfig({ projectId, className }: CustomFieldConfigPro
                     onClick={() => handleEdit(field)}
                     aria-label="Editar"
                   >
-                    <Pencil className="size-3" />
+                    <IconPencil className="size-3" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -155,7 +155,7 @@ export function CustomFieldConfig({ projectId, className }: CustomFieldConfigPro
                     onClick={() => handleDelete(field)}
                     aria-label="Remover"
                   >
-                    <Trash2 className="size-3" />
+                    <IconTrash className="size-3" />
                   </Button>
                 </div>
               </div>
@@ -255,7 +255,7 @@ function FieldDialog({
                   (typeof CUSTOM_FIELD_TYPES)[CustomFieldTypeKey],
                 ][]
               ).map(([key, def]) => {
-                const IconComp = FIELD_ICONS[def.icon] || Type;
+                const IconComp = FIELD_ICONS[def.icon] || IconLetterCase;
                 return (
                   <button
                     key={key}
@@ -289,14 +289,14 @@ function FieldDialog({
                   }}
                 />
                 <Button type="button" size="icon" variant="outline" onClick={addOption} aria-label="Adicionar opcao">
-                  <Plus className="size-4" />
+                  <IconPlus className="size-4" />
                 </Button>
               </div>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {options.map((opt) => (
                   <Badge key={opt} variant="secondary" className="gap-1">
                     {opt}
-                    <X className="size-3 cursor-pointer" onClick={() => removeOption(opt)} />
+                    <IconX className="size-3 cursor-pointer" onClick={() => removeOption(opt)} />
                   </Badge>
                 ))}
               </div>

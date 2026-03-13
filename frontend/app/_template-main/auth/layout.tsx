@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { GalleryVerticalEnd } from "lucide-react";
+import { IconLayoutRows } from "@tabler/icons-react";
 import { PROJECT_CONFIG } from "@/config/project-config";
 
 interface LayoutProps {
@@ -13,7 +13,7 @@ export default function Layout({ children }: LayoutProps) {
         <div className="relative hidden h-full flex-col items-center justify-center space-y-5 lg:flex">
           <div className="absolute top-5 left-5 flex justify-center gap-2 font-medium md:justify-start">
             <div className="bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-md">
-              <GalleryVerticalEnd className="size-4" />
+              <IconLayoutRows className="size-4" />
             </div>
             {PROJECT_CONFIG.name}
           </div>

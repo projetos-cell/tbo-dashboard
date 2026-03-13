@@ -31,15 +31,15 @@ import {
 import { computePdiProgress } from "@/features/pdi/services/pdi";
 import type { PdiRow, PdiGoalWithActions } from "@/features/pdi/services/pdi";
 import {
-  Target,
-  Plus,
-  Trash2,
-  ChevronDown,
-  ChevronRight,
-  User,
-  CalendarDays,
-  Pencil,
-} from "lucide-react";
+  IconTarget,
+  IconPlus,
+  IconTrash,
+  IconChevronDown,
+  IconChevronRight,
+  IconUser,
+  IconCalendar,
+  IconPencil,
+} from "@tabler/icons-react";
 
 interface PdiDetailProps {
   pdi: PdiRow | null;
@@ -131,7 +131,7 @@ export function PdiDetail({ pdi, open, onOpenChange, onEdit }: PdiDetailProps) {
           <SheetHeader className="space-y-1">
             <SheetTitle className="text-lg">{pdi.title || "PDI sem título"}</SheetTitle>
             <div className="flex items-center gap-2 text-sm text-gray-500">
-              <User className="h-4 w-4" />
+              <IconUser className="h-4 w-4" />
               {profileMap.get(pdi.person_id) ?? "Desconhecido"}
             </div>
           </SheetHeader>
@@ -166,7 +166,7 @@ export function PdiDetail({ pdi, open, onOpenChange, onEdit }: PdiDetailProps) {
 
           {/* Dates */}
           <div className="flex items-center gap-2 text-sm text-gray-500">
-            <CalendarDays className="h-4 w-4" />
+            <IconCalendar className="h-4 w-4" />
             Criado em {pdi.created_at ? formatDate(pdi.created_at) : "—"}
             {pdi.last_updated_at && (
               <span>· Atualizado {formatDate(pdi.last_updated_at)}</span>
@@ -178,7 +178,7 @@ export function PdiDetail({ pdi, open, onOpenChange, onEdit }: PdiDetailProps) {
           {/* Goals section */}
           <div className="space-y-3">
             <h4 className="flex items-center gap-1.5 text-sm font-semibold">
-              <Target className="h-4 w-4" /> Metas ({goals?.length ?? 0})
+              <IconTarget className="h-4 w-4" /> Metas ({goals?.length ?? 0})
             </h4>
 
             {goalsLoading ? (
@@ -203,9 +203,9 @@ export function PdiDetail({ pdi, open, onOpenChange, onEdit }: PdiDetailProps) {
                         onClick={() => toggleGoalExpanded(goal.id)}
                       >
                         {expanded ? (
-                          <ChevronDown className="h-4 w-4 shrink-0 text-gray-500" />
+                          <IconChevronDown className="h-4 w-4 shrink-0 text-gray-500" />
                         ) : (
-                          <ChevronRight className="h-4 w-4 shrink-0 text-gray-500" />
+                          <IconChevronRight className="h-4 w-4 shrink-0 text-gray-500" />
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="truncate text-sm font-medium">{goal.title}</p>
@@ -242,7 +242,7 @@ export function PdiDetail({ pdi, open, onOpenChange, onEdit }: PdiDetailProps) {
                               setGoalFormOpen(true);
                             }}
                           >
-                            <Pencil className="h-3 w-3" />
+                            <IconPencil className="h-3 w-3" />
                           </Button>
                           <Button
                             variant="ghost"
@@ -253,7 +253,7 @@ export function PdiDetail({ pdi, open, onOpenChange, onEdit }: PdiDetailProps) {
                               handleDeleteGoal(goal.id);
                             }}
                           >
-                            <Trash2 className="h-3 w-3" />
+                            <IconTrash className="h-3 w-3" />
                           </Button>
                         </div>
                       </div>
@@ -297,7 +297,7 @@ export function PdiDetail({ pdi, open, onOpenChange, onEdit }: PdiDetailProps) {
                     onClick={handleCreateGoal}
                     disabled={!newGoalTitle.trim() || createGoalMutation.isPending}
                   >
-                    <Plus className="h-4 w-4" />
+                    <IconPlus className="h-4 w-4" />
                   </Button>
                 </div>
 
@@ -311,7 +311,7 @@ export function PdiDetail({ pdi, open, onOpenChange, onEdit }: PdiDetailProps) {
                     setGoalFormOpen(true);
                   }}
                 >
-                  <Target className="mr-1 h-3 w-3" /> Nova meta com detalhes / vincular competência
+                  <IconTarget className="mr-1 h-3 w-3" /> Nova meta com detalhes / vincular competência
                 </Button>
               </>
             )}
@@ -331,7 +331,7 @@ export function PdiDetail({ pdi, open, onOpenChange, onEdit }: PdiDetailProps) {
                   size="sm"
                   className="text-red-500 hover:text-red-500"
                 >
-                  <Trash2 className="mr-1 h-3 w-3" /> Excluir
+                  <IconTrash className="mr-1 h-3 w-3" /> Excluir
                 </Button>
               }
               title="Excluir PDI"

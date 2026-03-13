@@ -10,14 +10,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
-  Building2,
-  Mail,
-  Phone,
-  MapPin,
-  FileText,
-  Calendar,
-  User,
-} from "lucide-react";
+  IconBuilding,
+  IconMail,
+  IconPhone,
+  IconMapPin,
+  IconFileText,
+  IconCalendar,
+  IconUser,
+} from "@tabler/icons-react";
 import type { Database } from "@/lib/supabase/types";
 import { CLIENT_STATUS, type ClientStatusKey, INTERACTION_TYPES, type InteractionTypeKey } from "@/lib/constants";
 import { useClientInteractions } from "@/features/clientes/hooks/use-clients";
@@ -60,7 +60,7 @@ export function ClientDetailDialog({
               />
             ) : (
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100">
-                <Building2 className="h-6 w-6 text-gray-500" />
+                <IconBuilding className="h-6 w-6 text-gray-500" />
               </div>
             )}
             <div className="flex-1">
@@ -89,25 +89,25 @@ export function ClientDetailDialog({
           <div className="space-y-2 text-sm">
             {client.contact_name && (
               <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-gray-500" />
+                <IconUser className="h-4 w-4 text-gray-500" />
                 <span>{client.contact_name}</span>
               </div>
             )}
             {client.email && (
               <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-gray-500" />
+                <IconMail className="h-4 w-4 text-gray-500" />
                 <span>{client.email}</span>
               </div>
             )}
             {client.phone && (
               <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-gray-500" />
+                <IconPhone className="h-4 w-4 text-gray-500" />
                 <span>{client.phone}</span>
               </div>
             )}
             {(client.city || client.state) && (
               <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-gray-500" />
+                <IconMapPin className="h-4 w-4 text-gray-500" />
                 <span>
                   {[client.address, client.city, client.state]
                     .filter(Boolean)
@@ -117,7 +117,7 @@ export function ClientDetailDialog({
             )}
             {client.cnpj && (
               <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-gray-500" />
+                <IconFileText className="h-4 w-4 text-gray-500" />
                 <span>CNPJ: {client.cnpj}</span>
               </div>
             )}
@@ -189,7 +189,7 @@ export function ClientDetailDialog({
                       key={i.id}
                       className="flex items-start gap-2 rounded-md border p-2 text-sm"
                     >
-                      <Calendar className="mt-0.5 h-3.5 w-3.5 text-gray-500" />
+                      <IconCalendar className="mt-0.5 h-3.5 w-3.5 text-gray-500" />
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <Badge variant="outline" className="text-xs">

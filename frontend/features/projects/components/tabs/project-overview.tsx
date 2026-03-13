@@ -1,12 +1,12 @@
 ﻿"use client";
 
 import {
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-  LayoutList,
-  Paperclip,
-} from "lucide-react";
+  IconCircleCheck,
+  IconClock,
+  IconAlertTriangle,
+  IconLayoutList,
+  IconPaperclip,
+} from "@tabler/icons-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,27 +38,27 @@ export function ProjectOverview({
       {/* Stats cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          icon={LayoutList}
+          icon={IconLayoutList}
           label="Total de tarefas"
           value={stats?.totalTasks}
           loading={statsLoading}
         />
         <StatCard
-          icon={CheckCircle2}
+          icon={IconCircleCheck}
           label="Concluídas"
           value={stats?.completedTasks}
           loading={statsLoading}
           color="text-green-600"
         />
         <StatCard
-          icon={AlertTriangle}
+          icon={IconAlertTriangle}
           label="Atrasadas"
           value={stats?.overdueTasks}
           loading={statsLoading}
           color="text-red-600"
         />
         <StatCard
-          icon={Paperclip}
+          icon={IconPaperclip}
           label="Anexos"
           value={stats?.totalAttachments}
           loading={statsLoading}

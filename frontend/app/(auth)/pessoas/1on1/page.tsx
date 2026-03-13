@@ -39,12 +39,12 @@ import {
 } from "@/features/one-on-ones/utils/one-on-one-utils";
 import { useToggleAction } from "@/features/one-on-ones/hooks/use-one-on-ones";
 import {
-  Plus,
-  CalendarDays,
-  AlertTriangle,
-  Clock,
-  MessageSquare,
-} from "lucide-react";
+  IconPlus,
+  IconCalendar,
+  IconAlertTriangle,
+  IconClock,
+  IconMessage,
+} from "@tabler/icons-react";
 
 export default function Reunioes1on1Page() {
   const { data: profiles } = useProfiles();
@@ -152,12 +152,12 @@ export default function Reunioes1on1Page() {
           </div>
           <div className="flex items-center gap-3 text-xs text-gray-500">
             <span className="flex items-center gap-1">
-              <CalendarDays className="h-3 w-3" />
+              <IconCalendar className="h-3 w-3" />
               {formatDateTime(item.scheduled_at)}
             </span>
             {overdueItem && (
               <span className="flex items-center gap-1 font-medium text-red-600">
-                <AlertTriangle className="h-3 w-3" />
+                <IconAlertTriangle className="h-3 w-3" />
                 Atrasada
               </span>
             )}
@@ -189,7 +189,7 @@ export default function Reunioes1on1Page() {
           </p>
         </div>
         <Button onClick={handleNewOneOnOne}>
-          <Plus className="mr-1 h-4 w-4" /> Nova 1:1
+          <IconPlus className="mr-1 h-4 w-4" /> Nova 1:1
         </Button>
       </div>
 
@@ -201,7 +201,7 @@ export default function Reunioes1on1Page() {
         <Card className="border-red-200 bg-red-50/50 dark:border-red-900/40 dark:bg-red-950/20">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold text-red-700 dark:text-red-400">
-              <AlertTriangle className="h-4 w-4" />
+              <IconAlertTriangle className="h-4 w-4" />
               {overdue!.length} reunião(ões) atrasada(s)
             </CardTitle>
           </CardHeader>
@@ -229,7 +229,7 @@ export default function Reunioes1on1Page() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-              <Clock className="h-4 w-4 text-blue-600" />
+              <IconClock className="h-4 w-4 text-blue-600" />
               Próximas Reuniões
             </CardTitle>
           </CardHeader>
@@ -302,7 +302,7 @@ export default function Reunioes1on1Page() {
             </div>
           ) : scheduled.length === 0 ? (
             <EmptyState
-              icon={MessageSquare}
+              icon={IconMessage}
               title="Nenhuma reunião agendada"
               description="Clique em 'Nova 1:1' para agendar uma reunião."
             />
@@ -325,7 +325,7 @@ export default function Reunioes1on1Page() {
             </div>
           ) : history.length === 0 ? (
             <EmptyState
-              icon={MessageSquare}
+              icon={IconMessage}
               title="Nenhum histórico"
               description="As reuniões concluídas ou canceladas aparecerão aqui."
             />

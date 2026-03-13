@@ -7,7 +7,7 @@ import { TASK_STATUS, TASK_PRIORITY } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 import { format, isPast, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { AlertTriangle } from "lucide-react";
+import { IconAlertTriangle } from "@tabler/icons-react";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 
@@ -42,7 +42,7 @@ export function UrgentTasks({ tasks }: Props) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="flex items-center gap-2 text-base font-semibold">
-          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          <IconAlertTriangle className="h-4 w-4 text-amber-500" />
           Tarefas Urgentes ({urgent.length})
         </CardTitle>
         <Link

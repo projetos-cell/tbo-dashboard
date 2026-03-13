@@ -4,16 +4,16 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  FileText,
-  Image,
-  Film,
-  FileSpreadsheet,
-  File,
-  Download,
-  Trash2,
-  Grid3X3,
-  List,
-} from "lucide-react";
+  IconFileText,
+  IconPhoto,
+  IconMovie,
+  IconFileSpreadsheet,
+  IconFile,
+  IconDownload,
+  IconTrash,
+  IconLayoutGrid,
+  IconList,
+} from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,14 +34,14 @@ interface ProjectFilesProps {
 }
 
 function getFileIcon(mimeType: string | null) {
-  if (!mimeType) return File;
-  if (mimeType.startsWith("image/")) return Image;
-  if (mimeType.startsWith("video/")) return Film;
+  if (!mimeType) return IconFile;
+  if (mimeType.startsWith("image/")) return IconPhoto;
+  if (mimeType.startsWith("video/")) return IconMovie;
   if (mimeType.includes("spreadsheet") || mimeType.includes("excel"))
-    return FileSpreadsheet;
+    return IconFileSpreadsheet;
   if (mimeType.includes("pdf") || mimeType.includes("document"))
-    return FileText;
-  return File;
+    return IconFileText;
+  return IconFile;
 }
 
 function formatSize(bytes: number | null): string {
@@ -118,7 +118,7 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
                 onClick={() => setViewMode("grid")}
                 aria-label="Visualizacao em grade"
               >
-                <Grid3X3 className="size-4" />
+                <IconLayoutGrid className="size-4" />
               </Button>
               <Button
                 variant={viewMode === "list" ? "secondary" : "ghost"}
@@ -127,7 +127,7 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
                 onClick={() => setViewMode("list")}
                 aria-label="Visualizacao em lista"
               >
-                <List className="size-4" />
+                <IconList className="size-4" />
               </Button>
             </div>
           </div>
@@ -142,7 +142,7 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
                     <CardContent className="p-3">
                       {isImage ? (
                         <div className="h-24 rounded-md bg-gray-100 flex items-center justify-center overflow-hidden mb-2">
-                          <Image className="size-8 text-gray-500" />
+                          <IconPhoto className="size-8 text-gray-500" />
                         </div>
                       ) : (
                         <div className="h-24 rounded-md bg-gray-100 flex items-center justify-center mb-2">
@@ -164,7 +164,7 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
                           className="h-7 text-xs"
                           onClick={() => handleDownload(att)}
                         >
-                          <Download className="size-3 mr-1" />
+                          <IconDownload className="size-3 mr-1" />
                           Baixar
                         </Button>
                         <Button
@@ -173,7 +173,7 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
                           className="h-7 text-xs text-red-500"
                           onClick={() => handleDelete(att)}
                         >
-                          <Trash2 className="size-3" />
+                          <IconTrash className="size-3" />
                         </Button>
                       </div>
                     </CardContent>
@@ -211,7 +211,7 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
                         onClick={() => handleDownload(att)}
                         aria-label="Download"
                       >
-                        <Download className="size-3.5" />
+                        <IconDownload className="size-3.5" />
                       </Button>
                       <Button
                         size="icon"
@@ -220,7 +220,7 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
                         onClick={() => handleDelete(att)}
                         aria-label="Excluir arquivo"
                       >
-                        <Trash2 className="size-3.5" />
+                        <IconTrash className="size-3.5" />
                       </Button>
                     </div>
                   </div>

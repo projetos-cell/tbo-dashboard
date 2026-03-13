@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { IconChevronRight } from "@tabler/icons-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -76,7 +76,7 @@ export function CollapsibleNavGroup({ group, canSee }: CollapsibleNavGroupProps)
                       className="data-[state=open]:rotate-90"
                       aria-label={`Expandir ${item.label}`}
                     >
-                      <ChevronRight className="h-3.5 w-3.5" />
+                      <IconChevronRight className="h-3.5 w-3.5" />
                     </SidebarMenuAction>
                   </CollapsibleTrigger>
 

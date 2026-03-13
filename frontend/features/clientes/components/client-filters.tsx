@@ -2,7 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search } from "lucide-react";
+import { IconSearch } from "@tabler/icons-react";
 import { CLIENT_STATUS, type ClientStatusKey } from "@/lib/constants";
 
 interface ClientFiltersProps {
@@ -29,7 +29,7 @@ export function ClientFilters({
   return (
     <div className="space-y-3">
       <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+        <IconSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
         <Input
           placeholder="Buscar clientes..."
           value={search}

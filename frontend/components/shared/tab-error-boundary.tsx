@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { Component, type ReactNode } from "react";
-import { AlertTriangle, RotateCcw } from "lucide-react";
+import { IconAlertTriangle, IconRefresh } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -33,7 +33,7 @@ export class TabErrorBoundary extends Component<Props, State> {
       return (
         <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
           <div className="mb-4 rounded-full bg-red-500/10 p-4">
-            <AlertTriangle className="size-8 text-red-500" />
+            <IconAlertTriangle className="size-8 text-red-500" />
           </div>
           <h3 className="mb-1 text-lg font-semibold">
             Erro{this.props.fallbackLabel ? ` em ${this.props.fallbackLabel}` : ""}
@@ -42,7 +42,7 @@ export class TabErrorBoundary extends Component<Props, State> {
             {this.state.error?.message ?? "Ocorreu um erro inesperado."}
           </p>
           <Button onClick={this.handleReset} variant="outline" size="sm">
-            <RotateCcw className="mr-1.5 size-3.5" />
+            <IconRefresh className="mr-1.5 size-3.5" />
             Tentar novamente
           </Button>
         </div>

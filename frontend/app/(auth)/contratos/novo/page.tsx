@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
+import { IconArrowLeft } from "@tabler/icons-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ContractStepper } from "@/features/contratos/components/contract-stepper";
@@ -11,7 +11,7 @@ export default function NovoContratoPage() {
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/contratos">
-            <ArrowLeft className="h-4 w-4" />
+            <IconArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
         <div>

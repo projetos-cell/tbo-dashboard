@@ -1,6 +1,6 @@
 "use client";
 
-import { Printer } from "lucide-react";
+import { IconPrinter } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 
 interface PrintButtonProps {
@@ -15,7 +15,7 @@ export function PrintButton({ className }: PrintButtonProps) {
       className={`no-print ${className ?? ""}`}
       onClick={() => window.print()}
     >
-      <Printer className="h-3.5 w-3.5 mr-1.5" />
+      <IconPrinter className="h-3.5 w-3.5 mr-1.5" />
       Exportar PDF
     </Button>
   );

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import type { OkrSnapshot } from "@/features/dashboard/services/dashboard";
-import { Target } from "lucide-react";
+import { IconTarget } from "@tabler/icons-react";
 
 interface Props {
   snapshots: OkrSnapshot[];
@@ -35,7 +35,7 @@ export function OkrSnapshotCard({ snapshots }: Props) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="flex items-center gap-2 text-base font-semibold">
-          <Target className="h-4 w-4 text-purple-500" />
+          <IconTarget className="h-4 w-4 text-purple-500" />
           OKRs Ciclo Ativo
         </CardTitle>
         <Link

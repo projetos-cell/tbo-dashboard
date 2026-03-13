@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getPdiStatusBadgeProps, formatDate } from "@/features/pdi/utils/pdi-utils";
-import { Eye } from "lucide-react";
+import { IconEye } from "@tabler/icons-react";
 import type { PdiRow } from "@/features/pdi/services/pdi";
 
 interface PdiTableProps {
@@ -64,7 +64,7 @@ export function PdiTable({ pdis, profileMap, onSelect }: PdiTableProps) {
                 </TableCell>
                 <TableCell>
                   <Button variant="ghost" size="icon" className="h-7 w-7">
-                    <Eye className="h-4 w-4" />
+                    <IconEye className="h-4 w-4" />
                   </Button>
                 </TableCell>
               </TableRow>

@@ -34,13 +34,13 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
-  Shield,
-  ShieldCheck,
-  ShieldPlus,
-  Users,
-  Plus,
-  Trash2,
-} from "lucide-react";
+  IconShield,
+  IconShieldCheck,
+  IconShieldPlus,
+  IconUsers,
+  IconPlus,
+  IconTrash,
+} from "@tabler/icons-react";
 import type { Database } from "@/lib/supabase/types";
 
 type RoleRow = Database["public"]["Tables"]["roles"]["Row"];
@@ -143,7 +143,7 @@ function PermissoesContent() {
           </p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
+          <IconPlus className="mr-2 h-4 w-4" />
           Nova Role
         </Button>
       </div>
@@ -153,7 +153,7 @@ function PermissoesContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Roles</CardTitle>
-            <Shield className="h-4 w-4 text-gray-500" />
+            <IconShield className="h-4 w-4 text-gray-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{kpis.total}</div>
@@ -162,7 +162,7 @@ function PermissoesContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Roles do Sistema</CardTitle>
-            <ShieldCheck className="h-4 w-4 text-gray-500" />
+            <IconShieldCheck className="h-4 w-4 text-gray-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{kpis.system}</div>
@@ -171,7 +171,7 @@ function PermissoesContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Roles Customizadas</CardTitle>
-            <ShieldPlus className="h-4 w-4 text-gray-500" />
+            <IconShieldPlus className="h-4 w-4 text-gray-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{kpis.custom}</div>
@@ -194,7 +194,7 @@ function PermissoesContent() {
                 ))
               ) : roles.length === 0 ? (
                 <div className="flex flex-col items-center py-8 text-center">
-                  <Users className="mb-2 h-8 w-8 text-gray-500/50" />
+                  <IconUsers className="mb-2 h-8 w-8 text-gray-500/50" />
                   <p className="text-sm text-gray-500">
                     Nenhuma role encontrada
                   </p>
@@ -245,7 +245,7 @@ function PermissoesContent() {
           {!selectedRole ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                <Shield className="mb-3 h-10 w-10 text-gray-500/40" />
+                <IconShield className="mb-3 h-10 w-10 text-gray-500/40" />
                 <p className="text-sm font-medium">Selecione uma role</p>
                 <p className="text-xs text-gray-500 mt-1">
                   Clique em uma role na lista ao lado para visualizar e editar suas
@@ -280,7 +280,7 @@ function PermissoesContent() {
                       onClick={() => handleDeleteRole(selectedRole.id)}
                       disabled={deleteRoleMutation.isPending}
                     >
-                      <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                      <IconTrash className="mr-1.5 h-3.5 w-3.5" />
                       Excluir
                     </Button>
                   )}
@@ -295,7 +295,7 @@ function PermissoesContent() {
                   </div>
                 ) : permissions.length === 0 ? (
                   <div className="flex flex-col items-center py-12 text-center">
-                    <ShieldCheck className="mb-2 h-8 w-8 text-gray-500/40" />
+                    <IconShieldCheck className="mb-2 h-8 w-8 text-gray-500/40" />
                     <p className="text-sm text-gray-500">
                       Nenhuma permissao configurada para esta role.
                     </p>

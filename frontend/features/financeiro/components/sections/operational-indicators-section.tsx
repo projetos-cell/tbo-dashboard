@@ -1,6 +1,6 @@
 "use client";
 
-import { Users, Receipt, Cog, UserMinus } from "lucide-react";
+import { IconUsers, IconReceipt, IconSettings, IconUserMinus } from "@tabler/icons-react";
 import { AreaChart, Area, ResponsiveContainer } from "recharts";
 import { KpiCard } from "@/features/founder-dashboard/components/kpi-card";
 import { KpiGrid } from "@/features/founder-dashboard/components/kpi-grid";
@@ -30,7 +30,7 @@ export function OperationalIndicatorsSection({
           title="Receita / Colaborador"
           value={d ? fmt(d.receitaPorColaborador) : "—"}
           sublabel={d ? `${d.headcount} colaboradores ativos` : undefined}
-          icon={<Users className="h-4 w-4 text-indigo-500" />}
+          icon={<IconUsers className="h-4 w-4 text-indigo-500" />}
           colorClass="text-indigo-600 dark:text-indigo-400"
           tooltip={{
             description:
@@ -50,7 +50,7 @@ export function OperationalIndicatorsSection({
           sublabel={
             d ? `${fmtPct(d.folhaPct)} do total de custos` : undefined
           }
-          icon={<Receipt className="h-4 w-4 text-rose-500" />}
+          icon={<IconReceipt className="h-4 w-4 text-rose-500" />}
           colorClass="text-rose-600 dark:text-rose-400"
           tooltip={{
             description:
@@ -68,7 +68,7 @@ export function OperationalIndicatorsSection({
           sublabel={
             d ? `${fmtPct(d.operacionalPct)} do total de custos` : undefined
           }
-          icon={<Cog className="h-4 w-4 text-slate-500" />}
+          icon={<IconSettings className="h-4 w-4 text-slate-500" />}
           colorClass="text-slate-600 dark:text-slate-400"
           tooltip={{
             description:
@@ -84,7 +84,7 @@ export function OperationalIndicatorsSection({
           title="Churn Rate"
           value={d ? fmtPct(d.churnRate) : "—"}
           sublabel="Clientes perdidos (mês atual)"
-          icon={<UserMinus className="h-4 w-4 text-red-500" />}
+          icon={<IconUserMinus className="h-4 w-4 text-red-500" />}
           colorClass={
             d && d.churnRate > 10
               ? "text-red-600 dark:text-red-400"

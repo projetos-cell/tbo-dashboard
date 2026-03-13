@@ -34,18 +34,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Plus,
-  MoreHorizontal,
-  CalendarClock,
-  Play,
-  AlertTriangle,
-  CheckCircle2,
-  Pencil,
-  Trash2,
-  Eye,
-  Clock,
-  FileBarChart2,
-} from "lucide-react";
+  IconPlus,
+  IconDots,
+  IconCalendarTime,
+  IconPlayerPlay,
+  IconAlertTriangle,
+  IconCircleCheck,
+  IconPencil,
+  IconTrash,
+  IconEye,
+  IconClock,
+  IconFileAnalytics,
+} from "@tabler/icons-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { RequireRole } from "@/features/auth/components/require-role";
@@ -139,7 +139,7 @@ export default function RelatoriosPage() {
               <CardTitle className="text-sm font-medium">
                 Total Agendamentos
               </CardTitle>
-              <CalendarClock className="h-4 w-4 text-gray-500" />
+              <IconCalendarTime className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{kpis.totalSchedules}</div>
@@ -148,7 +148,7 @@ export default function RelatoriosPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Ativos</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-gray-500" />
+              <IconCircleCheck className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{kpis.activeSchedules}</div>
@@ -159,7 +159,7 @@ export default function RelatoriosPage() {
               <CardTitle className="text-sm font-medium">
                 Execucoes este Mes
               </CardTitle>
-              <Play className="h-4 w-4 text-gray-500" />
+              <IconPlayerPlay className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{kpis.thisMonthRuns}</div>
@@ -168,7 +168,7 @@ export default function RelatoriosPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Falhas</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-gray-500" />
+              <IconAlertTriangle className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">
@@ -189,7 +189,7 @@ export default function RelatoriosPage() {
           <TabsContent value="agendamentos" className="space-y-4">
             <div className="flex items-center justify-end">
               <Button className="shrink-0">
-                <Plus className="mr-1.5 h-4 w-4" />
+                <IconPlus className="mr-1.5 h-4 w-4" />
                 Novo Agendamento
               </Button>
             </div>
@@ -202,7 +202,7 @@ export default function RelatoriosPage() {
               </div>
             ) : schedules.length === 0 ? (
               <EmptyState
-                icon={FileBarChart2}
+                icon={IconFileAnalytics}
                 title="Nenhum agendamento configurado"
                 description="Configure relatórios automáticos para sua equipe."
               />
@@ -252,12 +252,12 @@ export default function RelatoriosPage() {
                                 size="icon"
                                 className="h-8 w-8"
                               >
-                                <MoreHorizontal className="h-4 w-4" />
+                                <IconDots className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem>
-                                <Pencil className="mr-2 h-4 w-4" />
+                                <IconPencil className="mr-2 h-4 w-4" />
                                 Editar
                               </DropdownMenuItem>
                               <DropdownMenuItem
@@ -266,7 +266,7 @@ export default function RelatoriosPage() {
                                   deleteScheduleMutation.mutate(schedule.id)
                                 }
                               >
-                                <Trash2 className="mr-2 h-4 w-4" />
+                                <IconTrash className="mr-2 h-4 w-4" />
                                 Excluir
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -308,7 +308,7 @@ export default function RelatoriosPage() {
               </div>
             ) : runs.length === 0 ? (
               <EmptyState
-                icon={FileBarChart2}
+                icon={IconFileAnalytics}
                 title="Nenhuma execução encontrada"
                 description="Ainda não há execuções de relatórios registradas."
               />
@@ -353,13 +353,13 @@ export default function RelatoriosPage() {
                             }
                           >
                             {run.status === "completed" && (
-                              <CheckCircle2 className="mr-1 h-3 w-3" />
+                              <IconCircleCheck className="mr-1 h-3 w-3" />
                             )}
                             {run.status === "failed" && (
-                              <AlertTriangle className="mr-1 h-3 w-3" />
+                              <IconAlertTriangle className="mr-1 h-3 w-3" />
                             )}
                             {run.status === "running" && (
-                              <Clock className="mr-1 h-3 w-3" />
+                              <IconClock className="mr-1 h-3 w-3" />
                             )}
                             {run.status}
                           </Badge>
@@ -372,12 +372,12 @@ export default function RelatoriosPage() {
                                 size="icon"
                                 className="h-8 w-8"
                               >
-                                <MoreHorizontal className="h-4 w-4" />
+                                <IconDots className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem>
-                                <Eye className="mr-2 h-4 w-4" />
+                                <IconEye className="mr-2 h-4 w-4" />
                                 Ver Conteudo
                               </DropdownMenuItem>
                             </DropdownMenuContent>

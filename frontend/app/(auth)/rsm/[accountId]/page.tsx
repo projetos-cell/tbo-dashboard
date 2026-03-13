@@ -2,7 +2,7 @@
 
 import { use, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Share2, Check } from "lucide-react";
+import { IconArrowLeft, IconShare, IconCheck } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -91,7 +91,7 @@ export default function RsmAccountDetailPage({ params }: Props) {
             onClick={() => router.push("/rsm")}
             className="shrink-0"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <IconArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex-1 min-w-0">
             {loadingAccount ? (
@@ -122,9 +122,9 @@ export default function RsmAccountDetailPage({ params }: Props) {
                       onClick={handleShareLink}
                     >
                       {copied ? (
-                        <Check className="h-3.5 w-3.5 text-green-500" />
+                        <IconCheck className="h-3.5 w-3.5 text-green-500" />
                       ) : (
-                        <Share2 className="h-3.5 w-3.5" />
+                        <IconShare className="h-3.5 w-3.5" />
                       )}
                       {copied ? "Copiado!" : "Compartilhar"}
                     </Button>

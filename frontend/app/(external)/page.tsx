@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Github } from "lucide-react";
+import { IconBrandGithub } from "@tabler/icons-react";
 
 function Code({ children }: { children: React.ReactNode }) {
   return <code className="rounded bg-slate-100 px-1 py-0.5 font-mono text-xs sm:px-1.5 sm:text-sm">{children}</code>;
@@ -17,7 +17,7 @@ export default function Home() {
             </h1>
             <Link href="https://github.com/arhamkhnz/next-colocation-template" target="_blank">
               <Button>
-                <Github />
+                <IconBrandGithub />
                 <span className="hidden sm:inline">GitHub</span>
               </Button>
             </Link>

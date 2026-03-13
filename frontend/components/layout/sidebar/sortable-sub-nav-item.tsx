@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical } from "lucide-react";
+import { IconGripVertical } from "@tabler/icons-react";
 import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
@@ -72,7 +72,7 @@ export const SortableSubNavItem = memo(function SortableSubNavItem({
         {...listeners}
         aria-label={`Arrastar ${sub.label}`}
       >
-        <GripVertical className="h-2.5 w-2.5" />
+        <IconGripVertical className="h-2.5 w-2.5" />
       </button>
       <SidebarMenuSubButton asChild isActive={subActive} size="sm" className="pl-5">
         <Link href={sub.href}>

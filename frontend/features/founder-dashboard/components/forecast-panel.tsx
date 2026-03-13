@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Info, TrendingUp } from "lucide-react";
+import { IconInfoCircle, IconTrendingUp } from "@tabler/icons-react";
 import {
   BarChart,
   Bar,
@@ -97,7 +97,7 @@ export function ForecastPanel({ total, proposalsTotal, months, isLoading }: Fore
               className="flex h-5 w-5 items-center justify-center rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
               aria-label="Informações do bloco"
             >
-              <Info className="h-3.5 w-3.5" />
+              <IconInfoCircle className="h-3.5 w-3.5" />
             </button>
             {tooltipOpen && (
               <div className="absolute right-0 bottom-full mb-2 z-50 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-3 space-y-1">
@@ -111,7 +111,7 @@ export function ForecastPanel({ total, proposalsTotal, months, isLoading }: Fore
               </div>
             )}
           </div>
-          <TrendingUp className="h-4 w-4 text-gray-500" />
+          <IconTrendingUp className="h-4 w-4 text-gray-500" />
         </div>
       </div>
 

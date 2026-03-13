@@ -1,6 +1,6 @@
 "use client";
 
-import { Kanban, List, Table2 } from "lucide-react";
+import { IconLayoutKanban, IconList, IconTable } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 
 export type ViewMode = "board" | "list" | "table";
@@ -11,9 +11,9 @@ interface ViewToggleProps {
 }
 
 const VIEWS = [
-  { value: "board" as const, icon: Kanban, label: "Board" },
-  { value: "list" as const, icon: List, label: "Lista" },
-  { value: "table" as const, icon: Table2, label: "Tabela" },
+  { value: "board" as const, icon: IconLayoutKanban, label: "Board" },
+  { value: "list" as const, icon: IconList, label: "Lista" },
+  { value: "table" as const, icon: IconTable, label: "Tabela" },
 ] as const;
 
 export function ViewToggle({ value, onChange }: ViewToggleProps) {

@@ -5,22 +5,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { AlertItem } from "@/features/dashboard/services/dashboard";
 import {
-  AlertTriangle,
-  Clock,
-  PauseCircle,
-  Target,
-  FileWarning,
-} from "lucide-react";
+  IconAlertTriangle,
+  IconClock,
+  IconPlayerPause,
+  IconTarget,
+  IconFileAlert,
+} from "@tabler/icons-react";
 
 interface Props {
   alerts: AlertItem[];
 }
 
 const ALERT_ICONS: Record<string, React.ElementType> = {
-  overdue_task: Clock,
-  stalled_project: PauseCircle,
-  okr_at_risk: Target,
-  overdue_demand: FileWarning,
+  overdue_task: IconClock,
+  stalled_project: IconPlayerPause,
+  okr_at_risk: IconTarget,
+  overdue_demand: IconFileAlert,
 };
 
 const SEVERITY_STYLES: Record<string, string> = {
@@ -40,7 +40,7 @@ export function AlertsPanel({ alerts }: Props) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="flex items-center gap-2 text-base font-semibold">
-          <AlertTriangle className="h-4 w-4 text-red-500" />
+          <IconAlertTriangle className="h-4 w-4 text-red-500" />
           Alertas ({alerts.length})
         </CardTitle>
       </CardHeader>
@@ -57,7 +57,7 @@ export function AlertsPanel({ alerts }: Props) {
         ) : (
           <div className="space-y-2 max-h-80 overflow-y-auto">
             {alerts.map((alert) => {
-              const Icon = ALERT_ICONS[alert.type] || AlertTriangle;
+              const Icon = ALERT_ICONS[alert.type] || IconAlertTriangle;
               return (
                 <Link
                   key={alert.id}

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { toast } from "sonner";
-import { LogOut, Search } from "lucide-react";
+import { IconLogout, IconSearch } from "@tabler/icons-react";
 import {
   DndContext,
   DragOverlay,
@@ -169,7 +169,7 @@ export function AppSidebar() {
         <SidebarGroup className="px-2 py-2">
           <SidebarGroupContent>
             <div className="relative">
-              <Search className="text-muted-foreground absolute top-1/2 left-2 h-3.5 w-3.5 -translate-y-1/2" />
+              <IconSearch className="text-muted-foreground absolute top-1/2 left-2 h-3.5 w-3.5 -translate-y-1/2" />
               <SidebarInput
                 placeholder="Buscar..."
                 value={query}
@@ -254,7 +254,7 @@ export function AppSidebar() {
           })}
         </SidebarMenu>
         <Button variant="ghost" className="w-full justify-start gap-2" onClick={logout}>
-          <LogOut className="h-4 w-4" />
+          <IconLogout className="h-4 w-4" />
           Sair
         </Button>
       </SidebarFooter>

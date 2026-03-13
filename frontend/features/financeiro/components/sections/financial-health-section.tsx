@@ -1,6 +1,6 @@
 "use client";
 
-import { Flame, Scale, Calculator, Clock, AlertTriangle } from "lucide-react";
+import { IconFlame, IconScale, IconCalculator, IconClock, IconAlertTriangle } from "@tabler/icons-react";
 import { KpiCard } from "@/features/founder-dashboard/components/kpi-card";
 import { KpiGrid } from "@/features/founder-dashboard/components/kpi-grid";
 import type { FounderDashboardSnapshot } from "@/features/founder-dashboard/services/founder-dashboard";
@@ -41,7 +41,7 @@ export function FinancialHealthSection({
           sublabel="Média mensal (90 dias)"
           variationValue={d?.burnRateDelta}
           invertColor
-          icon={<Flame className="h-4 w-4 text-red-500" />}
+          icon={<IconFlame className="h-4 w-4 text-red-500" />}
           colorClass="text-red-600 dark:text-red-400"
           tooltip={TOOLTIP_BURN}
           isLoading={isLoading}
@@ -54,7 +54,7 @@ export function FinancialHealthSection({
           title="Break-even"
           value={d ? d.breakEven : 0}
           sublabel="Receita mínima mensal"
-          icon={<Scale className="h-4 w-4 text-amber-500" />}
+          icon={<IconScale className="h-4 w-4 text-amber-500" />}
           colorClass="text-amber-600 dark:text-amber-400"
           tooltip={TOOLTIP_BREAKEVEN}
           isLoading={isLoading}
@@ -72,7 +72,7 @@ export function FinancialHealthSection({
               : undefined
           }
           variationValue={d?.caixaPrevistoDelta}
-          icon={<Calculator className="h-4 w-4 text-blue-500" />}
+          icon={<IconCalculator className="h-4 w-4 text-blue-500" />}
           colorClass={
             effectiveCaixaPrevisto30d >= 0
               ? "text-blue-600 dark:text-blue-400"
@@ -87,7 +87,7 @@ export function FinancialHealthSection({
           title="PMR"
           value={d && d.pmr !== null ? `${d.pmr.toFixed(0)} dias` : "—"}
           sublabel="Prazo médio de recebimento (6 meses)"
-          icon={<Clock className="h-4 w-4 text-teal-500" />}
+          icon={<IconClock className="h-4 w-4 text-teal-500" />}
           colorClass={
             d && d.pmr !== null && d.pmr <= 5
               ? "text-emerald-600 dark:text-emerald-400"
@@ -106,7 +106,7 @@ export function FinancialHealthSection({
           title="PMP"
           value={d && d.pmp !== null ? `${d.pmp.toFixed(0)} dias` : "—"}
           sublabel="Prazo médio de pagamento (6 meses)"
-          icon={<Clock className="h-4 w-4 text-indigo-500" />}
+          icon={<IconClock className="h-4 w-4 text-indigo-500" />}
           colorClass={
             d && d.pmp !== null && d.pmp <= 5
               ? "text-emerald-600 dark:text-emerald-400"
@@ -129,7 +129,7 @@ export function FinancialHealthSection({
               ? `${d.inadimplenciaCount} título${d.inadimplenciaCount > 1 ? "s" : ""} · ${fmt(d.inadimplenciaTotal)}`
               : "Nenhum título atrasado"
           }
-          icon={<AlertTriangle className="h-4 w-4 text-orange-500" />}
+          icon={<IconAlertTriangle className="h-4 w-4 text-orange-500" />}
           colorClass={
             d && d.inadimplenciaPct <= 5
               ? "text-emerald-600 dark:text-emerald-400"

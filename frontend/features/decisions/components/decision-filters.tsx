@@ -2,7 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search } from "lucide-react";
+import { IconSearch } from "@tabler/icons-react";
 
 interface DecisionFiltersProps {
   search: string;
@@ -30,7 +30,7 @@ export function DecisionFilters({
       <div className="flex flex-wrap items-center gap-3">
         {/* Search */}
         <div className="relative max-w-sm flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+          <IconSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
           <Input
             placeholder="Buscar decisoes..."
             value={search}

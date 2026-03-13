@@ -10,15 +10,15 @@ import { useOverdueEntries, useFinanceAging } from "@/features/financeiro/hooks/
 import { Skeleton } from "@/components/ui/skeleton";
 import { fmt } from "@/features/financeiro/lib/formatters";
 import {
-  AlertCircle,
-  ArrowDownCircle,
-  ArrowUpCircle,
-  CalendarClock,
-  ChevronDown,
-  ChevronUp,
-  Clock,
-  TrendingUp,
-} from "lucide-react";
+  IconAlertCircle,
+  IconCircleArrowDown,
+  IconCircleArrowUp,
+  IconCalendarClock,
+  IconChevronDown,
+  IconChevronUp,
+  IconClock,
+  IconTrendingUp,
+} from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -239,12 +239,12 @@ function EntryTable({
           >
             {expanded ? (
               <>
-                <ChevronUp className="size-3.5 mr-1" />
+                <IconChevronUp className="size-3.5 mr-1" />
                 Mostrar menos
               </>
             ) : (
               <>
-                <ChevronDown className="size-3.5 mr-1" />
+                <IconChevronDown className="size-3.5 mr-1" />
                 Ver todos ({entries.length - cap} restantes)
               </>
             )}
@@ -286,7 +286,7 @@ function ContasContent() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground uppercase flex items-center gap-1">
-              <ArrowDownCircle className="size-3.5 text-emerald-500" />
+              <IconCircleArrowDown className="size-3.5 text-emerald-500" />
               AR Vencido
             </CardTitle>
           </CardHeader>
@@ -302,7 +302,7 @@ function ContasContent() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground uppercase flex items-center gap-1">
-              <ArrowUpCircle className="size-3.5 text-red-500" />
+              <IconCircleArrowUp className="size-3.5 text-red-500" />
               AP Vencido
             </CardTitle>
           </CardHeader>
@@ -318,7 +318,7 @@ function ContasContent() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground uppercase flex items-center gap-1">
-              <TrendingUp className="size-3.5 text-blue-500" />
+              <IconTrendingUp className="size-3.5 text-blue-500" />
               AR Projetado (12m)
             </CardTitle>
           </CardHeader>
@@ -382,7 +382,7 @@ function ContasContent() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <AlertCircle className="size-4 text-red-500" />
+            <IconAlertCircle className="size-4 text-red-500" />
             Títulos Vencidos
           </CardTitle>
         </CardHeader>
@@ -406,7 +406,7 @@ function ContasContent() {
                 </div>
               ) : isError ? (
                 <div className="flex flex-col items-center justify-center py-8 gap-2 text-red-500">
-                  <AlertCircle className="h-6 w-6" />
+                  <IconAlertCircle className="h-6 w-6" />
                   <p className="text-sm">Erro ao carregar títulos vencidos</p>
                   <Button
                     variant="outline"
@@ -418,7 +418,7 @@ function ContasContent() {
                 </div>
               ) : !data?.entries.length ? (
                 <div className="flex flex-col items-center justify-center py-8 gap-2 text-muted-foreground">
-                  <Clock className="h-8 w-8" />
+                  <IconClock className="h-8 w-8" />
                   <p className="text-sm font-medium">Nenhum título vencido</p>
                   <p className="text-xs">
                     Todos os títulos estão em dia nesta categoria.
@@ -451,7 +451,7 @@ function ContasContent() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <CalendarClock className="size-4 text-blue-500" />
+              <IconCalendarClock className="size-4 text-blue-500" />
               A Receber — Próximos 12 meses
               <Badge variant="secondary" className="text-xs ml-2">
                 {projectedAR.length} título{projectedAR.length !== 1 ? "s" : ""}
@@ -469,7 +469,7 @@ function ContasContent() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <CalendarClock className="size-4 text-orange-500" />
+              <IconCalendarClock className="size-4 text-orange-500" />
               A Pagar — Próximos 12 meses
               <Badge variant="secondary" className="text-xs ml-2">
                 {projectedAP.length} título{projectedAP.length !== 1 ? "s" : ""}
@@ -487,13 +487,13 @@ function ContasContent() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <CalendarClock className="size-4 text-blue-500" />
+              <IconCalendarClock className="size-4 text-blue-500" />
               A Receber — Próximos 12 meses
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col items-center justify-center py-8 gap-2 text-muted-foreground">
-              <CalendarClock className="h-8 w-8" />
+              <IconCalendarClock className="h-8 w-8" />
               <p className="text-sm font-medium">Nenhum recebível projetado</p>
               <p className="text-xs">
                 Não há títulos a receber nos próximos 12 meses.

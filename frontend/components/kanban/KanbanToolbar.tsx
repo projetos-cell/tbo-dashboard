@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, SlidersHorizontal, Plus, UserPlus } from "lucide-react";
+import { IconSearch, IconAdjustmentsHorizontal, IconPlus, IconUserPlus } from "@tabler/icons-react";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -82,7 +82,7 @@ export function KanbanToolbar() {
       {/* Left — Search                                                        */}
       {/* ------------------------------------------------------------------ */}
       <div className="relative w-64">
-        <Search className="text-muted-foreground absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2" />
+        <IconSearch className="text-muted-foreground absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2" />
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -121,7 +121,7 @@ export function KanbanToolbar() {
 
         {/* Add Assignee */}
         <Button variant="outline" size="sm" className="h-9 gap-1.5" onClick={() => setAssignDialogOpen(true)}>
-          <UserPlus className="h-3.5 w-3.5" />
+          <IconUserPlus className="h-3.5 w-3.5" />
           Add Assignee
         </Button>
 
@@ -129,7 +129,7 @@ export function KanbanToolbar() {
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm" className="h-9 gap-1.5">
-              <SlidersHorizontal className="h-3.5 w-3.5" />
+              <IconAdjustmentsHorizontal className="h-3.5 w-3.5" />
               Filters
             </Button>
           </PopoverTrigger>
@@ -137,7 +137,7 @@ export function KanbanToolbar() {
             {/* Filter search */}
             <div className="p-3">
               <div className="relative">
-                <Search className="text-muted-foreground absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
+                <IconSearch className="text-muted-foreground absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
                 <Input
                   value={filterSearch}
                   onChange={(e) => setFilterSearch(e.target.value)}
@@ -218,7 +218,7 @@ export function KanbanToolbar() {
 
         {/* Add Board — dark/primary */}
         <Button size="sm" className="bg-foreground text-background hover:bg-foreground/90 h-9 gap-1.5">
-          <Plus className="h-3.5 w-3.5" />
+          <IconPlus className="h-3.5 w-3.5" />
           Add Board
         </Button>
       </div>

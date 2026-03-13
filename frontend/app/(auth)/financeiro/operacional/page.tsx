@@ -2,15 +2,15 @@
 
 import { useQueryParam } from "@/hooks/use-query-param";
 import {
-  Users,
-  Receipt,
-  Cog,
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
-  DollarSign,
-  RefreshCw,
-} from "lucide-react";
+  IconUsers,
+  IconReceipt,
+  IconSettings,
+  IconCalendar,
+  IconChevronLeft,
+  IconChevronRight,
+  IconCurrencyDollar,
+  IconRefresh,
+} from "@tabler/icons-react";
 import { RBACGuard } from "@/components/rbac-guard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -88,10 +88,10 @@ function OperacionalContent() {
           className="p-1.5 rounded-md hover:bg-gray-100 transition"
           title="Mês anterior"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <IconChevronLeft className="h-4 w-4" />
         </button>
         <div className="flex items-center gap-2">
-          <CalendarDays className="h-4 w-4 text-gray-400" />
+          <IconCalendar className="h-4 w-4 text-gray-400" />
           <span className="text-sm font-semibold text-gray-900 capitalize min-w-[160px] text-center">
             {formatMonthLabel(month)}
           </span>
@@ -107,7 +107,7 @@ function OperacionalContent() {
           className="p-1.5 rounded-md hover:bg-gray-100 transition disabled:opacity-30 disabled:cursor-not-allowed"
           title="Próximo mês"
         >
-          <ChevronRight className="h-4 w-4" />
+          <IconChevronRight className="h-4 w-4" />
         </button>
       </div>
 
@@ -116,7 +116,7 @@ function OperacionalContent() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground uppercase flex items-center gap-1">
-              <Users className="size-3.5 text-indigo-500" />
+              <IconUsers className="size-3.5 text-indigo-500" />
               Headcount
             </CardTitle>
           </CardHeader>
@@ -134,7 +134,7 @@ function OperacionalContent() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground uppercase flex items-center gap-1">
-              <Receipt className="size-3.5 text-rose-500" />
+              <IconReceipt className="size-3.5 text-rose-500" />
               Folha de Pagamento
             </CardTitle>
           </CardHeader>
@@ -152,7 +152,7 @@ function OperacionalContent() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground uppercase flex items-center gap-1">
-              <Cog className="size-3.5 text-slate-500" />
+              <IconSettings className="size-3.5 text-slate-500" />
               Desp. Pessoas (seção)
             </CardTitle>
           </CardHeader>
@@ -170,7 +170,7 @@ function OperacionalContent() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground uppercase flex items-center gap-1">
-              <DollarSign className="size-3.5 text-emerald-500" />
+              <IconCurrencyDollar className="size-3.5 text-emerald-500" />
               Receita / Colaborador
             </CardTitle>
           </CardHeader>
@@ -204,7 +204,7 @@ function OperacionalContent() {
                 disabled={isFetching}
                 title="Atualizar dados da planilha"
               >
-                <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
+                <IconRefresh className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
               </Button>
             </div>
           </div>
@@ -218,7 +218,7 @@ function OperacionalContent() {
             </div>
           ) : payrollError ? (
             <div className="flex flex-col items-center justify-center py-8 gap-2 text-red-500">
-              <Cog className="h-8 w-8" />
+              <IconSettings className="h-8 w-8" />
               <p className="text-sm font-medium">Erro ao carregar planilha</p>
               <p className="text-xs text-muted-foreground">
                 Verifique se a planilha está compartilhada como &quot;qualquer pessoa com o link&quot;.
@@ -229,7 +229,7 @@ function OperacionalContent() {
             </div>
           ) : !payroll?.members.length ? (
             <div className="flex flex-col items-center justify-center py-8 gap-2 text-muted-foreground">
-              <Users className="h-8 w-8" />
+              <IconUsers className="h-8 w-8" />
               <p className="text-sm font-medium">Nenhum colaborador encontrado</p>
               <p className="text-xs">Verifique a aba &quot;Fluxo de Caixa 2026&quot; na planilha.</p>
             </div>

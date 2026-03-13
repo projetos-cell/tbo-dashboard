@@ -1,4 +1,4 @@
-import { CheckCircle, Clock, XCircle, PackageCheck } from "lucide-react";
+import { IconCircleCheck, IconClock, IconCircleX, IconPackages } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,10 +22,10 @@ interface RedemptionPendingListProps {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  pending: { label: "Pendente", color: "#f59e0b", icon: Clock },
-  approved: { label: "Aprovado", color: "#22c55e", icon: CheckCircle },
-  rejected: { label: "Rejeitado", color: "#ef4444", icon: XCircle },
-  delivered: { label: "Entregue", color: "#3b82f6", icon: PackageCheck },
+  pending: { label: "Pendente", color: "#f59e0b", icon: IconClock },
+  approved: { label: "Aprovado", color: "#22c55e", icon: IconCircleCheck },
+  rejected: { label: "Rejeitado", color: "#ef4444", icon: IconCircleX },
+  delivered: { label: "Entregue", color: "#3b82f6", icon: IconPackages },
 };
 
 export function RedemptionPendingList({
@@ -56,7 +56,7 @@ export function RedemptionPendingList({
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Clock className="size-4 text-amber-500" />
+            <IconClock className="size-4 text-amber-500" />
             Aguardando Aprovacao
             {pending.length > 0 && (
               <Badge variant="secondary" className="ml-1">
@@ -107,7 +107,7 @@ export function RedemptionPendingList({
             </div>
           ) : (
             <EmptyState
-              icon={CheckCircle}
+              icon={IconCircleCheck}
               title="Nenhum resgate pendente"
               description="Todos os resgates foram revisados."
             />
@@ -120,7 +120,7 @@ export function RedemptionPendingList({
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <PackageCheck className="size-4 text-green-500" />
+              <IconPackages className="size-4 text-green-500" />
               Aprovados — Aguardando Entrega
               <Badge variant="secondary" className="ml-1">
                 {approved.length}
@@ -151,7 +151,7 @@ export function RedemptionPendingList({
                     className="gap-1.5"
                     onClick={() => onDeliver(r.id)}
                   >
-                    <PackageCheck className="size-3.5" />
+                    <IconPackages className="size-3.5" />
                     Marcar Entregue
                   </Button>
                 </div>

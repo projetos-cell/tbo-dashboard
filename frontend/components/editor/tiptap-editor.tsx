@@ -8,22 +8,22 @@ import Image from "@tiptap/extension-image";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import {
-  Bold,
-  Italic,
-  Strikethrough,
-  List,
-  ListOrdered,
-  Heading1,
-  Heading2,
-  Heading3,
-  Link as LinkIcon,
-  Image as ImageIcon,
-  ListChecks,
-  Undo,
-  Redo,
-  Code,
-  Quote,
-} from "lucide-react";
+  IconBold,
+  IconItalic,
+  IconStrikethrough,
+  IconList,
+  IconListNumbers,
+  IconH1,
+  IconH2,
+  IconH3,
+  IconLink as IconLinkIcon,
+  IconPhoto as IconImageIcon,
+  IconListCheck,
+  IconArrowBackUp as IconUndo,
+  IconArrowForwardUp as IconRedo,
+  IconCode,
+  IconBlockquote,
+} from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useCallback } from "react";
@@ -104,28 +104,28 @@ export function TiptapEditor({
             active={editor.isActive("bold")}
             title="Negrito"
           >
-            <Bold className="size-4" />
+            <IconBold className="size-4" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleItalic().run()}
             active={editor.isActive("italic")}
             title="Itálico"
           >
-            <Italic className="size-4" />
+            <IconItalic className="size-4" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleStrike().run()}
             active={editor.isActive("strike")}
             title="Tachado"
           >
-            <Strikethrough className="size-4" />
+            <IconStrikethrough className="size-4" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleCode().run()}
             active={editor.isActive("code")}
             title="Código"
           >
-            <Code className="size-4" />
+            <IconCode className="size-4" />
           </ToolbarButton>
 
           <Divider />
@@ -135,21 +135,21 @@ export function TiptapEditor({
             active={editor.isActive("heading", { level: 1 })}
             title="Título 1"
           >
-            <Heading1 className="size-4" />
+            <IconH1 className="size-4" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
             active={editor.isActive("heading", { level: 2 })}
             title="Título 2"
           >
-            <Heading2 className="size-4" />
+            <IconH2 className="size-4" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
             active={editor.isActive("heading", { level: 3 })}
             title="Título 3"
           >
-            <Heading3 className="size-4" />
+            <IconH3 className="size-4" />
           </ToolbarButton>
 
           <Divider />
@@ -159,37 +159,37 @@ export function TiptapEditor({
             active={editor.isActive("bulletList")}
             title="Lista"
           >
-            <List className="size-4" />
+            <IconList className="size-4" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
             active={editor.isActive("orderedList")}
             title="Lista numerada"
           >
-            <ListOrdered className="size-4" />
+            <IconListNumbers className="size-4" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleTaskList().run()}
             active={editor.isActive("taskList")}
             title="Checklist"
           >
-            <ListChecks className="size-4" />
+            <IconListCheck className="size-4" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBlockquote().run()}
             active={editor.isActive("blockquote")}
             title="Citação"
           >
-            <Quote className="size-4" />
+            <IconBlockquote className="size-4" />
           </ToolbarButton>
 
           <Divider />
 
           <ToolbarButton onClick={addLink} active={editor.isActive("link")} title="Link">
-            <LinkIcon className="size-4" />
+            <IconLinkIcon className="size-4" />
           </ToolbarButton>
           <ToolbarButton onClick={addImage} title="Imagem">
-            <ImageIcon className="size-4" />
+            <IconImageIcon className="size-4" />
           </ToolbarButton>
 
           <div className="ml-auto flex items-center gap-0.5">
@@ -198,14 +198,14 @@ export function TiptapEditor({
               disabled={!editor.can().undo()}
               title="Desfazer"
             >
-              <Undo className="size-4" />
+              <IconUndo className="size-4" />
             </ToolbarButton>
             <ToolbarButton
               onClick={() => editor.chain().focus().redo().run()}
               disabled={!editor.can().redo()}
               title="Refazer"
             >
-              <Redo className="size-4" />
+              <IconRedo className="size-4" />
             </ToolbarButton>
           </div>
         </div>
@@ -222,17 +222,17 @@ export function TiptapEditor({
             active={editor.isActive("bold")}
             size="sm"
           >
-            <Bold className="size-3.5" />
+            <IconBold className="size-3.5" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleItalic().run()}
             active={editor.isActive("italic")}
             size="sm"
           >
-            <Italic className="size-3.5" />
+            <IconItalic className="size-3.5" />
           </ToolbarButton>
           <ToolbarButton onClick={addLink} active={editor.isActive("link")} size="sm">
-            <LinkIcon className="size-3.5" />
+            <IconLinkIcon className="size-3.5" />
           </ToolbarButton>
         </BubbleMenu>
       )}

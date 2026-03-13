@@ -10,7 +10,7 @@ import {
   useState,
   useCallback,
 } from "react";
-import { User, FolderOpen, CheckSquare, MessageSquare } from "lucide-react";
+import { IconUser, IconFolderOpen, IconSquareCheck, IconMessage } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 
 // ─── Types ───────────────────────────────────────────────────
@@ -176,12 +176,12 @@ function MentionIcon({ type }: { type: MentionItem["type"] }) {
   const cls = "h-3.5 w-3.5 shrink-0 text-muted-foreground";
   switch (type) {
     case "person":
-      return <User className={cls} />;
+      return <IconUser className={cls} />;
     case "project":
-      return <FolderOpen className={cls} />;
+      return <IconFolderOpen className={cls} />;
     case "task":
-      return <CheckSquare className={cls} />;
+      return <IconSquareCheck className={cls} />;
     case "message":
-      return <MessageSquare className={cls} />;
+      return <IconMessage className={cls} />;
   }
 }

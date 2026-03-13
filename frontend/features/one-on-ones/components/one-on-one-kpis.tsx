@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { MessageSquare, CalendarDays, CheckCircle, ListTodo } from "lucide-react";
+import { IconMessage, IconCalendar, IconCircleCheck, IconListCheck } from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import type { OneOnOneKPIs } from "@/features/one-on-ones/services/one-on-ones";
 
@@ -10,10 +10,10 @@ interface OneOnOneKPICardsProps {
 }
 
 const KPI_CONFIG = [
-  { key: "total" as const, label: "Total 1:1s", Icon: MessageSquare, text: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/40" },
-  { key: "scheduled" as const, label: "Agendadas", Icon: CalendarDays, text: "text-indigo-600", bg: "bg-indigo-50 dark:bg-indigo-950/40" },
-  { key: "completed" as const, label: "Concluídas", Icon: CheckCircle, text: "text-green-600", bg: "bg-green-50 dark:bg-green-950/40" },
-  { key: "pendingActions" as const, label: "Ações Pendentes", Icon: ListTodo, text: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/40" },
+  { key: "total" as const, label: "Total 1:1s", Icon: IconMessage, text: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/40" },
+  { key: "scheduled" as const, label: "Agendadas", Icon: IconCalendar, text: "text-indigo-600", bg: "bg-indigo-50 dark:bg-indigo-950/40" },
+  { key: "completed" as const, label: "Concluídas", Icon: IconCircleCheck, text: "text-green-600", bg: "bg-green-50 dark:bg-green-950/40" },
+  { key: "pendingActions" as const, label: "Ações Pendentes", Icon: IconListCheck, text: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/40" },
 ] as const;
 
 export function OneOnOneKPICards({ kpis, isLoading }: OneOnOneKPICardsProps) {

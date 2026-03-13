@@ -26,16 +26,16 @@ import {
 } from "@/features/one-on-ones/utils/one-on-one-utils";
 import type { OneOnOneRow } from "@/features/one-on-ones/services/one-on-ones";
 import {
-  CheckCircle,
-  XCircle,
-  Trash2,
-  CalendarDays,
-  Repeat,
-  FileText,
-  Edit3,
-  Save,
-  Target,
-} from "lucide-react";
+  IconCircleCheck,
+  IconCircleX,
+  IconTrash,
+  IconCalendar,
+  IconRepeat,
+  IconFileText,
+  IconPencil,
+  IconDeviceFloppy,
+  IconTarget,
+} from "@tabler/icons-react";
 import { PdiForm } from "@/features/pdi/components/pdi-form";
 
 interface OneOnOneDetailProps {
@@ -124,7 +124,7 @@ export function OneOnOneDetail({ oneOnOne, open, onOpenChange }: OneOnOneDetailP
                   onClick={() => handleStatusChange("completed")}
                   disabled={updateMutation.isPending}
                 >
-                  <CheckCircle className="mr-1 h-4 w-4" /> Marcar Concluída
+                  <IconCircleCheck className="mr-1 h-4 w-4" /> Marcar Concluída
                 </Button>
                 <Button
                   size="sm"
@@ -132,7 +132,7 @@ export function OneOnOneDetail({ oneOnOne, open, onOpenChange }: OneOnOneDetailP
                   onClick={() => handleStatusChange("cancelled")}
                   disabled={updateMutation.isPending}
                 >
-                  <XCircle className="mr-1 h-4 w-4" /> Cancelar
+                  <IconCircleX className="mr-1 h-4 w-4" /> Cancelar
                 </Button>
               </div>
             )}
@@ -161,12 +161,12 @@ export function OneOnOneDetail({ oneOnOne, open, onOpenChange }: OneOnOneDetailP
             {/* Date & Recurrence */}
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm">
-                <CalendarDays className="h-4 w-4 text-gray-500" />
+                <IconCalendar className="h-4 w-4 text-gray-500" />
                 <span>{formatDateTime(oneOnOne.scheduled_at)}</span>
               </div>
               {oneOnOne.recurrence && (
                 <div className="flex items-center gap-2 text-sm">
-                  <Repeat className="h-4 w-4 text-gray-500" />
+                  <IconRepeat className="h-4 w-4 text-gray-500" />
                   <span>{recurrenceLabel(oneOnOne.recurrence)}</span>
                 </div>
               )}
@@ -178,7 +178,7 @@ export function OneOnOneDetail({ oneOnOne, open, onOpenChange }: OneOnOneDetailP
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <h4 className="flex items-center gap-1.5 text-sm font-semibold">
-                  <FileText className="h-4 w-4" /> Notas
+                  <IconFileText className="h-4 w-4" /> Notas
                 </h4>
                 {!editingNotes ? (
                   <Button
@@ -190,7 +190,7 @@ export function OneOnOneDetail({ oneOnOne, open, onOpenChange }: OneOnOneDetailP
                       setEditingNotes(true);
                     }}
                   >
-                    <Edit3 className="mr-1 h-3 w-3" /> Editar
+                    <IconPencil className="mr-1 h-3 w-3" /> Editar
                   </Button>
                 ) : (
                   <Button
@@ -200,7 +200,7 @@ export function OneOnOneDetail({ oneOnOne, open, onOpenChange }: OneOnOneDetailP
                     onClick={handleSaveNotes}
                     disabled={updateMutation.isPending}
                   >
-                    <Save className="mr-1 h-3 w-3" /> Salvar
+                    <IconDeviceFloppy className="mr-1 h-3 w-3" /> Salvar
                   </Button>
                 )}
               </div>
@@ -230,7 +230,7 @@ export function OneOnOneDetail({ oneOnOne, open, onOpenChange }: OneOnOneDetailP
                 size="sm"
                 onClick={() => setPdiFormOpen(true)}
               >
-                <Target className="mr-1 h-4 w-4" /> Criar PDI
+                <IconTarget className="mr-1 h-4 w-4" /> Criar PDI
               </Button>
               <span className="text-xs text-gray-500">
                 Criar plano de desenvolvimento para o colaborador
@@ -264,7 +264,7 @@ export function OneOnOneDetail({ oneOnOne, open, onOpenChange }: OneOnOneDetailP
                     size="sm"
                     className="text-red-500 hover:text-red-500"
                   >
-                    <Trash2 className="mr-1 h-3 w-3" /> Excluir
+                    <IconTrash className="mr-1 h-3 w-3" /> Excluir
                   </Button>
                 }
                 title="Excluir 1:1"

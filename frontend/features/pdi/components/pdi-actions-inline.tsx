@@ -12,7 +12,7 @@ import {
 } from "@/features/pdi/hooks/use-pdi";
 import { useToast } from "@/hooks/use-toast";
 import { isOverdue, formatShortDate } from "@/features/pdi/utils/pdi-utils";
-import { Plus, Trash2, CalendarDays, Link2 } from "lucide-react";
+import { IconPlus, IconTrash, IconCalendar, IconLink } from "@tabler/icons-react";
 import type { PdiActionRow } from "@/features/pdi/services/pdi";
 
 interface PdiActionsInlineProps {
@@ -82,7 +82,7 @@ export function PdiActionsInline({ goalId, pdiId, actions, mode = "full" }: PdiA
             {action.text}
           </span>
           {action.one_on_one_action_id && (
-            <span title="Vinculada a 1:1"><Link2 className="h-3 w-3 text-gray-500" /></span>
+            <span title="Vinculada a 1:1"><IconLink className="h-3 w-3 text-gray-500" /></span>
           )}
           {action.due_date && (
             <span
@@ -90,7 +90,7 @@ export function PdiActionsInline({ goalId, pdiId, actions, mode = "full" }: PdiA
                 !action.completed && isOverdue(action.due_date) ? "text-red-500" : "text-gray-500"
               }`}
             >
-              <CalendarDays className="h-3 w-3" />
+              <IconCalendar className="h-3 w-3" />
               {formatShortDate(action.due_date)}
             </span>
           )}
@@ -101,7 +101,7 @@ export function PdiActionsInline({ goalId, pdiId, actions, mode = "full" }: PdiA
               className="h-6 w-6 text-gray-500 hover:text-red-500"
               onClick={() => handleDelete(action.id)}
             >
-              <Trash2 className="h-3 w-3" />
+              <IconTrash className="h-3 w-3" />
             </Button>
           )}
         </div>
@@ -134,7 +134,7 @@ export function PdiActionsInline({ goalId, pdiId, actions, mode = "full" }: PdiA
             onClick={handleCreate}
             disabled={!newText.trim() || createAction.isPending}
           >
-            <Plus className="h-4 w-4" />
+            <IconPlus className="h-4 w-4" />
           </Button>
         </div>
       )}

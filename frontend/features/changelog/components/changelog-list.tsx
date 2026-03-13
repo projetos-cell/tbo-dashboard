@@ -3,15 +3,15 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-  Rocket,
-  Bug,
-  Sparkles,
-  AlertTriangle,
-  User,
-} from "lucide-react";
+  IconDots,
+  IconPencil,
+  IconTrash,
+  IconRocket,
+  IconBug,
+  IconSparkles,
+  IconAlertTriangle,
+  IconUser,
+} from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,10 +30,10 @@ import type { Database } from "@/lib/supabase/types";
 type ChangelogRow = Database["public"]["Tables"]["changelog_entries"]["Row"];
 
 const TAG_ICONS: Record<string, React.ElementType> = {
-  feature: Rocket,
-  fix: Bug,
-  improvement: Sparkles,
-  breaking: AlertTriangle,
+  feature: IconRocket,
+  fix: IconBug,
+  improvement: IconSparkles,
+  breaking: IconAlertTriangle,
 };
 
 interface ChangelogListProps {
@@ -72,7 +72,7 @@ export function ChangelogList({
   if (entries.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
-        <Rocket className="mb-3 h-10 w-10 text-gray-500/50" />
+        <IconRocket className="mb-3 h-10 w-10 text-gray-500/50" />
         <p className="text-sm font-medium">Nenhuma entrada no changelog</p>
         <p className="text-xs text-gray-500">
           Adicione a primeira entrada para registrar as mudancas.
@@ -92,8 +92,8 @@ export function ChangelogList({
             ? CHANGELOG_TAGS[entry.tag as ChangelogTagKey]
             : null;
           const TagIcon = entry.tag
-            ? TAG_ICONS[entry.tag] || Rocket
-            : Rocket;
+            ? TAG_ICONS[entry.tag] || IconRocket
+            : IconRocket;
 
           const moduleDef = entry.module
             ? NAV_ITEMS.find((n) => n.module === entry.module)
@@ -135,19 +135,19 @@ export function ChangelogList({
                         className="size-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
                         aria-label="Acoes"
                       >
-                        <MoreHorizontal className="size-4" />
+                        <IconDots className="size-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => onEdit(entry)}>
-                        <Pencil className="size-4 mr-2" />
+                        <IconPencil className="size-4 mr-2" />
                         Editar
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => onDelete(entry)}
                         className="text-red-500"
                       >
-                        <Trash2 className="size-4 mr-2" />
+                        <IconTrash className="size-4 mr-2" />
                         Excluir
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -183,7 +183,7 @@ export function ChangelogList({
 
                   {entry.author && (
                     <span className="flex items-center gap-1 text-xs text-gray-500">
-                      <User className="size-3" />
+                      <IconUser className="size-3" />
                       {entry.author}
                     </span>
                   )}

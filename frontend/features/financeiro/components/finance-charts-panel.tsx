@@ -16,7 +16,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, BarChart2, ChevronDown, ChevronUp } from "lucide-react";
+import { IconAlertCircle, IconChartBar, IconChevronDown, IconChevronUp } from "@tabler/icons-react";
 import { AgingChart } from "./aging-chart";
 import { CategoryDonut } from "./category-donut";
 import { SaldoDiarioChart } from "./cashflow-chart";
@@ -79,7 +79,7 @@ function WeeklySummaryChart({ filters }: WeeklyChartProps) {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center h-[220px] gap-2 text-red-500">
-        <AlertCircle className="h-6 w-6" />
+        <IconAlertCircle className="h-6 w-6" />
         <p className="text-sm">Erro ao carregar dados semanais</p>
         <Button variant="outline" size="sm" onClick={() => refetch()}>
           Tentar novamente
@@ -91,7 +91,7 @@ function WeeklySummaryChart({ filters }: WeeklyChartProps) {
   if (!chartData.length) {
     return (
       <div className="flex flex-col items-center justify-center h-[220px] gap-2 text-gray-500">
-        <BarChart2 className="h-8 w-8" />
+        <IconChartBar className="h-8 w-8" />
         <p className="text-sm font-medium">Sem movimentações pagas no período</p>
         <p className="text-xs">Ajuste o filtro de data para ver comparativo semanal</p>
       </div>
@@ -180,9 +180,9 @@ export function FinanceChartsPanel({ section, filters }: FinanceChartsPanelProps
         className="mb-2 h-8 gap-1.5 text-gray-500 hover:text-gray-900"
         onClick={() => setOpen((p) => !p)}
       >
-        <BarChart2 className="h-4 w-4" />
+        <IconChartBar className="h-4 w-4" />
         <span>Análise visual</span>
-        {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+        {open ? <IconChevronUp className="h-3.5 w-3.5" /> : <IconChevronDown className="h-3.5 w-3.5" />}
       </Button>
 
       {open && (

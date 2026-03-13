@@ -1,16 +1,15 @@
 "use client";
 
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Rocket,
-  Video,
-  Users,
-  Megaphone,
-  CalendarCheck,
-  type LucideIcon,
-} from "lucide-react";
+  IconRocket,
+  IconVideo,
+  IconUsers,
+  IconSpeakerphone,
+  IconCalendarCheck,
+} from "@tabler/icons-react";
 import {
   fmtNum,
   type RsmMetricRow,
@@ -25,7 +24,7 @@ interface Props {
 }
 
 interface Action {
-  icon: LucideIcon;
+  icon: React.ElementType;
   title: string;
   description: string;
   priority: "alta" | "média" | "baixa";
@@ -109,7 +108,7 @@ function generateActions(
   // Stories zerados
   if ((stories.reach_30d as number) === 0) {
     actions.push({
-      icon: CalendarCheck,
+      icon: IconCalendarCheck,
       title: "Reativar Stories",
       description:
         "Alcance de Stories zerado nos últimos 30 dias. Publicar pelo menos 3-5 stories/semana para manter presença e engajamento no topo do feed.",
@@ -120,7 +119,7 @@ function generateActions(
   // Dependência de mídia paga
   if (total > 0 && (paid / total) > 0.9) {
     actions.push({
-      icon: Megaphone,
+      icon: IconSpeakerphone,
       title: "Fortalecer orgânico",
       description: `${((paid / total) * 100).toFixed(0)}% do alcance vem de ads. Criar conteúdo nativo com hooks fortes, usar hashtags estratégicas e incentivar compartilhamentos para reduzir dependência de mídia paga.`,
       priority: "alta",
@@ -132,7 +131,7 @@ function generateActions(
   const feedInteractions = (feed.interactions as number) ?? 0;
   if (reelsInteractions > feedInteractions * 1.5 && reelsInteractions > 0) {
     actions.push({
-      icon: Video,
+      icon: IconVideo,
       title: "Aumentar frequência de Reels",
       description: `Reels geram ${fmtNum(reelsInteractions)} interações vs ${fmtNum(feedInteractions)} do feed. Dobrar a produção de Reels com foco em trends, tutoriais rápidos e bastidores.`,
       priority: "média",
@@ -146,7 +145,7 @@ function generateActions(
       : 0;
   if (growthPct < 5 && metrics.length >= 3) {
     actions.push({
-      icon: Users,
+      icon: IconUsers,
       title: "Acelerar crescimento",
       description:
         "Crescimento abaixo de 5% no período. Implementar collabs, sorteios estratégicos e conteúdo compartilhável para ampliar a base de seguidores.",
@@ -157,7 +156,7 @@ function generateActions(
   // Poucas publicações
   if (posts.length < 10) {
     actions.push({
-      icon: Rocket,
+      icon: IconRocket,
       title: "Aumentar volume de publicações",
       description:
         "Menos de 10 publicações no período. Manter frequência mínima de 3-4 posts/semana para alimentar o algoritmo e manter consistência.",
@@ -175,7 +174,7 @@ function generateActions(
       : 0;
   if (avgEngRate < 3 && posts.length > 0) {
     actions.push({
-      icon: Users,
+      icon: IconUsers,
       title: "Melhorar engajamento",
       description: `Taxa média de engajamento em ${avgEngRate.toFixed(1)}%. Usar CTAs diretos, perguntas nos textos e stickers de interação nos Stories para elevar participação.`,
       priority: "alta",

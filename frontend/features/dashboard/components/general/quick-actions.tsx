@@ -3,21 +3,21 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  FolderPlus,
-  ListPlus,
-  CalendarPlus,
-  Users,
-  FileText,
-  MessageSquare,
-} from "lucide-react";
+  IconFolderPlus,
+  IconListDetails,
+  IconCalendarPlus,
+  IconUsers,
+  IconFileText,
+  IconMessage,
+} from "@tabler/icons-react";
 
 const actions = [
-  { label: "Novo Projeto", href: "/projetos?action=new", icon: FolderPlus, color: "text-blue-600 bg-blue-50" },
-  { label: "Nova Tarefa", href: "/tarefas?action=new", icon: ListPlus, color: "text-amber-600 bg-amber-50" },
-  { label: "Novo Evento", href: "/agenda?action=new", icon: CalendarPlus, color: "text-green-600 bg-green-50" },
-  { label: "Clientes", href: "/clientes", icon: Users, color: "text-purple-600 bg-purple-50" },
-  { label: "Contratos", href: "/contratos", icon: FileText, color: "text-orange-600 bg-orange-50" },
-  { label: "Chat", href: "/chat", icon: MessageSquare, color: "text-pink-600 bg-pink-50" },
+  { label: "Novo Projeto", href: "/projetos?action=new", icon: IconFolderPlus, color: "text-blue-600 bg-blue-50" },
+  { label: "Nova Tarefa", href: "/tarefas?action=new", icon: IconListDetails, color: "text-amber-600 bg-amber-50" },
+  { label: "Novo Evento", href: "/agenda?action=new", icon: IconCalendarPlus, color: "text-green-600 bg-green-50" },
+  { label: "Clientes", href: "/clientes", icon: IconUsers, color: "text-purple-600 bg-purple-50" },
+  { label: "Contratos", href: "/contratos", icon: IconFileText, color: "text-orange-600 bg-orange-50" },
+  { label: "Chat", href: "/chat", icon: IconMessage, color: "text-pink-600 bg-pink-50" },
 ];
 
 export function QuickActions() {

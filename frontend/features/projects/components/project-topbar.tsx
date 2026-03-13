@@ -3,14 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft,
-  MoreHorizontal,
-  Copy,
-  Archive,
-  Trash2,
-  Settings,
-  ExternalLink,
-} from "lucide-react";
+  IconArrowLeft,
+  IconDots,
+  IconCopy,
+  IconArchive,
+  IconTrash,
+  IconSettings,
+  IconExternalLink,
+} from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { InlineEditable } from "@/components/ui/inline-editable";
@@ -84,7 +84,7 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
       <div className="flex items-start gap-3">
         <Link href="/projetos">
           <Button variant="ghost" size="icon" className="mt-1" aria-label="Voltar">
-            <ArrowLeft className="size-4" />
+            <IconArrowLeft className="size-4" />
           </Button>
         </Link>
 
@@ -115,7 +115,7 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
               rel="noopener noreferrer"
             >
               <Button variant="outline" size="sm">
-                <ExternalLink className="size-3.5 mr-1" />
+                <IconExternalLink className="size-3.5 mr-1" />
                 Notion
               </Button>
             </a>
@@ -128,16 +128,16 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
               onClick={() => setShowMenu(!showMenu)}
               aria-label="Mais opcoes"
             >
-              <MoreHorizontal className="size-4" />
+              <IconDots className="size-4" />
             </Button>
             {showMenu && (
               <div className="absolute right-0 top-full mt-1 bg-white border rounded-md shadow-md z-20 py-1 min-w-[160px]">
-                <MenuButton icon={Copy} label="Duplicar" onClick={() => setShowMenu(false)} />
-                <MenuButton icon={Archive} label="Arquivar" onClick={() => setShowMenu(false)} />
-                <MenuButton icon={Settings} label="Configuracoes" onClick={() => setShowMenu(false)} />
+                <MenuButton icon={IconCopy} label="Duplicar" onClick={() => setShowMenu(false)} />
+                <MenuButton icon={IconArchive} label="Arquivar" onClick={() => setShowMenu(false)} />
+                <MenuButton icon={IconSettings} label="Configuracoes" onClick={() => setShowMenu(false)} />
                 <div className="h-px bg-border my-1" />
                 <MenuButton
-                  icon={Trash2}
+                  icon={IconTrash}
                   label="Excluir"
                   danger
                   onClick={() => {

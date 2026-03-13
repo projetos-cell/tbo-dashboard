@@ -3,17 +3,17 @@
 import { useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  RefreshCw,
-  Check,
-  AlertCircle,
-  Loader2,
-  Database,
-  MessageSquare,
-  ExternalLink,
-  Unplug,
-  Plug,
-  CheckCircle2,
-} from "lucide-react";
+  IconRefresh,
+  IconCheck,
+  IconAlertCircle,
+  IconLoader2,
+  IconDatabase,
+  IconMessage,
+  IconExternalLink,
+  IconPlugOff,
+  IconPlug,
+  IconCircleCheck,
+} from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -124,7 +124,7 @@ export function NotionSync() {
       {/* OAuth result banner */}
       {oauthBanner === "connected" && (
         <div className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-4 py-3 dark:border-green-900 dark:bg-green-950/30">
-          <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
+          <IconCircleCheck className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
           <p className="text-sm text-green-700 dark:text-green-300">
             Workspace do Notion conectado com sucesso!
           </p>
@@ -132,7 +132,7 @@ export function NotionSync() {
       )}
       {oauthBanner === "error" && (
         <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-3 dark:border-red-900 dark:bg-red-950/30">
-          <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 shrink-0" />
+          <IconAlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 shrink-0" />
           <p className="text-sm text-red-700 dark:text-red-300">
             Falha ao conectar com o Notion. Tente novamente.
           </p>
@@ -144,9 +144,9 @@ export function NotionSync() {
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             {connected ? (
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <IconCircleCheck className="h-4 w-4 text-green-500" />
             ) : (
-              <Plug className="h-4 w-4 text-gray-500" />
+              <IconPlug className="h-4 w-4 text-gray-500" />
             )}
             <CardTitle className="text-sm font-medium">
               {connected ? "Conectado ao Notion" : "Conectar com Notion"}
@@ -161,7 +161,7 @@ export function NotionSync() {
         <CardContent>
           {statusLoading ? (
             <div className="flex items-center gap-2 text-sm text-gray-500">
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <IconLoader2 className="h-4 w-4 animate-spin" />
               Verificando conexao...
             </div>
           ) : connected ? (
@@ -189,9 +189,9 @@ export function NotionSync() {
                 className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
               >
                 {disconnect.isPending ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <IconLoader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
-                  <Unplug className="h-4 w-4 mr-2" />
+                  <IconPlugOff className="h-4 w-4 mr-2" />
                 )}
                 Desconectar
               </Button>
@@ -199,7 +199,7 @@ export function NotionSync() {
           ) : (
             <Button asChild size="sm">
               <a href={buildAuthUrl()}>
-                <ExternalLink className="h-4 w-4 mr-2" />
+                <IconExternalLink className="h-4 w-4 mr-2" />
                 Conectar com Notion
               </a>
             </Button>
@@ -215,7 +215,7 @@ export function NotionSync() {
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
-                <Database className="h-4 w-4 text-blue-500" />
+                <IconDatabase className="h-4 w-4 text-blue-500" />
                 <CardTitle className="text-sm font-medium">
                   Sincronizar Propriedades
                 </CardTitle>
@@ -232,9 +232,9 @@ export function NotionSync() {
                 size="sm"
               >
                 {propStatus === "running" ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <IconLoader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
-                  <RefreshCw className="h-4 w-4 mr-2" />
+                  <IconRefresh className="h-4 w-4 mr-2" />
                 )}
                 {propStatus === "running"
                   ? "Sincronizando..."
@@ -249,7 +249,7 @@ export function NotionSync() {
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 text-violet-500" />
+                <IconMessage className="h-4 w-4 text-violet-500" />
                 <CardTitle className="text-sm font-medium">
                   Sincronizar Comentarios
                 </CardTitle>
@@ -267,9 +267,9 @@ export function NotionSync() {
                 size="sm"
               >
                 {commentStatus === "running" ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <IconLoader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
-                  <MessageSquare className="h-4 w-4 mr-2" />
+                  <IconMessage className="h-4 w-4 mr-2" />
                 )}
                 {commentStatus === "running"
                   ? "Importando..."
@@ -303,7 +303,7 @@ function SyncResultDisplay({
     return (
       <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950/30">
         <div className="flex items-center gap-2">
-          <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+          <IconAlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
           <p className="text-sm font-medium text-red-700 dark:text-red-300">
             Erro na sincronizacao
           </p>
@@ -327,7 +327,7 @@ function SyncResultDisplay({
   return (
     <div className="mt-4 rounded-md border border-green-200 bg-green-50 p-3 dark:border-green-900 dark:bg-green-950/30">
       <div className="flex items-center gap-2 mb-2">
-        <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+        <IconCheck className="h-4 w-4 text-green-600 dark:text-green-400" />
         <p className="text-sm font-medium text-green-700 dark:text-green-300">
           Sincronizacao concluida
         </p>

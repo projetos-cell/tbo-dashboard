@@ -2,7 +2,7 @@
 
 import { use } from "react";
 import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { IconArrowLeft } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -77,7 +77,7 @@ export default function PolicySlugPage({ params }: PolicySlugPageProps) {
           onClick={() => router.push("/cultura/politicas")}
           className="mt-2"
         >
-          <ArrowLeft className="size-4 mr-1" />
+          <IconArrowLeft className="size-4 mr-1" />
           Voltar para politicas
         </Button>
       </div>

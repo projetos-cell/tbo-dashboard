@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, type ReactNode } from "react";
-import { Info, RefreshCw, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { IconInfoCircle, IconRefresh, IconTrendingUp, IconTrendingDown, IconMinus } from "@tabler/icons-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -94,7 +94,7 @@ export function KpiCard({
             onClick={onRetry}
             className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 transition-colors"
           >
-            <RefreshCw className="h-3 w-3" />
+            <IconRefresh className="h-3 w-3" />
             Tentar novamente
           </button>
         )}
@@ -157,7 +157,7 @@ function VariationBadge({ value, invert }: { value: number; invert: boolean }) {
   if (value === 0 || !isFinite(value)) {
     return (
       <span className="inline-flex items-center gap-0.5 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
-        <Minus className="h-2.5 w-2.5" />
+        <IconMinus className="h-2.5 w-2.5" />
         0%
       </span>
     );
@@ -176,9 +176,9 @@ function VariationBadge({ value, invert }: { value: number; invert: boolean }) {
       }`}
     >
       {isPositive ? (
-        <TrendingUp className="h-2.5 w-2.5" />
+        <IconTrendingUp className="h-2.5 w-2.5" />
       ) : (
-        <TrendingDown className="h-2.5 w-2.5" />
+        <IconTrendingDown className="h-2.5 w-2.5" />
       )}
       {formatted}
     </span>
@@ -213,7 +213,7 @@ function TooltipInfo({ tooltip }: { tooltip: KpiTooltipContent }) {
           setOpen((v) => !v);
         }}
       >
-        <Info className="h-3.5 w-3.5" />
+        <IconInfoCircle className="h-3.5 w-3.5" />
       </button>
 
       {open && (

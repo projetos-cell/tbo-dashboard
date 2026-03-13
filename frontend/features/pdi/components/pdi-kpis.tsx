@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { Target, AlertTriangle, CheckCircle, ListTodo } from "lucide-react";
+import { IconTarget, IconAlertTriangle, IconCircleCheck, IconListCheck } from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import type { PdiKPIs } from "@/features/pdi/services/pdi";
 
@@ -10,10 +10,10 @@ interface PdiKPICardsProps {
 }
 
 const KPI_CONFIG = [
-  { key: "active" as const, label: "Ativos", Icon: Target, text: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/40" },
-  { key: "overdue" as const, label: "Atrasados", Icon: AlertTriangle, text: "text-red-600", bg: "bg-red-50 dark:bg-red-950/40" },
-  { key: "completed" as const, label: "Concluídos", Icon: CheckCircle, text: "text-green-600", bg: "bg-green-50 dark:bg-green-950/40" },
-  { key: "openActions" as const, label: "Ações Abertas", Icon: ListTodo, text: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/40" },
+  { key: "active" as const, label: "Ativos", Icon: IconTarget, text: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/40" },
+  { key: "overdue" as const, label: "Atrasados", Icon: IconAlertTriangle, text: "text-red-600", bg: "bg-red-50 dark:bg-red-950/40" },
+  { key: "completed" as const, label: "Concluídos", Icon: IconCircleCheck, text: "text-green-600", bg: "bg-green-50 dark:bg-green-950/40" },
+  { key: "openActions" as const, label: "Ações Abertas", Icon: IconListCheck, text: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/40" },
 ] as const;
 
 export function PdiKPICards({ kpis, isLoading }: PdiKPICardsProps) {

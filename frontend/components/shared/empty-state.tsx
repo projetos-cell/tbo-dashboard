@@ -1,10 +1,10 @@
 ﻿"use client";
 
-import { type LucideIcon } from "lucide-react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 
 interface EmptyStateProps {
-  icon: LucideIcon;
+  icon: React.ElementType;
   title: string;
   description?: string;
   cta?: {

@@ -3,7 +3,7 @@
 import { type ReactNode } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, X } from "lucide-react";
+import { IconGripVertical, IconX } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 
 interface WidgetWrapperProps {
@@ -60,7 +60,7 @@ export function WidgetWrapper({
             className="flex-shrink-0 cursor-grab rounded p-0.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tbo-orange"
             aria-label={`Arrastar ${label}`}
           >
-            <GripVertical className="h-4 w-4" />
+            <IconGripVertical className="h-4 w-4" />
           </button>
         )}
 
@@ -73,7 +73,7 @@ export function WidgetWrapper({
           onClick={onClose}
           aria-label={`Fechar ${label}`}
         >
-          <X className="h-3.5 w-3.5" />
+          <IconX className="h-3.5 w-3.5" />
         </Button>
       </div>
 

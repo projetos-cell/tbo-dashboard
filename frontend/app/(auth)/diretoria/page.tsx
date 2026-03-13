@@ -6,15 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  DollarSign,
-  Percent,
-  Users,
-  Flame,
-  ArrowRight,
-  TrendingUp,
-  Landmark,
-  Target,
-} from "lucide-react";
+  IconCurrencyDollar,
+  IconPercentage,
+  IconUsers,
+  IconFlame,
+  IconArrowRight,
+  IconTrendingUp,
+  IconBuildingBank,
+  IconTarget,
+} from "@tabler/icons-react";
 import { useExecutiveKpis } from "@/hooks/use-diretoria";
 import { ErrorState } from "@/components/shared";
 
@@ -33,7 +33,7 @@ const DASHBOARD_SECTIONS = [
     description:
       "Receita, custos e margens consolidadas. Dados atualizados automaticamente do modulo financeiro.",
     href: "/financeiro",
-    icon: Landmark,
+    icon: IconBuildingBank,
     color: "text-green-600",
     bgColor: "bg-green-500/10",
   },
@@ -42,7 +42,7 @@ const DASHBOARD_SECTIONS = [
     description:
       "Funil de vendas, oportunidades em aberto e forecast de receita para os proximos meses.",
     href: "/comercial",
-    icon: TrendingUp,
+    icon: IconTrendingUp,
     color: "text-blue-600",
     bgColor: "bg-blue-500/10",
   },
@@ -51,7 +51,7 @@ const DASHBOARD_SECTIONS = [
     description:
       "Alocacao da equipe, produtividade e progresso dos Objetivos e Resultados-Chave.",
     href: "/okrs",
-    icon: Users,
+    icon: IconUsers,
     color: "text-purple-600",
     bgColor: "bg-purple-500/10",
   },
@@ -65,28 +65,28 @@ function DiretoriaContent() {
       title: "Receita (MRR)",
       value: kpis ? formatCurrency(kpis.mrr) : "--",
       description: "Receita total de recebiveis",
-      icon: DollarSign,
+      icon: IconCurrencyDollar,
       color: "text-green-500",
     },
     {
       title: "Margem",
       value: kpis ? `${kpis.marginPercent}%` : "--",
       description: "Margem sobre receita",
-      icon: Percent,
+      icon: IconPercentage,
       color: "text-blue-500",
     },
     {
       title: "Equipe Ativa",
       value: kpis ? String(kpis.teamCount) : "--",
       description: "Colaboradores ativos",
-      icon: Users,
+      icon: IconUsers,
       color: "text-purple-500",
     },
     {
       title: "Burn Rate",
       value: kpis ? formatCurrency(kpis.burnRate) : "--",
       description: "Despesas pagas no periodo",
-      icon: Flame,
+      icon: IconFlame,
       color: "text-red-500",
     },
   ];
@@ -137,7 +137,7 @@ function DiretoriaContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pipeline</CardTitle>
-            <TrendingUp className="h-4 w-4 text-blue-500" />
+            <IconTrendingUp className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -157,7 +157,7 @@ function DiretoriaContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Contas a Pagar</CardTitle>
-            <DollarSign className="h-4 w-4 text-red-500" />
+            <IconCurrencyDollar className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -177,7 +177,7 @@ function DiretoriaContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Progresso OKRs</CardTitle>
-            <Target className="h-4 w-4 text-orange-500" />
+            <IconTarget className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -221,7 +221,7 @@ function DiretoriaContent() {
                 <Button variant="ghost" size="sm" className="px-0" asChild>
                   <Link href={section.href}>
                     Ver detalhes
-                    <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                    <IconArrowRight className="ml-1 h-3.5 w-3.5" />
                   </Link>
                 </Button>
               </div>

@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Mail, Phone, MapPin } from "lucide-react";
+import { IconBuilding, IconMail, IconPhone, IconMapPin } from "@tabler/icons-react";
 import type { Database } from "@/lib/supabase/types";
 import { CLIENT_STATUS, type ClientStatusKey } from "@/lib/constants";
 
@@ -35,7 +35,7 @@ export function ClientCard({ client, onClick }: ClientCardProps) {
             />
           ) : (
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100">
-              <Building2 className="h-5 w-5 text-gray-500" />
+              <IconBuilding className="h-5 w-5 text-gray-500" />
             </div>
           )}
           <div className="flex-1 min-w-0">
@@ -73,19 +73,19 @@ export function ClientCard({ client, onClick }: ClientCardProps) {
           )}
           {client.email && (
             <div className="flex items-center gap-1">
-              <Mail className="h-3 w-3" />
+              <IconMail className="h-3 w-3" />
               <span className="truncate">{client.email}</span>
             </div>
           )}
           {client.phone && (
             <div className="flex items-center gap-1">
-              <Phone className="h-3 w-3" />
+              <IconPhone className="h-3 w-3" />
               <span>{client.phone}</span>
             </div>
           )}
           {(client.city || client.state) && (
             <div className="flex items-center gap-1">
-              <MapPin className="h-3 w-3" />
+              <IconMapPin className="h-3 w-3" />
               <span>
                 {[client.city, client.state].filter(Boolean).join(", ")}
               </span>

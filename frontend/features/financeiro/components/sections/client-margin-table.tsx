@@ -1,6 +1,6 @@
 "use client";
 
-import { Users } from "lucide-react";
+import { IconUsers } from "@tabler/icons-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { FounderDashboardSnapshot } from "@/features/founder-dashboard/services/founder-dashboard";
 import { fmt, fmtPct } from "@/features/financeiro/lib/formatters";
@@ -18,7 +18,7 @@ export function ClientMarginTable({ clientMargins }: Props) {
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-semibold flex items-center gap-2">
-          <Users className="h-4 w-4 text-gray-500" />
+          <IconUsers className="h-4 w-4 text-gray-500" />
           Margem por Cliente (Top 10)
         </CardTitle>
         <p className="text-xs text-muted-foreground">

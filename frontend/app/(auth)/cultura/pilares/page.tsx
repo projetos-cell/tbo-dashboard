@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Plus, Columns3, GripVertical } from "lucide-react";
+import { IconPlus, IconColumns3, IconGripVertical } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -62,7 +62,7 @@ function SortableCard({
           aria-label="Arrastar para reordenar"
           tabIndex={-1}
         >
-          <GripVertical className="size-3 text-gray-400" />
+          <IconGripVertical className="size-3 text-gray-400" />
         </button>
       )}
       {children}
@@ -172,7 +172,7 @@ export default function PilaresPage() {
         </div>
         {canEdit && (
           <Button size="sm" onClick={() => { setEditingItem(null); setShowForm(true); }}>
-            <Plus className="size-4 mr-1" />
+            <IconPlus className="size-4 mr-1" />
             Novo pilar
           </Button>
         )}
@@ -213,7 +213,7 @@ export default function PilaresPage() {
         </DndContext>
       ) : (
         <EmptyState
-          icon={Columns3}
+          icon={IconColumns3}
           title="Nenhum pilar cadastrado"
           description="Defina os pilares fundamentais da cultura organizacional."
           cta={canEdit ? { label: "Novo pilar", onClick: () => { setEditingItem(null); setShowForm(true); } } : undefined}

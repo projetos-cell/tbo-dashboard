@@ -30,17 +30,17 @@ import {
   Legend,
 } from "recharts";
 import {
-  Users,
-  Home,
-  GraduationCap,
-  HeartPulse,
-  Church,
-  Building2,
-  HardHat,
-  TrendingUp,
-  MapPin,
-  BarChart3,
-} from "lucide-react";
+  IconUsers,
+  IconHome,
+  IconSchool,
+  IconHeartbeat,
+  IconBuildingChurch,
+  IconBuilding,
+  IconHelmet,
+  IconTrendingUp,
+  IconMapPin,
+  IconChartBar,
+} from "@tabler/icons-react";
 import {
   CENSO_RESUMO,
   POPULACAO_ABSOLUTA,
@@ -64,11 +64,11 @@ function fmtPct(n: number) {
 }
 
 const ICON_MAP: Record<string, React.ElementType> = {
-  "graduation-cap": GraduationCap,
-  "heart-pulse": HeartPulse,
-  church: Church,
-  "building-2": Building2,
-  "hard-hat": HardHat,
+  "graduation-cap": IconSchool,
+  "heart-pulse": IconHeartbeat,
+  church: IconBuildingChurch,
+  "building-2": IconBuilding,
+  "hard-hat": IconHelmet,
 };
 
 const BAR_COLORS = [
@@ -283,7 +283,7 @@ function EstabelecimentosGrid() {
       <CardContent>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {ESTABELECIMENTOS.map((e) => {
-            const Icon = ICON_MAP[e.icone] ?? Building2;
+            const Icon = ICON_MAP[e.icone] ?? IconBuilding;
             return (
               <div
                 key={e.tipo}
@@ -409,7 +409,7 @@ export default function MercadoPage() {
               label="Populacao total"
               value={fmtNum(CENSO_RESUMO.populacao)}
               sub={`Densidade media: ${CENSO_RESUMO.densidadeMedia} hab/ha`}
-              icon={Users}
+              icon={IconUsers}
             />
           </CardContent>
         </Card>
@@ -420,7 +420,7 @@ export default function MercadoPage() {
               label="Domicilios particulares"
               value={fmtNum(CENSO_RESUMO.domiciliosParticulares)}
               sub={`Coletivos: ${fmtNum(CENSO_RESUMO.domiciliosColetivos)}`}
-              icon={Home}
+              icon={IconHome}
             />
           </CardContent>
         </Card>
@@ -451,7 +451,7 @@ export default function MercadoPage() {
               label="Acrescimo de domicilios"
               value="+25%"
               sub="Em relacao ao Censo 2010"
-              icon={TrendingUp}
+              icon={IconTrendingUp}
             />
           </CardContent>
         </Card>
@@ -500,7 +500,7 @@ export default function MercadoPage() {
         <CardHeader className="pb-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
+              <IconMapPin className="h-4 w-4" />
               Bairros — Variacao populacional 2010-2022
             </CardTitle>
             <div className="flex gap-1">

@@ -6,7 +6,7 @@ import { PROJECT_STATUS, type ProjectStatusKey } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar, ExternalLink } from "lucide-react";
+import { IconCalendar, IconExternalLink } from "@tabler/icons-react";
 
 type Project = Database["public"]["Tables"]["projects"]["Row"];
 
@@ -85,7 +85,7 @@ export function ProjectCompactList({ projects }: ProjectCompactListProps) {
             {/* Due date */}
             {project.due_date_end && (
               <div className="hidden shrink-0 items-center gap-1 text-xs text-gray-500 lg:flex">
-                <Calendar className="h-3 w-3" />
+                <IconCalendar className="h-3 w-3" />
                 <span>
                   {format(new Date(project.due_date_end), "dd MMM", {
                     locale: ptBR,
@@ -103,7 +103,7 @@ export function ProjectCompactList({ projects }: ProjectCompactListProps) {
                 onClick={(e) => e.stopPropagation()}
                 className="shrink-0 text-gray-400 hover:text-gray-700"
               >
-                <ExternalLink className="h-3.5 w-3.5" />
+                <IconExternalLink className="h-3.5 w-3.5" />
               </a>
             )}
           </div>

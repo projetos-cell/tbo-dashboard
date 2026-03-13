@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Gift, Star, Clock, CheckCircle } from "lucide-react";
+import { IconGift, IconStar, IconClock, IconCircleCheck } from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -142,7 +142,7 @@ export default function RecompensasPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-              <Gift className="size-3.5" />
+              <IconGift className="size-3.5" />
               Recompensas
             </div>
             {kpisLoading ? (
@@ -158,7 +158,7 @@ export default function RecompensasPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-              <Star className="size-3.5" />
+              <IconStar className="size-3.5" />
               Meu saldo
             </div>
             {isLoading ? (
@@ -174,7 +174,7 @@ export default function RecompensasPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-              <Clock className="size-3.5" />
+              <IconClock className="size-3.5" />
               Pendentes
             </div>
             {kpisLoading ? (
@@ -187,7 +187,7 @@ export default function RecompensasPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-              <CheckCircle className="size-3.5" />
+              <IconCircleCheck className="size-3.5" />
               Total resgates
             </div>
             {kpisLoading ? (

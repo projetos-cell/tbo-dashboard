@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2 } from "lucide-react";
+import { IconBuilding } from "@tabler/icons-react";
 import type { Database } from "@/lib/supabase/types";
 import { ClientCard } from "./client-card";
 
@@ -29,7 +29,7 @@ export function ClientGrid({ clients, isLoading, onSelect }: ClientGridProps) {
   if (clients.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
-        <Building2 className="mb-3 h-10 w-10 text-gray-500/50" />
+        <IconBuilding className="mb-3 h-10 w-10 text-gray-500/50" />
         <p className="text-sm font-medium">Nenhum cliente encontrado</p>
         <p className="text-xs text-gray-500">
           Ajuste os filtros ou adicione novos clientes.

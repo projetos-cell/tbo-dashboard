@@ -1,6 +1,6 @@
 "use client";
 
-import { Gift } from "lucide-react";
+import { IconGift } from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/shared";
@@ -27,7 +27,7 @@ export function RecompensasMeusResgates({
   if (redemptions.length === 0) {
     return (
       <EmptyState
-        icon={Gift}
+        icon={IconGift}
         title="Nenhum resgate ainda"
         description="Explore o catalogo e resgate recompensas com seus pontos!"
         cta={{ label: "Ver catalogo", onClick: onGoToCatalog }}

@@ -2,7 +2,7 @@
 
 import { useTheme } from "next-themes";
 import { startTransition, useCallback, useEffect, useState } from "react";
-import { Moon, Sun } from "lucide-react";
+import { IconMoon, IconSun } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -46,9 +46,9 @@ export function ThemeModeToggle() {
           aria-label={isDark ? "Ativar modo claro" : "Ativar modo escuro"}
         >
           {isDark ? (
-            <Sun className="h-4 w-4 transition-transform duration-200" />
+            <IconSun className="h-4 w-4 transition-transform duration-200" />
           ) : (
-            <Moon className="h-4 w-4 transition-transform duration-200" />
+            <IconMoon className="h-4 w-4 transition-transform duration-200" />
           )}
         </Button>
       </TooltipTrigger>

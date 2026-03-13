@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { CalendarDays, ChevronDown, X } from "lucide-react";
+import { IconCalendar, IconChevronDown, IconX } from "@tabler/icons-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -155,9 +155,9 @@ export function DateRangeFilter({ value, onChange, className = "" }: DateRangeFi
           }
         `}
       >
-        <CalendarDays className="h-3.5 w-3.5 shrink-0" />
+        <IconCalendar className="h-3.5 w-3.5 shrink-0" />
         <span>{displayLabel}</span>
-        <ChevronDown
+        <IconChevronDown
           className={`h-3 w-3 opacity-50 transition-transform ${open ? "rotate-180" : ""}`}
         />
       </button>
@@ -170,7 +170,7 @@ export function DateRangeFilter({ value, onChange, className = "" }: DateRangeFi
           className="ml-1 inline-flex items-center justify-center rounded-full p-0.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
           aria-label="Limpar filtro de período"
         >
-          <X className="h-3 w-3" />
+          <IconX className="h-3 w-3" />
         </button>
       )}
 

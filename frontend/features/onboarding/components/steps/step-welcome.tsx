@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Lock } from "lucide-react";
+import { IconCircleCheck, IconLock } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth-store";
 import type { RoleSlug } from "@/lib/permissions";
@@ -64,7 +64,7 @@ export function StepWelcome({ onNext, onSkip }: StepWelcomeProps) {
           <ul className="space-y-2">
             {content.can.map((item) => (
               <li key={item} className="flex items-start gap-2 text-sm">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
+                <IconCircleCheck className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
                 {item}
               </li>
             ))}
@@ -79,7 +79,7 @@ export function StepWelcome({ onNext, onSkip }: StepWelcomeProps) {
             <ul className="space-y-2">
               {content.cant.map((item) => (
                 <li key={item} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <Lock className="mt-0.5 h-4 w-4 shrink-0" />
+                  <IconLock className="mt-0.5 h-4 w-4 shrink-0" />
                   {item}
                 </li>
               ))}

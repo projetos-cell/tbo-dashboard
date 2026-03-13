@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarDays, Clock } from "lucide-react";
+import { IconCalendar, IconClock } from "@tabler/icons-react";
 import { format, isToday, isTomorrow, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -15,7 +15,7 @@ export function AgendaSummary() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="flex items-center gap-2 text-base font-semibold">
-          <CalendarDays className="h-4 w-4 text-blue-500" />
+          <IconCalendar className="h-4 w-4 text-blue-500" />
           Agenda
         </CardTitle>
         <Link
@@ -29,7 +29,7 @@ export function AgendaSummary() {
         <div className="space-y-3">
           <div className="rounded-lg border p-3">
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-gray-500" />
+              <IconClock className="h-4 w-4 text-gray-500" />
               <div>
                 <p className="text-sm font-medium">
                   {format(today, "EEEE, dd 'de' MMMM", { locale: ptBR })}

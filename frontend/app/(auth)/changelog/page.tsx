@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState, useMemo } from "react";
-import { Plus, Search, BookOpen } from "lucide-react";
+import { IconPlus, IconSearch, IconBook } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +31,7 @@ import type { Database } from "@/lib/supabase/types";
 type ChangelogRow = Database["public"]["Tables"]["changelog_entries"]["Row"];
 
 export default function ChangelogPage() {
-  const [search, setSearch] = useState("");
+  const [search, setIconSearch] = useState("");
   const [tagFilter, setTagFilter] = useState("");
   const [moduleFilter, setModuleFilter] = useState("");
   const [formOpen, setFormOpen] = useState(false);
@@ -123,7 +123,7 @@ export default function ChangelogPage() {
           </p>
         </div>
         <Button onClick={handleNew}>
-          <Plus className="mr-2 h-4 w-4" />
+          <IconPlus className="mr-2 h-4 w-4" />
           Nova Entrada
         </Button>
       </div>
@@ -131,10 +131,10 @@ export default function ChangelogPage() {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-500" />
+          <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-500" />
           <Input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => setIconSearch(e.target.value)}
             placeholder="Buscar por titulo, versao..."
             className="pl-9"
           />
@@ -189,7 +189,7 @@ export default function ChangelogPage() {
             onClick={() => {
               setTagFilter("");
               setModuleFilter("");
-              setSearch("");
+              setIconSearch("");
             }}
           >
             Limpar filtros
@@ -235,7 +235,7 @@ export default function ChangelogPage() {
       {/* Timeline */}
       {!isLoading && !entries.length ? (
         <EmptyState
-          icon={BookOpen}
+          icon={IconBook}
           title="Nenhuma entrada no changelog"
           description="Registre atualizações e mudanças da plataforma."
           cta={{ label: "Nova Entrada", onClick: handleNew }}

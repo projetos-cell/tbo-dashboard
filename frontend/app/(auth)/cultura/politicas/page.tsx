@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState, useMemo } from "react";
-import { Plus, Shield } from "lucide-react";
+import { IconPlus, IconShield } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PolicyCard } from "@/features/cultura/components/policy-card";
@@ -160,7 +160,7 @@ export default function PoliticasPage() {
               setShowForm(true);
             }}
           >
-            <Plus className="size-4 mr-1" />
+            <IconPlus className="size-4 mr-1" />
             Nova politica
           </Button>
         )}
@@ -208,7 +208,7 @@ export default function PoliticasPage() {
         </div>
       ) : (
         <EmptyState
-          icon={Shield}
+          icon={IconShield}
           title="Nenhuma politica encontrada"
           description={filters.search || filters.status || filters.category
             ? "Tente ajustar os filtros."

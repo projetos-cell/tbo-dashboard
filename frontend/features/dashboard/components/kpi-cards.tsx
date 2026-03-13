@@ -3,54 +3,54 @@
 import { Card, CardContent } from "@/components/ui/card";
 import type { DashboardKPIs } from "@/features/dashboard/services/dashboard";
 import {
-  FolderKanban,
-  ListChecks,
-  AlertTriangle,
-  Users,
-  CheckCircle2,
-  Clock,
-} from "lucide-react";
+  IconLayoutKanban,
+  IconListCheck,
+  IconAlertTriangle,
+  IconUsers,
+  IconCircleCheck,
+  IconClock,
+} from "@tabler/icons-react";
 
 const kpiConfig = [
   {
     key: "activeProjects" as const,
     label: "Projetos Ativos",
-    icon: FolderKanban,
+    icon: IconLayoutKanban,
     color: "text-blue-600",
     bgColor: "bg-blue-50",
   },
   {
     key: "pendingTasks" as const,
     label: "Tarefas Pendentes",
-    icon: ListChecks,
+    icon: IconListCheck,
     color: "text-amber-600",
     bgColor: "bg-amber-50",
   },
   {
     key: "overdueTasks" as const,
     label: "Tarefas Atrasadas",
-    icon: AlertTriangle,
+    icon: IconAlertTriangle,
     color: "text-red-600",
     bgColor: "bg-red-50",
   },
   {
     key: "completedProjects" as const,
     label: "Projetos Finalizados",
-    icon: CheckCircle2,
+    icon: IconCircleCheck,
     color: "text-green-600",
     bgColor: "bg-green-50",
   },
   {
     key: "totalDemands" as const,
     label: "Demandas",
-    icon: Clock,
+    icon: IconClock,
     color: "text-purple-600",
     bgColor: "bg-purple-50",
   },
   {
     key: "uniqueClients" as const,
     label: "Clientes",
-    icon: Users,
+    icon: IconUsers,
     color: "text-orange-600",
     bgColor: "bg-orange-50",
   },

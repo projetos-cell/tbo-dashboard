@@ -16,13 +16,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  FileText,
-  Search,
-  Plus,
-  PenLine,
-  Calendar,
-  Layers,
-} from "lucide-react";
+  IconFileText,
+  IconSearch,
+  IconPlus,
+  IconPencil,
+  IconCalendar,
+  IconStack2,
+} from "@tabler/icons-react";
 import { usePages, usePageStats } from "@/hooks/use-conteudo";
 import { ErrorState, EmptyState } from "@/components/shared";
 
@@ -32,7 +32,7 @@ function formatDate(dateStr: string | null) {
 }
 
 function ConteudoContent() {
-  const [search, setSearch] = useState("");
+  const [search, setIconSearch] = useState("");
   const { data: pages, isLoading, error, refetch } = usePages();
   const { data: stats, isLoading: statsLoading } = usePageStats();
 
@@ -60,7 +60,7 @@ function ConteudoContent() {
           </p>
         </div>
         <Button disabled>
-          <Plus className="mr-2 h-4 w-4" />
+          <IconPlus className="mr-2 h-4 w-4" />
           Nova Pagina
         </Button>
       </div>
@@ -70,7 +70,7 @@ function ConteudoContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Paginas</CardTitle>
-            <FileText className="h-4 w-4 text-blue-500" />
+            <IconFileText className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -81,7 +81,7 @@ function ConteudoContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Com Blocos</CardTitle>
-            <Layers className="h-4 w-4 text-purple-500" />
+            <IconStack2 className="h-4 w-4 text-purple-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -92,7 +92,7 @@ function ConteudoContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Resultados</CardTitle>
-            <Search className="h-4 w-4 text-green-500" />
+            <IconSearch className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -102,14 +102,14 @@ function ConteudoContent() {
         </Card>
       </div>
 
-      {/* Search */}
+      {/* IconSearch */}
       <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+        <IconSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
         <Input
           placeholder="Buscar paginas por titulo..."
           className="pl-9"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => setIconSearch(e.target.value)}
         />
       </div>
 
@@ -128,7 +128,7 @@ function ConteudoContent() {
             </div>
           ) : filteredPages.length === 0 ? (
             <EmptyState
-              icon={FileText}
+              icon={IconFileText}
               title={search ? "Nenhuma página encontrada" : "Nenhuma página cadastrada"}
               description={
                 search

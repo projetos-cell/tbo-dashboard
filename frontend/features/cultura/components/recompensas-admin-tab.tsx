@@ -1,14 +1,14 @@
 "use client";
 
 import {
-  Gift,
-  Plus,
-  Pencil,
-  Trash2,
-  MoreHorizontal,
-  ToggleLeft,
-  ToggleRight,
-} from "lucide-react";
+  IconGift,
+  IconPlus,
+  IconPencil,
+  IconTrash,
+  IconDots,
+  IconToggleLeft,
+  IconToggleRight,
+} from "@tabler/icons-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -64,7 +64,7 @@ export function RecompensasAdminTab({
           <div className="flex items-center gap-2">
             <Badge variant="secondary">{rewards.length} itens</Badge>
             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onCreateReward}>
-              <Plus className="size-3.5 mr-1" />
+              <IconPlus className="size-3.5 mr-1" />
               Nova
             </Button>
           </div>
@@ -98,12 +98,12 @@ export function RecompensasAdminTab({
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="size-7 shrink-0">
-                        <MoreHorizontal className="size-3.5" />
+                        <IconDots className="size-3.5" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => onEditReward(reward)}>
-                        <Pencil className="size-3.5 mr-1.5" />
+                        <IconPencil className="size-3.5 mr-1.5" />
                         Editar
                       </DropdownMenuItem>
                       <DropdownMenuItem
@@ -111,12 +111,12 @@ export function RecompensasAdminTab({
                       >
                         {reward.active ? (
                           <>
-                            <ToggleLeft className="size-3.5 mr-1.5" />
+                            <IconToggleLeft className="size-3.5 mr-1.5" />
                             Desativar
                           </>
                         ) : (
                           <>
-                            <ToggleRight className="size-3.5 mr-1.5" />
+                            <IconToggleRight className="size-3.5 mr-1.5" />
                             Ativar
                           </>
                         )}
@@ -126,7 +126,7 @@ export function RecompensasAdminTab({
                         className="text-red-500"
                         onClick={() => onDeleteReward(reward)}
                       >
-                        <Trash2 className="size-3.5 mr-1.5" />
+                        <IconTrash className="size-3.5 mr-1.5" />
                         Excluir
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -136,7 +136,7 @@ export function RecompensasAdminTab({
             </div>
           ) : (
             <EmptyState
-              icon={Gift}
+              icon={IconGift}
               title="Nenhuma recompensa no catalogo Supabase"
               description="Crie recompensas personalizadas para os colaboradores resgatarem."
               cta={{ label: "Nova recompensa", onClick: onCreateReward }}

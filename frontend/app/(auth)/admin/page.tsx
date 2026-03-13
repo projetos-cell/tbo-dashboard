@@ -4,15 +4,15 @@ import { useState, useMemo, Fragment } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  Search,
-  Shield,
-  ChevronDown,
-  ChevronRight,
-  Activity,
-  Users,
-  CalendarDays,
-  Tag,
-} from "lucide-react";
+  IconSearch,
+  IconShield,
+  IconChevronDown,
+  IconChevronRight,
+  IconActivity,
+  IconUsers,
+  IconCalendar,
+  IconTag,
+} from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -122,25 +122,25 @@ export default function AdminPage() {
             <KpiCard
               label="Total ações"
               value={kpis.totalActions}
-              icon={<Activity className="h-4 w-4 text-gray-500" />}
+              icon={<IconActivity className="h-4 w-4 text-gray-500" />}
             />
             <KpiCard
               label="Usuários únicos"
               value={kpis.uniqueUsers}
               color="#3b82f6"
-              icon={<Users className="h-4 w-4 text-blue-500" />}
+              icon={<IconUsers className="h-4 w-4 text-blue-500" />}
             />
             <KpiCard
               label="Ações hoje"
               value={kpis.todayActions}
               color="#22c55e"
-              icon={<CalendarDays className="h-4 w-4 text-green-500" />}
+              icon={<IconCalendar className="h-4 w-4 text-green-500" />}
             />
             <KpiCard
               label="Tipo mais frequente"
               value={kpis.topEntityType}
               isText
-              icon={<Tag className="h-4 w-4 text-gray-500" />}
+              icon={<IconTag className="h-4 w-4 text-gray-500" />}
             />
           </div>
         )}
@@ -148,7 +148,7 @@ export default function AdminPage() {
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+            <IconSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
             <Input
               placeholder="Buscar ação, entidade, usuário..."
               value={search}
@@ -210,7 +210,7 @@ export default function AdminPage() {
           </div>
         ) : logs.length === 0 ? (
           <EmptyState
-            icon={Shield}
+            icon={IconShield}
             title="Nenhum registro encontrado"
             description="Ajuste os filtros ou aguarde novas ações no sistema."
           />
@@ -244,9 +244,9 @@ export default function AdminPage() {
                       >
                         <TableCell>
                           {isExpanded ? (
-                            <ChevronDown className="h-4 w-4 text-gray-500" />
+                            <IconChevronDown className="h-4 w-4 text-gray-500" />
                           ) : (
-                            <ChevronRight className="h-4 w-4 text-gray-500" />
+                            <IconChevronRight className="h-4 w-4 text-gray-500" />
                           )}
                         </TableCell>
                         <TableCell className="text-gray-500 text-xs">

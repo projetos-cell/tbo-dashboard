@@ -35,20 +35,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Plus,
-  MoreHorizontal,
-  Users,
-  Heart,
-  FileText,
-  CalendarClock,
-  Pencil,
-  Trash2,
-  BarChart3,
-  RefreshCw,
-  Settings2,
-  CheckCircle2,
-  AlertCircle,
-} from "lucide-react";
+  IconPlus,
+  IconDots,
+  IconUsers,
+  IconHeart,
+  IconFileText,
+  IconCalendarClock,
+  IconPencil,
+  IconTrash,
+  IconChartBar,
+  IconRefresh,
+  IconSettings2,
+  IconCircleCheck,
+  IconAlertCircle,
+} from "@tabler/icons-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { RequireRole } from "@/features/auth/components/require-role";
@@ -135,9 +135,9 @@ export default function RsmPage() {
             {syncStatus && (
               <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                 {syncStatus.status === "success" ? (
-                  <CheckCircle2 className="h-3 w-3 text-green-500" />
+                  <IconCircleCheck className="h-3 w-3 text-green-500" />
                 ) : syncStatus.status === "error" ? (
-                  <AlertCircle className="h-3 w-3 text-red-500" />
+                  <IconAlertCircle className="h-3 w-3 text-red-500" />
                 ) : null}
                 <span>
                   Ultimo sync:{" "}
@@ -155,7 +155,7 @@ export default function RsmPage() {
               size="sm"
               onClick={() => setConfigOpen(true)}
             >
-              <Settings2 className="mr-1.5 h-4 w-4" />
+              <IconSettings2 className="mr-1.5 h-4 w-4" />
               Config
             </Button>
             <Button
@@ -163,7 +163,7 @@ export default function RsmPage() {
               onClick={() => syncMutation.mutate(7)}
               disabled={syncMutation.isPending}
             >
-              <RefreshCw className={`mr-1.5 h-4 w-4 ${syncMutation.isPending ? "animate-spin" : ""}`} />
+              <IconRefresh className={`mr-1.5 h-4 w-4 ${syncMutation.isPending ? "animate-spin" : ""}`} />
               {syncMutation.isPending ? "Sincronizando..." : "Sync Instagram"}
             </Button>
           </div>
@@ -180,7 +180,7 @@ export default function RsmPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Contas Ativas</CardTitle>
-              <Users className="h-4 w-4 text-gray-500" />
+              <IconUsers className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{kpis.totalAccounts}</div>
@@ -189,7 +189,7 @@ export default function RsmPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Seguidores</CardTitle>
-              <Heart className="h-4 w-4 text-gray-500" />
+              <IconHeart className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
@@ -200,7 +200,7 @@ export default function RsmPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Posts este Mes</CardTitle>
-              <FileText className="h-4 w-4 text-gray-500" />
+              <IconFileText className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{kpis.postsThisMonth}</div>
@@ -209,7 +209,7 @@ export default function RsmPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Agendados</CardTitle>
-              <CalendarClock className="h-4 w-4 text-gray-500" />
+              <IconCalendarClock className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{kpis.scheduledPosts}</div>
@@ -235,7 +235,7 @@ export default function RsmPage() {
               </div>
             ) : accounts.length === 0 ? (
               <EmptyState
-                icon={BarChart3}
+                icon={IconChartBar}
                 title="Nenhuma conta cadastrada"
                 description="Adicione contas de redes sociais para gerenciar sua presença digital."
               />
@@ -300,7 +300,7 @@ export default function RsmPage() {
                 </SelectContent>
               </Select>
               <Button className="ml-3 shrink-0">
-                <Plus className="mr-1.5 h-4 w-4" />
+                <IconPlus className="mr-1.5 h-4 w-4" />
                 Novo Post
               </Button>
             </div>
@@ -313,7 +313,7 @@ export default function RsmPage() {
               </div>
             ) : posts.length === 0 ? (
               <EmptyState
-                icon={BarChart3}
+                icon={IconChartBar}
                 title="Nenhum post encontrado"
                 description="Crie o primeiro post para publicar nas redes sociais."
               />
@@ -368,19 +368,19 @@ export default function RsmPage() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
+                                <IconDots className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem>
-                                <Pencil className="mr-2 h-4 w-4" />
+                                <IconPencil className="mr-2 h-4 w-4" />
                                 Editar
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-red-500"
                                 onClick={() => deletePostMutation.mutate(post.id)}
                               >
-                                <Trash2 className="mr-2 h-4 w-4" />
+                                <IconTrash className="mr-2 h-4 w-4" />
                                 Excluir
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -414,7 +414,7 @@ export default function RsmPage() {
                 </SelectContent>
               </Select>
               <Button className="ml-3 shrink-0">
-                <Plus className="mr-1.5 h-4 w-4" />
+                <IconPlus className="mr-1.5 h-4 w-4" />
                 Nova Ideia
               </Button>
             </div>
@@ -427,7 +427,7 @@ export default function RsmPage() {
               </div>
             ) : ideas.length === 0 ? (
               <EmptyState
-                icon={BarChart3}
+                icon={IconChartBar}
                 title="Nenhuma ideia encontrada"
                 description="Registre ideias de conteúdo para transformar em posts."
               />
@@ -470,19 +470,19 @@ export default function RsmPage() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
+                                <IconDots className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem>
-                                <Pencil className="mr-2 h-4 w-4" />
+                                <IconPencil className="mr-2 h-4 w-4" />
                                 Editar
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-red-500"
                                 onClick={() => deleteIdeaMutation.mutate(idea.id)}
                               >
-                                <Trash2 className="mr-2 h-4 w-4" />
+                                <IconTrash className="mr-2 h-4 w-4" />
                                 Excluir
                               </DropdownMenuItem>
                             </DropdownMenuContent>

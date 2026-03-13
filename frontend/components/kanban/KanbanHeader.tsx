@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutGrid, List, Table2 } from "lucide-react";
+import { IconLayoutGrid, IconList, IconTable } from "@tabler/icons-react";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -21,9 +21,9 @@ export interface KanbanHeaderProps {
 // ---------------------------------------------------------------------------
 
 const VIEW_OPTIONS: { value: KanbanView; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { value: "board", label: "Board", icon: LayoutGrid },
-  { value: "list", label: "List", icon: List },
-  { value: "table", label: "Table", icon: Table2 },
+  { value: "board", label: "Board", icon: IconLayoutGrid },
+  { value: "list", label: "List", icon: IconList },
+  { value: "table", label: "Table", icon: IconTable },
 ];
 
 // ---------------------------------------------------------------------------

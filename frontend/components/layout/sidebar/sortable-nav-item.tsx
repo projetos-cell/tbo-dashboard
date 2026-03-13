@@ -17,15 +17,15 @@ import { sortableKeyboardCoordinates, arrayMove } from "@dnd-kit/sortable";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import {
-  ChevronRight,
-  Copy,
-  ExternalLink,
-  EyeOff,
-  GripVertical,
-  MoreHorizontal,
-  MoveRight,
-  Plus,
-} from "lucide-react";
+  IconChevronRight,
+  IconCopy,
+  IconExternalLink,
+  IconEyeOff,
+  IconGripVertical,
+  IconDots,
+  IconArrowRight,
+  IconPlus,
+} from "@tabler/icons-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -191,7 +191,7 @@ export const SortableNavItem = memo(function SortableNavItem({
         }}
         aria-label={`Ir para ${item.label}`}
       >
-        <Plus className="h-3.5 w-3.5" />
+        <IconPlus className="h-3.5 w-3.5" />
       </button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -201,22 +201,22 @@ export const SortableNavItem = memo(function SortableNavItem({
             onClick={(e) => e.stopPropagation()}
             aria-label={`Opções de ${item.label}`}
           >
-            <MoreHorizontal className="h-3.5 w-3.5" />
+            <IconDots className="h-3.5 w-3.5" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent side="right" align="start" className="w-52">
           <DropdownMenuItem onClick={() => onAction?.("open-new-tab", item, groupLabel)}>
-            <ExternalLink className="mr-2 h-3.5 w-3.5" />
+            <IconExternalLink className="mr-2 h-3.5 w-3.5" />
             Abrir em nova aba
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => onAction?.("copy-link", item, groupLabel)}>
-            <Copy className="mr-2 h-3.5 w-3.5" />
+            <IconCopy className="mr-2 h-3.5 w-3.5" />
             Copiar link
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
-              <MoveRight className="mr-2 h-3.5 w-3.5" />
+              <IconArrowRight className="mr-2 h-3.5 w-3.5" />
               Mover para...
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
@@ -237,7 +237,7 @@ export const SortableNavItem = memo(function SortableNavItem({
             onClick={() => onAction?.("hide", item, groupLabel)}
             className="text-muted-foreground"
           >
-            <EyeOff className="mr-2 h-3.5 w-3.5" />
+            <IconEyeOff className="mr-2 h-3.5 w-3.5" />
             Ocultar da sidebar
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -256,7 +256,7 @@ export const SortableNavItem = memo(function SortableNavItem({
       {...listeners}
       aria-label={`Arrastar ${item.label}`}
     >
-      <GripVertical className="h-3 w-3" />
+      <IconGripVertical className="h-3 w-3" />
     </button>
   );
 
@@ -315,7 +315,7 @@ export const SortableNavItem = memo(function SortableNavItem({
             )}
             aria-label={`Expandir ${item.label}`}
           >
-            <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+            <IconChevronRight className="h-3.5 w-3.5 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
           </button>
         </CollapsibleTrigger>
 

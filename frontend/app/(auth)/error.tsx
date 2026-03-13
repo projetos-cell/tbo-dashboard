@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect } from "react";
-import { AlertTriangle, RotateCcw } from "lucide-react";
+import { IconAlertTriangle, IconRefresh } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -21,7 +21,7 @@ export default function AuthError({
       <Card className="max-w-md w-full">
         <CardContent className="flex flex-col items-center gap-4 pt-6">
           <div className="rounded-full bg-red-500/10 p-3">
-            <AlertTriangle className="size-6 text-red-500" />
+            <IconAlertTriangle className="size-6 text-red-500" />
           </div>
           <div className="text-center space-y-1">
             <h2 className="text-lg font-semibold">Algo deu errado</h2>
@@ -35,7 +35,7 @@ export default function AuthError({
             )}
           </div>
           <Button onClick={reset} variant="outline" size="sm">
-            <RotateCcw className="size-3.5 mr-1.5" />
+            <IconRefresh className="size-3.5 mr-1.5" />
             Tentar novamente
           </Button>
         </CardContent>

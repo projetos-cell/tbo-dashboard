@@ -1,5 +1,46 @@
 # TBO OS — Audit Log
 
+## Ciclo — 2026-03-13 (auto) — Ciclo 3
+
+**Módulo**: Tarefas (`features/tasks`)
+**Branch**: `claude/improve-20260312-auto`
+**Build**: ✅ Passou antes e depois de todas as mudanças
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|---|---|---|---|
+| Calendar View | ❌ | ✅ | Grid mensal com tarefas por due_date, task pills com cor de status, badge "+N", navegação mês, botão "Hoje" |
+| Toolbar — icons | ⚠️ | ✅ | Lucide → Tabler Icons (ArrowsUpDown, Filter, LayoutRows, Check, ArrowUp, ArrowDown) |
+| Toolbar — tamanho | ⚠️ | ✅ | 389 linhas → 201 linhas (FilterPanel extraído para arquivo próprio) |
+| FilterPanel | ⚠️ | ✅ | Extraído para `my-tasks-filter-panel.tsx` (167 linhas), exporta SORT_OPTIONS e GROUP_OPTIONS |
+| TableRow — icons | ⚠️ | ✅ | Lucide → Tabler Icons (Check, Circle, GripVertical) |
+| Page — icons | ⚠️ | ✅ | Lucide → Tabler Icons (Plus, CheckSquare, Kanban, List, CalendarDays) |
+
+### Implementado
+
+- feat: `my-tasks-calendar-view.tsx` — grid mensal com TaskPill por due_date, navegação, hoje, badge overflow (arquivos: app/(auth)/tarefas/page.tsx, features/tasks/components/my-tasks-calendar-view.tsx)
+- refactor: `my-tasks-toolbar.tsx` — Tabler Icons + FilterPanel extraído (arquivos: my-tasks-toolbar.tsx, my-tasks-filter-panel.tsx)
+- fix: `my-task-table-row.tsx` — Tabler Icons (arquivo: my-task-table-row.tsx)
+
+### Migrations aplicadas
+
+Nenhuma — sem alterações de schema.
+
+### Próximo ciclo (sugestões)
+
+- Ainda há 16 arquivos com `lucide-react` no módulo de tarefas — completar a migração
+- `my-tasks-list-view.tsx` (358 linhas) e `my-tasks-board-view.tsx` (275 linhas) acima do limite
+- Realtime subscription no task detail (comments/activity ao vivo)
+- Calendar View: suporte a click em dia para criar tarefa com due_date pré-preenchido
+
+### Debt técnico
+
+- `my-tasks-toolbar.tsx` em 201 linhas (1 acima do limite — pragmaticamente aceito)
+- Migração de Lucide → Tabler incompleta no módulo (16 arquivos restantes)
+
+---
+
 ## Ciclo — 2026-03-12 (auto) — Ciclo 2
 
 **Módulo**: Tarefas (`features/tasks`)

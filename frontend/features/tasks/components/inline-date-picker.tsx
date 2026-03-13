@@ -6,7 +6,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar as CalendarIcon, X } from "lucide-react";
+import { IconCalendar, IconX } from "@tabler/icons-react";
 
 interface InlineDatePickerProps {
   value?: string; // ISO date string "YYYY-MM-DD"
@@ -71,7 +71,7 @@ export function InlineDatePicker({
                 className="w-full text-xs text-muted-foreground"
                 onClick={handleClear}
               >
-                <X className="mr-1 h-3 w-3" /> Remover prazo
+                <IconX className="mr-1 h-3 w-3" /> Remover prazo
               </Button>
             </div>
           )}
@@ -93,7 +93,7 @@ export function InlineDatePicker({
                 : "text-muted-foreground/50"
           }`}
         >
-          <CalendarIcon className="h-3 w-3 shrink-0" />
+          <IconCalendar className="h-3 w-3 shrink-0" />
           <span>
             {value
               ? format(new Date(value + "T12:00:00"), "dd MMM", { locale: ptBR })
@@ -117,7 +117,7 @@ export function InlineDatePicker({
               className="w-full text-xs text-muted-foreground"
               onClick={handleClear}
             >
-              <X className="mr-1 h-3 w-3" /> Remover prazo
+              <IconX className="mr-1 h-3 w-3" /> Remover prazo
             </Button>
           </div>
         )}

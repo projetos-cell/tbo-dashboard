@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChevronsUpDown, UserX, Users } from "lucide-react";
+import { IconCheck, IconSelector, IconUserOff, IconUsers } from "@tabler/icons-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -126,7 +126,7 @@ export function TaskAssigneePicker({ task }: TaskAssigneePickerProps) {
           ) : (
             <span className="text-muted-foreground">Sem responsável</span>
           )}
-          <ChevronsUpDown className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+          <IconSelector className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
         </button>
       </PopoverTrigger>
 
@@ -146,7 +146,7 @@ export function TaskAssigneePicker({ task }: TaskAssigneePickerProps) {
                     onSelect={handleRemove}
                     className="text-muted-foreground"
                   >
-                    <UserX className="mr-2 h-4 w-4" />
+                    <IconUserOff className="mr-2 h-4 w-4" />
                     Remover responsável
                   </CommandItem>
                 </CommandGroup>
@@ -193,7 +193,7 @@ export function TaskAssigneePicker({ task }: TaskAssigneePickerProps) {
                     </Badge>
 
                     {isSelected && (
-                      <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                      <IconCheck className="h-3.5 w-3.5 text-primary shrink-0" />
                     )}
                   </CommandItem>
                 );

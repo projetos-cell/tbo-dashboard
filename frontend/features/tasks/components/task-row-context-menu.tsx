@@ -15,14 +15,14 @@ import { TASK_STATUS, TASK_PRIORITY } from "@/lib/constants";
 import { useUpdateTask, useDeleteTask } from "@/features/tasks/hooks/use-tasks";
 import type { MyTaskWithSection } from "@/features/tasks/services/my-tasks";
 import {
-  Pencil,
-  Copy,
-  Trash2,
-  CheckCircle2,
-  RotateCcw,
-  CalendarDays,
-  Circle,
-} from "lucide-react";
+  IconPencil,
+  IconCopy,
+  IconTrash,
+  IconCircleCheck,
+  IconRefresh,
+  IconCalendar,
+  IconCircle,
+} from "@tabler/icons-react";
 import { InlineDatePicker } from "./inline-date-picker";
 
 interface TaskRowContextMenuProps {
@@ -94,7 +94,7 @@ export function TaskRowContextMenu({
         <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
         <ContextMenuContent className="w-56">
           <ContextMenuItem onClick={onOpenDetail}>
-            <Pencil className="mr-2 h-4 w-4" />
+            <IconPencil className="mr-2 h-4 w-4" />
             Abrir detalhes
           </ContextMenuItem>
 
@@ -103,7 +103,7 @@ export function TaskRowContextMenu({
           {/* Status submenu */}
           <ContextMenuSub>
             <ContextMenuSubTrigger>
-              <Circle className="mr-2 h-4 w-4" />
+              <IconCircle className="mr-2 h-4 w-4" />
               Status
             </ContextMenuSubTrigger>
             <ContextMenuSubContent className="w-48">
@@ -119,7 +119,7 @@ export function TaskRowContextMenu({
                   />
                   {cfg.label}
                   {task.status === key && (
-                    <CheckCircle2 className="ml-auto h-3.5 w-3.5 text-primary" />
+                    <IconCircleCheck className="ml-auto h-3.5 w-3.5 text-primary" />
                   )}
                 </ContextMenuItem>
               ))}
@@ -129,7 +129,7 @@ export function TaskRowContextMenu({
           {/* Priority submenu */}
           <ContextMenuSub>
             <ContextMenuSubTrigger>
-              <Circle className="mr-2 h-4 w-4" />
+              <IconCircle className="mr-2 h-4 w-4" />
               Prioridade
             </ContextMenuSubTrigger>
             <ContextMenuSubContent className="w-48">
@@ -145,7 +145,7 @@ export function TaskRowContextMenu({
                   />
                   {cfg.label}
                   {task.priority === key && (
-                    <CheckCircle2 className="ml-auto h-3.5 w-3.5 text-primary" />
+                    <IconCircleCheck className="ml-auto h-3.5 w-3.5 text-primary" />
                   )}
                 </ContextMenuItem>
               ))}
@@ -154,7 +154,7 @@ export function TaskRowContextMenu({
 
           {/* Date picker trigger */}
           <ContextMenuItem onClick={() => setDatePickerOpen(true)}>
-            <CalendarDays className="mr-2 h-4 w-4" />
+            <IconCalendar className="mr-2 h-4 w-4" />
             Definir prazo
           </ContextMenuItem>
 
@@ -163,19 +163,19 @@ export function TaskRowContextMenu({
           <ContextMenuItem onClick={handleToggleComplete}>
             {task.is_completed ? (
               <>
-                <RotateCcw className="mr-2 h-4 w-4" />
+                <IconRefresh className="mr-2 h-4 w-4" />
                 Reabrir tarefa
               </>
             ) : (
               <>
-                <CheckCircle2 className="mr-2 h-4 w-4" />
+                <IconCircleCheck className="mr-2 h-4 w-4" />
                 Marcar como concluída
               </>
             )}
           </ContextMenuItem>
 
           <ContextMenuItem onClick={() => onOpenDetail?.()}>
-            <Copy className="mr-2 h-4 w-4" />
+            <IconCopy className="mr-2 h-4 w-4" />
             Duplicar
           </ContextMenuItem>
 
@@ -185,7 +185,7 @@ export function TaskRowContextMenu({
             onClick={handleDelete}
             className="text-red-600 focus:text-red-600"
           >
-            <Trash2 className="mr-2 h-4 w-4" />
+            <IconTrash className="mr-2 h-4 w-4" />
             Excluir
           </ContextMenuItem>
         </ContextMenuContent>

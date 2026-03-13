@@ -7,7 +7,7 @@ import { useUpdateTask } from "@/features/tasks/hooks/use-tasks";
 import type { Database } from "@/lib/supabase/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar, Check, Circle } from "lucide-react";
+import { IconCalendar, IconCheck, IconCircle } from "@tabler/icons-react";
 import { useCallback } from "react";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
@@ -76,9 +76,9 @@ export function TaskCompactList({ tasks, onSelect }: TaskCompactListProps) {
               aria-label="Alternar conclusão"
             >
               {task.is_completed ? (
-                <Check className="h-4 w-4 text-green-600" />
+                <IconCheck className="h-4 w-4 text-green-600" />
               ) : (
-                <Circle className="h-4 w-4 text-gray-400" />
+                <IconCircle className="h-4 w-4 text-gray-400" />
               )}
             </Button>
 
@@ -128,7 +128,7 @@ export function TaskCompactList({ tasks, onSelect }: TaskCompactListProps) {
               <div
                 className={`hidden shrink-0 items-center gap-1 text-xs lg:flex ${overdue ? "font-medium text-red-600" : "text-gray-500"}`}
               >
-                <Calendar className="h-3 w-3" />
+                <IconCalendar className="h-3 w-3" />
                 <span>
                   {format(new Date(task.due_date + "T12:00:00"), "dd MMM", {
                     locale: ptBR,

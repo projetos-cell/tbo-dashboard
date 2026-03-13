@@ -10,7 +10,7 @@ import type { ColumnDef } from "@/lib/column-types";
 import type { Database } from "@/lib/supabase/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Check, Circle } from "lucide-react";
+import { IconCheck, IconCircle } from "@tabler/icons-react";
 import { useMemo, useCallback } from "react";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
@@ -57,9 +57,9 @@ export function TaskList({ tasks, onSelect }: TaskListProps) {
             aria-label="Alternar conclusao"
           >
             {row.is_completed ? (
-              <Check className="h-4 w-4 text-green-600" />
+              <IconCheck className="h-4 w-4 text-green-600" />
             ) : (
-              <Circle className="h-4 w-4 text-gray-500" />
+              <IconCircle className="h-4 w-4 text-gray-500" />
             )}
           </Button>
         ),

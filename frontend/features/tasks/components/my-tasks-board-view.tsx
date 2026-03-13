@@ -32,7 +32,7 @@ import {
 } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus } from "lucide-react";
+import { IconPlus } from "@tabler/icons-react";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 
@@ -261,7 +261,7 @@ export function MyTasksBoardView({ tasks, onSelect }: MyTasksBoardViewProps) {
             className="text-gray-400"
             onClick={handleAddSection}
           >
-            <Plus className="mr-1.5 h-4 w-4" />
+            <IconPlus className="mr-1.5 h-4 w-4" />
             Adicionar seção
           </Button>
         </div>

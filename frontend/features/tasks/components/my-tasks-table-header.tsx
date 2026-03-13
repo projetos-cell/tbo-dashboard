@@ -6,7 +6,7 @@ import {
   TableRow,
   TableHead,
 } from "@/components/ui/table";
-import { ArrowUp, ArrowDown, GripVertical } from "lucide-react";
+import { IconArrowUp, IconArrowDown, IconGripVertical } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import type { ResolvedColumn } from "@/features/tasks/lib/my-tasks-columns";
 import {
@@ -224,16 +224,16 @@ function SortableHead({
             tabIndex={-1}
             onClick={(e) => e.stopPropagation()}
           >
-            <GripVertical className="h-3 w-3" />
+            <IconGripVertical className="h-3 w-3" />
           </button>
         )}
         <span>{column.label}</span>
         {isSorted && (
           <span className="text-primary">
             {sortDirection === "asc" ? (
-              <ArrowUp className="h-3 w-3" />
+              <IconArrowUp className="h-3 w-3" />
             ) : (
-              <ArrowDown className="h-3 w-3" />
+              <IconArrowDown className="h-3 w-3" />
             )}
           </span>
         )}

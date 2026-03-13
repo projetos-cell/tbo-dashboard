@@ -7,7 +7,7 @@ import { useUpdateTask } from "@/features/tasks/hooks/use-tasks";
 import type { MyTaskWithSection } from "@/features/tasks/services/my-tasks";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar, Check, Circle, GripVertical } from "lucide-react";
+import { IconCalendar, IconCheck, IconCircle, IconGripVertical } from "@tabler/icons-react";
 import { useCallback } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -85,7 +85,7 @@ export function MyTaskRow({ task, onClick, isDragOverlay }: MyTaskRowProps) {
         className="shrink-0 cursor-grab text-gray-300 opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
         tabIndex={-1}
       >
-        <GripVertical className="h-4 w-4" />
+        <IconGripVertical className="h-4 w-4" />
       </button>
 
       {/* Check button */}
@@ -97,9 +97,9 @@ export function MyTaskRow({ task, onClick, isDragOverlay }: MyTaskRowProps) {
         aria-label="Alternar conclusão"
       >
         {task.is_completed ? (
-          <Check className="h-4 w-4 text-green-600" />
+          <IconCheck className="h-4 w-4 text-green-600" />
         ) : (
-          <Circle className="h-4 w-4 text-gray-400" />
+          <IconCircle className="h-4 w-4 text-gray-400" />
         )}
       </Button>
 
@@ -149,7 +149,7 @@ export function MyTaskRow({ task, onClick, isDragOverlay }: MyTaskRowProps) {
         <div
           className={`hidden shrink-0 items-center gap-1 text-xs lg:flex ${overdue ? "font-medium text-red-600" : "text-gray-500"}`}
         >
-          <Calendar className="h-3 w-3" />
+          <IconCalendar className="h-3 w-3" />
           <span>
             {format(new Date(task.due_date + "T12:00:00"), "dd MMM", {
               locale: ptBR,

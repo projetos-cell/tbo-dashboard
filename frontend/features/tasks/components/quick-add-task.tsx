@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useCreateTask } from "@/features/tasks/hooks/use-tasks";
 import { useMoveTaskToSection } from "@/features/tasks/hooks/use-my-tasks";
 import { useAuthStore } from "@/stores/auth-store";
-import { Plus } from "lucide-react";
+import { IconPlus } from "@tabler/icons-react";
 
 interface QuickAddTaskProps {
   sectionId: string;
@@ -75,7 +75,7 @@ export function QuickAddTask({ sectionId, sortOrder }: QuickAddTaskProps) {
         }}
         className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
       >
-        <Plus className="h-4 w-4" />
+        <IconPlus className="h-4 w-4" />
         <span>Adicionar tarefa...</span>
       </button>
     );

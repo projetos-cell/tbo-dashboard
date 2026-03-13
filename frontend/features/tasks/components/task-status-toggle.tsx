@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { Check } from "lucide-react";
+import { IconCheck } from "@tabler/icons-react";
 import { useUpdateTask } from "@/features/tasks/hooks/use-tasks";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -63,7 +63,7 @@ export function TaskStatusToggle({ task, compact }: TaskStatusToggleProps) {
         )}
         aria-label={task.is_completed ? "Reabrir tarefa" : "Concluir tarefa"}
       >
-        {task.is_completed && <Check className="h-3 w-3" strokeWidth={3} />}
+        {task.is_completed && <IconCheck className="h-3 w-3" strokeWidth={3} />}
       </button>
     );
   }
@@ -89,7 +89,7 @@ export function TaskStatusToggle({ task, compact }: TaskStatusToggleProps) {
             : "border-muted-foreground/50"
         )}
       >
-        {task.is_completed && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
+        {task.is_completed && <IconCheck className="h-2.5 w-2.5" strokeWidth={3} />}
       </span>
       {task.is_completed ? "Concluída" : "Marcar como concluída"}
     </button>

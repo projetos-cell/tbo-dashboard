@@ -12,12 +12,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  ChevronDown,
-  ChevronRight,
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-} from "lucide-react";
+  IconChevronDown,
+  IconChevronRight,
+  IconDots,
+  IconPencil,
+  IconTrash,
+} from "@tabler/icons-react";
 import type { MyTasksSection } from "@/features/tasks/services/my-tasks";
 
 interface MyTasksSectionRowProps {
@@ -57,9 +57,9 @@ export function MyTasksSectionRow({
             className="shrink-0 rounded p-0.5 text-gray-500 hover:bg-gray-100"
           >
             {isCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
+              <IconChevronRight className="h-4 w-4" />
             ) : (
-              <ChevronDown className="h-4 w-4" />
+              <IconChevronDown className="h-4 w-4" />
             )}
           </button>
 
@@ -104,7 +104,7 @@ export function MyTasksSectionRow({
                   variant="ghost"
                   className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
                 >
-                  <MoreHorizontal className="h-3.5 w-3.5" />
+                  <IconDots className="h-3.5 w-3.5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -114,14 +114,14 @@ export function MyTasksSectionRow({
                     setIsEditing(true);
                   }}
                 >
-                  <Pencil className="mr-2 h-3.5 w-3.5" />
+                  <IconPencil className="mr-2 h-3.5 w-3.5" />
                   Renomear
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="text-red-600 focus:text-red-600"
                   onClick={onDelete}
                 >
-                  <Trash2 className="mr-2 h-3.5 w-3.5" />
+                  <IconTrash className="mr-2 h-3.5 w-3.5" />
                   Excluir seção
                 </DropdownMenuItem>
               </DropdownMenuContent>

@@ -8,7 +8,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Settings2, GripVertical } from "lucide-react";
+import { IconAdjustments, IconGripVertical } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import {
   MY_TASKS_COLUMNS,
@@ -84,7 +84,7 @@ export function MyTasksColumnConfig({
           size="sm"
           className="h-7 gap-1.5 text-xs font-medium"
         >
-          <Settings2 className="h-3.5 w-3.5" />
+          <IconAdjustments className="h-3.5 w-3.5" />
           Campos
         </Button>
       </PopoverTrigger>
@@ -114,7 +114,7 @@ export function MyTasksColumnConfig({
                         idx <= 1 && "invisible"
                       )}
                     >
-                      <GripVertical className="h-3 w-3" />
+                      <IconGripVertical className="h-3 w-3" />
                     </button>
                   </div>
                 ) : (

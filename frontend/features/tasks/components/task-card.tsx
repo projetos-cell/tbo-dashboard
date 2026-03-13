@@ -5,7 +5,7 @@ import { TASK_STATUS, TASK_PRIORITY } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar } from "lucide-react";
+import { IconCalendar } from "@tabler/icons-react";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 
@@ -81,7 +81,7 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
           <div
             className={`flex items-center gap-1 ${overdue ? "font-medium text-red-600" : ""}`}
           >
-            <Calendar className="h-3 w-3" />
+            <IconCalendar className="h-3 w-3" />
             <span>
               {format(new Date(task.due_date + "T12:00:00"), "dd MMM", {
                 locale: ptBR,

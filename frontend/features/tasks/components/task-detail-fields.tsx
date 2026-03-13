@@ -16,6 +16,7 @@ import { TaskDateRange } from "./task-date-range";
 import { TaskProjectsList } from "./task-projects-list";
 import { TaskCollaboratorsList } from "./task-collaborators-list";
 import { TaskTagsDisplay } from "./task-tags-display";
+import { TaskDependenciesSection } from "./task-dependencies-section";
 import type { Database } from "@/lib/supabase/types";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
@@ -28,6 +29,8 @@ interface TaskDetailFieldsProps {
   /** Controlled: se true, abre o picker de projetos via atalho Tab+P */
   projectPickerOpen?: boolean;
   onProjectPickerOpenChange?: (open: boolean) => void;
+  /** Callback para abrir outra tarefa no sheet (dependências) */
+  onOpenTask?: (taskId: string) => void;
 }
 
 // ─── Component ────────────────────────────────────────
@@ -37,6 +40,7 @@ export function TaskDetailFields({
   projectName: _projectName,
   projectPickerOpen,
   onProjectPickerOpenChange,
+  onOpenTask,
 }: TaskDetailFieldsProps) {
   return (
     <div className="divide-y divide-border/50">
@@ -88,9 +92,7 @@ export function TaskDetailFields({
 
       {/* Dependências */}
       <FieldRow label="Dependências" icon={<IconGitBranch className="h-3.5 w-3.5" />}>
-        <span className="text-sm text-muted-foreground">
-          Adicionar dependências
-        </span>
+        <TaskDependenciesSection task={task} onOpenTask={onOpenTask} />
       </FieldRow>
 
       {/* Campos personalizados placeholder */}

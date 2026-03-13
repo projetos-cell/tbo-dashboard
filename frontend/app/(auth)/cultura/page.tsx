@@ -44,9 +44,11 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
 
 const CATEGORY_LINKS: Record<string, string> = {
   pilar: "/cultura/pilares",
+  valor: "/cultura/valores",
   ritual: "/cultura/rituais",
   politica: "/cultura/politicas",
   reconhecimento: "/cultura/reconhecimentos",
+  documento: "/cultura/documentos",
   manual: "/cultura/manual",
 };
 

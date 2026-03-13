@@ -346,10 +346,12 @@ export type CulturaCategoryKey = keyof typeof CULTURA_CATEGORIES;
 export const CULTURA_NAV_ITEMS = [
   { href: "/cultura", label: "Visao Geral", icon: "layout-dashboard" },
   { href: "/cultura/pilares", label: "Pilares", icon: "columns-3" },
+  { href: "/cultura/valores", label: "Valores", icon: "heart" },
   { href: "/cultura/rituais", label: "Rituais", icon: "repeat" },
   { href: "/cultura/politicas", label: "Politicas", icon: "shield" },
   { href: "/cultura/reconhecimentos", label: "Reconhecimentos", icon: "award" },
   { href: "/cultura/recompensas", label: "Recompensas", icon: "gift" },
+  { href: "/cultura/documentos", label: "Documentos", icon: "file-text" },
   { href: "/cultura/manual", label: "Manual", icon: "book-open" },
   { href: "/cultura/analytics", label: "Analytics", icon: "bar-chart-3", min_role: "diretoria" as const },
 ] as const;

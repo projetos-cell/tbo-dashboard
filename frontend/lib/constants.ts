@@ -461,6 +461,7 @@ export const PROJETOS_NAV_ITEMS: readonly SubNavItem[] = [
   { href: "/projetos/calendario", label: "Calendário", icon: "calendar" },
   { href: "/projetos/arquivos", label: "Arquivos", icon: "folder-open" },
   { href: "/projetos/templates", label: "Templates", icon: "copy" },
+  { href: "/projetos/decisoes", label: "Decisões", icon: "check-square" },
   { href: "/projetos/configuracoes", label: "Configurações", icon: "settings" },
 ] as const;
 

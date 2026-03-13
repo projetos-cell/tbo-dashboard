@@ -1,5 +1,47 @@
 # TBO OS — Audit Log
 
+## Ciclo — 2026-03-13 (auto) — Ciclo 14
+
+**Módulo**: Multi-módulo (Cultura, Pessoas, Projetos)
+**Branch**: `main`
+**Build**: ✅ Passou antes e depois das 3 melhorias
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|---|---|---|---|
+| Build — `redemption-pending-list.tsx` | 🔧 | ✅ | TypeScript strict: `Record<string, number>` não aceito como index; substituído por função `getStatusOrder` com type guards explícitos |
+| `pessoas/colaboradores/page.tsx` | ❌ placeholder | ✅ | Diretório completo com busca, filtro de status, grid de cards, skeleton, empty state, error state e PersonDetail sheet |
+| `projetos/decisoes/page.tsx` | ❌ inexistente | ✅ | Página criada conectando todos os componentes do feature `decisions` (list, detail, form, filters); adicionada ao PROJETOS_NAV_ITEMS |
+| `lib/icons.ts` | ⚠️ | ✅ | Adicionado `check-square` (CheckSquare) ao ICON_MAP para suportar ícone de Decisões na sidebar |
+
+### Implementado
+
+- fix: `getStatusOrder` helper type-safe em `redemption-pending-list.tsx` (evita implicit any em strict mode)
+- feat: `pessoas/colaboradores/page.tsx` — diretório da equipe com busca por nome/cargo/email, filtro por status (pills coloridas), grid 4 colunas, skeleton content-aware 8 cards, EmptyState com CTA, ErrorState com retry, PersonDetail sheet ao clicar
+- feat: `projetos/decisoes/page.tsx` — página completa de decisões: header com botão "Nova Decisão", DecisionFilters (busca + datas), DecisionsList com CRUD (view/edit/delete), DecisionDetail sheet (inline-edit + delete confirm), DecisionForm dialog (create)
+- feat: `lib/constants.ts` — adicionado item "Decisões" ao PROJETOS_NAV_ITEMS com icon "check-square"
+- feat: `lib/icons.ts` — importado e registrado `CheckSquare` de lucide-react
+
+### Migrations aplicadas
+
+Nenhuma — `decisions` e `profiles` já existem no schema.
+
+### Próximo ciclo (sugestões)
+
+- `pessoas/reconhecimentos/page.tsx` — placeholder; feature `cultura/reconhecimentos` já tem lógica reutilizável
+- `okrs/dashboard/page.tsx` e sub-páginas de OKRs (check-ins, company, individuais, teams) — todos placeholders; feature `okrs` já tem hooks
+- `projetos/templates/page.tsx` — placeholder; criar CRUD básico de templates de projeto
+- Migração Lucide → Tabler Icons nos componentes de decisions e people (usam lucide-react direto)
+- Confirmação de delete em DecisionsList (atualmente deleta sem confirmação)
+
+### Debt técnico
+
+- `decisions-list.tsx` deleta sem confirmation dialog (onClick direto em `deleteDecision.mutate`) — risco de ação acidental; a ser resolvido em ciclo futuro
+- Ícones de `features/decisions/` e `features/people/` ainda importam diretamente de `lucide-react` (não Tabler) — fora do padrão mas não quebra nada
+
+---
+
 ## Ciclo — 2026-03-13 (auto) — Ciclo 13
 
 **Módulo**: Chat (`features/chat/components`)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useRef } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -8,21 +8,20 @@ import {
   Check,
   CheckCircle2,
   Circle,
+  Copy,
   FolderOpen,
   GitBranch,
   Link2,
-  ListTree,
-  MessageSquare,
   MoreHorizontal,
   Paperclip,
   Plus,
-  ThumbsUp,
   Trash2,
   Users,
   X,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
@@ -31,6 +30,13 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { InlineEditable } from "@/components/ui/inline-editable";
 import { UserSelector, type UserOption } from "@/components/ui/user-selector";
 import { CommentThread } from "@/components/shared/comment-thread";
@@ -40,8 +46,10 @@ import { TASK_STATUS, TASK_PRIORITY } from "@/lib/constants";
 import {
   useUpdateTask,
   useDeleteTask,
+  useCreateTask,
   useSubtasks,
 } from "@/features/tasks/hooks/use-tasks";
+import { useToast } from "@/hooks/use-toast";
 import {
   useTaskAssignees,
   useAddAssignee,
@@ -96,6 +104,8 @@ export function TaskDetail({
 }: TaskDetailProps) {
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
+  const createTask = useCreateTask();
+  const { toast } = useToast();
   const { data: subtasks } = useSubtasks(task?.id);
   const { data: assignees } = useTaskAssignees(task?.id || "");
   const addAssignee = useAddAssignee();
@@ -110,6 +120,9 @@ export function TaskDetail({
 
   const mentionProvider = useMentionProvider();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [addingSubtask, setAddingSubtask] = useState(false);
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
+  const subtaskInputRef = useRef<HTMLInputElement>(null);
 
   if (!task) return null;
 
@@ -223,6 +236,65 @@ export function TaskDetail({
       onSuccess: () => {
         onOpenChange(false);
         setConfirmDelete(false);
+        toast({ title: "Tarefa excluída" });
+      },
+      onError: () => {
+        toast({
+          title: "Erro ao excluir tarefa",
+          description: "Tente novamente.",
+          variant: "destructive",
+        });
+        setConfirmDelete(false);
+      },
+    });
+  };
+
+  const handleCopyLink = () => {
+    const url = `${window.location.origin}${window.location.pathname}?task=${task.id}`;
+    void navigator.clipboard.writeText(url).then(() => {
+      toast({ title: "Link copiado!" });
+    });
+  };
+
+  const handleAddSubtask = () => {
+    const title = newSubtaskTitle.trim();
+    if (!title) {
+      setAddingSubtask(false);
+      return;
+    }
+    createTask.mutate(
+      {
+        title,
+        parent_id: task.id,
+        tenant_id: tenantId!,
+        status: "pendente",
+        priority: "media",
+        project_id: task.project_id,
+      } as never,
+      {
+        onSuccess: () => {
+          setNewSubtaskTitle("");
+          setAddingSubtask(false);
+        },
+        onError: () => {
+          toast({
+            title: "Erro ao criar subtarefa",
+            description: "Tente novamente.",
+            variant: "destructive",
+          });
+        },
+      }
+    );
+  };
+
+  const handleDeleteSubtask = (subtaskId: string) => {
+    deleteTask.mutate(subtaskId, {
+      onError: () => {
+        toast({
+          title: "Erro ao excluir subtarefa",
+          description: "Tente novamente.",
+          variant: "destructive",
+        });
       },
     });
   };
@@ -262,18 +334,36 @@ export function TaskDetail({
           </Button>
 
           <div className="flex items-center gap-0.5">
-            <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Curtir">
-              <ThumbsUp className="h-3.5 w-3.5" />
-            </Button>
-            <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Anexar">
-              <Paperclip className="h-3.5 w-3.5" />
-            </Button>
-            <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Copiar link">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7"
+              aria-label="Copiar link"
+              onClick={handleCopyLink}
+            >
               <Link2 className="h-3.5 w-3.5" />
             </Button>
-            <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Mais opções">
-              <MoreHorizontal className="h-3.5 w-3.5" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Mais opções">
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuItem onClick={handleCopyLink}>
+                  <Copy className="mr-2 h-3.5 w-3.5" />
+                  Copiar link
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-red-600 focus:text-red-600"
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  <Trash2 className="mr-2 h-3.5 w-3.5" />
+                  Excluir tarefa
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -459,7 +549,7 @@ export function TaskDetail({
                   {subtasks.map((sub) => (
                     <div
                       key={sub.id}
-                      className="flex items-center gap-2 rounded-md px-1 py-1 text-sm hover:bg-muted/50 transition-colors"
+                      className="group flex items-center gap-2 rounded-md px-1 py-1 text-sm hover:bg-muted/50 transition-colors"
                     >
                       <Button
                         size="icon"
@@ -483,24 +573,57 @@ export function TaskDetail({
                         )}
                       </Button>
                       <span
-                        className={
-                          sub.is_completed ? "line-through opacity-60" : ""
-                        }
+                        className={`flex-1 ${sub.is_completed ? "line-through opacity-60" : ""}`}
                       >
                         {sub.title}
                       </span>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-5 w-5 shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 transition-all"
+                        aria-label="Excluir subtarefa"
+                        onClick={() => handleDeleteSubtask(sub.id)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
                     </div>
                   ))}
                 </div>
               )}
 
-              <button
-                type="button"
-                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Adicionar subtarefa
-              </button>
+              {addingSubtask ? (
+                <div className="flex items-center gap-2 px-1 py-1">
+                  <Circle className="h-4 w-4 text-gray-400 shrink-0" />
+                  <Input
+                    ref={subtaskInputRef}
+                    value={newSubtaskTitle}
+                    onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                    placeholder="Nome da subtarefa..."
+                    className="h-6 text-sm border-0 border-b rounded-none px-0 focus-visible:ring-0 shadow-none"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleAddSubtask();
+                      if (e.key === "Escape") {
+                        setAddingSubtask(false);
+                        setNewSubtaskTitle("");
+                      }
+                    }}
+                    onBlur={handleAddSubtask}
+                    disabled={createTask.isPending}
+                    autoFocus
+                  />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
+                  onClick={() => {
+                    setAddingSubtask(true);
+                  }}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Adicionar subtarefa
+                </button>
+              )}
             </div>
 
             <Separator className="my-4" />

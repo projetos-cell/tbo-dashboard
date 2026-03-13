@@ -16,7 +16,7 @@ import {
 } from "@dnd-kit/core";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { MoreHorizontal, ExternalLink, Trash2, GripVertical } from "lucide-react";
+import { IconDots, IconExternalLink, IconTrash, IconGripVertical } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -88,7 +88,7 @@ function DemandCard({
             onClick={(e) => e.stopPropagation()}
             aria-label="Acoes"
           >
-            <MoreHorizontal className="h-3.5 w-3.5" />
+            <IconDots className="h-3.5 w-3.5" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
@@ -104,7 +104,7 @@ function DemandCard({
                   window.open(demand.notion_url!, "_blank");
                 }}
               >
-                <ExternalLink className="size-3.5 mr-2" />
+                <IconExternalLink className="size-3.5 mr-2" />
                 Abrir no Notion
               </DropdownMenuItem>
             )}
@@ -157,7 +157,7 @@ function DemandCard({
               onDelete();
             }}
           >
-            <Trash2 className="size-3.5 mr-2" />
+            <IconTrash className="size-3.5 mr-2" />
             Excluir
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -263,7 +263,7 @@ function DraggableDemandCard({
         className="absolute left-0 top-0 bottom-0 w-6 z-10 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover/card:opacity-60 hover:!opacity-100 transition-opacity"
         onClick={(e) => e.stopPropagation()}
       >
-        <GripVertical className="h-3.5 w-3.5 text-gray-500" />
+        <IconGripVertical className="h-3.5 w-3.5 text-gray-500" />
       </div>
       <div className="group/card">
         <DemandCard

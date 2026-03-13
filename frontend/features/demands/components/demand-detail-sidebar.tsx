@@ -17,20 +17,20 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  CircleDot,
-  Flag,
-  User,
-  Briefcase,
-  CalendarIcon,
-  Tag,
-  Film,
-  FileText,
-  Target,
-  Layers,
-  Milestone,
-  ExternalLink,
-  Trash2,
-} from "lucide-react";
+  IconCircleDot,
+  IconFlag,
+  IconUser,
+  IconBriefcase,
+  IconCalendar,
+  IconTag,
+  IconMovie,
+  IconFileText,
+  IconTarget,
+  IconStack2,
+  IconFlagCheck,
+  IconExternalLink,
+  IconTrash,
+} from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -147,7 +147,7 @@ export function DemandDetailSidebar({
 
   const propertyMap: Record<string, React.ReactNode> = {
     status: (
-      <DemandPropertyRow id="status" icon={CircleDot} label="Status">
+      <DemandPropertyRow id="status" icon={IconCircleDot} label="Status">
         <InlineSelect
           value={demand.status}
           options={statusOptions}
@@ -161,7 +161,7 @@ export function DemandDetailSidebar({
     prioridade: (
       <DemandPropertyRow
         id="prioridade"
-        icon={Flag}
+        icon={IconFlag}
         label="Prioridade"
         onClear={demand.prioridade ? () => onUpdate({ prioridade: null }) : undefined}
       >
@@ -176,7 +176,7 @@ export function DemandDetailSidebar({
     responsavel: (
       <DemandPropertyRow
         id="responsavel"
-        icon={User}
+        icon={IconUser}
         label="Responsável"
         onClear={demand.responsible ? () => onUpdate({ responsible: null }) : undefined}
       >
@@ -191,7 +191,7 @@ export function DemandDetailSidebar({
     bus: (
       <DemandPropertyRow
         id="bus"
-        icon={Briefcase}
+        icon={IconBriefcase}
         label="BUs"
         onClear={(demand.bus || []).length > 0 ? () => onUpdate({ bus: [] }) : undefined}
       >
@@ -220,7 +220,7 @@ export function DemandDetailSidebar({
     start_date: (
       <DemandPropertyRow
         id="start_date"
-        icon={CalendarIcon}
+        icon={IconCalendar}
         label="Início"
         onClear={demand.start_date ? () => onUpdate({ start_date: null }) : undefined}
       >
@@ -234,7 +234,7 @@ export function DemandDetailSidebar({
     due_date: (
       <DemandPropertyRow
         id="due_date"
-        icon={CalendarIcon}
+        icon={IconCalendar}
         label="Prazo"
         onClear={demand.due_date ? () => onUpdate({ due_date: null }) : undefined}
       >
@@ -249,7 +249,7 @@ export function DemandDetailSidebar({
     due_date_end: (
       <DemandPropertyRow
         id="due_date_end"
-        icon={CalendarIcon}
+        icon={IconCalendar}
         label="Entrega"
         onClear={demand.due_date_end ? () => onUpdate({ due_date_end: null }) : undefined}
       >
@@ -263,7 +263,7 @@ export function DemandDetailSidebar({
     tags: (
       <DemandPropertyRow
         id="tags"
-        icon={Tag}
+        icon={IconTag}
         label="Tags"
         onClear={(demand.tags || []).length > 0 ? () => onUpdate({ tags: [] }) : undefined}
       >
@@ -278,7 +278,7 @@ export function DemandDetailSidebar({
     tipo_midia: (
       <DemandPropertyRow
         id="tipo_midia"
-        icon={Film}
+        icon={IconMovie}
         label="Tipo Mídia"
         onClear={(demand.tipo_midia || []).length > 0 ? () => onUpdate({ tipo_midia: [] }) : undefined}
       >
@@ -293,7 +293,7 @@ export function DemandDetailSidebar({
     formalizacao: (
       <DemandPropertyRow
         id="formalizacao"
-        icon={FileText}
+        icon={IconFileText}
         label="Formalização"
         onClear={demand.formalizacao ? () => onUpdate({ formalizacao: null }) : undefined}
       >
@@ -308,7 +308,7 @@ export function DemandDetailSidebar({
     item_principal: (
       <DemandPropertyRow
         id="item_principal"
-        icon={Target}
+        icon={IconTarget}
         label="Item Principal"
         onClear={demand.item_principal ? () => onUpdate({ item_principal: null }) : undefined}
       >
@@ -323,7 +323,7 @@ export function DemandDetailSidebar({
     subitem: (
       <DemandPropertyRow
         id="subitem"
-        icon={Layers}
+        icon={IconStack2}
         label="Subitem"
         onClear={demand.subitem ? () => onUpdate({ subitem: null }) : undefined}
       >
@@ -338,7 +338,7 @@ export function DemandDetailSidebar({
     milestones: (
       <DemandPropertyRow
         id="milestones"
-        icon={Milestone}
+        icon={IconFlagCheck}
         label="Milestones"
         onClear={demand.milestones ? () => onUpdate({ milestones: null }) : undefined}
       >
@@ -397,7 +397,7 @@ export function DemandDetailSidebar({
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-1 py-1"
           >
-            <ExternalLink className="size-3 shrink-0" />
+            <IconExternalLink className="size-3 shrink-0" />
             Abrir no Notion
           </a>
         )}
@@ -444,7 +444,7 @@ export function DemandDetailSidebar({
               className="h-7 text-xs text-destructive hover:text-destructive"
               onClick={() => setConfirmDelete(true)}
             >
-              <Trash2 className="size-3 mr-1" />
+              <IconTrash className="size-3 mr-1" />
               Excluir
             </Button>
           )}

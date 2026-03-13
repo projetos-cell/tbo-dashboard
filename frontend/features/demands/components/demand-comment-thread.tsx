@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Send, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { IconSend, IconDots, IconPencil, IconTrash } from "@tabler/icons-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -144,7 +144,7 @@ function CommentComposer({
         disabled={!content.trim() || submitting || disabled}
         aria-label="Enviar comentario"
       >
-        <Send className="size-3.5" />
+        <IconSend className="size-3.5" />
       </Button>
     </div>
   );
@@ -216,21 +216,21 @@ function CommentItem({
                   className="size-6 ml-auto"
                   aria-label="Acoes"
                 >
-                  <MoreHorizontal className="size-3.5" />
+                  <IconDots className="size-3.5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
                   onClick={() => setIsEditing(true)}
                 >
-                  <Pencil className="size-3.5 mr-2" />
+                  <IconPencil className="size-3.5 mr-2" />
                   Editar
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="text-red-500 focus:text-red-500"
                   onClick={handleDelete}
                 >
-                  <Trash2 className="size-3.5 mr-2" />
+                  <IconTrash className="size-3.5 mr-2" />
                   Excluir
                 </DropdownMenuItem>
               </DropdownMenuContent>

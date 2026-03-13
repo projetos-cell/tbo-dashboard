@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import {
-  ExternalLink,
-  MoreHorizontal,
-  Trash2,
-  MessageSquare,
-  History,
-} from "lucide-react";
+  IconExternalLink,
+  IconDots,
+  IconTrash,
+  IconMessageCircle,
+  IconHistory,
+} from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -81,7 +81,7 @@ export function DemandDetail({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label="Acoes">
-                  <MoreHorizontal className="h-4 w-4" />
+                  <IconDots className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
@@ -89,7 +89,7 @@ export function DemandDetail({
                   <DropdownMenuLabel>Acoes</DropdownMenuLabel>
                   {demand.notion_url && (
                     <DropdownMenuItem onClick={() => window.open(demand.notion_url!, "_blank")}>
-                      <ExternalLink className="size-3.5 mr-2" />
+                      <IconExternalLink className="size-3.5 mr-2" />
                       Abrir no Notion
                     </DropdownMenuItem>
                   )}
@@ -123,7 +123,7 @@ export function DemandDetail({
                   className="text-destructive focus:text-destructive"
                   onClick={handleDelete}
                 >
-                  <Trash2 className="size-3.5 mr-2" />
+                  <IconTrash className="size-3.5 mr-2" />
                   Excluir
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -158,7 +158,7 @@ export function DemandDetail({
                   className="h-7 text-xs"
                   onClick={() => setBottomTab("comments")}
                 >
-                  <MessageSquare className="size-3 mr-1" />
+                  <IconMessageCircle className="size-3 mr-1" />
                   Comentarios
                 </Button>
                 <Button
@@ -167,7 +167,7 @@ export function DemandDetail({
                   className="h-7 text-xs"
                   onClick={() => setBottomTab("activity")}
                 >
-                  <History className="size-3 mr-1" />
+                  <IconHistory className="size-3 mr-1" />
                   Atividade
                 </Button>
               </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronRight } from "lucide-react";
+import { IconChevronRight } from "@tabler/icons-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -38,7 +38,7 @@ export function DemandPropertySection({
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger className="flex items-center gap-1 w-full group/trigger hover:bg-muted/30 rounded px-1 -mx-1 py-0.5">
-        <ChevronRight
+        <IconChevronRight
           className={cn(
             "size-3 text-muted-foreground transition-transform duration-200",
             open && "rotate-90",

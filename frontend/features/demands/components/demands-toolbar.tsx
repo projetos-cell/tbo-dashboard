@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import {
-  ArrowDownAZ,
-  ArrowUpAZ,
-  Filter,
-  X,
-} from "lucide-react";
+  IconSortAscendingLetters,
+  IconSortDescendingLetters,
+  IconFilter,
+  IconX,
+} from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -182,7 +182,7 @@ export function DemandsToolbar({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" className="h-8 gap-1.5">
-            <Filter className="size-3.5" />
+            <IconFilter className="size-3.5" />
             Filtros
             {activeFilterCount > 0 && (
               <Badge variant="secondary" className="ml-1 text-[10px] px-1">
@@ -248,9 +248,9 @@ export function DemandsToolbar({
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" className="h-8 gap-1.5">
             {sortDir === "asc" ? (
-              <ArrowDownAZ className="size-3.5" />
+              <IconSortAscendingLetters className="size-3.5" />
             ) : (
-              <ArrowUpAZ className="size-3.5" />
+              <IconSortDescendingLetters className="size-3.5" />
             )}
             {SORT_OPTIONS.find((o) => o.value === sortField)?.label ?? "Ordenar"}
           </Button>
@@ -281,7 +281,7 @@ export function DemandsToolbar({
           className="h-8 text-xs gap-1"
           onClick={clearFilters}
         >
-          <X className="size-3" />
+          <IconX className="size-3" />
           Limpar
         </Button>
       )}

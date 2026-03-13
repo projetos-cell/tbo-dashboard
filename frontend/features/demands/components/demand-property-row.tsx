@@ -3,13 +3,12 @@
 import * as React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, X } from "lucide-react";
+import { IconGripVertical, IconX } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
-import type { LucideIcon } from "lucide-react";
 
 interface DemandPropertyRowProps {
   id: string;
-  icon: LucideIcon;
+  icon: React.ComponentType<{ className?: string; size?: number | string }>;
   label: string;
   onClear?: () => void;
   children: React.ReactNode;
@@ -56,7 +55,7 @@ export function DemandPropertyRow({
         {...attributes}
         {...listeners}
       >
-        <GripVertical className="size-3 text-muted-foreground" />
+        <IconGripVertical className="size-3 text-muted-foreground" />
       </button>
 
       {/* Icon + Label */}
@@ -78,7 +77,7 @@ export function DemandPropertyRow({
           className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 p-0.5 rounded hover:bg-destructive/10"
           aria-label={`Limpar ${label}`}
         >
-          <X className="size-3 text-muted-foreground hover:text-destructive" />
+          <IconX className="size-3 text-muted-foreground hover:text-destructive" />
         </button>
       )}
     </div>

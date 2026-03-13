@@ -1,0 +1,10 @@
+7d869e6 feat(tarefas): F14 — curtidas/likes em tarefas e comentários
+90e9f71 chore: adicionar audit-log do ciclo 2026-03-13 ciclo 6
+93be580 refactor(okrs): migrar lucide → Tabler Icons em todos os componentes do módulo
+2cb7be3 refactor(tarefas): split my-tasks-list-view 358→167L via extração de table body
+299d8c3 refactor(okrs): extrair componentes + migrar lucide → Tabler Icons na page
+24fdf8f chore: adicionar audit-log do ciclo 2026-03-13 ciclo 5
+288941a chore(tarefas): remover task-detail.tsx orphaned (744 linhas, zero imports)
+abdbfe9 feat(tarefas): integrar CommentThread ao TaskDetailSheet com seção de comentários
+ea11e7d refactor(tarefas): migrar Lucide → Tabler Icons no CommentThread
+1413543 feat(tarefas): F12 subtarefas — DnD reordering, click-to-open navigation stack, depth >1 block

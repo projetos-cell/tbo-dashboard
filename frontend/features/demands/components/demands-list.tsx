@@ -24,12 +24,12 @@ import type { Database } from "@/lib/supabase/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  Check,
-  Circle,
-  ExternalLink,
-  MoreHorizontal,
-  Trash2,
-} from "lucide-react";
+  IconCheck,
+  IconCircle,
+  IconExternalLink,
+  IconDots,
+  IconTrash,
+} from "@tabler/icons-react";
 import { useMemo, useCallback } from "react";
 
 type DemandRow = Database["public"]["Tables"]["demands"]["Row"];
@@ -84,9 +84,9 @@ export function DemandsList({ demands, onSelect }: DemandsListProps) {
           return (
             <div className="h-6 w-6 flex items-center justify-center">
               {isDone ? (
-                <Check className="h-4 w-4 text-green-600" />
+                <IconCheck className="h-4 w-4 text-green-600" />
               ) : (
-                <Circle className="h-4 w-4 text-gray-500" />
+                <IconCircle className="h-4 w-4 text-gray-500" />
               )}
             </div>
           );
@@ -117,7 +117,7 @@ export function DemandsList({ demands, onSelect }: DemandsListProps) {
                   onClick={(e) => e.stopPropagation()}
                   className="shrink-0"
                 >
-                  <ExternalLink className="h-3.5 w-3.5 text-gray-500 hover:text-gray-900" />
+                  <IconExternalLink className="h-3.5 w-3.5 text-gray-500 hover:text-gray-900" />
                 </a>
               )}
             </div>
@@ -239,7 +239,7 @@ export function DemandsList({ demands, onSelect }: DemandsListProps) {
                 onClick={(e) => e.stopPropagation()}
                 aria-label="Acoes"
               >
-                <MoreHorizontal className="h-3.5 w-3.5" />
+                <IconDots className="h-3.5 w-3.5" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
@@ -260,7 +260,7 @@ export function DemandsList({ demands, onSelect }: DemandsListProps) {
                       window.open(row.notion_url!, "_blank");
                     }}
                   >
-                    <ExternalLink className="size-3.5 mr-2" />
+                    <IconExternalLink className="size-3.5 mr-2" />
                     Abrir no Notion
                   </DropdownMenuItem>
                 )}
@@ -313,7 +313,7 @@ export function DemandsList({ demands, onSelect }: DemandsListProps) {
                   handleDelete(row.id);
                 }}
               >
-                <Trash2 className="size-3.5 mr-2" />
+                <IconTrash className="size-3.5 mr-2" />
                 Excluir
               </DropdownMenuItem>
             </DropdownMenuContent>

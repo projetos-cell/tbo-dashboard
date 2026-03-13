@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { X, Plus } from "lucide-react";
+import { IconX, IconPlus } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 
 interface DemandTagInputProps {
@@ -41,7 +41,7 @@ export function DemandTagInput({
             onClick={() => onRemove(tag)}
             className="ml-0.5 hover:text-destructive transition-colors"
           >
-            <X className="size-2.5" />
+            <IconX className="size-2.5" />
           </button>
         </Badge>
       ))}
@@ -61,7 +61,7 @@ export function DemandTagInput({
         />
         {draft.trim() && (
           <button type="button" onClick={commit}>
-            <Plus className="size-3 text-muted-foreground hover:text-foreground transition-colors" />
+            <IconPlus className="size-3 text-muted-foreground hover:text-foreground transition-colors" />
           </button>
         )}
       </div>

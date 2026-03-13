@@ -16,6 +16,7 @@ import { TaskTitleInline } from "./task-title-inline";
 import { TaskDetailFields } from "./task-detail-fields";
 import { TaskDetailDescription } from "./task-detail-description";
 import { TaskDetailSidebar } from "./task-detail-sidebar";
+import { TaskSubtasksSection } from "./task-subtasks-section";
 
 // ─── Props ──────────────────────────────────────────
 
@@ -149,6 +150,14 @@ export function TaskDetailSheet({
 
                 {/* Description */}
                 <TaskDetailDescription taskId={task.id} description={task.description} />
+
+                {/* Subtasks */}
+                <div className="pt-3 pb-1">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                    Subtarefas
+                  </p>
+                  <TaskSubtasksSection task={task} />
+                </div>
               </div>
             </div>
 

@@ -6,7 +6,6 @@ import {
   IconLink,
   IconDots,
   IconPaperclip,
-  IconThumbUp,
   IconTrash,
   IconCopy,
 } from "@tabler/icons-react";
@@ -35,6 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { TASK_STATUS } from "@/lib/constants";
 import { TaskStatusToggle } from "./task-status-toggle";
+import { LikeButton } from "./like-button";
 import { useTaskDependencies } from "@/features/tasks/hooks/use-task-dependencies";
 import { useDeleteTask } from "@/features/tasks/hooks/use-tasks";
 import { useToast } from "@/hooks/use-toast";
@@ -113,20 +113,7 @@ export function TaskDetailHeader({ task, onClose }: TaskDetailHeaderProps) {
         </div>
 
         <div className="flex items-center gap-0.5">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-7 w-7"
-                aria-label="Curtir"
-                onClick={() => toast({ title: "Curtido!" })}
-              >
-                <IconThumbUp className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Curtir</TooltipContent>
-          </Tooltip>
+          <LikeButton targetType="task" targetId={task.id} />
 
           <Tooltip>
             <TooltipTrigger asChild>

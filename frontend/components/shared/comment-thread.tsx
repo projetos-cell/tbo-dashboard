@@ -17,6 +17,7 @@ import { RichTextEditor } from "@/components/shared/rich-text-editor";
 import { useMentionProvider } from "@/features/tasks/hooks/use-mention-provider";
 import { useComments, useCreateComment, useUpdateComment, useDeleteComment } from "@/hooks/use-comments";
 import { useAuthStore } from "@/stores/auth-store";
+import { LikeButton } from "@/features/tasks/components/like-button";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
 
@@ -302,13 +303,16 @@ function CommentItem({
         )}
 
         {!isEditing && (
-          <button
-            className="mt-1 flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900"
-            onClick={() => setShowReply(!showReply)}
-          >
-            <IconCornerDownRight className="size-3" />
-            Responder
-          </button>
+          <div className="mt-1 flex items-center gap-2">
+            <button
+              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900"
+              onClick={() => setShowReply(!showReply)}
+            >
+              <IconCornerDownRight className="size-3" />
+              Responder
+            </button>
+            <LikeButton targetType="comment" targetId={comment.id} size="xs" />
+          </div>
         )}
 
         {showReply && (

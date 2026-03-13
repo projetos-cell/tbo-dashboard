@@ -1,5 +1,43 @@
 # TBO OS — Audit Log
 
+## Ciclo — 2026-03-13 (auto) — Ciclo 9
+
+**Módulo**: Tarefas (split de componentes oversized)
+**Branch**: `claude/improve-20260312-auto`
+**Build**: ✅ Passou
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|---|---|---|---|
+| `task-subtasks-section.tsx` | 🔧 332L | ✅ 166L | Extraído SubtaskRow (107L) + TaskSubtaskAddForm (88L) |
+| `task-dependencies-section.tsx` | 🔧 326L | ✅ 179L | Extraído DependencyItem (106L) + AddDependencyButton (41L) |
+| `use-task-custom-fields.ts` | ⚠️ untracked | ✅ | Já commitado em F11 (2c3d11b) — falso positivo no git status inicial |
+
+### Implementado
+
+- refactor(tarefas): split task-subtasks-section 332L → task-subtask-row + task-subtask-add-form + section (166L)
+- refactor(tarefas): split task-dependencies-section 326L → task-dependency-item + task-dependency-add-button + section (179L)
+
+### Migrations aplicadas
+
+Nenhuma neste ciclo.
+
+### Próximo ciclo (sugestões)
+
+- Split `custom-field-value-editor.tsx` (606L) — maior violação de tamanho no módulo
+- Split `custom-field-definition-form.tsx` (511L)
+- Split `custom-fields-section.tsx` (245L)
+- Split `my-task-table-row.tsx` (329L)
+- Migrar lucide-react em features/financeiro (14 arquivos restantes)
+
+### Debt técnico
+
+- 4 componentes do F11 (custom fields) ainda acima de 200L — precisam de split no próximo ciclo
+- Tabelas `custom_field_definitions` e `task_custom_field_values` referenciadas no service mas schema usa `os_custom_fields` — verificar se há migration pendente
+
+---
+
 ## Ciclo — 2026-03-13 (auto) — Ciclo 8
 
 **Módulo**: Comercial + Contratos + Cultura (icon migration)

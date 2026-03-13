@@ -1,5 +1,47 @@
 # TBO OS — Audit Log
 
+## Ciclo — 2026-03-13 (auto) — Ciclo 12
+
+**Módulo**: Contratos (`features/contratos/components`)
+**Branch**: `claude/improve-20260313-auto`
+**Build**: ✅ Passou antes e depois das 3 melhorias
+
+### Estado do módulo
+
+| Componente | Antes | Depois | Detalhes |
+|---|---|---|---|
+| `contract-filters-panel.tsx` | ⚠️ 717L | ✅ 139L | Extraídos: helpers, 3 filter sections, ActiveFiltersBadges |
+| `contract-data-table.tsx` | ⚠️ 632L | ✅ 274L | Extraído: `ContractTableRow` (desktop + mobile + ações) |
+| `contract-form-dialog.tsx` | ⚠️ 630L | ✅ 223L | Extraídos: `ContractFormFields` + `ContractFileUpload` |
+
+### Implementado
+
+- refactor: `contract-filter-helpers.tsx` — FilterChip, FilterSection, countActiveFilters, getMonthRange, toggleInArray
+- refactor: `contract-filter-sections.tsx` — ContractBasicFilters, ContractTemporalFilters, ContractAdvancedFilters
+- refactor: `contract-active-filters-badges.tsx` — ActiveFiltersBadges
+- refactor: `contract-table-row.tsx` — ContractTableRow (desktop + mobile layout + action menu)
+- refactor: `contract-form-fields.tsx` — ContractFormFields + contractSchema + getEmptyForm
+- refactor: `contract-file-upload.tsx` — ContractFileUpload com drag/drop e validação internos
+
+### Migrations aplicadas
+
+Nenhuma — sem alterações de schema.
+
+### Próximo ciclo (sugestões)
+
+- `features/chat/components/channel-list.tsx` (698L) — split em sub-componentes
+- `features/chat/components/chat-layout.tsx` (607L) — split
+- Migrar `lib/icons.ts` de lucide-react para Tabler Icons (afeta sidebar e nav)
+- Limpeza sistemática de lucide-react nos ~100 arquivos de features (ciclo dedicado)
+- Realtime subscription no task detail (comments/activity ao vivo)
+
+### Debt técnico
+
+- lucide-react ainda presente em ~100 arquivos de features/app (violação do stack); limpeza sistemática pendente
+- `lib/icons.ts` usa lucide-react como registry central do sidebar — requer ciclo dedicado para migrar
+
+---
+
 ## Ciclo — 2026-03-13 (auto) — Ciclo 11
 
 **Módulo**: Comercial (relatorios) + Tarefas (toolbar)

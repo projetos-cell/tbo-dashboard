@@ -1,5 +1,49 @@
 # TBO OS — Audit Log
 
+## Ciclo 22 — 2026-03-13 20:08
+
+**Módulo**: Demandas, Mercado, Financeiro (Contas)
+**Branch**: `claude/improve-20260313-2008` → mergeado em `main`
+**Build**: ✅ Clean antes e depois de todas as mudanças
+
+### Estado do módulo
+
+| Arquivo | Antes | Depois | Detalhes |
+|---|---|---|---|
+| `features/demands/components/demand-detail-sidebar.tsx` | ⚠️ 455L | ✅ ~120L | Split em 3: hook + properties + shell |
+| `app/(auth)/mercado/page.tsx` | ⚠️ 549L | ✅ 247L | Sub-componentes extraídos para feature/mercado/components |
+| `app/(auth)/financeiro/contas/page.tsx` | ⚠️ 515L | ✅ 180L | EntryTable + SummaryCards extraídos para features/financeiro/components |
+
+### Implementado
+
+- refactor(demands): `demand-detail-sidebar.tsx` (455L) → 3 arquivos
+  - `features/demands/hooks/use-section-order.ts` (~35L): hook de ordenação de seções
+  - `features/demands/components/demand-sidebar-properties.tsx` (~200L): buildPropertyMap + option lists + CORE/SCHEDULE/DETAIL_KEYS
+  - `demand-detail-sidebar.tsx` (~120L): shell principal com DnD + sections
+
+- refactor(mercado): `app/(auth)/mercado/page.tsx` (549L) → 2 arquivos
+  - `features/mercado/components/mercado-page-components.tsx` (~318L): KPIBig, HorizontalBarCard, HistoricalLineCard, OccupancyDonut, EstabelecimentosGrid, BairrosMapGrid + helpers
+  - `page.tsx` (247L): apenas estado (filtros, mapMetric) + layout
+
+- refactor(financeiro): `app/(auth)/financeiro/contas/page.tsx` (515L) → 3 arquivos
+  - `features/financeiro/components/contas-entry-table.tsx` (~245L): StatusBadge, DaysBadge, Valor, EntryTable
+  - `features/financeiro/components/contas-summary-cards.tsx` (~101L): ContasSummaryCards (5 KPI cards)
+  - `page.tsx` (180L): ContasContent + ContasPage
+
+### Migrations aplicadas
+
+Nenhuma — sem alterações de schema.
+
+### Próximo ciclo (sugestões)
+
+- `features/mercado/components/mercado-page-components.tsx` (318L) — borderline, pode ser dividido se crescer
+- Auditar módulos com botões sem handler (verificar features/rsm, features/cultura)
+- Auditar `any` remanescente em API routes (supabase as any em ClickSign/Notion)
+
+### Debt técnico
+
+- `mercado-page-components.tsx` em 318L (acima de 200L, mas arquivo de barrel com múltiplos componentes independentes — cada componente individual está abaixo de 200L)
+
 ## Ciclo 21 — 2026-03-13 19:30
 
 **Módulo**: Comercial (charts), Contratos

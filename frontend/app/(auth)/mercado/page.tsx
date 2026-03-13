@@ -1,12 +1,6 @@
-﻿"use client";
+"use client";
 
 import { useState, useMemo } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -15,328 +9,38 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-} from "recharts";
-import {
   IconUsers,
   IconHome,
-  IconSchool,
-  IconHeartbeat,
-  IconBuildingChurch,
-  IconBuilding,
-  IconHelmet,
   IconTrendingUp,
   IconMapPin,
-  IconChartBar,
 } from "@tabler/icons-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   CENSO_RESUMO,
   POPULACAO_ABSOLUTA,
   DENSIDADE_POPULACIONAL,
   VARIACAO_POPULACIONAL,
   ACRESCIMO_DOMICILIOS,
-  POPULACAO_HISTORICA,
-  ESTABELECIMENTOS,
   BAIRROS_VARIACAO,
   REGIONAIS,
 } from "@/features/mercado/utils/censo-curitiba-data";
+import {
+  KPIBig,
+  HorizontalBarCard,
+  HistoricalLineCard,
+  OccupancyDonut,
+  EstabelecimentosGrid,
+  BairrosMapGrid,
+  fmtNum,
+  fmtPct,
+} from "@/features/mercado/components/mercado-page-components";
 
-// ---------- helpers ----------
-
-function fmtNum(n: number) {
-  return n.toLocaleString("pt-BR");
-}
-
-function fmtPct(n: number) {
-  return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "%";
-}
-
-const ICON_MAP: Record<string, React.ElementType> = {
-  "graduation-cap": IconSchool,
-  "heart-pulse": IconHeartbeat,
-  church: IconBuildingChurch,
-  "building-2": IconBuilding,
-  "hard-hat": IconHelmet,
-};
-
-const BAR_COLORS = [
-  "#2563eb", "#3b82f6", "#60a5fa", "#93c5fd", "#bfdbfe", "#dbeafe",
-];
-
-const PIE_COLORS = ["#2563eb", "#e5e7eb"];
-
-// Variation color scale for the map-like grid
-function variationColor(v: number): string {
-  if (v < 0) return "bg-red-100 text-red-800 border-red-200";
-  if (v < 10) return "bg-blue-50 text-blue-800 border-blue-200";
-  if (v < 20) return "bg-blue-100 text-blue-900 border-blue-300";
-  if (v < 30) return "bg-emerald-100 text-emerald-800 border-emerald-300";
-  if (v < 50) return "bg-amber-100 text-amber-800 border-amber-300";
-  return "bg-orange-200 text-orange-900 border-orange-400";
-}
-
-// ---------- sub-components ----------
-
-function KPIBig({
-  label,
-  value,
-  sub,
-  icon: Icon,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  icon: React.ElementType;
-}) {
-  return (
-    <div className="flex items-start gap-3">
-      <div className="rounded-lg bg-tbo-orange/10 p-2.5">
-        <Icon className="h-5 w-5 text-tbo-orange" />
-      </div>
-      <div>
-        <p className="text-xs text-gray-500">{label}</p>
-        <p className="text-2xl font-bold tracking-tight">{value}</p>
-        {sub && <p className="text-xs text-gray-500">{sub}</p>}
-      </div>
-    </div>
-  );
-}
-
-function HorizontalBarCard({
-  title,
-  data,
-  valueLabel,
-  formatValue,
-}: {
-  title: string;
-  data: { bairro: string; valor: number; destaque?: boolean }[];
-  valueLabel: string;
-  formatValue?: (v: number) => string;
-}) {
-  const fmt = formatValue ?? fmtNum;
-  return (
-    <Card className="py-4">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={data.length * 38 + 10}>
-          <BarChart
-            data={data}
-            layout="vertical"
-            margin={{ top: 0, right: 8, left: 0, bottom: 0 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-            <XAxis type="number" tick={{ fontSize: 11 }} />
-            <YAxis
-              type="category"
-              dataKey="bairro"
-              width={110}
-              tick={{ fontSize: 11 }}
-            />
-            <Tooltip
-              formatter={(value?: number) => [fmt(value ?? 0), valueLabel]}
-              labelStyle={{ fontWeight: 600 }}
-            />
-            <Bar dataKey="valor" radius={[0, 4, 4, 0]}>
-              {data.map((entry, i) => (
-                <Cell
-                  key={entry.bairro}
-                  fill={entry.destaque ? "#f59e0b" : BAR_COLORS[i % BAR_COLORS.length]}
-                />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </CardContent>
-    </Card>
-  );
-}
-
-function HistoricalLineCard({
-  data,
-}: {
-  data: { ano: number; populacao: number; domicilios: number | null }[];
-}) {
-  return (
-    <Card className="py-4">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium">
-          Evolucao historica (1980-2022)
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={260}>
-          <LineChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
-            <YAxis
-              yAxisId="pop"
-              tick={{ fontSize: 11 }}
-              tickFormatter={(v: number) =>
-                v >= 1_000_000
-                  ? (v / 1_000_000).toFixed(1) + "M"
-                  : (v / 1_000).toFixed(0) + "k"
-              }
-            />
-            <YAxis
-              yAxisId="dom"
-              orientation="right"
-              tick={{ fontSize: 11 }}
-              tickFormatter={(v: number) =>
-                (v / 1_000).toFixed(0) + "k"
-              }
-            />
-            <Tooltip
-              formatter={(value, name) => [
-                typeof value === "number" ? fmtNum(value) : "—",
-                name === "populacao" ? "Populacao" : "Domicilios",
-              ]}
-            />
-            <Legend
-              formatter={(value: string) =>
-                value === "populacao" ? "Populacao" : "Domicilios"
-              }
-            />
-            <Line
-              yAxisId="pop"
-              type="monotone"
-              dataKey="populacao"
-              stroke="#2563eb"
-              strokeWidth={2}
-              dot={{ r: 4 }}
-            />
-            <Line
-              yAxisId="dom"
-              type="monotone"
-              dataKey="domicilios"
-              stroke="#16a34a"
-              strokeWidth={2}
-              dot={{ r: 4 }}
-              connectNulls
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </CardContent>
-    </Card>
-  );
-}
-
-function OccupancyDonut() {
-  const data = [
-    { name: "Ocupados", value: CENSO_RESUMO.pctOcupados },
-    { name: "Nao ocupados", value: CENSO_RESUMO.pctNaoOcupados },
-  ];
-
-  return (
-    <Card className="py-4">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium">
-          Condicao de ocupacao
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex items-center justify-center">
-        <ResponsiveContainer width="100%" height={200}>
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius={55}
-              outerRadius={80}
-              paddingAngle={2}
-              dataKey="value"
-              label={({ name, value }: { name?: string; value?: number }) =>
-                `${name ?? ""}: ${value ?? 0}%`
-              }
-            >
-              {data.map((_, i) => (
-                <Cell key={i} fill={PIE_COLORS[i]} />
-              ))}
-            </Pie>
-            <Tooltip formatter={(v?: number) => fmtPct(v ?? 0)} />
-          </PieChart>
-        </ResponsiveContainer>
-      </CardContent>
-    </Card>
-  );
-}
-
-function EstabelecimentosGrid() {
-  return (
-    <Card className="py-4">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium">Estabelecimentos</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {ESTABELECIMENTOS.map((e) => {
-            const Icon = ICON_MAP[e.icone] ?? IconBuilding;
-            return (
-              <div
-                key={e.tipo}
-                className="flex flex-col items-center gap-1 rounded-lg border p-3 text-center"
-              >
-                <Icon className="h-5 w-5 text-gray-500" />
-                <span className="text-lg font-bold">{fmtNum(e.valor)}</span>
-                <span className="text-[11px] text-gray-500 leading-tight">
-                  {e.tipo}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function BairrosMapGrid({
-  bairros,
-}: {
-  bairros: [string, { variacao: number; populacao: number; regional: string }][];
-}) {
-  if (bairros.length === 0) {
-    return (
-      <p className="py-8 text-center text-sm text-gray-500">
-        Nenhum bairro encontrado para o filtro selecionado.
-      </p>
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-      {bairros.map(([nome, d]) => (
-        <div
-          key={nome}
-          className={`rounded-lg border p-2.5 text-center transition-colors ${variationColor(d.variacao)}`}
-        >
-          <p className="text-[11px] font-medium leading-tight truncate" title={nome}>
-            {nome}
-          </p>
-          <p className="text-base font-bold">{d.variacao > 0 ? "+" : ""}{fmtPct(d.variacao)}</p>
-          <p className="text-[10px] opacity-70">{fmtNum(d.populacao)} hab</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ---------- page ----------
-
-type MapMetric = "variacao" | "populacao" | "densidade";
+type MapMetric = "variacao" | "populacao";
 
 export default function MercadoPage() {
   const [regionalFilter, setRegionalFilter] = useState("Todos");
@@ -355,11 +59,9 @@ export default function MercadoPage() {
       entries = entries.filter(([nome]) => nome.toLowerCase().includes(q));
     }
 
-    // Sort by chosen metric
     entries.sort((a, b) => {
-      if (mapMetric === "variacao") return b[1].variacao - a[1].variacao;
       if (mapMetric === "populacao") return b[1].populacao - a[1].populacao;
-      return b[1].variacao - a[1].variacao; // density would need data
+      return b[1].variacao - a[1].variacao;
     });
 
     return entries;
@@ -457,9 +159,8 @@ export default function MercadoPage() {
         </Card>
       </div>
 
-      {/* Main Grid: Left charts + Right charts */}
+      {/* Main Grid */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Left Column */}
         <div className="space-y-4">
           <HorizontalBarCard
             title="Populacao absoluta (top bairros)"
@@ -479,7 +180,6 @@ export default function MercadoPage() {
           />
         </div>
 
-        {/* Right Column */}
         <div className="space-y-4">
           <OccupancyDonut />
           <EstabelecimentosGrid />
@@ -493,7 +193,7 @@ export default function MercadoPage() {
       </div>
 
       {/* Historical Line Chart */}
-      <HistoricalLineCard data={POPULACAO_HISTORICA} />
+      <HistoricalLineCard />
 
       {/* Bairros Map Grid */}
       <Card className="py-4">
@@ -526,7 +226,6 @@ export default function MercadoPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {/* Legend */}
           <div className="mb-3 flex flex-wrap gap-2 text-[11px]">
             <span className="rounded border border-red-200 bg-red-100 px-2 py-0.5">Negativo</span>
             <span className="rounded border border-blue-200 bg-blue-50 px-2 py-0.5">0-10%</span>
@@ -539,7 +238,6 @@ export default function MercadoPage() {
         </CardContent>
       </Card>
 
-      {/* Footer */}
       <p className="text-center text-xs text-gray-500">
         Fonte: CNEFE e IBGE — Censo 2022: Agregados por Setores Censitarios |
         Desenvolvido por IPPUC — Coordenacao de Monitoramento e Pesquisa

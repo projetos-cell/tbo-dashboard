@@ -1,5 +1,42 @@
 # TBO OS — Audit Log
 
+## Ciclo — 2026-03-13 (auto) — Ciclo 8
+
+**Módulo**: Comercial + Contratos + Cultura (icon migration)
+**Branch**: `claude/improve-20260312-auto`
+**Build**: ✅ Passou — 1 erro corrigido (IconPen → IconPencil, não existe em @tabler v3.40.0)
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|---|---|---|---|
+| `features/comercial/` lucide-react | 🔧 | ✅ | 7 arquivos migrados para Tabler Icons |
+| `features/contratos/` lucide-react | 🔧 | ✅ | 15 arquivos migrados (incluindo contract-stepper/) |
+| `features/cultura/` lucide-react | 🔧 | ✅ | 13 arquivos migrados |
+
+### Implementado
+
+- refactor(icons): migrar lucide → Tabler em features/comercial/ (7 arquivos)
+- refactor(icons): migrar lucide → Tabler em features/contratos/ (15 arquivos)
+- refactor(icons): migrar lucide → Tabler em features/cultura/ (13 arquivos)
+- fix: IconPen não existe em @tabler/icons-react@3.40.0 → substituído por IconPencil
+
+### Migrations aplicadas
+
+Nenhuma neste ciclo.
+
+### Próximo ciclo (sugestões)
+
+- Migrar módulos com mais lucide restante: financeiro (14), people (11), performance (8)
+- Split `task-subtasks-section.tsx` (332L) e `task-dependencies-section.tsx` (326L)
+- Split `my-task-table-row.tsx` (329L)
+
+### Debt técnico
+
+- 81 arquivos ainda usam lucide-react em features/ (dashboard 8, financeiro 14, people 11, performance 8, founder-dashboard 8, projects 7, clientes 5)
+
+---
+
 ## Ciclo — 2026-03-13 (auto) — Ciclo 7
 
 **Módulo**: Demands + Tarefas

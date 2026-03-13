@@ -11,6 +11,7 @@ import {
   updateComment,
   deleteComment,
 } from "@/services/comments";
+import { addCollaborator } from "@/features/tasks/services/task-collaborators";
 import type { Database } from "@/lib/supabase/types";
 
 function useSupabase() {
@@ -74,6 +75,13 @@ export function useCreateComment() {
       const userId = useAuthStore.getState().user?.id;
       const tenantId = useAuthStore.getState().tenantId;
       if (!userId || !tenantId || !variables.comment.task_id) return;
+
+      // Auto-add commenter as collaborator (fire-and-forget)
+      if (variables.comment.task_id && !variables.comment.parent_id) {
+        addCollaborator(supabase, variables.comment.task_id, userId).catch(() => {
+          // Ignore if already a collaborator
+        });
+      }
 
       try {
         const actorName = await getActorName(supabase, userId);

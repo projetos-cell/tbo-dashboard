@@ -20,6 +20,7 @@ import { TaskDetailDescription } from "./task-detail-description";
 import { TaskDetailSidebar } from "./task-detail-sidebar";
 import { TaskSubtasksSection } from "./task-subtasks-section";
 import { TaskDependenciesSection } from "./task-dependencies-section";
+import { TaskAttachmentsSection } from "./task-attachments-section";
 import { CommentThread } from "@/components/shared/comment-thread";
 
 // ─── Props ──────────────────────────────────────────
@@ -144,6 +145,15 @@ function TaskPanel({ taskId, projectName, onClose, onOpenTask, isFullscreen, onT
 
           <div className="pb-1">
             <TaskDependenciesSection task={task} onOpenTask={onOpenTask} />
+          </div>
+
+          <Separator className="my-4" />
+
+          <div className="pb-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              Anexos
+            </p>
+            <TaskAttachmentsSection taskId={task.id} />
           </div>
 
           <Separator className="my-4" />

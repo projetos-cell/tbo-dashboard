@@ -1,5 +1,40 @@
 # TBO OS — Audit Log
 
+## Ciclo — 2026-03-13 (auto) — Ciclo 16
+
+**Módulo**: Multi-módulo (Decisões, Reconhecimentos, OKRs)
+**Branch**: `main`
+**Build**: ✅
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|---|---|---|---|
+| `decisions-list` — acentos PT-BR | 🔧 | ✅ | "decisao"→"decisão", "Acoes"→"Ações", "Reuniao"→"Reunião" |
+| `decisions-list` — loading state delete | ⚠️ | ✅ | Botão desabilitado + "Excluindo..." durante mutation; fechar dialog apenas após mutateAsync |
+| `decisions-list` — truncação de descrição | ⚠️ | ✅ | JS slice removido; CSS `line-clamp-3` nativo |
+| `reconhecimentos` — Aprovar/Rejeitar | ⚠️ | ✅ | Estado `reviewingId` por item, loading label e `disabled` granular |
+| `okrs` — KR History | ❌ | ✅ | `OkrKrHistoryDialog` criado com `useCheckins`; conectado em company + individuais |
+
+### Implementado
+
+- fix(decisions): loading state async no delete + acentos PT-BR + CSS truncation
+- feat(reconhecimentos): loading granular por item nos botões Aprovar/Rejeitar
+- feat(okrs): `OkrKrHistoryDialog` — histórico de check-ins do KR (new_value, previous_value, confidence, notes, data)
+
+### Migrations aplicadas
+Nenhuma
+
+### Próximo ciclo
+- Implementar `onHistoryKr` para exibir gráfico de progresso no histórico do KR
+- Validação de rate limit visual no form de reconhecimento (desabilitar button se atingido)
+- Filtro de status/tipo em `decisions-list`
+
+### Debt técnico
+- `peopleList` cast em `reconhecimentos/page.tsx` (linhas 50-56) — tipagem frágil do hook `usePeople`
+
+---
+
 ## Ciclo — 2026-03-13 (auto) — Ciclo 15
 
 **Módulo**: Multi-módulo (Decisões, Pessoas, OKRs)

@@ -4,15 +4,15 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   CheckCircle2,
-  FolderOpen,
   GitBranch,
   Tag,
   Users,
 } from "lucide-react";
-import { IconCalendar } from "@tabler/icons-react";
+import { IconCalendar, IconFolder } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import { TaskAssigneePicker } from "./task-assignee-picker";
 import { TaskDateRange } from "./task-date-range";
+import { TaskProjectsList } from "./task-projects-list";
 import type { Tag as TagType } from "@/schemas/tag";
 import type { Database } from "@/lib/supabase/types";
 
@@ -24,6 +24,9 @@ interface TaskDetailFieldsProps {
   task: TaskRow;
   tags: TagType[];
   projectName: string | null;
+  /** Controlled: se true, abre o picker de projetos via atalho Tab+P */
+  projectPickerOpen?: boolean;
+  onProjectPickerOpenChange?: (open: boolean) => void;
 }
 
 // ─── Component ────────────────────────────────────────
@@ -31,7 +34,9 @@ interface TaskDetailFieldsProps {
 export function TaskDetailFields({
   task,
   tags,
-  projectName,
+  projectName: _projectName,
+  projectPickerOpen,
+  onProjectPickerOpenChange,
 }: TaskDetailFieldsProps) {
   return (
     <div className="divide-y divide-border/50">
@@ -59,11 +64,13 @@ export function TaskDetailFields({
         </FieldRow>
       )}
 
-      {/* Projeto */}
-      <FieldRow label="Projeto" icon={<FolderOpen className="h-3.5 w-3.5" />}>
-        <span className={`text-sm ${projectName ? "" : "text-muted-foreground"}`}>
-          {projectName || "Adicionar a projetos"}
-        </span>
+      {/* Projetos (multi-home) */}
+      <FieldRow label="Projeto" icon={<IconFolder className="h-3.5 w-3.5" />}>
+        <TaskProjectsList
+          taskId={task.id}
+          pickerOpen={projectPickerOpen}
+          onPickerOpenChange={onProjectPickerOpenChange}
+        />
       </FieldRow>
 
       {/* Tags */}
@@ -117,8 +124,8 @@ function FieldRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-3 py-2.5 min-h-[36px]">
-      <div className="flex items-center gap-1.5 w-[120px] shrink-0">
+    <div className="flex items-start gap-3 py-2.5 min-h-[36px]">
+      <div className="flex items-center gap-1.5 w-[120px] shrink-0 mt-0.5">
         {icon && <span className="text-muted-foreground">{icon}</span>}
         <span className="text-xs font-medium text-muted-foreground">{label}</span>
       </div>

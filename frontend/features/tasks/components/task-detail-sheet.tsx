@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sheet,
@@ -78,7 +79,43 @@ export function TaskDetailSheet({
   const { data: tags } = useTaskDetailTags(taskId);
   const { data: assigneesRaw } = useTaskAssignees(taskId || "");
 
-  // Resolve project name
+  // Tab+P shortcut → abrir picker de projetos
+  const [projectPickerOpen, setProjectPickerOpen] = useState(false);
+  const lastKeyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Tab") {
+        lastKeyRef.current = "Tab";
+        return;
+      }
+      if (lastKeyRef.current === "Tab" && e.key === "p") {
+        e.preventDefault();
+        setProjectPickerOpen(true);
+      }
+      lastKeyRef.current = null;
+    }
+
+    function handleKeyUp(e: KeyboardEvent) {
+      if (e.key === "Tab") {
+        // Reset after a short delay to allow Tab+P chord
+        setTimeout(() => {
+          if (lastKeyRef.current === "Tab") lastKeyRef.current = null;
+        }, 300);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [open]);
+
+  // Resolve project name (fallback for legacy single-project)
   const resolvedProjectName =
     projectName || (task?.project_id ? "Projeto vinculado" : null);
 
@@ -117,6 +154,8 @@ export function TaskDetailSheet({
                   task={task}
                   tags={tags || []}
                   projectName={resolvedProjectName}
+                  projectPickerOpen={projectPickerOpen}
+                  onProjectPickerOpenChange={setProjectPickerOpen}
                 />
 
                 <Separator className="my-2" />

@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { BarChart3, MessageSquarePlus } from "lucide-react";
+import { IconChartBar, IconMessagePlus } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ export function OkrKeyResultRow({ kr, onCheckin }: OkrKeyResultRowProps) {
 
   return (
     <div className="flex items-center gap-3 rounded-lg border bg-white p-3">
-      <BarChart3 className="h-4 w-4 text-gray-500 shrink-0" />
+      <IconChartBar className="h-4 w-4 text-gray-500 shrink-0" />
 
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium truncate">{kr.title}</p>
@@ -60,7 +60,7 @@ export function OkrKeyResultRow({ kr, onCheckin }: OkrKeyResultRowProps) {
         title="Novo check-in"
         aria-label="Novo check-in"
       >
-        <MessageSquarePlus className="h-3.5 w-3.5" />
+        <IconMessagePlus className="h-3.5 w-3.5" />
       </Button>
     </div>
   );

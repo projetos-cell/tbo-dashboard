@@ -1,6 +1,11 @@
 ﻿"use client";
 
-import { Target, TrendingUp, AlertTriangle, CheckCircle } from "lucide-react";
+import {
+  IconTarget,
+  IconTrendingUp,
+  IconAlertTriangle,
+  IconCircleCheck,
+} from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface OkrKpiData {
@@ -20,28 +25,28 @@ export function OkrKpis({ data }: OkrKpisProps) {
     {
       label: "Objetivos",
       value: data.total,
-      icon: Target,
+      icon: IconTarget,
       color: "text-blue-600",
       bg: "bg-blue-50",
     },
     {
       label: "Progresso Médio",
       value: `${Math.round(data.avgProgress)}%`,
-      icon: TrendingUp,
+      icon: IconTrendingUp,
       color: "text-emerald-600",
       bg: "bg-emerald-50",
     },
     {
       label: "No Caminho",
       value: data.onTrack,
-      icon: CheckCircle,
+      icon: IconCircleCheck,
       color: "text-green-600",
       bg: "bg-green-50",
     },
     {
       label: "Em Risco",
       value: data.atRisk + data.attention,
-      icon: AlertTriangle,
+      icon: IconAlertTriangle,
       color: "text-amber-600",
       bg: "bg-amber-50",
     },

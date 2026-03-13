@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { Search } from "lucide-react";
+import { IconSearch } from "@tabler/icons-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { OKR_STATUS, OKR_LEVELS } from "@/lib/constants";
@@ -26,7 +26,7 @@ export function OkrFilters({
   return (
     <div className="space-y-3">
       <div className="relative max-w-sm">
-        <Search className="text-gray-500 absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+        <IconSearch className="text-gray-500 absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
         <Input
           placeholder="Buscar objetivos..."
           value={search}

@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { ArrowRight } from "lucide-react";
+import { IconArrowRight } from "@tabler/icons-react";
 import {
   Table,
   TableBody,
@@ -83,7 +83,7 @@ export function OkrCheckinHistory({ keyResultId }: OkrCheckinHistoryProps) {
                 <TableCell className="text-xs">
                   <span className="inline-flex items-center gap-1">
                     {ci.previous_value ?? 0}
-                    <ArrowRight className="h-3 w-3 text-gray-500" />
+                    <IconArrowRight className="h-3 w-3 text-gray-500" />
                     {ci.new_value}
                   </span>
                 </TableCell>

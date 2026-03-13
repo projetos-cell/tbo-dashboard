@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState } from "react";
-import { X } from "lucide-react";
+import { IconX } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -125,7 +125,7 @@ export function OkrComments({ objectiveId }: OkrCommentsProps) {
                     aria-label="Excluir comentario"
                     onClick={() => setDeletingId(c.id)}
                   >
-                    <X className="h-3 w-3 text-gray-500" />
+                    <IconX className="h-3 w-3 text-gray-500" />
                   </button>
                 )}
               </div>

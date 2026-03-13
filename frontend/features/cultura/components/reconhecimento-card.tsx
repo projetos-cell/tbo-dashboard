@@ -2,7 +2,7 @@
 
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Award, Heart } from "lucide-react";
+import { IconAward, IconHeart } from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { Database } from "@/lib/supabase/types";
@@ -35,7 +35,7 @@ export function ReconhecimentoCard({ item, onClick }: ReconhecimentoCardProps) {
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           <div className="rounded-full bg-green-100 dark:bg-green-900/30 p-2 shrink-0">
-            <Award className="size-5 text-green-600" />
+            <IconAward className="size-5 text-green-600" />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-medium">{item.title}</h3>
@@ -63,7 +63,7 @@ export function ReconhecimentoCard({ item, onClick }: ReconhecimentoCardProps) {
                     locale: ptBR,
                   })}
               </span>
-              <Heart className="size-3.5 text-gray-500/50 group-hover:text-red-400 transition-colors" />
+              <IconHeart className="size-3.5 text-gray-500/50 group-hover:text-red-400 transition-colors" />
             </div>
           </div>
         </div>

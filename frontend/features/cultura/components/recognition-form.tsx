@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { z } from "zod";
-import { Send, AlertTriangle } from "lucide-react";
+import { IconSend, IconAlertTriangle } from "@tabler/icons-react";
 import {
   Dialog,
   DialogContent,
@@ -90,7 +90,7 @@ export function RecognitionForm({
           {/* Rate limit warning */}
           {rateLimitInfo && !rateLimitInfo.allowed && (
             <div className="flex items-center gap-2 p-3 rounded-md bg-amber-50 border border-amber-200 text-amber-800 text-sm">
-              <AlertTriangle className="size-4 shrink-0" />
+              <IconAlertTriangle className="size-4 shrink-0" />
               Limite diario atingido ({rateLimitInfo.count}/5). Tente novamente amanha.
             </div>
           )}
@@ -155,7 +155,7 @@ export function RecognitionForm({
               Cancelar
             </Button>
             <Button onClick={handleSubmit} disabled={!canSubmit || isSubmitting}>
-              <Send className="size-4 mr-1.5" />
+              <IconSend className="size-4 mr-1.5" />
               {isSubmitting ? "Enviando..." : "Enviar"}
             </Button>
           </div>

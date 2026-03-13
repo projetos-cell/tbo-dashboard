@@ -10,13 +10,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
-  DollarSign,
-  Calendar,
-  Building2,
-  User,
-  Mail,
-  Target,
-} from "lucide-react";
+  IconCurrencyDollar,
+  IconCalendar,
+  IconBuilding,
+  IconUser,
+  IconMail,
+  IconTarget,
+} from "@tabler/icons-react";
 import type { Database } from "@/lib/supabase/types";
 import { DEAL_STAGES, type DealStageKey } from "@/lib/constants";
 
@@ -84,19 +84,19 @@ export function DealDetailDialog({
           <div className="space-y-2 text-sm">
             {deal.company && (
               <div className="flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-gray-500" />
+                <IconBuilding className="h-4 w-4 text-gray-500" />
                 <span>{deal.company}</span>
               </div>
             )}
             {deal.contact && (
               <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-gray-500" />
+                <IconUser className="h-4 w-4 text-gray-500" />
                 <span>{deal.contact}</span>
               </div>
             )}
             {deal.contact_email && (
               <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-gray-500" />
+                <IconMail className="h-4 w-4 text-gray-500" />
                 <span>{deal.contact_email}</span>
               </div>
             )}
@@ -107,7 +107,7 @@ export function DealDetailDialog({
           <div className="space-y-2 text-sm">
             {deal.value != null && (
               <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-gray-500" />
+                <IconCurrencyDollar className="h-4 w-4 text-gray-500" />
                 <span className="font-medium">
                   {formatCurrency(deal.value)}
                 </span>
@@ -120,7 +120,7 @@ export function DealDetailDialog({
             )}
             {deal.expected_close && (
               <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-gray-500" />
+                <IconCalendar className="h-4 w-4 text-gray-500" />
                 <span>
                   Previsão:{" "}
                   {new Date(deal.expected_close).toLocaleDateString(
@@ -131,7 +131,7 @@ export function DealDetailDialog({
             )}
             {deal.owner_name && (
               <div className="flex items-center gap-2">
-                <Target className="h-4 w-4 text-gray-500" />
+                <IconTarget className="h-4 w-4 text-gray-500" />
                 <span>Responsável: {deal.owner_name}</span>
               </div>
             )}

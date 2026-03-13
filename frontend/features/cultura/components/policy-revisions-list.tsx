@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { History } from "lucide-react";
+import { IconHistory } from "@tabler/icons-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Revision {
@@ -19,7 +19,7 @@ export function PolicyRevisionsList({ revisions }: PolicyRevisionsListProps) {
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <History className="size-4" />
+          <IconHistory className="size-4" />
           Historico de versoes
         </CardTitle>
       </CardHeader>

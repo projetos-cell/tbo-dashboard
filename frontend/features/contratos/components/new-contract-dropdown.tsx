@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Building2, Users, FileX, Truck, PenTool } from "lucide-react";
+import { IconPlus, IconBuilding, IconUsers, IconFileOff, IconTruck, IconPencil } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 
@@ -20,25 +20,25 @@ const options = [
     key: "cliente",
     label: "Cliente",
     description: "Contrato de prestação de serviços",
-    icon: Building2,
+    icon: IconBuilding,
   },
   {
     key: "equipe",
     label: "Equipe",
     description: "Freelancer, CLT ou PJ interno",
-    icon: Users,
+    icon: IconUsers,
   },
   {
     key: "distrato",
     label: "Distrato",
     description: "Rescisão de contrato vigente",
-    icon: FileX,
+    icon: IconFileOff,
   },
   {
     key: "fornecedor",
     label: "Fornecedor",
     description: "Serviço ou produto terceirizado",
-    icon: Truck,
+    icon: IconTruck,
   },
 ];
 
@@ -49,7 +49,7 @@ export function NewContractDropdown({ onSelect }: NewContractDropdownProps) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button className="bg-[#f97316] hover:bg-[#ea580c] text-white gap-2">
-          <Plus className="h-4 w-4" />
+          <IconPlus className="h-4 w-4" />
           Novo Contrato
         </Button>
       </DropdownMenuTrigger>
@@ -77,7 +77,7 @@ export function NewContractDropdown({ onSelect }: NewContractDropdownProps) {
           onClick={() => router.push("/contratos/novo")}
           className="flex items-start gap-3 py-2.5"
         >
-          <PenTool className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+          <IconPencil className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
           <div>
             <p className="text-sm font-medium">Contrato Completo</p>
             <p className="text-xs text-muted-foreground">

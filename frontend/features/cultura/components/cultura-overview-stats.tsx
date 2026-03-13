@@ -1,15 +1,15 @@
 ﻿"use client";
 
 import {
-  Columns3,
-  Repeat,
-  Shield,
-  Award,
-  Heart,
-  FileText,
-  BookOpen,
-  Gift,
-} from "lucide-react";
+  IconColumns3,
+  IconRepeat,
+  IconShield,
+  IconAward,
+  IconHeart,
+  IconFileText,
+  IconBook2,
+  IconGift,
+} from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -21,13 +21,13 @@ import type { Database } from "@/lib/supabase/types";
 type CulturaRow = Database["public"]["Tables"]["cultura_items"]["Row"];
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
-  pilar: Columns3,
-  ritual: Repeat,
-  politica: Shield,
-  reconhecimento: Award,
-  valor: Heart,
-  documento: FileText,
-  manual: BookOpen,
+  pilar: IconColumns3,
+  ritual: IconRepeat,
+  politica: IconShield,
+  reconhecimento: IconAward,
+  valor: IconHeart,
+  documento: IconFileText,
+  manual: IconBook2,
 };
 
 interface CulturaOverviewStatsProps {
@@ -80,14 +80,14 @@ export function CulturaOverviewStats({
   const statsCards = [
     ...categories.map(([key, def]) => ({
       key,
-      icon: CATEGORY_ICONS[key] || FileText,
+      icon: CATEGORY_ICONS[key] || IconFileText,
       count: counts[key] || 0,
       label: def.label,
       color: def.color,
       bg: def.bg,
     })),
     ...(rewardsCount !== undefined
-      ? [{ key: "recompensas", icon: Gift, count: rewardsCount, label: "Recompensas", color: "#ec4899", bg: "rgba(236,72,153,0.12)" }]
+      ? [{ key: "recompensas", icon: IconGift, count: rewardsCount, label: "Recompensas", color: "#ec4899", bg: "rgba(236,72,153,0.12)" }]
       : []),
   ];
 

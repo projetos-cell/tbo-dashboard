@@ -3,18 +3,18 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  Columns3,
-  Repeat,
-  Shield,
-  Award,
-  Heart,
-  FileText,
-  BookOpen,
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-  Eye,
-} from "lucide-react";
+  IconColumns3,
+  IconRepeat,
+  IconShield,
+  IconAward,
+  IconHeart,
+  IconFileText,
+  IconBook2,
+  IconDots,
+  IconPencil,
+  IconTrash,
+  IconEye,
+} from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,13 +30,13 @@ import type { Database } from "@/lib/supabase/types";
 type CulturaRow = Database["public"]["Tables"]["cultura_items"]["Row"];
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
-  pilar: Columns3,
-  ritual: Repeat,
-  politica: Shield,
-  reconhecimento: Award,
-  valor: Heart,
-  documento: FileText,
-  manual: BookOpen,
+  pilar: IconColumns3,
+  ritual: IconRepeat,
+  politica: IconShield,
+  reconhecimento: IconAward,
+  valor: IconHeart,
+  documento: IconFileText,
+  manual: IconBook2,
 };
 
 interface CulturaItemCardProps {
@@ -58,7 +58,7 @@ export function CulturaItemCard({
     CULTURA_CATEGORIES[item.category as keyof typeof CULTURA_CATEGORIES];
   const statusDef =
     CULTURA_STATUS[item.status as keyof typeof CULTURA_STATUS];
-  const Icon = CATEGORY_ICONS[item.category] || FileText;
+  const Icon = CATEGORY_ICONS[item.category] || IconFileText;
 
   return (
     <Card className="group hover:shadow-md transition-shadow">
@@ -120,23 +120,23 @@ export function CulturaItemCard({
                   className="size-7 opacity-0 group-hover:opacity-100 transition-opacity"
                   aria-label="Acoes"
                 >
-                  <MoreHorizontal className="size-4" />
+                  <IconDots className="size-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => onView?.(item)}>
-                  <Eye className="size-4 mr-2" />
+                  <IconEye className="size-4 mr-2" />
                   Visualizar
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onEdit?.(item)}>
-                  <Pencil className="size-4 mr-2" />
+                  <IconPencil className="size-4 mr-2" />
                   Editar
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => onDelete?.(item)}
                   className="text-red-500"
                 >
-                  <Trash2 className="size-4 mr-2" />
+                  <IconTrash className="size-4 mr-2" />
                   Excluir
                 </DropdownMenuItem>
               </DropdownMenuContent>

@@ -1,4 +1,4 @@
-import { Gift } from "lucide-react";
+import { IconGift } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -33,7 +33,7 @@ export function RedeemConfirmDialog({
         {reward && (
           <div className="space-y-4">
             <div className="text-center space-y-2">
-              <Gift className="size-8 mx-auto text-tbo-orange" />
+              <IconGift className="size-8 mx-auto text-tbo-orange" />
               <p className="font-medium">{reward.name}</p>
               <p className="text-sm text-muted-foreground">
                 {reward.description}

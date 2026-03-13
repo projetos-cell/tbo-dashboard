@@ -22,16 +22,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  MoreVertical,
-  Pencil,
-  Download,
-  RefreshCw,
-  Trash2,
-  AlertTriangle,
-  ArrowUp,
-  ArrowDown,
-  ArrowUpDown,
-} from "lucide-react";
+  IconDotsVertical,
+  IconPencil,
+  IconDownload,
+  IconRefresh,
+  IconTrash,
+  IconAlertTriangle,
+  IconArrowUp,
+  IconArrowDown,
+  IconArrowsUpDown,
+} from "@tabler/icons-react";
 import type { Database } from "@/lib/supabase/types";
 import {
   CONTRACT_STATUS,
@@ -216,12 +216,12 @@ function SortHeader({
       {label}
       {isActive ? (
         sort.direction === "asc" ? (
-          <ArrowUp className="h-3 w-3" />
+          <IconArrowUp className="h-3 w-3" />
         ) : (
-          <ArrowDown className="h-3 w-3" />
+          <IconArrowDown className="h-3 w-3" />
         )
       ) : (
-        <ArrowUpDown className="h-3 w-3 opacity-0 group-hover/header:opacity-40 transition-opacity" />
+        <IconArrowsUpDown className="h-3 w-3 opacity-0 group-hover/header:opacity-40 transition-opacity" />
       )}
     </button>
   );
@@ -483,7 +483,7 @@ export function ContractDataTable({
                       </span>
                     )}
                     {expiring && (
-                      <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                      <IconAlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                     )}
                   </div>
 
@@ -500,12 +500,12 @@ export function ContractDataTable({
                           size="icon"
                           className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
-                          <MoreVertical className="h-4 w-4" />
+                          <IconDotsVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-44">
                         <DropdownMenuItem onClick={() => onEdit(contract)}>
-                          <Pencil className="mr-2 h-3.5 w-3.5" />
+                          <IconPencil className="mr-2 h-3.5 w-3.5" />
                           Editar
                         </DropdownMenuItem>
                         {downloadUrl && (
@@ -515,13 +515,13 @@ export function ContractDataTable({
                               target="_blank"
                               rel="noopener noreferrer"
                             >
-                              <Download className="mr-2 h-3.5 w-3.5" />
+                              <IconDownload className="mr-2 h-3.5 w-3.5" />
                               Baixar PDF
                             </a>
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem onClick={() => onEdit(contract)}>
-                          <RefreshCw className="mr-2 h-3.5 w-3.5" />
+                          <IconRefresh className="mr-2 h-3.5 w-3.5" />
                           Renovar
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
@@ -529,7 +529,7 @@ export function ContractDataTable({
                           className="text-red-600 focus:text-red-600 focus:bg-red-50"
                           onClick={() => setDeleteTarget(contract)}
                         >
-                          <Trash2 className="mr-2 h-3.5 w-3.5" />
+                          <IconTrash className="mr-2 h-3.5 w-3.5" />
                           Excluir
                         </DropdownMenuItem>
                       </DropdownMenuContent>

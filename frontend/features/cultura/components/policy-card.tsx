@@ -3,19 +3,19 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  MoreHorizontal,
-  Pencil,
-  Eye,
-  Archive,
-  Copy,
-  CalendarClock,
-  Scale,
-  Users,
-  Briefcase,
-  Landmark,
-  ShieldCheck,
-  FileText,
-} from "lucide-react";
+  IconDots,
+  IconPencil,
+  IconEye,
+  IconArchive,
+  IconCopy,
+  IconCalendarClock,
+  IconScale,
+  IconUsers,
+  IconBriefcase,
+  IconBuildingBank,
+  IconShieldCheck,
+  IconFileText,
+} from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,11 +32,11 @@ import type { Database } from "@/lib/supabase/types";
 type PolicyRow = Database["public"]["Tables"]["policies"]["Row"];
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
-  etica: Scale,
-  pessoas: Users,
-  comercial: Briefcase,
-  governanca: Landmark,
-  compliance: ShieldCheck,
+  etica: IconScale,
+  pessoas: IconUsers,
+  comercial: IconBriefcase,
+  governanca: IconBuildingBank,
+  compliance: IconShieldCheck,
 };
 
 const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' fill='none'%3E%3Crect width='80' height='80' rx='8' fill='%23f1f5f9'/%3E%3Cpath d='M28 52V28h24v24H28z' stroke='%2394a3b8' stroke-width='1.5'/%3E%3Cpath d='M34 40l4-4 4 4 6-6' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E";
@@ -62,7 +62,7 @@ export function PolicyCard({
     POLICY_CATEGORIES[policy.category as keyof typeof POLICY_CATEGORIES];
   const statusDef =
     POLICY_STATUS[policy.status as keyof typeof POLICY_STATUS];
-  const Icon = CATEGORY_ICONS[policy.category] || FileText;
+  const Icon = CATEGORY_ICONS[policy.category] || IconFileText;
 
   const isOverdue =
     policy.next_review_at && new Date(policy.next_review_at) < new Date();
@@ -140,7 +140,7 @@ export function PolicyCard({
                     isOverdue ? "text-red-500" : "text-gray-500"
                   }`}
                 >
-                  <CalendarClock className="size-3" />
+                  <IconCalendarClock className="size-3" />
                   {format(new Date(policy.next_review_at), "dd/MM/yyyy")}
                 </span>
               )}
@@ -158,20 +158,20 @@ export function PolicyCard({
                   aria-label="Acoes"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <MoreHorizontal className="size-4" />
+                  <IconDots className="size-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenuItem onClick={() => onView?.(policy)}>
-                  <Eye className="size-4 mr-2" />
+                  <IconEye className="size-4 mr-2" />
                   Visualizar
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onEdit?.(policy)}>
-                  <Pencil className="size-4 mr-2" />
+                  <IconPencil className="size-4 mr-2" />
                   Editar
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onDuplicate?.(policy)}>
-                  <Copy className="size-4 mr-2" />
+                  <IconCopy className="size-4 mr-2" />
                   Duplicar
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -180,7 +180,7 @@ export function PolicyCard({
                     onClick={() => onArchive?.(policy)}
                     className="text-red-500"
                   >
-                    <Archive className="size-4 mr-2" />
+                    <IconArchive className="size-4 mr-2" />
                     Arquivar
                   </DropdownMenuItem>
                 )}

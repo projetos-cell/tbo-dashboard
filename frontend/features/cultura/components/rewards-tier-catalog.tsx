@@ -1,6 +1,6 @@
 "use client";
 
-import { Star } from "lucide-react";
+import { IconStar } from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,7 +50,7 @@ function TierCard({
               className="shrink-0 text-xs font-bold gap-0.5 tabular-nums"
               style={{ color: "#f59e0b", borderColor: "rgba(245,158,11,0.3)" }}
             >
-              <Star className="size-3" />
+              <IconStar className="size-3" />
               {reward.points}
             </Badge>
           </div>

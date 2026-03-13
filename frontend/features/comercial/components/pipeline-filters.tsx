@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, X } from "lucide-react";
+import { IconSearch, IconX } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import type { RdPipelineStage } from "@/features/comercial/services/commercial";
 
@@ -48,7 +48,7 @@ export function PipelineFilters({
     <div className="space-y-3">
       <div className="flex items-center gap-3">
         <div className="relative max-w-sm flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+          <IconSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
           <Input
             placeholder="Buscar deals..."
             value={search}
@@ -80,7 +80,7 @@ export function PipelineFilters({
             onClick={clearAll}
             className="text-gray-500"
           >
-            <X className="mr-1 h-3 w-3" />
+            <IconX className="mr-1 h-3 w-3" />
             Limpar filtros
           </Button>
         )}

@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, ArrowRight, Loader2, Save } from "lucide-react";
+import { IconArrowLeft, IconArrowRight, IconLoader2, IconDeviceFloppy } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
 import { useCreateContract } from "../../hooks/use-contracts";
@@ -288,7 +288,7 @@ export function ContractStepper() {
           onClick={back}
           disabled={currentStep === 0 || isSubmitting}
         >
-          <ArrowLeft className="h-4 w-4 mr-1" />
+          <IconArrowLeft className="h-4 w-4 mr-1" />
           Voltar
         </Button>
 
@@ -300,16 +300,16 @@ export function ContractStepper() {
               disabled={isSubmitting}
             >
               {isSubmitting ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                <IconLoader2 className="h-4 w-4 mr-1 animate-spin" />
               ) : (
-                <Save className="h-4 w-4 mr-1" />
+                <IconDeviceFloppy className="h-4 w-4 mr-1" />
               )}
               Criar Contrato
             </Button>
           ) : (
             <Button type="button" onClick={next}>
               Proximo
-              <ArrowRight className="h-4 w-4 ml-1" />
+              <IconArrowRight className="h-4 w-4 ml-1" />
             </Button>
           )}
         </div>

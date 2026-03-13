@@ -2,16 +2,16 @@
 
 import { cn } from "@/lib/utils";
 import {
-  Send,
-  XCircle,
-  CheckCircle,
-  Bell,
-  FileText,
-  Clock,
-  PenTool,
-  AlertTriangle,
-  Activity,
-} from "lucide-react";
+  IconSend,
+  IconCircleX,
+  IconCircleCheck,
+  IconBell,
+  IconFileText,
+  IconClock,
+  IconPencil,
+  IconAlertTriangle,
+  IconActivity,
+} from "@tabler/icons-react";
 
 interface TimelineEvent {
   id: string;
@@ -25,25 +25,25 @@ interface ContractTimelineProps {
   events: TimelineEvent[];
 }
 
-const EVENT_ICONS: Record<string, { icon: typeof Send; color: string }> = {
-  sent_to_clicksign: { icon: Send, color: "text-blue-500" },
-  envelope_canceled: { icon: XCircle, color: "text-red-500" },
-  envelope_closed: { icon: CheckCircle, color: "text-green-500" },
-  document_signed: { icon: PenTool, color: "text-green-500" },
-  notification_sent: { icon: Bell, color: "text-yellow-500" },
-  document_uploaded: { icon: FileText, color: "text-blue-500" },
-  deadline_warning: { icon: AlertTriangle, color: "text-orange-500" },
-  created: { icon: FileText, color: "text-gray-500" },
-  status_change: { icon: Activity, color: "text-purple-500" },
+const EVENT_ICONS: Record<string, { icon: typeof IconSend; color: string }> = {
+  sent_to_clicksign: { icon: IconSend, color: "text-blue-500" },
+  envelope_canceled: { icon: IconCircleX, color: "text-red-500" },
+  envelope_closed: { icon: IconCircleCheck, color: "text-green-500" },
+  document_signed: { icon: IconPencil, color: "text-green-500" },
+  notification_sent: { icon: IconBell, color: "text-yellow-500" },
+  document_uploaded: { icon: IconFileText, color: "text-blue-500" },
+  deadline_warning: { icon: IconAlertTriangle, color: "text-orange-500" },
+  created: { icon: IconFileText, color: "text-gray-500" },
+  status_change: { icon: IconActivity, color: "text-purple-500" },
 };
 
-const DEFAULT_ICON = { icon: Clock, color: "text-muted-foreground" };
+const DEFAULT_ICON = { icon: IconClock, color: "text-muted-foreground" };
 
 export function ContractTimeline({ events }: ContractTimelineProps) {
   if (events.length === 0) {
     return (
       <div className="rounded-lg border border-dashed p-6 text-center">
-        <Clock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+        <IconClock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
         <p className="text-sm text-muted-foreground">
           Nenhum evento registrado
         </p>

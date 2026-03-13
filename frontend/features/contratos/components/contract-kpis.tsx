@@ -2,12 +2,12 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  FileText,
-  TrendingUp,
-  TrendingDown,
-  AlertTriangle,
-  CheckCircle,
-} from "lucide-react";
+  IconFileText,
+  IconTrendingUp,
+  IconTrendingDown,
+  IconAlertTriangle,
+  IconCircleCheck,
+} from "@tabler/icons-react";
 import type { TabKPIs } from "@/features/contratos/services/contracts";
 
 interface ContractKPICardsProps {
@@ -27,7 +27,7 @@ function formatCurrency(value: number) {
 interface KPICardDef {
   label: string;
   value: number | string;
-  icon: typeof FileText;
+  icon: typeof IconFileText;
   color: string;
   isCurrency: boolean;
 }
@@ -36,16 +36,16 @@ function getCardsForTab(kpis: TabKPIs, tab: string): KPICardDef[] {
   const isCurrencyField = (label: string) =>
     label.includes("Receita") || label.includes("Custo");
 
-  const iconMap: Record<string, typeof FileText> = {
-    "Total Contratos": FileText,
-    "Total Terceirizados": FileText,
-    "Total Colaboradores": FileText,
-    Ativos: CheckCircle,
-    "Receita Ativa": TrendingUp,
-    "Receita Mensal": TrendingUp,
-    "Custo Ativo": TrendingDown,
-    "Custo Mensal": TrendingDown,
-    "Alertas Vencimento": AlertTriangle,
+  const iconMap: Record<string, typeof IconFileText> = {
+    "Total Contratos": IconFileText,
+    "Total Terceirizados": IconFileText,
+    "Total Colaboradores": IconFileText,
+    Ativos: IconCircleCheck,
+    "Receita Ativa": IconTrendingUp,
+    "Receita Mensal": IconTrendingUp,
+    "Custo Ativo": IconTrendingDown,
+    "Custo Mensal": IconTrendingDown,
+    "Alertas Vencimento": IconAlertTriangle,
   };
 
   const colorMap: Record<string, string> = {
@@ -66,7 +66,7 @@ function getCardsForTab(kpis: TabKPIs, tab: string): KPICardDef[] {
   return labels.map((label, i) => ({
     label,
     value: values[i],
-    icon: iconMap[label] ?? FileText,
+    icon: iconMap[label] ?? IconFileText,
     color: colorMap[label] ?? "#6b7280",
     isCurrency: isCurrencyField(label),
   }));

@@ -35,13 +35,13 @@ import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/lib/supabase/types";
 import {
-  Upload,
-  FileText,
-  ImageIcon,
-  X,
-  Loader2,
-  AlertCircle,
-} from "lucide-react";
+  IconUpload,
+  IconFileText,
+  IconPhoto,
+  IconX,
+  IconLoader2,
+  IconAlertCircle,
+} from "@tabler/icons-react";
 
 type ContractRow = Database["public"]["Tables"]["contracts"]["Row"];
 
@@ -99,8 +99,8 @@ function formatFileSize(bytes: number): string {
 }
 
 function getFileIcon(type: string) {
-  if (type.startsWith("image/")) return ImageIcon;
-  return FileText;
+  if (type.startsWith("image/")) return IconPhoto;
+  return IconFileText;
 }
 
 // ─── Component ────────────────────────────────────────────────────────
@@ -510,7 +510,7 @@ export function ContractFormDialog({
                     ${isDragging ? "bg-[#f97316]/10" : "bg-muted"}
                   `}
                 >
-                  <Upload
+                  <IconUpload
                     className={`h-5 w-5 transition-colors ${
                       isDragging ? "text-[#f97316]" : "text-muted-foreground"
                     }`}
@@ -556,7 +556,7 @@ export function ContractFormDialog({
                     className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
                     aria-label="Remover arquivo"
                   >
-                    <X className="h-4 w-4" />
+                    <IconX className="h-4 w-4" />
                   </button>
                 )}
               </div>
@@ -576,7 +576,7 @@ export function ContractFormDialog({
             {/* File error */}
             {fileError && (
               <div className="flex items-center gap-1.5 text-xs text-red-500">
-                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                <IconAlertCircle className="h-3.5 w-3.5 shrink-0" />
                 <span>{fileError}</span>
               </div>
             )}
@@ -613,7 +613,7 @@ export function ContractFormDialog({
               className="bg-[#f97316] hover:bg-[#ea580c] text-white gap-2"
               disabled={isPending || !form.title.trim()}
             >
-              {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {isPending && <IconLoader2 className="h-4 w-4 animate-spin" />}
               {isPending
                 ? isUploading && file
                   ? "Enviando..."

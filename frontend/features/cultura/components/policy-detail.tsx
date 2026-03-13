@@ -5,20 +5,20 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { marked } from "marked";
 import {
-  ArrowLeft,
-  Clock,
-  Pencil,
-  History,
-  CalendarClock,
-  Scale,
-  Users,
-  Briefcase,
-  Landmark,
-  ShieldCheck,
-  FileText,
-  BookOpen,
-  Settings2,
-} from "lucide-react";
+  IconArrowLeft,
+  IconClock,
+  IconPencil,
+  IconHistory,
+  IconCalendarClock,
+  IconScale,
+  IconUsers,
+  IconBriefcase,
+  IconBuildingBank,
+  IconShieldCheck,
+  IconFileText,
+  IconBook2,
+  IconSettings2,
+} from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,11 +39,11 @@ marked.setOptions({
 });
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
-  etica: Scale,
-  pessoas: Users,
-  comercial: Briefcase,
-  governanca: Landmark,
-  compliance: ShieldCheck,
+  etica: IconScale,
+  pessoas: IconUsers,
+  comercial: IconBriefcase,
+  governanca: IconBuildingBank,
+  compliance: IconShieldCheck,
 };
 
 interface PolicyDetailProps {
@@ -111,7 +111,7 @@ export function PolicyDetail({
     POLICY_CATEGORIES[policy.category as keyof typeof POLICY_CATEGORIES];
   const statusDef =
     POLICY_STATUS[policy.status as keyof typeof POLICY_STATUS];
-  const Icon = CATEGORY_ICONS[policy.category] || FileText;
+  const Icon = CATEGORY_ICONS[policy.category] || IconFileText;
 
   const isOverdue =
     policy.next_review_at && new Date(policy.next_review_at) < new Date();
@@ -127,7 +127,7 @@ export function PolicyDetail({
           aria-label="Voltar"
           className="mt-0.5 shrink-0"
         >
-          <ArrowLeft className="size-4" />
+          <IconArrowLeft className="size-4" />
         </Button>
 
         <div className="flex-1 min-w-0">
@@ -169,7 +169,7 @@ export function PolicyDetail({
             <span className="font-medium">v{policy.version}</span>
             {policy.updated_at && (
               <span className="flex items-center gap-1">
-                <Clock className="size-3" />
+                <IconClock className="size-3" />
                 {format(new Date(policy.updated_at), "dd MMM yyyy", {
                   locale: ptBR,
                 })}
@@ -181,7 +181,7 @@ export function PolicyDetail({
                   isOverdue ? "text-red-500 font-medium" : ""
                 }`}
               >
-                <CalendarClock className="size-3" />
+                <IconCalendarClock className="size-3" />
                 Revisao{" "}
                 {format(new Date(policy.next_review_at), "dd/MM/yyyy")}
                 {isOverdue && " (atrasada)"}
@@ -197,7 +197,7 @@ export function PolicyDetail({
             onClick={onEdit}
             className="shrink-0"
           >
-            <Pencil className="size-3.5 mr-1.5" />
+            <IconPencil className="size-3.5 mr-1.5" />
             Editar
           </Button>
         )}
@@ -215,11 +215,11 @@ export function PolicyDetail({
       <Tabs defaultValue="visao" className="flex-1 flex flex-col min-h-0">
         <TabsList className="w-fit">
           <TabsTrigger value="visao" className="gap-1.5">
-            <BookOpen className="size-3.5" />
+            <IconBook2 className="size-3.5" />
             Conteudo
           </TabsTrigger>
           <TabsTrigger value="revisoes" className="gap-1.5">
-            <History className="size-3.5" />
+            <IconHistory className="size-3.5" />
             Revisoes
             {revisions && revisions.length > 0 && (
               <Badge
@@ -231,7 +231,7 @@ export function PolicyDetail({
             )}
           </TabsTrigger>
           <TabsTrigger value="config" className="gap-1.5">
-            <Settings2 className="size-3.5" />
+            <IconSettings2 className="size-3.5" />
             Detalhes
           </TabsTrigger>
         </TabsList>

@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Pencil, Check, X } from "lucide-react";
+import { IconPencil, IconCheck, IconX } from "@tabler/icons-react";
 import { ContractStatusBadge } from "./contract-status-badge";
 import { ScopeProgressBar } from "./scope-progress-bar";
 import {
@@ -105,7 +105,7 @@ export function ScopeItemsTable({
                         setEditProgress(item.progress_pct);
                       }}
                     >
-                      <Pencil className="h-3.5 w-3.5" />
+                      <IconPencil className="h-3.5 w-3.5" />
                     </Button>
                   )}
                 </div>
@@ -154,7 +154,7 @@ export function ScopeItemsTable({
                       setEditingId(null);
                     }}
                   >
-                    <Check className="h-3.5 w-3.5" />
+                    <IconCheck className="h-3.5 w-3.5" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -162,7 +162,7 @@ export function ScopeItemsTable({
                     className="h-7 w-7"
                     onClick={() => setEditingId(null)}
                   >
-                    <X className="h-3.5 w-3.5" />
+                    <IconX className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               )}

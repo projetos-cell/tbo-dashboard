@@ -18,15 +18,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  SlidersHorizontal,
-  X,
-  Calendar,
-  DollarSign,
-  Filter,
-  ArrowUpDown,
-  ChevronDown,
-  RotateCcw,
-} from "lucide-react";
+  IconAdjustmentsHorizontal,
+  IconX,
+  IconCalendar,
+  IconCurrencyDollar,
+  IconFilter,
+  IconArrowsUpDown,
+  IconChevronDown,
+  IconRotate,
+} from "@tabler/icons-react";
 import {
   CONTRACT_STATUS,
   CONTRACT_CATEGORY,
@@ -133,7 +133,7 @@ function FilterChip({
       }
     >
       {label}
-      {active && <X className="h-3 w-3 ml-0.5" />}
+      {active && <IconX className="h-3 w-3 ml-0.5" />}
     </button>
   );
 }
@@ -208,7 +208,7 @@ export function ContractFiltersPanel({
           size="sm"
           className="gap-1.5 relative"
         >
-          <SlidersHorizontal className="h-4 w-4" />
+          <IconAdjustmentsHorizontal className="h-4 w-4" />
           <span className="hidden sm:inline">Filtros</span>
           {activeCount > 0 && (
             <Badge
@@ -217,7 +217,7 @@ export function ContractFiltersPanel({
               {activeCount}
             </Badge>
           )}
-          <ChevronDown className="h-3 w-3 text-muted-foreground" />
+          <IconChevronDown className="h-3 w-3 text-muted-foreground" />
         </Button>
       </PopoverTrigger>
 
@@ -229,7 +229,7 @@ export function ContractFiltersPanel({
         {/* Header */}
         <div className="sticky top-0 z-10 bg-popover border-b border-border/50 px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
+            <IconFilter className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-semibold">Filtros Avançados</span>
             {activeCount > 0 && (
               <Badge variant="secondary" className="text-[10px]">
@@ -244,7 +244,7 @@ export function ContractFiltersPanel({
               className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1"
               onClick={clearAll}
             >
-              <RotateCcw className="h-3 w-3" />
+              <IconRotate className="h-3 w-3" />
               Limpar
             </Button>
           )}
@@ -254,7 +254,7 @@ export function ContractFiltersPanel({
           {/* ═══ 1. Filtros Básicos ═══════════════════════════════ */}
 
           {/* Status */}
-          <FilterSection icon={Filter} title="Status">
+          <FilterSection icon={IconFilter} title="Status">
             <div className="flex flex-wrap gap-1.5">
               {(Object.entries(CONTRACT_STATUS) as [ContractStatusKey, typeof CONTRACT_STATUS[ContractStatusKey]][]).map(
                 ([key, cfg]) => (
@@ -277,7 +277,7 @@ export function ContractFiltersPanel({
 
           {/* Categoria (hidden when tab locks it) */}
           {!lockedCategories?.length && (
-            <FilterSection icon={Filter} title="Tipo de Relação">
+            <FilterSection icon={IconFilter} title="Tipo de Relação">
               <div className="flex flex-wrap gap-1.5">
                 {(Object.entries(CONTRACT_CATEGORY) as [ContractCategoryKey, typeof CONTRACT_CATEGORY[ContractCategoryKey]][]).map(
                   ([key, cfg]) => (
@@ -300,7 +300,7 @@ export function ContractFiltersPanel({
           )}
 
           {/* Tipo de Contrato */}
-          <FilterSection icon={Filter} title="Tipo de Contrato">
+          <FilterSection icon={IconFilter} title="Tipo de Contrato">
             <div className="flex flex-wrap gap-1.5">
               {(Object.entries(CONTRACT_TYPE) as [ContractTypeKey, typeof CONTRACT_TYPE[ContractTypeKey]][]).map(
                 ([key, cfg]) => (
@@ -347,7 +347,7 @@ export function ContractFiltersPanel({
           )}
 
           {/* Ordenação */}
-          <FilterSection icon={ArrowUpDown} title="Ordenação">
+          <FilterSection icon={IconArrowsUpDown} title="Ordenação">
             <Select
               value={filters.sortBy ?? "__default__"}
               onValueChange={(v) =>
@@ -371,7 +371,7 @@ export function ContractFiltersPanel({
           </FilterSection>
 
           {/* ═══ 2. Filtros de Temporalidade ═══════════════════════ */}
-          <FilterSection icon={Calendar} title="Período de Vencimento">
+          <FilterSection icon={IconCalendar} title="Período de Vencimento">
             {/* Atalhos de mês */}
             <div className="flex gap-1.5 mb-2">
               <Button
@@ -468,7 +468,7 @@ export function ContractFiltersPanel({
           </FilterSection>
 
           {/* ═══ 3. Filtros Financeiros ════════════════════════════ */}
-          <FilterSection icon={DollarSign} title="Faixa de Valor (mensal)">
+          <FilterSection icon={IconCurrencyDollar} title="Faixa de Valor (mensal)">
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label className="text-[11px] text-muted-foreground">Mínimo</Label>
@@ -516,7 +516,7 @@ export function ContractFiltersPanel({
           </FilterSection>
 
           {/* ═══ 4. Status Dinâmicos ══════════════════════════════ */}
-          <FilterSection icon={Filter} title="Status Dinâmicos">
+          <FilterSection icon={IconFilter} title="Status Dinâmicos">
             <div className="flex flex-wrap gap-1.5">
               {(Object.entries(CONTRACT_DYNAMIC_STATUS) as [ContractDynamicStatusKey, typeof CONTRACT_DYNAMIC_STATUS[ContractDynamicStatusKey]][]).map(
                 ([key, cfg]) => (
@@ -697,7 +697,7 @@ export function ActiveFiltersBadges({
           onClick={b.onRemove}
         >
           {b.label}
-          <X className="h-3 w-3" />
+          <IconX className="h-3 w-3" />
         </Badge>
       ))}
       <button

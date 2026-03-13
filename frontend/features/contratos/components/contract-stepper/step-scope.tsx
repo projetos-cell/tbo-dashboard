@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, GripVertical } from "lucide-react";
+import { IconPlus, IconTrash, IconGripVertical } from "@tabler/icons-react";
 import { SCOPE_CATEGORIES } from "../../schemas/contract-schemas";
 import type { ScopeItemInput } from "../../schemas/contract-schemas";
 
@@ -64,7 +64,7 @@ export function StepScope({ items, onChange }: StepScopeProps) {
           </p>
         </div>
         <Button type="button" variant="outline" size="sm" onClick={addItem}>
-          <Plus className="h-4 w-4 mr-1" />
+          <IconPlus className="h-4 w-4 mr-1" />
           Adicionar Item
         </Button>
       </div>
@@ -75,7 +75,7 @@ export function StepScope({ items, onChange }: StepScopeProps) {
             Nenhum item de escopo adicionado
           </p>
           <Button type="button" variant="outline" size="sm" onClick={addItem}>
-            <Plus className="h-4 w-4 mr-1" />
+            <IconPlus className="h-4 w-4 mr-1" />
             Adicionar primeiro item
           </Button>
         </div>
@@ -88,7 +88,7 @@ export function StepScope({ items, onChange }: StepScopeProps) {
             className="rounded-lg border bg-card p-4 space-y-3"
           >
             <div className="flex items-center gap-2">
-              <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
+              <IconGripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
               <span className="text-xs font-medium text-muted-foreground shrink-0">
                 #{index + 1}
               </span>
@@ -100,7 +100,7 @@ export function StepScope({ items, onChange }: StepScopeProps) {
                 className="h-7 w-7 text-muted-foreground hover:text-destructive"
                 onClick={() => removeItem(index)}
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <IconTrash className="h-3.5 w-3.5" />
               </Button>
             </div>
 

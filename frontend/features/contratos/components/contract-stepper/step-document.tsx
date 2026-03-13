@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { FileUp, X, FileText } from "lucide-react";
+import { IconFileUpload, IconX, IconFileText } from "@tabler/icons-react";
 
 interface StepDocumentProps {
   file: File | null;
@@ -76,7 +76,7 @@ export function StepDocument({ file, onChange }: StepDocumentProps) {
               : "border-border hover:border-muted-foreground/50"
           }`}
         >
-          <FileUp className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
+          <IconFileUpload className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
           <p className="text-sm font-medium mb-1">
             Arraste o documento aqui ou clique para selecionar
           </p>
@@ -99,7 +99,7 @@ export function StepDocument({ file, onChange }: StepDocumentProps) {
         <div className="rounded-lg border bg-card p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-              <FileText className="h-5 w-5 text-primary" />
+              <IconFileText className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{file.name}</p>
@@ -114,7 +114,7 @@ export function StepDocument({ file, onChange }: StepDocumentProps) {
               className="h-8 w-8"
               onClick={() => onChange(null)}
             >
-              <X className="h-4 w-4" />
+              <IconX className="h-4 w-4" />
             </Button>
           </div>
         </div>

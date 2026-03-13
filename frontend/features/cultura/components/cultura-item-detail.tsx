@@ -2,7 +2,7 @@
 
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, Clock, Pencil, History } from "lucide-react";
+import { IconArrowLeft, IconClock, IconPencil, IconHistory } from "@tabler/icons-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -69,7 +69,7 @@ export function CulturaItemDetail({
       {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={onBack} aria-label="Voltar">
-          <ArrowLeft className="size-4" />
+          <IconArrowLeft className="size-4" />
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-2">
@@ -91,7 +91,7 @@ export function CulturaItemDetail({
           <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
             {item.updated_at && (
               <span className="flex items-center gap-1">
-                <Clock className="size-3" />
+                <IconClock className="size-3" />
                 Atualizado em{" "}
                 {format(new Date(item.updated_at), "dd MMM yyyy 'as' HH:mm", {
                   locale: ptBR,
@@ -103,7 +103,7 @@ export function CulturaItemDetail({
         </div>
         {canEdit && onEdit && (
           <Button variant="outline" size="sm" onClick={onEdit}>
-            <Pencil className="size-3.5 mr-1" />
+            <IconPencil className="size-3.5 mr-1" />
             Editar
           </Button>
         )}
@@ -135,7 +135,7 @@ export function CulturaItemDetail({
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <History className="size-4" />
+              <IconHistory className="size-4" />
               Historico de versoes
             </CardTitle>
           </CardHeader>

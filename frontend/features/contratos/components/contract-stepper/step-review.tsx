@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { FileText, Users, ListChecks, Calendar, DollarSign } from "lucide-react";
+import { IconFileText, IconUsers, IconListCheck, IconCalendar, IconCurrencyDollar } from "@tabler/icons-react";
 import { CONTRACT_CATEGORY, CONTRACT_TYPE } from "@/lib/constants";
 import {
   SCOPE_CATEGORIES,
@@ -45,7 +45,7 @@ export function StepReview({
       {/* Dados Basicos */}
       <section className="space-y-3">
         <h3 className="text-sm font-semibold flex items-center gap-2">
-          <FileText className="h-4 w-4 text-muted-foreground" />
+          <IconFileText className="h-4 w-4 text-muted-foreground" />
           Dados Basicos
         </h3>
         <div className="rounded-lg border bg-card p-4 space-y-2">
@@ -73,7 +73,7 @@ export function StepReview({
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Periodo</span>
               <span className="font-medium flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
+                <IconCalendar className="h-3 w-3" />
                 {basics.start_date ?? "—"} ate {basics.end_date ?? "—"}
               </span>
             </div>
@@ -86,7 +86,7 @@ export function StepReview({
       {/* Escopo */}
       <section className="space-y-3">
         <h3 className="text-sm font-semibold flex items-center gap-2">
-          <ListChecks className="h-4 w-4 text-muted-foreground" />
+          <IconListCheck className="h-4 w-4 text-muted-foreground" />
           Escopo ({scopeItems.length} itens)
         </h3>
         {scopeItems.length === 0 ? (
@@ -112,7 +112,7 @@ export function StepReview({
             <div className="p-3 flex items-center justify-between bg-muted/50">
               <span className="text-sm font-semibold">Total Escopo</span>
               <span className="text-sm font-semibold flex items-center gap-1">
-                <DollarSign className="h-3 w-3" />
+                <IconCurrencyDollar className="h-3 w-3" />
                 {formatCurrency(totalScope)}
               </span>
             </div>
@@ -125,7 +125,7 @@ export function StepReview({
       {/* Signatarios */}
       <section className="space-y-3">
         <h3 className="text-sm font-semibold flex items-center gap-2">
-          <Users className="h-4 w-4 text-muted-foreground" />
+          <IconUsers className="h-4 w-4 text-muted-foreground" />
           Signatarios ({signers.length})
         </h3>
         {signers.length === 0 ? (
@@ -154,12 +154,12 @@ export function StepReview({
       {/* Documento */}
       <section className="space-y-3">
         <h3 className="text-sm font-semibold flex items-center gap-2">
-          <FileText className="h-4 w-4 text-muted-foreground" />
+          <IconFileText className="h-4 w-4 text-muted-foreground" />
           Documento
         </h3>
         {file ? (
           <div className="rounded-lg border bg-card p-3 flex items-center gap-3">
-            <FileText className="h-5 w-5 text-primary shrink-0" />
+            <IconFileText className="h-5 w-5 text-primary shrink-0" />
             <div className="min-w-0">
               <p className="text-sm font-medium truncate">{file.name}</p>
               <p className="text-xs text-muted-foreground">

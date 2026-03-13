@@ -17,7 +17,7 @@ import { DraggableDeal } from "./draggable-deal";
 import { DroppableStageColumn } from "./droppable-stage-column";
 import { formatCurrency } from "@/features/comercial/lib/format-currency";
 import { DEAL_STAGES, type DealStageKey } from "@/lib/constants";
-import { Briefcase } from "lucide-react";
+import { IconBriefcase } from "@tabler/icons-react";
 import type { Database } from "@/lib/supabase/types";
 
 type DealRow = Database["public"]["Tables"]["crm_deals"]["Row"];
@@ -203,7 +203,7 @@ export function DealPipeline({
   if (deals.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
-        <Briefcase className="mb-3 h-10 w-10 text-gray-500/50" />
+        <IconBriefcase className="mb-3 h-10 w-10 text-gray-500/50" />
         <p className="text-sm font-medium">Nenhum deal encontrado</p>
         <p className="text-xs text-gray-500">
           Ajuste os filtros ou adicione novos deals ao pipeline.

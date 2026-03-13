@@ -21,18 +21,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  Calendar,
-  DollarSign,
-  ExternalLink,
-  AlertTriangle,
-  User,
-  Pencil,
-  Trash2,
-  FileText,
-  Clock,
-  Tag,
-  Download,
-} from "lucide-react";
+  IconCalendar,
+  IconCurrencyDollar,
+  IconExternalLink,
+  IconAlertTriangle,
+  IconUser,
+  IconPencil,
+  IconTrash,
+  IconFileText,
+  IconClock,
+  IconTag,
+  IconDownload,
+} from "@tabler/icons-react";
 import type { Database } from "@/lib/supabase/types";
 import {
   CONTRACT_STATUS,
@@ -173,7 +173,7 @@ export function ContractDetailDialog({
                     variant="secondary"
                     className="gap-1 text-xs px-2 py-0.5 bg-amber-500/10 text-amber-600 border-amber-200"
                   >
-                    <AlertTriangle className="h-3 w-3" />
+                    <IconAlertTriangle className="h-3 w-3" />
                     {daysRemaining}d restantes
                   </Badge>
                 )}
@@ -182,7 +182,7 @@ export function ContractDetailDialog({
                     variant="destructive"
                     className="gap-1 text-xs px-2 py-0.5"
                   >
-                    <AlertTriangle className="h-3 w-3" />
+                    <IconAlertTriangle className="h-3 w-3" />
                     Vencido
                   </Badge>
                 )}
@@ -215,7 +215,7 @@ export function ContractDetailDialog({
               {contract.monthly_value != null && contract.monthly_value > 0 && (
                 <div className="rounded-lg border border-border/50 bg-muted/20 p-3 space-y-1">
                   <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <DollarSign className="h-3.5 w-3.5" />
+                    <IconCurrencyDollar className="h-3.5 w-3.5" />
                     <span className="text-[11px] font-medium uppercase tracking-wider">
                       Valor Mensal
                     </span>
@@ -230,7 +230,7 @@ export function ContractDetailDialog({
               {(contract.start_date || contract.end_date) && (
                 <div className="rounded-lg border border-border/50 bg-muted/20 p-3 space-y-1">
                   <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <Calendar className="h-3.5 w-3.5" />
+                    <IconCalendar className="h-3.5 w-3.5" />
                     <span className="text-[11px] font-medium uppercase tracking-wider">
                       Vigência
                     </span>
@@ -264,7 +264,7 @@ export function ContractDetailDialog({
             {/* Expiring Alert */}
             {isExpiring && daysRemaining !== null && (
               <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 p-3 flex items-start gap-2.5">
-                <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                <IconAlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
                 <div className="text-sm">
                   <p className="font-medium text-amber-700 dark:text-amber-400">
                     Contrato expira em {daysRemaining} dias
@@ -278,7 +278,7 @@ export function ContractDetailDialog({
 
             {isExpired && (
               <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-800 p-3 flex items-start gap-2.5">
-                <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                <IconAlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
                 <div className="text-sm">
                   <p className="font-medium text-red-700 dark:text-red-400">
                     Contrato vencido
@@ -316,7 +316,7 @@ export function ContractDetailDialog({
                   className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/20 p-3 hover:bg-muted/40 transition-colors group"
                 >
                   <div className="h-9 w-9 rounded-lg bg-[#f97316]/10 flex items-center justify-center shrink-0">
-                    <FileText className="h-4.5 w-4.5 text-[#f97316]" />
+                    <IconFileText className="h-4.5 w-4.5 text-[#f97316]" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">
@@ -326,7 +326,7 @@ export function ContractDetailDialog({
                       Clique para abrir
                     </p>
                   </div>
-                  <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+                  <IconExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
                 </a>
               </div>
             )}
@@ -340,7 +340,7 @@ export function ContractDetailDialog({
                 {typeConfig && (
                   <div className="flex items-center justify-between px-3 py-2.5">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Tag className="h-3.5 w-3.5" />
+                      <IconTag className="h-3.5 w-3.5" />
                       <span>Tipo</span>
                     </div>
                     <span className="text-sm font-medium">
@@ -351,7 +351,7 @@ export function ContractDetailDialog({
                 {categoryConfig && (
                   <div className="flex items-center justify-between px-3 py-2.5">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Tag className="h-3.5 w-3.5" />
+                      <IconTag className="h-3.5 w-3.5" />
                       <span>Categoria</span>
                     </div>
                     <span className="text-sm font-medium">
@@ -361,7 +361,7 @@ export function ContractDetailDialog({
                 )}
                 <div className="flex items-center justify-between px-3 py-2.5">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Clock className="h-3.5 w-3.5" />
+                    <IconClock className="h-3.5 w-3.5" />
                     <span>Status</span>
                   </div>
                   <Badge
@@ -378,7 +378,7 @@ export function ContractDetailDialog({
                 {contract.created_at && (
                   <div className="flex items-center justify-between px-3 py-2.5">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Calendar className="h-3.5 w-3.5" />
+                      <IconCalendar className="h-3.5 w-3.5" />
                       <span>Criado em</span>
                     </div>
                     <span className="text-sm">
@@ -400,7 +400,7 @@ export function ContractDetailDialog({
                   className="flex-1 bg-[#f97316] hover:bg-[#ea580c] text-white gap-2"
                   onClick={() => onEdit(contract)}
                 >
-                  <Pencil className="h-4 w-4" />
+                  <IconPencil className="h-4 w-4" />
                   Editar
                 </Button>
               )}
@@ -411,7 +411,7 @@ export function ContractDetailDialog({
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <Download className="h-4 w-4" />
+                    <IconDownload className="h-4 w-4" />
                     PDF
                   </a>
                 </Button>
@@ -423,7 +423,7 @@ export function ContractDetailDialog({
                 className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 gap-2"
                 onClick={() => setDeleteOpen(true)}
               >
-                <Trash2 className="h-4 w-4" />
+                <IconTrash className="h-4 w-4" />
                 Excluir contrato
               </Button>
             )}

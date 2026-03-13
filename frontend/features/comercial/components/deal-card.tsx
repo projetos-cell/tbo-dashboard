@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, User, Calendar } from "lucide-react";
+import { IconCurrencyDollar, IconUser, IconCalendar } from "@tabler/icons-react";
 import { formatCurrency } from "@/features/comercial/lib/format-currency";
 import type { Database } from "@/lib/supabase/types";
 
@@ -40,7 +40,7 @@ export function DealCard({ deal, onClick }: DealCardProps) {
       <div className="mt-2 space-y-1">
         {deal.value != null && deal.value > 0 && (
           <div className="flex items-center gap-1 text-xs">
-            <DollarSign className="h-3 w-3 text-gray-500" />
+            <IconCurrencyDollar className="h-3 w-3 text-gray-500" />
             <span className="font-medium">{formatCurrency(deal.value)}</span>
           </div>
         )}
@@ -54,13 +54,13 @@ export function DealCard({ deal, onClick }: DealCardProps) {
         )}
         {deal.owner_name && (
           <div className="flex items-center gap-1 text-xs text-gray-500">
-            <User className="h-3 w-3" />
+            <IconUser className="h-3 w-3" />
             <span className="truncate">{deal.owner_name}</span>
           </div>
         )}
         {deal.expected_close && (
           <div className="flex items-center gap-1 text-xs text-gray-500">
-            <Calendar className="h-3 w-3" />
+            <IconCalendar className="h-3 w-3" />
             <span>
               {new Date(deal.expected_close).toLocaleDateString("pt-BR")}
             </span>

@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, UserPlus } from "lucide-react";
+import { IconPlus, IconTrash, IconUserPlus } from "@tabler/icons-react";
 import { SIGNER_ROLE } from "../../schemas/contract-schemas";
 import type { SignerInput } from "../../schemas/contract-schemas";
 
@@ -49,7 +49,7 @@ export function StepSigners({ signers, onChange }: StepSignersProps) {
           {signers.length === 1 ? "signatario" : "signatarios"}
         </p>
         <Button type="button" variant="outline" size="sm" onClick={addSigner}>
-          <UserPlus className="h-4 w-4 mr-1" />
+          <IconUserPlus className="h-4 w-4 mr-1" />
           Adicionar Signatario
         </Button>
       </div>
@@ -65,7 +65,7 @@ export function StepSigners({ signers, onChange }: StepSignersProps) {
             size="sm"
             onClick={addSigner}
           >
-            <UserPlus className="h-4 w-4 mr-1" />
+            <IconUserPlus className="h-4 w-4 mr-1" />
             Adicionar primeiro signatario
           </Button>
         </div>
@@ -88,7 +88,7 @@ export function StepSigners({ signers, onChange }: StepSignersProps) {
                 className="h-7 w-7 text-muted-foreground hover:text-destructive"
                 onClick={() => removeSigner(index)}
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <IconTrash className="h-3.5 w-3.5" />
               </Button>
             </div>
 

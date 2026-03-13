@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Check } from "lucide-react";
+import { IconCheck } from "@tabler/icons-react";
 
 interface StepperHeaderProps {
   steps: { label: string; description: string }[];
@@ -30,7 +30,7 @@ export function StepperHeader({ steps, currentStep }: StepperHeaderProps) {
                       "bg-muted text-muted-foreground"
                   )}
                 >
-                  {isCompleted ? <Check className="h-4 w-4" /> : index + 1}
+                  {isCompleted ? <IconCheck className="h-4 w-4" /> : index + 1}
                 </div>
 
                 <div className="hidden sm:block min-w-0">

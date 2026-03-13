@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { TrendingUp, DollarSign, Target, BarChart3 } from "lucide-react";
+import { IconTrendingUp, IconCurrencyDollar, IconTarget, IconChartBar } from "@tabler/icons-react";
 
 interface DealKPIs {
   total: number;
@@ -29,28 +29,28 @@ export function DealKPICards({ kpis }: { kpis: DealKPIs }) {
       label: "Pipeline Ativo",
       value: formatCurrency(kpis.pipelineValue),
       sub: `${kpis.active} deals abertos`,
-      icon: DollarSign,
+      icon: IconCurrencyDollar,
       color: "text-blue-600",
     },
     {
       label: "Forecast Ponderado",
       value: formatCurrency(kpis.forecast),
       sub: "valor × probabilidade",
-      icon: TrendingUp,
+      icon: IconTrendingUp,
       color: "text-purple-600",
     },
     {
       label: "Ganhos",
       value: formatCurrency(kpis.wonValue),
       sub: `${kpis.won} deals fechados`,
-      icon: Target,
+      icon: IconTarget,
       color: "text-green-600",
     },
     {
       label: "Conversão",
       value: kpis.conversionRate > 0 ? `${kpis.conversionRate.toFixed(1)}%` : "—",
       sub: `${kpis.won + kpis.lost} encerrados`,
-      icon: BarChart3,
+      icon: IconChartBar,
       color: "text-amber-600",
     },
   ];

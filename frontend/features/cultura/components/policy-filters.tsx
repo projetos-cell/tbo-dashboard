@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { Search } from "lucide-react";
+import { IconSearch } from "@tabler/icons-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -37,7 +37,7 @@ export function PolicyFilters({ filters, onChange }: PolicyFiltersProps) {
     <div className="space-y-3">
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-2.5 top-2.5 size-4 text-gray-500" />
+        <IconSearch className="absolute left-2.5 top-2.5 size-4 text-gray-500" />
         <Input
           placeholder="Buscar por titulo, categoria, texto..."
           value={filters.search}

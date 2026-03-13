@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { Gift, Star, Edit, Trash2, MoreHorizontal } from "lucide-react";
+import { IconGift, IconStar, IconEdit, IconTrash, IconDots } from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,7 +47,7 @@ export function RewardCatalogCard({
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0 space-y-2">
             <div className="flex items-center gap-2">
-              <Gift className="size-4 shrink-0" style={{ color: typeInfo.color }} />
+              <IconGift className="size-4 shrink-0" style={{ color: typeInfo.color }} />
               <h3 className="font-medium text-sm truncate">{reward.name}</h3>
             </div>
 
@@ -66,7 +66,7 @@ export function RewardCatalogCard({
                 className="text-xs font-semibold"
                 style={{ color: "#f59e0b" }}
               >
-                <Star className="size-3 mr-0.5" />
+                <IconStar className="size-3 mr-0.5" />
                 {reward.points_required} pts
               </Badge>
               {reward.value_brl && (
@@ -86,19 +86,19 @@ export function RewardCatalogCard({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="size-7">
-                  <MoreHorizontal className="size-3.5" />
+                  <IconDots className="size-3.5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => onEdit?.(reward)}>
-                  <Edit className="size-3.5 mr-1.5" />
+                  <IconEdit className="size-3.5 mr-1.5" />
                   Editar
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="text-red-500"
                   onClick={() => onDelete?.(reward)}
                 >
-                  <Trash2 className="size-3.5 mr-1.5" />
+                  <IconTrash className="size-3.5 mr-1.5" />
                   Excluir
                 </DropdownMenuItem>
               </DropdownMenuContent>

@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Bell, UserCircle } from "lucide-react";
+import { IconBell, IconUserCircle } from "@tabler/icons-react";
 import {
   SIGNER_ROLE,
   SIGNER_STATUS,
@@ -29,7 +29,7 @@ export function SignersList({ signers, onNotify, loading }: SignersListProps) {
   if (signers.length === 0) {
     return (
       <div className="rounded-lg border border-dashed p-6 text-center">
-        <UserCircle className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+        <IconUserCircle className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
         <p className="text-sm text-muted-foreground">
           Nenhum signatario adicionado
         </p>
@@ -49,7 +49,7 @@ export function SignersList({ signers, onNotify, loading }: SignersListProps) {
             className="p-3 flex items-center gap-3"
           >
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted shrink-0">
-              <UserCircle className="h-5 w-5 text-muted-foreground" />
+              <IconUserCircle className="h-5 w-5 text-muted-foreground" />
             </div>
 
             <div className="flex-1 min-w-0">
@@ -86,7 +86,7 @@ export function SignersList({ signers, onNotify, loading }: SignersListProps) {
                   disabled={loading}
                   title="Reenviar notificacao"
                 >
-                  <Bell className="h-3.5 w-3.5" />
+                  <IconBell className="h-3.5 w-3.5" />
                 </Button>
               )}
             </div>

@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { Heart, ThumbsUp, Trash2, MoreHorizontal } from "lucide-react";
+import { IconThumbUp, IconTrash, IconDots } from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -83,7 +83,7 @@ export function RecognitionFeedCard({
                 onClick={() => onLike?.(recognition.id)}
                 className="flex items-center gap-1 hover:text-tbo-orange transition-colors"
               >
-                <ThumbsUp className="size-3" />
+                <IconThumbUp className="size-3" />
                 {recognition.likes ?? 0}
               </button>
             </div>
@@ -93,7 +93,7 @@ export function RecognitionFeedCard({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="size-7">
-                  <MoreHorizontal className="size-3.5" />
+                  <IconDots className="size-3.5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -101,7 +101,7 @@ export function RecognitionFeedCard({
                   className="text-red-500"
                   onClick={() => onDelete?.(recognition.id)}
                 >
-                  <Trash2 className="size-3.5 mr-1.5" />
+                  <IconTrash className="size-3.5 mr-1.5" />
                   Excluir
                 </DropdownMenuItem>
               </DropdownMenuContent>

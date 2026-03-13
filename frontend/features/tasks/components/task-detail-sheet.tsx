@@ -161,7 +161,7 @@ export function TaskDetailSheet({
                 <Separator className="my-2" />
 
                 {/* Description */}
-                <TaskDetailDescription description={task.description} />
+                <TaskDetailDescription taskId={task.id} description={task.description} />
               </div>
             </div>
 

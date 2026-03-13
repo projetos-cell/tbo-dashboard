@@ -17,6 +17,7 @@ import { TaskProjectsList } from "./task-projects-list";
 import { TaskCollaboratorsList } from "./task-collaborators-list";
 import { TaskTagsDisplay } from "./task-tags-display";
 import { TaskDependenciesSection } from "./task-dependencies-section";
+import { CustomFieldsSection } from "./custom-fields-section";
 import type { Database } from "@/lib/supabase/types";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
@@ -95,10 +96,10 @@ export function TaskDetailFields({
         <TaskDependenciesSection task={task} onOpenTask={onOpenTask} />
       </FieldRow>
 
-      {/* Campos personalizados placeholder */}
-      <FieldRow label="Campos custom">
-        <span className="text-sm text-muted-foreground">Nenhum campo</span>
-      </FieldRow>
+      {/* Campos personalizados */}
+      <div className="py-1">
+        <CustomFieldsSection taskId={task.id} />
+      </div>
     </div>
   );
 }

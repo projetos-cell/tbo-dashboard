@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Send, MoreHorizontal, Pencil, Trash2, Reply } from "lucide-react";
+import {
+  IconSend,
+  IconDots,
+  IconPencil,
+  IconTrash,
+  IconCornerDownRight,
+} from "@tabler/icons-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -150,7 +156,7 @@ function CommentComposer({
           disabled={(!content.trim() || content === "<p></p>") || submitting}
           aria-label="Enviar comentario"
         >
-          <Send className="size-3.5" />
+          <IconSend className="size-3.5" />
         </Button>
         {onCancel && (
           <Button size="icon" variant="ghost" className="size-8" onClick={onCancel} aria-label="Cancelar">
@@ -229,7 +235,7 @@ function CommentItem({
                 onClick={() => setShowMenu(!showMenu)}
                 aria-label="Acoes"
               >
-                <MoreHorizontal className="size-3.5" />
+                <IconDots className="size-3.5" />
               </Button>
               {showMenu && (
                 <div className="absolute top-full right-0 z-10 mt-1 min-w-[120px] rounded-md border bg-white py-1 shadow-md">
@@ -240,7 +246,7 @@ function CommentItem({
                       setShowMenu(false);
                     }}
                   >
-                    <Pencil className="size-3.5" />
+                    <IconPencil className="size-3.5" />
                     Editar
                   </button>
                   <button
@@ -250,7 +256,7 @@ function CommentItem({
                       setShowMenu(false);
                     }}
                   >
-                    <Trash2 className="size-3.5" />
+                    <IconTrash className="size-3.5" />
                     Excluir
                   </button>
                 </div>
@@ -300,7 +306,7 @@ function CommentItem({
             className="mt-1 flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900"
             onClick={() => setShowReply(!showReply)}
           >
-            <Reply className="size-3" />
+            <IconCornerDownRight className="size-3" />
             Responder
           </button>
         )}

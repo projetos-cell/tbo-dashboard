@@ -3,12 +3,14 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  CheckCircle2,
-  GitBranch,
-  Tag,
-  Users,
-} from "lucide-react";
-import { IconCalendar, IconFolder, IconUsersGroup } from "@tabler/icons-react";
+  IconCalendar,
+  IconFolder,
+  IconUsersGroup,
+  IconCircleCheck,
+  IconGitBranch,
+  IconTag,
+  IconUsers,
+} from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import { TaskAssigneePicker } from "./task-assignee-picker";
 import { TaskDateRange } from "./task-date-range";
@@ -42,7 +44,7 @@ export function TaskDetailFields({
   return (
     <div className="divide-y divide-border/50">
       {/* Responsável */}
-      <FieldRow label="Responsável" icon={<Users className="h-3.5 w-3.5" />}>
+      <FieldRow label="Responsável" icon={<IconUsers className="h-3.5 w-3.5" />}>
         <TaskAssigneePicker task={task} />
       </FieldRow>
 
@@ -55,7 +57,7 @@ export function TaskDetailFields({
       {task.is_completed && task.completed_at && (
         <FieldRow
           label="Concluída em"
-          icon={<CheckCircle2 className="h-3.5 w-3.5 text-green-600" />}
+          icon={<IconCircleCheck className="h-3.5 w-3.5 text-green-600" />}
         >
           <span className="text-sm text-green-700">
             {format(new Date(task.completed_at), "dd MMM yyyy 'às' HH:mm", {
@@ -75,7 +77,7 @@ export function TaskDetailFields({
       </FieldRow>
 
       {/* Tags */}
-      <FieldRow label="Tags" icon={<Tag className="h-3.5 w-3.5" />}>
+      <FieldRow label="Tags" icon={<IconTag className="h-3.5 w-3.5" />}>
         {tags.length > 0 ? (
           <div className="flex flex-wrap gap-1">
             {tags.map((tag) => (
@@ -107,7 +109,7 @@ export function TaskDetailFields({
       </FieldRow>
 
       {/* Dependências */}
-      <FieldRow label="Dependências" icon={<GitBranch className="h-3.5 w-3.5" />}>
+      <FieldRow label="Dependências" icon={<IconGitBranch className="h-3.5 w-3.5" />}>
         <span className="text-sm text-muted-foreground">
           Adicionar dependências
         </span>

@@ -10,23 +10,14 @@ import {
   Tag,
   Users,
 } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { TaskAssigneePicker } from "./task-assignee-picker";
 import type { Tag as TagType } from "@/schemas/tag";
 import type { Database } from "@/lib/supabase/types";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 
 // ─── Helpers ──────────────────────────────────────────
-
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
 
 function formatDatePtBR(dateStr: string | null): string {
   if (!dateStr) return "—";
@@ -38,7 +29,6 @@ function formatDatePtBR(dateStr: string | null): string {
 interface TaskDetailFieldsProps {
   task: TaskRow;
   tags: TagType[];
-  assigneeName: string | null;
   projectName: string | null;
 }
 
@@ -47,7 +37,6 @@ interface TaskDetailFieldsProps {
 export function TaskDetailFields({
   task,
   tags,
-  assigneeName,
   projectName,
 }: TaskDetailFieldsProps) {
   const overdue =
@@ -59,18 +48,7 @@ export function TaskDetailFields({
     <div className="divide-y divide-border/50">
       {/* Responsável */}
       <FieldRow label="Responsável" icon={<Users className="h-3.5 w-3.5" />}>
-        {assigneeName ? (
-          <div className="flex items-center gap-2">
-            <Avatar className="h-5 w-5">
-              <AvatarFallback className="text-[9px] font-semibold bg-blue-100 text-blue-700">
-                {getInitials(assigneeName)}
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-sm">{assigneeName}</span>
-          </div>
-        ) : (
-          <span className="text-sm text-muted-foreground">Sem responsável</span>
-        )}
+        <TaskAssigneePicker task={task} />
       </FieldRow>
 
       {/* Prazo */}

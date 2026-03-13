@@ -77,8 +77,6 @@ export function TaskDetailSheet({
   const { data: task, isLoading } = useTaskDetail(taskId);
   const { data: tags } = useTaskDetailTags(taskId);
   const { data: assigneesRaw } = useTaskAssignees(taskId || "");
-  // Resolve assignee display name
-  const assigneeName = task?.assignee_name || null;
 
   // Resolve project name
   const resolvedProjectName =
@@ -118,7 +116,6 @@ export function TaskDetailSheet({
                 <TaskDetailFields
                   task={task}
                   tags={tags || []}
-                  assigneeName={assigneeName}
                   projectName={resolvedProjectName}
                 />
 

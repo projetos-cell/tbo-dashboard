@@ -1,27 +1,42 @@
 "use client";
 
 import { useState } from "react";
-import { Gift, Star, Clock, CheckCircle } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Gift, Star, Clock, CheckCircle, Plus, Pencil, Trash2, MoreHorizontal, ToggleLeft, ToggleRight } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { RewardsTierCatalog } from "@/features/cultura/components/rewards-tier-catalog";
 import { RedeemConfirmDialog } from "@/features/cultura/components/redeem-confirm-dialog";
 import { RedemptionPendingList } from "@/features/cultura/components/redemption-pending-list";
 import { TierProgress } from "@/features/cultura/components/tier-progress";
-import { ErrorState, EmptyState } from "@/components/shared";
+import { RewardFormDialog, type RewardFormData } from "@/features/cultura/components/reward-form-dialog";
+import { ErrorState, EmptyState, ConfirmDialog } from "@/components/shared";
 import {
   useRewardsKPIs,
+  useRewards,
   useRedemptions,
   useCreateRedemption,
   useUpdateRedemptionStatus,
+  useCreateReward,
+  useUpdateReward,
+  useDeleteReward,
 } from "@/features/cultura/hooks/use-rewards";
 import { usePointsBalance } from "@/features/cultura/hooks/use-reconhecimentos";
 import { usePeople } from "@/features/people/hooks/use-people";
 import { useAuthStore } from "@/stores/auth-store";
 import type { CatalogReward } from "@/features/cultura/data/rewards-catalog";
 import type { Database } from "@/lib/supabase/types";
+
+type RewardRow = Database["public"]["Tables"]["recognition_rewards"]["Row"];
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   pending: { label: "Pendente", color: "#f59e0b" },
@@ -34,20 +49,25 @@ export default function RecompensasPage() {
   const { user, tenantId, role } = useAuthStore();
   const canManage = role === "founder" || role === "diretoria";
   const [tab, setTab] = useState("catalogo");
-  const [redeemingReward, setRedeemingReward] = useState<CatalogReward | null>(
-    null
-  );
+  const [redeemingReward, setRedeemingReward] = useState<CatalogReward | null>(null);
 
-  const { data: kpis } = useRewardsKPIs();
+  // Reward catalog admin state
+  const [showRewardForm, setShowRewardForm] = useState(false);
+  const [editingReward, setEditingReward] = useState<RewardRow | null>(null);
+  const [deletingReward, setDeletingReward] = useState<RewardRow | null>(null);
+
+  const { data: kpis, isLoading: kpisLoading } = useRewardsKPIs();
   const { data: balance, isLoading } = usePointsBalance(user?.id);
   const { data: myRedemptions } = useRedemptions({ userId: user?.id });
-  const { data: allRedemptions } = useRedemptions(
-    canManage ? {} : { userId: user?.id }
-  );
+  const { data: allRedemptions } = useRedemptions(canManage ? {} : { userId: user?.id });
   const { data: people } = usePeople();
+  const { data: catalogRewards } = useRewards(false); // all rewards for admin
 
   const createRedemption = useCreateRedemption();
   const updateStatus = useUpdateRedemptionStatus();
+  const createReward = useCreateReward();
+  const updateReward = useUpdateReward();
+  const deleteReward = useDeleteReward();
 
   const peopleList = people?.data ?? people ?? [];
   const userMap = new Map(
@@ -77,6 +97,39 @@ export default function RecompensasPage() {
     }
   };
 
+  const handleSaveReward = async (data: RewardFormData) => {
+    try {
+      if (editingReward) {
+        await updateReward.mutateAsync({
+          id: editingReward.id,
+          updates: {
+            name: data.name,
+            description: data.description,
+            points_required: data.points_required,
+            type: data.type,
+            value_brl: data.value_brl,
+            active: data.active,
+          },
+        });
+      } else {
+        await createReward.mutateAsync({
+          tenant_id: tenantId!,
+          name: data.name,
+          description: data.description,
+          points_required: data.points_required,
+          type: data.type,
+          value_brl: data.value_brl,
+          active: data.active,
+          created_by: user?.id,
+        } as Database["public"]["Tables"]["recognition_rewards"]["Insert"]);
+      }
+      setShowRewardForm(false);
+      setEditingReward(null);
+    } catch {
+      // handled by mutation onError
+    }
+  };
+
   const userBalance = balance?.balance ?? 0;
 
   return (
@@ -89,6 +142,18 @@ export default function RecompensasPage() {
             Resgate recompensas com seus pontos de reconhecimento.
           </p>
         </div>
+        {canManage && tab === "admin" && (
+          <Button
+            size="sm"
+            onClick={() => {
+              setEditingReward(null);
+              setShowRewardForm(true);
+            }}
+          >
+            <Plus className="size-4 mr-1" />
+            Nova recompensa
+          </Button>
+        )}
       </div>
 
       {/* KPI cards */}
@@ -99,8 +164,14 @@ export default function RecompensasPage() {
               <Gift className="size-3.5" />
               Recompensas
             </div>
-            <p className="text-2xl font-bold">{kpis?.activeRewards ?? 0}</p>
-            <p className="text-xs text-muted-foreground">ativas</p>
+            {kpisLoading ? (
+              <Skeleton className="h-8 w-12" />
+            ) : (
+              <>
+                <p className="text-2xl font-bold">{kpis?.activeRewards ?? 0}</p>
+                <p className="text-xs text-muted-foreground">ativas</p>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -109,8 +180,14 @@ export default function RecompensasPage() {
               <Star className="size-3.5" />
               Meu saldo
             </div>
-            <p className="text-2xl font-bold">{userBalance}</p>
-            <p className="text-xs text-muted-foreground">pontos</p>
+            {isLoading ? (
+              <Skeleton className="h-8 w-12" />
+            ) : (
+              <>
+                <p className="text-2xl font-bold">{userBalance}</p>
+                <p className="text-xs text-muted-foreground">pontos</p>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -119,9 +196,11 @@ export default function RecompensasPage() {
               <Clock className="size-3.5" />
               Pendentes
             </div>
-            <p className="text-2xl font-bold">
-              {kpis?.pendingRedemptions ?? 0}
-            </p>
+            {kpisLoading ? (
+              <Skeleton className="h-8 w-12" />
+            ) : (
+              <p className="text-2xl font-bold">{kpis?.pendingRedemptions ?? 0}</p>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -130,9 +209,11 @@ export default function RecompensasPage() {
               <CheckCircle className="size-3.5" />
               Total resgates
             </div>
-            <p className="text-2xl font-bold">
-              {kpis?.totalRedemptions ?? 0}
-            </p>
+            {kpisLoading ? (
+              <Skeleton className="h-8 w-12" />
+            ) : (
+              <p className="text-2xl font-bold">{kpis?.totalRedemptions ?? 0}</p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -199,9 +280,7 @@ export default function RecompensasPage() {
                             <>
                               {" "}
                               &middot;{" "}
-                              {new Date(r.created_at).toLocaleDateString(
-                                "pt-BR"
-                              )}
+                              {new Date(r.created_at).toLocaleDateString("pt-BR")}
                             </>
                           )}
                         </p>
@@ -232,7 +311,108 @@ export default function RecompensasPage() {
 
         {/* Admin tab */}
         {canManage && (
-          <TabsContent value="admin" className="mt-3 space-y-4">
+          <TabsContent value="admin" className="mt-3 space-y-6">
+            {/* Reward catalog management */}
+            <Card>
+              <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-sm font-medium">
+                  Catalogo de Recompensas (Supabase)
+                </CardTitle>
+                <Badge variant="secondary">{catalogRewards?.length ?? 0} itens</Badge>
+              </CardHeader>
+              <CardContent>
+                {(catalogRewards ?? []).length > 0 ? (
+                  <div className="space-y-1">
+                    {(catalogRewards ?? []).map((reward) => (
+                      <div
+                        key={reward.id}
+                        className="flex items-center justify-between py-2 border-b last:border-0"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate flex items-center gap-2">
+                              {reward.name}
+                              {!reward.active && (
+                                <Badge variant="outline" className="text-[10px] text-gray-400">
+                                  Inativa
+                                </Badge>
+                              )}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {reward.points_required} pts
+                              {reward.value_brl != null && (
+                                <> &middot; R$ {reward.value_brl.toFixed(2)}</>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="size-7 shrink-0">
+                              <MoreHorizontal className="size-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditingReward(reward);
+                                setShowRewardForm(true);
+                              }}
+                            >
+                              <Pencil className="size-3.5 mr-1.5" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                updateReward.mutate({
+                                  id: reward.id,
+                                  updates: { active: !reward.active },
+                                })
+                              }
+                            >
+                              {reward.active ? (
+                                <>
+                                  <ToggleLeft className="size-3.5 mr-1.5" />
+                                  Desativar
+                                </>
+                              ) : (
+                                <>
+                                  <ToggleRight className="size-3.5 mr-1.5" />
+                                  Ativar
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-red-500"
+                              onClick={() => setDeletingReward(reward)}
+                            >
+                              <Trash2 className="size-3.5 mr-1.5" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState
+                    icon={Gift}
+                    title="Nenhuma recompensa no catalogo Supabase"
+                    description="Crie recompensas personalizadas para os colaboradores resgatarem."
+                    cta={{
+                      label: "Nova recompensa",
+                      onClick: () => {
+                        setEditingReward(null);
+                        setShowRewardForm(true);
+                      },
+                    }}
+                  />
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Redemptions management */}
             <RedemptionPendingList
               redemptions={allRedemptions ?? []}
               userMap={userMap}
@@ -250,6 +430,13 @@ export default function RecompensasPage() {
                   approvedBy: user?.id,
                 })
               }
+              onDeliver={(id) =>
+                updateStatus.mutate({
+                  id,
+                  status: "delivered",
+                  approvedBy: user?.id,
+                })
+              }
             />
           </TabsContent>
         )}
@@ -261,6 +448,33 @@ export default function RecompensasPage() {
         onConfirm={handleRedeem}
         isPending={createRedemption.isPending}
         userBalance={userBalance}
+      />
+
+      {/* Reward form dialog */}
+      <RewardFormDialog
+        open={showRewardForm}
+        onOpenChange={setShowRewardForm}
+        reward={editingReward}
+        onSave={handleSaveReward}
+        isSaving={createReward.isPending || updateReward.isPending}
+      />
+
+      {/* Delete reward confirmation */}
+      <ConfirmDialog
+        open={!!deletingReward}
+        onOpenChange={(open) => !open && setDeletingReward(null)}
+        title={`Excluir "${deletingReward?.name}"?`}
+        description="A recompensa sera removida do catalogo. Resgates existentes nao serao afetados."
+        confirmLabel="Excluir"
+        onConfirm={async () => {
+          try {
+            if (deletingReward) await deleteReward.mutateAsync(deletingReward.id);
+          } catch {
+            // handled by mutation onError
+          } finally {
+            setDeletingReward(null);
+          }
+        }}
       />
     </div>
   );

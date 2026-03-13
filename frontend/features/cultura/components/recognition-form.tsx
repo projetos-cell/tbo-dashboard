@@ -28,6 +28,8 @@ const recognitionSchema = z.object({
   message: z.string().min(1, "Escreva uma mensagem").max(500, "Maximo 500 caracteres"),
 });
 
+type RecognitionFormErrors = Partial<Record<"to_user" | "value_id" | "message", string>>;
+
 interface RecognitionFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -56,13 +58,38 @@ export function RecognitionForm({
   const [toUser, setToUser] = useState("");
   const [valueId, setValueId] = useState("");
   const [message, setMessage] = useState("");
+  const [errors, setErrors] = useState<RecognitionFormErrors>({});
 
-  const selectedValue = TBO_VALUES.find((v) => v.id === valueId);
   const availableUsers = users.filter((u) => u.id !== currentUserId);
 
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      setToUser("");
+      setValueId("");
+      setMessage("");
+      setErrors({});
+    }
+    onOpenChange(isOpen);
+  };
+
   const handleSubmit = () => {
-    const result = recognitionSchema.safeParse({ to_user: toUser, value_id: valueId, message: message.trim() });
-    if (!result.success) return;
+    const result = recognitionSchema.safeParse({
+      to_user: toUser,
+      value_id: valueId,
+      message: message.trim(),
+    });
+
+    if (!result.success) {
+      const fieldErrors: RecognitionFormErrors = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof RecognitionFormErrors;
+        if (!fieldErrors[field]) fieldErrors[field] = issue.message;
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+
+    setErrors({});
     const val = TBO_VALUES.find((v) => v.id === valueId)!;
     onSubmit({
       to_user: toUser,
@@ -76,11 +103,10 @@ export function RecognitionForm({
     setMessage("");
   };
 
-  const canSubmit =
-    !!toUser && !!valueId && message.trim().length > 0 && rateLimitInfo?.allowed !== false;
+  const isRateLimited = rateLimitInfo?.allowed === false;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Novo Reconhecimento</DialogTitle>
@@ -88,18 +114,24 @@ export function RecognitionForm({
 
         <div className="space-y-4">
           {/* Rate limit warning */}
-          {rateLimitInfo && !rateLimitInfo.allowed && (
+          {isRateLimited && (
             <div className="flex items-center gap-2 p-3 rounded-md bg-amber-50 border border-amber-200 text-amber-800 text-sm">
               <IconAlertTriangle className="size-4 shrink-0" />
-              Limite diario atingido ({rateLimitInfo.count}/5). Tente novamente amanha.
+              Limite diario atingido ({rateLimitInfo?.count ?? 0}/5). Tente novamente amanha.
             </div>
           )}
 
           {/* To user */}
           <div className="space-y-1.5">
             <Label>Reconhecer</Label>
-            <Select value={toUser} onValueChange={setToUser}>
-              <SelectTrigger>
+            <Select
+              value={toUser}
+              onValueChange={(v) => {
+                setToUser(v);
+                setErrors((p) => ({ ...p, to_user: undefined }));
+              }}
+            >
+              <SelectTrigger className={errors.to_user ? "border-red-500" : ""}>
                 <SelectValue placeholder="Selecione a pessoa..." />
               </SelectTrigger>
               <SelectContent>
@@ -110,6 +142,9 @@ export function RecognitionForm({
                 ))}
               </SelectContent>
             </Select>
+            {errors.to_user && (
+              <p className="text-xs text-red-500">{errors.to_user}</p>
+            )}
           </div>
 
           {/* Value selector */}
@@ -126,12 +161,18 @@ export function RecognitionForm({
                       ? { backgroundColor: val.color, color: "#fff" }
                       : {}
                   }
-                  onClick={() => setValueId(val.id)}
+                  onClick={() => {
+                    setValueId(val.id);
+                    setErrors((p) => ({ ...p, value_id: undefined }));
+                  }}
                 >
                   {val.emoji} {val.name}
                 </Badge>
               ))}
             </div>
+            {errors.value_id && (
+              <p className="text-xs text-red-500">{errors.value_id}</p>
+            )}
           </div>
 
           {/* Message */}
@@ -139,22 +180,36 @@ export function RecognitionForm({
             <Label>Mensagem</Label>
             <Textarea
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              onChange={(e) => {
+                setMessage(e.target.value);
+                setErrors((p) => ({ ...p, message: undefined }));
+              }}
               placeholder="Por que voce esta reconhecendo essa pessoa?"
               rows={3}
               maxLength={500}
+              className={errors.message ? "border-red-500" : ""}
             />
-            <p className="text-xs text-gray-500 text-right">
-              {message.length}/500
-            </p>
+            <div className="flex items-center justify-between">
+              {errors.message ? (
+                <p className="text-xs text-red-500">{errors.message}</p>
+              ) : (
+                <span />
+              )}
+              <p className="text-xs text-gray-500 text-right">
+                {message.length}/500
+              </p>
+            </div>
           </div>
 
           {/* Submit */}
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button variant="outline" onClick={() => handleOpenChange(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSubmit} disabled={!canSubmit || isSubmitting}>
+            <Button
+              onClick={handleSubmit}
+              disabled={isRateLimited || isSubmitting}
+            >
               <IconSend className="size-4 mr-1.5" />
               {isSubmitting ? "Enviando..." : "Enviar"}
             </Button>

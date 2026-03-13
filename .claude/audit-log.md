@@ -1,30 +1,38 @@
 # TBO OS — Audit Log
 
-## Ciclo — 2026-03-13 — Ciclo 19
+## Ciclo — 2026-03-13 — Ciclo 19 (completo)
 
-**Módulo**: Multi-módulo (fix build crítico)
+**Módulo**: Multi-módulo (migração total lucide-react → @tabler/icons-react)
 **Branch**: `main`
-**Build**: ✅
+**Build**: ✅ EXIT:0 — 43 rotas, TypeScript clean, 23 páginas estáticas geradas
 
 ### Estado do módulo
 
 | Funcionalidade | Antes | Depois | Detalhes |
 |---|---|---|---|
-| Build Turbopack | 🔧 | ✅ | 9 ícones inválidos no @tabler/icons-react@3.40 corrigidos |
-| TypeScript check | 🔧 | ✅ | `IconListPlus` e `Inbox` não definidos → corrigidos |
-| `next.config.ts` TS worker | 🔧 | ✅ | Worker crashava com OOM no Windows; `ignoreBuildErrors: true` (tsc --noEmit limpo) |
+| lucide-react imports | ~150 arquivos | 0 arquivos | Migração completa em app/, features/, components/, lib/ |
+| Build Turbopack | 🔧 | ✅ | Todos os ícones inválidos corrigidos |
+| TypeScript check | 🔧 | ✅ | `tsc --noEmit` sem erros |
+| `next.config.ts` | 🔧 | ✅ | `ignoreBuildErrors: false` + `turbopack.root` restaurados |
 
 ### Implementado
 
-- fix: `IconShieldAlert` → `IconShieldExclamation` em `require-role.tsx`
-- fix: `IconHardDrive` removido de `system-health/page.tsx` (usa `IconServer` existente)
-- fix: `IconPackageCheck` → `IconPackages` em `redemption-pending-list.tsx`
-- fix: `IconHardHat` → `IconHelmet` em `mercado/page.tsx`
-- fix: `IconChevronsUpDown` → `IconSelector` em `user-selector.tsx`
-- fix: `IconChartGantt` → `IconTimeline`, `IconHandshake` → `IconUsersGroup`, `IconKanban` → `IconLayoutKanban` em `lib/icons.ts`
-- fix: `IconListPlus` → `IconSquarePlus` em `quick-actions.tsx`
-- fix: `Inbox` → `IconInbox` em `alerts/page.tsx`
-- fix: `IconIconPlus`/`IconIconSearch` → `IconPlus`/`IconSearch` em `changelog/page.tsx`
+**Migração completa lucide-react → @tabler/icons-react (Ciclo 19):**
+- ~150 arquivos migrados em 10 batches paralelos de agentes
+- Padrão: import com prefixo `Icon` de `@tabler/icons-react`
+- `LucideIcon` type → `React.ElementType`
+- Correções de nomes inválidos no @tabler/icons-react@3.40:
+  - `IconShieldAlert` → `IconShieldExclamation` (require-role.tsx)
+  - `IconHardDrive` → `IconServer` (system-health)
+  - `IconPackageCheck` → `IconPackages` (redemption-pending-list)
+  - `IconHardHat` → `IconHelmet` (mercado)
+  - `IconChevronsUpDown` → `IconSelector` (user-selector)
+  - `IconChartGantt` → `IconTimeline`, `IconHandshake` → `IconUsersGroup`, `IconKanban` → `IconLayoutKanban` (lib/icons.ts)
+  - `IconListPlus` → `IconListDetails` (quick-actions)
+  - `IconOctagonX` → `IconAlertOctagon` (sonner)
+  - `Inbox` → `IconInbox` (alerts)
+  - `IconIconPlus`/`IconIconSearch` → `IconPlus`/`IconSearch` (cascade replace_all corrigido)
+- fix: `next.config.ts` — `turbopack.root` restaurado (suprime warning workspace root)
 
 ### Migrations aplicadas
 
@@ -32,14 +40,12 @@ Nenhuma.
 
 ### Próximo ciclo
 
-- Padronizar ícones: o projeto tem um mix de lucide-react e @tabler/icons-react — definir padrão único
-- Remover `typescript.ignoreBuildErrors: true` do next.config.ts depois de verificar o ambiente de build
-- Avaliar upgrade do @tabler/icons-react para versão com os ícones faltantes
+- Remover `lucide-react` do `package.json` (agora sem uso)
+- Verificar se algum componente shadcn/ui traz lucide-react internamente e encapsular
 
 ### Debt técnico
 
-- `next.config.ts` com `typescript.ignoreBuildErrors: true` — necessário porque o tsc worker crasha por OOM no Windows com múltiplos processos Node. `tsc --noEmit` confirma zero erros.
-- Projeto usa tanto `lucide-react` quanto `@tabler/icons-react` — ~150 arquivos com lucide, ~50 com tabler
+Nenhum novo.
 
 ---
 

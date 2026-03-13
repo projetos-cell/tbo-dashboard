@@ -1,12 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Award } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plus, Award, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { RecognitionFeedCard } from "@/features/cultura/components/recognition-feed-card";
 import { RecognitionForm } from "@/features/cultura/components/recognition-form";
 import { RecognitionRanking } from "@/features/cultura/components/recognition-ranking";
@@ -22,9 +30,11 @@ import {
   useUnreviewedRecognitions,
   useReviewRecognition,
   useCheckRateLimit,
+  useRecognitionsRealtime,
 } from "@/features/cultura/hooks/use-reconhecimentos";
 import { usePeople } from "@/features/people/hooks/use-people";
 import { useAuthStore } from "@/stores/auth-store";
+import { TBO_VALUES } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 
 export default function ReconhecimentosPage() {
@@ -33,6 +43,14 @@ export default function ReconhecimentosPage() {
   const [showForm, setShowForm] = useState(false);
   const [tab, setTab] = useState("feed");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Search/filter state
+  const [search, setSearch] = useState("");
+  const [filterPerson, setFilterPerson] = useState("all");
+  const [filterValue, setFilterValue] = useState("all");
+
+  // Realtime subscription
+  useRecognitionsRealtime();
 
   const { data: recognitionsData, isLoading, error, refetch } = useRecognitions({ limit: 50 });
   const { data: kpis } = useRecognitionKPIs();
@@ -54,6 +72,32 @@ export default function ReconhecimentosPage() {
       p.full_name ?? p.email ?? p.id,
     ])
   );
+
+  // Client-side filter
+  const filteredRecognitions = useMemo(() => {
+    let result = recognitions;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (r) =>
+          r.message?.toLowerCase().includes(q) ||
+          userMap.get(r.from_user)?.toLowerCase().includes(q) ||
+          userMap.get(r.to_user)?.toLowerCase().includes(q) ||
+          r.value_name?.toLowerCase().includes(q)
+      );
+    }
+    if (filterPerson !== "all") {
+      result = result.filter(
+        (r) => r.from_user === filterPerson || r.to_user === filterPerson
+      );
+    }
+    if (filterValue !== "all") {
+      result = result.filter((r) => r.value_id === filterValue);
+    }
+    return result;
+  }, [recognitions, search, filterPerson, filterValue, userMap]);
+
+  const hasActiveFilters = search.trim() || filterPerson !== "all" || filterValue !== "all";
 
   const handleSubmit = async (data: {
     to_user: string;
@@ -102,6 +146,69 @@ export default function ReconhecimentosPage() {
 
       <RecognitionKPISection kpis={kpis} balance={balance} />
 
+      {/* Search & filter bar */}
+      <div className="flex flex-wrap gap-2">
+        <div className="relative flex-1 min-w-48">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-gray-400" />
+          <Input
+            placeholder="Buscar por mensagem, pessoa..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8 h-8 text-sm"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
+        </div>
+        <Select value={filterPerson} onValueChange={setFilterPerson}>
+          <SelectTrigger className="w-40 h-8 text-sm">
+            <SelectValue placeholder="Pessoa" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as pessoas</SelectItem>
+            {(peopleList as { id: string; full_name?: string | null; email?: string | null }[]).map(
+              (p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.full_name ?? p.email ?? p.id}
+                </SelectItem>
+              )
+            )}
+          </SelectContent>
+        </Select>
+        <Select value={filterValue} onValueChange={setFilterValue}>
+          <SelectTrigger className="w-40 h-8 text-sm">
+            <SelectValue placeholder="Valor" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os valores</SelectItem>
+            {TBO_VALUES.map((v) => (
+              <SelectItem key={v.id} value={v.id}>
+                {v.emoji} {v.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 text-xs text-gray-500"
+            onClick={() => {
+              setSearch("");
+              setFilterPerson("all");
+              setFilterValue("all");
+            }}
+          >
+            Limpar filtros
+          </Button>
+        )}
+      </div>
+
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="feed">Feed</TabsTrigger>
@@ -137,8 +244,8 @@ export default function ReconhecimentosPage() {
                 </CardContent>
               </Card>
             ))
-          ) : recognitions.length > 0 ? (
-            recognitions.map((r) => (
+          ) : filteredRecognitions.length > 0 ? (
+            filteredRecognitions.map((r) => (
               <RecognitionFeedCard
                 key={r.id}
                 recognition={r}
@@ -149,6 +256,13 @@ export default function ReconhecimentosPage() {
                 canDelete={canManage}
               />
             ))
+          ) : hasActiveFilters ? (
+            <EmptyState
+              icon={Search}
+              title="Nenhum resultado encontrado"
+              description="Tente ajustar os filtros ou limpar a busca."
+              cta={{ label: "Limpar filtros", onClick: () => { setSearch(""); setFilterPerson("all"); setFilterValue("all"); } }}
+            />
           ) : (
             <EmptyState
               icon={Award}

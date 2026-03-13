@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
@@ -186,4 +187,31 @@ export function useCheckDuplicate(
     staleTime: 1000 * 60 * 1,
     enabled: !!tenantId && !!fromUser && !!toUser && !!valueId,
   });
+}
+
+// ─── Realtime subscription ───
+export function useRecognitionsRealtime() {
+  const queryClient = useQueryClient();
+  const tenantId = useTenantId();
+
+  useEffect(() => {
+    if (!tenantId) return;
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel("recognitions-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "recognitions" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["recognitions"] });
+          queryClient.invalidateQueries({ queryKey: ["recognition-kpis"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [tenantId, queryClient]);
 }

@@ -1,3 +1,4 @@
+42a890c feat(tbo-os): ciclo 17 — organograma onNodeClick + fix lucide-react em pessoas
 6197d16 chore: adicionar audit-log do ciclo 2026-03-13 ciclo 16
 e584ff2 feat(tbo-os): ciclo 15 — decisions loading state + reconhecimentos loading + OKR KR history
 e7c87ab feat(tbo-os): ciclo 15 — decisions confirm dialog + pessoas reconhecimentos + okrs company/individuais
@@ -7,7 +8,5 @@ bd67b45 feat(tbo-os): ciclo 14 — colaboradores directory + decisões page + ic
 c38f73c feat(cultura): admin CRUD recompensas + fluxo delivered + validacao inline reconhecimento + skeletons KPI
 70ede56 feat(chat): ciclo 13 — split módulo chat (channel-list 698L + chat-layout 607L + settings-drawer 412L)
 9fe8c10 chore: adicionar audit-log do ciclo 2026-03-13 ciclo 13
-a30b4b8 refactor(chat): split channel-settings-drawer 412L → main 155L + channel-add-members-panel 110L + channel-members-list 80L
- .claude/session-start.txt | 23 +++++------------------
- frontend/lib/constants.ts |  1 +
- 2 files changed, 6 insertions(+), 18 deletions(-)
+ .claude/session-start.txt | 5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)

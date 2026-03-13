@@ -1,5 +1,46 @@
 # TBO OS — Audit Log
 
+## Ciclo — 2026-03-13 (auto) — Ciclo 7
+
+**Módulo**: Demands + Tarefas
+**Branch**: `claude/improve-20260312-auto`
+**Build**: ✅ Passou antes e depois de todas as mudanças
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|---|---|---|---|
+| `features/demands/` lucide-react | 🔧 | ✅ | 10 arquivos migrados para Tabler Icons |
+| `demand-property-row.tsx` tipo LucideIcon | 🔧 | ✅ | Substituído por `React.ComponentType<{...}>` |
+| `demands-board.tsx` tamanho | 🔧 | ✅ | 563→229L (-59%); card/column extraídos |
+| `demand-board-card.tsx` (novo) | ❌ | ✅ | DemandCard + DraggableDemandCard + DroppableColumn + normalize |
+| `task-tag-picker.tsx` tamanho | ⚠️ | ✅ | 338→120L (-64%); views extraídas |
+| `task-tag-picker-views.tsx` (novo) | ❌ | ✅ | TAG_COLORS + SearchView + CreateView |
+
+### Implementado
+
+- refactor(demands): migrar lucide → Tabler Icons em 10 arquivos do módulo
+- refactor(demands): split demands-board.tsx 563L → orchestrator + demand-board-card.tsx
+- refactor(tarefas): split task-tag-picker.tsx 338L → picker + task-tag-picker-views.tsx
+
+### Migrations aplicadas
+
+Nenhuma neste ciclo — sem alterações de schema.
+
+### Próximo ciclo (sugestões)
+
+- Split `task-subtasks-section.tsx` (332L) e `task-dependencies-section.tsx` (326L)
+- Split `my-task-table-row.tsx` (329L) e `task-actions-toolbar.tsx` (319L)
+- Migrar módulos com mais lucide: `features/comercial/`, `features/contratos/`, `features/cultura/`
+- Investigar e implementar sub-páginas OKRs em desenvolvimento (check-ins, dashboard, teams)
+
+### Debt técnico
+
+- `demand-board-card.tsx`: 280L (ligeiramente acima do limite); contém 3 componentes coesos e normalize
+- `task-tag-picker-views.tsx`: 206L (ligeiramente acima); contém 3 exports distintos (TAG_COLORS, SearchView, CreateView)
+
+---
+
 ## Ciclo — 2026-03-13 (auto) — Ciclo 6
 
 **Módulo**: OKRs + Tarefas

@@ -1,27 +1,17 @@
-﻿"use client";
+"use client";
 
 import { useState, useMemo } from "react";
 import {
-  Plus,
-  Target,
-  Settings2,
-  Trash2,
-  Pencil,
-  MessageSquare,
-  History,
-  MoreHorizontal,
-  ChevronDown,
-  ChevronRight,
-  User,
-  BarChart3,
-  MessageSquarePlus,
-} from "lucide-react";
+  IconTarget,
+  IconAdjustments,
+  IconPlus,
+  IconPencil,
+} from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,10 +30,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { ErrorState } from "@/components/shared";
 import { OkrCycleSelector } from "@/features/okrs/components/okr-cycle-selector";
@@ -53,329 +44,24 @@ import { OkrObjectiveDialog } from "@/features/okrs/components/okr-objective-dia
 import { OkrKeyResultDialog } from "@/features/okrs/components/okr-key-result-dialog";
 import { OkrCycleDialog } from "@/features/okrs/components/okr-cycle-dialog";
 import { OkrCheckinDialog } from "@/features/okrs/components/okr-checkin-dialog";
-import { OkrComments } from "@/features/okrs/components/okr-comments";
 import { OkrCheckinHistory } from "@/features/okrs/components/okr-checkin-history";
+import { OkrObjectiveCard } from "@/features/okrs/components/okr-objective-card";
+import { OkrKeyResultList } from "@/features/okrs/components/okr-key-result-item";
 import {
   useCycles,
   useActiveCycle,
   useObjectives,
-  useKeyResults,
   useDeleteObjective,
   useDeleteKeyResult,
 } from "@/features/okrs/hooks/use-okrs";
 import { useAuthStore } from "@/stores/auth-store";
 import { computeOkrKPIs } from "@/features/okrs/services/okrs";
 import { useToast } from "@/hooks/use-toast";
-import { OKR_STATUS, OKR_LEVELS } from "@/lib/constants";
-import type { OkrStatusKey, OkrLevelKey } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 
 type ObjectiveRow = Database["public"]["Tables"]["okr_objectives"]["Row"];
 type KeyResultRow = Database["public"]["Tables"]["okr_key_results"]["Row"];
 type CycleRow = Database["public"]["Tables"]["okr_cycles"]["Row"];
-
-// ── Key Result Row ────────────────────────────────────────────────────
-
-function KeyResultItem({
-  kr,
-  onCheckin,
-  onEdit,
-  onDelete,
-  onHistory,
-}: {
-  kr: KeyResultRow;
-  onCheckin: (kr: KeyResultRow) => void;
-  onEdit: (kr: KeyResultRow) => void;
-  onDelete: (kr: KeyResultRow) => void;
-  onHistory: (kr: KeyResultRow) => void;
-}) {
-  const start = kr.start_value ?? 0;
-  const target = kr.target_value ?? 100;
-  const current = kr.current_value ?? start;
-  const range = target - start;
-  const pct = range > 0 ? Math.min(((current - start) / range) * 100, 100) : 0;
-  const statusCfg =
-    OKR_STATUS[(kr.status as OkrStatusKey) ?? "on_track"] ?? OKR_STATUS.on_track;
-
-  return (
-    <div className="flex items-center gap-3 rounded-lg border bg-white p-3">
-      <BarChart3 className="h-4 w-4 text-gray-500 shrink-0" />
-
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium truncate">{kr.title}</p>
-        <div className="flex items-center gap-2 mt-1">
-          <Progress value={pct} className="h-1.5 flex-1" />
-          <span className="text-xs text-gray-500 whitespace-nowrap">
-            {current}
-            {kr.unit ? ` ${kr.unit}` : ""} / {target}
-            {kr.unit ? ` ${kr.unit}` : ""}
-          </span>
-        </div>
-      </div>
-
-      <Badge
-        variant="outline"
-        className="text-xs shrink-0"
-        style={{ borderColor: statusCfg.color, color: statusCfg.color }}
-      >
-        {statusCfg.label}
-      </Badge>
-
-      <span className="text-xs font-medium w-[36px] text-right shrink-0">
-        {Math.round(pct)}%
-      </span>
-
-      <Button
-        size="icon"
-        variant="ghost"
-        className="h-7 w-7 shrink-0"
-        onClick={() => onCheckin(kr)}
-        aria-label="Novo check-in"
-      >
-        <MessageSquarePlus className="h-3.5 w-3.5" />
-      </Button>
-
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-7 w-7 shrink-0"
-            aria-label="Mais ações"
-          >
-            <MoreHorizontal className="h-3.5 w-3.5" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => onEdit(kr)}>
-            <Pencil className="h-3.5 w-3.5 mr-2" />
-            Editar
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onHistory(kr)}>
-            <History className="h-3.5 w-3.5 mr-2" />
-            Histórico
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="text-red-500"
-            onClick={() => onDelete(kr)}
-          >
-            <Trash2 className="h-3.5 w-3.5 mr-2" />
-            Excluir
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-  );
-}
-
-// ── Key Results List ──────────────────────────────────────────────────
-
-function OkrKeyResultList({
-  objectiveId,
-  onCheckin,
-  onEditKr,
-  onDeleteKr,
-  onHistoryKr,
-  onAddKr,
-}: {
-  objectiveId: string;
-  onCheckin: (kr: KeyResultRow) => void;
-  onEditKr: (kr: KeyResultRow) => void;
-  onDeleteKr: (kr: KeyResultRow) => void;
-  onHistoryKr: (kr: KeyResultRow) => void;
-  onAddKr: (objectiveId: string) => void;
-}) {
-  const { data: keyResults, isLoading, error, refetch } = useKeyResults(objectiveId);
-
-  if (isLoading) {
-    return (
-      <div className="space-y-2">
-        <Skeleton className="h-14 w-full rounded-lg" />
-        <Skeleton className="h-14 w-full rounded-lg" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return <ErrorState message={error.message} onRetry={() => refetch()} />;
-  }
-
-  return (
-    <div className="space-y-2">
-      {keyResults && keyResults.length > 0 ? (
-        keyResults.map((kr) => (
-          <KeyResultItem
-            key={kr.id}
-            kr={kr}
-            onCheckin={onCheckin}
-            onEdit={onEditKr}
-            onDelete={onDeleteKr}
-            onHistory={onHistoryKr}
-          />
-        ))
-      ) : (
-        <p className="text-xs text-gray-500 py-2">
-          Nenhum key result cadastrado.
-        </p>
-      )}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="w-full text-xs"
-        onClick={() => onAddKr(objectiveId)}
-      >
-        <Plus className="h-3.5 w-3.5 mr-1" />
-        Adicionar Key Result
-      </Button>
-    </div>
-  );
-}
-
-// ── Objective Card ────────────────────────────────────────────────────
-
-function ObjectiveCard({
-  objective,
-  expanded,
-  onToggle,
-  onEdit,
-  onDelete,
-  onAddKr,
-  showComments,
-  onToggleComments,
-  children,
-}: {
-  objective: ObjectiveRow;
-  expanded: boolean;
-  onToggle: () => void;
-  onEdit: (obj: ObjectiveRow) => void;
-  onDelete: (obj: ObjectiveRow) => void;
-  onAddKr: (objectiveId: string) => void;
-  showComments: boolean;
-  onToggleComments: () => void;
-  children?: React.ReactNode;
-}) {
-  const statusCfg =
-    OKR_STATUS[(objective.status as OkrStatusKey) ?? "on_track"] ??
-    OKR_STATUS.on_track;
-  const levelCfg =
-    OKR_LEVELS[(objective.level as OkrLevelKey) ?? "squad"] ??
-    OKR_LEVELS.squad;
-  const progress = objective.progress ?? 0;
-
-  return (
-    <Card className="overflow-hidden">
-      <CardContent className="p-0">
-        {/* Header row */}
-        <div className="flex items-center gap-3 p-4">
-          <button
-            type="button"
-            onClick={onToggle}
-            className="flex items-center gap-3 flex-1 min-w-0 text-left hover:bg-gray-100/40 -m-1 p-1 rounded transition-colors"
-            aria-label={expanded ? "Recolher objetivo" : "Expandir objetivo"}
-          >
-            {expanded ? (
-              <ChevronDown className="h-4 w-4 shrink-0" />
-            ) : (
-              <ChevronRight className="h-4 w-4 shrink-0" />
-            )}
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <Badge
-                  variant="outline"
-                  className="text-xs px-1.5"
-                  style={{ borderColor: levelCfg.color, color: levelCfg.color }}
-                >
-                  {levelCfg.label}
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className="text-xs px-1.5"
-                  style={{
-                    borderColor: statusCfg.color,
-                    color: statusCfg.color,
-                  }}
-                >
-                  {statusCfg.label}
-                </Badge>
-              </div>
-              <p className="text-sm font-medium truncate">{objective.title}</p>
-              {objective.description && (
-                <p className="text-xs text-gray-500 truncate mt-0.5">
-                  {objective.description}
-                </p>
-              )}
-            </div>
-          </button>
-
-          <div className="flex items-center gap-3 shrink-0">
-            {objective.owner_id && (
-              <div className="flex items-center gap-1 text-xs text-gray-500">
-                <User className="h-3 w-3" />
-              </div>
-            )}
-            <div className="flex items-center gap-2 min-w-[120px]">
-              <Progress value={progress} className="h-2 flex-1" />
-              <span className="text-xs font-medium w-[36px] text-right">
-                {Math.round(progress)}%
-              </span>
-            </div>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8"
-                  aria-label="Ações do objetivo"
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onEdit(objective)}>
-                  <Pencil className="h-3.5 w-3.5 mr-2" />
-                  Editar
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onAddKr(objective.id)}>
-                  <Plus className="h-3.5 w-3.5 mr-2" />
-                  Adicionar Key Result
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={onToggleComments}>
-                  <MessageSquare className="h-3.5 w-3.5 mr-2" />
-                  Comentários
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-red-500"
-                  onClick={() => onDelete(objective)}
-                >
-                  <Trash2 className="h-3.5 w-3.5 mr-2" />
-                  Excluir
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-
-        {/* Expanded: KRs */}
-        {expanded && children && (
-          <div className="border-t px-4 py-3 space-y-2 bg-gray-100/20">
-            {children}
-          </div>
-        )}
-
-        {/* Comments section */}
-        {showComments && (
-          <div className="border-t px-4 py-3 bg-gray-100/10">
-            <OkrComments objectiveId={objective.id} />
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
 
 // ── Main Content ──────────────────────────────────────────────────────
 
@@ -397,30 +83,14 @@ function OkrsContent() {
   const [viewTab, setViewTab] = useState("all");
 
   // Dialogs
-  const [objDialog, setObjDialog] = useState<{
-    open: boolean;
-    objective?: ObjectiveRow | null;
-  }>({ open: false });
-  const [krDialog, setKrDialog] = useState<{
-    open: boolean;
-    objectiveId: string;
-    keyResult?: KeyResultRow | null;
-  }>({ open: false, objectiveId: "" });
-  const [cycleDialog, setCycleDialog] = useState<{
-    open: boolean;
-    cycle?: CycleRow | null;
-  }>({ open: false });
+  const [objDialog, setObjDialog] = useState<{ open: boolean; objective?: ObjectiveRow | null }>({ open: false });
+  const [krDialog, setKrDialog] = useState<{ open: boolean; objectiveId: string; keyResult?: KeyResultRow | null }>({ open: false, objectiveId: "" });
+  const [cycleDialog, setCycleDialog] = useState<{ open: boolean; cycle?: CycleRow | null }>({ open: false });
   const [checkinKr, setCheckinKr] = useState<KeyResultRow | null>(null);
   const [historyKrId, setHistoryKrId] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<{
-    type: "objective" | "kr";
-    id: string;
-    title: string;
-  } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: "objective" | "kr"; id: string; title: string } | null>(null);
 
   const effectiveCycleId = selectedCycleId ?? activeCycle?.id ?? null;
-
-  // Filters for "Meus OKRs" tab
   const ownerFilter = viewTab === "mine" ? userId : undefined;
 
   const { data: objectives, isLoading: loadingObjs, error: objsError, refetch: refetchObjs } = useObjectives({
@@ -435,9 +105,7 @@ function OkrsContent() {
     if (!search) return objectives;
     const q = search.toLowerCase();
     return objectives.filter(
-      (o) =>
-        o.title.toLowerCase().includes(q) ||
-        (o.description ?? "").toLowerCase().includes(q),
+      (o) => o.title.toLowerCase().includes(q) || (o.description ?? "").toLowerCase().includes(q),
     );
   }, [objectives, search]);
 
@@ -446,8 +114,7 @@ function OkrsContent() {
   function toggleExpand(id: string) {
     setExpandedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   }
@@ -455,8 +122,7 @@ function OkrsContent() {
   function toggleComments(id: string) {
     setCommentIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   }
@@ -469,22 +135,13 @@ function OkrsContent() {
       } else {
         await deleteKeyResult.mutateAsync(deleteTarget.id);
       }
-      toast({
-        title:
-          deleteTarget.type === "objective"
-            ? "Objetivo excluído"
-            : "Key Result excluído",
-      });
+      toast({ title: deleteTarget.type === "objective" ? "Objetivo excluído" : "Key Result excluído" });
     } catch {
-      toast({
-        title: "Erro ao excluir",
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao excluir", variant: "destructive" });
     }
     setDeleteTarget(null);
   }
 
-  // Loading state
   if (loadingCycles) {
     return (
       <div className="space-y-4">
@@ -508,12 +165,10 @@ function OkrsContent() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Target className="h-6 w-6" />
+            <IconTarget className="h-6 w-6" />
             OKRs
           </h1>
-          <p className="text-gray-500 text-sm">
-            Objetivos e resultados-chave
-          </p>
+          <p className="text-gray-500 text-sm">Objetivos e resultados-chave</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <OkrCycleSelector
@@ -524,19 +179,13 @@ function OkrsContent() {
           />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                aria-label="Gerenciar ciclos"
-              >
-                <Settings2 className="h-4 w-4" />
+              <Button variant="outline" size="icon" aria-label="Gerenciar ciclos">
+                <IconAdjustments className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem
-                onClick={() => setCycleDialog({ open: true })}
-              >
-                <Plus className="h-3.5 w-3.5 mr-2" />
+              <DropdownMenuItem onClick={() => setCycleDialog({ open: true })}>
+                <IconPlus className="h-3.5 w-3.5 mr-2" />
                 Novo Ciclo
               </DropdownMenuItem>
               {cycles && cycles.length > 0 && (
@@ -545,11 +194,9 @@ function OkrsContent() {
                   {cycles.map((c) => (
                     <DropdownMenuItem
                       key={c.id}
-                      onClick={() =>
-                        setCycleDialog({ open: true, cycle: c })
-                      }
+                      onClick={() => setCycleDialog({ open: true, cycle: c })}
                     >
-                      <Pencil className="h-3.5 w-3.5 mr-2" />
+                      <IconPencil className="h-3.5 w-3.5 mr-2" />
                       {c.name}
                       {c.is_active && (
                         <Badge variant="secondary" className="ml-auto text-xs">
@@ -563,36 +210,32 @@ function OkrsContent() {
             </DropdownMenuContent>
           </DropdownMenu>
           <Button onClick={() => setObjDialog({ open: true })}>
-            <Plus className="h-4 w-4 mr-1" />
+            <IconPlus className="h-4 w-4 mr-1" />
             Novo Objetivo
           </Button>
         </div>
       </div>
 
-      {/* Onboarding: no cycles at all */}
+      {/* Onboarding: no cycles */}
       {cycles && cycles.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <div className="rounded-full bg-tbo-orange/10 p-4 mb-4">
-              <Target className="h-10 w-10 text-tbo-orange" />
+              <IconTarget className="h-10 w-10 text-tbo-orange" />
             </div>
-            <h2 className="text-lg font-semibold mb-2">
-              Comece definindo seus ciclos de OKR
-            </h2>
+            <h2 className="text-lg font-semibold mb-2">Comece definindo seus ciclos de OKR</h2>
             <p className="text-gray-500 text-sm max-w-md mb-6">
-              Ciclos organizam seus objetivos por trimestre, semestre ou qualquer
-              período que faça sentido para sua equipe. Crie o primeiro ciclo
-              para começar a acompanhar seus OKRs.
+              Ciclos organizam seus objetivos por trimestre, semestre ou qualquer período que faça
+              sentido para sua equipe. Crie o primeiro ciclo para começar a acompanhar seus OKRs.
             </p>
             <Button onClick={() => setCycleDialog({ open: true })}>
-              <Plus className="h-4 w-4 mr-1" />
+              <IconPlus className="h-4 w-4 mr-1" />
               Criar Ciclo
             </Button>
           </CardContent>
         </Card>
       ) : (
         <>
-          {/* View tabs */}
           <Tabs value={viewTab} onValueChange={setViewTab}>
             <TabsList>
               <TabsTrigger value="all">Todos</TabsTrigger>
@@ -600,10 +243,8 @@ function OkrsContent() {
             </TabsList>
           </Tabs>
 
-          {/* KPIs */}
           <OkrKpis data={kpis} />
 
-          {/* Filters */}
           <OkrFilters
             search={search}
             onSearchChange={setSearch}
@@ -613,7 +254,6 @@ function OkrsContent() {
             onLevelChange={setLevelFilter}
           />
 
-          {/* Objectives list */}
           {loadingObjs ? (
             <div className="space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -624,74 +264,48 @@ function OkrsContent() {
             <ErrorState message={objsError.message} onRetry={() => refetchObjs()} />
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <Target className="h-12 w-12 text-gray-500/40 mb-3" />
+              <IconTarget className="h-12 w-12 text-gray-500/40 mb-3" />
               <p className="text-gray-500 mb-4">
                 {viewTab === "mine"
                   ? "Você não possui objetivos neste ciclo."
                   : "Nenhum objetivo encontrado neste ciclo."}
               </p>
-              <Button
-                variant="outline"
-                onClick={() => setObjDialog({ open: true })}
-              >
-                <Plus className="h-4 w-4 mr-1" />
+              <Button variant="outline" onClick={() => setObjDialog({ open: true })}>
+                <IconPlus className="h-4 w-4 mr-1" />
                 Criar Objetivo
               </Button>
             </div>
           ) : (
-        <div className="space-y-3">
-          {filtered.map((obj) => (
-            <ObjectiveCard
-              key={obj.id}
-              objective={obj}
-              expanded={expandedIds.has(obj.id)}
-              onToggle={() => toggleExpand(obj.id)}
-              onEdit={(o) => setObjDialog({ open: true, objective: o })}
-              onDelete={(o) =>
-                setDeleteTarget({
-                  type: "objective",
-                  id: o.id,
-                  title: o.title,
-                })
-              }
-              onAddKr={(objId) =>
-                setKrDialog({ open: true, objectiveId: objId })
-              }
-              showComments={commentIds.has(obj.id)}
-              onToggleComments={() => toggleComments(obj.id)}
-            >
-              <OkrKeyResultList
-                objectiveId={obj.id}
-                onCheckin={setCheckinKr}
-                onEditKr={(kr) =>
-                  setKrDialog({
-                    open: true,
-                    objectiveId: obj.id,
-                    keyResult: kr,
-                  })
-                }
-                onDeleteKr={(kr) =>
-                  setDeleteTarget({
-                    type: "kr",
-                    id: kr.id,
-                    title: kr.title,
-                  })
-                }
-                onHistoryKr={(kr) => setHistoryKrId(kr.id)}
-                onAddKr={(objId) =>
-                  setKrDialog({ open: true, objectiveId: objId })
-                }
-              />
-            </ObjectiveCard>
-          ))}
-        </div>
-      )}
+            <div className="space-y-3">
+              {filtered.map((obj) => (
+                <OkrObjectiveCard
+                  key={obj.id}
+                  objective={obj}
+                  expanded={expandedIds.has(obj.id)}
+                  onToggle={() => toggleExpand(obj.id)}
+                  onEdit={(o) => setObjDialog({ open: true, objective: o })}
+                  onDelete={(o) => setDeleteTarget({ type: "objective", id: o.id, title: o.title })}
+                  onAddKr={(objId) => setKrDialog({ open: true, objectiveId: objId })}
+                  showComments={commentIds.has(obj.id)}
+                  onToggleComments={() => toggleComments(obj.id)}
+                >
+                  <OkrKeyResultList
+                    objectiveId={obj.id}
+                    onCheckin={setCheckinKr}
+                    onEditKr={(kr) => setKrDialog({ open: true, objectiveId: obj.id, keyResult: kr })}
+                    onDeleteKr={(kr) => setDeleteTarget({ type: "kr", id: kr.id, title: kr.title })}
+                    onHistoryKr={(kr) => setHistoryKrId(kr.id)}
+                    onAddKr={(objId) => setKrDialog({ open: true, objectiveId: objId })}
+                  />
+                </OkrObjectiveCard>
+              ))}
+            </div>
+          )}
         </>
       )}
 
-      {/* ── Dialogs ──────────────────────────────────────── */}
+      {/* ── Dialogs ─────────────────────────────────────── */}
 
-      {/* Objective create/edit */}
       <OkrObjectiveDialog
         open={objDialog.open}
         onClose={() => setObjDialog({ open: false })}
@@ -699,7 +313,6 @@ function OkrsContent() {
         cycleId={effectiveCycleId}
       />
 
-      {/* Key Result create/edit */}
       <OkrKeyResultDialog
         open={krDialog.open}
         onClose={() => setKrDialog({ open: false, objectiveId: "" })}
@@ -707,28 +320,20 @@ function OkrsContent() {
         keyResult={krDialog.keyResult ?? null}
       />
 
-      {/* Cycle create/edit */}
       <OkrCycleDialog
         open={cycleDialog.open}
         onClose={() => setCycleDialog({ open: false })}
         cycle={cycleDialog.cycle ?? null}
       />
 
-      {/* Check-in dialog */}
       <OkrCheckinDialog
         kr={checkinKr}
         open={!!checkinKr}
         onClose={() => setCheckinKr(null)}
       />
 
-      {/* Check-in history dialog */}
       {historyKrId && (
-        <Dialog
-          open={!!historyKrId}
-          onOpenChange={(v) => {
-            if (!v) setHistoryKrId(null);
-          }}
-        >
+        <Dialog open={!!historyKrId} onOpenChange={(v) => { if (!v) setHistoryKrId(null); }}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>Histórico de Check-ins</DialogTitle>
@@ -738,13 +343,7 @@ function OkrsContent() {
         </Dialog>
       )}
 
-      {/* Delete confirmation */}
-      <AlertDialog
-        open={!!deleteTarget}
-        onOpenChange={(v) => {
-          if (!v) setDeleteTarget(null);
-        }}
-      >
+      <AlertDialog open={!!deleteTarget} onOpenChange={(v) => { if (!v) setDeleteTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
@@ -769,13 +368,7 @@ function OkrsContent() {
   );
 }
 
-// ── Dialog import (for history) ───────────────────────────────────────
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+// ── Page ──────────────────────────────────────────────────────────────
 
 export default function OkrsPage() {
   return (

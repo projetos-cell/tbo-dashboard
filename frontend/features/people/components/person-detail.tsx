@@ -16,13 +16,13 @@ import type { Database } from "@/lib/supabase/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  Mail,
-  Phone,
-  MapPin,
-  Briefcase,
-  Calendar,
-  Building2,
-} from "lucide-react";
+  IconMail,
+  IconPhone,
+  IconMapPin,
+  IconBriefcase,
+  IconCalendar,
+  IconBuilding,
+} from "@tabler/icons-react";
 import { PeopleTimeline } from "@/features/people/components/people-timeline";
 import { usePersonEvents } from "@/features/people/hooks/use-people-events";
 import { PersonPdiSection } from "@/features/people/components/person-pdi-section";
@@ -97,19 +97,19 @@ export function PersonDetail({ person, open, onOpenChange }: PersonDetailProps) 
           <div className="space-y-3 text-sm">
             {person.email && (
               <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-gray-500" />
+                <IconMail className="h-4 w-4 text-gray-500" />
                 <span>{person.email}</span>
               </div>
             )}
             {person.phone && (
               <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-gray-500" />
+                <IconPhone className="h-4 w-4 text-gray-500" />
                 <span>{person.phone}</span>
               </div>
             )}
             {(person.address_city || person.address_state) && (
               <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-gray-500" />
+                <IconMapPin className="h-4 w-4 text-gray-500" />
                 <span>
                   {[person.address_city, person.address_state]
                     .filter(Boolean)
@@ -125,19 +125,19 @@ export function PersonDetail({ person, open, onOpenChange }: PersonDetailProps) 
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div className="space-y-1">
               <p className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
-                <Briefcase className="h-3.5 w-3.5" /> Departamento
+                <IconBriefcase className="h-3.5 w-3.5" /> Departamento
               </p>
               <span>{person.department ?? "—"}</span>
             </div>
             <div className="space-y-1">
               <p className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
-                <Building2 className="h-3.5 w-3.5" /> Contrato
+                <IconBuilding className="h-3.5 w-3.5" /> Contrato
               </p>
               <span>{person.contract_type ?? "—"}</span>
             </div>
             <div className="space-y-1">
               <p className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
-                <Calendar className="h-3.5 w-3.5" /> Início
+                <IconCalendar className="h-3.5 w-3.5" /> Início
               </p>
               <span>
                 {person.start_date
@@ -149,7 +149,7 @@ export function PersonDetail({ person, open, onOpenChange }: PersonDetailProps) 
             </div>
             <div className="space-y-1">
               <p className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
-                <Calendar className="h-3.5 w-3.5" /> Aniversário
+                <IconCalendar className="h-3.5 w-3.5" /> Aniversário
               </p>
               <span>
                 {person.birth_date

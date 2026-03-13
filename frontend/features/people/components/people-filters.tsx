@@ -17,7 +17,7 @@ import {
   type PeopleFiltersSpec,
   countActiveFilterGroups,
 } from "@/features/people/utils/people-filters";
-import { Search, SlidersHorizontal, X, ArrowUpDown } from "lucide-react";
+import { IconSearch, IconAdjustmentsHorizontal, IconX, IconArrowsUpDown } from "@tabler/icons-react";
 import type { SortSpec } from "@/services/view-state";
 
 // ---------------------------------------------------------------------------
@@ -107,7 +107,7 @@ export function PeopleFilters({
       {/* Row 1: Search + Advanced filter button + Sort */}
       <div className="flex items-center gap-2">
         <div className="relative max-w-sm flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+          <IconSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
           <Input
             placeholder="Buscar por nome ou email..."
             value={search}
@@ -120,7 +120,7 @@ export function PeopleFilters({
         <Popover open={advancedOpen} onOpenChange={setAdvancedOpen}>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm" className="gap-1.5">
-              <SlidersHorizontal className="h-4 w-4" />
+              <IconAdjustmentsHorizontal className="h-4 w-4" />
               Filtros
               {activeFilterCount > 0 && (
                 <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1 text-xs">
@@ -197,7 +197,7 @@ export function PeopleFilters({
         <Popover open={sortOpen} onOpenChange={setSortOpen}>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm" className="gap-1.5">
-              <ArrowUpDown className="h-4 w-4" />
+              <IconArrowsUpDown className="h-4 w-4" />
               Ordenar
             </Button>
           </PopoverTrigger>
@@ -393,7 +393,7 @@ function FilterTag({ label, onRemove }: { label: string; onRemove: () => void })
         onClick={onRemove}
         className="ml-0.5 rounded-full p-0.5 hover:bg-gray-100-foreground/20"
       >
-        <X className="h-3 w-3" />
+        <IconX className="h-3 w-3" />
       </button>
     </Badge>
   );

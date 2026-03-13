@@ -8,7 +8,7 @@ import { ScoreBadge } from "./score-badge";
 import { CULTURE_METRICS } from "@/features/performance/utils/performance-constants";
 import { useCultureMetrics } from "@/features/cultura/hooks/use-culture-metrics";
 import { useComputeCulture } from "@/features/cultura/hooks/use-culture-metrics";
-import { Calculator, RefreshCw, Loader2 } from "lucide-react";
+import { IconCalculator, IconRefresh, IconLoader2 } from "@tabler/icons-react";
 import type { CultureMetricRow } from "@/features/cultura/services/culture-metrics";
 
 interface CultureBreakdownProps {
@@ -83,11 +83,11 @@ export function CultureBreakdown({
             disabled={isComputing}
           >
             {isComputing ? (
-              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+              <IconLoader2 className="mr-1 h-3 w-3 animate-spin" />
             ) : hasData ? (
-              <RefreshCw className="mr-1 h-3 w-3" />
+              <IconRefresh className="mr-1 h-3 w-3" />
             ) : (
-              <Calculator className="mr-1 h-3 w-3" />
+              <IconCalculator className="mr-1 h-3 w-3" />
             )}
             {isComputing
               ? "Calculando..."

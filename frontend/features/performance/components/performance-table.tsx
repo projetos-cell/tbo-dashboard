@@ -14,7 +14,7 @@ import {
 import { ScoreBadge, TrendIndicator } from "./score-badge";
 import { getScoreBand, getStatusIcon } from "@/features/performance/utils/performance-constants";
 import type { PerformanceSnapshotRow } from "@/features/performance/services/performance";
-import { Search, ArrowUpDown } from "lucide-react";
+import { IconSearch, IconArrowsUpDown } from "@tabler/icons-react";
 
 // ---------------------------------------------------------------------------
 // Performance Table — sortable, filterable, clickable rows
@@ -124,7 +124,7 @@ export function PerformanceTable({
     >
       <span className="flex items-center gap-1">
         {label}
-        <ArrowUpDown className="h-3 w-3 text-gray-500" />
+        <IconArrowsUpDown className="h-3 w-3 text-gray-500" />
       </span>
     </TableHead>
   );
@@ -132,7 +132,7 @@ export function PerformanceTable({
   return (
     <div className="space-y-3">
       <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+        <IconSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
         <Input
           placeholder="Buscar por nome..."
           value={search}

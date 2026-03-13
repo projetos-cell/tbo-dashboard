@@ -2,14 +2,14 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  TrendingUp,
-  Award,
-  AlertTriangle,
-  Users,
-  ArrowUp,
-  ArrowDown,
-  Minus,
-} from "lucide-react";
+  IconTrendingUp,
+  IconAward,
+  IconAlertTriangle,
+  IconUsers,
+  IconArrowUp,
+  IconArrowDown,
+  IconMinus,
+} from "@tabler/icons-react";
 import type { PerformanceKPIs } from "@/features/performance/services/performance";
 
 // ---------------------------------------------------------------------------
@@ -36,21 +36,21 @@ export function PerformanceKPICards({ kpis, isLoading }: PerformanceKPICardsProp
     {
       title: "Score Médio",
       value: kpis.avgScore.toFixed(1),
-      icon: TrendingUp,
+      icon: IconTrendingUp,
       color: "text-blue-600",
       bg: "bg-blue-50 dark:bg-blue-950/30",
     },
     {
       title: "Avaliados",
       value: kpis.totalEvaluated.toString(),
-      icon: Users,
+      icon: IconUsers,
       color: "text-violet-600",
       bg: "bg-violet-50 dark:bg-violet-950/30",
     },
     {
       title: "Elite + Alta",
       value: `${kpis.eliteCount + kpis.highCount}`,
-      icon: Award,
+      icon: IconAward,
       color: "text-emerald-600",
       bg: "bg-emerald-50 dark:bg-emerald-950/30",
       sub: `${kpis.eliteCount} elite, ${kpis.highCount} alta`,
@@ -58,7 +58,7 @@ export function PerformanceKPICards({ kpis, isLoading }: PerformanceKPICardsProp
     {
       title: "Atenção",
       value: kpis.attentionCount.toString(),
-      icon: AlertTriangle,
+      icon: IconAlertTriangle,
       color: kpis.attentionCount > 0 ? "text-red-600" : "text-gray-500",
       bg: kpis.attentionCount > 0
         ? "bg-red-50 dark:bg-red-950/30"
@@ -91,13 +91,13 @@ export function PerformanceKPICards({ kpis, isLoading }: PerformanceKPICardsProp
           <CardContent className="flex items-center gap-6 p-3">
             <span className="text-xs font-medium text-gray-500">Tendência do Período:</span>
             <span className="flex items-center gap-1 text-xs text-emerald-600">
-              <ArrowUp className="h-3 w-3" /> {kpis.monthTrend.up} subindo
+              <IconArrowUp className="h-3 w-3" /> {kpis.monthTrend.up} subindo
             </span>
             <span className="flex items-center gap-1 text-xs text-gray-500">
-              <Minus className="h-3 w-3" /> {kpis.monthTrend.stable} estável
+              <IconMinus className="h-3 w-3" /> {kpis.monthTrend.stable} estável
             </span>
             <span className="flex items-center gap-1 text-xs text-red-600">
-              <ArrowDown className="h-3 w-3" /> {kpis.monthTrend.down} caindo
+              <IconArrowDown className="h-3 w-3" /> {kpis.monthTrend.down} caindo
             </span>
           </CardContent>
         </Card>

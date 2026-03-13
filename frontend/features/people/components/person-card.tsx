@@ -8,7 +8,7 @@ import { getInitials } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
 import type { PersonSnapshot } from "@/features/people/services/people-snapshot";
 import { PersonSnapshotBar } from "@/features/people/components/person-snapshot-bar";
-import { Mail, Phone } from "lucide-react";
+import { IconMail, IconPhone } from "@tabler/icons-react";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -69,13 +69,13 @@ export function PersonCard({ person, snapshot, onClick }: PersonCardProps) {
         <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
           {person.email && (
             <span className="flex items-center gap-1 truncate">
-              <Mail className="h-3 w-3 shrink-0" />
+              <IconMail className="h-3 w-3 shrink-0" />
               <span className="truncate">{person.email}</span>
             </span>
           )}
           {person.phone && (
             <span className="flex items-center gap-1">
-              <Phone className="h-3 w-3 shrink-0" />
+              <IconPhone className="h-3 w-3 shrink-0" />
               {person.phone}
             </span>
           )}

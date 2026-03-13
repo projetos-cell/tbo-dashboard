@@ -1,27 +1,29 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
-  AlertTriangle,
-  TrendingDown,
-  Users,
-  Clock,
-  BarChart3,
-  Info,
-  ShieldAlert,
-  FileText,
-} from "lucide-react";
+  IconAlertTriangle,
+  IconTrendingDown,
+  IconUsers,
+  IconClock,
+  IconChartBar,
+  IconInfoCircle,
+  IconShieldExclamation,
+  IconFileText,
+} from "@tabler/icons-react";
 import type { FounderAlert } from "@/features/founder-dashboard/services/founder-dashboard";
 
 // ── Icon map ─────────────────────────────────────────────────────────────────
 
-const ALERT_ICONS: Record<FounderAlert["type"], typeof AlertTriangle> = {
-  margem: TrendingDown,
-  runway: ShieldAlert,
-  concentracao: Users,
-  atraso: Clock,
-  despesas: BarChart3,
-  contrato: FileText,
+const ALERT_ICONS: Record<FounderAlert["type"], React.ElementType> = {
+  margem: IconTrendingDown,
+  runway: IconShieldExclamation,
+  concentracao: IconUsers,
+  atraso: IconClock,
+  despesas: IconChartBar,
+  contrato: IconFileText,
 };
 
 const ALERT_COLORS: Record<FounderAlert["type"], string> = {
@@ -69,6 +71,7 @@ interface FounderAlertsProps {
 }
 
 export function FounderAlerts({ alerts, isLoading }: FounderAlertsProps) {
+  const router = useRouter();
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
@@ -101,7 +104,7 @@ export function FounderAlerts({ alerts, isLoading }: FounderAlertsProps) {
             className="flex h-5 w-5 items-center justify-center rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
             aria-label="Informações do bloco"
           >
-            <Info className="h-3.5 w-3.5" />
+            <IconInfoCircle className="h-3.5 w-3.5" />
           </button>
           {tooltipOpen && (
             <div className="absolute right-0 bottom-full mb-2 z-50 w-80 rounded-xl border border-gray-200 bg-white shadow-lg p-3 space-y-1">
@@ -131,7 +134,7 @@ export function FounderAlerts({ alerts, isLoading }: FounderAlertsProps) {
       ) : alerts.length === 0 ? (
         <div className="flex flex-col items-center py-6 text-center">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 mb-2">
-            <ShieldAlert className="h-5 w-5 text-emerald-500" />
+            <IconShieldExclamation className="h-5 w-5 text-emerald-500" />
           </div>
           <p className="text-sm text-gray-500">
             Nenhum alerta no momento.
@@ -143,7 +146,7 @@ export function FounderAlerts({ alerts, isLoading }: FounderAlertsProps) {
       ) : (
         <div className="space-y-2">
           {alerts.map((alert, i) => {
-            const Icon = ALERT_ICONS[alert.type] || AlertTriangle;
+            const Icon = ALERT_ICONS[alert.type] || IconAlertTriangle;
             const colorClass = ALERT_COLORS[alert.type] || "text-amber-600";
             const badgeVariant = ALERT_BADGE_VARIANT[alert.type] || "secondary";
             const isOverdue = alert.type === "atraso" && alert.client != null;
@@ -171,10 +174,11 @@ export function FounderAlerts({ alerts, isLoading }: FounderAlertsProps) {
                           type="button"
                           className="inline-flex items-center gap-1 rounded-md bg-orange-600 px-2.5 py-0.5 text-xs font-medium text-white hover:bg-orange-700 transition-colors"
                           onClick={() => {
-                            // TODO: integrate with billing/collection flow
-                            window.alert(
-                              `Ação: cobrar cliente "${alert.client}" — ${fmtBRL(alert.valor ?? 0)}`
+                            toast.info(
+                              `Abrindo recebíveis de ${alert.client}`,
+                              { description: `Valor em atraso: ${fmtBRL(alert.valor ?? 0)}` }
                             );
+                            router.push("/financeiro/contas");
                           }}
                         >
                           Cobrar Cliente

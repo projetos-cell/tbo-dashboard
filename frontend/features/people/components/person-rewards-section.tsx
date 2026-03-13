@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronRight, Star } from "lucide-react";
+import { IconChevronRight, IconStar } from "@tabler/icons-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   useRecognitionsForUser,
@@ -114,14 +114,14 @@ export function PersonRewardsSection({ personId }: PersonRewardsSectionProps) {
             href={`/cultura/reconhecimentos?user=${personId}`}
             className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
           >
-            <Star className="h-3 w-3" />
+            <IconStar className="h-3 w-3" />
             Ver todos os reconhecimentos
             {recognitions && recognitions.length > 3 && (
               <span className="ml-0.5 text-gray-400">
                 ({recognitions.length})
               </span>
             )}
-            <ChevronRight className="h-3 w-3" />
+            <IconChevronRight className="h-3 w-3" />
           </Link>
         </>
       )}

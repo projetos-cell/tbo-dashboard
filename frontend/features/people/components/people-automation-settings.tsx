@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Bot, Clock, Target, TrendingDown, Flame } from "lucide-react";
+import { IconRobot, IconClock, IconTarget, IconTrendingDown, IconFlame } from "@tabler/icons-react";
 
 // ---------------------------------------------------------------------------
 // Automation rules (read-only display)
@@ -17,25 +17,25 @@ import { Bot, Clock, Target, TrendingDown, Flame } from "lucide-react";
 
 const AUTOMATION_RULES = [
   {
-    icon: Clock,
+    icon: IconClock,
     label: "1:1 atrasado (> 45 dias)",
     action: "Cria tarefa: \"Realizar 1:1 com {Nome}\"",
     owner: "Líder direto",
   },
   {
-    icon: Target,
+    icon: IconTarget,
     label: "PDI desatualizado (> 120 dias)",
     action: "Cria tarefa: \"Atualizar PDI de {Nome}\"",
     owner: "Líder direto",
   },
   {
-    icon: TrendingDown,
+    icon: IconTrendingDown,
     label: "Score crítico (< 45)",
     action: "Gera alerta no painel (sem tarefa)",
     owner: "Founder/Admin",
   },
   {
-    icon: Flame,
+    icon: IconFlame,
     label: "Sobrecarga (≥ 10 tarefas)",
     action: "Cria tarefa: \"Revisar carga de {Nome}\"",
     owner: "Líder direto",
@@ -65,7 +65,7 @@ export function PeopleAutomationSettings() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Bot className="h-5 w-5 text-tbo-orange" />
+            <IconRobot className="h-5 w-5 text-tbo-orange" />
             <CardTitle className="text-base">Automações de Pessoas</CardTitle>
           </div>
           <div className="flex items-center gap-2">

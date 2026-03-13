@@ -8,15 +8,15 @@ import {
 } from "@/components/ui/tooltip";
 import type { PeopleKPIsV2 } from "@/features/people/services/people";
 import {
-  Users,
-  UserCheck,
-  UserPlus,
-  AlertTriangle,
-  MessageSquare,
-  Target,
-  Award,
-  Flame,
-} from "lucide-react";
+  IconUsers,
+  IconUserCheck,
+  IconUserPlus,
+  IconAlertTriangle,
+  IconMessage,
+  IconTarget,
+  IconAward,
+  IconFlame,
+} from "@tabler/icons-react";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -67,56 +67,56 @@ const KPI_CONFIG: Record<
   total: {
     label: "Total",
     tooltip: "Número total de colaboradores cadastrados",
-    icon: Users,
+    icon: IconUsers,
     color: "text-blue-600",
     bg: "bg-blue-50 dark:bg-blue-950/40",
   },
   active: {
     label: "Ativos",
     tooltip: "Colaboradores com status Ativo",
-    icon: UserCheck,
+    icon: IconUserCheck,
     color: "text-green-600",
     bg: "bg-green-50 dark:bg-green-950/40",
   },
   onboarding: {
     label: "Em onboarding",
     tooltip: "Colaboradores em processo de integração",
-    icon: UserPlus,
+    icon: IconUserPlus,
     color: "text-purple-600",
     bg: "bg-purple-50 dark:bg-purple-950/40",
   },
   at_risk: {
     label: "Em risco",
     tooltip: "Ativos com avaliação < 60 ou PDI atrasado",
-    icon: AlertTriangle,
+    icon: IconAlertTriangle,
     color: "text-red-600",
     bg: "bg-red-50 dark:bg-red-950/40",
   },
   pending_1on1: {
     label: "1:1 pendentes",
     tooltip: "Ativos sem 1:1 concluído nos últimos 30 dias",
-    icon: MessageSquare,
+    icon: IconMessage,
     color: "text-orange-600",
     bg: "bg-orange-50 dark:bg-orange-950/40",
   },
   stale_pdi: {
     label: "PDIs desatualizados",
     tooltip: "Ativos sem atualização de PDI nos últimos 90 dias",
-    icon: Target,
+    icon: IconTarget,
     color: "text-amber-600",
     bg: "bg-amber-50 dark:bg-amber-950/40",
   },
   month_recognitions: {
     label: "Reconhecimentos",
     tooltip: "Total de reconhecimentos dados neste mês",
-    icon: Award,
+    icon: IconAward,
     color: "text-emerald-600",
     bg: "bg-emerald-50 dark:bg-emerald-950/40",
   },
   overloaded: {
     label: "Overload",
     tooltip: "Ativos com 8 ou mais tarefas abertas",
-    icon: Flame,
+    icon: IconFlame,
     color: "text-rose-600",
     bg: "bg-rose-50 dark:bg-rose-950/40",
   },

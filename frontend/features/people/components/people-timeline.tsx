@@ -8,14 +8,14 @@ import { cn } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
 import type { PeopleEventType, EventSeverity } from "@/features/people/services/people-events";
 import {
-  Activity,
-  MessageSquare,
-  Target,
-  TrendingDown,
-  UserCheck,
-  Award,
-  Flame,
-} from "lucide-react";
+  IconActivity,
+  IconMessage,
+  IconTarget,
+  IconTrendingDown,
+  IconUserCheck,
+  IconAward,
+  IconFlame,
+} from "@tabler/icons-react";
 
 type EventRow = Database["public"]["Tables"]["people_events"]["Row"];
 
@@ -25,47 +25,47 @@ type EventRow = Database["public"]["Tables"]["people_events"]["Row"];
 
 const EVENT_CONFIG: Record<
   PeopleEventType,
-  { label: string; icon: typeof Activity; color: string; bg: string }
+  { label: string; icon: React.ElementType; color: string; bg: string }
 > = {
   auto_task_created: {
     label: "Tarefa automática",
-    icon: Activity,
+    icon: IconActivity,
     color: "text-amber-700",
     bg: "bg-amber-50",
   },
   one_on_one_completed: {
     label: "1:1 realizado",
-    icon: MessageSquare,
+    icon: IconMessage,
     color: "text-blue-700",
     bg: "bg-blue-50",
   },
   pdi_updated: {
     label: "PDI atualizado",
-    icon: Target,
+    icon: IconTarget,
     color: "text-emerald-700",
     bg: "bg-emerald-50",
   },
   performance_changed: {
     label: "Performance alterada",
-    icon: TrendingDown,
+    icon: IconTrendingDown,
     color: "text-purple-700",
     bg: "bg-purple-50",
   },
   status_changed: {
     label: "Status alterado",
-    icon: UserCheck,
+    icon: IconUserCheck,
     color: "text-sky-700",
     bg: "bg-sky-50",
   },
   recognition_received: {
     label: "Reconhecimento",
-    icon: Award,
+    icon: IconAward,
     color: "text-yellow-700",
     bg: "bg-yellow-50",
   },
   overload_detected: {
     label: "Sobrecarga detectada",
-    icon: Flame,
+    icon: IconFlame,
     color: "text-red-700",
     bg: "bg-red-50",
   },

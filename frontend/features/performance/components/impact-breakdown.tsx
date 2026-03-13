@@ -9,7 +9,7 @@ import { ScoreBadge } from "./score-badge";
 import { IMPACT_METRICS } from "@/features/performance/utils/performance-constants";
 import { useImpactMetrics } from "@/features/cultura/hooks/use-impact-metrics";
 import { useComputeImpact } from "@/features/cultura/hooks/use-impact-metrics";
-import { Calculator, RefreshCw, Loader2 } from "lucide-react";
+import { IconCalculator, IconRefresh, IconLoader2 } from "@tabler/icons-react";
 import type { ImpactMetricRow } from "@/features/cultura/services/impact-metrics";
 
 interface ImpactBreakdownProps {
@@ -85,11 +85,11 @@ export function ImpactBreakdown({
             disabled={isComputing}
           >
             {isComputing ? (
-              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+              <IconLoader2 className="mr-1 h-3 w-3 animate-spin" />
             ) : hasData ? (
-              <RefreshCw className="mr-1 h-3 w-3" />
+              <IconRefresh className="mr-1 h-3 w-3" />
             ) : (
-              <Calculator className="mr-1 h-3 w-3" />
+              <IconCalculator className="mr-1 h-3 w-3" />
             )}
             {isComputing
               ? "Calculando..."

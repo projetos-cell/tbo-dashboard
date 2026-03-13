@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { BookOpen, ChevronRight, Plus } from "lucide-react";
+import { IconBook, IconChevronRight, IconPlus } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -69,7 +69,7 @@ export function PersonPdiSection({ personId }: PersonPdiSectionProps) {
           <p className="text-sm text-gray-500">Nenhum PDI criado ainda.</p>
           <Button asChild size="sm" variant="outline" className="h-7 gap-1.5 text-xs">
             <Link href={`/pessoas/pdi?person_id=${personId}`}>
-              <Plus className="h-3.5 w-3.5" />
+              <IconPlus className="h-3.5 w-3.5" />
               Criar PDI
             </Link>
           </Button>
@@ -83,7 +83,7 @@ export function PersonPdiSection({ personId }: PersonPdiSectionProps) {
         >
           <div className="flex min-w-0 flex-1 items-start gap-3">
             <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-              <BookOpen className="h-3.5 w-3.5 text-gray-500" />
+              <IconBook className="h-3.5 w-3.5 text-gray-500" />
             </div>
             <div className="min-w-0 flex-1 space-y-1">
               <p className="truncate text-sm font-medium leading-tight">
@@ -117,7 +117,7 @@ export function PersonPdiSection({ personId }: PersonPdiSectionProps) {
               </div>
             </div>
           </div>
-          <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-gray-400 transition-transform group-hover:translate-x-0.5" />
+          <IconChevronRight className="mt-1 h-4 w-4 shrink-0 text-gray-400 transition-transform group-hover:translate-x-0.5" />
         </Link>
       )}
 
@@ -127,7 +127,7 @@ export function PersonPdiSection({ personId }: PersonPdiSectionProps) {
           href={`/pessoas/pdi?person_id=${personId}`}
           className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
         >
-          <ChevronRight className="h-3 w-3" />
+          <IconChevronRight className="h-3 w-3" />
           Ver todos os PDIs ({pdis.length})
         </Link>
       )}

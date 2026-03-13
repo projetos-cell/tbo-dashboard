@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { CULTURE_METRICS } from "@/features/performance/utils/performance-constants";
 import { formatPeriodLabel } from "@/features/performance/utils/performance-constants";
 import { useComputeAllCulture } from "@/features/cultura/hooks/use-culture-metrics";
-import { Calculator, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { IconCalculator, IconLoader2, IconCircleCheck, IconCircleX } from "@tabler/icons-react";
 
 interface CultureComputeDialogProps {
   open: boolean;
@@ -55,7 +55,7 @@ export function CultureComputeDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Calculator className="h-4 w-4" />
+            <IconCalculator className="h-4 w-4" />
             Calcular Cultura — {formatPeriodLabel(period)}
           </DialogTitle>
           <DialogDescription>
@@ -88,14 +88,14 @@ export function CultureComputeDialog({
         {/* Result */}
         {isDone && (
           <div className="flex items-center gap-2 rounded-md bg-emerald-50 dark:bg-emerald-950/20 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-400">
-            <CheckCircle2 className="h-4 w-4" />
+            <IconCircleCheck className="h-4 w-4" />
             {resultCount} colaborador(es) processado(s) com sucesso.
           </div>
         )}
 
         {computeAll.isError && (
           <div className="flex items-center gap-2 rounded-md bg-red-50 dark:bg-red-950/20 px-3 py-2 text-sm text-red-700 dark:text-red-400">
-            <XCircle className="h-4 w-4" />
+            <IconCircleX className="h-4 w-4" />
             Erro: {(computeAll.error as Error)?.message ?? "Erro desconhecido"}
           </div>
         )}
@@ -107,17 +107,17 @@ export function CultureComputeDialog({
           <Button onClick={handleCompute} disabled={isComputing}>
             {isComputing ? (
               <>
-                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                <IconLoader2 className="mr-1 h-3 w-3 animate-spin" />
                 Calculando...
               </>
             ) : isDone ? (
               <>
-                <Calculator className="mr-1 h-3 w-3" />
+                <IconCalculator className="mr-1 h-3 w-3" />
                 Recalcular
               </>
             ) : (
               <>
-                <Calculator className="mr-1 h-3 w-3" />
+                <IconCalculator className="mr-1 h-3 w-3" />
                 Calcular Todos
               </>
             )}

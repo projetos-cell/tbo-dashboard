@@ -8,13 +8,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
-  MessageSquare,
-  Target,
-  TrendingUp,
-  ListChecks,
-  Flame,
-  AlertTriangle,
-} from "lucide-react";
+  IconMessage,
+  IconTarget,
+  IconTrendingUp,
+  IconListCheck,
+  IconFlame,
+  IconAlertTriangle,
+} from "@tabler/icons-react";
 import type { PersonSnapshot } from "@/features/people/services/people-snapshot";
 import {
   derive1on1Status,
@@ -77,7 +77,7 @@ export function PersonSnapshotBar({ snapshot }: PersonSnapshotBarProps) {
               <span
                 className={`inline-flex items-center gap-1 text-[11px] font-medium ${oneOnOneColor}`}
               >
-                <MessageSquare className="h-3 w-3" />
+                <IconMessage className="h-3 w-3" />
                 {oneOnOneStatus}
               </span>
             </TooltipTrigger>
@@ -96,7 +96,7 @@ export function PersonSnapshotBar({ snapshot }: PersonSnapshotBarProps) {
               <span
                 className={`inline-flex items-center gap-1 text-[11px] font-medium ${PDI_COLORS[pdiStatus]}`}
               >
-                <Target className="h-3 w-3" />
+                <IconTarget className="h-3 w-3" />
                 {pdiStatus}
               </span>
             </TooltipTrigger>
@@ -125,7 +125,7 @@ export function PersonSnapshotBar({ snapshot }: PersonSnapshotBarProps) {
                         : "text-emerald-600 dark:text-emerald-400"
                 }`}
               >
-                <TrendingUp className="h-3 w-3" />
+                <IconTrendingUp className="h-3 w-3" />
                 {score !== null ? score : "—"}
               </span>
             </TooltipTrigger>
@@ -147,9 +147,9 @@ export function PersonSnapshotBar({ snapshot }: PersonSnapshotBarProps) {
                 }`}
               >
                 {overloaded ? (
-                  <Flame className="h-3 w-3" />
+                  <IconFlame className="h-3 w-3" />
                 ) : (
-                  <ListChecks className="h-3 w-3" />
+                  <IconListCheck className="h-3 w-3" />
                 )}
                 {tasks}
                 {overloaded && (
@@ -172,7 +172,7 @@ export function PersonSnapshotBar({ snapshot }: PersonSnapshotBarProps) {
               variant="destructive"
               className="ml-auto h-5 gap-1 px-1.5 text-[10px] font-semibold"
             >
-              <AlertTriangle className="h-3 w-3" />
+              <IconAlertTriangle className="h-3 w-3" />
               Em risco
             </Badge>
           )}

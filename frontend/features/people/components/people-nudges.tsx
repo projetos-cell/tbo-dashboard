@@ -3,13 +3,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  Lightbulb,
-  MessageSquare,
-  Target,
-  TrendingDown,
-  Flame,
-  ArrowRight,
-} from "lucide-react";
+  IconBulb,
+  IconMessage,
+  IconTarget,
+  IconTrendingDown,
+  IconFlame,
+  IconArrowRight,
+} from "@tabler/icons-react";
 import type { PeopleNudgeCounts } from "@/features/people/services/people";
 import type { PeopleKPIPreset } from "@/features/people/utils/people-filters";
 
@@ -22,7 +22,7 @@ interface NudgeConfig {
   countKey: keyof PeopleNudgeCounts;
   label: (n: number) => string;
   cta: string;
-  icon: typeof MessageSquare;
+  icon: React.ElementType;
   /** Tailwind classes for the icon background circle */
   iconBg: string;
   /** Tailwind classes for the icon color */
@@ -36,7 +36,7 @@ const NUDGE_CONFIGS: NudgeConfig[] = [
     label: (n) =>
       n === 1 ? "1 pessoa precisa de 1:1" : `${n} pessoas precisam de 1:1`,
     cta: "Ver pessoas",
-    icon: MessageSquare,
+    icon: IconMessage,
     iconBg: "bg-orange-100 dark:bg-orange-950",
     iconColor: "text-orange-600 dark:text-orange-400",
   },
@@ -48,7 +48,7 @@ const NUDGE_CONFIGS: NudgeConfig[] = [
         ? "1 PDI precisa atualização"
         : `${n} PDIs precisam atualização`,
     cta: "Ver PDIs",
-    icon: Target,
+    icon: IconTarget,
     iconBg: "bg-amber-100 dark:bg-amber-950",
     iconColor: "text-amber-600 dark:text-amber-400",
   },
@@ -60,7 +60,7 @@ const NUDGE_CONFIGS: NudgeConfig[] = [
         ? "1 pessoa com score crítico"
         : `${n} pessoas com score crítico`,
     cta: "Ver pessoas",
-    icon: TrendingDown,
+    icon: IconTrendingDown,
     iconBg: "bg-red-100 dark:bg-red-950",
     iconColor: "text-red-600 dark:text-red-400",
   },
@@ -72,7 +72,7 @@ const NUDGE_CONFIGS: NudgeConfig[] = [
         ? "1 pessoa sobrecarregada"
         : `${n} pessoas sobrecarregadas`,
     cta: "Ver pessoas",
-    icon: Flame,
+    icon: IconFlame,
     iconBg: "bg-rose-100 dark:bg-rose-950",
     iconColor: "text-rose-600 dark:text-rose-400",
   },
@@ -129,7 +129,7 @@ export function PeopleNudges({
     <Card className="border-dashed border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/20">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base font-semibold">
-          <Lightbulb className="h-5 w-5 text-amber-500" />
+          <IconBulb className="h-5 w-5 text-amber-500" />
           Ações sugeridas hoje
         </CardTitle>
       </CardHeader>
@@ -161,7 +161,7 @@ export function PeopleNudges({
                   onClick={() => onNudgeClick(cfg.id)}
                 >
                   {cfg.cta}
-                  <ArrowRight className="ml-1 h-3 w-3" />
+                  <IconArrowRight className="ml-1 h-3 w-3" />
                 </Button>
               </div>
             );

@@ -23,7 +23,7 @@ import {
 } from "@/features/performance/utils/performance-constants";
 import { useSkillScores, useEmployeeSnapshots } from "@/features/performance/hooks/use-performance";
 import type { PerformanceSnapshotRow } from "@/features/performance/services/performance";
-import { Pencil, TrendingUp, Target, AlertTriangle } from "lucide-react";
+import { IconPencil, IconTrendingUp, IconTarget, IconAlertTriangle } from "@tabler/icons-react";
 
 // ---------------------------------------------------------------------------
 // Score Individual Sheet — detail drawer per employee
@@ -144,13 +144,13 @@ export function ScoreIndividualSheet({
           {/* Trend + Gap */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-gray-500" />
+              <IconTrendingUp className="h-4 w-4 text-gray-500" />
               <span className="text-sm">Tendencia:</span>
               <TrendIndicator trend={snapshot.trend} />
             </div>
             {nextBand && (
               <div className="flex items-center gap-2">
-                <Target className="h-4 w-4 text-gray-500" />
+                <IconTarget className="h-4 w-4 text-gray-500" />
                 <span className="text-sm">
                   Faltam <span className="font-semibold">{nextBand.gap} pts</span> para{" "}
                   {nextBand.label}
@@ -168,7 +168,7 @@ export function ScoreIndividualSheet({
                     key={i}
                     className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400"
                   >
-                    <AlertTriangle className="h-3 w-3" />
+                    <IconAlertTriangle className="h-3 w-3" />
                     {a}
                   </div>
                 ))}
@@ -189,7 +189,7 @@ export function ScoreIndividualSheet({
                     size="sm"
                     onClick={() => onEditSkills(snapshot.employee_id)}
                   >
-                    <Pencil className="mr-1 h-3 w-3" /> Avaliar
+                    <IconPencil className="mr-1 h-3 w-3" /> Avaliar
                   </Button>
                 )}
               </div>

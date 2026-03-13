@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { SCORECARD_SKILLS } from "@/features/performance/utils/performance-constants";
 import { useSkillScores, useUpsertSkillScores, useGenerateSnapshot } from "@/features/performance/hooks/use-performance";
 import { currentPeriod } from "@/features/performance/utils/performance-constants";
-import { Save, Loader2 } from "lucide-react";
+import { IconDeviceFloppy, IconLoader2 } from "@tabler/icons-react";
 
 // ---------------------------------------------------------------------------
 // Skill Score Form — Dialog for evaluating skills
@@ -208,9 +208,9 @@ export function SkillScoreForm({
           </Button>
           <Button onClick={handleSave} disabled={isSaving}>
             {isSaving ? (
-              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              <IconLoader2 className="mr-1 h-4 w-4 animate-spin" />
             ) : (
-              <Save className="mr-1 h-4 w-4" />
+              <IconDeviceFloppy className="mr-1 h-4 w-4" />
             )}
             Salvar Avaliacao
           </Button>

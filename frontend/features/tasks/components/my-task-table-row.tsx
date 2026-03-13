@@ -11,7 +11,11 @@ import type { MyTaskWithSection } from "@/features/tasks/services/my-tasks";
 import type { ResolvedColumn } from "@/features/tasks/lib/my-tasks-columns";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Check, Circle, GripVertical } from "lucide-react";
+import {
+  IconCheck,
+  IconCircle,
+  IconGripVertical,
+} from "@tabler/icons-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { InlineSelectOption } from "@/components/ui/inline-select";
@@ -214,7 +218,7 @@ function TaskNameCell({
           className="shrink-0 cursor-grab text-gray-300 opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
           tabIndex={-1}
         >
-          <GripVertical className="h-3.5 w-3.5" />
+          <IconGripVertical className="h-3.5 w-3.5" />
         </button>
       )}
 
@@ -226,9 +230,9 @@ function TaskNameCell({
         aria-label="Alternar conclusão"
       >
         {task.is_completed ? (
-          <Check className="h-3.5 w-3.5 text-green-600" />
+          <IconCheck className="h-3.5 w-3.5 text-green-600" />
         ) : (
-          <Circle className="h-3.5 w-3.5 text-gray-400" />
+          <IconCircle className="h-3.5 w-3.5 text-gray-400" />
         )}
       </Button>
 

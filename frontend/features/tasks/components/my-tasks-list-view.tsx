@@ -1,25 +1,15 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableRow, TableCell } from "@/components/ui/table";
 import { MyTasksTableHeader } from "./my-tasks-table-header";
 import { MyTasksSectionRow } from "./my-tasks-section-row";
 import { MyTaskTableRow } from "./my-task-table-row";
 import { QuickAddTask } from "./quick-add-task";
-import {
-  useMyTasksSections,
-  useCreateSection,
-  useUpdateSection,
-  useDeleteSection,
-  useMoveTaskToSection,
-  groupTasksBySection,
-} from "@/features/tasks/hooks/use-my-tasks";
+import { groupTasksBySection } from "@/features/tasks/hooks/use-my-tasks";
 import { useProjects } from "@/features/projects/hooks/use-projects";
-import { useUndoStack } from "@/hooks/use-undo-stack";
-import { useUndoKeyboard } from "@/hooks/use-undo-keyboard";
-import { useToast } from "@/hooks/use-toast";
-import { useAuthStore } from "@/stores/auth-store";
+import { useSectionDnd } from "@/features/tasks/hooks/use-section-dnd";
 import type { MyTaskWithSection } from "@/features/tasks/services/my-tasks";
 import type { ResolvedColumn } from "@/features/tasks/lib/my-tasks-columns";
 import type { Database } from "@/lib/supabase/types";
@@ -34,8 +24,6 @@ import {
   DndContext,
   DragOverlay,
   pointerWithin,
-  type DragEndEvent,
-  type DragStartEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -92,14 +80,21 @@ export function MyTasksListView({
   onResizeColumn,
   onReorderColumns,
 }: MyTasksListViewProps) {
-  const { data: sections = [] } = useMyTasksSections();
-  const createSection = useCreateSection();
-  const updateSection = useUpdateSection();
-  const deleteSection = useDeleteSection();
-  const moveTask = useMoveTaskToSection();
-  const tenantId = useAuthStore((s) => s.tenantId);
-  const { toast } = useToast();
-  const undo = useUndoStack();
+  // DnD disabled when non-manual sort or non-section grouping
+  const dndDisabled = sortBy !== "manual" || groupBy !== "section";
+
+  const {
+    sections,
+    sortedSections,
+    activeTask,
+    collapsedSections,
+    toggleCollapse,
+    handleAddSection,
+    handleDragStart,
+    handleDragEnd,
+    updateSection,
+    deleteSection,
+  } = useSectionDnd({ tasks, dndDisabled });
 
   // Projects lookup
   const { data: projects } = useProjects();
@@ -113,18 +108,12 @@ export function MyTasksListView({
     return map;
   }, [projects]);
 
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
-    new Set()
-  );
-  const [activeTask, setActiveTask] = useState<MyTaskWithSection | null>(null);
-
-  // ─── Client-side filter ───
+  // ─── Client-side filter + sort ───
   const filteredTasks = useMemo(
     () => applyFilters(tasks, filters as MyTasksFilters | undefined),
     [tasks, filters]
   );
 
-  // ─── Client-side sort ───
   const sortedTasks = useMemo(() => {
     if (sortBy === "manual") return filteredTasks;
     const sorted = [...filteredTasks];
@@ -132,16 +121,10 @@ export function MyTasksListView({
     return sorted;
   }, [filteredTasks, sortBy, sortDirection]);
 
-  // DnD disabled when non-manual sort or non-section grouping
-  const dndDisabled = sortBy !== "manual" || groupBy !== "section";
-
   // ─── Grouping ───
   const useSectionGrouping = groupBy === "section";
   const grouped = useMemo(
-    () =>
-      useSectionGrouping
-        ? groupTasksBySection(sortedTasks, sections)
-        : null,
+    () => (useSectionGrouping ? groupTasksBySection(sortedTasks, sections) : null),
     [sortedTasks, sections, useSectionGrouping]
   );
 
@@ -151,122 +134,6 @@ export function MyTasksListView({
         ? groupTasksDynamic(sortedTasks, groupBy, projectMap)
         : null,
     [sortedTasks, groupBy, useSectionGrouping, projectMap]
-  );
-
-  // Toggle section collapse
-  const toggleCollapse = useCallback((sectionId: string) => {
-    setCollapsedSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(sectionId)) next.delete(sectionId);
-      else next.add(sectionId);
-      return next;
-    });
-  }, []);
-
-  // Add new section
-  const handleAddSection = useCallback(() => {
-    if (!tenantId) return;
-    const maxOrder = sections.reduce(
-      (max, s) => Math.max(max, s.sort_order),
-      0
-    );
-    createSection.mutate({
-      tenant_id: tenantId,
-      name: "Nova seção",
-      sort_order: maxOrder + 1,
-    });
-  }, [tenantId, sections, createSection]);
-
-  // DnD handlers
-  const handleDragStart = useCallback(
-    (event: DragStartEvent) => {
-      if (dndDisabled) return;
-      const task = tasks.find((t) => t.id === event.active.id);
-      setActiveTask(task ?? null);
-    },
-    [tasks, dndDisabled]
-  );
-
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      setActiveTask(null);
-      if (dndDisabled) return;
-      const { active, over } = event;
-      if (!over) return;
-
-      const taskId = active.id as string;
-      const task = tasks.find((t) => t.id === taskId);
-      if (!task) return;
-
-      let targetSectionId: string | null = null;
-      const overIdStr = over.id as string;
-      const isSection = sections.some((s) => s.id === overIdStr);
-
-      if (isSection) {
-        targetSectionId = overIdStr;
-      } else {
-        const overTask = tasks.find((t) => t.id === overIdStr);
-        if (overTask) {
-          targetSectionId = overTask.my_section_id;
-        }
-      }
-
-      if (targetSectionId === task.my_section_id) return;
-
-      const oldSectionId = task.my_section_id;
-
-      undo.push({
-        type: "MOVE_TASK_SECTION",
-        payload: { taskId, toSection: targetSectionId },
-        inverse: { taskId, toSection: oldSectionId },
-      });
-
-      const targetTasks = tasks.filter(
-        (t) => t.my_section_id === targetSectionId && t.id !== taskId
-      );
-      const maxOrder = targetTasks.reduce(
-        (max, t) => Math.max(max, t.my_sort_order),
-        0
-      );
-
-      moveTask.mutate({
-        task_id: taskId,
-        section_id: targetSectionId,
-        sort_order: maxOrder + 1,
-      });
-    },
-    [tasks, sections, moveTask, undo, dndDisabled]
-  );
-
-  // Ctrl+Z undo
-  const handleUndo = useCallback(() => {
-    const action = undo.pop();
-    if (!action) return;
-
-    const { taskId, toSection } = action.inverse as {
-      taskId: string;
-      toSection: string | null;
-    };
-
-    moveTask.mutate(
-      { task_id: taskId, section_id: toSection, sort_order: 0 },
-      {
-        onSuccess: () => {
-          toast({
-            title: "Desfeito",
-            description: "Tarefa movida de volta.",
-          });
-        },
-      }
-    );
-  }, [undo, moveTask, toast]);
-
-  useUndoKeyboard(handleUndo);
-
-  // Sorted sections for rendering
-  const sortedSections = useMemo(
-    () => [...sections].sort((a, b) => a.sort_order - b.sort_order),
-    [sections]
   );
 
   const colSpan = columns.length;

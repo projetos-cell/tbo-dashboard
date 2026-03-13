@@ -1,23 +1,13 @@
+6197d16 chore: adicionar audit-log do ciclo 2026-03-13 ciclo 16
+e584ff2 feat(tbo-os): ciclo 15 — decisions loading state + reconhecimentos loading + OKR KR history
+e7c87ab feat(tbo-os): ciclo 15 — decisions confirm dialog + pessoas reconhecimentos + okrs company/individuais
+1f45c64 docs(cultura): relatório de melhoria contínua 2026-03-13
+556ed9c feat(cultura): ciclo 15 — drag & drop universal em pilares, valores e rituais
 bd67b45 feat(tbo-os): ciclo 14 — colaboradores directory + decisões page + icons
 c38f73c feat(cultura): admin CRUD recompensas + fluxo delivered + validacao inline reconhecimento + skeletons KPI
 70ede56 feat(chat): ciclo 13 — split módulo chat (channel-list 698L + chat-layout 607L + settings-drawer 412L)
 9fe8c10 chore: adicionar audit-log do ciclo 2026-03-13 ciclo 13
 a30b4b8 refactor(chat): split channel-settings-drawer 412L → main 155L + channel-add-members-panel 110L + channel-members-list 80L
-3a3fddb refactor(chat): split chat-layout 607L → main 195L + chat-sidebar 150L + conversation-header 100L
-efc2015 refactor(chat): split channel-list 698L → main 195L + channel-list-item 215L + channel-list-section-header 158L
-3e709fe docs(cultura): relatório melhoria contínua 2026-03-13
-89d5e6f feat(cultura): adicionar páginas valores e documentos + extrair RecognitionKPISection
-2402257 chore: adicionar audit-log do ciclo 2026-03-13 ciclo 12
- .claude/session-start.txt                          |   6 +-
- frontend/app/(auth)/cultura/pilares/page.tsx       | 158 +++++++++----
- frontend/app/(auth)/cultura/rituais/page.tsx       | 258 ++++++++++-----------
- frontend/app/(auth)/cultura/valores/page.tsx       | 165 ++++++++-----
- frontend/app/(auth)/okrs/company/page.tsx          | 251 +++++++++++++++++++-
- frontend/app/(auth)/okrs/individuais/page.tsx      | 250 +++++++++++++++++++-
- .../app/(auth)/pessoas/reconhecimentos/page.tsx    | 239 ++++++++++++++++++-
- frontend/features/cultura/hooks/use-cultura.ts     |  36 +++
- .../features/cultura/hooks/use-ritual-types.ts     |  36 +++
- frontend/features/cultura/services/cultura.ts      |  14 ++
- frontend/features/cultura/services/ritual-types.ts |  15 ++
- .../decisions/components/decisions-list.tsx        |  48 +++-
- 12 files changed, 1211 insertions(+), 265 deletions(-)
+ .claude/session-start.txt | 23 +++++------------------
+ frontend/lib/constants.ts |  1 +
+ 2 files changed, 6 insertions(+), 18 deletions(-)

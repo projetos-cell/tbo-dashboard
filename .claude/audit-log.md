@@ -1,5 +1,46 @@
 # TBO OS — Audit Log
 
+## Ciclo — 2026-03-13 (auto) — Ciclo 17
+
+**Módulo**: Pessoas (organograma, PDI, performance)
+**Branch**: `main`
+**Build**: ✅
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|----------------|-------|--------|----------|
+| org-chart.tsx — ícones lucide | 🔧 | ✅ | 10 ícones substituídos por @tabler/icons-react |
+| org-chart.tsx — tamanho | ⚠️ | ✅ | 394L → 244L + novo org-tree-node.tsx (145L) |
+| org-chart.tsx — onNodeClick | ❌ | ✅ | Prop adicionada com propagação + stopPropagation no toggle |
+| pdi/page.tsx — ícones lucide | ⚠️ | ✅ | Plus + Search → IconPlus + IconSearch |
+| performance/page.tsx — ícones lucide | ⚠️ | ✅ | 6 ícones → equivalentes Tabler |
+
+### Implementado
+
+- fix: substituir lucide-react por Tabler Icons em org-chart.tsx (IconSearch, IconUsers, IconGitBranch, IconBuilding, IconStack, IconZoomIn, IconZoomOut, IconArrowsMaximize, IconChevronDown, IconChevronRight)
+- refactor: extrair OrgTreeNode → org-tree-node.tsx (394L → 2 arquivos <250L cada)
+- feat: prop onNodeClick em OrgChart + OrgTreeNode com stopPropagation no toggle
+- fix: substituir lucide-react em pdi/page.tsx (IconPlus, IconSearch)
+- fix: substituir lucide-react em performance/page.tsx (IconTrendingUp, IconChartBar, IconUsers, IconAward, IconAlertTriangle, IconCalculator)
+
+### Migrations aplicadas
+
+Nenhuma neste ciclo.
+
+### Próximo ciclo (sugestões)
+
+- Continuar substituição de lucide-react nos demais arquivos do módulo pessoas (people-kpis, person-detail, person-card, etc.)
+- performance/page.tsx (411 linhas) — acima do limite de 300L
+- Substituição sistemática em features/dashboard/ (ainda usa muitos ícones lucide)
+
+### Debt técnico
+
+- ~150 arquivos ainda usam lucide-react — substituição incremental por módulo
+- performance/page.tsx ainda acima de 300 linhas
+
+---
+
 ## Ciclo — 2026-03-13 (auto) — Ciclo 16
 
 **Módulo**: Multi-módulo (Decisões, Reconhecimentos, OKRs)

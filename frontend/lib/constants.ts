@@ -468,6 +468,7 @@ export const PROJETOS_NAV_ITEMS: readonly SubNavItem[] = [
 export const PESSOAS_NAV_ITEMS: readonly SubNavItem[] = [
   { href: "/pessoas", label: "Visão Geral", icon: "layout-dashboard" },
   { href: "/pessoas/colaboradores", label: "Colaboradores", icon: "users" },
+  { href: "/pessoas/organograma", label: "Organograma", icon: "git-branch" },
   { href: "/pessoas/1on1", label: "1:1", icon: "message-square" },
   { href: "/pessoas/pdi", label: "PDI", icon: "target" },
   { href: "/pessoas/reconhecimentos", label: "Reconhecimentos", icon: "award" },

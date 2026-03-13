@@ -18,7 +18,7 @@ import { usePdis, useOpenPdiActionsCount } from "@/features/pdi/hooks/use-pdi";
 import { useProfiles } from "@/features/people/hooks/use-people";
 import { computePdiKPIs } from "@/features/pdi/services/pdi";
 import { PDI_STATUS_KEYS, PDI_STATUS } from "@/features/pdi/utils/pdi-utils";
-import { Plus, Search } from "lucide-react";
+import { IconPlus, IconSearch } from "@tabler/icons-react";
 import type { PdiRow } from "@/features/pdi/services/pdi";
 
 export default function PDIPage() {
@@ -92,7 +92,7 @@ export default function PDIPage() {
           </p>
         </div>
         <Button onClick={handleNewPdi}>
-          <Plus className="mr-1 h-4 w-4" /> Novo PDI
+          <IconPlus className="mr-1 h-4 w-4" /> Novo PDI
         </Button>
       </div>
 
@@ -109,7 +109,7 @@ export default function PDIPage() {
       {/* Filters */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+          <IconSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}

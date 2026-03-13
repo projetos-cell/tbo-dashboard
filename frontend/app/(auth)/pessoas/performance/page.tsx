@@ -35,13 +35,13 @@ import {
 } from "@/features/performance/utils/performance-constants";
 import type { PerformanceSnapshotRow } from "@/features/performance/services/performance";
 import {
-  TrendingUp,
-  BarChart3,
-  Users,
-  Award,
-  AlertTriangle,
-  Calculator,
-} from "lucide-react";
+  IconTrendingUp,
+  IconChartBar,
+  IconUsers,
+  IconAward,
+  IconAlertTriangle,
+  IconCalculator,
+} from "@tabler/icons-react";
 
 // ---------------------------------------------------------------------------
 // Generate last 6 months for period selector
@@ -168,7 +168,7 @@ export default function PerformancePage() {
             size="sm"
             onClick={() => setImpactDialogOpen(true)}
           >
-            <Calculator className="mr-1 h-3.5 w-3.5" />
+            <IconCalculator className="mr-1 h-3.5 w-3.5" />
             Calcular Impacto
           </Button>
           <Button
@@ -176,7 +176,7 @@ export default function PerformancePage() {
             size="sm"
             onClick={() => setCultureDialogOpen(true)}
           >
-            <Calculator className="mr-1 h-3.5 w-3.5" />
+            <IconCalculator className="mr-1 h-3.5 w-3.5" />
             Calcular Cultura
           </Button>
           <Select value={period} onValueChange={setPeriod}>
@@ -201,11 +201,11 @@ export default function PerformancePage() {
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">
-            <BarChart3 className="mr-1 h-3.5 w-3.5" />
+            <IconChartBar className="mr-1 h-3.5 w-3.5" />
             Visao Geral
           </TabsTrigger>
           <TabsTrigger value="table">
-            <Users className="mr-1 h-3.5 w-3.5" />
+            <IconUsers className="mr-1 h-3.5 w-3.5" />
             Tabela
             {(snapshots ?? []).length > 0 && (
               <Badge variant="secondary" className="ml-1.5 text-[10px]">
@@ -227,7 +227,7 @@ export default function PerformancePage() {
             </div>
           ) : (snapshots ?? []).length === 0 ? (
             <EmptyState
-              icon={TrendingUp}
+              icon={IconTrendingUp}
               title="Sem dados de performance"
               description="Avalie as skills dos colaboradores para gerar os snapshots de performance."
             />
@@ -277,7 +277,7 @@ export default function PerformancePage() {
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                    <Award className="h-4 w-4 text-amber-500" />
+                    <IconAward className="h-4 w-4 text-amber-500" />
                     Top Performers
                   </CardTitle>
                 </CardHeader>
@@ -319,7 +319,7 @@ export default function PerformancePage() {
                 <Card className="border-red-200 bg-red-50/50 dark:border-red-900/40 dark:bg-red-950/20 md:col-span-2">
                   <CardHeader className="pb-3">
                     <CardTitle className="flex items-center gap-2 text-sm font-semibold text-red-700 dark:text-red-400">
-                      <AlertTriangle className="h-4 w-4" />
+                      <IconAlertTriangle className="h-4 w-4" />
                       Pessoas em Atencao ({attentionList.length})
                     </CardTitle>
                   </CardHeader>
@@ -351,7 +351,7 @@ export default function PerformancePage() {
             <ErrorState message={error.message} onRetry={() => refetch()} />
           ) : (snapshots ?? []).length === 0 && !isLoading ? (
             <EmptyState
-              icon={Users}
+              icon={IconUsers}
               title="Nenhum snapshot encontrado"
               description={`Nao ha dados de performance para ${formatPeriodLabel(period)}.`}
             />

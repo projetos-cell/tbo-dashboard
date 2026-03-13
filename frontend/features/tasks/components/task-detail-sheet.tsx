@@ -19,6 +19,7 @@ import { TaskDetailFields } from "./task-detail-fields";
 import { TaskDetailDescription } from "./task-detail-description";
 import { TaskDetailSidebar } from "./task-detail-sidebar";
 import { TaskSubtasksSection } from "./task-subtasks-section";
+import { TaskDependenciesSection } from "./task-dependencies-section";
 import { CommentThread } from "@/components/shared/comment-thread";
 
 // ─── Props ──────────────────────────────────────────
@@ -137,6 +138,12 @@ function TaskPanel({ taskId, projectName, onClose, onOpenTask, isFullscreen, onT
               Subtarefas
             </p>
             <TaskSubtasksSection task={task} onOpenTask={onOpenTask} />
+          </div>
+
+          <Separator className="my-4" />
+
+          <div className="pb-1">
+            <TaskDependenciesSection task={task} onOpenTask={onOpenTask} />
           </div>
 
           <Separator className="my-4" />

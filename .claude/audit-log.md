@@ -1,5 +1,46 @@
 # TBO OS — Audit Log
 
+## Ciclo — 2026-03-13 (auto) — Ciclo 15
+
+**Módulo**: Multi-módulo (Decisões, Pessoas, OKRs)
+**Branch**: `main`
+**Build**: ✅ Passou antes e depois das 3 melhorias
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|---|---|---|---|
+| `decisions-list.tsx` — delete sem confirmação | 🔧 | ✅ | AlertDialog + handleDeleteRequest/handleDeleteConfirm; previne deleção acidental |
+| `pessoas/reconhecimentos/page.tsx` | ❌ placeholder | ✅ | Página completa: feed de reconhecimentos, KPI section, ranking, form "Reconhecer", pendentes (canManage), ConfirmDialog para delete |
+| `okrs/company/page.tsx` | ❌ placeholder | ✅ | OKRs estratégicos filtrados por level="company"; cycle selector, KPIs, cards expand/KRs, CRUD completo com confirm dialog |
+| `okrs/individuais/page.tsx` | ❌ placeholder | ✅ | OKRs pessoais do usuário logado (level="individual", ownerId=userId); mesmo padrão de company |
+
+### Implementado
+
+- fix: `decisions-list.tsx` — substituído `deleteDecision.mutate(id)` direto por AlertDialog de confirmação com título da decisão e warning de irreversibilidade
+- feat: `pessoas/reconhecimentos/page.tsx` — página completa reutilizando toda a infra de `cultura/reconhecimentos` (hooks, components, services); Tabler Icons em vez de lucide-react; textos corrigidos (sem encoding)
+- feat: `okrs/company/page.tsx` — página de OKRs Company level; OkrCycleSelector + OkrKpis + OkrObjectiveCard + OkrKeyResultList + dialogs CRUD; RequireRole para criação restrita a lider+
+- feat: `okrs/individuais/page.tsx` — página de OKRs Individuais filtrada por ownerId=userId; padrão idêntico ao company mas sem restrição de role para criar
+
+### Migrations aplicadas
+
+Nenhuma — todas as tabelas já existem no schema.
+
+### Próximo ciclo (sugestões)
+
+- `okrs/teams/page.tsx` — placeholder; criar view de OKRs por squad/equipe (level="squad")
+- `okrs/dashboard/page.tsx` — ainda placeholder; criar view de KPIs agregados com progresso por ciclo
+- `okrs/check-ins/page.tsx` — ainda placeholder; listar check-ins recentes de todos os KRs do ciclo ativo
+- Migração Lucide → Tabler nos `features/decisions/` e `features/people/` (ainda usam lucide-react direto)
+- `projetos/templates/page.tsx` — placeholder; CRUD básico de templates de projeto
+
+### Debt técnico
+
+- `pessoas/reconhecimentos/page.tsx` herda o mesmo padrão de `cultura/reconhecimentos` — ambas as páginas são idênticas; candidato a extração de componente compartilhado em ciclo futuro
+- `okrs/company/` e `okrs/individuais/` têm ~80% de código duplicado — candidato a abstração `OkrFilteredPage` com level como prop em ciclo futuro
+
+---
+
 ## Ciclo — 2026-03-13 (auto) — Ciclo 14
 
 **Módulo**: Multi-módulo (Cultura, Pessoas, Projetos)

@@ -234,6 +234,7 @@ interface MyTasksListViewProps {
   onSelect: (task: TaskRow) => void;
   onSort?: (sortBy: string, direction: "asc" | "desc") => void;
   onResizeColumn?: (columnId: string, width: number) => void;
+  onReorderColumns?: (columns: ResolvedColumn[]) => void;
 }
 
 export function MyTasksListView({
@@ -246,6 +247,7 @@ export function MyTasksListView({
   onSelect,
   onSort,
   onResizeColumn,
+  onReorderColumns,
 }: MyTasksListViewProps) {
   const { data: sections = [] } = useMyTasksSections();
   const createSection = useCreateSection();
@@ -440,6 +442,7 @@ export function MyTasksListView({
             sortDirection={sortDirection}
             onSort={onSort}
             onResizeColumn={onResizeColumn}
+            onReorderColumns={onReorderColumns}
           />
 
           {/* ─── Section-based grouping (default) ─── */}

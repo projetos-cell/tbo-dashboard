@@ -97,6 +97,19 @@ export default function MinhasTarefasPage() {
     [updatePrefs]
   );
 
+  // Column reorder handler (from header DnD)
+  const handleReorderColumns = useCallback(
+    (reordered: typeof allColumns) => {
+      const newPrefs: ColumnPref[] = reordered.map((c) => ({
+        id: c.id,
+        visible: true,
+        width: c.width,
+      }));
+      updatePrefs.mutate({ columns: newPrefs });
+    },
+    [updatePrefs]
+  );
+
   // Column config handler
   const handleColumnUpdate = useCallback(
     (prefs: ColumnPref[]) => {
@@ -218,6 +231,7 @@ export default function MinhasTarefasPage() {
           onSelect={setSelectedTask}
           onSort={handleSort}
           onResizeColumn={handleResizeColumn}
+          onReorderColumns={handleReorderColumns}
         />
       ) : viewMode === "board" ? (
         <MyTasksBoardView

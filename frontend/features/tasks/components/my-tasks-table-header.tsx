@@ -6,12 +6,25 @@ import {
   TableRow,
   TableHead,
 } from "@/components/ui/table";
-import { ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowUp, ArrowDown, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ResolvedColumn } from "@/features/tasks/lib/my-tasks-columns";
-import type { ColumnPref } from "@/features/tasks/lib/my-tasks-columns";
+import {
+  DndContext,
+  closestCenter,
+  type DragEndEvent,
+  useSensor,
+  useSensors,
+  PointerSensor,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
-// Map column id → sort accessor
 const SORT_ACCESSOR: Record<string, string> = {
   tarefa: "title",
   prazo: "due_date",
@@ -26,6 +39,7 @@ interface MyTasksTableHeaderProps {
   sortDirection?: "asc" | "desc";
   onSort?: (sortBy: string, direction: "asc" | "desc") => void;
   onResizeColumn?: (columnId: string, width: number) => void;
+  onReorderColumns?: (columns: ResolvedColumn[]) => void;
 }
 
 export function MyTasksTableHeader({
@@ -34,30 +48,62 @@ export function MyTasksTableHeader({
   sortDirection,
   onSort,
   onResizeColumn,
+  onReorderColumns,
 }: MyTasksTableHeaderProps) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id || !onReorderColumns) return;
+
+      const oldIndex = columns.findIndex((c) => c.id === active.id);
+      const newIndex = columns.findIndex((c) => c.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return;
+
+      const reordered = arrayMove(columns, oldIndex, newIndex);
+      onReorderColumns(reordered);
+    },
+    [columns, onReorderColumns]
+  );
+
   return (
-    <TableHeader className="sticky top-0 z-10 bg-background">
-      <TableRow className="hover:bg-transparent border-b-2">
-        {columns.map((col, i) => (
-          <ResizableHead
-            key={col.id}
-            column={col}
-            isLast={i === columns.length - 1}
-            isFirst={i === 0}
-            sortBy={sortBy}
-            sortDirection={sortDirection}
-            onSort={onSort}
-            onResizeColumn={onResizeColumn}
-          />
-        ))}
-      </TableRow>
-    </TableHeader>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
+    >
+      <TableHeader className="sticky top-0 z-10 bg-background">
+        <TableRow className="hover:bg-transparent border-b-2">
+          <SortableContext
+            items={columns.map((c) => c.id)}
+            strategy={horizontalListSortingStrategy}
+          >
+            {columns.map((col, i) => (
+              <SortableHead
+                key={col.id}
+                column={col}
+                isLast={i === columns.length - 1}
+                isFirst={i === 0}
+                sortBy={sortBy}
+                sortDirection={sortDirection}
+                onSort={onSort}
+                onResizeColumn={onResizeColumn}
+                dndEnabled={!!onReorderColumns}
+              />
+            ))}
+          </SortableContext>
+        </TableRow>
+      </TableHeader>
+    </DndContext>
   );
 }
 
-// ─── Resizable Header Cell ────────────────────────────────────
+// ─── Sortable + Resizable Header Cell ─────────────────────────
 
-function ResizableHead({
+function SortableHead({
   column,
   isLast,
   isFirst,
@@ -65,6 +111,7 @@ function ResizableHead({
   sortDirection,
   onSort,
   onResizeColumn,
+  dndEnabled,
 }: {
   column: ResolvedColumn;
   isLast: boolean;
@@ -73,11 +120,31 @@ function ResizableHead({
   sortDirection?: "asc" | "desc";
   onSort?: (sortBy: string, direction: "asc" | "desc") => void;
   onResizeColumn?: (columnId: string, width: number) => void;
+  dndEnabled: boolean;
 }) {
   const thRef = useRef<HTMLTableCellElement>(null);
   const accessor = SORT_ACCESSOR[column.id];
   const isSorted = accessor && sortBy === accessor;
   const isSortable = !!accessor && !!onSort;
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: column.id,
+    disabled: !dndEnabled,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    ...(column.id === "tarefa" ? {} : { width: column.width, minWidth: column.minWidth }),
+  };
 
   const handleClick = useCallback(() => {
     if (!isSortable || !accessor) return;
@@ -105,7 +172,7 @@ function ResizableHead({
         }
       };
 
-      const onMouseUp = (ev: MouseEvent) => {
+      const onMouseUp = () => {
         document.removeEventListener("mousemove", onMouseMove);
         document.removeEventListener("mouseup", onMouseUp);
         document.body.style.cursor = "";
@@ -123,29 +190,43 @@ function ResizableHead({
     [column.id, column.minWidth, onResizeColumn]
   );
 
-  // Width style: "tarefa" is flex (no fixed width), others use col width
-  const widthStyle =
-    column.id === "tarefa"
-      ? {}
-      : { width: column.width, minWidth: column.minWidth };
-
-  // Responsive visibility
   const responsiveClass = getResponsiveClass(column.id);
+
+  // Merge refs for both sortable and resize
+  const mergedRef = useCallback(
+    (node: HTMLTableCellElement | null) => {
+      setNodeRef(node);
+      (thRef as React.MutableRefObject<HTMLTableCellElement | null>).current = node;
+    },
+    [setNodeRef]
+  );
 
   return (
     <TableHead
-      ref={thRef}
+      ref={mergedRef}
       className={cn(
         "relative text-xs font-semibold text-muted-foreground uppercase tracking-wider select-none",
         isFirst && "pl-10",
         !isLast && "border-r border-border/40",
         isSortable && "cursor-pointer hover:text-foreground transition-colors",
+        isDragging && "z-20",
         responsiveClass
       )}
-      style={widthStyle}
+      style={style}
       onClick={handleClick}
     >
       <div className="flex items-center gap-1">
+        {dndEnabled && (
+          <button
+            {...(attributes as React.HTMLAttributes<HTMLButtonElement>)}
+            {...(listeners as React.HTMLAttributes<HTMLButtonElement>)}
+            className="shrink-0 cursor-grab text-gray-300 opacity-0 transition-opacity group-hover:opacity-100 hover:!opacity-100 active:cursor-grabbing -ml-1 mr-0.5"
+            tabIndex={-1}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <GripVertical className="h-3 w-3" />
+          </button>
+        )}
         <span>{column.label}</span>
         {isSorted && (
           <span className="text-primary">

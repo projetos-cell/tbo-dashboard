@@ -11,10 +11,12 @@ import type { MyTaskWithSection } from "@/features/tasks/services/my-tasks";
 import type { ResolvedColumn } from "@/features/tasks/lib/my-tasks-columns";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar, Check, Circle, GripVertical } from "lucide-react";
+import { Check, Circle, GripVertical } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { InlineSelectOption } from "@/components/ui/inline-select";
+import { TaskRowContextMenu } from "./task-row-context-menu";
+import { InlineDatePicker } from "./inline-date-picker";
 
 type SortableReturn = ReturnType<typeof useSortable>;
 
@@ -99,6 +101,7 @@ export function MyTaskTableRow({
         updates: {
           status: task.is_completed ? "pendente" : "concluida",
           is_completed: !task.is_completed,
+          completed_at: task.is_completed ? null : new Date().toISOString(),
         },
       });
     },
@@ -123,39 +126,41 @@ export function MyTaskTableRow({
   const visibleCols = columns ?? defaultCols;
 
   return (
-    <TableRow
-      ref={setNodeRef}
-      style={style}
-      className={`group h-10 ${isDragOverlay ? "shadow-lg ring-2 ring-primary/20 bg-background" : ""} ${isDragging ? "z-10" : ""}`}
-    >
-      {visibleCols.map((col, idx) => {
-        const isLast = idx === visibleCols.length - 1;
-        const borderClass = isLast ? "" : CELL_BORDER;
-        const responsiveClass = getResponsiveClass(col.id);
-        const widthStyle =
-          col.id === "tarefa" ? {} : { width: col.width, minWidth: col.minWidth };
+    <TaskRowContextMenu task={task} onOpenDetail={onClick}>
+      <TableRow
+        ref={setNodeRef}
+        style={style}
+        className={`group h-10 ${isDragOverlay ? "shadow-lg ring-2 ring-primary/20 bg-background" : ""} ${isDragging ? "z-10" : ""}`}
+      >
+        {visibleCols.map((col, idx) => {
+          const isLast = idx === visibleCols.length - 1;
+          const borderClass = isLast ? "" : CELL_BORDER;
+          const responsiveClass = getResponsiveClass(col.id);
+          const widthStyle =
+            col.id === "tarefa" ? {} : { width: col.width, minWidth: col.minWidth };
 
-        return (
-          <TableCell
-            key={col.id}
-            className={`${borderClass} ${responsiveClass} py-0 px-2`}
-            style={widthStyle}
-          >
-            {renderCellContent(col.id, {
-              task,
-              projectName,
-              onClick,
-              overdue: !!overdue,
-              toggleComplete,
-              updateTask,
-              attributes,
-              listeners,
-              dndDisabled,
-            })}
-          </TableCell>
-        );
-      })}
-    </TableRow>
+          return (
+            <TableCell
+              key={col.id}
+              className={`${borderClass} ${responsiveClass} py-0 px-2`}
+              style={widthStyle}
+            >
+              {renderCellContent(col.id, {
+                task,
+                projectName,
+                onClick,
+                overdue: !!overdue,
+                toggleComplete,
+                updateTask,
+                attributes,
+                listeners,
+                dndDisabled,
+              })}
+            </TableCell>
+          );
+        })}
+      </TableRow>
+    </TaskRowContextMenu>
   );
 }
 
@@ -238,20 +243,29 @@ function TaskNameCell({
   );
 }
 
-function DueDateCell({ task, overdue }: CellContext) {
-  if (!task.due_date) {
-    return <span className="text-xs text-muted-foreground/50">—</span>;
-  }
+function DueDateCell({ task, overdue, updateTask }: CellContext) {
   return (
-    <div
-      className={`flex items-center gap-1 text-xs ${overdue ? "font-medium text-red-600" : "text-muted-foreground"}`}
-    >
-      <Calendar className="h-3 w-3 shrink-0" />
-      <span>
-        {format(new Date(task.due_date + "T12:00:00"), "dd MMM", {
-          locale: ptBR,
-        })}
-      </span>
+    <div className="flex items-center gap-1">
+      {task.start_date && (
+        <>
+          <span className="text-[10px] text-muted-foreground/70">
+            {format(new Date(task.start_date + "T12:00:00"), "dd MMM", { locale: ptBR })}
+          </span>
+          <span className="text-[10px] text-muted-foreground/50">→</span>
+        </>
+      )}
+      <InlineDatePicker
+        value={task.due_date ?? undefined}
+        overdue={overdue}
+        onChange={(date) =>
+          updateTask.mutate({
+            id: task.id,
+            updates: {
+              due_date: date ? date.toISOString().split("T")[0] : null,
+            },
+          })
+        }
+      />
     </div>
   );
 }

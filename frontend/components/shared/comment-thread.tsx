@@ -7,7 +7,8 @@ import { Send, MoreHorizontal, Pencil, Trash2, Reply } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/shared/rich-text-editor";
+import { useMentionProvider } from "@/features/tasks/hooks/use-mention-provider";
 import { useComments, useCreateComment, useUpdateComment, useDeleteComment } from "@/hooks/use-comments";
 import { useAuthStore } from "@/stores/auth-store";
 import { cn } from "@/lib/utils";
@@ -111,13 +112,15 @@ function CommentComposer({
 }) {
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const mentionProvider = useMentionProvider();
 
-  const handleSubmit = async () => {
-    const trimmed = content.trim();
-    if (!trimmed || !userId) return;
+  const handleSubmit = async (html?: string) => {
+    const value = html || content;
+    const clean = value === "<p></p>" ? "" : value.trim();
+    if (!clean || !userId) return;
     setSubmitting(true);
     try {
-      await onSubmit(trimmed);
+      await onSubmit(clean);
       setContent("");
       onCancel?.();
     } finally {
@@ -127,28 +130,24 @@ function CommentComposer({
 
   return (
     <div className="flex gap-2">
-      <Textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        placeholder={parentId ? "Responder..." : "Escreva um comentario..."}
-        className="min-h-[60px] resize-none text-sm"
-        autoFocus={autoFocus}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-            e.preventDefault();
-            handleSubmit();
-          }
-          if (e.key === "Escape" && onCancel) {
-            onCancel();
-          }
-        }}
-      />
+      <div className="flex-1">
+        <RichTextEditor
+          content={content}
+          onChange={setContent}
+          placeholder={parentId ? "Responder..." : "Escreva um comentario..."}
+          minimal
+          toolbar={false}
+          mentionProvider={mentionProvider}
+          autoFocus={autoFocus}
+          onSubmit={handleSubmit}
+        />
+      </div>
       <div className="flex flex-col gap-1">
         <Button
           size="icon"
           className="size-8"
-          onClick={handleSubmit}
-          disabled={!content.trim() || submitting}
+          onClick={() => handleSubmit()}
+          disabled={(!content.trim() || content === "<p></p>") || submitting}
           aria-label="Enviar comentario"
         >
           <Send className="size-3.5" />
@@ -262,20 +261,15 @@ function CommentItem({
 
         {isEditing ? (
           <div className="mt-1 space-y-2">
-            <Textarea
-              value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
-              className="min-h-[60px] resize-none text-sm"
+            <RichTextEditor
+              content={editContent}
+              onChange={setEditContent}
+              minimal
+              toolbar={false}
               autoFocus
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                  e.preventDefault();
-                  handleSaveEdit();
-                }
-                if (e.key === "Escape") {
-                  setIsEditing(false);
-                  setEditContent(comment.content);
-                }
+              onSubmit={(html) => {
+                setEditContent(html);
+                handleSaveEdit();
               }}
             />
             <div className="flex gap-2">
@@ -295,7 +289,10 @@ function CommentItem({
             </div>
           </div>
         ) : (
-          <p className="mt-0.5 text-sm whitespace-pre-wrap text-gray-500">{comment.content}</p>
+          <div
+            className="mt-0.5 text-sm text-gray-500 prose prose-sm dark:prose-invert max-w-none [&_p]:my-0.5"
+            dangerouslySetInnerHTML={{ __html: comment.content }}
+          />
         )}
 
         {!isEditing && (

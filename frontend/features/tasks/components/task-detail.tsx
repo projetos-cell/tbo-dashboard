@@ -55,6 +55,9 @@ import {
 } from "@/features/configuracoes/hooks/use-custom-fields";
 import { useAttachments } from "@/hooks/use-attachments";
 import { useAuthStore } from "@/stores/auth-store";
+import { InlineDatePicker } from "./inline-date-picker";
+import { RichTextEditor } from "@/components/shared/rich-text-editor";
+import { useMentionProvider } from "@/features/tasks/hooks/use-mention-provider";
 import type { Database, Json } from "@/lib/supabase/types";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
@@ -105,6 +108,7 @@ export function TaskDetail({
   const upsertValue = useUpsertFieldValue();
   const tenantId = useAuthStore((s) => s.tenantId);
 
+  const mentionProvider = useMentionProvider();
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   if (!task) return null;
@@ -135,10 +139,10 @@ export function TaskDetail({
     updateTask.mutate({ id: task.id, updates: { title } });
   };
 
-  const handleDescriptionBlur = (e: React.FocusEvent<HTMLTextAreaElement>) => {
-    const description = e.target.value;
-    if (description !== (task.description || "")) {
-      updateTask.mutate({ id: task.id, updates: { description } });
+  const handleDescriptionChange = (html: string) => {
+    const clean = html === "<p></p>" ? "" : html;
+    if (clean !== (task.description || "")) {
+      updateTask.mutate({ id: task.id, updates: { description: clean } });
     }
   };
 
@@ -367,31 +371,43 @@ export function TaskDetail({
 
               {/* 5. Due date / Prazo */}
               <PropertyRow label="Prazo" icon={<Calendar className="h-3.5 w-3.5" />}>
-                <input
-                  type="date"
-                  className={`text-sm border-0 bg-transparent p-0 focus:outline-none focus:ring-0 ${
-                    overdue ? "text-red-600 font-medium" : "text-foreground"
-                  } ${!task.due_date ? "text-muted-foreground" : ""}`}
-                  value={task.due_date || ""}
-                  onChange={(e) => handleDateChange("due_date", e.target.value)}
+                <InlineDatePicker
+                  value={task.due_date ?? undefined}
+                  overdue={!!overdue}
+                  placeholder="Sem prazo"
+                  onChange={(date) =>
+                    handleDateChange(
+                      "due_date",
+                      date ? date.toISOString().split("T")[0] : ""
+                    )
+                  }
                 />
-                {!task.due_date && (
-                  <span className="text-sm text-muted-foreground">Sem prazo</span>
-                )}
               </PropertyRow>
 
               {/* 6. Start date / Início */}
               <PropertyRow label="Início" icon={<Calendar className="h-3.5 w-3.5" />}>
-                <input
-                  type="date"
-                  className="text-sm border-0 bg-transparent p-0 focus:outline-none focus:ring-0"
-                  value={task.start_date || ""}
-                  onChange={(e) => handleDateChange("start_date", e.target.value)}
+                <InlineDatePicker
+                  value={task.start_date ?? undefined}
+                  placeholder="Sem data"
+                  onChange={(date) =>
+                    handleDateChange(
+                      "start_date",
+                      date ? date.toISOString().split("T")[0] : ""
+                    )
+                  }
                 />
-                {!task.start_date && (
-                  <span className="text-sm text-muted-foreground">Sem data</span>
-                )}
               </PropertyRow>
+
+              {/* 7. Completed at / Concluída em */}
+              {task.is_completed && task.completed_at && (
+                <PropertyRow label="Concluída em" icon={<CheckCircle2 className="h-3.5 w-3.5 text-green-600" />}>
+                  <span className="text-sm text-green-700">
+                    {format(new Date(task.completed_at), "dd MMM yyyy 'às' HH:mm", {
+                      locale: ptBR,
+                    })}
+                  </span>
+                </PropertyRow>
+              )}
 
               {/* 7. Project / Projeto */}
               <PropertyRow label="Projeto" icon={<FolderOpen className="h-3.5 w-3.5" />}>
@@ -428,11 +444,11 @@ export function TaskDetail({
 
             {/* 9. Description / Descrição */}
             <div className="pt-4 pb-2">
-              <textarea
-                className="w-full min-h-[80px] text-sm bg-transparent border-0 p-0 resize-y focus:outline-none placeholder:text-muted-foreground/60"
-                defaultValue={task.description || ""}
+              <RichTextEditor
+                content={task.description || ""}
+                onBlur={handleDescriptionChange}
                 placeholder="Adicionar mais detalhes a esta tarefa..."
-                onBlur={handleDescriptionBlur}
+                mentionProvider={mentionProvider}
               />
             </div>
 

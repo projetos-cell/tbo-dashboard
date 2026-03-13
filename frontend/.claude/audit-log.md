@@ -30,3 +30,34 @@
 ### Debt técnico
 - `task-detail.tsx` é um arquivo orphaned com 400+ linhas ainda usando Lucide — mantido por segurança mas deveria ser deletado no próximo ciclo
 - Ícone `IconSelector` usado para `ChevronsUpDown` em task-assignee-picker (equivalente semântico, funciona)
+
+## Ciclo — 2026-03-13 Ciclo 5
+
+**Módulo**: Tarefas
+**Branch**: claude/improve-20260312-auto
+**Build**: ✅
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|----------------|-------|--------|----------|
+| Lucide Icons no CommentThread | 🔧 (Send, MoreHorizontal, Pencil, Trash2, Reply) | ✅ | Migrado para Tabler Icons (IconSend, IconDots, IconPencil, IconTrash, IconCornerDownRight) |
+| CommentThread no TaskDetailSheet | ⚠️ (componente existia mas não integrado) | ✅ | Seção "Comentários" adicionada ao TaskPanel após subtarefas |
+| task-detail.tsx orphaned | 🔧 (744 linhas sem imports) | ✅ | Arquivo deletado — debt técnico eliminado |
+
+### Implementado
+
+- refactor(tarefas): CommentThread — 5 ícones Lucide → Tabler Icons (arquivos: comment-thread.tsx)
+- feat(tarefas): seção de Comentários integrada ao TaskDetailSheet via CommentThread existente (arquivos: task-detail-sheet.tsx)
+- chore(tarefas): task-detail.tsx orphaned removido — 744 linhas de debt eliminadas
+
+### Migrations aplicadas
+- Nenhuma (project_comments já existe, use-comments hook já implementado)
+
+### Próximo ciclo
+- Botão "Curtir" no header ainda usa toast placeholder — implementar hook real de likes/reactions na tabela os_tasks ou tabela de reactions
+- Botão "Anexar" no header ainda usa toast placeholder — implementar upload de arquivos (Supabase Storage)
+- CommentThread usa Lucide no submenu de edição (dropdown manual com div/button) — considerar migrar para shadcn DropdownMenu para consistência
+
+### Debt técnico
+- CommentThread.CommentItem usa `showMenu` com div custom ao invés de shadcn DropdownMenu — funcional mas fora do padrão do design system

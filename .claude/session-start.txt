@@ -1,12 +1,5 @@
-d31b2ae feat(comercial): split relatorios/page.tsx + fix lucide-react + fix attach button
-4d1e324 chore: adicionar audit-log do ciclo 2026-03-13 ciclo 10
-cb1db62 refactor(tarefas): split my-task-table-row 329L → main 137L + cells 193L
-91174a9 refactor(tarefas): split custom-field-definition-form 511L → main 128L + 2 arquivos
-49a95e5 refactor(tarefas): split custom-field-value-editor 606L → main 62L + 4 editor files
-96b8803 feat(tarefas): F13 — anexos com upload, preview, delete e auto-add colaborador
-8746de2 chore: adicionar audit-log do ciclo 2026-03-13 ciclo 9
-9c54d98 refactor(tarefas): split task-dependencies-section 326L → task-dependency-item + task-dependency-add-button + section (179L)
-dc6c27d refactor(tarefas): split task-subtasks-section 332L → task-subtask-row + task-subtask-add-form + section (166L)
-2c3d11b feat(tarefas): F11 — campos personalizados com stepper de criação e edição inline
- .claude/session-start.txt | 7 +++++--
- 1 file changed, 5 insertions(+), 2 deletions(-)
+3e709fe docs(cultura): relatório melhoria contínua 2026-03-13
+89d5e6f feat(cultura): adicionar páginas valores e documentos + extrair RecognitionKPISection
+2402257 chore: adicionar audit-log do ciclo 2026-03-13 ciclo 12
+ .claude/session-start.txt | 15 +++------------
+ 1 file changed, 3 insertions(+), 12 deletions(-)

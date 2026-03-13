@@ -1,5 +1,48 @@
 # TBO OS — Audit Log
 
+## Ciclo — 2026-03-13 (auto) — Ciclo 10
+
+**Módulo**: Tarefas (split de componentes oversized — rodada 2)
+**Branch**: `claude/improve-20260312-auto`
+**Build**: ✅ Passou antes e depois das mudanças
+
+### Estado do módulo
+
+| Componente                          | Antes | Depois | Detalhes |
+|-------------------------------------|-------|--------|----------|
+| `custom-field-value-editor.tsx`     | 606L  | 74L    | Extraídos 7 editors para 4 arquivos |
+| `custom-field-definition-form.tsx`  | 511L  | 185L   | Extraídos 6 steps + indicator para 2 arquivos |
+| `my-task-table-row.tsx`             | 329L  | 137L   | Extraídas 6 cell renderers para 1 arquivo |
+
+### Implementado
+
+- refactor: `custom-field-simple-editors.tsx` — TextEditor, NumberEditor, CheckboxEditor
+- refactor: `custom-field-date-editor.tsx` — DateEditor
+- refactor: `custom-field-select-editor.tsx` — SelectEditor, MultiSelectEditor
+- refactor: `custom-field-person-editor.tsx` — PersonEditor
+- refactor: `custom-field-step-indicator.tsx` — StepIndicator
+- refactor: `custom-field-definition-steps.tsx` — StepName, StepType, StepOptions, StepRequired, StepPreview
+- refactor: `my-task-table-row-cells.tsx` — todas as 6 cell renderers + renderCellContent
+
+### Migrations aplicadas
+
+Nenhuma — sem alterações de schema.
+
+### Próximo ciclo (sugestões)
+
+- `my-tasks-board-view.tsx` (275L) — ainda acima do limite
+- `my-tasks-table-header.tsx` (266L) — acima do limite
+- `task-description-editor.tsx` (299L) — acima do limite
+- `task-actions-toolbar.tsx` (319L) — acima do limite; botão "Anexar arquivo" ainda com toast "em breve"
+- Realtime subscription no task detail (comments/activity ao vivo)
+
+### Debt técnico
+
+- Botão "Anexar arquivo" no toolbar dispara toast "em breve" — retornar quando a UI de upload estiver integrada ao toolbar
+- `task-actions-toolbar.tsx` e `task-description-editor.tsx` ainda acima de 200L
+
+---
+
 ## Ciclo — 2026-03-13 (auto) — Ciclo 9
 
 **Módulo**: Tarefas (split de componentes oversized)

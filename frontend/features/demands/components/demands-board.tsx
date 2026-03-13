@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -323,6 +323,8 @@ export function DemandsBoard({ demands, onSelect }: DemandsBoardProps) {
   const [activeDemand, setActiveDemand] = useState<DemandRow | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
   const [undoStack, setUndoStack] = useState<DemandRow[][]>([]);
+  // Track whether we're doing a local optimistic update (skip prop sync)
+  const isMutatingRef = useRef(false);
 
   // Ctrl+Z undo handler
   useEffect(() => {
@@ -348,14 +350,12 @@ export function DemandsBoard({ demands, onSelect }: DemandsBoardProps) {
     return () => window.removeEventListener("keydown", handleUndo);
   }, [undoStack, localDemands, updateDemand]);
 
-  // Sync from props when not mutating
-  if (
-    demands !== localDemands &&
-    !updateDemand.isPending &&
-    !deleteDemand.isPending
-  ) {
-    setLocalDemands(demands);
-  }
+  // Sync from props when not doing a local optimistic update
+  useEffect(() => {
+    if (!isMutatingRef.current) {
+      setLocalDemands(demands);
+    }
+  }, [demands]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -382,33 +382,42 @@ export function DemandsBoard({ demands, onSelect }: DemandsBoardProps) {
       const feito = newStatus === "Concluido" || newStatus === "Concluido";
       // Save previous state for undo
       setUndoStack((prev) => [...prev.slice(-19), [...localDemands]]);
+      // Flag: skip prop sync while we mutate (prevents infinite loop)
+      isMutatingRef.current = true;
       setLocalDemands((prev) =>
         prev.map((d) =>
           d.id === demandId ? { ...d, status: newStatus, feito } : d
         )
       );
-      updateDemand.mutate({
-        id: demandId,
-        updates: { status: newStatus, feito },
-      });
+      updateDemand.mutate(
+        { id: demandId, updates: { status: newStatus, feito } },
+        { onSettled: () => { isMutatingRef.current = false; } },
+      );
     },
     [updateDemand, localDemands]
   );
 
   const handlePriorityChange = useCallback(
     (demandId: string, prioridade: string) => {
+      isMutatingRef.current = true;
       setLocalDemands((prev) =>
         prev.map((d) => (d.id === demandId ? { ...d, prioridade } : d))
       );
-      updateDemand.mutate({ id: demandId, updates: { prioridade } });
+      updateDemand.mutate(
+        { id: demandId, updates: { prioridade } },
+        { onSettled: () => { isMutatingRef.current = false; } },
+      );
     },
     [updateDemand]
   );
 
   const handleDelete = useCallback(
     (demandId: string) => {
+      isMutatingRef.current = true;
       setLocalDemands((prev) => prev.filter((d) => d.id !== demandId));
-      deleteDemand.mutate(demandId);
+      deleteDemand.mutate(demandId, {
+        onSettled: () => { isMutatingRef.current = false; },
+      });
     },
     [deleteDemand]
   );

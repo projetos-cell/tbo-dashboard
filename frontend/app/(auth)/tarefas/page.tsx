@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { Suspense, useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { TaskDetail } from "@/features/tasks/components/task-detail";
+import { TaskDetailSheet } from "@/features/tasks/components/task-detail-sheet";
 import { TaskForm } from "@/features/tasks/components/task-form";
 import { MyTasksListView } from "@/features/tasks/components/my-tasks-list-view";
 import { MyTasksBoardView } from "@/features/tasks/components/my-tasks-board-view";
@@ -18,6 +18,7 @@ import {
   useMyTasksPreferences,
   useUpdateMyTasksPreferences,
 } from "@/features/tasks/hooks/use-my-tasks";
+import { useTaskDetailParam } from "@/features/tasks/hooks/use-task-detail";
 import {
   resolveColumns,
   getVisibleColumns,
@@ -39,8 +40,22 @@ const VIEWS = [
 ] as const;
 
 export default function MinhasTarefasPage() {
-  const [selectedTask, setSelectedTask] = useState<TaskRow | null>(null);
+  return (
+    <Suspense fallback={<div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => (<Skeleton key={i} className="h-10 w-full" />))}</div>}>
+      <MinhasTarefasContent />
+    </Suspense>
+  );
+}
+
+function MinhasTarefasContent() {
+  const { taskId, openTask, closeTask } = useTaskDetailParam();
   const [showCreate, setShowCreate] = useState(false);
+
+  // Wrapper: list/board views call onSelect with TaskRow, we extract the id
+  const handleSelectTask = useCallback(
+    (task: TaskRow) => openTask(task.id),
+    [openTask]
+  );
 
   // Preferences (persisted per user)
   const { data: prefs } = useMyTasksPreferences();
@@ -228,7 +243,7 @@ export default function MinhasTarefasPage() {
           sortDirection={sortDirection}
           groupBy={groupBy}
           filters={filters}
-          onSelect={setSelectedTask}
+          onSelect={handleSelectTask}
           onSort={handleSort}
           onResizeColumn={handleResizeColumn}
           onReorderColumns={handleReorderColumns}
@@ -236,7 +251,7 @@ export default function MinhasTarefasPage() {
       ) : viewMode === "board" ? (
         <MyTasksBoardView
           tasks={tasks ?? []}
-          onSelect={setSelectedTask}
+          onSelect={handleSelectTask}
         />
       ) : (
         // Calendar view placeholder
@@ -250,13 +265,11 @@ export default function MinhasTarefasPage() {
         </div>
       )}
 
-      {/* Task Detail */}
-      <TaskDetail
-        task={selectedTask}
-        open={!!selectedTask}
-        onOpenChange={(open) => {
-          if (!open) setSelectedTask(null);
-        }}
+      {/* Task Detail Sheet (F02 — read-only panel with URL sync) */}
+      <TaskDetailSheet
+        taskId={taskId}
+        open={!!taskId}
+        onClose={closeTask}
       />
 
       {/* Task Form */}

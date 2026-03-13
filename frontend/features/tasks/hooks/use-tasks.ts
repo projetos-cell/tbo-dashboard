@@ -128,9 +128,11 @@ export function useUpdateTask() {
 
     onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey: ["tasks"] });
+      await queryClient.cancelQueries({ queryKey: ["task-detail", variables.id] });
 
       const previousTasks = queryClient.getQueriesData<TaskRow[]>({ queryKey: ["tasks"] });
 
+      // Optimistic update on list caches
       queryClient.setQueriesData<TaskRow[]>(
         { queryKey: ["tasks"] },
         (old) =>
@@ -139,20 +141,34 @@ export function useUpdateTask() {
           )
       );
 
-      return { previousTasks };
+      // Optimistic update on detail cache
+      const previousDetail = queryClient.getQueryData<TaskRow>(["task-detail", variables.id]);
+      if (previousDetail) {
+        queryClient.setQueryData<TaskRow>(
+          ["task-detail", variables.id],
+          { ...previousDetail, ...variables.updates }
+        );
+      }
+
+      return { previousTasks, previousDetail };
     },
 
-    onError: (_err, _variables, context) => {
+    onError: (_err, variables, context) => {
       if (context?.previousTasks) {
         for (const [queryKey, data] of context.previousTasks) {
           queryClient.setQueryData(queryKey, data);
         }
+      }
+      if (context?.previousDetail) {
+        queryClient.setQueryData(["task-detail", variables.id], context.previousDetail);
       }
     },
 
     onSuccess: async (updatedTask, variables) => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["task"] });
+      queryClient.invalidateQueries({ queryKey: ["task-detail"] });
+      queryClient.invalidateQueries({ queryKey: ["my-tasks"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
 
       const userId = useAuthStore.getState().user?.id ?? "unknown";

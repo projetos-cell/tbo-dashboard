@@ -129,7 +129,7 @@ export function TaskDetailSheet({
         ) : (
           <>
             {/* Header: complete toggle + toolbar */}
-            <TaskDetailHeader task={task} />
+            <TaskDetailHeader task={task} onClose={onClose} />
 
             {/* Main scrollable content */}
             <div className="flex-1 overflow-y-auto">

@@ -1,5 +1,48 @@
 # TBO OS — Audit Log
 
+## Ciclo — 2026-03-13 (auto) — Ciclo 13
+
+**Módulo**: Chat (`features/chat/components`)
+**Branch**: `claude/improve-20260313-c13`
+**Build**: ✅ Passou antes e depois das 3 melhorias
+
+### Estado do módulo
+
+| Componente | Antes | Depois | Detalhes |
+|---|---|---|---|
+| `channel-list.tsx` | ⚠️ 698L | ✅ 238L | Extraídos: channel-list-item, channel-list-section-header |
+| `chat-layout.tsx` | ⚠️ 607L | ✅ 288L | Extraídos: chat-sidebar, conversation-header |
+| `channel-settings-drawer.tsx` | ⚠️ 412L | ✅ 197L | Extraídos: channel-add-members-panel, channel-members-list |
+
+### Implementado
+
+- refactor: `channel-list-item.tsx` (254L) — ChannelItem com context menu, delete dialog, DM avatar
+- refactor: `channel-list-section-header.tsx` (178L) — SectionHeader collapsible + InlineCreateSection
+- refactor: `channel-list.tsx` (238L) — orquestrador limpo importando sub-componentes
+- refactor: `chat-sidebar.tsx` (169L) — sidebar do chat com header de ações e channel list
+- refactor: `conversation-header.tsx` (100L) — header da conversa (avatar, nome, search/settings buttons)
+- refactor: `chat-layout.tsx` (288L) — orquestrador com data fetching + handlers + render delegado
+- refactor: `channel-add-members-panel.tsx` (110L) — painel de busca e seleção de novos membros
+- refactor: `channel-members-list.tsx` (80L) — lista de membros com role toggle e remove
+
+### Migrations aplicadas
+
+Nenhuma — sem alterações de schema.
+
+### Próximo ciclo (sugestões)
+
+- `message-input.tsx` (322L) e `message-bubble.tsx` (322L) — próximos candidatos a split no chat
+- `features/contratos/components/contract-detail-dialog.tsx` (461L) — ainda acima do limite
+- `features/demands/components/demand-detail-sidebar.tsx` (455L) — candidato a split
+- Limpeza sistemática de lucide-react (ainda presente em ~100 arquivos) — ciclo dedicado
+
+### Debt técnico
+
+- `chat-layout.tsx` em 288L — acima de 200L mas abaixo do hard limit (300L); handlers compactos em uma linha aceitável por ora
+- lucide-react ainda em ~100 arquivos — requer ciclo dedicado
+
+---
+
 ## Ciclo — 2026-03-13 (auto) — Ciclo 12
 
 **Módulo**: Contratos (`features/contratos/components`)

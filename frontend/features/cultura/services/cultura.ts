@@ -106,6 +106,20 @@ export async function deleteCulturaItem(
   if (error) throw error;
 }
 
+export async function reorderCulturaItems(
+  supabase: SupabaseClient<Database>,
+  items: { id: string; order_index: number }[]
+): Promise<void> {
+  await Promise.all(
+    items.map(({ id, order_index }) =>
+      supabase
+        .from("cultura_items")
+        .update({ order_index } as never)
+        .eq("id", id)
+    )
+  );
+}
+
 export async function getCulturaVersions(
   supabase: SupabaseClient<Database>,
   itemId: string

@@ -11,8 +11,11 @@ import {
   updateCulturaItem,
   deleteCulturaItem,
   getCulturaVersions,
+  reorderCulturaItems,
 } from "@/features/cultura/services/cultura";
 import type { Database } from "@/lib/supabase/types";
+
+type CulturaRow = Database["public"]["Tables"]["cultura_items"]["Row"];
 
 function useSupabase() {
   return createClient();
@@ -107,5 +110,38 @@ export function useDeleteCulturaItem() {
       toast.success("Item excluído");
     },
     onError: () => toast.error("Erro ao excluir item"),
+  });
+}
+
+export function useReorderCulturaItems(category?: string) {
+  const supabase = useSupabase();
+  const queryClient = useQueryClient();
+  const tenantId = useTenantId();
+
+  return useMutation({
+    mutationFn: (items: { id: string; order_index: number }[]) =>
+      reorderCulturaItems(supabase, items),
+    onMutate: async (newOrder) => {
+      const key = ["cultura-items", tenantId, category];
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<CulturaRow[]>(key);
+      queryClient.setQueryData<CulturaRow[]>(key, (old) => {
+        if (!old) return old;
+        const orderMap = new Map(newOrder.map(({ id, order_index }) => [id, order_index]));
+        return [...old]
+          .map((item) => ({ ...item, order_index: orderMap.get(item.id) ?? item.order_index }))
+          .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["cultura-items", tenantId, category], context.previous);
+      }
+      toast.error("Erro ao reordenar itens");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["cultura-items", tenantId, category] });
+    },
   });
 }

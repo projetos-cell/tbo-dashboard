@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -30,6 +31,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useDeleteDecision } from "@/features/decisions/hooks/use-decisions";
 import type { Database } from "@/lib/supabase/types";
 
@@ -47,6 +58,7 @@ export function DecisionsList({
   onEdit,
 }: DecisionsListProps) {
   const deleteDecision = useDeleteDecision();
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
 
   if (decisions.length === 0) {
     return (
@@ -60,12 +72,20 @@ export function DecisionsList({
     );
   }
 
-  const handleDelete = (e: React.MouseEvent, id: string) => {
+  const handleDeleteRequest = (e: React.MouseEvent, decision: DecisionRow) => {
     e.stopPropagation();
-    deleteDecision.mutate(id);
+    setDeleteTarget({ id: decision.id, title: decision.title });
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deleteTarget) {
+      deleteDecision.mutate(deleteTarget.id);
+      setDeleteTarget(null);
+    }
   };
 
   return (
+    <>
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {decisions.map((decision) => {
         const descriptionPreview = decision.description
@@ -126,7 +146,7 @@ export function DecisionsList({
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       className="text-red-500 focus:text-red-500"
-                      onClick={(e) => handleDelete(e, decision.id)}
+                      onClick={(e) => handleDeleteRequest(e, decision)}
                     >
                       <Trash2 className="size-3.5 mr-2" />
                       Excluir
@@ -190,5 +210,27 @@ export function DecisionsList({
         );
       })}
     </div>
+
+    <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Excluir decisão?</AlertDialogTitle>
+          <AlertDialogDescription>
+            A decisão &ldquo;{deleteTarget?.title}&rdquo; será excluída permanentemente. Esta ação
+            não pode ser desfeita.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDeleteConfirm}
+            className="bg-red-500 text-white hover:bg-red-500/90"
+          >
+            Excluir
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

@@ -1,3 +1,5 @@
+bd67b45 feat(tbo-os): ciclo 14 — colaboradores directory + decisões page + icons
+c38f73c feat(cultura): admin CRUD recompensas + fluxo delivered + validacao inline reconhecimento + skeletons KPI
 70ede56 feat(chat): ciclo 13 — split módulo chat (channel-list 698L + chat-layout 607L + settings-drawer 412L)
 9fe8c10 chore: adicionar audit-log do ciclo 2026-03-13 ciclo 13
 a30b4b8 refactor(chat): split channel-settings-drawer 412L → main 155L + channel-add-members-panel 110L + channel-members-list 80L
@@ -6,7 +8,16 @@ efc2015 refactor(chat): split channel-list 698L → main 195L + channel-list-ite
 3e709fe docs(cultura): relatório melhoria contínua 2026-03-13
 89d5e6f feat(cultura): adicionar páginas valores e documentos + extrair RecognitionKPISection
 2402257 chore: adicionar audit-log do ciclo 2026-03-13 ciclo 12
-4bd85ec refactor(contratos): split contract-form-dialog 630L → main 185L + 2 arquivos
-83bf852 refactor(contratos): split contract-data-table 632L → main 200L + contract-table-row 230L
- .claude/session-start.txt | 9 +++++++--
- 1 file changed, 7 insertions(+), 2 deletions(-)
+ .claude/session-start.txt                          |   6 +-
+ frontend/app/(auth)/cultura/pilares/page.tsx       | 158 +++++++++----
+ frontend/app/(auth)/cultura/rituais/page.tsx       | 258 ++++++++++-----------
+ frontend/app/(auth)/cultura/valores/page.tsx       | 165 ++++++++-----
+ frontend/app/(auth)/okrs/company/page.tsx          | 251 +++++++++++++++++++-
+ frontend/app/(auth)/okrs/individuais/page.tsx      | 250 +++++++++++++++++++-
+ .../app/(auth)/pessoas/reconhecimentos/page.tsx    | 239 ++++++++++++++++++-
+ frontend/features/cultura/hooks/use-cultura.ts     |  36 +++
+ .../features/cultura/hooks/use-ritual-types.ts     |  36 +++
+ frontend/features/cultura/services/cultura.ts      |  14 ++
+ frontend/features/cultura/services/ritual-types.ts |  15 ++
+ .../decisions/components/decisions-list.tsx        |  48 +++-
+ 12 files changed, 1211 insertions(+), 265 deletions(-)

@@ -96,6 +96,21 @@ export async function deleteRitualType(
   if (error) throw error;
 }
 
+// ─── Reorder ritual types ───
+export async function reorderRitualTypes(
+  supabase: SupabaseClient<Database>,
+  items: { id: string; sort_order: number }[]
+): Promise<void> {
+  await Promise.all(
+    items.map(({ id, sort_order }) =>
+      supabase
+        .from("ritual_types")
+        .update({ sort_order } as never)
+        .eq("id", id)
+    )
+  );
+}
+
 // ─── Toggle active ───
 export async function toggleRitualTypeActive(
   supabase: SupabaseClient<Database>,

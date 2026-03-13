@@ -11,6 +11,8 @@ import {
   updateRitualType,
   deleteRitualType,
   toggleRitualTypeActive,
+  reorderRitualTypes,
+  type RitualTypeRow,
 } from "@/features/cultura/services/ritual-types";
 import type { Database } from "@/lib/supabase/types";
 
@@ -113,5 +115,39 @@ export function useToggleRitualTypeActive() {
       toast.success(variables.isActive ? "Ritual ativado" : "Ritual desativado");
     },
     onError: () => toast.error("Erro ao alterar status do ritual"),
+  });
+}
+
+// ─── Reorder ritual types ───
+export function useReorderRitualTypes(includeInactive = false) {
+  const supabase = useSupabase();
+  const queryClient = useQueryClient();
+  const tenantId = useTenantId();
+
+  return useMutation({
+    mutationFn: (items: { id: string; sort_order: number }[]) =>
+      reorderRitualTypes(supabase, items),
+    onMutate: async (newOrder) => {
+      const key = ["ritual-types", tenantId, includeInactive];
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<RitualTypeRow[]>(key);
+      queryClient.setQueryData<RitualTypeRow[]>(key, (old) => {
+        if (!old) return old;
+        const orderMap = new Map(newOrder.map(({ id, sort_order }) => [id, sort_order]));
+        return [...old]
+          .map((item) => ({ ...item, sort_order: orderMap.get(item.id) ?? item.sort_order }))
+          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["ritual-types", tenantId, includeInactive], context.previous);
+      }
+      toast.error("Erro ao reordenar rituais");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["ritual-types"] });
+    },
   });
 }

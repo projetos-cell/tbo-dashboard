@@ -1,5 +1,45 @@
 # TBO OS — Audit Log
 
+## Ciclo — 2026-03-13 (auto) — Ciclo 11
+
+**Módulo**: Comercial (relatorios) + Tarefas (toolbar)
+**Branch**: `claude/improve-20260312-auto`
+**Build**: ✅ Passou antes e depois das mudanças
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|----------------|-------|--------|----------|
+| `comercial/relatorios/page.tsx` — ícones lucide-react | 🔧 | ✅ | 13 ícones substituídos por Tabler equivalentes |
+| `comercial/relatorios/page.tsx` — tamanho | ⚠️ 1179L | ✅ 270L | Sub-componentes extraídos para `comercial-relatorios-components.tsx` |
+| `task-actions-toolbar.tsx` — botão "Anexar arquivo" | 🔧 | ✅ | Conectado ao `useUploadAttachment` via file input oculto; suporte multi-arquivo, validação 25MB, toast de sucesso/erro |
+
+### Implementado
+
+- fix: substituir 13 ícones lucide-react por Tabler Icons em `comercial/relatorios/page.tsx`
+- refactor: extrair 14 sub-componentes (KpiRow, charts, tables, InsightsSection, DashboardSkeleton) + formatters para `features/comercial/components/comercial-relatorios-components.tsx`
+- refactor: extrair ProductMixSection do main component para manter `ComercialRelatorios` < 200L
+- feat: botão "Anexar arquivo" em `task-actions-toolbar.tsx` — upload real via `useUploadAttachment`, multi-arquivo, validação de tipo e tamanho, toast de feedback
+
+### Migrations aplicadas
+
+Nenhuma — sem alterações de schema.
+
+### Próximo ciclo (sugestões)
+
+- `features/contratos/components/contract-filters-panel.tsx` (717L) — maior componente não tocado do projeto
+- `features/chat/components/channel-list.tsx` (698L) — split em sub-componentes
+- `features/contratos/components/contract-data-table.tsx` (632L) — split
+- Substituir restantes imports lucide-react (ainda presentes em ~30 arquivos) — ciclo dedicado de limpeza global
+- Realtime subscription no task detail (comments/activity ao vivo)
+
+### Debt técnico
+
+- `comercial-relatorios-components.tsx` é um arquivo grande (~900L) mas todos os componentes internos são < 200L cada — aceitável por ora
+- lucide-react ainda presente em ~30 arquivos (admin, agenda, alerts, changelog, clientes, contratos, cultura, dashboard, diretoria, financeiro, inteligencia, kanban, mercado, permissões, etc.) — limpeza sistemática pendente
+
+---
+
 ## Ciclo — 2026-03-13 (auto) — Ciclo 10
 
 **Módulo**: Tarefas (split de componentes oversized — rodada 2)

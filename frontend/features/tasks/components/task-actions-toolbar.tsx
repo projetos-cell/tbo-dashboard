@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   IconLink,
   IconMaximize,
@@ -37,8 +37,22 @@ import {
 } from "@/components/ui/alert-dialog";
 import { LikeButton } from "./like-button";
 import { useDeleteTask, useCreateTask } from "@/features/tasks/hooks/use-tasks";
+import { useUploadAttachment } from "@/hooks/use-attachments";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/lib/supabase/types";
+
+const ATTACH_ACCEPT = [
+  "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/zip", "application/x-zip-compressed",
+  "text/plain", "text/csv",
+].join(",");
+
+const MAX_ATTACH_SIZE = 25 * 1024 * 1024; // 25 MB
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 
@@ -61,6 +75,10 @@ export function TaskActionsToolbar({
 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadAttachment = useUploadAttachment();
 
   // ─── Copy URL ───────────────────────────────────────
   const handleCopyLink = useCallback(() => {
@@ -136,6 +154,46 @@ export function TaskActionsToolbar({
     );
   };
 
+  // ─── Attach file ────────────────────────────────────
+  const handleAttachFiles = useCallback(
+    async (files: FileList | null) => {
+      if (!files?.length) return;
+      setUploading(true);
+      let successCount = 0;
+      for (const file of Array.from(files)) {
+        if (file.size > MAX_ATTACH_SIZE) {
+          toast({
+            title: `${file.name}: arquivo muito grande`,
+            description: "Máximo 25 MB por arquivo.",
+            variant: "destructive",
+          });
+          continue;
+        }
+        try {
+          await uploadAttachment.mutateAsync({ file, taskId: task.id });
+          successCount++;
+        } catch {
+          toast({
+            title: `Erro ao enviar ${file.name}`,
+            description: "Tente novamente.",
+            variant: "destructive",
+          });
+        }
+      }
+      if (successCount > 0) {
+        toast({
+          title: successCount === 1
+            ? "Arquivo anexado com sucesso!"
+            : `${successCount} arquivos anexados!`,
+        });
+      }
+      setUploading(false);
+      // Reset input so the same file can be re-selected
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    },
+    [task.id, uploadAttachment, toast]
+  );
+
   // ─── Move to project ────────────────────────────────
   const handleMoveToProject = () => {
     toast({
@@ -184,6 +242,14 @@ export function TaskActionsToolbar({
         <LikeButton targetType="task" targetId={task.id} />
 
         {/* Attach */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept={ATTACH_ACCEPT}
+          className="hidden"
+          onChange={(e) => void handleAttachFiles(e.target.files)}
+        />
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -191,12 +257,8 @@ export function TaskActionsToolbar({
               variant="ghost"
               className="h-7 w-7"
               aria-label="Anexar arquivo"
-              onClick={() =>
-                toast({
-                  title: "Anexos em breve",
-                  description: "Esta função estará disponível em breve.",
-                })
-              }
+              disabled={uploading}
+              onClick={() => fileInputRef.current?.click()}
             >
               <IconPaperclip className="h-3.5 w-3.5" />
             </Button>

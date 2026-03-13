@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Plus, Award, Search, X } from "lucide-react";
+import { IconPlus, IconAward, IconSearch, IconX } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -139,7 +139,7 @@ export default function ReconhecimentosPage() {
           </p>
         </div>
         <Button size="sm" onClick={() => setShowForm(true)}>
-          <Plus className="size-4 mr-1" />
+          <IconPlus className="size-4 mr-1" />
           Reconhecer
         </Button>
       </div>
@@ -149,7 +149,7 @@ export default function ReconhecimentosPage() {
       {/* Search & filter bar */}
       <div className="flex flex-wrap gap-2">
         <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-gray-400" />
+          <IconSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-gray-400" />
           <Input
             placeholder="Buscar por mensagem, pessoa..."
             value={search}
@@ -161,7 +161,7 @@ export default function ReconhecimentosPage() {
               onClick={() => setSearch("")}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
-              <X className="size-3.5" />
+              <IconX className="size-3.5" />
             </button>
           )}
         </div>
@@ -258,14 +258,14 @@ export default function ReconhecimentosPage() {
             ))
           ) : hasActiveFilters ? (
             <EmptyState
-              icon={Search}
+              icon={IconSearch}
               title="Nenhum resultado encontrado"
               description="Tente ajustar os filtros ou limpar a busca."
               cta={{ label: "Limpar filtros", onClick: () => { setSearch(""); setFilterPerson("all"); setFilterValue("all"); } }}
             />
           ) : (
             <EmptyState
-              icon={Award}
+              icon={IconAward}
               title="Nenhum reconhecimento ainda"
               description="Seja o primeiro a reconhecer um colega!"
               cta={{ label: "Reconhecer", onClick: () => setShowForm(true) }}
@@ -301,9 +301,11 @@ export default function ReconhecimentosPage() {
               </div>
             ))
           ) : (
-            <div className="text-center py-8 text-gray-500 text-sm">
-              Nenhum reconhecimento pendente de revisao.
-            </div>
+            <EmptyState
+              icon={IconAward}
+              title="Nenhum reconhecimento pendente"
+              description="Todos os reconhecimentos foram revisados."
+            />
           )}
         </TabsContent>
 

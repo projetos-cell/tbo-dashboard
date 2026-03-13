@@ -612,3 +612,40 @@ Nenhuma — sem alterações de schema.
 - `task-detail.tsx` ainda acima de 200 linhas (escopo maior, será ciclo futuro)
 - Botões Curtir (ThumbsUp) e Anexar (Paperclip) foram removidos do header —
   recurso ainda sem serviço implementado; retornar quando likes/attachments tiverem backend
+
+---
+
+## Ciclo 18 — 2026-03-13 (auto)
+
+**Módulo**: founder-dashboard, features/people, features/performance
+**Build**: ✅ Passou antes e depois de todas as mudanças
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|---|---|---|---|
+| `founder-alerts.tsx` — "Cobrar Cliente" | 🔧 | ✅ | `window.alert()` + TODO → `toast.info` + `router.push('/financeiro/contas')` |
+| `founder-alerts.tsx` — ícones | 🔧 | ✅ | lucide-react → @tabler/icons-react (8 ícones) |
+| `features/people/` — ícones (11 arquivos) | 🔧 | ✅ | 25 ícones únicos migrados para Tabler |
+| `features/performance/` — ícones (8 arquivos) | 🔧 | ✅ | 17 ícones únicos migrados para Tabler |
+
+### Implementado
+
+- fix: `founder-alerts.tsx` — substituir `window.alert()` por toast + navegação para /financeiro/contas
+- refactor(people): 11 componentes migrados de lucide-react → @tabler/icons-react
+- refactor(performance): 8 componentes migrados de lucide-react → @tabler/icons-react
+
+### Migrations aplicadas
+
+Nenhuma neste ciclo.
+
+### Próximo ciclo (sugestões)
+
+- Ainda restam ~65 arquivos com `lucide-react` em outros módulos (clientes, projetos, chat, etc.)
+- `comercial-relatorios-components.tsx` (890 linhas) — precisa ser dividido em sub-componentes
+- `demand-detail-sidebar.tsx` (455 linhas) — acima do limite
+- `contract-detail-dialog.tsx` (461 linhas) — acima do limite
+
+### Debt técnico
+
+- 86 arquivos iniciavam com lucide-react; agora ~66 restantes após este ciclo (20 migrados)

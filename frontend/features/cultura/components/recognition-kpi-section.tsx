@@ -1,6 +1,6 @@
 "use client";
 
-import { Award, TrendingUp, Users, Zap } from "lucide-react";
+import { IconAward, IconTrendingUp, IconUsers, IconBolt } from "@tabler/icons-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TierProgress } from "./tier-progress";
@@ -31,7 +31,7 @@ export function RecognitionKPISection({ kpis, balance }: RecognitionKPISectionPr
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
-              <Award className="size-3.5" />
+              <IconAward className="size-3.5" />
               Total
             </div>
             <p className="text-2xl font-bold">{kpis?.total ?? 0}</p>
@@ -40,7 +40,7 @@ export function RecognitionKPISection({ kpis, balance }: RecognitionKPISectionPr
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
-              <TrendingUp className="size-3.5" />
+              <IconTrendingUp className="size-3.5" />
               Este mes
             </div>
             <p className="text-2xl font-bold">{kpis?.thisMonth ?? 0}</p>
@@ -49,16 +49,16 @@ export function RecognitionKPISection({ kpis, balance }: RecognitionKPISectionPr
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
-              <Users className="size-3.5" />
+              <IconUsers className="size-3.5" />
               Media/pessoa
             </div>
-            <p className="text-2xl font-bold">{kpis?.avgPerPerson ?? 0}</p>
+            <p className="text-2xl font-bold">{kpis?.avgPerPerson != null ? kpis.avgPerPerson.toFixed(1) : "0"}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
-              <Zap className="size-3.5" />
+              <IconBolt className="size-3.5" />
               Fireflies
             </div>
             <p className="text-2xl font-bold">{kpis?.firefliesCount ?? 0}</p>

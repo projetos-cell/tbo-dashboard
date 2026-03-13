@@ -1,11 +1,40 @@
-﻿"use client";
+"use client";
 
-import { useState } from "react";
-import { Plus, BookOpen } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import {
+  IconPlus,
+  IconBook,
+  IconGripVertical,
+  IconDots,
+  IconPencil,
+  IconTrash,
+  IconEye,
+} from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CulturaItemCard } from "@/features/cultura/components/cultura-item-card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  DndContext,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { CulturaItemForm } from "@/features/cultura/components/cultura-item-form";
 import { CulturaItemDetail } from "@/features/cultura/components/cultura-item-detail";
 import {
@@ -13,6 +42,7 @@ import {
   useCreateCulturaItem,
   useUpdateCulturaItem,
   useDeleteCulturaItem,
+  useReorderCulturaItems,
 } from "@/features/cultura/hooks/use-cultura";
 import { useAuthStore } from "@/stores/auth-store";
 import { ErrorState, ConfirmDialog, EmptyState } from "@/components/shared";
@@ -20,18 +50,159 @@ import type { Database } from "@/lib/supabase/types";
 
 type CulturaRow = Database["public"]["Tables"]["cultura_items"]["Row"];
 
+function SortableManualItem({
+  item,
+  index,
+  canEdit,
+  onView,
+  onEdit,
+  onDelete,
+}: {
+  item: CulturaRow;
+  index: number;
+  canEdit: boolean;
+  onView: (item: CulturaRow) => void;
+  onEdit: (item: CulturaRow) => void;
+  onDelete: (item: CulturaRow) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: item.id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+      }}
+    >
+      <Card className="group hover:shadow-sm transition-shadow">
+        <CardContent className="flex items-center gap-3 py-3 px-4">
+          {canEdit && (
+            <button
+              {...attributes}
+              {...listeners}
+              className="opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing p-1 rounded hover:bg-black/5 transition-opacity shrink-0"
+              aria-label="Arrastar para reordenar"
+              tabIndex={-1}
+            >
+              <IconGripVertical className="size-3.5 text-gray-400" />
+            </button>
+          )}
+          <div
+            className="flex items-center justify-center size-8 rounded-md bg-sky-50 dark:bg-sky-900/20 text-sky-600 text-sm font-medium shrink-0 cursor-pointer"
+            onClick={() => onView(item)}
+          >
+            {index + 1}
+          </div>
+          <div
+            className="flex-1 min-w-0 cursor-pointer"
+            onClick={() => onView(item)}
+          >
+            <h3 className="text-sm font-medium truncate">{item.title}</h3>
+            {item.content_html && (
+              <p className="text-xs text-gray-500 truncate mt-0.5">
+                {item.content_html.replace(/<[^>]*>/g, "").trim().slice(0, 100)}
+              </p>
+            )}
+          </div>
+
+          {canEdit ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                  aria-label="Ações"
+                >
+                  <IconDots className="size-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onView(item)}>
+                  <IconEye className="size-3.5 mr-1.5" />
+                  Visualizar
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onEdit(item)}>
+                  <IconPencil className="size-3.5 mr-1.5" />
+                  Editar
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-red-500"
+                  onClick={() => onDelete(item)}
+                >
+                  <IconTrash className="size-3.5 mr-1.5" />
+                  Excluir
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <IconBook className="size-4 text-gray-500/40 shrink-0" />
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function ManualPage() {
   const { data: items, isLoading, error, refetch } = useCulturaItems("manual");
   const createItem = useCreateCulturaItem();
   const updateItem = useUpdateCulturaItem();
   const deleteItem = useDeleteCulturaItem();
+  const reorder = useReorderCulturaItems("manual");
   const { user, tenantId, role } = useAuthStore();
   const canEdit = role === "founder" || role === "diretoria";
 
+  const [orderedItems, setOrderedItems] = useState<CulturaRow[]>([]);
+  const undoStack = useRef<CulturaRow[][]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<CulturaRow | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [deletingItem, setDeletingItem] = useState<CulturaRow | null>(null);
+
+  useEffect(() => {
+    if (items) setOrderedItems(items);
+  }, [items]);
+
+  useEffect(() => {
+    if (!canEdit) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        e.key === "z" &&
+        undoStack.current.length > 0
+      ) {
+        const prev = undoStack.current.pop()!;
+        setOrderedItems(prev);
+        reorder.mutate(
+          prev.map((item, idx) => ({ id: item.id, order_index: idx }))
+        );
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [canEdit, reorder]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor)
+  );
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIdx = orderedItems.findIndex((i) => i.id === active.id);
+    const newIdx = orderedItems.findIndex((i) => i.id === over.id);
+    undoStack.current.push([...orderedItems]);
+    const newOrder = arrayMove(orderedItems, oldIdx, newIdx);
+    setOrderedItems(newOrder);
+    reorder.mutate(
+      newOrder.map((item, idx) => ({ id: item.id, order_index: idx }))
+    );
+  }
 
   const handleSave = async (data: {
     title: string;
@@ -63,13 +234,11 @@ export default function ManualPage() {
           author_id: user?.id,
         } as Database["public"]["Tables"]["cultura_items"]["Insert"]);
       }
+      setShowForm(false);
+      setEditingItem(null);
     } catch {
       // handled by mutation onError
     }
-  };
-
-  const handleDelete = (item: CulturaRow) => {
-    setDeletingItem(item);
   };
 
   if (viewingId) {
@@ -78,7 +247,7 @@ export default function ManualPage() {
         itemId={viewingId}
         onBack={() => setViewingId(null)}
         onEdit={() => {
-          const item = items?.find((i) => i.id === viewingId);
+          const item = orderedItems.find((i) => i.id === viewingId);
           if (item) {
             setEditingItem(item);
             setShowForm(true);
@@ -107,7 +276,7 @@ export default function ManualPage() {
               setShowForm(true);
             }}
           >
-            <Plus className="size-4 mr-1" />
+            <IconPlus className="size-4 mr-1" />
             Nova pagina
           </Button>
         )}
@@ -129,39 +298,50 @@ export default function ManualPage() {
         </div>
       ) : error ? (
         <ErrorState message={error.message} onRetry={() => refetch()} />
-      ) : items && items.length > 0 ? (
-        <div className="space-y-2">
-          {items.map((item, index) => (
-            <Card
-              key={item.id}
-              className="group cursor-pointer hover:shadow-sm transition-shadow"
-              onClick={() => setViewingId(item.id)}
-            >
-              <CardContent className="flex items-center gap-4 py-3 px-4">
-                <div className="flex items-center justify-center size-8 rounded-md bg-sky-50 dark:bg-sky-900/20 text-sky-600 text-sm font-medium shrink-0">
-                  {index + 1}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-medium truncate">
-                    {item.title}
-                  </h3>
-                  {item.content_html && (
-                    <p className="text-xs text-gray-500 truncate mt-0.5">
-                      {stripHtml(item.content_html).slice(0, 100)}
-                    </p>
-                  )}
-                </div>
-                <BookOpen className="size-4 text-gray-500/40 shrink-0" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      ) : orderedItems.length > 0 ? (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={orderedItems.map((i) => i.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-2">
+              {orderedItems.map((item, index) => (
+                <SortableManualItem
+                  key={item.id}
+                  item={item}
+                  index={index}
+                  canEdit={canEdit}
+                  onView={(i) => setViewingId(i.id)}
+                  onEdit={(i) => {
+                    setEditingItem(i);
+                    setShowForm(true);
+                  }}
+                  onDelete={(i) => setDeletingItem(i)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       ) : (
         <EmptyState
-          icon={BookOpen}
+          icon={IconBook}
           title="Nenhuma pagina do manual cadastrada"
           description="Crie guias e referencias para a cultura do time."
-          cta={canEdit ? { label: "Nova pagina", onClick: () => { setEditingItem(null); setShowForm(true); } } : undefined}
+          cta={
+            canEdit
+              ? {
+                  label: "Nova pagina",
+                  onClick: () => {
+                    setEditingItem(null);
+                    setShowForm(true);
+                  },
+                }
+              : undefined
+          }
         />
       )}
 
@@ -191,8 +371,4 @@ export default function ManualPage() {
       />
     </div>
   );
-}
-
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, "").trim();
 }

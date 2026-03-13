@@ -1,6 +1,50 @@
 # TBO OS — Audit Log
 
-## Ciclo — 2026-03-12 (auto)
+## Ciclo — 2026-03-12 (auto) — Ciclo 2
+
+**Módulo**: Tarefas (`features/tasks`)
+**Branch**: `claude/improve-20260312-auto`
+**Build**: ✅ Passou antes e depois de todas as mudanças
+
+### Estado do módulo
+
+| Funcionalidade                       | Antes | Depois | Detalhes |
+|--------------------------------------|-------|--------|----------|
+| Build (cache corrompido)             | 🔧    | ✅     | `tsconfig.tsbuildinfo` corrompido causava falso "module not found"; resolvido limpando cache |
+| `task-detail-fields.tsx` — ícones    | 🔧    | ✅     | Substituídos 4 ícones lucide-react por Tabler equivalentes |
+| `my-tasks-list-view.tsx` — tamanho  | ⚠️    | ✅     | 648 → 358 linhas (-45%) via 2 extrações |
+| Lógica sort/filter/group             | ⚠️    | ✅     | Movida para `lib/my-tasks-utils.ts` (testável, reutilizável) |
+| Lógica DnD/sections                  | ⚠️    | ✅     | Movida para `hooks/use-section-dnd.ts` |
+| Colaboradores de tarefa              | ❌    | ✅     | picker + lista + hook com optimistic update |
+
+### Implementado
+
+- fix: resolver build com tsconfig.tsbuildinfo corrompido
+- fix: substituir lucide-react por Tabler Icons em task-detail-fields.tsx
+- refactor: extrair compareTasks/applyFilters/groupTasksDynamic → my-tasks-utils.ts
+- refactor: extrair DnD + sections CRUD + undo → use-section-dnd.ts
+- feat: TaskCollaboratorsList + TaskCollaboratorPicker + useTaskCollaborators + task-collaborators service
+
+### Migrations aplicadas
+
+Nenhuma neste ciclo — `task_collaborators` já existia no schema.
+
+### Próximo ciclo (sugestões)
+
+- `task-detail.tsx` (744 linhas) está **orphaned** — nenhum import encontrado. Candidato a remoção após confirmação do usuário
+- Dividir `my-tasks-toolbar.tsx` (389 linhas) — ainda acima do limite
+- Dividir `my-task-table-row.tsx` (325 linhas)
+- Calendar View — ainda placeholder "em breve"
+- Realtime subscription no task detail (comments/activity ao vivo)
+
+### Debt técnico
+
+- `task-detail.tsx` é dead code (nenhum componente o importa); não deletado sem confirmação explícita
+- `my-tasks-toolbar.tsx` e `my-task-table-row.tsx` ainda acima de 200 linhas
+
+---
+
+## Ciclo — 2026-03-12 (auto) — Ciclo 1
 
 **Módulo**: Tarefas (`features/tasks`)
 **Branch**: `claude/improve-20260312-auto`

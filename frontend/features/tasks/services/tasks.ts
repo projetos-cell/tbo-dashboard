@@ -107,3 +107,14 @@ export async function deleteTask(
   if (error) throw error;
 }
 
+export async function reorderSubtasks(
+  supabase: SupabaseClient<Database>,
+  orderedIds: string[]
+): Promise<void> {
+  await Promise.all(
+    orderedIds.map((id, idx) =>
+      supabase.from("os_tasks").update({ order_index: idx } as never).eq("id", id)
+    )
+  );
+}
+

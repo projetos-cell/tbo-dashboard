@@ -9,6 +9,7 @@ import { TaskDetailSheet } from "@/features/tasks/components/task-detail-sheet";
 import { TaskForm } from "@/features/tasks/components/task-form";
 import { MyTasksListView } from "@/features/tasks/components/my-tasks-list-view";
 import { MyTasksBoardView } from "@/features/tasks/components/my-tasks-board-view";
+import { MyTasksCalendarView } from "@/features/tasks/components/my-tasks-calendar-view";
 import { MyTasksToolbar } from "@/features/tasks/components/my-tasks-toolbar";
 import { MyTasksColumnConfig } from "@/features/tasks/components/my-tasks-column-config";
 import {
@@ -27,16 +28,22 @@ import {
 } from "@/features/tasks/lib/my-tasks-columns";
 import { ErrorState, EmptyState } from "@/components/shared";
 import type { Database } from "@/lib/supabase/types";
-import { Plus, CheckSquare, Kanban, List, CalendarDays } from "lucide-react";
+import {
+  IconPlus,
+  IconSquareCheck,
+  IconLayoutKanban,
+  IconList,
+  IconCalendar,
+} from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 type ViewMode = "list" | "board" | "calendar";
 
 const VIEWS = [
-  { value: "list" as const, icon: List, label: "Lista" },
-  { value: "board" as const, icon: Kanban, label: "Board" },
-  { value: "calendar" as const, icon: CalendarDays, label: "Calendário" },
+  { value: "list" as const, icon: IconList, label: "Lista" },
+  { value: "board" as const, icon: IconLayoutKanban, label: "Board" },
+  { value: "calendar" as const, icon: IconCalendar, label: "Calendário" },
 ] as const;
 
 export default function MinhasTarefasPage() {
@@ -192,7 +199,7 @@ function MinhasTarefasContent() {
           </div>
 
           <Button onClick={() => setShowCreate(true)}>
-            <Plus className="mr-1.5 h-4 w-4" /> Nova Tarefa
+            <IconPlus className="mr-1.5 h-4 w-4" /> Nova Tarefa
           </Button>
         </div>
       </div>
@@ -227,7 +234,7 @@ function MinhasTarefasContent() {
         <ErrorState message={error.message} onRetry={() => refetch()} />
       ) : !tasks?.length && !sections?.length ? (
         <EmptyState
-          icon={CheckSquare}
+          icon={IconSquareCheck}
           title="Nenhuma tarefa atribuída"
           description="Quando tarefas forem atribuídas a você, elas aparecerão aqui organizadas em seções."
           cta={{
@@ -254,15 +261,10 @@ function MinhasTarefasContent() {
           onSelect={handleSelectTask}
         />
       ) : (
-        // Calendar view placeholder
-        <div className="flex h-64 items-center justify-center rounded-lg border border-dashed">
-          <div className="text-center">
-            <CalendarDays className="mx-auto h-8 w-8 text-gray-300" />
-            <p className="mt-2 text-sm text-gray-500">
-              Visão calendário em breve
-            </p>
-          </div>
-        </div>
+        <MyTasksCalendarView
+          tasks={tasks ?? []}
+          onSelect={handleSelectTask}
+        />
       )}
 
       {/* Task Detail Sheet (F02 — read-only panel with URL sync) */}

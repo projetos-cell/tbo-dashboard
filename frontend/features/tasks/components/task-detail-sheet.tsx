@@ -19,6 +19,7 @@ import { TaskDetailFields } from "./task-detail-fields";
 import { TaskDetailDescription } from "./task-detail-description";
 import { TaskDetailSidebar } from "./task-detail-sidebar";
 import { TaskSubtasksSection } from "./task-subtasks-section";
+import { CommentThread } from "@/components/shared/comment-thread";
 
 // ─── Props ──────────────────────────────────────────
 
@@ -129,6 +130,15 @@ function TaskPanel({ taskId, projectName, onClose, onOpenTask }: TaskPanelProps)
               Subtarefas
             </p>
             <TaskSubtasksSection task={task} onOpenTask={onOpenTask} />
+          </div>
+
+          <Separator className="my-4" />
+
+          <div className="pb-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              Comentários
+            </p>
+            <CommentThread taskId={task.id} />
           </div>
         </div>
       </div>

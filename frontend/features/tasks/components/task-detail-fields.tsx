@@ -11,12 +11,11 @@ import {
   IconTag,
   IconUsers,
 } from "@tabler/icons-react";
-import { Badge } from "@/components/ui/badge";
 import { TaskAssigneePicker } from "./task-assignee-picker";
 import { TaskDateRange } from "./task-date-range";
 import { TaskProjectsList } from "./task-projects-list";
 import { TaskCollaboratorsList } from "./task-collaborators-list";
-import type { Tag as TagType } from "@/schemas/tag";
+import { TaskTagsDisplay } from "./task-tags-display";
 import type { Database } from "@/lib/supabase/types";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
@@ -25,7 +24,6 @@ type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 
 interface TaskDetailFieldsProps {
   task: TaskRow;
-  tags: TagType[];
   projectName: string | null;
   /** Controlled: se true, abre o picker de projetos via atalho Tab+P */
   projectPickerOpen?: boolean;
@@ -36,7 +34,6 @@ interface TaskDetailFieldsProps {
 
 export function TaskDetailFields({
   task,
-  tags,
   projectName: _projectName,
   projectPickerOpen,
   onProjectPickerOpenChange,
@@ -78,26 +75,7 @@ export function TaskDetailFields({
 
       {/* Tags */}
       <FieldRow label="Tags" icon={<IconTag className="h-3.5 w-3.5" />}>
-        {tags.length > 0 ? (
-          <div className="flex flex-wrap gap-1">
-            {tags.map((tag) => (
-              <Badge
-                key={tag.id}
-                variant="secondary"
-                className="text-[10px] px-1.5 py-0"
-                style={
-                  tag.color
-                    ? { backgroundColor: tag.color, color: "#fff" }
-                    : undefined
-                }
-              >
-                {tag.name}
-              </Badge>
-            ))}
-          </div>
-        ) : (
-          <span className="text-sm text-muted-foreground">Nenhuma tag</span>
-        )}
+        <TaskTagsDisplay taskId={task.id} />
       </FieldRow>
 
       {/* Colaboradores */}

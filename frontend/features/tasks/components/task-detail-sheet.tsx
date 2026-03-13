@@ -10,10 +10,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import {
-  useTaskDetail,
-  useTaskDetailTags,
-} from "@/features/tasks/hooks/use-task-detail";
+import { useTaskDetail } from "@/features/tasks/hooks/use-task-detail";
 import { TaskDetailHeader } from "./task-detail-header";
 import { TaskTitleInline } from "./task-title-inline";
 import { TaskDetailFields } from "./task-detail-fields";
@@ -75,7 +72,6 @@ export function TaskDetailSheet({
   projectName,
 }: TaskDetailSheetProps) {
   const { data: task, isLoading } = useTaskDetail(taskId);
-  const { data: tags } = useTaskDetailTags(taskId);
 
   // Tab+P shortcut → abrir picker de projetos
   const [projectPickerOpen, setProjectPickerOpen] = useState(false);
@@ -144,7 +140,6 @@ export function TaskDetailSheet({
                 {/* Property grid */}
                 <TaskDetailFields
                   task={task}
-                  tags={tags || []}
                   projectName={resolvedProjectName}
                   projectPickerOpen={projectPickerOpen}
                   onProjectPickerOpenChange={setProjectPickerOpen}

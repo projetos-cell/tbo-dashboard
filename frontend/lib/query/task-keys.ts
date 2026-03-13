@@ -29,6 +29,8 @@ export const taskKeys = {
     [...taskKeys.detail(taskId), "collaborators"] as const,
   customFields: (taskId: string) =>
     [...taskKeys.detail(taskId), "custom-fields"] as const,
+  tags: (taskId: string) =>
+    [...taskKeys.detail(taskId), "tags"] as const,
 
   // ─── Likes (polymorphic) ────────────────────────────
   likes: (targetType: string, targetId: string) =>

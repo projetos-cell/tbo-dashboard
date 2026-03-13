@@ -1,5 +1,55 @@
 # TBO OS — Audit Log
 
+## Ciclo 21 — 2026-03-13 19:30
+
+**Módulo**: Comercial (charts), Contratos
+**Branch**: `claude/improve-20260313-1930` → mergeado em `main`
+**Build**: ✅ Clean antes e depois de todas as mudanças
+
+### Estado do módulo
+
+| Arquivo | Antes | Depois | Problema |
+|---|---|---|---|
+| `features/comercial/components/comercial-relatorios-components.tsx` | ⚠️ 890L | ✅ 24L barrel | Acima do limite de 300L — dividido em 6 sub-arquivos temáticos |
+| `features/contratos/services/contracts.ts` | ⚠️ `any` x2 | ✅ sem `any` | Dois `any` explícitos com eslint-disable — removidos com typeof pattern |
+| `features/contratos/components/contract-detail-dialog.tsx` | ⚠️ 461L | ✅ 135L | Acima do limite — dividido em 3 sub-componentes |
+
+### Implementado
+
+- refactor(comercial): `comercial-relatorios-components.tsx` (890L) → 6 sub-arquivos
+  - `comercial-chart-utils.ts` (~30L): formatters fmtCompact, fmtPct, currencyFormatter + PRODUCT_BAR_COLORS
+  - `comercial-kpi-insights.tsx` (~160L): KpiRow + InsightsSection + DashboardSkeleton
+  - `comercial-revenue-charts.tsx` (~268L): MonthlyRevenueChart + StageDonut + BUDonutChart + AvgPriceByBUChart
+  - `comercial-client-charts.tsx` (~227L): TopClientsChart + TopOwnersChart + PipelineByOwnerChart + re-exports tabelas
+  - `comercial-ranking-tables.tsx` (~114L): ClientRankingTable + OwnersTable
+  - `comercial-product-charts.tsx` (~143L): TopProductsChart + ProductRankingTable
+  - Barrel mantém import path inalterado para `app/(auth)/comercial/relatorios/page.tsx`
+
+- fix(contratos): `contracts.ts` — `any` removido via padrão `typeof baseQuery`
+  - `applySorting` movida para dentro de `getContracts` para acesso ao tipo local `Q = typeof baseQuery`
+  - Zero `any`, zero `eslint-disable` remanescentes
+
+- refactor(contratos): `contract-detail-dialog.tsx` (461L) → 3 sub-componentes
+  - `contract-detail-header.tsx` (~112L): ContractDetailHeader — título + badges + status
+  - `contract-detail-body.tsx` (~267L): ContractDetailBody — responsável, info cards, alertas, arquivo, metadata
+  - `contract-detail-dialog.tsx` (~135L): shell + footer + AlertDialog (era 461L)
+
+### Migrations aplicadas
+
+Nenhuma — sem alterações de schema.
+
+### Próximo ciclo (sugestões)
+
+- `demand-detail-sidebar.tsx` (455L) — ainda acima do limite, split pendente
+- `app/(auth)/mercado/page.tsx` (549L) — acima do limite
+- `app/(auth)/financeiro/contas/page.tsx` (515L) — acima do limite
+- `features/contratos/components/contract-detail-body.tsx` (267L) — borderline, monitorar
+
+### Debt técnico
+
+- `contract-detail-body.tsx` em 267L (acima de 200 mas abaixo de 300, coeso como componente único)
+- `(supabase as any)` em routes do Notion e ClickSign — fora de escopo deste ciclo (API routes)
+
 ## Ciclo — 2026-03-13 — Ciclo 19 (completo)
 
 **Módulo**: Multi-módulo (migração total lucide-react → @tabler/icons-react)

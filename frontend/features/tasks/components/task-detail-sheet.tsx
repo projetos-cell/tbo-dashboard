@@ -14,7 +14,6 @@ import {
   useTaskDetail,
   useTaskDetailTags,
 } from "@/features/tasks/hooks/use-task-detail";
-import { useTaskAssignees } from "@/features/tasks/hooks/use-task-assignees";
 import { TaskDetailHeader } from "./task-detail-header";
 import { TaskTitleInline } from "./task-title-inline";
 import { TaskDetailFields } from "./task-detail-fields";
@@ -77,7 +76,6 @@ export function TaskDetailSheet({
 }: TaskDetailSheetProps) {
   const { data: task, isLoading } = useTaskDetail(taskId);
   const { data: tags } = useTaskDetailTags(taskId);
-  const { data: assigneesRaw } = useTaskAssignees(taskId || "");
 
   // Tab+P shortcut → abrir picker de projetos
   const [projectPickerOpen, setProjectPickerOpen] = useState(false);
@@ -118,12 +116,6 @@ export function TaskDetailSheet({
   // Resolve project name (fallback for legacy single-project)
   const resolvedProjectName =
     projectName || (task?.project_id ? "Projeto vinculado" : null);
-
-  // Map assignees for sidebar
-  const assignees = (assigneesRaw || []).map((a) => ({
-    user_id: a.user_id,
-    full_name: (a as Record<string, unknown>).full_name as string | undefined,
-  }));
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
@@ -166,7 +158,7 @@ export function TaskDetailSheet({
             </div>
 
             {/* Footer: collaborators + metadata */}
-            <TaskDetailSidebar task={task} assignees={assignees} />
+            <TaskDetailSidebar task={task} />
           </>
         )}
       </SheetContent>

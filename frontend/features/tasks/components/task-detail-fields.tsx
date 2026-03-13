@@ -8,11 +8,12 @@ import {
   Tag,
   Users,
 } from "lucide-react";
-import { IconCalendar, IconFolder } from "@tabler/icons-react";
+import { IconCalendar, IconFolder, IconUsersGroup } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import { TaskAssigneePicker } from "./task-assignee-picker";
 import { TaskDateRange } from "./task-date-range";
 import { TaskProjectsList } from "./task-projects-list";
+import { TaskCollaboratorsList } from "./task-collaborators-list";
 import type { Tag as TagType } from "@/schemas/tag";
 import type { Database } from "@/lib/supabase/types";
 
@@ -95,6 +96,14 @@ export function TaskDetailFields({
         ) : (
           <span className="text-sm text-muted-foreground">Nenhuma tag</span>
         )}
+      </FieldRow>
+
+      {/* Colaboradores */}
+      <FieldRow
+        label="Colaboradores"
+        icon={<IconUsersGroup className="h-3.5 w-3.5" />}
+      >
+        <TaskCollaboratorsList taskId={task.id} />
       </FieldRow>
 
       {/* Dependências */}

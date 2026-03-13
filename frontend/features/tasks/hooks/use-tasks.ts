@@ -18,6 +18,7 @@ import {
   updateTask,
   deleteTask,
 } from "@/features/tasks/services/tasks";
+import { addCollaborator } from "@/features/tasks/services/task-collaborators";
 
 export function useTasks(filters?: {
   status?: string;
@@ -90,6 +91,15 @@ export function useCreateTask() {
             : old
       );
       return { previousTasks };
+    },
+
+    onSuccess: (createdTask) => {
+      // Auto-add criador como colaborador
+      if (createdTask.created_by) {
+        addCollaborator(supabase, createdTask.id, createdTask.created_by).catch(
+          () => undefined
+        );
+      }
     },
 
     onError: (_err, _variables, context) => {

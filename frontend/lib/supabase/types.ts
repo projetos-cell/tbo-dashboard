@@ -8381,6 +8381,32 @@ export type Database = {
           },
         ]
       }
+      task_collaborators: {
+        Row: {
+          task_id: string
+          user_id: string
+          added_at: string
+        }
+        Insert: {
+          task_id: string
+          user_id: string
+          added_at?: string
+        }
+        Update: {
+          task_id?: string
+          user_id?: string
+          added_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_collaborators_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "os_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           created_at: string | null

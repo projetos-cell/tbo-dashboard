@@ -64,9 +64,9 @@ export function DecisionsList({
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
         <CheckSquare className="mb-3 h-10 w-10 text-gray-500/50" />
-        <p className="text-sm font-medium">Nenhuma decisao encontrada</p>
+        <p className="text-sm font-medium">Nenhuma decisão encontrada</p>
         <p className="text-xs text-gray-500">
-          Ajuste os filtros ou crie uma nova decisao.
+          Ajuste os filtros ou crie uma nova decisão.
         </p>
       </div>
     );
@@ -77,9 +77,9 @@ export function DecisionsList({
     setDeleteTarget({ id: decision.id, title: decision.title });
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (deleteTarget) {
-      deleteDecision.mutate(deleteTarget.id);
+      await deleteDecision.mutateAsync(deleteTarget.id);
       setDeleteTarget(null);
     }
   };
@@ -88,11 +88,7 @@ export function DecisionsList({
     <>
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {decisions.map((decision) => {
-        const descriptionPreview = decision.description
-          ? decision.description.length > 120
-            ? decision.description.slice(0, 120) + "..."
-            : decision.description
-          : null;
+        const descriptionPreview = decision.description ?? null;
 
         const tasksCount = decision.tasks_created?.length ?? 0;
 
@@ -123,7 +119,7 @@ export function DecisionsList({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuGroup>
-                      <DropdownMenuLabel>Acoes</DropdownMenuLabel>
+                      <DropdownMenuLabel>Ações</DropdownMenuLabel>
                       <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
@@ -156,7 +152,7 @@ export function DecisionsList({
               </div>
 
               {descriptionPreview && (
-                <CardDescription className="text-xs line-clamp-2">
+                <CardDescription className="text-xs line-clamp-3">
                   {descriptionPreview}
                 </CardDescription>
               )}
@@ -184,7 +180,7 @@ export function DecisionsList({
                 {decision.meeting_id && (
                   <Badge variant="outline" className="text-[10px] gap-1">
                     <Calendar className="h-2.5 w-2.5" />
-                    Reuniao
+                    Reunião
                   </Badge>
                 )}
 
@@ -221,12 +217,13 @@ export function DecisionsList({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogCancel disabled={deleteDecision.isPending}>Cancelar</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDeleteConfirm}
-            className="bg-red-500 text-white hover:bg-red-500/90"
+            disabled={deleteDecision.isPending}
+            className="bg-red-500 text-white hover:bg-red-500/90 disabled:opacity-60"
           >
-            Excluir
+            {deleteDecision.isPending ? "Excluindo..." : "Excluir"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

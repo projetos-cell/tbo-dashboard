@@ -33,6 +33,7 @@ export default function PessoasReconhecimentosPage() {
   const [showForm, setShowForm] = useState(false);
   const [tab, setTab] = useState("feed");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
 
   const { data: recognitionsData, isLoading, error, refetch } = useRecognitions({ limit: 50 });
   const { data: kpis } = useRecognitionKPIs();
@@ -172,16 +173,32 @@ export default function PessoasReconhecimentosPage() {
                   <Button
                     size="sm"
                     variant="default"
-                    onClick={() => reviewRecognition.mutate({ id: r.id, approved: true })}
+                    disabled={reviewingId === r.id}
+                    onClick={async () => {
+                      setReviewingId(r.id);
+                      try {
+                        await reviewRecognition.mutateAsync({ id: r.id, approved: true });
+                      } finally {
+                        setReviewingId(null);
+                      }
+                    }}
                   >
-                    Aprovar
+                    {reviewingId === r.id ? "Aprovando..." : "Aprovar"}
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => reviewRecognition.mutate({ id: r.id, approved: false })}
+                    disabled={reviewingId === r.id}
+                    onClick={async () => {
+                      setReviewingId(r.id);
+                      try {
+                        await reviewRecognition.mutateAsync({ id: r.id, approved: false });
+                      } finally {
+                        setReviewingId(null);
+                      }
+                    }}
                   >
-                    Rejeitar
+                    {reviewingId === r.id ? "Rejeitando..." : "Rejeitar"}
                   </Button>
                 </div>
               </div>

@@ -27,6 +27,7 @@ import { OkrObjectiveDialog } from "@/features/okrs/components/okr-objective-dia
 import { OkrKeyResultDialog } from "@/features/okrs/components/okr-key-result-dialog";
 import { OkrCycleDialog } from "@/features/okrs/components/okr-cycle-dialog";
 import { OkrCheckinDialog } from "@/features/okrs/components/okr-checkin-dialog";
+import { OkrKrHistoryDialog } from "@/features/okrs/components/okr-kr-history-dialog";
 import { OkrObjectiveCard } from "@/features/okrs/components/okr-objective-card";
 import { OkrKeyResultList } from "@/features/okrs/components/okr-key-result-item";
 import {
@@ -58,6 +59,7 @@ function CompanyOKRsContent() {
   const [krDialog, setKrDialog] = useState<{ open: boolean; objectiveId: string; keyResult?: KeyResultRow | null }>({ open: false, objectiveId: "" });
   const [cycleDialog, setCycleDialog] = useState<{ open: boolean; cycle?: CycleRow | null }>({ open: false });
   const [checkinKr, setCheckinKr] = useState<KeyResultRow | null>(null);
+  const [historyKr, setHistoryKr] = useState<KeyResultRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ type: "objective" | "kr"; id: string; title: string } | null>(null);
 
   const effectiveCycleId = selectedCycleId ?? activeCycle?.id ?? null;
@@ -185,7 +187,7 @@ function CompanyOKRsContent() {
                 onCheckin={setCheckinKr}
                 onEditKr={(kr) => setKrDialog({ open: true, objectiveId: obj.id, keyResult: kr })}
                 onDeleteKr={(kr) => setDeleteTarget({ type: "kr", id: kr.id, title: kr.title })}
-                onHistoryKr={() => {}}
+                onHistoryKr={setHistoryKr}
                 onAddKr={(objId) => setKrDialog({ open: true, objectiveId: objId })}
               />
             </OkrObjectiveCard>
@@ -214,6 +216,12 @@ function CompanyOKRsContent() {
         kr={checkinKr}
         open={!!checkinKr}
         onClose={() => setCheckinKr(null)}
+      />
+
+      <OkrKrHistoryDialog
+        kr={historyKr}
+        open={!!historyKr}
+        onClose={() => setHistoryKr(null)}
       />
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(v) => { if (!v) setDeleteTarget(null); }}>

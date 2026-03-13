@@ -69,9 +69,11 @@ interface TaskPanelProps {
   projectName?: string | null;
   onClose: () => void;
   onOpenTask: (taskId: string) => void;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
 }
 
-function TaskPanel({ taskId, projectName, onClose, onOpenTask }: TaskPanelProps) {
+function TaskPanel({ taskId, projectName, onClose, onOpenTask, isFullscreen, onToggleFullscreen }: TaskPanelProps) {
   const { data: task, isLoading } = useTaskDetail(taskId);
 
   const [projectPickerOpen, setProjectPickerOpen] = useState(false);
@@ -113,7 +115,12 @@ function TaskPanel({ taskId, projectName, onClose, onOpenTask }: TaskPanelProps)
 
   return (
     <>
-      <TaskDetailHeader task={task} onClose={onClose} />
+      <TaskDetailHeader
+        task={task}
+        onClose={onClose}
+        isFullscreen={isFullscreen}
+        onToggleFullscreen={onToggleFullscreen}
+      />
       <div className="flex-1 overflow-y-auto">
         <div className="px-6 pb-6 space-y-0">
           <TaskTitleInline task={task} />
@@ -157,11 +164,17 @@ export function TaskDetailSheet({
 }: TaskDetailSheetProps) {
   // Navigation stack: [rootTaskId, subtaskId, ...]
   const [navStack, setNavStack] = useState<string[]>([]);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Sync stack root when taskId changes
   useEffect(() => {
     if (taskId) setNavStack([taskId]);
   }, [taskId]);
+
+  // Reset fullscreen when sheet closes
+  useEffect(() => {
+    if (!open) setIsFullscreen(false);
+  }, [open]);
 
   // Reset stack when sheet closes
   const handleClose = useCallback(() => {
@@ -176,6 +189,10 @@ export function TaskDetailSheet({
     setNavStack((prev) => (prev.length > 1 ? prev.slice(0, -1) : prev));
   }, []);
 
+  const handleToggleFullscreen = useCallback(() => {
+    setIsFullscreen((prev) => !prev);
+  }, []);
+
   const currentTaskId = navStack[navStack.length - 1];
   const isNavigating = navStack.length > 1;
 
@@ -183,7 +200,11 @@ export function TaskDetailSheet({
     <Sheet open={open} onOpenChange={(o) => !o && handleClose()}>
       <SheetContent
         side="right"
-        className="w-full sm:w-[480px] sm:max-w-[480px] overflow-y-auto p-0 flex flex-col"
+        className={
+          isFullscreen
+            ? "w-full sm:w-[85vw] sm:max-w-[85vw] overflow-y-auto p-0 flex flex-col transition-all duration-300"
+            : "w-full sm:w-[480px] sm:max-w-[480px] overflow-y-auto p-0 flex flex-col transition-all duration-300"
+        }
       >
         <SheetHeader className="sr-only">
           <SheetTitle>Detalhes da tarefa</SheetTitle>
@@ -212,6 +233,8 @@ export function TaskDetailSheet({
             projectName={isNavigating ? null : projectName}
             onClose={handleClose}
             onOpenTask={handleOpenTask}
+            isFullscreen={isFullscreen}
+            onToggleFullscreen={handleToggleFullscreen}
           />
         ) : (
           <DetailSkeleton />

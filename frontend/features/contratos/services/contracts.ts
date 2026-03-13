@@ -25,40 +25,42 @@ export interface ContractFilters {
   dynamicStatuses?: readonly ContractDynamicStatusKey[];
 }
 
-/** Build sort params from the sortBy token — query builder type is not narrowable per-table */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function applySorting(query: any, sortBy?: ContractSortValue) {
-  switch (sortBy) {
-    case "created_desc":
-      return query.order("created_at", { ascending: false, nullsFirst: false });
-    case "created_asc":
-      return query.order("created_at", { ascending: true });
-    case "end_date_asc":
-      return query.order("end_date", { ascending: true, nullsFirst: false });
-    case "end_date_desc":
-      return query.order("end_date", { ascending: false, nullsFirst: false });
-    case "value_desc":
-      return query.order("monthly_value", { ascending: false, nullsFirst: false });
-    case "value_asc":
-      return query.order("monthly_value", { ascending: true, nullsFirst: false });
-    case "title_asc":
-      return query.order("title", { ascending: true });
-    case "title_desc":
-      return query.order("title", { ascending: false });
-    default:
-      return query
-        .order("status", { ascending: true })
-        .order("monthly_value", { ascending: false, nullsFirst: false });
-  }
-}
-
 // ─── Queries ──────────────────────────────────────────────────────────
 export async function getContracts(
   supabase: SupabaseClient<Database>,
   filters?: ContractFilters
 ): Promise<ContractRow[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let query: any = supabase.from("contracts").select();
+  const baseQuery = supabase.from("contracts").select();
+  // Use typeof to capture the exact Supabase query builder type — avoids `any`
+  type Q = typeof baseQuery;
+
+  /** Build sort order — defined inside to reuse the locally-inferred Q type */
+  function applySorting(q: Q, sortBy?: ContractSortValue): Q {
+    switch (sortBy) {
+      case "created_desc":
+        return q.order("created_at", { ascending: false, nullsFirst: false });
+      case "created_asc":
+        return q.order("created_at", { ascending: true });
+      case "end_date_asc":
+        return q.order("end_date", { ascending: true, nullsFirst: false });
+      case "end_date_desc":
+        return q.order("end_date", { ascending: false, nullsFirst: false });
+      case "value_desc":
+        return q.order("monthly_value", { ascending: false, nullsFirst: false });
+      case "value_asc":
+        return q.order("monthly_value", { ascending: true, nullsFirst: false });
+      case "title_asc":
+        return q.order("title", { ascending: true });
+      case "title_desc":
+        return q.order("title", { ascending: false });
+      default:
+        return q
+          .order("status", { ascending: true })
+          .order("monthly_value", { ascending: false, nullsFirst: false });
+    }
+  }
+
+  let query: Q = baseQuery;
 
   // ── Status (múltiplos) ──────────────────────────────────────────
   if (filters?.statuses?.length) {

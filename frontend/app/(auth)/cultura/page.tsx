@@ -14,6 +14,9 @@ import {
   IconArrowRight,
   IconGift,
   IconChartBar,
+  IconSchool,
+  IconBox,
+  IconTool,
 } from "@tabler/icons-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -154,6 +157,60 @@ export default function CulturaPage() {
                 </p>
               </div>
               <IconArrowRight className="size-4 text-gray-500 group-hover:text-tbo-orange transition-colors" />
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
+
+      {/* Novos módulos: Academy, Baú Criativo, Ferramentas */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Link href="/cultura/academy" className="group">
+          <Card className="h-full transition-colors group-hover:border-emerald-400/40">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="rounded-lg p-2.5 bg-emerald-500/10">
+                <IconSchool className="size-5 text-emerald-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm">TBO Academy</p>
+                <p className="text-xs text-gray-500">
+                  Trilha de aprendizado cultural
+                </p>
+              </div>
+              <IconArrowRight className="size-4 text-gray-500 group-hover:text-emerald-500 transition-colors" />
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/cultura/bau-criativo" className="group">
+          <Card className="h-full transition-colors group-hover:border-purple-400/40">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="rounded-lg p-2.5 bg-purple-500/10">
+                <IconBox className="size-5 text-purple-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm">Bau Criativo</p>
+                <p className="text-xs text-gray-500">
+                  Referencias e inspiracoes
+                </p>
+              </div>
+              <IconArrowRight className="size-4 text-gray-500 group-hover:text-purple-500 transition-colors" />
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/cultura/ferramentas" className="group">
+          <Card className="h-full transition-colors group-hover:border-cyan-400/40">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="rounded-lg p-2.5 bg-cyan-500/10">
+                <IconTool className="size-5 text-cyan-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm">Guia de Ferramentas</p>
+                <p className="text-xs text-gray-500">
+                  Ferramentas oficiais e boas praticas
+                </p>
+              </div>
+              <IconArrowRight className="size-4 text-gray-500 group-hover:text-cyan-500 transition-colors" />
             </CardContent>
           </Card>
         </Link>

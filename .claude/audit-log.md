@@ -1,5 +1,38 @@
 # TBO OS — Audit Log
 
+## Ciclo — 2026-03-14 Ciclo 38
+
+**Módulo**: Academy (course-detail-header) + splits 200L+ (ciclo 37 já commitados)
+**Branch**: main
+**Build**: ✅ (TypeScript clean, build OK antes de lock FS do Windows)
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|----------------|-------|--------|----------|
+| `contract-stepper.tsx` (319L) | ⚠️ viola 200L | ✅ | 319L → 98L; lógica extraída para `use-contract-stepper.ts` (243L) |
+| `mercado-page-components.tsx` (318L) | ⚠️ viola 200L | ✅ | 318L → 131L; charts → `mercado-charts.tsx` (191L), utils → `mercado-utils.ts` (32L) |
+| `audit-log-table.tsx` (313L) | ⚠️ viola 200L | ✅ | 313L → 123L; partes → `audit-log-parts.tsx` (280L), constantes → `audit-log-constants.ts` (41L) |
+| `course-detail-header.tsx` — botões sem handler | 🔧 QUEBRADO | ✅ | Share: clipboard + toast; Bookmark: toggle com estado visual + toast; fix backHref `/cursos` → `/academy/explorar` |
+
+### Implementado
+
+- refactor(contratos): `contract-stepper.tsx` 319L → 98L — toda lógica de estado/mutations/validação extraída para `use-contract-stepper.ts`
+- refactor(mercado): `mercado-page-components.tsx` 318L → 131L — charts em `mercado-charts.tsx`, helpers em `mercado-utils.ts`; re-exports mantidos para backward compat
+- refactor(configuracoes): `audit-log-table.tsx` 313L → 123L — sub-componentes em `audit-log-parts.tsx`, constantes em `audit-log-constants.ts`
+- feat(academy): `course-detail-header.tsx` — share (clipboard) + bookmark (toggle estado) com feedback visual; fix backHref para rota correta
+
+### Migrations aplicadas
+Nenhuma.
+
+### Próximo ciclo
+- `audit-log-parts.tsx` (280L) — ainda viola 200L soft-limit; candidato a split em próximo ciclo
+- `project-topbar.tsx` (296L), `chat-layout.tsx` (288L), `policy-detail.tsx` (286L) — próximos na fila
+- `one-on-one-detail.tsx` (282L), `changelog-form.tsx` (275L) — fila de splits
+
+### Debt técnico
+- audit-log-parts.tsx com 4 componentes em 280L — aceitável por ora (cada um < 100L individualmente)
+
 ## Ciclo 35 — 2026-03-14
 
 **Módulo**: Clicksign webhook (type safety) + Decisions (split) + Chat message-input (split)

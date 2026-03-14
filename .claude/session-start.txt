@@ -1,12 +1,12 @@
-d1a5e84 docs(audit): ciclo 32 — header + sortable-nav-item + custom-field-config splits
-797ab54 refactor(shared): split custom-field-config.tsx 328L → 149L + dialog (202L)
-bb30403 refactor(sidebar): split sortable-nav-item.tsx 357L → 266L + parts (147L)
-c361de6 refactor(layout): split header.tsx 364L → header.tsx (32L) + header-parts.tsx (282L)
-7d23d79 refactor(ciclo-31): split 3 componentes >300L — comment-thread + client-form + workspace-settings
-5e59be2 refactor(ciclo-30): split 3 componentes >300L — revenue-concentration + contract-filters + pdi-detail
-38ad0f9 refactor(ciclo-29): split 2 componentes >200L + fix AssignUsersDialog real data
-6ec0e3b merge(ciclo-28): split 3 componentes >200L + fix bugs UX
-1f37158 refactor(ciclo-28): split 3 componentes >200L + fix bugs UX
-7ff0bfa docs(audit): ciclo 27 — notion-sync + people-filters + message-bubble splits
- .claude/session-start.txt | 14 ++++++--------
- 1 file changed, 6 insertions(+), 8 deletions(-)
+1611a7d feat(cultura/ferramentas): adicionar credenciais de acesso extraídas do Notion
+081a15f fix(cultura): add Academy, Baú Criativo, Ferramentas to sidebar navigation
+dda5574 feat(cultura): ciclo 40 — academy module sheet + localStorage + bau contribute dialog
+8dd929f feat(cultura): add Academy, Baú Criativo, Ferramentas + Notion seed data
+4cef919 docs(audit): ciclo 39 — rsm/team/relatorios splits + fix handlers vazios
+c9f9d5b refactor(relatorios): split page.tsx 411L → 3 sub-components + fix handlers vazios
+35359d1 refactor(team): split team-table.tsx 317L → table (188L) + columns hook (161L)
+00d39dc refactor(rsm): split page.tsx 529L → 4 sub-components + fix handlers vazios
+72be811 fix(mercado): atualizar dados para 2025-2026 + badges de data corrigidos
+af4ea4f feat(mercado): ciclo 37 — PDF export, data freshness badges, IBGE API + mapa PR
+ .claude/session-start.txt | 22 ++++++++++------------
+ 1 file changed, 10 insertions(+), 12 deletions(-)

@@ -1276,3 +1276,38 @@ Nenhuma.
 
 ### Debt técnico
 - Botões "Em breve" (RSM + Relatorios) são feedback temporário — precisam de form dialogs reais
+
+## Ciclo — 2026-03-14 — Ciclo 41
+
+**Módulo**: OKRs sub-páginas (check-ins, dashboard, teams)
+**Build**: ✅
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|----------------|-------|--------|----------|
+| /okrs/check-ins | ❌ placeholder 13L | ✅ | Feed de check-ins recentes com KPIs, busca, tabela com progresso/confiança |
+| /okrs/dashboard | ❌ placeholder 13L | ✅ | Analytics visual com KPIs, cycle selector, objetivos agrupados por level + progress bar |
+| /okrs/teams | ❌ placeholder 13L | ✅ | View filtrada level=team com CRUD completo, KPIs, empty state, RBAC (lider para criar) |
+| services/okrs.ts | ⚠️ sem getAllCheckins | ✅ | Adicionado getAllCheckins + CheckinWithKr type (join com key results) |
+| hooks/use-okrs.ts | ⚠️ sem useAllCheckins | ✅ | Adicionado useAllCheckins hook com React Query |
+
+### Implementado
+- feat(okrs/check-ins): página com feed de check-ins, KPIs (total, KRs únicos, confiança alta, com notas), busca, tabela com progress bar inline
+- feat(okrs/dashboard): analytics consolidado com cycle selector, KPI cards, objetivos agrupados por company/team/individual com progress bars coloridos
+- feat(okrs/teams): view completa level=team com CRUD (criar/editar/deletar objetivos e KRs), check-in dialog, history dialog, RBAC (lider+ para criar)
+- feat(services): getAllCheckins() com join em okr_key_results + CheckinWithKr type exportado
+- feat(hooks): useAllCheckins() hook com cache de 3min
+
+### Migrations aplicadas
+Nenhuma.
+
+### Próximo ciclo (sugestões)
+- /okrs/configuracoes — ainda placeholder
+- Comercial sub-páginas (/leads, /propostas, /atividades, /integracoes, /configuracoes)
+- Clientes — módulo inteiro sem dados (empresas, contatos, documentos, projetos)
+- cultura/manual/page.tsx (432L) — candidato a split
+- RSM posts/ideias form dialogs reais (substituir toasts "Em breve")
+
+### Debt técnico
+- getAllCheckins não filtra por ciclo (busca os últimos 100 globalmente) — melhorar com filtro de cycleId via join em objectives quando necessário

@@ -20,6 +20,7 @@ import {
   updateKeyResult,
   deleteKeyResult,
   getCheckins,
+  getAllCheckins,
   createCheckin,
   getComments,
   createComment,
@@ -286,6 +287,18 @@ export function useCheckins(keyResultId: string | null) {
     queryFn: () => getCheckins(supabase, keyResultId!),
     staleTime: 1000 * 60 * 5,
     enabled: !!keyResultId,
+  });
+}
+
+export function useAllCheckins(limit = 50) {
+  const supabase = useSupabase();
+  const tenantId = useTenantId();
+
+  return useQuery({
+    queryKey: ["okr-all-checkins", tenantId, limit],
+    queryFn: () => getAllCheckins(supabase, limit),
+    staleTime: 1000 * 60 * 3,
+    enabled: !!tenantId,
   });
 }
 

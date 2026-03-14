@@ -204,6 +204,23 @@ export async function getCheckins(
   return data as CheckinRow[];
 }
 
+export type CheckinWithKr = CheckinRow & {
+  okr_key_results: Pick<KeyResultRow, "id" | "title" | "objective_id" | "unit" | "target_value" | "current_value">;
+};
+
+export async function getAllCheckins(
+  supabase: SupabaseClient<Database>,
+  limit = 50,
+) {
+  const { data, error } = await supabase
+    .from("okr_checkins")
+    .select("*, okr_key_results(id, title, objective_id, unit, target_value, current_value)")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as CheckinWithKr[];
+}
+
 export async function createCheckin(
   supabase: SupabaseClient<Database>,
   checkin: Database["public"]["Tables"]["okr_checkins"]["Insert"],

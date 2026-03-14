@@ -48,10 +48,10 @@ export default function IndicadoresPage() {
         title="Indicadores de Mercado"
         subtitle="Dados macro do mercado imobiliário — Paraná e Brasil"
         sources={[
-          { label: "FipeZap", date: "Fev 2025" },
-          { label: "SINDUSCON-PR", date: "Jan 2025" },
-          { label: "Banco Central", date: "Mar 2025" },
-          { label: "CBIC", date: "T3 2024" },
+          { label: "FipeZap", date: "Fev 2026" },
+          { label: "SINDUSCON-PR", date: "Fev 2026" },
+          { label: "Banco Central", date: "Mar 2026" },
+          { label: "CBIC", date: "T4 2025" },
         ]}
       />
 
@@ -200,12 +200,12 @@ export default function IndicadoresPage() {
           <MiniCard
             icon={IconCurrencyReal}
             label="Volume financiado (SBPE)"
-            value={`R$ ${CREDITO_IMOBILIARIO.volumeFinanciado2024} bi`}
+            value={`R$ ${CREDITO_IMOBILIARIO.volumeFinanciado2025} bi`}
           />
           <MiniCard
             icon={IconBuildingStore}
             label="Unidades financiadas"
-            value={fmtNum(CREDITO_IMOBILIARIO.unidadesFinanciadas2024)}
+            value={fmtNum(CREDITO_IMOBILIARIO.unidadesFinanciadas2025)}
           />
           <MiniCard
             icon={IconClockHour4}

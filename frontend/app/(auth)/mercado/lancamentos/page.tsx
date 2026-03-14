@@ -138,7 +138,7 @@ export default function LancamentosPage() {
         title="Lançamentos — Paraná"
         subtitle="Tracker de empreendimentos do mercado primário"
         sources={[
-          { label: "Dados ilustrativos", date: "Mar 2025" },
+          { label: "Dados ilustrativos", date: "Mar 2026" },
           { label: "Órulo API", date: "Em breve" },
         ]}
       />

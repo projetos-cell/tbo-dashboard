@@ -95,8 +95,8 @@ export default function CensoPRPage() {
         subtitle="Dados demográficos e habitacionais"
         sources={[
           { label: "IBGE Censo", date: "Dez 2022" },
-          { label: "IPARDES", date: "2023" },
-          { label: "FJP Déficit", date: "2022" },
+          { label: "IPARDES", date: "2025" },
+          { label: "FJP Déficit", date: "2024" },
         ]}
       />
 

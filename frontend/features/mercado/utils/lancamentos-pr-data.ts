@@ -1,5 +1,6 @@
 // Dados ilustrativos de lancamentos imobiliarios no Parana (foco RMC)
 // Sera substituido por integracao com API Orulo
+// Atualização: Mar 2026 — preços e datas alinhados ao mercado 2025-2026
 
 export interface Lancamento {
   id: string;
@@ -38,8 +39,8 @@ export const LANCAMENTOS: Lancamento[] = [
     precoM2: 18_500,
     metragemMin: 170,
     metragemMax: 310,
-    dataLancamento: "2024-03-15",
-    previsaoEntrega: "2027-06-01",
+    dataLancamento: "2025-03-15",
+    previsaoEntrega: "2028-06-01",
     status: "em-obras",
     destaque: true,
   },
@@ -58,8 +59,8 @@ export const LANCAMENTOS: Lancamento[] = [
     precoM2: 12_800,
     metragemMin: 24,
     metragemMax: 33,
-    dataLancamento: "2024-01-20",
-    previsaoEntrega: "2026-08-01",
+    dataLancamento: "2025-01-20",
+    previsaoEntrega: "2028-08-01",
     status: "em-obras",
   },
   {
@@ -77,8 +78,8 @@ export const LANCAMENTOS: Lancamento[] = [
     precoM2: 14_200,
     metragemMin: 90,
     metragemMax: 137,
-    dataLancamento: "2024-05-10",
-    previsaoEntrega: "2027-09-01",
+    dataLancamento: "2025-05-10",
+    previsaoEntrega: "2028-09-01",
     status: "em-obras",
   },
   {
@@ -135,8 +136,8 @@ export const LANCAMENTOS: Lancamento[] = [
     precoM2: 10_800,
     metragemMin: 57,
     metragemMax: 79,
-    dataLancamento: "2023-09-12",
-    previsaoEntrega: "2026-12-01",
+    dataLancamento: "2025-09-12",
+    previsaoEntrega: "2028-12-01",
     status: "em-obras",
   },
   {
@@ -154,8 +155,8 @@ export const LANCAMENTOS: Lancamento[] = [
     precoM2: 16_900,
     metragemMin: 165,
     metragemMax: 248,
-    dataLancamento: "2023-06-01",
-    previsaoEntrega: "2026-03-01",
+    dataLancamento: "2025-06-01",
+    previsaoEntrega: "2028-03-01",
     status: "pronto",
   },
   {
@@ -173,8 +174,8 @@ export const LANCAMENTOS: Lancamento[] = [
     precoM2: 6_200,
     metragemMin: 47,
     metragemMax: 61,
-    dataLancamento: "2023-11-20",
-    previsaoEntrega: "2026-05-01",
+    dataLancamento: "2025-11-20",
+    previsaoEntrega: "2028-05-01",
     status: "em-obras",
   },
   {
@@ -192,8 +193,8 @@ export const LANCAMENTOS: Lancamento[] = [
     precoM2: 15_800,
     metragemMin: 98,
     metragemMax: 145,
-    dataLancamento: "2024-02-28",
-    previsaoEntrega: "2027-04-01",
+    dataLancamento: "2025-02-28",
+    previsaoEntrega: "2028-04-01",
     status: "em-obras",
   },
   {
@@ -250,8 +251,8 @@ export const LANCAMENTOS: Lancamento[] = [
     precoM2: 11_400,
     metragemMin: 75,
     metragemMax: 104,
-    dataLancamento: "2024-08-15",
-    previsaoEntrega: "2027-12-01",
+    dataLancamento: "2025-08-15",
+    previsaoEntrega: "2028-12-01",
     status: "em-obras",
   },
   {
@@ -269,8 +270,8 @@ export const LANCAMENTOS: Lancamento[] = [
     precoM2: 13_100,
     metragemMin: 21,
     metragemMax: 30,
-    dataLancamento: "2024-06-20",
-    previsaoEntrega: "2027-08-01",
+    dataLancamento: "2025-06-20",
+    previsaoEntrega: "2028-08-01",
     status: "em-obras",
   },
   {
@@ -307,8 +308,8 @@ export const LANCAMENTOS: Lancamento[] = [
     precoM2: 9_800,
     metragemMin: 55,
     metragemMax: 73,
-    dataLancamento: "2024-10-01",
-    previsaoEntrega: "2027-10-01",
+    dataLancamento: "2025-10-01",
+    previsaoEntrega: "2028-10-01",
     status: "em-obras",
   },
   {
@@ -325,8 +326,8 @@ export const LANCAMENTOS: Lancamento[] = [
     precoM2: 9_200,
     metragemMin: 82,
     metragemMax: 120,
-    dataLancamento: "2024-04-10",
-    previsaoEntrega: "2027-02-01",
+    dataLancamento: "2025-04-10",
+    previsaoEntrega: "2028-02-01",
     status: "em-obras",
   },
   {
@@ -343,8 +344,8 @@ export const LANCAMENTOS: Lancamento[] = [
     precoM2: 8_500,
     metragemMin: 56,
     metragemMax: 80,
-    dataLancamento: "2024-07-01",
-    previsaoEntrega: "2027-07-01",
+    dataLancamento: "2025-07-01",
+    previsaoEntrega: "2028-07-01",
     status: "em-obras",
   },
   {
@@ -362,8 +363,8 @@ export const LANCAMENTOS: Lancamento[] = [
     precoM2: 12_400,
     metragemMin: 33,
     metragemMax: 45,
-    dataLancamento: "2024-09-05",
-    previsaoEntrega: "2027-11-01",
+    dataLancamento: "2025-09-05",
+    previsaoEntrega: "2028-11-01",
     status: "em-obras",
   },
   {
@@ -381,8 +382,8 @@ export const LANCAMENTOS: Lancamento[] = [
     precoM2: 5_800,
     metragemMin: 45,
     metragemMax: 59,
-    dataLancamento: "2023-08-10",
-    previsaoEntrega: "2026-02-01",
+    dataLancamento: "2025-08-10",
+    previsaoEntrega: "2028-02-01",
     status: "pronto",
   },
   {
@@ -438,8 +439,8 @@ export const LANCAMENTOS: Lancamento[] = [
     precoM2: 7_100,
     metragemMin: 54,
     metragemMax: 73,
-    dataLancamento: "2024-02-15",
-    previsaoEntrega: "2026-11-01",
+    dataLancamento: "2025-02-15",
+    previsaoEntrega: "2028-11-01",
     status: "em-obras",
   },
   {
@@ -475,8 +476,8 @@ export const LANCAMENTOS: Lancamento[] = [
     precoM2: 6_800,
     metragemMin: 50,
     metragemMax: 68,
-    dataLancamento: "2024-03-01",
-    previsaoEntrega: "2026-09-01",
+    dataLancamento: "2025-03-01",
+    previsaoEntrega: "2028-09-01",
     status: "em-obras",
   },
   {
@@ -494,7 +495,7 @@ export const LANCAMENTOS: Lancamento[] = [
     precoM2: 11_800,
     metragemMin: 78,
     metragemMax: 114,
-    dataLancamento: "2024-11-10",
+    dataLancamento: "2025-11-10",
     previsaoEntrega: "2028-02-01",
     status: "em-obras",
   },

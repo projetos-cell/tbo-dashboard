@@ -41,8 +41,8 @@ export default function MercadoPage() {
         subtitle="Dados demográficos, lançamentos imobiliários e indicadores do Paraná"
         sources={[
           { label: "IBGE Censo", date: "Dez 2022" },
-          { label: "CBIC", date: "T3 2024" },
-          { label: "FipeZap", date: "Fev 2025" },
+          { label: "CBIC", date: "T4 2025" },
+          { label: "FipeZap", date: "Fev 2026" },
         ]}
       />
 
@@ -125,7 +125,7 @@ export default function MercadoPage() {
           highlights={[
             `Ticket médio: R$ ${fmtNum(MERCADO_CURITIBA.ticketMedio)}`,
             `Estoque: ${fmtNum(MERCADO_CURITIBA.estoqueUnidades)} un.`,
-            `Vol. financiado: R$ ${CREDITO_IMOBILIARIO.volumeFinanciado2024} bi`,
+            `Vol. financiado: R$ ${CREDITO_IMOBILIARIO.volumeFinanciado2025} bi`,
           ]}
           badge="CBIC"
           badgeVariant="outline"

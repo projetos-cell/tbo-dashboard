@@ -1,5 +1,40 @@
 # TBO OS — Audit Log
 
+## Ciclo 43 — 2026-03-14 (scheduled)
+
+**Módulo**: Projetos/Lista + Cultura/Manual split + Permissões split
+**Branch**: claude/improve-20260314-1708 → main
+**Build**: ✅ (zero erros TypeScript)
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|----------------|-------|--------|----------|
+| projetos/lista | ❌ stub 13L | ✅ | Page completa: tabela ProjectList, filtros busca/status, empty state com CTA, loading skeleton, ProjectForm |
+| cultura/manual/page.tsx (467L) | ⚠️ viola 200L | ✅ | 467L → 214L; extrai ManualSortableItem + ManualItemList |
+| permissoes/page.tsx (419L) | ⚠️ viola 200L | ✅ | 419L → 123L; extrai PermissoesKpiCards, RoleList, PermissionMatrix, CreateRoleDialog |
+
+### Implementado
+- feat(projetos/lista): view tabular completa reutilizando ProjectList + ProjectFilters + ProjectForm existentes
+- refactor(cultura/manual): manual-sortable-item.tsx (115L) + manual-item-list.tsx (140L) em features/cultura/components/
+- refactor(permissoes): 4 sub-components em features/permissoes/components/ (kpi-cards, role-list, permission-matrix, create-role-dialog)
+
+### Migrations aplicadas
+Nenhuma.
+
+### Próximo ciclo
+- projetos/calendario, projetos/gantt, projetos/timeline (stubs)
+- okrs/configuracoes (stub)
+- pessoas/performance split (410L viola 200L)
+- cultura/analytics split (377L viola 200L)
+- RSM posts/ideias form dialogs reais (substituir toasts "Em breve")
+
+### Debt técnico
+- Projetos/lista usa `confirm()` nativo no delete herdado do ProjectList — ideal seria ConfirmDialog
+- `supabase as any` em 4+ arquivos de API — aguarda geração de types corretos
+
+---
+
 ## Ciclo — 2026-03-14 Ciclo 42 (scheduled)
 
 **Módulo**: Comercial — Leads, Propostas, Atividades

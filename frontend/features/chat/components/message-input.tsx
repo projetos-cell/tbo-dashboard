@@ -1,18 +1,16 @@
 "use client";
 
-import { useState, useRef, useCallback, type KeyboardEvent, type DragEvent } from "react";
+import { useState, useRef, useCallback, type KeyboardEvent } from "react";
 import {
   IconSend,
   IconPaperclip,
-  IconX,
-  IconFile,
-  IconUpload,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { isImageFile } from "@/features/chat/services/chat-attachments";
 import { MentionPopup, type MentionOption } from "./mention-popup";
 import { EmojiPicker } from "./emoji-picker";
+import { DragOverlay, PendingFilesList, useDragDrop } from "./message-input-parts";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -39,10 +37,37 @@ export function MessageInput({
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionStart, setMentionStart] = useState(-1);
-  const [isDragOver, setIsDragOver] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const dragCounterRef = useRef(0);
+
+  function addFiles(files: File[]) {
+    const valid = files.filter((f) => f.size <= MAX_FILE_SIZE);
+    if (valid.length === 0) return;
+    const newPending: PendingFile[] = valid.map((file) => ({
+      file,
+      previewUrl: isImageFile(file.type)
+        ? URL.createObjectURL(file)
+        : undefined,
+    }));
+    setPendingFiles((prev) => [...prev, ...newPending]);
+  }
+
+  function clearFiles() {
+    pendingFiles.forEach((pf) => {
+      if (pf.previewUrl) URL.revokeObjectURL(pf.previewUrl);
+    });
+    setPendingFiles([]);
+  }
+
+  function removeFile(index: number) {
+    setPendingFiles((prev) => {
+      const pf = prev[index];
+      if (pf?.previewUrl) URL.revokeObjectURL(pf.previewUrl);
+      return prev.filter((_, i) => i !== index);
+    });
+  }
+
+  const { isDragOver, dragHandlers } = useDragDrop(addFiles);
 
   function handleSend() {
     const trimmed = content.trim();
@@ -57,20 +82,17 @@ export function MessageInput({
 
   /** Detect @mention query from cursor position */
   const detectMention = useCallback((text: string, cursorPos: number) => {
-    // Look backwards from cursor for @
     const before = text.slice(0, cursorPos);
     const atIndex = before.lastIndexOf("@");
     if (atIndex === -1) {
       setMentionQuery(null);
       return;
     }
-    // Make sure @ is at start or preceded by whitespace
     if (atIndex > 0 && !/\s/.test(before[atIndex - 1])) {
       setMentionQuery(null);
       return;
     }
     const query = before.slice(atIndex + 1);
-    // No spaces in mention query (means they moved past the mention)
     if (/\s/.test(query)) {
       setMentionQuery(null);
       return;
@@ -87,7 +109,6 @@ export function MessageInput({
   }
 
   function handleMentionSelect(option: MentionOption) {
-    // Replace @query with <@uuid> and display name
     const before = content.slice(0, mentionStart);
     const after = content.slice(
       mentionStart + 1 + (mentionQuery?.length ?? 0),
@@ -99,16 +120,10 @@ export function MessageInput({
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
-    // If mention popup is open, let it handle navigation keys
     if (mentionQuery !== null && mentionOptions.length > 0) {
-      if (["ArrowDown", "ArrowUp", "Tab"].includes(e.key)) {
-        // Forward to popup via synthetic event — handled by capturing in popup
-        return;
-      }
+      if (["ArrowDown", "ArrowUp", "Tab"].includes(e.key)) return;
       if (e.key === "Enter") {
-        // Let popup handle enter if it's open
         e.preventDefault();
-        // Select first filtered option
         const filtered = mentionOptions.filter((o) =>
           o.name.toLowerCase().includes((mentionQuery ?? "").toLowerCase()),
         );
@@ -130,133 +145,21 @@ export function MessageInput({
     }
   }
 
-  function addFiles(files: File[]) {
-    const valid = files.filter((f) => {
-      if (f.size > MAX_FILE_SIZE) {
-        // TODO: toast feedback could be added here
-        return false;
-      }
-      return true;
-    });
-    if (valid.length === 0) return;
-    const newPending: PendingFile[] = valid.map((file) => ({
-      file,
-      previewUrl: isImageFile(file.type)
-        ? URL.createObjectURL(file)
-        : undefined,
-    }));
-    setPendingFiles((prev) => [...prev, ...newPending]);
-  }
-
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     addFiles(Array.from(e.target.files ?? []));
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
-  // ── Drag & drop handlers ──
-  function handleDragEnter(e: DragEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounterRef.current++;
-    if (e.dataTransfer.types.includes("Files")) {
-      setIsDragOver(true);
-    }
-  }
-
-  function handleDragLeave(e: DragEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounterRef.current--;
-    if (dragCounterRef.current === 0) {
-      setIsDragOver(false);
-    }
-  }
-
-  function handleDragOver(e: DragEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-  }
-
-  function handleDrop(e: DragEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounterRef.current = 0;
-    setIsDragOver(false);
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0) addFiles(files);
-  }
-
-  function removeFile(index: number) {
-    setPendingFiles((prev) => {
-      const pf = prev[index];
-      if (pf?.previewUrl) URL.revokeObjectURL(pf.previewUrl);
-      return prev.filter((_, i) => i !== index);
-    });
-  }
-
-  function clearFiles() {
-    pendingFiles.forEach((pf) => {
-      if (pf.previewUrl) URL.revokeObjectURL(pf.previewUrl);
-    });
-    setPendingFiles([]);
-  }
-
   return (
     <div
       className="relative border-t p-3"
-      onDragEnter={handleDragEnter}
-      onDragLeave={handleDragLeave}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
+      {...dragHandlers}
     >
-      {/* Drag overlay */}
-      {isDragOver && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center rounded-lg border-2 border-dashed border-primary bg-primary/5">
-          <div className="flex items-center gap-2 text-sm font-medium text-primary">
-            <IconUpload size={20} />
-            Solte arquivos aqui
-          </div>
-        </div>
-      )}
+      {isDragOver && <DragOverlay />}
 
-      {/* Pending files preview */}
-      {pendingFiles.length > 0 && (
-        <div className="flex gap-2 mb-2 flex-wrap px-1">
-          {pendingFiles.map((pf, i) => (
-            <div
-              key={`${pf.file.name}-${i}`}
-              className="relative group/file rounded-lg border bg-muted/50 overflow-hidden"
-            >
-              {pf.previewUrl ? (
-                <img
-                  src={pf.previewUrl}
-                  alt={pf.file.name}
-                  className="h-16 w-16 object-cover"
-                />
-              ) : (
-                <div className="h-16 w-16 flex flex-col items-center justify-center gap-1 px-1">
-                  <IconFile size={20} className="text-muted-foreground" />
-                  <span className="text-[9px] text-muted-foreground truncate w-full text-center">
-                    {pf.file.name.length > 10
-                      ? `${pf.file.name.slice(0, 8)}...`
-                      : pf.file.name}
-                  </span>
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={() => removeFile(i)}
-                className="absolute top-0.5 right-0.5 rounded-full bg-background/80 p-0.5 opacity-0 group-hover/file:opacity-100 transition-opacity"
-              >
-                <IconX size={12} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+      <PendingFilesList files={pendingFiles} onRemove={removeFile} />
 
       <div className="relative flex items-end gap-2 rounded-xl border bg-background px-3 py-2 shadow-sm focus-within:ring-1 focus-within:ring-ring">
-        {/* Mention popup */}
         {mentionQuery !== null && mentionOptions.length > 0 && (
           <MentionPopup
             options={mentionOptions}

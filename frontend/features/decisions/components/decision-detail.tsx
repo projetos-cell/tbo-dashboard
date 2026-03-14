@@ -1,18 +1,11 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import {
-  IconCalendar,
   IconSquareCheck,
-  IconFolderOpen,
   IconDots,
   IconTrash,
-  IconUser,
-  IconUsers,
 } from "@tabler/icons-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -34,6 +27,7 @@ import {
 import { InlineEditable } from "@/components/ui/inline-editable";
 import { useUpdateDecision, useDeleteDecision } from "@/features/decisions/hooks/use-decisions";
 import type { Database } from "@/lib/supabase/types";
+import { DecisionDetailSidebar } from "./decision-detail-sidebar";
 
 type DecisionRow = Database["public"]["Tables"]["decisions"]["Row"];
 
@@ -55,8 +49,6 @@ export function DecisionDetail({
 
   if (!decision) return null;
 
-  // --- Handlers ---
-
   const handleUpdate = (
     updates: Database["public"]["Tables"]["decisions"]["Update"]
   ) => {
@@ -73,27 +65,6 @@ export function DecisionDetail({
     const description = e.target.value;
     if (description !== (decision.description || "")) {
       handleUpdate({ description: description || null });
-    }
-  };
-
-  const handleDecidedByBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    const decided_by = e.target.value;
-    if (decided_by !== (decision.decided_by || "")) {
-      handleUpdate({ decided_by: decided_by || null });
-    }
-  };
-
-  const handleProjectIdBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    const project_id = e.target.value;
-    if (project_id !== (decision.project_id || "")) {
-      handleUpdate({ project_id: project_id || null });
-    }
-  };
-
-  const handleMeetingIdBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    const meeting_id = e.target.value;
-    if (meeting_id !== (decision.meeting_id || "")) {
-      handleUpdate({ meeting_id: meeting_id || null });
     }
   };
 
@@ -159,9 +130,7 @@ export function DecisionDetail({
           <div className="flex-1 px-6 py-4 space-y-5 border-r min-w-0">
             {/* Description */}
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-gray-500">
-                Descricao
-              </p>
+              <p className="text-xs font-medium text-gray-500">Descricao</p>
               <textarea
                 className="w-full min-h-[120px] text-sm bg-transparent border rounded-md p-2 resize-y focus:outline-none focus:ring-1 focus:ring-tbo-orange"
                 defaultValue={decision.description || ""}
@@ -198,121 +167,15 @@ export function DecisionDetail({
           </div>
 
           {/* Right sidebar */}
-          <div className="w-[220px] shrink-0 px-4 py-4 space-y-4 text-sm">
-            {/* Decided by */}
-            <div className="space-y-1.5">
-              <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
-                <IconUsers className="h-3 w-3" /> Decidido por
-              </p>
-              <input
-                type="text"
-                className="w-full text-xs border rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-tbo-orange"
-                defaultValue={decision.decided_by || ""}
-                placeholder="Nome..."
-                onBlur={handleDecidedByBlur}
-              />
-            </div>
-
-            {/* Project */}
-            <div className="space-y-1.5">
-              <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
-                <IconFolderOpen className="h-3 w-3" /> Projeto
-              </p>
-              <input
-                type="text"
-                className="w-full text-xs border rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-tbo-orange"
-                defaultValue={decision.project_id || ""}
-                placeholder="ID do projeto..."
-                onBlur={handleProjectIdBlur}
-              />
-            </div>
-
-            {/* Meeting */}
-            <div className="space-y-1.5">
-              <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
-                <IconCalendar className="h-3 w-3" /> Reuniao
-              </p>
-              <input
-                type="text"
-                className="w-full text-xs border rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-tbo-orange"
-                defaultValue={decision.meeting_id || ""}
-                placeholder="ID da reuniao..."
-                onBlur={handleMeetingIdBlur}
-              />
-            </div>
-
-            <Separator />
-
-            {/* Timestamps */}
-            <div className="text-[11px] text-gray-500 space-y-0.5">
-              {decision.created_at && (
-                <p>
-                  Criada{" "}
-                  {format(new Date(decision.created_at), "dd MMM yyyy", {
-                    locale: ptBR,
-                  })}
-                </p>
-              )}
-              {decision.updated_at && (
-                <p>
-                  Atualizada{" "}
-                  {format(new Date(decision.updated_at), "dd MMM yyyy", {
-                    locale: ptBR,
-                  })}
-                </p>
-              )}
-            </div>
-
-            {/* Created by */}
-            {decision.created_by && (
-              <div className="space-y-1.5">
-                <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
-                  <IconUser className="h-3 w-3" /> Criado por
-                </p>
-                <p className="text-xs">{decision.created_by}</p>
-              </div>
-            )}
-
-            <Separator />
-
-            {/* Delete */}
-            <div>
-              {confirmDelete ? (
-                <div className="space-y-1.5">
-                  <p className="text-xs text-red-600">Excluir decisao?</p>
-                  <div className="flex gap-1">
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      className="h-6 text-xs"
-                      onClick={handleDelete}
-                      disabled={deleteDecision.isPending}
-                    >
-                      Confirmar
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 text-xs"
-                      onClick={() => setConfirmDelete(false)}
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 text-xs text-red-500 hover:text-red-500"
-                  onClick={() => setConfirmDelete(true)}
-                >
-                  <IconTrash className="size-3 mr-1" />
-                  Excluir
-                </Button>
-              )}
-            </div>
-          </div>
+          <DecisionDetailSidebar
+            decision={decision}
+            confirmDelete={confirmDelete}
+            isDeleting={deleteDecision.isPending}
+            onUpdate={handleUpdate}
+            onConfirmDelete={() => setConfirmDelete(true)}
+            onCancelDelete={() => setConfirmDelete(false)}
+            onDelete={handleDelete}
+          />
         </div>
       </SheetContent>
     </Sheet>

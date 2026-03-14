@@ -1,5 +1,43 @@
 # TBO OS — Audit Log
 
+## Ciclo 35 — 2026-03-14
+
+**Módulo**: Clicksign webhook (type safety) + Decisions (split) + Chat message-input (split)
+**Branch**: main
+**Build**: ✅
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|----------------|-------|--------|----------|
+| `app/api/webhooks/clicksign/route.ts` — `supabase: any` | ⚠️ `// eslint-disable-next-line @typescript-eslint/no-explicit-any` + `supabase: any` | ✅ | Tipado com `SupabaseClient` do `@supabase/supabase-js` — remove eslint-disable e `any` explícito |
+| `features/decisions/components/decision-detail.tsx` (320L) | ⚠️ viola 200L | ✅ 183L | Painel de propriedades + delete extraído para `decision-detail-sidebar.tsx` (176L) |
+| `features/chat/components/message-input.tsx` (322L) | ⚠️ viola 200L | ✅ 225L | DragOverlay + PendingFilesList + useDragDrop extraídos para `message-input-parts.tsx` (125L) |
+
+### Implementado
+
+- fix(clicksign): `route.ts` — `supabase: any` substituído por `SupabaseClient` tipado (import de `@supabase/supabase-js`); removido `eslint-disable-next-line @typescript-eslint/no-explicit-any`
+- refactor(decisions): `decision-detail.tsx` 320L → 183L — painel direito (properties + timestamps + delete confirm) extraído para `decision-detail-sidebar.tsx` (176L) com props bem tipadas
+- refactor(chat): `message-input.tsx` 322L → 225L — `DragOverlay`, `PendingFilesList` e `useDragDrop` hook extraídos para `message-input-parts.tsx` (125L); lógica de drag-and-drop isolada e reutilizável
+
+### Migrations aplicadas
+- Nenhuma
+
+### Próximo ciclo
+- `message-input.tsx` (225L) — ainda ligeiramente acima de 200L, candidato a redução adicional
+- `components/modules/team/invite-user-dialog.tsx` (329L) — stepper dialog, extrair steps
+- `app/(auth)/rsm/page.tsx` (529L) — page grande, extrair sub-componentes
+- `app/(auth)/permissoes/page.tsx` (419L) — page grande
+- Sidebar: implementar inline rename de grupo (modal ou inline edit)
+- Sidebar: `hiddenGroups: Set<string>` no sidebar-store para "Ocultar seção"
+
+### Debt técnico
+- `message-input.tsx` em 225L — 25L acima do limite, aceitável como redução de 322L → 225L
+- `app/api/finance/status/route.ts` — `(supabase as any)` x4 para tabelas fora do schema gerado (`finance_transactions`, `finance_categories`, `finance_cost_centers`, `omie_sync_log`) — requer `supabase gen types` para resolver
+- `app/api/notion/*` — `(supabase as any)` para `notion_integrations` — idem, aguarda schema update
+
+---
+
 ## Ciclo 33 — 2026-03-14
 
 **Módulo**: Sidebar (sortable-nav-group) + Demands (demand-comment-thread)

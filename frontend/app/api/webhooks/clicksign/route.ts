@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { ClicksignWebhookEventSchema } from "@/services/clicksign/types";
 
@@ -135,8 +136,8 @@ export async function POST(request: Request) {
 // ─── Helper: log contract event ──────────────────────────────────────────────
 
 async function logEvent(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  // SupabaseClient untyped here because contract_events is not in generated schema yet
+  supabase: SupabaseClient,
   contract: { id: string; tenant_id: string },
   eventType: string,
   title: string,

@@ -93,3 +93,35 @@
 
 ### Debt técnico
 - CommentThread.CommentItem usa `showMenu` com div custom ao invés de shadcn DropdownMenu — funcional mas fora do padrão do design system
+
+## Ciclo 28 — 2026-03-14 01:20
+
+**Módulo**: Comercial (deal-pipeline), Tarefas (task-description-editor), Demands (demand-board-card)
+**Branch**: claude/improve-20260314-0108 → main
+**Build**: ✅
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|----------------|-------|--------|----------|
+| deal-pipeline.tsx (285L) | ⚠️ viola 200L + erro drag silencioso | ✅ | 285L → 145L via useDealPipelineDnd hook; toast de erro adicionado no catch |
+| task-description-editor.tsx (299L) | ⚠️ viola 200L + prompt() bug | ✅ | 299L → 190L; helpers → lib/tiptap-helpers.ts; hook use-task-description-editor.ts; BubbleBtn extraído; prompt() → input inline |
+| demand-board-card.tsx (280L) | ⚠️ viola 200L | ✅ | 280L → 103L; DemandCard extraído para demand-card.tsx (193L) |
+
+### Implementado
+
+- refactor(comercial): deal-pipeline split — useDealPipelineDnd hook (D&D state + undo + sensors + handlers); fix erro silencioso no drag com toast destructive (arquivos: deal-pipeline.tsx, use-deal-pipeline-dnd.ts)
+- refactor(tarefas): task-description-editor split — lib/tiptap-helpers.ts (isJsonDoc, getInitialContent, renderToHTML, isEmptyDescription); use-task-description-editor.ts hook; bubble-btn.tsx componente; fix prompt() → input inline com confirm/cancel (arquivos: task-description-editor.tsx, use-task-description-editor.ts, lib/tiptap-helpers.ts, bubble-btn.tsx)
+- refactor(demands): demand-board-card split — DemandCard extraído para demand-card.tsx; re-export mantido para compatibilidade (arquivos: demand-board-card.tsx, demand-card.tsx)
+
+### Migrations aplicadas
+- Nenhuma
+
+### Próximo ciclo
+- deal-form-dialog.tsx: erros de campo não renderizados visualmente (setErrors() sem display)
+- my-tasks-board-view.tsx: sem loading skeleton e sem empty state
+- demand-comment-thread.tsx: sem error handling em mutations (useCreateDemandComment etc.)
+- demands-toolbar.tsx: PRIORITY_ORDER constante local (candidata a lib/constants.ts)
+
+### Debt técnico
+- demand-card.tsx (193L) está próximo do limite — se crescer, dividir DemandCardDropdown em componente separado

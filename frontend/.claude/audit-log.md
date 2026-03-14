@@ -160,3 +160,35 @@
 
 ### Debt técnico
 - demand-card.tsx (193L) está próximo do limite — se crescer, dividir DemandCardDropdown em componente separado
+
+## Ciclo — 2026-03-14 Ciclo 36
+
+**Módulo**: Shared Components — splits de violações 200L
+**Branch**: main
+**Build**: ✅ (zero erros TypeScript)
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|----------------|-------|--------|----------|
+| invite-user-dialog.tsx (329L) | ⚠️ viola 200L | ✅ | 329L → invite-user-dialog.tsx (116L) + invite-steps.tsx (76L) + invite-step-content.tsx (145L) |
+| profile-form.tsx (323L) | ⚠️ viola 200L | ✅ | 323L → profile-form.tsx (184L) + profile-form-parts.tsx (173L) |
+| header-parts.tsx (326L) | ⚠️ viola 200L | ✅ | 326L → header-parts.tsx (181L) + notification-bell.tsx (135L) |
+
+### Implementado
+
+- refactor(team): invite-user-dialog.tsx split em 3 — InviteStepIndicator/InviteStepFooter em invite-steps.tsx (76L), InviteStepInfo/Role/Confirm em invite-step-content.tsx (145L), dialog orchestrator em invite-user-dialog.tsx (116L)
+- refactor(configuracoes): profile-form.tsx split em 2 — ProfileFormSkeleton/ProfileAvatarCard/ProfileSaveBar em profile-form-parts.tsx (173L), ProfileForm principal em profile-form.tsx (184L)
+- refactor(layout): header-parts.tsx split em 2 — NotificationItem/NotificationBell em notification-bell.tsx (135L), ThemeToggle/SearchButton/UserAvatar em header-parts.tsx (181L) com re-export de compatibilidade
+
+### Migrations aplicadas
+Nenhuma.
+
+### Próximo ciclo (sugestões)
+- components/modules/academy/AIChatPanel.tsx (320L) — candidato a split
+- features/contratos/components/contract-stepper/contract-stepper.tsx (319L) — candidato a split
+- features/mercado/components/mercado-page-components.tsx (318L) — candidato a split
+- components/modules/team/team-table.tsx (317L) — candidato a split
+
+### Debt técnico
+Nenhum novo.

@@ -171,6 +171,20 @@ export async function deletePdiGoal(
   if (error) throw error;
 }
 
+export async function reorderPdiGoals(
+  supabase: SupabaseClient<Database>,
+  goals: { id: string; sort_order: number }[]
+): Promise<void> {
+  await Promise.all(
+    goals.map(({ id, sort_order }) =>
+      supabase
+        .from("pdi_goals")
+        .update({ sort_order } as never)
+        .eq("id", id)
+    )
+  );
+}
+
 // ── Actions CRUD ────────────────────────────────────────────────────────────
 
 export async function createPdiAction(

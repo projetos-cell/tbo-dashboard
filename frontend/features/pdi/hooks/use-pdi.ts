@@ -16,6 +16,7 @@ import {
   createPdiGoal,
   updatePdiGoal,
   deletePdiGoal,
+  reorderPdiGoals,
   createPdiAction,
   togglePdiAction,
   deletePdiAction,
@@ -240,6 +241,19 @@ export function useDeletePdiGoal() {
       for (const key of PDI_QUERY_KEYS) {
         queryClient.invalidateQueries({ queryKey: [key] });
       }
+    },
+  });
+}
+
+export function useReorderPdiGoals(pdiId: string) {
+  const supabase = useSupabase();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (goals: { id: string; sort_order: number }[]) =>
+      reorderPdiGoals(supabase, goals),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pdi-goals", pdiId] });
     },
   });
 }

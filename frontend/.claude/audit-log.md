@@ -1,3 +1,40 @@
+## Ciclo 37 — 2026-03-14
+
+**Módulos**: Courses, PDI, Cultura (valores/pilares/documentos)
+**Build**: ✅ TypeScript zero erros
+
+### Estado dos módulos
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|----------------|-------|--------|----------|
+| Courses — Share/Bookmark handlers | ❌ botões sem handler | ✅ | Share → clipboard copy + toast; Bookmark → toggle visual com estado |
+| Courses — Video play handler | ❌ botão sem handler | ✅ | Click mostra estado "Conteúdo em breve" + toast informativo |
+| PDI goals — D&D reordering | ❌ sort_order no DB mas sem UI | ✅ | dnd-kit vertical, Ctrl+Z undo, persist Supabase |
+| Cultura valores — 345L de código espelhado | ⚠️ duplicação | ✅ | Thin wrapper (20L) usando CulturaItemsPage shared |
+| Cultura pilares — 345L de código espelhado | ⚠️ duplicação | ✅ | Thin wrapper (20L) usando CulturaItemsPage shared |
+| Cultura documentos — 351L de código espelhado | ⚠️ duplicação | ✅ | Thin wrapper (20L) usando CulturaItemsPage shared |
+
+### Implementado
+
+- feat(courses): Share → clipboard copy + toast; Bookmark → toggle com visual feedback (arquivos: course-detail-header.tsx)
+- feat(courses): play button → estado "em breve" com mensagem e badge (arquivos: course-video-player.tsx)
+- feat(pdi): D&D sorting de goals com Ctrl+Z undo e persist Supabase (arquivos: pdi-goals-section.tsx, services/pdi.ts, hooks/use-pdi.ts)
+- refactor(cultura): extraído CulturaItemsPage shared component — valores/pilares/documentos agora são thin wrappers (arquivos: features/cultura/components/cultura-items-page.tsx, app/(auth)/cultura/valores/page.tsx, pilares/page.tsx, documentos/page.tsx)
+
+### Migrations aplicadas
+
+Nenhuma — sort_order já existia na tabela pdi_goals.
+
+### Próximo ciclo
+
+- Courses: conectar ao backend (criar tabelas courses, user_progress, enrollments)
+- Academy: implementar UI components (hooks já existem)
+- PDI: Gantt/timeline view para goals
+
+### Debt técnico
+
+- course-detail-header.tsx: Bookmark usa estado local (não persiste no DB). Quando houver tabela de bookmarks, migrar para mutation.
+
 ## Ciclo 34 — 2026-03-14 07:08
 
 **Módulo**: Tasks (my-tasks-board-view, task-board, my-tasks-table-header)

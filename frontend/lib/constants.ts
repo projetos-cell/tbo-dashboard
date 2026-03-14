@@ -353,6 +353,9 @@ export const CULTURA_NAV_ITEMS = [
   { href: "/cultura/recompensas", label: "Recompensas", icon: "gift" },
   { href: "/cultura/documentos", label: "Documentos", icon: "file-text" },
   { href: "/cultura/manual", label: "Manual", icon: "book-open" },
+  { href: "/cultura/academy", label: "TBO Academy", icon: "school" },
+  { href: "/cultura/bau-criativo", label: "Bau Criativo", icon: "box" },
+  { href: "/cultura/ferramentas", label: "Ferramentas", icon: "tool" },
   { href: "/cultura/analytics", label: "Analytics", icon: "bar-chart-3", min_role: "diretoria" as const },
 ] as const;
 

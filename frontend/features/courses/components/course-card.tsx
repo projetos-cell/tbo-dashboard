@@ -13,6 +13,7 @@ import {
   IconClock,
   IconBooks,
 } from "@tabler/icons-react"
+import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -21,6 +22,7 @@ import type { Course } from "../types"
 
 interface CourseCardProps {
   course: Course
+  basePath?: string
 }
 
 const CATEGORY_CONFIG: Record<
@@ -61,7 +63,7 @@ const LEVEL_VARIANTS: Record<string, "default" | "secondary" | "outline"> = {
   avancado: "outline",
 }
 
-export function CourseCard({ course }: CourseCardProps) {
+export function CourseCard({ course, basePath = "/academy/cursos" }: CourseCardProps) {
   const config = CATEGORY_CONFIG[course.category] ?? {
     icon: IconBooks,
     gradient: "from-gray-500 to-gray-600",
@@ -136,8 +138,11 @@ export function CourseCard({ course }: CourseCardProps) {
           size="sm"
           className="w-full"
           variant={course.status === "concluido" ? "outline" : "default"}
+          asChild
         >
-          {buttonLabel}
+          <Link href={`${basePath}/${course.id}`}>
+            {buttonLabel}
+          </Link>
         </Button>
       </CardContent>
     </Card>

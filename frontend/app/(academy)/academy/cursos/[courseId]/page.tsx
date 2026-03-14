@@ -11,7 +11,7 @@ import type { CourseModule } from "@/features/courses/types"
 import { EmptyState } from "@/components/shared"
 import { IconSchool } from "@tabler/icons-react"
 
-export default function CourseDetailPage() {
+export default function AcademyCourseDetailPage() {
   const params = useParams<{ courseId: string }>()
   const courseId = params.courseId
 
@@ -43,14 +43,14 @@ export default function CourseDetailPage() {
         icon={IconSchool}
         title="Curso não encontrado"
         description="O curso que você está procurando não existe ou foi removido."
-        cta={{ label: "Voltar para cursos", onClick: () => window.history.back() }}
+        cta={{ label: "Voltar para Academy", onClick: () => window.history.back() }}
       />
     )
   }
 
   return (
     <div className="space-y-6">
-      <CourseDetailHeader course={course} />
+      <CourseDetailHeader course={course} backHref="/academy/explorar" />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">

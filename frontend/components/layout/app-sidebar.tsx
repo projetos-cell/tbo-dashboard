@@ -44,6 +44,7 @@ import { getIcon } from "@/lib/icons";
 import { SIDEBAR_NAV_GROUPS, FOOTER_NAV_ITEMS } from "@/lib/navigation";
 import { SortableNavGroup } from "@/components/layout/sidebar/sortable-nav-group";
 import { SortableNavItem } from "@/components/layout/sidebar/sortable-nav-item";
+import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
 import type { NavGroupItem } from "@/lib/navigation";
 
 export function AppSidebar() {
@@ -144,25 +145,8 @@ export function AppSidebar() {
 
   return (
     <Sidebar variant="inset">
-      <SidebarHeader className="border-b px-4 py-3">
-        <Link href="/dashboard" className="flex items-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/logo-tbo.svg"
-            alt="TBO"
-            width={80}
-            height={32}
-            className="block dark:hidden"
-          />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/logo-tbo-dark.svg"
-            alt="TBO"
-            width={80}
-            height={32}
-            className="hidden dark:block"
-          />
-        </Link>
+      <SidebarHeader className="border-b px-2 py-2">
+        <WorkspaceSwitcher />
       </SidebarHeader>
 
       <SidebarContent>

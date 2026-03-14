@@ -22,9 +22,10 @@ const LEVEL_LABELS: Record<string, string> = {
 
 interface CourseDetailHeaderProps {
   course: Course
+  backHref?: string
 }
 
-export function CourseDetailHeader({ course }: CourseDetailHeaderProps) {
+export function CourseDetailHeader({ course, backHref = "/academy/explorar" }: CourseDetailHeaderProps) {
   const initials = course.instructor
     .split(" ")
     .map((w) => w[0])
@@ -34,7 +35,7 @@ export function CourseDetailHeader({ course }: CourseDetailHeaderProps) {
   return (
     <div className="space-y-4">
       <Link
-        href="/cursos"
+        href={backHref}
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <IconArrowLeft className="size-4" />

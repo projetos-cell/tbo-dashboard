@@ -30,11 +30,22 @@ export interface TBOLeader {
   responsibilities: string[];
 }
 
+export interface TBOToolCredential {
+  label: string;
+  email: string;
+  password?: string;
+  url?: string;
+  notes?: string;
+  method: "google" | "email" | "corporativo";
+}
+
 export interface TBOTool {
   id: string;
   name: string;
   category: string;
   description: string;
+  credentials?: TBOToolCredential[];
+  accessNotes?: string;
 }
 
 export interface BauCriativoCategory {
@@ -527,16 +538,57 @@ export const BAU_CRIATIVO: BauCriativoCategory[] = [
   },
 ];
 
-// ─── Guia de Ferramentas ───
-export const FERRAMENTAS_CATEGORIAS = [
+// ─── Guia de Ferramentas (com credenciais extraídas do Notion) ───
+export interface FerramentaCategoria {
+  id: string;
+  name: string;
+  emoji: string;
+  tools: FerramentaTool[];
+}
+
+export interface FerramentaTool {
+  name: string;
+  description: string;
+  credentials?: TBOToolCredential[];
+  accessNotes?: string;
+}
+
+export const FERRAMENTAS_CATEGORIAS: FerramentaCategoria[] = [
   {
     id: "comunicacao",
     name: "Comunicação e E-mail",
     emoji: "💬",
     tools: [
-      { name: "Google Workspace", description: "Gmail, Chat, Meet, Drive — hub de comunicação e colaboração" },
-      { name: "Notion", description: "Base de conhecimento, documentação e gestão de projetos" },
-      { name: "WhatsApp Business", description: "Comunicações rápidas com clientes" },
+      {
+        name: "Google Gmail",
+        description: "E-mail institucional da TBO (domínio @agenciatbo). Comunicação formal com clientes, fornecedores e parceiros.",
+        credentials: [{ label: "Corporativo", email: "seu-nome@agenciatbo.com.br", method: "corporativo", notes: "Cada colaborador usa seu e-mail corporativo pessoal" }],
+      },
+      {
+        name: "Google Chat",
+        description: "Canal principal de comunicação interna. Troca rápida de informações, acompanhamento de pautas e avisos operacionais.",
+        credentials: [{ label: "Corporativo", email: "seu-nome@agenciatbo.com.br", method: "corporativo", notes: "Comunicação objetiva, sempre com contexto e follow-up" }],
+      },
+      {
+        name: "Notion",
+        description: "Plataforma central de gestão e conhecimento. Manuais, guias, fluxos, pautas, status de projetos e histórico.",
+        credentials: [{ label: "Corporativo", email: "seu-nome@agenciatbo.com.br", method: "corporativo" }],
+      },
+      {
+        name: "Google Drive",
+        description: "Repositório oficial de arquivos. Entregas com clientes e materiais internos organizados por pastas e equipes.",
+        credentials: [{ label: "Corporativo", email: "seu-nome@agenciatbo.com.br", method: "corporativo" }],
+      },
+      {
+        name: "Google Calendar",
+        description: "Agenda compartilhada para reuniões, eventos e deadlines da equipe.",
+        credentials: [{ label: "Corporativo", email: "seu-nome@agenciatbo.com.br", method: "corporativo" }],
+      },
+      {
+        name: "Fireflies.ai",
+        description: "Gravação e transcrição automática de reuniões. Registro e acessibilidade de informações discutidas em calls.",
+        credentials: [{ label: "Corporativo", email: "seu-nome@agenciatbo.com.br", method: "corporativo" }],
+      },
     ],
   },
   {
@@ -544,8 +596,68 @@ export const FERRAMENTAS_CATEGORIAS = [
     name: "Design e Produção Visual",
     emoji: "🎨",
     tools: [
-      { name: "Adobe Creative Suite", description: "Photoshop, Illustrator, InDesign, Premiere, After Effects" },
-      { name: "Figma", description: "Design de interfaces e prototipagem colaborativa" },
+      {
+        name: "Pacote Adobe",
+        description: "Photoshop, Illustrator, InDesign, Premiere, After Effects — diagramação, books de venda, apresentações e materiais editoriais.",
+        credentials: [
+          {
+            label: "Login Principal (Padrão TBO)",
+            email: "contato@agenciatbo.com.br",
+            password: "U/La8?NjwA_Nfe6",
+            url: "https://account.adobe.com/",
+            method: "email",
+            notes: "Usar SEMPRE este como padrão. Após logar: Plans → confirmar assinatura; Apps → baixar softwares.",
+          },
+          {
+            label: "Login Secundário (Backup)",
+            email: "marcoandolfatocs@gmail.com",
+            password: "Macs19933",
+            url: "https://account.adobe.com/",
+            method: "email",
+            notes: "Usar APENAS se o principal não funcionar e mediante autorização da direção.",
+          },
+        ],
+        accessNotes: "Não alterar e-mails ou senhas sem comunicar a direção. Não criar novas contas. Se licença excedida: Sign out of other devices.",
+      },
+      {
+        name: "Figma",
+        description: "Design de interfaces, prototipagem colaborativa e design systems.",
+        credentials: [{ label: "Corporativo", email: "seu-nome@agenciatbo.com.br", method: "corporativo" }],
+      },
+      {
+        name: "Canva",
+        description: "Produções rápidas — posts de redes sociais e materiais internos com templates padronizados.",
+        credentials: [{
+          label: "Conta Compartilhada",
+          email: "projetos@agenciatbo.com.br",
+          url: "https://www.canva.com/",
+          method: "google",
+          notes: "EXCLUSIVO via projetos@. Não usar conta pessoal. Não criar novos times.",
+        }],
+        accessNotes: "No futuro, poderá ser migrado para e-mails corporativos pessoais — isso será avisado.",
+      },
+      {
+        name: "Miro",
+        description: "Brainstorms, fluxos de projeto, jornadas do cliente e apresentações estratégicas.",
+        credentials: [{
+          label: "Conta Compartilhada",
+          email: "projetos@agenciatbo.com.br",
+          url: "https://miro.com/",
+          method: "google",
+          notes: "Priorizar sempre este login para manter boards centralizados. Não criar nova equipe.",
+        }],
+      },
+      {
+        name: "Envato Elements",
+        description: "Mockups, templates, fontes, vídeos, áudios e gráficos em geral.",
+        credentials: [{
+          label: "Conta Compartilhada",
+          email: "projetos@agenciatbo.com.br",
+          url: "https://elements.envato.com/",
+          method: "google",
+          notes: "Acesso exclusivo via projetos@. Não usar conta pessoal. Organizar downloads no Drive do projeto.",
+        }],
+      },
     ],
   },
   {
@@ -553,29 +665,106 @@ export const FERRAMENTAS_CATEGORIAS = [
     name: "Renderização e Visualização 3D",
     emoji: "🏗️",
     tools: [
-      { name: "3ds Max", description: "Modelagem e renderização 3D de ambientes" },
-      { name: "Corona Renderer", description: "Motor de renderização fotorealista" },
-      { name: "V-Ray", description: "Renderização de alta qualidade" },
+      {
+        name: "3ds Max (Autodesk)",
+        description: "Base para modelagem tridimensional de ambientes, produtos e cenas arquitetônicas.",
+        credentials: [{
+          label: "Conta Autodesk",
+          email: "marcoandolfatocs@gmail.com",
+          password: "Macs19933",
+          url: "https://manage.autodesk.com/",
+          method: "email",
+          notes: "Após logar: All Products and Services → 3ds Max → Download. Usar mesmo login para ativar o software.",
+        }],
+      },
+      {
+        name: "Corona Renderer",
+        description: "Motor de renderização voltado para realismo fotográfico. Imagens finais de interiores e exteriores.",
+        credentials: [{
+          label: "Conta Chaos",
+          email: "marcoandolfatocs@gmail.com",
+          password: "M@acs19933_ag",
+          url: "https://www.chaos.com/",
+          method: "email",
+          notes: "Após logar: My Account → Products → Corona Renderer → Downloads/License. Mesmo login dentro do 3ds Max/SketchUp.",
+        }],
+      },
+      {
+        name: "D5 Render",
+        description: "Renderização em tempo real, ideal para vídeos e pré-visualizações com alta qualidade e agilidade.",
+        credentials: [{ label: "Corporativo", email: "seu-nome@agenciatbo.com.br", method: "corporativo" }],
+      },
     ],
   },
   {
     id: "ia",
-    name: "Inteligência Artificial",
+    name: "Inteligência Artificial e Geração de Conteúdo",
     emoji: "🤖",
     tools: [
-      { name: "ChatGPT / Claude", description: "Assistentes de IA para texto e estratégia" },
-      { name: "Midjourney", description: "Geração de imagens por IA" },
-      { name: "Runway", description: "Edição de vídeo com IA" },
+      {
+        name: "Krea.ai",
+        description: "Geração de imagens e composições criativas. Moodboards, experimentações visuais e testes conceituais.",
+        credentials: [{
+          label: "Conta Compartilhada",
+          email: "projetos@agenciatbo.com.br",
+          url: "https://www.krea.ai/",
+          method: "google",
+          notes: "Continue with Google → projetos@agenciatbo.com.br",
+        }],
+      },
+      {
+        name: "ChatGPT / Claude",
+        description: "Assistentes de IA para texto, estratégia e produção de conteúdo.",
+        credentials: [{ label: "Corporativo", email: "seu-nome@agenciatbo.com.br", method: "corporativo" }],
+      },
+      {
+        name: "Midjourney",
+        description: "Geração de imagens por IA via Discord.",
+        credentials: [{ label: "Corporativo", email: "seu-nome@agenciatbo.com.br", method: "corporativo" }],
+      },
+      {
+        name: "Runway",
+        description: "Edição e geração de vídeo com IA.",
+        credentials: [{ label: "Corporativo", email: "seu-nome@agenciatbo.com.br", method: "corporativo" }],
+      },
     ],
   },
   {
     id: "marketing",
-    name: "Marketing e Relatórios",
+    name: "Marketing, Relatórios e Influenciadores",
     emoji: "📊",
     tools: [
-      { name: "RD Station", description: "CRM e automação de marketing" },
-      { name: "Google Analytics", description: "Análise de tráfego e comportamento" },
-      { name: "Meta Business Suite", description: "Gestão de anúncios e redes sociais" },
+      {
+        name: "Reportei",
+        description: "Centraliza dados de campanhas digitais e redes sociais em relatórios automáticos. Análise de desempenho mensal.",
+        credentials: [{
+          label: "Corporativo (Google)",
+          email: "e-mail corporativo da agência",
+          url: "https://reportei.com/",
+          method: "google",
+          notes: "Entrar com Google → e-mail corporativo correto. Painel de Projetos → escolher relatório por plataforma.",
+        }],
+      },
+      {
+        name: "Modash",
+        description: "Identificação e análise de influenciadores. Seleção de criadores de conteúdo alinhados a campanhas.",
+        credentials: [{ label: "Corporativo", email: "seu-nome@agenciatbo.com.br", method: "corporativo" }],
+      },
+      {
+        name: "RD Station",
+        description: "CRM e automação de marketing.",
+        credentials: [{ label: "Corporativo", email: "seu-nome@agenciatbo.com.br", method: "corporativo" }],
+      },
+      {
+        name: "Google Analytics",
+        description: "Análise de tráfego e comportamento.",
+        credentials: [{ label: "Corporativo", email: "seu-nome@agenciatbo.com.br", method: "corporativo" }],
+      },
+      {
+        name: "Meta Business Suite",
+        description: "Gestão de anúncios e redes sociais.",
+        credentials: [{ label: "Corporativo", email: "seu-nome@agenciatbo.com.br", method: "corporativo" }],
+      },
     ],
   },
 ];

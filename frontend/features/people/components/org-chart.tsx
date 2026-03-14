@@ -18,7 +18,7 @@ import { OrgTreeNode } from "@/features/people/components/org-tree-node";
 import type { OrgChartNode } from "@/features/people/services/org-chart";
 
 // ---------------------------------------------------------------------------
-// OrgChart — Main component
+// OrgChart — Main component (classic top-down tree)
 // ---------------------------------------------------------------------------
 
 interface OrgChartProps {
@@ -31,17 +31,18 @@ export function OrgChart({ tree, flat, onNodeClick }: OrgChartProps) {
   const [search, setSearch] = useState("");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
     const ids = new Set<string>();
-    for (const root of tree) {
-      ids.add(root.id);
-      for (const child of root.children) {
-        ids.add(child.id);
+    function addIds(nodes: OrgChartNode[], depth: number) {
+      for (const node of nodes) {
+        ids.add(node.id);
+        if (depth < 2) addIds(node.children, depth + 1);
       }
     }
+    addIds(tree, 0);
     return ids;
   });
   const [zoom, setZoom] = useState(1);
 
-  // Search filter: highlight matching nodes and expand their ancestors
+  // Search filter
   const matchingIds = useMemo(() => {
     if (!search.trim()) return null;
     const term = search.toLowerCase();
@@ -59,7 +60,7 @@ export function OrgChart({ tree, flat, onNodeClick }: OrgChartProps) {
     return matches;
   }, [search, flat]);
 
-  // When searching, auto-expand ancestors of matching nodes
+  // Auto-expand ancestors of matching nodes
   const searchExpandedIds = useMemo(() => {
     if (!matchingIds || matchingIds.size === 0) return null;
     const ids = new Set<string>();
@@ -136,7 +137,7 @@ export function OrgChart({ tree, flat, onNodeClick }: OrgChartProps) {
             variant="ghost"
             size="icon"
             className="h-8 w-8"
-            onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))}
+            onClick={() => setZoom((z) => Math.max(0.3, z - 0.1))}
           >
             <IconZoomOut className="h-4 w-4" />
           </Button>
@@ -173,11 +174,11 @@ export function OrgChart({ tree, flat, onNodeClick }: OrgChartProps) {
 
       {/* Tree */}
       <div
-        className="overflow-auto rounded-lg border bg-gray-50/50 p-4"
+        className="overflow-auto rounded-lg border bg-gray-50/50 p-8"
         style={{ minHeight: 300 }}
       >
         <div
-          style={{ transform: `scale(${zoom})`, transformOrigin: "top left" }}
+          style={{ transform: `scale(${zoom})`, transformOrigin: "top center" }}
         >
           {tree.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-gray-400">
@@ -185,22 +186,22 @@ export function OrgChart({ tree, flat, onNodeClick }: OrgChartProps) {
               <p className="text-sm">Nenhum colaborador encontrado</p>
             </div>
           ) : (
-            <div className="space-y-1">
+            <ul className="org-tree flex justify-center gap-0">
               {tree.map((node) => (
                 <OrgTreeNode
                   key={node.id}
                   node={node}
-                  depth={0}
                   expandedIds={effectiveExpanded}
                   onToggle={toggleExpand}
                   matchingIds={matchingIds}
                   onNodeClick={onNodeClick}
                 />
               ))}
-            </div>
+            </ul>
           )}
         </div>
       </div>
+
     </div>
   );
 }

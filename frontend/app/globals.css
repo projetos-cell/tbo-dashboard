@@ -281,3 +281,70 @@
 .animate-save-flash {
   animation: inline-save-flash 0.8s ease-out;
 }
+
+/* ── Org Chart tree connector lines ──────────────────────────── */
+.org-tree,
+.org-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Vertical line from parent card down to children horizontal bar */
+.org-children {
+  position: relative;
+}
+
+.org-children::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: 32px;
+  background-color: var(--border);
+}
+
+/* Each child node */
+.org-children > li {
+  padding: 0 16px;
+  position: relative;
+}
+
+/* Vertical line from horizontal bar down to each child card */
+.org-children > li::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  width: 2px;
+  height: 33px;
+  background-color: var(--border);
+}
+
+/* Horizontal bar connecting siblings */
+.org-children > li::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--border);
+  transform: translateY(-1px);
+}
+
+/* First child: bar only extends right from center */
+.org-children > li:first-child::after {
+  left: 50%;
+}
+
+/* Last child: bar only extends left from center */
+.org-children > li:last-child::after {
+  right: 50%;
+}
+
+/* Only child: no horizontal bar */
+.org-children > li:only-child::after {
+  display: none;
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { IconChevronDown, IconChevronRight } from "@tabler/icons-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -7,22 +8,16 @@ import { PEOPLE_STATUS, BU_COLORS } from "@/lib/constants";
 import { cn, getInitials } from "@/lib/utils";
 import type { OrgChartNode } from "@/features/people/services/org-chart";
 
-// ---------------------------------------------------------------------------
-// OrgTreeNode — Recursive tree node
-// ---------------------------------------------------------------------------
-
 export interface OrgTreeNodeProps {
   node: OrgChartNode;
-  depth: number;
   expandedIds: Set<string>;
   onToggle: (id: string) => void;
   matchingIds: Set<string> | null;
   onNodeClick?: (nodeId: string) => void;
 }
 
-export function OrgTreeNode({
+export const OrgTreeNode = memo(function OrgTreeNode({
   node,
-  depth,
   expandedIds,
   onToggle,
   matchingIds,
@@ -36,62 +31,43 @@ export function OrgTreeNode({
   const buColor = node.bu ? BU_COLORS[node.bu] : undefined;
 
   return (
-    <div>
+    <li className="flex flex-col items-center relative">
       {/* Node card */}
       <div
         className={cn(
-          "flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors",
-          "hover:bg-white/80",
-          onNodeClick && "cursor-pointer",
-          isMatch && "bg-yellow-50 ring-1 ring-yellow-200",
+          "relative flex flex-col items-center gap-1.5 rounded-lg border bg-white px-4 py-3 shadow-sm transition-all",
+          "min-w-[160px] max-w-[200px] cursor-pointer hover:shadow-md",
+          isMatch && "ring-2 ring-yellow-300 bg-yellow-50",
           isDimmed && "opacity-40"
         )}
-        style={{ paddingLeft: `${depth * 24 + 8}px` }}
         onClick={() => onNodeClick?.(node.id)}
       >
-        {/* Expand/collapse toggle */}
-        <button
-          className={cn(
-            "flex h-5 w-5 shrink-0 items-center justify-center rounded text-gray-400 hover:text-gray-600",
-            !hasChildren && "invisible"
-          )}
-          onClick={(e) => { e.stopPropagation(); onToggle(node.id); }}
-        >
-          {hasChildren &&
-            (isExpanded ? (
-              <IconChevronDown className="h-3.5 w-3.5" />
-            ) : (
-              <IconChevronRight className="h-3.5 w-3.5" />
-            ))}
-        </button>
-
-        {/* Avatar */}
-        <Avatar className="h-8 w-8 shrink-0">
+        <Avatar className="h-10 w-10">
           <AvatarImage src={node.avatar_url ?? undefined} />
-          <AvatarFallback className="text-[10px] font-medium">
+          <AvatarFallback className="text-xs font-medium">
             {getInitials(node.full_name ?? "?")}
           </AvatarFallback>
         </Avatar>
 
-        {/* Info */}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="truncate text-sm font-medium text-gray-900">
-              {node.full_name ?? "Sem nome"}
-            </span>
-            {hasChildren && (
-              <span className="shrink-0 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
-                {node.children.length}
-              </span>
-            )}
-          </div>
+        <div className="text-center min-w-0 w-full">
+          <p className="truncate text-sm font-semibold text-gray-900">
+            {node.full_name ?? "Sem nome"}
+          </p>
           <p className="truncate text-xs text-gray-500">
             {node.cargo ?? "—"}
           </p>
         </div>
 
-        {/* Badges */}
-        <div className="flex shrink-0 items-center gap-1.5">
+        <div className="flex flex-wrap justify-center gap-1">
+          {statusCfg && node.status !== "active" && (
+            <Badge
+              variant="secondary"
+              className="text-[10px] px-1.5 py-0"
+              style={{ backgroundColor: statusCfg.bg, color: statusCfg.color }}
+            >
+              {statusCfg.label}
+            </Badge>
+          )}
           {node.bu && (
             <Badge
               variant="secondary"
@@ -105,15 +81,6 @@ export function OrgTreeNode({
               {node.bu}
             </Badge>
           )}
-          {statusCfg && node.status !== "active" && (
-            <Badge
-              variant="secondary"
-              className="text-[10px] px-1.5 py-0"
-              style={{ backgroundColor: statusCfg.bg, color: statusCfg.color }}
-            >
-              {statusCfg.label}
-            </Badge>
-          )}
           {node.is_coordinator && (
             <Badge
               variant="secondary"
@@ -123,24 +90,40 @@ export function OrgTreeNode({
             </Badge>
           )}
         </div>
+
+        {/* Expand/collapse button */}
+        {hasChildren && (
+          <button
+            className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-10 flex h-5 w-5 items-center justify-center rounded-full border bg-white text-gray-400 shadow-sm hover:text-gray-700 hover:bg-gray-50"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle(node.id);
+            }}
+          >
+            {isExpanded ? (
+              <IconChevronDown className="h-3 w-3" />
+            ) : (
+              <IconChevronRight className="h-3 w-3" />
+            )}
+          </button>
+        )}
       </div>
 
-      {/* Children */}
+      {/* Children with connector lines */}
       {hasChildren && isExpanded && (
-        <div className="relative ml-4 border-l border-gray-200">
+        <ul className="flex gap-0 pt-8 relative org-children">
           {node.children.map((child) => (
             <OrgTreeNode
               key={child.id}
               node={child}
-              depth={depth + 1}
               expandedIds={expandedIds}
               onToggle={onToggle}
               matchingIds={matchingIds}
               onNodeClick={onNodeClick}
             />
           ))}
-        </div>
+        </ul>
       )}
-    </div>
+    </li>
   );
-}
+});

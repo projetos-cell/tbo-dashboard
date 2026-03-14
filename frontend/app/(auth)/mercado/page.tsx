@@ -23,6 +23,7 @@ import { CENSO_PR_RESUMO } from "@/features/mercado/utils/censo-pr-data";
 import { LANCAMENTOS } from "@/features/mercado/utils/lancamentos-pr-data";
 import { MERCADO_CURITIBA, CREDITO_IMOBILIARIO } from "@/features/mercado/utils/indicadores-data";
 import { KPIBig, fmtNum } from "@/features/mercado/components/mercado-page-components";
+import { ReportHeader } from "@/features/mercado/components/report-header";
 
 export default function MercadoPage() {
   const lancamentosAtivos = LANCAMENTOS.filter(
@@ -35,14 +36,15 @@ export default function MercadoPage() {
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          Inteligência de Mercado
-        </h1>
-        <p className="text-muted-foreground">
-          Dados demográficos, lançamentos imobiliários e indicadores do Paraná
-        </p>
-      </div>
+      <ReportHeader
+        title="Inteligência de Mercado"
+        subtitle="Dados demográficos, lançamentos imobiliários e indicadores do Paraná"
+        sources={[
+          { label: "IBGE Censo", date: "Dez 2022" },
+          { label: "CBIC", date: "T3 2024" },
+          { label: "FipeZap", date: "Fev 2025" },
+        ]}
+      />
 
       {/* KPI Row */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -38,6 +38,7 @@ import {
 } from "@/features/mercado/utils/lancamentos-pr-data";
 import { fmtNum, fmtPct } from "@/features/mercado/components/mercado-utils";
 import { KPIBig } from "@/features/mercado/components/mercado-page-components";
+import { ReportHeader } from "@/features/mercado/components/report-header";
 import {
   IncorporadorasBarChart,
   TipologiaDonutChart,
@@ -133,14 +134,14 @@ export default function LancamentosPage() {
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          Lancamentos — Parana
-        </h1>
-        <p className="text-gray-500">
-          Tracker de empreendimentos do mercado primario
-        </p>
-      </div>
+      <ReportHeader
+        title="Lançamentos — Paraná"
+        subtitle="Tracker de empreendimentos do mercado primário"
+        sources={[
+          { label: "Dados ilustrativos", date: "Mar 2025" },
+          { label: "Órulo API", date: "Em breve" },
+        ]}
+      />
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">

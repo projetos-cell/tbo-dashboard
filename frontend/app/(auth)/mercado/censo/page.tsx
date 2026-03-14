@@ -38,7 +38,9 @@ import {
 import type { CidadePR } from "@/features/mercado/utils/censo-pr-data";
 import { fmtNum, fmtPct } from "@/features/mercado/components/mercado-utils";
 import { KPIBig } from "@/features/mercado/components/mercado-page-components";
+import { ReportHeader } from "@/features/mercado/components/report-header";
 import { TopCitiesBarChart, HistoricalEvolutionChart } from "@/features/mercado/components/censo-pr-charts";
+import { MapaPR } from "@/features/mercado/components/mapa-pr";
 
 /* ── Sort helpers ────────────────────────────────────── */
 
@@ -88,14 +90,15 @@ export default function CensoPRPage() {
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          Censo IBGE 2022 — Parana
-        </h1>
-        <p className="text-gray-500">
-          Dados demograficos e habitacionais do estado do Parana.
-        </p>
-      </div>
+      <ReportHeader
+        title="Censo IBGE 2022 — Paraná"
+        subtitle="Dados demográficos e habitacionais"
+        sources={[
+          { label: "IBGE Censo", date: "Dez 2022" },
+          { label: "IPARDES", date: "2023" },
+          { label: "FJP Déficit", date: "2022" },
+        ]}
+      />
 
       {/* KPI Row */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -177,6 +180,16 @@ export default function CensoPRPage() {
           ))}
         </div>
       </div>
+
+      {/* Mapa Coroplético */}
+      <MapaPR
+        data={MESORREGIOES_PR.map((m) => ({
+          nome: m.nome,
+          populacao: m.populacao,
+          valor: m.populacao,
+        }))}
+        metricLabel="Populacao"
+      />
 
       {/* Cities Table */}
       <Card className="py-4">

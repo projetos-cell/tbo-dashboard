@@ -32,6 +32,7 @@ import {
 } from "@/features/mercado/utils/indicadores-data";
 import { fmtNum, fmtPct } from "@/features/mercado/components/mercado-utils";
 import { KPIBig } from "@/features/mercado/components/mercado-page-components";
+import { ReportHeader } from "@/features/mercado/components/report-header";
 import {
   FipeZapChart,
   CustosConstrucaoChart,
@@ -43,14 +44,16 @@ export default function IndicadoresPage() {
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          Indicadores de Mercado
-        </h1>
-        <p className="text-gray-500">
-          Dados macro do mercado imobiliario — Parana e Brasil
-        </p>
-      </div>
+      <ReportHeader
+        title="Indicadores de Mercado"
+        subtitle="Dados macro do mercado imobiliário — Paraná e Brasil"
+        sources={[
+          { label: "FipeZap", date: "Fev 2025" },
+          { label: "SINDUSCON-PR", date: "Jan 2025" },
+          { label: "Banco Central", date: "Mar 2025" },
+          { label: "CBIC", date: "T3 2024" },
+        ]}
+      />
 
       {/* KPI Row */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

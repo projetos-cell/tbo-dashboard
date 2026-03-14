@@ -1,16 +1,8 @@
-77cec43 feat(team): Edge Function invite-team-member + refactor demands (342L/295L → <200L)
-21949de feat(pessoas): redesign organograma to classic top-down tree layout
-4a7519e docs(audit): ciclo 23 — audit-log atualizado
-78f9273 refactor(comercial): split rd-pipeline-kanban (353L → 2 arquivos <200L)
-e3fb699 refactor(tasks): split task-actions-toolbar (381L → 3 arquivos <200L)
-31c9dc6 fix(projetos): project-topbar — shadcn DropdownMenu + handlers reais
-7f3396d docs(audit): ciclo 22 — audit-log atualizado
-178db27 refactor(financeiro): ciclo 22 — split contas/page.tsx (515L → 3 arquivos)
-3619a68 refactor(mercado): ciclo 22 — split page.tsx (549L → 247L + components file)
-79e8973 refactor(demands): ciclo 22 — split demand-detail-sidebar.tsx (455L → 3 arquivos)
- .claude/audit-log.md                               |  36 ++++
- .claude/session-start.txt                          |   7 +-
- frontend/components/layout/app-sidebar.tsx         |   2 +
- .../layout/sidebar/sortable-nav-group.tsx          |   3 +
- frontend/hooks/use-sidebar-dnd.ts                  | 195 ++++++---------------
- 5 files changed, 99 insertions(+), 144 deletions(-)
+456ba7a feat(usuarios+cursos): ciclo 26 — módulos Usuários e Cursos + fix users-table
+cce815b docs(audit): ciclo 25 — sidebar DnD fix + splits comercial/tasks
+c75895d refactor(tasks): split my-tasks-board-view (275L → 182L + 94L)
+4a18a77 feat(cultura): ciclo 19 — filtro período reconhecimentos + trend chart analytics
+95aef1e fix(sidebar): refactor DnD cross-group drag to prevent React error #185
+ .claude/audit-log.md      | 36 ++++++++++++++++++++++++++++++++++++
+ .claude/session-start.txt | 21 +++++----------------
+ 2 files changed, 41 insertions(+), 16 deletions(-)

@@ -911,3 +911,39 @@ Nenhuma — sem alterações de schema.
 
 ### Debt técnico
 - Edge Functions criadas mas não deployadas — necessário rodar supabase functions deploy invite-team-member e supabase functions deploy manage-team-member em produção
+
+## Ciclo — 2026-03-13 Ciclo 26
+
+**Módulo**: Usuários + Cursos (Academia TBO)
+**Branch**: main
+**Build**: ✅ (zero erros TypeScript)
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|----------------|-------|--------|----------|
+| Módulo /usuarios | ❌ | ✅ | Rotas + tabela + paginação + filtros |
+| Módulo /cursos | ❌ | ✅ | Rotas + listing + detalhe + player |
+| users-table.tsx (251L) | ⚠️ | ✅ | 251L → 119L via extração de user-row.tsx |
+| UserRow ações sem handler | 🔧 | ✅ | ConfirmDialog para Suspender/Ativar + Excluir + toast |
+| Navegação sidebar | ⚠️ | ✅ | Cursos + Usuários adicionados |
+
+### Implementado
+
+- feat(usuarios): rotas /usuarios e /usuarios/[userId] — ProfileHeader, ProfileTabs, ProfileSkills, ProfileCompletion, ProfileActivity
+- feat(usuarios): users-table.tsx 251L → 119L — UserRow extraído para user-row.tsx (190L)
+- fix(usuarios): UserRow dropdown — Editar/Suspender/Excluir com ConfirmDialog + toast (antes sem handler)
+- feat(cursos): rotas /cursos e /cursos/[courseId] — CourseDetailHeader, CourseVideoPlayer, CourseModulesList, CourseAbout
+- feat(nav): sidebar Aprendizado/Cursos + Sistema/Usuários + icons.ts (school, users-group)
+
+### Migrations aplicadas
+Nenhuma — módulos usam mock data, sem alterações de schema.
+
+### Próximo ciclo (sugestões)
+- Conectar usuários e cursos ao Supabase (substituir mock data)
+- demand-board-card.tsx (280L) e demand-comment-thread.tsx (283L) — ainda acima de 200L
+- deal-form-dialog.tsx (344L), deal-pipeline.tsx (285L) — violations no módulo comercial
+- Convite de usuário via Edge Function (conectar ao manage-team-member existente)
+
+### Debt técnico
+- Módulos Usuários e Cursos usam mock data — necessário criar tabelas Supabase e hooks React Query

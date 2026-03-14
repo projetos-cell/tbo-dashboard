@@ -1,3 +1,35 @@
+## Ciclo — 2026-03-13 Ciclo 23
+
+**Módulo**: Projetos + Tasks + Comercial (cross-module)
+**Branch**: main
+**Build**: ✅ (TypeScript zero erros)
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|----------------|-------|--------|----------|
+| project-topbar dropdown | 🔧 (div custom, sem handlers) | ✅ | shadcn DropdownMenu + Duplicar/Pausar/Configurações reais |
+| project-topbar StatusDropdown | 🔧 (div custom) | ✅ | shadcn DropdownMenu com indicadores de cor |
+| task-actions-toolbar.tsx (381L) | ⚠️ (viola 200L) | ✅ | 381L → 188L via hook + componente isolado |
+| rd-pipeline-kanban.tsx (353L) | ⚠️ (viola 200L) | ✅ | 353L → 160L via hook usePipelineDnd |
+
+### Implementado
+
+- fix(projetos): project-topbar — shadcn DropdownMenu em menu de ações e StatusDropdown; handleDuplicate real (useCreateProject), handlePause (useUpdateProject), Configurações navega para /projetos/configuracoes (arquivos: project-topbar.tsx)
+- refactor(tasks): task-actions-toolbar split — extraído useTaskActions hook (handlers + state + keyboard shortcuts) e TaskDeleteDialog componente isolado; 381L → 188L (arquivos: task-actions-toolbar.tsx, use-task-actions.ts, task-delete-dialog.tsx)
+- refactor(comercial): rd-pipeline-kanban split — extraído usePipelineDnd hook (D&D state, undo stack, sensors, handlers); 353L → 160L (arquivos: rd-pipeline-kanban.tsx, use-pipeline-dnd.ts)
+
+### Migrations aplicadas
+- Nenhuma
+
+### Próximo ciclo
+- demands-list.tsx (342L), demands-toolbar.tsx (295L), demand-board-card.tsx (280L), demand-comment-thread.tsx (283L) — todos acima de 200L no módulo demands
+- deal-form-dialog.tsx (344L), deal-pipeline.tsx (285L) — violations no módulo comercial
+- task-description-editor.tsx (299L), my-tasks-board-view.tsx (275L) — violations no módulo tasks
+
+### Debt técnico
+- Ação "Pausar projeto" usa status "parado" pois não há status "arquivado" no PROJECT_STATUS — comportamento comunicado via toast
+
 ## Ciclo — 2026-03-13 Ciclo 4
 
 **Módulo**: Tarefas

@@ -23,6 +23,8 @@ interface SidebarOrderState {
   reorderGroups: (orderedLabels: string[]) => void;
   /** Toggle group collapsed state */
   toggleGroup: (groupLabel: string) => void;
+  /** Collapse all groups at once */
+  collapseAllGroups: (groupLabels: string[]) => void;
   /** Move item from one group to another */
   moveItemBetweenGroups: (
     itemHref: string,
@@ -99,6 +101,10 @@ export const useSidebarStore = create<SidebarOrderState>()(
           else next.add(groupLabel);
           return { collapsedGroups: next };
         });
+      },
+
+      collapseAllGroups(groupLabels) {
+        set({ collapsedGroups: new Set(groupLabels) });
       },
 
       moveItemBetweenGroups(itemHref, fromGroup, toGroup, toIndex) {

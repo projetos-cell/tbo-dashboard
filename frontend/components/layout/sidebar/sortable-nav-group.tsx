@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -51,9 +52,11 @@ export const SortableNavGroup = memo(function SortableNavGroup({
   isDropTarget = false,
   onItemAction,
 }: SortableNavGroupProps) {
+  const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
   const collapsedGroups = useSidebarStore((s) => s.collapsedGroups);
   const toggleGroup = useSidebarStore((s) => s.toggleGroup);
+  const collapseAllGroups = useSidebarStore((s) => s.collapseAllGroups);
   const groupItemOrder = useSidebarStore((s) => s.groupItemOrder);
 
   const isCollapsed = collapsedGroups.has(group.label);
@@ -170,9 +173,10 @@ export const SortableNavGroup = memo(function SortableNavGroup({
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  // TODO: onAdd callback para o grupo
+                  const dest = orderedItems[0]?.href;
+                  if (dest) router.push(dest);
                 }}
-                aria-label={`Adicionar em ${group.label}`}
+                aria-label={`Ir para ${group.label}`}
               >
                 <IconPlus className="h-3 w-3" />
               </button>
@@ -188,9 +192,16 @@ export const SortableNavGroup = memo(function SortableNavGroup({
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="right" align="start" className="w-48">
-                  <DropdownMenuItem>Renomear seção</DropdownMenuItem>
-                  <DropdownMenuItem>Recolher todas</DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive">
+                  <DropdownMenuItem disabled>Renomear seção</DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      collapseAllGroups(SIDEBAR_NAV_GROUPS.map((g) => g.label));
+                    }}
+                  >
+                    Recolher todas
+                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled className="text-destructive">
                     Ocultar seção
                   </DropdownMenuItem>
                 </DropdownMenuContent>

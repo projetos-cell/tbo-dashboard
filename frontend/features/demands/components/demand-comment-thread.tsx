@@ -7,6 +7,7 @@ import {
 } from "@/features/demands/hooks/use-demand-comments";
 import { useAuthStore } from "@/stores/auth-store";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import type { Database } from "@/lib/supabase/types";
 import { DemandCommentComposer } from "./demand-comment-composer";
 import { DemandCommentItem } from "./demand-comment-item";
@@ -43,13 +44,17 @@ export function DemandCommentThread({
 
   const handleSubmit = async (content: string) => {
     if (!userId || !tenantId) return;
-    await createComment.mutateAsync({
-      demand_id: demandId,
-      content,
-      author_id: userId,
-      tenant_id: tenantId,
-      mentions: [],
-    } as Database["public"]["Tables"]["demand_comments"]["Insert"]);
+    try {
+      await createComment.mutateAsync({
+        demand_id: demandId,
+        content,
+        author_id: userId,
+        tenant_id: tenantId,
+        mentions: [],
+      } as Database["public"]["Tables"]["demand_comments"]["Insert"]);
+    } catch {
+      toast.error("Erro ao enviar comentário. Tente novamente.");
+    }
   };
 
   return (

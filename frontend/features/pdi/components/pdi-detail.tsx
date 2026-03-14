@@ -1,6 +1,5 @@
-﻿"use client";
+"use client";
 
-import { useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -9,36 +8,23 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
 import { ConfirmDialog } from "@/components/shared";
-import { PdiActionsInline } from "./pdi-actions-inline";
-import { PdiGoalForm } from "./pdi-goal-form";
-import { usePdiGoals, useCreatePdiGoal, useDeletePdiGoal, useUpdatePdi, useDeletePdi, usePersonSkills } from "@/features/pdi/hooks/use-pdi";
+import { PdiGoalsSection } from "./pdi-goals-section";
+import { useUpdatePdi, useDeletePdi, usePersonSkills } from "@/features/pdi/hooks/use-pdi";
 import { useProfiles } from "@/features/people/hooks/use-people";
-import { useAuthStore } from "@/stores/auth-store";
 import { useToast } from "@/hooks/use-toast";
 import {
   PDI_STATUS,
   PDI_STATUS_KEYS,
-  GOAL_STATUS,
-  GOAL_STATUS_KEYS,
   getPdiStatusBadgeProps,
-  getGoalStatusBadgeProps,
   formatDate,
 } from "@/features/pdi/utils/pdi-utils";
-import { computePdiProgress } from "@/features/pdi/services/pdi";
-import type { PdiRow, PdiGoalWithActions } from "@/features/pdi/services/pdi";
+import type { PdiRow } from "@/features/pdi/services/pdi";
 import {
-  IconTarget,
-  IconPlus,
   IconTrash,
-  IconChevronDown,
-  IconChevronRight,
   IconUser,
   IconCalendar,
-  IconPencil,
 } from "@tabler/icons-react";
 
 interface PdiDetailProps {
@@ -49,57 +35,17 @@ interface PdiDetailProps {
 }
 
 export function PdiDetail({ pdi, open, onOpenChange, onEdit }: PdiDetailProps) {
-  const tenantId = useAuthStore((s) => s.tenantId);
   const { data: profiles } = useProfiles();
-  const { data: goals, isLoading: goalsLoading } = usePdiGoals(pdi?.id ?? null);
-  const createGoalMutation = useCreatePdiGoal();
-  const deleteGoalMutation = useDeletePdiGoal();
+  const { data: personSkills } = usePersonSkills(pdi?.person_id ?? null);
   const updatePdiMutation = useUpdatePdi();
   const deletePdiMutation = useDeletePdi();
   const { toast } = useToast();
-
-  const { data: personSkills } = usePersonSkills(pdi?.person_id ?? null);
-
-  const [newGoalTitle, setNewGoalTitle] = useState("");
-  const [expandedGoals, setExpandedGoals] = useState<Set<string>>(new Set());
-  const [goalFormOpen, setGoalFormOpen] = useState(false);
-  const [editGoalData, setEditGoalData] = useState<PdiGoalWithActions | null>(null);
 
   const profileMap = new Map(
     (profiles ?? []).map((p) => [p.id, p.full_name ?? "Sem nome"])
   );
 
   if (!pdi) return null;
-
-  const progress = goals ? computePdiProgress(goals) : 0;
-
-  function toggleGoalExpanded(goalId: string) {
-    setExpandedGoals((prev) => {
-      const next = new Set(prev);
-      if (next.has(goalId)) next.delete(goalId);
-      else next.add(goalId);
-      return next;
-    });
-  }
-
-  function handleCreateGoal() {
-    if (!newGoalTitle.trim() || !tenantId || !pdi) return;
-    createGoalMutation.mutate(
-      { tenant_id: tenantId, pdi_id: pdi.id, title: newGoalTitle.trim() },
-      {
-        onSuccess: () => setNewGoalTitle(""),
-        onError: (err) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
-      }
-    );
-  }
-
-  function handleDeleteGoal(goalId: string) {
-    if (!pdi) return;
-    deleteGoalMutation.mutate(
-      { id: goalId, pdiId: pdi.id },
-      { onError: (err) => toast({ title: "Erro", description: err.message, variant: "destructive" }) }
-    );
-  }
 
   function handleStatusChange(status: string) {
     if (!pdi) return;
@@ -155,15 +101,6 @@ export function PdiDetail({ pdi, open, onOpenChange, onEdit }: PdiDetailProps) {
             })}
           </div>
 
-          {/* Progress */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">Progresso</span>
-              <span className="font-medium">{progress}%</span>
-            </div>
-            <Progress value={progress} className="h-2" />
-          </div>
-
           {/* Dates */}
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <IconCalendar className="h-4 w-4" />
@@ -176,146 +113,11 @@ export function PdiDetail({ pdi, open, onOpenChange, onEdit }: PdiDetailProps) {
           <Separator />
 
           {/* Goals section */}
-          <div className="space-y-3">
-            <h4 className="flex items-center gap-1.5 text-sm font-semibold">
-              <IconTarget className="h-4 w-4" /> Metas ({goals?.length ?? 0})
-            </h4>
-
-            {goalsLoading ? (
-              <div className="space-y-2">
-                {Array.from({ length: 2 }).map((_, i) => (
-                  <div key={i} className="h-16 animate-pulse rounded-lg border bg-gray-100/40" />
-                ))}
-              </div>
-            ) : (
-              <>
-                {(goals ?? []).map((goal) => {
-                  const expanded = expandedGoals.has(goal.id);
-                  const goalBadge = getGoalStatusBadgeProps(goal.status);
-                  const doneActions = goal.pdi_actions.filter((a: { completed: boolean }) => a.completed).length;
-                  const totalActions = goal.pdi_actions.length;
-
-                  return (
-                    <div key={goal.id} className="rounded-lg border">
-                      {/* Goal header */}
-                      <div
-                        className="flex cursor-pointer items-center gap-2 p-3"
-                        onClick={() => toggleGoalExpanded(goal.id)}
-                      >
-                        {expanded ? (
-                          <IconChevronDown className="h-4 w-4 shrink-0 text-gray-500" />
-                        ) : (
-                          <IconChevronRight className="h-4 w-4 shrink-0 text-gray-500" />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="truncate text-sm font-medium">{goal.title}</p>
-                          <div className="mt-1 flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs" style={goalBadge.style}>
-                              {goalBadge.label}
-                            </Badge>
-                            {totalActions > 0 && (
-                              <span className="text-xs text-gray-500">
-                                {doneActions}/{totalActions} ações
-                              </span>
-                            )}
-                            {goal.skill_id && (
-                              <span className="text-xs text-gray-500">
-                                Skill vinculada
-                                {goal.target_level_percent != null && ` · Meta ${goal.target_level_percent}%`}
-                              </span>
-                            )}
-                            {goal.target_date && (
-                              <span className="text-xs text-gray-500">
-                                Meta: {formatDate(goal.target_date)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex shrink-0 gap-0.5">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-gray-500 hover:text-gray-900"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditGoalData(goal);
-                              setGoalFormOpen(true);
-                            }}
-                          >
-                            <IconPencil className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-gray-500 hover:text-red-500"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteGoal(goal.id);
-                            }}
-                          >
-                            <IconTrash className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Expanded: actions */}
-                      {expanded && (
-                        <div className="border-t px-3 py-3">
-                          {goal.description && (
-                            <p className="mb-3 text-sm text-gray-500">{goal.description}</p>
-                          )}
-                          <PdiActionsInline
-                            goalId={goal.id}
-                            pdiId={pdi.id}
-                            actions={goal.pdi_actions}
-                            mode="full"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {/* New goal input (quick) */}
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={newGoalTitle}
-                    onChange={(e) => setNewGoalTitle(e.target.value)}
-                    placeholder="Nova meta rápida..."
-                    className="h-8 text-sm"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleCreateGoal();
-                      }
-                    }}
-                  />
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-8 w-8 shrink-0"
-                    onClick={handleCreateGoal}
-                    disabled={!newGoalTitle.trim() || createGoalMutation.isPending}
-                  >
-                    <IconPlus className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                {/* New goal with Scorecard link */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full text-xs"
-                  onClick={() => {
-                    setEditGoalData(null);
-                    setGoalFormOpen(true);
-                  }}
-                >
-                  <IconTarget className="mr-1 h-3 w-3" /> Nova meta com detalhes / vincular competência
-                </Button>
-              </>
-            )}
-          </div>
+          <PdiGoalsSection
+            pdiId={pdi.id}
+            personId={pdi.person_id}
+            personSkills={personSkills ?? []}
+          />
 
           <Separator />
 
@@ -326,11 +128,7 @@ export function PdiDetail({ pdi, open, onOpenChange, onEdit }: PdiDetailProps) {
             </Button>
             <ConfirmDialog
               trigger={
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-red-500 hover:text-red-500"
-                >
+                <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-500">
                   <IconTrash className="mr-1 h-3 w-3" /> Excluir
                 </Button>
               }
@@ -343,21 +141,6 @@ export function PdiDetail({ pdi, open, onOpenChange, onEdit }: PdiDetailProps) {
           </div>
         </div>
       </SheetContent>
-
-      {/* Goal form dialog (with scorecard link) */}
-      {pdi && (
-        <PdiGoalForm
-          open={goalFormOpen}
-          onOpenChange={setGoalFormOpen}
-          pdiId={pdi.id}
-          editData={editGoalData}
-          personSkills={(personSkills ?? []).map((s) => ({
-            id: s.id,
-            skill_name: s.skill_name,
-            proficiency_level: s.proficiency_level,
-          }))}
-        />
-      )}
     </Sheet>
   );
 }

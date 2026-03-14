@@ -1,3 +1,6 @@
+38ad0f9 refactor(ciclo-29): split 2 componentes >200L + fix AssignUsersDialog real data
+6ec0e3b merge(ciclo-28): split 3 componentes >200L + fix bugs UX
+1f37158 refactor(ciclo-28): split 3 componentes >200L + fix bugs UX
 7ff0bfa docs(audit): ciclo 27 — notion-sync + people-filters + message-bubble splits
 d5e7dd8 refactor(chat): split message-bubble.tsx (322L → 183L + message-bubble-parts.tsx)
 e533d6b refactor(people): split people-filters.tsx (400L → 192L + people-filter-parts.tsx)
@@ -5,8 +8,5 @@ e645ef8 refactor(configuracoes): split notion-sync.tsx (414L → 185L + notion-s
 456ba7a feat(usuarios+cursos): ciclo 26 — módulos Usuários e Cursos + fix users-table
 cce815b docs(audit): ciclo 25 — sidebar DnD fix + splits comercial/tasks
 c75895d refactor(tasks): split my-tasks-board-view (275L → 182L + 94L)
-4a18a77 feat(cultura): ciclo 19 — filtro período reconhecimentos + trend chart analytics
-95aef1e fix(sidebar): refactor DnD cross-group drag to prevent React error #185
-77cec43 feat(team): Edge Function invite-team-member + refactor demands (342L/295L → <200L)
- .claude/session-start.txt | 8 +++++---
- 1 file changed, 5 insertions(+), 3 deletions(-)
+ .claude/session-start.txt | 8 +++-----
+ 1 file changed, 3 insertions(+), 5 deletions(-)

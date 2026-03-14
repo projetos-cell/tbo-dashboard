@@ -1,5 +1,38 @@
 # TBO OS — Audit Log
 
+## Ciclo 30 — 2026-03-14
+
+**Módulo**: Splits — founder-dashboard, contratos, PDI
+**Branch**: `main`
+**Build**: ✅ Clean antes e depois de todas as mudanças
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|----------------|-------|--------|----------|
+| revenue-concentration.tsx (362L) | ⚠️ | ✅ | Split em 3: main (116L) + parts (136L) + helpers (67L) |
+| contract-filter-sections.tsx (351L) | ⚠️ | ✅ | Split em 3 arquivos + barrel: basic (144L) + temporal (118L) + advanced (89L) |
+| pdi-detail.tsx (363L) | ⚠️ | ✅ | Split em 3: detail (150L) + goals-section (150L) + goal-item (112L) |
+
+### Implementado
+
+- refactor(founder-dashboard): revenue-concentration.tsx 362L → 3 arquivos (helpers.ts 67L, parts.tsx 136L, main.tsx 116L)
+- refactor(contratos): contract-filter-sections.tsx 351L → contract-basic-filters.tsx (144L) + contract-temporal-filters.tsx (118L) + contract-advanced-filters.tsx (89L) + barrel de 4 linhas
+- refactor(pdi): pdi-detail.tsx 363L → pdi-detail.tsx (150L) + pdi-goals-section.tsx (150L) + pdi-goal-item.tsx (112L)
+
+### Migrations aplicadas
+Nenhuma
+
+### Próximo ciclo
+- workspace-settings.tsx (345L) + profile-form.tsx (323L) — configurações ainda acima de 200L
+- message-input.tsx (322L) — chat precisa split
+- decision-detail.tsx (320L), contract-stepper.tsx (319L) — violações de 300L
+
+### Debt técnico
+Nenhum
+
+---
+
 ## Ciclo 29 — 2026-03-14
 
 **Módulo**: Team (split), Demands Comments (split), Kanban AssignUsersDialog (real data)

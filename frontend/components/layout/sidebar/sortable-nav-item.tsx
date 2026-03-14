@@ -2,7 +2,7 @@
 
 import { memo, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useSortable, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import {
   DndContext,
@@ -16,16 +16,7 @@ import {
 import { sortableKeyboardCoordinates, arrayMove } from "@dnd-kit/sortable";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import {
-  IconChevronRight,
-  IconCopy,
-  IconExternalLink,
-  IconEyeOff,
-  IconGripVertical,
-  IconDots,
-  IconArrowRight,
-  IconPlus,
-} from "@tabler/icons-react";
+import { IconChevronRight } from "@tabler/icons-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -36,23 +27,12 @@ import {
   SidebarMenuItem,
   SidebarMenuSub,
 } from "@/components/ui/sidebar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { toast } from "sonner";
-import { SIDEBAR_NAV_GROUPS } from "@/lib/navigation";
 import { getIcon } from "@/lib/icons";
 import { useAuthStore } from "@/stores/auth-store";
 import { hasMinRole } from "@/lib/permissions";
 import { useSidebarStore } from "@/stores/sidebar-store";
 import { SortableSubNavItem } from "./sortable-sub-nav-item";
+import { NavItemHoverActions, NavItemDragHandle } from "./sortable-nav-item-parts";
 import type { NavGroupItem } from "@/lib/navigation";
 import type { RoleSlug } from "@/lib/permissions";
 import type { SubNavItem } from "@/lib/constants";
@@ -72,14 +52,12 @@ export const SortableNavItem = memo(function SortableNavItem({
   onAction,
 }: SortableNavItemProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const role = useAuthStore((s) => s.role);
   const [isHovered, setIsHovered] = useState(false);
   const [activeSubId, setActiveSubId] = useState<string | null>(null);
 
   const subItemOrder = useSidebarStore((s) => s.subItemOrder);
   const reorderSubItems = useSidebarStore((s) => s.reorderSubItems);
-  const moveItemBetweenGroups = useSidebarStore((s) => s.moveItemBetweenGroups);
 
   const {
     attributes,
@@ -105,7 +83,6 @@ export const SortableNavItem = memo(function SortableNavItem({
   const hasSubItems = item.subItems && item.subItems.length > 0;
   const Icon = getIcon(item.icon);
 
-  // Compute ordered sub-items from persisted order
   const orderedSubItems = useMemo<readonly SubNavItem[]>(() => {
     if (!item.subItems || item.subItems.length === 0) return [];
     const order = subItemOrder[item.href];
@@ -153,7 +130,6 @@ export const SortableNavItem = memo(function SortableNavItem({
     [subItemIds, orderedSubItems, item.href, reorderSubItems],
   );
 
-  // Role filter for sub-items
   const filteredSubItems = useMemo(
     () =>
       orderedSubItems.filter((sub) => {
@@ -173,92 +149,13 @@ export const SortableNavItem = memo(function SortableNavItem({
     [filteredSubItems, item.href],
   );
 
-  const hoverActions = (
-    <div
-      className={cn(
-        "absolute right-1 top-1/2 z-10 flex -translate-y-1/2 items-center gap-0.5 opacity-0 transition-opacity duration-150",
-        (isHovered || isDragOverlay) && "opacity-100",
-      )}
-    >
-      <button
-        type="button"
-        className="text-muted-foreground hover:text-foreground hover:bg-accent rounded-sm p-0.5 transition-colors"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          router.push(item.href);
-          onAction?.("add", item, groupLabel);
-        }}
-        aria-label={`Ir para ${item.label}`}
-      >
-        <IconPlus className="h-3.5 w-3.5" />
-      </button>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            className="text-muted-foreground hover:text-foreground hover:bg-accent rounded-sm p-0.5 transition-colors"
-            onClick={(e) => e.stopPropagation()}
-            aria-label={`Opções de ${item.label}`}
-          >
-            <IconDots className="h-3.5 w-3.5" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent side="right" align="start" className="w-52">
-          <DropdownMenuItem onClick={() => onAction?.("open-new-tab", item, groupLabel)}>
-            <IconExternalLink className="mr-2 h-3.5 w-3.5" />
-            Abrir em nova aba
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onAction?.("copy-link", item, groupLabel)}>
-            <IconCopy className="mr-2 h-3.5 w-3.5" />
-            Copiar link
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <IconArrowRight className="mr-2 h-3.5 w-3.5" />
-              Mover para...
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent>
-              {SIDEBAR_NAV_GROUPS.filter((g) => g.label !== groupLabel).map((g) => (
-                <DropdownMenuItem
-                  key={g.label}
-                  onClick={() => {
-                    moveItemBetweenGroups(item.href, groupLabel, g.label, 0);
-                    toast.success(`"${item.label}" movido para ${g.label}`);
-                  }}
-                >
-                  {g.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
-          <DropdownMenuItem
-            onClick={() => onAction?.("hide", item, groupLabel)}
-            className="text-muted-foreground"
-          >
-            <IconEyeOff className="mr-2 h-3.5 w-3.5" />
-            Ocultar da sidebar
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-  );
-
-  const dragHandle = (
-    <button
-      type="button"
-      className={cn(
-        "text-muted-foreground/50 hover:text-muted-foreground absolute left-0 top-1/2 z-10 -translate-y-1/2 cursor-grab p-0.5 opacity-0 transition-opacity duration-150 active:cursor-grabbing",
-        (isHovered || isDragOverlay) && "opacity-100",
-      )}
-      {...attributes}
-      {...listeners}
-      aria-label={`Arrastar ${item.label}`}
-    >
-      <IconGripVertical className="h-3 w-3" />
-    </button>
-  );
+  const sharedItemProps = {
+    item,
+    groupLabel,
+    isHovered,
+    isDragOverlay,
+    onAction,
+  };
 
   if (!hasSubItems) {
     return (
@@ -273,14 +170,20 @@ export const SortableNavItem = memo(function SortableNavItem({
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        {dragHandle}
+        <NavItemDragHandle
+          item={item}
+          isHovered={isHovered}
+          isDragOverlay={isDragOverlay}
+          attributes={attributes}
+          listeners={listeners}
+        />
         <SidebarMenuButton asChild isActive={isActive} className="pl-5">
           <Link href={item.href}>
             <Icon className="h-4 w-4" />
             <span className="truncate">{item.label}</span>
           </Link>
         </SidebarMenuButton>
-        {hoverActions}
+        <NavItemHoverActions {...sharedItemProps} />
       </SidebarMenuItem>
     );
   }
@@ -298,7 +201,13 @@ export const SortableNavItem = memo(function SortableNavItem({
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        {dragHandle}
+        <NavItemDragHandle
+          item={item}
+          isHovered={isHovered}
+          isDragOverlay={isDragOverlay}
+          attributes={attributes}
+          listeners={listeners}
+        />
         <SidebarMenuButton asChild isActive={isActive} tooltip={item.label} className="pl-5">
           <Link href={item.href}>
             <Icon className="h-4 w-4" />
@@ -319,7 +228,7 @@ export const SortableNavItem = memo(function SortableNavItem({
           </button>
         </CollapsibleTrigger>
 
-        {hoverActions}
+        <NavItemHoverActions {...sharedItemProps} />
       </SidebarMenuItem>
 
       <CollapsibleContent>

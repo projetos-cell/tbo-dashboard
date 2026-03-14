@@ -1,5 +1,43 @@
 # TBO OS — Audit Log
 
+## Ciclo 27 — 2026-03-14 00:08
+
+**Módulo**: Configurações (notion-sync), Pessoas (people-filters), Chat (message-bubble)
+**Branch**: `claude/improve-20260314-0008` → mergeado em `main`
+**Build**: ✅ Clean antes e depois de todas as mudanças
+
+### Estado do módulo
+
+| Arquivo | Antes | Depois | Detalhes |
+|---|---|---|---|
+| `features/configuracoes/components/notion-sync.tsx` | ⚠️ 414L | ✅ 185L | Split: `notion-sync-result.tsx` (245L, 2 componentes: NotionConnectionCard + SyncResultDisplay) |
+| `features/people/components/people-filters.tsx` | ⚠️ 400L | ✅ 192L | Split: `people-filter-parts.tsx` (266L, 4 componentes individuais <100L cada) |
+| `features/chat/components/message-bubble.tsx` | ⚠️ 322L | ✅ 183L | Split: `message-bubble-parts.tsx` (140L: MessageContent + MessageMenu + MessageDeleteDialog) |
+
+### Implementado
+
+- refactor(configuracoes): `notion-sync.tsx` (414L → 185L) — `SyncResultDisplay` + tipos + `NotionConnectionCard` extraídos para `notion-sync-result.tsx`
+- refactor(people): `people-filters.tsx` (400L → 192L) — `FilterSection`, `FilterTag`, `FilterAdvancedPopover`, `ActiveFilterTags` extraídos para `people-filter-parts.tsx`
+- refactor(chat): `message-bubble.tsx` (322L → 183L) — `MessageContent`, `MessageMenu`, `MessageDeleteDialog` extraídos para `message-bubble-parts.tsx`. Também removido import morto `DropdownMenu*` que nunca foi usado.
+
+### Migrations aplicadas
+
+Nenhuma.
+
+### Próximo ciclo
+
+- `features/configuracoes/components/workspace-settings.tsx` (345L) — candidata ao split
+- `features/configuracoes/components/profile-form.tsx` (323L) — candidata ao split
+- `features/pdi/components/pdi-detail.tsx` (363L) — candidata ao split
+- `features/founder-dashboard/components/revenue-concentration.tsx` (362L) — candidata ao split
+- `features/contratos/components/contract-filter-sections.tsx` (351L) — candidata ao split
+- `components/kanban/AssignUsersDialog.tsx` — usa mock users, TODO: conectar a usuários reais do Supabase
+- `app/(auth)/rsm/page.tsx` (529L) — componente único muito grande, candidato a extração de sub-componentes
+
+### Debt técnico
+
+- `notion-sync-result.tsx` (245L) — arquivo com 2 componentes individuais, cada um < 200L, aceitável por componente
+
 ## Ciclo 25 — 2026-03-13 (sessão atual)
 
 **Módulo**: Sidebar DnD, Comercial (deal-form), Tasks (board-view)

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { toast } from "sonner";
 import { IconPlus, IconAward, IconSearch, IconX, IconCalendar } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -127,6 +128,7 @@ export default function ReconhecimentosPage() {
         reviewed: true,
       } as Database["public"]["Tables"]["recognitions"]["Insert"]);
       setShowForm(false);
+      toast.success("Reconhecimento enviado! 🎉");
     } catch {
       // handled by mutation onError
     }

@@ -11,6 +11,8 @@ import {
   IconSearch,
   IconX,
   IconEye,
+  IconChevronLeft,
+  IconChevronRight,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -257,20 +259,53 @@ export default function ManualPage() {
   };
 
   if (viewingId) {
+    const currentIndex = orderedItems.findIndex((i) => i.id === viewingId);
+    const prevItem = currentIndex > 0 ? orderedItems[currentIndex - 1] : null;
+    const nextItem = currentIndex < orderedItems.length - 1 ? orderedItems[currentIndex + 1] : null;
+
     return (
-      <CulturaItemDetail
-        itemId={viewingId}
-        onBack={() => setViewingId(null)}
-        onEdit={() => {
-          const item = orderedItems.find((i) => i.id === viewingId);
-          if (item) {
-            setEditingItem(item);
-            setShowForm(true);
-            setViewingId(null);
-          }
-        }}
-        canEdit={canEdit}
-      />
+      <div className="space-y-4">
+        {orderedItems.length > 1 && (
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!prevItem}
+              onClick={() => prevItem && setViewingId(prevItem.id)}
+              className="gap-1 text-xs"
+            >
+              <IconChevronLeft className="size-3.5" />
+              Anterior
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              {currentIndex + 1} / {orderedItems.length}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!nextItem}
+              onClick={() => nextItem && setViewingId(nextItem.id)}
+              className="gap-1 text-xs"
+            >
+              Próximo
+              <IconChevronRight className="size-3.5" />
+            </Button>
+          </div>
+        )}
+        <CulturaItemDetail
+          itemId={viewingId}
+          onBack={() => setViewingId(null)}
+          onEdit={() => {
+            const item = orderedItems.find((i) => i.id === viewingId);
+            if (item) {
+              setEditingItem(item);
+              setShowForm(true);
+              setViewingId(null);
+            }
+          }}
+          canEdit={canEdit}
+        />
+      </div>
     );
   }
 

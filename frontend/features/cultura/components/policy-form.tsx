@@ -50,6 +50,7 @@ interface PolicyFormProps {
   policy?: PolicyRow | null;
   onSave: (data: PolicyFormData) => Promise<void>;
   canPublish?: boolean;
+  currentUserId?: string;
 }
 
 export function PolicyForm({
@@ -58,6 +59,7 @@ export function PolicyForm({
   policy,
   onSave,
   canPublish = false,
+  currentUserId = "",
 }: PolicyFormProps) {
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
@@ -130,7 +132,7 @@ export function PolicyForm({
         image_url: imageUrl.trim(),
         content_md: contentMd,
         status,
-        owner_user_id: "",
+        owner_user_id: policy?.owner_user_id ?? currentUserId,
         effective_date: effectiveDate,
         review_cycle_days: reviewCycleDays ? parseInt(reviewCycleDays, 10) : null,
         change_note: changeNote.trim(),

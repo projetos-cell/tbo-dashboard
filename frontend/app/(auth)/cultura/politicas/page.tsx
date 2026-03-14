@@ -245,6 +245,7 @@ export default function PoliticasPage() {
         policy={editingPolicy}
         onSave={handleSave}
         canPublish={canEdit}
+        currentUserId={user?.id}
       />
     </div>
   );

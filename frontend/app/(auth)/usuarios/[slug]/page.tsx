@@ -1,6 +1,6 @@
 "use client"
 
-import { use } from "react"
+import { use, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -10,16 +10,30 @@ import { ProfileHeader } from "@/features/usuarios/components/profile-header"
 import { ProfileCompletion } from "@/features/usuarios/components/profile-completion"
 import { ProfileSkills } from "@/features/usuarios/components/profile-skills"
 import { ProfileTabs } from "@/features/usuarios/components/profile-tabs"
-import { useTeamMember } from "@/hooks/use-team"
+import { useTeamMembers } from "@/hooks/use-team"
 import { profileToUser } from "@/features/usuarios/utils/profile-to-user"
+import { EditUserDialog } from "@/components/modules/team/edit-user-dialog"
+import { useAuthStore } from "@/stores/auth-store"
+import type { TeamMember } from "@/schemas/team"
 
 interface PageProps {
-  params: Promise<{ userId: string }>
+  params: Promise<{ slug: string }>
 }
 
 export default function UserProfilePage({ params }: PageProps) {
-  const { userId } = use(params)
-  const { data: member, isLoading, error, refetch } = useTeamMember(userId)
+  const { slug } = use(params)
+  const { data: members, isLoading, error, refetch } = useTeamMembers()
+  const currentRole = useAuthStore((s) => s.role) ?? "colaborador"
+  const [editOpen, setEditOpen] = useState(false)
+
+  const { user, rawMember } = useMemo(() => {
+    if (!members) return { user: null, rawMember: null }
+    for (const m of members) {
+      const u = profileToUser(m as unknown as Record<string, unknown>)
+      if (u.slug === slug) return { user: u, rawMember: m }
+    }
+    return { user: null, rawMember: null }
+  }, [members, slug])
 
   // ── Loading ──
   if (isLoading) {
@@ -45,7 +59,7 @@ export default function UserProfilePage({ params }: PageProps) {
   }
 
   // ── Error / Not Found ──
-  if (error || !member) {
+  if (error || !user) {
     return (
       <div className="space-y-6">
         <div>
@@ -85,8 +99,6 @@ export default function UserProfilePage({ params }: PageProps) {
     )
   }
 
-  const user = profileToUser(member as unknown as Record<string, unknown>)
-
   return (
     <div className="space-y-6">
       {/* Back navigation */}
@@ -103,7 +115,7 @@ export default function UserProfilePage({ params }: PageProps) {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left column */}
         <div className="space-y-4 lg:col-span-1">
-          <ProfileHeader user={user} />
+          <ProfileHeader user={user} onEdit={() => setEditOpen(true)} />
           <ProfileCompletion user={user} />
           <ProfileSkills user={user} />
         </div>
@@ -113,6 +125,14 @@ export default function UserProfilePage({ params }: PageProps) {
           <ProfileTabs user={user} />
         </div>
       </div>
+
+      {/* Edit dialog */}
+      <EditUserDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        member={rawMember as TeamMember | null}
+        currentUserRole={currentRole}
+      />
     </div>
   )
 }

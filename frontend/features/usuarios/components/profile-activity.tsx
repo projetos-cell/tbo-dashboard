@@ -1,109 +1,98 @@
 "use client"
 
+import { useQuery } from "@tanstack/react-query"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   IconCheck,
   IconPlus,
   IconEdit,
-  IconTarget,
-  IconMessage,
-  IconUpload,
-  IconCalendar,
-  IconStar,
+  IconTrash,
+  IconShield,
+  IconActivity,
 } from "@tabler/icons-react"
-import type { User } from "../types"
+import { createClient } from "@/lib/supabase/client"
+import { formatRelativeDate } from "../utils/format-date"
+import type { AuditAction } from "@/lib/audit-trail"
 
-interface ActivityItem {
-  id: string
-  icon: typeof IconCheck
-  iconColor: string
-  text: string
-  time: string
-}
-
-function getMockActivities(user: User): ActivityItem[] {
-  return [
-    {
-      id: "act-1",
-      icon: IconCheck,
-      iconColor: "text-green-500",
-      text: `Completou tarefa "Revisar proposta comercial"`,
-      time: "2h atrás",
-    },
-    {
-      id: "act-2",
-      icon: IconPlus,
-      iconColor: "text-blue-500",
-      text: `Criou projeto "Campanha Q2 - ${user.department}"`,
-      time: "5h atrás",
-    },
-    {
-      id: "act-3",
-      icon: IconTarget,
-      iconColor: "text-purple-500",
-      text: `Atualizou OKR "Aumentar taxa de conversão"`,
-      time: "1 dia atrás",
-    },
-    {
-      id: "act-4",
-      icon: IconMessage,
-      iconColor: "text-amber-500",
-      text: `Comentou em "Sprint Planning - Semana 12"`,
-      time: "1 dia atrás",
-    },
-    {
-      id: "act-5",
-      icon: IconEdit,
-      iconColor: "text-gray-500",
-      text: `Editou documento "Briefing Cliente Alpha"`,
-      time: "2 dias atrás",
-    },
-    {
-      id: "act-6",
-      icon: IconUpload,
-      iconColor: "text-indigo-500",
-      text: `Enviou arquivo "apresentacao-final.pdf"`,
-      time: "3 dias atrás",
-    },
-    {
-      id: "act-7",
-      icon: IconCalendar,
-      iconColor: "text-teal-500",
-      text: `Participou da reunião "1:1 com líder"`,
-      time: "4 dias atrás",
-    },
-    {
-      id: "act-8",
-      icon: IconStar,
-      iconColor: "text-yellow-500",
-      text: `Recebeu reconhecimento "Excelência em Criação"`,
-      time: "5 dias atrás",
-    },
-    {
-      id: "act-9",
-      icon: IconCheck,
-      iconColor: "text-green-500",
-      text: `Completou tarefa "Atualizar guidelines da marca"`,
-      time: "1 semana atrás",
-    },
-    {
-      id: "act-10",
-      icon: IconPlus,
-      iconColor: "text-blue-500",
-      text: `Adicionou skill "Design System"`,
-      time: "1 semana atrás",
-    },
-  ]
+const ACTION_CONFIG: Record<
+  AuditAction,
+  { icon: typeof IconCheck; color: string; label: string }
+> = {
+  create: { icon: IconPlus, color: "text-blue-500", label: "Criou" },
+  update: { icon: IconEdit, color: "text-gray-500", label: "Atualizou" },
+  delete: { icon: IconTrash, color: "text-red-500", label: "Removeu" },
+  status_change: { icon: IconCheck, color: "text-green-500", label: "Alterou status" },
+  permission_change: { icon: IconShield, color: "text-purple-500", label: "Alterou permissão" },
 }
 
 interface ProfileActivityProps {
-  user: User
+  userId: string
   limit?: number
 }
 
-export function ProfileActivity({ user, limit }: ProfileActivityProps) {
-  const activities = getMockActivities(user)
-  const visibleActivities = limit ? activities.slice(0, limit) : activities
+export function ProfileActivity({ userId, limit }: ProfileActivityProps) {
+  const supabase = createClient()
+
+  const { data: activities, isLoading } = useQuery({
+    queryKey: ["user-activity", userId, limit],
+    queryFn: async () => {
+      const query = supabase
+        .from("audit_log")
+        .select("id, action, entity_type, entity_id, to_state, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+
+      if (limit) query.limit(limit)
+      else query.limit(20)
+
+      const { data, error } = await query
+      if (error) throw error
+      return data ?? []
+    },
+    staleTime: 1000 * 60 * 3,
+  })
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium">
+            Atividade Recente
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {Array.from({ length: limit ?? 5 }).map((_, i) => (
+            <div key={i} className="flex gap-3">
+              <Skeleton className="h-6 w-6 rounded-full" />
+              <div className="flex-1 space-y-1">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (!activities || activities.length === 0) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium">
+            Atividade Recente
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center gap-2 py-8">
+          <IconActivity className="h-8 w-8 text-muted-foreground/50" />
+          <p className="text-sm text-muted-foreground">
+            Nenhuma atividade registrada ainda.
+          </p>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card>
@@ -114,23 +103,28 @@ export function ProfileActivity({ user, limit }: ProfileActivityProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {visibleActivities.map((activity) => (
-            <div key={activity.id} className="flex gap-3">
-              <div
-                className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted`}
-              >
-                <activity.icon
-                  className={`h-3.5 w-3.5 ${activity.iconColor}`}
-                />
+          {activities.map((activity) => {
+            const action = activity.action as AuditAction
+            const config = ACTION_CONFIG[action] ?? ACTION_CONFIG.update
+            const Icon = config.icon
+            const entityLabel = activity.entity_type?.replace(/_/g, " ") ?? "registro"
+
+            return (
+              <div key={activity.id} className="flex gap-3">
+                <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted">
+                  <Icon className={`h-3.5 w-3.5 ${config.color}`} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm leading-snug">
+                    {config.label} {entityLabel}
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {formatRelativeDate(activity.created_at ?? new Date().toISOString())}
+                  </p>
+                </div>
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm leading-snug">{activity.text}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {activity.time}
-                </p>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </CardContent>
     </Card>

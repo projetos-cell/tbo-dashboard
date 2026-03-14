@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   IconEdit,
-  IconSettings,
   IconMail,
   IconPhone,
   IconMapPin,
@@ -15,6 +14,7 @@ import { ROLE_LABELS, ROLE_COLORS, STATUS_LABELS, STATUS_COLORS, type User } fro
 
 interface ProfileHeaderProps {
   user: User
+  onEdit?: () => void
 }
 
 function getInitials(name: string): string {
@@ -26,7 +26,7 @@ function getInitials(name: string): string {
     .toUpperCase()
 }
 
-export function ProfileHeader({ user }: ProfileHeaderProps) {
+export function ProfileHeader({ user, onEdit }: ProfileHeaderProps) {
   const completionRate =
     user.stats.tasks > 0
       ? Math.round((user.stats.completedTasks / user.stats.tasks) * 100)
@@ -100,12 +100,14 @@ export function ProfileHeader({ user }: ProfileHeaderProps) {
 
         {/* Actions */}
         <div className="flex gap-2">
-          <Button variant="outline" className="flex-1" size="sm">
+          <Button variant="outline" className="flex-1" size="sm" onClick={onEdit}>
             <IconEdit className="mr-1.5 h-4 w-4" />
             Editar Perfil
           </Button>
-          <Button variant="outline" size="sm">
-            <IconSettings className="h-4 w-4" />
+          <Button variant="outline" size="sm" asChild>
+            <a href={`mailto:${user.email}`}>
+              <IconMail className="h-4 w-4" />
+            </a>
           </Button>
         </div>
       </CardContent>

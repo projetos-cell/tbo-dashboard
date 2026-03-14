@@ -22,6 +22,8 @@ interface UsersFiltersProps {
   onRoleChange: (value: UserRole | "todos") => void
   departmentFilter: string
   onDepartmentChange: (value: string) => void
+  onExport: () => void
+  onInvite: () => void
 }
 
 export function UsersFilters({
@@ -33,6 +35,8 @@ export function UsersFilters({
   onRoleChange,
   departmentFilter,
   onDepartmentChange,
+  onExport,
+  onInvite,
 }: UsersFiltersProps) {
   return (
     <div className="space-y-4">
@@ -98,11 +102,11 @@ export function UsersFilters({
         </Select>
 
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={onExport}>
             <IconDownload className="mr-1.5 h-4 w-4" />
             Exportar
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={onInvite}>
             <IconUserPlus className="mr-1.5 h-4 w-4" />
             Adicionar Usuário
           </Button>

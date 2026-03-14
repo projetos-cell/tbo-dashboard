@@ -1,4 +1,5 @@
 import type { User, UserRole, UserStatus } from "../types"
+import { slugify } from "./slugify"
 
 /**
  * Maps a raw Supabase profile row to the UI User type.
@@ -14,14 +15,17 @@ export function profileToUser(profile: Record<string, unknown>): User {
     status = "inativo"
   }
 
+  const name =
+    (profile.full_name as string) ||
+    (profile.email as string) ||
+    "Sem nome"
+
   return {
     id: profile.id as string,
-    name:
-      (profile.full_name as string) ||
-      (profile.email as string) ||
-      "Sem nome",
+    slug: slugify(name),
+    name,
     email: (profile.email as string) || "",
-    avatar: (profile.avatar_url as string) || undefined,
+    avatar: (profile.avatar_url as string) ?? undefined,
     role: (profile.role as UserRole) || "colaborador",
     department:
       (profile.department as string) ||

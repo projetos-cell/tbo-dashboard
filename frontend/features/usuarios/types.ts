@@ -6,6 +6,7 @@ export interface UserStats {
 
 export interface User {
   id: string
+  slug: string
   name: string
   email: string
   avatar?: string

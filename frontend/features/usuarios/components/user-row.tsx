@@ -25,7 +25,6 @@ import {
   IconCheck,
   IconTrash,
 } from "@tabler/icons-react"
-import { useToast } from "@/hooks/use-toast"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { ROLE_LABELS, ROLE_COLORS, STATUS_LABELS, STATUS_COLORS, type User } from "../types"
 import { formatRelativeDate } from "../utils/format-date"
@@ -43,53 +42,48 @@ interface UserRowProps {
   user: User
   selected: boolean
   onToggle: () => void
+  onEdit: (user: User) => void
+  onToggleActive: (user: User) => void
+  onDelete: (user: User) => void
 }
 
-export function UserRow({ user, selected, onToggle }: UserRowProps) {
-  const { toast } = useToast()
+export function UserRow({
+  user,
+  selected,
+  onToggle,
+  onEdit,
+  onToggleActive,
+  onDelete,
+}: UserRowProps) {
   const [confirmSuspend, setConfirmSuspend] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
-  function handleEdit() {
-    toast({
-      title: "Edição em breve",
-      description: "A edição de perfil será implementada em breve.",
-    })
-  }
-
-  function handleSuspend() {
-    const action = user.status === "suspenso" ? "ativado" : "suspenso"
-    toast({
-      title: `Usuário ${action}`,
-      description: `${user.name} foi ${action} com sucesso.`,
-    })
+  function handleSuspendConfirm() {
+    onToggleActive(user)
     setConfirmSuspend(false)
   }
 
-  function handleDelete() {
-    toast({
-      title: "Usuário removido",
-      description: `${user.name} foi removido do sistema.`,
-      variant: "destructive",
-    })
+  function handleDeleteConfirm() {
+    onDelete(user)
     setConfirmDelete(false)
   }
 
+  const isSuspended = user.status === "suspenso" || user.status === "inativo"
+
   return (
     <>
-      {/* Dialogs render via portal — safe inside table context */}
       <ConfirmDialog
         open={confirmSuspend}
         onOpenChange={setConfirmSuspend}
-        title={user.status === "suspenso" ? "Ativar usuário?" : "Suspender usuário?"}
+        title={isSuspended ? "Ativar usuário?" : "Suspender usuário?"}
         description={
-          user.status === "suspenso"
+          isSuspended
             ? `${user.name} voltará a ter acesso ao sistema.`
             : `${user.name} perderá o acesso ao sistema. Você pode reverter isso a qualquer momento.`
         }
-        confirmLabel={user.status === "suspenso" ? "Ativar" : "Suspender"}
-        variant={user.status === "suspenso" ? "default" : "destructive"}
-        onConfirm={handleSuspend}
+        confirmLabel={isSuspended ? "Ativar" : "Suspender"}
+        variant={isSuspended ? "default" : "destructive"}
+        onConfirm={handleSuspendConfirm}
       />
 
       <ConfirmDialog
@@ -99,7 +93,7 @@ export function UserRow({ user, selected, onToggle }: UserRowProps) {
         description={`Esta ação não pode ser desfeita. ${user.name} será removido permanentemente do sistema.`}
         confirmLabel="Excluir"
         variant="destructive"
-        onConfirm={handleDelete}
+        onConfirm={handleDeleteConfirm}
       />
 
       <TableRow className="group transition-colors hover:bg-muted/50">
@@ -111,7 +105,7 @@ export function UserRow({ user, selected, onToggle }: UserRowProps) {
           />
         </TableCell>
         <TableCell>
-          <Link href={`/usuarios/${user.id}`} className="flex items-center gap-3">
+          <Link href={`/usuarios/${user.slug}`} className="flex items-center gap-3">
             <Avatar className="h-8 w-8">
               {user.avatar && <AvatarImage src={user.avatar} />}
               <AvatarFallback className="text-xs">{getInitials(user.name)}</AvatarFallback>
@@ -151,18 +145,18 @@ export function UserRow({ user, selected, onToggle }: UserRowProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
-                <Link href={`/usuarios/${user.id}`}>
+                <Link href={`/usuarios/${user.slug}`}>
                   <IconUser className="mr-2 h-4 w-4" />
                   Ver Perfil
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleEdit}>
+              <DropdownMenuItem onClick={() => onEdit(user)}>
                 <IconEdit className="mr-2 h-4 w-4" />
                 Editar
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setConfirmSuspend(true)}>
-                {user.status === "suspenso" ? (
+                {isSuspended ? (
                   <>
                     <IconCheck className="mr-2 h-4 w-4" />
                     Ativar

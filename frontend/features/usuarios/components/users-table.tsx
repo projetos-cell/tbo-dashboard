@@ -20,6 +20,9 @@ interface UsersTableProps {
   pageSize: number
   onPageChange: (page: number) => void
   onPageSizeChange: (size: number) => void
+  onEdit: (user: User) => void
+  onToggleActive: (user: User) => void
+  onDelete: (user: User) => void
 }
 
 export function UsersTable({
@@ -28,6 +31,9 @@ export function UsersTable({
   pageSize,
   onPageChange,
   onPageSizeChange,
+  onEdit,
+  onToggleActive,
+  onDelete,
 }: UsersTableProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
@@ -100,6 +106,9 @@ export function UsersTable({
                   user={user}
                   selected={selectedIds.has(user.id)}
                   onToggle={() => toggleOne(user.id)}
+                  onEdit={onEdit}
+                  onToggleActive={onToggleActive}
+                  onDelete={onDelete}
                 />
               ))
             )}

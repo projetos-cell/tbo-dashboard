@@ -47,3 +47,29 @@ export async function getBauReferencesBySubcategory(
   if (error) throw error;
   return (data ?? []) as BauReferenceRow[];
 }
+
+export async function getPendingBauReferences(
+  supabase: SupabaseClient<Database>
+): Promise<BauReferenceRow[]> {
+  const { data, error } = await supabase
+    .from("bau_references" as never)
+    .select("*")
+    .eq("status", "pending" as never)
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []) as BauReferenceRow[];
+}
+
+export async function updateBauReferenceStatus(
+  supabase: SupabaseClient<Database>,
+  id: string,
+  status: "approved" | "rejected"
+): Promise<void> {
+  const { error } = await supabase
+    .from("bau_references" as never)
+    .update({ status } as never)
+    .eq("id", id as never);
+
+  if (error) throw error;
+}

@@ -16,8 +16,10 @@ export interface ToolCategory {
 }
 
 export interface Tool {
+  id?: string;
   name: string;
   description: string;
+  category_id?: string;
   credentials?: TBOToolCredential[];
   accessNotes?: string;
 }
@@ -25,6 +27,14 @@ export interface Tool {
 export interface FerramentasData {
   categories: ToolCategory[];
   boasPraticas: string[];
+}
+
+export interface ToolInsert {
+  name: string;
+  description: string;
+  category_id: string;
+  credentials?: TBOToolCredential[];
+  accessNotes?: string;
 }
 
 // ─── Queries ─────────────────────────────────────────────────────────────────
@@ -53,4 +63,42 @@ export async function getFerramentasData(
     categories: data as unknown as ToolCategory[],
     boasPraticas: FERRAMENTAS_BOAS_PRATICAS,
   };
+}
+
+// ─── Mutations ───────────────────────────────────────────────────────────────
+
+export async function createTool(
+  supabase: SupabaseClient<Database>,
+  data: ToolInsert
+): Promise<void> {
+  const { error } = await supabase
+    .from("tools" as never)
+    .insert(data as never);
+
+  if (error) throw error;
+}
+
+export async function updateTool(
+  supabase: SupabaseClient<Database>,
+  id: string,
+  data: Partial<ToolInsert>
+): Promise<void> {
+  const { error } = await supabase
+    .from("tools" as never)
+    .update(data as never)
+    .eq("id", id as never);
+
+  if (error) throw error;
+}
+
+export async function deleteTool(
+  supabase: SupabaseClient<Database>,
+  id: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("tools" as never)
+    .delete()
+    .eq("id", id as never);
+
+  if (error) throw error;
 }

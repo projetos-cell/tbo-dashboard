@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import {
   createBauReference,
   getBauReferencesBySubcategory,
+  getPendingBauReferences,
+  updateBauReferenceStatus,
   type BauReferenceInsert,
 } from "@/features/cultura/services/bau-criativo";
 
@@ -38,6 +40,46 @@ export function useBauReferences(subcategoryId: string, enabled = true) {
       const msg = (error as Error)?.message ?? "";
       if (msg.includes("does not exist") || msg.includes("relation")) return false;
       return failureCount < 2;
+    },
+  });
+}
+
+const BAU_PENDING_KEY = ["bau-references-pending"] as const;
+
+/** Returns all pending references (admin only). */
+export function usePendingBauReferences() {
+  const supabase = useSupabase();
+
+  return useQuery({
+    queryKey: BAU_PENDING_KEY,
+    queryFn: () => getPendingBauReferences(supabase),
+    staleTime: 1000 * 60 * 2,
+    retry: (failureCount, error) => {
+      const msg = (error as Error)?.message ?? "";
+      if (msg.includes("does not exist") || msg.includes("relation")) return false;
+      return failureCount < 2;
+    },
+  });
+}
+
+/** Approve or reject a pending contribution. */
+export function useUpdateBauReferenceStatus() {
+  const supabase = useSupabase();
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: "approved" | "rejected" }) =>
+      updateBauReferenceStatus(supabase, id, status),
+
+    onSuccess: (_, { status }) => {
+      qc.invalidateQueries({ queryKey: BAU_PENDING_KEY });
+      // Invalidate all subcategory queries so approved item shows up
+      qc.invalidateQueries({ queryKey: ["bau-references"] });
+      toast.success(status === "approved" ? "Referência aprovada!" : "Referência rejeitada.");
+    },
+
+    onError: () => {
+      toast.error("Erro ao atualizar status. Tente novamente.");
     },
   });
 }

@@ -1,98 +1,32 @@
-# Cultura — Relatório de Melhoria Ciclo 2
-**Data:** 2026-03-14
-**Branch:** claude/improve-20260314-1407
+# Cultura — Melhoria Contínua [2026-03-14]
 
----
+## Ciclo 4
 
-## Diagnóstico
+### Diagnóstico
+- 13 páginas analisadas
+- 4 problemas encontrados (P0: 0, P1: 2, P2: 2, P3: 0)
 
-### Módulo auditado
-`frontend/app/(auth)/cultura/` — 14 páginas + `frontend/features/cultura/` (services, hooks, components)
+### Implementado nesta rodada
 
-### Páginas presentes
-- `/cultura` — overview
-- `/cultura/pilares`, `/cultura/valores`, `/cultura/documentos`, `/cultura/manual`
-- `/cultura/rituais`, `/cultura/politicas`, `/cultura/politicas/[slug]`
-- `/cultura/reconhecimentos`, `/cultura/recompensas`
-- `/cultura/academy`, `/cultura/bau-criativo`, `/cultura/ferramentas`
-- `/cultura/analytics`
+#### 1. Baú Criativo — Painel admin de aprovação de contribuições (P1)
+Arquivos tocados:
+- `frontend/features/cultura/services/bau-criativo.ts` — Adicionadas `getPendingBauReferences` e `updateBauReferenceStatus`
+- `frontend/features/cultura/hooks/use-bau-criativo.ts` — Adicionados `usePendingBauReferences` e `useUpdateBauReferenceStatus`
+- `frontend/app/(auth)/cultura/bau-criativo/page.tsx` — Tabs "Catálogo" / "Pendentes (N)" para founder/diretoria com componentes `PendingReferenceRow` e `BauAdminPanel`
 
----
+Comportamento: founder/diretoria veem tab "Pendentes" com badge de contagem. Cada contribuição tem botões Aprovar ✓ e Rejeitar ✗. Ao aprovar, item passa para `status: "approved"` e aparece na lista pública da subcategoria.
 
-## Problemas Encontrados
+#### 2. Ferramentas — Admin CRUD completo (P1)
+Arquivos tocados:
+- `frontend/features/cultura/services/ferramentas.ts` — Adicionadas mutations `createTool`, `updateTool`, `deleteTool` + tipo `ToolInsert`
+- `frontend/features/cultura/hooks/use-ferramentas.ts` — Adicionados hooks `useCreateTool`, `useUpdateTool`, `useDeleteTool`
+- `frontend/features/cultura/components/tool-form-dialog.tsx` — **Novo**: dialog de formulário com Zod, campos name/description/category_id
+- `frontend/app/(auth)/cultura/ferramentas/page.tsx` — Botão "Nova ferramenta" para founder/diretoria, dropdown ⋮ em cada card com Editar/Excluir, `ConfirmDialog` para exclusão
 
-### P0 — Botão/ação quebrada
-1. **BauContributeDialog**: `<Form>` usado incorrectamente — padrão inválido para o componente customizado do projeto.
-2. **BauCriativoPage**: referências usavam `SEED_REFERENCES` hardcoded, nunca chamava o Supabase mesmo com service já implementado.
+### Próximas prioridades (para próxima rodada)
+1. Valores/Pilares — admin CRUD inline (editar nome/descrição/ícone sem sair da página)
+2. Rituais — admin visualização de histórico de ocorrências por ritual
+3. Analytics — melhorar gráficos de engajamento por período
+4. Reconhecimentos — filtro por valor na tab principal
 
-### P1 — CRUD / hook faltando
-3. **useBauReferences inexistente**: service `getBauReferencesBySubcategory` existia mas não havia hook React Query correspondente.
-
-### P2 — Sem feedback/loading
-4. **AcademyPage — "Já concluído"**: botão sem estado `disabled` nem texto de loading durante mutation.
-5. **FerramentasPage — EmptyState**: `<div>` genérico em vez do componente `EmptyState` padrão do sistema.
-
-### P1 — Validação manual inconsistente
-6. **RitualFormDialog**: único dialog do módulo usando `useState + errors` manual em vez de `react-hook-form + zod`.
-
----
-
-## Implementações (6 itens)
-
-### 1. Hook `useBauReferences` — `features/cultura/hooks/use-bau-criativo.ts`
-- Novo hook com React Query, ativado apenas quando card expandido (lazy, evita N+1)
-- Retry inteligente: não tenta novamente se tabela não existir no Supabase
-- `useCreateBauReference` invalidates a query da subcategoria após submit
-
-### 2. Fix `BauContributeDialog` — `features/cultura/components/bau-contribute-dialog.tsx`
-- Corrigido para `<Form form={form} onSubmit={...}>` — padrão correto do componente
-
-### 3. BauCriativoPage com Supabase real — `app/(auth)/cultura/bau-criativo/page.tsx`
-- Removido `SEED_REFERENCES` hardcoded
-- `SubcategoryCard` inline com `useBauReferences` (lazy-load por expansão)
-- Skeleton loading, empty state por subcategoria, EmptyState com CTA
-
-### 4. `RitualFormDialog` migrado — `features/cultura/components/ritual-form-dialog.tsx`
-- Reescrito com `useForm` + `zodResolver`
-- Mensagens inline via `FormMessage`, reset automático
-- Compatível com Zod v4 (`z.number()` + `parseInt` no onChange)
-
-### 5. Loading state no Academy — `app/(auth)/cultura/academy/page.tsx`
-- Prop `isCompleting` no `ModuleCard`
-- Botão "Já concluído": `disabled` durante mutation, texto "Salvando..."
-- Granular por módulo via `markComplete.variables === mod.id`
-
-### 6. EmptyState correto em Ferramentas — `app/(auth)/cultura/ferramentas/page.tsx`
-- `EmptyState` com CTA "Limpar busca" para busca sem resultado
-- `EmptyState` genérico para lista vazia
-
----
-
-## Validação
-
-```
-npx tsc --noEmit — 0 erros
-```
-
----
-
-## Arquivos Modificados
-
-| Arquivo | Tipo |
-|---|---|
-| `features/cultura/hooks/use-bau-criativo.ts` | Novo hook + fix invalidação |
-| `features/cultura/components/bau-contribute-dialog.tsx` | Fix Form tag |
-| `features/cultura/components/ritual-form-dialog.tsx` | Migração react-hook-form |
-| `app/(auth)/cultura/bau-criativo/page.tsx` | Supabase query real + EmptyState |
-| `app/(auth)/cultura/academy/page.tsx` | Loading state no botão |
-| `app/(auth)/cultura/ferramentas/page.tsx` | EmptyState correto |
-
----
-
-## Pendências para Próximo Ciclo
-
-- **P1**: Admin view para aprovar/rejeitar referências do Baú Criativo (moderação `bau_references` com status `pending`)
-- **P2**: RituaisPage — mostrar próxima ocorrência baseado na frequência
-- **P3**: AcademyPage — expor `useMarkModuleIncomplete` na UI (hook existe mas não está conectado)
-- **P3**: FerramentasPage — link direto por ferramenta (não só credenciais)
-- **P2**: AnalyticsPage — seletor de período para gráfico de tendência de reconhecimentos
+### Build status: ✅

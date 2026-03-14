@@ -13,6 +13,10 @@ import {
   IconMail,
   IconExternalLink,
   IconLock,
+  IconPlus,
+  IconPencil,
+  IconTrash,
+  IconDotsVertical,
 } from "@tabler/icons-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,14 +24,29 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { toast } from "sonner";
+import { ConfirmDialog, EmptyState } from "@/components/shared";
 import { type TBOToolCredential } from "@/features/cultura/data/cultura-notion-seed";
-import { useFerramentas } from "@/features/cultura/hooks/use-ferramentas";
-import { EmptyState } from "@/components/shared";
+import {
+  useFerramentas,
+  useCreateTool,
+  useUpdateTool,
+  useDeleteTool,
+} from "@/features/cultura/hooks/use-ferramentas";
+import { ToolFormDialog, type ToolFormData } from "@/features/cultura/components/tool-form-dialog";
+import { useAuthStore } from "@/stores/auth-store";
+import type { Tool, ToolCategory } from "@/features/cultura/services/ferramentas";
 
 function CredentialRow({ cred }: { cred: TBOToolCredential }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -56,7 +75,6 @@ function CredentialRow({ cred }: { cred: TBOToolCredential }) {
         </span>
       </div>
 
-      {/* Email */}
       <div className="flex items-center gap-2">
         <IconMail className="size-3.5 text-muted-foreground shrink-0" />
         <code className="text-xs bg-background px-2 py-1 rounded flex-1 font-mono">
@@ -72,7 +90,6 @@ function CredentialRow({ cred }: { cred: TBOToolCredential }) {
         </Button>
       </div>
 
-      {/* Password */}
       {cred.password && (
         <div className="flex items-center gap-2">
           <IconLock className="size-3.5 text-muted-foreground shrink-0" />
@@ -98,7 +115,6 @@ function CredentialRow({ cred }: { cred: TBOToolCredential }) {
         </div>
       )}
 
-      {/* URL */}
       {cred.url && (
         <div className="flex items-center gap-2">
           <IconExternalLink className="size-3.5 text-muted-foreground shrink-0" />
@@ -113,7 +129,6 @@ function CredentialRow({ cred }: { cred: TBOToolCredential }) {
         </div>
       )}
 
-      {/* Notes */}
       {cred.notes && (
         <p className="text-[11px] text-muted-foreground leading-relaxed mt-1">
           {cred.notes}
@@ -123,7 +138,17 @@ function CredentialRow({ cred }: { cred: TBOToolCredential }) {
   );
 }
 
-function ToolCard({ tool }: { tool: { name: string; description: string; credentials?: TBOToolCredential[]; accessNotes?: string } }) {
+function ToolCard({
+  tool,
+  canEdit,
+  onEdit,
+  onDelete,
+}: {
+  tool: Tool;
+  canEdit: boolean;
+  onEdit: (tool: Tool) => void;
+  onDelete: (tool: Tool) => void;
+}) {
   const [open, setOpen] = useState(false);
   const hasCredentials = tool.credentials && tool.credentials.length > 0;
   const hasPassword = tool.credentials?.some((c) => c.password);
@@ -136,12 +161,37 @@ function ToolCard({ tool }: { tool: { name: string; description: string; credent
             <h3 className="text-sm font-medium">{tool.name}</h3>
             <p className="text-xs text-muted-foreground mt-0.5">{tool.description}</p>
           </div>
-          {hasPassword && (
-            <Badge variant="outline" className="text-[10px] shrink-0 border-amber-300 text-amber-600 dark:text-amber-400">
-              <IconKey className="size-2.5 mr-0.5" />
-              Senha
-            </Badge>
-          )}
+          <div className="flex items-center gap-1 shrink-0">
+            {hasPassword && (
+              <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-600 dark:text-amber-400">
+                <IconKey className="size-2.5 mr-0.5" />
+                Senha
+              </Badge>
+            )}
+            {canEdit && tool.id && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="size-6">
+                    <IconDotsVertical className="size-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onEdit(tool)}>
+                    <IconPencil className="size-3.5 mr-2" />
+                    Editar
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => onDelete(tool)}
+                  >
+                    <IconTrash className="size-3.5 mr-2" />
+                    Excluir
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
 
         {hasCredentials && (
@@ -170,8 +220,18 @@ function ToolCard({ tool }: { tool: { name: string; description: string; credent
 }
 
 export default function FerramentasPage() {
+  const { role } = useAuthStore();
+  const canEdit = role === "founder" || role === "diretoria";
+
   const [search, setSearch] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [editingTool, setEditingTool] = useState<(Tool & { id: string; category_id: string }) | null>(null);
+  const [deletingTool, setDeletingTool] = useState<Tool | null>(null);
+
   const { data, isLoading } = useFerramentas();
+  const createTool = useCreateTool();
+  const updateTool = useUpdateTool();
+  const deleteTool = useDeleteTool();
 
   const allCategories = data?.categories ?? [];
   const boasPraticas = data?.boasPraticas ?? [];
@@ -194,6 +254,29 @@ export default function FerramentasPage() {
     0
   );
 
+  const handleSave = async (data: ToolFormData) => {
+    try {
+      if (editingTool) {
+        await updateTool.mutateAsync({ id: editingTool.id, data });
+      } else {
+        await createTool.mutateAsync(data);
+      }
+    } catch {
+      // handled by mutation onError
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletingTool?.id) return;
+    try {
+      await deleteTool.mutateAsync(deletingTool.id);
+    } catch {
+      // handled by mutation onError
+    } finally {
+      setDeletingTool(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -207,7 +290,21 @@ export default function FerramentasPage() {
             Ferramentas oficiais, credenciais de acesso e boas praticas
           </p>
         </div>
-        <Badge variant="secondary">{totalTools} ferramentas</Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary">{totalTools} ferramentas</Badge>
+          {canEdit && (
+            <Button
+              size="sm"
+              onClick={() => {
+                setEditingTool(null);
+                setShowForm(true);
+              }}
+            >
+              <IconPlus className="size-4 mr-1" />
+              Nova ferramenta
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Search */}
@@ -272,7 +369,18 @@ export default function FerramentasPage() {
             </h2>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {cat.tools.map((tool) => (
-                <ToolCard key={tool.name} tool={tool} />
+                <ToolCard
+                  key={tool.id ?? tool.name}
+                  tool={tool}
+                  canEdit={canEdit}
+                  onEdit={(t) => {
+                    if (t.id && t.category_id) {
+                      setEditingTool(t as Tool & { id: string; category_id: string });
+                      setShowForm(true);
+                    }
+                  }}
+                  onDelete={(t) => setDeletingTool(t)}
+                />
               ))}
             </div>
           </section>
@@ -289,10 +397,31 @@ export default function FerramentasPage() {
           <EmptyState
             icon={IconTool}
             title="Nenhuma ferramenta cadastrada"
-            description="O guia de ferramentas estará disponível em breve."
+            description="Adicione ferramentas ao guia da equipe."
+            cta={canEdit ? { label: "Nova ferramenta", onClick: () => { setEditingTool(null); setShowForm(true); } } : undefined}
           />
         )
       ) : null}
+
+      {/* Form dialog */}
+      <ToolFormDialog
+        open={showForm}
+        onOpenChange={setShowForm}
+        categories={allCategories}
+        editing={editingTool}
+        onSave={handleSave}
+        isSaving={createTool.isPending || updateTool.isPending}
+      />
+
+      {/* Delete confirm */}
+      <ConfirmDialog
+        open={!!deletingTool}
+        onOpenChange={(open) => !open && setDeletingTool(null)}
+        title={`Excluir "${deletingTool?.name}"?`}
+        description="Esta ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

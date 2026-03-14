@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   IconPalette,
   IconSearch,
@@ -14,11 +15,110 @@ import {
   IconExternalLink,
   IconPlus,
   IconBox,
+  IconCheck,
+  IconX,
+  IconClock,
+  IconShieldCheck,
 } from "@tabler/icons-react"
 import { BAU_CRIATIVO } from "@/features/cultura/data/cultura-notion-seed"
 import { EmptyState } from "@/components/shared"
 import { BauContributeDialog } from "@/features/cultura/components/bau-contribute-dialog"
-import { useBauReferences } from "@/features/cultura/hooks/use-bau-criativo"
+import {
+  useBauReferences,
+  usePendingBauReferences,
+  useUpdateBauReferenceStatus,
+} from "@/features/cultura/hooks/use-bau-criativo"
+import { useAuthStore } from "@/stores/auth-store"
+import type { BauReferenceRow } from "@/features/cultura/services/bau-criativo"
+
+// ─── PendingReferenceRow — admin approval card ────────────────────────────────
+
+function PendingReferenceRow({ ref: item }: { ref: BauReferenceRow }) {
+  const updateStatus = useUpdateBauReferenceStatus()
+  const isLoading = updateStatus.isPending && updateStatus.variables?.id === item.id
+
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-medium text-primary hover:underline flex items-center gap-1"
+          >
+            <IconExternalLink className="h-3.5 w-3.5 shrink-0" />
+            {item.name}
+          </a>
+          <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="size-7 text-green-600 hover:text-green-700 hover:bg-green-50"
+            disabled={isLoading}
+            onClick={() => updateStatus.mutate({ id: item.id, status: "approved" })}
+            title="Aprovar"
+          >
+            <IconCheck className="size-3.5" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="size-7 text-red-500 hover:text-red-600 hover:bg-red-50"
+            disabled={isLoading}
+            onClick={() => updateStatus.mutate({ id: item.id, status: "rejected" })}
+            title="Rejeitar"
+          >
+            <IconX className="size-3.5" />
+          </Button>
+        </div>
+      </div>
+      <div className="flex gap-2 text-[11px] text-muted-foreground">
+        <span className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-1.5 py-0.5 rounded-full">
+          {BAU_CRIATIVO.flatMap((c) => c.subcategories).find((s) => s.id === item.subcategory_id)?.name ?? item.subcategory_id}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function BauAdminPanel() {
+  const { data: pending = [], isLoading } = usePendingBauReferences()
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <IconShieldCheck className="size-4 text-muted-foreground" />
+        <h2 className="text-sm font-semibold">Contribuições pendentes</h2>
+        {pending.length > 0 && (
+          <Badge variant="secondary" className="text-xs">{pending.length}</Badge>
+        )}
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 rounded-lg" />
+          ))}
+        </div>
+      ) : pending.length === 0 ? (
+        <EmptyState
+          icon={IconClock}
+          title="Nenhuma contribuição pendente"
+          description="Quando colaboradores enviarem referências, elas aparecerão aqui para revisão."
+        />
+      ) : (
+        <div className="space-y-2">
+          {pending.map((item) => (
+            <PendingReferenceRow key={item.id} ref={item} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 // ─── SubcategoryCard — fetches refs from Supabase when expanded ──────────────
 
@@ -83,11 +183,16 @@ function SubcategoryCard({ sub }: SubcategoryCardProps) {
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function BauCriativoPage() {
+  const { role } = useAuthStore()
+  const isAdmin = role === "founder" || role === "diretoria"
+
   const [search, setSearch] = useState("")
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>(
     Object.fromEntries(BAU_CRIATIVO.map((cat) => [cat.id, true]))
   )
   const [showContributeDialog, setShowContributeDialog] = useState(false)
+
+  const { data: pending = [] } = usePendingBauReferences()
 
   const filteredCategories = BAU_CRIATIVO.map((category) => ({
     ...category,
@@ -98,27 +203,8 @@ export default function BauCriativoPage() {
     ),
   })).filter((category) => category.subcategories.length > 0)
 
-  return (
+  const catalogContent = (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30">
-            <IconBox className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Baú Criativo</h1>
-            <p className="text-sm text-muted-foreground">
-              Referências, ferramentas e inspirações para o dia a dia criativo
-            </p>
-          </div>
-        </div>
-        <Button onClick={() => setShowContributeDialog(true)} className="gap-2">
-          <IconPlus className="h-4 w-4" />
-          Contribuir referência
-        </Button>
-      </div>
-
       {/* Search */}
       <div className="relative">
         <IconSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -187,6 +273,54 @@ export default function BauCriativoPage() {
             )}
           </Card>
         ))
+      )}
+    </div>
+  )
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30">
+            <IconBox className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Baú Criativo</h1>
+            <p className="text-sm text-muted-foreground">
+              Referências, ferramentas e inspirações para o dia a dia criativo
+            </p>
+          </div>
+        </div>
+        <Button onClick={() => setShowContributeDialog(true)} className="gap-2">
+          <IconPlus className="h-4 w-4" />
+          Contribuir referência
+        </Button>
+      </div>
+
+      {/* Tabs: Catálogo | Admin (pendentes) */}
+      {isAdmin ? (
+        <Tabs defaultValue="catalogo">
+          <TabsList>
+            <TabsTrigger value="catalogo">Catálogo</TabsTrigger>
+            <TabsTrigger value="pendentes" className="gap-1.5">
+              Pendentes
+              {pending.length > 0 && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  {pending.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="catalogo" className="mt-4">
+            {catalogContent}
+          </TabsContent>
+          <TabsContent value="pendentes" className="mt-4">
+            <BauAdminPanel />
+          </TabsContent>
+        </Tabs>
+      ) : (
+        catalogContent
       )}
 
       <BauContributeDialog

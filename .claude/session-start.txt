@@ -1,3 +1,5 @@
+10ee495 feat(cultura): ciclo 5 — moderacao bau criativo, icone semantico e saldo no header
+5aee1a3 feat(cultura): ciclo 4 — Baú Criativo admin approval + Ferramentas admin CRUD
 f8e271b docs(audit): ciclo 42 — comercial leads/propostas/atividades
 7670128 feat(comercial): ciclo 42 — leads, propostas e atividades implementados
 28f1117 feat(cultura): ciclo 3 — toast reconhecimento, policy owner_user_id, manual prev/next
@@ -6,8 +8,5 @@ f8e271b docs(audit): ciclo 42 — comercial leads/propostas/atividades
 a9afa32 feat(cultura): ciclo 1 — academy/bau/ferramentas → Supabase + React Query
 bb45d02 feat(okrs): ciclo 41 — check-ins feed, dashboard analytics, teams view
 1611a7d feat(cultura/ferramentas): adicionar credenciais de acesso extraídas do Notion
-081a15f fix(cultura): add Academy, Baú Criativo, Ferramentas to sidebar navigation
-dda5574 feat(cultura): ciclo 40 — academy module sheet + localStorage + bau contribute dialog
- .claude/session-start.txt                    |  16 ++--
- frontend/docs/cultura-melhoria-2026-03-14.md | 111 +++++----------------------
- 2 files changed, 28 insertions(+), 99 deletions(-)
+ .claude/session-start.txt | 7 ++-----
+ 1 file changed, 2 insertions(+), 5 deletions(-)

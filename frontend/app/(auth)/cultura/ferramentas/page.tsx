@@ -287,7 +287,7 @@ export default function FerramentasPage() {
             Guia de Ferramentas
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Ferramentas oficiais, credenciais de acesso e boas praticas
+            Ferramentas oficiais, credenciais de acesso e boas práticas
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -340,7 +340,7 @@ export default function FerramentasPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <IconInfoCircle className="size-4 text-blue-600 dark:text-blue-400" />
-              Boas Praticas
+              Boas Práticas
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">

@@ -61,6 +61,29 @@ export async function getPendingBauReferences(
   return (data ?? []) as BauReferenceRow[];
 }
 
+export interface BauStats {
+  totalApproved: number;
+  totalPending: number;
+  totalRejected: number;
+}
+
+export async function getBauStats(
+  supabase: SupabaseClient<Database>
+): Promise<BauStats> {
+  const { data, error } = await supabase
+    .from("bau_references" as never)
+    .select("status");
+
+  if (error) throw error;
+
+  const rows = (data ?? []) as { status: string }[];
+  return {
+    totalApproved: rows.filter((r) => r.status === "approved").length,
+    totalPending: rows.filter((r) => r.status === "pending").length,
+    totalRejected: rows.filter((r) => r.status === "rejected").length,
+  };
+}
+
 export async function updateBauReferenceStatus(
   supabase: SupabaseClient<Database>,
   id: string,

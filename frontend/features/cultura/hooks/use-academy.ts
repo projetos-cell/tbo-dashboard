@@ -6,9 +6,11 @@ import { useAuthStore } from "@/stores/auth-store";
 import { toast } from "sonner";
 import {
   getAcademyProgress,
+  getAcademyStats,
   markModuleComplete,
   markModuleIncomplete,
 } from "@/features/cultura/services/academy";
+import { TBO_ACADEMY_MODULES } from "@/features/cultura/data/cultura-notion-seed";
 
 function useSupabase() {
   return createClient();
@@ -100,5 +102,17 @@ export function useMarkModuleIncomplete() {
     onSettled: () => {
       qc.invalidateQueries({ queryKey: progressKey(user?.id) });
     },
+  });
+}
+
+/** Aggregate academy stats for the analytics dashboard. */
+export function useAcademyStats() {
+  const supabase = createClient();
+  const totalModules = TBO_ACADEMY_MODULES.length;
+
+  return useQuery({
+    queryKey: ["academy-stats"] as const,
+    queryFn: () => getAcademyStats(supabase, totalModules),
+    staleTime: 1000 * 60 * 5,
   });
 }

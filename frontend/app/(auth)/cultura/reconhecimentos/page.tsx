@@ -144,7 +144,7 @@ export default function ReconhecimentosPage() {
         <div>
           <h1 className="text-xl font-bold tracking-tight">Reconhecimentos</h1>
           <p className="text-sm text-gray-500">
-            Reconheca colegas pelos valores da empresa.
+            Reconheça colegas pelos valores da empresa.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -352,7 +352,7 @@ export default function ReconhecimentosPage() {
         open={!!deletingId}
         onOpenChange={(open) => !open && setDeletingId(null)}
         title="Excluir reconhecimento?"
-        description="Esta acao nao pode ser desfeita."
+        description="Esta ação não pode ser desfeita."
         confirmLabel="Excluir"
         onConfirm={async () => {
           try {

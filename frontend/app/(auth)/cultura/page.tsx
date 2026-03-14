@@ -92,7 +92,7 @@ export default function CulturaPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Cultura</h1>
         <p className="text-gray-500 mt-1">
-          Visao geral dos pilares, rituais, politicas e reconhecimentos da
+          Visão geral dos pilares, rituais, políticas e reconhecimentos da
           empresa.
         </p>
       </div>
@@ -188,9 +188,9 @@ export default function CulturaPage() {
                 <IconBox className="size-5 text-purple-500" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm">Bau Criativo</p>
+                <p className="font-medium text-sm">Baú Criativo</p>
                 <p className="text-xs text-gray-500">
-                  Referencias e inspiracoes
+                  Referências e inspirações
                 </p>
               </div>
               <IconArrowRight className="size-4 text-gray-500 group-hover:text-purple-500 transition-colors" />
@@ -284,7 +284,7 @@ export default function CulturaPage() {
         <EmptyState
           icon={IconHeart}
           title="Nenhum item de cultura cadastrado ainda"
-          description="Comece adicionando pilares, rituais ou politicas."
+          description="Comece adicionando pilares, rituais ou políticas."
           cta={{ label: "Ver pilares", onClick: () => router.push("/cultura/pilares") }}
         />
       )}

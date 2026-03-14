@@ -295,7 +295,7 @@ export default function RecompensasPage() {
         open={!!deletingReward}
         onOpenChange={(open) => !open && setDeletingReward(null)}
         title={`Excluir "${deletingReward?.name}"?`}
-        description="A recompensa sera removida do catalogo. Resgates existentes nao serao afetados."
+        description="A recompensa será removida do catálogo. Resgates existentes não serão afetados."
         confirmLabel="Excluir"
         onConfirm={async () => {
           try {

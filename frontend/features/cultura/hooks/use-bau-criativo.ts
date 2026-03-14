@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import {
   createBauReference,
   getBauReferencesBySubcategory,
+  getBauStats,
   getPendingBauReferences,
   updateBauReferenceStatus,
   type BauReferenceInsert,
@@ -80,6 +81,22 @@ export function useUpdateBauReferenceStatus() {
 
     onError: () => {
       toast.error("Erro ao atualizar status. Tente novamente.");
+    },
+  });
+}
+
+/** Aggregate stats for the analytics dashboard. */
+export function useBauStats() {
+  const supabase = useSupabase();
+
+  return useQuery({
+    queryKey: ["bau-stats"] as const,
+    queryFn: () => getBauStats(supabase),
+    staleTime: 1000 * 60 * 5,
+    retry: (failureCount, error) => {
+      const msg = (error as Error)?.message ?? "";
+      if (msg.includes("does not exist") || msg.includes("relation")) return false;
+      return failureCount < 2;
     },
   });
 }

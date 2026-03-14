@@ -23,6 +23,9 @@ import {
 } from "@/features/cultura/hooks/use-reconhecimentos";
 import { useRitualTypes } from "@/features/cultura/hooks/use-ritual-types";
 import { useRewardsKPIs } from "@/features/cultura/hooks/use-rewards";
+import { useAcademyStats } from "@/features/cultura/hooks/use-academy";
+import { useBauStats } from "@/features/cultura/hooks/use-bau-criativo";
+import { TBO_ACADEMY_MODULES } from "@/features/cultura/data/cultura-notion-seed";
 import {
   CULTURA_CATEGORIES,
   CULTURA_STATUS,
@@ -45,6 +48,8 @@ function AnalyticsContent() {
   const { data: trend, isLoading: trendLoading } = useRecognitionMonthlyTrend(6);
   const { data: rituals } = useRitualTypes(true);
   const { data: rewardKPIs } = useRewardsKPIs();
+  const { data: academyStats, isLoading: academyLoading } = useAcademyStats();
+  const { data: bauStats, isLoading: bauLoading } = useBauStats();
 
   const totalItems = items?.length || 0;
   const publishedItems =
@@ -72,7 +77,7 @@ function AnalyticsContent() {
           Analytics de Cultura
         </h1>
         <p className="text-sm text-gray-500">
-          Metricas e insights sobre o conteudo de cultura. Visivel apenas para
+          Métricas e insights sobre o conteúdo de cultura. Visível apenas para
           fundadores e administradores.
         </p>
       </div>
@@ -105,7 +110,7 @@ function AnalyticsContent() {
           isLoading={isLoading}
         />
         <MetricCard
-          label="Com edicoes"
+          label="Com edições"
           value={editedItems}
           color="text-blue-600"
           isLoading={isLoading}
@@ -127,11 +132,11 @@ function AnalyticsContent() {
             </div>
             <div>
               <p className="text-2xl font-bold">{recKPIs?.thisMonth ?? 0}</p>
-              <p className="text-xs text-gray-500">Este mes</p>
+              <p className="text-xs text-gray-500">Este mês</p>
             </div>
             <div>
               <p className="text-2xl font-bold">{recKPIs?.avgPerPerson?.toFixed(1) ?? "0"}</p>
-              <p className="text-xs text-gray-500">Media por pessoa</p>
+              <p className="text-xs text-gray-500">Média por pessoa</p>
             </div>
             <div>
               <p className="text-2xl font-bold">{recKPIs?.firefliesCount ?? 0}</p>
@@ -264,7 +269,7 @@ function AnalyticsContent() {
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-medium">
-            Distribuicao por status (itens genericos)
+            Distribuição por status (itens genéricos)
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -340,6 +345,100 @@ function AnalyticsContent() {
               );
             })}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* TBO Academy */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium">TBO Academy</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {academyLoading ? (
+            <div className="grid gap-4 sm:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 rounded-lg" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <p className="text-2xl font-bold">{academyStats?.totalUsersStarted ?? 0}</p>
+                <p className="text-xs text-gray-500">Iniciaram a trilha</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{academyStats?.totalUsersCompleted ?? 0}</p>
+                <p className="text-xs text-gray-500">Concluíram todos os módulos</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{academyStats?.avgCompletionPct ?? 0}%</p>
+                <p className="text-xs text-gray-500">Conclusão média</p>
+              </div>
+            </div>
+          )}
+          {!academyLoading && (academyStats?.moduleCompletions ?? []).length > 0 && (
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-xs font-medium text-gray-500 mb-3">Módulos mais concluídos</p>
+              <div className="space-y-2">
+                {(academyStats?.moduleCompletions ?? [])
+                  .sort((a, b) => b.count - a.count)
+                  .slice(0, 5)
+                  .map((m) => {
+                    const mod = TBO_ACADEMY_MODULES.find((x) => x.id === m.moduleId);
+                    const maxCount = (academyStats?.moduleCompletions[0]?.count ?? 1);
+                    const pct = Math.round((m.count / maxCount) * 100);
+                    return (
+                      <div key={m.moduleId} className="space-y-0.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="flex items-center gap-1">
+                            <span>{mod?.emoji ?? "📖"}</span>
+                            <span className="truncate">{mod?.title ?? m.moduleId}</span>
+                          </span>
+                          <span className="text-gray-500 font-medium">{m.count}</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-emerald-400 transition-all"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Baú Criativo */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium">Baú Criativo</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {bauLoading ? (
+            <div className="grid gap-4 sm:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 rounded-lg" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <p className="text-2xl font-bold">{bauStats?.totalApproved ?? 0}</p>
+                <p className="text-xs text-gray-500">Referências aprovadas</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-amber-600">{bauStats?.totalPending ?? 0}</p>
+                <p className="text-xs text-gray-500">Pendentes de revisão</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-400">{bauStats?.totalRejected ?? 0}</p>
+                <p className="text-xs text-gray-500">Rejeitadas</p>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -92,7 +92,7 @@ function ModuleCard({
                 <span>{mod.estimatedMinutes} min</span>
                 {mod.requiredForOnboarding && (
                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                    Obrigatorio
+                    Obrigatório
                   </Badge>
                 )}
                 {isCompleted && (
@@ -100,7 +100,7 @@ function ModuleCard({
                     variant="outline"
                     className="text-[10px] px-1.5 py-0 border-green-500/50 text-green-700 dark:text-green-400"
                   >
-                    Concluido
+                    Concluído
                   </Badge>
                 )}
               </div>
@@ -139,7 +139,7 @@ function ModuleCard({
               <>
                 <Button size="sm" variant="default" onClick={onStart}>
                   <IconArrowRight className="h-4 w-4 mr-1.5" />
-                  Iniciar modulo
+                  Iniciar módulo
                 </Button>
                 <Button
                   size="sm"
@@ -155,10 +155,10 @@ function ModuleCard({
               <>
                 <Button size="sm" variant="ghost" disabled>
                   <IconCheck className="h-4 w-4 mr-1.5 text-green-600" />
-                  Modulo concluido
+                  Módulo concluído
                 </Button>
                 <Button size="sm" variant="outline" onClick={onStart}>
-                  Revisar modulo
+                  Revisar módulo
                 </Button>
               </>
             )}
@@ -211,7 +211,7 @@ export default function AcademyPage() {
           <h1 className="text-2xl font-bold tracking-tight">TBO Academy</h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          Trilha de aprendizado cultural — conclua todos os modulos obrigatorios
+          Trilha de aprendizado cultural — conclua todos os módulos obrigatórios
         </p>
       </div>
 
@@ -235,7 +235,7 @@ export default function AcademyPage() {
                 <div className="flex items-center gap-1.5">
                   <IconBookmark className="h-4 w-4" />
                   <span>
-                    {completedCount} de {totalCount} modulos concluidos
+                    {completedCount} de {totalCount} módulos concluídos
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -291,9 +291,9 @@ export default function AcademyPage() {
         <Card className="border-green-500/40 bg-green-50/50 dark:bg-green-950/20">
           <CardContent className="pt-6 text-center space-y-2">
             <IconCheck className="h-10 w-10 mx-auto text-green-600" />
-            <p className="font-semibold text-lg">Trilha concluida!</p>
+            <p className="font-semibold text-lg">Trilha concluída!</p>
             <p className="text-sm text-muted-foreground">
-              Voce completou todos os modulos da TBO Academy. Bem-vindo ao time.
+              Você completou todos os módulos da TBO Academy. Bem-vindo ao time.
             </p>
           </CardContent>
         </Card>

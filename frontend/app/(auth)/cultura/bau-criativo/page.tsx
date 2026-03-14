@@ -249,9 +249,9 @@ export default function BauCriativoPage() {
             <IconBox className="h-5 w-5 text-amber-600 dark:text-amber-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Bau Criativo</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Baú Criativo</h1>
             <p className="text-sm text-muted-foreground">
-              Referencias, ferramentas e inspiracoes para o dia a dia criativo
+              Referências, ferramentas e inspirações para o dia a dia criativo
             </p>
           </div>
         </div>
@@ -263,10 +263,10 @@ export default function BauCriativoPage() {
 
       <Tabs defaultValue="referencias">
         <TabsList>
-          <TabsTrigger value="referencias">Referencias</TabsTrigger>
+          <TabsTrigger value="referencias">Referências</TabsTrigger>
           {canModerate && (
             <TabsTrigger value="moderacao">
-              Moderacao
+              Moderação
               {pending.length > 0 && (
                 <Badge variant="secondary" className="ml-1.5 text-xs">
                   {pending.length}
@@ -293,7 +293,7 @@ export default function BauCriativoPage() {
             <CardContent className="flex items-start gap-3 pt-6">
               <IconPalette className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
               <p className="text-sm text-amber-900 dark:text-amber-200">
-                Aprenda com quem ja fez. Fonte viva de referencias segmentadas por setor da TBO.
+                Aprenda com quem já fez. Fonte viva de referências segmentadas por setor da TBO.
               </p>
             </CardContent>
           </Card>

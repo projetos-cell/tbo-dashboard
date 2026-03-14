@@ -17,6 +17,7 @@ import {
   getPointsBalance,
   checkRateLimit,
   checkDuplicate,
+  getRecognitionMonthlyTrend,
 } from "@/features/cultura/services/reconhecimentos";
 import type { Database } from "@/lib/supabase/types";
 
@@ -186,6 +187,19 @@ export function useCheckDuplicate(
     queryFn: () => checkDuplicate(supabase, fromUser!, toUser!, valueId!, windowHours),
     staleTime: 1000 * 60 * 1,
     enabled: !!tenantId && !!fromUser && !!toUser && !!valueId,
+  });
+}
+
+// ─── Monthly trend (last N months) ───
+export function useRecognitionMonthlyTrend(months: number = 6) {
+  const supabase = useSupabase();
+  const tenantId = useTenantId();
+
+  return useQuery({
+    queryKey: ["recognition-monthly-trend", tenantId, months],
+    queryFn: () => getRecognitionMonthlyTrend(supabase, months),
+    staleTime: 1000 * 60 * 5,
+    enabled: !!tenantId,
   });
 }
 

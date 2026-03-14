@@ -1,5 +1,15 @@
 ﻿"use client";
 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -7,7 +17,10 @@ import { RequireRole } from "@/features/auth/components/require-role";
 import { CulturaOverviewStats } from "@/features/cultura/components/cultura-overview-stats";
 import { ErrorState } from "@/components/shared";
 import { useCulturaItems } from "@/features/cultura/hooks/use-cultura";
-import { useRecognitionKPIs } from "@/features/cultura/hooks/use-reconhecimentos";
+import {
+  useRecognitionKPIs,
+  useRecognitionMonthlyTrend,
+} from "@/features/cultura/hooks/use-reconhecimentos";
 import { useRitualTypes } from "@/features/cultura/hooks/use-ritual-types";
 import { useRewardsKPIs } from "@/features/cultura/hooks/use-rewards";
 import {
@@ -29,6 +42,7 @@ export default function CulturaAnalyticsPage() {
 function AnalyticsContent() {
   const { data: items, isLoading, error, refetch } = useCulturaItems();
   const { data: recKPIs } = useRecognitionKPIs();
+  const { data: trend, isLoading: trendLoading } = useRecognitionMonthlyTrend(6);
   const { data: rituals } = useRitualTypes(true);
   const { data: rewardKPIs } = useRewardsKPIs();
 
@@ -125,21 +139,69 @@ function AnalyticsContent() {
             </div>
           </div>
 
-          {/* Top values */}
+          {/* Top values — bar chart */}
           {recKPIs?.byValue && recKPIs.byValue.length > 0 && (
             <div className="mt-4 pt-4 border-t">
-              <p className="text-xs font-medium text-gray-500 mb-2">Valores mais reconhecidos</p>
-              <div className="flex flex-wrap gap-2">
-                {recKPIs.byValue.map((v: { value_id: string; count: number }) => {
+              <p className="text-xs font-medium text-gray-500 mb-3">Valores mais reconhecidos</p>
+              <div className="space-y-2">
+                {recKPIs.byValue.map((v: { value_id: string; value_name?: string; value_emoji?: string; count: number }) => {
                   const valDef = TBO_VALUES.find((tv) => tv.id === v.value_id);
+                  const maxCount = recKPIs.byValue[0]?.count ?? 1;
+                  const pct = Math.round((v.count / maxCount) * 100);
                   return (
-                    <Badge key={v.value_id} variant="secondary" className="text-xs">
-                      {valDef?.emoji ?? ""} {valDef?.name ?? v.value_id} ({v.count})
-                    </Badge>
+                    <div key={v.value_id} className="space-y-0.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="flex items-center gap-1">
+                          <span>{valDef?.emoji ?? v.value_emoji ?? ""}</span>
+                          <span>{valDef?.name ?? v.value_name ?? v.value_id}</span>
+                        </span>
+                        <span className="text-gray-500 font-medium">{v.count}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-amber-400 transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
                   );
                 })}
               </div>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Monthly trend chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium">
+            Tendência de reconhecimentos (últimos 6 meses)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {trendLoading ? (
+            <Skeleton className="h-48 w-full rounded-lg" />
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={trend ?? []} margin={{ top: 4, right: 8, bottom: 4, left: -20 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip
+                  contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                  formatter={(value, name) =>
+                    [value ?? 0, name === "manual" ? "Manual" : "Fireflies"] as [number, string]
+                  }
+                />
+                <Legend
+                  wrapperStyle={{ fontSize: 11 }}
+                  formatter={(value) => (value === "manual" ? "Manual" : "Fireflies")}
+                />
+                <Bar dataKey="manual" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} name="manual" />
+                <Bar dataKey="fireflies" stackId="a" fill="#6366f1" radius={[4, 4, 0, 0]} name="fireflies" />
+              </BarChart>
+            </ResponsiveContainer>
           )}
         </CardContent>
       </Card>

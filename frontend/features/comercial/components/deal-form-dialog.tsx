@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { z } from "zod";
@@ -9,22 +9,12 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { DEAL_STAGES, DEAL_SOURCES } from "@/lib/constants";
 import { useAuthStore } from "@/stores/auth-store";
 import { useCreateDeal, useUpdateDeal } from "@/features/comercial/hooks/use-commercial";
 import { toast } from "sonner";
 import type { Database } from "@/lib/supabase/types";
+import { DealFormFields, type DealFormValues } from "./deal-form-fields";
 
 type DealRow = Database["public"]["Tables"]["crm_deals"]["Row"];
 
@@ -51,7 +41,7 @@ interface DealFormDialogProps {
   deal?: DealRow | null;
 }
 
-const emptyForm = {
+const emptyForm: DealFormValues = {
   name: "",
   company: "",
   contact: "",
@@ -66,15 +56,11 @@ const emptyForm = {
   notes: "",
 };
 
-export function DealFormDialog({
-  open,
-  onOpenChange,
-  deal,
-}: DealFormDialogProps) {
+export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps) {
   const tenantId = useAuthStore((s) => s.tenantId);
   const createDeal = useCreateDeal();
   const updateDeal = useUpdateDeal();
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState<DealFormValues>(emptyForm);
   const [errors, setErrors] = useState<Partial<Record<keyof DealFormData, string>>>({});
 
   const isEditing = !!deal;
@@ -101,7 +87,7 @@ export function DealFormDialog({
     setErrors({});
   }, [deal, open]);
 
-  function handleChange(field: string, value: string) {
+  function handleChange(field: keyof DealFormValues, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: undefined }));
   }
@@ -160,177 +146,14 @@ export function DealFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>
-            {isEditing ? "Editar Deal" : "Novo Deal"}
-          </DialogTitle>
+          <DialogTitle>{isEditing ? "Editar Deal" : "Novo Deal"}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Nome do Deal *</Label>
-            <Input
-              id="name"
-              value={form.name}
-              onChange={(e) => handleChange("name", e.target.value)}
-              required
-            />
-            {errors.name && (
-              <p className="text-xs text-red-500">{errors.name}</p>
-            )}
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="company">Empresa</Label>
-              <Input
-                id="company"
-                value={form.company}
-                onChange={(e) => handleChange("company", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contact">Contato</Label>
-              <Input
-                id="contact"
-                value={form.contact}
-                onChange={(e) => handleChange("contact", e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="contact_email">Email Contato</Label>
-              <Input
-                id="contact_email"
-                type="email"
-                value={form.contact_email}
-                onChange={(e) => handleChange("contact_email", e.target.value)}
-              />
-              {errors.contact_email && (
-                <p className="text-xs text-red-500">{errors.contact_email}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="stage">Etapa</Label>
-              <Select
-                value={form.stage}
-                onValueChange={(v) => handleChange("stage", v)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(DEAL_STAGES).map(([key, cfg]) => (
-                    <SelectItem key={key} value={key}>
-                      {cfg.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="source">Origem</Label>
-              <Select
-                value={form.source}
-                onValueChange={(v) => handleChange("source", v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {DEAL_SOURCES.map((src) => (
-                    <SelectItem key={src} value={src} className="capitalize">
-                      {src.replace("_", " ")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="value">Valor (R$)</Label>
-              <Input
-                id="value"
-                type="number"
-                step="0.01"
-                value={form.value}
-                onChange={(e) => handleChange("value", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="probability">Probabilidade (%)</Label>
-              <Input
-                id="probability"
-                type="number"
-                min="0"
-                max="100"
-                value={form.probability}
-                onChange={(e) => handleChange("probability", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="expected_close">Previsão Fechamento</Label>
-              <Input
-                id="expected_close"
-                type="date"
-                value={form.expected_close}
-                onChange={(e) =>
-                  handleChange("expected_close", e.target.value)
-                }
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="owner_name">Responsável</Label>
-              <Input
-                id="owner_name"
-                value={form.owner_name}
-                onChange={(e) => handleChange("owner_name", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="priority">Prioridade</Label>
-              <Select
-                value={form.priority}
-                onValueChange={(v) => handleChange("priority", v)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="baixa">Baixa</SelectItem>
-                  <SelectItem value="media">Média</SelectItem>
-                  <SelectItem value="alta">Alta</SelectItem>
-                  <SelectItem value="urgente">Urgente</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="notes">Observações</Label>
-            <Textarea
-              id="notes"
-              value={form.notes}
-              onChange={(e) => handleChange("notes", e.target.value)}
-              rows={2}
-            />
-          </div>
+          <DealFormFields form={form} errors={errors} onChange={handleChange} />
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
             <Button type="submit" disabled={isPending || !form.name.trim()}>

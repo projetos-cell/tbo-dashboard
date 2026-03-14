@@ -250,6 +250,56 @@ export async function checkDuplicate(
   return (data?.length ?? 0) > 0;
 }
 
+// ─── Monthly trend (last N months) ───
+export interface MonthlyTrendPoint {
+  month: string; // "Jan", "Fev", etc.
+  total: number;
+  manual: number;
+  fireflies: number;
+}
+
+export async function getRecognitionMonthlyTrend(
+  supabase: SupabaseClient<Database>,
+  months: number = 6
+): Promise<MonthlyTrendPoint[]> {
+  const since = new Date();
+  since.setMonth(since.getMonth() - months + 1);
+  since.setDate(1);
+  since.setHours(0, 0, 0, 0);
+
+  const { data, error } = await supabase
+    .from("recognitions")
+    .select("created_at,source")
+    .gte("created_at", since.toISOString())
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+
+  const PT_MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+  // Build map of last N months
+  const map = new Map<string, MonthlyTrendPoint>();
+  for (let i = 0; i < months; i++) {
+    const d = new Date();
+    d.setMonth(d.getMonth() - (months - 1 - i));
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    map.set(key, { month: PT_MONTHS[d.getMonth()], total: 0, manual: 0, fireflies: 0 });
+  }
+
+  (data ?? []).forEach((r) => {
+    if (!r.created_at) return;
+    const d = new Date(r.created_at);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const entry = map.get(key);
+    if (!entry) return;
+    entry.total++;
+    if (r.source === "fireflies") entry.fireflies++;
+    else entry.manual++;
+  });
+
+  return Array.from(map.values());
+}
+
 // ─── Audit log ───
 export async function logAudit(
   supabase: SupabaseClient<Database>,

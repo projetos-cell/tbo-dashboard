@@ -839,3 +839,39 @@ Nenhuma — sem alterações de schema.
 
 - Build via `pnpm build` falha com erro de lock (dev server Turbopack em execução paralela); TypeScript sem erros e BUILD_ID gerado na tentativa anterior confirmam integridade do código
 
+
+## Ciclo — 2026-03-13 Ciclo 24
+
+**Módulo**: Team (Edge Functions) + Demands (refactor)
+**Branch**: main
+**Build**: ✅ (zero erros TypeScript)
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|----------------|-------|--------|----------|
+| invite-team-member Edge Function | ❌ (ausente, código referenciava) | ✅ | Auth + RBAC + inviteUserByEmail + profile + tenant_members + audit |
+| manage-team-member Edge Function | ⚠️ (untracked) | ✅ | Commitado — deactivate/reactivate/delete com ban auth |
+| delete-user-dialog | ⚠️ | ✅ | Usa useDeleteTeamMember via Edge Function |
+| use-team.ts hooks | ⚠️ | ✅ | useDeleteTeamMember + useToggleUserActive via Edge Functions |
+| demands-list.tsx (342L) | ⚠️ (viola 200L) | ✅ | 342L → 37L via useDemandColumns + DemandActionsMenu |
+| demands-toolbar.tsx (295L) | ⚠️ (viola 200L) | ✅ | 295L → 151L via DemandFilterDropdown + DemandSortDropdown |
+
+### Implementado
+
+- feat(supabase): invite-team-member Edge Function — RBAC (founder/diretoria), inviteUserByEmail, insert profile + tenant_members, audit log, rollback em caso de erro (arquivos: supabase/functions/invite-team-member/index.ts)
+- feat(supabase): manage-team-member Edge Function commitado — deactivate/reactivate/delete com ban auth user, audit trail (arquivos: supabase/functions/manage-team-member/index.ts)
+- refactor(demands): demands-list.tsx split em 3 arquivos — useDemandColumns (200L), DemandActionsMenu (124L), demands-list.tsx (37L) (arquivos: use-demand-columns.tsx, demand-actions-menu.tsx, demands-list.tsx)
+- refactor(demands): demands-toolbar.tsx split em 3 arquivos — DemandFilterDropdown (115L), DemandSortDropdown (66L), demands-toolbar.tsx (151L) (arquivos: demand-filter-dropdown.tsx, demand-sort-dropdown.tsx, demands-toolbar.tsx)
+
+### Migrations aplicadas
+- Nenhuma (Edge Functions não requerem migrations de DB)
+
+### Próximo ciclo
+- demand-board-card.tsx (280L) e demand-comment-thread.tsx (283L) — ainda acima de 200L
+- deal-form-dialog.tsx (344L), deal-pipeline.tsx (285L) — violations no módulo comercial
+- task-description-editor.tsx (299L), my-tasks-board-view.tsx (275L) — violations no módulo tasks
+- Edge Functions precisam ser deployadas no Supabase: invite-team-member + manage-team-member
+
+### Debt técnico
+- Edge Functions criadas mas não deployadas — necessário rodar supabase functions deploy invite-team-member e supabase functions deploy manage-team-member em produção

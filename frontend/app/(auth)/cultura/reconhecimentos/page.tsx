@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { IconPlus, IconAward, IconSearch, IconX } from "@tabler/icons-react";
+import { IconPlus, IconAward, IconSearch, IconX, IconCalendar } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +48,7 @@ export default function ReconhecimentosPage() {
   const [search, setSearch] = useState("");
   const [filterPerson, setFilterPerson] = useState("all");
   const [filterValue, setFilterValue] = useState("all");
+  const [filterPeriod, setFilterPeriod] = useState("all");
 
   // Realtime subscription
   useRecognitionsRealtime();
@@ -94,10 +95,16 @@ export default function ReconhecimentosPage() {
     if (filterValue !== "all") {
       result = result.filter((r) => r.value_id === filterValue);
     }
+    if (filterPeriod !== "all") {
+      const days = parseInt(filterPeriod, 10);
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - days);
+      result = result.filter((r) => r.created_at && new Date(r.created_at) >= cutoff);
+    }
     return result;
-  }, [recognitions, search, filterPerson, filterValue, userMap]);
+  }, [recognitions, search, filterPerson, filterValue, filterPeriod, userMap]);
 
-  const hasActiveFilters = search.trim() || filterPerson !== "all" || filterValue !== "all";
+  const hasActiveFilters = search.trim() || filterPerson !== "all" || filterValue !== "all" || filterPeriod !== "all";
 
   const handleSubmit = async (data: {
     to_user: string;
@@ -193,6 +200,18 @@ export default function ReconhecimentosPage() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={filterPeriod} onValueChange={setFilterPeriod}>
+          <SelectTrigger className="w-36 h-8 text-sm">
+            <IconCalendar className="size-3.5 mr-1 text-gray-400" />
+            <SelectValue placeholder="Período" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os períodos</SelectItem>
+            <SelectItem value="7">Últimos 7 dias</SelectItem>
+            <SelectItem value="30">Últimos 30 dias</SelectItem>
+            <SelectItem value="90">Últimos 90 dias</SelectItem>
+          </SelectContent>
+        </Select>
         {hasActiveFilters && (
           <Button
             variant="ghost"
@@ -202,6 +221,7 @@ export default function ReconhecimentosPage() {
               setSearch("");
               setFilterPerson("all");
               setFilterValue("all");
+              setFilterPeriod("all");
             }}
           >
             Limpar filtros

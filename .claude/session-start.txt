@@ -1,3 +1,4 @@
+77cec43 feat(team): Edge Function invite-team-member + refactor demands (342L/295L → <200L)
 21949de feat(pessoas): redesign organograma to classic top-down tree layout
 4a7519e docs(audit): ciclo 23 — audit-log atualizado
 78f9273 refactor(comercial): split rd-pipeline-kanban (353L → 2 arquivos <200L)
@@ -7,9 +8,9 @@ e3fb699 refactor(tasks): split task-actions-toolbar (381L → 3 arquivos <200L)
 178db27 refactor(financeiro): ciclo 22 — split contas/page.tsx (515L → 3 arquivos)
 3619a68 refactor(mercado): ciclo 22 — split page.tsx (549L → 247L + components file)
 79e8973 refactor(demands): ciclo 22 — split demand-detail-sidebar.tsx (455L → 3 arquivos)
-b2d94ee docs(audit): ciclo 21 — audit-log atualizado
- .claude/session-start.txt                          | 20 ++++----
- .../components/modules/team/delete-user-dialog.tsx | 13 ++++--
- frontend/hooks/use-team.ts                         |  4 +-
- frontend/services/team.ts                          | 53 ++++++++++++++++++----
- 4 files changed, 66 insertions(+), 24 deletions(-)
+ .claude/audit-log.md                               |  36 ++++
+ .claude/session-start.txt                          |   7 +-
+ frontend/components/layout/app-sidebar.tsx         |   2 +
+ .../layout/sidebar/sortable-nav-group.tsx          |   3 +
+ frontend/hooks/use-sidebar-dnd.ts                  | 195 ++++++---------------
+ 5 files changed, 99 insertions(+), 144 deletions(-)

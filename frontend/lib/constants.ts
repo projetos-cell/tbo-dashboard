@@ -513,3 +513,10 @@ export const OKRS_NAV_ITEMS: readonly SubNavItem[] = [
   { href: "/okrs/dashboard", label: "Dashboard", icon: "bar-chart-3" },
   { href: "/okrs/configuracoes", label: "Configurações", icon: "settings" },
 ] as const;
+
+export const MERCADO_NAV_ITEMS: readonly SubNavItem[] = [
+  { href: "/mercado", label: "Visão Geral", icon: "layout-dashboard" },
+  { href: "/mercado/censo", label: "Censo IBGE", icon: "map-pin" },
+  { href: "/mercado/lancamentos", label: "Lançamentos", icon: "building-2" },
+  { href: "/mercado/indicadores", label: "Indicadores", icon: "trending-up" },
+] as const;

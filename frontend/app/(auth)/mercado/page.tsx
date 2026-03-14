@@ -1,106 +1,47 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import Link from "next/link";
 import {
   IconUsers,
-  IconHome,
+  IconBuilding,
   IconTrendingUp,
+  IconChartBar,
+  IconArrowRight,
   IconMapPin,
+  IconCurrencyReal,
+  IconTarget,
 } from "@tabler/icons-react";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
-import {
-  CENSO_RESUMO,
-  POPULACAO_ABSOLUTA,
-  DENSIDADE_POPULACIONAL,
-  VARIACAO_POPULACIONAL,
-  ACRESCIMO_DOMICILIOS,
-  BAIRROS_VARIACAO,
-  REGIONAIS,
-} from "@/features/mercado/utils/censo-curitiba-data";
-import {
-  KPIBig,
-  HorizontalBarCard,
-  HistoricalLineCard,
-  OccupancyDonut,
-  EstabelecimentosGrid,
-  BairrosMapGrid,
-  fmtNum,
-  fmtPct,
-} from "@/features/mercado/components/mercado-page-components";
-
-type MapMetric = "variacao" | "populacao";
+import { Badge } from "@/components/ui/badge";
+import { CENSO_PR_RESUMO } from "@/features/mercado/utils/censo-pr-data";
+import { LANCAMENTOS } from "@/features/mercado/utils/lancamentos-pr-data";
+import { MERCADO_CURITIBA, CREDITO_IMOBILIARIO } from "@/features/mercado/utils/indicadores-data";
+import { KPIBig, fmtNum } from "@/features/mercado/components/mercado-page-components";
 
 export default function MercadoPage() {
-  const [regionalFilter, setRegionalFilter] = useState("Todos");
-  const [bairroSearch, setBairroSearch] = useState("");
-  const [mapMetric, setMapMetric] = useState<MapMetric>("variacao");
-
-  const filteredBairros = useMemo(() => {
-    let entries = Object.entries(BAIRROS_VARIACAO);
-
-    if (regionalFilter !== "Todos") {
-      entries = entries.filter(([, d]) => d.regional === regionalFilter);
-    }
-
-    if (bairroSearch.trim()) {
-      const q = bairroSearch.toLowerCase();
-      entries = entries.filter(([nome]) => nome.toLowerCase().includes(q));
-    }
-
-    entries.sort((a, b) => {
-      if (mapMetric === "populacao") return b[1].populacao - a[1].populacao;
-      return b[1].variacao - a[1].variacao;
-    });
-
-    return entries;
-  }, [regionalFilter, bairroSearch, mapMetric]);
+  const lancamentosAtivos = LANCAMENTOS.filter(
+    (l) => l.status === "lancamento" || l.status === "em-obras",
+  ).length;
+  const vsoMedio =
+    LANCAMENTOS.reduce((acc, l) => acc + (l.unidadesVendidas / l.unidades) * 100, 0) /
+    LANCAMENTOS.length;
 
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">
-          Censo 2022 — Curitiba
+          Inteligência de Mercado
         </h1>
-        <p className="text-gray-500">
-          Populacao e domicilios — Primeiros resultados do Censo 2022.
+        <p className="text-muted-foreground">
+          Dados demográficos, lançamentos imobiliários e indicadores do Paraná
         </p>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <Select value={regionalFilter} onValueChange={setRegionalFilter}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Regional" />
-          </SelectTrigger>
-          <SelectContent>
-            {REGIONAIS.map((r) => (
-              <SelectItem key={r} value={r}>
-                {r}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <input
-          type="text"
-          placeholder="Buscar bairro..."
-          value={bairroSearch}
-          onChange={(e) => setBairroSearch(e.target.value)}
-          className="h-9 rounded-md border bg-white px-3 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-tbo-orange"
-        />
       </div>
 
       {/* KPI Row */}
@@ -108,140 +49,189 @@ export default function MercadoPage() {
         <Card className="py-4">
           <CardContent>
             <KPIBig
-              label="Populacao total"
-              value={fmtNum(CENSO_RESUMO.populacao)}
-              sub={`Densidade media: ${CENSO_RESUMO.densidadeMedia} hab/ha`}
+              label="População PR"
+              value={fmtNum(CENSO_PR_RESUMO.populacao)}
+              sub={`+${CENSO_PR_RESUMO.crescimento}% vs 2010`}
               icon={IconUsers}
             />
           </CardContent>
         </Card>
-
         <Card className="py-4">
           <CardContent>
             <KPIBig
-              label="Domicilios particulares"
-              value={fmtNum(CENSO_RESUMO.domiciliosParticulares)}
-              sub={`Coletivos: ${fmtNum(CENSO_RESUMO.domiciliosColetivos)}`}
-              icon={IconHome}
+              label="Lançamentos ativos"
+              value={String(lancamentosAtivos)}
+              sub={`VSO médio: ${vsoMedio.toFixed(1)}%`}
+              icon={IconBuilding}
             />
           </CardContent>
         </Card>
-
-        <Card className="py-4">
-          <CardContent>
-            <div className="space-y-1.5">
-              <p className="text-xs text-gray-500">Tipo de domicilio</p>
-              <div className="flex items-center gap-4 text-sm">
-                <span className="font-semibold">{CENSO_RESUMO.pctCasas}%</span>
-                <span className="text-gray-500">Casas</span>
-              </div>
-              <div className="flex items-center gap-4 text-sm">
-                <span className="font-semibold">{CENSO_RESUMO.pctApartamentos}%</span>
-                <span className="text-gray-500">Aptos</span>
-              </div>
-              <div className="flex items-center gap-4 text-sm">
-                <span className="font-semibold">{CENSO_RESUMO.pctOutros}%</span>
-                <span className="text-gray-500">Outros</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         <Card className="py-4">
           <CardContent>
             <KPIBig
-              label="Acrescimo de domicilios"
-              value="+25%"
-              sub="Em relacao ao Censo 2010"
+              label="VGV Curitiba"
+              value={`R$ ${MERCADO_CURITIBA.vgvAnual} bi`}
+              sub={`${fmtNum(MERCADO_CURITIBA.unidadesLancadas)} unidades/ano`}
+              icon={IconCurrencyReal}
+            />
+          </CardContent>
+        </Card>
+        <Card className="py-4">
+          <CardContent>
+            <KPIBig
+              label="Selic"
+              value={`${CREDITO_IMOBILIARIO.taxaSelic}%`}
+              sub={`Financ. médio: ${CREDITO_IMOBILIARIO.taxaMediaFinanciamento}% a.a.`}
               icon={IconTrendingUp}
             />
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Grid */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="space-y-4">
-          <HorizontalBarCard
-            title="Populacao absoluta (top bairros)"
-            data={POPULACAO_ABSOLUTA}
-            valueLabel="Habitantes"
-          />
-          <HorizontalBarCard
-            title="Densidade populacional (hab/ha)"
-            data={DENSIDADE_POPULACIONAL}
-            valueLabel="hab/ha"
-          />
-          <HorizontalBarCard
-            title="Variacao populacional 2010-2022 (%)"
-            data={VARIACAO_POPULACIONAL}
-            valueLabel="%"
-            formatValue={fmtPct}
-          />
-        </div>
-
-        <div className="space-y-4">
-          <OccupancyDonut />
-          <EstabelecimentosGrid />
-          <HorizontalBarCard
-            title="Acrescimo de domicilios 2010-2022 (%)"
-            data={ACRESCIMO_DOMICILIOS}
-            valueLabel="%"
-            formatValue={fmtPct}
-          />
-        </div>
+      {/* Navigation Cards */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <ModuleCard
+          href="/mercado/censo"
+          icon={IconMapPin}
+          title="Censo IBGE 2022"
+          description="Dados demográficos e habitacionais do Paraná — população, urbanização, déficit habitacional, mesorregiões"
+          highlights={[
+            `${fmtNum(CENSO_PR_RESUMO.populacao)} habitantes`,
+            `${CENSO_PR_RESUMO.urbanizacao}% urbanização`,
+            `${CENSO_PR_RESUMO.totalMunicipios} municípios`,
+          ]}
+          badge="IBGE"
+        />
+        <ModuleCard
+          href="/mercado/lancamentos"
+          icon={IconBuilding}
+          title="Lançamentos PR"
+          description="Tracker de empreendimentos do mercado primário — incorporadoras, tipologias, preço/m², velocidade de vendas"
+          highlights={[
+            `${LANCAMENTOS.length} empreendimentos`,
+            `Preço/m² médio: R$ ${fmtNum(MERCADO_CURITIBA.precoM2Medio)}`,
+            `Batel: R$ ${fmtNum(MERCADO_CURITIBA.precoM2Batel)}/m²`,
+          ]}
+          badge="Órulo"
+          badgeVariant="secondary"
+        />
+        <ModuleCard
+          href="/mercado/indicadores"
+          icon={IconChartBar}
+          title="Indicadores"
+          description="FipeZap, CUB, INCC, crédito imobiliário, ranking de cidades e dados macro do mercado"
+          highlights={[
+            `Ticket médio: R$ ${fmtNum(MERCADO_CURITIBA.ticketMedio)}`,
+            `Estoque: ${fmtNum(MERCADO_CURITIBA.estoqueUnidades)} un.`,
+            `Vol. financiado: R$ ${CREDITO_IMOBILIARIO.volumeFinanciado2024} bi`,
+          ]}
+          badge="CBIC"
+          badgeVariant="outline"
+        />
       </div>
 
-      {/* Historical Line Chart */}
-      <HistoricalLineCard />
-
-      {/* Bairros Map Grid */}
-      <Card className="py-4">
-        <CardHeader className="pb-2">
-          <div className="flex flex-wrap items-center justify-between gap-2">
+      {/* Recent launches highlight */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <IconMapPin className="h-4 w-4" />
-              Bairros — Variacao populacional 2010-2022
+              <IconTarget className="h-4 w-4" />
+              Últimos lançamentos
             </CardTitle>
-            <div className="flex gap-1">
-              {(
-                [
-                  ["variacao", "Variacao %"],
-                  ["populacao", "Populacao"],
-                ] as const
-              ).map(([key, label]) => (
-                <button
-                  key={key}
-                  onClick={() => setMapMetric(key)}
-                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-                    mapMetric === key
-                      ? "bg-tbo-orange text-white"
-                      : "bg-gray-100 text-gray-500 hover:bg-gray-100/80"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <Link
+              href="/mercado/lancamentos"
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+            >
+              Ver todos <IconArrowRight className="h-3 w-3" />
+            </Link>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="mb-3 flex flex-wrap gap-2 text-[11px]">
-            <span className="rounded border border-red-200 bg-red-100 px-2 py-0.5">Negativo</span>
-            <span className="rounded border border-blue-200 bg-blue-50 px-2 py-0.5">0-10%</span>
-            <span className="rounded border border-blue-300 bg-blue-100 px-2 py-0.5">10-20%</span>
-            <span className="rounded border border-emerald-300 bg-emerald-100 px-2 py-0.5">20-30%</span>
-            <span className="rounded border border-amber-300 bg-amber-100 px-2 py-0.5">30-50%</span>
-            <span className="rounded border border-orange-400 bg-orange-200 px-2 py-0.5">50%+</span>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {LANCAMENTOS.filter((l) => l.status === "lancamento")
+              .slice(0, 4)
+              .map((l) => (
+                <div
+                  key={l.id}
+                  className="rounded-lg border p-3 space-y-1.5"
+                >
+                  <p className="text-sm font-medium truncate">{l.nome}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {l.incorporadora} · {l.bairro}
+                  </p>
+                  <div className="flex items-center justify-between text-xs">
+                    <span>R$ {fmtNum(l.precoM2)}/m²</span>
+                    <Badge variant="secondary" className="text-[10px]">
+                      {l.tipologia}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
           </div>
-          <BairrosMapGrid bairros={filteredBairros} />
         </CardContent>
       </Card>
 
-      <p className="text-center text-xs text-gray-500">
-        Fonte: CNEFE e IBGE — Censo 2022: Agregados por Setores Censitarios |
-        Desenvolvido por IPPUC — Coordenacao de Monitoramento e Pesquisa
+      <p className="text-center text-xs text-muted-foreground">
+        Fontes: IBGE Censo 2022 · IPARDES · FipeZap · CBIC · SINDUSCON-PR ·
+        Integração Órulo API em desenvolvimento
       </p>
     </div>
+  );
+}
+
+/* ── Module navigation card ─────────────────────────────────── */
+
+function ModuleCard({
+  href,
+  icon: Icon,
+  title,
+  description,
+  highlights,
+  badge,
+  badgeVariant = "default",
+}: {
+  href: string;
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  highlights: string[];
+  badge: string;
+  badgeVariant?: "default" | "secondary" | "outline";
+}) {
+  return (
+    <Link href={href} className="group">
+      <Card className="h-full transition-all duration-200 hover:border-primary/30 hover:shadow-md">
+        <CardHeader className="pb-2">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-2">
+              <div className="rounded-lg bg-primary/10 p-2">
+                <Icon className="h-4 w-4 text-primary" />
+              </div>
+              <CardTitle className="text-sm font-semibold">{title}</CardTitle>
+            </div>
+            <Badge variant={badgeVariant} className="text-[10px]">
+              {badge}
+            </Badge>
+          </div>
+          <CardDescription className="text-xs leading-relaxed">
+            {description}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-1.5">
+          {highlights.map((h) => (
+            <div
+              key={h}
+              className="flex items-center gap-2 text-xs text-muted-foreground"
+            >
+              <div className="h-1 w-1 rounded-full bg-primary/50" />
+              {h}
+            </div>
+          ))}
+          <div className="flex items-center gap-1 pt-2 text-xs font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
+            Explorar <IconArrowRight className="h-3 w-3" />
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }

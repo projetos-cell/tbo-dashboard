@@ -144,6 +144,8 @@ export default function ValoresPage() {
           author_id: user?.id,
         } as Database["public"]["Tables"]["cultura_items"]["Insert"]);
       }
+      setShowForm(false);
+      setEditingItem(null);
     } catch {
       // handled by mutation onError
     }

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -10,13 +10,21 @@ import {
   IconTrash,
   IconSettings,
   IconExternalLink,
+  IconChevronDown,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { InlineEditable } from "@/components/ui/inline-editable";
 import { DateRangePicker, type DateRange } from "@/components/ui/date-range-picker";
 import { UserSelector, type UserOption } from "@/components/ui/user-selector";
-import { useUpdateProject, useDeleteProject } from "@/features/projects/hooks/use-projects";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useUpdateProject, useDeleteProject, useCreateProject } from "@/features/projects/hooks/use-projects";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -33,12 +41,11 @@ interface ProjectTopbarProps {
 export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
+  const createProject = useCreateProject();
   const router = useRouter();
   const { toast } = useToast();
-  const [showMenu, setShowMenu] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-
-  const status = PROJECT_STATUS[project.status as ProjectStatusKey];
+  const [duplicating, setDuplicating] = useState(false);
 
   const handleNameSave = (name: string) => {
     updateProject.mutate({ id: project.id, updates: { name } });
@@ -52,9 +59,7 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
     const owner = users.find((u) => u.id === ownerId);
     updateProject.mutate({
       id: project.id,
-      updates: {
-        owner_name: owner?.full_name || null,
-      },
+      updates: { owner_name: owner?.full_name || null },
     });
   };
 
@@ -68,14 +73,70 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
     });
   };
 
+  const handleDuplicate = () => {
+    setDuplicating(true);
+    createProject.mutate(
+      {
+        tenant_id: project.tenant_id,
+        name: `${project.name} (cópia)`,
+        status: project.status,
+        client: project.client,
+        client_company: project.client_company,
+        client_id: project.client_id,
+        owner_name: project.owner_name,
+        owner_id: project.owner_id,
+        priority: project.priority,
+        due_date_start: project.due_date_start,
+        due_date_end: project.due_date_end,
+        bus: project.bus,
+        services: project.services,
+        notes: project.notes,
+        notion_url: project.notion_url,
+        value: project.value,
+      },
+      {
+        onSuccess: () => {
+          toast({ title: "Projeto duplicado com sucesso!" });
+          setDuplicating(false);
+        },
+        onError: () => {
+          toast({
+            title: "Erro ao duplicar projeto",
+            description: "Tente novamente.",
+            variant: "destructive",
+          });
+          setDuplicating(false);
+        },
+      }
+    );
+  };
+
+  const handleArchive = () => {
+    updateProject.mutate(
+      { id: project.id, updates: { status: "parado" } },
+      {
+        onSuccess: () => {
+          toast({ title: "Projeto pausado", description: "Status alterado para Parado." });
+        },
+        onError: () => {
+          toast({ title: "Erro ao pausar projeto", variant: "destructive" });
+        },
+      }
+    );
+  };
+
   const handleDeleteConfirm = () => {
     deleteProject.mutate(project.id, {
       onSuccess: () => {
-        toast({ title: "Projeto excluido" });
+        toast({ title: "Projeto excluído" });
         router.push("/projetos");
       },
       onError: () => {
-        toast({ title: "Erro ao excluir", description: "Nao foi possivel excluir o projeto.", variant: "destructive" });
+        toast({
+          title: "Erro ao excluir",
+          description: "Não foi possível excluir o projeto.",
+          variant: "destructive",
+        });
       },
     });
   };
@@ -96,12 +157,10 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
               onSave={handleNameSave}
               variant="h1"
             />
-            {status && (
-              <StatusDropdown
-                current={project.status || ""}
-                onChange={handleStatusChange}
-              />
-            )}
+            <StatusDropdown
+              current={project.status || ""}
+              onChange={handleStatusChange}
+            />
           </div>
           {project.code && (
             <p className="text-sm text-gray-500">{project.code}</p>
@@ -110,11 +169,7 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
 
         <div className="flex items-center gap-2 shrink-0">
           {project.notion_url && (
-            <a
-              href={project.notion_url}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href={project.notion_url} target="_blank" rel="noopener noreferrer">
               <Button variant="outline" size="sm">
                 <IconExternalLink className="size-3.5 mr-1" />
                 Notion
@@ -122,33 +177,35 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
             </a>
           )}
 
-          <div className="relative">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setShowMenu(!showMenu)}
-              aria-label="Mais opcoes"
-            >
-              <IconDots className="size-4" />
-            </Button>
-            {showMenu && (
-              <div className="absolute right-0 top-full mt-1 bg-white border rounded-md shadow-md z-20 py-1 min-w-[160px]">
-                <MenuButton icon={IconCopy} label="Duplicar" onClick={() => setShowMenu(false)} />
-                <MenuButton icon={IconArchive} label="Arquivar" onClick={() => setShowMenu(false)} />
-                <MenuButton icon={IconSettings} label="Configuracoes" onClick={() => setShowMenu(false)} />
-                <div className="h-px bg-border my-1" />
-                <MenuButton
-                  icon={IconTrash}
-                  label="Excluir"
-                  danger
-                  onClick={() => {
-                    setShowMenu(false);
-                    setDeleteOpen(true);
-                  }}
-                />
-              </div>
-            )}
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" aria-label="Mais opções">
+                <IconDots className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={handleDuplicate} disabled={duplicating}>
+                <IconCopy className="mr-2 size-3.5" />
+                Duplicar projeto
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleArchive} disabled={updateProject.isPending}>
+                <IconArchive className="mr-2 size-3.5" />
+                Pausar projeto
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/projetos/configuracoes")}>
+                <IconSettings className="mr-2 size-3.5" />
+                Configurações
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-red-600 focus:text-red-600"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <IconTrash className="mr-2 size-3.5" />
+                Excluir projeto
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -156,7 +213,7 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         title="Excluir projeto"
-        description={`Excluir "${project.name}"? Esta acao nao pode ser desfeita.`}
+        description={`Excluir "${project.name}"? Esta ação não pode ser desfeita.`}
         confirmLabel="Excluir"
         onConfirm={handleDeleteConfirm}
       />
@@ -164,7 +221,7 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
       {/* Secondary row */}
       <div className="flex items-center gap-4 pl-12">
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-gray-500 text-xs">Responsavel:</span>
+          <span className="text-gray-500 text-xs">Responsável:</span>
           <UserSelector
             mode="single"
             selected={users.find((u) => u.full_name === project.owner_name)?.id || null}
@@ -174,7 +231,7 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
           />
         </div>
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-gray-500 text-xs">Periodo:</span>
+          <span className="text-gray-500 text-xs">Período:</span>
           <DateRangePicker
             value={{
               start: project.due_date_start
@@ -193,6 +250,8 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
   );
 }
 
+// ─── StatusDropdown ─────────────────────────────────────────────────
+
 function StatusDropdown({
   current,
   onChange,
@@ -200,66 +259,38 @@ function StatusDropdown({
   current: string;
   onChange: (status: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
   const statusCfg = PROJECT_STATUS[current as ProjectStatusKey];
 
   return (
-    <div className="relative">
-      <Badge
-        className="cursor-pointer"
-        style={
-          statusCfg
-            ? { backgroundColor: statusCfg.bg, color: statusCfg.color }
-            : undefined
-        }
-        onClick={() => setOpen(!open)}
-      >
-        {statusCfg?.label || current}
-      </Badge>
-      {open && (
-        <div className="absolute left-0 top-full mt-1 bg-white border rounded-md shadow-md z-20 py-1 min-w-[140px]">
-          {Object.entries(PROJECT_STATUS).map(([key, cfg]) => (
-            <button
-              key={key}
-              className="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100"
-              onClick={() => {
-                onChange(key);
-                setOpen(false);
-              }}
-            >
-              <div
-                className="size-2.5 rounded-full"
-                style={{ backgroundColor: cfg.color }}
-              />
-              {cfg.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function MenuButton({
-  icon: Icon,
-  label,
-  danger,
-  onClick,
-}: {
-  icon: React.ElementType;
-  label: string;
-  danger?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      className={`flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 ${
-        danger ? "text-red-500" : ""
-      }`}
-      onClick={onClick}
-    >
-      <Icon className="size-3.5" />
-      {label}
-    </button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Badge
+          className="cursor-pointer gap-1 select-none"
+          style={
+            statusCfg
+              ? { backgroundColor: statusCfg.bg, color: statusCfg.color }
+              : undefined
+          }
+        >
+          {statusCfg?.label || current}
+          <IconChevronDown className="size-3 opacity-60" />
+        </Badge>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-44">
+        {Object.entries(PROJECT_STATUS).map(([key, cfg]) => (
+          <DropdownMenuItem
+            key={key}
+            onClick={() => onChange(key)}
+            className="gap-2"
+          >
+            <div
+              className="size-2.5 rounded-full shrink-0"
+              style={{ backgroundColor: cfg.color }}
+            />
+            {cfg.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

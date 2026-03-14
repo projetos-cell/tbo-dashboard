@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { CulturaOverviewStats } from "@/features/cultura/components/cultura-overview-stats";
 import { ErrorState } from "@/components/shared";
@@ -76,21 +77,24 @@ function AnalyticsContent() {
 
       {/* Summary metrics */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard label="Total de itens" value={totalItems} />
+        <MetricCard label="Total de itens" value={totalItems} isLoading={isLoading} />
         <MetricCard
           label="Publicados"
           value={publishedItems}
           color="text-green-600"
+          isLoading={isLoading}
         />
         <MetricCard
           label="Rascunhos"
           value={draftItems}
           color="text-amber-600"
+          isLoading={isLoading}
         />
         <MetricCard
           label="Com edicoes"
           value={editedItems}
           color="text-blue-600"
+          isLoading={isLoading}
         />
       </div>
 
@@ -284,16 +288,27 @@ function MetricCard({
   label,
   value,
   color,
+  isLoading,
 }: {
   label: string;
   value: number;
   color?: string;
+  isLoading?: boolean;
 }) {
   return (
     <Card>
       <CardContent className="pt-4">
-        <p className={`text-2xl font-bold ${color || ""}`}>{value}</p>
-        <p className="text-xs text-gray-500">{label}</p>
+        {isLoading ? (
+          <>
+            <Skeleton className="h-8 w-16 mb-1" />
+            <Skeleton className="h-3 w-24" />
+          </>
+        ) : (
+          <>
+            <p className={`text-2xl font-bold ${color || ""}`}>{value}</p>
+            <p className="text-xs text-gray-500">{label}</p>
+          </>
+        )}
       </CardContent>
     </Card>
   );

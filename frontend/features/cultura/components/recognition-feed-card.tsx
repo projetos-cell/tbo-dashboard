@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { RECOGNITION_SOURCES } from "@/lib/constants";
+import { RECOGNITION_SOURCES, TBO_VALUES } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 
 type RecognitionRow = Database["public"]["Tables"]["recognitions"]["Row"];
@@ -38,8 +38,11 @@ export function RecognitionFeedCard({
 
   const timeAgo = formatTimeAgo(recognition.created_at ?? "");
 
+  const valueDef = TBO_VALUES.find((v) => v.id === recognition.value_id);
+  const borderColor = valueDef?.color ?? "#22c55e";
+
   return (
-    <Card className="border-l-4" style={{ borderLeftColor: "#22c55e" }}>
+    <Card className="border-l-4" style={{ borderLeftColor: borderColor }}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0 space-y-2">

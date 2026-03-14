@@ -34,6 +34,8 @@ const ritualSchema = z.object({
 
 export type RitualFormData = z.infer<typeof ritualSchema>;
 
+type RitualFormErrors = Partial<Record<keyof RitualFormData, string>>;
+
 const FREQUENCY_OPTIONS = Object.entries(FREQUENCY_LABELS);
 
 interface RitualFormDialogProps {
@@ -58,6 +60,7 @@ export function RitualFormDialog({
     duration_minutes: 60,
     default_agenda: "",
   });
+  const [errors, setErrors] = useState<RitualFormErrors>({});
 
   useEffect(() => {
     if (open) {
@@ -72,12 +75,22 @@ export function RitualFormDialog({
       } else {
         setFormData({ name: "", description: "", frequency: "weekly", duration_minutes: 60, default_agenda: "" });
       }
+      setErrors({});
     }
   }, [open, editing]);
 
   const handleSubmit = async () => {
     const result = ritualSchema.safeParse(formData);
-    if (!result.success) return;
+    if (!result.success) {
+      const fieldErrors: RitualFormErrors = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof RitualFormErrors;
+        if (!fieldErrors[field]) fieldErrors[field] = issue.message;
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+    setErrors({});
     await onSave(result.data);
   };
 
@@ -92,9 +105,16 @@ export function RitualFormDialog({
             <Label>Nome</Label>
             <Input
               value={formData.name}
-              onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
+              onChange={(e) => {
+                setFormData((p) => ({ ...p, name: e.target.value }));
+                setErrors((p) => ({ ...p, name: undefined }));
+              }}
               placeholder="Ex: Daily Standup"
+              className={errors.name ? "border-red-500" : ""}
             />
+            {errors.name && (
+              <p className="text-xs text-red-500">{errors.name}</p>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label>Descricao</Label>
@@ -127,12 +147,17 @@ export function RitualFormDialog({
               <Input
                 type="number"
                 value={formData.duration_minutes}
-                onChange={(e) =>
-                  setFormData((p) => ({ ...p, duration_minutes: parseInt(e.target.value) || 0 }))
-                }
+                onChange={(e) => {
+                  setFormData((p) => ({ ...p, duration_minutes: parseInt(e.target.value) || 0 }));
+                  setErrors((p) => ({ ...p, duration_minutes: undefined }));
+                }}
                 min={5}
                 max={480}
+                className={errors.duration_minutes ? "border-red-500" : ""}
               />
+              {errors.duration_minutes && (
+                <p className="text-xs text-red-500">{errors.duration_minutes}</p>
+              )}
             </div>
           </div>
           <div className="space-y-1.5">
@@ -150,7 +175,7 @@ export function RitualFormDialog({
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={!formData.name.trim() || isSaving}
+              disabled={isSaving}
             >
               {isSaving ? "Salvando..." : "Salvar"}
             </Button>

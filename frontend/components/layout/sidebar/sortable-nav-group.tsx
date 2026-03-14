@@ -40,6 +40,7 @@ interface SortableNavGroupProps {
   group: NavGroup;
   canSee: (module: string) => boolean;
   isDragOverlay?: boolean;
+  isDropTarget?: boolean;
   onItemAction?: (action: string, item: NavGroupItem, groupLabel: string) => void;
 }
 
@@ -47,6 +48,7 @@ export const SortableNavGroup = memo(function SortableNavGroup({
   group,
   canSee,
   isDragOverlay = false,
+  isDropTarget = false,
   onItemAction,
 }: SortableNavGroupProps) {
   const [isHovered, setIsHovered] = useState(false);
@@ -116,6 +118,7 @@ export const SortableNavGroup = memo(function SortableNavGroup({
       className={cn(
         isDragging && "opacity-30",
         isDragOverlay && "bg-sidebar rounded-md shadow-lg opacity-95",
+        isDropTarget && "ring-2 ring-primary/30 rounded-md bg-primary/5",
       )}
     >
       <Collapsible

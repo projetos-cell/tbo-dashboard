@@ -80,6 +80,7 @@ export function AppSidebar() {
 
   const {
     activeDrag,
+    overGroupLabel,
     handleDragStart,
     handleDragOver,
     handleDragEnd,
@@ -211,6 +212,7 @@ export function AppSidebar() {
                   key={group.label}
                   group={group}
                   canSee={canSee}
+                  isDropTarget={overGroupLabel === group.label}
                   onItemAction={handleItemAction}
                 />
               ))}

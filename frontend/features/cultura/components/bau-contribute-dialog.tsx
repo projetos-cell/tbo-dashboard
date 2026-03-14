@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { z } from "zod"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -29,8 +28,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { toast } from "sonner"
 import { BAU_CRIATIVO } from "@/features/cultura/data/cultura-notion-seed"
+import { useCreateBauReference } from "@/features/cultura/hooks/use-bau-criativo"
 
 const contributeSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
@@ -48,7 +47,7 @@ interface BauContributeDialogProps {
 }
 
 export function BauContributeDialog({ open, onOpenChange }: BauContributeDialogProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const createReference = useCreateBauReference()
 
   const form = useForm<ContributeFormData>({
     resolver: zodResolver(contributeSchema),
@@ -65,15 +64,7 @@ export function BauContributeDialog({ open, onOpenChange }: BauContributeDialogP
   const selectedCategory = BAU_CRIATIVO.find((c) => c.id === selectedCategoryId)
 
   const handleSubmit = async (data: ContributeFormData) => {
-    setIsSubmitting(true)
-    // Simulate async submission (Supabase integration pending — tabela bau_references a criar)
-    await new Promise((resolve) => setTimeout(resolve, 800))
-    setIsSubmitting(false)
-
-    toast.success("Referência enviada para revisão!", {
-      description: `"${data.name}" será avaliada pela equipe antes de ser publicada.`,
-    })
-
+    await createReference.mutateAsync(data)
     form.reset()
     onOpenChange(false)
   }
@@ -211,8 +202,8 @@ export function BauContributeDialog({ open, onOpenChange }: BauContributeDialogP
             >
               Cancelar
             </Button>
-            <Button type="submit" className="flex-1" disabled={isSubmitting}>
-              {isSubmitting ? "Enviando..." : "Enviar referência"}
+            <Button type="submit" className="flex-1" disabled={createReference.isPending}>
+              {createReference.isPending ? "Enviando..." : "Enviar referência"}
             </Button>
           </div>
         </Form>

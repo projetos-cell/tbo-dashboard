@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import {
   IconSchool,
   IconCheck,
@@ -15,14 +15,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   TBO_ACADEMY_MODULES,
   type AcademyModule,
 } from "@/features/cultura/data/cultura-notion-seed";
 import { AcademyModuleSheet } from "@/features/cultura/components/academy-module-sheet";
-
-const STORAGE_KEY = "tbo-academy-progress-v1";
+import {
+  useAcademyProgress,
+  useMarkModuleComplete,
+} from "@/features/cultura/hooks/use-academy";
 
 const SECTION_TYPE_ICONS: Record<string, string> = {
   read: "📖",
@@ -161,29 +163,14 @@ function ModuleCard({
 }
 
 export default function AcademyPage() {
-  const [completedIds, setCompletedIds] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") return new Set();
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) return new Set(JSON.parse(stored) as string[]);
-    } catch {
-      // ignore parse errors
-    }
-    return new Set();
-  });
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [readingModule, setReadingModule] = useState<AcademyModule | null>(null);
 
-  // Persist progress to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify([...completedIds]));
-    } catch {
-      // ignore storage errors
-    }
-  }, [completedIds]);
+  const { data: completedIds = [], isLoading } = useAcademyProgress();
+  const markComplete = useMarkModuleComplete();
 
-  const completedCount = completedIds.size;
+  const completedSet = new Set(completedIds);
+  const completedCount = completedSet.size;
   const totalCount = TBO_ACADEMY_MODULES.length;
   const progressPercent =
     totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
@@ -192,19 +179,17 @@ export default function AcademyPage() {
     (mod: AcademyModule): boolean => {
       if (mod.order === 1) return false;
       const previous = TBO_ACADEMY_MODULES.find((m) => m.order === mod.order - 1);
-      return previous ? !completedIds.has(previous.id) : false;
+      return previous ? !completedSet.has(previous.id) : false;
     },
-    [completedIds]
+    [completedSet]
   );
 
-  const handleComplete = useCallback((moduleId: string) => {
-    setCompletedIds((prev) => {
-      const next = new Set(prev);
-      next.add(moduleId);
-      return next;
-    });
-    toast.success("Módulo concluído! Progresso salvo.");
-  }, []);
+  const handleComplete = useCallback(
+    (moduleId: string) => {
+      markComplete.mutate(moduleId);
+    },
+    [markComplete]
+  );
 
   const handleToggle = useCallback((moduleId: string) => {
     setExpandedId((prev) => (prev === moduleId ? null : moduleId));
@@ -226,46 +211,72 @@ export default function AcademyPage() {
       {/* Progress + Stats */}
       <Card>
         <CardContent className="pt-6 space-y-4">
-          <div className="flex items-center justify-between text-sm">
-            <span className="font-medium">Progresso geral</span>
-            <span className="text-muted-foreground">{progressPercent}%</span>
-          </div>
-          <Progress value={progressPercent} className="h-2" />
-          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <IconBookmark className="h-4 w-4" />
-              <span>
-                {completedCount} de {totalCount} modulos concluidos
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <IconClock className="h-4 w-4" />
-              <span>~{TOTAL_ESTIMATED_MINUTES} min no total</span>
-            </div>
-          </div>
+          {isLoading ? (
+            <>
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-2 w-full" />
+              <Skeleton className="h-4 w-48" />
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">Progresso geral</span>
+                <span className="text-muted-foreground">{progressPercent}%</span>
+              </div>
+              <Progress value={progressPercent} className="h-2" />
+              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1.5">
+                  <IconBookmark className="h-4 w-4" />
+                  <span>
+                    {completedCount} de {totalCount} modulos concluidos
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <IconClock className="h-4 w-4" />
+                  <span>~{TOTAL_ESTIMATED_MINUTES} min no total</span>
+                </div>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
       {/* Module List */}
-      <div className="space-y-3">
-        {TBO_ACADEMY_MODULES.map((mod) => (
-          <ModuleCard
-            key={mod.id}
-            mod={mod}
-            isCompleted={completedIds.has(mod.id)}
-            isLocked={isModuleLocked(mod)}
-            isExpanded={expandedId === mod.id}
-            onToggle={() => handleToggle(mod.id)}
-            onComplete={() => handleComplete(mod.id)}
-            onStart={() => {
-              setReadingModule(mod);
-            }}
-          />
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-9 w-9 rounded-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {TBO_ACADEMY_MODULES.map((mod) => (
+            <ModuleCard
+              key={mod.id}
+              mod={mod}
+              isCompleted={completedSet.has(mod.id)}
+              isLocked={isModuleLocked(mod)}
+              isExpanded={expandedId === mod.id}
+              onToggle={() => handleToggle(mod.id)}
+              onComplete={() => handleComplete(mod.id)}
+              onStart={() => setReadingModule(mod)}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Complete State */}
-      {completedCount === totalCount && totalCount > 0 && (
+      {!isLoading && completedCount === totalCount && totalCount > 0 && (
         <Card className="border-green-500/40 bg-green-50/50 dark:bg-green-950/20">
           <CardContent className="pt-6 text-center space-y-2">
             <IconCheck className="h-10 w-10 mx-auto text-green-600" />

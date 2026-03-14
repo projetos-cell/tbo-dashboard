@@ -18,17 +18,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { toast } from "sonner";
-import {
-  FERRAMENTAS_CATEGORIAS,
-  FERRAMENTAS_BOAS_PRATICAS,
-  type TBOToolCredential,
-} from "@/features/cultura/data/cultura-notion-seed";
+import { type TBOToolCredential } from "@/features/cultura/data/cultura-notion-seed";
+import { useFerramentas } from "@/features/cultura/hooks/use-ferramentas";
 
 function CredentialRow({ cred }: { cred: TBOToolCredential }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -124,7 +122,7 @@ function CredentialRow({ cred }: { cred: TBOToolCredential }) {
   );
 }
 
-function ToolCard({ tool }: { tool: (typeof FERRAMENTAS_CATEGORIAS)[number]["tools"][number] }) {
+function ToolCard({ tool }: { tool: { name: string; description: string; credentials?: TBOToolCredential[]; accessNotes?: string } }) {
   const [open, setOpen] = useState(false);
   const hasCredentials = tool.credentials && tool.credentials.length > 0;
   const hasPassword = tool.credentials?.some((c) => c.password);
@@ -172,11 +170,15 @@ function ToolCard({ tool }: { tool: (typeof FERRAMENTAS_CATEGORIAS)[number]["too
 
 export default function FerramentasPage() {
   const [search, setSearch] = useState("");
+  const { data, isLoading } = useFerramentas();
+
+  const allCategories = data?.categories ?? [];
+  const boasPraticas = data?.boasPraticas ?? [];
 
   const filteredCategorias = useMemo(() => {
-    if (!search.trim()) return FERRAMENTAS_CATEGORIAS;
+    if (!search.trim()) return allCategories;
     const q = search.toLowerCase();
-    return FERRAMENTAS_CATEGORIAS.map((cat) => ({
+    return allCategories.map((cat) => ({
       ...cat,
       tools: cat.tools.filter(
         (t) =>
@@ -184,9 +186,9 @@ export default function FerramentasPage() {
           t.description.toLowerCase().includes(q)
       ),
     })).filter((cat) => cat.tools.length > 0);
-  }, [search]);
+  }, [search, allCategories]);
 
-  const totalTools = FERRAMENTAS_CATEGORIAS.reduce(
+  const totalTools = allCategories.reduce(
     (acc, cat) => acc + cat.tools.length,
     0
   );
@@ -218,8 +220,24 @@ export default function FerramentasPage() {
         />
       </div>
 
+      {/* Loading skeleton */}
+      {isLoading && (
+        <div className="space-y-6">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="space-y-3">
+              <Skeleton className="h-5 w-40" />
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 3 }).map((_, j) => (
+                  <Skeleton key={j} className="h-24 rounded-lg" />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Boas Praticas */}
-      {!search.trim() && (
+      {!isLoading && !search.trim() && (
         <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -229,7 +247,7 @@ export default function FerramentasPage() {
           </CardHeader>
           <CardContent className="pt-0">
             <ul className="space-y-1.5">
-              {FERRAMENTAS_BOAS_PRATICAS.map((pratica, idx) => (
+              {boasPraticas.map((pratica, idx) => (
                 <li key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
                   <IconCheck className="size-3.5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
                   <span>{pratica}</span>
@@ -241,7 +259,7 @@ export default function FerramentasPage() {
       )}
 
       {/* Categories */}
-      {filteredCategorias.length > 0 ? (
+      {!isLoading && filteredCategorias.length > 0 ? (
         filteredCategorias.map((cat) => (
           <section key={cat.id} className="space-y-3">
             <h2 className="text-base font-semibold flex items-center gap-2">

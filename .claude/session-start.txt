@@ -1,12 +1,12 @@
+d1a5e84 docs(audit): ciclo 32 — header + sortable-nav-item + custom-field-config splits
+797ab54 refactor(shared): split custom-field-config.tsx 328L → 149L + dialog (202L)
+bb30403 refactor(sidebar): split sortable-nav-item.tsx 357L → 266L + parts (147L)
+c361de6 refactor(layout): split header.tsx 364L → header.tsx (32L) + header-parts.tsx (282L)
+7d23d79 refactor(ciclo-31): split 3 componentes >300L — comment-thread + client-form + workspace-settings
+5e59be2 refactor(ciclo-30): split 3 componentes >300L — revenue-concentration + contract-filters + pdi-detail
 38ad0f9 refactor(ciclo-29): split 2 componentes >200L + fix AssignUsersDialog real data
 6ec0e3b merge(ciclo-28): split 3 componentes >200L + fix bugs UX
 1f37158 refactor(ciclo-28): split 3 componentes >200L + fix bugs UX
 7ff0bfa docs(audit): ciclo 27 — notion-sync + people-filters + message-bubble splits
-d5e7dd8 refactor(chat): split message-bubble.tsx (322L → 183L + message-bubble-parts.tsx)
-e533d6b refactor(people): split people-filters.tsx (400L → 192L + people-filter-parts.tsx)
-e645ef8 refactor(configuracoes): split notion-sync.tsx (414L → 185L + notion-sync-result.tsx)
-456ba7a feat(usuarios+cursos): ciclo 26 — módulos Usuários e Cursos + fix users-table
-cce815b docs(audit): ciclo 25 — sidebar DnD fix + splits comercial/tasks
-c75895d refactor(tasks): split my-tasks-board-view (275L → 182L + 94L)
- .claude/session-start.txt | 8 +++-----
- 1 file changed, 3 insertions(+), 5 deletions(-)
+ .claude/session-start.txt | 14 ++++++--------
+ 1 file changed, 6 insertions(+), 8 deletions(-)

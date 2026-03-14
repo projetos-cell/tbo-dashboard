@@ -1,5 +1,37 @@
 # TBO OS — Audit Log
 
+## Ciclo 33 — 2026-03-14
+
+**Módulo**: Sidebar (sortable-nav-group) + Demands (demand-comment-thread)
+**Branch**: claude/improve-20260314-0630 → main
+**Build**: ✅
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|----------------|-------|--------|----------|
+| Botão + no grupo de nav | ❌ (TODO, sem handler) | ✅ | Navega para primeiro item do grupo via useRouter |
+| Recolher todas (DropdownMenu) | ❌ (sem handler) | ✅ | Recolhe todos os grupos via collapseAllGroups |
+| Renomear seção / Ocultar seção | ❌ (sem handler) | ⚠️ | Marcados como `disabled` — feedback visual de "não disponível" |
+| demand-comment-thread handleSubmit | ⚠️ (sem try/catch) | ✅ | try/catch + toast.error ao falhar |
+
+### Implementado
+
+- feat(sidebar): botão + navega para `orderedItems[0]?.href` via `useRouter` (sortable-nav-group.tsx)
+- feat(sidebar): `collapseAllGroups(groupLabels[])` adicionado ao sidebar-store; "Recolher todas" wired (sidebar-store.ts, sortable-nav-group.tsx)
+- fix(demands): try/catch + toast.error em `handleSubmit` do DemandCommentThread (demand-comment-thread.tsx)
+
+### Migrations aplicadas
+- Nenhuma
+
+### Próximo ciclo
+- Renomear seção: implementar inline rename ou dialog para grupos da sidebar
+- Ocultar seção: adicionar `hiddenGroups: Set<string>` ao sidebar-store
+- demand-comment-thread: verificar se DemandCommentItem tem error handling em delete/update
+
+### Debt técnico
+- Nenhum novo introduzido
+
 ## Ciclo 32 — 2026-03-14
 
 **Módulo**: Layout (header, sidebar) + Shared (custom-field-config)

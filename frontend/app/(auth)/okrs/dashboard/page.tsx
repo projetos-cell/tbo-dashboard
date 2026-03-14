@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   IconChartBar,
   IconTarget,
@@ -8,20 +8,22 @@ import {
   IconAlertTriangle,
   IconCircleCheck,
   IconMinus,
+  IconPlus,
 } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { ErrorState } from "@/components/shared";
 import { OkrCycleSelector } from "@/features/okrs/components/okr-cycle-selector";
+import { OkrCycleDialog } from "@/features/okrs/components/okr-cycle-dialog";
 import {
   useCycles,
   useActiveCycle,
   useObjectives,
 } from "@/features/okrs/hooks/use-okrs";
 import { computeOkrKPIs } from "@/features/okrs/services/okrs";
-import { useState } from "react";
 
 // ── helpers ──────────────────────────────────────────────────────────
 
@@ -71,6 +73,7 @@ function ProgressBar({ value }: { value: number }) {
 
 function DashboardContent() {
   const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
+  const [cycleDialog, setCycleDialog] = useState(false);
   const { data: cycles, isLoading: loadingCycles, error: cyclesError, refetch } = useCycles();
   const { data: activeCycle } = useActiveCycle();
 
@@ -129,7 +132,7 @@ function DashboardContent() {
           cycles={cycles ?? []}
           selectedId={effectiveCycleId}
           onSelect={setSelectedCycleId}
-          onCreateCycle={() => {}}
+          onCreateCycle={() => setCycleDialog(true)}
         />
       </div>
 
@@ -176,9 +179,27 @@ function DashboardContent() {
       {/* Empty state */}
       {(!objectives || objectives.length === 0) && (
         <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <IconTarget className="h-12 w-12 text-gray-400/40 mb-3" />
-            <p className="text-gray-500">Nenhum objetivo encontrado neste ciclo.</p>
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center gap-4">
+            <IconTarget className="h-12 w-12 text-gray-400/40" />
+            <div>
+              <p className="font-medium text-gray-700">Nenhum objetivo encontrado neste ciclo.</p>
+              <p className="text-sm text-gray-500 mt-1">
+                {cycles && cycles.length === 0
+                  ? "Crie um ciclo para começar a acompanhar seus OKRs."
+                  : "Adicione objetivos ao ciclo selecionado para ver o progresso aqui."}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              {cycles && cycles.length === 0 && (
+                <Button size="sm" onClick={() => setCycleDialog(true)} className="gap-1.5">
+                  <IconPlus className="h-4 w-4" />
+                  Criar primeiro ciclo
+                </Button>
+              )}
+              <Button size="sm" variant="outline" asChild>
+                <a href="/okrs">Ver todos os OKRs</a>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -219,6 +240,12 @@ function DashboardContent() {
           );
         }
       )}
+
+      <OkrCycleDialog
+        open={cycleDialog}
+        onClose={() => setCycleDialog(false)}
+        cycle={null}
+      />
     </div>
   );
 }

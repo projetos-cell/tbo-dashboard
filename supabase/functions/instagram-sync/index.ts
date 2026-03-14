@@ -145,16 +145,38 @@ serve(async (req: Request) => {
         const sinceUnix = Math.floor(since.getTime() / 1000);
         const untilUnix = Math.floor(now.getTime() / 1000);
 
+        // Call 1: daily metrics (reach, follower_count)
         let accountInsights: IgInsightEntry[] = [];
         try {
           const insightsRes = await igGet(
             accessToken,
-            `/${igUserId}/insights?metric=reach,impressions,profile_views,accounts_engaged,follower_count&period=day&since=${sinceUnix}&until=${untilUnix}`
+            `/${igUserId}/insights?metric=reach,follower_count&period=day&since=${sinceUnix}&until=${untilUnix}`
           );
           accountInsights = insightsRes?.data || [];
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e);
           stats.errors.push(`Account insights: ${msg}`);
+        }
+
+        await delay(REQUEST_DELAY_MS);
+
+        // Call 2: total_value metrics (profile_views, accounts_engaged)
+        let totalValueMetrics: Record<string, number> = {};
+        try {
+          const totalRes = await igGet(
+            accessToken,
+            `/${igUserId}/insights?metric=profile_views,accounts_engaged&period=day&metric_type=total_value&since=${sinceUnix}&until=${untilUnix}`
+          );
+          const entries = (totalRes?.data || []) as IgInsightEntry[];
+          for (const entry of entries) {
+            const tv = entry.total_value;
+            if (tv && typeof tv.value === "number") {
+              totalValueMetrics[entry.name] = tv.value;
+            }
+          }
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e);
+          stats.errors.push(`Account insights (total_value): ${msg}`);
         }
 
         await delay(REQUEST_DELAY_MS);
@@ -182,12 +204,11 @@ serve(async (req: Request) => {
 
         // Use aggregated daily data or fallback to profile counts
         const latestReach = sumMetric(dailyMetrics, "reach");
-        const latestImpressions = sumMetric(dailyMetrics, "impressions");
-        const latestProfileViews = sumMetric(dailyMetrics, "profile_views");
-        const latestEngaged = sumMetric(dailyMetrics, "accounts_engaged");
+        const latestProfileViews = totalValueMetrics["profile_views"] ?? 0;
+        const latestEngaged = totalValueMetrics["accounts_engaged"] ?? 0;
 
         const totalInteractions = latestEngaged;
-        const totalViews = latestImpressions;
+        const totalViews = totalInteractions;
 
         const metadata = {
           total_views: totalViews,
@@ -203,12 +224,12 @@ serve(async (req: Request) => {
             tenant_id: tenantId,
             account_id: accountId,
             date: today,
-            source: "instagram",
+            source: "meta_api",
             followers: profile.followers_count ?? 0,
             following: profile.follows_count ?? 0,
             posts_count: profile.media_count ?? 0,
             reach: latestReach,
-            impressions: latestImpressions,
+            impressions: totalViews,
             profile_views: latestProfileViews,
             engagement_rate:
               profile.followers_count > 0
@@ -247,10 +268,13 @@ serve(async (req: Request) => {
 
           // Fetch per-media insights
           try {
-            const metricsToFetch =
-              post.media_product_type === "REELS"
-                ? "impressions,reach,saved,shares,plays,total_interactions,ig_reels_avg_watch_time,ig_reels_video_view_total_time"
-                : "impressions,reach,saved,total_interactions";
+            const isReels = post.media_product_type === "REELS";
+            const isVideo = post.media_type === "VIDEO";
+            const metricsToFetch = isReels
+              ? "reach,saved,shares,total_interactions,ig_reels_avg_watch_time,ig_reels_video_view_total_time,clips_replays_count"
+              : isVideo
+                ? "reach,saved,shares,total_interactions,video_views"
+                : "reach,saved,shares,total_interactions";
 
             const mediaInsightsRes = await igGet(
               accessToken,
@@ -276,7 +300,7 @@ serve(async (req: Request) => {
               : 0;
 
           const metricsJson = {
-            views: postMetrics.impressions ?? postMetrics.plays ?? 0,
+            views: postMetrics.video_views ?? postMetrics.clips_replays_count ?? 0,
             reach: postReach,
             interactions: totalPostInteractions,
             engagement_rate: engRate,
@@ -284,14 +308,14 @@ serve(async (req: Request) => {
             comments: commentCount,
             saves: postMetrics.saved ?? 0,
             shares: postMetrics.shares ?? 0,
-            plays: postMetrics.plays ?? 0,
+            plays: postMetrics.clips_replays_count ?? 0,
           };
 
           // Map media_type to our post type
           const typeMap: Record<string, string> = {
             IMAGE: "feed",
-            VIDEO: post.media_product_type === "REELS" ? "reels" : "feed",
-            CAROUSEL_ALBUM: "feed",
+            VIDEO: post.media_product_type === "REELS" ? "reel" : "feed",
+            CAROUSEL_ALBUM: "carousel",
           };
 
           const { error: postErr } = await supabase.from("rsm_posts").upsert(
@@ -312,10 +336,10 @@ serve(async (req: Request) => {
                 : post.thumbnail_url
                   ? [String(post.thumbnail_url)]
                   : [],
-              source: "instagram",
+              source: "meta_api",
               updated_at: new Date().toISOString(),
             },
-            { onConflict: "tenant_id,external_post_id" }
+            { onConflict: "account_id,external_post_id" }
           );
 
           if (!postErr) stats.posts_upserted++;

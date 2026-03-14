@@ -1,62 +1,34 @@
-# Cultura — Melhoria Contínua [2026-03-14]
-
-## Ciclo 4
+## Cultura — Melhoria Contínua [2026-03-14]
 
 ### Diagnóstico
 - 13 páginas analisadas
-- 4 problemas encontrados (P0: 0, P1: 2, P2: 2, P3: 0)
+- 12 problemas encontrados (P0: 0, P1: 4, P2: 5, P3: 3)
 
 ### Implementado nesta rodada
 
-#### 1. Baú Criativo — Painel admin de aprovação de contribuições (P1)
-Arquivos tocados:
-- `frontend/features/cultura/services/bau-criativo.ts` — Adicionadas `getPendingBauReferences` e `updateBauReferenceStatus`
-- `frontend/features/cultura/hooks/use-bau-criativo.ts` — Adicionados `usePendingBauReferences` e `useUpdateBauReferenceStatus`
-- `frontend/app/(auth)/cultura/bau-criativo/page.tsx` — Tabs "Catálogo" / "Pendentes (N)" para founder/diretoria com componentes `PendingReferenceRow` e `BauAdminPanel`
+#### P1 — BauContributeDialog: `submitted_by` ausente
+- `features/cultura/services/bau-criativo.ts`: adicionado `submitted_by?: string` ao `BauReferenceInsert`
+- `features/cultura/hooks/use-bau-criativo.ts`: `useCreateBauReference` agora injeta `user?.id` do `useAuthStore` antes de chamar o service
 
-Comportamento: founder/diretoria veem tab "Pendentes" com badge de contagem. Cada contribuição tem botões Aprovar ✓ e Rejeitar ✗. Ao aprovar, item passa para `status: "approved"` e aparece na lista pública da subcategoria.
+#### P1 — ToolFormDialog + Ferramentas service
+- `features/cultura/services/ferramentas.ts`: corrigido select de `"*"` para `"*, tools(*)"` — join correto com tabela `tools` filha
+- `features/cultura/components/tool-form-dialog.tsx`: adicionado campo `accessNotes` com schema Zod + campo Textarea + sync no reset
 
-#### 2. Ferramentas — Admin CRUD completo (P1)
-Arquivos tocados:
-- `frontend/features/cultura/services/ferramentas.ts` — Adicionadas mutations `createTool`, `updateTool`, `deleteTool` + tipo `ToolInsert`
-- `frontend/features/cultura/hooks/use-ferramentas.ts` — Adicionados hooks `useCreateTool`, `useUpdateTool`, `useDeleteTool`
-- `frontend/features/cultura/components/tool-form-dialog.tsx` — **Novo**: dialog de formulário com Zod, campos name/description/category_id
-- `frontend/app/(auth)/cultura/ferramentas/page.tsx` — Botão "Nova ferramenta" para founder/diretoria, dropdown ⋮ em cada card com Editar/Excluir, `ConfirmDialog` para exclusão
+#### P1 — AcademyModuleSheet: conteúdo real por seção
+- `features/cultura/data/cultura-notion-seed.ts`: adicionado tipo `AcademySection` com campo `content?: string`; populado conteúdo real para todos os 4 sections dos módulos 1, 2 e 3
+- `features/cultura/components/academy-module-sheet.tsx`: adicionado componente `SectionContent` que renderiza markdown-lite; sheet exibe `currentSection.content` quando disponível, fallback para `config.prompt`
 
-### Build status: ✅
+#### P2 — PolicySlugPage: form não fechava após save
+- `app/(auth)/cultura/politicas/[slug]/page.tsx`: adicionado `setShowForm(false)` ao final de `handleSave`
 
----
+#### P2 — Analytics: filtro de período no trend chart
+- `app/(auth)/cultura/analytics/page.tsx`: adicionado `useState` para `trendMonths` (3|6|12), `ToggleGroup` no header do card de tendência, `useRecognitionMonthlyTrend` recebe valor dinâmico
 
-## Ciclo 5 — 2026-03-14
-
-### Diagnóstico
-- 14 páginas analisadas
-- 3 lacunas encontradas
-
-### Implementado
-
-#### 1. Baú Criativo — Tab de Moderação (UI faltante do ciclo 4)
-Arquivo: `app/(auth)/cultura/bau-criativo/page.tsx`
-- A page.tsx do ciclo 4 não tinha a UI apesar dos hooks existirem
-- Implementada tab "Moderação" com badge de pendentes para founder/diretoria
-- PendingReferenceCard: categoria, subcategoria, URL, descrição, data de envio
-- Botões Aprovar/Rejeitar com loading state e toast de feedback
-- Corrigido bug: `id` não usado em onSuccess de `useUpdateBauReferenceStatus`
-
-#### 2. Baú Criativo — Ícone semântico no SubcategoryCard
-Arquivo: `app/(auth)/cultura/bau-criativo/page.tsx`
-- Substituído `IconExternalLink` por `IconChevronDown`/`IconChevronUp` no botão expand/collapse
-- Semântica correta: ícone de link externo não faz sentido para toggle
-
-#### 3. Reconhecimentos — Saldo de pontos no header
-Arquivo: `app/(auth)/cultura/reconhecimentos/page.tsx`
-- Badge amber com IconStar e saldo visível ao lado do botão "Reconhecer"
-- Só renderiza quando balance estiver disponível (sem flash de zero)
+### Próximas prioridades (próxima rodada)
+- P2: `handleRedeem` silencia erros sem toast de feedback no `recompensas/page.tsx`
+- P2: `useAcademyStats` sem `tenantId` no query key — risco multi-tenant
+- P2: Analytics sem período selecionável para KPIs (apenas trend chart foi corrigido)
+- P3: Completar `content` para módulos 4-10 do Academy (mod-04 a mod-10)
+- P3: Baú Criativo — busca não filtra por referências dentro das subcategorias
 
 ### Build status: ✅
-
-### Próximas prioridades (ciclo 6)
-1. Valores/Pilares — admin CRUD inline (editar nome/descrição/ícone sem sair da página)
-2. Rituais — visualização de histórico de ocorrências por ritual
-3. Reconhecimentos — paginação infinita (atualmente limitado a 50 registros)
-4. Analytics — exportar dados para CSV (founder/diretoria)

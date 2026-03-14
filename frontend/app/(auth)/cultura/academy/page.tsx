@@ -43,6 +43,7 @@ function ModuleCard({
   isCompleted,
   isLocked,
   isExpanded,
+  isCompleting,
   onToggle,
   onComplete,
   onStart,
@@ -51,6 +52,7 @@ function ModuleCard({
   isCompleted: boolean;
   isLocked: boolean;
   isExpanded: boolean;
+  isCompleting: boolean;
   onToggle: () => void;
   onComplete: () => void;
   onStart: () => void;
@@ -139,9 +141,14 @@ function ModuleCard({
                   <IconArrowRight className="h-4 w-4 mr-1.5" />
                   Iniciar modulo
                 </Button>
-                <Button size="sm" variant="outline" onClick={onComplete}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={onComplete}
+                  disabled={isCompleting}
+                >
                   <IconCheck className="h-4 w-4 mr-1.5" />
-                  Ja concluido
+                  {isCompleting ? "Salvando..." : "Já concluído"}
                 </Button>
               </>
             ) : (
@@ -267,6 +274,10 @@ export default function AcademyPage() {
               isCompleted={completedSet.has(mod.id)}
               isLocked={isModuleLocked(mod)}
               isExpanded={expandedId === mod.id}
+              isCompleting={
+                markComplete.isPending &&
+                markComplete.variables === mod.id
+              }
               onToggle={() => handleToggle(mod.id)}
               onComplete={() => handleComplete(mod.id)}
               onStart={() => setReadingModule(mod)}

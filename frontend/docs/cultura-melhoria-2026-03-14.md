@@ -1,35 +1,98 @@
-# Cultura — Melhoria Contínua 2026-03-14
+# Cultura — Relatório de Melhoria Ciclo 2
+**Data:** 2026-03-14
+**Branch:** claude/improve-20260314-1407
+
+---
 
 ## Diagnóstico
-- 13 páginas analisadas (10 existentes + 3 novas: academy, bau-criativo, ferramentas)
-- 4 problemas encontrados (P0: 1, P1: 1, P2: 2, P3: 0)
 
-## Implementado nesta rodada
+### Módulo auditado
+`frontend/app/(auth)/cultura/` — 14 páginas + `frontend/features/cultura/` (services, hooks, components)
 
-### 1. academy-module-sheet.tsx (novo)
-- Sheet lateral com leitura guiada por seção (read/quiz/reflection/action)
-- Progress bar + pills de navegação
-- Botões Anterior / Próxima seção / Concluir módulo
+### Páginas presentes
+- `/cultura` — overview
+- `/cultura/pilares`, `/cultura/valores`, `/cultura/documentos`, `/cultura/manual`
+- `/cultura/rituais`, `/cultura/politicas`, `/cultura/politicas/[slug]`
+- `/cultura/reconhecimentos`, `/cultura/recompensas`
+- `/cultura/academy`, `/cultura/bau-criativo`, `/cultura/ferramentas`
+- `/cultura/analytics`
 
-### 2. academy/page.tsx (atualizado)
-- P0 fix: "Iniciar módulo" abre AcademyModuleSheet
-- P1 fix: Progresso persistido em localStorage (tbo-academy-progress-v1)
-- toast.success ao concluir módulo
+---
 
-### 3. bau-contribute-dialog.tsx (novo)
-- Dialog com formulário Zod + React Hook Form
-- Campos: nome, categoria, subcategoria, URL, descrição com validação inline
+## Problemas Encontrados
 
-### 4. bau-criativo/page.tsx (atualizado)
-- P2 fix: "Contribuir referência" abre BauContributeDialog real
-- P2 fix: "Ver referências" toggle inline com refs seed + links externos
+### P0 — Botão/ação quebrada
+1. **BauContributeDialog**: `<Form>` usado incorrectamente — padrão inválido para o componente customizado do projeto.
+2. **BauCriativoPage**: referências usavam `SEED_REFERENCES` hardcoded, nunca chamava o Supabase mesmo com service já implementado.
 
-## Próximas prioridades
-1. Ferramentas: links externos nas ferramentas
-2. Academy: conteúdo real das seções a partir do seed
-3. Baú Criativo: tabela Supabase bau_references + CRUD real
-4. Analytics: filtro de período
+### P1 — CRUD / hook faltando
+3. **useBauReferences inexistente**: service `getBauReferencesBySubcategory` existia mas não havia hook React Query correspondente.
 
-## Build status: OK
-- tsc --noEmit: 0 erros
-- pnpm build: success
+### P2 — Sem feedback/loading
+4. **AcademyPage — "Já concluído"**: botão sem estado `disabled` nem texto de loading durante mutation.
+5. **FerramentasPage — EmptyState**: `<div>` genérico em vez do componente `EmptyState` padrão do sistema.
+
+### P1 — Validação manual inconsistente
+6. **RitualFormDialog**: único dialog do módulo usando `useState + errors` manual em vez de `react-hook-form + zod`.
+
+---
+
+## Implementações (6 itens)
+
+### 1. Hook `useBauReferences` — `features/cultura/hooks/use-bau-criativo.ts`
+- Novo hook com React Query, ativado apenas quando card expandido (lazy, evita N+1)
+- Retry inteligente: não tenta novamente se tabela não existir no Supabase
+- `useCreateBauReference` invalidates a query da subcategoria após submit
+
+### 2. Fix `BauContributeDialog` — `features/cultura/components/bau-contribute-dialog.tsx`
+- Corrigido para `<Form form={form} onSubmit={...}>` — padrão correto do componente
+
+### 3. BauCriativoPage com Supabase real — `app/(auth)/cultura/bau-criativo/page.tsx`
+- Removido `SEED_REFERENCES` hardcoded
+- `SubcategoryCard` inline com `useBauReferences` (lazy-load por expansão)
+- Skeleton loading, empty state por subcategoria, EmptyState com CTA
+
+### 4. `RitualFormDialog` migrado — `features/cultura/components/ritual-form-dialog.tsx`
+- Reescrito com `useForm` + `zodResolver`
+- Mensagens inline via `FormMessage`, reset automático
+- Compatível com Zod v4 (`z.number()` + `parseInt` no onChange)
+
+### 5. Loading state no Academy — `app/(auth)/cultura/academy/page.tsx`
+- Prop `isCompleting` no `ModuleCard`
+- Botão "Já concluído": `disabled` durante mutation, texto "Salvando..."
+- Granular por módulo via `markComplete.variables === mod.id`
+
+### 6. EmptyState correto em Ferramentas — `app/(auth)/cultura/ferramentas/page.tsx`
+- `EmptyState` com CTA "Limpar busca" para busca sem resultado
+- `EmptyState` genérico para lista vazia
+
+---
+
+## Validação
+
+```
+npx tsc --noEmit — 0 erros
+```
+
+---
+
+## Arquivos Modificados
+
+| Arquivo | Tipo |
+|---|---|
+| `features/cultura/hooks/use-bau-criativo.ts` | Novo hook + fix invalidação |
+| `features/cultura/components/bau-contribute-dialog.tsx` | Fix Form tag |
+| `features/cultura/components/ritual-form-dialog.tsx` | Migração react-hook-form |
+| `app/(auth)/cultura/bau-criativo/page.tsx` | Supabase query real + EmptyState |
+| `app/(auth)/cultura/academy/page.tsx` | Loading state no botão |
+| `app/(auth)/cultura/ferramentas/page.tsx` | EmptyState correto |
+
+---
+
+## Pendências para Próximo Ciclo
+
+- **P1**: Admin view para aprovar/rejeitar referências do Baú Criativo (moderação `bau_references` com status `pending`)
+- **P2**: RituaisPage — mostrar próxima ocorrência baseado na frequência
+- **P3**: AcademyPage — expor `useMarkModuleIncomplete` na UI (hook existe mas não está conectado)
+- **P3**: FerramentasPage — link direto por ferramenta (não só credenciais)
+- **P2**: AnalyticsPage — seletor de período para gráfico de tendência de reconhecimentos

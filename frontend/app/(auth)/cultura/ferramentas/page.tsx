@@ -27,6 +27,7 @@ import {
 import { toast } from "sonner";
 import { type TBOToolCredential } from "@/features/cultura/data/cultura-notion-seed";
 import { useFerramentas } from "@/features/cultura/hooks/use-ferramentas";
+import { EmptyState } from "@/components/shared";
 
 function CredentialRow({ cred }: { cred: TBOToolCredential }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -276,12 +277,22 @@ export default function FerramentasPage() {
             </div>
           </section>
         ))
-      ) : (
-        <div className="text-center py-12 text-muted-foreground">
-          <IconTool className="size-8 mx-auto mb-2 opacity-40" />
-          <p className="text-sm">Nenhuma ferramenta encontrada para &ldquo;{search}&rdquo;</p>
-        </div>
-      )}
+      ) : !isLoading ? (
+        search.trim() ? (
+          <EmptyState
+            icon={IconSearch}
+            title="Nenhuma ferramenta encontrada"
+            description={`Nenhum resultado para "${search}". Tente outro termo.`}
+            cta={{ label: "Limpar busca", onClick: () => setSearch("") }}
+          />
+        ) : (
+          <EmptyState
+            icon={IconTool}
+            title="Nenhuma ferramenta cadastrada"
+            description="O guia de ferramentas estará disponível em breve."
+          />
+        )
+      ) : null}
     </div>
   );
 }

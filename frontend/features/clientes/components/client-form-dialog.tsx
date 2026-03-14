@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { z } from "zod";
@@ -9,25 +9,15 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { CLIENT_STATUS } from "@/lib/constants";
 import { useAuthStore } from "@/stores/auth-store";
 import { useCreateClient, useUpdateClient } from "@/features/clientes/hooks/use-clients";
 import type { Database } from "@/lib/supabase/types";
+import { ClientFormFields } from "./client-form-fields";
 
 type ClientRow = Database["public"]["Tables"]["clients"]["Row"];
 
-const clientSchema = z.object({
+export const clientSchema = z.object({
   name: z.string().min(1, "Razao social e obrigatoria"),
   trading_name: z.string().optional(),
   cnpj: z.string().optional(),
@@ -53,7 +43,7 @@ interface ClientFormDialogProps {
   client?: ClientRow | null;
 }
 
-const emptyForm = {
+const emptyForm: ClientFormData = {
   name: "",
   trading_name: "",
   cnpj: "",
@@ -71,15 +61,11 @@ const emptyForm = {
   next_action_date: "",
 };
 
-export function ClientFormDialog({
-  open,
-  onOpenChange,
-  client,
-}: ClientFormDialogProps) {
+export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialogProps) {
   const tenantId = useAuthStore((s) => s.tenantId);
   const createClient = useCreateClient();
   const updateClient = useUpdateClient();
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState<ClientFormData>(emptyForm);
   const [errors, setErrors] = useState<Partial<Record<keyof ClientFormData, string>>>({});
 
   const isEditing = !!client;
@@ -162,179 +148,18 @@ export function ClientFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>
-            {isEditing ? "Editar Cliente" : "Novo Cliente"}
-          </DialogTitle>
+          <DialogTitle>{isEditing ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="name">Razao Social *</Label>
-              <Input
-                id="name"
-                value={form.name}
-                onChange={(e) => handleChange("name", e.target.value)}
-                required
-              />
-              {errors.name && (
-                <p className="text-xs text-red-500">{errors.name}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="trading_name">Nome Fantasia</Label>
-              <Input
-                id="trading_name"
-                value={form.trading_name}
-                onChange={(e) => handleChange("trading_name", e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="cnpj">CNPJ</Label>
-              <Input
-                id="cnpj"
-                value={form.cnpj}
-                onChange={(e) => handleChange("cnpj", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select
-                value={form.status}
-                onValueChange={(v) => handleChange("status", v)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(CLIENT_STATUS).map(([key, cfg]) => (
-                    <SelectItem key={key} value={key}>
-                      {cfg.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="contact_name">Contato Principal</Label>
-              <Input
-                id="contact_name"
-                value={form.contact_name}
-                onChange={(e) => handleChange("contact_name", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="segment">Segmento</Label>
-              <Input
-                id="segment"
-                value={form.segment}
-                onChange={(e) => handleChange("segment", e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <Input
-                id="email"
-                type="email"
-                value={form.email}
-                onChange={(e) => handleChange("email", e.target.value)}
-              />
-              {errors.email && (
-                <p className="text-xs text-red-500">{errors.email}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Telefone</Label>
-              <Input
-                id="phone"
-                value={form.phone}
-                onChange={(e) => handleChange("phone", e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="address">Endereço</Label>
-            <Input
-              id="address"
-              value={form.address}
-              onChange={(e) => handleChange("address", e.target.value)}
-            />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="city">Cidade</Label>
-              <Input
-                id="city"
-                value={form.city}
-                onChange={(e) => handleChange("city", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="state">Estado</Label>
-              <Input
-                id="state"
-                value={form.state}
-                onChange={(e) => handleChange("state", e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="sales_owner">Responsável Comercial</Label>
-            <Input
-              id="sales_owner"
-              value={form.sales_owner}
-              onChange={(e) => handleChange("sales_owner", e.target.value)}
-            />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="next_action">Próxima Ação</Label>
-              <Input
-                id="next_action"
-                value={form.next_action}
-                onChange={(e) => handleChange("next_action", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="next_action_date">Data Próxima Ação</Label>
-              <Input
-                id="next_action_date"
-                type="date"
-                value={form.next_action_date}
-                onChange={(e) => handleChange("next_action_date", e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="notes">Observações</Label>
-            <Textarea
-              id="notes"
-              value={form.notes}
-              onChange={(e) => handleChange("notes", e.target.value)}
-              rows={3}
-            />
-          </div>
+          <ClientFormFields
+            form={form as ClientFormData & { [key: string]: string }}
+            errors={errors}
+            onChange={handleChange}
+          />
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
             <Button type="submit" disabled={isPending || !form.name.trim()}>

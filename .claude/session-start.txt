@@ -1,12 +1,15 @@
+21949de feat(pessoas): redesign organograma to classic top-down tree layout
+4a7519e docs(audit): ciclo 23 — audit-log atualizado
+78f9273 refactor(comercial): split rd-pipeline-kanban (353L → 2 arquivos <200L)
+e3fb699 refactor(tasks): split task-actions-toolbar (381L → 3 arquivos <200L)
+31c9dc6 fix(projetos): project-topbar — shadcn DropdownMenu + handlers reais
+7f3396d docs(audit): ciclo 22 — audit-log atualizado
+178db27 refactor(financeiro): ciclo 22 — split contas/page.tsx (515L → 3 arquivos)
+3619a68 refactor(mercado): ciclo 22 — split page.tsx (549L → 247L + components file)
+79e8973 refactor(demands): ciclo 22 — split demand-detail-sidebar.tsx (455L → 3 arquivos)
 b2d94ee docs(audit): ciclo 21 — audit-log atualizado
-4dec1a8 refactor(contratos): ciclo 21 — split contract-detail-dialog.tsx (461L → 3 sub-componentes)
-17aaa90 fix(contratos): ciclo 21 — eliminar `any` em contracts.ts
-8964455 refactor(comercial): ciclo 21 — split comercial-relatorios-components.tsx (890L → 7 sub-arquivos)
-e3923bb feat(tbo-os): ciclo 20 — window.confirm → ConfirmDialog em projetos, RSM e relatórios
-16fe2fc docs(audit): ciclo 19 — migração completa lucide-react → @tabler/icons-react
-18c6380 fix(config): restaurar turbopack.root em next.config.ts
-72720a0 docs(audit): ciclo 19 — fix build ícones Tabler inválidos
-8ebcc39 fix(tbo-os): ciclo 19 — corrigir build quebrado (ícones Tabler inválidos)
-e6a8beb feat(cultura): ciclo 19 — DnD em documentos/manual + delete restaurado + avgPerPerson fix
- .claude/session-start.txt | 15 ++++++++++-----
- 1 file changed, 10 insertions(+), 5 deletions(-)
+ .claude/session-start.txt                          | 20 ++++----
+ .../components/modules/team/delete-user-dialog.tsx | 13 ++++--
+ frontend/hooks/use-team.ts                         |  4 +-
+ frontend/services/team.ts                          | 53 ++++++++++++++++++----
+ 4 files changed, 66 insertions(+), 24 deletions(-)

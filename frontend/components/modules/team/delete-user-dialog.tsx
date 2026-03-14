@@ -49,10 +49,15 @@ export function DeleteUserDialog({
           <AlertDialogTitle className="text-center">
             Excluir membro
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-center">
-            Tem certeza que deseja excluir{" "}
-            <strong>{member.full_name}</strong> ({member.email})? Esta acao
-            remove o acesso permanentemente e nao pode ser desfeita.
+          <AlertDialogDescription className="text-center space-y-2">
+            <span>
+              Tem certeza que deseja excluir{" "}
+              <strong>{member.full_name}</strong> ({member.email})?
+            </span>
+            <span className="block text-xs text-destructive/80">
+              Esta acao remove permanentemente o perfil, historico, acessos e
+              conta de autenticacao. Nao pode ser desfeita.
+            </span>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

@@ -131,16 +131,57 @@ export async function changeUserRole(
   return data as TeamMember;
 }
 
+// ────────────────────────────────────────────────────
+// Edge Function calls — manage-team-member
+// ────────────────────────────────────────────────────
+
+async function callManageTeamMember(
+  supabase: SupabaseClient,
+  action: "deactivate" | "reactivate" | "delete",
+  targetId: string
+): Promise<void> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) {
+    throw new Error("Sessao expirada. Faca login novamente.");
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  if (!supabaseUrl) {
+    throw new Error("SUPABASE_URL nao configurada.");
+  }
+
+  const response = await fetch(
+    `${supabaseUrl}/functions/v1/manage-team-member`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ action, target_id: targetId }),
+    }
+  );
+
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result.error || `Erro ${response.status}`);
+  }
+}
+
 export async function toggleUserActive(
   supabase: SupabaseClient,
   id: string,
   is_active: boolean
 ): Promise<TeamMember> {
+  // Call Edge Function to ban/unban auth user + update profile + tenant_members
+  await callManageTeamMember(supabase, is_active ? "reactivate" : "deactivate", id);
+
+  // Fetch updated profile to return
   const { data, error } = await supabase
     .from("profiles")
-    .update({ is_active } as never)
+    .select("*")
     .eq("id", id)
-    .select()
     .single();
 
   if (error) throw error;
@@ -151,10 +192,6 @@ export async function deleteTeamMember(
   supabase: SupabaseClient,
   id: string
 ): Promise<void> {
-  const { error } = await supabase
-    .from("profiles")
-    .delete()
-    .eq("id", id);
-
-  if (error) throw error;
+  // Call Edge Function to delete from all tables + auth
+  await callManageTeamMember(supabase, "delete", id);
 }

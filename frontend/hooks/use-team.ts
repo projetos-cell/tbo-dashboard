@@ -152,7 +152,9 @@ export function useToggleUserActive() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["team", "list"] });
       toast.success(data.is_active ? "Membro reativado" : "Membro desativado", {
-        description: `${data.full_name} foi ${data.is_active ? "reativado" : "desativado"}.`,
+        description: data.is_active
+          ? `${data.full_name} teve o acesso restaurado.`
+          : `${data.full_name} teve todos os acessos removidos. O perfil foi mantido.`,
       });
     },
     onError: (error, _vars, context) => {

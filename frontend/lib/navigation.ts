@@ -58,11 +58,18 @@ export const SIDEBAR_NAV_GROUPS: readonly NavGroup[] = [
     ],
   },
   {
+    label: "Aprendizado",
+    items: [
+      { href: "/cursos", label: "Cursos", icon: "school", module: "cursos" },
+    ],
+  },
+  {
     label: "Sistema",
     items: [
       { href: "/cultura", label: "Cultura", icon: "heart-handshake", module: "cultura", subItems: CULTURA_NAV_ITEMS as unknown as SubNavItem[] },
       { href: "/rsm", label: "Redes Sociais", icon: "share-2", module: "rsm" },
       { href: "/relatorios", label: "Relatórios", icon: "bar-chart-3", module: "relatorios" },
+      { href: "/usuarios", label: "Usuários", icon: "users-group", module: "usuarios" },
       { href: "/configuracoes", label: "Configurações", icon: "settings", module: "configuracoes" },
       { href: "/admin/equipe", label: "Equipe", icon: "shield", module: "admin" },
     ],

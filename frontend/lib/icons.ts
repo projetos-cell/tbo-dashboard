@@ -48,6 +48,7 @@ import {
   IconUser,
   IconUserPlus,
   IconUsers,
+  IconSchool,
   IconWallet,
 } from "@tabler/icons-react";
 
@@ -104,7 +105,9 @@ const ICON_MAP: Record<string, React.ElementType> = {
   upload: IconUpload,
   user: IconUser,
   "user-plus": IconUserPlus,
+  school: IconSchool,
   users: IconUsers,
+  "users-group": IconUsersGroup,
   wallet: IconWallet,
 };
 

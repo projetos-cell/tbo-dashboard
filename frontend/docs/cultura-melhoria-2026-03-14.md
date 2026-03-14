@@ -1,39 +1,35 @@
-## Cultura — Melhoria Contínua [2026-03-14]
+# Cultura — Melhoria Contínua 2026-03-14
 
-### Diagnóstico
-- 10 páginas analisadas (page.tsx, reconhecimentos, recompensas, pilares, valores, rituais, politicas, documentos, manual, analytics)
-- Módulo bem estruturado com CRUD completo, validação Zod, React Query, D&D com undo/redo
-- Problemas encontrados: P2: 4
+## Diagnóstico
+- 13 páginas analisadas (10 existentes + 3 novas: academy, bau-criativo, ferramentas)
+- 4 problemas encontrados (P0: 1, P1: 1, P2: 2, P3: 0)
 
-### Implementado nesta rodada
+## Implementado nesta rodada
 
-1. **Search + filtro de status em Pilares** (`app/(auth)/cultura/pilares/page.tsx`)
-   - Campo de busca com ícone, limpar (X), filtro por texto em title/content
-   - Badges clicáveis para filtrar por status: Todos/Publicados/Rascunhos/Arquivados com contagem
-   - D&D desativado automaticamente quando filtro ativo (comportamento correto)
-   - Empty state "Nenhum resultado" com CTA "Limpar filtros"
+### 1. academy-module-sheet.tsx (novo)
+- Sheet lateral com leitura guiada por seção (read/quiz/reflection/action)
+- Progress bar + pills de navegação
+- Botões Anterior / Próxima seção / Concluir módulo
 
-2. **Search + filtro de status em Valores** (`app/(auth)/cultura/valores/page.tsx`)
-   - Mesma estrutura do Pilares, adaptada para valores
+### 2. academy/page.tsx (atualizado)
+- P0 fix: "Iniciar módulo" abre AcademyModuleSheet
+- P1 fix: Progresso persistido em localStorage (tbo-academy-progress-v1)
+- toast.success ao concluir módulo
 
-3. **Search em Documentos** (`app/(auth)/cultura/documentos/page.tsx`)
-   - Campo de busca com clear button
-   - D&D desativado quando busca ativa
+### 3. bau-contribute-dialog.tsx (novo)
+- Dialog com formulário Zod + React Hook Form
+- Campos: nome, categoria, subcategoria, URL, descrição com validação inline
 
-4. **Search em Manual** (`app/(auth)/cultura/manual/page.tsx`)
-   - Campo de busca com clear button
-   - D&D desativado quando busca ativa
+### 4. bau-criativo/page.tsx (atualizado)
+- P2 fix: "Contribuir referência" abre BauContributeDialog real
+- P2 fix: "Ver referências" toggle inline com refs seed + links externos
 
-5. **Link para Analytics de Cultura** (`app/(auth)/cultura/page.tsx`)
-   - Card estilizado (border-dashed, fundo indigo) visível apenas para founder/diretoria
-   - Usa RequireRole com minRole="diretoria"
-   - Linkado para `/cultura/analytics`
+## Próximas prioridades
+1. Ferramentas: links externos nas ferramentas
+2. Academy: conteúdo real das seções a partir do seed
+3. Baú Criativo: tabela Supabase bau_references + CRUD real
+4. Analytics: filtro de período
 
-### Próximas prioridades (para próxima rodada)
-- P2: Adicionar search/filtro em Rituais
-- P2: Paginação ou virtualização para listas longas
-- P3: Animações de entrada/saída nos cards (Framer Motion)
-- P3: Keyboard shortcut (/) para focar campo de busca
-- P4: Export de políticas para PDF
-
-### Build status: ✅ (tsc --noEmit sem erros)
+## Build status: OK
+- tsc --noEmit: 0 erros
+- pnpm build: success

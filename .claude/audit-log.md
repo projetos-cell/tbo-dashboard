@@ -1,5 +1,57 @@
 # TBO OS — Audit Log
 
+## Ciclo 29 — 2026-03-14
+
+**Módulo**: Team (split), Demands Comments (split), Kanban AssignUsersDialog (real data)
+**Branch**: `main`
+**Build**: ✅ Clean antes e depois de todas as mudanças
+
+### Estado do módulo
+
+| Componente | Antes | Depois | Detalhes |
+|------------|-------|--------|----------|
+| `team-management-page.tsx` | ⚠️ 611L (viola 200L) | ✅ 162L | Split em 3 componentes |
+| `team-table.tsx` | ❌ Inexistente | ✅ 316L | Extraído de team-management-page |
+| `team-stats-cards.tsx` | ❌ Inexistente | ✅ 60L | Extraído de team-management-page |
+| `team-toolbar.tsx` | ❌ Inexistente | ✅ 97L | Extraído de team-management-page |
+| `demand-comment-thread.tsx` | ⚠️ 283L (viola 200L) | ✅ 75L | Split em 2 componentes |
+| `demand-comment-composer.tsx` | ❌ Inexistente | ✅ 57L | Extraído de demand-comment-thread |
+| `demand-comment-item.tsx` | ❌ Inexistente | ✅ 145L | Extraído de demand-comment-thread |
+| `AssignUsersDialog.tsx` | 🔧 Mock hardcoded + TODO | ✅ Real data + toast | Conectado ao useTeamMembers, skeleton loading, error handling |
+
+### Implementado
+
+- refactor(team): `team-management-page.tsx` 611L → 162L — extraído `team-table.tsx` (316L), `team-stats-cards.tsx` (60L), `team-toolbar.tsx` (97L). Exports adicionados em `index.ts`.
+- refactor(demands): `demand-comment-thread.tsx` 283L → 75L — extraído `demand-comment-composer.tsx` (57L) e `demand-comment-item.tsx` (145L)
+- fix(kanban): `AssignUsersDialog.tsx` — mock `MOCK_USERS` substituído por `useTeamMembers({ is_active: true })`, skeleton loading state, toast de sucesso/erro, prop `onAssign` para callback externo, reset de estado ao fechar
+
+### Audit completo — issues identificados neste ciclo
+
+| Área | Status | Prioridade |
+|------|--------|------------|
+| 20+ páginas placeholder (13L, "Em desenvolvimento") | ❌ AUSENTE | Médio |
+| `any` casts no supabase client (notion, finance APIs) | ⚠️ PARCIAL | Baixo |
+| KanbanToolbar — filtros de status/priority/assignee sem persistência | ⚠️ PARCIAL | Médio |
+| `onClick={() => {}}` no DragOverlay | ✅ OK | Intencional |
+
+### Migrations aplicadas
+
+Nenhuma — sem alterações de schema.
+
+### Próximo ciclo (sugestões)
+
+- Implementar pelo menos 3 páginas placeholder de alto valor (ex: `comercial/leads`, `okrs/dashboard`, `comercial/propostas`)
+- KanbanToolbar — conectar filtros a estado real e persistência
+- `pdi-detail.tsx` (363L) e `revenue-concentration.tsx` (362L) — ainda acima do limite de 200L
+- `contract-filter-sections.tsx` (351L) — violations no módulo contratos
+
+### Debt técnico
+
+- `team-table.tsx` ainda tem 316L — candidate para split de colunas em arquivo separado no próximo ciclo
+- `AssignUsersDialog.onAssign` prop não é chamada na `KanbanToolbar` (sem target definido no board) — próximo ciclo definir modelo de assignee no board
+
+---
+
 ## Ciclo 27 — 2026-03-14 00:08
 
 **Módulo**: Configurações (notion-sync), Pessoas (people-filters), Chat (message-bubble)

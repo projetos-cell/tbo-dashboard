@@ -1,23 +1,17 @@
 "use client";
 
-import { useMemo, useState, useCallback, useEffect } from "react";
 import {
   DndContext,
   DragOverlay,
   closestCorners,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragStartEvent,
-  type DragEndEvent,
-  type DragOverEvent,
 } from "@dnd-kit/core";
 import { DealCard } from "./deal-card";
 import { DraggableDeal } from "./draggable-deal";
 import { DroppableStageColumn } from "./droppable-stage-column";
 import { formatCurrency } from "@/features/comercial/lib/format-currency";
-import { DEAL_STAGES, type DealStageKey } from "@/lib/constants";
+import { DEAL_STAGES } from "@/lib/constants";
 import { IconBriefcase } from "@tabler/icons-react";
+import { useDealPipelineDnd } from "@/features/comercial/hooks/use-deal-pipeline-dnd";
 import type { Database } from "@/lib/supabase/types";
 
 type DealRow = Database["public"]["Tables"]["crm_deals"]["Row"];
@@ -29,156 +23,23 @@ interface DealPipelineProps {
   onStageDrop?: (dealId: string, newStage: string) => Promise<void> | void;
 }
 
-const orderedStages = Object.entries(DEAL_STAGES)
-  .sort(([, a], [, b]) => a.order - b.order)
-  .map(([key]) => key as DealStageKey);
-
 export function DealPipeline({
   deals,
   isLoading,
   onSelect,
   onStageDrop,
 }: DealPipelineProps) {
-  const [localDeals, setLocalDeals] = useState<DealRow[]>(deals);
-  const [activeDeal, setActiveDeal] = useState<DealRow | null>(null);
-  const [overColumnId, setOverColumnId] = useState<string | null>(null);
-  const [undoStack, setUndoStack] = useState<DealRow[][]>([]);
-  const [isMutating, setIsMutating] = useState(false);
-
-  // Sync localDeals from prop when not mutating (external refresh)
-  useEffect(() => {
-    if (!isMutating) {
-      setLocalDeals(deals);
-    }
-  }, [deals, isMutating]);
-
-  // Ctrl+Z undo handler
-  useEffect(() => {
-    function handleUndo(e: KeyboardEvent) {
-      if ((e.ctrlKey || e.metaKey) && e.key === "z" && undoStack.length > 0) {
-        e.preventDefault();
-        const previous = undoStack[undoStack.length - 1];
-        setUndoStack((prev) => prev.slice(0, -1));
-        setLocalDeals(previous);
-        // Re-sync reverted state to Supabase
-        if (onStageDrop) {
-          for (const deal of previous) {
-            const current = localDeals.find((d) => d.id === deal.id);
-            if (current && current.stage !== deal.stage) {
-              onStageDrop(deal.id, deal.stage as string);
-            }
-          }
-        }
-      }
-    }
-    window.addEventListener("keydown", handleUndo);
-    return () => window.removeEventListener("keydown", handleUndo);
-  }, [undoStack, localDeals, onStageDrop]);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    })
-  );
-
-  const grouped = useMemo(() => {
-    const map: Record<string, DealRow[]> = {};
-    for (const stage of orderedStages) {
-      map[stage] = [];
-    }
-    for (const deal of localDeals) {
-      const key = deal.stage as DealStageKey;
-      if (map[key]) {
-        map[key].push(deal);
-      }
-    }
-    return map;
-  }, [localDeals]);
-
-  const handleDragStart = useCallback(
-    (event: DragStartEvent) => {
-      const deal = localDeals.find((d) => d.id === event.active.id);
-      if (deal) setActiveDeal(deal);
-    },
-    [localDeals]
-  );
-
-  const handleDragOver = useCallback(
-    (event: DragOverEvent) => {
-      const { over } = event;
-      if (!over) {
-        setOverColumnId(null);
-        return;
-      }
-      const overData = over.data.current;
-      if (overData?.type === "column") {
-        setOverColumnId(overData.stage as string);
-      } else {
-        // Hovering over a deal card -- find its stage
-        const overDeal = localDeals.find((d) => d.id === over.id);
-        setOverColumnId(overDeal?.stage ?? (over.id as string));
-      }
-    },
-    [localDeals]
-  );
-
-  const handleDragEnd = useCallback(
-    async (event: DragEndEvent) => {
-      const { active, over } = event;
-      setActiveDeal(null);
-      setOverColumnId(null);
-
-      if (!over || !onStageDrop) return;
-
-      const dealId = active.id as string;
-      let targetStage: string;
-
-      const overData = over.data.current;
-      if (overData?.type === "column") {
-        targetStage = overData.stage as string;
-      } else {
-        const overDeal = localDeals.find((d) => d.id === over.id);
-        targetStage = overDeal?.stage ?? (over.id as string);
-      }
-
-      const deal = localDeals.find((d) => d.id === dealId);
-      if (!deal || deal.stage === targetStage) return;
-
-      // 1. Push current state to undo stack (max 20 entries)
-      setUndoStack((prev) => [...prev.slice(-19), [...localDeals]]);
-
-      // 2. Optimistic update -- modify local state immediately
-      setLocalDeals((prev) =>
-        prev.map((d) =>
-          d.id === dealId ? { ...d, stage: targetStage } : d
-        )
-      );
-
-      // 3. Persist to Supabase with rollback on error
-      setIsMutating(true);
-      try {
-        await onStageDrop(dealId, targetStage);
-      } catch {
-        // Rollback: restore previous local state from undo stack
-        setLocalDeals((prev) => {
-          const restored = prev.map((d) =>
-            d.id === dealId ? { ...d, stage: deal.stage } : d
-          );
-          return restored;
-        });
-        // Remove the entry we just pushed
-        setUndoStack((prev) => prev.slice(0, -1));
-      } finally {
-        setIsMutating(false);
-      }
-    },
-    [localDeals, onStageDrop]
-  );
-
-  const handleDragCancel = useCallback(() => {
-    setActiveDeal(null);
-    setOverColumnId(null);
-  }, []);
+  const {
+    activeDeal,
+    overColumnId,
+    orderedStages,
+    grouped,
+    sensors,
+    handleDragStart,
+    handleDragOver,
+    handleDragEnd,
+    handleDragCancel,
+  } = useDealPipelineDnd({ deals, onStageDrop });
 
   if (isLoading) {
     return (
@@ -272,7 +133,6 @@ export function DealPipeline({
         })}
       </div>
 
-      {/* Drag overlay for smooth movement */}
       <DragOverlay dropAnimation={null}>
         {activeDeal ? (
           <div className="w-[248px] rotate-[2deg] scale-105 opacity-90 shadow-xl">

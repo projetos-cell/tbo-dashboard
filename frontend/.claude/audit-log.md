@@ -1,3 +1,38 @@
+## Ciclo 34 — 2026-03-14 07:08
+
+**Módulo**: Tasks (my-tasks-board-view, task-board, my-tasks-table-header)
+**Branch**: claude/improve-20260314-0708 → main
+**Build**: ✅
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|----------------|-------|--------|----------|
+| my-tasks-board-view — loading state | ❌ (sections carregavam sem feedback) | ✅ | Skeleton 3 colunas durante isLoading |
+| my-tasks-board-view — empty state | ❌ (board vazio sem orientação) | ✅ | Empty state com ícone + CTA "Criar primeira seção" |
+| my-tasks-board-view — onError no moveTask | 🔧 (sem feedback em falhas de drag) | ✅ | onError com toast destructive |
+| task-board — onError no drag | 🔧 (optimistic update sem rollback no path normal) | ✅ | onError com rollback de localTasks + toast destructive |
+| my-tasks-table-header (266L) | ⚠️ viola 200L | ✅ | 266L → 90L; SortableHead → my-tasks-sortable-head.tsx (179L) |
+| task-board (213L→228L) | ⚠️ viola 200L | ✅ | SortableTaskCard → sortable-task-card.tsx (30L); task-board → 197L |
+
+### Implementado
+
+- feat(tasks): my-tasks-board-view — loading skeleton (3 colunas), empty state com CTA, onError no moveTask.mutate (arquivos: my-tasks-board-view.tsx)
+- fix(tasks): task-board — onError com rollback de optimistic update + toast destructive no drag normal (arquivos: task-board.tsx)
+- refactor(tasks): my-tasks-table-header split — SortableHead extraído para my-tasks-sortable-head.tsx; 266L → 90L (arquivos: my-tasks-table-header.tsx, my-tasks-sortable-head.tsx)
+- refactor(tasks): task-board split — SortableTaskCard extraído para sortable-task-card.tsx; 228L → 197L (arquivos: task-board.tsx, sortable-task-card.tsx)
+
+### Migrations aplicadas
+- Nenhuma
+
+### Próximo ciclo
+- my-tasks-board-view.tsx (221L) — levemente acima de 200L; candidato a extrair BoardLoadingSkeleton e BoardEmptyState como sub-componentes
+- my-tasks-table-body.tsx (241L) — viola 200L, candidato a split
+- custom-field-definition-steps.tsx (264L) — viola 200L, candidato a split
+
+### Debt técnico
+- my-tasks-board-view.tsx (221L) — loading state e empty state adicionados inline; se crescer mais, extrair em componentes separados
+
 ## Ciclo — 2026-03-13 Ciclo 23
 
 **Módulo**: Projetos + Tasks + Comercial (cross-module)

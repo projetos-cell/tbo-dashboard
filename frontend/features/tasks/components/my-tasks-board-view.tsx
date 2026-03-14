@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { TaskCard } from "./task-card";
 import { BoardColumn } from "./my-tasks-board-column";
 import {
@@ -23,7 +24,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { IconPlus } from "@tabler/icons-react";
+import { IconPlus, IconLayoutKanban } from "@tabler/icons-react";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 
@@ -33,7 +34,7 @@ interface MyTasksBoardViewProps {
 }
 
 export function MyTasksBoardView({ tasks, onSelect }: MyTasksBoardViewProps) {
-  const { data: sections = [] } = useMyTasksSections();
+  const { data: sections = [], isLoading: sectionsLoading } = useMyTasksSections();
   const createSection = useCreateSection();
   const moveTask = useMoveTaskToSection();
   const tenantId = useAuthStore((s) => s.tenantId);
@@ -99,13 +100,20 @@ export function MyTasksBoardView({ tasks, onSelect }: MyTasksBoardViewProps) {
         0
       );
 
-      moveTask.mutate({
-        task_id: taskId,
-        section_id: targetSectionId,
-        sort_order: maxOrder + 1,
-      });
+      moveTask.mutate(
+        {
+          task_id: taskId,
+          section_id: targetSectionId,
+          sort_order: maxOrder + 1,
+        },
+        {
+          onError: () => {
+            toast({ title: "Erro ao mover tarefa", description: "Não foi possível mover a tarefa. Tente novamente.", variant: "destructive" });
+          },
+        }
+      );
     },
-    [tasks, sections, moveTask, undo]
+    [tasks, sections, moveTask, undo, toast]
   );
 
   const handleUndo = useCallback(() => {
@@ -140,6 +148,37 @@ export function MyTasksBoardView({ tasks, onSelect }: MyTasksBoardViewProps) {
       sort_order: maxOrder + 1,
     });
   }, [tenantId, sections, createSection]);
+
+  if (sectionsLoading) {
+    return (
+      <div className="grid auto-cols-[280px] grid-flow-col gap-4 overflow-x-auto pb-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="flex flex-col gap-2">
+            <Skeleton className="h-6 w-32" />
+            {Array.from({ length: 3 }).map((__, j) => (
+              <Skeleton key={j} className="h-20 w-full rounded-lg" />
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (sortedSections.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
+        <IconLayoutKanban className="h-10 w-10 text-muted-foreground/40" />
+        <div>
+          <p className="text-sm font-medium text-muted-foreground">Nenhuma seção criada</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">Crie uma seção para organizar suas tarefas no board</p>
+        </div>
+        <Button size="sm" onClick={handleAddSection} disabled={createSection.isPending || !tenantId}>
+          <IconPlus className="mr-1.5 h-4 w-4" />
+          Criar primeira seção
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <DndContext

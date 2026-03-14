@@ -1,10 +1,7 @@
-7f3396d docs(audit): ciclo 22 — audit-log atualizado
-178db27 refactor(financeiro): ciclo 22 — split contas/page.tsx (515L → 3 arquivos)
-3619a68 refactor(mercado): ciclo 22 — split page.tsx (549L → 247L + components file)
-79e8973 refactor(demands): ciclo 22 — split demand-detail-sidebar.tsx (455L → 3 arquivos)
-b2d94ee docs(audit): ciclo 21 — audit-log atualizado
-4dec1a8 refactor(contratos): ciclo 21 — split contract-detail-dialog.tsx (461L → 3 sub-componentes)
-17aaa90 fix(contratos): ciclo 21 — eliminar `any` em contracts.ts
-8964455 refactor(comercial): ciclo 21 — split comercial-relatorios-components.tsx (890L → 7 sub-arquivos)
-e3923bb feat(tbo-os): ciclo 20 — window.confirm → ConfirmDialog em projetos, RSM e relatórios
-16fe2fc docs(audit): ciclo 19 — migração completa lucide-react → @tabler/icons-react
+d299060 docs(audit): ciclo 33 — sidebar nav-group wiring + demand comment error handling
+958df6a feat(sidebar): wire + button + Recolher todas + demand comment error handling
+d1a5e84 docs(audit): ciclo 32 — header + sortable-nav-item + custom-field-config splits
+797ab54 refactor(shared): split custom-field-config.tsx 328L → 149L + dialog (202L)
+bb30403 refactor(sidebar): split sortable-nav-item.tsx 357L → 266L + parts (147L)
+ frontend/.claude/session-start.txt | 15 +++++----------
+ 1 file changed, 5 insertions(+), 10 deletions(-)

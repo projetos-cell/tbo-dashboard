@@ -1,8 +1,9 @@
-﻿"use client";
+"use client";
 
 import { Badge } from "@/components/ui/badge";
 import { TASK_STATUS } from "@/lib/constants";
 import { TaskCard } from "./task-card";
+import { SortableTaskCard } from "./sortable-task-card";
 import { useUpdateTask } from "@/features/tasks/hooks/use-tasks";
 import { useUndoStack } from "@/hooks/use-undo-stack";
 import { useUndoKeyboard } from "@/hooks/use-undo-keyboard";
@@ -16,36 +17,11 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { useState, useCallback } from "react";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 
 const BOARD_COLUMNS = ["pendente", "em_andamento", "revisao", "concluida", "bloqueada"] as const;
-
-function SortableTaskCard({
-  task,
-  onClick,
-}: {
-  task: TaskRow;
-  onClick?: () => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: task.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <TaskCard task={task} onClick={onClick} />
-    </div>
-  );
-}
 
 interface TaskBoardProps {
   tasks: TaskRow[];
@@ -95,19 +71,31 @@ export function TaskBoard({ tasks, onSelect }: TaskBoardProps) {
 
     const oldStatus = task.status;
 
-    // Push to undo stack
     undo.push({
       type: "MOVE_TASK",
       payload: { taskId, fromStatus: oldStatus, toStatus: targetStatus },
       inverse: { taskId, fromStatus: targetStatus, toStatus: oldStatus },
     });
 
-    // Optimistic update
     setLocalTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, status: targetStatus } : t))
     );
 
-    updateTask.mutate({ id: taskId, updates: { status: targetStatus } });
+    updateTask.mutate(
+      { id: taskId, updates: { status: targetStatus } },
+      {
+        onError: () => {
+          setLocalTasks((prev) =>
+            prev.map((t) => (t.id === taskId ? { ...t, status: oldStatus } : t))
+          );
+          toast({
+            title: "Erro ao mover tarefa",
+            description: "Não foi possível atualizar o status. Tente novamente.",
+            variant: "destructive",
+          });
+        },
+      }
+    );
   }
 
   const handleUndo = useCallback(() => {
@@ -122,7 +110,6 @@ export function TaskBoard({ tasks, onSelect }: TaskBoardProps) {
 
     undo.setUndoing(true);
 
-    // Optimistic revert
     setLocalTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, status: toStatus } : t))
     );
@@ -132,10 +119,7 @@ export function TaskBoard({ tasks, onSelect }: TaskBoardProps) {
       {
         onSuccess: () => {
           undo.setUndoing(false);
-          toast({
-            title: "Desfeito",
-            description: "Movimento revertido com sucesso.",
-          });
+          toast({ title: "Desfeito", description: "Movimento revertido com sucesso." });
         },
         onError: () => {
           undo.setUndoing(false);

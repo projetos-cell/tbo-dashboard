@@ -1239,3 +1239,40 @@ Nenhuma.
 
 ### Debt técnico
 Nenhum novo.
+
+## Ciclo 39 — 2026-03-14 12:08
+
+**Módulo**: RSM + Team + Relatorios — splits de violações 200L
+**Branch**: claude/improve-20260314-1208
+**Build**: ✅ (zero erros TypeScript)
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|----------------|-------|--------|----------|
+| rsm/page.tsx (529L) | ⚠️ viola 200L | ✅ | 529L → page.tsx (110L) + rsm-kpi-cards.tsx (40L) + rsm-tab-contas.tsx (80L) + rsm-tab-posts.tsx (130L) + rsm-tab-ideias.tsx (120L) |
+| rsm: "Novo Post"/"Nova Ideia"/"Editar" sem handler | 🔧 QUEBRADO | ✅ | onClick → toast "Em breve" com descrição |
+| team-table.tsx (317L) | ⚠️ viola 200L | ✅ | 317L → team-table.tsx (188L) + team-table-columns.tsx (161L) com useTeamTableColumns hook |
+| relatorios/page.tsx (411L) | ⚠️ viola 200L | ✅ | 411L → page.tsx (66L) + relatorios-kpi-cards.tsx (55L) + relatorios-tab-agendamentos.tsx (158L) + relatorios-tab-execucoes.tsx (166L) |
+| relatorios: "Novo Agendamento"/"Editar"/"Ver Conteudo" sem handler | 🔧 QUEBRADO | ✅ | onClick → toast "Em breve" com descrição |
+
+### Implementado
+
+- refactor(rsm): split page.tsx 529L → 4 sub-components (arquivos: rsm-kpi-cards.tsx, rsm-tab-contas.tsx, rsm-tab-posts.tsx, rsm-tab-ideias.tsx, page.tsx)
+- fix(rsm): "Novo Post", "Nova Ideia", "Editar" sem onClick → toast feedback
+- refactor(team): useTeamTableColumns hook extraído para team-table-columns.tsx; team-table.tsx 317L → 188L
+- refactor(relatorios): split page.tsx 411L → 3 sub-components (arquivos: relatorios-kpi-cards.tsx, relatorios-tab-agendamentos.tsx, relatorios-tab-execucoes.tsx, page.tsx)
+- fix(relatorios): "Novo Agendamento", "Editar", "Ver Conteudo" sem onClick → toast feedback
+
+### Migrations aplicadas
+Nenhuma.
+
+### Próximo ciclo (sugestões)
+- cultura/manual/page.tsx (432L) — candidato a split
+- permissoes/page.tsx (419L) — candidato a split
+- pessoas/performance/page.tsx (410L) — candidato a split
+- Implementar form dialogs reais para RSM posts/ideias (substituir toasts "Em breve")
+- Implementar form dialog para relatorios/agendamentos
+
+### Debt técnico
+- Botões "Em breve" (RSM + Relatorios) são feedback temporário — precisam de form dialogs reais

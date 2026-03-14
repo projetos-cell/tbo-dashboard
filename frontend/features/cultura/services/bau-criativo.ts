@@ -9,6 +9,7 @@ export interface BauReferenceInsert {
   subcategory_id: string;
   url: string;
   description: string;
+  submitted_by?: string;
 }
 
 export interface BauReferenceRow extends BauReferenceInsert {

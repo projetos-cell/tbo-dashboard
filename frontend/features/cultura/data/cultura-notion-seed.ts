@@ -796,6 +796,13 @@ export const ESTRUTURA_CARGOS = {
 };
 
 // ─── TBO Academy (Trilha de Aprendizado Cultural) ───
+export interface AcademySection {
+  id: string;
+  title: string;
+  type: "read" | "quiz" | "reflection" | "action";
+  content?: string;
+}
+
 export interface AcademyModule {
   id: string;
   order: number;
@@ -803,7 +810,7 @@ export interface AcademyModule {
   emoji: string;
   description: string;
   estimatedMinutes: number;
-  sections: { id: string; title: string; type: "read" | "quiz" | "reflection" | "action" }[];
+  sections: AcademySection[];
   requiredForOnboarding: boolean;
 }
 
@@ -817,11 +824,90 @@ export const TBO_ACADEMY_MODULES: AcademyModule[] = [
     estimatedMinutes: 15,
     requiredForOnboarding: true,
     sections: [
-      { id: "s01-mensagem-fundadores", title: "Mensagem dos Fundadores", type: "read" },
-      { id: "s01-sobre-tbo", title: "Sobre a TBO", type: "read" },
-      { id: "s01-manifesto", title: "Manifesto da Marca", type: "read" },
-      { id: "s01-metodo", title: "Método Think | Build | Own", type: "read" },
-      { id: "s01-quiz", title: "Quiz: Você conhece a TBO?", type: "quiz" },
+      {
+        id: "s01-mensagem-fundadores",
+        title: "Mensagem dos Fundadores",
+        type: "read",
+        content: `Somos uma plataforma criativa aplicada ao mercado imobiliário e atuamos como parceiro estratégico para incorporadoras que exigem mais do que entregas gráficas, mas buscam posicionamento, diferenciação e resultado real.
+
+Colocamos a experiência do comprador no centro de tudo o que fazemos. Unimos branding, renderizações, filmes publicitários e soluções interativas para gerar desejo com inteligência e sensibilidade estética.
+
+Nosso trabalho começa com diagnóstico, passa pela construção de marca e se materializa em campanhas integradas que vendem com consistência.
+
+Na TBO, criatividade é a ferramenta única, e tecnologia é meio, não fim.
+
+"Seja bem-vindo à TBO, onde a criatividade e a excelência se unem para moldar o futuro do mercado imobiliário."`,
+      },
+      {
+        id: "s01-sobre-tbo",
+        title: "Sobre a TBO",
+        type: "read",
+        content: `**Desde 2019** — Somos uma plataforma de inteligência estratégica especializada no mercado imobiliário.
+
+**Nossa missão curta:** Ajudar nossos clientes a vender seus produtos centralizando todas as soluções em apenas um lugar.
+
+**TBO em números:**
+• Totalmente remotos — sem escritórios físicos
+• 15+ profissionais atuando remotamente
+• +120 projetos lançados (+30 simultâneos em média)
+• +3.000 imagens renderizadas
+• +20 marcas desenvolvidas com alto padrão de branding
+• +10 filmes publicitários com narrativa cinematográfica`,
+      },
+      {
+        id: "s01-manifesto",
+        title: "Manifesto da Marca",
+        type: "read",
+        content: `**Pensar com profundidade. Construir com intenção. Pertencer com valor.**
+
+Somos uma estrutura de pensamento estratégico e execução criativa dedicada exclusivamente ao setor imobiliário. O que entregamos vai além de comunicação. Entregamos visão, método e impacto.
+
+Atuamos na intersecção entre a razão e o desejo: traduzimos os dados de mercado em experiências de marca que vendem. Nosso trabalho não começa com a estética, começa com pensamento.
+
+Antes de qualquer campanha, pensamos.
+Depois, construímos.
+Por fim, entregamos pertencimento.
+
+Porque no fim, marcas fortes não competem por atenção. Elas ocupam lugar na mente e no mercado. E é isso que fazemos: posicionamos empreendimentos com inteligência, estética e intenção.`,
+      },
+      {
+        id: "s01-metodo",
+        title: "Método Think | Build | Own",
+        type: "read",
+        content: `O método TBO é o que diferencia nossa abordagem no mercado imobiliário. Não entregamos peças — entregamos um sistema narrativo integrado.
+
+**🧠 Think — Pensar**
+Estratégia, diagnóstico, posicionamento e diferenciação. Antes de criar qualquer coisa, mergulhamos no produto, no território, nos concorrentes e no comportamento de compra. Branding sem estratégia é ruído.
+
+**🏗️ Build — Construir**
+Construção de marca, campanha, imagens, narrativas e materiais. A partir do diagnóstico, criamos com precisão e propósito. Naming, identidade, 3D, filmes e campanhas são pensados como um sistema unificado.
+
+**🏆 Own — Pertencer**
+Pertencimento, conexão emocional, desejo de compra e ativação. Nosso objetivo não é apenas vender unidades — é fazer o comprador se enxergar no produto.`,
+      },
+      {
+        id: "s01-quiz",
+        title: "Quiz: Você conhece a TBO?",
+        type: "quiz",
+        content: `**Teste seu conhecimento sobre a TBO:**
+
+1. Qual é o método de trabalho da TBO?
+   → Think | Build | Own
+
+2. Em que ano a TBO foi fundada?
+   → 2019
+
+3. A TBO possui escritório físico?
+   → Não — somos totalmente remotos
+
+4. Qual é a especialidade central da TBO?
+   → Mercado imobiliário — branding, campanha, 3D e filmes
+
+5. O que vem antes da estética no processo TBO?
+   → O pensamento estratégico (diagnóstico e posicionamento)
+
+Revise suas respostas e confirme que entendeu o posicionamento único da TBO antes de avançar.`,
+      },
     ],
   },
   {
@@ -833,10 +919,85 @@ export const TBO_ACADEMY_MODULES: AcademyModule[] = [
     estimatedMinutes: 20,
     requiredForOnboarding: true,
     sections: [
-      { id: "s02-missao", title: "Nossa Missão", type: "read" },
-      { id: "s02-visao", title: "Nossa Visão", type: "read" },
-      { id: "s02-estrategia", title: "Os 5 Pilares Estratégicos", type: "read" },
-      { id: "s02-reflexao", title: "Como meu trabalho contribui para a missão?", type: "reflection" },
+      {
+        id: "s02-missao",
+        title: "Nossa Missão",
+        type: "read",
+        content: `**Missão:** Transformar empreendimentos imobiliários em marcas desejadas, memoráveis e lucrativas.
+
+Unimos pensamento estratégico, criatividade autoral e excelência técnica para criar narrativas de marca que conectam pessoas, produtos e cidades.
+
+**Três princípios que guiam nossa missão:**
+
+**1. Pensar com profundidade**
+Tudo começa com o diagnóstico. Antes de qualquer entrega visual, mergulhamos no produto, no território, nos concorrentes, no comportamento de compra e nos atributos de valor. Branding sem estratégia é ruído. Posicionamento sem dados é palpite.
+
+**2. Construir com intenção**
+A partir do diagnóstico, criamos com precisão e propósito. Naming, identidade, 3D, filmes, campanhas e planos de ativação são pensados como um sistema narrativo unificado.
+
+**3. Entregar pertencimento com valor**
+Nosso objetivo não é apenas vender unidades. É fazer o comprador se enxergar no produto. É criar marcas que não competem por atenção, mas ocupam lugar na mente e no mercado.`,
+      },
+      {
+        id: "s02-visao",
+        title: "Nossa Visão",
+        type: "read",
+        content: `**Visão:** Ser a principal plataforma global de soluções tecnológico-publicitárias para lançamentos imobiliários.
+
+**O que isso significa na prática:**
+
+• **Plataforma global:** Estrutura modular e escalável, com processos replicáveis, tecnologia proprietária e capacidade de operar lançamentos em qualquer lugar do mundo.
+
+• **Tecnologia + publicidade:** Soluções que integram inteligência de dados, comportamento do consumidor, automação e storytelling.
+
+• **Especialização total:** Foco absoluto no mercado imobiliário. Entendemos todas as nuances desse setor.
+
+**Onde queremos chegar:**
+→ Presença em diferentes regiões do Brasil e operações internacionais de alto padrão
+→ Plataforma digital própria que organiza fluxos e otimiza entregas sem perder sofisticação
+→ Referência global quando se trata de branding e comunicação para o setor imobiliário`,
+      },
+      {
+        id: "s02-estrategia",
+        title: "Os 5 Pilares Estratégicos",
+        type: "read",
+        content: `A estratégia da TBO está estruturada em 5 pilares que orientam nossas decisões e investimentos:
+
+**1. 🎯 Excelência Criativa**
+Manter o mais alto nível de qualidade em todas as entregas. Cada projeto deve elevar o padrão anterior.
+
+**2. 🧠 Inteligência de Mercado**
+Construir vantagem competitiva através do conhecimento profundo do mercado imobiliário, comportamento do comprador e tendências globais.
+
+**3. ⚙️ Escalabilidade Operacional**
+Criar processos, sistemas e tecnologia que permitam crescer sem perder qualidade ou cultura.
+
+**4. 🤝 Parcerias Estratégicas**
+Desenvolver relacionamentos de longo prazo com as melhores incorporadoras do Brasil e do mundo.
+
+**5. 🌱 Cultura de Alto Desempenho**
+Construir um time extraordinário, com autonomia, responsabilidade e propósito alinhados.`,
+      },
+      {
+        id: "s02-reflexao",
+        title: "Como meu trabalho contribui para a missão?",
+        type: "reflection",
+        content: `Reserve 5 minutos para refletir honestamente sobre as seguintes perguntas:
+
+**1. Conexão com a missão**
+De que forma específica meu trabalho diário ajuda a "transformar empreendimentos em marcas desejadas"?
+
+**2. Impacto no cliente**
+Quando entrego uma peça, apresentação ou estratégia, como isso chega ao comprador final do empreendimento?
+
+**3. Contribuição para os pilares**
+Qual dos 5 pilares estratégicos eu mais impacto no meu papel atual? Qual poderia impactar mais?
+
+**4. Alinhamento pessoal**
+Em que momentos sinto que meu trabalho está mais alinhado com o propósito da TBO? O que cria esse alinhamento?
+
+Não há resposta certa. O objetivo é criar uma conexão consciente entre suas entregas do dia a dia e o porquê de a TBO existir.`,
+      },
     ],
   },
   {
@@ -848,10 +1009,91 @@ export const TBO_ACADEMY_MODULES: AcademyModule[] = [
     estimatedMinutes: 20,
     requiredForOnboarding: true,
     sections: [
-      { id: "s03-valores", title: "Valores da TBO", type: "read" },
-      { id: "s03-como-usar", title: "Como usar valores no dia a dia", type: "read" },
-      { id: "s03-quiz", title: "Quiz: Valores na Prática", type: "quiz" },
-      { id: "s03-acao", title: "Ação: Reconheça um colega por um valor", type: "action" },
+      {
+        id: "s03-valores",
+        title: "Valores da TBO",
+        type: "read",
+        content: `Os valores da TBO não são palavras decorativas — são filtros reais para decisões, contratações e reconhecimentos.
+
+**✨ Excelência**
+Não entregamos o suficiente. Entregamos o extraordinário. Cada detalhe importa, cada entrega é uma oportunidade de elevar o padrão.
+
+**🧠 Inteligência**
+Pensamos antes de criar. Estratégia antecede estética. Dados e contexto informam todas as decisões criativas.
+
+**🤝 Colaboração**
+Crescemos juntos. Compartilhamos contexto, feedback e vitórias. Ninguém na TBO cresce sozinho.
+
+**🎯 Responsabilidade**
+Assumimos o que entregamos — e o que não entregamos. Sem desculpas, com soluções.
+
+**🌱 Crescimento**
+Estamos sempre aprendendo. O desconforto de aprender algo novo é bem-vindo aqui.
+
+**💡 Criatividade com Propósito**
+Criamos com intenção. A estética serve à estratégia, e a estratégia serve ao resultado do cliente.`,
+      },
+      {
+        id: "s03-como-usar",
+        title: "Como usar valores no dia a dia",
+        type: "read",
+        content: `Valores só têm poder quando são praticados — não apenas declarados.
+
+**Como os valores entram na prática:**
+
+**Em decisões:** Quando em dúvida sobre como agir, pergunte: "Qual dos nossos valores guia essa decisão?"
+
+**Em feedback:** Use valores para dar e receber feedback específico. Em vez de "boa entrega", diga "isso demonstrou excelência no detalhe da tipografia."
+
+**Em reconhecimentos:** O sistema de Reconhecimentos da TBO é baseado nos valores. Ao reconhecer um colega, você nomeia o valor que a pessoa demonstrou.
+
+**Em contratações:** Todo candidato é avaliado pelo fit cultural com os valores — não apenas pela técnica.
+
+**Em retrospectivas:** Ao revisar um projeto, identifique quais valores foram mais fortes e quais precisam de mais atenção.
+
+**Armadilhas comuns:**
+❌ Usar valores como crítica ("você não demonstrou responsabilidade")
+✅ Usar valores como reconhecimento ("você demonstrou responsabilidade ao antecipar o problema")`,
+      },
+      {
+        id: "s03-quiz",
+        title: "Quiz: Valores na Prática",
+        type: "quiz",
+        content: `**Qual valor da TBO cada situação demonstra?**
+
+**Situação 1:** Paulo encontrou um erro no arquivo final 10 minutos antes da apresentação para o cliente. Em vez de ignorar, reprocessou o arquivo e avisou o time sobre o atraso de 5 minutos.
+→ **Responsabilidade** + **Excelência**
+
+**Situação 2:** Camila compartilhou um artigo sobre tendências de 3D imobiliário no canal do time, com um resumo do que é aplicável para os projetos atuais.
+→ **Crescimento** + **Colaboração**
+
+**Situação 3:** Marcos propôs uma nova abordagem de narrativa para um briefing que chegou confuso, após pesquisar o mercado do empreendimento por conta própria.
+→ **Inteligência** + **Criatividade com Propósito**
+
+**Situação 4:** Durante uma review, Ana disse: "Essa tipografia está tecnicamente correta, mas posso melhorar o impacto visual antes de enviar."
+→ **Excelência** + **Responsabilidade**
+
+Revise os valores e confirme que consegue identificar exemplos práticos no seu trabalho.`,
+      },
+      {
+        id: "s03-acao",
+        title: "Ação: Reconheça um colega por um valor",
+        type: "action",
+        content: `**Sua ação para concluir este módulo:**
+
+Vá até a página de **Reconhecimentos** (menu Cultura → Reconhecimentos) e faça um reconhecimento real para um colega.
+
+**Como fazer um bom reconhecimento:**
+1. Escolha uma pessoa específica — não genérica
+2. Selecione o valor que ela demonstrou recentemente
+3. Descreva a situação específica em que isso aconteceu (quando, o que fez, qual foi o impacto)
+4. Seja genuíno — reconhecimentos vagos têm menos impacto
+
+**Exemplo de reconhecimento bem feito:**
+"Reconheço a [nome] pelo valor Excelência. Na entrega do projeto X na última quinta-feira, ela percebeu um inconsistência nas renderizações que ninguém havia visto e reprocessou os arquivos antes de enviar ao cliente. Esse nível de atenção ao detalhe representa o que a TBO entrega."
+
+Após fazer o reconhecimento, volte aqui e clique em "Concluir módulo".`,
+      },
     ],
   },
   {

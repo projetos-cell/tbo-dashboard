@@ -1,3 +1,6 @@
+6d91541 feat(cultura): ciclo 6 — acentuacao PT-BR + analytics Academy e Bau Criativo
+8659d15 docs(audit): ciclo 43 — projetos/lista, manual split, permissoes split
+1240ab6 feat(tbo-os): ciclo 43 — projetos/lista funcional, splits manual e permissoes
 10ee495 feat(cultura): ciclo 5 — moderacao bau criativo, icone semantico e saldo no header
 5aee1a3 feat(cultura): ciclo 4 — Baú Criativo admin approval + Ferramentas admin CRUD
 f8e271b docs(audit): ciclo 42 — comercial leads/propostas/atividades
@@ -5,8 +8,5 @@ f8e271b docs(audit): ciclo 42 — comercial leads/propostas/atividades
 28f1117 feat(cultura): ciclo 3 — toast reconhecimento, policy owner_user_id, manual prev/next
 22d8d5b fix(okrs/dashboard): conectar onCreateCycle ao OkrCycleDialog + melhorar empty state
 922225d feat(cultura): ciclo 2 — Baú Criativo com Supabase real, RitualFormDialog react-hook-form, loading states e EmptyStates corrigidos
-a9afa32 feat(cultura): ciclo 1 — academy/bau/ferramentas → Supabase + React Query
-bb45d02 feat(okrs): ciclo 41 — check-ins feed, dashboard analytics, teams view
-1611a7d feat(cultura/ferramentas): adicionar credenciais de acesso extraídas do Notion
- .claude/session-start.txt | 7 ++-----
- 1 file changed, 2 insertions(+), 5 deletions(-)
+ .claude/session-start.txt | 8 +++-----
+ 1 file changed, 3 insertions(+), 5 deletions(-)

@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { useAuthStore } from "@/stores/auth-store";
 import {
   createBauReference,
   getBauReferencesBySubcategory,
@@ -105,9 +106,11 @@ export function useBauStats() {
 export function useCreateBauReference() {
   const supabase = useSupabase();
   const qc = useQueryClient();
+  const { user } = useAuthStore();
 
   return useMutation({
-    mutationFn: (data: BauReferenceInsert) => createBauReference(supabase, data),
+    mutationFn: (data: BauReferenceInsert) =>
+      createBauReference(supabase, { ...data, submitted_by: user?.id ?? "unknown" }),
 
     onSuccess: (_, vars) => {
       // Invalidate references for the submitted subcategory so approved ones refresh

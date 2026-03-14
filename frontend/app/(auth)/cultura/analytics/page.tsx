@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { useState } from "react";
 import {
   BarChart,
   Bar,
@@ -13,6 +14,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { CulturaOverviewStats } from "@/features/cultura/components/cultura-overview-stats";
 import { ErrorState } from "@/components/shared";
@@ -34,6 +36,12 @@ import {
   type CulturaStatusKey,
 } from "@/lib/constants";
 
+const TREND_PERIODS = [
+  { value: "3", label: "3M" },
+  { value: "6", label: "6M" },
+  { value: "12", label: "12M" },
+] as const;
+
 export default function CulturaAnalyticsPage() {
   return (
     <RequireRole minRole="diretoria">
@@ -43,9 +51,10 @@ export default function CulturaAnalyticsPage() {
 }
 
 function AnalyticsContent() {
+  const [trendMonths, setTrendMonths] = useState<"3" | "6" | "12">("6");
   const { data: items, isLoading, error, refetch } = useCulturaItems();
   const { data: recKPIs } = useRecognitionKPIs();
-  const { data: trend, isLoading: trendLoading } = useRecognitionMonthlyTrend(6);
+  const { data: trend, isLoading: trendLoading } = useRecognitionMonthlyTrend(parseInt(trendMonths, 10));
   const { data: rituals } = useRitualTypes(true);
   const { data: rewardKPIs } = useRewardsKPIs();
   const { data: academyStats, isLoading: academyLoading } = useAcademyStats();
@@ -179,10 +188,22 @@ function AnalyticsContent() {
 
       {/* Monthly trend chart */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-2">
           <CardTitle className="text-sm font-medium">
-            Tendência de reconhecimentos (últimos 6 meses)
+            Tendência de reconhecimentos (últimos {trendMonths} meses)
           </CardTitle>
+          <ToggleGroup
+            type="single"
+            value={trendMonths}
+            onValueChange={(v) => v && setTrendMonths(v as "3" | "6" | "12")}
+            size="sm"
+          >
+            {TREND_PERIODS.map((p) => (
+              <ToggleGroupItem key={p.value} value={p.value} className="text-xs px-2 h-7">
+                {p.label}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
         </CardHeader>
         <CardContent>
           {trendLoading ? (

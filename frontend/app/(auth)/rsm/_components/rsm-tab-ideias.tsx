@@ -35,7 +35,10 @@ import {
 import { useRsmIdeas, useDeleteRsmIdea } from "@/hooks/use-rsm";
 import { EmptyState } from "@/components/shared";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { useToast } from "@/hooks/use-toast";
+import { RsmIdeaFormDialog } from "./rsm-idea-form-dialog";
+import type { Database } from "@/lib/supabase/types";
+
+type RsmIdeaRow = Database["public"]["Tables"]["rsm_ideas"]["Row"];
 
 const IDEA_STATUS_COLORS: Record<string, string> = {
   nova: "bg-blue-100 text-blue-800",
@@ -46,22 +49,17 @@ const IDEA_STATUS_COLORS: Record<string, string> = {
 };
 
 export function RsmTabIdeias() {
-  const { toast } = useToast();
   const [statusFilter, setStatusFilter] = useState("all");
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [formDialog, setFormDialog] = useState<{
+    open: boolean;
+    idea?: RsmIdeaRow | null;
+  }>({ open: false });
 
   const { data: ideas = [], isLoading } = useRsmIdeas(
     statusFilter !== "all" ? { status: statusFilter } : undefined
   );
   const deleteMutation = useDeleteRsmIdea();
-
-  function handleNovaIdeia() {
-    toast({ title: "Em breve", description: "Formulário de criação de ideia em desenvolvimento." });
-  }
-
-  function handleEditar() {
-    toast({ title: "Em breve", description: "Edição de ideia em desenvolvimento." });
-  }
 
   return (
     <div className="space-y-4">
@@ -79,7 +77,10 @@ export function RsmTabIdeias() {
             <SelectItem value="publicada">Publicada</SelectItem>
           </SelectContent>
         </Select>
-        <Button className="ml-3 shrink-0" onClick={handleNovaIdeia}>
+        <Button
+          className="ml-3 shrink-0"
+          onClick={() => setFormDialog({ open: true, idea: null })}
+        >
           <IconPlus className="mr-1.5 h-4 w-4" />
           Nova Ideia
         </Button>
@@ -137,7 +138,9 @@ export function RsmTabIdeias() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={handleEditar}>
+                        <DropdownMenuItem
+                          onClick={() => setFormDialog({ open: true, idea })}
+                        >
                           <IconPencil className="mr-2 h-4 w-4" />
                           Editar
                         </DropdownMenuItem>
@@ -157,6 +160,12 @@ export function RsmTabIdeias() {
           </Table>
         </div>
       )}
+
+      <RsmIdeaFormDialog
+        open={formDialog.open}
+        idea={formDialog.idea}
+        onClose={() => setFormDialog({ open: false })}
+      />
 
       <ConfirmDialog
         open={pendingDelete !== null}

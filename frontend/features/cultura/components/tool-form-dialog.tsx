@@ -33,6 +33,7 @@ const toolSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
   description: z.string().min(5, "Descrição deve ter pelo menos 5 caracteres"),
   category_id: z.string().min(1, "Selecione uma categoria"),
+  accessNotes: z.string().optional(),
 });
 
 export type ToolFormData = z.infer<typeof toolSchema>;
@@ -60,6 +61,7 @@ export function ToolFormDialog({
       name: editing?.name ?? "",
       description: editing?.description ?? "",
       category_id: editing?.category_id ?? "",
+      accessNotes: editing?.accessNotes ?? "",
     },
   });
 
@@ -81,6 +83,7 @@ export function ToolFormDialog({
         name: editing.name,
         description: editing.description,
         category_id: editing.category_id ?? "",
+        accessNotes: editing.accessNotes ?? "",
       });
     }
   }
@@ -151,6 +154,24 @@ export function ToolFormDialog({
                     ))}
                   </SelectContent>
                 </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="accessNotes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Instruções de acesso</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Como a equipe acessa esta ferramenta? Ex: usar conta corporativa @agenciatbo.com.br, solicitar acesso ao Marcos..."
+                    rows={2}
+                    {...field}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

@@ -43,6 +43,7 @@ export default function PolicySlugPage({ params }: PolicySlugPageProps) {
       editedBy: user?.id,
       changeNote: data.change_note,
     });
+    setShowForm(false);
   };
 
   if (isLoading) {

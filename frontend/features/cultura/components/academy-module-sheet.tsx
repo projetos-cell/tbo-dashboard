@@ -23,6 +23,41 @@ import { Progress } from "@/components/ui/progress"
 import { Card, CardContent } from "@/components/ui/card"
 import type { AcademyModule } from "@/features/cultura/data/cultura-notion-seed"
 
+// Render markdown-like content with basic formatting
+function SectionContent({ content }: { content: string }) {
+  const lines = content.split("\n")
+  return (
+    <div className="space-y-2 text-sm leading-relaxed">
+      {lines.map((line, i) => {
+        if (line.startsWith("**") && line.endsWith("**") && line.length > 4) {
+          return <p key={i} className="font-semibold text-foreground">{line.replace(/\*\*/g, "")}</p>
+        }
+        if (line.startsWith("→ ")) {
+          return <p key={i} className="pl-3 border-l-2 border-primary/30 text-muted-foreground">{line.slice(2)}</p>
+        }
+        if (line.startsWith("• ") || line.startsWith("❌ ") || line.startsWith("✅ ")) {
+          return <p key={i} className="pl-2">{line}</p>
+        }
+        if (line === "") {
+          return <div key={i} className="h-1" />
+        }
+        // Inline bold: replace **text** with <strong>
+        const parts = line.split(/\*\*(.+?)\*\*/g)
+        if (parts.length > 1) {
+          return (
+            <p key={i} className="text-muted-foreground">
+              {parts.map((part, j) =>
+                j % 2 === 1 ? <strong key={j} className="text-foreground font-medium">{part}</strong> : part
+              )}
+            </p>
+          )
+        }
+        return <p key={i} className="text-muted-foreground">{line}</p>
+      })}
+    </div>
+  )
+}
+
 const SECTION_TYPE_CONFIG: Record<
   "read" | "quiz" | "reflection" | "action",
   { icon: React.ElementType; label: string; color: string; prompt: string }
@@ -144,9 +179,13 @@ export function AcademyModuleSheet({
 
           <h3 className="text-lg font-semibold leading-tight">{currentSection.title}</h3>
 
-          <Card className="border-dashed">
+          <Card className={currentSection.content ? "border" : "border-dashed"}>
             <CardContent className="pt-4">
-              <p className="text-sm text-muted-foreground leading-relaxed">{config.prompt}</p>
+              {currentSection.content ? (
+                <SectionContent content={currentSection.content} />
+              ) : (
+                <p className="text-sm text-muted-foreground leading-relaxed">{config.prompt}</p>
+              )}
             </CardContent>
           </Card>
         </div>

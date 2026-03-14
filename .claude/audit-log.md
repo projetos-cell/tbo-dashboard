@@ -1400,3 +1400,39 @@ Nenhuma.
 
 ### Debt técnico
 - getAllCheckins não filtra por ciclo (busca os últimos 100 globalmente) — melhorar com filtro de cycleId via join em objectives quando necessário
+
+## Ciclo 44 — 2026-03-14 (scheduled)
+
+**Módulo**: RSM (posts + ideias form dialogs) + OKRs Configurações
+**Build**: ✅ (zero erros TypeScript)
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|----------------|-------|--------|----------|
+| rsm: "Novo Post" sem handler | 🔧 QUEBRADO | ✅ | RsmPostFormDialog com criar/editar real via useCreateRsmPost/useUpdateRsmPost |
+| rsm: "Editar" post sem handler | 🔧 QUEBRADO | ✅ | onClick(post) → RsmPostFormDialog pre-preenchido |
+| rsm: "Nova Ideia" sem handler | 🔧 QUEBRADO | ✅ | RsmIdeaFormDialog com criar/editar real via useCreateRsmIdea/useUpdateRsmIdea |
+| rsm: "Editar" ideia sem handler | 🔧 QUEBRADO | ✅ | onClick(idea) → RsmIdeaFormDialog pre-preenchido |
+| okrs/configuracoes (13L placeholder) | ❌ AUSENTE | ✅ | Gestão completa de ciclos: listagem, criar, editar, ativar, excluir, ciclo ativo destacado |
+
+### Implementado
+- feat(rsm): RsmPostFormDialog — form dialog criar/editar posts com conta, título, tipo, status, agendamento, conteúdo (arquivos: rsm-post-form-dialog.tsx)
+- fix(rsm): rsm-tab-posts.tsx — handleNovoPost e handleEditar conectados ao RsmPostFormDialog real
+- feat(rsm): RsmIdeaFormDialog — form dialog criar/editar ideias com título, categoria, status, descrição (arquivos: rsm-idea-form-dialog.tsx)
+- fix(rsm): rsm-tab-ideias.tsx — handleNovaIdeia e handleEditar conectados ao RsmIdeaFormDialog real
+- feat(okrs/configuracoes): implementação completa — listagem de ciclos com ativo destacado, CRUD via OkrCycleDialog, ação "Definir como ativo", delete com confirmação, RBAC (lider+)
+
+### Migrations aplicadas
+Nenhuma.
+
+### Próximo ciclo (sugestões)
+- cultura/analytics/page.tsx (476L) — split em sub-components
+- cultura/ferramentas/page.tsx (427L) — split em sub-components
+- pessoas/performance/page.tsx (410L) — split em sub-components
+- relatorios: form dialog real para agendamentos (substituir toast "Em breve")
+- RSM posts: preview de conteúdo inline + badge de conta na tabela
+
+### Debt técnico
+- RSM post form não suporta upload de mídia (media_urls) — funcionalidade futura
+- RSM ideia: campo assigned_to usa UUID bruto (sem picker de colaborador) — melhoria futura

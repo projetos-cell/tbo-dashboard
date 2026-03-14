@@ -37,7 +37,10 @@ import { ptBR } from "date-fns/locale";
 import { useRsmPosts, useDeleteRsmPost } from "@/hooks/use-rsm";
 import { EmptyState } from "@/components/shared";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { useToast } from "@/hooks/use-toast";
+import { RsmPostFormDialog } from "./rsm-post-form-dialog";
+import type { Database } from "@/lib/supabase/types";
+
+type RsmPostRow = Database["public"]["Tables"]["rsm_posts"]["Row"];
 
 const POST_STATUS_COLORS: Record<string, string> = {
   draft: "bg-gray-100 text-gray-800",
@@ -47,22 +50,17 @@ const POST_STATUS_COLORS: Record<string, string> = {
 };
 
 export function RsmTabPosts() {
-  const { toast } = useToast();
   const [statusFilter, setStatusFilter] = useState("all");
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [formDialog, setFormDialog] = useState<{
+    open: boolean;
+    post?: RsmPostRow | null;
+  }>({ open: false });
 
   const { data: posts = [], isLoading } = useRsmPosts(
     statusFilter !== "all" ? { status: statusFilter } : undefined
   );
   const deleteMutation = useDeleteRsmPost();
-
-  function handleNovoPost() {
-    toast({ title: "Em breve", description: "Formulário de criação de post em desenvolvimento." });
-  }
-
-  function handleEditar() {
-    toast({ title: "Em breve", description: "Edição de post em desenvolvimento." });
-  }
 
   return (
     <div className="space-y-4">
@@ -79,7 +77,10 @@ export function RsmTabPosts() {
             <SelectItem value="failed">Falhou</SelectItem>
           </SelectContent>
         </Select>
-        <Button className="ml-3 shrink-0" onClick={handleNovoPost}>
+        <Button
+          className="ml-3 shrink-0"
+          onClick={() => setFormDialog({ open: true, post: null })}
+        >
           <IconPlus className="mr-1.5 h-4 w-4" />
           Novo Post
         </Button>
@@ -147,7 +148,9 @@ export function RsmTabPosts() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={handleEditar}>
+                        <DropdownMenuItem
+                          onClick={() => setFormDialog({ open: true, post })}
+                        >
                           <IconPencil className="mr-2 h-4 w-4" />
                           Editar
                         </DropdownMenuItem>
@@ -167,6 +170,12 @@ export function RsmTabPosts() {
           </Table>
         </div>
       )}
+
+      <RsmPostFormDialog
+        open={formDialog.open}
+        post={formDialog.post}
+        onClose={() => setFormDialog({ open: false })}
+      />
 
       <ConfirmDialog
         open={pendingDelete !== null}

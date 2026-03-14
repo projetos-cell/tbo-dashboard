@@ -48,7 +48,7 @@ export async function getFerramentasData(
 ): Promise<FerramentasData> {
   const { data, error } = await supabase
     .from("tool_categories" as never)
-    .select("*")
+    .select("*, tools(*)" as never)
     .order("order_index", { ascending: true });
 
   // If table doesn't exist or query errors — return static seed

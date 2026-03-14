@@ -1,5 +1,39 @@
 # TBO OS — Audit Log
 
+## Ciclo 32 — 2026-03-14
+
+**Módulo**: Layout (header, sidebar) + Shared (custom-field-config)
+**Branch**: claude/improve-20260314-1200 → main
+**Build**: ✅ (zero erros TypeScript)
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|----------------|-------|--------|----------|
+| components/layout/header.tsx (364L) | ⚠️ viola 300L | ✅ | 364L → header.tsx (32L) + header-parts.tsx (282L) — 5 sub-componentes extraídos |
+| components/layout/sidebar/sortable-nav-item.tsx (357L) | ⚠️ viola 300L | ✅ | 357L → 266L + parts (147L) — NavItemHoverActions + NavItemDragHandle extraídos |
+| components/shared/custom-field-config.tsx (328L) | ⚠️ viola 300L | ✅ | 328L → 149L + custom-field-dialog.tsx (202L) — FieldDialog extraído com tipos públicos |
+
+### Implementado
+
+- refactor(layout): header.tsx 364L → 32L — ThemeToggle, NotificationItem, NotificationBell, SearchButton, UserAvatar extraídos para header-parts.tsx
+- refactor(sidebar): sortable-nav-item.tsx 357L → 266L — NavItemHoverActions + NavItemDragHandle em sortable-nav-item-parts.tsx; hooks internos eliminam prop drilling
+- refactor(shared): custom-field-config.tsx 328L → 149L — FieldDialog + FIELD_ICONS + FieldDialogSaveData em custom-field-dialog.tsx
+
+### Migrations aplicadas
+Nenhuma.
+
+### Próximo ciclo
+- components/modules/team/invite-user-dialog.tsx (329L) — stepper dialog, extrair steps
+- app/(auth)/rsm/page.tsx (529L) — page grande
+- app/(auth)/permissoes/page.tsx (419L) — page grande
+- custom-field-dialog.tsx (202L) — está no limite, pode crescer
+
+### Debt técnico
+Nenhum novo.
+
+---
+
 ## Ciclo 30 — 2026-03-14
 
 **Módulo**: Splits — founder-dashboard, contratos, PDI
@@ -1070,3 +1104,35 @@ Nenhuma — módulos usam mock data, sem alterações de schema.
 
 ### Debt técnico
 - Módulos Usuários e Cursos usam mock data — necessário criar tabelas Supabase e hooks React Query
+
+## Ciclo — 2026-03-14 Ciclo 31
+
+**Módulo**: Shared Components + Clientes + Configurações
+**Branch**: main
+**Build**: ✅ (zero erros TypeScript)
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|----------------|-------|--------|----------|
+| comment-thread.tsx (352L) | ⚠️ viola 200L | ✅ | 352L → comment-thread.tsx (71L) + comment-thread-parts.tsx (94L) + comment-item.tsx (170L) |
+| client-form-dialog.tsx (348L) | ⚠️ viola 200L | ✅ | 348L → client-form-dialog.tsx (173L) + client-form-fields.tsx (183L) |
+| workspace-settings.tsx (345L) | ⚠️ viola 200L | ✅ | 345L → workspace-settings.tsx (134L) + workspace-settings-parts.tsx (189L) + workspace-identity-card.tsx (118L) |
+
+### Implementado
+
+- refactor(shared): comment-thread.tsx split em 3 arquivos — CommentComposer em comment-thread-parts.tsx (94L), CommentItem em comment-item.tsx (170L), CommentThread em comment-thread.tsx (71L)
+- refactor(clientes): client-form-dialog.tsx split em 2 arquivos — ClientFormFields extraído para client-form-fields.tsx (183L), clientSchema exportado para reuso
+- refactor(configuracoes): workspace-settings.tsx split em 3 arquivos — WorkspaceIdentityCard em workspace-identity-card.tsx (118L), types/constants/skeleton/logo/savebar em workspace-settings-parts.tsx (189L), WorkspaceSettings em workspace-settings.tsx (134L)
+
+### Migrations aplicadas
+Nenhuma.
+
+### Próximo ciclo
+- components/layout/header.tsx (364L) — split candidate
+- components/layout/sidebar/sortable-nav-item.tsx (357L) — split candidate
+- components/shared/custom-field-config.tsx (328L) — split candidate
+- components/modules/team/invite-user-dialog.tsx (329L) — split candidate
+
+### Debt técnico
+Nenhum novo.

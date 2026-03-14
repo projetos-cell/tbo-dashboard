@@ -1,5 +1,41 @@
 # TBO OS — Audit Log
 
+## Ciclo 25 — 2026-03-13 (sessão atual)
+
+**Módulo**: Sidebar DnD, Comercial (deal-form), Tasks (board-view)
+**Build**: ✅ Compiled successfully + tsc --noEmit sem erros
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|----------------|-------|--------|----------|
+| sidebar DnD cross-group | 🔧 React error #185 | ✅ | Sem optimistic mid-drag; cross-group só no dragEnd; visual ring indicator |
+| deal-form-dialog.tsx (344L) | ⚠️ viola 200L | ✅ | Split: 167L + deal-form-fields.tsx (188L) |
+| my-tasks-board-view.tsx (275L) | ⚠️ viola 200L | ✅ | Split: 182L + my-tasks-board-column.tsx (94L) |
+
+### Implementado
+
+- fix(sidebar): use-sidebar-dnd.ts — remove optimistic mid-drag cross-group moves, add overGroupLabel visual ring indicator (arquivos: hooks/use-sidebar-dnd.ts, components/layout/app-sidebar.tsx, components/layout/sidebar/sortable-nav-group.tsx)
+- refactor(comercial): deal-form-dialog.tsx split — DealFormFields extraído com props form/errors/onChange (arquivos: deal-form-dialog.tsx, deal-form-fields.tsx)
+- refactor(tasks): my-tasks-board-view.tsx split — SortableCard + BoardColumn extraídos (arquivos: my-tasks-board-view.tsx, my-tasks-board-column.tsx)
+
+### Migrations aplicadas
+
+Nenhuma.
+
+### Próximo ciclo
+
+- demand-board-card.tsx (280L), demand-comment-thread.tsx (283L) — ainda acima de 200L
+- deal-pipeline.tsx (285L) — acima de 200L
+- task-description-editor.tsx (299L) — acima de 200L
+- app-sidebar.tsx (267L), sortable-nav-group.tsx (224L) — acima de 200L
+- Untracked: `app/(auth)/usuarios/`, `features/usuarios/` — novo módulo não commitado
+
+### Debt técnico
+
+- Erro `pages-manifest.json` no pnpm build persiste (infra Next.js 16 + Turbopack) — não é código, build compila com sucesso
+
+
 ## Ciclo 22 — 2026-03-13 20:08
 
 **Módulo**: Demandas, Mercado, Financeiro (Contas)

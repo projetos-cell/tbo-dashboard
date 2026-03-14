@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { IconFileText, IconPlus, IconGripVertical } from "@tabler/icons-react";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { IconFileText, IconPlus, IconGripVertical, IconSearch, IconX } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   DndContext,
@@ -85,6 +86,7 @@ export default function DocumentosPage() {
   const [editingItem, setEditingItem] = useState<CulturaRow | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [deletingItem, setDeletingItem] = useState<CulturaRow | null>(null);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     if (items) setOrderedItems(items);
@@ -114,7 +116,18 @@ export default function DocumentosPage() {
     useSensor(KeyboardSensor)
   );
 
+  const filteredItems = useMemo(() => {
+    if (!search.trim()) return orderedItems;
+    const q = search.toLowerCase();
+    return orderedItems.filter(
+      (i) =>
+        i.title.toLowerCase().includes(q) ||
+        (i.content ?? "").toLowerCase().includes(q)
+    );
+  }, [orderedItems, search]);
+
   function handleDragEnd(event: DragEndEvent) {
+    if (search.trim()) return;
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const oldIdx = orderedItems.findIndex((i) => i.id === active.id);
@@ -205,6 +218,26 @@ export default function DocumentosPage() {
         )}
       </div>
 
+      {/* Search */}
+      <div className="relative">
+        <IconSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-gray-400" />
+        <Input
+          placeholder="Buscar documentos..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-8 h-8 text-sm"
+        />
+        {search && (
+          <button
+            onClick={() => setSearch("")}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            aria-label="Limpar busca"
+          >
+            <IconX className="size-3.5" />
+          </button>
+        )}
+      </div>
+
       {isLoading ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -220,34 +253,56 @@ export default function DocumentosPage() {
         </div>
       ) : error ? (
         <ErrorState message={error.message} onRetry={() => refetch()} />
-      ) : orderedItems.length > 0 ? (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={orderedItems.map((i) => i.id)}
-            strategy={rectSortingStrategy}
+      ) : filteredItems.length > 0 ? (
+        search.trim() ? (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredItems.map((item) => (
+              <CulturaItemCard
+                key={item.id}
+                item={item}
+                canEdit={canEdit}
+                onView={(i) => setViewingId(i.id)}
+                onEdit={(i) => { setEditingItem(i); setShowForm(true); }}
+                onDelete={(i) => setDeletingItem(i)}
+              />
+            ))}
+          </div>
+        ) : (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
           >
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {orderedItems.map((item) => (
-                <SortableCard key={item.id} item={item} canEdit={canEdit}>
-                  <CulturaItemCard
-                    item={item}
-                    canEdit={canEdit}
-                    onView={(i) => setViewingId(i.id)}
-                    onEdit={(i) => {
-                      setEditingItem(i);
-                      setShowForm(true);
-                    }}
-                    onDelete={(i) => setDeletingItem(i)}
-                  />
-                </SortableCard>
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
+            <SortableContext
+              items={orderedItems.map((i) => i.id)}
+              strategy={rectSortingStrategy}
+            >
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {orderedItems.map((item) => (
+                  <SortableCard key={item.id} item={item} canEdit={canEdit}>
+                    <CulturaItemCard
+                      item={item}
+                      canEdit={canEdit}
+                      onView={(i) => setViewingId(i.id)}
+                      onEdit={(i) => {
+                        setEditingItem(i);
+                        setShowForm(true);
+                      }}
+                      onDelete={(i) => setDeletingItem(i)}
+                    />
+                  </SortableCard>
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        )
+      ) : search.trim() ? (
+        <EmptyState
+          icon={IconFileText}
+          title="Nenhum resultado encontrado"
+          description="Tente ajustar o termo de busca."
+          cta={{ label: "Limpar busca", onClick: () => setSearch("") }}
+        />
       ) : (
         <EmptyState
           icon={IconFileText}

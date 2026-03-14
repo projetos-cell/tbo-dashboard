@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import {
   IconPlus,
   IconBook,
@@ -8,10 +8,13 @@ import {
   IconDots,
   IconPencil,
   IconTrash,
+  IconSearch,
+  IconX,
   IconEye,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
@@ -162,6 +165,7 @@ export default function ManualPage() {
   const [editingItem, setEditingItem] = useState<CulturaRow | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [deletingItem, setDeletingItem] = useState<CulturaRow | null>(null);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     if (items) setOrderedItems(items);
@@ -191,7 +195,18 @@ export default function ManualPage() {
     useSensor(KeyboardSensor)
   );
 
+  const filteredItems = useMemo(() => {
+    if (!search.trim()) return orderedItems;
+    const q = search.toLowerCase();
+    return orderedItems.filter(
+      (i) =>
+        i.title.toLowerCase().includes(q) ||
+        (i.content ?? "").toLowerCase().includes(q)
+    );
+  }, [orderedItems, search]);
+
   function handleDragEnd(event: DragEndEvent) {
+    if (search.trim()) return;
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const oldIdx = orderedItems.findIndex((i) => i.id === active.id);
@@ -282,6 +297,26 @@ export default function ManualPage() {
         )}
       </div>
 
+      {/* Search */}
+      <div className="relative">
+        <IconSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-gray-400" />
+        <Input
+          placeholder="Buscar no manual..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-8 h-8 text-sm"
+        />
+        {search && (
+          <button
+            onClick={() => setSearch("")}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            aria-label="Limpar busca"
+          >
+            <IconX className="size-3.5" />
+          </button>
+        )}
+      </div>
+
       {isLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -298,34 +333,57 @@ export default function ManualPage() {
         </div>
       ) : error ? (
         <ErrorState message={error.message} onRetry={() => refetch()} />
-      ) : orderedItems.length > 0 ? (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={orderedItems.map((i) => i.id)}
-            strategy={verticalListSortingStrategy}
+      ) : filteredItems.length > 0 ? (
+        search.trim() ? (
+          <div className="space-y-2">
+            {filteredItems.map((item, index) => (
+              <SortableManualItem
+                key={item.id}
+                item={item}
+                index={index}
+                canEdit={canEdit}
+                onView={(i) => setViewingId(i.id)}
+                onEdit={(i) => { setEditingItem(i); setShowForm(true); }}
+                onDelete={(i) => setDeletingItem(i)}
+              />
+            ))}
+          </div>
+        ) : (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
           >
-            <div className="space-y-2">
-              {orderedItems.map((item, index) => (
-                <SortableManualItem
-                  key={item.id}
-                  item={item}
-                  index={index}
-                  canEdit={canEdit}
-                  onView={(i) => setViewingId(i.id)}
-                  onEdit={(i) => {
-                    setEditingItem(i);
-                    setShowForm(true);
-                  }}
-                  onDelete={(i) => setDeletingItem(i)}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
+            <SortableContext
+              items={orderedItems.map((i) => i.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-2">
+                {orderedItems.map((item, index) => (
+                  <SortableManualItem
+                    key={item.id}
+                    item={item}
+                    index={index}
+                    canEdit={canEdit}
+                    onView={(i) => setViewingId(i.id)}
+                    onEdit={(i) => {
+                      setEditingItem(i);
+                      setShowForm(true);
+                    }}
+                    onDelete={(i) => setDeletingItem(i)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        )
+      ) : search.trim() ? (
+        <EmptyState
+          icon={IconBook}
+          title="Nenhum resultado encontrado"
+          description="Tente ajustar o termo de busca."
+          cta={{ label: "Limpar busca", onClick: () => setSearch("") }}
+        />
       ) : (
         <EmptyState
           icon={IconBook}

@@ -13,9 +13,11 @@ import {
   IconBookmark,
   IconArrowRight,
   IconGift,
+  IconChartBar,
 } from "@tabler/icons-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { RequireRole } from "@/features/auth/components/require-role";
 import { CulturaOverviewStats } from "@/features/cultura/components/cultura-overview-stats";
 import { CulturaItemCard } from "@/features/cultura/components/cultura-item-card";
 import { CulturaItemDetail } from "@/features/cultura/components/cultura-item-detail";
@@ -156,6 +158,26 @@ export default function CulturaPage() {
           </Card>
         </Link>
       </div>
+
+      {/* Analytics link — founder/diretoria only */}
+      <RequireRole minRole="diretoria">
+        <Link href="/cultura/analytics" className="group block">
+          <Card className="transition-colors group-hover:border-indigo-400/40 bg-indigo-50/40 dark:bg-indigo-900/10 border-dashed">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="rounded-lg p-2.5 bg-indigo-500/10">
+                <IconChartBar className="size-5 text-indigo-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm">Analytics de Cultura</p>
+                <p className="text-xs text-gray-500">
+                  Metricas e insights — visivel apenas para fundadores e gestores
+                </p>
+              </div>
+              <IconArrowRight className="size-4 text-gray-500 group-hover:text-indigo-500 transition-colors" />
+            </CardContent>
+          </Card>
+        </Link>
+      </RequireRole>
 
       {/* Category sections with recent items */}
       {(

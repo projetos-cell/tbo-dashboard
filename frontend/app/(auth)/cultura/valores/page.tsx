@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { IconPlus, IconHeart, IconGripVertical } from "@tabler/icons-react";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { IconPlus, IconHeart, IconGripVertical, IconSearch, IconX } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   DndContext,
@@ -35,6 +37,15 @@ import { ErrorState, ConfirmDialog, EmptyState } from "@/components/shared";
 import type { Database } from "@/lib/supabase/types";
 
 type CulturaRow = Database["public"]["Tables"]["cultura_items"]["Row"];
+
+const STATUS_OPTIONS = [
+  { value: "all", label: "Todos" },
+  { value: "published", label: "Publicados" },
+  { value: "draft", label: "Rascunhos" },
+  { value: "archived", label: "Arquivados" },
+] as const;
+
+type StatusFilter = (typeof STATUS_OPTIONS)[number]["value"];
 
 function SortableCard({
   item,
@@ -85,6 +96,8 @@ export default function ValoresPage() {
   const [editingItem, setEditingItem] = useState<CulturaRow | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [deletingItem, setDeletingItem] = useState<CulturaRow | null>(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   useEffect(() => {
     if (items) setOrderedItems(items);
@@ -108,7 +121,26 @@ export default function ValoresPage() {
     useSensor(KeyboardSensor)
   );
 
+  const isFiltering = search.trim() !== "" || statusFilter !== "all";
+
+  const filteredItems = useMemo(() => {
+    let result = orderedItems;
+    if (statusFilter !== "all") {
+      result = result.filter((i) => i.status === statusFilter);
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (i) =>
+          i.title.toLowerCase().includes(q) ||
+          (i.content ?? "").toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [orderedItems, search, statusFilter]);
+
   function handleDragEnd(event: DragEndEvent) {
+    if (isFiltering) return;
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const oldIdx = orderedItems.findIndex((i) => i.id === active.id);
@@ -180,6 +212,45 @@ export default function ValoresPage() {
         )}
       </div>
 
+      {/* Search + status filter */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1">
+          <IconSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-gray-400" />
+          <Input
+            placeholder="Buscar valores..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8 h-8 text-sm"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              aria-label="Limpar busca"
+            >
+              <IconX className="size-3.5" />
+            </button>
+          )}
+        </div>
+        <div className="flex gap-1 flex-wrap">
+          {STATUS_OPTIONS.map((opt) => (
+            <Badge
+              key={opt.value}
+              variant={statusFilter === opt.value ? "default" : "outline"}
+              className="cursor-pointer select-none h-8 px-3 text-xs"
+              onClick={() => setStatusFilter(opt.value)}
+            >
+              {opt.label}
+              {opt.value !== "all" && !isLoading && (
+                <span className="ml-1 opacity-60">
+                  ({orderedItems.filter((i) => i.status === opt.value).length})
+                </span>
+              )}
+            </Badge>
+          ))}
+        </div>
+      </div>
+
       {isLoading ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -195,24 +266,46 @@ export default function ValoresPage() {
         </div>
       ) : error ? (
         <ErrorState message={error.message} onRetry={() => refetch()} />
-      ) : orderedItems.length > 0 ? (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={orderedItems.map((i) => i.id)} strategy={rectSortingStrategy}>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {orderedItems.map((item) => (
-                <SortableCard key={item.id} item={item} canEdit={canEdit}>
-                  <CulturaItemCard
-                    item={item}
-                    canEdit={canEdit}
-                    onView={(i) => setViewingId(i.id)}
-                    onEdit={(i) => { setEditingItem(i); setShowForm(true); }}
-                    onDelete={(i) => setDeletingItem(i)}
-                  />
-                </SortableCard>
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
+      ) : filteredItems.length > 0 ? (
+        isFiltering ? (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredItems.map((item) => (
+              <CulturaItemCard
+                key={item.id}
+                item={item}
+                canEdit={canEdit}
+                onView={(i) => setViewingId(i.id)}
+                onEdit={(i) => { setEditingItem(i); setShowForm(true); }}
+                onDelete={(i) => setDeletingItem(i)}
+              />
+            ))}
+          </div>
+        ) : (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={orderedItems.map((i) => i.id)} strategy={rectSortingStrategy}>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {orderedItems.map((item) => (
+                  <SortableCard key={item.id} item={item} canEdit={canEdit}>
+                    <CulturaItemCard
+                      item={item}
+                      canEdit={canEdit}
+                      onView={(i) => setViewingId(i.id)}
+                      onEdit={(i) => { setEditingItem(i); setShowForm(true); }}
+                      onDelete={(i) => setDeletingItem(i)}
+                    />
+                  </SortableCard>
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        )
+      ) : isFiltering ? (
+        <EmptyState
+          icon={IconHeart}
+          title="Nenhum resultado encontrado"
+          description="Tente ajustar os filtros ou o termo de busca."
+          cta={{ label: "Limpar filtros", onClick: () => { setSearch(""); setStatusFilter("all"); } }}
+        />
       ) : (
         <EmptyState
           icon={IconHeart}

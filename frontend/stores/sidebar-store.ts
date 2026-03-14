@@ -72,14 +72,61 @@ export const useSidebarStore = create<SidebarOrderState>()(
 
       initFromDefaults(groups) {
         const current = get();
-        if (current.groupOrder.length > 0) return;
 
-        const groupOrder = groups.map((g) => g.label);
-        const groupItemOrder: Record<string, string[]> = {};
-        for (const g of groups) {
-          groupItemOrder[g.label] = g.items.map((i) => i.href);
+        // First init — seed everything
+        if (current.groupOrder.length === 0) {
+          const groupOrder = groups.map((g) => g.label);
+          const groupItemOrder: Record<string, string[]> = {};
+          for (const g of groups) {
+            groupItemOrder[g.label] = g.items.map((i) => i.href);
+          }
+          set({ groupOrder, groupItemOrder });
+          return;
         }
-        set({ groupOrder, groupItemOrder });
+
+        // Reconcile: add new groups and ensure every default item exists somewhere
+        const defaultLabels = new Set(groups.map((g) => g.label));
+        const existingLabels = new Set(current.groupOrder);
+        const allTracked = new Set(Object.values(current.groupItemOrder).flat());
+
+        let changed = false;
+        const nextGroupOrder = [...current.groupOrder];
+        const nextGroupItemOrder = { ...current.groupItemOrder };
+
+        for (const g of groups) {
+          // Add missing groups
+          if (!existingLabels.has(g.label)) {
+            nextGroupOrder.push(g.label);
+            nextGroupItemOrder[g.label] = g.items.map((i) => i.href);
+            changed = true;
+          } else {
+            // Ensure new items within existing groups are tracked
+            const existing = nextGroupItemOrder[g.label] ?? [];
+            const toAdd = g.items
+              .filter((i) => !allTracked.has(i.href))
+              .map((i) => i.href);
+            if (toAdd.length > 0) {
+              nextGroupItemOrder[g.label] = [...existing, ...toAdd];
+              toAdd.forEach((h) => allTracked.add(h));
+              changed = true;
+            }
+          }
+        }
+
+        // Remove groups that no longer exist in defaults
+        const staleGroups = nextGroupOrder.filter((l) => !defaultLabels.has(l));
+        if (staleGroups.length > 0) {
+          for (const label of staleGroups) {
+            const idx = nextGroupOrder.indexOf(label);
+            if (idx !== -1) nextGroupOrder.splice(idx, 1);
+            delete nextGroupItemOrder[label];
+          }
+          changed = true;
+        }
+
+        if (changed) {
+          set({ groupOrder: nextGroupOrder, groupItemOrder: nextGroupItemOrder });
+        }
       },
 
       reorderItems(groupLabel, orderedHrefs) {
@@ -178,12 +225,23 @@ export const useSidebarStore = create<SidebarOrderState>()(
     }),
     {
       name: "tbo-sidebar-order",
+      // Bump version to force a full reset of cached sidebar state
+      version: 2,
       partialize: (state) => ({
         groupItemOrder: state.groupItemOrder,
         groupOrder: state.groupOrder,
         collapsedGroups: Array.from(state.collapsedGroups),
         subItemOrder: state.subItemOrder,
       }),
+      migrate: () => {
+        // Any previous version → wipe and let initFromDefaults rebuild
+        return {
+          groupItemOrder: {},
+          groupOrder: [],
+          collapsedGroups: [],
+          subItemOrder: {},
+        };
+      },
       merge: (persisted, current) => {
         const p = persisted as Record<string, unknown>;
         return {

@@ -1,33 +1,10 @@
 "use client";
 
 import { useState, type KeyboardEvent } from "react";
-import {
-  IconPencil,
-  IconTrash,
-  IconCheck,
-  IconX,
-  IconPin,
-  IconPinnedOff,
-} from "@tabler/icons-react";
+import { IconCheck, IconX } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Avatar,
   AvatarImage,
@@ -39,7 +16,7 @@ import type { ProfileInfo } from "@/features/chat/utils/profile-utils";
 import { getInitials } from "@/features/chat/utils/profile-utils";
 import { getUserColor } from "@/features/chat/utils/chat-colors";
 import { MessageAttachments } from "./message-attachments";
-import { parseMentions } from "./mention-popup";
+import { MessageContent, MessageMenu, MessageDeleteDialog } from "./message-bubble-parts";
 
 interface MessageBubbleProps {
   message: MessageRow;
@@ -120,27 +97,18 @@ export function MessageBubble({
 
       {/* Content */}
       <div className="flex flex-col flex-1 min-w-0">
-        {/* Sender name + time (first message in group) */}
         {showAvatar && (
           <div className="flex items-baseline gap-2 mb-0.5">
-            <span
-              className={cn(
-                "text-sm font-semibold",
-                getUserColor(message.sender_id ?? ""),
-              )}
-            >
+            <span className={cn("text-sm font-semibold", getUserColor(message.sender_id ?? ""))}>
               {senderName}
             </span>
             <span className="text-[10px] text-muted-foreground">{time}</span>
             {isEdited && (
-              <span className="text-[10px] text-muted-foreground italic">
-                (editado)
-              </span>
+              <span className="text-[10px] text-muted-foreground italic">(editado)</span>
             )}
           </div>
         )}
 
-        {/* Message body */}
         {isEditing ? (
           <div className="flex flex-col gap-1.5 max-w-md">
             <Input
@@ -173,7 +141,6 @@ export function MessageBubble({
               <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                 <MessageContent content={message.content ?? ""} profileMap={profileMap} />
               </p>
-              {/* Inline time for non-first messages */}
               {!showAvatar && (
                 <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   {time}
@@ -206,117 +173,11 @@ export function MessageBubble({
         </div>
       )}
 
-      {/* Delete confirmation dialog */}
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir mensagem</AlertDialogTitle>
-            <AlertDialogDescription>
-              Essa ação não pode ser desfeita. A mensagem será removida para todos.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-white hover:bg-destructive/90"
-              onClick={() => onDelete?.(message.id)}
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  );
-}
-
-// ── Message Content (with mention rendering) ─────────────────────────
-
-function MessageContent({
-  content,
-  profileMap,
-}: {
-  content: string;
-  profileMap: Record<string, ProfileInfo>;
-}) {
-  // Check if content has mentions pattern
-  if (!content.includes("<@")) {
-    return <>{content}</>;
-  }
-
-  const segments = parseMentions(content, profileMap);
-  return (
-    <>
-      {segments.map((seg, i) =>
-        seg.type === "text" ? (
-          <span key={i}>{seg.value}</span>
-        ) : (
-          <span
-            key={i}
-            className="inline-flex items-center rounded bg-primary/10 px-1 py-0.5 text-xs font-medium text-primary cursor-default"
-          >
-            @{seg.name}
-          </span>
-        ),
-      )}
-    </>
-  );
-}
-
-// ── Context Menu ─────────────────────────────────────────────────────
-
-function MessageMenu({
-  canEdit,
-  canDelete,
-  canPin,
-  isPinned,
-  onEdit,
-  onDelete,
-  onTogglePin,
-}: {
-  canEdit: boolean;
-  canDelete: boolean;
-  canPin: boolean;
-  isPinned: boolean;
-  onEdit: () => void;
-  onDelete: () => void;
-  onTogglePin: () => void;
-}) {
-  if (!canEdit && !canDelete && !canPin) return null;
-
-  return (
-    <div className="flex gap-0.5 rounded-md border bg-background p-0.5 shadow-sm">
-      {canPin && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          onClick={onTogglePin}
-          title={isPinned ? "Desafixar" : "Fixar"}
-        >
-          {isPinned ? <IconPinnedOff size={14} /> : <IconPin size={14} />}
-        </Button>
-      )}
-      {canEdit && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          onClick={onEdit}
-        >
-          <IconPencil size={14} />
-        </Button>
-      )}
-      {canDelete && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 text-destructive hover:text-destructive"
-          onClick={onDelete}
-        >
-          <IconTrash size={14} />
-        </Button>
-      )}
+      <MessageDeleteDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        onConfirm={() => onDelete?.(message.id)}
+      />
     </div>
   );
 }

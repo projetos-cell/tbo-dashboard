@@ -1,5 +1,59 @@
 # TBO OS — Audit Log
 
+## Ciclo — 2026-03-14 Ciclo 42 (scheduled)
+
+**Módulo**: Comercial — Leads, Propostas, Atividades
+**Branch**: main
+**Build**: ✅
+
+### Estado do módulo
+
+| Funcionalidade | Antes | Depois | Detalhes |
+|----------------|-------|--------|----------|
+| comercial/leads | ❌ stub | ✅ | Lista filtrada lead/qualificacao + KPIs + busca + quick-advance stage + DealDetailDialog/DealFormDialog |
+| comercial/propostas | ❌ stub | ✅ | Lista filtrada proposta/negociacao + KPIs ponderados + probability bar + ações ganho/perdido |
+| comercial/atividades | ❌ stub | ✅ | Timeline agrupada por data + filtro período (7d/30d/90d/all) + deal detail on click |
+
+### Implementado
+- `feat(comercial/leads)`: page completa com tabela filtrada (lead + qualificacao), KPIs (count/valor/ticket médio), busca full-text, botão "Qualificar/Proposta" inline para avançar stage, DealDetailDialog + DealFormDialog
+- `feat(comercial/propostas)`: page completa com tabela filtrada (proposta + negociacao), KPIs (total, valor em aberto, receita ponderada), probability bar visual, quick actions ✓/✗ para fechar ganho/perdido
+- `feat(comercial/atividades)`: feed cronológico agrupado por data (Hoje/Ontem/data formatada), filtro de período, timeline com indicadores coloridos por stage, deal detail on click
+
+### Migrations aplicadas
+- nenhuma — reusou `crm_deals` existente via `useDeals()`
+
+### Próximo ciclo
+- Projetos stubs: /projetos/lista, /projetos/calendario, /projetos/gantt, /projetos/timeline
+- OKRs configurações (stub ainda)
+- Pessoas/pdi e pessoas/timeline (stubs)
+
+### Debt técnico
+- `supabase as any` em 4+ arquivos de API — aguarda geração de types corretos (`supabase gen types`)
+- Atividades page usa `updated_at` como proxy de "atividade" — ideal seria uma tabela `crm_activities` dedicada
+
+---
+
+## Ciclo — 2026-03-14 (scheduled)
+
+**Módulo**: OKRs Dashboard + Baú Criativo
+**Branch**: main
+**Build**: ✅
+
+### Implementado
+- **fix(okrs/dashboard)**: `onCreateCycle={() => {}}` → conectado ao `OkrCycleDialog` (único dos 5 pages de OKR que estava faltando)
+- **feat(okrs/dashboard)**: empty state melhorado — CTA dinâmico "Criar primeiro ciclo" quando sem ciclos, botão "Ver todos os OKRs" como fallback
+- **feat(bau-criativo)**: migrado de `SEED_REFERENCES` hardcoded para `useBauReferences` hook (Supabase real + fallback gracioso quando tabela não existe) — feito pelo ciclo anterior (922225d)
+
+### Próximo ciclo
+- Implementar páginas stub: projetos/lista, projetos/calendario, projetos/gantt, projetos/timeline
+- OKRs configurações (stub ainda)
+- Comercial leads/propostas/atividades (todos stubs)
+
+### Debt técnico
+- `supabase as any` em 4+ arquivos de API — aguarda geração de types corretos (`supabase gen types`)
+
+---
+
 ## Ciclo — 2026-03-14 Ciclo 38
 
 **Módulo**: Academy (course-detail-header) + splits 200L+ (ciclo 37 já commitados)

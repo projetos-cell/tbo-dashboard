@@ -54,6 +54,19 @@ export function ProjectList({ projects }: ProjectListProps) {
   const columnDefs: ColumnDef<Project>[] = useMemo(
     () => [
       {
+        id: "code",
+        label: "Código",
+        width: "w-[90px]",
+        sortable: true,
+        sortType: "string",
+        sortAccessor: (row) => row.code,
+        cellRender: (row) => (
+          <span className="font-mono text-xs text-muted-foreground uppercase tracking-wider">
+            {row.code || "\u2014"}
+          </span>
+        ),
+      },
+      {
         id: "name",
         label: "Nome",
         hideable: false,

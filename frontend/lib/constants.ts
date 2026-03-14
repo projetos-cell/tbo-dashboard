@@ -62,13 +62,17 @@ export const TASK_PRIORITY = {
 
 export type TaskPriorityKey = keyof typeof TASK_PRIORITY;
 
+// BU (Business Unit) list — ordered for tab display
+export const BU_LIST = ["Digital 3D", "Branding", "Marketing", "Audiovisual", "Interiores"] as const;
+export type BUKey = (typeof BU_LIST)[number];
+
 // BU badge colors — matches legacy TBO_QUADRO_PROJETOS._BU_COLORS
-export const BU_COLORS: Record<string, { bg: string; color: string }> = {
-  Branding: { bg: "#fef3c7", color: "#92400e" },
-  "Digital 3D": { bg: "#ede9fe", color: "#5b21b6" },
-  Marketing: { bg: "#d1fae5", color: "#065f46" },
-  Audiovisual: { bg: "#fce7f3", color: "#9d174d" },
-  Interiores: { bg: "#e0f2fe", color: "#0c4a6e" },
+export const BU_COLORS: Record<string, { bg: string; color: string; icon: string }> = {
+  "Digital 3D": { bg: "#ede9fe", color: "#5b21b6", icon: "cube" },
+  Branding: { bg: "#fef3c7", color: "#92400e", icon: "palette" },
+  Marketing: { bg: "#d1fae5", color: "#065f46", icon: "speakerphone" },
+  Audiovisual: { bg: "#fce7f3", color: "#9d174d", icon: "movie" },
+  Interiores: { bg: "#e0f2fe", color: "#0c4a6e", icon: "armchair" },
 };
 
 // People status configuration

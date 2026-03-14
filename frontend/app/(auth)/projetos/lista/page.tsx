@@ -11,10 +11,12 @@ import { ProjectList } from "@/features/projects/components/project-list";
 import { ProjectForm } from "@/features/projects/components/project-form";
 import { useProjects } from "@/features/projects/hooks/use-projects";
 import { useUser } from "@/hooks/use-user";
+import { parseBus } from "@/features/projects/utils/parse-bus";
 
 export default function ProjetosListaPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [buFilter, setBuFilter] = useState("all");
   const [formOpen, setFormOpen] = useState(false);
 
   useUser();
@@ -24,17 +26,22 @@ export default function ProjetosListaPage() {
   const filtered = useMemo(() => {
     if (!projects) return [];
     return projects.filter((p) => {
+      if (buFilter !== "all") {
+        const bus = parseBus(p.bus);
+        if (!bus.includes(buFilter)) return false;
+      }
       if (statusFilter !== "all" && p.status !== statusFilter) return false;
       if (search) {
         const q = search.toLowerCase();
         return (
           (p.name || "").toLowerCase().includes(q) ||
-          (p.construtora || "").toLowerCase().includes(q)
+          (p.construtora || "").toLowerCase().includes(q) ||
+          (p.code || "").toLowerCase().includes(q)
         );
       }
       return true;
     });
-  }, [projects, statusFilter, search]);
+  }, [projects, buFilter, statusFilter, search]);
 
   if (error) {
     return (
@@ -50,11 +57,11 @@ export default function ProjetosListaPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <IconList className="h-6 w-6 text-gray-500" />
+          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
+            <IconList className="h-6 w-6 text-muted-foreground" />
             Lista de Projetos
           </h1>
-          <p className="text-gray-500 text-sm mt-1">
+          <p className="text-muted-foreground mt-1 text-sm">
             Todos os projetos em formato tabular com filtros e ordenação.
           </p>
         </div>
@@ -70,6 +77,8 @@ export default function ProjetosListaPage() {
         onSearchChange={setSearch}
         statusFilter={statusFilter}
         onStatusChange={setStatusFilter}
+        buFilter={buFilter}
+        onBuChange={setBuFilter}
       />
 
       {/* Table */}
@@ -84,12 +93,12 @@ export default function ProjetosListaPage() {
           icon={IconList}
           title="Nenhum projeto encontrado"
           description={
-            search || statusFilter !== "all"
+            search || statusFilter !== "all" || buFilter !== "all"
               ? "Tente ajustar os filtros para ver mais projetos."
               : "Crie o primeiro projeto para começar."
           }
           cta={
-            search || statusFilter !== "all"
+            search || statusFilter !== "all" || buFilter !== "all"
               ? undefined
               : { label: "Novo Projeto", onClick: () => setFormOpen(true) }
           }

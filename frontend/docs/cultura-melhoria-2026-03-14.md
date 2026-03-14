@@ -23,10 +23,40 @@ Arquivos tocados:
 - `frontend/features/cultura/components/tool-form-dialog.tsx` — **Novo**: dialog de formulário com Zod, campos name/description/category_id
 - `frontend/app/(auth)/cultura/ferramentas/page.tsx` — Botão "Nova ferramenta" para founder/diretoria, dropdown ⋮ em cada card com Editar/Excluir, `ConfirmDialog` para exclusão
 
-### Próximas prioridades (para próxima rodada)
-1. Valores/Pilares — admin CRUD inline (editar nome/descrição/ícone sem sair da página)
-2. Rituais — admin visualização de histórico de ocorrências por ritual
-3. Analytics — melhorar gráficos de engajamento por período
-4. Reconhecimentos — filtro por valor na tab principal
+### Build status: ✅
+
+---
+
+## Ciclo 5 — 2026-03-14
+
+### Diagnóstico
+- 14 páginas analisadas
+- 3 lacunas encontradas
+
+### Implementado
+
+#### 1. Baú Criativo — Tab de Moderação (UI faltante do ciclo 4)
+Arquivo: `app/(auth)/cultura/bau-criativo/page.tsx`
+- A page.tsx do ciclo 4 não tinha a UI apesar dos hooks existirem
+- Implementada tab "Moderação" com badge de pendentes para founder/diretoria
+- PendingReferenceCard: categoria, subcategoria, URL, descrição, data de envio
+- Botões Aprovar/Rejeitar com loading state e toast de feedback
+- Corrigido bug: `id` não usado em onSuccess de `useUpdateBauReferenceStatus`
+
+#### 2. Baú Criativo — Ícone semântico no SubcategoryCard
+Arquivo: `app/(auth)/cultura/bau-criativo/page.tsx`
+- Substituído `IconExternalLink` por `IconChevronDown`/`IconChevronUp` no botão expand/collapse
+- Semântica correta: ícone de link externo não faz sentido para toggle
+
+#### 3. Reconhecimentos — Saldo de pontos no header
+Arquivo: `app/(auth)/cultura/reconhecimentos/page.tsx`
+- Badge amber com IconStar e saldo visível ao lado do botão "Reconhecer"
+- Só renderiza quando balance estiver disponível (sem flash de zero)
 
 ### Build status: ✅
+
+### Próximas prioridades (ciclo 6)
+1. Valores/Pilares — admin CRUD inline (editar nome/descrição/ícone sem sair da página)
+2. Rituais — visualização de histórico de ocorrências por ritual
+3. Reconhecimentos — paginação infinita (atualmente limitado a 50 registros)
+4. Analytics — exportar dados para CSV (founder/diretoria)

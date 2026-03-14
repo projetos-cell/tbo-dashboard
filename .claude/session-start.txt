@@ -1,12 +1,13 @@
+f8e271b docs(audit): ciclo 42 — comercial leads/propostas/atividades
+7670128 feat(comercial): ciclo 42 — leads, propostas e atividades implementados
+28f1117 feat(cultura): ciclo 3 — toast reconhecimento, policy owner_user_id, manual prev/next
+22d8d5b fix(okrs/dashboard): conectar onCreateCycle ao OkrCycleDialog + melhorar empty state
+922225d feat(cultura): ciclo 2 — Baú Criativo com Supabase real, RitualFormDialog react-hook-form, loading states e EmptyStates corrigidos
+a9afa32 feat(cultura): ciclo 1 — academy/bau/ferramentas → Supabase + React Query
+bb45d02 feat(okrs): ciclo 41 — check-ins feed, dashboard analytics, teams view
 1611a7d feat(cultura/ferramentas): adicionar credenciais de acesso extraídas do Notion
 081a15f fix(cultura): add Academy, Baú Criativo, Ferramentas to sidebar navigation
 dda5574 feat(cultura): ciclo 40 — academy module sheet + localStorage + bau contribute dialog
-8dd929f feat(cultura): add Academy, Baú Criativo, Ferramentas + Notion seed data
-4cef919 docs(audit): ciclo 39 — rsm/team/relatorios splits + fix handlers vazios
-c9f9d5b refactor(relatorios): split page.tsx 411L → 3 sub-components + fix handlers vazios
-35359d1 refactor(team): split team-table.tsx 317L → table (188L) + columns hook (161L)
-00d39dc refactor(rsm): split page.tsx 529L → 4 sub-components + fix handlers vazios
-72be811 fix(mercado): atualizar dados para 2025-2026 + badges de data corrigidos
-af4ea4f feat(mercado): ciclo 37 — PDF export, data freshness badges, IBGE API + mapa PR
- .claude/session-start.txt | 22 ++++++++++------------
- 1 file changed, 10 insertions(+), 12 deletions(-)
+ .claude/session-start.txt                    |  16 ++--
+ frontend/docs/cultura-melhoria-2026-03-14.md | 111 +++++----------------------
+ 2 files changed, 28 insertions(+), 99 deletions(-)

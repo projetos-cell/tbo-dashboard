@@ -15,10 +15,9 @@ import {
   IconExternalLink,
   IconPlus,
   IconBox,
+  IconClock,
   IconCheck,
   IconX,
-  IconClock,
-  IconShieldCheck,
 } from "@tabler/icons-react"
 import { BAU_CRIATIVO } from "@/features/cultura/data/cultura-notion-seed"
 import { EmptyState } from "@/components/shared"
@@ -29,98 +28,11 @@ import {
   useUpdateBauReferenceStatus,
 } from "@/features/cultura/hooks/use-bau-criativo"
 import { useAuthStore } from "@/stores/auth-store"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
 import type { BauReferenceRow } from "@/features/cultura/services/bau-criativo"
 
-// ─── PendingReferenceRow — admin approval card ────────────────────────────────
-
-function PendingReferenceRow({ ref: item }: { ref: BauReferenceRow }) {
-  const updateStatus = useUpdateBauReferenceStatus()
-  const isLoading = updateStatus.isPending && updateStatus.variables?.id === item.id
-
-  return (
-    <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <a
-            href={item.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm font-medium text-primary hover:underline flex items-center gap-1"
-          >
-            <IconExternalLink className="h-3.5 w-3.5 shrink-0" />
-            {item.name}
-          </a>
-          <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <Button
-            size="icon"
-            variant="ghost"
-            className="size-7 text-green-600 hover:text-green-700 hover:bg-green-50"
-            disabled={isLoading}
-            onClick={() => updateStatus.mutate({ id: item.id, status: "approved" })}
-            title="Aprovar"
-          >
-            <IconCheck className="size-3.5" />
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="size-7 text-red-500 hover:text-red-600 hover:bg-red-50"
-            disabled={isLoading}
-            onClick={() => updateStatus.mutate({ id: item.id, status: "rejected" })}
-            title="Rejeitar"
-          >
-            <IconX className="size-3.5" />
-          </Button>
-        </div>
-      </div>
-      <div className="flex gap-2 text-[11px] text-muted-foreground">
-        <span className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-1.5 py-0.5 rounded-full">
-          {BAU_CRIATIVO.flatMap((c) => c.subcategories).find((s) => s.id === item.subcategory_id)?.name ?? item.subcategory_id}
-        </span>
-      </div>
-    </div>
-  )
-}
-
-function BauAdminPanel() {
-  const { data: pending = [], isLoading } = usePendingBauReferences()
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <IconShieldCheck className="size-4 text-muted-foreground" />
-        <h2 className="text-sm font-semibold">Contribuições pendentes</h2>
-        {pending.length > 0 && (
-          <Badge variant="secondary" className="text-xs">{pending.length}</Badge>
-        )}
-      </div>
-
-      {isLoading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-16 rounded-lg" />
-          ))}
-        </div>
-      ) : pending.length === 0 ? (
-        <EmptyState
-          icon={IconClock}
-          title="Nenhuma contribuição pendente"
-          description="Quando colaboradores enviarem referências, elas aparecerão aqui para revisão."
-        />
-      ) : (
-        <div className="space-y-2">
-          {pending.map((item) => (
-            <PendingReferenceRow key={item.id} ref={item} />
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── SubcategoryCard — fetches refs from Supabase when expanded ──────────────
+// ─── SubcategoryCard ──────────────────────────────────────────────────────────
 
 interface SubcategoryCardProps {
   sub: { id: string; name: string; description: string }
@@ -136,8 +48,8 @@ function SubcategoryCard({ sub }: SubcategoryCardProps) {
         <h3 className="font-semibold">{sub.name}</h3>
         <p className="text-sm text-muted-foreground">{sub.description}</p>
 
-        {isExpanded && (
-          isLoading ? (
+        {isExpanded &&
+          (isLoading ? (
             <div className="space-y-2">
               <Skeleton className="h-10 w-full rounded-md" />
               <Skeleton className="h-10 w-full rounded-md" />
@@ -163,20 +75,146 @@ function SubcategoryCard({ sub }: SubcategoryCardProps) {
                 </li>
               ))}
             </ul>
-          )
-        )}
+          ))}
 
         <Button
           variant="outline"
           size="sm"
-          className="mt-auto gap-2 self-start"
+          className="mt-auto gap-1.5 self-start"
           onClick={() => setIsExpanded((v) => !v)}
         >
-          <IconExternalLink className="h-4 w-4" />
-          {isExpanded ? "Ocultar referências" : "Ver referências"}
+          {isExpanded ? (
+            <>
+              <IconChevronUp className="h-4 w-4" />
+              Ocultar referências
+            </>
+          ) : (
+            <>
+              <IconChevronDown className="h-4 w-4" />
+              Ver referências
+            </>
+          )}
         </Button>
       </CardContent>
     </Card>
+  )
+}
+
+// ─── PendingReferenceCard ─────────────────────────────────────────────────────
+
+function PendingReferenceCard({
+  ref,
+  onApprove,
+  onReject,
+  isUpdating,
+}: {
+  ref: BauReferenceRow
+  onApprove: (id: string) => void
+  onReject: (id: string) => void
+  isUpdating: boolean
+}) {
+  const catName = BAU_CRIATIVO.find((c) => c.id === ref.category_id)?.name ?? ref.category_id
+  const subName =
+    BAU_CRIATIVO.flatMap((c) => c.subcategories).find((s) => s.id === ref.subcategory_id)
+      ?.name ?? ref.subcategory_id
+
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-2">
+        <div className="space-y-1">
+          <p className="font-medium text-sm">{ref.name}</p>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+              {catName}
+            </Badge>
+            <span>·</span>
+            <span>{subName}</span>
+          </div>
+          <a
+            href={ref.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 truncate"
+          >
+            <IconExternalLink className="h-3 w-3 shrink-0" />
+            {ref.url}
+          </a>
+          {ref.description && (
+            <p className="text-xs text-muted-foreground leading-relaxed">{ref.description}</p>
+          )}
+          {ref.created_at && (
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <IconClock className="h-3 w-3" />
+              {format(new Date(ref.created_at), "dd MMM yyyy 'as' HH:mm", { locale: ptBR })}
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-2 pt-1">
+          <Button
+            size="sm"
+            variant="default"
+            className="flex-1 h-8 text-xs gap-1.5"
+            disabled={isUpdating}
+            onClick={() => onApprove(ref.id)}
+          >
+            <IconCheck className="h-3.5 w-3.5" />
+            Aprovar
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="flex-1 h-8 text-xs gap-1.5 text-destructive hover:bg-destructive/10"
+            disabled={isUpdating}
+            onClick={() => onReject(ref.id)}
+          >
+            <IconX className="h-3.5 w-3.5" />
+            Rejeitar
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ─── ModerationTab ────────────────────────────────────────────────────────────
+
+function ModerationTab() {
+  const { data: pending = [], isLoading } = usePendingBauReferences()
+  const updateStatus = useUpdateBauReferenceStatus()
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-32 rounded-lg" />
+        ))}
+      </div>
+    )
+  }
+
+  if (pending.length === 0) {
+    return (
+      <EmptyState
+        icon={IconCheck}
+        title="Nenhuma contribuicao pendente"
+        description="Todas as referencias foram revisadas."
+      />
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      {pending.map((ref) => (
+        <PendingReferenceCard
+          key={ref.id}
+          ref={ref}
+          onApprove={(id) => updateStatus.mutate({ id, status: "approved" })}
+          onReject={(id) => updateStatus.mutate({ id, status: "rejected" })}
+          isUpdating={updateStatus.isPending}
+        />
+      ))}
+    </div>
   )
 }
 
@@ -184,14 +222,13 @@ function SubcategoryCard({ sub }: SubcategoryCardProps) {
 
 export default function BauCriativoPage() {
   const { role } = useAuthStore()
-  const isAdmin = role === "founder" || role === "diretoria"
+  const canModerate = role === "founder" || role === "diretoria"
 
   const [search, setSearch] = useState("")
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>(
     Object.fromEntries(BAU_CRIATIVO.map((cat) => [cat.id, true]))
   )
   const [showContributeDialog, setShowContributeDialog] = useState(false)
-
   const { data: pending = [] } = usePendingBauReferences()
 
   const filteredCategories = BAU_CRIATIVO.map((category) => ({
@@ -203,80 +240,6 @@ export default function BauCriativoPage() {
     ),
   })).filter((category) => category.subcategories.length > 0)
 
-  const catalogContent = (
-    <div className="space-y-6">
-      {/* Search */}
-      <div className="relative">
-        <IconSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Buscar subcategorias..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-10"
-        />
-      </div>
-
-      {/* Intro callout */}
-      <Card className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30">
-        <CardContent className="flex items-start gap-3 pt-6">
-          <IconPalette className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
-          <p className="text-sm text-amber-900 dark:text-amber-200">
-            Aprenda com quem já fez. Fonte viva de referências segmentadas por setor da TBO.
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Categories */}
-      {filteredCategories.length === 0 ? (
-        <EmptyState
-          icon={IconSearch}
-          title="Nenhuma subcategoria encontrada"
-          description="Tente buscar por outro termo."
-          cta={
-            search
-              ? { label: "Limpar busca", onClick: () => setSearch("") }
-              : undefined
-          }
-        />
-      ) : (
-        filteredCategories.map((category) => (
-          <Card key={category.id}>
-            <CardHeader
-              className="cursor-pointer select-none"
-              onClick={() =>
-                setExpandedCategories((prev) => ({ ...prev, [category.id]: !prev[category.id] }))
-              }
-            >
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <span>{category.emoji}</span>
-                  {category.name}
-                  <Badge variant="secondary" className="ml-2 text-xs">
-                    {category.subcategories.length}
-                  </Badge>
-                </CardTitle>
-                {expandedCategories[category.id] ? (
-                  <IconChevronUp className="h-5 w-5 text-muted-foreground" />
-                ) : (
-                  <IconChevronDown className="h-5 w-5 text-muted-foreground" />
-                )}
-              </div>
-            </CardHeader>
-            {expandedCategories[category.id] && (
-              <CardContent>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {category.subcategories.map((sub) => (
-                    <SubcategoryCard key={sub.id} sub={sub} />
-                  ))}
-                </div>
-              </CardContent>
-            )}
-          </Card>
-        ))
-      )}
-    </div>
-  )
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -286,42 +249,110 @@ export default function BauCriativoPage() {
             <IconBox className="h-5 w-5 text-amber-600 dark:text-amber-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Baú Criativo</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Bau Criativo</h1>
             <p className="text-sm text-muted-foreground">
-              Referências, ferramentas e inspirações para o dia a dia criativo
+              Referencias, ferramentas e inspiracoes para o dia a dia criativo
             </p>
           </div>
         </div>
         <Button onClick={() => setShowContributeDialog(true)} className="gap-2">
           <IconPlus className="h-4 w-4" />
-          Contribuir referência
+          Contribuir referencia
         </Button>
       </div>
 
-      {/* Tabs: Catálogo | Admin (pendentes) */}
-      {isAdmin ? (
-        <Tabs defaultValue="catalogo">
-          <TabsList>
-            <TabsTrigger value="catalogo">Catálogo</TabsTrigger>
-            <TabsTrigger value="pendentes" className="gap-1.5">
-              Pendentes
+      <Tabs defaultValue="referencias">
+        <TabsList>
+          <TabsTrigger value="referencias">Referencias</TabsTrigger>
+          {canModerate && (
+            <TabsTrigger value="moderacao">
+              Moderacao
               {pending.length > 0 && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                <Badge variant="secondary" className="ml-1.5 text-xs">
                   {pending.length}
                 </Badge>
               )}
             </TabsTrigger>
-          </TabsList>
-          <TabsContent value="catalogo" className="mt-4">
-            {catalogContent}
+          )}
+        </TabsList>
+
+        <TabsContent value="referencias" className="mt-4 space-y-4">
+          {/* Search */}
+          <div className="relative">
+            <IconSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar subcategorias..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* Intro callout */}
+          <Card className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30">
+            <CardContent className="flex items-start gap-3 pt-6">
+              <IconPalette className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+              <p className="text-sm text-amber-900 dark:text-amber-200">
+                Aprenda com quem ja fez. Fonte viva de referencias segmentadas por setor da TBO.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Categories */}
+          {filteredCategories.length === 0 ? (
+            <EmptyState
+              icon={IconSearch}
+              title="Nenhuma subcategoria encontrada"
+              description="Tente buscar por outro termo."
+              cta={search ? { label: "Limpar busca", onClick: () => setSearch("") } : undefined}
+            />
+          ) : (
+            filteredCategories.map((category) => (
+              <Card key={category.id}>
+                <CardHeader
+                  className="cursor-pointer select-none"
+                  onClick={() =>
+                    setExpandedCategories((prev) => ({
+                      ...prev,
+                      [category.id]: !prev[category.id],
+                    }))
+                  }
+                >
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <span>{category.emoji}</span>
+                      {category.name}
+                      <Badge variant="secondary" className="ml-2 text-xs">
+                        {category.subcategories.length}
+                      </Badge>
+                    </CardTitle>
+                    {expandedCategories[category.id] ? (
+                      <IconChevronUp className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <IconChevronDown className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
+                </CardHeader>
+                {expandedCategories[category.id] && (
+                  <CardContent>
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {category.subcategories.map((sub) => (
+                        <SubcategoryCard key={sub.id} sub={sub} />
+                      ))}
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
+            ))
+          )}
+        </TabsContent>
+
+        {canModerate && (
+          <TabsContent value="moderacao" className="mt-4">
+            <ModerationTab />
           </TabsContent>
-          <TabsContent value="pendentes" className="mt-4">
-            <BauAdminPanel />
-          </TabsContent>
-        </Tabs>
-      ) : (
-        catalogContent
-      )}
+        )}
+      </Tabs>
 
       <BauContributeDialog
         open={showContributeDialog}

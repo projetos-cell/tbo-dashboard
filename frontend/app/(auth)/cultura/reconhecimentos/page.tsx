@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
-import { IconPlus, IconAward, IconSearch, IconX, IconCalendar } from "@tabler/icons-react";
+import { IconPlus, IconAward, IconSearch, IconX, IconCalendar, IconStar } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -147,10 +147,18 @@ export default function ReconhecimentosPage() {
             Reconheca colegas pelos valores da empresa.
           </p>
         </div>
-        <Button size="sm" onClick={() => setShowForm(true)}>
-          <IconPlus className="size-4 mr-1" />
-          Reconhecer
-        </Button>
+        <div className="flex items-center gap-2">
+          {balance !== undefined && (
+            <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-full px-2.5 py-1">
+              <IconStar className="size-3 fill-current" />
+              <span className="font-medium">{balance.balance ?? 0} pts</span>
+            </div>
+          )}
+          <Button size="sm" onClick={() => setShowForm(true)}>
+            <IconPlus className="size-4 mr-1" />
+            Reconhecer
+          </Button>
+        </div>
       </div>
 
       <RecognitionKPISection kpis={kpis} balance={balance} />

@@ -32,6 +32,8 @@ import { useChatStore } from "@/features/chat/stores/chat-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { getInitials } from "@/features/chat/utils/profile-utils";
 import { cn } from "@/lib/utils";
+import { ChannelTemplatePicker } from "./channel-template-picker";
+import type { ChannelTemplate } from "@/features/chat/services/channel-templates";
 
 /** "Nathália Runge Martins Rodrigues" → "Nathália R." */
 function abbreviateName(full: string): string {
@@ -98,6 +100,12 @@ export function CreateChannelDialog() {
     setMemberSearch("");
   }
 
+  function handleSelectTemplate(tpl: ChannelTemplate) {
+    setName(tpl.channelName);
+    setDescription(tpl.channelDescription);
+    setType(tpl.type);
+  }
+
   function toggleMember(id: string) {
     setSelectedMembers((prev) =>
       prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id],
@@ -116,6 +124,12 @@ export function CreateChannelDialog() {
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          {/* #33 — Template picker */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Começar do zero ou</span>
+            <ChannelTemplatePicker onSelect={handleSelectTemplate} />
+          </div>
+
           {/* Name */}
           <div className="space-y-1.5">
             <Label htmlFor="ch-name">Nome do canal</Label>

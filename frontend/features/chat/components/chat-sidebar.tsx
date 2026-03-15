@@ -20,6 +20,8 @@ import { useChatStore } from "@/features/chat/stores/chat-store";
 import type { ChannelWithMembers } from "./channel-list";
 import type { SectionRow } from "@/features/chat/services/chat";
 import type { ProfileInfo } from "@/features/chat/utils/profile-utils";
+import { UserStatusPicker } from "./user-status-picker";
+import { useUserStatus } from "@/features/chat/hooks/use-user-status";
 
 interface ChatSidebarProps {
   channels: ChannelWithMembers[] | undefined;
@@ -78,6 +80,8 @@ export function ChatSidebar({
   const setCreateSectionOpen = useChatStore((s) => s.setCreateSectionOpen);
   const setCreateChannelOpen = useChatStore((s) => s.setCreateChannelOpen);
   const setBrowseChannelsOpen = useChatStore((s) => s.setBrowseChannelsOpen);
+
+  const { data: myStatus } = useUserStatus(currentUserId);
 
   return (
     <div
@@ -148,6 +152,25 @@ export function ChatSidebar({
           )}
         </div>
       </div>
+
+      {/* #34 — User status footer */}
+      {currentUserId && (
+        <div className="border-b">
+          <UserStatusPicker>
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 px-4 py-2.5 text-xs hover:bg-muted/50 transition-colors"
+            >
+              <span className="text-base leading-none">
+                {myStatus?.emoji ?? <IconMessageCircle2 size={14} className="text-muted-foreground" />}
+              </span>
+              <span className={cn("truncate flex-1 text-left", myStatus?.text ? "text-foreground" : "text-muted-foreground")}>
+                {myStatus?.text ?? "Definir status..."}
+              </span>
+            </button>
+          </UserStatusPicker>
+        </div>
+      )}
 
       {/* Channel list */}
       <div className="flex-1 overflow-y-auto p-2">

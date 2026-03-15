@@ -52,6 +52,7 @@ import {
 import { useProfiles } from "@/features/people/hooks/use-people";
 import { useTypingIndicator } from "@/features/chat/hooks/use-typing-indicator";
 import { useChatPresence } from "@/features/chat/hooks/use-presence";
+import { useAutoArchive } from "@/features/chat/hooks/use-auto-archive";
 import { usePushNotifications } from "@/features/chat/hooks/use-push-notifications";
 import { useAllNotificationPrefs } from "@/features/chat/hooks/use-notification-prefs";
 import { useFaviconBadge } from "@/features/chat/hooks/use-favicon-badge";
@@ -169,6 +170,7 @@ export function ChatLayout() {
   // Sync unread + presence
   const { sendTyping } = useTypingIndicator(selectedChannelId);
   useChatPresence();
+  useAutoArchive(); // #32 — Auto-archive inactive channels
 
   // Push notifications (#7) — channel names map (senderNames built after profileMap)
   const channelNames = useMemo(() => {

@@ -106,6 +106,29 @@ export async function deleteChannelPermanently(
   if (error) throw error;
 }
 
+// ── #32 Auto-archive ──────────────────────────────────────────────
+
+/** Channels eligible for auto-archive (inactive > auto_archive_days, not yet archived) */
+export async function getChannelsForAutoArchive(
+  supabase: SupabaseClient<Database>,
+) {
+  const { data, error } = await supabase
+    .from("chat_channels")
+    .select("id, name, auto_archive_days, last_activity_at")
+    .eq("is_archived", false)
+    .gt("auto_archive_days", 0);
+  if (error) throw error;
+
+  const now = Date.now();
+  return (data ?? []).filter((ch) => {
+    const days = (ch as unknown as { auto_archive_days: number; last_activity_at: string | null }).auto_archive_days;
+    const lastActivity = (ch as unknown as { last_activity_at: string | null }).last_activity_at;
+    if (!lastActivity) return false;
+    const msInactive = now - new Date(lastActivity).getTime();
+    return msInactive > days * 24 * 60 * 60 * 1000;
+  }) as unknown as { id: string; name: string }[];
+}
+
 /** Get archived channels for sidebar display */
 export async function getArchivedChannels(
   supabase: SupabaseClient<Database>,

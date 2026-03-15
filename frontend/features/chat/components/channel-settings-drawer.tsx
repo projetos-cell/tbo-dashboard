@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { IconArchive, IconBell, IconBellOff, IconBellRinging, IconPlus, IconSpeakerphone, IconVolume, IconVolumeOff, IconX } from "@tabler/icons-react";
+import { IconArchive, IconBell, IconBellOff, IconBellRinging, IconClock, IconPlus, IconSpeakerphone, IconVolume, IconVolumeOff, IconX } from "@tabler/icons-react";
 import {
   Sheet,
   SheetContent,
@@ -12,6 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,6 +72,9 @@ export function ChannelSettingsDrawer({ channel, soundEnabled = true, onToggleSo
   const [description, setDescription] = useState(channel.description ?? "");
   const [isReadOnly, setIsReadOnly] = useState(parsedSettings.is_read_only ?? false);
   const [whoCanPost, setWhoCanPost] = useState<"everyone" | "admins">(parsedSettings.who_can_post ?? "everyone");
+  const [autoArchiveDays, setAutoArchiveDays] = useState(
+    String((channel as unknown as { auto_archive_days?: number }).auto_archive_days ?? 0)
+  );
   const [isAddingMembers, setIsAddingMembers] = useState(false);
   const [memberSearch, setMemberSearch] = useState("");
   const [selectedNewMembers, setSelectedNewMembers] = useState<string[]>([]);
@@ -87,7 +97,15 @@ export function ChannelSettingsDrawer({ channel, soundEnabled = true, onToggleSo
   function handleSaveInfo() {
     if (!name.trim()) return;
     const newSettings: ChannelSettings = { is_read_only: isReadOnly, who_can_post: isReadOnly ? "admins" : whoCanPost };
-    updateChannel.mutate({ id: channel.id, updates: { name: name.trim(), description: description.trim() || null, settings: newSettings } as never });
+    updateChannel.mutate({
+      id: channel.id,
+      updates: {
+        name: name.trim(),
+        description: description.trim() || null,
+        settings: newSettings,
+        auto_archive_days: parseInt(autoArchiveDays, 10),
+      } as never,
+    });
   }
 
   function handleArchive() {
@@ -168,6 +186,31 @@ export function ChannelSettingsDrawer({ channel, soundEnabled = true, onToggleSo
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+            {/* #32 — Auto-archive */}
+            {canEdit && (
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5 text-sm">
+                  <IconClock size={14} className="text-muted-foreground" />
+                  Auto-arquivar por inatividade
+                </Label>
+                <Select value={autoArchiveDays} onValueChange={setAutoArchiveDays}>
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Desativado</SelectItem>
+                    <SelectItem value="7">7 dias</SelectItem>
+                    <SelectItem value="14">14 dias</SelectItem>
+                    <SelectItem value="30">30 dias</SelectItem>
+                    <SelectItem value="60">60 dias</SelectItem>
+                    <SelectItem value="90">90 dias</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Canal será arquivado automaticamente se não houver novas mensagens neste período.
+                </p>
               </div>
             )}
             {canEdit && (

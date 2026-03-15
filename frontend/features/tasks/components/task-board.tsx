@@ -2,6 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { TASK_STATUS } from "@/lib/constants";
+import { usePropertyOptions } from "@/features/projects/hooks/use-project-properties";
 import { TaskCard } from "./task-card";
 import { SortableTaskCard } from "./sortable-task-card";
 import { useUpdateTask } from "@/features/tasks/hooks/use-tasks";
@@ -17,11 +18,9 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
-
-const BOARD_COLUMNS = ["pendente", "em_andamento", "revisao", "concluida", "bloqueada"] as const;
 
 interface TaskBoardProps {
   tasks: TaskRow[];
@@ -35,18 +34,38 @@ export function TaskBoard({ tasks, onSelect }: TaskBoardProps) {
   const undo = useUndoStack();
   const { toast } = useToast();
 
+  // Dynamic status columns from Supabase (F03)
+  const { data: statusOptions = [] } = usePropertyOptions("status");
+
+  const columns = useMemo(() => {
+    if (statusOptions.length === 0) {
+      return Object.entries(TASK_STATUS).map(([key, cfg]) => ({
+        key,
+        label: cfg.label,
+        color: cfg.color,
+      }));
+    }
+    return statusOptions.map((opt) => ({
+      key: opt.key,
+      label: opt.label,
+      color: opt.color,
+    }));
+  }, [statusOptions]);
+
+  const columnKeys = useMemo(() => new Set(columns.map((c) => c.key)), [columns]);
+
   // Sync when props change (unless mid-mutation)
   if (tasks !== localTasks && !updateTask.isPending) {
     setLocalTasks(tasks);
   }
 
-  const tasksByStatus = BOARD_COLUMNS.reduce(
-    (acc, status) => {
-      acc[status] = localTasks.filter((t) => t.status === status);
-      return acc;
-    },
-    {} as Record<string, TaskRow[]>
-  );
+  const tasksByStatus = useMemo(() => {
+    const result: Record<string, TaskRow[]> = {};
+    for (const col of columns) {
+      result[col.key] = localTasks.filter((t) => t.status === col.key);
+    }
+    return result;
+  }, [columns, localTasks]);
 
   function handleDragStart(event: DragStartEvent) {
     const task = localTasks.find((t) => t.id === event.active.id);
@@ -61,7 +80,7 @@ export function TaskBoard({ tasks, onSelect }: TaskBoardProps) {
     const taskId = active.id as string;
     let targetStatus = over.id as string;
 
-    if (!BOARD_COLUMNS.includes(targetStatus as (typeof BOARD_COLUMNS)[number])) {
+    if (!columnKeys.has(targetStatus)) {
       const overTask = localTasks.find((t) => t.id === targetStatus);
       if (overTask) targetStatus = overTask.status;
     }
@@ -148,24 +167,23 @@ export function TaskBoard({ tasks, onSelect }: TaskBoardProps) {
       onDragEnd={handleDragEnd}
     >
       <div className="grid auto-cols-[280px] grid-flow-col gap-4 overflow-x-auto pb-4">
-        {BOARD_COLUMNS.map((status) => {
-          const cfg = TASK_STATUS[status as keyof typeof TASK_STATUS];
-          const columnTasks = tasksByStatus[status] ?? [];
+        {columns.map((col) => {
+          const columnTasks = tasksByStatus[col.key] ?? [];
 
           return (
-            <div key={status} className="flex flex-col">
+            <div key={col.key} className="flex flex-col">
               <div className="mb-2 flex items-center gap-2">
                 <span
                   className="inline-block h-2.5 w-2.5 rounded-full"
-                  style={{ backgroundColor: cfg?.color }}
+                  style={{ backgroundColor: col.color }}
                 />
-                <h3 className="text-sm font-semibold">{cfg?.label ?? status}</h3>
+                <h3 className="text-sm font-semibold">{col.label}</h3>
                 <Badge variant="secondary" className="ml-auto text-xs">
                   {columnTasks.length}
                 </Badge>
               </div>
               <SortableContext
-                id={status}
+                id={col.key}
                 items={columnTasks.map((t) => t.id)}
                 strategy={verticalListSortingStrategy}
               >

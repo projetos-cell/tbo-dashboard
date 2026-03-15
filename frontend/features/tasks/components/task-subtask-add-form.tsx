@@ -17,17 +17,13 @@ interface TaskSubtaskAddFormProps {
 export function TaskSubtaskAddForm({ task, tenantId }: TaskSubtaskAddFormProps) {
   const { toast } = useToast();
   const createTask = useCreateTask();
-  const [adding, setAdding] = useState(false);
+  const [focused, setFocused] = useState(false);
   const [title, setTitle] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleAdd = useCallback(async () => {
     const trimmed = title.trim();
-    if (!trimmed) {
-      setAdding(false);
-      setTitle("");
-      return;
-    }
+    if (!trimmed) return;
     setTitle("");
     try {
       await createTask.mutateAsync({
@@ -45,44 +41,42 @@ export function TaskSubtaskAddForm({ task, tenantId }: TaskSubtaskAddFormProps) 
     }
   }, [title, tenantId, task, createTask, toast]);
 
-  if (adding) {
-    return (
-      <div className="flex items-center gap-2 px-1 py-1">
-        <IconCircle className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-        <Input
-          ref={inputRef}
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Nome da subtarefa..."
-          className="h-6 text-sm border-0 border-b rounded-none px-0 focus-visible:ring-0 shadow-none"
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              void handleAdd();
-            }
-            if (e.key === "Escape") {
-              setAdding(false);
-              setTitle("");
-            }
-          }}
-          onBlur={() => {
-            if (!title.trim()) setAdding(false);
-          }}
-          disabled={createTask.isPending}
-          autoFocus
-        />
-      </div>
-    );
-  }
-
   return (
-    <button
-      type="button"
-      className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
-      onClick={() => setAdding(true)}
+    <div
+      className={`flex items-center gap-2 px-1 py-1 rounded-md transition-colors ${
+        focused ? "bg-muted/30" : "hover:bg-muted/20"
+      }`}
     >
-      <IconPlus className="h-3.5 w-3.5" />
-      Adicionar subtarefa
-    </button>
+      {focused ? (
+        <IconCircle className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+      ) : (
+        <IconPlus className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+      )}
+      <Input
+        ref={inputRef}
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder={focused ? "Nome da subtarefa... (Enter para criar)" : "Adicionar subtarefa..."}
+        className="h-6 text-sm border-0 border-b border-transparent focus-visible:border-border rounded-none px-0 focus-visible:ring-0 shadow-none placeholder:text-muted-foreground/50"
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            void handleAdd();
+          }
+          if (e.key === "Escape") {
+            setTitle("");
+            inputRef.current?.blur();
+          }
+        }}
+        onFocus={() => setFocused(true)}
+        onBlur={() => {
+          if (!title.trim()) {
+            setFocused(false);
+            setTitle("");
+          }
+        }}
+        disabled={createTask.isPending}
+      />
+    </div>
   );
 }

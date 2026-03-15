@@ -22,6 +22,9 @@ import { TaskSubtasksSection } from "./task-subtasks-section";
 import { TaskDependenciesSection } from "./task-dependencies-section";
 import { TaskAttachmentsSection } from "./task-attachments-section";
 import { CommentThread } from "@/components/shared/comment-thread";
+import { TaskHistoryTimeline } from "./task-history-timeline";
+import { TaskComputedFields } from "./task-computed-fields";
+import { useSubtasks } from "@/features/tasks/hooks/use-tasks";
 
 // ─── Props ──────────────────────────────────────────
 
@@ -77,6 +80,7 @@ interface TaskPanelProps {
 
 function TaskPanel({ taskId, projectName, onClose, onOpenTask, isFullscreen, onToggleFullscreen }: TaskPanelProps) {
   const { data: task, isLoading } = useTaskDetail(taskId);
+  const { data: subtasks = [] } = useSubtasks(taskId);
 
   const [projectPickerOpen, setProjectPickerOpen] = useState(false);
   const lastKeyRef = useRef<string | null>(null);
@@ -141,6 +145,8 @@ function TaskPanel({ taskId, projectName, onClose, onOpenTask, isFullscreen, onT
             <TaskSubtasksSection task={task} onOpenTask={onOpenTask} />
           </div>
 
+          <TaskComputedFields task={task} subtasks={subtasks} />
+
           <Separator className="my-4" />
 
           <div className="pb-1">
@@ -160,9 +166,15 @@ function TaskPanel({ taskId, projectName, onClose, onOpenTask, isFullscreen, onT
 
           <div className="pb-4">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-              Comentários
+              Comentarios
             </p>
             <CommentThread taskId={task.id} />
+          </div>
+
+          <Separator className="my-4" />
+
+          <div className="pb-4">
+            <TaskHistoryTimeline taskId={task.id} />
           </div>
         </div>
       </div>

@@ -8,7 +8,8 @@ export type NotificationTrigger =
   | "mention"
   | "thread_reply"
   | "task_assigned"
-  | "task_updated";
+  | "task_updated"
+  | "task_overdue";
 
 // ─── Helpers ───
 
@@ -308,4 +309,150 @@ export async function notifyTaskUpdated(
     action_url: `/tarefas?task=${taskId}`,
     read: false,
   } as NotificationInsert);
+}
+
+// ─── E) Overdue task notifications ───
+
+/**
+ * Checks for overdue tasks assigned to the given user and creates
+ * task_overdue notifications for any that don't already have one today.
+ * Called client-side on page load (once per session).
+ */
+export async function checkAndNotifyOverdueTasks(
+  supabase: SupabaseClient<Database>,
+  params: {
+    tenantId: string;
+    userId: string;
+  }
+): Promise<number> {
+  const { tenantId, userId } = params;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString();
+
+  // Get overdue tasks assigned to this user
+  const { data: overdueTasks, error: taskError } = await supabase
+    .from("os_tasks")
+    .select("id,title,due_date,assignee_id")
+    .eq("assignee_id", userId)
+    .eq("is_completed", false)
+    .lt("due_date", todayStr.split("T")[0])
+    .is("parent_id", null);
+
+  if (taskError || !overdueTasks || overdueTasks.length === 0) return 0;
+
+  // Check which tasks already have overdue notifications today
+  const { data: existingNotifs } = await supabase
+    .from("notifications")
+    .select("entity_id")
+    .eq("user_id", userId)
+    .eq("trigger_type", "task_overdue")
+    .gte("created_at", todayStr);
+
+  const alreadyNotified = new Set(
+    (existingNotifs ?? []).map((n) => n.entity_id)
+  );
+
+  let created = 0;
+  for (const task of overdueTasks) {
+    if (alreadyNotified.has(task.id)) continue;
+
+    const daysOverdue = Math.floor(
+      (Date.now() - new Date(task.due_date!).getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    await insertNotification(supabase, {
+      user_id: userId,
+      tenant_id: tenantId,
+      trigger_type: "task_overdue",
+      type: "task",
+      entity_type: "task",
+      entity_id: task.id,
+      title: `Tarefa atrasada: "${task.title}"`,
+      body: `${daysOverdue} dia${daysOverdue !== 1 ? "s" : ""} de atraso`,
+      action_url: `/tarefas?task=${task.id}`,
+      read: false,
+    } as NotificationInsert);
+    created++;
+  }
+
+  return created;
+}
+
+// ─── F) Reminder notifications ───
+
+/**
+ * Checks for tasks with reminder_days set and creates reminder notifications
+ * when due_date - reminder_days <= today.
+ */
+export async function checkAndNotifyReminders(
+  supabase: SupabaseClient<Database>,
+  params: {
+    tenantId: string;
+    userId: string;
+  }
+): Promise<number> {
+  const { tenantId, userId } = params;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString();
+
+  // Get tasks with reminders assigned to this user
+  const { data: tasks, error } = await supabase
+    .from("os_tasks")
+    .select("id,title,due_date,reminder_days")
+    .eq("assignee_id", userId)
+    .eq("is_completed", false)
+    .not("reminder_days", "is", null)
+    .gt("reminder_days", 0)
+    .is("parent_id", null);
+
+  if (error || !tasks || tasks.length === 0) return 0;
+
+  // Check which tasks already have reminder notifications today
+  const { data: existingNotifs } = await supabase
+    .from("notifications")
+    .select("entity_id")
+    .eq("user_id", userId)
+    .eq("trigger_type", "task_reminder" as never)
+    .gte("created_at", todayStr);
+
+  const alreadyNotified = new Set(
+    (existingNotifs ?? []).map((n) => n.entity_id)
+  );
+
+  let created = 0;
+  for (const task of tasks) {
+    if (!task.due_date || alreadyNotified.has(task.id)) continue;
+
+    const reminderDays = (task as Record<string, unknown>).reminder_days as number;
+    const dueDate = new Date(task.due_date);
+    const reminderDate = new Date(dueDate);
+    reminderDate.setDate(reminderDate.getDate() - reminderDays);
+    reminderDate.setHours(0, 0, 0, 0);
+
+    if (today >= reminderDate && today < dueDate) {
+      const daysUntilDue = Math.ceil(
+        (dueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+      );
+
+      await insertNotification(supabase, {
+        user_id: userId,
+        tenant_id: tenantId,
+        trigger_type: "task_reminder" as never,
+        type: "task",
+        entity_type: "task",
+        entity_id: task.id,
+        title: `Lembrete: "${task.title}"`,
+        body: `Vence em ${daysUntilDue} dia${daysUntilDue !== 1 ? "s" : ""}`,
+        action_url: `/tarefas?task=${task.id}`,
+        read: false,
+      } as NotificationInsert);
+      created++;
+    }
+  }
+
+  return created;
 }

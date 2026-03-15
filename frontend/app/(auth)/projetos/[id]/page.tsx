@@ -1,15 +1,23 @@
 "use client";
 
 import { use, useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/shared";
 import { ProjectTopbar, type ProjectTabKey } from "@/features/projects/components/project-topbar";
 import { ProjectOverview } from "@/features/projects/components/tabs/project-overview";
 import { ProjectTaskList } from "@/features/projects/components/tabs/project-task-list";
+import { ProjectTaskBoard } from "@/features/projects/components/tabs/project-task-board";
 import { ProjectFiles } from "@/features/projects/components/tabs/project-files";
+import { ProjectSettings } from "@/features/projects/components/tabs/project-settings";
+import { ProjectCalendar } from "@/features/projects/components/tabs/project-calendar";
 import { ProjectActivityTab } from "@/features/projects/components/tabs/project-activity";
+import { ProjectUpdates } from "@/features/projects/components/tabs/project-updates";
+import { ProjectDashboard } from "@/features/projects/components/tabs/project-dashboard";
+import { ProjectOverdueReport } from "@/features/projects/components/tabs/project-overdue-report";
+import { ProjectPortal } from "@/features/projects/components/tabs/project-portal";
+import { ProjectIntake } from "@/features/projects/components/tabs/project-intake";
 import { TaskDetailSheet } from "@/features/tasks/components/task-detail-sheet";
 import { useProject } from "@/features/projects/hooks/use-projects";
 import { useProfiles } from "@/features/people/hooks/use-people";
@@ -42,10 +50,37 @@ export default function ProjectDetailPage({
   const { data: project, isLoading, error, refetch } = useProject(id);
   const { data: profiles } = useProfiles();
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
 
-  const [activeTab, setActiveTab] = useState<ProjectTabKey>("overview");
+  // Persist active tab in URL: ?tab=list
+  const tabFromUrl = searchParams.get("tab") as ProjectTabKey | null;
+  const [activeTab, setActiveTabState] = useState<ProjectTabKey>(tabFromUrl ?? "overview");
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [membersOpen, setMembersOpen] = useState(false);
+
+  const setActiveTab = useCallback(
+    (tab: ProjectTabKey) => {
+      setActiveTabState(tab);
+      const params = new URLSearchParams(searchParams.toString());
+      if (tab === "overview") {
+        params.delete("tab");
+      } else {
+        params.set("tab", tab);
+      }
+      const qs = params.toString();
+      router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
+    },
+    [searchParams, router, pathname],
+  );
+
+  // Sync tab from URL on navigation
+  useEffect(() => {
+    const urlTab = searchParams.get("tab") as ProjectTabKey | null;
+    if (urlTab && urlTab !== activeTab) {
+      setActiveTabState(urlTab);
+    }
+  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Deep-link: ?task=<id> or ?demanda=<id> (backward compat)
   useEffect(() => {
@@ -81,9 +116,39 @@ export default function ProjectDetailPage({
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-32 w-full rounded-lg" />
-        <Skeleton className="h-64 rounded-lg" />
+      <div className="space-y-6">
+        {/* UX04 — Content-aware skeleton: topbar */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <Skeleton className="size-10 rounded-lg" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-5 w-48 rounded" />
+              <Skeleton className="h-3 w-64 rounded" />
+            </div>
+            <Skeleton className="h-8 w-24 rounded-md" />
+          </div>
+          <div className="flex gap-1 border-b border-border/60 pb-2">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <Skeleton key={i} className="h-7 rounded-md" style={{ width: `${56 + (i % 3) * 12}px` }} />
+            ))}
+          </div>
+        </div>
+        {/* UX04 — Content-aware skeleton: tab content */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="col-span-2 space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 rounded-lg border border-border/40 p-3">
+                <Skeleton className="size-4 rounded-full" />
+                <Skeleton className="h-4 flex-1 rounded" />
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </div>
+            ))}
+          </div>
+          <div className="space-y-3">
+            <Skeleton className="h-24 rounded-lg" />
+            <Skeleton className="h-32 rounded-lg" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -111,7 +176,7 @@ export default function ProjectDetailPage({
       />
 
       {/* Tab content */}
-      <div>
+      <div key={activeTab}>
         {activeTab === "overview" && (
           <ProjectOverview
             projectId={id}
@@ -126,16 +191,29 @@ export default function ProjectDetailPage({
             onAddTask={() => handleSelectTask("new")}
           />
         )}
+        {activeTab === "board" && (
+          <ProjectTaskBoard
+            projectId={id}
+            onSelectTask={handleSelectTask}
+          />
+        )}
         {activeTab === "gantt" && (
           <ProjectGantt projectId={id} onSelectTask={handleSelectTask} />
         )}
+        {activeTab === "calendar" && (
+          <ProjectCalendar projectId={id} onSelectTask={handleSelectTask} />
+        )}
         {activeTab === "files" && <ProjectFiles projectId={id} />}
+        {activeTab === "updates" && <ProjectUpdates projectId={id} />}
         {activeTab === "activity" && <ProjectActivityTab projectId={id} />}
-        {activeTab === "dashboard" && <ProjectOverview projectId={id} />}
+        {activeTab === "dashboard" && <ProjectDashboard projectId={id} />}
+        {activeTab === "overdue" && (
+          <ProjectOverdueReport projectId={id} onSelectTask={handleSelectTask} />
+        )}
+        {activeTab === "intake" && <ProjectIntake projectId={id} />}
+        {activeTab === "settings" && <ProjectSettings projectId={id} />}
         {activeTab === "portal" && (
-          <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
-            <p className="text-sm">Portal do Cliente em breve.</p>
-          </div>
+          <ProjectPortal projectId={id} projectName={project.name} />
         )}
       </div>
 

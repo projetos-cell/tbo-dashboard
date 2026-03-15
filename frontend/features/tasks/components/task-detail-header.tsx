@@ -9,6 +9,7 @@ import {
 import { TASK_STATUS } from "@/lib/constants";
 import { TaskStatusToggle } from "./task-status-toggle";
 import { TaskActionsToolbar } from "./task-actions-toolbar";
+import { TaskFollowButton } from "./task-follow-button";
 import { useTaskDependencies } from "@/features/tasks/hooks/use-task-dependencies";
 import type { Database } from "@/lib/supabase/types";
 
@@ -64,6 +65,9 @@ export function TaskDetailHeader({
           </Tooltip>
         )}
       </div>
+
+      {/* C01: Follow button */}
+      <TaskFollowButton taskId={task.id} showCount />
 
       {/* Right: actions toolbar */}
       <TaskActionsToolbar

@@ -10,6 +10,11 @@ import {
   IconGitBranch,
   IconTag,
   IconUsers,
+  IconShieldCheck,
+  IconDiamond,
+  IconClock,
+  IconRepeat,
+  IconBell,
 } from "@tabler/icons-react";
 import { TaskAssigneePicker } from "./task-assignee-picker";
 import { TaskDateRange } from "./task-date-range";
@@ -18,6 +23,11 @@ import { TaskCollaboratorsList } from "./task-collaborators-list";
 import { TaskTagsDisplay } from "./task-tags-display";
 import { TaskDependenciesSection } from "./task-dependencies-section";
 import { CustomFieldsSection } from "./custom-fields-section";
+import { TaskApprovalSelect } from "./task-approval-select";
+import { TaskMilestoneToggle } from "./task-milestone-toggle";
+import { TaskEffortFields } from "./task-effort-fields";
+import { TaskRecurrenceSelect } from "./task-recurrence-select";
+import { TaskReminderSelect } from "./task-reminder-select";
 import type { Database } from "@/lib/supabase/types";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
@@ -89,6 +99,31 @@ export function TaskDetailFields({
         icon={<IconUsersGroup className="h-3.5 w-3.5" />}
       >
         <TaskCollaboratorsList taskId={task.id} />
+      </FieldRow>
+
+      {/* T01 — Aprovação */}
+      <FieldRow label="Aprovação" icon={<IconShieldCheck className="h-3.5 w-3.5" />}>
+        <TaskApprovalSelect task={task} />
+      </FieldRow>
+
+      {/* T02 — Milestone */}
+      <FieldRow label="Marco" icon={<IconDiamond className="h-3.5 w-3.5" />}>
+        <TaskMilestoneToggle task={task} />
+      </FieldRow>
+
+      {/* T03 — Effort */}
+      <FieldRow label="Esforço" icon={<IconClock className="h-3.5 w-3.5" />}>
+        <TaskEffortFields task={task} />
+      </FieldRow>
+
+      {/* T04 — Recurrence */}
+      <FieldRow label="Repetição" icon={<IconRepeat className="h-3.5 w-3.5" />}>
+        <TaskRecurrenceSelect task={task} />
+      </FieldRow>
+
+      {/* A06 — Reminder */}
+      <FieldRow label="Lembrete" icon={<IconBell className="h-3.5 w-3.5" />}>
+        <TaskReminderSelect task={task} />
       </FieldRow>
 
       {/* Dependências */}

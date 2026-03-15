@@ -179,7 +179,7 @@ export async function getMyTasks(
   userId: string,
   showCompleted: boolean = false
 ): Promise<MyTaskWithSection[]> {
-  // Get tasks assigned to user (or created by user with no assignee)
+  // Get tasks assigned to user via primary assignee_id (or created by user with no assignee)
   let query = supabase
     .from("os_tasks")
     .select("*")
@@ -191,8 +191,39 @@ export async function getMyTasks(
     query = query.eq("is_completed", false);
   }
 
-  const { data: tasks, error: tasksError } = await query;
+  const { data: primaryTasks, error: tasksError } = await query;
   if (tasksError) throw tasksError;
+
+  // Also get tasks where user is a multi-assignee via task_assignees junction table
+  const { data: assigneeRows, error: assigneeError } = await supabase
+    .from("task_assignees")
+    .select("task_id")
+    .eq("user_id", userId);
+  if (assigneeError) throw assigneeError;
+
+  const primaryIds = new Set((primaryTasks ?? []).map((t) => t.id));
+  const extraTaskIds = (assigneeRows ?? [])
+    .map((r) => r.task_id)
+    .filter((id) => !primaryIds.has(id));
+
+  let extraTasks: TaskRow[] = [];
+  if (extraTaskIds.length > 0) {
+    let extraQuery = supabase
+      .from("os_tasks")
+      .select("*")
+      .in("id", extraTaskIds)
+      .is("parent_id", null);
+
+    if (!showCompleted) {
+      extraQuery = extraQuery.eq("is_completed", false);
+    }
+
+    const { data, error } = await extraQuery;
+    if (error) throw error;
+    extraTasks = (data ?? []) as TaskRow[];
+  }
+
+  const tasks = [...(primaryTasks ?? []) as TaskRow[], ...extraTasks];
 
   // Get order info for these tasks
   const { data: orders, error: ordersError } = await supabase

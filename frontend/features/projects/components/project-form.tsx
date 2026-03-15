@@ -2,11 +2,21 @@
 
 import { useState, useMemo } from "react";
 import { z } from "zod";
-import { IconBuilding, IconCheck, IconPlus, IconSearch, IconUserCircle, IconX } from "@tabler/icons-react";
+import {
+  IconBuilding,
+  IconCheck,
+  IconChevronDown,
+  IconPlus,
+  IconSearch,
+  IconTemplate,
+  IconUserCircle,
+  IconX,
+} from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +30,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useCreateProject, useProjects } from "@/features/projects/hooks/use-projects";
+import { useApplyProjectTemplate, PROJECT_TEMPLATES, DEFAULT_TEMPLATE_ID } from "@/features/projects/hooks/use-project-templates";
 import { formatProjectName } from "@/features/projects/services/projects";
 import { useTeamMembers } from "@/hooks/use-team";
 import { useAuthStore } from "@/stores/auth-store";
@@ -43,13 +61,19 @@ interface ProjectFormProps {
 
 export function ProjectForm({ open, onOpenChange }: ProjectFormProps) {
   const [name, setName] = useState("");
-  const [construtora, setConstrutora] = useState("");
+  const [construtora, setConstrutora] = useState("HORIZONTE");
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [ownerName, setOwnerName] = useState("");
   const [selectedBus, setSelectedBus] = useState<string[]>([]);
+  const [useTemplate, setUseTemplate] = useState(true);
+  const [selectedTemplateId, setSelectedTemplateId] = useState(DEFAULT_TEMPLATE_ID);
   const [errors, setErrors] = useState<Partial<Record<keyof ProjectFormData, string>>>({});
+
   const createProject = useCreateProject();
+  const applyTemplate = useApplyProjectTemplate();
   const tenantId = useAuthStore((s) => s.tenantId);
+
+  const isPending = createProject.isPending || applyTemplate.isPending;
 
   function toggleBu(bu: string) {
     setSelectedBus((prev) =>
@@ -59,10 +83,12 @@ export function ProjectForm({ open, onOpenChange }: ProjectFormProps) {
 
   function resetForm() {
     setName("");
-    setConstrutora("");
+    setConstrutora("HORIZONTE");
     setOwnerId(null);
     setOwnerName("");
     setSelectedBus([]);
+    setUseTemplate(true);
+    setSelectedTemplateId(DEFAULT_TEMPLATE_ID);
     setErrors({});
   }
 
@@ -86,7 +112,7 @@ export function ProjectForm({ open, onOpenChange }: ProjectFormProps) {
     setErrors({});
     if (!tenantId) return;
 
-    await createProject.mutateAsync({
+    const project = await createProject.mutateAsync({
       name: result.data.name,
       construtora: result.data.construtora || null,
       owner_name: result.data.owner_name || null,
@@ -96,13 +122,24 @@ export function ProjectForm({ open, onOpenChange }: ProjectFormProps) {
       tenant_id: tenantId,
     } as never);
 
+    // Apply template: creates sections + zeroed tasks
+    if (useTemplate && (project as { id?: string })?.id) {
+      await applyTemplate.mutateAsync({
+        projectId: (project as { id: string }).id,
+        tenantId,
+        templateId: selectedTemplateId,
+      });
+    }
+
     resetForm();
     onOpenChange(false);
   }
 
+  const selectedTemplate = PROJECT_TEMPLATES.find((t) => t.id === selectedTemplateId);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Novo Projeto</DialogTitle>
           <DialogDescription>
@@ -116,24 +153,20 @@ export function ProjectForm({ open, onOpenChange }: ProjectFormProps) {
             <Input
               id="name"
               value={name}
-              onChange={(e) => { setName(e.target.value); setErrors((prev) => ({ ...prev, name: undefined })); }}
+              onChange={(e) => {
+                setName(e.target.value);
+                setErrors((prev) => ({ ...prev, name: undefined }));
+              }}
               placeholder="Ex: Residencial Aurora"
               required
             />
-            {errors.name && (
-              <p className="text-xs text-red-500">{errors.name}</p>
-            )}
+            {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
             {name.trim() && (
               <p className="text-[11px] text-muted-foreground">
                 <span className="font-medium text-foreground">
                   {formatProjectName(name, construtora)}
                 </span>
                 {" · "}TBO-{new Date().getFullYear()}-NNN
-              </p>
-            )}
-            {!name.trim() && (
-              <p className="text-muted-foreground text-[11px]">
-                Padrão: CONSTRUTORA_EMPREENDIMENTO · TBO-{new Date().getFullYear()}-NNN
               </p>
             )}
           </div>
@@ -167,6 +200,7 @@ export function ProjectForm({ open, onOpenChange }: ProjectFormProps) {
             </div>
           </div>
 
+          {/* Construtora */}
           <div className="space-y-2">
             <Label>Construtora / Incorporadora</Label>
             <ConstrutoraFormPicker
@@ -176,7 +210,7 @@ export function ProjectForm({ open, onOpenChange }: ProjectFormProps) {
             />
           </div>
 
-          {/* Responsável — dropdown com membros do time */}
+          {/* Responsável */}
           <div className="space-y-2">
             <Label>Responsável</Label>
             <MemberPicker
@@ -192,16 +226,64 @@ export function ProjectForm({ open, onOpenChange }: ProjectFormProps) {
             />
           </div>
 
+          {/* Template toggle */}
+          <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <IconTemplate className="size-4 text-muted-foreground" />
+                <Label className="cursor-pointer text-sm font-medium" htmlFor="use-template">
+                  Usar template de seções
+                </Label>
+              </div>
+              <Switch
+                id="use-template"
+                checked={useTemplate}
+                onCheckedChange={setUseTemplate}
+              />
+            </div>
+
+            {useTemplate && (
+              <div className="space-y-1.5">
+                <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+                  <SelectTrigger className="h-8 text-sm bg-background">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PROJECT_TEMPLATES.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        <span className="mr-1.5">{t.icon}</span>
+                        {t.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedTemplate && (
+                  <p className="text-[11px] text-muted-foreground">
+                    {selectedTemplate.sections.length} seções ·{" "}
+                    {selectedTemplate.sections.reduce((sum, s) => sum + s.tasks.length, 0)} tarefas padrão — tudo zerado
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
           <DialogFooter>
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => {
+                resetForm();
+                onOpenChange(false);
+              }}
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={createProject.isPending}>
-              {createProject.isPending ? "Criando..." : "Criar Projeto"}
+            <Button type="submit" disabled={isPending}>
+              {createProject.isPending
+                ? "Criando..."
+                : applyTemplate.isPending
+                  ? "Aplicando template..."
+                  : "Criar Projeto"}
             </Button>
           </DialogFooter>
         </form>
@@ -210,7 +292,7 @@ export function ProjectForm({ open, onOpenChange }: ProjectFormProps) {
   );
 }
 
-// ─── Member Picker Dropdown ───────────────────────────────────────────────────
+// ─── Member Picker ─────────────────────────────────────────────────────────────
 
 function MemberPicker({
   value,
@@ -230,7 +312,6 @@ function MemberPicker({
     if (!members) return [];
     const q = search.toLowerCase();
     const list = q ? members.filter((m) => m.full_name.toLowerCase().includes(q)) : members;
-    // Sort: current user first
     return [...list].sort((a, b) => {
       if (a.id === user?.id) return -1;
       if (b.id === user?.id) return 1;
@@ -239,12 +320,7 @@ function MemberPicker({
   }, [members, search, user?.id]);
 
   function getInitials(name: string) {
-    return name
-      .split(" ")
-      .map((w) => w[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase();
+    return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   }
 
   return (
@@ -268,13 +344,8 @@ function MemberPicker({
                 role="button"
                 tabIndex={-1}
                 className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClear();
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") { e.stopPropagation(); onClear(); }
-                }}
+                onClick={(e) => { e.stopPropagation(); onClear(); }}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); onClear(); } }}
               >
                 <IconX className="size-3.5" />
               </span>
@@ -288,7 +359,6 @@ function MemberPicker({
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start" sideOffset={4}>
-        {/* Search */}
         <div className="flex items-center gap-2 border-b border-border/60 px-3 py-2">
           <IconSearch className="size-3.5 text-muted-foreground" />
           <input
@@ -299,15 +369,11 @@ function MemberPicker({
             className="h-6 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
         </div>
-
-        {/* Header */}
         <div className="px-3 pt-2 pb-1">
           <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
             Selecionar um
           </p>
         </div>
-
-        {/* Members list */}
         <div className="max-h-[240px] overflow-y-auto px-1 pb-2">
           {filtered.length === 0 ? (
             <p className="px-3 py-4 text-center text-xs text-muted-foreground">
@@ -336,13 +402,9 @@ function MemberPicker({
                   </span>
                   <span className="flex-1 truncate text-left">
                     {member.full_name}
-                    {isCurrentUser && (
-                      <span className="ml-1 text-muted-foreground">(você)</span>
-                    )}
+                    {isCurrentUser && <span className="ml-1 text-muted-foreground">(você)</span>}
                   </span>
-                  {isSelected && (
-                    <IconCheck className="size-4 text-foreground" />
-                  )}
+                  {isSelected && <IconCheck className="size-4 text-foreground" />}
                 </button>
               );
             })
@@ -353,7 +415,7 @@ function MemberPicker({
   );
 }
 
-// ─── Construtora Picker (form) ───────────────────────────────────────────────
+// ─── Construtora Picker ───────────────────────────────────────────────────────
 
 function ConstrutoraFormPicker({
   value,
@@ -369,11 +431,12 @@ function ConstrutoraFormPicker({
   const { data: projects } = useProjects();
 
   const construtoras = useMemo(() => {
-    if (!projects) return [];
-    const set = new Set<string>();
-    for (const p of projects) {
-      if (p.construtora && !/^[0-9a-f]{8}-/i.test(p.construtora)) {
-        set.add(p.construtora);
+    const set = new Set<string>(["HORIZONTE"]);
+    if (projects) {
+      for (const p of projects) {
+        if (p.construtora && !/^[0-9a-f]{8}-/i.test(p.construtora)) {
+          set.add(p.construtora);
+        }
       }
     }
     return [...set].sort((a, b) => a.localeCompare(b, "pt-BR"));
@@ -385,9 +448,9 @@ function ConstrutoraFormPicker({
     return construtoras.filter((c) => c.toLowerCase().includes(q));
   }, [construtoras, search]);
 
-  const isNewValue = search.trim() && !construtoras.some(
-    (c) => c.toLowerCase() === search.trim().toLowerCase()
-  );
+  const isNewValue =
+    search.trim() &&
+    !construtoras.some((c) => c.toLowerCase() === search.trim().toLowerCase());
 
   function handlePick(v: string) {
     onSelect(v);
@@ -410,17 +473,13 @@ function ConstrutoraFormPicker({
             <>
               <IconBuilding className="size-4 shrink-0 text-muted-foreground" />
               <span className="flex-1 truncate text-left">{value}</span>
+              <IconChevronDown className="size-3.5 text-muted-foreground" />
               <span
                 role="button"
                 tabIndex={-1}
                 className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClear();
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") { e.stopPropagation(); onClear(); }
-                }}
+                onClick={(e) => { e.stopPropagation(); onClear(); }}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); onClear(); } }}
               >
                 <IconX className="size-3.5" />
               </span>
@@ -449,9 +508,7 @@ function ConstrutoraFormPicker({
             className="h-6 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
         </div>
-
         <div className="max-h-[240px] overflow-y-auto px-1 py-1">
-          {/* Create new */}
           {isNewValue && (
             <button
               type="button"
@@ -481,9 +538,7 @@ function ConstrutoraFormPicker({
                 >
                   <IconBuilding className="size-4 shrink-0 text-muted-foreground" />
                   <span className="flex-1 truncate text-left">{c}</span>
-                  {isSelected && (
-                    <IconCheck className="size-4 text-foreground" />
-                  )}
+                  {isSelected && <IconCheck className="size-4 text-foreground" />}
                 </button>
               );
             })

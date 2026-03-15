@@ -1,6 +1,7 @@
 "use client";
 
 import { TaskCard } from "./task-card";
+import { TaskContextMenu } from "./task-context-menu";
 import type { Database } from "@/lib/supabase/types";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -23,8 +24,10 @@ export function SortableTaskCard({ task, onClick }: SortableTaskCardProps) {
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <TaskCard task={task} onClick={onClick} />
-    </div>
+    <TaskContextMenu task={task} onSelect={() => onClick?.()}>
+      <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+        <TaskCard task={task} onClick={onClick} />
+      </div>
+    </TaskContextMenu>
   );
 }

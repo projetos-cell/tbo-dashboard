@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { IconCheck, IconSelector, IconUserOff, IconUsers } from "@tabler/icons-react";
+import { IconCheck, IconSelector, IconUserOff, IconUsers, IconPlus } from "@tabler/icons-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -21,7 +21,12 @@ import {
 import { cn } from "@/lib/utils";
 import { useTeamMembers } from "@/hooks/use-team";
 import { useUpdateTask } from "@/features/tasks/hooks/use-tasks";
-import { useAddAssignee } from "@/features/tasks/hooks/use-task-assignees";
+import {
+  useTaskAssignees,
+  useAddAssignee,
+  useRemoveAssignee,
+} from "@/features/tasks/hooks/use-task-assignees";
+import { useAuthStore } from "@/stores/auth-store";
 import type { Database } from "@/lib/supabase/types";
 
 // ─── Types ────────────────────────────────────────────
@@ -56,52 +61,78 @@ export function TaskAssigneePicker({ task }: TaskAssigneePickerProps) {
   const [open, setOpen] = useState(false);
 
   const { data: members, isLoading } = useTeamMembers({ is_active: true });
+  const { data: assignees = [] } = useTaskAssignees(task.id);
   const updateTask = useUpdateTask();
   const addAssignee = useAddAssignee();
+  const removeAssignee = useRemoveAssignee();
+  const tenantId = useAuthStore((s) => s.tenantId);
 
-  const currentAssigneeId = task.assignee_id;
-  const currentAssigneeName = task.assignee_name;
+  const assigneeIds = new Set(assignees.map((a) => a.user_id));
 
-  function handleSelect(memberId: string, memberName: string) {
-    setOpen(false);
+  function handleToggle(memberId: string, memberName: string) {
+    if (assigneeIds.has(memberId)) {
+      // Remove assignee
+      removeAssignee.mutate({ taskId: task.id, userId: memberId });
 
-    updateTask.mutate(
-      {
-        id: task.id,
-        updates: {
-          assignee_id: memberId,
-          assignee_name: memberName,
-        },
-        previousTask: task,
-      },
-      {
-        onSuccess: () => {
-          // Auto-add como colaborador (preparação F08)
-          if (task.tenant_id) {
-            addAssignee.mutate({
-              task_id: task.id,
-              user_id: memberId,
-              tenant_id: task.tenant_id,
-              role: "assignee",
-            });
-          }
-        },
+      // If removing primary assignee, set next one or clear
+      if (task.assignee_id === memberId) {
+        const remaining = assignees.filter((a) => a.user_id !== memberId);
+        if (remaining.length > 0) {
+          const nextId = remaining[0].user_id;
+          const nextMember = members?.find((m) => m.id === nextId);
+          updateTask.mutate({
+            id: task.id,
+            updates: {
+              assignee_id: nextId,
+              assignee_name: nextMember?.full_name ?? null,
+            },
+          });
+        } else {
+          updateTask.mutate({
+            id: task.id,
+            updates: { assignee_id: null, assignee_name: null },
+          });
+        }
       }
-    );
+    } else {
+      // Add assignee
+      if (tenantId) {
+        addAssignee.mutate({
+          task_id: task.id,
+          user_id: memberId,
+          tenant_id: tenantId,
+          role: "assignee",
+        });
+      }
+
+      // If no primary assignee, set this one as primary
+      if (!task.assignee_id) {
+        updateTask.mutate({
+          id: task.id,
+          updates: {
+            assignee_id: memberId,
+            assignee_name: memberName,
+          },
+        });
+      }
+    }
   }
 
-  function handleRemove() {
+  function handleClearAll() {
     setOpen(false);
-
+    // Remove all from junction table
+    for (const a of assignees) {
+      removeAssignee.mutate({ taskId: task.id, userId: a.user_id });
+    }
+    // Clear primary
     updateTask.mutate({
       id: task.id,
-      updates: {
-        assignee_id: null,
-        assignee_name: null,
-      },
-      previousTask: task,
+      updates: { assignee_id: null, assignee_name: null },
     });
   }
+
+  // Resolve assignee names from members list
+  const assigneeMembers = (members ?? []).filter((m) => assigneeIds.has(m.id));
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -114,14 +145,38 @@ export function TaskAssigneePicker({ task }: TaskAssigneePickerProps) {
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           )}
         >
-          {currentAssigneeName ? (
+          {assigneeMembers.length > 0 ? (
+            <div className="flex items-center gap-1.5">
+              {/* Overlapping avatars */}
+              <div className="flex -space-x-1.5">
+                {assigneeMembers.slice(0, 3).map((m) => (
+                  <Avatar key={m.id} className="h-5 w-5 ring-2 ring-background">
+                    {m.avatar_url && <AvatarImage src={m.avatar_url} alt={m.full_name} />}
+                    <AvatarFallback className="text-[8px] font-semibold bg-blue-100 text-blue-700">
+                      {getInitials(m.full_name)}
+                    </AvatarFallback>
+                  </Avatar>
+                ))}
+                {assigneeMembers.length > 3 && (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-muted ring-2 ring-background text-[8px] font-semibold text-muted-foreground">
+                    +{assigneeMembers.length - 3}
+                  </span>
+                )}
+              </div>
+              <span className="truncate max-w-[140px]">
+                {assigneeMembers.length === 1
+                  ? assigneeMembers[0].full_name
+                  : `${assigneeMembers.length} responsáveis`}
+              </span>
+            </div>
+          ) : task.assignee_name ? (
             <>
               <Avatar className="h-5 w-5">
                 <AvatarFallback className="text-[9px] font-semibold bg-blue-100 text-blue-700">
-                  {getInitials(currentAssigneeName)}
+                  {getInitials(task.assignee_name)}
                 </AvatarFallback>
               </Avatar>
-              <span>{currentAssigneeName}</span>
+              <span>{task.assignee_name}</span>
             </>
           ) : (
             <span className="text-muted-foreground">Sem responsável</span>
@@ -130,7 +185,7 @@ export function TaskAssigneePicker({ task }: TaskAssigneePickerProps) {
         </button>
       </PopoverTrigger>
 
-      <PopoverContent className="w-[260px] p-0" align="start" sideOffset={4}>
+      <PopoverContent className="w-[280px] p-0" align="start" sideOffset={4}>
         <Command>
           <CommandInput placeholder="Buscar membro..." />
           <CommandList>
@@ -138,35 +193,44 @@ export function TaskAssigneePicker({ task }: TaskAssigneePickerProps) {
               {isLoading ? "Carregando..." : "Nenhum membro encontrado"}
             </CommandEmpty>
 
-            {/* Remove option */}
-            {currentAssigneeId && (
+            {/* Clear all option */}
+            {assigneeIds.size > 0 && (
               <>
                 <CommandGroup>
                   <CommandItem
-                    onSelect={handleRemove}
+                    onSelect={handleClearAll}
                     className="text-muted-foreground"
                   >
                     <IconUserOff className="mr-2 h-4 w-4" />
-                    Remover responsável
+                    Remover todos
                   </CommandItem>
                 </CommandGroup>
                 <CommandSeparator />
               </>
             )}
 
-            {/* Member list */}
+            {/* Member list — multi-select with checkmarks */}
             <CommandGroup heading="Membros">
               {(members ?? []).map((member) => {
-                const isSelected = member.id === currentAssigneeId;
+                const isSelected = assigneeIds.has(member.id);
                 return (
                   <CommandItem
                     key={member.id}
                     value={member.full_name}
-                    onSelect={() =>
-                      handleSelect(member.id, member.full_name)
-                    }
+                    onSelect={() => handleToggle(member.id, member.full_name)}
                     className="flex items-center gap-2"
                   >
+                    <div
+                      className={cn(
+                        "flex h-4 w-4 shrink-0 items-center justify-center rounded border",
+                        isSelected
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-muted-foreground/30",
+                      )}
+                    >
+                      {isSelected && <IconCheck className="h-3 w-3" />}
+                    </div>
+
                     <Avatar className="h-6 w-6 shrink-0">
                       {member.avatar_url && (
                         <AvatarImage
@@ -191,10 +255,6 @@ export function TaskAssigneePicker({ task }: TaskAssigneePickerProps) {
                     >
                       {ROLE_LABELS[member.role] ?? member.role}
                     </Badge>
-
-                    {isSelected && (
-                      <IconCheck className="h-3.5 w-3.5 text-primary shrink-0" />
-                    )}
                   </CommandItem>
                 );
               })}

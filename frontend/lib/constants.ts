@@ -34,6 +34,16 @@ export const PROJECT_STATUS = {
 
 export type ProjectStatusKey = keyof typeof PROJECT_STATUS;
 
+// Project priority configuration (same levels as TASK_PRIORITY, applied to projects)
+export const PROJECT_PRIORITY = {
+  urgente: { label: "Urgente", color: "#ef4444", bg: "rgba(239,68,68,0.12)", sort: 0 },
+  alta: { label: "Alta", color: "#f59e0b", bg: "rgba(245,158,11,0.12)", sort: 1 },
+  media: { label: "Média", color: "#3b82f6", bg: "rgba(59,130,246,0.12)", sort: 2 },
+  baixa: { label: "Baixa", color: "#6b7280", bg: "rgba(107,114,128,0.12)", sort: 3 },
+} as const;
+
+export type ProjectPriorityKey = keyof typeof PROJECT_PRIORITY;
+
 // Task status configuration — matches legacy TBO_TAREFAS statuses
 export const TASK_STATUS = {
   pendente: { label: "Pendente", color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
@@ -55,6 +65,47 @@ export const TASK_PRIORITY = {
 } as const;
 
 export type TaskPriorityKey = keyof typeof TASK_PRIORITY;
+
+// Task approval status configuration (T01)
+export const TASK_APPROVAL_STATUS = {
+  none: { label: "Sem aprovação", color: "#9ca3af", bg: "rgba(156,163,175,0.12)" },
+  pending: { label: "Pendente", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+  approved: { label: "Aprovado", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  changes_requested: { label: "Revisão", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+} as const;
+
+export type TaskApprovalStatusKey = keyof typeof TASK_APPROVAL_STATUS;
+
+// Task recurrence options (T04)
+export const TASK_RECURRENCE = {
+  none: { label: "Sem repetição", icon: "x" },
+  daily: { label: "Diariamente", icon: "repeat" },
+  weekly: { label: "Semanalmente", icon: "repeat" },
+  monthly: { label: "Mensalmente", icon: "repeat" },
+} as const;
+
+export type TaskRecurrenceKey = keyof typeof TASK_RECURRENCE;
+
+// Project health status (A07 — calculated client-side)
+export const PROJECT_HEALTH = {
+  on_track: { label: "No prazo", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  at_risk: { label: "Em risco", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+  off_track: { label: "Atrasado", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+} as const;
+
+export type ProjectHealthKey = keyof typeof PROJECT_HEALTH;
+
+/** Compute project health from task stats. */
+export function computeProjectHealth(stats: {
+  total: number;
+  overdue: number;
+}): ProjectHealthKey {
+  if (stats.total === 0) return "on_track";
+  const pct = stats.overdue / stats.total;
+  if (pct >= 0.5) return "off_track";
+  if (pct >= 0.2) return "at_risk";
+  return "on_track";
+}
 
 // BU (Business Unit) list — ordered for tab display
 export const BU_LIST = ["Digital 3D", "Branding", "Marketing", "Audiovisual", "Interiores"] as const;

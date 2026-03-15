@@ -57,14 +57,14 @@
 | 29 | Canal read-only / Announcement — modo broadcast | ✅ concluído | 2026-03-15 |
 | 30 | Browse channels — tela de descoberta de canais públicos | ✅ concluído | 2026-03-15 |
 | 31 | Tópicos / Topics no canal — descrição no header | ✅ concluído | 2026-03-15 |
-| 32 | Auto-archive — canais sem atividade | pendente | — |
-| 33 | Canal templates — templates pré-configurados | pendente | — |
+| 32 | Auto-archive — canais sem atividade | ✅ concluído | 2026-03-15 |
+| 33 | Canal templates — templates pré-configurados | ✅ concluído | 2026-03-15 |
 
 ## FASE 6 — Presença & Status
 
 | # | Feature | Status | Data |
 |---|---------|--------|------|
-| 34 | Status customizado — emoji + texto | pendente | — |
+| 34 | Status customizado — emoji + texto | ✅ concluído | 2026-03-15 |
 | 35 | Away automático — detectar inatividade | pendente | — |
 | 36 | Do Not Disturb — modo silencioso com horário | pendente | — |
 | 37 | "Visto por último" — última vez online | pendente | — |

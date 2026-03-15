@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { IconPlus, IconList } from "@tabler/icons-react";
+import { IconPlus, IconList, IconSearch, IconFilterOff, IconFolderPlus } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
@@ -71,15 +72,19 @@ export default function ProjetosListaPage() {
         </Button>
       </div>
 
-      {/* Filters */}
-      <ProjectFilters
-        search={search}
-        onSearchChange={setSearch}
-        statusFilter={statusFilter}
-        onStatusChange={setStatusFilter}
-        buFilter={buFilter}
-        onBuChange={setBuFilter}
-      />
+      {/* Search + Filters */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome, construtora ou código..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <ProjectFilters buFilter={buFilter} onBuChange={setBuFilter} />
+      </div>
 
       {/* Table */}
       {isLoading ? (
@@ -90,17 +95,21 @@ export default function ProjetosListaPage() {
         </div>
       ) : filtered.length === 0 ? (
         <EmptyState
-          icon={IconList}
-          title="Nenhum projeto encontrado"
+          icon={search || statusFilter !== "all" || buFilter !== "all" ? IconFilterOff : IconFolderPlus}
+          title={
+            search || statusFilter !== "all" || buFilter !== "all"
+              ? "Nenhum projeto corresponde aos filtros"
+              : "Comece criando seu primeiro projeto"
+          }
           description={
             search || statusFilter !== "all" || buFilter !== "all"
-              ? "Tente ajustar os filtros para ver mais projetos."
-              : "Crie o primeiro projeto para começar."
+              ? "Ajuste os filtros ou limpe a busca para ver seus projetos."
+              : "Organize entregas, atribua tarefas e acompanhe o progresso da equipe."
           }
           cta={
             search || statusFilter !== "all" || buFilter !== "all"
               ? undefined
-              : { label: "Novo Projeto", onClick: () => setFormOpen(true) }
+              : { label: "Criar Projeto", onClick: () => setFormOpen(true), icon: IconPlus }
           }
         />
       ) : (

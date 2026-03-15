@@ -1,16 +1,22 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect } from "react";
+import { motion } from "framer-motion";
 import {
   IconCircleCheck,
   IconCircle,
   IconCalendar,
-  IconUser,
-  IconUserCircle,
   IconChevronRight,
   IconX,
+  IconAlertTriangle,
+  IconDiamond,
+  IconClock,
+  IconCheck,
+  IconMessageCircle,
+  IconRepeat,
 } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,18 +30,23 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { format, isPast, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   TASK_STATUS,
   TASK_PRIORITY,
+  TASK_APPROVAL_STATUS,
   type TaskStatusKey,
   type TaskPriorityKey,
+  type TaskApprovalStatusKey,
 } from "@/lib/constants";
 import { useUpdateTask } from "@/features/tasks/hooks/use-tasks";
-import { useTeamMembers } from "@/hooks/use-team";
 import { ProjectSubtaskRow } from "./project-subtask-row";
+import { TaskContextMenu } from "@/features/tasks/components/task-context-menu";
+import { TaskAssigneePicker } from "@/features/tasks/components/task-assignee-picker";
 import type { Database } from "@/lib/supabase/types";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
@@ -49,15 +60,26 @@ interface ExtraColumn {
   width: string;
 }
 
+interface CustomFieldDef {
+  id: string;
+  name: string;
+  type: string;
+  config_json: Record<string, unknown> | null;
+}
+
 interface ProjectTaskRowProps {
   task: TaskRow;
   subtasks: TaskRow[];
   onSelect: (id: string) => void;
   extraColumns?: ExtraColumn[];
   sections?: { id: string; title: string; color: string | null }[];
+  columnWidths?: Record<string, number>;
+  customFields?: CustomFieldDef[];
+  fieldValues?: Map<string, unknown>;
+  onFieldChange?: (taskId: string, fieldId: string, value: unknown) => void;
 }
 
-export function ProjectTaskRow({ task, subtasks, onSelect, extraColumns = [], sections }: ProjectTaskRowProps) {
+export function ProjectTaskRow({ task, subtasks, onSelect, extraColumns = [], sections, columnWidths = {}, customFields, fieldValues, onFieldChange }: ProjectTaskRowProps) {
   const [expanded, setExpanded] = useState(false);
   const updateTask = useUpdateTask();
   const done = !!task.is_completed;
@@ -86,13 +108,6 @@ export function ProjectTaskRow({ task, subtasks, onSelect, extraColumns = [], se
     });
   }
 
-  function handleUpdateAssignee(id: string | null, name: string | null) {
-    updateTask.mutate({
-      id: task.id,
-      updates: { assignee_id: id, assignee_name: name },
-    });
-  }
-
   function handleUpdateDueDate(date: string | null) {
     updateTask.mutate({
       id: task.id,
@@ -107,14 +122,34 @@ export function ProjectTaskRow({ task, subtasks, onSelect, extraColumns = [], se
     });
   }
 
+  function handleUpdateApproval(approval_status: string) {
+    updateTask.mutate({
+      id: task.id,
+      updates: { approval_status } as never,
+    });
+  }
+
+  const approvalKey = (task as Record<string, unknown>).approval_status as string | undefined;
+  const approvalConfig = approvalKey && approvalKey !== "none"
+    ? TASK_APPROVAL_STATUS[approvalKey as TaskApprovalStatusKey]
+    : null;
+  const isMilestone = !!(task as Record<string, unknown>).is_milestone;
+  const estimatedHours = (task as Record<string, unknown>).estimated_hours as number | null;
+  const loggedHours = (task as Record<string, unknown>).logged_hours as number | null;
+  const recurrence = ((task as Record<string, unknown>).recurrence ?? "none") as string;
+
   return (
-    <div>
+    <TaskContextMenu task={task} onSelect={onSelect}>
+    <motion.div
+      whileHover={{ y: -1, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
+      transition={{ duration: 0.15 }}
+    >
       <div
         className="flex items-center gap-0 border-b border-border/30 px-3 py-2 transition-colors last:border-b-0 hover:bg-muted/30 cursor-pointer"
         onClick={() => onSelect(task.id)}
       >
         {/* Completion toggle */}
-        <div className="w-[40px] flex items-center justify-center px-1">
+        <div className="flex items-center justify-center px-1" style={{ width: columnWidths.check ?? 40 }}>
           <button
             type="button"
             className="shrink-0"
@@ -129,7 +164,7 @@ export function ProjectTaskRow({ task, subtasks, onSelect, extraColumns = [], se
         </div>
 
         {/* Title */}
-        <div className="min-w-[200px] flex-1 px-2 flex items-center gap-2">
+        <div className="px-2 flex items-center gap-2" style={{ flex: "1 1 0%", minWidth: 200 }}>
           {hasSubtasks && (
             <button
               type="button"
@@ -144,23 +179,117 @@ export function ProjectTaskRow({ task, subtasks, onSelect, extraColumns = [], se
               />
             </button>
           )}
-          <span
-            className={cn(
-              "truncate text-sm font-medium",
-              done && "text-muted-foreground line-through",
+          <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+            <div className="flex items-center gap-1.5 min-w-0">
+              {/* T02 — Milestone diamond */}
+              {isMilestone && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <IconDiamond className="size-3.5 shrink-0 text-amber-500 fill-amber-100" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">Marco</TooltipContent>
+                </Tooltip>
+              )}
+              <span
+                className={cn(
+                  "truncate text-sm font-medium",
+                  done && "text-muted-foreground line-through",
+                )}
+              >
+                {task.title}
+              </span>
+              {overdue && !done && (
+                <Badge
+                  variant="secondary"
+                  className="shrink-0 h-4 px-1 text-[10px] font-medium bg-red-50 text-red-600 border-red-200 gap-0.5"
+                >
+                  <IconAlertTriangle className="size-2.5" />
+                  Atrasada
+                </Badge>
+              )}
+              {/* T01 — Approval chip */}
+              {approvalConfig && (
+                <Badge
+                  variant="secondary"
+                  className="shrink-0 h-4 px-1 text-[10px] font-medium gap-0.5"
+                  style={{ backgroundColor: approvalConfig.bg, color: approvalConfig.color }}
+                >
+                  {approvalKey === "approved" ? (
+                    <IconCheck className="size-2.5" />
+                  ) : approvalKey === "changes_requested" ? (
+                    <IconMessageCircle className="size-2.5" />
+                  ) : null}
+                  {approvalConfig.label}
+                </Badge>
+              )}
+              {/* T03 — Effort hours badge */}
+              {estimatedHours != null && estimatedHours > 0 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge
+                      variant="outline"
+                      className="shrink-0 h-4 px-1 text-[10px] font-medium gap-0.5 text-muted-foreground"
+                    >
+                      <IconClock className="size-2.5" />
+                      {loggedHours != null && loggedHours > 0
+                        ? `${loggedHours}h / ${estimatedHours}h`
+                        : `${estimatedHours}h est.`}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    {loggedHours != null && loggedHours > 0
+                      ? `${loggedHours}h registradas de ${estimatedHours}h estimadas`
+                      : `${estimatedHours}h estimadas`}
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {/* T04 — Recurrence badge */}
+              {recurrence !== "none" && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge
+                      variant="outline"
+                      className="shrink-0 h-4 px-1 text-[10px] font-medium gap-0.5 text-muted-foreground"
+                    >
+                      <IconRepeat className="size-2.5" />
+                      {recurrence === "daily" ? "Diária" : recurrence === "weekly" ? "Semanal" : "Mensal"}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    Tarefa recorrente ({recurrence === "daily" ? "diariamente" : recurrence === "weekly" ? "semanalmente" : "mensalmente"})
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+            {/* F04 — Progress bar inline para tasks com subtarefas */}
+            {hasSubtasks && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1.5 cursor-default" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex-1 h-1 max-w-[80px] rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all duration-300",
+                          completedSubs === subtasks.length ? "bg-green-500" : "bg-blue-400",
+                        )}
+                        style={{ width: `${Math.round((completedSubs / subtasks.length) * 100)}%` }}
+                      />
+                    </div>
+                    <span className="text-muted-foreground text-[10px] tabular-nums shrink-0">
+                      {completedSubs}/{subtasks.length}
+                    </span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">
+                  {completedSubs} de {subtasks.length} subtarefas concluídas
+                </TooltipContent>
+              </Tooltip>
             )}
-          >
-            {task.title}
-          </span>
-          {hasSubtasks && (
-            <span className="text-muted-foreground text-[10px] tabular-nums shrink-0">
-              {completedSubs}/{subtasks.length}
-            </span>
-          )}
+          </div>
         </div>
 
         {/* Status */}
-        <div className="w-[130px] px-2" onClick={(e) => e.stopPropagation()}>
+        <div className="px-2" style={{ width: columnWidths.status ?? 130, flex: "0 0 auto" }} onClick={(e) => e.stopPropagation()}>
           <TaskStatusSelect
             value={task.status ?? ""}
             onChange={handleUpdateStatus}
@@ -168,45 +297,59 @@ export function ProjectTaskRow({ task, subtasks, onSelect, extraColumns = [], se
         </div>
 
         {/* Priority */}
-        <div className="hidden w-[120px] px-2 md:block" onClick={(e) => e.stopPropagation()}>
+        <div className="hidden px-2 md:block" style={{ width: columnWidths.priority ?? 120, flex: "0 0 auto" }} onClick={(e) => e.stopPropagation()}>
           <TaskPrioritySelect
             value={task.priority ?? ""}
             onChange={handleUpdatePriority}
           />
         </div>
 
-        {/* Assignee */}
-        <div className="hidden w-[140px] px-2 md:block" onClick={(e) => e.stopPropagation()}>
-          <TaskPersonSelect
-            value={task.assignee_name ?? ""}
-            currentId={task.assignee_id ?? ""}
-            onChange={handleUpdateAssignee}
-          />
+        {/* Assignee (multi-avatar via junction table) */}
+        <div className="hidden px-2 md:block" style={{ width: columnWidths.assignee_name ?? 140, flex: "0 0 auto" }} onClick={(e) => e.stopPropagation()}>
+          <TaskAssigneePicker task={task} />
         </div>
 
-        {/* Due date */}
-        <div className="hidden w-[120px] px-2 md:block" onClick={(e) => e.stopPropagation()}>
-          <TaskDateCell
-            value={task.due_date}
-            onChange={handleUpdateDueDate}
+        {/* Due date (range: start_date → due_date) */}
+        <div className="hidden px-2 md:block" style={{ width: columnWidths.due_date ?? 160, flex: "0 0 auto" }} onClick={(e) => e.stopPropagation()}>
+          <TaskDateRangeCell
+            startDate={task.start_date ?? null}
+            dueDate={task.due_date ?? null}
             overdue={!!overdue}
+            onChangeDue={handleUpdateDueDate}
           />
         </div>
 
         {/* Extra dynamic columns */}
         {extraColumns.map((col) => {
           let display = "\u2014";
-          if (col.id.includes("start_date") && task.start_date) {
+          if (col.field === "start_date" && task.start_date) {
             display = format(new Date(task.start_date), "dd MMM yyyy", { locale: ptBR });
-          } else if (col.id.includes("section") && task.section_id) {
+          } else if (col.field === "section" && task.section_id) {
             const sec = sections?.find((s) => s.id === task.section_id);
             display = sec?.title ?? "\u2014";
-          } else if (col.id.includes("created_at") && task.created_at) {
+          } else if (col.field === "created_at" && task.created_at) {
             display = format(new Date(task.created_at), "dd MMM yyyy", { locale: ptBR });
           }
           return (
             <div key={col.id} className={cn("hidden px-2 md:block", col.width)}>
               <span className="truncate text-xs text-muted-foreground">{display}</span>
+            </div>
+          );
+        })}
+
+        {/* P01 — Custom field value cells (inline editable) */}
+        {(customFields ?? []).map((field) => {
+          const raw = fieldValues?.get(field.id);
+          return (
+            <div key={field.id} className="hidden px-2 md:block" style={{ width: 130, flex: "0 0 auto" }}>
+              <EditableCustomFieldCell
+                value={raw}
+                type={field.type}
+                fieldId={field.id}
+                taskId={task.id}
+                configJson={field.config_json}
+                onSave={onFieldChange}
+              />
             </div>
           );
         })}
@@ -220,7 +363,8 @@ export function ProjectTaskRow({ task, subtasks, onSelect, extraColumns = [], se
           ))}
         </div>
       )}
-    </div>
+    </motion.div>
+    </TaskContextMenu>
   );
 }
 
@@ -340,135 +484,36 @@ function TaskPrioritySelect({
   );
 }
 
-// ─── Task Person Select ────────────────────────────────────────────────────────
+// ─── Task Date Range Cell (F06) ────────────────────────────────────────────────
 
-function TaskPersonSelect({
-  value,
-  currentId,
-  onChange,
-}: {
-  value: string;
-  currentId: string;
-  onChange: (id: string | null, name: string | null) => void;
-}) {
-  const { data: members } = useTeamMembers({ is_active: true });
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-
-  const filtered = useMemo(() => {
-    if (!members) return [];
-    if (!search.trim()) return members;
-    const q = search.toLowerCase();
-    return members.filter((m) => m.full_name.toLowerCase().includes(q));
-  }, [members, search]);
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="flex w-full items-center gap-1.5 truncate rounded px-1 py-0.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        >
-          {value ? (
-            <>
-              <span
-                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[9px] font-semibold text-blue-700"
-              >
-                {value
-                  .split(" ")
-                  .map((w) => w[0])
-                  .slice(0, 2)
-                  .join("")
-                  .toUpperCase()}
-              </span>
-              <span className="truncate text-xs">{value}</span>
-            </>
-          ) : (
-            <span className="text-muted-foreground">{"\u2014"}</span>
-          )}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[240px] p-0" align="start" sideOffset={4}>
-        <div className="border-b border-border/60 p-2">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar membro..."
-            className="h-7 w-full rounded border-0 bg-muted/40 px-2 text-sm outline-none placeholder:text-muted-foreground"
-          />
-        </div>
-        <div className="max-h-[220px] overflow-y-auto p-1">
-          {currentId && (
-            <button
-              type="button"
-              onClick={() => {
-                onChange(null, null);
-                setOpen(false);
-                setSearch("");
-              }}
-              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted"
-            >
-              <IconUserCircle className="size-4" />
-              <span>Remover responsável</span>
-            </button>
-          )}
-          {filtered.length === 0 ? (
-            <p className="px-2 py-3 text-center text-xs text-muted-foreground">
-              Nenhum membro encontrado
-            </p>
-          ) : (
-            filtered.map((member) => {
-              const isSelected = member.id === currentId;
-              return (
-                <button
-                  key={member.id}
-                  type="button"
-                  onClick={() => {
-                    onChange(member.id, member.full_name);
-                    setOpen(false);
-                    setSearch("");
-                  }}
-                  className={cn(
-                    "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted",
-                    isSelected && "bg-muted/60",
-                  )}
-                >
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[9px] font-semibold">
-                    {member.full_name
-                      .split(" ")
-                      .map((w) => w[0])
-                      .slice(0, 2)
-                      .join("")
-                      .toUpperCase()}
-                  </span>
-                  <span className="flex-1 truncate text-left">{member.full_name}</span>
-                  {isSelected && (
-                    <span className="text-xs text-muted-foreground">atual</span>
-                  )}
-                </button>
-              );
-            })
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-// ─── Task Date Cell ────────────────────────────────────────────────────────────
-
-function TaskDateCell({
-  value,
-  onChange,
+function TaskDateRangeCell({
+  startDate,
+  dueDate,
   overdue,
+  onChangeDue,
 }: {
-  value: string | null;
-  onChange: (value: string | null) => void;
+  startDate: string | null;
+  dueDate: string | null;
   overdue: boolean;
+  onChangeDue: (value: string | null) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const dateObj = value ? new Date(value) : undefined;
+  const dateObj = dueDate ? new Date(dueDate) : undefined;
+
+  const hasRange = startDate && dueDate;
+
+  // Calculate progress along temporal bar (0-100%)
+  const rangeProgress = hasRange
+    ? (() => {
+        const start = new Date(startDate).getTime();
+        const end = new Date(dueDate).getTime();
+        const now = Date.now();
+        const total = end - start;
+        if (total <= 0) return 100;
+        const elapsed = Math.min(Math.max(now - start, 0), total);
+        return Math.round((elapsed / total) * 100);
+      })()
+    : null;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -476,16 +521,32 @@ function TaskDateCell({
         <button
           type="button"
           className={cn(
-            "flex items-center gap-1 rounded px-1 py-0.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-            overdue && "text-red-600 font-medium",
+            "flex flex-col gap-0.5 w-full rounded px-1 py-0.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground text-left",
+            overdue && "text-red-600",
           )}
         >
-          <IconCalendar className="size-3" />
-          <span className="text-xs">
-            {value
-              ? format(new Date(value), "dd MMM yyyy", { locale: ptBR })
-              : "\u2014"}
-          </span>
+          <div className="flex items-center gap-1">
+            <IconCalendar className="size-3 shrink-0" />
+            <span className="text-xs truncate">
+              {hasRange
+                ? `${format(new Date(startDate), "dd MMM", { locale: ptBR })} → ${format(new Date(dueDate), "dd MMM", { locale: ptBR })}`
+                : dueDate
+                  ? format(new Date(dueDate), "dd MMM yyyy", { locale: ptBR })
+                  : "—"}
+            </span>
+          </div>
+          {/* Temporal progress bar */}
+          {hasRange && (
+            <div className="h-0.5 w-full rounded-full bg-muted overflow-hidden">
+              <div
+                className={cn(
+                  "h-full rounded-full",
+                  overdue ? "bg-red-400" : rangeProgress! >= 75 ? "bg-amber-400" : "bg-blue-400",
+                )}
+                style={{ width: `${rangeProgress}%` }}
+              />
+            </div>
+          )}
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start" sideOffset={4}>
@@ -493,7 +554,7 @@ function TaskDateCell({
           mode="single"
           selected={dateObj}
           onSelect={(date) => {
-            onChange(date ? format(date, "yyyy-MM-dd") : null);
+            onChangeDue(date ? format(date, "yyyy-MM-dd") : null);
             setOpen(false);
           }}
           locale={ptBR}
@@ -501,4 +562,220 @@ function TaskDateCell({
       </PopoverContent>
     </Popover>
   );
+}
+
+// ─── Editable Custom Field Cell (P01) ──────────────────────────────────────────
+
+function EditableCustomFieldCell({
+  value,
+  type,
+  fieldId,
+  taskId,
+  configJson,
+  onSave,
+}: {
+  value: unknown;
+  type: string;
+  fieldId: string;
+  taskId: string;
+  configJson: Record<string, unknown> | null;
+  onSave?: (taskId: string, fieldId: string, value: unknown) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<unknown>(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setDraft(value); }, [value]);
+  useEffect(() => {
+    if (editing && inputRef.current) inputRef.current.focus();
+  }, [editing]);
+
+  const commit = (v: unknown) => {
+    setEditing(false);
+    if (v !== value && onSave) onSave(taskId, fieldId, v);
+  };
+
+  // Checkbox — toggle on click, no popover
+  if (type === "checkbox") {
+    return (
+      <button
+        type="button"
+        className="flex items-center justify-center"
+        onClick={(e) => { e.stopPropagation(); commit(!value); }}
+      >
+        <Checkbox checked={!!value} className="size-4" />
+      </button>
+    );
+  }
+
+  // Select — popover with options
+  if (type === "select") {
+    const options = (configJson?.options as string[]) ?? [];
+    return (
+      <Popover open={editing} onOpenChange={setEditing}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="flex items-center h-6 rounded hover:bg-muted/50 transition-colors px-0.5"
+            onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+          >
+            {value ? (
+              <Badge variant="outline" className="text-[10px] h-5 px-1.5">{String(value)}</Badge>
+            ) : (
+              <span className="text-xs text-muted-foreground/50">{"\u2014"}</span>
+            )}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-36 p-1" align="start" sideOffset={4}>
+          {options.map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              className={cn("w-full text-left text-xs px-2 py-1.5 rounded hover:bg-muted/50", opt === value && "bg-muted")}
+              onClick={(e) => { e.stopPropagation(); commit(opt); }}
+            >
+              {opt}
+            </button>
+          ))}
+          {value != null && value !== "" && (
+            <button
+              type="button"
+              className="w-full text-left text-xs px-2 py-1.5 rounded text-muted-foreground hover:bg-muted/50"
+              onClick={(e) => { e.stopPropagation(); commit(null); }}
+            >
+              Limpar
+            </button>
+          )}
+        </PopoverContent>
+      </Popover>
+    );
+  }
+
+  // Multi-select — popover with checkboxes
+  if (type === "multi_select") {
+    const options = (configJson?.options as string[]) ?? [];
+    const selected = Array.isArray(value) ? (value as string[]) : [];
+    return (
+      <Popover open={editing} onOpenChange={setEditing}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="flex items-center gap-0.5 h-6 overflow-hidden rounded hover:bg-muted/50 transition-colors px-0.5"
+            onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+          >
+            {selected.length > 0 ? (
+              <>
+                {selected.slice(0, 2).map((v, i) => (
+                  <Badge key={i} variant="outline" className="text-[10px] h-5 px-1.5 shrink-0">{v}</Badge>
+                ))}
+                {selected.length > 2 && <span className="text-[10px] text-muted-foreground shrink-0">+{selected.length - 2}</span>}
+              </>
+            ) : (
+              <span className="text-xs text-muted-foreground/50">{"\u2014"}</span>
+            )}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-40 p-1" align="start" sideOffset={4}>
+          {options.map((opt) => {
+            const checked = selected.includes(opt);
+            return (
+              <button
+                key={opt}
+                type="button"
+                className="flex items-center gap-2 w-full text-left text-xs px-2 py-1.5 rounded hover:bg-muted/50"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const next = checked ? selected.filter((s) => s !== opt) : [...selected, opt];
+                  if (onSave) onSave(taskId, fieldId, next);
+                }}
+              >
+                <Checkbox checked={checked} className="size-3.5" />
+                {opt}
+              </button>
+            );
+          })}
+        </PopoverContent>
+      </Popover>
+    );
+  }
+
+  // Date — popover with calendar
+  if (type === "date") {
+    const dateObj = value ? new Date(String(value)) : undefined;
+    return (
+      <Popover open={editing} onOpenChange={setEditing}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="flex items-center h-6 rounded hover:bg-muted/50 transition-colors px-0.5"
+            onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+          >
+            {dateObj ? (
+              <span className="text-xs text-muted-foreground">{format(dateObj, "dd MMM yyyy", { locale: ptBR })}</span>
+            ) : (
+              <span className="text-xs text-muted-foreground/50">{"\u2014"}</span>
+            )}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start" sideOffset={4}>
+          <Calendar
+            mode="single"
+            selected={dateObj}
+            onSelect={(d) => { commit(d ? format(d, "yyyy-MM-dd") : null); }}
+            locale={ptBR}
+          />
+        </PopoverContent>
+      </Popover>
+    );
+  }
+
+  // Text, number, email, url — inline input on click
+  const display = renderDisplayValue(value, type);
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        className="flex items-center h-6 w-full rounded hover:bg-muted/50 transition-colors px-0.5 text-left"
+        onClick={(e) => { e.stopPropagation(); setDraft(value ?? ""); setEditing(true); }}
+      >
+        {display}
+      </button>
+    );
+  }
+
+  return (
+    <Input
+      ref={inputRef}
+      type={type === "number" ? "number" : type === "email" ? "email" : type === "url" ? "url" : "text"}
+      className="h-6 text-xs px-1.5"
+      value={String(draft ?? "")}
+      onClick={(e) => e.stopPropagation()}
+      onChange={(e) => setDraft(type === "number" ? (e.target.value === "" ? null : Number(e.target.value)) : e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") commit(draft);
+        if (e.key === "Escape") { setEditing(false); setDraft(value); }
+      }}
+      onBlur={() => commit(draft)}
+    />
+  );
+}
+
+function renderDisplayValue(value: unknown, type: string) {
+  if (value == null || value === "") {
+    return <span className="text-xs text-muted-foreground/50">{"\u2014"}</span>;
+  }
+  switch (type) {
+    case "number":
+      return <span className="text-xs tabular-nums text-muted-foreground">{String(value)}</span>;
+    case "url":
+      return (
+        <span className="text-xs text-primary truncate">
+          {String(value).replace(/^https?:\/\/(www\.)?/, "").slice(0, 30)}
+        </span>
+      );
+    case "email":
+      return <span className="text-xs text-primary truncate">{String(value)}</span>;
+    default:
+      return <span className="truncate text-xs text-muted-foreground">{String(value)}</span>;
+  }
 }

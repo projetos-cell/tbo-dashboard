@@ -8,7 +8,9 @@ export type NotificationTriggerType =
   | "mention"
   | "thread_reply"
   | "task_assigned"
-  | "task_updated";
+  | "task_updated"
+  | "task_overdue"
+  | "task_reminder";
 
 export interface NotificationFilters {
   read?: boolean;

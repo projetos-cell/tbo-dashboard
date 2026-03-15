@@ -17,6 +17,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { TASK_STATUS, type TaskStatusKey } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { TaskContextMenu } from "@/features/tasks/components/task-context-menu";
 import type { Database } from "@/lib/supabase/types";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
@@ -250,7 +251,7 @@ function TaskRowItem({
   const status = task ? TASK_STATUS[task.status as TaskStatusKey] : undefined;
   const isCompleted = task?.is_completed ?? false;
 
-  return (
+  const rowContent = (
     <button
       type="button"
       onClick={() => onSelect?.(item.id)}
@@ -312,6 +313,16 @@ function TaskRowItem({
       </span>
     </button>
   );
+
+  if (task) {
+    return (
+      <TaskContextMenu task={task} onSelect={onSelect ? (id) => onSelect(id) : undefined}>
+        {rowContent}
+      </TaskContextMenu>
+    );
+  }
+
+  return rowContent;
 }
 
 // ─── Inline Add Task Input ────────────────────────────────

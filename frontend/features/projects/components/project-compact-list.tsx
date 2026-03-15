@@ -85,7 +85,7 @@ import {
 } from "@/features/projects/hooks/use-projects";
 import { useTeamMembers } from "@/hooks/use-team";
 import { useToast } from "@/hooks/use-toast";
-import { PROJECT_STATUS, type ProjectStatusKey } from "@/lib/constants";
+import { PROJECT_STATUS, type ProjectStatusKey, PROJECT_PRIORITY, type ProjectPriorityKey } from "@/lib/constants";
 import {
   ProjectListToolbar,
   type ListToolbarState,
@@ -209,17 +209,21 @@ interface ColumnConfig {
   id: SortField;
   label: string;
   width: string;
+  defaultWidth: number;
+  minWidth: number;
   sortable: boolean;
   hideOnMobile?: boolean;
+  flex?: boolean;
+  resizable?: boolean;
 }
 
 const COLUMNS: ColumnConfig[] = [
-  { id: "code", label: "Código", width: "w-[90px]", sortable: true },
-  { id: "name", label: "Nome", width: "flex-1 min-w-[200px]", sortable: true },
-  { id: "status", label: "Status", width: "w-[130px]", sortable: true },
-  { id: "construtora", label: "Construtora", width: "w-[160px]", sortable: true, hideOnMobile: true },
-  { id: "owner", label: "Responsável", width: "w-[140px]", sortable: true, hideOnMobile: true },
-  { id: "due_date", label: "Prazo", width: "w-[120px]", sortable: true, hideOnMobile: true },
+  { id: "code", label: "Código", width: "w-[90px]", defaultWidth: 90, minWidth: 60, sortable: true },
+  { id: "name", label: "Nome", width: "flex-1 min-w-[200px]", defaultWidth: 200, minWidth: 200, sortable: true, flex: true },
+  { id: "status", label: "Status", width: "w-[130px]", defaultWidth: 130, minWidth: 80, sortable: true, resizable: true },
+  { id: "construtora", label: "Construtora", width: "w-[160px]", defaultWidth: 160, minWidth: 80, sortable: true, hideOnMobile: true, resizable: true },
+  { id: "owner", label: "Responsável", width: "w-[140px]", defaultWidth: 140, minWidth: 80, sortable: true, hideOnMobile: true, resizable: true },
+  { id: "due_date", label: "Prazo", width: "w-[120px]", defaultWidth: 120, minWidth: 80, sortable: true, hideOnMobile: true, resizable: true },
 ];
 
 // ─── Extra column definition ─────────────────────────────────────────────────
@@ -324,6 +328,43 @@ export function ProjectCompactList({ projects }: ProjectCompactListProps) {
   const [propertySearch, setPropertySearch] = useState("");
   const [extraColumns, setExtraColumns] = useState<ExtraColumn[]>([]);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
+
+  // ── Column resize ──────────────────────────────────────────────────────────
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+  const columnWidthsRef = useRef(columnWidths);
+  columnWidthsRef.current = columnWidths;
+
+  const getColumnWidth = useCallback(
+    (col: ColumnConfig) => columnWidths[col.id] ?? col.defaultWidth,
+    [columnWidths],
+  );
+
+  const handleStartResize = useCallback(
+    (colId: string, startX: number) => {
+      const col = COLUMNS.find((c) => c.id === colId);
+      if (!col) return;
+      const initialWidth = columnWidthsRef.current[colId] ?? col.defaultWidth;
+
+      const onMouseMove = (e: MouseEvent) => {
+        const delta = e.clientX - startX;
+        const newWidth = Math.max(col.minWidth, initialWidth + delta);
+        setColumnWidths((prev) => ({ ...prev, [colId]: newWidth }));
+      };
+
+      const onMouseUp = () => {
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+      };
+
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    },
+    [],
+  );
 
   // Unique construtora list for dropdown
   const construtoras = useMemo(() => {
@@ -546,47 +587,64 @@ export function ProjectCompactList({ projects }: ProjectCompactListProps) {
 
   return (
     <div className="space-y-3">
-      <ProjectListToolbar state={toolbarState} onChange={setToolbarState} />
-
       <div className="overflow-x-auto rounded-lg border border-border/60">
         {/* Sortable header */}
         <div className="flex items-center gap-0 border-b border-border/60 bg-muted/40 px-3 py-2">
           {visibleColumns.map((col) => (
-            <ColumnHeaderMenu
+            <div
               key={col.id}
-              column={col}
-              sortField={sortField}
-              sortDir={sortDir}
-              isWrapped={wrappedColumns.has(col.id)}
-              isFixed
-              onSort={handleSortFromMenu}
-              onFilter={handleFilterFromMenu}
-              onGroup={handleGroupFromMenu}
-              onHide={() => toggleHideColumn(col.id)}
-              onToggleWrap={() => toggleWrapColumn(col.id)}
-              onInsertLeft={() => insertColumnAt(col.id, "left")}
-              onInsertRight={() => insertColumnAt(col.id, "right")}
+              className={cn("group/col relative", col.hideOnMobile && "hidden md:flex")}
+              style={{
+                width: col.flex ? undefined : getColumnWidth(col),
+                flex: col.flex ? "1 1 0%" : "0 0 auto",
+                minWidth: col.flex ? col.minWidth : undefined,
+              }}
             >
-              <button
-                type="button"
-                className={cn(
-                  "group flex items-center gap-1 px-2 text-xs font-medium text-muted-foreground select-none",
-                  col.width,
-                  col.sortable && "cursor-pointer hover:text-foreground",
-                  col.hideOnMobile && "hidden md:flex",
-                )}
+              <ColumnHeaderMenu
+                column={col}
+                sortField={sortField}
+                sortDir={sortDir}
+                isWrapped={wrappedColumns.has(col.id)}
+                isFixed
+                onSort={handleSortFromMenu}
+                onFilter={handleFilterFromMenu}
+                onGroup={handleGroupFromMenu}
+                onHide={() => toggleHideColumn(col.id)}
+                onToggleWrap={() => toggleWrapColumn(col.id)}
+                onInsertLeft={() => insertColumnAt(col.id, "left")}
+                onInsertRight={() => insertColumnAt(col.id, "right")}
               >
-                {col.label}
-                {col.sortable && <SortIcon field={col.id} />}
-              </button>
-            </ColumnHeaderMenu>
+                <button
+                  type="button"
+                  className={cn(
+                    "group flex w-full items-center gap-1 px-2 text-xs font-medium text-muted-foreground select-none",
+                    col.sortable && "cursor-pointer hover:text-foreground",
+                  )}
+                >
+                  {col.label}
+                  {col.sortable && <SortIcon field={col.id} />}
+                </button>
+              </ColumnHeaderMenu>
+              {col.resizable && (
+                <div
+                  className="absolute -right-1.5 top-0 z-10 flex h-full w-3 cursor-col-resize items-center justify-center opacity-0 transition-opacity hover:opacity-100 group-hover/col:opacity-60"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleStartResize(col.id, e.clientX);
+                  }}
+                >
+                  <div className="h-4 w-0.5 rounded-full bg-primary" />
+                </div>
+              )}
+            </div>
           ))}
 
           {/* Extra dynamic columns headers */}
           {extraColumns.map((col) => (
             <ColumnHeaderMenu
               key={col.id}
-              column={{ id: col.id as SortField, label: col.label, width: col.width, sortable: false }}
+              column={{ id: col.id as SortField, label: col.label, width: col.width, defaultWidth: 140, minWidth: 80, sortable: false }}
               sortField={sortField}
               sortDir={sortDir}
               isWrapped={wrappedColumns.has(col.id)}
@@ -717,6 +775,7 @@ export function ProjectCompactList({ projects }: ProjectCompactListProps) {
                   project={project}
                   extraColumns={extraColumns}
                   construtoras={construtoras}
+                  columnWidths={columnWidths}
                   onOpen={() => router.push(`/projetos/${project.id}`)}
                   onUpdate={handleUpdate}
                   onDuplicate={() => handleDuplicate(project)}
@@ -761,6 +820,16 @@ function ExtraColumnCell({
   const raw = column.field !== "custom"
     ? (project as Record<string, unknown>)[column.field]
     : null;
+
+  // Priority — badge dropdown
+  if (column.field === "priority") {
+    return (
+      <PrioritySelect
+        value={typeof raw === "string" ? raw : ""}
+        onChange={(v) => onUpdate(project.id, { priority: v })}
+      />
+    );
+  }
 
   // Person type (owner_name field) — use PersonSelect dropdown
   if (column.type === "select" && column.field === "owner_name") {
@@ -1103,6 +1172,7 @@ function GridRow({
   project,
   extraColumns,
   construtoras,
+  columnWidths,
   onOpen,
   onUpdate,
   onDuplicate,
@@ -1112,6 +1182,7 @@ function GridRow({
   project: Project;
   extraColumns: ExtraColumn[];
   construtoras: string[];
+  columnWidths: Record<string, number>;
   onOpen: () => void;
   onUpdate: (id: string, updates: Record<string, unknown>) => void;
   onDuplicate: () => void;
@@ -1123,7 +1194,7 @@ function GridRow({
       <ContextMenuTrigger asChild>
         <div className="flex items-center gap-0 border-b border-border/30 px-3 py-2 transition-colors last:border-b-0 hover:bg-muted/30">
           {/* Code — read only */}
-          <div className="w-[90px] px-2">
+          <div className="px-2" style={{ width: columnWidths.code ?? 90, flex: "0 0 auto" }}>
             <Link
               href={`/projetos/${project.id}`}
               className="font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground hover:underline"
@@ -1133,7 +1204,7 @@ function GridRow({
           </div>
 
           {/* Name — editable */}
-          <div className="min-w-[200px] flex-1 px-2">
+          <div className="px-2" style={{ flex: "1 1 0%", minWidth: 200 }}>
             <EditableText
               value={project.name ?? ""}
               onSave={(v) => onUpdate(project.id, { name: v })}
@@ -1143,7 +1214,7 @@ function GridRow({
           </div>
 
           {/* Status — editable dropdown */}
-          <div className="w-[130px] px-2">
+          <div className="px-2" style={{ width: columnWidths.status ?? 130, flex: "0 0 auto" }}>
             <StatusSelect
               value={project.status ?? ""}
               onChange={(v) => onUpdate(project.id, { status: v })}
@@ -1151,7 +1222,7 @@ function GridRow({
           </div>
 
           {/* Construtora — editable dropdown */}
-          <div className="hidden w-[160px] px-2 md:block">
+          <div className="hidden px-2 md:block" style={{ width: columnWidths.construtora ?? 160, flex: "0 0 auto" }}>
             <ConstrutoraSelect
               value={project.construtora && !isUUID(project.construtora) ? project.construtora : ""}
               construtoras={construtoras}
@@ -1160,7 +1231,7 @@ function GridRow({
           </div>
 
           {/* Owner — editable dropdown */}
-          <div className="hidden w-[140px] px-2 md:block">
+          <div className="hidden px-2 md:block" style={{ width: columnWidths.owner ?? 140, flex: "0 0 auto" }}>
             <PersonSelect
               value={project.owner_name ?? ""}
               currentId={project.owner_id ?? ""}
@@ -1171,7 +1242,7 @@ function GridRow({
           </div>
 
           {/* Due date — editable */}
-          <div className="hidden w-[120px] px-2 md:block">
+          <div className="hidden px-2 md:block" style={{ width: columnWidths.due_date ?? 120, flex: "0 0 auto" }}>
             <DateCell
               value={project.due_date_end}
               onChange={(v) => onUpdate(project.id, { due_date_end: v })}
@@ -1374,6 +1445,81 @@ function StatusSelect({
               {key === value && <span className="ml-auto text-xs text-muted-foreground">atual</span>}
             </DropdownMenuItem>
           ),
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+// ─── Priority Badge Select ────────────────────────────────────────────────────
+
+function PrioritySelect({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string | null) => void;
+}) {
+  const current = PROJECT_PRIORITY[value as ProjectPriorityKey];
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="rounded-full transition-colors hover:ring-1 hover:ring-border focus:outline-none"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {current ? (
+            <Badge
+              variant="secondary"
+              className="cursor-pointer text-xs"
+              style={{ backgroundColor: current.bg, color: current.color }}
+            >
+              {current.label}
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="cursor-pointer text-xs text-muted-foreground">
+              {value || "—"}
+            </Badge>
+          )}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-44">
+        <DropdownMenuLabel className="text-xs">Alterar prioridade</DropdownMenuLabel>
+        {(Object.entries(PROJECT_PRIORITY) as [ProjectPriorityKey, (typeof PROJECT_PRIORITY)[ProjectPriorityKey]][]).map(
+          ([key, config]) => (
+            <DropdownMenuItem
+              key={key}
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange(key);
+              }}
+              className="gap-2"
+            >
+              <div
+                className="h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: config.color }}
+              />
+              <span>{config.label}</span>
+              {key === value && <span className="ml-auto text-xs text-muted-foreground">atual</span>}
+            </DropdownMenuItem>
+          ),
+        )}
+        {value && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange(null);
+              }}
+              className="gap-2 text-muted-foreground"
+            >
+              <IconX className="size-3.5" />
+              <span>Remover prioridade</span>
+            </DropdownMenuItem>
+          </>
         )}
       </DropdownMenuContent>
     </DropdownMenu>

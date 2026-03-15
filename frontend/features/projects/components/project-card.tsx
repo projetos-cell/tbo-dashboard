@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   IconCalendar,
@@ -8,6 +8,12 @@ import {
   IconCheck,
   IconGripVertical,
   IconChevronDown,
+  IconBuilding,
+  IconPlus,
+  IconX,
+  IconAlertTriangle,
+  IconStar,
+  IconStarFilled,
 } from "@tabler/icons-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,12 +33,16 @@ import {
   PROJECT_STATUS,
   BU_LIST,
   BU_COLORS,
+  PROJECT_HEALTH,
+  computeProjectHealth,
   type ProjectStatusKey,
 } from "@/lib/constants";
+import { useProjectTaskStats } from "@/features/projects/hooks/use-project-tasks";
+import { useProjectFavorites, useToggleFavorite } from "@/features/projects/hooks/use-project-favorites";
 import { parseBus } from "@/features/projects/utils/parse-bus";
-import { useUpdateProject } from "@/features/projects/hooks/use-projects";
+import { useUpdateProject, useProjects } from "@/features/projects/hooks/use-projects";
 import type { Database } from "@/lib/supabase/types";
-import { format } from "date-fns";
+import { format, isPast, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
@@ -261,6 +271,150 @@ function BuEditor({
   );
 }
 
+/* ── Construtora Dropdown (card-sized) ──────────────────────────────── */
+
+function ConstrutoraCardSelect({
+  value,
+  onSave,
+}: {
+  value: string;
+  onSave: (v: string | null) => void;
+}) {
+  const { data: allProjects } = useProjects();
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const construtoras = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of allProjects ?? []) {
+      if (p.construtora && !/^[0-9a-f]{8}-/i.test(p.construtora)) {
+        set.add(p.construtora);
+      }
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [allProjects]);
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return construtoras;
+    const q = search.toLowerCase();
+    return construtoras.filter((c) => c.toLowerCase().includes(q));
+  }, [construtoras, search]);
+
+  const isNewValue =
+    search.trim() &&
+    !construtoras.some((c) => c.toLowerCase() === search.trim().toLowerCase());
+
+  function handleSelect(v: string) {
+    onSave(v);
+    setOpen(false);
+    setSearch("");
+  }
+
+  return (
+    <div onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+      <Popover
+        open={open}
+        onOpenChange={(o) => {
+          setOpen(o);
+          if (o) setTimeout(() => inputRef.current?.focus(), 50);
+          else setSearch("");
+        }}
+      >
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="flex items-center gap-1 truncate rounded px-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent/50"
+          >
+            {value ? (
+              <>
+                <IconBuilding className="size-3 shrink-0" />
+                <span className="truncate">{value}</span>
+              </>
+            ) : (
+              <span className="text-muted-foreground/60">+ Construtora</span>
+            )}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[220px] p-0" align="start" sideOffset={4}>
+          <div className="border-b border-border/60 p-2">
+            <input
+              ref={inputRef}
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && search.trim()) {
+                  handleSelect(search.trim().toUpperCase());
+                }
+              }}
+              placeholder="Buscar ou criar..."
+              className="h-7 w-full rounded border-0 bg-muted/40 px-2 text-sm outline-none placeholder:text-muted-foreground"
+            />
+          </div>
+          <div className="max-h-[180px] overflow-y-auto p-1">
+            {value && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSave(null);
+                  setOpen(false);
+                  setSearch("");
+                }}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted"
+              >
+                <IconX className="size-3.5" />
+                <span>Remover construtora</span>
+              </button>
+            )}
+            {isNewValue && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSelect(search.trim().toUpperCase());
+                }}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-blue-600 transition-colors hover:bg-muted"
+              >
+                <IconPlus className="size-3.5" />
+                <span>Criar &quot;{search.trim().toUpperCase()}&quot;</span>
+              </button>
+            )}
+            {filtered.length === 0 && !isNewValue ? (
+              <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+                Nenhuma construtora encontrada
+              </p>
+            ) : (
+              filtered.map((c) => {
+                const isSelected = c === value;
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelect(c);
+                    }}
+                    className={cn(
+                      "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted",
+                      isSelected && "bg-muted font-medium"
+                    )}
+                  >
+                    <IconBuilding className="size-3.5 shrink-0 text-muted-foreground" />
+                    <span className="truncate">{c}</span>
+                    {isSelected && <IconCheck className="ml-auto size-3.5 text-primary" />}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
 /* ── Project Card ───────────────────────────────────────────────────── */
 
 export function ProjectCard({ project, editable = false, dragListeners }: ProjectCardProps) {
@@ -268,6 +422,27 @@ export function ProjectCard({ project, editable = false, dragListeners }: Projec
   const updateProject = useUpdateProject();
   const status = PROJECT_STATUS[project.status as ProjectStatusKey];
   const busList = parseBus(project.bus);
+
+  // V05 — Favorites
+  const { data: favoriteIds } = useProjectFavorites();
+  const toggleFavorite = useToggleFavorite();
+  const isFavorite = (favoriteIds || []).includes(project.id);
+
+  // A07 — Health badge from task stats
+  const isDone = project.status === "finalizado";
+  const { data: taskStats } = useProjectTaskStats(isDone ? undefined : project.id);
+  const healthKey = taskStats
+    ? computeProjectHealth({ total: taskStats.totalTasks, overdue: taskStats.overdueTasks })
+    : null;
+  const healthConfig = healthKey && healthKey !== "on_track" ? PROJECT_HEALTH[healthKey] : null;
+
+  // F10 — Badge overdue automático (nível projeto)
+  const DONE_STATUSES: string[] = ["finalizado"];
+  const projectOverdue =
+    project.due_date_end &&
+    !DONE_STATUSES.includes(project.status ?? "") &&
+    isPast(new Date(project.due_date_end)) &&
+    !isToday(new Date(project.due_date_end));
 
   function save(updates: Record<string, unknown>) {
     updateProject.mutate({ id: project.id, updates: updates as never });
@@ -312,17 +487,37 @@ export function ProjectCard({ project, editable = false, dragListeners }: Projec
               )}
             </div>
           </div>
-          {project.notion_url && (
-            <a
-              href={project.notion_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="text-muted-foreground hover:text-foreground shrink-0"
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleFavorite.mutate({ projectId: project.id, isFavorite });
+              }}
+              className={cn(
+                "opacity-0 group-hover/card:opacity-100 transition-opacity focus:outline-none",
+                isFavorite && "opacity-100",
+              )}
+              title={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
             >
-              <IconExternalLink className="h-3.5 w-3.5" />
-            </a>
-          )}
+              {isFavorite ? (
+                <IconStarFilled className="h-3.5 w-3.5 text-amber-500" />
+              ) : (
+                <IconStar className="h-3.5 w-3.5 text-muted-foreground hover:text-amber-500" />
+              )}
+            </button>
+            {project.notion_url && (
+              <a
+                href={project.notion_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <IconExternalLink className="h-3.5 w-3.5" />
+              </a>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
@@ -346,6 +541,21 @@ export function ProjectCard({ project, editable = false, dragListeners }: Projec
               {status.label}
             </Badge>
           )
+        )}
+
+        {/* A07 — Health badge */}
+        {healthConfig && (
+          <Badge
+            variant="secondary"
+            className="text-[10px] gap-1"
+            style={{ backgroundColor: healthConfig.bg, color: healthConfig.color }}
+          >
+            <span
+              className="size-1.5 rounded-full shrink-0"
+              style={{ backgroundColor: healthConfig.color }}
+            />
+            {healthConfig.label}
+          </Badge>
         )}
 
         {/* BU tags */}
@@ -385,11 +595,9 @@ export function ProjectCard({ project, editable = false, dragListeners }: Projec
         {/* Construtora + date footer */}
         <div className="text-muted-foreground flex items-center justify-between pt-1 text-xs">
           {editable ? (
-            <InlineText
-              value={project.construtora ?? ""}
+            <ConstrutoraCardSelect
+              value={project.construtora && !/^[0-9a-f]{8}-/i.test(project.construtora) ? project.construtora : ""}
               onSave={(v) => save({ construtora: v })}
-              className="text-xs truncate"
-              placeholder="+ Construtora"
             />
           ) : (
             project.construtora && (
@@ -397,7 +605,7 @@ export function ProjectCard({ project, editable = false, dragListeners }: Projec
             )
           )}
           {project.due_date_end && (
-            <div className="flex shrink-0 items-center gap-1">
+            <div className={cn("flex shrink-0 items-center gap-1", projectOverdue && "text-red-600")}>
               <IconCalendar className="h-3 w-3" />
               <span>
                 {format(new Date(project.due_date_end), "dd MMM", {
@@ -405,6 +613,15 @@ export function ProjectCard({ project, editable = false, dragListeners }: Projec
                 })}
               </span>
             </div>
+          )}
+          {projectOverdue && (
+            <Badge
+              variant="secondary"
+              className="h-4 shrink-0 px-1 text-[10px] font-medium bg-red-50 text-red-600 border-red-200 gap-0.5"
+            >
+              <IconAlertTriangle className="size-2.5" />
+              Atrasado
+            </Badge>
           )}
         </div>
       </CardContent>

@@ -30,6 +30,11 @@ import {
   IconGripVertical,
   IconTrash,
   IconEdit,
+  IconColumns,
+  IconEye,
+  IconEyeOff,
+  IconTemplate,
+  IconSparkles,
 } from "@tabler/icons-react";
 import {
   DndContext,
@@ -50,6 +55,16 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
+import { TaskTemplatePicker } from "@/features/tasks/components/task-template-picker";
+import type { TaskTemplate } from "@/features/tasks/services/task-templates";
 import { EmptyState } from "@/components/shared/empty-state";
 import {
   Popover,
@@ -66,6 +81,7 @@ import {
   useReorderProjectTasks,
 } from "@/features/projects/hooks/use-project-tasks";
 import { useCreateTask } from "@/features/tasks/hooks/use-tasks";
+
 import { useAuthStore } from "@/stores/auth-store";
 import { useUndoStack } from "@/hooks/use-undo-stack";
 import { useUndoKeyboard } from "@/hooks/use-undo-keyboard";
@@ -81,6 +97,17 @@ import {
 import { TASK_STATUS, TASK_PRIORITY, type TaskStatusKey, type TaskPriorityKey } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
+import {
+  useProjectCustomFields,
+  useCreateCustomField,
+  useDeleteCustomField,
+  useTaskFieldValues,
+  useUpsertTaskFieldValue,
+  buildFieldValuesMap,
+  useViewPreferences,
+  useSaveViewPreferences,
+} from "@/features/projects/hooks/use-custom-fields";
+import type { CustomField } from "@/features/projects/services/custom-fields";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 
@@ -206,18 +233,21 @@ function groupTasks(
 interface ColumnConfig {
   id: TaskSortField | "check";
   label: string;
-  width: string;
+  defaultWidth: number;
+  minWidth: number;
   sortable: boolean;
   hideOnMobile?: boolean;
+  flex?: boolean;
+  resizable?: boolean;
 }
 
 const COLUMNS: ColumnConfig[] = [
-  { id: "check", label: "", width: "w-[40px]", sortable: false },
-  { id: "title", label: "Nome", width: "flex-1 min-w-[200px]", sortable: true },
-  { id: "status", label: "Status", width: "w-[130px]", sortable: true },
-  { id: "priority", label: "Prioridade", width: "w-[120px]", sortable: true, hideOnMobile: true },
-  { id: "assignee_name", label: "Responsável", width: "w-[140px]", sortable: true, hideOnMobile: true },
-  { id: "due_date", label: "Prazo", width: "w-[120px]", sortable: true, hideOnMobile: true },
+  { id: "check", label: "", defaultWidth: 40, minWidth: 40, sortable: false },
+  { id: "title", label: "Nome", defaultWidth: 0, minWidth: 200, sortable: true, flex: true },
+  { id: "status", label: "Status", defaultWidth: 130, minWidth: 80, sortable: true, resizable: true },
+  { id: "priority", label: "Prioridade", defaultWidth: 120, minWidth: 80, sortable: true, hideOnMobile: true, resizable: true },
+  { id: "assignee_name", label: "Responsável", defaultWidth: 140, minWidth: 80, sortable: true, hideOnMobile: true, resizable: true },
+  { id: "due_date", label: "Prazo", defaultWidth: 160, minWidth: 80, sortable: true, hideOnMobile: true, resizable: true },
 ];
 
 // ─── Extra column definitions (for "+" button) ──────────────────────────────
@@ -261,6 +291,24 @@ const PROPERTY_TYPES = [
   { icon: IconUserCircle, label: "Última edição por", type: "updated_by" },
 ];
 
+// ─── Custom field icon helper ────────────────────────────────────────────────
+
+function CustomFieldIcon({ type }: { type: string }) {
+  const iconMap: Record<string, typeof IconAlignLeft> = {
+    text: IconAlignLeft,
+    number: IconHash,
+    select: IconSelect,
+    multi_select: IconList,
+    date: IconCalendar,
+    person: IconUsers,
+    checkbox: IconCheckbox,
+    url: IconLink,
+    email: IconAt,
+  };
+  const Icon = iconMap[type] ?? IconAlignLeft;
+  return <Icon className="size-3 opacity-60" />;
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function ProjectTaskList({
@@ -290,6 +338,175 @@ export function ProjectTaskList({
   const [extraColumns, setExtraColumns] = useState<ExtraColumn[]>([]);
   const [propertySearch, setPropertySearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+  const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
+  const [columnOrder, setColumnOrder] = useState<string[]>(COLUMNS.map((c) => c.id));
+
+  // P01 — Custom fields per project
+  const { data: customFields } = useProjectCustomFields(projectId);
+  const createCustomFieldMutation = useCreateCustomField(projectId);
+  const deleteCustomFieldMutation = useDeleteCustomField(projectId);
+  const upsertFieldValue = useUpsertTaskFieldValue();
+  const allTaskIds = useMemo(() => parents.map((t) => t.id), [parents]);
+  const { data: fieldValuesRaw } = useTaskFieldValues(allTaskIds);
+  const fieldValuesMap = useMemo(
+    () => buildFieldValuesMap(fieldValuesRaw ?? []),
+    [fieldValuesRaw],
+  );
+  const handleFieldChange = useCallback((taskId: string, fieldId: string, value: unknown) => {
+    upsertFieldValue.mutate({ taskId, fieldId, value });
+  }, [upsertFieldValue]);
+
+  // F01 — Persist view preferences
+  const userId = useAuthStore((s) => s.user?.id);
+  const { data: viewPrefs, isLoading: prefsLoading } = useViewPreferences(projectId);
+  const saveViewPrefs = useSaveViewPreferences(projectId);
+  const prefsLoaded = useRef(false);
+
+  // Load saved preferences once
+  useEffect(() => {
+    if (prefsLoaded.current || prefsLoading || !viewPrefs) return;
+    prefsLoaded.current = true;
+    if (viewPrefs.column_widths && Object.keys(viewPrefs.column_widths).length > 0) {
+      setColumnWidths(viewPrefs.column_widths);
+    }
+    if (viewPrefs.column_order && viewPrefs.column_order.length > 0) {
+      setColumnOrder(viewPrefs.column_order);
+    }
+    if (viewPrefs.hidden_columns && viewPrefs.hidden_columns.length > 0) {
+      setHiddenColumns(new Set(viewPrefs.hidden_columns));
+    }
+  }, [viewPrefs, prefsLoading]);
+
+  // Debounced save for column widths
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debouncedSaveWidths = useCallback(
+    (widths: Record<string, number>) => {
+      if (!userId) return;
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = setTimeout(() => {
+        saveViewPrefs.mutate({ column_widths: widths });
+      }, 500);
+    },
+    [userId, saveViewPrefs],
+  );
+
+  const visibleColumns = useMemo(
+    () => columnOrder.map((id) => COLUMNS.find((c) => c.id === id)!).filter((c) => c && !hiddenColumns.has(c.id)),
+    [columnOrder, hiddenColumns],
+  );
+
+  const toggleColumnVisibility = useCallback((colId: string) => {
+    setHiddenColumns((prev) => {
+      const next = new Set(prev);
+      if (next.has(colId)) {
+        next.delete(colId);
+      } else {
+        next.add(colId);
+      }
+      if (userId) saveViewPrefs.mutate({ hidden_columns: Array.from(next) });
+      return next;
+    });
+  }, [userId, saveViewPrefs]);
+
+  const moveColumnUp = useCallback((colId: string) => {
+    setColumnOrder((prev) => {
+      const idx = prev.indexOf(colId);
+      if (idx <= 0) return prev;
+      const next = [...prev];
+      [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+      if (userId) saveViewPrefs.mutate({ column_order: next });
+      return next;
+    });
+  }, [userId, saveViewPrefs]);
+
+  const moveColumnDown = useCallback((colId: string) => {
+    setColumnOrder((prev) => {
+      const idx = prev.indexOf(colId);
+      if (idx === -1 || idx >= prev.length - 1) return prev;
+      const next = [...prev];
+      [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+      if (userId) saveViewPrefs.mutate({ column_order: next });
+      return next;
+    });
+  }, [userId, saveViewPrefs]);
+
+  // T07 — Handle template selection
+  const handleSelectTemplate = useCallback(
+    (template: TaskTemplate) => {
+      if (!tenantId) return;
+      // Create main task from template
+      createTask.mutate(
+        {
+          title: template.title,
+          description: template.description,
+          project_id: projectId,
+          tenant_id: tenantId,
+          status: "pendente",
+          priority: template.priority,
+          estimated_hours: template.estimated_hours,
+        } as Database["public"]["Tables"]["os_tasks"]["Insert"],
+        {
+          onSuccess: (createdTask) => {
+            // Create subtasks from template
+            if (template.subtasks_json?.length > 0) {
+              for (let i = 0; i < template.subtasks_json.length; i++) {
+                const sub = template.subtasks_json[i];
+                createTask.mutate({
+                  title: sub.title,
+                  project_id: projectId,
+                  tenant_id: tenantId,
+                  parent_id: createdTask.id,
+                  status: "pendente",
+                  priority: sub.priority ?? template.priority,
+                  order_index: i,
+                } as Database["public"]["Tables"]["os_tasks"]["Insert"]);
+              }
+            }
+          },
+        },
+      );
+    },
+    [tenantId, projectId, createTask],
+  );
+
+  const getColumnWidth = useCallback(
+    (col: ColumnConfig) => columnWidths[col.id] ?? col.defaultWidth,
+    [columnWidths],
+  );
+
+  // Ref to avoid stale closure in resize handler
+  const columnWidthsRef = useRef(columnWidths);
+  columnWidthsRef.current = columnWidths;
+
+  const handleStartResize = useCallback(
+    (colId: string, startX: number) => {
+      const col = COLUMNS.find((c) => c.id === colId);
+      if (!col) return;
+      const initialWidth = columnWidthsRef.current[colId] ?? col.defaultWidth;
+
+      const onMouseMove = (e: MouseEvent) => {
+        const delta = e.clientX - startX;
+        const newWidth = Math.max(col.minWidth, initialWidth + delta);
+        setColumnWidths((prev) => ({ ...prev, [colId]: newWidth }));
+      };
+
+      const onMouseUp = () => {
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+        // F01 — persist widths after resize
+        debouncedSaveWidths(columnWidthsRef.current);
+      };
+
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    },
+    [],
+  );
 
   // DnD sensors
   const sensors = useSensors(
@@ -388,10 +605,21 @@ export function ProjectTaskList({
       );
       const maxOrder = targetTasks.reduce((max, t) => Math.max(max, t.order_index), 0);
 
+      // A02: Look up section defaults
+      const targetSection = sections?.find((s) => s.id === targetSectionId);
+      const sectionDefaults = targetSection
+        ? {
+            default_status: targetSection.default_status,
+            default_priority: targetSection.default_priority,
+            default_assignee_id: targetSection.default_assignee_id,
+          }
+        : undefined;
+
       moveTask.mutate({
         taskId,
         sectionId: targetSectionId,
         orderIndex: maxOrder + 1,
+        sectionDefaults,
       });
       return;
     }
@@ -431,25 +659,90 @@ export function ProjectTaskList({
 
   useUndoKeyboard(handleUndo);
 
+  const isSubmittingNewTask = useRef(false);
+  const [smartTaskLoading, setSmartTaskLoading] = useState(false);
+
   const handleConfirmNewTask = () => {
+    // Guard against double-fire (Enter + onBlur)
+    if (isSubmittingNewTask.current || smartTaskLoading) return;
     const title = newTaskTitle?.trim();
     if (!title || !tenantId) {
       setNewTaskTitle(null);
       return;
     }
+    isSubmittingNewTask.current = true;
+    const userId = useAuthStore.getState().user?.id ?? null;
+    setNewTaskTitle(null);
     createTask.mutate(
       {
         title,
         project_id: projectId,
         tenant_id: tenantId,
         status: "pendente",
+        created_by: userId,
       } as Database["public"]["Tables"]["os_tasks"]["Insert"],
       {
-        onSuccess: () => setNewTaskTitle(null),
-        onError: () => setNewTaskTitle(null),
+        onSettled: () => {
+          isSubmittingNewTask.current = false;
+        },
       }
     );
   };
+
+  const handleSmartTask = useCallback(async () => {
+    const rawInput = newTaskTitle?.trim();
+    if (!rawInput || !tenantId) return;
+    setSmartTaskLoading(true);
+    try {
+      const res = await fetch("/api/ai/smart-task", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rawInput }),
+      });
+      const data = (await res.json()) as {
+        title?: string;
+        subtasks?: string[];
+        estimatedHours?: number | null;
+      };
+      if (!data.title) {
+        setSmartTaskLoading(false);
+        return;
+      }
+      const userId = useAuthStore.getState().user?.id ?? null;
+      setNewTaskTitle(null);
+      const parentTask = await createTask.mutateAsync({
+        title: data.title,
+        project_id: projectId,
+        tenant_id: tenantId,
+        status: "pendente",
+        created_by: userId,
+        estimated_hours: data.estimatedHours ?? undefined,
+      } as never);
+      const parentId = (parentTask as { id?: string })?.id;
+      if (parentId && data.subtasks && data.subtasks.length > 0) {
+        for (const subTitle of data.subtasks) {
+          await createTask.mutateAsync({
+            title: subTitle,
+            parent_id: parentId,
+            project_id: projectId,
+            tenant_id: tenantId,
+            status: "pendente",
+            is_completed: false,
+          } as never);
+        }
+      }
+      toast({
+        title: `Tarefa criada com IA — "${data.title}"`,
+        description: data.subtasks?.length
+          ? `${data.subtasks.length} subtarefas adicionadas`
+          : undefined,
+      });
+    } catch {
+      toast({ title: "Erro ao detalhar com IA", variant: "destructive" });
+    } finally {
+      setSmartTaskLoading(false);
+    }
+  }, [newTaskTitle, tenantId, projectId, createTask, toast]);
 
   const filteredPropertyTypes = useMemo(() => {
     if (!propertySearch.trim()) return PROPERTY_TYPES;
@@ -458,22 +751,40 @@ export function ProjectTaskList({
   }, [propertySearch]);
 
   const addExtraColumn = useCallback((type: string, label: string, icon: typeof IconAlignLeft) => {
-    const id = `extra_${type}_${Date.now()}`;
-    setExtraColumns((prev) => [...prev, {
-      id,
-      label,
-      field: "custom",
-      type: "readonly" as const,
-      icon,
-      width: "w-[130px]",
-    }]);
+    // Suggested built-in columns (start_date, section, created_at)
+    const isSuggested = SUGGESTED_EXTRA_COLUMNS.some((s) => s.key === type);
+    if (isSuggested) {
+      const id = `extra_${type}_${Date.now()}`;
+      setExtraColumns((prev) => [...prev, {
+        id,
+        label,
+        field: type,
+        type: "readonly" as const,
+        icon,
+        width: "w-[130px]",
+      }]);
+    } else if (tenantId) {
+      // P01 — Create custom field in Supabase
+      const maxOrder = (customFields ?? []).reduce((max, f) => Math.max(max, f.order_index), 0);
+      createCustomFieldMutation.mutate({
+        name: label,
+        type: type as CustomField["type"],
+        project_id: projectId,
+        order_index: maxOrder + 1,
+      });
+    }
     setAddMenuOpen(false);
     setPropertySearch("");
-  }, []);
+  }, [tenantId, projectId, customFields, createCustomFieldMutation]);
 
   const removeExtraColumn = useCallback((id: string) => {
-    setExtraColumns((prev) => prev.filter((c) => c.id !== id));
-  }, []);
+    // If it's a custom field (has uuid), delete from Supabase
+    if (id.length === 36) {
+      deleteCustomFieldMutation.mutate(id);
+    } else {
+      setExtraColumns((prev) => prev.filter((c) => c.id !== id));
+    }
+  }, [deleteCustomFieldMutation]);
 
   // Column sort state (synced with filters)
   const handleHeaderClick = useCallback(
@@ -539,10 +850,45 @@ export function ProjectTaskList({
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-10 w-full" />
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-12 w-full" />
-        ))}
+        {/* UX04 — Content-aware skeleton: toolbar */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-8 w-32 rounded-md" />
+          <Skeleton className="h-8 w-24 rounded-md" />
+          <div className="flex-1" />
+          <Skeleton className="h-8 w-20 rounded-md" />
+        </div>
+        {/* UX04 — Content-aware skeleton: table header */}
+        <div className="overflow-hidden rounded-lg border border-border/60">
+          <div className="flex items-center gap-0 border-b border-border/60 bg-muted/40 px-3 py-2">
+            <div className="w-[28px]" />
+            <Skeleton className="mx-2 h-3 w-8" />
+            <div className="flex-1 px-2"><Skeleton className="h-3 w-16" /></div>
+            <Skeleton className="mx-2 h-3 w-14 hidden md:block" />
+            <Skeleton className="mx-2 h-3 w-16 hidden md:block" />
+            <Skeleton className="mx-2 h-3 w-20 hidden md:block" />
+            <Skeleton className="mx-2 h-3 w-14 hidden md:block" />
+          </div>
+          {/* UX04 — Content-aware skeleton: task rows */}
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-0 border-b border-border/30 px-3 py-2.5 last:border-b-0"
+            >
+              <div className="w-[28px]" />
+              <Skeleton className="mx-2 size-4 rounded-full" />
+              <div className="flex-1 px-2">
+                <Skeleton className="h-4 rounded" style={{ width: `${55 + (i % 3) * 15}%` }} />
+              </div>
+              <Skeleton className="mx-2 h-5 w-16 rounded-full hidden md:block" />
+              <Skeleton className="mx-2 h-5 w-14 rounded-full hidden md:block" />
+              <div className="mx-2 hidden items-center gap-1.5 md:flex">
+                <Skeleton className="size-5 rounded-full" />
+                <Skeleton className="h-3 w-16 rounded" />
+              </div>
+              <Skeleton className="mx-2 h-3 w-20 hidden md:block" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -565,47 +911,67 @@ export function ProjectTaskList({
       {filtered.length === 0 && newTaskTitle === null ? (
         <EmptyState
           icon={IconListCheck}
-          title="Nenhuma tarefa encontrada"
+          title={
+            parents.length === 0
+              ? "Adicione a primeira tarefa do projeto"
+              : "Nenhuma tarefa corresponde aos filtros"
+          }
           description={
             parents.length === 0
-              ? "Crie a primeira tarefa para começar."
-              : "Ajuste os filtros para ver mais tarefas."
+              ? "Divida o trabalho em tarefas, atribua responsáveis e defina prazos."
+              : "Ajuste os filtros ou limpe a busca para ver suas tarefas."
           }
           cta={
             parents.length === 0
-              ? { label: "Nova Tarefa", onClick: handleAddTaskInline }
+              ? { label: "Criar Tarefa", onClick: handleAddTaskInline, icon: IconPlus }
               : undefined
           }
+          compact
         />
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          modifiers={[restrictToVerticalAxis]}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
           <div className="overflow-x-auto rounded-lg border border-border/60">
-            {/* Sortable header */}
+            {/* Sortable header — outside DndContext to avoid sensor conflicts */}
             <div className="flex items-center gap-0 border-b border-border/60 bg-muted/40 px-3 py-2">
               {/* Drag handle column */}
               <div className="w-[28px]" />
-              {COLUMNS.map((col) => (
-                <button
+              {visibleColumns.map((col) => (
+                <div
                   key={col.id}
-                  type="button"
                   className={cn(
-                    "group flex items-center gap-1 px-2 text-xs font-medium text-muted-foreground select-none",
-                    col.width,
-                    col.sortable && "cursor-pointer hover:text-foreground",
-                    col.hideOnMobile && "hidden md:flex",
+                    "group/col relative",
+                    col.hideOnMobile && "hidden md:block",
                   )}
-                  onClick={() => col.sortable && col.id !== "check" && handleHeaderClick(col.id as TaskSortField)}
-                  disabled={!col.sortable}
+                  style={{
+                    width: col.flex ? undefined : getColumnWidth(col),
+                    flex: col.flex ? "1 1 0%" : "0 0 auto",
+                    minWidth: col.flex ? col.minWidth : undefined,
+                  }}
                 >
-                  {col.label}
-                  {col.sortable && col.id !== "check" && <SortIcon field={col.id as TaskSortField} />}
-                </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      "group flex w-full items-center gap-1 px-2 text-xs font-medium text-muted-foreground select-none",
+                      col.sortable && "cursor-pointer hover:text-foreground",
+                    )}
+                    onClick={() => col.sortable && col.id !== "check" && handleHeaderClick(col.id as TaskSortField)}
+                    disabled={!col.sortable}
+                  >
+                    {col.label}
+                    {col.sortable && col.id !== "check" && <SortIcon field={col.id as TaskSortField} />}
+                  </button>
+                  {col.resizable && (
+                    <div
+                      className="absolute -right-1.5 top-0 z-10 flex h-full w-3 cursor-col-resize items-center justify-center opacity-0 transition-opacity hover:opacity-100 group-hover/col:opacity-60"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleStartResize(col.id, e.clientX);
+                      }}
+                    >
+                      <div className="h-4 w-0.5 rounded-full bg-primary" />
+                    </div>
+                  )}
+                </div>
               ))}
 
               {/* Extra dynamic column headers */}
@@ -624,6 +990,79 @@ export function ProjectTaskList({
                   <span className="truncate">{col.label}</span>
                 </button>
               ))}
+
+              {/* P01 — Custom field column headers */}
+              {(customFields ?? []).map((field) => (
+                <button
+                  key={field.id}
+                  type="button"
+                  className="group flex items-center gap-1 px-2 text-xs font-medium text-muted-foreground select-none hidden md:flex cursor-pointer hover:text-foreground"
+                  style={{ width: 130, flex: "0 0 auto" }}
+                  onClick={() => removeExtraColumn(field.id)}
+                  title={`Remover "${field.name}"`}
+                >
+                  <CustomFieldIcon type={field.type} />
+                  <span className="truncate">{field.name}</span>
+                  <IconTrash className="size-3 opacity-0 group-hover:opacity-60 transition-opacity" />
+                </button>
+              ))}
+
+              {/* CF03 — Customize columns */}
+              <Sheet>
+                <SheetTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex h-6 w-8 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    title="Personalizar colunas"
+                  >
+                    <IconColumns className="size-3.5" />
+                  </button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[320px] sm:w-[360px]">
+                  <SheetHeader>
+                    <SheetTitle>Personalizar Colunas</SheetTitle>
+                  </SheetHeader>
+                  <div className="mt-4 space-y-1">
+                    {columnOrder.map((colId, idx) => {
+                      const col = COLUMNS.find((c) => c.id === colId);
+                      if (!col || col.id === "check") return null;
+                      const isHidden = hiddenColumns.has(colId);
+                      return (
+                        <div
+                          key={colId}
+                          className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-muted/50"
+                        >
+                          <div className="flex flex-col gap-0.5">
+                            <button
+                              type="button"
+                              onClick={() => moveColumnUp(colId)}
+                              className="flex size-4 items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:opacity-30"
+                              disabled={idx === 0}
+                            >
+                              <IconArrowUp className="size-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveColumnDown(colId)}
+                              className="flex size-4 items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:opacity-30"
+                              disabled={idx === columnOrder.length - 1}
+                            >
+                              <IconArrowDown className="size-3" />
+                            </button>
+                          </div>
+                          <span className="flex-1 text-sm">{col.label || col.id}</span>
+                          {col.id !== "title" && (
+                            <Switch
+                              checked={!isHidden}
+                              onCheckedChange={() => toggleColumnVisibility(colId)}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </SheetContent>
+              </Sheet>
 
               {/* "+" Add property column */}
               <Popover open={addMenuOpen} onOpenChange={setAddMenuOpen}>
@@ -699,78 +1138,120 @@ export function ProjectTaskList({
               </Popover>
             </div>
 
-            {/* Body */}
-            {processed.every((g) => g.items.length === 0) ? (
-              <p className="py-12 text-center text-sm text-muted-foreground">
-                Nenhuma tarefa encontrada
-              </p>
-            ) : (
-              processed.map((group) => {
-                const taskIds = group.items.map((t) => t.id);
-                const sectionObj = (sections ?? []).find((s) => s.title === group.label);
+            {/* Body — DndContext only wraps sortable rows, not the header */}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              modifiers={[restrictToVerticalAxis]}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              {processed.every((g) => g.items.length === 0) ? (
+                <p className="py-12 text-center text-sm text-muted-foreground">
+                  Nenhuma tarefa encontrada
+                </p>
+              ) : (
+                processed.map((group) => {
+                  const taskIds = group.items.map((t) => t.id);
+                  const sectionObj = (sections ?? []).find((s) => s.title === group.label);
 
-                return (
-                  <div key={group.label || "all"}>
-                    {group.label && (
-                      <SectionHeader
-                        label={group.label}
-                        color={group.color}
-                        count={group.items.length}
-                        sectionId={sectionObj?.id}
-                        isEditing={editingSectionId === sectionObj?.id}
-                        editValue={editingSectionTitle}
-                        onStartEdit={() => {
-                          if (sectionObj) {
-                            setEditingSectionId(sectionObj.id);
-                            setEditingSectionTitle(sectionObj.title);
-                          }
-                        }}
-                        onEditChange={setEditingSectionTitle}
-                        onEditConfirm={handleRenameSectionConfirm}
-                        onEditCancel={() => { setEditingSectionId(null); setEditingSectionTitle(""); }}
-                        onDelete={sectionObj ? () => handleDeleteSection(sectionObj.id) : undefined}
-                      />
-                    )}
-                    <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
-                      {group.items.map((task) => (
-                        <SortableTaskRow
-                          key={task.id}
-                          task={task}
-                          subtasks={subtasksMap.get(task.id) ?? []}
-                          onSelect={onSelectTask}
-                          extraColumns={extraColumns}
-                          sections={sections ?? undefined}
+                  return (
+                    <div key={group.label || "all"}>
+                      {group.label && (
+                        <SectionHeader
+                          label={group.label}
+                          color={group.color}
+                          count={group.items.length}
+                          sectionId={sectionObj?.id}
+                          isEditing={editingSectionId === sectionObj?.id}
+                          editValue={editingSectionTitle}
+                          onStartEdit={() => {
+                            if (sectionObj) {
+                              setEditingSectionId(sectionObj.id);
+                              setEditingSectionTitle(sectionObj.title);
+                            }
+                          }}
+                          onEditChange={setEditingSectionTitle}
+                          onEditConfirm={handleRenameSectionConfirm}
+                          onEditCancel={() => { setEditingSectionId(null); setEditingSectionTitle(""); }}
+                          onDelete={sectionObj ? () => handleDeleteSection(sectionObj.id) : undefined}
                         />
-                      ))}
-                    </SortableContext>
-                  </div>
-                );
-              })
-            )}
+                      )}
+                      <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
+                        {group.items.map((task) => (
+                          <SortableTaskRow
+                            key={task.id}
+                            task={task}
+                            subtasks={subtasksMap.get(task.id) ?? []}
+                            onSelect={onSelectTask}
+                            extraColumns={extraColumns}
+                            sections={sections ?? undefined}
+                            columnWidths={columnWidths}
+                            customFields={customFields}
+                            fieldValues={fieldValuesMap.get(task.id)}
+                            onFieldChange={handleFieldChange}
+                          />
+                        ))}
+                      </SortableContext>
+                    </div>
+                  );
+                })
+              )}
 
-            {/* Inline new task input */}
+              <DragOverlay>
+                {activeId ? (
+                  <div className="rounded-md border border-border bg-background px-3 py-2 text-sm shadow-xl scale-[1.02] opacity-90">
+                    {parents.find((t) => t.id === activeId)?.title ?? ""}
+                  </div>
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+
+            {/* Inline new task input (AI03: smart task when >50 chars) */}
             {newTaskTitle !== null && (
-              <div className="flex items-center gap-0 border-b border-border/30 px-3 py-2">
-                <div className="w-[28px]" />
-                <div className="w-[40px] flex items-center justify-center px-1">
-                  <IconPlus className="size-3.5 text-muted-foreground" />
+              <div className="border-b border-border/30 px-3 py-2">
+                <div className="flex items-center gap-0">
+                  <div className="w-[28px]" />
+                  <div className="w-[40px] flex items-center justify-center px-1">
+                    <IconPlus className="size-3.5 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 px-2">
+                    <input
+                      ref={newTaskRef}
+                      type="text"
+                      value={newTaskTitle}
+                      onChange={(e) => setNewTaskTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !smartTaskLoading) handleConfirmNewTask();
+                        if (e.key === "Escape") setNewTaskTitle(null);
+                      }}
+                      onBlur={() => {
+                        if (!smartTaskLoading) handleConfirmNewTask();
+                      }}
+                      placeholder="Nome da tarefa... (Enter para criar, Esc para cancelar)"
+                      className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                      disabled={createTask.isPending || smartTaskLoading}
+                    />
+                  </div>
                 </div>
-                <div className="flex-1 px-2">
-                  <input
-                    ref={newTaskRef}
-                    type="text"
-                    value={newTaskTitle}
-                    onChange={(e) => setNewTaskTitle(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleConfirmNewTask();
-                      if (e.key === "Escape") setNewTaskTitle(null);
-                    }}
-                    onBlur={handleConfirmNewTask}
-                    placeholder="Nome da tarefa... (Enter para criar, Esc para cancelar)"
-                    className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                    disabled={createTask.isPending}
-                  />
-                </div>
+                {(newTaskTitle?.trim().length ?? 0) > 50 && (
+                  <div className="flex items-center gap-1.5 pl-[68px] pt-1.5">
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-medium text-amber-700 hover:bg-amber-100 transition-colors dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400 dark:hover:bg-amber-900"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={handleSmartTask}
+                      disabled={smartTaskLoading}
+                    >
+                      {smartTaskLoading ? (
+                        <IconLoader className="size-3 animate-spin" />
+                      ) : (
+                        <IconSparkles className="size-3" />
+                      )}
+                      {smartTaskLoading ? "Detalhando..." : "Detalhar com IA"}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -794,40 +1275,8 @@ export function ProjectTaskList({
               </div>
             )}
           </div>
-
-          <DragOverlay>
-            {activeId ? (
-              <div className="rounded-md border border-border bg-background px-3 py-2 shadow-lg text-sm opacity-80">
-                {parents.find((t) => t.id === activeId)?.title ?? ""}
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
       )}
 
-      {/* Bottom action buttons */}
-      <div className="flex items-center gap-2">
-        {newTaskTitle === null && (
-          <button
-            type="button"
-            onClick={handleAddTaskInline}
-            className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
-          >
-            <IconPlus className="size-3.5" />
-            Adicionar tarefa
-          </button>
-        )}
-        {newSectionTitle === null && (
-          <button
-            type="button"
-            onClick={handleAddSection}
-            className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
-          >
-            <IconPlus className="size-3.5" />
-            Adicionar seção
-          </button>
-        )}
-      </div>
     </div>
   );
 }
@@ -840,12 +1289,20 @@ function SortableTaskRow({
   onSelect,
   extraColumns,
   sections,
+  columnWidths,
+  customFields,
+  fieldValues,
+  onFieldChange,
 }: {
   task: TaskRow;
   subtasks: TaskRow[];
   onSelect: (id: string) => void;
   extraColumns: ExtraColumn[];
   sections?: { id: string; title: string; color: string | null }[];
+  columnWidths?: Record<string, number>;
+  customFields?: CustomField[];
+  fieldValues?: Map<string, unknown>;
+  onFieldChange?: (taskId: string, fieldId: string, value: unknown) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
@@ -873,6 +1330,10 @@ function SortableTaskRow({
           onSelect={onSelect}
           extraColumns={extraColumns}
           sections={sections}
+          columnWidths={columnWidths}
+          customFields={customFields}
+          fieldValues={fieldValues}
+          onFieldChange={onFieldChange}
         />
       </div>
     </div>

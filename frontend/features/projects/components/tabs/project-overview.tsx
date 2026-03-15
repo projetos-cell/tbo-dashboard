@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import {
   IconPlayerPlay,
   IconAlertTriangle,
@@ -16,6 +16,8 @@ import {
   IconPlus,
   IconPencil,
   IconCheck,
+  IconLoader,
+  IconArrowRight,
 } from "@tabler/icons-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -153,15 +155,61 @@ export function ProjectOverview({ projectId, members = [], onOpenMembers }: Proj
     });
   }, [members, profiles]);
 
-  // Recent activity: combine overdue + in progress + upcoming
+  // Recent activity: combine overdue + in progress + upcoming (deduplicate by id)
   const recentActivity = useMemo(() => {
-    const all = [
-      ...keyTasks.overdue.map((t) => ({ ...t, _variant: "overdue" as const })),
-      ...keyTasks.inProgress.map((t) => ({ ...t, _variant: "progress" as const })),
-      ...keyTasks.upcoming.map((t) => ({ ...t, _variant: "upcoming" as const })),
-    ];
+    const seen = new Set<string>();
+    const all: Array<typeof keyTasks.overdue[number] & { _variant: "overdue" | "progress" | "upcoming" }> = [];
+    for (const t of keyTasks.overdue) {
+      if (!seen.has(t.id)) { seen.add(t.id); all.push({ ...t, _variant: "overdue" }); }
+    }
+    for (const t of keyTasks.inProgress) {
+      if (!seen.has(t.id)) { seen.add(t.id); all.push({ ...t, _variant: "progress" }); }
+    }
+    for (const t of keyTasks.upcoming) {
+      if (!seen.has(t.id)) { seen.add(t.id); all.push({ ...t, _variant: "upcoming" }); }
+    }
     return all.slice(0, 8);
   }, [keyTasks]);
+
+  // AI summary state (AI02)
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
+
+  const handleGenerateSummary = useCallback(async () => {
+    if (!project || !allTasks) return;
+    setAiSummaryLoading(true);
+    try {
+      const now = new Date();
+      const nowStr = now.toISOString().split("T")[0];
+      const res = await fetch("/api/ai/project-summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectName: project.name,
+          context: {
+            totalTasks: stats?.totalTasks ?? 0,
+            completedTasks: stats?.completedTasks ?? 0,
+            overdueTasks: stats?.overdueTasks ?? 0,
+            inProgressTasks: stats?.inProgressTasks ?? 0,
+            recentTasks: allTasks.slice(0, 15).map((t) => ({
+              title: t.title,
+              status: t.status,
+              assignee: t.assignee_name,
+              due_date: t.due_date,
+            })),
+          },
+        }),
+      });
+      const data = (await res.json()) as { summary?: string; error?: string };
+      if (data.summary) {
+        setAiSummary(data.summary);
+      }
+    } catch {
+      // silent
+    } finally {
+      setAiSummaryLoading(false);
+    }
+  }, [project, allTasks, stats]);
 
   // Resource links (placeholder — future: stored in Supabase)
   const [resources] = useState([
@@ -526,28 +574,56 @@ export function ProjectOverview({ projectId, members = [], onOpenMembers }: Proj
             </CardContent>
           </Card>
 
-          {/* Resumo do Projeto por IA */}
+          {/* Resumo do Projeto por IA (AI02) */}
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <IconSparkles className="size-4 text-muted-foreground" />
+                  <IconSparkles className="size-4 text-amber-500" />
                   Resumo do Projeto por IA
                 </CardTitle>
                 <Button
                   variant="outline"
                   size="sm"
                   className="h-7 gap-1.5 text-xs"
+                  onClick={handleGenerateSummary}
+                  disabled={aiSummaryLoading}
                 >
-                  <IconSparkles className="size-3" />
-                  Gerar com IA
+                  {aiSummaryLoading ? (
+                    <IconLoader className="size-3 animate-spin" />
+                  ) : (
+                    <IconSparkles className="size-3" />
+                  )}
+                  {aiSummaryLoading ? "Gerando..." : aiSummary ? "Regenerar" : "Gerar com IA"}
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground italic">
-                O resumo inteligente será gerado automaticamente com base no progresso e atividades do projeto.
-              </p>
+              {aiSummary ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                    {aiSummary}
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1.5 text-xs text-muted-foreground"
+                    onClick={() => {
+                      const event = new CustomEvent("use-ai-summary-as-update", {
+                        detail: { summary: aiSummary },
+                      });
+                      window.dispatchEvent(event);
+                    }}
+                  >
+                    <IconArrowRight className="size-3" />
+                    Usar como Status Update
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">
+                  Clique em &quot;Gerar com IA&quot; para criar um resumo estratégico com base no progresso e atividades do projeto.
+                </p>
+              )}
             </CardContent>
           </Card>
 

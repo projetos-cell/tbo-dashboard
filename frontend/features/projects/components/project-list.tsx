@@ -3,15 +3,21 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { IconExternalLink, IconTrash } from "@tabler/icons-react";
+import { IconExternalLink, IconTrash, IconChevronDown } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
-import { useDeleteProject } from "@/features/projects/hooks/use-projects";
+import { useDeleteProject, useUpdateProject } from "@/features/projects/hooks/use-projects";
 import { useTablePreferences } from "@/hooks/use-table-preferences";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { DataTable } from "@/components/ui/data-table";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { PROJECT_STATUS, type ProjectStatusKey } from "@/lib/constants";
+import { PROJECT_STATUS, PROJECT_PRIORITY, type ProjectStatusKey, type ProjectPriorityKey } from "@/lib/constants";
 import type { ColumnDef } from "@/lib/column-types";
 import type { Database } from "@/lib/supabase/types";
 import { useMemo, useCallback, useState } from "react";
@@ -26,6 +32,7 @@ interface ProjectListProps {
 
 export function ProjectList({ projects }: ProjectListProps) {
   const deleteProject = useDeleteProject();
+  const updateProject = useUpdateProject();
   const { toast } = useToast();
   const { columnPrefs, sortPref, saveColumns, saveSort, reset } = useTablePreferences(TABLE_ID);
   const [pendingDelete, setPendingDelete] = useState<Project | null>(null);
@@ -104,6 +111,79 @@ export function ProjectList({ projects }: ProjectListProps) {
               {status.label}
             </Badge>
           ) : null;
+        },
+      },
+      {
+        id: "priority",
+        label: "Prioridade",
+        width: "w-[130px]",
+        sortable: true,
+        sortType: "string",
+        sortAccessor: (row) => {
+          const key = row.priority as ProjectPriorityKey | null;
+          return key && PROJECT_PRIORITY[key] ? String(PROJECT_PRIORITY[key].sort) : "9";
+        },
+        cellRender: (row) => {
+          const key = row.priority as ProjectPriorityKey | null;
+          const cfg = key ? PROJECT_PRIORITY[key] : null;
+
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="focus:outline-none"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {cfg ? (
+                    <Badge
+                      variant="secondary"
+                      className="cursor-pointer select-none gap-1.5 text-xs hover:opacity-80 transition-opacity"
+                      style={{ backgroundColor: cfg.bg, color: cfg.color }}
+                    >
+                      <span
+                        className="size-1.5 rounded-full shrink-0"
+                        style={{ backgroundColor: cfg.color }}
+                      />
+                      {cfg.label}
+                      <IconChevronDown className="size-3 opacity-50" />
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground text-xs cursor-pointer hover:text-foreground transition-colors">
+                      —
+                    </span>
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-40">
+                {Object.entries(PROJECT_PRIORITY).map(([k, c]) => (
+                  <DropdownMenuItem
+                    key={k}
+                    onClick={() => {
+                      updateProject.mutate({ id: row.id, updates: { priority: k } as never });
+                    }}
+                    className="gap-2"
+                  >
+                    <div
+                      className="size-2 rounded-full shrink-0"
+                      style={{ backgroundColor: c.color }}
+                    />
+                    {c.label}
+                  </DropdownMenuItem>
+                ))}
+                {cfg && (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      updateProject.mutate({ id: row.id, updates: { priority: null } as never });
+                    }}
+                    className="text-muted-foreground"
+                  >
+                    Remover
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          );
         },
       },
       {
@@ -189,7 +269,7 @@ export function ProjectList({ projects }: ProjectListProps) {
         ),
       },
     ],
-    [deleteProject.isPending]
+    [deleteProject.isPending, updateProject]
   );
 
   return (

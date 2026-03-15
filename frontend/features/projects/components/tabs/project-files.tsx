@@ -13,6 +13,7 @@ import {
   IconTrash,
   IconLayoutGrid,
   IconList,
+  IconEye,
 } from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ import {
   useDeleteAttachment,
 } from "@/hooks/use-attachments";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { FileProofingViewer } from "@/features/projects/components/file-proofing-viewer";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
@@ -60,6 +62,8 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
   const deleteAttachment = useDeleteAttachment();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [pendingDelete, setPendingDelete] = useState<Attachment | null>(null);
+  const [proofingFile, setProofingFile] = useState<Attachment | null>(null);
+  const [proofingUrl, setProofingUrl] = useState<string | null>(null);
 
   const handleUpload = async (files: File[]) => {
     for (const file of files) {
@@ -74,6 +78,17 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
       .createSignedUrl(attachment.file_path, 60);
     if (data?.signedUrl) {
       window.open(data.signedUrl, "_blank");
+    }
+  };
+
+  const handleOpenProofing = async (att: Attachment) => {
+    const supabase = createClient();
+    const { data } = await supabase.storage
+      .from("project-attachments")
+      .createSignedUrl(att.file_path, 300);
+    if (data?.signedUrl) {
+      setProofingFile(att);
+      setProofingUrl(data.signedUrl);
     }
   };
 
@@ -159,6 +174,17 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
                           ` • ${format(new Date(att.created_at), "dd MMM", { locale: ptBR })}`}
                       </p>
                       <div className="flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {isImage && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs"
+                            onClick={() => handleOpenProofing(att)}
+                          >
+                            <IconEye className="size-3 mr-1" />
+                            Revisar
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant="outline"
@@ -250,6 +276,22 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
         confirmLabel="Excluir"
         onConfirm={handleDeleteConfirm}
       />
+
+      {/* C04: Proofing viewer */}
+      {proofingFile && proofingUrl && (
+        <FileProofingViewer
+          fileId={proofingFile.id}
+          fileName={proofingFile.file_name}
+          imageUrl={proofingUrl}
+          open
+          onOpenChange={(open) => {
+            if (!open) {
+              setProofingFile(null);
+              setProofingUrl(null);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,9 +1,9 @@
 "use client";
 
-import { IconLayoutKanban, IconList, IconTable } from "@tabler/icons-react";
+import { IconLayoutKanban, IconList, IconTable, IconLayoutGrid } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 
-export type ViewMode = "board" | "list" | "table";
+export type ViewMode = "board" | "list" | "table" | "gallery";
 
 interface ViewToggleProps {
   value: ViewMode;
@@ -14,6 +14,7 @@ const VIEWS = [
   { value: "board" as const, icon: IconLayoutKanban, label: "Board" },
   { value: "list" as const, icon: IconList, label: "Lista" },
   { value: "table" as const, icon: IconTable, label: "Tabela" },
+  { value: "gallery" as const, icon: IconLayoutGrid, label: "Galeria" },
 ] as const;
 
 export function ViewToggle({ value, onChange }: ViewToggleProps) {

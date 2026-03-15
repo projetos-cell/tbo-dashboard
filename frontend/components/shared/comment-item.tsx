@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { RichTextEditor } from "@/components/shared/rich-text-editor";
 import { useCreateComment, useUpdateComment, useDeleteComment } from "@/hooks/use-comments";
 import { LikeButton } from "@/features/tasks/components/like-button";
+import { CommentReactions } from "@/features/tasks/components/comment-reactions";
 import type { Database } from "@/lib/supabase/types";
 import { CommentComposer, type Comment, getInitials } from "./comment-thread-parts";
 
@@ -123,14 +124,17 @@ export function CommentItem({
         )}
 
         {!isEditing && (
-          <div className="mt-1 flex items-center gap-2">
-            <button
-              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900"
-              onClick={() => setShowReply(!showReply)}
-            >
-              <IconCornerDownRight className="size-3" /> Responder
-            </button>
-            <LikeButton targetType="comment" targetId={comment.id} size="xs" />
+          <div className="mt-1.5 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <button
+                className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900"
+                onClick={() => setShowReply(!showReply)}
+              >
+                <IconCornerDownRight className="size-3" /> Responder
+              </button>
+              <LikeButton targetType="comment" targetId={comment.id} size="xs" />
+            </div>
+            <CommentReactions commentId={comment.id} />
           </div>
         )}
 

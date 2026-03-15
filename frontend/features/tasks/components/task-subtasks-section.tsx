@@ -16,9 +16,13 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
+import { IconSparkles, IconCheck, IconX, IconLoader } from "@tabler/icons-react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import {
   useSubtasks,
+  useCreateTask,
   useUpdateTask,
   useDeleteTask,
 } from "@/features/tasks/hooks/use-tasks";
@@ -47,7 +51,12 @@ export function TaskSubtasksSection({ task, onOpenTask }: TaskSubtasksSectionPro
   const deleteTask = useDeleteTask();
   const tenantId = useAuthStore((s) => s.tenantId);
 
+  const createTask = useCreateTask();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [aiSelected, setAiSelected] = useState<Set<number>>(new Set());
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiCreating, setAiCreating] = useState(false);
 
   // Bloqueio de profundidade >1: se esta tarefa já é subtarefa, não permite criar sub-subtarefa
   const isSubtask = !!task.parent_id;
@@ -108,6 +117,59 @@ export function TaskSubtasksSection({ task, onOpenTask }: TaskSubtasksSectionPro
     [subtasks, queryClient, task.id, supabase, toast]
   );
 
+  const handleSuggestSubtasks = useCallback(async () => {
+    setAiLoading(true);
+    setAiSuggestions([]);
+    setAiSelected(new Set());
+    try {
+      const res = await fetch("/api/ai/suggest-subtasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: task.title,
+          description: task.description ?? undefined,
+        }),
+      });
+      const data = (await res.json()) as { subtasks?: string[]; error?: string };
+      if (data.subtasks && data.subtasks.length > 0) {
+        setAiSuggestions(data.subtasks);
+        setAiSelected(new Set(data.subtasks.map((_, i) => i)));
+      } else {
+        toast({ title: data.error ?? "Nenhuma sugestao gerada", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Erro ao gerar sugestoes", variant: "destructive" });
+    } finally {
+      setAiLoading(false);
+    }
+  }, [task.title, task.description, toast]);
+
+  const handleAcceptSuggestions = useCallback(async () => {
+    if (!tenantId) return;
+    setAiCreating(true);
+    const selected = aiSuggestions.filter((_, i) => aiSelected.has(i));
+    try {
+      for (const title of selected) {
+        await createTask.mutateAsync({
+          title,
+          parent_id: task.id,
+          tenant_id: tenantId,
+          status: "pendente",
+          priority: task.priority ?? "media",
+          project_id: task.project_id,
+          is_completed: false,
+        } as never);
+      }
+      toast({ title: `${selected.length} subtarefas criadas com IA` });
+      setAiSuggestions([]);
+      setAiSelected(new Set());
+    } catch {
+      toast({ title: "Erro ao criar subtarefas", variant: "destructive" });
+    } finally {
+      setAiCreating(false);
+    }
+  }, [aiSuggestions, aiSelected, tenantId, task.id, task.priority, task.project_id, createTask, toast]);
+
   const completedCount = subtasks.filter((s) => s.is_completed).length;
 
   return (
@@ -160,6 +222,78 @@ export function TaskSubtasksSection({ task, onOpenTask }: TaskSubtasksSectionPro
       {/* Inline create — bloqueado se é subtarefa (profundidade >1) */}
       {!isSubtask && tenantId && (
         <TaskSubtaskAddForm task={task} tenantId={tenantId} />
+      )}
+
+      {/* AI Suggest subtasks (AI01) */}
+      {!isSubtask && tenantId && (
+        <div className="pt-1">
+          {aiSuggestions.length === 0 ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+              onClick={handleSuggestSubtasks}
+              disabled={aiLoading}
+            >
+              {aiLoading ? (
+                <IconLoader className="size-3.5 animate-spin" />
+              ) : (
+                <IconSparkles className="size-3.5" />
+              )}
+              {aiLoading ? "Gerando sugestões..." : "Sugerir subtarefas com IA"}
+            </Button>
+          ) : (
+            <div className="rounded-md border border-border/50 bg-muted/30 p-3 space-y-2">
+              <p className="text-xs font-medium flex items-center gap-1.5">
+                <IconSparkles className="size-3.5 text-amber-500" />
+                Subtarefas sugeridas
+              </p>
+              {aiSuggestions.map((suggestion, i) => (
+                <label key={i} className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={aiSelected.has(i)}
+                    onCheckedChange={(checked) => {
+                      setAiSelected((prev) => {
+                        const next = new Set(prev);
+                        if (checked) next.add(i);
+                        else next.delete(i);
+                        return next;
+                      });
+                    }}
+                  />
+                  <span className="text-xs">{suggestion}</span>
+                </label>
+              ))}
+              <div className="flex items-center gap-2 pt-1">
+                <Button
+                  size="sm"
+                  className="h-7 gap-1.5 text-xs"
+                  onClick={handleAcceptSuggestions}
+                  disabled={aiSelected.size === 0 || aiCreating}
+                >
+                  {aiCreating ? (
+                    <IconLoader className="size-3.5 animate-spin" />
+                  ) : (
+                    <IconCheck className="size-3.5" />
+                  )}
+                  {aiCreating ? "Criando..." : `Criar ${aiSelected.size} selecionadas`}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 text-xs"
+                  onClick={() => {
+                    setAiSuggestions([]);
+                    setAiSelected(new Set());
+                  }}
+                >
+                  <IconX className="size-3.5" />
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

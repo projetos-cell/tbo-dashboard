@@ -4,11 +4,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
 import { logAuditTrail } from "@/lib/audit-trail";
+import { useToast } from "@/hooks/use-toast";
 import { getActorName } from "@/services/alerts";
 import {
   notifyTaskAssigned,
   notifyTaskUpdated,
 } from "@/services/notification-triggers";
+import { TASK_STATUS, type TaskStatusKey } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 import {
   getTasks,
@@ -65,6 +67,7 @@ export function useSubtasks(parentId: string | undefined) {
 export function useCreateTask() {
   const supabase = createClient();
   const queryClient = useQueryClient();
+  const { toast: toastCreate } = useToast();
 
   type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 
@@ -74,27 +77,40 @@ export function useCreateTask() {
 
     onMutate: async (newTask) => {
       await queryClient.cancelQueries({ queryKey: ["tasks"] });
+      await queryClient.cancelQueries({ queryKey: ["project-tasks"] });
       const previousTasks = queryClient.getQueriesData<TaskRow[]>({ queryKey: ["tasks"] });
+      const previousProjectTasks = queryClient.getQueriesData<TaskRow[]>({ queryKey: ["project-tasks"] });
       const tempId = `temp-${Date.now()}`;
+      const tempRow = {
+        ...newTask,
+        id: tempId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        is_completed: false,
+        order_index: 9999,
+      } as unknown as TaskRow;
+
       queryClient.setQueriesData<TaskRow[]>(
         { queryKey: ["tasks"] },
-        (old) =>
-          old
-            ? [
-                ...old,
-                {
-                  ...newTask,
-                  id: tempId,
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString(),
-                } as unknown as TaskRow,
-              ]
-            : old
+        (old) => (old ? [...old, tempRow] : [tempRow]),
       );
-      return { previousTasks };
+
+      // Optimistic update on project-tasks so task appears immediately in project view
+      if (newTask.project_id) {
+        queryClient.setQueriesData<TaskRow[]>(
+          { queryKey: ["project-tasks"] },
+          (old) => (old ? [...old, tempRow] : [tempRow]),
+        );
+      }
+
+      return { previousTasks, previousProjectTasks };
     },
 
     onSuccess: (createdTask, variables) => {
+      toastCreate({
+        title: `Tarefa criada — "${createdTask.title}"`,
+      });
+
       // Auto-add criador como colaborador
       if (createdTask.created_by) {
         addCollaborator(supabase, createdTask.id, createdTask.created_by).catch(
@@ -116,13 +132,24 @@ export function useCreateTask() {
           queryClient.setQueryData(queryKey, data);
         }
       }
+      if (context?.previousProjectTasks) {
+        for (const [queryKey, data] of context.previousProjectTasks) {
+          queryClient.setQueryData(queryKey, data);
+        }
+      }
+      toastCreate({
+        title: "Erro ao criar tarefa",
+        description: "Tente novamente.",
+        variant: "destructive",
+      });
     },
 
     onSettled: (createdTask, _err, variables) => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      // Invalidate all project-tasks caches (broad match ensures tenantId variant is hit)
+      queryClient.invalidateQueries({ queryKey: ["project-tasks"] });
       if (variables.project_id) {
-        queryClient.invalidateQueries({ queryKey: ["project-tasks", variables.project_id] });
         queryClient.invalidateQueries({ queryKey: ["project-task-stats", variables.project_id] });
       }
       // Invalidar cache de task-projects para refletir vínculo automático
@@ -136,6 +163,7 @@ export function useCreateTask() {
 export function useUpdateTask() {
   const supabase = createClient();
   const queryClient = useQueryClient();
+  const { toast: toastUpdate } = useToast();
 
   type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 
@@ -204,25 +232,54 @@ export function useUpdateTask() {
       if (context?.previousDetail) {
         queryClient.setQueryData(["task-detail", variables.id], context.previousDetail);
       }
+      toastUpdate({
+        title: "Erro ao atualizar tarefa",
+        description: "As alterações não foram salvas. Tente novamente.",
+        variant: "destructive",
+      });
     },
 
     onSuccess: async (updatedTask, variables) => {
+      // UX06 — contextual toast based on what changed
+      if (variables.updates.status) {
+        const statusLabel = TASK_STATUS[variables.updates.status as TaskStatusKey]?.label ?? variables.updates.status;
+        toastUpdate({ title: `Tarefa movida para ${statusLabel}` });
+      } else if (variables.updates.assignee_name) {
+        toastUpdate({ title: `Tarefa atribuída a ${variables.updates.assignee_name}` });
+      } else if (variables.updates.is_completed === true) {
+        toastUpdate({ title: `Tarefa concluída — "${updatedTask?.title ?? "Tarefa"}"` });
+      } else if (variables.updates.priority) {
+        toastUpdate({ title: "Prioridade atualizada" });
+      } else if (variables.updates.due_date !== undefined) {
+        toastUpdate({ title: "Prazo atualizado" });
+      }
+      // Don't toast for minor field changes (description, etc.) to avoid noise
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["project-tasks"] });
       queryClient.invalidateQueries({ queryKey: ["task"] });
       queryClient.invalidateQueries({ queryKey: ["task-detail"] });
       queryClient.invalidateQueries({ queryKey: ["my-tasks"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["task-history", variables.id] });
 
       const userId = useAuthStore.getState().user?.id ?? "unknown";
       const tenantId = useAuthStore.getState().tenantId;
       const action = variables.updates.status ? "status_change" : "update";
+
+      // Build before state from previousTask for visual diff
+      const beforeState: Record<string, unknown> = {};
+      if (variables.previousTask) {
+        for (const key of Object.keys(variables.updates)) {
+          beforeState[key] = (variables.previousTask as Record<string, unknown>)[key];
+        }
+      }
 
       logAuditTrail({
         userId,
         action,
         table: "tasks",
         recordId: variables.id,
+        before: Object.keys(beforeState).length > 0 ? beforeState : undefined,
         after: variables.updates as Record<string, unknown>,
       });
 
@@ -272,6 +329,7 @@ export function useUpdateTask() {
 export function useDeleteTask() {
   const supabase = createClient();
   const queryClient = useQueryClient();
+  const { toast: toastDelete } = useToast();
 
   type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 
@@ -294,9 +352,16 @@ export function useDeleteTask() {
           queryClient.setQueryData(queryKey, data);
         }
       }
+      toastDelete({
+        title: "Erro ao excluir tarefa",
+        description: "A tarefa não foi removida. Tente novamente.",
+        variant: "destructive",
+      });
     },
 
     onSuccess: (_data, id) => {
+      toastDelete({ title: "Tarefa excluída" });
+
       logAuditTrail({
         userId: useAuthStore.getState().user?.id ?? "unknown",
         action: "delete",

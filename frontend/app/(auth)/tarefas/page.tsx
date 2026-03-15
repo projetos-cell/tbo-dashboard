@@ -34,7 +34,9 @@ import {
   IconLayoutKanban,
   IconList,
   IconCalendar,
+  IconCalendarDue,
 } from "@tabler/icons-react";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
@@ -203,6 +205,50 @@ function MinhasTarefasContent() {
           </Button>
         </div>
       </div>
+
+      {/* Quick group chips (V06) */}
+      {viewMode === "list" && (
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => handleToolbarUpdate({ group_by: "due_date", sort_by: "due_date", sort_direction: "asc" })}
+            className={cn(
+              "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+              groupBy === "due_date"
+                ? "border-primary/30 bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
+          >
+            <IconCalendarDue className="size-3.5" />
+            Por prazo
+          </button>
+          <button
+            type="button"
+            onClick={() => handleToolbarUpdate({ group_by: "section", sort_by: "manual", sort_direction: "asc" })}
+            className={cn(
+              "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+              groupBy === "section"
+                ? "border-primary/30 bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
+          >
+            <IconList className="size-3.5" />
+            Por seção
+          </button>
+          <button
+            type="button"
+            onClick={() => handleToolbarUpdate({ group_by: "project_id", sort_by: "due_date", sort_direction: "asc" })}
+            className={cn(
+              "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+              groupBy === "project_id"
+                ? "border-primary/30 bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
+          >
+            Por projeto
+          </button>
+        </div>
+      )}
 
       {/* Toolbar — Sort / Filter / Group / Columns */}
       {viewMode === "list" && (

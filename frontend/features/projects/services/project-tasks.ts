@@ -4,7 +4,7 @@ import type { Database } from "@/lib/supabase/types";
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 
 const TASK_COLS =
-  "id,tenant_id,project_id,section_id,parent_id,title,description,status,assignee_id,assignee_name,start_date,due_date,completed_at,priority,order_index,is_completed,legacy_demand_id,created_by,created_at,updated_at";
+  "id,tenant_id,project_id,section_id,parent_id,title,description,status,assignee_id,assignee_name,start_date,due_date,completed_at,priority,order_index,is_completed,legacy_demand_id,created_by,reminder_days,created_at,updated_at";
 
 /** Fetch ALL os_tasks for a project (parents + subtasks) in one query. */
 export async function getProjectTasks(
@@ -28,7 +28,7 @@ export async function getProjectSections(
 ) {
   const { data, error } = await supabase
     .from("os_sections")
-    .select("id,title,color,order_index,project_id,tenant_id,created_at,updated_at")
+    .select("id,title,color,order_index,project_id,tenant_id,default_status,default_priority,default_assignee_id,created_at,updated_at")
     .eq("project_id", projectId)
     .order("order_index", { ascending: true });
 
@@ -63,7 +63,7 @@ export async function createProjectSection(
 export async function updateProjectSection(
   supabase: SupabaseClient<Database>,
   id: string,
-  updates: Partial<Pick<SectionRow, "title" | "color" | "order_index">>,
+  updates: Partial<Pick<SectionRow, "title" | "color" | "order_index" | "default_status" | "default_priority" | "default_assignee_id">>,
 ): Promise<SectionRow> {
   const { data, error } = await supabase
     .from("os_sections")
@@ -112,10 +112,32 @@ export async function moveTaskToSection(
   taskId: string,
   sectionId: string | null,
   orderIndex: number,
+  /** A02: Section defaults to apply when moving task */
+  sectionDefaults?: {
+    default_status?: string | null;
+    default_priority?: string | null;
+    default_assignee_id?: string | null;
+  },
 ): Promise<void> {
+  const updates: Record<string, unknown> = {
+    section_id: sectionId,
+    order_index: orderIndex,
+  };
+
+  // A02: Apply section defaults if provided
+  if (sectionDefaults?.default_status) {
+    updates.status = sectionDefaults.default_status;
+  }
+  if (sectionDefaults?.default_priority) {
+    updates.priority = sectionDefaults.default_priority;
+  }
+  if (sectionDefaults?.default_assignee_id) {
+    updates.assignee_id = sectionDefaults.default_assignee_id;
+  }
+
   const { error } = await supabase
     .from("os_tasks")
-    .update({ section_id: sectionId, order_index: orderIndex } as never)
+    .update(updates as never)
     .eq("id", taskId);
 
   if (error) throw error;

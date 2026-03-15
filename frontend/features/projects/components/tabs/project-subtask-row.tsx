@@ -1,10 +1,18 @@
 "use client";
 
-import { IconCircleCheck, IconCircle, IconUser, IconCalendar } from "@tabler/icons-react";
+import { IconCircleCheck, IconCircle, IconUser, IconCalendar, IconArrowUp, IconDotsVertical } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { format, isPast, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useUpdateTask } from "@/features/tasks/hooks/use-tasks";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/lib/supabase/types";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
@@ -16,6 +24,8 @@ interface ProjectSubtaskRowProps {
 
 export function ProjectSubtaskRow({ subtask, onSelect }: ProjectSubtaskRowProps) {
   const updateTask = useUpdateTask();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const done = !!subtask.is_completed;
 
   function toggleComplete() {
@@ -26,6 +36,26 @@ export function ProjectSubtaskRow({ subtask, onSelect }: ProjectSubtaskRowProps)
         status: !done ? "concluida" : "pendente",
       },
     });
+  }
+
+  function promoteToTask() {
+    updateTask.mutate(
+      {
+        id: subtask.id,
+        updates: { parent_id: null },
+      },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ["project-tasks"] });
+          queryClient.invalidateQueries({ queryKey: ["subtasks"] });
+          queryClient.invalidateQueries({ queryKey: ["tasks"] });
+          toast({
+            title: "Subtarefa promovida",
+            description: `"${subtask.title}" agora é uma tarefa principal.`,
+          });
+        },
+      },
+    );
   }
 
   const overdue =
@@ -79,6 +109,23 @@ export function ProjectSubtaskRow({ subtask, onSelect }: ProjectSubtaskRowProps)
           {format(new Date(subtask.due_date), "dd MMM", { locale: ptBR })}
         </span>
       )}
+
+      {/* T06 — Context menu */}
+      <div className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button type="button" className="rounded p-0.5 hover:bg-muted">
+              <IconDotsVertical className="size-3.5 text-muted-foreground" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onClick={promoteToTask} className="gap-2">
+              <IconArrowUp className="size-3.5" />
+              Tornar tarefa principal
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
   );
 }

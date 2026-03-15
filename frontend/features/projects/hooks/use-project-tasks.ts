@@ -125,6 +125,9 @@ export function useCreateProjectSection(projectId: string | undefined) {
           title: newSection.title,
           color: newSection.color ?? null,
           order_index: newSection.order_index,
+          default_assignee_id: null,
+          default_priority: null,
+          default_status: null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
@@ -150,7 +153,7 @@ export function useUpdateProjectSection(projectId: string | undefined) {
   const tenantId = useAuthStore((s) => s.tenantId);
 
   return useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<Pick<SectionRow, "title" | "color" | "order_index">> }) =>
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Pick<SectionRow, "title" | "color" | "order_index" | "default_status" | "default_priority" | "default_assignee_id">> }) =>
       updateProjectSection(supabase, id, updates),
 
     onMutate: async ({ id, updates }) => {
@@ -253,8 +256,17 @@ export function useMoveProjectTask(projectId: string | undefined) {
   const tenantId = useAuthStore((s) => s.tenantId);
 
   return useMutation({
-    mutationFn: (params: { taskId: string; sectionId: string | null; orderIndex: number }) =>
-      moveTaskToSection(supabase, params.taskId, params.sectionId, params.orderIndex),
+    mutationFn: (params: {
+      taskId: string;
+      sectionId: string | null;
+      orderIndex: number;
+      sectionDefaults?: {
+        default_status?: string | null;
+        default_priority?: string | null;
+        default_assignee_id?: string | null;
+      };
+    }) =>
+      moveTaskToSection(supabase, params.taskId, params.sectionId, params.orderIndex, params.sectionDefaults),
 
     onMutate: async (params) => {
       const key = ["project-tasks", projectId, tenantId];
@@ -262,11 +274,21 @@ export function useMoveProjectTask(projectId: string | undefined) {
       const previous = queryClient.getQueryData<TaskRow[]>(key);
 
       queryClient.setQueryData<TaskRow[]>(key, (old) =>
-        old?.map((t) =>
-          t.id === params.taskId
-            ? { ...t, section_id: params.sectionId, order_index: params.orderIndex }
-            : t,
-        ),
+        old?.map((t) => {
+          if (t.id !== params.taskId) return t;
+          const updated = { ...t, section_id: params.sectionId, order_index: params.orderIndex };
+          // A02: Optimistic apply section defaults
+          if (params.sectionDefaults?.default_status) {
+            (updated as Record<string, unknown>).status = params.sectionDefaults.default_status;
+          }
+          if (params.sectionDefaults?.default_priority) {
+            (updated as Record<string, unknown>).priority = params.sectionDefaults.default_priority;
+          }
+          if (params.sectionDefaults?.default_assignee_id) {
+            (updated as Record<string, unknown>).assignee_id = params.sectionDefaults.default_assignee_id;
+          }
+          return updated;
+        }),
       );
       return { previous };
     },

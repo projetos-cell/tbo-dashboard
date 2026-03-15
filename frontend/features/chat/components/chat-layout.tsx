@@ -70,6 +70,8 @@ export function ChatLayout() {
   const setUnreadCounts = useChatStore((s) => s.setUnreadCounts);
 
   const [showConversation, setShowConversation] = useState(false);
+  // #5 — Capture unread count snapshot when channel opens (before markAsRead clears it)
+  const [initialUnreadCount, setInitialUnreadCount] = useState(0);
 
   // Keyboard shortcut: Ctrl/Cmd+F → search, Escape → close
   const handleSearchKeyboard = useCallback(
@@ -187,7 +189,12 @@ export function ChatLayout() {
   }, [selectedChannel, userId, profileMap]);
 
   // Handlers
-  function handleSelectChannel(id: string) { setSelectedChannelId(id); setShowConversation(true); }
+  function handleSelectChannel(id: string) {
+    const currentUnread = useChatStore.getState().unreadCounts[id] ?? 0;
+    setInitialUnreadCount(currentUnread);
+    setSelectedChannelId(id);
+    setShowConversation(true);
+  }
   function handleArchiveChannel(id: string) { archiveChannelMut.mutate(id); if (selectedChannelId === id) setSelectedChannelId(null); }
   function handleDeleteChannel(id: string) { deleteChannelMut.mutate(id); if (selectedChannelId === id) setSelectedChannelId(null); }
   function handleUnarchiveChannel(id: string) { unarchiveChannelMut.mutate(id); }
@@ -282,6 +289,7 @@ export function ChatLayout() {
                 onTogglePin={canPin ? handleTogglePin : undefined}
                 onReact={handleReact}
                 canDeleteOthers={canDeleteOthers}
+                initialUnreadCount={initialUnreadCount}
               />
             )}
             <TypingIndicator channelId={selectedChannelId} />

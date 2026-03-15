@@ -5,6 +5,7 @@ import {
   IconTrash,
   IconPin,
   IconPinnedOff,
+  IconMoodSmile,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +21,12 @@ import {
 import type { ProfileInfo } from "@/features/chat/utils/profile-utils";
 import { parseMentions } from "./mention-popup";
 
+/** Detect if a message was sent as rich HTML (from Tiptap) */
+function isHtmlContent(content: string): boolean {
+  const trimmed = content.trimStart();
+  return trimmed.startsWith("<p>") || trimmed.startsWith("<h") || trimmed.startsWith("<ul") || trimmed.startsWith("<ol") || trimmed.startsWith("<blockquote");
+}
+
 // ── Message Content (with mention rendering) ──────────────────────────
 
 export function MessageContent({
@@ -29,6 +36,17 @@ export function MessageContent({
   content: string;
   profileMap: Record<string, ProfileInfo>;
 }) {
+  // Rich text (HTML from Tiptap)
+  if (isHtmlContent(content)) {
+    return (
+      <span
+        className="prose prose-sm dark:prose-invert max-w-none [&_p]:my-0 [&_ul]:my-1 [&_ol]:my-1"
+        dangerouslySetInnerHTML={{ __html: content }}
+      />
+    );
+  }
+
+  // Plain text with @mentions
   if (!content.includes("<@")) {
     return <>{content}</>;
   }
@@ -54,6 +72,9 @@ export function MessageContent({
 
 // ── Context Menu ──────────────────────────────────────────────────────
 
+// Quick-react emojis for fast reactions
+const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙌"];
+
 export function MessageMenu({
   canEdit,
   canDelete,
@@ -62,6 +83,7 @@ export function MessageMenu({
   onEdit,
   onDelete,
   onTogglePin,
+  onQuickReact,
 }: {
   canEdit: boolean;
   canDelete: boolean;
@@ -70,11 +92,28 @@ export function MessageMenu({
   onEdit: () => void;
   onDelete: () => void;
   onTogglePin: () => void;
+  onQuickReact?: (emoji: string) => void;
 }) {
-  if (!canEdit && !canDelete && !canPin) return null;
+  if (!canEdit && !canDelete && !canPin && !onQuickReact) return null;
 
   return (
     <div className="flex gap-0.5 rounded-md border bg-background p-0.5 shadow-sm">
+      {/* Quick reactions */}
+      {onQuickReact && (
+        <div className="flex gap-0.5 border-r pr-0.5 mr-0.5">
+          {QUICK_REACTIONS.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              onClick={() => onQuickReact(emoji)}
+              className="h-7 w-7 flex items-center justify-center text-sm rounded hover:bg-accent transition-colors"
+              title={`Reagir com ${emoji}`}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      )}
       {canPin && (
         <Button
           variant="ghost"

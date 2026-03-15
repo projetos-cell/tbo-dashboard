@@ -4,9 +4,11 @@ import { useState, useRef, useCallback, type KeyboardEvent } from "react";
 import {
   IconSend,
   IconPaperclip,
+  IconTypography,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { isImageFile } from "@/features/chat/services/chat-attachments";
 import { MentionPopup, type MentionOption } from "./mention-popup";
 import { EmojiPicker } from "./emoji-picker";
@@ -34,6 +36,8 @@ export function MessageInput({
   mentionOptions = [],
 }: MessageInputProps) {
   const [content, setContent] = useState("");
+  const [richContent, setRichContent] = useState("");
+  const [isRichMode, setIsRichMode] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionStart, setMentionStart] = useState(-1);
@@ -69,12 +73,30 @@ export function MessageInput({
 
   const { isDragOver, dragHandlers } = useDragDrop(addFiles);
 
+  function toggleRichMode() {
+    if (isRichMode) {
+      const div = document.createElement("div");
+      div.innerHTML = richContent;
+      setContent(div.textContent ?? "");
+      setRichContent("");
+    } else {
+      setRichContent(content ? `<p>${content}</p>` : "");
+      setContent("");
+    }
+    setIsRichMode(!isRichMode);
+  }
+
   function handleSend() {
-    const trimmed = content.trim();
+    const currentContent = isRichMode ? richContent : content;
+    const trimmed = currentContent.trim();
     const hasFiles = pendingFiles.length > 0;
     if (!trimmed && !hasFiles) return;
     onSend(trimmed || (hasFiles ? " " : ""), hasFiles ? pendingFiles.map((pf) => pf.file) : undefined);
-    setContent("");
+    if (isRichMode) {
+      setRichContent("");
+    } else {
+      setContent("");
+    }
     setMentionQuery(null);
     clearFiles();
     textareaRef.current?.focus();
@@ -150,9 +172,21 @@ export function MessageInput({
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
+  function handlePaste(e: React.ClipboardEvent) {
+    const items = Array.from(e.clipboardData.items);
+    const imageItems = items.filter((item) => item.type.startsWith("image/"));
+    if (imageItems.length === 0) return;
+    e.preventDefault();
+    const files = imageItems
+      .map((item) => item.getAsFile())
+      .filter((f): f is File => f !== null);
+    addFiles(files);
+  }
+
   return (
     <div
       className="relative border-t p-3"
+      onPaste={handlePaste}
       {...dragHandlers}
     >
       {isDragOver && <DragOverlay />}
@@ -172,8 +206,12 @@ export function MessageInput({
         <EmojiPicker
           disabled={disabled}
           onSelect={(emoji) => {
-            setContent((prev) => prev + emoji);
-            textareaRef.current?.focus();
+            if (isRichMode) {
+              setRichContent((prev) => prev.replace(/<\/p>$/, `${emoji}</p>`) || `<p>${emoji}</p>`);
+            } else {
+              setContent((prev) => prev + emoji);
+              textareaRef.current?.focus();
+            }
           }}
         />
         <Button
@@ -195,30 +233,66 @@ export function MessageInput({
           onChange={handleFileSelect}
           accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt,.csv"
         />
-        <Textarea
-          ref={textareaRef}
-          value={content}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          onClick={(e) => {
-            const target = e.target as HTMLTextAreaElement;
-            detectMention(target.value, target.selectionStart);
-          }}
-          placeholder="Digite uma mensagem... (@mencionar)"
-          disabled={disabled}
-          className="min-h-[36px] max-h-32 flex-1 resize-none border-0 bg-transparent p-1 text-sm shadow-none focus-visible:ring-0"
-          rows={1}
-        />
-        <Button
-          type="button"
-          size="icon"
-          className="h-8 w-8 shrink-0 rounded-lg"
-          onClick={handleSend}
-          disabled={disabled || (!content.trim() && pendingFiles.length === 0)}
-          aria-label="Enviar mensagem"
-        >
-          <IconSend size={16} />
-        </Button>
+        {isRichMode ? (
+          // Rich text mode: Tiptap editor with Ctrl+Enter to send
+          <div
+            className="flex-1 min-w-0"
+            onKeyDown={(e) => {
+              if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+          >
+            <RichTextEditor
+              value={richContent}
+              onChange={setRichContent}
+              placeholder="Digite uma mensagem... (Ctrl+Enter para enviar)"
+              showToolbar
+              minHeight={36}
+              className="border-0 bg-transparent shadow-none"
+            />
+          </div>
+        ) : (
+          <Textarea
+            ref={textareaRef}
+            value={content}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            onClick={(e) => {
+              const target = e.target as HTMLTextAreaElement;
+              detectMention(target.value, target.selectionStart);
+            }}
+            placeholder="Digite uma mensagem... (@mencionar)"
+            disabled={disabled}
+            className="min-h-[36px] max-h-32 flex-1 resize-none border-0 bg-transparent p-1 text-sm shadow-none focus-visible:ring-0"
+            rows={1}
+          />
+        )}
+        <div className="flex items-end gap-1 pb-0.5">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className={`h-8 w-8 shrink-0 ${isRichMode ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+            disabled={disabled}
+            aria-label={isRichMode ? "Modo simples" : "Modo rich text"}
+            onClick={toggleRichMode}
+            title={isRichMode ? "Voltar para texto simples" : "Ativar formatação rich text"}
+          >
+            <IconTypography size={16} />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            className="h-8 w-8 shrink-0 rounded-lg"
+            onClick={handleSend}
+            disabled={disabled || (isRichMode ? !richContent.trim() : (!content.trim() && pendingFiles.length === 0))}
+            aria-label="Enviar mensagem"
+          >
+            <IconSend size={16} />
+          </Button>
+        </div>
       </div>
     </div>
   );

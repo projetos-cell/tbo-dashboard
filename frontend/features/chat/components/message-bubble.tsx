@@ -17,6 +17,8 @@ import { getInitials } from "@/features/chat/utils/profile-utils";
 import { getUserColor } from "@/features/chat/utils/chat-colors";
 import { MessageAttachments } from "./message-attachments";
 import { MessageContent, MessageMenu, MessageDeleteDialog } from "./message-bubble-parts";
+import { MessageReactions } from "./message-reactions";
+import type { ReactionGroup } from "@/features/chat/hooks/use-chat";
 
 interface MessageBubbleProps {
   message: MessageRow;
@@ -26,9 +28,11 @@ interface MessageBubbleProps {
   canDelete?: boolean;
   attachments?: ChatAttachmentRow[];
   profileMap?: Record<string, ProfileInfo>;
+  reactions?: ReactionGroup[];
   onEdit?: (messageId: string, content: string) => void;
   onDelete?: (messageId: string) => void;
   onTogglePin?: (messageId: string, pinned: boolean) => void;
+  onReact?: (messageId: string, emoji: string, remove: boolean) => void;
 }
 
 export function MessageBubble({
@@ -39,9 +43,11 @@ export function MessageBubble({
   canDelete,
   attachments = [],
   profileMap = {},
+  reactions = [],
   onEdit,
   onDelete,
   onTogglePin,
+  onReact,
 }: MessageBubbleProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content ?? "");
@@ -151,6 +157,13 @@ export function MessageBubble({
             {attachments.length > 0 && (
               <MessageAttachments attachments={attachments} />
             )}
+            {reactions.length > 0 && (
+              <MessageReactions
+                reactions={reactions}
+                profileMap={profileMap}
+                onToggle={(emoji, remove) => onReact?.(message.id, emoji, remove)}
+              />
+            )}
           </div>
         )}
       </div>
@@ -169,6 +182,7 @@ export function MessageBubble({
             }}
             onDelete={() => setShowDeleteConfirm(true)}
             onTogglePin={() => onTogglePin?.(message.id, !(message as Record<string, unknown>).is_pinned)}
+            onQuickReact={onReact ? (emoji) => onReact(message.id, emoji, false) : undefined}
           />
         </div>
       )}

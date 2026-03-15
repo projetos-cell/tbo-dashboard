@@ -31,6 +31,8 @@ import {
   useCreateSection,
   useUpdateSection,
   useDeleteSection,
+  useAddReaction,
+  useRemoveReaction,
   flattenMessages,
 } from "@/features/chat/hooks/use-chat";
 import {
@@ -109,6 +111,8 @@ export function ChatLayout() {
   const editMsg = useEditMessage();
   const deleteMsg = useDeleteMessage();
   const togglePin = useTogglePin();
+  const addReaction = useAddReaction();
+  const removeReaction = useRemoveReaction();
   const markAsRead = useMarkAsRead();
   const archiveChannelMut = useArchiveChannel();
   const unarchiveChannelMut = useUnarchiveChannel();
@@ -195,6 +199,15 @@ export function ChatLayout() {
   function handleDelete(messageId: string) { deleteMsg.mutate({ messageId }); }
   function handleTogglePin(messageId: string, pinned: boolean) { togglePin.mutate({ messageId, pinned }); }
 
+  function handleReact(messageId: string, emoji: string, remove: boolean) {
+    if (!userId) return;
+    if (remove) {
+      removeReaction.mutate({ messageId, userId, emoji });
+    } else {
+      addReaction.mutate({ message_id: messageId, user_id: userId, emoji });
+    }
+  }
+
   const handleScrollToMessage = useCallback((messageId: string) => {
     const el = document.getElementById(`msg-${messageId}`);
     if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("bg-primary/10"); setTimeout(() => el.classList.remove("bg-primary/10"), 2000); }
@@ -263,9 +276,11 @@ export function ChatLayout() {
                 hasNextPage={!!messagesQuery.hasNextPage}
                 isFetchingNextPage={messagesQuery.isFetchingNextPage}
                 fetchNextPage={messagesQuery.fetchNextPage}
+                channelId={selectedChannelId}
                 onEditMessage={handleEdit}
                 onDeleteMessage={handleDelete}
                 onTogglePin={canPin ? handleTogglePin : undefined}
+                onReact={handleReact}
                 canDeleteOthers={canDeleteOthers}
               />
             )}

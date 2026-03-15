@@ -5,7 +5,12 @@ import { IconLoader2 } from "@tabler/icons-react";
 import { MessageBubble } from "./message-bubble";
 import type { MessageRow } from "@/features/chat/services/chat";
 import type { ProfileInfo } from "@/features/chat/utils/profile-utils";
-import { useMessageAttachments, buildAttachmentMap } from "@/features/chat/hooks/use-chat";
+import {
+  useMessageAttachments,
+  buildAttachmentMap,
+  useReactionsForMessages,
+  buildReactionMap,
+} from "@/features/chat/hooks/use-chat";
 
 interface MessageListProps {
   messages: MessageRow[];
@@ -14,9 +19,11 @@ interface MessageListProps {
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
   fetchNextPage: () => void;
+  channelId?: string | null;
   onEditMessage?: (messageId: string, content: string) => void;
   onDeleteMessage?: (messageId: string) => void;
   onTogglePin?: (messageId: string, pinned: boolean) => void;
+  onReact?: (messageId: string, emoji: string, remove: boolean) => void;
   canDeleteOthers?: boolean;
 }
 
@@ -47,9 +54,11 @@ export function MessageList({
   hasNextPage,
   isFetchingNextPage,
   fetchNextPage,
+  channelId,
   onEditMessage,
   onDeleteMessage,
   onTogglePin,
+  onReact,
   canDeleteOthers,
 }: MessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -67,6 +76,14 @@ export function MessageList({
   const attachmentMap = useMemo(
     () => buildAttachmentMap(attachmentsData),
     [attachmentsData],
+  );
+
+  // Fetch reactions for all visible messages
+  const allMessageIds = useMemo(() => messages.map((m) => m.id), [messages]);
+  const { data: reactionsData } = useReactionsForMessages(allMessageIds, channelId ?? null);
+  const reactionMap = useMemo(
+    () => buildReactionMap(reactionsData, currentUserId),
+    [reactionsData, currentUserId],
   );
 
   // Auto-scroll to bottom on initial load
@@ -186,9 +203,11 @@ export function MessageList({
                 canDelete={canDeleteOthers}
                 attachments={attachmentMap[msg.id]}
                 profileMap={profileMap}
+                reactions={reactionMap[msg.id]}
                 onEdit={onEditMessage}
                 onDelete={onDeleteMessage}
                 onTogglePin={onTogglePin}
+                onReact={onReact}
               />
             </div>
           </div>

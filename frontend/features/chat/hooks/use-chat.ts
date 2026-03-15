@@ -13,7 +13,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { logAuditTrail } from "@/lib/audit-trail";
 import { toast } from "sonner";
 import type { Database } from "@/lib/supabase/types";
-import type { MessageRow, ChannelRow, SectionRow } from "@/features/chat/services/chat";
+import type { MessageRow, ChannelRow, SectionRow, ReactionRow } from "@/features/chat/services/chat";
 import type { ChatAttachmentRow } from "@/features/chat/services/chat-attachments";
 import { getAttachmentsByMessageIds } from "@/features/chat/services/chat-attachments";
 import {
@@ -43,6 +43,7 @@ import {
   deleteSection,
   togglePinMessage,
   getPinnedMessages,
+  getReactions,
 } from "@/features/chat/services/chat";
 
 const MSG_PAGE_SIZE = 50;
@@ -722,6 +723,76 @@ export function useMarkAsRead() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["chat-unread-counts"] });
     },
+  });
+}
+
+// ── Reactions per message batch ──────────────────────────────────────
+
+export type ReactionGroup = {
+  emoji: string;
+  count: number;
+  userIds: string[];
+  hasCurrentUser: boolean;
+};
+
+export type ReactionMap = Record<string, ReactionGroup[]>;
+
+export function buildReactionMap(
+  reactions: ReactionRow[] | undefined,
+  currentUserId: string | undefined,
+): ReactionMap {
+  if (!reactions) return {};
+  const map: Record<string, Record<string, { count: number; userIds: string[] }>> = {};
+  for (const r of reactions) {
+    if (!map[r.message_id]) map[r.message_id] = {};
+    if (!map[r.message_id][r.emoji]) map[r.message_id][r.emoji] = { count: 0, userIds: [] };
+    map[r.message_id][r.emoji].count++;
+    map[r.message_id][r.emoji].userIds.push(r.user_id);
+  }
+  const result: ReactionMap = {};
+  for (const [msgId, emojiMap] of Object.entries(map)) {
+    result[msgId] = Object.entries(emojiMap).map(([emoji, data]) => ({
+      emoji,
+      count: data.count,
+      userIds: data.userIds,
+      hasCurrentUser: currentUserId ? data.userIds.includes(currentUserId) : false,
+    }));
+  }
+  return result;
+}
+
+export function useReactionsForMessages(messageIds: string[], channelId: string | null) {
+  const supabase = createClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
+  const qc = useQueryClient();
+  const stableKey = messageIds.join(",");
+
+  // Realtime: react to reaction inserts/deletes in this channel
+  useEffect(() => {
+    if (!channelId || !tenantId || messageIds.length === 0) return;
+
+    const ch = supabase
+      .channel(`chat-reactions:${channelId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "chat_reactions" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["chat-reactions"] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(ch);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelId, tenantId, stableKey]);
+
+  return useQuery({
+    queryKey: ["chat-reactions", stableKey],
+    queryFn: () => getReactions(supabase, messageIds),
+    staleTime: 1000 * 30,
+    enabled: messageIds.length > 0,
   });
 }
 

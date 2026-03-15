@@ -26,11 +26,11 @@ export async function loadViewState(
   viewKey: string
 ): Promise<ViewState | null> {
   const { data, error } = await supabase
-    .from("user_view_state")
-    .select("filters_json, sort_json")
-    .eq("user_id", userId)
-    .eq("workspace", workspace)
-    .eq("view_key", viewKey)
+    .from("user_view_state" as never)
+    .select("filters_json, sort_json" as never)
+    .eq("user_id" as never, userId as never)
+    .eq("workspace" as never, workspace as never)
+    .eq("view_key" as never, viewKey as never)
     .maybeSingle();
 
   if (error) {
@@ -40,9 +40,10 @@ export async function loadViewState(
 
   if (!data) return null;
 
+  const row = data as unknown as Record<string, unknown>;
   return {
-    filters: (data.filters_json ?? {}) as Record<string, unknown>,
-    sort: (data.sort_json ?? []) as unknown as SortSpec[],
+    filters: (row.filters_json ?? {}) as Record<string, unknown>,
+    sort: (row.sort_json ?? []) as unknown as SortSpec[],
   };
 }
 
@@ -59,7 +60,7 @@ export async function saveViewState(
   state: ViewState
 ): Promise<void> {
   const { error } = await supabase
-    .from("user_view_state")
+    .from("user_view_state" as never)
     .upsert(
       {
         user_id: userId,

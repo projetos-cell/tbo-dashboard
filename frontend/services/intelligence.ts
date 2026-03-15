@@ -18,14 +18,14 @@ export async function getIntelligenceKpis(
     await Promise.all([
       // Total receivables (open)
       supabase
-        .from("fin_receivables")
-        .select("amount")
-        .in("status", ["pendente", "em_aberto", "aberto"]),
+        .from("fin_receivables" as never)
+        .select("amount" as never)
+        .in("status" as never, ["pendente", "em_aberto", "aberto"] as never),
       // Total payables (open)
       supabase
-        .from("fin_payables")
-        .select("amount")
-        .in("status", ["pendente", "em_aberto", "aberto"]),
+        .from("fin_payables" as never)
+        .select("amount" as never)
+        .in("status" as never, ["pendente", "em_aberto", "aberto"] as never),
       // Pipeline deals (not closed)
       supabase
         .from("crm_deals")
@@ -48,16 +48,16 @@ export async function getIntelligenceKpis(
   if (teamRes.error) throw teamRes.error;
   if (okrRes.error) throw okrRes.error;
 
-  const totalReceivables = (receivablesRes.data ?? []).reduce(
+  const totalReceivables = ((receivablesRes.data ?? []) as unknown as Array<{ amount: number | null }>).reduce(
     (sum, r) => sum + (r.amount ?? 0),
     0
   );
-  const totalPayables = (payablesRes.data ?? []).reduce(
+  const totalPayables = ((payablesRes.data ?? []) as unknown as Array<{ amount: number | null }>).reduce(
     (sum, p) => sum + (p.amount ?? 0),
     0
   );
 
-  const deals = dealsRes.data ?? [];
+  const deals = (dealsRes.data ?? []) as unknown as Array<{ value: number | null; stage: string }>;
   const pipelineTotal = deals.reduce((sum, d) => sum + (d.value ?? 0), 0);
   const openDeals = deals.length;
 

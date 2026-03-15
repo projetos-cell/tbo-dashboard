@@ -162,13 +162,13 @@ export function MessageBubble({
             canEdit={isOwn}
             canDelete={isOwn || !!canDelete}
             canPin={!!onTogglePin}
-            isPinned={!!message.is_pinned}
+            isPinned={!!(message as Record<string, unknown>).is_pinned}
             onEdit={() => {
               setEditContent(message.content ?? "");
               setIsEditing(true);
             }}
             onDelete={() => setShowDeleteConfirm(true)}
-            onTogglePin={() => onTogglePin?.(message.id, !message.is_pinned)}
+            onTogglePin={() => onTogglePin?.(message.id, !(message as Record<string, unknown>).is_pinned)}
           />
         </div>
       )}

@@ -1,8 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
 
-type CollaboratorRow =
-  Database["public"]["Tables"]["task_collaborators"]["Row"];
+// task_collaborators table is not in generated types yet — define locally
+interface CollaboratorRow {
+  task_id: string;
+  user_id: string;
+  added_at: string;
+}
 
 export interface CollaboratorWithProfile extends CollaboratorRow {
   full_name: string;
@@ -18,19 +22,19 @@ export async function getCollaborators(
   taskId: string
 ): Promise<CollaboratorWithProfile[]> {
   const { data, error } = await supabase
-    .from("task_collaborators")
-    .select(PROFILE_JOIN)
-    .eq("task_id", taskId)
-    .order("added_at", { ascending: true });
+    .from("task_collaborators" as never)
+    .select(PROFILE_JOIN as never)
+    .eq("task_id" as never, taskId as never)
+    .order("added_at" as never, { ascending: true } as never);
 
   if (error) throw error;
 
-  return (data ?? []).map((row) => {
-    const p = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+  return ((data ?? []) as unknown as Array<Record<string, unknown>>).map((row) => {
+    const p = Array.isArray(row.profiles) ? (row.profiles as Record<string, unknown>[])[0] : row.profiles;
     return {
-      task_id: row.task_id,
-      user_id: row.user_id,
-      added_at: row.added_at,
+      task_id: row.task_id as string,
+      user_id: row.user_id as string,
+      added_at: row.added_at as string,
       full_name: (p as { full_name?: string } | null)?.full_name ?? "?",
       avatar_url: (p as { avatar_url?: string | null } | null)?.avatar_url ?? null,
       role: (p as { role?: string } | null)?.role ?? "colaborador",
@@ -44,7 +48,7 @@ export async function addCollaborator(
   userId: string
 ): Promise<void> {
   const { error } = await supabase
-    .from("task_collaborators")
+    .from("task_collaborators" as never)
     .upsert({ task_id: taskId, user_id: userId } as never, {
       onConflict: "task_id,user_id",
       ignoreDuplicates: true,
@@ -58,9 +62,9 @@ export async function removeCollaborator(
   userId: string
 ): Promise<void> {
   const { error } = await supabase
-    .from("task_collaborators")
+    .from("task_collaborators" as never)
     .delete()
-    .eq("task_id", taskId)
-    .eq("user_id", userId);
+    .eq("task_id" as never, taskId as never)
+    .eq("user_id" as never, userId as never);
   if (error) throw error;
 }

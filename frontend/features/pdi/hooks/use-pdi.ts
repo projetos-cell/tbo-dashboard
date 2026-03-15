@@ -24,6 +24,8 @@ import {
   linkOneOnOneActionToPdi,
   getPersonSkills,
   type PdiFilters,
+  type PdiGoalRow,
+  type PdiActionRow,
 } from "@/features/pdi/services/pdi";
 
 function useSupabase() {
@@ -194,7 +196,7 @@ export function useCreatePdiGoal() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: Database["public"]["Tables"]["pdi_goals"]["Insert"]) =>
+    mutationFn: (data: Partial<PdiGoalRow> & { tenant_id: string; pdi_id: string; title: string }) =>
       createPdiGoal(supabase, data),
     onSuccess: (_row, variables) => {
       queryClient.invalidateQueries({ queryKey: ["pdi-goals", variables.pdi_id] });
@@ -218,7 +220,7 @@ export function useUpdatePdiGoal() {
     }: {
       id: string;
       pdiId: string;
-      updates: Database["public"]["Tables"]["pdi_goals"]["Update"];
+      updates: Partial<PdiGoalRow>;
     }) => updatePdiGoal(supabase, id, updates),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["pdi-goals", variables.pdiId] });
@@ -265,7 +267,7 @@ export function useCreatePdiAction() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: Database["public"]["Tables"]["pdi_actions"]["Insert"]) =>
+    mutationFn: (data: Partial<PdiActionRow> & { tenant_id: string; pdi_goal_id: string; text: string }) =>
       createPdiAction(supabase, data),
     onSuccess: (_row, variables) => {
       queryClient.invalidateQueries({ queryKey: ["pdi-goals"] });

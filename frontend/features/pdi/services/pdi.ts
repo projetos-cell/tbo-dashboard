@@ -7,14 +7,42 @@ type PdiRow = Database["public"]["Tables"]["pdis"]["Row"];
 type PdiInsert = Database["public"]["Tables"]["pdis"]["Insert"];
 type PdiUpdate = Database["public"]["Tables"]["pdis"]["Update"];
 
-type PdiGoalRow = Database["public"]["Tables"]["pdi_goals"]["Row"];
-type PdiGoalInsert = Database["public"]["Tables"]["pdi_goals"]["Insert"];
-type PdiGoalUpdate = Database["public"]["Tables"]["pdi_goals"]["Update"];
+// pdi_goals and pdi_actions tables are not yet in generated types.
+// Define local interfaces matching the actual DB schema.
 
-type PdiActionRow = Database["public"]["Tables"]["pdi_actions"]["Row"];
-type PdiActionInsert = Database["public"]["Tables"]["pdi_actions"]["Insert"];
+export interface PdiGoalRow {
+  id: string;
+  pdi_id: string;
+  tenant_id: string;
+  title: string;
+  description: string | null;
+  target_date: string | null;
+  status: string;
+  skill_id: string | null;
+  target_level_percent: number | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
 
-export type { PdiRow, PdiGoalRow, PdiActionRow };
+type PdiGoalInsert = Partial<PdiGoalRow> & { tenant_id: string; pdi_id: string; title: string };
+type PdiGoalUpdate = Partial<PdiGoalRow>;
+
+export interface PdiActionRow {
+  id: string;
+  pdi_goal_id: string;
+  tenant_id: string;
+  text: string;
+  completed: boolean;
+  due_date: string | null;
+  one_on_one_action_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+type PdiActionInsert = Partial<PdiActionRow> & { tenant_id: string; pdi_goal_id: string; text: string };
+
+export type { PdiRow };
 
 // ── Composite types ─────────────────────────────────────────────────────────
 
@@ -120,7 +148,7 @@ export async function getPdiGoals(
   pdiId: string,
 ): Promise<PdiGoalWithActions[]> {
   const { data, error } = await supabase
-    .from("pdi_goals")
+    .from("pdi_goals" as never)
     .select("*, pdi_actions(*)")
     .eq("pdi_id", pdiId)
     .order("sort_order")
@@ -135,7 +163,7 @@ export async function createPdiGoal(
   data: PdiGoalInsert
 ): Promise<PdiGoalRow> {
   const { data: row, error } = await supabase
-    .from("pdi_goals")
+    .from("pdi_goals" as never)
     .insert(data as never)
     .select("*")
     .single();
@@ -150,7 +178,7 @@ export async function updatePdiGoal(
   updates: PdiGoalUpdate
 ): Promise<PdiGoalRow> {
   const { data, error } = await supabase
-    .from("pdi_goals")
+    .from("pdi_goals" as never)
     .update({ ...updates, updated_at: new Date().toISOString() } as never)
     .eq("id", id)
     .select("*")
@@ -165,7 +193,7 @@ export async function deletePdiGoal(
   id: string,
 ): Promise<void> {
   const { error } = await supabase
-    .from("pdi_goals")
+    .from("pdi_goals" as never)
     .delete()
     .eq("id", id);
   if (error) throw error;
@@ -178,7 +206,7 @@ export async function reorderPdiGoals(
   await Promise.all(
     goals.map(({ id, sort_order }) =>
       supabase
-        .from("pdi_goals")
+        .from("pdi_goals" as never)
         .update({ sort_order } as never)
         .eq("id", id)
     )
@@ -192,7 +220,7 @@ export async function createPdiAction(
   data: PdiActionInsert
 ): Promise<PdiActionRow> {
   const { data: row, error } = await supabase
-    .from("pdi_actions")
+    .from("pdi_actions" as never)
     .insert(data as never)
     .select("*")
     .single();
@@ -207,7 +235,7 @@ export async function togglePdiAction(
   completed: boolean
 ): Promise<PdiActionRow> {
   const { data, error } = await supabase
-    .from("pdi_actions")
+    .from("pdi_actions" as never)
     .update({
       completed,
       completed_at: completed ? new Date().toISOString() : null,
@@ -225,7 +253,7 @@ export async function deletePdiAction(
   actionId: string,
 ): Promise<void> {
   const { error } = await supabase
-    .from("pdi_actions")
+    .from("pdi_actions" as never)
     .delete()
     .eq("id", actionId);
   if (error) throw error;
@@ -264,7 +292,7 @@ export async function getOpenPdiActionsCount(
   supabase: SupabaseClient<Database>,
 ): Promise<number> {
   const { count, error } = await supabase
-    .from("pdi_actions")
+    .from("pdi_actions" as never)
     .select("*", { count: "exact", head: true })
     .eq("completed", false);
 

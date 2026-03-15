@@ -7,7 +7,17 @@ import type { Database } from "@/lib/supabase/types";
 // Non-blocking: never throws to caller — logs warning on failure.
 // ---------------------------------------------------------------------------
 
-type EventRow = Database["public"]["Tables"]["people_events"]["Row"];
+// people_events table is not in generated types yet — define locally
+interface EventRow {
+  id: string;
+  tenant_id: string;
+  person_id: string;
+  event_type: string;
+  severity: string;
+  metadata: unknown;
+  created_by: string;
+  created_at: string;
+}
 
 // ---------------------------------------------------------------------------
 // Types

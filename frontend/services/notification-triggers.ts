@@ -27,7 +27,7 @@ async function ensureSubscription(
   userId: string
 ): Promise<void> {
   await supabase
-    .from("thread_subscriptions")
+    .from("thread_subscriptions" as never)
     .upsert(
       {
         tenant_id: tenantId,
@@ -45,13 +45,13 @@ async function getSubscribers(
   entityId: string
 ): Promise<string[]> {
   const { data } = await supabase
-    .from("thread_subscriptions")
-    .select("user_id")
-    .eq("entity_type", entityType)
-    .eq("entity_id", entityId)
-    .eq("is_muted", false);
+    .from("thread_subscriptions" as never)
+    .select("user_id" as never)
+    .eq("entity_type" as never, entityType as never)
+    .eq("entity_id" as never, entityId as never)
+    .eq("is_muted" as never, false as never);
 
-  return data?.map((s) => s.user_id) ?? [];
+  return ((data ?? []) as unknown as Array<{ user_id: string }>).map((s) => s.user_id);
 }
 
 // ─── A) Comment notifications ───
@@ -106,12 +106,11 @@ export async function notifyOnComment(
       type: "task",
       entity_type: "task",
       entity_id: taskId,
-      comment_id: commentId,
       title: `${actorName} mencionou você em "${taskTitle}"`,
       body: preview,
       action_url: `/tarefas?task=${taskId}`,
       read: false,
-    });
+    } as NotificationInsert);
     // Also subscribe mentioned users
     await ensureSubscription(supabase, tenantId, "task", taskId, userId);
   }
@@ -129,12 +128,11 @@ export async function notifyOnComment(
       type: "task",
       entity_type: "task",
       entity_id: taskId,
-      comment_id: commentId,
       title: `${actorName} comentou em "${taskTitle}"`,
       body: preview,
       action_url: `/tarefas?task=${taskId}`,
       read: false,
-    });
+    } as NotificationInsert);
   }
 }
 
@@ -308,7 +306,6 @@ export async function notifyTaskUpdated(
     title: `${actorName} atualizou "${taskTitle}"`,
     body: `Campos alterados: ${changedLabels}`,
     action_url: `/tarefas?task=${taskId}`,
-    meta: { changed_fields: relevantChanges, changes: changedFields },
     read: false,
-  });
+  } as NotificationInsert);
 }

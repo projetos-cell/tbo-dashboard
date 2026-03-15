@@ -64,7 +64,7 @@ export async function getOmieSyncLogs(
     .limit(20);
 
   if (error) throw error;
-  return (data ?? []) as OmieSyncLog[];
+  return (data ?? []) as unknown as OmieSyncLog[];
 }
 
 /** Get the latest Omie sync log */

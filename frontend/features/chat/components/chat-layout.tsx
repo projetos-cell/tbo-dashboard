@@ -359,15 +359,18 @@ export function ChatLayout() {
 
       {/* Conversation area + thread panel */}
       <div className={cn("relative flex flex-1 min-w-0 overflow-hidden", !showConversation && "hidden md:flex")}>
-        <MessageSearch channels={channels ?? []} />
+        <MessageSearch channels={channels ?? []} currentChannelId={selectedChannelId} />
         {/* Main chat column */}
         <div className="flex flex-1 flex-col min-w-0">
           {selectedChannel && headerInfo ? (
             <>
               <ConversationHeader
                 headerInfo={headerInfo}
+                channelId={selectedChannelId}
+                profileMap={profileMap}
                 onBack={() => setShowConversation(false)}
                 onOpenBookmarks={() => setBookmarksPanelOpen(true)}
+                onJumpToMessage={handleScrollToMessage}
               />
               <PinnedBanner channelId={selectedChannelId} profileMap={profileMap} onClickMessage={handleScrollToMessage} />
               {messagesQuery.isLoading ? (

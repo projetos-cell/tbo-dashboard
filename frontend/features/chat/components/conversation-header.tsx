@@ -20,7 +20,8 @@ import {
   AvatarFallback,
 } from "@/components/ui/avatar";
 import { OnlineIndicator } from "./online-indicator";
-import { getInitials } from "@/features/chat/utils/profile-utils";
+import { JumpToDatePicker } from "./jump-to-date-picker";
+import { getInitials, type ProfileInfo } from "@/features/chat/utils/profile-utils";
 import { useChatStore } from "@/features/chat/stores/chat-store";
 
 export interface ConversationHeaderInfo {
@@ -33,11 +34,21 @@ export interface ConversationHeaderInfo {
 
 interface ConversationHeaderProps {
   headerInfo: ConversationHeaderInfo;
+  channelId?: string | null;
+  profileMap?: Record<string, ProfileInfo>;
   onBack: () => void;
   onOpenBookmarks?: () => void;
+  onJumpToMessage?: (messageId: string) => void;
 }
 
-export function ConversationHeader({ headerInfo, onBack, onOpenBookmarks }: ConversationHeaderProps) {
+export function ConversationHeader({
+  headerInfo,
+  channelId,
+  profileMap,
+  onBack,
+  onOpenBookmarks,
+  onJumpToMessage,
+}: ConversationHeaderProps) {
   const toggleSearch = useChatStore((s) => s.toggleSearch);
   const setChannelSettingsOpen = useChatStore((s) => s.setChannelSettingsOpen);
 
@@ -90,6 +101,16 @@ export function ConversationHeader({ headerInfo, onBack, onOpenBookmarks }: Conv
           </TooltipTrigger>
           <TooltipContent>Buscar mensagens</TooltipContent>
         </Tooltip>
+
+        {/* #21 — Jump to date */}
+        {channelId && profileMap && onJumpToMessage && (
+          <JumpToDatePicker
+            channelId={channelId}
+            profileMap={profileMap}
+            onJumpToMessage={onJumpToMessage}
+          />
+        )}
+
         {onOpenBookmarks && (
           <Tooltip>
             <TooltipTrigger asChild>

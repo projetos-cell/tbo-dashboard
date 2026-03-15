@@ -299,6 +299,88 @@ export async function searchMessages(
   return (data ?? []) as MessageRow[];
 }
 
+export type MessageSearchType = "message" | "file" | "link";
+
+export interface SearchFilters {
+  channelId?: string;
+  authorId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  type?: MessageSearchType;
+}
+
+/**
+ * Advanced search with optional filters: channel scope, author, date range, type.
+ * Uses direct query instead of RPC for full filter flexibility.
+ */
+export async function searchMessagesWithFilters(
+  supabase: SupabaseClient<Database>,
+  query: string,
+  filters: SearchFilters,
+  opts: { limit?: number } = {},
+) {
+  let qb = supabase
+    .from("chat_messages")
+    .select("*")
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(opts.limit ?? 50);
+
+  if (query.trim().length >= 2) {
+    qb = qb.ilike("content", `%${query.trim()}%`) as typeof qb;
+  }
+  if (filters.channelId) {
+    qb = qb.eq("channel_id", filters.channelId) as typeof qb;
+  }
+  if (filters.authorId) {
+    qb = qb.eq("sender_id", filters.authorId) as typeof qb;
+  }
+  if (filters.dateFrom) {
+    qb = qb.gte("created_at", filters.dateFrom) as typeof qb;
+  }
+  if (filters.dateTo) {
+    qb = qb.lte("created_at", filters.dateTo) as typeof qb;
+  }
+  if (filters.type === "file") {
+    qb = qb.eq("message_type", "file") as typeof qb;
+  } else if (filters.type === "link") {
+    qb = qb.ilike("content", "%http%") as typeof qb;
+  } else if (filters.type === "message") {
+    qb = qb.eq("message_type", "text") as typeof qb;
+  }
+
+  const { data, error } = await qb;
+  if (error) throw error;
+  return (data ?? []) as MessageRow[];
+}
+
+/**
+ * Load messages from a specific date in a channel (for jump-to-date).
+ */
+export async function getMessagesAroundDate(
+  supabase: SupabaseClient<Database>,
+  channelId: string,
+  date: Date,
+  limit = 50,
+) {
+  const startOfDay = new Date(date);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(date);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const { data, error } = await supabase
+    .from("chat_messages")
+    .select("*")
+    .eq("channel_id", channelId)
+    .is("deleted_at", null)
+    .gte("created_at", startOfDay.toISOString())
+    .lte("created_at", endOfDay.toISOString())
+    .order("created_at", { ascending: true })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as MessageRow[];
+}
+
 // ── Unread Counts ────────────────────────────────────────────────────
 
 export async function getUnreadCounts(

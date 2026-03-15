@@ -25,27 +25,20 @@ export interface NavGroup {
   readonly items: readonly NavGroupItem[];
 }
 
+/** Fixed top-level nav items — always visible, no collapsible group. */
+export const PINNED_NAV_ITEMS: readonly NavGroupItem[] = [
+  { href: "/dashboard", label: "Meu Dashboard", icon: "layout-dashboard", module: "dashboard" },
+  { href: "/tarefas", label: "Minhas Tarefas", icon: "list-checks", module: "tarefas" },
+  { href: "/chat", label: "Chat", icon: "message-square", module: "chat" },
+  { href: "/projetos", label: "Projetos", icon: "folder-kanban", module: "projetos" },
+] as const;
+
 /**
  * Main sidebar navigation groups.
  * Each item's `module` is checked against RBAC (canSee).
  * Items with `subItems` expand inline sub-nav when active.
  */
 export const SIDEBAR_NAV_GROUPS: readonly NavGroup[] = [
-  {
-    label: "Favoritos",
-    items: [
-      { href: "/dashboard", label: "Dashboard", icon: "layout-dashboard", module: "dashboard" },
-      { href: "/tarefas", label: "Tarefas", icon: "list-checks", module: "tarefas" },
-      { href: "/chat", label: "Chat", icon: "message-square", module: "chat" },
-    ],
-  },
-  {
-    label: "Execução",
-    items: [
-      { href: "/projetos", label: "Projetos", icon: "folder-kanban", module: "projetos" },
-      { href: "/agenda", label: "Agenda", icon: "calendar", module: "agenda" },
-    ],
-  },
   {
     label: "Pessoas & Cultura",
     items: [

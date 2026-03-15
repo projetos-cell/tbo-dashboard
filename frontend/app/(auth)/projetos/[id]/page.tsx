@@ -45,6 +45,7 @@ export default function ProjectDetailPage({
 
   const [activeTab, setActiveTab] = useState<ProjectTabKey>("overview");
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [membersOpen, setMembersOpen] = useState(false);
 
   // Deep-link: ?task=<id> or ?demanda=<id> (backward compat)
   useEffect(() => {
@@ -105,11 +106,19 @@ export default function ProjectDetailPage({
         allProfiles={members}
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        membersOpen={membersOpen}
+        onMembersOpenChange={setMembersOpen}
       />
 
       {/* Tab content */}
       <div>
-        {activeTab === "overview" && <ProjectOverview projectId={id} />}
+        {activeTab === "overview" && (
+          <ProjectOverview
+            projectId={id}
+            members={members}
+            onOpenMembers={() => setMembersOpen(true)}
+          />
+        )}
         {activeTab === "list" && (
           <ProjectTaskList
             projectId={id}

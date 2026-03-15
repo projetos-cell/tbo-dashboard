@@ -67,6 +67,8 @@ interface ProjectTopbarProps {
   onTabChange: (tab: ProjectTabKey) => void;
   onAddMember?: (member: MemberInfo) => void;
   onRemoveMember?: (memberId: string) => void;
+  membersOpen?: boolean;
+  onMembersOpenChange?: (open: boolean) => void;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -80,6 +82,8 @@ export function ProjectTopbar({
   onTabChange,
   onAddMember,
   onRemoveMember,
+  membersOpen: membersOpenProp,
+  onMembersOpenChange,
 }: ProjectTopbarProps) {
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
@@ -88,8 +92,11 @@ export function ProjectTopbar({
   const { toast } = useToast();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [membersOpen, setMembersOpen] = useState(false);
+  const [membersOpenLocal, setMembersOpenLocal] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
+
+  const membersOpen = membersOpenProp ?? membersOpenLocal;
+  const setMembersOpen = onMembersOpenChange ?? setMembersOpenLocal;
 
   const handleNameSave = (name: string) => {
     updateProject.mutate({ id: project.id, updates: { name } });

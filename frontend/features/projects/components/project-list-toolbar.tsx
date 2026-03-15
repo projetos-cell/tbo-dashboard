@@ -25,205 +25,90 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-import { TASK_STATUS, TASK_PRIORITY } from "@/lib/constants";
+import { PROJECT_STATUS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
-export type TaskSortField = "title" | "status" | "priority" | "assignee_name" | "due_date" | "created_at";
-export type TaskSortDir = "asc" | "desc";
-export type TaskGroupField = "none" | "status" | "priority" | "section" | "assignee";
+export type SortField = "name" | "status" | "construtora" | "due_date" | "created_at";
+export type SortDir = "asc" | "desc";
+export type GroupField = "none" | "status" | "construtora" | "priority" | "owner";
 
-export interface TaskCustomFilter {
+export interface CustomFilter {
   id: string;
   field: string;
   value: string;
   label: string;
 }
 
-export interface TaskListFilters {
-  search: string;
-  status: string;
-  sortField: TaskSortField;
-  sortDir: TaskSortDir;
-  groupBy: TaskGroupField;
-  customFilters: TaskCustomFilter[];
+export interface ListToolbarState {
+  sortField: SortField;
+  sortDir: SortDir;
+  groupBy: GroupField;
+  customFilters: CustomFilter[];
 }
 
-export const DEFAULT_TASK_FILTERS: TaskListFilters = {
-  search: "",
-  status: "all",
-  sortField: "title",
-  sortDir: "asc",
-  groupBy: "none",
-  customFilters: [],
-};
-
-const SORT_OPTIONS: { value: TaskSortField; label: string }[] = [
-  { value: "title", label: "Nome" },
+const SORT_OPTIONS: { value: SortField; label: string }[] = [
+  { value: "name", label: "Nome" },
   { value: "status", label: "Status" },
-  { value: "priority", label: "Prioridade" },
-  { value: "assignee_name", label: "Responsável" },
+  { value: "construtora", label: "Construtora" },
   { value: "due_date", label: "Prazo" },
   { value: "created_at", label: "Data de criação" },
 ];
 
-const GROUP_OPTIONS: { value: TaskGroupField; label: string }[] = [
+const GROUP_OPTIONS: { value: GroupField; label: string }[] = [
   { value: "none", label: "Sem agrupamento" },
   { value: "status", label: "Status" },
+  { value: "construtora", label: "Construtora" },
   { value: "priority", label: "Prioridade" },
-  { value: "section", label: "Seção" },
-  { value: "assignee", label: "Responsável" },
+  { value: "owner", label: "Responsável" },
 ];
 
 const FILTER_FIELDS: { value: string; label: string; options?: { value: string; label: string }[] }[] = [
   {
     value: "status",
     label: "Status",
-    options: Object.entries(TASK_STATUS).map(([k, v]) => ({ value: k, label: v.label })),
+    options: Object.entries(PROJECT_STATUS).map(([k, v]) => ({ value: k, label: v.label })),
   },
   {
     value: "priority",
     label: "Prioridade",
-    options: Object.entries(TASK_PRIORITY).map(([k, v]) => ({ value: k, label: v.label })),
+    options: [
+      { value: "urgente", label: "Urgente" },
+      { value: "alta", label: "Alta" },
+      { value: "media", label: "Média" },
+      { value: "baixa", label: "Baixa" },
+    ],
+  },
+  {
+    value: "owner",
+    label: "Responsável",
   },
 ];
 
-interface ProjectTasksToolbarProps {
-  filters: TaskListFilters;
-  onFiltersChange: (filters: TaskListFilters) => void;
-  totalCount: number;
-  filteredCount: number;
-  onAddTask: () => void;
+interface ProjectListToolbarProps {
+  state: ListToolbarState;
+  onChange: (state: ListToolbarState) => void;
 }
 
-export function ProjectTasksToolbar({
-  filters,
-  onFiltersChange,
-  totalCount,
-  filteredCount,
-  onAddTask,
-}: ProjectTasksToolbarProps) {
+export function ProjectListToolbar({ state, onChange }: ProjectListToolbarProps) {
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
 
-  const activeSortLabel = SORT_OPTIONS.find((o) => o.value === filters.sortField)?.label ?? "Nome";
-  const activeGroupLabel = GROUP_OPTIONS.find((o) => o.value === filters.groupBy)?.label ?? "Sem agrupamento";
+  const activeSortLabel = SORT_OPTIONS.find((o) => o.value === state.sortField)?.label ?? "Nome";
+  const activeGroupLabel = GROUP_OPTIONS.find((o) => o.value === state.groupBy)?.label ?? "Sem agrupamento";
 
   const handleAddFilter = (field: string, value: string, label: string) => {
     const id = `${field}:${value}`;
-    if (filters.customFilters.some((f) => f.id === id)) return;
-    onFiltersChange({
-      ...filters,
-      customFilters: [...filters.customFilters, { id, field, value, label }],
+    if (state.customFilters.some((f) => f.id === id)) return;
+    onChange({
+      ...state,
+      customFilters: [...state.customFilters, { id, field, value, label }],
     });
     setFilterMenuOpen(false);
   };
 
   const handleRemoveFilter = (id: string) => {
-    onFiltersChange({
-      ...filters,
-      customFilters: filters.customFilters.filter((f) => f.id !== id),
-    });
-  };
-
-  return (
-    <div className="flex items-center gap-2">
-      {/* Search + status filter badges (top row) */}
-      <div className="flex flex-1 items-center gap-3">
-        <div className="relative max-w-xs flex-1">
-          <input
-            type="text"
-            placeholder="Buscar tarefa:"
-            value={filters.search}
-            onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
-            className="h-9 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-ring"
-          />
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.3-4.3" />
-          </svg>
-        </div>
-
-        <div className="flex flex-wrap gap-1.5">
-          {[
-            { key: "all", label: "Todas" },
-            ...Object.entries(TASK_STATUS).map(([key, config]) => ({
-              key,
-              label: config.label,
-              color: config.color,
-              bg: config.bg,
-            })),
-          ].map((s) => {
-            const isActive = filters.status === s.key;
-            return (
-              <Badge
-                key={s.key}
-                variant={isActive ? "default" : "outline"}
-                className="cursor-pointer select-none text-xs"
-                style={
-                  isActive && "color" in s
-                    ? { backgroundColor: s.color, color: "#fff" }
-                    : undefined
-                }
-                onClick={() => onFiltersChange({ ...filters, status: s.key })}
-              >
-                {s.label}
-              </Badge>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        {filteredCount < totalCount && (
-          <span className="text-muted-foreground text-xs">
-            {filteredCount} de {totalCount}
-          </span>
-        )}
-        <Button size="sm" onClick={onAddTask}>
-          <IconPlus className="mr-1 h-3.5 w-3.5" />
-          Tarefa
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-export function ProjectTasksSubToolbar({
-  filters,
-  onFiltersChange,
-}: {
-  filters: TaskListFilters;
-  onFiltersChange: (filters: TaskListFilters) => void;
-}) {
-  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
-
-  const activeSortLabel = SORT_OPTIONS.find((o) => o.value === filters.sortField)?.label ?? "Nome";
-  const activeGroupLabel = GROUP_OPTIONS.find((o) => o.value === filters.groupBy)?.label ?? "Sem agrupamento";
-
-  const handleAddFilter = (field: string, value: string, label: string) => {
-    const id = `${field}:${value}`;
-    if (filters.customFilters.some((f) => f.id === id)) return;
-    onFiltersChange({
-      ...filters,
-      customFilters: [...filters.customFilters, { id, field, value, label }],
-    });
-    setFilterMenuOpen(false);
-  };
-
-  const handleRemoveFilter = (id: string) => {
-    onFiltersChange({
-      ...filters,
-      customFilters: filters.customFilters.filter((f) => f.id !== id),
+    onChange({
+      ...state,
+      customFilters: state.customFilters.filter((f) => f.id !== id),
     });
   };
 
@@ -242,8 +127,8 @@ export function ProjectTasksSubToolbar({
         <DropdownMenuContent align="start" className="w-48">
           <DropdownMenuLabel className="text-xs">Ordenar por</DropdownMenuLabel>
           <DropdownMenuRadioGroup
-            value={filters.sortField}
-            onValueChange={(v) => onFiltersChange({ ...filters, sortField: v as TaskSortField })}
+            value={state.sortField}
+            onValueChange={(v) => onChange({ ...state, sortField: v as SortField })}
           >
             {SORT_OPTIONS.map((opt) => (
               <DropdownMenuRadioItem key={opt.value} value={opt.value}>
@@ -254,8 +139,8 @@ export function ProjectTasksSubToolbar({
           <DropdownMenuSeparator />
           <DropdownMenuLabel className="text-xs">Direção</DropdownMenuLabel>
           <DropdownMenuRadioGroup
-            value={filters.sortDir}
-            onValueChange={(v) => onFiltersChange({ ...filters, sortDir: v as TaskSortDir })}
+            value={state.sortDir}
+            onValueChange={(v) => onChange({ ...state, sortDir: v as SortDir })}
           >
             <DropdownMenuRadioItem value="asc">Crescente (A → Z)</DropdownMenuRadioItem>
             <DropdownMenuRadioItem value="desc">Decrescente (Z → A)</DropdownMenuRadioItem>
@@ -271,7 +156,7 @@ export function ProjectTasksSubToolbar({
           <Button variant="ghost" size="sm" className="h-7 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground">
             <IconLayoutList className="size-3.5" />
             <span className="hidden sm:inline">Agrupar:</span>
-            <span className={cn("font-medium", filters.groupBy !== "none" ? "text-foreground" : "text-muted-foreground")}>
+            <span className={cn("font-medium", state.groupBy !== "none" ? "text-foreground" : "text-muted-foreground")}>
               {activeGroupLabel}
             </span>
             <IconChevronDown className="size-3" />
@@ -280,8 +165,8 @@ export function ProjectTasksSubToolbar({
         <DropdownMenuContent align="start" className="w-48">
           <DropdownMenuLabel className="text-xs">Agrupar por</DropdownMenuLabel>
           <DropdownMenuRadioGroup
-            value={filters.groupBy}
-            onValueChange={(v) => onFiltersChange({ ...filters, groupBy: v as TaskGroupField })}
+            value={state.groupBy}
+            onValueChange={(v) => onChange({ ...state, groupBy: v as GroupField })}
           >
             {GROUP_OPTIONS.map((opt) => (
               <DropdownMenuRadioItem key={opt.value} value={opt.value}>
@@ -295,7 +180,7 @@ export function ProjectTasksSubToolbar({
       <div className="h-4 w-px bg-border/60" />
 
       {/* Active custom filters */}
-      {filters.customFilters.map((f) => (
+      {state.customFilters.map((f) => (
         <Badge
           key={f.id}
           variant="secondary"
@@ -312,11 +197,11 @@ export function ProjectTasksSubToolbar({
         </Badge>
       ))}
 
-      {/* Filter */}
+      {/* Filter: existing or "+' */}
       <Popover open={filterMenuOpen} onOpenChange={setFilterMenuOpen}>
         <PopoverTrigger asChild>
           <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground">
-            {filters.customFilters.length > 0 ? (
+            {state.customFilters.length > 0 ? (
               <IconPlus className="size-3.5" />
             ) : (
               <>
@@ -335,7 +220,7 @@ export function ProjectTasksSubToolbar({
               {field.options ? (
                 field.options.map((opt) => {
                   const id = `${field.value}:${opt.value}`;
-                  const alreadyAdded = filters.customFilters.some((f) => f.id === id);
+                  const alreadyAdded = state.customFilters.some((f) => f.id === id);
                   return (
                     <button
                       key={opt.value}

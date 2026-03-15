@@ -12,6 +12,7 @@ import {
   updateProject,
   deleteProject,
   generateProjectCode,
+  formatProjectName,
 } from "@/features/projects/services/projects";
 import { logAuditTrail } from "@/lib/audit-trail";
 import type { Database } from "@/lib/supabase/types";
@@ -71,6 +72,13 @@ export function useCreateProject() {
       if (!project.code) {
         const code = await generateProjectCode(supabase);
         project = { ...project, code };
+      }
+      // Auto-format name: CONSTRUTORA_EMPREENDIMENTO
+      if (project.name) {
+        project = {
+          ...project,
+          name: formatProjectName(project.name, project.construtora),
+        };
       }
       return createProject(supabase, project);
     },

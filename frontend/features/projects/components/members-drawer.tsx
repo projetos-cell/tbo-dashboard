@@ -3,11 +3,11 @@
 import { useState, useMemo } from "react";
 import { IconPlus, IconTrash, IconSearch } from "@tabler/icons-react";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
 import type { MemberInfo } from "./member-avatar-stack";
 
 interface MembersDrawerProps {
@@ -67,13 +66,13 @@ export function MembersDrawer({
   }, [allProfiles, memberIds, addSearch]);
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[380px] sm:w-[420px]">
-        <SheetHeader className="pb-4">
-          <SheetTitle>Membros do Projeto ({members.length})</SheetTitle>
-        </SheetHeader>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[480px] max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Membros do Projeto ({members.length})</DialogTitle>
+        </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
           {/* Search + Add */}
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
@@ -134,7 +133,7 @@ export function MembersDrawer({
           </div>
 
           {/* Members list */}
-          <div className="space-y-1">
+          <div className="space-y-1 overflow-y-auto flex-1">
             {filteredMembers.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-6">
                 {members.length === 0
@@ -169,7 +168,7 @@ export function MembersDrawer({
             )}
           </div>
         </div>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -36,6 +36,106 @@ export async function getProjectSections(
   return data ?? [];
 }
 
+// ─── Section CRUD ──────────────────────────────────────────────────────────────
+
+type SectionRow = Database["public"]["Tables"]["os_sections"]["Row"];
+
+export async function createProjectSection(
+  supabase: SupabaseClient<Database>,
+  params: { project_id: string; tenant_id: string; title: string; color?: string; order_index: number },
+): Promise<SectionRow> {
+  const { data, error } = await supabase
+    .from("os_sections")
+    .insert({
+      project_id: params.project_id,
+      tenant_id: params.tenant_id,
+      title: params.title,
+      color: params.color ?? null,
+      order_index: params.order_index,
+    } as never)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as SectionRow;
+}
+
+export async function updateProjectSection(
+  supabase: SupabaseClient<Database>,
+  id: string,
+  updates: Partial<Pick<SectionRow, "title" | "color" | "order_index">>,
+): Promise<SectionRow> {
+  const { data, error } = await supabase
+    .from("os_sections")
+    .update(updates as never)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as SectionRow;
+}
+
+export async function deleteProjectSection(
+  supabase: SupabaseClient<Database>,
+  id: string,
+): Promise<void> {
+  // First, unset section_id on tasks that belong to this section
+  await supabase
+    .from("os_tasks")
+    .update({ section_id: null } as never)
+    .eq("section_id", id);
+
+  const { error } = await supabase
+    .from("os_sections")
+    .delete()
+    .eq("id", id);
+
+  if (error) throw error;
+}
+
+export async function reorderProjectSections(
+  supabase: SupabaseClient<Database>,
+  sections: { id: string; order_index: number }[],
+): Promise<void> {
+  for (const s of sections) {
+    const { error } = await supabase
+      .from("os_sections")
+      .update({ order_index: s.order_index } as never)
+      .eq("id", s.id);
+    if (error) throw error;
+  }
+}
+
+export async function moveTaskToSection(
+  supabase: SupabaseClient<Database>,
+  taskId: string,
+  sectionId: string | null,
+  orderIndex: number,
+): Promise<void> {
+  const { error } = await supabase
+    .from("os_tasks")
+    .update({ section_id: sectionId, order_index: orderIndex } as never)
+    .eq("id", taskId);
+
+  if (error) throw error;
+}
+
+export async function reorderTasks(
+  supabase: SupabaseClient<Database>,
+  tasks: { id: string; order_index: number; section_id?: string | null }[],
+): Promise<void> {
+  for (const t of tasks) {
+    const updates: Record<string, unknown> = { order_index: t.order_index };
+    if (t.section_id !== undefined) updates.section_id = t.section_id;
+    const { error } = await supabase
+      .from("os_tasks")
+      .update(updates as never)
+      .eq("id", t.id);
+    if (error) throw error;
+  }
+}
+
 /** Project task statistics computed from os_tasks. */
 export interface ProjectTaskStats {
   totalTasks: number;

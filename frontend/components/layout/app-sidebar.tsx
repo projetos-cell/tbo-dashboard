@@ -41,7 +41,7 @@ import { useSidebarSearch } from "@/hooks/use-sidebar-search";
 import { useSidebarDnd } from "@/hooks/use-sidebar-dnd";
 import { useSidebarPreferences } from "@/hooks/use-sidebar-preferences";
 import { getIcon } from "@/lib/icons";
-import { SIDEBAR_NAV_GROUPS, FOOTER_NAV_ITEMS } from "@/lib/navigation";
+import { SIDEBAR_NAV_GROUPS, PINNED_NAV_ITEMS, FOOTER_NAV_ITEMS } from "@/lib/navigation";
 import { SortableNavGroup } from "@/components/layout/sidebar/sortable-nav-group";
 import { SortableNavItem } from "@/components/layout/sidebar/sortable-nav-item";
 import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
@@ -162,6 +162,28 @@ export function AppSidebar() {
                 className="pl-7"
               />
             </div>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Pinned items — fixed, no group label */}
+        <SidebarGroup className="px-2 pb-1 pt-0">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {PINNED_NAV_ITEMS.filter((item) => canSee(item.module)).map((item) => {
+                const Icon = getIcon(item.icon);
+                const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton asChild isActive={isActive}>
+                      <Link href={item.href}>
+                        <Icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 

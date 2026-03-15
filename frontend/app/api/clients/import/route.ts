@@ -351,7 +351,6 @@ async function importClients(tenantId: string, db: SupabaseClient) {
   const ACTIVE_STATUSES = [
     "briefing",
     "em_andamento",
-    "producao",
     "revisao",
     "aprovado",
   ];

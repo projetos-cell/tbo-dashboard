@@ -6,6 +6,7 @@
       "runtimeExecutable": "cmd",
       "runtimeArgs": ["/c", "pnpm", "run", "dev"],
       "port": 3001,
+      "autoPort": true,
       "cwd": "frontend"
     }
   ],

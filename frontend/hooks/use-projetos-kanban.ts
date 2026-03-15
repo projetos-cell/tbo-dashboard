@@ -19,7 +19,6 @@ const QUERY_KEY = ["projetos-kanban"] as const;
 export const PROJECT_KANBAN_STATUS_MAP: Record<string, KanbanStatus> = {
   backlog:      "backlog",
   em_andamento: "in-progress",
-  producao:     "in-progress",
   em_revisao:   "todo",
   finalizado:   "done",
   parado:       "canceled",

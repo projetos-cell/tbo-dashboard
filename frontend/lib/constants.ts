@@ -6,12 +6,6 @@ export const PROJECT_STATUS = {
     bg: "rgba(59,130,246,0.12)",
     icon: "play-circle",
   },
-  producao: {
-    label: "Em Produção",
-    color: "#8b5cf6",
-    bg: "rgba(139,92,246,0.12)",
-    icon: "zap",
-  },
   em_revisao: {
     label: "Em Revisão",
     color: "#f59e0b",

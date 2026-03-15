@@ -14,9 +14,10 @@ import { ProjectForm } from "@/features/projects/components/project-form";
 import { useProjects } from "@/features/projects/hooks/use-projects";
 import { useUser } from "@/hooks/use-user";
 import { parseBus } from "@/features/projects/utils/parse-bus";
+import { PROJECT_STATUS, type ProjectStatusKey } from "@/lib/constants";
 
 export default function ProjetosPage() {
-  const [view, setView] = useState<ViewMode>("board");
+  const [view, setView] = useState<ViewMode>("list");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [buFilter, setBuFilter] = useState("all");
@@ -24,7 +25,19 @@ export default function ProjetosPage() {
 
   useUser();
 
-  const { data: projects, isLoading, error, refetch } = useProjects();
+  const { data: rawProjects, isLoading, error, refetch } = useProjects();
+
+  // Normalize: if status is a UUID (not a valid PROJECT_STATUS key), treat as "em_andamento"
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const projects = useMemo(() => {
+    if (!rawProjects) return rawProjects;
+    return rawProjects.map((p) => {
+      if (p.status && UUID_RE.test(p.status) && !(p.status in PROJECT_STATUS)) {
+        return { ...p, status: "em_andamento" };
+      }
+      return p;
+    });
+  }, [rawProjects]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Filter by BU → status → search
   const filtered = useMemo(() => {
@@ -49,22 +62,20 @@ export default function ProjetosPage() {
     });
   }, [projects, buFilter, statusFilter, search]);
 
-  // KPIs — contextual to active BU filter
+  // KPIs — computed from actual PROJECT_STATUS, contextual to active BU filter
   const kpis = useMemo(() => {
-    if (!projects) return { total: 0, emAndamento: 0, finalizados: 0, parados: 0 };
+    if (!projects) return { total: 0, statusCounts: {} as Record<string, number> };
     const base = buFilter === "all"
       ? projects
       : projects.filter((p) => parseBus(p.bus).includes(buFilter));
-    return {
-      total: base.length,
-      emAndamento: base.filter(
-        (p) => p.status === "em_andamento" || p.status === "producao" || p.status === "em_revisao"
-      ).length,
-      finalizados: base.filter((p) => p.status === "finalizado").length,
-      parados: base.filter(
-        (p) => p.status === "parado" || p.status === "pausado"
-      ).length,
-    };
+
+    const statusCounts: Record<string, number> = {};
+    for (const p of base) {
+      const key = p.status ?? "sem_status";
+      statusCounts[key] = (statusCounts[key] ?? 0) + 1;
+    }
+
+    return { total: base.length, statusCounts };
   }, [projects, buFilter]);
 
   if (error) {
@@ -90,19 +101,26 @@ export default function ProjetosPage() {
         </div>
       </div>
 
-      {/* KPIs */}
+      {/* KPIs — derived from real PROJECT_STATUS */}
       {isLoading ? (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-7">
+          {[...Array(7)].map((_, i) => (
             <Skeleton key={i} className="h-20 rounded-lg" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-7">
           <KpiCard label="Total" value={kpis.total} />
-          <KpiCard label="Em Andamento" value={kpis.emAndamento} color="#3b82f6" />
-          <KpiCard label="Finalizados" value={kpis.finalizados} color="#22c55e" />
-          <KpiCard label="Parados" value={kpis.parados} color="#ef4444" />
+          {(Object.entries(PROJECT_STATUS) as [ProjectStatusKey, (typeof PROJECT_STATUS)[ProjectStatusKey]][]).map(
+            ([key, config]) => (
+              <KpiCard
+                key={key}
+                label={config.label}
+                value={kpis.statusCounts[key] ?? 0}
+                color={config.color}
+              />
+            ),
+          )}
         </div>
       )}
 

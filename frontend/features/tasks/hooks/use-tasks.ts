@@ -19,6 +19,7 @@ import {
   deleteTask,
 } from "@/features/tasks/services/tasks";
 import { addCollaborator } from "@/features/tasks/services/task-collaborators";
+import { addTaskToProject } from "@/features/tasks/services/task-projects";
 
 export function useTasks(filters?: {
   status?: string;
@@ -93,10 +94,17 @@ export function useCreateTask() {
       return { previousTasks };
     },
 
-    onSuccess: (createdTask) => {
+    onSuccess: (createdTask, variables) => {
       // Auto-add criador como colaborador
       if (createdTask.created_by) {
         addCollaborator(supabase, createdTask.id, createdTask.created_by).catch(
+          () => undefined
+        );
+      }
+
+      // Auto-link tarefa ao projeto (tabela task_projects)
+      if (variables.project_id) {
+        addTaskToProject(createdTask.id, variables.project_id).catch(
           () => undefined
         );
       }
@@ -110,12 +118,16 @@ export function useCreateTask() {
       }
     },
 
-    onSettled: (_data, _err, variables) => {
+    onSettled: (createdTask, _err, variables) => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       if (variables.project_id) {
         queryClient.invalidateQueries({ queryKey: ["project-tasks", variables.project_id] });
         queryClient.invalidateQueries({ queryKey: ["project-task-stats", variables.project_id] });
+      }
+      // Invalidar cache de task-projects para refletir vínculo automático
+      if (createdTask?.id) {
+        queryClient.invalidateQueries({ queryKey: ["task-projects", createdTask.id] });
       }
     },
   });
@@ -142,13 +154,24 @@ export function useUpdateTask() {
 
     onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey: ["tasks"] });
+      await queryClient.cancelQueries({ queryKey: ["project-tasks"] });
       await queryClient.cancelQueries({ queryKey: ["task-detail", variables.id] });
 
       const previousTasks = queryClient.getQueriesData<TaskRow[]>({ queryKey: ["tasks"] });
+      const previousProjectTasks = queryClient.getQueriesData<TaskRow[]>({ queryKey: ["project-tasks"] });
 
       // Optimistic update on list caches
       queryClient.setQueriesData<TaskRow[]>(
         { queryKey: ["tasks"] },
+        (old) =>
+          old?.map((task) =>
+            task.id === variables.id ? { ...task, ...variables.updates } : task
+          )
+      );
+
+      // Optimistic update on project-tasks caches
+      queryClient.setQueriesData<TaskRow[]>(
+        { queryKey: ["project-tasks"] },
         (old) =>
           old?.map((task) =>
             task.id === variables.id ? { ...task, ...variables.updates } : task
@@ -164,12 +187,17 @@ export function useUpdateTask() {
         );
       }
 
-      return { previousTasks, previousDetail };
+      return { previousTasks, previousProjectTasks, previousDetail };
     },
 
     onError: (_err, variables, context) => {
       if (context?.previousTasks) {
         for (const [queryKey, data] of context.previousTasks) {
+          queryClient.setQueryData(queryKey, data);
+        }
+      }
+      if (context?.previousProjectTasks) {
+        for (const [queryKey, data] of context.previousProjectTasks) {
           queryClient.setQueryData(queryKey, data);
         }
       }
@@ -180,6 +208,7 @@ export function useUpdateTask() {
 
     onSuccess: async (updatedTask, variables) => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["project-tasks"] });
       queryClient.invalidateQueries({ queryKey: ["task"] });
       queryClient.invalidateQueries({ queryKey: ["task-detail"] });
       queryClient.invalidateQueries({ queryKey: ["my-tasks"] });

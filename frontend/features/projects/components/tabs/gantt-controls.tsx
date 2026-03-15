@@ -38,7 +38,7 @@ export interface GanttOptions {
 }
 
 export const DEFAULT_GANTT_OPTIONS: GanttOptions = {
-  viewMode: "Week",
+  viewMode: "Day",
   filter: "all",
   colorBy: "status",
   compact: false,

@@ -7,6 +7,30 @@ type DemandRow = Database["public"]["Tables"]["demands"]["Row"];
 const FULL_COLS = "*";
 
 /**
+ * Formats a project name following the standard: CONSTRUTORA_EMPREENDIMENTO (UPPERCASE)
+ * - If construtora equals empreendimento name → just CONSTRUTORA
+ * - If name already contains construtora prefix → keep as-is (uppercase)
+ * - Otherwise → CONSTRUTORA_EMPREENDIMENTO
+ */
+export function formatProjectName(
+  empreendimento: string,
+  construtora?: string | null,
+): string {
+  const name = empreendimento.trim().toUpperCase();
+  if (!construtora?.trim()) return name;
+
+  const c = construtora.trim().toUpperCase();
+
+  // Construtora = empreendimento → just the name
+  if (c === name) return c;
+
+  // Name already has construtora prefix
+  if (name.startsWith(`${c}_`) || name.startsWith(`${c} `)) return name;
+
+  return `${c}_${name}`;
+}
+
+/**
  * Generates the next sequential project code: TBO-YYYY-NNN
  * Queries the latest code for the current year and increments.
  */

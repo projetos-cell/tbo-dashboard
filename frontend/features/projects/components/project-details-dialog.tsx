@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import {
+  IconX,
+  IconPlus,
+  IconUserCircle,
+  IconBuilding,
+} from "@tabler/icons-react";
 import {
   Dialog,
   DialogContent,
@@ -20,13 +26,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useUpdateProject } from "@/features/projects/hooks/use-projects";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { useUpdateProject, useProjects } from "@/features/projects/hooks/use-projects";
+import { useTeamMembers } from "@/hooks/use-team";
 import { useToast } from "@/hooks/use-toast";
 import {
   PROJECT_STATUS,
   BU_LIST,
   BU_COLORS,
-  type ProjectStatusKey,
 } from "@/lib/constants";
 import { parseBus } from "@/features/projects/utils/parse-bus";
 import { cn } from "@/lib/utils";
@@ -47,35 +58,50 @@ export function ProjectDetailsDialog({
 }: ProjectDetailsDialogProps) {
   const updateProject = useUpdateProject();
   const { toast } = useToast();
+  const { data: teamMembers } = useTeamMembers({ is_active: true });
+  const { data: allProjects } = useProjects();
 
   const [name, setName] = useState(project.name);
   const [construtora, setConstrutora] = useState(project.construtora ?? "");
   const [ownerName, setOwnerName] = useState(project.owner_name ?? "");
+  const [ownerId, setOwnerId] = useState(project.owner_id ?? "");
   const [status, setStatus] = useState(project.status ?? "em_andamento");
   const [priority, setPriority] = useState(project.priority ?? "media");
   const [selectedBus, setSelectedBus] = useState<string[]>(parseBus(project.bus));
   const [dueDateStart, setDueDateStart] = useState(project.due_date_start ?? "");
   const [dueDateEnd, setDueDateEnd] = useState(project.due_date_end ?? "");
-  const [value, setValue] = useState(project.value?.toString() ?? "");
-  const [notionUrl, setNotionUrl] = useState(project.notion_url ?? "");
   const [notes, setNotes] = useState(project.notes ?? "");
 
-  // Reset when project changes or dialog opens
   useEffect(() => {
     if (open) {
       setName(project.name);
       setConstrutora(project.construtora ?? "");
       setOwnerName(project.owner_name ?? "");
+      setOwnerId(project.owner_id ?? "");
       setStatus(project.status ?? "em_andamento");
       setPriority(project.priority ?? "media");
       setSelectedBus(parseBus(project.bus));
       setDueDateStart(project.due_date_start ?? "");
       setDueDateEnd(project.due_date_end ?? "");
-      setValue(project.value?.toString() ?? "");
-      setNotionUrl(project.notion_url ?? "");
       setNotes(project.notes ?? "");
     }
   }, [open, project]);
+
+  // Unique construtoras from existing projects (same source as project-compact-list)
+  const construtoras = useMemo(() => {
+    const set = new Set<string>();
+    if (allProjects) {
+      for (const p of allProjects) {
+        if (p.construtora && !/^[0-9a-f]{8}-/i.test(p.construtora)) {
+          set.add(p.construtora);
+        }
+      }
+    }
+    if (construtora && !set.has(construtora)) {
+      set.add(construtora);
+    }
+    return [...set].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [allProjects, construtora]);
 
   function toggleBu(bu: string) {
     setSelectedBus((prev) =>
@@ -93,13 +119,12 @@ export function ProjectDetailsDialog({
           name: name.trim(),
           construtora: construtora.trim() || null,
           owner_name: ownerName.trim() || null,
+          owner_id: ownerId || null,
           status,
           priority,
           bus: selectedBus.length ? JSON.stringify(selectedBus) : null,
           due_date_start: dueDateStart || null,
           due_date_end: dueDateEnd || null,
-          value: value ? parseFloat(value) : null,
-          notion_url: notionUrl.trim() || null,
           notes: notes.trim() || null,
         } as never,
       },
@@ -210,24 +235,26 @@ export function ProjectDetailsDialog({
             </div>
           </div>
 
-          {/* Construtora + Responsável */}
+          {/* Construtora (dropdown) + Responsável (dropdown) */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="edit-construtora">Construtora</Label>
-              <Input
-                id="edit-construtora"
+              <Label>Construtora</Label>
+              <ConstrutoraDropdown
                 value={construtora}
-                onChange={(e) => setConstrutora(e.target.value)}
-                placeholder="Ex: MRV"
+                construtoras={construtoras}
+                onChange={(v) => setConstrutora(v ?? "")}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-owner">Responsável</Label>
-              <Input
-                id="edit-owner"
+              <Label>Responsável</Label>
+              <ResponsavelDropdown
                 value={ownerName}
-                onChange={(e) => setOwnerName(e.target.value)}
-                placeholder="Nome do responsável"
+                currentId={ownerId}
+                members={teamMembers ?? []}
+                onChange={(id, name) => {
+                  setOwnerId(id ?? "");
+                  setOwnerName(name ?? "");
+                }}
               />
             </div>
           </div>
@@ -252,32 +279,6 @@ export function ProjectDetailsDialog({
                 onChange={(e) => setDueDateEnd(e.target.value)}
               />
             </div>
-          </div>
-
-          {/* Valor */}
-          <div className="space-y-2">
-            <Label htmlFor="edit-value">Valor (R$)</Label>
-            <Input
-              id="edit-value"
-              type="number"
-              step="0.01"
-              min="0"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              placeholder="0,00"
-            />
-          </div>
-
-          {/* Notion URL */}
-          <div className="space-y-2">
-            <Label htmlFor="edit-notion">URL Notion</Label>
-            <Input
-              id="edit-notion"
-              type="url"
-              value={notionUrl}
-              onChange={(e) => setNotionUrl(e.target.value)}
-              placeholder="https://notion.so/..."
-            />
           </div>
 
           {/* Notas */}
@@ -307,5 +308,221 @@ export function ProjectDetailsDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ─── Construtora Dropdown ─────────────────────────────────────────────────────
+
+function ConstrutoraDropdown({
+  value,
+  construtoras,
+  onChange,
+}: {
+  value: string;
+  construtoras: string[];
+  onChange: (v: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return construtoras;
+    const q = search.toLowerCase();
+    return construtoras.filter((c) => c.toLowerCase().includes(q));
+  }, [construtoras, search]);
+
+  const isNewValue = search.trim() && !construtoras.some(
+    (c) => c.toLowerCase() === search.trim().toLowerCase()
+  );
+
+  function handleSelect(v: string) {
+    onChange(v);
+    setOpen(false);
+    setSearch("");
+  }
+
+  return (
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSearch(""); }}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex w-full items-center gap-1.5 truncate rounded-md border border-input bg-transparent px-3 py-2 text-sm transition-colors hover:bg-muted focus:outline-none focus:ring-1 focus:ring-ring h-9"
+        >
+          <IconBuilding className="size-3.5 shrink-0 text-muted-foreground" />
+          <span className={cn("truncate", !value && "text-muted-foreground")}>
+            {value || "Selecionar..."}
+          </span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[240px] p-0" align="start" sideOffset={4}>
+        <div className="border-b border-border/60 p-2">
+          <input
+            ref={inputRef}
+            autoFocus
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar construtora..."
+            className="h-7 w-full rounded border-0 bg-muted/40 px-2 text-sm outline-none placeholder:text-muted-foreground"
+          />
+        </div>
+        <div className="max-h-[200px] overflow-y-auto p-1">
+          {value && (
+            <button
+              type="button"
+              onClick={() => { onChange(null); setOpen(false); setSearch(""); }}
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted"
+            >
+              <IconX className="size-3.5" />
+              <span>Remover construtora</span>
+            </button>
+          )}
+          {isNewValue && (
+            <button
+              type="button"
+              onClick={() => handleSelect(search.trim().toUpperCase())}
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-primary transition-colors hover:bg-muted"
+            >
+              <IconPlus className="size-3.5" />
+              <span>Criar &quot;{search.trim().toUpperCase()}&quot;</span>
+            </button>
+          )}
+          {filtered.length === 0 && !isNewValue ? (
+            <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+              Nenhuma construtora encontrada
+            </p>
+          ) : (
+            filtered.map((c) => {
+              const isSelected = c === value;
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => handleSelect(c)}
+                  className={cn(
+                    "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted",
+                    isSelected && "bg-muted/60"
+                  )}
+                >
+                  <IconBuilding className="size-3.5 shrink-0 text-muted-foreground" />
+                  <span className="flex-1 truncate text-left">{c}</span>
+                  {isSelected && (
+                    <span className="text-xs text-muted-foreground">atual</span>
+                  )}
+                </button>
+              );
+            })
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// ─── Responsável Dropdown ─────────────────────────────────────────────────────
+
+function ResponsavelDropdown({
+  value,
+  currentId,
+  members,
+  onChange,
+}: {
+  value: string;
+  currentId: string;
+  members: { id: string; full_name: string; avatar_url?: string | null }[];
+  onChange: (id: string | null, name: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    if (!members) return [];
+    if (!search.trim()) return members;
+    const q = search.toLowerCase();
+    return members.filter((m) => m.full_name.toLowerCase().includes(q));
+  }, [members, search]);
+
+  function getInitials(name: string): string {
+    return name
+      .split(" ")
+      .slice(0, 2)
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase();
+  }
+
+  return (
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSearch(""); }}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex w-full items-center gap-1.5 truncate rounded-md border border-input bg-transparent px-3 py-2 text-sm transition-colors hover:bg-muted focus:outline-none focus:ring-1 focus:ring-ring h-9"
+        >
+          {value ? (
+            <>
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[9px] font-semibold text-blue-700">
+                {getInitials(value)}
+              </span>
+              <span className="truncate">{value}</span>
+            </>
+          ) : (
+            <span className="text-muted-foreground">Selecionar...</span>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[240px] p-0" align="start" sideOffset={4}>
+        <div className="border-b border-border/60 p-2">
+          <input
+            autoFocus
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar membro..."
+            className="h-7 w-full rounded border-0 bg-muted/40 px-2 text-sm outline-none placeholder:text-muted-foreground"
+          />
+        </div>
+        <div className="max-h-[220px] overflow-y-auto p-1">
+          {currentId && (
+            <button
+              type="button"
+              onClick={() => { onChange(null, null); setOpen(false); setSearch(""); }}
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted"
+            >
+              <IconUserCircle className="size-4" />
+              <span>Remover responsável</span>
+            </button>
+          )}
+          {filtered.length === 0 ? (
+            <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+              Nenhum membro encontrado
+            </p>
+          ) : (
+            filtered.map((member) => {
+              const isSelected = member.id === currentId;
+              return (
+                <button
+                  key={member.id}
+                  type="button"
+                  onClick={() => { onChange(member.id, member.full_name); setOpen(false); setSearch(""); }}
+                  className={cn(
+                    "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted",
+                    isSelected && "bg-muted/60"
+                  )}
+                >
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[9px] font-semibold">
+                    {getInitials(member.full_name)}
+                  </span>
+                  <span className="flex-1 truncate text-left">{member.full_name}</span>
+                  {isSelected && (
+                    <span className="text-xs text-muted-foreground">atual</span>
+                  )}
+                </button>
+              );
+            })
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

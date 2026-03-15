@@ -20,6 +20,7 @@ import { MessageContent, MessageMenu, MessageDeleteDialog } from "./message-bubb
 import { MessageReactions } from "./message-reactions";
 import { VoiceMessagePlayer } from "./voice-message-player";
 import { LinkPreviewCard, extractFirstUrl } from "./link-preview-card";
+import { MessageEditHistoryDialog } from "./message-edit-history-dialog";
 import type { ReactionGroup } from "@/features/chat/hooks/use-chat";
 import type { Json } from "@/lib/supabase/types";
 
@@ -56,12 +57,14 @@ interface MessageBubbleProps {
   profileMap?: Record<string, ProfileInfo>;
   reactions?: ReactionGroup[];
   threadCount?: number;
+  bookmarkedMessageIds?: Set<string>;
   onEdit?: (messageId: string, content: string) => void;
   onDelete?: (messageId: string) => void;
   onTogglePin?: (messageId: string, pinned: boolean) => void;
   onReact?: (messageId: string, emoji: string, remove: boolean) => void;
   onOpenThread?: (message: MessageRow) => void;
   onForward?: (message: MessageRow) => void;
+  onBookmark?: (messageId: string, remove: boolean) => void;
 }
 
 export function MessageBubble({
@@ -74,16 +77,20 @@ export function MessageBubble({
   profileMap = {},
   reactions = [],
   threadCount = 0,
+  bookmarkedMessageIds,
   onEdit,
   onDelete,
   onTogglePin,
   onReact,
   onOpenThread,
   onForward,
+  onBookmark,
 }: MessageBubbleProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content ?? "");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  // #18 — edit history dialog
+  const [showEditHistory, setShowEditHistory] = useState(false);
 
   const time = new Date(message.created_at ?? "").toLocaleTimeString("pt-BR", {
     hour: "2-digit",
@@ -163,7 +170,14 @@ export function MessageBubble({
             </span>
             <span className="text-[10px] text-muted-foreground">{time}</span>
             {isEdited && (
-              <span className="text-[10px] text-muted-foreground italic">(editado)</span>
+              <button
+                type="button"
+                onClick={() => setShowEditHistory(true)}
+                className="text-[10px] text-muted-foreground italic hover:text-primary transition-colors"
+                title="Ver histórico de edições"
+              >
+                (editado)
+              </button>
             )}
           </div>
         )}
@@ -269,6 +283,12 @@ export function MessageBubble({
             onQuickReact={onReact ? (emoji) => onReact(message.id, emoji, false) : undefined}
             onReplyInThread={onOpenThread ? () => onOpenThread(message) : undefined}
             onForward={onForward ? () => onForward(message) : undefined}
+            onBookmark={
+              onBookmark
+                ? () => onBookmark(message.id, bookmarkedMessageIds?.has(message.id) ?? false)
+                : undefined
+            }
+            isBookmarked={bookmarkedMessageIds?.has(message.id)}
           />
         </div>
       )}
@@ -278,6 +298,17 @@ export function MessageBubble({
         onOpenChange={setShowDeleteConfirm}
         onConfirm={() => onDelete?.(message.id)}
       />
+
+      {/* #18 — Edit history dialog */}
+      {isEdited && (
+        <MessageEditHistoryDialog
+          messageId={message.id}
+          currentContent={message.content ?? ""}
+          open={showEditHistory}
+          onOpenChange={setShowEditHistory}
+          profileMap={profileMap}
+        />
+      )}
     </div>
   );
 }

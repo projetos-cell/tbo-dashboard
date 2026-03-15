@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useEffect, useState } from "react";
 import {
   IconPencil,
   IconTrash,
@@ -7,8 +8,15 @@ import {
   IconPinnedOff,
   IconCornerUpRight,
   IconArrowForwardUp,
+  IconBookmark,
+  IconMoodPlus,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +29,79 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { ProfileInfo } from "@/features/chat/utils/profile-utils";
 import { parseMentions } from "./mention-popup";
+
+// ── #19 Reaction Emoji Picker ─────────────────────────────────────────
+
+export function ReactionEmojiPicker({
+  onSelect,
+}: {
+  onSelect: (emoji: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const [Picker, setPicker] = useState<React.ComponentType<Record<string, unknown>> | null>(null);
+  const [emojiData, setEmojiData] = useState<unknown>(null);
+
+  useEffect(() => {
+    if (!open || Picker) return;
+    let cancelled = false;
+    Promise.all([import("@emoji-mart/react"), import("@emoji-mart/data")]).then(
+      ([pickerMod, dataMod]) => {
+        if (cancelled) return;
+        setPicker(() => pickerMod.default);
+        setEmojiData(dataMod.default);
+      },
+    );
+    return () => { cancelled = true; };
+  }, [open, Picker]);
+
+  function handleSelect(emoji: { native?: string }) {
+    if (emoji.native) {
+      onSelect(emoji.native);
+      setOpen(false);
+    }
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          title="Mais reações"
+        >
+          <IconMoodPlus size={14} />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        side="top"
+        align="end"
+        className="w-auto p-0 border-none shadow-lg z-50"
+        sideOffset={8}
+      >
+        <div ref={pickerRef}>
+          {Picker && emojiData ? (
+            <Picker
+              data={emojiData}
+              onEmojiSelect={handleSelect}
+              theme="auto"
+              locale="pt"
+              previewPosition="none"
+              skinTonePosition="search"
+              maxFrequentRows={2}
+              perLine={8}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-[350px] w-[352px]">
+              <span className="text-xs text-muted-foreground">Carregando...</span>
+            </div>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 // ── Code Block Rendering ───────────────────────────────────────────────
 
@@ -141,6 +222,8 @@ export function MessageMenu({
   onQuickReact,
   onReplyInThread,
   onForward,
+  onBookmark,
+  isBookmarked,
 }: {
   canEdit: boolean;
   canDelete: boolean;
@@ -152,6 +235,8 @@ export function MessageMenu({
   onQuickReact?: (emoji: string) => void;
   onReplyInThread?: () => void;
   onForward?: () => void;
+  onBookmark?: () => void;
+  isBookmarked?: boolean;
 }) {
   if (!canEdit && !canDelete && !canPin && !onQuickReact && !onReplyInThread && !onForward) {
     return null;
@@ -173,6 +258,8 @@ export function MessageMenu({
               {emoji}
             </button>
           ))}
+          {/* #19 — expanded emoji picker */}
+          <ReactionEmojiPicker onSelect={onQuickReact} />
         </div>
       )}
       {onReplyInThread && (
@@ -195,6 +282,18 @@ export function MessageMenu({
           title="Encaminhar mensagem"
         >
           <IconArrowForwardUp size={14} />
+        </Button>
+      )}
+      {/* #17 — bookmark */}
+      {onBookmark && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`h-7 w-7 ${isBookmarked ? "text-primary" : ""}`}
+          onClick={onBookmark}
+          title={isBookmarked ? "Remover dos favoritos" : "Salvar mensagem"}
+        >
+          <IconBookmark size={14} className={isBookmarked ? "fill-primary" : ""} />
         </Button>
       )}
       {canPin && (

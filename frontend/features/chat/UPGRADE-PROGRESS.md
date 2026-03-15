@@ -29,12 +29,12 @@
 | 11 | Threads / Respostas em linha — thread lateral estilo Slack | ✅ concluído | 2026-03-15 |
 | 12 | Forward de mensagem — encaminhar para outro canal/DM | ✅ concluído | 2026-03-15 |
 | 13 | Mensagens de voz — gravar áudio inline com MediaRecorder | ✅ concluído | 2026-03-15 |
-| 14 | Mensagens agendadas — compor agora, enviar depois | pendente | — |
-| 15 | Link preview / Unfurling — OG tags via edge function | pendente | — |
-| 16 | Código syntax highlight — highlight.js/prism | pendente | — |
-| 17 | Mensagem salva / Bookmark — painel lateral | pendente | — |
-| 18 | Edição com diff visual — histórico de edições | pendente | — |
-| 19 | Reactions com emoji picker expandido — picker inline | pendente | — |
+| 14 | Mensagens agendadas — compor agora, enviar depois | ✅ concluído | 2026-03-15 |
+| 15 | Link preview / Unfurling — OG tags via edge function | ✅ concluído | 2026-03-15 |
+| 16 | Código syntax highlight — highlight.js/prism | ✅ concluído | 2026-03-15 |
+| 17 | Mensagem salva / Bookmark — painel lateral | ✅ concluído | 2026-03-15 |
+| 18 | Edição com diff visual — histórico de edições | ✅ concluído | 2026-03-15 |
+| 19 | Reactions com emoji picker expandido — picker inline | ✅ concluído | 2026-03-15 |
 
 ## FASE 4 — Busca & Navegação
 

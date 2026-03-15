@@ -58,6 +58,8 @@ import { useFaviconBadge } from "@/features/chat/hooks/use-favicon-badge";
 import { useNotificationSound, getSoundPref, saveSoundPref } from "@/features/chat/hooks/use-notification-sound";
 import { useAuthStore } from "@/stores/auth-store";
 import { useChatStore } from "@/features/chat/stores/chat-store";
+import { useBookmarks, useAddBookmark, useRemoveBookmark } from "@/features/chat/hooks/use-chat-bookmarks";
+import { BookmarksPanel } from "./bookmarks-panel";
 import { hasPermission, type RoleSlug } from "@/lib/permissions";
 import { canPerformChannelAction } from "@/features/chat/utils/chat-permissions";
 import { buildProfileMap } from "@/features/chat/utils/profile-utils";
@@ -89,6 +91,8 @@ export function ChatLayout() {
   const [forwardMessage, setForwardMessage] = useState<import("@/features/chat/services/chat").MessageRow | null>(null);
   // #14 — Scheduled messages panel state
   const [scheduledPanelOpen, setScheduledPanelOpen] = useState(false);
+  // #17 — Bookmarks panel state
+  const [bookmarksPanelOpen, setBookmarksPanelOpen] = useState(false);
   // #10 — Sound preference (localStorage-backed, UI preference only)
   const [soundEnabled, setSoundEnabled] = useState(() => getSoundPref());
   function handleToggleSound(enabled: boolean) {
@@ -154,6 +158,23 @@ export function ChatLayout() {
   const { data: scheduledMessages, isLoading: loadingScheduled } = useScheduledMessages(selectedChannelId);
   const sendScheduledMsg = useSendScheduledMessage();
   const cancelScheduledMsg = useCancelScheduledMessage();
+
+  // #17 — Bookmarks
+  const { data: bookmarksData } = useBookmarks();
+  const addBookmarkMut = useAddBookmark();
+  const removeBookmarkMut = useRemoveBookmark();
+  const bookmarkedMessageIds = useMemo(
+    () => new Set((bookmarksData ?? []).map((b) => b.message_id)),
+    [bookmarksData],
+  );
+
+  function handleBookmark(messageId: string, remove: boolean) {
+    if (remove) {
+      removeBookmarkMut.mutate(messageId);
+    } else {
+      addBookmarkMut.mutate(messageId);
+    }
+  }
 
   const archiveChannelMut = useArchiveChannel();
   const unarchiveChannelMut = useUnarchiveChannel();
@@ -343,7 +364,11 @@ export function ChatLayout() {
         <div className="flex flex-1 flex-col min-w-0">
           {selectedChannel && headerInfo ? (
             <>
-              <ConversationHeader headerInfo={headerInfo} onBack={() => setShowConversation(false)} />
+              <ConversationHeader
+                headerInfo={headerInfo}
+                onBack={() => setShowConversation(false)}
+                onOpenBookmarks={() => setBookmarksPanelOpen(true)}
+              />
               <PinnedBanner channelId={selectedChannelId} profileMap={profileMap} onClickMessage={handleScrollToMessage} />
               {messagesQuery.isLoading ? (
                 <div className="flex flex-1 items-center justify-center"><Skeleton className="h-8 w-40" /></div>
@@ -362,6 +387,8 @@ export function ChatLayout() {
                   onReact={handleReact}
                   onOpenThread={setThreadMessage}
                   onForwardMessage={setForwardMessage}
+                  onBookmark={handleBookmark}
+                  bookmarkedMessageIds={bookmarkedMessageIds}
                   canDeleteOthers={canDeleteOthers}
                   initialUnreadCount={initialUnreadCount}
                 />
@@ -417,6 +444,14 @@ export function ChatLayout() {
             cancelScheduledMsg.mutate({ messageId, channelId: selectedChannelId });
           }
         }}
+      />
+
+      {/* #17 — Bookmarks panel */}
+      <BookmarksPanel
+        open={bookmarksPanelOpen}
+        onOpenChange={setBookmarksPanelOpen}
+        profileMap={profileMap}
+        onJumpToMessage={handleScrollToMessage}
       />
 
       {/* #12 — Forward message dialog */}

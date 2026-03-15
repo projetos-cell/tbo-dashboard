@@ -27,6 +27,8 @@ interface MessageListProps {
   onReact?: (messageId: string, emoji: string, remove: boolean) => void;
   onOpenThread?: (message: MessageRow) => void;
   onForwardMessage?: (message: MessageRow) => void;
+  onBookmark?: (messageId: string, remove: boolean) => void;
+  bookmarkedMessageIds?: Set<string>;
   canDeleteOthers?: boolean;
   /** Number of unread messages when this channel was first opened */
   initialUnreadCount?: number;
@@ -66,6 +68,8 @@ export function MessageList({
   onReact,
   onOpenThread,
   onForwardMessage,
+  onBookmark,
+  bookmarkedMessageIds,
   canDeleteOthers,
   initialUnreadCount = 0,
 }: MessageListProps) {
@@ -291,6 +295,8 @@ export function MessageList({
                   onReact={onReact}
                   onOpenThread={onOpenThread}
                   onForward={onForwardMessage}
+                  onBookmark={onBookmark}
+                  bookmarkedMessageIds={bookmarkedMessageIds}
                 />
               </div>
             </div>

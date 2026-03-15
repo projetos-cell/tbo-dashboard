@@ -6,6 +6,7 @@ import {
   IconSettings,
   IconArrowLeft,
   IconLock,
+  IconBookmark,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,9 +34,10 @@ export interface ConversationHeaderInfo {
 interface ConversationHeaderProps {
   headerInfo: ConversationHeaderInfo;
   onBack: () => void;
+  onOpenBookmarks?: () => void;
 }
 
-export function ConversationHeader({ headerInfo, onBack }: ConversationHeaderProps) {
+export function ConversationHeader({ headerInfo, onBack, onOpenBookmarks }: ConversationHeaderProps) {
   const toggleSearch = useChatStore((s) => s.toggleSearch);
   const setChannelSettingsOpen = useChatStore((s) => s.setChannelSettingsOpen);
 
@@ -88,6 +90,16 @@ export function ConversationHeader({ headerInfo, onBack }: ConversationHeaderPro
           </TooltipTrigger>
           <TooltipContent>Buscar mensagens</TooltipContent>
         </Tooltip>
+        {onOpenBookmarks && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onOpenBookmarks}>
+                <IconBookmark size={16} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Mensagens salvas</TooltipContent>
+          </Tooltip>
+        )}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

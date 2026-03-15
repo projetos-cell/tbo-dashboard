@@ -46,12 +46,15 @@ import {
 import { useProfiles } from "@/features/people/hooks/use-people";
 import { useTypingIndicator } from "@/features/chat/hooks/use-typing-indicator";
 import { useChatPresence } from "@/features/chat/hooks/use-presence";
+import { usePushNotifications } from "@/features/chat/hooks/use-push-notifications";
+import { useAllNotificationPrefs } from "@/features/chat/hooks/use-notification-prefs";
 import { useAuthStore } from "@/stores/auth-store";
 import { useChatStore } from "@/features/chat/stores/chat-store";
 import { hasPermission, type RoleSlug } from "@/lib/permissions";
 import { canPerformChannelAction } from "@/features/chat/utils/chat-permissions";
 import { buildProfileMap } from "@/features/chat/utils/profile-utils";
 import type { MentionOption } from "./mention-popup";
+import { SPECIAL_MENTION_OPTIONS } from "./mention-popup";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -107,6 +110,17 @@ export function ChatLayout() {
   // Sync unread + presence
   const { sendTyping } = useTypingIndicator(selectedChannelId);
   useChatPresence();
+
+  // Push notifications (#7) — channel names map (senderNames built after profileMap)
+  const channelNames = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const ch of channels ?? []) {
+      if (ch.name) map[ch.id] = ch.name;
+    }
+    return map;
+  }, [channels]);
+
+  const { data: notifPrefsData } = useAllNotificationPrefs();
 
   // Mutations
   const sendMsg = useSendMessage();
@@ -164,15 +178,25 @@ export function ChatLayout() {
 
   const profileMap = useMemo(() => buildProfileMap(profiles ?? []), [profiles]);
 
+  // Push notifications: build sender names from profileMap
+  const senderNames = useMemo(
+    () => Object.fromEntries(Object.entries(profileMap).map(([id, p]) => [id, p.name])),
+    [profileMap],
+  );
+  usePushNotifications({ channelNames, senderNames, notifPrefs: notifPrefsData ?? {} });
+
   const mentionOptions: MentionOption[] = useMemo(() => {
     if (!selectedChannel?.chat_channel_members || !userId) return [];
-    return selectedChannel.chat_channel_members
+    const members = selectedChannel.chat_channel_members
       .filter((m) => m.user_id !== userId)
       .map((m) => {
         const p = profileMap[m.user_id];
         return { id: m.user_id, name: p?.name ?? "Usuário", avatarUrl: p?.avatarUrl };
       })
       .filter((o) => o.name !== "Usuário");
+    // Prepend broadcast mentions for public channels (not DMs)
+    const isPublic = selectedChannel.type === "channel" || selectedChannel.type === "private";
+    return isPublic ? [...SPECIAL_MENTION_OPTIONS, ...members] : members;
   }, [selectedChannel, userId, profileMap]);
 
   const headerInfo = useMemo((): ConversationHeaderInfo | null => {

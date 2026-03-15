@@ -6,6 +6,7 @@ import {
   AvatarImage,
   AvatarFallback,
 } from "@/components/ui/avatar";
+import { IconUsers, IconUserCheck } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import type { ProfileInfo } from "@/features/chat/utils/profile-utils";
 import { getInitials } from "@/features/chat/utils/profile-utils";
@@ -14,7 +15,16 @@ export interface MentionOption {
   id: string;
   name: string;
   avatarUrl?: string;
+  /** true for @channel / @here broadcast mentions */
+  isSpecial?: boolean;
+  description?: string;
 }
+
+/** Broadcast mention options — always shown at top of mention popup */
+export const SPECIAL_MENTION_OPTIONS: MentionOption[] = [
+  { id: "channel", name: "channel", isSpecial: true, description: "Notifica todos os membros do canal" },
+  { id: "here", name: "here", isSpecial: true, description: "Notifica membros online agora" },
+];
 
 interface MentionPopupProps {
   options: MentionOption[];
@@ -88,13 +98,24 @@ export function MentionPopup({
           onClick={() => onSelect(option)}
           onMouseEnter={() => setActiveIndex(idx)}
         >
-          <Avatar size="sm">
-            {option.avatarUrl && (
-              <AvatarImage src={option.avatarUrl} alt={option.name} />
+          {option.isSpecial ? (
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              {option.id === "channel" ? <IconUsers size={13} /> : <IconUserCheck size={13} />}
+            </span>
+          ) : (
+            <Avatar size="sm">
+              {option.avatarUrl && (
+                <AvatarImage src={option.avatarUrl} alt={option.name} />
+              )}
+              <AvatarFallback>{getInitials(option.name)}</AvatarFallback>
+            </Avatar>
+          )}
+          <span className="flex-1 min-w-0">
+            <span className="block truncate font-medium">@{option.name}</span>
+            {option.description && (
+              <span className="block truncate text-xs text-muted-foreground">{option.description}</span>
             )}
-            <AvatarFallback>{getInitials(option.name)}</AvatarFallback>
-          </Avatar>
-          <span className="truncate">{option.name}</span>
+          </span>
         </button>
       ))}
     </div>
@@ -103,7 +124,7 @@ export function MentionPopup({
 
 // ── Mention parser utilities ──────────────────────────────────────────
 
-const MENTION_REGEX = /<@([a-f0-9-]+)>/g;
+const MENTION_REGEX = /<@(channel|here|[a-f0-9-]+)>/g;
 
 /**
  * Parse message content and split into text and mention segments.
@@ -111,9 +132,9 @@ const MENTION_REGEX = /<@([a-f0-9-]+)>/g;
 export function parseMentions(
   content: string,
   profileMap: Record<string, ProfileInfo>,
-): Array<{ type: "text"; value: string } | { type: "mention"; userId: string; name: string }> {
+): Array<{ type: "text"; value: string } | { type: "mention"; userId: string; name: string; isSpecial?: boolean }> {
   const segments: Array<
-    { type: "text"; value: string } | { type: "mention"; userId: string; name: string }
+    { type: "text"; value: string } | { type: "mention"; userId: string; name: string; isSpecial?: boolean }
   > = [];
 
   let lastIndex = 0;
@@ -128,11 +149,13 @@ export function parseMentions(
       segments.push({ type: "text", value: content.slice(lastIndex, match.index) });
     }
     const userId = match[1];
+    const isSpecial = userId === "channel" || userId === "here";
     const profile = profileMap[userId];
     segments.push({
       type: "mention",
       userId,
-      name: profile?.name ?? "Usuário",
+      name: isSpecial ? userId : (profile?.name ?? "Usuário"),
+      isSpecial,
     });
     lastIndex = match.index + match[0].length;
   }

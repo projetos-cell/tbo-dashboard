@@ -9,16 +9,16 @@
 | 1 | Reactions UI — renderizar abaixo das mensagens com contagem + tooltip | ✅ concluído | 2026-03-15 |
 | 2 | Rich text / Markdown — integrar RichTextEditor no message-input | ✅ concluído | 2026-03-15 |
 | 3 | Clipboard paste de imagem — handler onPaste no message-input | ✅ concluído | 2026-03-15 |
-| 4 | Scroll to bottom FAB — botão flutuante "↓ novas mensagens" | pendente | — |
-| 5 | Unread separator — separador visual "X novas mensagens" | pendente | — |
+| 4 | Scroll to bottom FAB — botão flutuante "↓ novas mensagens" | ✅ concluído | 2026-03-15 |
+| 5 | Unread separator — separador visual "X novas mensagens" | ✅ concluído | 2026-03-15 |
 
 ## FASE 2 — Notificações & Awareness
 
 | # | Feature | Status | Data |
 |---|---------|--------|------|
-| 6 | @channel e @here mentions — expandir mention-popup | pendente | — |
-| 7 | Push notifications (browser) — Notification API | pendente | — |
-| 8 | Notification preferences por canal | pendente | — |
+| 6 | @channel e @here mentions — expandir mention-popup | ✅ concluído | 2026-03-15 |
+| 7 | Push notifications (browser) — Notification API | ✅ concluído | 2026-03-15 |
+| 8 | Notification preferences por canal | ✅ concluído | 2026-03-15 |
 | 9 | Badge no favicon — contagem de unread total | pendente | — |
 | 10 | Som de notificação — audio cue com toggle | pendente | — |
 

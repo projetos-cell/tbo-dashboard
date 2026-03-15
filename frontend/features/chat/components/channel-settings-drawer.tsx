@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { IconArchive, IconPlus, IconX } from "@tabler/icons-react";
+import { IconArchive, IconBell, IconBellOff, IconBellRinging, IconPlus, IconX } from "@tabler/icons-react";
 import {
   Sheet,
   SheetContent,
@@ -38,6 +38,9 @@ import { hasPermission, type RoleSlug } from "@/lib/permissions";
 import type { ChannelRow } from "@/features/chat/services/chat";
 import { ChannelAddMembersPanel } from "./channel-add-members-panel";
 import { ChannelMembersList } from "./channel-members-list";
+import { useNotificationPref } from "@/features/chat/hooks/use-notification-prefs";
+import { cn } from "@/lib/utils";
+import type { NotifSetting } from "@/features/chat/services/chat-notification-prefs";
 
 interface ChannelSettingsDrawerProps {
   channel: ChannelRow;
@@ -62,6 +65,7 @@ export function ChannelSettingsDrawer({ channel }: ChannelSettingsDrawerProps) {
   const { data: profiles } = useProfiles();
   const updateChannel = useUpdateChannel();
   const archiveChannel = useArchiveChannel();
+  const { pref: notifPref, setPref: setNotifPref, isPending: notifPending } = useNotificationPref(open ? channel.id : null);
   const addMembers = useAddChannelMembers();
   const removeMember = useRemoveChannelMember();
   const updateRole = useUpdateMemberRole();
@@ -159,6 +163,40 @@ export function ChannelSettingsDrawer({ channel }: ChannelSettingsDrawerProps) {
               }}
               onRemoveMember={(memberId) => removeMember.mutate({ channelId: channel.id, memberId })}
             />
+          </div>
+
+          {/* Notification preferences */}
+          <Separator />
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Notificações</Label>
+            <div className="grid gap-1.5">
+              {(
+                [
+                  { value: "all", label: "Todas as mensagens", desc: "Notificado em cada nova mensagem", Icon: IconBellRinging },
+                  { value: "mentions", label: "Apenas @menções", desc: "Notificado quando você é mencionado", Icon: IconBell },
+                  { value: "nothing", label: "Nenhuma", desc: "Sem notificações neste canal", Icon: IconBellOff },
+                ] as { value: NotifSetting; label: string; desc: string; Icon: typeof IconBell }[]
+              ).map(({ value, label, desc, Icon }) => (
+                <button
+                  key={value}
+                  type="button"
+                  disabled={notifPending}
+                  onClick={() => setNotifPref(value)}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition-colors text-left",
+                    notifPref === value
+                      ? "border-primary bg-primary/5 text-foreground"
+                      : "hover:bg-muted text-muted-foreground",
+                  )}
+                >
+                  <Icon size={16} className={cn("shrink-0", notifPref === value && "text-primary")} />
+                  <span className="flex-1 min-w-0">
+                    <span className="block font-medium">{label}</span>
+                    <span className="block text-xs text-muted-foreground">{desc}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Danger zone */}

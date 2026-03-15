@@ -12,6 +12,7 @@ export interface User {
   avatar?: string
   role: "founder" | "diretoria" | "lider" | "colaborador"
   department: string
+  cargo?: string
   status: "ativo" | "inativo" | "suspenso"
   lastActive: string
   phone?: string

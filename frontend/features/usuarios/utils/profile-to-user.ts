@@ -31,6 +31,7 @@ export function profileToUser(profile: Record<string, unknown>): User {
       (profile.department as string) ||
       (profile.bu as string) ||
       "—",
+    cargo: (profile.cargo as string) || undefined,
     status,
     lastActive:
       (profile.updated_at as string) ||

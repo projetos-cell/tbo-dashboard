@@ -57,7 +57,12 @@ export function ProfileHeader({ user, onEdit }: ProfileHeaderProps) {
               </span>
             </div>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
+          {user.cargo && (
+            <p className="mt-1 text-sm font-medium text-muted-foreground">
+              {user.cargo}
+            </p>
+          )}
+          <p className="mt-0.5 text-xs text-muted-foreground">
             {user.department}
           </p>
         </div>

@@ -49,6 +49,10 @@ export const UpdateUserSchema = z.object({
   role: RoleEnum.optional(),
   department: z.string().max(50).nullable().optional(),
   is_active: z.boolean().optional(),
+  phone: z.string().max(20).nullable().optional(),
+  avatar_url: z.string().url().nullable().optional(),
+  cargo: z.string().max(100).nullable().optional(),
+  bio: z.string().max(500).nullable().optional(),
 });
 
 export type UpdateUserInput = z.infer<typeof UpdateUserSchema>;

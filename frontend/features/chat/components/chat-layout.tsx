@@ -64,6 +64,7 @@ import { setNotificationPref } from "@/features/chat/services/chat-notification-
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BookmarksPanel } from "./bookmarks-panel";
 import { ChannelSwitcher } from "./channel-switcher";
+import { BrowseChannelsDialog } from "./browse-channels-dialog";
 import { hasPermission, type RoleSlug } from "@/lib/permissions";
 import { canPerformChannelAction } from "@/features/chat/utils/chat-permissions";
 import { buildProfileMap } from "@/features/chat/utils/profile-utils";
@@ -318,6 +319,7 @@ export function ChatLayout() {
 
   const headerInfo = useMemo((): ConversationHeaderInfo | null => {
     if (!selectedChannel) return null;
+    const settings = (selectedChannel as Record<string, unknown>).settings as { is_read_only?: boolean; who_can_post?: "everyone" | "admins" } | null | undefined;
     if (selectedChannel.type === "direct" && userId) {
       const other = selectedChannel.chat_channel_members?.find((m) => m.user_id !== userId);
       if (other) {
@@ -326,7 +328,13 @@ export function ChatLayout() {
       }
     }
     const IconMap: Record<string, typeof IconHash> = { channel: IconHash, private: IconLock, group: null as unknown as typeof IconHash };
-    return { name: selectedChannel.name ?? "", icon: IconMap[selectedChannel.type ?? "channel"] ?? IconHash, description: selectedChannel.description };
+    return {
+      name: selectedChannel.name ?? "",
+      icon: IconMap[selectedChannel.type ?? "channel"] ?? IconHash,
+      description: selectedChannel.description,
+      isReadOnly: settings?.is_read_only ?? false,
+      whoCanPost: settings?.who_can_post ?? "everyone",
+    };
   }, [selectedChannel, userId, profileMap]);
 
   // #23 — Last own message for ↑ to edit
@@ -355,6 +363,10 @@ export function ChatLayout() {
   function handleCreateSection(name: string) { createSectionMut.mutate({ name }); }
   function handleRenameSection(id: string, name: string) { updateSectionMut.mutate({ id, updates: { name } }); }
   function handleDeleteSection(id: string) { deleteSectionMut.mutate(id); }
+  // #31 — Update channel topic (description)
+  function handleUpdateTopic(channelId: string, description: string) {
+    updateChannelMut.mutate({ id: channelId, updates: { description: description || null } });
+  }
   function handleEdit(messageId: string, content: string) { editMsg.mutate({ messageId, content }); }
   function handleDelete(messageId: string) { deleteMsg.mutate({ messageId }); }
   function handleTogglePin(messageId: string, pinned: boolean) { togglePin.mutate({ messageId, pinned }); }
@@ -449,6 +461,8 @@ export function ChatLayout() {
                 onBack={() => setShowConversation(false)}
                 onOpenBookmarks={() => setBookmarksPanelOpen(true)}
                 onJumpToMessage={handleScrollToMessage}
+                canEditTopic={canManageChannels || selectedChannel?.created_by === userId}
+                onUpdateTopic={handleUpdateTopic}
               />
               <PinnedBanner channelId={selectedChannelId} profileMap={profileMap} onClickMessage={handleScrollToMessage} />
               {messagesQuery.isLoading ? (
@@ -546,6 +560,9 @@ export function ChatLayout() {
         currentUserId={userId}
         profileMap={profileMap}
       />
+
+      {/* #30 — Browse channels dialog */}
+      <BrowseChannelsDialog onSelectChannel={handleSelectChannel} />
 
       {/* #23 — Channel switcher (Ctrl+K) */}
       <ChannelSwitcher

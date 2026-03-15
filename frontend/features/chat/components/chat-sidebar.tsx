@@ -5,6 +5,7 @@ import {
   IconMessage,
   IconPlus,
   IconFolderPlus,
+  IconCompass,
 } from "@tabler/icons-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -76,6 +77,7 @@ export function ChatSidebar({
   const setCreateDMOpen = useChatStore((s) => s.setCreateDMOpen);
   const setCreateSectionOpen = useChatStore((s) => s.setCreateSectionOpen);
   const setCreateChannelOpen = useChatStore((s) => s.setCreateChannelOpen);
+  const setBrowseChannelsOpen = useChatStore((s) => s.setBrowseChannelsOpen);
 
   return (
     <div
@@ -88,6 +90,19 @@ export function ChatSidebar({
       <div className="flex items-center justify-between px-4 py-3 border-b">
         <h3 className="text-sm font-semibold">Mensagens</h3>
         <div className="flex items-center gap-0.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setBrowseChannelsOpen(true)}
+              >
+                <IconCompass size={16} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Explorar canais</TooltipContent>
+          </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button

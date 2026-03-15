@@ -19,6 +19,7 @@ import { getAttachmentsByMessageIds } from "@/features/chat/services/chat-attach
 import {
   getChannels,
   getChannelsWithMembers,
+  getBrowsableChannels,
   getMessages,
   sendMessage,
   editMessage,
@@ -49,6 +50,7 @@ import {
   forwardMessage,
   getScheduledMessages,
   cancelScheduledMessage,
+  joinChannel,
 } from "@/features/chat/services/chat";
 
 const MSG_PAGE_SIZE = 50;
@@ -586,6 +588,43 @@ export function useArchivedChannels() {
     queryFn: () => getArchivedChannels(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
+  });
+}
+
+// ── Browse Channels (#30) ─────────────────────────────────────────────
+
+export function useBrowsableChannels(enabled: boolean) {
+  const supabase = createClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery({
+    queryKey: ["chat-browsable-channels", tenantId],
+    queryFn: () => getBrowsableChannels(supabase),
+    staleTime: 1000 * 60 * 2,
+    enabled: !!tenantId && enabled,
+  });
+}
+
+export function useJoinChannel() {
+  const supabase = createClient();
+  const qc = useQueryClient();
+  const userId = useAuthStore((s) => s.user?.id);
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useMutation({
+    mutationFn: async (channelId: string) => {
+      if (!userId) throw new Error("Usuário não autenticado");
+      await joinChannel(supabase, channelId, userId);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat-channels-members", tenantId] });
+      qc.invalidateQueries({ queryKey: ["chat-channels", tenantId] });
+      qc.invalidateQueries({ queryKey: ["chat-browsable-channels", tenantId] });
+      toast.success("Canal adicionado à sua lista");
+    },
+    onError: () => {
+      toast.error("Erro ao entrar no canal");
+    },
   });
 }
 

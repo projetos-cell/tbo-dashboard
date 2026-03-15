@@ -51,12 +51,12 @@
 
 | # | Feature | Status | Data |
 |---|---------|--------|------|
-| 26 | Drag & Drop de canais entre seções — @dnd-kit | pendente | — |
-| 27 | Canal favorito / Star — fixar canais no topo | pendente | — |
-| 28 | Mute canal — silenciar notificações | pendente | — |
-| 29 | Canal read-only / Announcement — modo broadcast | pendente | — |
-| 30 | Browse channels — tela de descoberta de canais públicos | pendente | — |
-| 31 | Tópicos / Topics no canal — descrição no header | pendente | — |
+| 26 | Drag & Drop de canais entre seções — @dnd-kit | ✅ concluído | 2026-03-15 |
+| 27 | Canal favorito / Star — fixar canais no topo | ✅ concluído | 2026-03-15 |
+| 28 | Mute canal — silenciar notificações | ✅ concluído | 2026-03-15 |
+| 29 | Canal read-only / Announcement — modo broadcast | ✅ concluído | 2026-03-15 |
+| 30 | Browse channels — tela de descoberta de canais públicos | ✅ concluído | 2026-03-15 |
+| 31 | Tópicos / Topics no canal — descrição no header | ✅ concluído | 2026-03-15 |
 | 32 | Auto-archive — canais sem atividade | pendente | — |
 | 33 | Canal templates — templates pré-configurados | pendente | — |
 

@@ -65,6 +65,10 @@ interface ChatState {
   // Inline rename
   renamingSectionId: string | null;
   setRenamingSectionId: (id: string | null) => void;
+
+  // #30 — Browse channels
+  isBrowseChannelsOpen: boolean;
+  setBrowseChannelsOpen: (open: boolean) => void;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -147,4 +151,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   // ── Inline rename ────────────────────────────────────────────
   renamingSectionId: null,
   setRenamingSectionId: (id) => set({ renamingSectionId: id }),
+
+  // ── Browse channels ───────────────────────────────────────────
+  isBrowseChannelsOpen: false,
+  setBrowseChannelsOpen: (open) => set({ isBrowseChannelsOpen: open }),
 }));

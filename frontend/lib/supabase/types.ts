@@ -650,6 +650,7 @@ export type Database = {
           is_archived: boolean | null
           name: string
           section_id: string | null
+          settings: Json | null
           tenant_id: string
           type: string | null
         }
@@ -661,6 +662,7 @@ export type Database = {
           is_archived?: boolean | null
           name: string
           section_id?: string | null
+          settings?: Json | null
           tenant_id: string
           type?: string | null
         }
@@ -672,6 +674,7 @@ export type Database = {
           is_archived?: boolean | null
           name?: string
           section_id?: string | null
+          settings?: Json | null
           tenant_id?: string
           type?: string | null
         }
@@ -4210,6 +4213,54 @@ export type Database = {
           },
         ]
       }
+      intake_forms: {
+        Row: {
+          id: string
+          project_id: string
+          tenant_id: string
+          title: string
+          description: string | null
+          fields_json: unknown
+          target_section_id: string | null
+          default_status: string | null
+          default_priority: string | null
+          token: string
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          tenant_id: string
+          title?: string
+          description?: string | null
+          fields_json?: unknown
+          target_section_id?: string | null
+          default_status?: string | null
+          default_priority?: string | null
+          token?: string
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          tenant_id?: string
+          title?: string
+          description?: string | null
+          fields_json?: unknown
+          target_section_id?: string | null
+          default_status?: string | null
+          default_priority?: string | null
+          token?: string
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       inbox_notifications: {
         Row: {
           body: string | null
@@ -6026,6 +6077,9 @@ export type Database = {
         Row: {
           color: string | null
           created_at: string | null
+          default_assignee_id: string | null
+          default_priority: string | null
+          default_status: string | null
           id: string
           order_index: number
           project_id: string
@@ -6036,6 +6090,9 @@ export type Database = {
         Insert: {
           color?: string | null
           created_at?: string | null
+          default_assignee_id?: string | null
+          default_priority?: string | null
+          default_status?: string | null
           id?: string
           order_index?: number
           project_id: string
@@ -6046,6 +6103,9 @@ export type Database = {
         Update: {
           color?: string | null
           created_at?: string | null
+          default_assignee_id?: string | null
+          default_priority?: string | null
+          default_status?: string | null
           id?: string
           order_index?: number
           project_id?: string
@@ -6122,6 +6182,53 @@ export type Database = {
           },
         ]
       }
+      task_templates: {
+        Row: {
+          id: string
+          tenant_id: string
+          title: string
+          description: string | null
+          subtasks_json: Json
+          priority: string | null
+          estimated_hours: number | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          title: string
+          description?: string | null
+          subtasks_json?: Json
+          priority?: string | null
+          estimated_hours?: number | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          title?: string
+          description?: string | null
+          subtasks_json?: Json
+          priority?: string | null
+          estimated_hours?: number | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       os_tasks: {
         Row: {
           assignee_id: string | null
@@ -6138,6 +6245,7 @@ export type Database = {
           parent_id: string | null
           priority: string | null
           project_id: string | null
+          reminder_days: number | null
           section_id: string | null
           start_date: string | null
           status: string
@@ -6160,6 +6268,7 @@ export type Database = {
           parent_id?: string | null
           priority?: string | null
           project_id?: string | null
+          reminder_days?: number | null
           section_id?: string | null
           start_date?: string | null
           status?: string
@@ -6182,6 +6291,7 @@ export type Database = {
           parent_id?: string | null
           priority?: string | null
           project_id?: string | null
+          reminder_days?: number | null
           section_id?: string | null
           start_date?: string | null
           status?: string
@@ -6994,6 +7104,51 @@ export type Database = {
           },
         ]
       }
+      file_annotations: {
+        Row: {
+          id: string
+          file_id: string
+          task_id: string | null
+          tenant_id: string
+          author_id: string
+          author_name: string
+          x_pct: number
+          y_pct: number
+          content: string
+          resolved: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          file_id: string
+          task_id?: string | null
+          tenant_id: string
+          author_id: string
+          author_name?: string
+          x_pct: number
+          y_pct: number
+          content?: string
+          resolved?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          file_id?: string
+          task_id?: string | null
+          tenant_id?: string
+          author_id?: string
+          author_name?: string
+          x_pct?: number
+          y_pct?: number
+          content?: string
+          resolved?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       project_attachments: {
         Row: {
           created_at: string
@@ -7054,6 +7209,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      comment_reactions: {
+        Row: {
+          id: string
+          comment_id: string
+          user_id: string
+          emoji: string
+          tenant_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          comment_id: string
+          user_id: string
+          emoji: string
+          tenant_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          comment_id?: string
+          user_id?: string
+          emoji?: string
+          tenant_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      task_followers: {
+        Row: {
+          id: string
+          task_id: string
+          user_id: string
+          tenant_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          task_id: string
+          user_id: string
+          tenant_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          task_id?: string
+          user_id?: string
+          tenant_id?: string
+          created_at?: string
+        }
+        Relationships: []
       }
       project_comments: {
         Row: {
@@ -7240,6 +7446,48 @@ export type Database = {
           },
         ]
       }
+      project_rules: {
+        Row: {
+          id: string
+          project_id: string
+          tenant_id: string
+          name: string
+          trigger_type: string
+          trigger_config: unknown
+          conditions_json: unknown
+          actions_json: unknown
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          tenant_id: string
+          name?: string
+          trigger_type: string
+          trigger_config?: unknown
+          conditions_json?: unknown
+          actions_json?: unknown
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          tenant_id?: string
+          name?: string
+          trigger_type?: string
+          trigger_config?: unknown
+          conditions_json?: unknown
+          actions_json?: unknown
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       projects: {
         Row: {
           bus: string[] | null
@@ -7248,6 +7496,7 @@ export type Database = {
           client_id: string | null
           code: string | null
           construtora: string | null
+          cover_url: string | null
           created_at: string | null
           due_date_end: string | null
           due_date_start: string | null
@@ -7275,6 +7524,7 @@ export type Database = {
           client_id?: string | null
           code?: string | null
           construtora?: string | null
+          cover_url?: string | null
           created_at?: string | null
           due_date_end?: string | null
           due_date_start?: string | null
@@ -7302,6 +7552,7 @@ export type Database = {
           client_id?: string | null
           code?: string | null
           construtora?: string | null
+          cover_url?: string | null
           created_at?: string | null
           due_date_end?: string | null
           due_date_start?: string | null

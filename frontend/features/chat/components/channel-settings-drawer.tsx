@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { IconArchive, IconBell, IconBellOff, IconBellRinging, IconPlus, IconVolume, IconVolumeOff, IconX } from "@tabler/icons-react";
+import { IconArchive, IconBell, IconBellOff, IconBellRinging, IconPlus, IconSpeakerphone, IconVolume, IconVolumeOff, IconX } from "@tabler/icons-react";
 import {
   Sheet,
   SheetContent,
@@ -58,8 +58,13 @@ export function ChannelSettingsDrawer({ channel, soundEnabled = true, onToggleSo
   const userRole = useAuthStore((s) => s.role) as RoleSlug | null;
   const canEdit = hasPermission(userRole, "chat.manage_channels") || channel.created_by === userId;
 
+  type ChannelSettings = { is_read_only?: boolean; who_can_post?: "everyone" | "admins" };
+  const parsedSettings = (channel.settings ?? {}) as ChannelSettings;
+
   const [name, setName] = useState(channel.name ?? "");
   const [description, setDescription] = useState(channel.description ?? "");
+  const [isReadOnly, setIsReadOnly] = useState(parsedSettings.is_read_only ?? false);
+  const [whoCanPost, setWhoCanPost] = useState<"everyone" | "admins">(parsedSettings.who_can_post ?? "everyone");
   const [isAddingMembers, setIsAddingMembers] = useState(false);
   const [memberSearch, setMemberSearch] = useState("");
   const [selectedNewMembers, setSelectedNewMembers] = useState<string[]>([]);
@@ -81,7 +86,8 @@ export function ChannelSettingsDrawer({ channel, soundEnabled = true, onToggleSo
 
   function handleSaveInfo() {
     if (!name.trim()) return;
-    updateChannel.mutate({ id: channel.id, updates: { name: name.trim(), description: description.trim() || null } as never });
+    const newSettings: ChannelSettings = { is_read_only: isReadOnly, who_can_post: isReadOnly ? "admins" : whoCanPost };
+    updateChannel.mutate({ id: channel.id, updates: { name: name.trim(), description: description.trim() || null, settings: newSettings } as never });
   }
 
   function handleArchive() {
@@ -121,6 +127,49 @@ export function ChannelSettingsDrawer({ channel, soundEnabled = true, onToggleSo
               <Label htmlFor="cs-desc">Descrição</Label>
               <Input id="cs-desc" value={description} onChange={(e) => setDescription(e.target.value)} disabled={!canEdit} maxLength={200} placeholder="Sobre o que é esse canal?" />
             </div>
+            {/* #29 — Read-only / Announcement mode (channel type only) */}
+            {canEdit && (channel.type === "channel" || channel.type === "private") && (
+              <div className="space-y-2 rounded-lg border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <IconSpeakerphone size={15} className="text-muted-foreground shrink-0" />
+                    <span className="text-sm font-medium">Modo somente leitura</span>
+                  </div>
+                  <Switch
+                    checked={isReadOnly}
+                    onCheckedChange={setIsReadOnly}
+                    aria-label="Ativar modo somente leitura"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground pl-6">
+                  {isReadOnly
+                    ? "Apenas administradores e criadores podem enviar mensagens."
+                    : "Todos os membros podem enviar mensagens."}
+                </p>
+                {!isReadOnly && (
+                  <div className="pl-6 space-y-1">
+                    <Label className="text-xs">Quem pode postar</Label>
+                    <div className="flex gap-2">
+                      {(["everyone", "admins"] as const).map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => setWhoCanPost(opt)}
+                          className={cn(
+                            "flex-1 rounded-md border px-2 py-1 text-xs transition-colors text-center",
+                            whoCanPost === opt
+                              ? "border-primary bg-primary/5 text-foreground font-medium"
+                              : "hover:bg-muted text-muted-foreground",
+                          )}
+                        >
+                          {opt === "everyone" ? "Todos" : "Só admins"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             {canEdit && (
               <Button size="sm" onClick={handleSaveInfo} disabled={!name.trim() || updateChannel.isPending}>
                 {updateChannel.isPending ? "Salvando..." : "Salvar"}

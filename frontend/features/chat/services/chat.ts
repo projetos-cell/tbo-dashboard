@@ -119,6 +119,20 @@ export async function getArchivedChannels(
   return data as (ChannelRow & { chat_channel_members: { user_id: string; role: string }[] })[];
 }
 
+/** All public (type = "channel") non-archived channels for browse dialog (#30) */
+export async function getBrowsableChannels(
+  supabase: SupabaseClient<Database>,
+) {
+  const { data, error } = await supabase
+    .from("chat_channels")
+    .select("*, chat_channel_members(user_id, role)")
+    .eq("is_archived", false)
+    .eq("type", "channel")
+    .order("name");
+  if (error) throw error;
+  return data as (ChannelRow & { chat_channel_members: { user_id: string; role: string }[] })[];
+}
+
 /** Channels with member join for DM display names */
 export async function getChannelsWithMembers(
   supabase: SupabaseClient<Database>,

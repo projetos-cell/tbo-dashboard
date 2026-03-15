@@ -102,6 +102,7 @@ export default function ProjectDetailPage({
         project={project}
         users={users}
         members={members}
+        allProfiles={members}
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { IconChevronRight, IconListCheck } from "@tabler/icons-react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { IconChevronRight, IconListCheck, IconPlus } from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -10,6 +10,8 @@ import {
   useProjectTasks,
   useProjectSections,
 } from "@/features/projects/hooks/use-project-tasks";
+import { useCreateTask } from "@/features/tasks/hooks/use-tasks";
+import { useAuthStore } from "@/stores/auth-store";
 import { ProjectTaskRow } from "./project-task-row";
 import {
   ProjectTasksToolbar,
@@ -33,10 +35,44 @@ export function ProjectTaskList({
 }: ProjectTaskListProps) {
   const { parents, subtasksMap, isLoading } = useProjectTasks(projectId);
   const { data: sections } = useProjectSections(projectId);
+  const createTask = useCreateTask();
+  const tenantId = useAuthStore((s) => s.tenantId);
   const [filters, setFilters] = useState<TaskListFilters>({
     search: "",
     status: "all",
   });
+  const [newTaskTitle, setNewTaskTitle] = useState<string | null>(null);
+  const newTaskRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (newTaskTitle !== null && newTaskRef.current) {
+      newTaskRef.current.focus();
+    }
+  }, [newTaskTitle]);
+
+  const handleAddTaskInline = () => {
+    setNewTaskTitle("");
+  };
+
+  const handleConfirmNewTask = () => {
+    const title = newTaskTitle?.trim();
+    if (!title || !tenantId) {
+      setNewTaskTitle(null);
+      return;
+    }
+    createTask.mutate(
+      {
+        title,
+        project_id: projectId,
+        tenant_id: tenantId,
+        status: "A fazer",
+      } as Database["public"]["Tables"]["os_tasks"]["Insert"],
+      {
+        onSuccess: () => setNewTaskTitle(null),
+        onError: () => setNewTaskTitle(null),
+      }
+    );
+  };
 
   // Apply filters
   const filtered = useMemo(() => {
@@ -104,10 +140,10 @@ export function ProjectTaskList({
         onFiltersChange={setFilters}
         totalCount={parents.length}
         filteredCount={filtered.length}
-        onAddTask={onAddTask}
+        onAddTask={handleAddTaskInline}
       />
 
-      {filtered.length === 0 ? (
+      {filtered.length === 0 && newTaskTitle === null ? (
         <EmptyState
           icon={IconListCheck}
           title="Nenhuma tarefa encontrada"
@@ -118,7 +154,7 @@ export function ProjectTaskList({
           }
           cta={
             parents.length === 0
-              ? { label: "Nova Tarefa", onClick: onAddTask }
+              ? { label: "Nova Tarefa", onClick: handleAddTaskInline }
               : undefined
           }
         />
@@ -133,6 +169,43 @@ export function ProjectTaskList({
               onSelectTask={onSelectTask}
             />
           ))}
+
+          {/* Inline new task input */}
+          {newTaskTitle !== null && (
+            <Card>
+              <CardContent className="py-2">
+                <div className="flex items-center gap-2 px-1">
+                  <IconPlus className="size-3.5 shrink-0 text-muted-foreground" />
+                  <input
+                    ref={newTaskRef}
+                    type="text"
+                    value={newTaskTitle}
+                    onChange={(e) => setNewTaskTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleConfirmNewTask();
+                      if (e.key === "Escape") setNewTaskTitle(null);
+                    }}
+                    onBlur={handleConfirmNewTask}
+                    placeholder="Nome da tarefa... (Enter para criar, Esc para cancelar)"
+                    className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                    disabled={createTask.isPending}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Add task shortcut button */}
+          {newTaskTitle === null && (
+            <button
+              type="button"
+              onClick={handleAddTaskInline}
+              className="flex w-full items-center gap-2 rounded-lg px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+            >
+              <IconPlus className="size-3.5" />
+              Adicionar tarefa
+            </button>
+          )}
         </div>
       )}
     </div>

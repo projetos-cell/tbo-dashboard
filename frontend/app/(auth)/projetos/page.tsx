@@ -58,7 +58,7 @@ export default function ProjetosPage() {
     return {
       total: base.length,
       emAndamento: base.filter(
-        (p) => p.status === "em_andamento" || p.status === "producao"
+        (p) => p.status === "em_andamento" || p.status === "producao" || p.status === "em_revisao"
       ).length,
       finalizados: base.filter((p) => p.status === "finalizado").length,
       parados: base.filter(

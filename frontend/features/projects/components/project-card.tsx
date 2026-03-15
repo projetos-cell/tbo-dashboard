@@ -4,7 +4,6 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   IconCalendar,
-  IconUser,
   IconExternalLink,
   IconCheck,
   IconGripVertical,
@@ -13,7 +12,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,7 +31,6 @@ import {
 } from "@/lib/constants";
 import { parseBus } from "@/features/projects/utils/parse-bus";
 import { useUpdateProject } from "@/features/projects/hooks/use-projects";
-import { useProfiles } from "@/features/people/hooks/use-people";
 import type { Database } from "@/lib/supabase/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -46,15 +43,6 @@ interface ProjectCardProps {
   project: Project;
   editable?: boolean;
   dragListeners?: SyntheticListenerMap;
-}
-
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .slice(0, 2)
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase();
 }
 
 function InlineText({
@@ -167,103 +155,7 @@ function StatusBadgeSelect({
   );
 }
 
-/* ── Owner Selector (dropdown with avatars) ─────────────────────────── */
-
-function OwnerSelector({
-  currentName,
-  currentId,
-  onSave,
-}: {
-  currentName: string | null;
-  currentId: string | null;
-  onSave: (name: string, id: string | null) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const { data: profiles } = useProfiles();
-
-  const filtered = (profiles || []).filter((p) =>
-    p.full_name?.toLowerCase().includes(search.toLowerCase())
-  );
-
-  return (
-    <div onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            className="flex items-center gap-1.5 rounded px-1 py-0.5 hover:bg-accent/50 transition-colors text-xs text-muted-foreground cursor-pointer min-w-0"
-          >
-            {currentName ? (
-              <>
-                <Avatar className="size-4 shrink-0">
-                  <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
-                    {getInitials(currentName)}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="truncate">{currentName}</span>
-              </>
-            ) : (
-              <>
-                <IconUser className="h-3 w-3 shrink-0 opacity-50" />
-                <span className="text-muted-foreground/60">+ Responsável</span>
-              </>
-            )}
-          </button>
-        </PopoverTrigger>
-        <PopoverContent className="w-52 p-0" align="start">
-          <div className="p-2 border-b">
-            <input
-              autoFocus
-              placeholder="Buscar pessoa..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full text-sm bg-transparent outline-none placeholder:text-muted-foreground"
-            />
-          </div>
-          <div className="max-h-44 overflow-y-auto py-1">
-            {filtered.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-3">
-                Nenhum resultado
-              </p>
-            ) : (
-              filtered.map((person) => {
-                const isSelected = person.id === currentId || person.full_name === currentName;
-                return (
-                  <button
-                    key={person.id}
-                    type="button"
-                    onClick={() => {
-                      onSave(person.full_name ?? "", person.id);
-                      setOpen(false);
-                    }}
-                    className={cn(
-                      "flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-accent/60 transition-colors",
-                      isSelected && "bg-accent/40"
-                    )}
-                  >
-                    <Avatar className="size-5 shrink-0">
-                      <AvatarImage src={person.avatar_url ?? undefined} />
-                      <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
-                        {getInitials(person.full_name ?? "?")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="flex-1 text-left truncate">{person.full_name}</span>
-                    {isSelected && (
-                      <IconCheck className="size-3.5 text-primary shrink-0" />
-                    )}
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
-    </div>
-  );
-}
-
-/* ── BU Editor (improved design) ────────────────────────────────────── */
+/* ── BU Editor (improved design + immediate persist) ────────────────── */
 
 function BuEditor({
   value,
@@ -275,30 +167,28 @@ function BuEditor({
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(value);
 
+  // Sync when external value changes
+  useEffect(() => {
+    setSelected(value);
+  }, [value]);
+
   const toggle = useCallback(
     (bu: string) => {
       setSelected((prev) => {
         const next = prev.includes(bu)
           ? prev.filter((b) => b !== bu)
           : [...prev, bu];
+        // Persist immediately on each toggle
+        onSave(next);
         return next;
       });
     },
-    []
+    [onSave]
   );
-
-  function handleClose(isOpen: boolean) {
-    if (!isOpen) {
-      if (JSON.stringify(selected) !== JSON.stringify(value)) {
-        onSave(selected);
-      }
-    }
-    setOpen(isOpen);
-  }
 
   return (
     <div onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
-      <Popover open={open} onOpenChange={handleClose}>
+      <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <div className="flex flex-wrap gap-1 cursor-pointer rounded px-0.5 py-0.5 hover:bg-accent/50 transition-colors min-h-[20px]">
             {value.length > 0 ? (
@@ -349,7 +239,7 @@ function BuEditor({
                   )}
                 >
                   <div
-                    className="size-2.5 rounded-full shrink-0 ring-1 ring-inset"
+                    className="size-2.5 rounded-full shrink-0"
                     style={
                       buColor
                         ? {
@@ -436,7 +326,7 @@ export function ProjectCard({ project, editable = false, dragListeners }: Projec
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
-        {/* Status — always interactive */}
+        {/* Status */}
         {editable ? (
           <StatusBadgeSelect
             value={project.status ?? "em_andamento"}
@@ -492,42 +382,18 @@ export function ProjectCard({ project, editable = false, dragListeners }: Projec
           )
         )}
 
-        {/* Construtora */}
-        {editable ? (
-          <div className="text-muted-foreground text-xs">
+        {/* Construtora + date footer */}
+        <div className="text-muted-foreground flex items-center justify-between pt-1 text-xs">
+          {editable ? (
             <InlineText
               value={project.construtora ?? ""}
               onSave={(v) => save({ construtora: v })}
-              className="text-xs"
+              className="text-xs truncate"
               placeholder="+ Construtora"
             />
-          </div>
-        ) : (
-          project.construtora && (
-            <p className="text-muted-foreground truncate text-xs">
-              {project.construtora}
-            </p>
-          )
-        )}
-
-        {/* Footer: owner + date */}
-        <div className="text-muted-foreground flex items-center justify-between pt-1 text-xs">
-          {editable ? (
-            <OwnerSelector
-              currentName={project.owner_name}
-              currentId={project.owner_id ?? null}
-              onSave={(name, id) => save({ owner_name: name, owner_id: id })}
-            />
           ) : (
-            project.owner_name && (
-              <div className="flex items-center gap-1 truncate">
-                <Avatar className="size-4 shrink-0">
-                  <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
-                    {getInitials(project.owner_name)}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="truncate">{project.owner_name}</span>
-              </div>
+            project.construtora && (
+              <span className="truncate">{project.construtora}</span>
             )
           )}
           {project.due_date_end && (

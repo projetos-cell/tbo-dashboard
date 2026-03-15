@@ -35,6 +35,7 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { ProjectStatusBadge } from "./project-status-badge";
 import { ProjectDetailsDialog } from "./project-details-dialog";
 import { MemberAvatarStack, type MemberInfo } from "./member-avatar-stack";
+import { MembersDrawer } from "./members-drawer";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
 import type { UserOption } from "@/components/ui/user-selector";
@@ -61,8 +62,11 @@ interface ProjectTopbarProps {
   project: ProjectRow;
   users?: UserOption[];
   members?: MemberInfo[];
+  allProfiles?: MemberInfo[];
   activeTab: ProjectTabKey;
   onTabChange: (tab: ProjectTabKey) => void;
+  onAddMember?: (member: MemberInfo) => void;
+  onRemoveMember?: (memberId: string) => void;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -71,8 +75,11 @@ export function ProjectTopbar({
   project,
   users = [],
   members = [],
+  allProfiles = [],
   activeTab,
   onTabChange,
+  onAddMember,
+  onRemoveMember,
 }: ProjectTopbarProps) {
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
@@ -81,6 +88,7 @@ export function ProjectTopbar({
   const { toast } = useToast();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [membersOpen, setMembersOpen] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
 
   const handleNameSave = (name: string) => {
@@ -173,7 +181,11 @@ export function ProjectTopbar({
 
         {/* Right: members + action buttons */}
         <div className="flex shrink-0 items-center gap-2 pb-2.5">
-          {members.length > 0 && <MemberAvatarStack members={members} />}
+          {members.length > 0 && (
+            <button type="button" onClick={() => setMembersOpen(true)} className="focus:outline-none">
+              <MemberAvatarStack members={members} />
+            </button>
+          )}
 
           <Button
             size="sm"
@@ -278,6 +290,16 @@ export function ProjectTopbar({
         description={`Excluir "${project.name}"? Esta ação não pode ser desfeita.`}
         confirmLabel="Excluir"
         onConfirm={handleDeleteConfirm}
+      />
+
+      {/* ── MEMBERS DRAWER ─────────────────────────────────────── */}
+      <MembersDrawer
+        open={membersOpen}
+        onOpenChange={setMembersOpen}
+        members={members}
+        allProfiles={allProfiles}
+        onAddMember={(m) => onAddMember?.(m)}
+        onRemoveMember={(id) => onRemoveMember?.(id)}
       />
     </div>
   );

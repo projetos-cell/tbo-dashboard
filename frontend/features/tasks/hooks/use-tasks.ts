@@ -110,9 +110,13 @@ export function useCreateTask() {
       }
     },
 
-    onSettled: () => {
+    onSettled: (_data, _err, variables) => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      if (variables.project_id) {
+        queryClient.invalidateQueries({ queryKey: ["project-tasks", variables.project_id] });
+        queryClient.invalidateQueries({ queryKey: ["project-task-stats", variables.project_id] });
+      }
     },
   });
 }

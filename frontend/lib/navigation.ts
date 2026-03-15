@@ -1,6 +1,5 @@
 import type { SubNavItem } from "@/lib/constants";
 import {
-  PROJETOS_NAV_ITEMS,
   PESSOAS_NAV_ITEMS,
   FINANCEIRO_NAV_ITEMS,
   COMERCIAL_NAV_ITEMS,
@@ -43,7 +42,7 @@ export const SIDEBAR_NAV_GROUPS: readonly NavGroup[] = [
   {
     label: "Execução",
     items: [
-      { href: "/projetos", label: "Projetos", icon: "folder-kanban", module: "projetos", subItems: PROJETOS_NAV_ITEMS },
+      { href: "/projetos", label: "Projetos", icon: "folder-kanban", module: "projetos" },
       { href: "/agenda", label: "Agenda", icon: "calendar", module: "agenda" },
     ],
   },

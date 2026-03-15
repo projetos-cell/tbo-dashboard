@@ -48,13 +48,18 @@ function SortableCard({ project }: { project: Project }) {
 
 export function ProjectBoard({ projects }: ProjectBoardProps) {
   const updateProject = useUpdateProject();
-  const [localProjects, setLocalProjects] = useState(projects);
+  const [overrides, setOverrides] = useState<Record<string, string>>({});
   const undo = useUndoStack();
   const { toast } = useToast();
 
-  // Update when props change
-  if (projects !== localProjects && !updateProject.isPending) {
-    setLocalProjects(projects);
+  // Merge overrides (optimistic status changes) with filtered props
+  const localProjects = projects.map((p) =>
+    overrides[p.id] ? { ...p, status: overrides[p.id] } : p
+  );
+
+  // Clear overrides when mutations settle
+  if (!updateProject.isPending && Object.keys(overrides).length > 0) {
+    setOverrides({});
   }
 
   const sensors = useSensors(
@@ -93,9 +98,7 @@ export function ProjectBoard({ projects }: ProjectBoardProps) {
     });
 
     // Optimistic update
-    setLocalProjects((prev) =>
-      prev.map((p) => (p.id === projectId ? { ...p, status: newStatus } : p))
-    );
+    setOverrides((prev) => ({ ...prev, [projectId]: newStatus }));
 
     // Persist to Supabase
     updateProject.mutate({
@@ -118,9 +121,7 @@ export function ProjectBoard({ projects }: ProjectBoardProps) {
     undo.setUndoing(true);
 
     // Optimistic revert
-    setLocalProjects((prev) =>
-      prev.map((p) => (p.id === projectId ? { ...p, status: toStatus } : p))
-    );
+    setOverrides((prev) => ({ ...prev, [projectId]: toStatus }));
 
     // Persist revert to Supabase
     updateProject.mutate(
@@ -137,11 +138,7 @@ export function ProjectBoard({ projects }: ProjectBoardProps) {
           undo.setUndoing(false);
           // Rollback the optimistic revert
           const original = action.payload as { toStatus: string };
-          setLocalProjects((prev) =>
-            prev.map((p) =>
-              p.id === projectId ? { ...p, status: original.toStatus } : p
-            )
-          );
+          setOverrides((prev) => ({ ...prev, [projectId]: original.toStatus }));
           toast({
             title: "Erro ao desfazer",
             description: "Não foi possível reverter o movimento.",
@@ -161,13 +158,13 @@ export function ProjectBoard({ projects }: ProjectBoardProps) {
       collisionDetection={closestCorners}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="flex gap-3 overflow-x-auto pb-4">
         {columns.map(([statusKey, statusConfig]) => {
           const statusProjects = getProjectsByStatus(statusKey);
           return (
             <div
               key={statusKey}
-              className="flex min-w-[280px] max-w-[320px] flex-1 flex-col"
+              className="flex w-[260px] min-w-[260px] shrink-0 flex-col"
             >
               {/* Column header */}
               <div className="mb-3 flex items-center gap-2">
@@ -187,7 +184,7 @@ export function ProjectBoard({ projects }: ProjectBoardProps) {
                 items={statusProjects.map((p) => p.id)}
                 strategy={verticalListSortingStrategy}
               >
-                <div className="flex flex-col gap-2 rounded-lg bg-gray-100/40 p-2 min-h-[100px]">
+                <div className="flex flex-col gap-2 rounded-lg bg-muted/40 p-2 min-h-[100px]">
                   {statusProjects.length === 0 ? (
                     <p className="py-8 text-center text-xs text-gray-500">
                       Nenhum projeto

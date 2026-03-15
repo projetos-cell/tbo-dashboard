@@ -11,9 +11,10 @@ export interface EmptyStateProps {
     label: string;
     onClick: () => void;
   };
+  children?: React.ReactNode;
 }
 
-export function EmptyState({ icon: Icon, title, description, cta }: EmptyStateProps) {
+export function EmptyState({ icon: Icon, title, description, cta, children }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
       {Icon && (
@@ -28,6 +29,7 @@ export function EmptyState({ icon: Icon, title, description, cta }: EmptyStatePr
           {cta.label}
         </Button>
       )}
+      {children}
     </div>
   );
 }

@@ -23,6 +23,24 @@ export async function getTaskDependencies(
   return (data ?? []) as unknown as TaskDependency[];
 }
 
+// ─── Batch fetch by task IDs (for Gantt) ─────────────
+
+export async function getDependenciesByTaskIds(
+  supabase: SupabaseClient<Database>,
+  taskIds: string[],
+): Promise<TaskDependency[]> {
+  if (taskIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select("*")
+    .or(
+      `predecessor_id.in.(${taskIds.join(",")}),successor_id.in.(${taskIds.join(",")})`,
+    );
+
+  if (error) throw error;
+  return (data ?? []) as unknown as TaskDependency[];
+}
+
 // ─── All dependencies (for circular check) ────────────
 
 export async function getAllDependencies(

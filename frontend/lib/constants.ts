@@ -448,6 +448,34 @@ export const CHANGELOG_TAGS = {
 export type ChangelogTagKey = keyof typeof CHANGELOG_TAGS;
 
 
+// ─── Service catalog configuration ──────────────────────────────────
+export const SERVICE_TYPE = {
+  fee_mensal: { label: "Fee Mensal", color: "#8b5cf6", bg: "rgba(139,92,246,0.12)" },
+  projeto: { label: "Projeto", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
+  hora: { label: "Hora", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+  pacote: { label: "Pacote", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+} as const;
+
+export type ServiceTypeKey = keyof typeof SERVICE_TYPE;
+
+export const SERVICE_STATUS = {
+  active: { label: "Ativo", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  draft: { label: "Rascunho", color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
+  archived: { label: "Arquivado", color: "#9ca3af", bg: "rgba(156,163,175,0.12)" },
+} as const;
+
+export type ServiceStatusKey = keyof typeof SERVICE_STATUS;
+
+export const SERVICE_UNIT = {
+  unidade: { label: "Unidade", short: "un" },
+  hora: { label: "Hora", short: "h" },
+  mes: { label: "Mes", short: "/mes" },
+  pacote: { label: "Pacote", short: "pct" },
+  projeto: { label: "Projeto", short: "proj" },
+} as const;
+
+export type ServiceUnitKey = keyof typeof SERVICE_UNIT;
+
 // ─── Module sub-navigation items (L2 sidebar) ──────────────────────
 // Each module that has an L2 sidebar defines its nav items here.
 // Pattern follows CULTURA_NAV_ITEMS: { href, label, icon, min_role? }
@@ -496,6 +524,7 @@ export const COMERCIAL_NAV_ITEMS: readonly SubNavItem[] = [
   { href: "/comercial", label: "Pipeline", icon: "kanban" },
   { href: "/comercial/leads", label: "Leads", icon: "user-plus" },
   { href: "/comercial/propostas", label: "Propostas", icon: "file-text" },
+  { href: "/comercial/servicos", label: "Servicos", icon: "package" },
   { href: "/comercial/atividades", label: "Atividades", icon: "activity" },
   { href: "/comercial/relatorios", label: "Relatórios", icon: "bar-chart-3" },
   { href: "/comercial/integracoes", label: "Integrações", icon: "plug" },

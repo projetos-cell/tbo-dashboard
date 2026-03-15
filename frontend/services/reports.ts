@@ -78,6 +78,19 @@ export async function listRuns(
   return (data ?? []) as ReportRunRow[];
 }
 
+export async function createRun(
+  supabase: SupabaseClient<Database>,
+  run: Database["public"]["Tables"]["report_runs"]["Insert"]
+): Promise<ReportRunRow> {
+  const { data, error } = await supabase
+    .from("report_runs")
+    .insert(run as never)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as unknown as ReportRunRow;
+}
+
 export async function getRunById(
   supabase: SupabaseClient<Database>,
   id: string

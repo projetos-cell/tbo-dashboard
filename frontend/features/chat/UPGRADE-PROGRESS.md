@@ -43,9 +43,9 @@
 | 20 | Filtros avançados na busca — autor, data, canal, tipo | ✅ concluído | 2026-03-15 |
 | 21 | Jump to date — date picker para navegar por data | ✅ concluído | 2026-03-15 |
 | 22 | Busca dentro do canal — search scoped ao canal ativo | ✅ concluído | 2026-03-15 |
-| 23 | Atalhos de teclado globais — Ctrl+K, ↑ editar, Esc | pendente | — |
-| 24 | Mensagens não lidas highlight — separador com contagem | pendente | — |
-| 25 | Command palette no chat — / commands: /tarefa, /lembrete, /poll | pendente | — |
+| 23 | Atalhos de teclado globais — Ctrl+K, ↑ editar, Esc | ✅ concluído | 2026-03-15 |
+| 24 | Mensagens não lidas highlight — separador com contagem | ✅ concluído | 2026-03-15 |
+| 25 | Command palette no chat — / commands: /tarefa, /lembrete, /poll | ✅ concluído | 2026-03-15 |
 
 ## FASE 5 — Canais & Organização
 

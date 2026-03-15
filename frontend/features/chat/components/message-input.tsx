@@ -15,6 +15,8 @@ import { EmojiPicker } from "./emoji-picker";
 import { DragOverlay, PendingFilesList, useDragDrop } from "./message-input-parts";
 import { VoiceRecorder } from "./voice-recorder";
 import { ScheduledMessagePicker } from "./scheduled-message-picker";
+import { SlashCommandPopup, SLASH_COMMANDS, type SlashCommand } from "./slash-command-popup";
+import { TaskFromMessageDialog, ReminderDialog, PollDialog } from "./slash-command-dialog";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -33,6 +35,10 @@ interface MessageInputProps {
   scheduledCount?: number;
   /** Open scheduled messages panel */
   onShowScheduled?: () => void;
+  /** #23 — Last message sent by current user (for ↑ to edit) */
+  lastOwnMessage?: { id: string; content: string | null };
+  /** #23 — Callback to trigger edit on last own message */
+  onEditLastMessage?: (messageId: string, content: string) => void;
 }
 
 export function MessageInput({
@@ -42,6 +48,8 @@ export function MessageInput({
   mentionOptions = [],
   scheduledCount = 0,
   onShowScheduled,
+  lastOwnMessage,
+  onEditLastMessage,
 }: MessageInputProps) {
   const [content, setContent] = useState("");
   const [richContent, setRichContent] = useState("");
@@ -50,6 +58,13 @@ export function MessageInput({
   const [pendingVoiceFile, setPendingVoiceFile] = useState<File | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionStart, setMentionStart] = useState(-1);
+
+  // #25 — Slash commands
+  const [slashQuery, setSlashQuery] = useState<string | null>(null);
+  const [slashActiveIndex, setSlashActiveIndex] = useState(0);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
+  const [pollDialogOpen, setPollDialogOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -121,6 +136,31 @@ export function MessageInput({
     textareaRef.current?.focus();
   }
 
+  // #25 — Detect /slash command from start of text
+  const detectSlashCommand = useCallback((text: string) => {
+    if (!text.startsWith("/") || text.includes(" ")) {
+      setSlashQuery(null);
+      return;
+    }
+    setSlashQuery(text.slice(1)); // query is what follows "/"
+    setSlashActiveIndex(0);
+  }, []);
+
+  function handleSlashSelect(cmd: SlashCommand) {
+    setContent("");
+    setSlashQuery(null);
+    if (cmd.name === "/tarefa") setTaskDialogOpen(true);
+    else if (cmd.name === "/lembrete") setReminderDialogOpen(true);
+    else if (cmd.name === "/poll") setPollDialogOpen(true);
+    textareaRef.current?.focus();
+  }
+
+  function handlePollSubmit(question: string, options: string[]) {
+    // Send poll as a structured message
+    const pollContent = `📊 **${question}**\n${options.map((o, i) => `${i + 1}. ${o}`).join("\n")}`;
+    onSend(pollContent);
+  }
+
   /** Detect @mention query from cursor position */
   const detectMention = useCallback((text: string, cursorPos: number) => {
     const before = text.slice(0, cursorPos);
@@ -147,6 +187,7 @@ export function MessageInput({
     setContent(newContent);
     onTyping?.();
     detectMention(newContent, e.target.selectionStart);
+    detectSlashCommand(newContent);
   }
 
   function handleMentionSelect(option: MentionOption) {
@@ -161,6 +202,38 @@ export function MessageInput({
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    // #25 — Slash command navigation
+    if (slashQuery !== null) {
+      const filteredCmds = SLASH_COMMANDS.filter(
+        (cmd) =>
+          cmd.name.toLowerCase().includes(slashQuery.toLowerCase()) ||
+          cmd.description.toLowerCase().includes(slashQuery.toLowerCase()),
+      );
+      if (filteredCmds.length > 0) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setSlashActiveIndex((i) => Math.min(i + 1, filteredCmds.length - 1));
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setSlashActiveIndex((i) => Math.max(i - 1, 0));
+          return;
+        }
+        if (e.key === "Tab" || (e.key === "Enter" && !e.shiftKey)) {
+          e.preventDefault();
+          const cmd = filteredCmds[slashActiveIndex];
+          if (cmd) handleSlashSelect(cmd);
+          return;
+        }
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setSlashQuery(null);
+        return;
+      }
+    }
+
     if (mentionQuery !== null && mentionOptions.length > 0) {
       if (["ArrowDown", "ArrowUp", "Tab"].includes(e.key)) return;
       if (e.key === "Enter") {
@@ -178,6 +251,13 @@ export function MessageInput({
         setMentionQuery(null);
         return;
       }
+    }
+
+    // #23 — ↑ when input is empty → edit last own message
+    if (e.key === "ArrowUp" && !content.trim() && !isRichMode && lastOwnMessage && onEditLastMessage) {
+      e.preventDefault();
+      onEditLastMessage(lastOwnMessage.id, lastOwnMessage.content ?? "");
+      return;
     }
 
     if (e.key === "Enter" && !e.shiftKey) {
@@ -227,6 +307,17 @@ export function MessageInput({
       )}
 
       <div className="relative flex items-end gap-2 rounded-xl border bg-background px-3 py-2 shadow-sm focus-within:ring-1 focus-within:ring-ring">
+        {/* #25 — Slash command popup */}
+        {slashQuery !== null && (
+          <SlashCommandPopup
+            query={slashQuery}
+            activeIndex={slashActiveIndex}
+            onSelect={handleSlashSelect}
+            onClose={() => setSlashQuery(null)}
+            onChangeActive={setSlashActiveIndex}
+          />
+        )}
+
         {mentionQuery !== null && mentionOptions.length > 0 && (
           <MentionPopup
             options={mentionOptions}
@@ -300,7 +391,7 @@ export function MessageInput({
               const target = e.target as HTMLTextAreaElement;
               detectMention(target.value, target.selectionStart);
             }}
-            placeholder="Digite uma mensagem... (@mencionar)"
+            placeholder="Digite uma mensagem... (@mencionar, /comandos)"
             disabled={disabled}
             className="min-h-[36px] max-h-32 flex-1 resize-none border-0 bg-transparent p-1 text-sm shadow-none focus-visible:ring-0"
             rows={1}
@@ -355,6 +446,21 @@ export function MessageInput({
           </Button>
         </div>
       </div>
+
+      {/* #25 — Slash command dialogs */}
+      <TaskFromMessageDialog
+        open={taskDialogOpen}
+        onOpenChange={setTaskDialogOpen}
+      />
+      <ReminderDialog
+        open={reminderDialogOpen}
+        onOpenChange={setReminderDialogOpen}
+      />
+      <PollDialog
+        open={pollDialogOpen}
+        onOpenChange={setPollDialogOpen}
+        onSubmit={handlePollSubmit}
+      />
     </div>
   );
 }

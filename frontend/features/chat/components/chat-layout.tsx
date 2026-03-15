@@ -60,6 +60,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useChatStore } from "@/features/chat/stores/chat-store";
 import { useBookmarks, useAddBookmark, useRemoveBookmark } from "@/features/chat/hooks/use-chat-bookmarks";
 import { BookmarksPanel } from "./bookmarks-panel";
+import { ChannelSwitcher } from "./channel-switcher";
 import { hasPermission, type RoleSlug } from "@/lib/permissions";
 import { canPerformChannelAction } from "@/features/chat/utils/chat-permissions";
 import { buildProfileMap } from "@/features/chat/utils/profile-utils";
@@ -93,6 +94,8 @@ export function ChatLayout() {
   const [scheduledPanelOpen, setScheduledPanelOpen] = useState(false);
   // #17 — Bookmarks panel state
   const [bookmarksPanelOpen, setBookmarksPanelOpen] = useState(false);
+  // #23 — Channel switcher state (Ctrl+K)
+  const [channelSwitcherOpen, setChannelSwitcherOpen] = useState(false);
   // #10 — Sound preference (localStorage-backed, UI preference only)
   const [soundEnabled, setSoundEnabled] = useState(() => getSoundPref());
   function handleToggleSound(enabled: boolean) {
@@ -100,24 +103,52 @@ export function ChatLayout() {
     saveSoundPref(enabled);
   }
 
-  // Keyboard shortcut: Ctrl/Cmd+F → search, Escape → close
-  const handleSearchKeyboard = useCallback(
+  // #23 — Global keyboard shortcuts: Ctrl+K (channel switcher), Ctrl+F (search), Esc (close panels)
+  const handleGlobalKeyboard = useCallback(
     (e: KeyboardEvent) => {
+      // Ctrl/Cmd+K → channel switcher
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setChannelSwitcherOpen(true);
+        return;
+      }
+      // Ctrl/Cmd+F → search
       if ((e.metaKey || e.ctrlKey) && e.key === "f") {
         e.preventDefault();
         if (!isSearchOpen) toggleSearch();
+        return;
       }
-      if (e.key === "Escape" && isSearchOpen) {
-        toggleSearch();
-        setSearchQuery("");
+      // Escape → close open panels in priority order
+      if (e.key === "Escape") {
+        if (isSearchOpen) {
+          toggleSearch();
+          setSearchQuery("");
+          return;
+        }
+        if (channelSwitcherOpen) {
+          setChannelSwitcherOpen(false);
+          return;
+        }
+        if (threadMessage) {
+          setThreadMessage(null);
+          return;
+        }
+        if (bookmarksPanelOpen) {
+          setBookmarksPanelOpen(false);
+          return;
+        }
+        if (scheduledPanelOpen) {
+          setScheduledPanelOpen(false);
+          return;
+        }
       }
     },
-    [isSearchOpen, toggleSearch, setSearchQuery],
+    [isSearchOpen, toggleSearch, setSearchQuery, channelSwitcherOpen, threadMessage, bookmarksPanelOpen, scheduledPanelOpen],
   );
   useEffect(() => {
-    document.addEventListener("keydown", handleSearchKeyboard);
-    return () => document.removeEventListener("keydown", handleSearchKeyboard);
-  }, [handleSearchKeyboard]);
+    document.addEventListener("keydown", handleGlobalKeyboard);
+    return () => document.removeEventListener("keydown", handleGlobalKeyboard);
+  }, [handleGlobalKeyboard]);
 
   // Data
   const { data: channels, isLoading: loadingChannels } = useChannelsWithMembers();
@@ -267,6 +298,18 @@ export function ChatLayout() {
     return { name: selectedChannel.name ?? "", icon: IconMap[selectedChannel.type ?? "channel"] ?? IconHash, description: selectedChannel.description };
   }, [selectedChannel, userId, profileMap]);
 
+  // #23 — Last own message for ↑ to edit
+  const lastOwnMessage = useMemo(() => {
+    if (!userId) return null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.sender_id === userId && msg.message_type === "text" && !msg.deleted_at) {
+        return msg;
+      }
+    }
+    return null;
+  }, [messages, userId]);
+
   // Handlers
   function handleSelectChannel(id: string) {
     const currentUnread = useChatStore.getState().unreadCounts[id] ?? 0;
@@ -404,6 +447,8 @@ export function ChatLayout() {
                 mentionOptions={mentionOptions}
                 scheduledCount={scheduledMessages?.length ?? 0}
                 onShowScheduled={() => setScheduledPanelOpen(true)}
+                lastOwnMessage={lastOwnMessage ?? undefined}
+                onEditLastMessage={(id, content) => handleEdit(id, content)}
               />
             </>
           ) : (
@@ -465,6 +510,22 @@ export function ChatLayout() {
         onOpenChange={(open) => { if (!open) setForwardMessage(null); }}
         currentUserId={userId}
         profileMap={profileMap}
+      />
+
+      {/* #23 — Channel switcher (Ctrl+K) */}
+      <ChannelSwitcher
+        open={channelSwitcherOpen}
+        onOpenChange={setChannelSwitcherOpen}
+        channels={(channels ?? []).map((ch) => ({
+          id: ch.id,
+          name: ch.name,
+          type: ch.type,
+          unreadCount: unreadCounts[ch.id] ?? 0,
+        }))}
+        selectedChannelId={selectedChannelId}
+        currentUserId={userId}
+        profileMap={profileMap}
+        onSelectChannel={handleSelectChannel}
       />
     </div>
   );

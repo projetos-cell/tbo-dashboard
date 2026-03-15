@@ -12,6 +12,7 @@ import {
   buildReactionMap,
   useThreadReplyCount,
 } from "@/features/chat/hooks/use-chat";
+import { cn } from "@/lib/utils";
 
 interface MessageListProps {
   messages: MessageRow[];
@@ -276,7 +277,11 @@ export function MessageList({
                 </div>
               )}
 
-              <div className={showAvatar ? "mt-3" : "mt-0.5"}>
+              {/* #24 — Highlight unread messages with subtle left accent */}
+              <div className={cn(
+                showAvatar ? "mt-3" : "mt-0.5",
+                unreadSeparatorIndex > 0 && idx >= unreadSeparatorIndex && "border-l-2 border-primary/30 pl-1",
+              )}>
                 <MessageBubble
                   message={msg}
                   isOwn={isOwn}

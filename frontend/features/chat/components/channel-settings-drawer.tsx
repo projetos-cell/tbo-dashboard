@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { IconArchive, IconBell, IconBellOff, IconBellRinging, IconPlus, IconX } from "@tabler/icons-react";
+import { IconArchive, IconBell, IconBellOff, IconBellRinging, IconPlus, IconVolume, IconVolumeOff, IconX } from "@tabler/icons-react";
 import {
   Sheet,
   SheetContent,
@@ -41,12 +41,15 @@ import { ChannelMembersList } from "./channel-members-list";
 import { useNotificationPref } from "@/features/chat/hooks/use-notification-prefs";
 import { cn } from "@/lib/utils";
 import type { NotifSetting } from "@/features/chat/services/chat-notification-prefs";
+import { Switch } from "@/components/ui/switch";
 
 interface ChannelSettingsDrawerProps {
   channel: ChannelRow;
+  soundEnabled?: boolean;
+  onToggleSound?: (enabled: boolean) => void;
 }
 
-export function ChannelSettingsDrawer({ channel }: ChannelSettingsDrawerProps) {
+export function ChannelSettingsDrawer({ channel, soundEnabled = true, onToggleSound }: ChannelSettingsDrawerProps) {
   const open = useChatStore((s) => s.isChannelSettingsOpen);
   const setOpen = useChatStore((s) => s.setChannelSettingsOpen);
   const setSelectedChannelId = useChatStore((s) => s.setSelectedChannelId);
@@ -169,6 +172,37 @@ export function ChannelSettingsDrawer({ channel }: ChannelSettingsDrawerProps) {
           <Separator />
           <div className="space-y-3">
             <Label className="text-sm font-medium">Notificações</Label>
+
+            {/* Global sound toggle (#10) */}
+            {onToggleSound && (
+              <button
+                type="button"
+                onClick={() => onToggleSound(!soundEnabled)}
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition-colors text-left",
+                  "hover:bg-muted",
+                )}
+              >
+                {soundEnabled ? (
+                  <IconVolume size={16} className="shrink-0 text-primary" />
+                ) : (
+                  <IconVolumeOff size={16} className="shrink-0 text-muted-foreground" />
+                )}
+                <span className="flex-1 min-w-0">
+                  <span className="block font-medium">Som de notificação</span>
+                  <span className="block text-xs text-muted-foreground">
+                    Aplica-se a todos os canais
+                  </span>
+                </span>
+                <Switch
+                  checked={soundEnabled}
+                  onCheckedChange={onToggleSound}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label="Ativar som de notificação"
+                />
+              </button>
+            )}
+
             <div className="grid gap-1.5">
               {(
                 [

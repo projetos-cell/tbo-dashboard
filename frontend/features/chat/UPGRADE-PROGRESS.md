@@ -19,8 +19,8 @@
 | 6 | @channel e @here mentions — expandir mention-popup | ✅ concluído | 2026-03-15 |
 | 7 | Push notifications (browser) — Notification API | ✅ concluído | 2026-03-15 |
 | 8 | Notification preferences por canal | ✅ concluído | 2026-03-15 |
-| 9 | Badge no favicon — contagem de unread total | pendente | — |
-| 10 | Som de notificação — audio cue com toggle | pendente | — |
+| 9 | Badge no favicon — contagem de unread total | ✅ concluído | 2026-03-15 |
+| 10 | Som de notificação — audio cue com toggle | ✅ concluído | 2026-03-15 |
 
 ## FASE 3 — Mensagens Avançadas
 

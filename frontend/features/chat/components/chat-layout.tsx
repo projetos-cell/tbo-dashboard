@@ -48,6 +48,8 @@ import { useTypingIndicator } from "@/features/chat/hooks/use-typing-indicator";
 import { useChatPresence } from "@/features/chat/hooks/use-presence";
 import { usePushNotifications } from "@/features/chat/hooks/use-push-notifications";
 import { useAllNotificationPrefs } from "@/features/chat/hooks/use-notification-prefs";
+import { useFaviconBadge } from "@/features/chat/hooks/use-favicon-badge";
+import { useNotificationSound, getSoundPref, saveSoundPref } from "@/features/chat/hooks/use-notification-sound";
 import { useAuthStore } from "@/stores/auth-store";
 import { useChatStore } from "@/features/chat/stores/chat-store";
 import { hasPermission, type RoleSlug } from "@/lib/permissions";
@@ -75,6 +77,12 @@ export function ChatLayout() {
   const [showConversation, setShowConversation] = useState(false);
   // #5 — Capture unread count snapshot when channel opens (before markAsRead clears it)
   const [initialUnreadCount, setInitialUnreadCount] = useState(0);
+  // #10 — Sound preference (localStorage-backed, UI preference only)
+  const [soundEnabled, setSoundEnabled] = useState(() => getSoundPref());
+  function handleToggleSound(enabled: boolean) {
+    setSoundEnabled(enabled);
+    saveSoundPref(enabled);
+  }
 
   // Keyboard shortcut: Ctrl/Cmd+F → search, Escape → close
   const handleSearchKeyboard = useCallback(
@@ -184,6 +192,15 @@ export function ChatLayout() {
     [profileMap],
   );
   usePushNotifications({ channelNames, senderNames, notifPrefs: notifPrefsData ?? {} });
+
+  // #9 — Favicon badge with total unread count
+  const totalUnread = useChatStore((s) =>
+    Object.values(s.unreadCounts).reduce((sum, n) => sum + n, 0),
+  );
+  useFaviconBadge(totalUnread);
+
+  // #10 — Notification sound
+  useNotificationSound({ soundEnabled, notifPrefs: notifPrefsData ?? {} });
 
   const mentionOptions: MentionOption[] = useMemo(() => {
     if (!selectedChannel?.chat_channel_members || !userId) return [];
@@ -329,7 +346,13 @@ export function ChatLayout() {
 
       <CreateChannelDialog />
       <CreateDMDialog />
-      {selectedChannel && <ChannelSettingsDrawer channel={selectedChannel} />}
+      {selectedChannel && (
+        <ChannelSettingsDrawer
+          channel={selectedChannel as never}
+          soundEnabled={soundEnabled}
+          onToggleSound={handleToggleSound}
+        />
+      )}
     </div>
   );
 }

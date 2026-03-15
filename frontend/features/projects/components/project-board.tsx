@@ -40,7 +40,7 @@ function SortableCard({ project }: { project: Project }) {
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <ProjectCard project={project} />
+      <ProjectCard project={project} editable />
     </div>
   );
 }

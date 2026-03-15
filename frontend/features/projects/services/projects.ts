@@ -6,6 +6,33 @@ type DemandRow = Database["public"]["Tables"]["demands"]["Row"];
 
 const FULL_COLS = "*";
 
+/**
+ * Generates the next sequential project code: TBO-YYYY-NNN
+ * Queries the latest code for the current year and increments.
+ */
+export async function generateProjectCode(
+  supabase: SupabaseClient<Database>
+): Promise<string> {
+  const year = new Date().getFullYear();
+  const prefix = `TBO-${year}-`;
+
+  const { data } = await supabase
+    .from("projects")
+    .select("code")
+    .like("code", `${prefix}%`)
+    .order("code", { ascending: false })
+    .limit(1);
+
+  let nextNum = 1;
+  if (data && data.length > 0 && data[0].code) {
+    const lastCode = data[0].code;
+    const lastNum = parseInt(lastCode.replace(prefix, ""), 10);
+    if (!isNaN(lastNum)) nextNum = lastNum + 1;
+  }
+
+  return `${prefix}${String(nextNum).padStart(3, "0")}`;
+}
+
 export async function getProjects(
   supabase: SupabaseClient<Database>
 ): Promise<ProjectRow[]> {

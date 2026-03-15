@@ -11,6 +11,7 @@ import {
   createProject,
   updateProject,
   deleteProject,
+  generateProjectCode,
 } from "@/features/projects/services/projects";
 import { logAuditTrail } from "@/lib/audit-trail";
 import type { Database } from "@/lib/supabase/types";
@@ -66,8 +67,13 @@ export function useCreateProject() {
   type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 
   return useMutation({
-    mutationFn: (project: Database["public"]["Tables"]["projects"]["Insert"]) =>
-      createProject(supabase, project),
+    mutationFn: async (project: Database["public"]["Tables"]["projects"]["Insert"]) => {
+      if (!project.code) {
+        const code = await generateProjectCode(supabase);
+        project = { ...project, code };
+      }
+      return createProject(supabase, project);
+    },
 
     onMutate: async (newProject) => {
       await queryClient.cancelQueries({ queryKey: ["projects"] });

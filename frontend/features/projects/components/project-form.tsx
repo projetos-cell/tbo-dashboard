@@ -21,7 +21,6 @@ import { cn } from "@/lib/utils";
 
 const projectSchema = z.object({
   name: z.string().min(1, "Nome do projeto é obrigatório"),
-  code: z.string().optional(),
   construtora: z.string().optional(),
   owner_name: z.string().optional(),
   bus: z.array(z.string()).optional(),
@@ -36,7 +35,6 @@ interface ProjectFormProps {
 
 export function ProjectForm({ open, onOpenChange }: ProjectFormProps) {
   const [name, setName] = useState("");
-  const [code, setCode] = useState("");
   const [construtora, setConstrutora] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [selectedBus, setSelectedBus] = useState<string[]>([]);
@@ -52,7 +50,6 @@ export function ProjectForm({ open, onOpenChange }: ProjectFormProps) {
 
   function resetForm() {
     setName("");
-    setCode("");
     setConstrutora("");
     setOwnerName("");
     setSelectedBus([]);
@@ -63,7 +60,6 @@ export function ProjectForm({ open, onOpenChange }: ProjectFormProps) {
     e.preventDefault();
     const result = projectSchema.safeParse({
       name: name.trim(),
-      code: code.trim(),
       construtora: construtora.trim(),
       owner_name: ownerName.trim(),
       bus: selectedBus,
@@ -82,7 +78,6 @@ export function ProjectForm({ open, onOpenChange }: ProjectFormProps) {
 
     await createProject.mutateAsync({
       name: result.data.name,
-      code: result.data.code || null,
       construtora: result.data.construtora || null,
       owner_name: result.data.owner_name || null,
       bus: result.data.bus?.length ? JSON.stringify(result.data.bus) : null,
@@ -104,32 +99,22 @@ export function ProjectForm({ open, onOpenChange }: ProjectFormProps) {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Nome + Código */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-2 space-y-2">
-              <Label htmlFor="name">Nome do Projeto *</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => { setName(e.target.value); setErrors((prev) => ({ ...prev, name: undefined })); }}
-                placeholder="Ex: Residencial Aurora"
-                required
-              />
-              {errors.name && (
-                <p className="text-xs text-red-500">{errors.name}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="code">Código</Label>
-              <Input
-                id="code"
-                value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
-                placeholder="Ex: AUR"
-                className="font-mono uppercase"
-                maxLength={10}
-              />
-            </div>
+          {/* Nome */}
+          <div className="space-y-2">
+            <Label htmlFor="name">Nome do Projeto *</Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => { setName(e.target.value); setErrors((prev) => ({ ...prev, name: undefined })); }}
+              placeholder="Ex: Residencial Aurora"
+              required
+            />
+            {errors.name && (
+              <p className="text-xs text-red-500">{errors.name}</p>
+            )}
+            <p className="text-muted-foreground text-[11px]">
+              O código será gerado automaticamente (TBO-{new Date().getFullYear()}-NNN)
+            </p>
           </div>
 
           {/* BU Selection */}

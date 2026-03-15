@@ -1,33 +1,179 @@
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useProjectTasks, useProjectSections, useProjectDependencies } from "@/features/projects/hooks/use-project-tasks";
+import { useToast } from "@/hooks/use-toast";
+import {
+  useProjectTasks,
+  useProjectSections,
+  useProjectDependencies,
+} from "@/features/projects/hooks/use-project-tasks";
 import { useUpdateTask } from "@/features/tasks/hooks/use-tasks";
-import { GanttControls, type GanttViewMode } from "./gantt-controls";
+import { createClient } from "@/lib/supabase/client";
+import { useAuthStore } from "@/stores/auth-store";
+import {
+  getGanttBaseline,
+  saveGanttBaseline,
+  deleteGanttBaseline,
+  type GanttBaselineSnapshot,
+} from "@/features/projects/services/gantt-baselines";
+import {
+  GanttControls,
+  DEFAULT_GANTT_OPTIONS,
+  type GanttOptions,
+  type GanttColorBy,
+} from "./gantt-controls";
+import { GanttTaskList } from "./gantt-task-list";
+import {
+  TASK_STATUS,
+  TASK_PRIORITY,
+  type TaskStatusKey,
+  type TaskPriorityKey,
+} from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
+
+// ─── Color maps ───────────────────────────────────────────
+
+const SECTION_COLORS = [
+  "#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b",
+  "#22c55e", "#06b6d4", "#ef4444", "#6366f1",
+];
+
+const ASSIGNEE_COLORS = [
+  "#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b",
+  "#22c55e", "#06b6d4", "#ef4444", "#f97316",
+];
+
+function getBarColor(
+  task: TaskRow,
+  colorBy: GanttColorBy,
+  sectionColorMap: Map<string, string>,
+  assigneeColorMap: Map<string, string>
+): string {
+  switch (colorBy) {
+    case "status": {
+      const cfg = TASK_STATUS[task.status as TaskStatusKey];
+      return cfg?.color ?? "#6b7280";
+    }
+    case "priority": {
+      const cfg = TASK_PRIORITY[task.priority as TaskPriorityKey];
+      return cfg?.color ?? "#6b7280";
+    }
+    case "section":
+      return sectionColorMap.get(task.section_id ?? "") ?? "#6b7280";
+    case "assignee":
+      return assigneeColorMap.get(task.assignee_id ?? "") ?? "#6b7280";
+    default:
+      return "#6b7280";
+  }
+}
+
+// ─── Props ────────────────────────────────────────────────
 
 interface ProjectGanttProps {
   projectId: string;
   onSelectTask?: (taskId: string) => void;
 }
 
+// ─── Component ────────────────────────────────────────────
+
 export function ProjectGantt({ projectId, onSelectTask }: ProjectGanttProps) {
+  const supabase = createClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const updateTask = useUpdateTask();
+
+  // Data
   const { parents, subtasksMap, allTasks, isLoading } = useProjectTasks(projectId);
   const { data: sections } = useProjectSections(projectId);
   const taskIds = useMemo(() => allTasks.map((t) => t.id), [allTasks]);
   const { data: dependencies } = useProjectDependencies(taskIds);
-  const updateTask = useUpdateTask();
+
+  // Baseline query
+  const { data: baseline } = useQuery({
+    queryKey: ["gantt-baseline", projectId],
+    queryFn: () => getGanttBaseline(supabase, projectId),
+    staleTime: 1000 * 60 * 5,
+    enabled: !!projectId,
+  });
+
+  const saveBaselineMutation = useMutation({
+    mutationFn: () => {
+      const snapshot: GanttBaselineSnapshot[] = allTasks
+        .filter((t) => t.start_date || t.due_date)
+        .map((t) => ({
+          taskId: t.id,
+          startDate: t.start_date || t.due_date || "",
+          endDate: t.due_date || t.start_date || "",
+        }));
+      return saveGanttBaseline(supabase, projectId, tenantId!, snapshot);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["gantt-baseline", projectId] });
+      toast({ title: "Baseline salva com sucesso" });
+    },
+    onError: () => toast({ title: "Erro ao salvar baseline", variant: "destructive" }),
+  });
+
+  const deleteBaselineMutation = useMutation({
+    mutationFn: () => deleteGanttBaseline(supabase, projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["gantt-baseline", projectId] });
+      toast({ title: "Baseline removida" });
+    },
+    onError: () => toast({ title: "Erro ao remover baseline", variant: "destructive" }),
+  });
+
+  // UI state
+  const [options, setOptions] = useState<GanttOptions>(DEFAULT_GANTT_OPTIONS);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const ganttRef = useRef<unknown>(null);
-  const [viewMode, setViewMode] = useState<GanttViewMode>("Week");
-  const [error, setError] = useState<string | null>(null);
 
-  // Build dependency map: successorId → [predecessorId, ...]
+  const toggleSection = useCallback((sectionId: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) next.delete(sectionId);
+      else next.add(sectionId);
+      return next;
+    });
+  }, []);
+
+  const handleSelectTask = useCallback(
+    (taskId: string) => {
+      setSelectedTaskId(taskId);
+      onSelectTask?.(taskId);
+    },
+    [onSelectTask]
+  );
+
+  // Color maps
+  const { sectionColorMap, assigneeColorMap } = useMemo(() => {
+    const scm = new Map<string, string>();
+    (sections ?? []).forEach((s, i) => {
+      scm.set(s.id, s.color || SECTION_COLORS[i % SECTION_COLORS.length]);
+    });
+
+    const acm = new Map<string, string>();
+    const assignees = new Set(allTasks.map((t) => t.assignee_id).filter(Boolean));
+    let ai = 0;
+    for (const id of assignees) {
+      acm.set(id!, ASSIGNEE_COLORS[ai % ASSIGNEE_COLORS.length]);
+      ai++;
+    }
+
+    return { sectionColorMap: scm, assigneeColorMap: acm };
+  }, [sections, allTasks]);
+
+  // Dependency map
   const depsMap = useMemo(() => {
     const map = new Map<string, string[]>();
     if (!dependencies) return map;
@@ -39,13 +185,36 @@ export function ProjectGantt({ projectId, onSelectTask }: ProjectGanttProps) {
     return map;
   }, [dependencies]);
 
-  // Build ordered Gantt data: section → parents → subtasks
+  // Baseline snapshot map
+  const baselineMap = useMemo(() => {
+    const map = new Map<string, GanttBaselineSnapshot>();
+    if (!baseline?.snapshot) return map;
+    const snap = typeof baseline.snapshot === "string"
+      ? JSON.parse(baseline.snapshot) as GanttBaselineSnapshot[]
+      : baseline.snapshot as GanttBaselineSnapshot[];
+    for (const item of snap) {
+      map.set(item.taskId, item);
+    }
+    return map;
+  }, [baseline]);
+
+  // Filter tasks
+  const filteredParents = useMemo(() => {
+    let filtered = parents;
+    if (options.filter === "incomplete") {
+      filtered = filtered.filter((t) => !t.is_completed);
+    } else if (options.filter === "complete") {
+      filtered = filtered.filter((t) => t.is_completed);
+    }
+    return filtered;
+  }, [parents, options.filter]);
+
+  // Build Gantt chart data
   const ganttData = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
     const sectionOrder = new Map((sections ?? []).map((s, i) => [s.id, i]));
 
-    // Sort parents by section order then order_index
-    const sortedParents = [...parents]
+    const sortedParents = [...filteredParents]
       .filter((t) => t.start_date || t.due_date)
       .sort((a, b) => {
         const sa = sectionOrder.get(a.section_id ?? "") ?? 999;
@@ -65,21 +234,53 @@ export function ProjectGantt({ projectId, onSelectTask }: ProjectGanttProps) {
     }> = [];
 
     for (const task of sortedParents) {
-      items.push(taskToGanttItem(task, depsMap, today, false));
+      const color = getBarColor(task, options.colorBy, sectionColorMap, assigneeColorMap);
+      items.push(buildGanttItem(task, depsMap, today, false, color));
 
-      // Add subtasks
-      const subs = (subtasksMap.get(task.id) ?? []).filter(
-        (s) => s.start_date || s.due_date,
+      let subs = (subtasksMap.get(task.id) ?? []).filter(
+        (s) => s.start_date || s.due_date
       );
+      if (options.filter === "incomplete") {
+        subs = subs.filter((s) => !s.is_completed);
+      } else if (options.filter === "complete") {
+        subs = subs.filter((s) => s.is_completed);
+      }
+
       for (const sub of subs) {
-        items.push(taskToGanttItem(sub, depsMap, today, true));
+        const subColor = getBarColor(sub, options.colorBy, sectionColorMap, assigneeColorMap);
+        items.push(buildGanttItem(sub, depsMap, today, true, subColor));
       }
     }
 
     return items;
-  }, [parents, subtasksMap, sections, depsMap]);
+  }, [filteredParents, subtasksMap, sections, depsMap, options.colorBy, options.filter, sectionColorMap, assigneeColorMap]);
 
-  // Init / update Gantt
+  // Dynamic CSS for bar colors + compact + baseline
+  useEffect(() => {
+    const styleId = "gantt-dynamic-styles";
+    let style = document.getElementById(styleId) as HTMLStyleElement | null;
+    if (!style) {
+      style = document.createElement("style");
+      style.id = styleId;
+      document.head.appendChild(style);
+    }
+
+    const colorRules = ganttData
+      .map(
+        (item) =>
+          `.bar-wrapper[data-id="${item.id}"] .bar-progress { fill: ${item.custom_class} !important; }
+           .bar-wrapper[data-id="${item.id}"] .bar { fill: ${item.custom_class} !important; opacity: 0.3; }`
+      )
+      .join("\n");
+
+    const compactRule = options.compact
+      ? `.gantt .bar-wrapper .bar { height: 14px !important; } .gantt .bar-wrapper .bar-progress { height: 14px !important; }`
+      : "";
+
+    style.textContent = `${colorRules}\n${compactRule}`;
+  }, [ganttData, options.compact]);
+
+  // Init / update frappe-gantt
   useEffect(() => {
     if (!containerRef.current || ganttData.length === 0) return;
     let mounted = true;
@@ -92,10 +293,10 @@ export function ProjectGantt({ projectId, onSelectTask }: ProjectGanttProps) {
         containerRef.current.innerHTML = "";
 
         const gantt = new Gantt(containerRef.current, ganttData, {
-          view_mode: viewMode,
+          view_mode: options.viewMode,
           date_format: "YYYY-MM-DD",
           on_click: (task: { id: string }) => {
-            onSelectTask?.(task.id);
+            handleSelectTask(task.id);
           },
           on_date_change: (task: { id: string; _start: Date; _end: Date }) => {
             updateTask.mutate({
@@ -118,24 +319,24 @@ export function ProjectGantt({ projectId, onSelectTask }: ProjectGanttProps) {
         });
 
         ganttRef.current = gantt;
+
+        // Render baseline overlay
+        if (options.showBaseline && baselineMap.size > 0) {
+          renderBaselineOverlay(containerRef.current);
+        }
       } catch (err) {
         if (mounted) setError("Não foi possível carregar o Gantt.");
       }
     }
 
     initGantt();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ganttData.length, viewMode]);
+  }, [ganttData.length, options.viewMode, options.compact, options.showBaseline, baselineMap.size]);
 
-  // View mode change (if gantt already initialized)
-  const handleViewModeChange = useCallback((mode: GanttViewMode) => {
-    setViewMode(mode);
-    if (ganttRef.current && typeof (ganttRef.current as Record<string, unknown>).change_view_mode === "function") {
-      (ganttRef.current as { change_view_mode: (m: string) => void }).change_view_mode(mode);
-    }
-  }, []);
-
+  // Loading
   if (isLoading) {
     return (
       <Card>
@@ -146,6 +347,7 @@ export function ProjectGantt({ projectId, onSelectTask }: ProjectGanttProps) {
     );
   }
 
+  // Error
   if (error) {
     return (
       <Card>
@@ -156,7 +358,8 @@ export function ProjectGantt({ projectId, onSelectTask }: ProjectGanttProps) {
     );
   }
 
-  if (ganttData.length === 0) {
+  // Empty
+  if (ganttData.length === 0 && filteredParents.length === 0) {
     return (
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12">
@@ -172,31 +375,63 @@ export function ProjectGantt({ projectId, onSelectTask }: ProjectGanttProps) {
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+    <Card className="overflow-hidden">
+      {/* Controls toolbar */}
+      <div className="flex items-center justify-between border-b border-border/50 px-4 py-2">
         <span className="text-sm font-medium">Gantt</span>
-        <GanttControls activeMode={viewMode} onChange={handleViewModeChange} />
-      </CardHeader>
-      <CardContent className="overflow-x-auto p-0">
-        <div ref={containerRef} className="min-h-[300px]" />
-      </CardContent>
+        <GanttControls
+          options={options}
+          onChange={setOptions}
+          hasBaseline={!!baseline}
+          onSaveBaseline={() => saveBaselineMutation.mutate()}
+          onClearBaseline={() => deleteBaselineMutation.mutate()}
+        />
+      </div>
+
+      {/* Split view: task list (left) + gantt chart (right) */}
+      <div
+        className="flex"
+        style={{
+          height: Math.max(
+            400,
+            ganttData.length * (options.compact ? 28 : 38) + 80
+          ),
+        }}
+      >
+        {/* Left panel */}
+        <div className="w-[280px] shrink-0">
+          <GanttTaskList
+            sections={sections ?? []}
+            parents={filteredParents}
+            subtasksMap={subtasksMap}
+            collapsedSections={collapsedSections}
+            onToggleSection={toggleSection}
+            selectedTaskId={selectedTaskId}
+            onSelectTask={handleSelectTask}
+            compact={options.compact}
+          />
+        </div>
+
+        {/* Right panel — Gantt diagram */}
+        <CardContent className="flex-1 overflow-x-auto overflow-y-auto p-0">
+          <div ref={containerRef} className="min-h-[300px]" />
+        </CardContent>
+      </div>
     </Card>
   );
 }
 
-function taskToGanttItem(
+// ─── Helpers ──────────────────────────────────────────────
+
+function buildGanttItem(
   task: TaskRow,
   depsMap: Map<string, string[]>,
   today: string,
   isSubtask: boolean,
+  color: string
 ) {
   const predecessors = depsMap.get(task.id) ?? [];
   const name = isSubtask ? `  └ ${task.title}` : task.title || "Sem título";
-  const classes: string[] = [];
-  if (task.is_completed) classes.push("bar-completed");
-  if (isSubtask) classes.push("bar-subtask");
-  if (!task.is_completed && (task.priority === "alta" || task.priority === "urgente"))
-    classes.push("bar-high");
 
   return {
     id: task.id,
@@ -205,6 +440,59 @@ function taskToGanttItem(
     end: task.due_date || task.start_date || today,
     progress: task.is_completed ? 100 : 0,
     dependencies: predecessors.join(","),
-    custom_class: classes.join(" "),
+    custom_class: color,
   };
+}
+
+function renderBaselineOverlay(container: HTMLElement) {
+  const svg = container.querySelector("svg.gantt");
+  if (!svg) return;
+
+  // Add hash pattern for baseline bars
+  let defs = svg.querySelector("defs");
+  if (!defs) {
+    defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+    svg.prepend(defs);
+  }
+
+  if (!defs.querySelector("#baseline-pattern")) {
+    const pattern = document.createElementNS("http://www.w3.org/2000/svg", "pattern");
+    pattern.setAttribute("id", "baseline-pattern");
+    pattern.setAttribute("width", "6");
+    pattern.setAttribute("height", "6");
+    pattern.setAttribute("patternUnits", "userSpaceOnUse");
+    pattern.setAttribute("patternTransform", "rotate(45)");
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", "0");
+    line.setAttribute("y1", "0");
+    line.setAttribute("x2", "0");
+    line.setAttribute("y2", "6");
+    line.setAttribute("stroke", "#94a3b8");
+    line.setAttribute("stroke-width", "1.5");
+    pattern.appendChild(line);
+    defs.appendChild(pattern);
+  }
+
+  // Add baseline ghost bars below each task bar
+  const bars = svg.querySelectorAll(".bar-wrapper");
+  bars.forEach((barEl) => {
+    const barRect = barEl.querySelector(".bar");
+    if (!barRect) return;
+
+    const y = parseFloat(barRect.getAttribute("y") ?? "0");
+    const height = parseFloat(barRect.getAttribute("height") ?? "20");
+
+    const baselineRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    baselineRect.setAttribute("x", barRect.getAttribute("x") ?? "0");
+    baselineRect.setAttribute("y", String(y + height + 2));
+    baselineRect.setAttribute("width", barRect.getAttribute("width") ?? "0");
+    baselineRect.setAttribute("height", "6");
+    baselineRect.setAttribute("rx", "2");
+    baselineRect.setAttribute("fill", "url(#baseline-pattern)");
+    baselineRect.setAttribute("stroke", "#94a3b8");
+    baselineRect.setAttribute("stroke-width", "0.5");
+    baselineRect.setAttribute("opacity", "0.6");
+
+    barEl.appendChild(baselineRect);
+  });
 }

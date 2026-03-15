@@ -3,10 +3,9 @@
 import { use, useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/shared";
-import { ProjectTopbar } from "@/features/projects/components/project-topbar";
+import { ProjectTopbar, type ProjectTabKey } from "@/features/projects/components/project-topbar";
 import { ProjectOverview } from "@/features/projects/components/tabs/project-overview";
 import { ProjectTaskList } from "@/features/projects/components/tabs/project-task-list";
 import { ProjectFiles } from "@/features/projects/components/tabs/project-files";
@@ -16,6 +15,7 @@ import { useProject } from "@/features/projects/hooks/use-projects";
 import { useProfiles } from "@/features/people/hooks/use-people";
 import { useUser } from "@/hooks/use-user";
 import type { UserOption } from "@/components/ui/user-selector";
+import type { MemberInfo } from "@/features/projects/components/member-avatar-stack";
 
 // Heavy: frappe-gantt library — lazy load with SSR disabled
 const ProjectGantt = dynamic(
@@ -43,7 +43,7 @@ export default function ProjectDetailPage({
   const { data: profiles } = useProfiles();
   const searchParams = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState<ProjectTabKey>("overview");
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   // Deep-link: ?task=<id> or ?demanda=<id> (backward compat)
@@ -70,11 +70,18 @@ export default function ProjectDetailPage({
     email: p.email,
   }));
 
+  const members: MemberInfo[] = (profiles || [])
+    .filter((p) => p.full_name)
+    .map((p) => ({
+      id: p.id,
+      full_name: p.full_name,
+      avatar_url: p.avatar_url,
+    }));
+
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-8 w-full max-w-md" />
+      <div className="space-y-4">
+        <Skeleton className="h-32 w-full rounded-lg" />
         <Skeleton className="h-64 rounded-lg" />
       </div>
     );
@@ -91,41 +98,36 @@ export default function ProjectDetailPage({
 
   return (
     <div className="space-y-6">
-      <ProjectTopbar project={project} users={users} />
+      <ProjectTopbar
+        project={project}
+        users={users}
+        members={members}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-          <TabsTrigger value="list">Lista</TabsTrigger>
-          <TabsTrigger value="gantt">Gantt</TabsTrigger>
-          <TabsTrigger value="files">Arquivos</TabsTrigger>
-          <TabsTrigger value="activity">Atividade</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview">
-          <ProjectOverview projectId={id} />
-        </TabsContent>
-
-        <TabsContent value="list">
+      {/* Tab content */}
+      <div>
+        {activeTab === "overview" && <ProjectOverview projectId={id} />}
+        {activeTab === "list" && (
           <ProjectTaskList
             projectId={id}
             onSelectTask={handleSelectTask}
             onAddTask={() => handleSelectTask("new")}
           />
-        </TabsContent>
-
-        <TabsContent value="gantt">
+        )}
+        {activeTab === "gantt" && (
           <ProjectGantt projectId={id} onSelectTask={handleSelectTask} />
-        </TabsContent>
-
-        <TabsContent value="files">
-          <ProjectFiles projectId={id} />
-        </TabsContent>
-
-        <TabsContent value="activity">
-          <ProjectActivityTab projectId={id} />
-        </TabsContent>
-      </Tabs>
+        )}
+        {activeTab === "files" && <ProjectFiles projectId={id} />}
+        {activeTab === "activity" && <ProjectActivityTab projectId={id} />}
+        {activeTab === "dashboard" && <ProjectOverview projectId={id} />}
+        {activeTab === "portal" && (
+          <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
+            <p className="text-sm">Portal do Cliente em breve.</p>
+          </div>
+        )}
+      </div>
 
       {/* Task detail sheet */}
       <TaskDetailSheet

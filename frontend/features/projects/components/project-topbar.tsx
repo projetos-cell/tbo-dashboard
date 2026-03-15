@@ -1,22 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import {
-  IconArrowLeft,
   IconDots,
   IconCopy,
   IconArchive,
   IconTrash,
+  IconEdit,
   IconSettings,
-  IconExternalLink,
-  IconChevronDown,
+  IconShare,
+  IconSparkles,
+  IconAdjustments,
+  IconLayoutDashboard,
+  IconList,
+  IconChartArrowsVertical,
+  IconPaperclip,
+  IconHistory,
+  IconChartBar,
+  IconGlobe,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { InlineEditable } from "@/components/ui/inline-editable";
-import { DateRangePicker, type DateRange } from "@/components/ui/date-range-picker";
-import { UserSelector, type UserOption } from "@/components/ui/user-selector";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,49 +32,63 @@ import { useUpdateProject, useDeleteProject, useCreateProject } from "@/features
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { PROJECT_STATUS, type ProjectStatusKey } from "@/lib/constants";
+import { ProjectStatusBadge } from "./project-status-badge";
+import { ProjectDetailsDialog } from "./project-details-dialog";
+import { MemberAvatarStack, type MemberInfo } from "./member-avatar-stack";
+import { cn } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
+import type { UserOption } from "@/components/ui/user-selector";
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
+
+// ─── Tab config ──────────────────────────────────────────────────────────────
+
+const TABS = [
+  { key: "overview", label: "Visão Geral", icon: IconLayoutDashboard },
+  { key: "list", label: "Lista", icon: IconList },
+  { key: "gantt", label: "Gantt", icon: IconChartArrowsVertical },
+  { key: "files", label: "Arquivos", icon: IconPaperclip },
+  { key: "activity", label: "Atividade", icon: IconHistory },
+  { key: "dashboard", label: "Dashboard", icon: IconChartBar },
+  { key: "portal", label: "Portal do Cliente", icon: IconGlobe },
+] as const;
+
+export type ProjectTabKey = (typeof TABS)[number]["key"];
+
+// ─── Props ───────────────────────────────────────────────────────────────────
 
 interface ProjectTopbarProps {
   project: ProjectRow;
   users?: UserOption[];
+  members?: MemberInfo[];
+  activeTab: ProjectTabKey;
+  onTabChange: (tab: ProjectTabKey) => void;
 }
 
-export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
+// ─── Component ───────────────────────────────────────────────────────────────
+
+export function ProjectTopbar({
+  project,
+  users = [],
+  members = [],
+  activeTab,
+  onTabChange,
+}: ProjectTopbarProps) {
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
   const createProject = useCreateProject();
   const router = useRouter();
   const { toast } = useToast();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
 
   const handleNameSave = (name: string) => {
     updateProject.mutate({ id: project.id, updates: { name } });
   };
 
-  const handleStatusChange = (newStatus: string) => {
-    updateProject.mutate({ id: project.id, updates: { status: newStatus } });
-  };
-
-  const handleOwnerChange = (ownerId: string | null) => {
-    const owner = users.find((u) => u.id === ownerId);
-    updateProject.mutate({
-      id: project.id,
-      updates: { owner_name: owner?.full_name || null },
-    });
-  };
-
-  const handleDateChange = (range: DateRange) => {
-    updateProject.mutate({
-      id: project.id,
-      updates: {
-        due_date_start: range.start?.toISOString().split("T")[0] || null,
-        due_date_end: range.end?.toISOString().split("T")[0] || null,
-      },
-    });
+  const handleStatusChange = (status: string) => {
+    updateProject.mutate({ id: project.id, updates: { status } });
   };
 
   const handleDuplicate = () => {
@@ -100,11 +118,7 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
           setDuplicating(false);
         },
         onError: () => {
-          toast({
-            title: "Erro ao duplicar projeto",
-            description: "Tente novamente.",
-            variant: "destructive",
-          });
+          toast({ title: "Erro ao duplicar projeto", variant: "destructive" });
           setDuplicating(false);
         },
       }
@@ -115,12 +129,8 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
     updateProject.mutate(
       { id: project.id, updates: { status: "parado" } },
       {
-        onSuccess: () => {
-          toast({ title: "Projeto pausado", description: "Status alterado para Parado." });
-        },
-        onError: () => {
-          toast({ title: "Erro ao pausar projeto", variant: "destructive" });
-        },
+        onSuccess: () => toast({ title: "Projeto pausado" }),
+        onError: () => toast({ title: "Erro ao pausar projeto", variant: "destructive" }),
       }
     );
   };
@@ -131,59 +141,76 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
         toast({ title: "Projeto excluído" });
         router.push("/projetos");
       },
-      onError: () => {
-        toast({
-          title: "Erro ao excluir",
-          description: "Não foi possível excluir o projeto.",
-          variant: "destructive",
-        });
-      },
+      onError: () =>
+        toast({ title: "Erro ao excluir", variant: "destructive" }),
     });
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-start gap-3">
-        <Link href="/projetos">
-          <Button variant="ghost" size="icon" className="mt-1" aria-label="Voltar">
-            <IconArrowLeft className="size-4" />
-          </Button>
-        </Link>
-
-        <div className="flex-1 min-w-0 space-y-1">
-          <div className="flex items-center gap-3">
+    <div className="overflow-hidden rounded-lg border border-border/50 bg-background">
+      {/* ── TOP BAR ─────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between border-b border-border/50 px-4 pb-0 pt-3">
+        {/* Left: title */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 pb-2.5">
+            <div
+              className="flex size-7 shrink-0 items-center justify-center rounded-md text-[13px] text-white"
+              style={{ background: "linear-gradient(135deg, #e85102, #c44000)" }}
+            >
+              {project.name?.charAt(0)?.toUpperCase() ?? "P"}
+            </div>
             <InlineEditable
               value={project.name}
               onSave={handleNameSave}
-              variant="h1"
+              className="text-base font-medium"
             />
-            <StatusDropdown
-              current={project.status || ""}
+            <ProjectStatusBadge
+              status={project.status ?? "em_andamento"}
               onChange={handleStatusChange}
             />
           </div>
-          {project.code && (
-            <p className="text-sm text-gray-500">{project.code}</p>
-          )}
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          {project.notion_url && (
-            <a href={project.notion_url} target="_blank" rel="noopener noreferrer">
-              <Button variant="outline" size="sm">
-                <IconExternalLink className="size-3.5 mr-1" />
-                Notion
-              </Button>
-            </a>
-          )}
+        {/* Right: members + action buttons */}
+        <div className="flex shrink-0 items-center gap-2 pb-2.5">
+          {members.length > 0 && <MemberAvatarStack members={members} />}
+
+          <Button
+            size="sm"
+            className="gap-1.5 text-xs"
+            style={{ backgroundColor: "#e85102", borderColor: "#e85102" }}
+          >
+            <IconShare className="size-3.5" />
+            Compartilhar
+          </Button>
+
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+            <IconSparkles className="size-3.5" />
+            Ask AI
+          </Button>
+
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+            <IconAdjustments className="size-3.5" />
+            Personalizar
+          </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" aria-label="Mais opções">
+              <Button
+                variant="outline"
+                size="icon"
+                className="size-7"
+                aria-label="Mais opções"
+              >
                 <IconDots className="size-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem onClick={() => setDetailsOpen(true)}>
+                <IconEdit className="mr-2 size-3.5" />
+                Editar detalhes
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleDuplicate} disabled={duplicating}>
                 <IconCopy className="mr-2 size-3.5" />
                 Duplicar projeto
@@ -209,6 +236,41 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
         </div>
       </div>
 
+      {/* ── CODE BAR ──────────────────────────────────────────── */}
+      {project.code && (
+        <div className="flex items-center px-4 py-1.5 text-xs text-muted-foreground">
+          <span className="font-mono font-medium text-foreground">{project.code}</span>
+        </div>
+      )}
+
+      {/* ── TABS BAR ────────────────────────────────────────────── */}
+      <div className="flex items-center gap-0 border-b border-border/50 px-4">
+        {TABS.map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => onTabChange(key)}
+            className={cn(
+              "flex items-center gap-1.5 border-b-2 px-3 py-2 text-[13px] transition-colors select-none whitespace-nowrap",
+              activeTab === key
+                ? "border-[#e85102] font-medium text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Icon className="size-3.5 opacity-65" />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── EDIT DETAILS ──────────────────────────────────────── */}
+      <ProjectDetailsDialog
+        project={project}
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+      />
+
+      {/* ── DELETE CONFIRM ──────────────────────────────────────── */}
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
@@ -217,80 +279,6 @@ export function ProjectTopbar({ project, users = [] }: ProjectTopbarProps) {
         confirmLabel="Excluir"
         onConfirm={handleDeleteConfirm}
       />
-
-      {/* Secondary row */}
-      <div className="flex items-center gap-4 pl-12">
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-gray-500 text-xs">Responsável:</span>
-          <UserSelector
-            mode="single"
-            selected={users.find((u) => u.full_name === project.owner_name)?.id || null}
-            onChange={handleOwnerChange}
-            users={users}
-            className="h-8 w-[180px]"
-          />
-        </div>
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-gray-500 text-xs">Período:</span>
-          <DateRangePicker
-            value={{
-              start: project.due_date_start
-                ? new Date(project.due_date_start + "T00:00:00")
-                : null,
-              end: project.due_date_end
-                ? new Date(project.due_date_end + "T00:00:00")
-                : null,
-            }}
-            onChange={handleDateChange}
-            className="h-8"
-          />
-        </div>
-      </div>
     </div>
-  );
-}
-
-// ─── StatusDropdown ─────────────────────────────────────────────────
-
-function StatusDropdown({
-  current,
-  onChange,
-}: {
-  current: string;
-  onChange: (status: string) => void;
-}) {
-  const statusCfg = PROJECT_STATUS[current as ProjectStatusKey];
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Badge
-          className="cursor-pointer gap-1 select-none"
-          style={
-            statusCfg
-              ? { backgroundColor: statusCfg.bg, color: statusCfg.color }
-              : undefined
-          }
-        >
-          {statusCfg?.label || current}
-          <IconChevronDown className="size-3 opacity-60" />
-        </Badge>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-44">
-        {Object.entries(PROJECT_STATUS).map(([key, cfg]) => (
-          <DropdownMenuItem
-            key={key}
-            onClick={() => onChange(key)}
-            className="gap-2"
-          >
-            <div
-              className="size-2.5 rounded-full shrink-0"
-              style={{ backgroundColor: cfg.color }}
-            />
-            {cfg.label}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 }

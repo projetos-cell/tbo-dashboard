@@ -177,7 +177,9 @@ export const SortableNavItem = memo(function SortableNavItem({
           attributes={attributes}
           listeners={listeners}
         />
-        <SidebarMenuButton asChild isActive={isActive} className="pl-5">
+        {/* Spacer to align with chevron of collapsible items */}
+        <span className="shrink-0 p-0.5"><span className="inline-block h-3.5 w-3.5" /></span>
+        <SidebarMenuButton asChild isActive={isActive} className="pl-0">
           <Link href={item.href}>
             <Icon className="h-4 w-4" />
             <span className="truncate">{item.label}</span>
@@ -208,25 +210,21 @@ export const SortableNavItem = memo(function SortableNavItem({
           attributes={attributes}
           listeners={listeners}
         />
-        <SidebarMenuButton asChild isActive={isActive} tooltip={item.label} className="pl-5">
-          <Link href={item.href}>
-            <Icon className="h-4 w-4" />
-            <span className="truncate">{item.label}</span>
-          </Link>
-        </SidebarMenuButton>
-
         <CollapsibleTrigger asChild>
           <button
             type="button"
-            className={cn(
-              "text-muted-foreground hover:text-foreground absolute top-1/2 -translate-y-1/2 rounded-sm p-0.5 transition-all duration-150",
-              isHovered ? "right-16" : "right-1",
-            )}
+            className="text-muted-foreground hover:text-foreground flex shrink-0 items-center rounded-sm p-0.5 transition-colors duration-150"
             aria-label={`Expandir ${item.label}`}
           >
             <IconChevronRight className="h-3.5 w-3.5 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
           </button>
         </CollapsibleTrigger>
+        <SidebarMenuButton asChild isActive={isActive} tooltip={item.label} className="pl-0">
+          <Link href={item.href}>
+            <Icon className="h-4 w-4" />
+            <span className="truncate">{item.label}</span>
+          </Link>
+        </SidebarMenuButton>
 
         <NavItemHoverActions {...sharedItemProps} />
       </SidebarMenuItem>

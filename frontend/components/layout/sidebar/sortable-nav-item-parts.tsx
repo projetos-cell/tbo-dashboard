@@ -121,35 +121,30 @@ export function NavItemHoverActions({
   );
 }
 
-// ── Drag Handle ───────────────────────────────────────────────────────
+// ── Drag Handle (visual indicator only — drag listeners are on the row) ──
 
 interface NavItemDragHandleProps {
   item: NavGroupItem;
   isHovered: boolean;
   isDragOverlay: boolean;
-  attributes: DraggableAttributes;
-  listeners: SyntheticListenerMap | undefined;
+  attributes?: DraggableAttributes;
+  listeners?: SyntheticListenerMap | undefined;
 }
 
 export function NavItemDragHandle({
   item,
   isHovered,
   isDragOverlay,
-  attributes,
-  listeners,
 }: NavItemDragHandleProps) {
   return (
-    <button
-      type="button"
+    <span
       className={cn(
-        "text-muted-foreground/50 hover:text-muted-foreground absolute left-0 top-1/2 z-10 -translate-y-1/2 cursor-grab p-0.5 opacity-0 transition-opacity duration-150 active:cursor-grabbing",
+        "text-muted-foreground/50 absolute left-0 top-1/2 z-10 -translate-y-1/2 p-0.5 opacity-0 transition-opacity duration-150 pointer-events-none",
         (isHovered || isDragOverlay) && "opacity-100",
       )}
-      {...attributes}
-      {...listeners}
-      aria-label={`Arrastar ${item.label}`}
+      aria-hidden="true"
     >
       <IconGripVertical className="h-3 w-3" />
-    </button>
+    </span>
   );
 }

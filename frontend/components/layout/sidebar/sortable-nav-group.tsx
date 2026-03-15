@@ -130,23 +130,24 @@ export const SortableNavGroup = memo(function SortableNavGroup({
       >
         <SidebarGroup>
           <div
-            className="group/grouplabel relative flex items-center"
+            className={cn(
+              "group/grouplabel relative flex items-center cursor-grab active:cursor-grabbing",
+            )}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
+            {...attributes}
+            {...listeners}
           >
-            {/* Drag handle para o grupo */}
-            <button
-              type="button"
+            {/* Drag handle visual indicator */}
+            <span
               className={cn(
-                "text-muted-foreground/50 hover:text-muted-foreground absolute left-0 top-1/2 z-10 -translate-y-1/2 cursor-grab p-0.5 opacity-0 transition-opacity duration-150 active:cursor-grabbing",
+                "text-muted-foreground/50 absolute left-0 top-1/2 z-10 -translate-y-1/2 p-0.5 opacity-0 transition-opacity duration-150 pointer-events-none",
                 (isHovered || isDragOverlay) && "opacity-100",
               )}
-              {...attributes}
-              {...listeners}
-              aria-label={`Arrastar grupo ${group.label}`}
+              aria-hidden="true"
             >
               <IconGripVertical className="h-3 w-3" />
-            </button>
+            </span>
 
             <CollapsibleTrigger asChild>
               <SidebarGroupLabel className="flex-1 cursor-pointer pl-4">

@@ -59,21 +59,20 @@ export const SortableSubNavItem = memo(function SortableSubNavItem({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "group/subitem relative",
+        "group/subitem relative cursor-grab active:cursor-grabbing",
         isDragging && "opacity-30",
         isDragOverlay && "bg-sidebar-accent rounded-md shadow-md opacity-90",
         isOver && !isDragging && "bg-accent/40",
       )}
+      {...attributes}
+      {...listeners}
     >
-      <button
-        type="button"
-        className="text-muted-foreground/50 hover:text-muted-foreground absolute left-0 top-1/2 z-10 -translate-y-1/2 cursor-grab p-0.5 opacity-0 transition-opacity duration-150 active:cursor-grabbing group-hover/subitem:opacity-100"
-        {...attributes}
-        {...listeners}
-        aria-label={`Arrastar ${sub.label}`}
+      <span
+        className="text-muted-foreground/50 absolute left-0 top-1/2 z-10 -translate-y-1/2 p-0.5 opacity-0 transition-opacity duration-150 pointer-events-none group-hover/subitem:opacity-100"
+        aria-hidden="true"
       >
         <IconGripVertical className="h-2.5 w-2.5" />
-      </button>
+      </span>
       <SidebarMenuSubButton asChild isActive={subActive} size="sm" className="pl-5">
         <Link href={sub.href}>
           <SubIcon className="h-3.5 w-3.5" />

@@ -163,19 +163,19 @@ export const SortableNavItem = memo(function SortableNavItem({
         ref={setNodeRef}
         style={style}
         className={cn(
-          "group/item relative flex items-center",
+          "group/item relative flex items-center cursor-grab active:cursor-grabbing",
           isDragging && "opacity-30",
           isDragOverlay && "bg-sidebar-accent rounded-md shadow-lg opacity-90",
         )}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        {...attributes}
+        {...listeners}
       >
         <NavItemDragHandle
           item={item}
           isHovered={isHovered}
           isDragOverlay={isDragOverlay}
-          attributes={attributes}
-          listeners={listeners}
         />
         {/* Spacer to align with chevron of collapsible items */}
         <span className="shrink-0 p-0.5"><span className="inline-block h-3.5 w-3.5" /></span>
@@ -196,19 +196,19 @@ export const SortableNavItem = memo(function SortableNavItem({
         ref={setNodeRef}
         style={style}
         className={cn(
-          "group/item relative flex items-center",
+          "group/item relative flex items-center cursor-grab active:cursor-grabbing",
           isDragging && "opacity-30",
           isDragOverlay && "bg-sidebar-accent rounded-md shadow-lg opacity-90",
         )}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        {...attributes}
+        {...listeners}
       >
         <NavItemDragHandle
           item={item}
           isHovered={isHovered}
           isDragOverlay={isDragOverlay}
-          attributes={attributes}
-          listeners={listeners}
         />
         <CollapsibleTrigger asChild>
           <button

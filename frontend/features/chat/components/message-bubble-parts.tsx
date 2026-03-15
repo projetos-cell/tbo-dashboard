@@ -5,7 +5,8 @@ import {
   IconTrash,
   IconPin,
   IconPinnedOff,
-  IconMoodSmile,
+  IconCornerUpRight,
+  IconArrowForwardUp,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -84,6 +85,8 @@ export function MessageMenu({
   onDelete,
   onTogglePin,
   onQuickReact,
+  onReplyInThread,
+  onForward,
 }: {
   canEdit: boolean;
   canDelete: boolean;
@@ -93,8 +96,12 @@ export function MessageMenu({
   onDelete: () => void;
   onTogglePin: () => void;
   onQuickReact?: (emoji: string) => void;
+  onReplyInThread?: () => void;
+  onForward?: () => void;
 }) {
-  if (!canEdit && !canDelete && !canPin && !onQuickReact) return null;
+  if (!canEdit && !canDelete && !canPin && !onQuickReact && !onReplyInThread && !onForward) {
+    return null;
+  }
 
   return (
     <div className="flex gap-0.5 rounded-md border bg-background p-0.5 shadow-sm">
@@ -113,6 +120,28 @@ export function MessageMenu({
             </button>
           ))}
         </div>
+      )}
+      {onReplyInThread && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={onReplyInThread}
+          title="Responder na thread"
+        >
+          <IconCornerUpRight size={14} />
+        </Button>
+      )}
+      {onForward && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={onForward}
+          title="Encaminhar mensagem"
+        >
+          <IconArrowForwardUp size={14} />
+        </Button>
       )}
       {canPin && (
         <Button

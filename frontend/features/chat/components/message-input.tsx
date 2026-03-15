@@ -13,6 +13,7 @@ import { isImageFile } from "@/features/chat/services/chat-attachments";
 import { MentionPopup, type MentionOption } from "./mention-popup";
 import { EmojiPicker } from "./emoji-picker";
 import { DragOverlay, PendingFilesList, useDragDrop } from "./message-input-parts";
+import { VoiceRecorder } from "./voice-recorder";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -22,7 +23,7 @@ export interface PendingFile {
 }
 
 interface MessageInputProps {
-  onSend: (content: string, files?: File[]) => void;
+  onSend: (content: string, files?: File[], messageType?: string) => void;
   disabled?: boolean;
   onTyping?: () => void;
   /** Members available for @mention autocomplete */
@@ -39,6 +40,7 @@ export function MessageInput({
   const [richContent, setRichContent] = useState("");
   const [isRichMode, setIsRichMode] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
+  const [pendingVoiceFile, setPendingVoiceFile] = useState<File | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionStart, setMentionStart] = useState(-1);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -86,7 +88,17 @@ export function MessageInput({
     setIsRichMode(!isRichMode);
   }
 
+  function handleVoiceRecordingComplete(file: File) {
+    setPendingVoiceFile(file);
+  }
+
   function handleSend() {
+    // Voice message takes priority
+    if (pendingVoiceFile) {
+      onSend("", [pendingVoiceFile], "voice");
+      setPendingVoiceFile(null);
+      return;
+    }
     const currentContent = isRichMode ? richContent : content;
     const trimmed = currentContent.trim();
     const hasFiles = pendingFiles.length > 0;
@@ -193,6 +205,20 @@ export function MessageInput({
 
       <PendingFilesList files={pendingFiles} onRemove={removeFile} />
 
+      {/* Voice file pending preview */}
+      {pendingVoiceFile && (
+        <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-1.5 mb-1">
+          <span className="text-xs text-muted-foreground">🎤 Mensagem de voz pronta para enviar</span>
+          <button
+            type="button"
+            onClick={() => setPendingVoiceFile(null)}
+            className="text-muted-foreground hover:text-foreground ml-auto text-xs"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <div className="relative flex items-end gap-2 rounded-xl border bg-background px-3 py-2 shadow-sm focus-within:ring-1 focus-within:ring-ring">
         {mentionQuery !== null && mentionOptions.length > 0 && (
           <MentionPopup
@@ -225,6 +251,10 @@ export function MessageInput({
         >
           <IconPaperclip size={18} />
         </Button>
+        <VoiceRecorder
+          disabled={disabled}
+          onRecordingComplete={handleVoiceRecordingComplete}
+        />
         <input
           ref={fileInputRef}
           type="file"
@@ -287,7 +317,7 @@ export function MessageInput({
             size="icon"
             className="h-8 w-8 shrink-0 rounded-lg"
             onClick={handleSend}
-            disabled={disabled || (isRichMode ? !richContent.trim() : (!content.trim() && pendingFiles.length === 0))}
+            disabled={disabled || (pendingVoiceFile ? false : (isRichMode ? !richContent.trim() : (!content.trim() && pendingFiles.length === 0)))}
             aria-label="Enviar mensagem"
           >
             <IconSend size={16} />

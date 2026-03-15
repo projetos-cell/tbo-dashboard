@@ -228,6 +228,7 @@ export async function getMessages(
     .select("*")
     .eq("channel_id", channelId)
     .is("deleted_at", null)
+    .is("reply_to", null)
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -478,6 +479,65 @@ export async function togglePinMessage(
     .update({ is_pinned: pinned } as never)
     .eq("id", messageId);
   if (error) throw error;
+}
+
+// ── Thread Messages ──────────────────────────────────────────────────
+
+export async function getThreadMessages(
+  supabase: SupabaseClient<Database>,
+  parentMessageId: string,
+) {
+  const { data, error } = await supabase
+    .from("chat_messages")
+    .select("*")
+    .eq("reply_to", parentMessageId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data as MessageRow[];
+}
+
+export async function getThreadReplyCount(
+  supabase: SupabaseClient<Database>,
+  messageIds: string[],
+): Promise<Record<string, number>> {
+  if (messageIds.length === 0) return {};
+  const { data, error } = await supabase
+    .from("chat_messages")
+    .select("reply_to")
+    .in("reply_to", messageIds)
+    .is("deleted_at", null);
+  if (error) throw error;
+  const counts: Record<string, number> = {};
+  for (const row of data ?? []) {
+    if (row.reply_to) counts[row.reply_to] = (counts[row.reply_to] ?? 0) + 1;
+  }
+  return counts;
+}
+
+// ── Forward Message ──────────────────────────────────────────────────
+
+export async function forwardMessage(
+  supabase: SupabaseClient<Database>,
+  targetChannelId: string,
+  senderId: string,
+  original: MessageRow,
+  originalSenderName: string,
+) {
+  return sendMessage(supabase, {
+    channel_id: targetChannelId,
+    sender_id: senderId,
+    content: original.content ?? "",
+    message_type: "text",
+    metadata: {
+      forwarded_from: {
+        message_id: original.id,
+        sender_name: originalSenderName,
+        content: original.content ?? "",
+        original_created_at: original.created_at ?? "",
+      },
+    } as never,
+  });
 }
 
 export async function getPinnedMessages(

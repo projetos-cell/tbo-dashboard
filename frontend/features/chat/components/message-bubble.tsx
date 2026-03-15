@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type KeyboardEvent } from "react";
-import { IconCheck, IconX } from "@tabler/icons-react";
+import { IconCheck, IconX, IconCornerUpRight } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,32 @@ import { getUserColor } from "@/features/chat/utils/chat-colors";
 import { MessageAttachments } from "./message-attachments";
 import { MessageContent, MessageMenu, MessageDeleteDialog } from "./message-bubble-parts";
 import { MessageReactions } from "./message-reactions";
+import { VoiceMessagePlayer } from "./voice-message-player";
 import type { ReactionGroup } from "@/features/chat/hooks/use-chat";
+import type { Json } from "@/lib/supabase/types";
+
+function isForwardedMeta(meta: Json | null): boolean {
+  return (
+    !!meta &&
+    typeof meta === "object" &&
+    !Array.isArray(meta) &&
+    "forwarded_from" in meta
+  );
+}
+
+function getForwardedFrom(meta: Json | null) {
+  if (!isForwardedMeta(meta)) return null;
+  const obj = meta as Record<string, Json | undefined>;
+  const fw = obj.forwarded_from;
+  if (!fw || typeof fw !== "object" || Array.isArray(fw)) return null;
+  const fwObj = fw as Record<string, Json | undefined>;
+  return {
+    message_id: typeof fwObj.message_id === "string" ? fwObj.message_id : undefined,
+    sender_name: typeof fwObj.sender_name === "string" ? fwObj.sender_name : undefined,
+    content: typeof fwObj.content === "string" ? fwObj.content : undefined,
+    original_created_at: typeof fwObj.original_created_at === "string" ? fwObj.original_created_at : undefined,
+  };
+}
 
 interface MessageBubbleProps {
   message: MessageRow;
@@ -29,10 +54,13 @@ interface MessageBubbleProps {
   attachments?: ChatAttachmentRow[];
   profileMap?: Record<string, ProfileInfo>;
   reactions?: ReactionGroup[];
+  threadCount?: number;
   onEdit?: (messageId: string, content: string) => void;
   onDelete?: (messageId: string) => void;
   onTogglePin?: (messageId: string, pinned: boolean) => void;
   onReact?: (messageId: string, emoji: string, remove: boolean) => void;
+  onOpenThread?: (message: MessageRow) => void;
+  onForward?: (message: MessageRow) => void;
 }
 
 export function MessageBubble({
@@ -44,10 +72,13 @@ export function MessageBubble({
   attachments = [],
   profileMap = {},
   reactions = [],
+  threadCount = 0,
   onEdit,
   onDelete,
   onTogglePin,
   onReact,
+  onOpenThread,
+  onForward,
 }: MessageBubbleProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content ?? "");
@@ -60,8 +91,23 @@ export function MessageBubble({
 
   const isEdited = !!message.edited_at;
   const isOptimistic = message.id.startsWith("optimistic-");
-  const showMenu = (isOwn || canDelete) && !isOptimistic;
+  const showMenu = !isOptimistic;
   const senderName = senderProfile?.name ?? "Usuário";
+
+  // Detect forwarded message
+  const forwardedFrom = getForwardedFrom(message.metadata);
+  const isForwarded = !!forwardedFrom;
+
+  // Detect voice message
+  const isVoice = message.message_type === "voice";
+  const voiceAttachment = isVoice
+    ? attachments.find((a) => a.file_type?.startsWith("audio/") || a.file_name?.includes("voice-message"))
+    : undefined;
+
+  // Non-audio/non-voice attachments shown in MessageAttachments
+  const visibleAttachments = isVoice
+    ? attachments.filter((a) => !(a.file_type?.startsWith("audio/") || a.file_name?.includes("voice-message")))
+    : attachments;
 
   function handleSaveEdit() {
     const trimmed = editContent.trim();
@@ -143,10 +189,22 @@ export function MessageBubble({
           </div>
         ) : (
           <div className="flex flex-col gap-1">
+            {/* Forwarded badge */}
+            {isForwarded && forwardedFrom && (
+              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-0.5">
+                <IconCornerUpRight size={11} />
+                <span>Encaminhado de <strong>{forwardedFrom.sender_name}</strong></span>
+              </div>
+            )}
+
             <div className="flex items-start gap-1">
-              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-                <MessageContent content={message.content ?? ""} profileMap={profileMap} />
-              </p>
+              {isVoice && voiceAttachment ? (
+                <VoiceMessagePlayer url={voiceAttachment.file_url} />
+              ) : (
+                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                  <MessageContent content={message.content ?? ""} profileMap={profileMap} />
+                </p>
+              )}
               {!showAvatar && (
                 <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   {time}
@@ -154,15 +212,29 @@ export function MessageBubble({
                 </span>
               )}
             </div>
-            {attachments.length > 0 && (
-              <MessageAttachments attachments={attachments} />
+
+            {visibleAttachments.length > 0 && (
+              <MessageAttachments attachments={visibleAttachments} />
             )}
+
             {reactions.length > 0 && (
               <MessageReactions
                 reactions={reactions}
                 profileMap={profileMap}
                 onToggle={(emoji, remove) => onReact?.(message.id, emoji, remove)}
               />
+            )}
+
+            {/* Thread reply count */}
+            {threadCount > 0 && (
+              <button
+                type="button"
+                onClick={() => onOpenThread?.(message)}
+                className="flex items-center gap-1 text-xs text-primary hover:underline w-fit mt-0.5"
+              >
+                <IconCornerUpRight size={12} />
+                {threadCount} {threadCount === 1 ? "resposta" : "respostas"} na thread
+              </button>
             )}
           </div>
         )}
@@ -181,8 +253,12 @@ export function MessageBubble({
               setIsEditing(true);
             }}
             onDelete={() => setShowDeleteConfirm(true)}
-            onTogglePin={() => onTogglePin?.(message.id, !(message as Record<string, unknown>).is_pinned)}
+            onTogglePin={() =>
+              onTogglePin?.(message.id, !(message as Record<string, unknown>).is_pinned)
+            }
             onQuickReact={onReact ? (emoji) => onReact(message.id, emoji, false) : undefined}
+            onReplyInThread={onOpenThread ? () => onOpenThread(message) : undefined}
+            onForward={onForward ? () => onForward(message) : undefined}
           />
         </div>
       )}

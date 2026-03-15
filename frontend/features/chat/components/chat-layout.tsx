@@ -12,6 +12,8 @@ import { TypingIndicator } from "./typing-indicator";
 import { MessageSearch } from "./message-search";
 import { ChatSidebar } from "./chat-sidebar";
 import { ConversationHeader, IconHash, IconLock } from "./conversation-header";
+import { ThreadPanel } from "./thread-panel";
+import { ForwardMessageDialog } from "./forward-message-dialog";
 import type { ConversationHeaderInfo } from "./conversation-header";
 import {
   useChannelsWithMembers,
@@ -77,6 +79,10 @@ export function ChatLayout() {
   const [showConversation, setShowConversation] = useState(false);
   // #5 — Capture unread count snapshot when channel opens (before markAsRead clears it)
   const [initialUnreadCount, setInitialUnreadCount] = useState(0);
+  // #11 — Thread panel state
+  const [threadMessage, setThreadMessage] = useState<import("@/features/chat/services/chat").MessageRow | null>(null);
+  // #12 — Forward dialog state
+  const [forwardMessage, setForwardMessage] = useState<import("@/features/chat/services/chat").MessageRow | null>(null);
   // #10 — Sound preference (localStorage-backed, UI preference only)
   const [soundEnabled, setSoundEnabled] = useState(() => getSoundPref());
   function handleToggleSound(enabled: boolean) {
@@ -261,9 +267,10 @@ export function ChatLayout() {
     if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("bg-primary/10"); setTimeout(() => el.classList.remove("bg-primary/10"), 2000); }
   }, []);
 
-  async function handleSend(content: string, files?: File[]) {
+  async function handleSend(content: string, files?: File[], messageType?: string) {
     if (!selectedChannelId || !tenantId || !userId) return;
-    const message = await sendMsg.mutateAsync({ channel_id: selectedChannelId, sender_id: userId, content, message_type: files?.length ? "file" : "text" });
+    const msgType = messageType ?? (files?.length ? "file" : "text");
+    const message = await sendMsg.mutateAsync({ channel_id: selectedChannelId, sender_id: userId, content, message_type: msgType });
     const supabase = (await import("@/lib/supabase/client")).createClient();
     const mentionedIds = extractMentionIds(content);
     if (mentionedIds.length > 0) {
@@ -307,40 +314,56 @@ export function ChatLayout() {
         onDeleteSection={handleDeleteSection}
       />
 
-      {/* Conversation area */}
-      <div className={cn("relative flex flex-1 flex-col min-w-0", !showConversation && "hidden md:flex")}>
+      {/* Conversation area + thread panel */}
+      <div className={cn("relative flex flex-1 min-w-0 overflow-hidden", !showConversation && "hidden md:flex")}>
         <MessageSearch channels={channels ?? []} />
-        {selectedChannel && headerInfo ? (
-          <>
-            <ConversationHeader headerInfo={headerInfo} onBack={() => setShowConversation(false)} />
-            <PinnedBanner channelId={selectedChannelId} profileMap={profileMap} onClickMessage={handleScrollToMessage} />
-            {messagesQuery.isLoading ? (
-              <div className="flex flex-1 items-center justify-center"><Skeleton className="h-8 w-40" /></div>
-            ) : (
-              <MessageList
-                messages={messages}
-                currentUserId={userId}
-                profileMap={profileMap}
-                hasNextPage={!!messagesQuery.hasNextPage}
-                isFetchingNextPage={messagesQuery.isFetchingNextPage}
-                fetchNextPage={messagesQuery.fetchNextPage}
-                channelId={selectedChannelId}
-                onEditMessage={handleEdit}
-                onDeleteMessage={handleDelete}
-                onTogglePin={canPin ? handleTogglePin : undefined}
-                onReact={handleReact}
-                canDeleteOthers={canDeleteOthers}
-                initialUnreadCount={initialUnreadCount}
-              />
-            )}
-            <TypingIndicator channelId={selectedChannelId} />
-            <MessageInput onSend={handleSend} disabled={sendMsg.isPending || !canSendMessage} onTyping={sendTyping} mentionOptions={mentionOptions} />
-          </>
-        ) : (
-          <div className="flex flex-1 flex-col items-center justify-center text-muted-foreground gap-3">
-            <IconMessageCircle2 size={48} className="opacity-20" />
-            <p className="text-sm">Selecione uma conversa para começar</p>
-          </div>
+        {/* Main chat column */}
+        <div className="flex flex-1 flex-col min-w-0">
+          {selectedChannel && headerInfo ? (
+            <>
+              <ConversationHeader headerInfo={headerInfo} onBack={() => setShowConversation(false)} />
+              <PinnedBanner channelId={selectedChannelId} profileMap={profileMap} onClickMessage={handleScrollToMessage} />
+              {messagesQuery.isLoading ? (
+                <div className="flex flex-1 items-center justify-center"><Skeleton className="h-8 w-40" /></div>
+              ) : (
+                <MessageList
+                  messages={messages}
+                  currentUserId={userId}
+                  profileMap={profileMap}
+                  hasNextPage={!!messagesQuery.hasNextPage}
+                  isFetchingNextPage={messagesQuery.isFetchingNextPage}
+                  fetchNextPage={messagesQuery.fetchNextPage}
+                  channelId={selectedChannelId}
+                  onEditMessage={handleEdit}
+                  onDeleteMessage={handleDelete}
+                  onTogglePin={canPin ? handleTogglePin : undefined}
+                  onReact={handleReact}
+                  onOpenThread={setThreadMessage}
+                  onForwardMessage={setForwardMessage}
+                  canDeleteOthers={canDeleteOthers}
+                  initialUnreadCount={initialUnreadCount}
+                />
+              )}
+              <TypingIndicator channelId={selectedChannelId} />
+              <MessageInput onSend={handleSend} disabled={sendMsg.isPending || !canSendMessage} onTyping={sendTyping} mentionOptions={mentionOptions} />
+            </>
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center text-muted-foreground gap-3">
+              <IconMessageCircle2 size={48} className="opacity-20" />
+              <p className="text-sm">Selecione uma conversa para começar</p>
+            </div>
+          )}
+        </div>
+
+        {/* #11 — Thread panel */}
+        {threadMessage && selectedChannelId && (
+          <ThreadPanel
+            parentMessage={threadMessage}
+            channelId={selectedChannelId}
+            profileMap={profileMap}
+            currentUserId={userId}
+            onClose={() => setThreadMessage(null)}
+          />
         )}
       </div>
 
@@ -353,6 +376,16 @@ export function ChatLayout() {
           onToggleSound={handleToggleSound}
         />
       )}
+
+      {/* #12 — Forward message dialog */}
+      <ForwardMessageDialog
+        message={forwardMessage}
+        senderName={forwardMessage?.sender_id ? (profileMap[forwardMessage.sender_id]?.name ?? "Usuário") : "Usuário"}
+        open={!!forwardMessage}
+        onOpenChange={(open) => { if (!open) setForwardMessage(null); }}
+        currentUserId={userId}
+        profileMap={profileMap}
+      />
     </div>
   );
 }

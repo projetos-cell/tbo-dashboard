@@ -26,9 +26,9 @@
 
 | # | Feature | Status | Data |
 |---|---------|--------|------|
-| 11 | Threads / Respostas em linha — thread lateral estilo Slack | pendente | — |
-| 12 | Forward de mensagem — encaminhar para outro canal/DM | pendente | — |
-| 13 | Mensagens de voz — gravar áudio inline com MediaRecorder | pendente | — |
+| 11 | Threads / Respostas em linha — thread lateral estilo Slack | ✅ concluído | 2026-03-15 |
+| 12 | Forward de mensagem — encaminhar para outro canal/DM | ✅ concluído | 2026-03-15 |
+| 13 | Mensagens de voz — gravar áudio inline com MediaRecorder | ✅ concluído | 2026-03-15 |
 | 14 | Mensagens agendadas — compor agora, enviar depois | pendente | — |
 | 15 | Link preview / Unfurling — OG tags via edge function | pendente | — |
 | 16 | Código syntax highlight — highlight.js/prism | pendente | — |

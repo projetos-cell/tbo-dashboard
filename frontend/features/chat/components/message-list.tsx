@@ -10,6 +10,7 @@ import {
   buildAttachmentMap,
   useReactionsForMessages,
   buildReactionMap,
+  useThreadReplyCount,
 } from "@/features/chat/hooks/use-chat";
 
 interface MessageListProps {
@@ -24,6 +25,8 @@ interface MessageListProps {
   onDeleteMessage?: (messageId: string) => void;
   onTogglePin?: (messageId: string, pinned: boolean) => void;
   onReact?: (messageId: string, emoji: string, remove: boolean) => void;
+  onOpenThread?: (message: MessageRow) => void;
+  onForwardMessage?: (message: MessageRow) => void;
   canDeleteOthers?: boolean;
   /** Number of unread messages when this channel was first opened */
   initialUnreadCount?: number;
@@ -61,6 +64,8 @@ export function MessageList({
   onDeleteMessage,
   onTogglePin,
   onReact,
+  onOpenThread,
+  onForwardMessage,
   canDeleteOthers,
   initialUnreadCount = 0,
 }: MessageListProps) {
@@ -99,6 +104,9 @@ export function MessageList({
     () => buildReactionMap(reactionsData, currentUserId),
     [reactionsData, currentUserId],
   );
+
+  // Fetch thread reply counts for all visible messages
+  const { data: threadCountMap = {} } = useThreadReplyCount(allMessageIds);
 
   // #4 — Track scroll position to show/hide FAB
   const handleScroll = useCallback(() => {
@@ -276,10 +284,13 @@ export function MessageList({
                   attachments={attachmentMap[msg.id]}
                   profileMap={profileMap}
                   reactions={reactionMap[msg.id]}
+                  threadCount={threadCountMap[msg.id] ?? 0}
                   onEdit={onEditMessage}
                   onDelete={onDeleteMessage}
                   onTogglePin={onTogglePin}
                   onReact={onReact}
+                  onOpenThread={onOpenThread}
+                  onForward={onForwardMessage}
                 />
               </div>
             </div>

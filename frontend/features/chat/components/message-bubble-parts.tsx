@@ -22,6 +22,55 @@ import {
 import type { ProfileInfo } from "@/features/chat/utils/profile-utils";
 import { parseMentions } from "./mention-popup";
 
+// ── Code Block Rendering ───────────────────────────────────────────────
+
+/** Parse plain-text content for code blocks and inline code, render as React nodes */
+function renderWithCodeBlocks(content: string): React.ReactNode[] {
+  // Split by code blocks (```) or inline code (`)
+  const parts = content.split(/(```(?:\w*\n?)?[\s\S]*?```|`[^`\n]+`)/g);
+
+  return parts.map((part, i) => {
+    // Fenced code block: ```lang\ncode```
+    if (part.startsWith("```")) {
+      const match = /^```(\w*)\n?([\s\S]*?)```$/.exec(part);
+      const lang = match?.[1] ?? "";
+      const code = match?.[2] ?? part.slice(3, -3);
+      return (
+        <pre
+          key={i}
+          className="my-1.5 rounded-md border bg-muted/60 px-3 py-2 overflow-x-auto text-left"
+        >
+          {lang && (
+            <span className="mb-1.5 block text-[10px] font-mono text-muted-foreground uppercase tracking-wide">
+              {lang}
+            </span>
+          )}
+          <code className="text-[13px] font-mono leading-relaxed text-foreground/90 whitespace-pre">
+            {code.trimEnd()}
+          </code>
+        </pre>
+      );
+    }
+    // Inline code: `code`
+    if (part.startsWith("`") && part.endsWith("`") && part.length > 2) {
+      const code = part.slice(1, -1);
+      return (
+        <code
+          key={i}
+          className="rounded bg-muted/60 px-1.5 py-0.5 text-[13px] font-mono text-foreground/90"
+        >
+          {code}
+        </code>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
+function hasCodeSyntax(content: string): boolean {
+  return content.includes("```") || /`[^`\n]+`/.test(content);
+}
+
 /** Detect if a message was sent as rich HTML (from Tiptap) */
 function isHtmlContent(content: string): boolean {
   const trimmed = content.trimStart();
@@ -45,6 +94,11 @@ export function MessageContent({
         dangerouslySetInnerHTML={{ __html: content }}
       />
     );
+  }
+
+  // Plain text — check for code blocks first
+  if (hasCodeSyntax(content)) {
+    return <>{renderWithCodeBlocks(content)}</>;
   }
 
   // Plain text with @mentions

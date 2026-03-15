@@ -14,6 +14,7 @@ import { ChatSidebar } from "./chat-sidebar";
 import { ConversationHeader, IconHash, IconLock } from "./conversation-header";
 import { ThreadPanel } from "./thread-panel";
 import { ForwardMessageDialog } from "./forward-message-dialog";
+import { ScheduledMessagesPanel } from "./scheduled-messages-panel";
 import type { ConversationHeaderInfo } from "./conversation-header";
 import {
   useChannelsWithMembers,
@@ -36,6 +37,9 @@ import {
   useAddReaction,
   useRemoveReaction,
   flattenMessages,
+  useScheduledMessages,
+  useSendScheduledMessage,
+  useCancelScheduledMessage,
 } from "@/features/chat/hooks/use-chat";
 import {
   uploadChatFile,
@@ -83,6 +87,8 @@ export function ChatLayout() {
   const [threadMessage, setThreadMessage] = useState<import("@/features/chat/services/chat").MessageRow | null>(null);
   // #12 — Forward dialog state
   const [forwardMessage, setForwardMessage] = useState<import("@/features/chat/services/chat").MessageRow | null>(null);
+  // #14 — Scheduled messages panel state
+  const [scheduledPanelOpen, setScheduledPanelOpen] = useState(false);
   // #10 — Sound preference (localStorage-backed, UI preference only)
   const [soundEnabled, setSoundEnabled] = useState(() => getSoundPref());
   function handleToggleSound(enabled: boolean) {
@@ -144,6 +150,11 @@ export function ChatLayout() {
   const addReaction = useAddReaction();
   const removeReaction = useRemoveReaction();
   const markAsRead = useMarkAsRead();
+  // #14 — Scheduled messages
+  const { data: scheduledMessages, isLoading: loadingScheduled } = useScheduledMessages(selectedChannelId);
+  const sendScheduledMsg = useSendScheduledMessage();
+  const cancelScheduledMsg = useCancelScheduledMessage();
+
   const archiveChannelMut = useArchiveChannel();
   const unarchiveChannelMut = useUnarchiveChannel();
   const deleteChannelMut = useDeleteChannelPermanently();
@@ -267,8 +278,19 @@ export function ChatLayout() {
     if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("bg-primary/10"); setTimeout(() => el.classList.remove("bg-primary/10"), 2000); }
   }, []);
 
-  async function handleSend(content: string, files?: File[], messageType?: string) {
+  async function handleSend(content: string, files?: File[], messageType?: string, scheduledAt?: Date) {
     if (!selectedChannelId || !tenantId || !userId) return;
+    // #14 — Scheduled message: store with scheduled_at, don't send to normal stream
+    if (scheduledAt) {
+      sendScheduledMsg.mutate({
+        channel_id: selectedChannelId,
+        sender_id: userId,
+        content,
+        message_type: messageType ?? "text",
+        scheduled_at: scheduledAt.toISOString(),
+      } as never);
+      return;
+    }
     const msgType = messageType ?? (files?.length ? "file" : "text");
     const message = await sendMsg.mutateAsync({ channel_id: selectedChannelId, sender_id: userId, content, message_type: msgType });
     const supabase = (await import("@/lib/supabase/client")).createClient();
@@ -345,7 +367,14 @@ export function ChatLayout() {
                 />
               )}
               <TypingIndicator channelId={selectedChannelId} />
-              <MessageInput onSend={handleSend} disabled={sendMsg.isPending || !canSendMessage} onTyping={sendTyping} mentionOptions={mentionOptions} />
+              <MessageInput
+                onSend={handleSend}
+                disabled={sendMsg.isPending || !canSendMessage}
+                onTyping={sendTyping}
+                mentionOptions={mentionOptions}
+                scheduledCount={scheduledMessages?.length ?? 0}
+                onShowScheduled={() => setScheduledPanelOpen(true)}
+              />
             </>
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center text-muted-foreground gap-3">
@@ -376,6 +405,19 @@ export function ChatLayout() {
           onToggleSound={handleToggleSound}
         />
       )}
+
+      {/* #14 — Scheduled messages panel */}
+      <ScheduledMessagesPanel
+        open={scheduledPanelOpen}
+        onOpenChange={setScheduledPanelOpen}
+        messages={scheduledMessages ?? []}
+        isLoading={loadingScheduled}
+        onCancel={(messageId) => {
+          if (selectedChannelId) {
+            cancelScheduledMsg.mutate({ messageId, channelId: selectedChannelId });
+          }
+        }}
+      />
 
       {/* #12 — Forward message dialog */}
       <ForwardMessageDialog

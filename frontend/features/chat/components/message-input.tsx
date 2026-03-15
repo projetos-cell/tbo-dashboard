@@ -14,6 +14,7 @@ import { MentionPopup, type MentionOption } from "./mention-popup";
 import { EmojiPicker } from "./emoji-picker";
 import { DragOverlay, PendingFilesList, useDragDrop } from "./message-input-parts";
 import { VoiceRecorder } from "./voice-recorder";
+import { ScheduledMessagePicker } from "./scheduled-message-picker";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -23,11 +24,15 @@ export interface PendingFile {
 }
 
 interface MessageInputProps {
-  onSend: (content: string, files?: File[], messageType?: string) => void;
+  onSend: (content: string, files?: File[], messageType?: string, scheduledAt?: Date) => void;
   disabled?: boolean;
   onTyping?: () => void;
   /** Members available for @mention autocomplete */
   mentionOptions?: MentionOption[];
+  /** Count of scheduled messages (shows badge indicator) */
+  scheduledCount?: number;
+  /** Open scheduled messages panel */
+  onShowScheduled?: () => void;
 }
 
 export function MessageInput({
@@ -35,6 +40,8 @@ export function MessageInput({
   disabled,
   onTyping,
   mentionOptions = [],
+  scheduledCount = 0,
+  onShowScheduled,
 }: MessageInputProps) {
   const [content, setContent] = useState("");
   const [richContent, setRichContent] = useState("");
@@ -312,6 +319,30 @@ export function MessageInput({
           >
             <IconTypography size={16} />
           </Button>
+          {/* #14 — Schedule message button */}
+          <div className="relative">
+            <ScheduledMessagePicker
+              disabled={disabled}
+              onSchedule={(scheduledAt) => {
+                const currentContent = isRichMode ? richContent : content;
+                const trimmed = currentContent.trim();
+                if (!trimmed) return;
+                onSend(trimmed, undefined, "text", scheduledAt);
+                if (isRichMode) setRichContent("");
+                else setContent("");
+              }}
+            />
+            {scheduledCount > 0 && onShowScheduled && (
+              <button
+                type="button"
+                onClick={onShowScheduled}
+                className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] text-primary-foreground font-bold leading-none"
+                title={`${scheduledCount} mensagem(s) agendada(s)`}
+              >
+                {scheduledCount > 9 ? "9+" : scheduledCount}
+              </button>
+            )}
+          </div>
           <Button
             type="button"
             size="icon"

@@ -229,6 +229,7 @@ export async function getMessages(
     .eq("channel_id", channelId)
     .is("deleted_at", null)
     .is("reply_to", null)
+    .is("scheduled_at" as never, null)
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -538,6 +539,36 @@ export async function forwardMessage(
       },
     } as never,
   });
+}
+
+// ── Scheduled Messages ───────────────────────────────────────────────
+
+export async function getScheduledMessages(
+  supabase: SupabaseClient<Database>,
+  channelId: string,
+  userId: string,
+) {
+  const { data, error } = await supabase
+    .from("chat_messages")
+    .select("*")
+    .eq("channel_id", channelId)
+    .eq("sender_id", userId)
+    .is("deleted_at", null)
+    .not("scheduled_at" as never, "is", null)
+    .order("scheduled_at" as never, { ascending: true });
+  if (error) throw error;
+  return data as MessageRow[];
+}
+
+export async function cancelScheduledMessage(
+  supabase: SupabaseClient<Database>,
+  messageId: string,
+) {
+  const { error } = await supabase
+    .from("chat_messages")
+    .update({ deleted_at: new Date().toISOString() } as never)
+    .eq("id", messageId);
+  if (error) throw error;
 }
 
 export async function getPinnedMessages(

@@ -19,6 +19,7 @@ import { MessageAttachments } from "./message-attachments";
 import { MessageContent, MessageMenu, MessageDeleteDialog } from "./message-bubble-parts";
 import { MessageReactions } from "./message-reactions";
 import { VoiceMessagePlayer } from "./voice-message-player";
+import { LinkPreviewCard, extractFirstUrl } from "./link-preview-card";
 import type { ReactionGroup } from "@/features/chat/hooks/use-chat";
 import type { Json } from "@/lib/supabase/types";
 
@@ -103,6 +104,12 @@ export function MessageBubble({
   const voiceAttachment = isVoice
     ? attachments.find((a) => a.file_type?.startsWith("audio/") || a.file_name?.includes("voice-message"))
     : undefined;
+
+  // #15 — Extract URL for link preview (plain text messages only, no attachments)
+  const linkPreviewUrl =
+    !isVoice && !isForwarded && attachments.length === 0 && !message.id.startsWith("optimistic-")
+      ? extractFirstUrl(message.content ?? "")
+      : null;
 
   // Non-audio/non-voice attachments shown in MessageAttachments
   const visibleAttachments = isVoice
@@ -212,6 +219,9 @@ export function MessageBubble({
                 </span>
               )}
             </div>
+
+            {/* #15 — Link preview */}
+            {linkPreviewUrl && <LinkPreviewCard url={linkPreviewUrl} />}
 
             {visibleAttachments.length > 0 && (
               <MessageAttachments attachments={visibleAttachments} />

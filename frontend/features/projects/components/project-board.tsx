@@ -30,17 +30,18 @@ interface ProjectBoardProps {
 }
 
 function SortableCard({ project }: { project: Project }) {
-  const { attributes, listeners, setNodeRef, transform, transition } =
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: project.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    opacity: isDragging ? 0.5 : 1,
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <ProjectCard project={project} editable />
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <ProjectCard project={project} editable dragListeners={listeners} />
     </div>
   );
 }

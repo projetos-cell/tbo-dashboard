@@ -163,7 +163,7 @@ export const SortableNavItem = memo(function SortableNavItem({
         ref={setNodeRef}
         style={style}
         className={cn(
-          "group/item relative",
+          "group/item relative flex items-center",
           isDragging && "opacity-30",
           isDragOverlay && "bg-sidebar-accent rounded-md shadow-lg opacity-90",
         )}
@@ -196,7 +196,7 @@ export const SortableNavItem = memo(function SortableNavItem({
         ref={setNodeRef}
         style={style}
         className={cn(
-          "group/item relative",
+          "group/item relative flex items-center",
           isDragging && "opacity-30",
           isDragOverlay && "bg-sidebar-accent rounded-md shadow-lg opacity-90",
         )}

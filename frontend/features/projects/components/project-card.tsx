@@ -7,17 +7,19 @@ import {
   IconUser,
   IconExternalLink,
   IconCheck,
+  IconGripVertical,
+  IconChevronDown,
 } from "@tabler/icons-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Popover,
   PopoverContent,
@@ -31,16 +33,28 @@ import {
 } from "@/lib/constants";
 import { parseBus } from "@/features/projects/utils/parse-bus";
 import { useUpdateProject } from "@/features/projects/hooks/use-projects";
+import { useProfiles } from "@/features/people/hooks/use-people";
 import type { Database } from "@/lib/supabase/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 
 type Project = Database["public"]["Tables"]["projects"]["Row"];
 
 interface ProjectCardProps {
   project: Project;
   editable?: boolean;
+  dragListeners?: SyntheticListenerMap;
+}
+
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .slice(0, 2)
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
 }
 
 function InlineText({
@@ -103,7 +117,9 @@ function InlineText({
   );
 }
 
-function StatusSelect({
+/* ── Status Badge (always clickable) ────────────────────────────────── */
+
+function StatusBadgeSelect({
   value,
   onSave,
 }: {
@@ -113,34 +129,141 @@ function StatusSelect({
   const status = PROJECT_STATUS[value as ProjectStatusKey];
 
   return (
-    <div onClick={(e) => e.stopPropagation()}>
-      <Select value={value} onValueChange={onSave}>
-        <SelectTrigger className="h-6 w-auto gap-1 border-none bg-transparent p-0 shadow-none hover:bg-accent/50 focus:ring-0 [&>svg]:h-3 [&>svg]:w-3">
-          <Badge
-            variant="secondary"
-            className="text-[10px] cursor-pointer"
-            style={status ? { backgroundColor: status.bg, color: status.color } : undefined}
-          >
-            {status?.label ?? value}
-          </Badge>
-        </SelectTrigger>
-        <SelectContent>
+    <div onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button type="button" className="focus:outline-none">
+            <Badge
+              variant="secondary"
+              className="text-[10px] cursor-pointer gap-1 select-none hover:opacity-80 transition-opacity"
+              style={status ? { backgroundColor: status.bg, color: status.color } : undefined}
+            >
+              <span
+                className="size-1.5 rounded-full shrink-0"
+                style={{ backgroundColor: status?.color }}
+              />
+              {status?.label ?? value}
+              <IconChevronDown className="size-2.5 opacity-50" />
+            </Badge>
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-44">
           {Object.entries(PROJECT_STATUS).map(([key, cfg]) => (
-            <SelectItem key={key} value={key}>
-              <div className="flex items-center gap-2">
-                <div
-                  className="h-2 w-2 rounded-full"
-                  style={{ backgroundColor: cfg.color }}
-                />
-                {cfg.label}
-              </div>
-            </SelectItem>
+            <DropdownMenuItem
+              key={key}
+              onClick={() => onSave(key)}
+              className="gap-2"
+            >
+              <div
+                className="size-2 rounded-full shrink-0"
+                style={{ backgroundColor: cfg.color }}
+              />
+              {cfg.label}
+            </DropdownMenuItem>
           ))}
-        </SelectContent>
-      </Select>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
+
+/* ── Owner Selector (dropdown with avatars) ─────────────────────────── */
+
+function OwnerSelector({
+  currentName,
+  currentId,
+  onSave,
+}: {
+  currentName: string | null;
+  currentId: string | null;
+  onSave: (name: string, id: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const { data: profiles } = useProfiles();
+
+  const filtered = (profiles || []).filter((p) =>
+    p.full_name?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="flex items-center gap-1.5 rounded px-1 py-0.5 hover:bg-accent/50 transition-colors text-xs text-muted-foreground cursor-pointer min-w-0"
+          >
+            {currentName ? (
+              <>
+                <Avatar className="size-4 shrink-0">
+                  <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
+                    {getInitials(currentName)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="truncate">{currentName}</span>
+              </>
+            ) : (
+              <>
+                <IconUser className="h-3 w-3 shrink-0 opacity-50" />
+                <span className="text-muted-foreground/60">+ Responsável</span>
+              </>
+            )}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-52 p-0" align="start">
+          <div className="p-2 border-b">
+            <input
+              autoFocus
+              placeholder="Buscar pessoa..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full text-sm bg-transparent outline-none placeholder:text-muted-foreground"
+            />
+          </div>
+          <div className="max-h-44 overflow-y-auto py-1">
+            {filtered.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-3">
+                Nenhum resultado
+              </p>
+            ) : (
+              filtered.map((person) => {
+                const isSelected = person.id === currentId || person.full_name === currentName;
+                return (
+                  <button
+                    key={person.id}
+                    type="button"
+                    onClick={() => {
+                      onSave(person.full_name ?? "", person.id);
+                      setOpen(false);
+                    }}
+                    className={cn(
+                      "flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-accent/60 transition-colors",
+                      isSelected && "bg-accent/40"
+                    )}
+                  >
+                    <Avatar className="size-5 shrink-0">
+                      <AvatarImage src={person.avatar_url ?? undefined} />
+                      <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
+                        {getInitials(person.full_name ?? "?")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="flex-1 text-left truncate">{person.full_name}</span>
+                    {isSelected && (
+                      <IconCheck className="size-3.5 text-primary shrink-0" />
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
+/* ── BU Editor (improved design) ────────────────────────────────────── */
 
 function BuEditor({
   value,
@@ -174,7 +297,7 @@ function BuEditor({
   }
 
   return (
-    <div onClick={(e) => e.stopPropagation()}>
+    <div onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
       <Popover open={open} onOpenChange={handleClose}>
         <PopoverTrigger asChild>
           <div className="flex flex-wrap gap-1 cursor-pointer rounded px-0.5 py-0.5 hover:bg-accent/50 transition-colors min-h-[20px]">
@@ -185,13 +308,13 @@ function BuEditor({
                   <Badge
                     key={bu}
                     variant="outline"
-                    className="px-1.5 py-0 text-[10px]"
+                    className="px-1.5 py-0 text-[10px] font-medium"
                     style={
                       buColor
                         ? {
                             backgroundColor: buColor.bg,
                             color: buColor.color,
-                            borderColor: "transparent",
+                            borderColor: `${buColor.color}30`,
                           }
                         : undefined
                     }
@@ -201,13 +324,15 @@ function BuEditor({
                 );
               })
             ) : (
-              <span className="text-muted-foreground text-[10px]">+ BU</span>
+              <span className="text-muted-foreground/60 text-[10px]">+ BU</span>
             )}
           </div>
         </PopoverTrigger>
-        <PopoverContent className="w-48 p-2" align="start">
-          <p className="text-xs font-medium mb-2">Unidades de Negócio</p>
-          <div className="flex flex-col gap-1">
+        <PopoverContent className="w-52 p-0" align="start">
+          <div className="px-3 py-2 border-b">
+            <p className="text-xs font-semibold text-foreground">Unidades de Negócio</p>
+          </div>
+          <div className="p-1.5 space-y-0.5">
             {BU_LIST.map((bu) => {
               const isOn = selected.includes(bu);
               const buColor = BU_COLORS[bu];
@@ -217,16 +342,25 @@ function BuEditor({
                   type="button"
                   onClick={() => toggle(bu)}
                   className={cn(
-                    "flex items-center justify-between rounded px-2 py-1 text-xs transition-colors",
-                    isOn ? "bg-accent" : "hover:bg-accent/50"
+                    "flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-xs transition-colors",
+                    isOn
+                      ? "bg-accent text-accent-foreground"
+                      : "hover:bg-accent/50 text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  <span
-                    style={buColor ? { color: buColor.color } : undefined}
-                  >
-                    {bu}
-                  </span>
-                  {isOn && <IconCheck className="h-3 w-3" />}
+                  <div
+                    className="size-2.5 rounded-full shrink-0 ring-1 ring-inset"
+                    style={
+                      buColor
+                        ? {
+                            backgroundColor: isOn ? buColor.color : buColor.bg,
+                            boxShadow: `inset 0 0 0 1px ${buColor.color}`,
+                          }
+                        : undefined
+                    }
+                  />
+                  <span className="flex-1 text-left font-medium">{bu}</span>
+                  {isOn && <IconCheck className="h-3.5 w-3.5 text-primary shrink-0" />}
                 </button>
               );
             })}
@@ -237,7 +371,9 @@ function BuEditor({
   );
 }
 
-export function ProjectCard({ project, editable = false }: ProjectCardProps) {
+/* ── Project Card ───────────────────────────────────────────────────── */
+
+export function ProjectCard({ project, editable = false, dragListeners }: ProjectCardProps) {
   const router = useRouter();
   const updateProject = useUpdateProject();
   const status = PROJECT_STATUS[project.status as ProjectStatusKey];
@@ -249,28 +385,42 @@ export function ProjectCard({ project, editable = false }: ProjectCardProps) {
 
   return (
     <Card
-      className="cursor-pointer transition-shadow hover:shadow-md"
+      className="cursor-pointer transition-all hover:shadow-md group/card"
       onClick={() => router.push(`/projetos/${project.id}`)}
     >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            {project.code && (
-              <span className="text-muted-foreground mb-0.5 block text-[10px] font-mono uppercase tracking-wider">
-                {project.code}
-              </span>
+          <div className="min-w-0 flex-1 flex items-start gap-1.5">
+            {/* Drag handle */}
+            {dragListeners && (
+              <button
+                type="button"
+                className="text-muted-foreground/30 hover:text-muted-foreground mt-0.5 shrink-0 cursor-grab opacity-0 group-hover/card:opacity-100 transition-opacity active:cursor-grabbing"
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+                {...dragListeners}
+              >
+                <IconGripVertical className="h-3.5 w-3.5" />
+              </button>
             )}
-            {editable ? (
-              <InlineText
-                value={project.name}
-                onSave={(v) => save({ name: v })}
-                className="line-clamp-2 text-sm font-medium leading-tight"
-              />
-            ) : (
-              <CardTitle className="line-clamp-2 text-sm font-medium leading-tight">
-                {project.name}
-              </CardTitle>
-            )}
+            <div className="min-w-0 flex-1">
+              {project.code && (
+                <span className="text-muted-foreground mb-0.5 block text-[10px] font-mono uppercase tracking-wider">
+                  {project.code}
+                </span>
+              )}
+              {editable ? (
+                <InlineText
+                  value={project.name}
+                  onSave={(v) => save({ name: v })}
+                  className="line-clamp-2 text-sm font-medium leading-tight"
+                />
+              ) : (
+                <CardTitle className="line-clamp-2 text-sm font-medium leading-tight">
+                  {project.name}
+                </CardTitle>
+              )}
+            </div>
           </div>
           {project.notion_url && (
             <a
@@ -286,9 +436,9 @@ export function ProjectCard({ project, editable = false }: ProjectCardProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
-        {/* Status */}
+        {/* Status — always interactive */}
         {editable ? (
-          <StatusSelect
+          <StatusBadgeSelect
             value={project.status ?? "em_andamento"}
             onSave={(v) => save({ status: v })}
           />
@@ -296,9 +446,13 @@ export function ProjectCard({ project, editable = false }: ProjectCardProps) {
           status && (
             <Badge
               variant="secondary"
-              className="text-xs"
+              className="text-xs gap-1"
               style={{ backgroundColor: status.bg, color: status.color }}
             >
+              <span
+                className="size-1.5 rounded-full shrink-0"
+                style={{ backgroundColor: status.color }}
+              />
               {status.label}
             </Badge>
           )
@@ -359,19 +513,19 @@ export function ProjectCard({ project, editable = false }: ProjectCardProps) {
         {/* Footer: owner + date */}
         <div className="text-muted-foreground flex items-center justify-between pt-1 text-xs">
           {editable ? (
-            <div className="flex items-center gap-1 truncate">
-              <IconUser className="h-3 w-3 shrink-0" />
-              <InlineText
-                value={project.owner_name ?? ""}
-                onSave={(v) => save({ owner_name: v })}
-                className="text-xs"
-                placeholder="+ Responsável"
-              />
-            </div>
+            <OwnerSelector
+              currentName={project.owner_name}
+              currentId={project.owner_id ?? null}
+              onSave={(name, id) => save({ owner_name: name, owner_id: id })}
+            />
           ) : (
             project.owner_name && (
               <div className="flex items-center gap-1 truncate">
-                <IconUser className="h-3 w-3 shrink-0" />
+                <Avatar className="size-4 shrink-0">
+                  <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
+                    {getInitials(project.owner_name)}
+                  </AvatarFallback>
+                </Avatar>
                 <span className="truncate">{project.owner_name}</span>
               </div>
             )

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   IconChevronDown,
   IconChevronRight,
@@ -23,6 +23,7 @@ interface SectionHeaderProps {
   sectionId: string;
   count: number;
   isCustom?: boolean;
+  icon?: ReactNode;
   onRenameSection?: (id: string, name: string) => void;
   onDeleteSection?: (id: string) => void;
 }
@@ -32,6 +33,7 @@ export function SectionHeader({
   sectionId,
   count,
   isCustom,
+  icon,
   onRenameSection,
   onDeleteSection,
 }: SectionHeaderProps) {
@@ -94,6 +96,7 @@ export function SectionHeader({
           className="shrink-0 text-muted-foreground group-hover:text-foreground transition-colors"
         />
       )}
+      {icon && <span className="shrink-0">{icon}</span>}
       <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider group-hover:text-foreground transition-colors">
         {label}
       </span>

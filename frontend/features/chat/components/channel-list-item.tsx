@@ -10,6 +10,10 @@ import {
   IconTrash,
   IconFolder,
   IconArrowBackUp,
+  IconStar,
+  IconStarFilled,
+  IconBellOff,
+  IconBell,
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import {
@@ -62,7 +66,7 @@ function resolveDMInfo(
   return undefined;
 }
 
-interface ChannelItemProps {
+export interface ChannelItemProps {
   channel: ChannelWithMembers;
   selectedId: string | null;
   onSelect: (id: string) => void;
@@ -76,6 +80,10 @@ interface ChannelItemProps {
   canManageChannels?: boolean;
   isArchived?: boolean;
   onUnarchiveChannel?: (id: string) => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: (id: string) => void;
+  isMuted?: boolean;
+  onMuteToggle?: (id: string, muted: boolean) => void;
 }
 
 export function ChannelItem({
@@ -92,6 +100,10 @@ export function ChannelItem({
   canManageChannels,
   isArchived,
   onUnarchiveChannel,
+  isFavorite = false,
+  onToggleFavorite,
+  isMuted = false,
+  onMuteToggle,
 }: ChannelItemProps) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const unread = unreadCounts[channel.id] ?? 0;
@@ -147,11 +159,30 @@ export function ChannelItem({
         <Icon size={16} className="shrink-0" />
       )}
       <span className="truncate flex-1 text-left">{displayName}</span>
-      {unread > 0 && !isSelected && (
-        <span className="ml-auto shrink-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold px-1.5">
-          {unread > 99 ? "99+" : unread}
-        </span>
-      )}
+      <span className="ml-auto shrink-0 flex items-center gap-1">
+        {onToggleFavorite && (
+          <span
+            role="button"
+            tabIndex={-1}
+            onClick={(e) => { e.stopPropagation(); onToggleFavorite(channel.id); }}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); onToggleFavorite(channel.id); } }}
+            className={cn(
+              "opacity-0 group-hover:opacity-100 transition-opacity",
+              isFavorite && "opacity-100 text-yellow-500",
+            )}
+          >
+            {isFavorite
+              ? <IconStarFilled size={11} />
+              : <IconStar size={11} className="text-muted-foreground" />}
+          </span>
+        )}
+        {isMuted && <IconBellOff size={11} className="text-muted-foreground/60 shrink-0" />}
+        {unread > 0 && !isSelected && !isMuted && (
+          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold px-1.5">
+            {unread > 99 ? "99+" : unread}
+          </span>
+        )}
+      </span>
     </button>
   );
 
@@ -210,6 +241,14 @@ export function ChannelItem({
                     ))}
                   </ContextMenuSubContent>
                 </ContextMenuSub>
+              )}
+              {onMuteToggle && (
+                <ContextMenuItem onClick={() => onMuteToggle(channel.id, !isMuted)}>
+                  {isMuted
+                    ? <IconBell size={14} className="mr-2" />
+                    : <IconBellOff size={14} className="mr-2" />}
+                  {isMuted ? "Reativar notificações" : "Silenciar canal"}
+                </ContextMenuItem>
               )}
               <ContextMenuItem onClick={() => onArchiveChannel?.(channel.id)}>
                 <IconArchive size={14} className="mr-2" />

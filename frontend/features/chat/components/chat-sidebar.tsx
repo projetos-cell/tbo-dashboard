@@ -40,6 +40,12 @@ interface ChatSidebarProps {
   onCreateSection: (name: string) => void;
   onRenameSection: (id: string, name: string) => void;
   onDeleteSection: (id: string) => void;
+  // #27 — Favorites
+  favoriteIds?: Set<string>;
+  onToggleFavorite?: (id: string) => void;
+  // #28 — Mute
+  mutedChannelIds?: Set<string>;
+  onMuteToggle?: (id: string, muted: boolean) => void;
 }
 
 export function ChatSidebar({
@@ -62,6 +68,10 @@ export function ChatSidebar({
   onCreateSection,
   onRenameSection,
   onDeleteSection,
+  favoriteIds,
+  onToggleFavorite,
+  mutedChannelIds,
+  onMuteToggle,
 }: ChatSidebarProps) {
   const setCreateDMOpen = useChatStore((s) => s.setCreateDMOpen);
   const setCreateSectionOpen = useChatStore((s) => s.setCreateSectionOpen);
@@ -161,6 +171,10 @@ export function ChatSidebar({
             onRenameSection={onRenameSection}
             onDeleteSection={onDeleteSection}
             canManageChannels={canManageChannels}
+            favoriteIds={favoriteIds}
+            onToggleFavorite={onToggleFavorite}
+            mutedChannelIds={mutedChannelIds}
+            onMuteToggle={onMuteToggle}
           />
         )}
       </div>

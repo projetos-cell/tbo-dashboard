@@ -59,6 +59,9 @@ import { useNotificationSound, getSoundPref, saveSoundPref } from "@/features/ch
 import { useAuthStore } from "@/stores/auth-store";
 import { useChatStore } from "@/features/chat/stores/chat-store";
 import { useBookmarks, useAddBookmark, useRemoveBookmark } from "@/features/chat/hooks/use-chat-bookmarks";
+import { useChannelFavorites } from "@/features/chat/hooks/use-channel-favorites";
+import { setNotificationPref } from "@/features/chat/services/chat-notification-prefs";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BookmarksPanel } from "./bookmarks-panel";
 import { ChannelSwitcher } from "./channel-switcher";
 import { hasPermission, type RoleSlug } from "@/lib/permissions";
@@ -189,6 +192,34 @@ export function ChatLayout() {
   const { data: scheduledMessages, isLoading: loadingScheduled } = useScheduledMessages(selectedChannelId);
   const sendScheduledMsg = useSendScheduledMessage();
   const cancelScheduledMsg = useCancelScheduledMessage();
+
+  // #27 — Channel favorites
+  const { favoriteIds, toggleFavorite } = useChannelFavorites();
+
+  // #28 — Mute channels (uses existing notifPrefsData: setting "nothing" = muted)
+  const qc = useQueryClient();
+  const muteChannelMut = useMutation({
+    mutationFn: async ({ channelId, muted }: { channelId: string; muted: boolean }) => {
+      const supabase = (await import("@/lib/supabase/client")).createClient();
+      await setNotificationPref(supabase, userId!, channelId, muted ? "nothing" : "all");
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat-notif-prefs-all", userId] });
+    },
+  });
+
+  const mutedChannelIds = useMemo(() => {
+    if (!notifPrefsData) return new Set<string>();
+    return new Set(
+      Object.entries(notifPrefsData)
+        .filter(([, v]) => v === "nothing")
+        .map(([k]) => k),
+    );
+  }, [notifPrefsData]);
+
+  function handleMuteToggle(channelId: string, muted: boolean) {
+    muteChannelMut.mutate({ channelId, muted });
+  }
 
   // #17 — Bookmarks
   const { data: bookmarksData } = useBookmarks();
@@ -398,6 +429,10 @@ export function ChatLayout() {
         onCreateSection={handleCreateSection}
         onRenameSection={handleRenameSection}
         onDeleteSection={handleDeleteSection}
+        favoriteIds={favoriteIds}
+        onToggleFavorite={toggleFavorite}
+        mutedChannelIds={mutedChannelIds}
+        onMuteToggle={handleMuteToggle}
       />
 
       {/* Conversation area + thread panel */}

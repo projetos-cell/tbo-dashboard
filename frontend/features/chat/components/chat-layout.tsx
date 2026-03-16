@@ -49,6 +49,7 @@ import {
 import { compressFiles } from "@/features/chat/utils/image-compress";
 import {
   extractMentionIds,
+  hasBroadcastMention,
   notifyOnChatMention,
 } from "@/services/notification-triggers";
 import { useProfiles } from "@/features/people/hooks/use-people";
@@ -453,7 +454,18 @@ export function ChatLayout() {
     const msgType = messageType ?? (files?.length ? "file" : "text");
     const message = await sendMsg.mutateAsync({ channel_id: selectedChannelId, sender_id: userId, content, message_type: msgType });
     const supabase = (await import("@/lib/supabase/client")).createClient();
+    // Collect direct @user mentions (UUIDs)
     const mentionedIds = extractMentionIds(content);
+    // Expand broadcast mentions (@channel / @here) to actual member IDs
+    const broadcast = hasBroadcastMention(content);
+    if (broadcast.channel || broadcast.here) {
+      const memberIds = (selectedChannel?.chat_channel_members ?? [])
+        .map((m) => m.user_id)
+        .filter((id) => id !== userId); // exclude self
+      for (const id of memberIds) {
+        if (!mentionedIds.includes(id)) mentionedIds.push(id);
+      }
+    }
     if (mentionedIds.length > 0) {
       const senderName = profileMap[userId]?.name ?? "Alguém";
       const channelName = selectedChannel?.name ?? "chat";

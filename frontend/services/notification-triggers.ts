@@ -177,8 +177,9 @@ export async function notifyTaskAssigned(
 // ─── C) Chat mention notification ───
 
 const MENTION_REGEX = /<@([a-f0-9-]+)>/g;
+const MENTION_ALL_REGEX = /<@(channel|here|[a-f0-9-]+)>/g;
 
-/** Extract unique user IDs from mention patterns in message content */
+/** Extract unique user IDs from mention patterns in message content (UUIDs only) */
 export function extractMentionIds(content: string): string[] {
   const ids = new Set<string>();
   let match: RegExpExecArray | null;
@@ -187,6 +188,14 @@ export function extractMentionIds(content: string): string[] {
     ids.add(match[1]);
   }
   return Array.from(ids);
+}
+
+/** Check if content contains broadcast mentions (@channel or @here) */
+export function hasBroadcastMention(content: string): { channel: boolean; here: boolean } {
+  return {
+    channel: content.includes("<@channel>"),
+    here: content.includes("<@here>"),
+  };
 }
 
 /**

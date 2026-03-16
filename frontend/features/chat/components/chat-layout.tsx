@@ -44,7 +44,9 @@ import {
 import {
   uploadChatFile,
   createAttachmentRecord,
+  getChannelUploadLimitBytes,
 } from "@/features/chat/services/chat-attachments";
+import { compressFiles } from "@/features/chat/utils/image-compress";
 import {
   extractMentionIds,
   notifyOnChatMention,
@@ -418,10 +420,19 @@ export function ChatLayout() {
     }
     if (files?.length && message?.id) {
       const toastId = toast.loading(`Enviando ${files.length} arquivo${files.length > 1 ? "s" : ""}...`);
+      // #41 — Compress images before upload
+      const processedFiles = await compressFiles(files);
+      // #42 — Get channel upload limit
+      const uploadLimitBytes = await getChannelUploadLimitBytes(supabase, selectedChannelId).catch(() => 10 * 1024 * 1024);
       let successCount = 0; let failCount = 0;
-      for (const file of files) {
-        try { const { url } = await uploadChatFile(supabase, tenantId, selectedChannelId, file); await createAttachmentRecord(supabase, message.id, file, url); successCount++; }
-        catch { failCount++; }
+      for (const file of processedFiles) {
+        try { const { url } = await uploadChatFile(supabase, tenantId, selectedChannelId, file, uploadLimitBytes); await createAttachmentRecord(supabase, message.id, file, url); successCount++; }
+        catch (err) {
+          failCount++;
+          if (err instanceof Error && err.message.includes("excede")) {
+            toast.error(err.message, { id: undefined });
+          }
+        }
       }
       if (failCount === 0) { toast.success(`${successCount} arquivo${successCount > 1 ? "s" : ""} enviado${successCount > 1 ? "s" : ""}`, { id: toastId }); }
       else { toast.error(`${failCount} arquivo${failCount > 1 ? "s" : ""} falhou. ${successCount} enviado${successCount > 1 ? "s" : ""}.`, { id: toastId }); }

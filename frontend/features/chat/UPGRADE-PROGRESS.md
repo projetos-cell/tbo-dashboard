@@ -76,8 +76,8 @@
 | 38 | Galeria de mídia do canal — painel lateral | ✅ concluído | 2026-03-15 |
 | 39 | Preview de PDF inline | ✅ concluído | 2026-03-15 |
 | 40 | Video preview / Player inline | ✅ concluído | 2026-03-15 |
-| 41 | Compressão de imagem — redimensionar antes do upload | pendente | — |
-| 42 | Limite de upload configurável — admin define limite | pendente | — |
+| 41 | Compressão de imagem — redimensionar antes do upload | ✅ concluído | 2026-03-15 |
+| 42 | Limite de upload configurável — admin define limite | ✅ concluído | 2026-03-15 |
 
 ## FASE 8 — Integrações & Automação
 

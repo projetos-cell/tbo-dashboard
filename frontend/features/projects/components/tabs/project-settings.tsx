@@ -20,6 +20,8 @@ import {
   IconCheck,
   IconBolt,
   IconPower,
+  IconLoader2,
+  IconDownload,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,6 +84,14 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
   const [editingSectionTitle, setEditingSectionTitle] = useState("");
   const [expandedSectionId, setExpandedSectionId] = useState<string | null>(null);
   const [intakeCopied, setIntakeCopied] = useState(false);
+  const [notionImporting, setNotionImporting] = useState(false);
+  const [notionImportResult, setNotionImportResult] = useState<{
+    tasks_created?: number;
+    tasks_updated?: number;
+    comments_imported?: number;
+    errors?: string[];
+    error?: string;
+  } | null>(null);
   const { data: members } = useTeamMembers({ is_active: true });
   const { data: intakeForm } = useIntakeForm(projectId);
   const createIntakeForm = useCreateIntakeForm();
@@ -155,6 +165,54 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
         { id: projectId, updates: updates as never },
         { onSuccess: () => toast({ title: "Integrações salvas" }) },
       );
+    }
+  };
+
+  const handleNotionImport = async () => {
+    // Extract database ID from Notion URL
+    const url = notionUrl || projectNotionUrl;
+    if (!url) {
+      toast({ title: "Configure a Notion URL primeiro", variant: "destructive" });
+      return;
+    }
+
+    const match = url.match(/([a-f0-9]{32})/i);
+    if (!match) {
+      toast({ title: "URL do Notion inválida — não foi possível extrair o ID", variant: "destructive" });
+      return;
+    }
+
+    const databaseId = match[1];
+    setNotionImporting(true);
+    setNotionImportResult(null);
+
+    try {
+      const params = new URLSearchParams({
+        mode: "project-import",
+        project_id: projectId,
+        database_id: databaseId,
+      });
+
+      const res = await fetch(`/api/notion/sync?${params}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setNotionImportResult({ error: data.error ?? `HTTP ${res.status}` });
+        toast({ title: "Erro na importação", description: data.error, variant: "destructive" });
+        return;
+      }
+
+      setNotionImportResult(data);
+      toast({
+        title: "Importação concluída",
+        description: `${data.tasks_created ?? 0} tarefas criadas, ${data.tasks_updated ?? 0} atualizadas, ${data.comments_imported ?? 0} comentários`,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro de rede";
+      setNotionImportResult({ error: msg });
+      toast({ title: "Erro na importação", description: msg, variant: "destructive" });
+    } finally {
+      setNotionImporting(false);
     }
   };
 
@@ -466,14 +524,69 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
               className="h-8 text-sm"
             />
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSaveIntegrations}
-            disabled={updateProject.isPending}
-          >
-            Salvar integrações
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSaveIntegrations}
+              disabled={updateProject.isPending}
+            >
+              Salvar integrações
+            </Button>
+
+            {(notionUrl || projectNotionUrl) && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={handleNotionImport}
+                disabled={notionImporting}
+              >
+                {notionImporting ? (
+                  <IconLoader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <IconDownload className="size-3.5" />
+                )}
+                {notionImporting ? "Importando..." : "Importar do Notion"}
+              </Button>
+            )}
+          </div>
+
+          {/* Notion import result */}
+          {notionImportResult && (
+            <div
+              className={cn(
+                "rounded-md border px-3 py-2.5 text-sm space-y-1",
+                notionImportResult.error
+                  ? "border-red-200 bg-red-50/50 text-red-700 dark:border-red-900/50 dark:bg-red-950/10 dark:text-red-400"
+                  : "border-green-200 bg-green-50/50 text-green-700 dark:border-green-900/50 dark:bg-green-950/10 dark:text-green-400",
+              )}
+            >
+              {notionImportResult.error ? (
+                <p>{notionImportResult.error}</p>
+              ) : (
+                <>
+                  <div className="flex items-center gap-4 text-xs">
+                    <span><strong>{notionImportResult.tasks_created}</strong> tarefas criadas</span>
+                    <span><strong>{notionImportResult.tasks_updated}</strong> atualizadas</span>
+                    <span><strong>{notionImportResult.comments_imported}</strong> comentários</span>
+                  </div>
+                  {notionImportResult.errors && notionImportResult.errors.length > 0 && (
+                    <details className="text-xs text-muted-foreground">
+                      <summary className="cursor-pointer">
+                        {notionImportResult.errors.length} aviso(s)
+                      </summary>
+                      <ul className="mt-1 list-disc pl-4 space-y-0.5">
+                        {notionImportResult.errors.slice(0, 10).map((e, i) => (
+                          <li key={i}>{e}</li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
       </section>
 

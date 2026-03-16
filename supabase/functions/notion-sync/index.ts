@@ -127,8 +127,18 @@ serve(async (req: Request) => {
       result = await syncProperties(notionToken, databaseId, supabase, limit);
     } else if (mode === "comments") {
       result = await syncComments(notionToken, supabase, limit);
+    } else if (mode === "project-import") {
+      const projectId = url.searchParams.get("project_id");
+      const tenantId = url.searchParams.get("tenant_id") || TENANT_ID;
+      if (!projectId) {
+        return jsonResponse({ error: "project_id is required for project-import mode" }, 400);
+      }
+      if (!databaseId && databaseId === DEFAULT_DATABASE_ID) {
+        return jsonResponse({ error: "database_id is required for project-import mode" }, 400);
+      }
+      result = await importProjectTasks(notionToken, databaseId, projectId, tenantId, supabase, limit);
     } else {
-      return jsonResponse({ error: `Invalid mode: ${mode}. Use "properties" or "comments".` }, 400);
+      return jsonResponse({ error: `Invalid mode: ${mode}. Use "properties", "comments", or "project-import".` }, 400);
     }
 
     return jsonResponse(result);
@@ -461,6 +471,368 @@ async function syncComments(
   }
 
   return result;
+}
+
+// ── Project import (tasks + comments → os_tasks + task_comments) ────────────
+
+interface ProjectImportResult extends SyncResult {
+  tasks_created: number;
+  tasks_updated: number;
+  tasks_skipped: number;
+  comments_imported: number;
+  sections_created: number;
+}
+
+async function importProjectTasks(
+  token: string,
+  databaseId: string,
+  projectId: string,
+  tenantId: string,
+  supabase: any,
+  limit: number
+): Promise<ProjectImportResult> {
+  const result: ProjectImportResult = {
+    mode: "project-import",
+    total_notion_pages: 0,
+    tasks_created: 0,
+    tasks_updated: 0,
+    tasks_skipped: 0,
+    comments_imported: 0,
+    sections_created: 0,
+    errors: [],
+  };
+
+  // 1. Fetch all pages from the Notion database
+  const allPages: NotionPage[] = [];
+  let hasMore = true;
+  let startCursor: string | undefined;
+
+  while (hasMore && allPages.length < limit) {
+    const body: any = { page_size: 100 };
+    if (startCursor) body.start_cursor = startCursor;
+
+    const res = await notionFetch(token, `${NOTION_API}/databases/${databaseId}/query`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Notion API ${res.status}: ${text.slice(0, 500)}`);
+    }
+
+    const data = await res.json();
+    allPages.push(...(data.results || []));
+    hasMore = data.has_more ?? false;
+    startCursor = data.next_cursor ?? undefined;
+  }
+
+  result.total_notion_pages = allPages.length;
+  console.log(`[project-import] Fetched ${allPages.length} pages from Notion database ${databaseId}`);
+
+  if (allPages.length === 0) return result;
+
+  // 2. Get existing os_tasks for this project (deduplication by notion_page_id)
+  const { data: existingTasks } = await supabase
+    .from("os_tasks")
+    .select("id, title, notion_page_id")
+    .eq("project_id", projectId);
+
+  const taskByNotionId = new Map<string, any>();
+  const taskByTitle = new Map<string, any>();
+  for (const t of existingTasks || []) {
+    if (t.notion_page_id) taskByNotionId.set(t.notion_page_id, t);
+    if (t.title) taskByTitle.set(t.title.trim().toLowerCase(), t);
+  }
+
+  // 3. Get existing sections for this project
+  const { data: existingSections } = await supabase
+    .from("os_sections")
+    .select("id, title")
+    .eq("project_id", projectId)
+    .order("order_index", { ascending: true });
+
+  const sectionByTitle = new Map<string, string>();
+  for (const s of existingSections || []) {
+    sectionByTitle.set(s.title.trim().toLowerCase(), s.id);
+  }
+
+  // 4. Collect unique section names from Notion pages (from "Status" or "Seção" property)
+  const sectionNames = new Set<string>();
+  const parsedPages: Array<{ page: NotionPage; parsed: ParsedPage; sectionName: string | null }> = [];
+
+  for (const page of allPages) {
+    const parsed = parseNotionPage(page);
+    // Use status as section grouping (common Notion pattern)
+    const sectionName = extractSectionProperty(page) || parsed.status || null;
+    if (sectionName) sectionNames.add(sectionName);
+    parsedPages.push({ page, parsed, sectionName });
+  }
+
+  // 5. Create missing sections
+  let sectionOrder = (existingSections || []).length;
+  for (const name of sectionNames) {
+    if (!sectionByTitle.has(name.trim().toLowerCase())) {
+      const { data: newSection, error: secErr } = await supabase
+        .from("os_sections")
+        .insert({
+          project_id: projectId,
+          tenant_id: tenantId,
+          title: name,
+          order_index: sectionOrder++,
+        })
+        .select("id")
+        .single();
+
+      if (secErr) {
+        result.errors!.push(`Section "${name}": ${secErr.message}`);
+      } else if (newSection) {
+        sectionByTitle.set(name.trim().toLowerCase(), newSection.id);
+        result.sections_created++;
+      }
+    }
+  }
+
+  // 6. Upsert os_tasks
+  const DEFAULT_AUTHOR_ID = "46594a5e-564f-45ad-acef-35bc3706d117"; // Marco
+  let orderIndex = (existingTasks || []).length;
+
+  const importedTaskMap = new Map<string, string>(); // notion_page_id → os_task_id
+
+  for (const { page, parsed, sectionName } of parsedPages) {
+    try {
+      if (!parsed.title) {
+        result.errors!.push(`Page ${page.id}: empty title, skipping`);
+        continue;
+      }
+
+      const notionPageId = normalizeId(page.id);
+      const sectionId = sectionName
+        ? sectionByTitle.get(sectionName.trim().toLowerCase()) ?? null
+        : null;
+
+      // Check if already imported
+      let existingTask = taskByNotionId.get(notionPageId);
+      if (!existingTask) {
+        existingTask = taskByTitle.get(parsed.title.trim().toLowerCase());
+      }
+
+      // Map assignee
+      const assigneeName = parsed.responsible
+        ? mapNotionUser(parsed.responsible)
+        : null;
+      const assigneeId = parsed.responsible
+        ? findProfileId(parsed.responsible)
+        : null;
+
+      // Map priority
+      const priority = parsed.prioridade
+        ? mapPriority(parsed.prioridade).toLowerCase()
+        : null;
+
+      // Map status
+      const status = mapTaskStatus(parsed.status);
+
+      // Determine dates
+      const dueDate = parsed.prazo_end || parsed.prazo_start || null;
+      const startDate = parsed.prazo_end ? parsed.prazo_start || null : null;
+
+      if (existingTask) {
+        // Update existing task
+        const updates: Record<string, any> = {
+          notion_page_id: notionPageId,
+          updated_at: new Date().toISOString(),
+        };
+
+        if (status) updates.status = status;
+        if (priority) updates.priority = priority;
+        if (assigneeName) updates.assignee_name = assigneeName;
+        if (assigneeId) updates.assignee_id = assigneeId;
+        if (dueDate) updates.due_date = dueDate;
+        if (startDate) updates.start_date = startDate;
+        if (sectionId) updates.section_id = sectionId;
+        if (parsed.info) updates.description = parsed.info;
+        if (parsed.feito !== undefined) {
+          updates.is_completed = parsed.feito;
+          if (parsed.feito) updates.completed_at = new Date().toISOString();
+        }
+
+        const { error: upErr } = await supabase
+          .from("os_tasks")
+          .update(updates)
+          .eq("id", existingTask.id);
+
+        if (upErr) {
+          result.errors!.push(`Update "${parsed.title}": ${upErr.message}`);
+        } else {
+          result.tasks_updated++;
+          importedTaskMap.set(notionPageId, existingTask.id);
+        }
+      } else {
+        // Create new task
+        const isCompleted = parsed.feito || status === "concluida";
+        const { data: newTask, error: insErr } = await supabase
+          .from("os_tasks")
+          .insert({
+            project_id: projectId,
+            tenant_id: tenantId,
+            section_id: sectionId,
+            title: parsed.title,
+            description: parsed.info || null,
+            status: status || "pendente",
+            priority: priority || null,
+            assignee_id: assigneeId,
+            assignee_name: assigneeName,
+            due_date: dueDate,
+            start_date: startDate,
+            is_completed: isCompleted,
+            completed_at: isCompleted ? new Date().toISOString() : null,
+            order_index: orderIndex++,
+            notion_page_id: notionPageId,
+          })
+          .select("id")
+          .single();
+
+        if (insErr) {
+          result.errors!.push(`Create "${parsed.title}": ${insErr.message}`);
+        } else if (newTask) {
+          result.tasks_created++;
+          importedTaskMap.set(notionPageId, newTask.id);
+        }
+      }
+    } catch (e) {
+      result.errors!.push(`Page ${page.id}: ${e.message}`);
+    }
+  }
+
+  // 7. Import comments for each imported task
+  // Get existing task_comments to avoid duplicates
+  const taskIds = [...importedTaskMap.values()];
+  const { data: existingComments } = taskIds.length > 0
+    ? await supabase
+        .from("task_comments")
+        .select("id, task_id, content, created_at")
+        .in("task_id", taskIds)
+    : { data: [] };
+
+  const commentSigSet = new Set<string>();
+  for (const c of existingComments || []) {
+    const contentStr = typeof c.content === "string"
+      ? c.content
+      : JSON.stringify(c.content || "");
+    const sig = `${c.task_id}::${contentStr.slice(0, 80)}::${c.created_at?.slice(0, 10)}`;
+    commentSigSet.add(sig);
+  }
+
+  for (const [notionPageId, taskId] of importedTaskMap) {
+    try {
+      const comments = await fetchAllComments(token, notionPageId);
+      if (comments.length === 0) continue;
+
+      for (const comment of comments) {
+        try {
+          const text = extractRichText(comment.rich_text || []);
+          if (!text.trim()) continue;
+
+          const authorName = comment.created_by?.name || comment.created_by?.person?.email || "Unknown";
+          const authorId = findProfileId(authorName) || DEFAULT_AUTHOR_ID;
+
+          // Build TipTap-compatible JSON content
+          const tiptapContent = {
+            type: "doc",
+            content: [
+              {
+                type: "paragraph",
+                content: [{ type: "text", text }],
+              },
+            ],
+          };
+
+          const contentStr = JSON.stringify(tiptapContent);
+          const sig = `${taskId}::${contentStr.slice(0, 80)}::${comment.created_time?.slice(0, 10)}`;
+          if (commentSigSet.has(sig)) continue;
+
+          const { error: cErr } = await supabase
+            .from("task_comments")
+            .insert({
+              task_id: taskId,
+              author_id: authorId,
+              content: tiptapContent,
+              created_at: comment.created_time || new Date().toISOString(),
+              updated_at: comment.created_time || new Date().toISOString(),
+            });
+
+          if (cErr) {
+            result.errors!.push(`Comment on task ${taskId}: ${cErr.message}`);
+          } else {
+            result.comments_imported++;
+            commentSigSet.add(sig);
+          }
+        } catch (e) {
+          result.errors!.push(`Comment parse: ${e.message}`);
+        }
+      }
+    } catch (e) {
+      // Comment fetch failed for this page — non-fatal
+      result.errors!.push(`Comments for ${notionPageId}: ${e.message}`);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Extracts "Seção" or "Section" property from a Notion page (select type).
+ * Falls back to null if not present.
+ */
+function extractSectionProperty(page: NotionPage): string | null {
+  for (const [key, prop] of Object.entries(page.properties)) {
+    const lower = key.toLowerCase().trim();
+    if (
+      (lower === "seção" || lower === "secao" || lower === "section" || lower === "grupo" || lower === "group") &&
+      prop.type === "select" &&
+      prop.select?.name
+    ) {
+      return prop.select.name;
+    }
+  }
+  return null;
+}
+
+/**
+ * Maps Notion status values to os_tasks status keys.
+ */
+function mapTaskStatus(notionStatus?: string): string | null {
+  if (!notionStatus) return null;
+  const lower = notionStatus.toLowerCase().trim();
+  const map: Record<string, string> = {
+    "não iniciado": "pendente",
+    "not started": "pendente",
+    "a fazer": "pendente",
+    "pendente": "pendente",
+    "to do": "pendente",
+    "em andamento": "em_andamento",
+    "em progresso": "em_andamento",
+    "in progress": "em_andamento",
+    "doing": "em_andamento",
+    "em revisão": "em_revisao",
+    "em revisao": "em_revisao",
+    "review": "em_revisao",
+    "in review": "em_revisao",
+    "revisão": "em_revisao",
+    "concluído": "concluida",
+    "concluido": "concluida",
+    "done": "concluida",
+    "feito": "concluida",
+    "aprovado": "concluida",
+    "approved": "concluida",
+    "bloqueado": "bloqueada",
+    "blocked": "bloqueada",
+    "cancelado": "cancelada",
+    "cancelled": "cancelada",
+    "canceled": "cancelada",
+  };
+  return map[lower] || null;
 }
 
 // ── Notion property parser ──────────────────────────────────────────────────

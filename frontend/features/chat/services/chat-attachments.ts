@@ -5,11 +5,46 @@ export type ChatAttachmentRow =
   Database["public"]["Tables"]["chat_attachments"]["Row"];
 
 const BUCKET = "chat-attachments";
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+/** Global fallback limit when channel has no custom limit */
+export const DEFAULT_MAX_FILE_SIZE_MB = 10;
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
 export function isImageFile(type: string): boolean {
   return IMAGE_TYPES.includes(type);
+}
+
+/**
+ * Get the effective upload limit for a channel in bytes.
+ * Reads max_file_size_mb from the channel row; falls back to DEFAULT_MAX_FILE_SIZE_MB.
+ */
+export async function getChannelUploadLimitBytes(
+  supabase: SupabaseClient<Database>,
+  channelId: string,
+): Promise<number> {
+  const { data } = await supabase
+    .from("chat_channels")
+    .select("max_file_size_mb")
+    .eq("id", channelId)
+    .single();
+
+  const mb = (data as unknown as { max_file_size_mb: number | null } | null)?.max_file_size_mb
+    ?? DEFAULT_MAX_FILE_SIZE_MB;
+  return mb * 1024 * 1024;
+}
+
+/**
+ * Set the upload limit for a channel (founder/diretoria only).
+ */
+export async function setChannelUploadLimit(
+  supabase: SupabaseClient<Database>,
+  channelId: string,
+  maxFileSizeMb: number | null,
+): Promise<void> {
+  const { error } = await supabase
+    .from("chat_channels")
+    .update({ max_file_size_mb: maxFileSizeMb } as never)
+    .eq("id", channelId);
+  if (error) throw error;
 }
 
 export async function uploadChatFile(
@@ -17,9 +52,14 @@ export async function uploadChatFile(
   tenantId: string,
   channelId: string,
   file: File,
+  /** Pass explicit limit bytes to avoid an extra DB round-trip (optional). */
+  maxFileSizeBytes?: number,
 ): Promise<{ path: string; url: string }> {
-  if (file.size > MAX_FILE_SIZE) {
-    throw new Error("Arquivo excede 10 MB");
+  const limit = maxFileSizeBytes ?? DEFAULT_MAX_FILE_SIZE_MB * 1024 * 1024;
+
+  if (file.size > limit) {
+    const limitMb = Math.round(limit / (1024 * 1024));
+    throw new Error(`Arquivo excede ${limitMb} MB`);
   }
 
   const timestamp = Date.now();

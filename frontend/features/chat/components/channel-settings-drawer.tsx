@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { IconArchive, IconBell, IconBellOff, IconBellRinging, IconClock, IconPlus, IconSpeakerphone, IconVolume, IconVolumeOff, IconX } from "@tabler/icons-react";
+import { useState, useEffect } from "react";
+import { IconArchive, IconBell, IconBellOff, IconBellRinging, IconClock, IconPlus, IconSpeakerphone, IconUpload, IconVolume, IconVolumeOff, IconX } from "@tabler/icons-react";
 import {
   Sheet,
   SheetContent,
@@ -49,6 +49,9 @@ import { useNotificationPref } from "@/features/chat/hooks/use-notification-pref
 import { cn } from "@/lib/utils";
 import type { NotifSetting } from "@/features/chat/services/chat-notification-prefs";
 import { Switch } from "@/components/ui/switch";
+import { setChannelUploadLimit, DEFAULT_MAX_FILE_SIZE_MB } from "@/features/chat/services/chat-attachments";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 interface ChannelSettingsDrawerProps {
   channel: ChannelRow;
@@ -75,6 +78,18 @@ export function ChannelSettingsDrawer({ channel, soundEnabled = true, onToggleSo
   const [autoArchiveDays, setAutoArchiveDays] = useState(
     String((channel as unknown as { auto_archive_days?: number }).auto_archive_days ?? 0)
   );
+  // #42 — Upload limit
+  const channelMaxMb = (channel as unknown as { max_file_size_mb?: number | null }).max_file_size_mb;
+  const [uploadLimitMb, setUploadLimitMb] = useState(
+    String(channelMaxMb ?? DEFAULT_MAX_FILE_SIZE_MB)
+  );
+  const [savingLimit, setSavingLimit] = useState(false);
+
+  // Reset upload limit when channel changes
+  useEffect(() => {
+    const mb = (channel as unknown as { max_file_size_mb?: number | null }).max_file_size_mb;
+    setUploadLimitMb(String(mb ?? DEFAULT_MAX_FILE_SIZE_MB));
+  }, [channel.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const [isAddingMembers, setIsAddingMembers] = useState(false);
   const [memberSearch, setMemberSearch] = useState("");
   const [selectedNewMembers, setSelectedNewMembers] = useState<string[]>([]);
@@ -106,6 +121,23 @@ export function ChannelSettingsDrawer({ channel, soundEnabled = true, onToggleSo
         auto_archive_days: parseInt(autoArchiveDays, 10),
       } as never,
     });
+  }
+
+  async function handleSaveUploadLimit() {
+    const mb = parseInt(uploadLimitMb, 10);
+    if (isNaN(mb) || mb < 1 || mb > 100) {
+      toast.error("Limite inválido. Use entre 1 e 100 MB.");
+      return;
+    }
+    setSavingLimit(true);
+    try {
+      await setChannelUploadLimit(createClient(), channel.id, mb);
+      toast.success(`Limite de upload definido: ${mb} MB`);
+    } catch {
+      toast.error("Erro ao salvar limite de upload");
+    } finally {
+      setSavingLimit(false);
+    }
   }
 
   function handleArchive() {
@@ -213,6 +245,43 @@ export function ChannelSettingsDrawer({ channel, soundEnabled = true, onToggleSo
                 </p>
               </div>
             )}
+            {/* #42 — Upload limit per channel (founder/diretoria only) */}
+            {canEdit && (
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5 text-sm">
+                  <IconUpload size={14} className="text-muted-foreground" />
+                  Limite de upload
+                </Label>
+                <div className="flex gap-2">
+                  <Select value={uploadLimitMb} onValueChange={setUploadLimitMb}>
+                    <SelectTrigger className="h-9 text-sm flex-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 MB</SelectItem>
+                      <SelectItem value="5">5 MB</SelectItem>
+                      <SelectItem value="10">10 MB (padrão)</SelectItem>
+                      <SelectItem value="25">25 MB</SelectItem>
+                      <SelectItem value="50">50 MB</SelectItem>
+                      <SelectItem value="100">100 MB</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleSaveUploadLimit}
+                    disabled={savingLimit}
+                    className="shrink-0"
+                  >
+                    {savingLimit ? "..." : "Salvar"}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Tamanho máximo por arquivo neste canal.
+                </p>
+              </div>
+            )}
+
             {canEdit && (
               <Button size="sm" onClick={handleSaveInfo} disabled={!name.trim() || updateChannel.isPending}>
                 {updateChannel.isPending ? "Salvando..." : "Salvar"}

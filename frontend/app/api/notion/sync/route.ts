@@ -39,9 +39,13 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Forward query params (mode, limit) to Edge Function
-  const params = request.nextUrl.searchParams.toString();
-  const url = params ? `${EDGE_FN_URL}?${params}` : EDGE_FN_URL;
+  // Forward query params (mode, limit, project_id, etc.) to Edge Function
+  // Inject tenant_id so the Edge Function knows the tenant context
+  const fwdParams = new URLSearchParams(request.nextUrl.searchParams.toString());
+  if (!fwdParams.has("tenant_id")) {
+    fwdParams.set("tenant_id", profile.tenant_id);
+  }
+  const url = `${EDGE_FN_URL}?${fwdParams.toString()}`;
 
   const edgeRes = await fetch(url, {
     method: "GET",

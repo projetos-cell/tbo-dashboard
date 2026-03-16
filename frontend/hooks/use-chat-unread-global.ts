@@ -18,7 +18,7 @@ export function useChatUnreadGlobal() {
   const setUnreadCounts = useChatStore((s) => s.setUnreadCounts);
 
   const { data } = useQuery({
-    queryKey: ["chat-unread-counts-global", userId, tenantId],
+    queryKey: ["chat-unread-counts", userId, tenantId],
     queryFn: async () => {
       if (!userId || !tenantId) return {};
       const supabase = createClient();

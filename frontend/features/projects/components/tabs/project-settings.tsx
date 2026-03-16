@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   IconAdjustments,
   IconFlag,
@@ -75,6 +76,7 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
   const deleteSection = useDeleteProjectSection(projectId);
   const { toast } = useToast();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const [notionUrl, setNotionUrl] = useState("");
   const [driveUrl, setDriveUrl] = useState("");
@@ -224,6 +226,9 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
       }
 
       setNotionImportResult(data as typeof notionImportResult);
+      // Invalidate task and section caches so lists refresh immediately
+      queryClient.invalidateQueries({ queryKey: ["project-tasks", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["project-sections", projectId] });
       toast({
         title: "Importação concluída",
         description: `${(data.tasks_created as number) ?? 0} tarefas criadas, ${(data.tasks_updated as number) ?? 0} atualizadas, ${(data.comments_imported as number) ?? 0} comentários`,

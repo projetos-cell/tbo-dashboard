@@ -195,11 +195,19 @@ export async function getMyTasks(
   if (tasksError) throw tasksError;
 
   // Also get tasks where user is a multi-assignee via task_assignees junction table
-  const { data: assigneeRows, error: assigneeError } = await supabase
-    .from("task_assignees")
-    .select("task_id")
-    .eq("user_id", userId);
-  if (assigneeError) throw assigneeError;
+  // Wrapped in try/catch so primary tasks still show if table doesn't exist yet
+  let assigneeRows: { task_id: string }[] = [];
+  try {
+    const { data, error: assigneeError } = await supabase
+      .from("task_assignees")
+      .select("task_id")
+      .eq("user_id", userId);
+    if (!assigneeError) {
+      assigneeRows = (data ?? []) as { task_id: string }[];
+    }
+  } catch {
+    // task_assignees table may not exist yet — skip multi-assignee lookup
+  }
 
   const primaryIds = new Set((primaryTasks ?? []).map((t) => t.id));
   const extraTaskIds = (assigneeRows ?? [])

@@ -756,7 +756,6 @@ export function useRemoveReaction() {
 export function useMarkAsRead() {
   const supabase = createClient();
   const qc = useQueryClient();
-  const clearUnread = useChatStore.getState().clearUnread;
 
   return useMutation({
     mutationFn: ({
@@ -767,8 +766,17 @@ export function useMarkAsRead() {
       userId: string;
     }) => updateLastRead(supabase, channelId, userId),
     onMutate: ({ channelId }) => {
-      // Optimistic: clear badge immediately
-      clearUnread(channelId);
+      // Optimistic: clear badge immediately in both Zustand store AND React Query cache
+      useChatStore.getState().clearUnread(channelId);
+
+      // Also update React Query cache so the global hook doesn't overwrite with stale data
+      qc.setQueriesData<Record<string, number>>(
+        { queryKey: ["chat-unread-counts"] },
+        (old) => {
+          if (!old) return old;
+          return { ...old, [channelId]: 0 };
+        },
+      );
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["chat-unread-counts"] });

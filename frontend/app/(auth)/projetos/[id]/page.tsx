@@ -15,22 +15,21 @@ import type { UserOption } from "@/components/ui/user-selector";
 import type { MemberInfo } from "@/features/projects/components/member-avatar-stack";
 
 // ── Lazy-loaded tabs — only download JS when tab becomes active ───────────
+// Next.js 16 Turbopack requires inline object literals for dynamic() options
 const tabFallback = <div className="h-64 animate-pulse rounded-lg bg-muted" />;
-const lazy = { loading: () => tabFallback };
-const lazyNoSSR = { ssr: false, loading: () => tabFallback };
 
-const ProjectTaskList = dynamic(() => import("@/features/projects/components/tabs/project-task-list").then((m) => ({ default: m.ProjectTaskList })), lazy);
-const ProjectTaskBoard = dynamic(() => import("@/features/projects/components/tabs/project-task-board").then((m) => ({ default: m.ProjectTaskBoard })), lazy);
-const ProjectGantt = dynamic(() => import("@/features/projects/components/tabs/project-gantt").then((m) => ({ default: m.ProjectGantt })), lazyNoSSR);
-const ProjectCalendar = dynamic(() => import("@/features/projects/components/tabs/project-calendar").then((m) => ({ default: m.ProjectCalendar })), lazy);
-const ProjectFiles = dynamic(() => import("@/features/projects/components/tabs/project-files").then((m) => ({ default: m.ProjectFiles })), lazy);
-const ProjectSettings = dynamic(() => import("@/features/projects/components/tabs/project-settings").then((m) => ({ default: m.ProjectSettings })), lazy);
-const ProjectActivityTab = dynamic(() => import("@/features/projects/components/tabs/project-activity").then((m) => ({ default: m.ProjectActivityTab })), lazy);
-const ProjectUpdates = dynamic(() => import("@/features/projects/components/tabs/project-updates").then((m) => ({ default: m.ProjectUpdates })), lazy);
-const ProjectDashboard = dynamic(() => import("@/features/projects/components/tabs/project-dashboard").then((m) => ({ default: m.ProjectDashboard })), lazy);
-const ProjectOverdueReport = dynamic(() => import("@/features/projects/components/tabs/project-overdue-report").then((m) => ({ default: m.ProjectOverdueReport })), lazy);
-const ProjectPortal = dynamic(() => import("@/features/projects/components/tabs/project-portal").then((m) => ({ default: m.ProjectPortal })), lazy);
-const ProjectIntake = dynamic(() => import("@/features/projects/components/tabs/project-intake").then((m) => ({ default: m.ProjectIntake })), lazy);
+const ProjectTaskList = dynamic(() => import("@/features/projects/components/tabs/project-task-list").then((m) => ({ default: m.ProjectTaskList })), { loading: () => tabFallback });
+const ProjectTaskBoard = dynamic(() => import("@/features/projects/components/tabs/project-task-board").then((m) => ({ default: m.ProjectTaskBoard })), { loading: () => tabFallback });
+const ProjectGantt = dynamic(() => import("@/features/projects/components/tabs/project-gantt").then((m) => ({ default: m.ProjectGantt })), { ssr: false, loading: () => tabFallback });
+const ProjectCalendar = dynamic(() => import("@/features/projects/components/tabs/project-calendar").then((m) => ({ default: m.ProjectCalendar })), { loading: () => tabFallback });
+const ProjectFiles = dynamic(() => import("@/features/projects/components/tabs/project-files").then((m) => ({ default: m.ProjectFiles })), { loading: () => tabFallback });
+const ProjectSettings = dynamic(() => import("@/features/projects/components/tabs/project-settings").then((m) => ({ default: m.ProjectSettings })), { loading: () => tabFallback });
+const ProjectActivityTab = dynamic(() => import("@/features/projects/components/tabs/project-activity").then((m) => ({ default: m.ProjectActivityTab })), { loading: () => tabFallback });
+const ProjectUpdates = dynamic(() => import("@/features/projects/components/tabs/project-updates").then((m) => ({ default: m.ProjectUpdates })), { loading: () => tabFallback });
+const ProjectDashboard = dynamic(() => import("@/features/projects/components/tabs/project-dashboard").then((m) => ({ default: m.ProjectDashboard })), { loading: () => tabFallback });
+const ProjectOverdueReport = dynamic(() => import("@/features/projects/components/tabs/project-overdue-report").then((m) => ({ default: m.ProjectOverdueReport })), { loading: () => tabFallback });
+const ProjectPortal = dynamic(() => import("@/features/projects/components/tabs/project-portal").then((m) => ({ default: m.ProjectPortal })), { loading: () => tabFallback });
+const ProjectIntake = dynamic(() => import("@/features/projects/components/tabs/project-intake").then((m) => ({ default: m.ProjectIntake })), { loading: () => tabFallback });
 
 export default function ProjectDetailPage({
   params,

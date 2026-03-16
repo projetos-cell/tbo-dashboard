@@ -22,6 +22,7 @@ export function useProjectCustomFields(projectId: string) {
   return useQuery({
     queryKey: ["custom-fields", tenantId, projectId],
     queryFn: () => getProjectCustomFields(tenantId!, projectId),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!projectId,
   });
 }
@@ -78,9 +79,12 @@ export function useDeleteCustomField(projectId: string) {
 
 export function useTaskFieldValues(taskIds: string[]) {
   const tenantId = useAuthStore((s) => s.tenantId);
+  // Stable key: sorted join avoids re-fetch on array reference changes
+  const stableKey = taskIds.length > 0 ? taskIds.slice().sort().join(",") : "none";
   return useQuery({
-    queryKey: ["task-field-values", tenantId, taskIds],
+    queryKey: ["task-field-values", tenantId, stableKey],
     queryFn: () => getTaskFieldValues(tenantId!, taskIds),
+    staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && taskIds.length > 0,
   });
 }
@@ -116,6 +120,7 @@ export function useViewPreferences(projectId: string) {
   return useQuery({
     queryKey: ["view-preferences", userId, projectId],
     queryFn: () => getViewPreferences(userId!, projectId),
+    staleTime: 1000 * 60 * 10,
     enabled: !!userId && !!projectId,
   });
 }

@@ -169,43 +169,64 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
   };
 
   const handleNotionImport = async () => {
-    // Extract database ID from Notion URL
-    const url = notionUrl || projectNotionUrl;
-    if (!url) {
-      toast({ title: "Configure a Notion URL primeiro", variant: "destructive" });
-      return;
-    }
-
-    const match = url.match(/([a-f0-9]{32})/i);
-    if (!match) {
-      toast({ title: "URL do Notion inválida — não foi possível extrair o ID", variant: "destructive" });
-      return;
-    }
-
-    const databaseId = match[1];
     setNotionImporting(true);
     setNotionImportResult(null);
 
     try {
-      const params = new URLSearchParams({
-        mode: "project-import",
-        project_id: projectId,
-        database_id: databaseId,
-      });
+      // Strategy: try direct Notion database import first, fallback to demands-to-tasks
+      const url = notionUrl || projectNotionUrl;
+      const match = url?.match(/([a-f0-9]{32})/i);
 
-      const res = await fetch(`/api/notion/sync?${params}`);
-      const data = await res.json();
+      // Extract project name for demands matching (strip prefix like "CO.PESSOA_")
+      const rawName = project?.name ?? "";
+      const notionProjectName = rawName.includes("_")
+        ? rawName.split("_").slice(1).join("_")
+        : rawName;
+
+      let res: Response;
+      let data: Record<string, unknown>;
+
+      if (match) {
+        // Try direct Notion database import
+        const params = new URLSearchParams({
+          mode: "project-import",
+          project_id: projectId,
+          database_id: match[1],
+        });
+        res = await fetch(`/api/notion/sync?${params}`);
+        data = await res.json();
+
+        // If Notion API fails (permission/validation), fallback to demands-to-tasks
+        if (!res.ok && typeof data.error === "string" && data.error.includes("Notion API")) {
+          const fbParams = new URLSearchParams({
+            mode: "demands-to-tasks",
+            project_id: projectId,
+            project_name: notionProjectName,
+          });
+          res = await fetch(`/api/notion/sync?${fbParams}`);
+          data = await res.json();
+        }
+      } else {
+        // No Notion URL — use demands-to-tasks directly
+        const params = new URLSearchParams({
+          mode: "demands-to-tasks",
+          project_id: projectId,
+          project_name: notionProjectName,
+        });
+        res = await fetch(`/api/notion/sync?${params}`);
+        data = await res.json();
+      }
 
       if (!res.ok) {
-        setNotionImportResult({ error: data.error ?? `HTTP ${res.status}` });
-        toast({ title: "Erro na importação", description: data.error, variant: "destructive" });
+        setNotionImportResult({ error: (data.error as string) ?? `HTTP ${res.status}` });
+        toast({ title: "Erro na importação", description: data.error as string, variant: "destructive" });
         return;
       }
 
-      setNotionImportResult(data);
+      setNotionImportResult(data as typeof notionImportResult);
       toast({
         title: "Importação concluída",
-        description: `${data.tasks_created ?? 0} tarefas criadas, ${data.tasks_updated ?? 0} atualizadas, ${data.comments_imported ?? 0} comentários`,
+        description: `${(data.tasks_created as number) ?? 0} tarefas criadas, ${(data.tasks_updated as number) ?? 0} atualizadas, ${(data.comments_imported as number) ?? 0} comentários`,
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erro de rede";
@@ -534,22 +555,20 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
               Salvar integrações
             </Button>
 
-            {(notionUrl || projectNotionUrl) && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                onClick={handleNotionImport}
-                disabled={notionImporting}
-              >
-                {notionImporting ? (
-                  <IconLoader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <IconDownload className="size-3.5" />
-                )}
-                {notionImporting ? "Importando..." : "Importar do Notion"}
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleNotionImport}
+              disabled={notionImporting}
+            >
+              {notionImporting ? (
+                <IconLoader2 className="size-3.5 animate-spin" />
+              ) : (
+                <IconDownload className="size-3.5" />
+              )}
+              {notionImporting ? "Importando..." : "Importar do Notion"}
+            </Button>
           </div>
 
           {/* Notion import result */}

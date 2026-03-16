@@ -137,8 +137,19 @@ serve(async (req: Request) => {
         return jsonResponse({ error: "database_id is required for project-import mode" }, 400);
       }
       result = await importProjectTasks(notionToken, databaseId, projectId, tenantId, supabase, limit);
+    } else if (mode === "demands-to-tasks") {
+      const projectId = url.searchParams.get("project_id");
+      const projectName = url.searchParams.get("project_name");
+      const tenantId = url.searchParams.get("tenant_id") || TENANT_ID;
+      if (!projectId) {
+        return jsonResponse({ error: "project_id is required" }, 400);
+      }
+      if (!projectName) {
+        return jsonResponse({ error: "project_name is required" }, 400);
+      }
+      result = await importDemandsToTasks(projectId, projectName, tenantId, supabase);
     } else {
-      return jsonResponse({ error: `Invalid mode: ${mode}. Use "properties", "comments", or "project-import".` }, 400);
+      return jsonResponse({ error: `Invalid mode: ${mode}. Use "properties", "comments", "project-import", or "demands-to-tasks".` }, 400);
     }
 
     return jsonResponse(result);
@@ -833,6 +844,258 @@ function mapTaskStatus(notionStatus?: string): string | null {
     "canceled": "cancelada",
   };
   return map[lower] || null;
+}
+
+// ── Demands → Tasks (import from already-synced demands table) ──────────────
+
+async function importDemandsToTasks(
+  projectId: string,
+  projectName: string,
+  tenantId: string,
+  supabase: any
+): Promise<ProjectImportResult> {
+  const result: ProjectImportResult = {
+    mode: "demands-to-tasks",
+    total_notion_pages: 0,
+    tasks_created: 0,
+    tasks_updated: 0,
+    tasks_skipped: 0,
+    comments_imported: 0,
+    sections_created: 0,
+    errors: [],
+  };
+
+  // 1. Fetch demands matching this project name
+  const { data: demands, error: dErr } = await supabase
+    .from("demands")
+    .select("id, title, status, responsible, prioridade, start_date, due_date, bus, tags, notion_page_id, feito, info")
+    .eq("tenant_id", tenantId)
+    .eq("notion_project_name", projectName);
+
+  if (dErr) throw new Error(`Query demands: ${dErr.message}`);
+  if (!demands || demands.length === 0) {
+    result.errors!.push(`Nenhuma demand encontrada com notion_project_name = "${projectName}"`);
+    return result;
+  }
+
+  result.total_notion_pages = demands.length;
+  console.log(`[demands-to-tasks] Found ${demands.length} demands for project "${projectName}"`);
+
+  // 2. Get existing os_tasks for deduplication
+  const { data: existingTasks } = await supabase
+    .from("os_tasks")
+    .select("id, title, notion_page_id, legacy_demand_id")
+    .eq("project_id", projectId);
+
+  const taskByDemandId = new Map<string, any>();
+  const taskByTitle = new Map<string, any>();
+  for (const t of existingTasks || []) {
+    if (t.legacy_demand_id) taskByDemandId.set(t.legacy_demand_id, t);
+    if (t.notion_page_id) taskByDemandId.set(t.notion_page_id, t);
+    if (t.title) taskByTitle.set(t.title.trim().toLowerCase(), t);
+  }
+
+  // 3. Get existing sections
+  const { data: existingSections } = await supabase
+    .from("os_sections")
+    .select("id, title")
+    .eq("project_id", projectId)
+    .order("order_index", { ascending: true });
+
+  const sectionByTitle = new Map<string, string>();
+  for (const s of existingSections || []) {
+    sectionByTitle.set(s.title.trim().toLowerCase(), s.id);
+  }
+
+  // 4. Collect unique statuses as sections
+  const statusNames = new Set<string>();
+  for (const d of demands) {
+    if (d.status) statusNames.add(d.status);
+  }
+
+  let sectionOrder = (existingSections || []).length;
+  for (const name of statusNames) {
+    if (!sectionByTitle.has(name.trim().toLowerCase())) {
+      const { data: newSection, error: secErr } = await supabase
+        .from("os_sections")
+        .insert({
+          project_id: projectId,
+          tenant_id: tenantId,
+          title: name,
+          order_index: sectionOrder++,
+        })
+        .select("id")
+        .single();
+
+      if (secErr) {
+        result.errors!.push(`Section "${name}": ${secErr.message}`);
+      } else if (newSection) {
+        sectionByTitle.set(name.trim().toLowerCase(), newSection.id);
+        result.sections_created++;
+      }
+    }
+  }
+
+  // 5. Create/update os_tasks from demands
+  let orderIndex = (existingTasks || []).length;
+  const demandToTaskMap = new Map<string, string>(); // demand_id → task_id
+
+  for (const d of demands) {
+    try {
+      if (!d.title) {
+        result.errors!.push(`Demand ${d.id}: empty title, skipping`);
+        continue;
+      }
+
+      // Check if already imported
+      let existing = taskByDemandId.get(d.id) || taskByDemandId.get(d.notion_page_id);
+      if (!existing) {
+        existing = taskByTitle.get(d.title.trim().toLowerCase());
+      }
+
+      const sectionId = d.status
+        ? sectionByTitle.get(d.status.trim().toLowerCase()) ?? null
+        : null;
+
+      // Map responsible name → profile ID
+      const assigneeName = d.responsible ? mapNotionUser(d.responsible) : null;
+      const assigneeId = d.responsible ? findProfileId(d.responsible) : null;
+
+      // Map priority
+      const priority = d.prioridade ? mapPriority(d.prioridade).toLowerCase() : null;
+
+      // Map status
+      const status = mapTaskStatus(d.status);
+
+      if (existing) {
+        const updates: Record<string, any> = {
+          legacy_demand_id: d.id,
+          notion_page_id: d.notion_page_id || null,
+          updated_at: new Date().toISOString(),
+        };
+        if (status) updates.status = status;
+        if (priority) updates.priority = priority;
+        if (assigneeName) updates.assignee_name = assigneeName;
+        if (assigneeId) updates.assignee_id = assigneeId;
+        if (d.due_date) updates.due_date = d.due_date;
+        if (d.start_date) updates.start_date = d.start_date;
+        if (sectionId) updates.section_id = sectionId;
+        if (d.info) updates.description = d.info;
+        if (d.feito !== undefined) {
+          updates.is_completed = d.feito;
+          if (d.feito) updates.completed_at = new Date().toISOString();
+        }
+
+        const { error: upErr } = await supabase
+          .from("os_tasks")
+          .update(updates)
+          .eq("id", existing.id);
+
+        if (upErr) {
+          result.errors!.push(`Update "${d.title}": ${upErr.message}`);
+        } else {
+          result.tasks_updated++;
+          demandToTaskMap.set(d.id, existing.id);
+        }
+      } else {
+        const isCompleted = d.feito || status === "concluida";
+        const { data: newTask, error: insErr } = await supabase
+          .from("os_tasks")
+          .insert({
+            project_id: projectId,
+            tenant_id: tenantId,
+            section_id: sectionId,
+            title: d.title,
+            description: d.info || null,
+            status: status || "pendente",
+            priority: priority || null,
+            assignee_id: assigneeId,
+            assignee_name: assigneeName,
+            due_date: d.due_date || null,
+            start_date: d.start_date || null,
+            is_completed: isCompleted,
+            completed_at: isCompleted ? new Date().toISOString() : null,
+            order_index: orderIndex++,
+            notion_page_id: d.notion_page_id || null,
+            legacy_demand_id: d.id,
+          })
+          .select("id")
+          .single();
+
+        if (insErr) {
+          result.errors!.push(`Create "${d.title}": ${insErr.message}`);
+        } else if (newTask) {
+          result.tasks_created++;
+          demandToTaskMap.set(d.id, newTask.id);
+        }
+      }
+    } catch (e) {
+      result.errors!.push(`Demand "${d.title}": ${e.message}`);
+    }
+  }
+
+  // 6. Import demand_comments → task_comments
+  const demandIds = [...demandToTaskMap.keys()];
+  if (demandIds.length > 0) {
+    const { data: demandComments } = await supabase
+      .from("demand_comments")
+      .select("id, demand_id, author_id, content, created_at")
+      .in("demand_id", demandIds);
+
+    // Get existing task_comments to avoid duplicates
+    const taskIds = [...demandToTaskMap.values()];
+    const { data: existingTaskComments } = await supabase
+      .from("task_comments")
+      .select("id, task_id, content, created_at")
+      .in("task_id", taskIds);
+
+    const commentSigSet = new Set<string>();
+    for (const c of existingTaskComments || []) {
+      const contentStr = typeof c.content === "string" ? c.content : JSON.stringify(c.content || "");
+      const sig = `${c.task_id}::${contentStr.slice(0, 80)}::${c.created_at?.slice(0, 10)}`;
+      commentSigSet.add(sig);
+    }
+
+    for (const dc of demandComments || []) {
+      try {
+        const taskId = demandToTaskMap.get(dc.demand_id);
+        if (!taskId) continue;
+
+        // Convert plain text content to TipTap format if needed
+        const tiptapContent = typeof dc.content === "string"
+          ? {
+              type: "doc",
+              content: [{ type: "paragraph", content: [{ type: "text", text: dc.content }] }],
+            }
+          : dc.content; // Already JSON
+
+        const contentStr = JSON.stringify(tiptapContent);
+        const sig = `${taskId}::${contentStr.slice(0, 80)}::${dc.created_at?.slice(0, 10)}`;
+        if (commentSigSet.has(sig)) continue;
+
+        const { error: cErr } = await supabase
+          .from("task_comments")
+          .insert({
+            task_id: taskId,
+            author_id: dc.author_id,
+            content: tiptapContent,
+            created_at: dc.created_at || new Date().toISOString(),
+            updated_at: dc.created_at || new Date().toISOString(),
+          });
+
+        if (cErr) {
+          result.errors!.push(`Comment for task ${taskId}: ${cErr.message}`);
+        } else {
+          result.comments_imported++;
+          commentSigSet.add(sig);
+        }
+      } catch (e) {
+        result.errors!.push(`Comment import: ${e.message}`);
+      }
+    }
+  }
+
+  return result;
 }
 
 // ── Notion property parser ──────────────────────────────────────────────────

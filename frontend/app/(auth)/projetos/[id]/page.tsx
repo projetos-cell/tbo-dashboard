@@ -7,17 +7,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/shared";
 import { ProjectTopbar, type ProjectTabKey } from "@/features/projects/components/project-topbar";
 import { ProjectOverview } from "@/features/projects/components/tabs/project-overview";
-import { ProjectTaskList } from "@/features/projects/components/tabs/project-task-list";
-import { ProjectTaskBoard } from "@/features/projects/components/tabs/project-task-board";
-import { ProjectFiles } from "@/features/projects/components/tabs/project-files";
-import { ProjectSettings } from "@/features/projects/components/tabs/project-settings";
-import { ProjectCalendar } from "@/features/projects/components/tabs/project-calendar";
-import { ProjectActivityTab } from "@/features/projects/components/tabs/project-activity";
-import { ProjectUpdates } from "@/features/projects/components/tabs/project-updates";
-import { ProjectDashboard } from "@/features/projects/components/tabs/project-dashboard";
-import { ProjectOverdueReport } from "@/features/projects/components/tabs/project-overdue-report";
-import { ProjectPortal } from "@/features/projects/components/tabs/project-portal";
-import { ProjectIntake } from "@/features/projects/components/tabs/project-intake";
 import { TaskDetailSheet } from "@/features/tasks/components/task-detail-sheet";
 import { useProject } from "@/features/projects/hooks/use-projects";
 import { useProfiles } from "@/features/people/hooks/use-people";
@@ -25,19 +14,23 @@ import { useUser } from "@/hooks/use-user";
 import type { UserOption } from "@/components/ui/user-selector";
 import type { MemberInfo } from "@/features/projects/components/member-avatar-stack";
 
-// Heavy: frappe-gantt library — lazy load with SSR disabled
-const ProjectGantt = dynamic(
-  () =>
-    import("@/features/projects/components/tabs/project-gantt").then((m) => ({
-      default: m.ProjectGantt,
-    })),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="h-64 animate-pulse rounded-lg bg-muted" />
-    ),
-  },
-);
+// ── Lazy-loaded tabs — only download JS when tab becomes active ───────────
+const tabFallback = <div className="h-64 animate-pulse rounded-lg bg-muted" />;
+const lazy = { loading: () => tabFallback };
+const lazyNoSSR = { ssr: false, loading: () => tabFallback };
+
+const ProjectTaskList = dynamic(() => import("@/features/projects/components/tabs/project-task-list").then((m) => ({ default: m.ProjectTaskList })), lazy);
+const ProjectTaskBoard = dynamic(() => import("@/features/projects/components/tabs/project-task-board").then((m) => ({ default: m.ProjectTaskBoard })), lazy);
+const ProjectGantt = dynamic(() => import("@/features/projects/components/tabs/project-gantt").then((m) => ({ default: m.ProjectGantt })), lazyNoSSR);
+const ProjectCalendar = dynamic(() => import("@/features/projects/components/tabs/project-calendar").then((m) => ({ default: m.ProjectCalendar })), lazy);
+const ProjectFiles = dynamic(() => import("@/features/projects/components/tabs/project-files").then((m) => ({ default: m.ProjectFiles })), lazy);
+const ProjectSettings = dynamic(() => import("@/features/projects/components/tabs/project-settings").then((m) => ({ default: m.ProjectSettings })), lazy);
+const ProjectActivityTab = dynamic(() => import("@/features/projects/components/tabs/project-activity").then((m) => ({ default: m.ProjectActivityTab })), lazy);
+const ProjectUpdates = dynamic(() => import("@/features/projects/components/tabs/project-updates").then((m) => ({ default: m.ProjectUpdates })), lazy);
+const ProjectDashboard = dynamic(() => import("@/features/projects/components/tabs/project-dashboard").then((m) => ({ default: m.ProjectDashboard })), lazy);
+const ProjectOverdueReport = dynamic(() => import("@/features/projects/components/tabs/project-overdue-report").then((m) => ({ default: m.ProjectOverdueReport })), lazy);
+const ProjectPortal = dynamic(() => import("@/features/projects/components/tabs/project-portal").then((m) => ({ default: m.ProjectPortal })), lazy);
+const ProjectIntake = dynamic(() => import("@/features/projects/components/tabs/project-intake").then((m) => ({ default: m.ProjectIntake })), lazy);
 
 export default function ProjectDetailPage({
   params,

@@ -22,6 +22,8 @@ import {
   type WorkspaceId,
 } from "@/stores/workspace-store"
 import { cn } from "@/lib/utils"
+import { useAuthStore } from "@/stores/auth-store"
+import { canAccessModule, type RoleSlug } from "@/lib/permissions"
 
 const WORKSPACE_ICONS: Record<WorkspaceId, React.ElementType> = {
   "tbo-os": IconHome,
@@ -33,6 +35,15 @@ export function WorkspaceSwitcher() {
   const pathname = usePathname()
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace)
   const setActiveWorkspace = useWorkspaceStore((s) => s.setActiveWorkspace)
+  const role = useAuthStore((s) => s.role) as RoleSlug | null
+
+  // Filter workspaces based on role permissions
+  const visibleWorkspaces = WORKSPACES.filter((ws) => {
+    if (ws.id === "tbo-academy") {
+      return role ? canAccessModule(role, "academy") : false
+    }
+    return true
+  })
 
   // Sync store with current route
   useEffect(() => {
@@ -85,7 +96,7 @@ export function WorkspaceSwitcher() {
           Espaços de trabalho
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {WORKSPACES.map((ws) => {
+        {visibleWorkspaces.map((ws) => {
           const Icon = WORKSPACE_ICONS[ws.id]
           const isActive = ws.id === activeWorkspace
           return (

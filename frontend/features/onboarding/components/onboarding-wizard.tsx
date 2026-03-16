@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
+import { useAuthStore } from "@/stores/auth-store";
 import { StepWelcome } from "./steps/step-welcome";
 import { StepProfile } from "./steps/step-profile";
 import { StepTour } from "./steps/step-tour";
-import { useSkipOnboarding, useCompleteOnboarding } from "../hooks/use-onboarding";
+import { useCompleteOnboarding } from "../hooks/use-onboarding";
 
 const TOTAL_STEPS = 3;
 
@@ -18,6 +20,7 @@ interface OnboardingWizardProps {
 
 export function OnboardingWizard({ open, onClose }: OnboardingWizardProps) {
   const router = useRouter();
+  const userId = useAuthStore((s) => s.user?.id);
   const [step, setStep] = useState(1);
 
   // Profile state lifted here so it persists across step navigation
@@ -25,20 +28,29 @@ export function OnboardingWizard({ open, onClose }: OnboardingWizardProps) {
   const [cargo, setCargo] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [prefilled, setPrefilled] = useState(false);
 
-  const skip = useSkipOnboarding();
   const complete = useCompleteOnboarding();
 
-  const isLoading = skip.isPending || complete.isPending;
-
-  function handleSkip() {
-    skip.mutate(undefined, {
-      onSuccess: () => {
-        onClose();
-        toast.info("Complete seu perfil depois em Configurações.");
-      },
-    });
-  }
+  // Pre-fill from existing profile data
+  useEffect(() => {
+    if (!open || !userId || prefilled) return;
+    const supabase = createClient();
+    supabase
+      .from("profiles")
+      .select("full_name, cargo, avatar_url")
+      .eq("id", userId)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          const row = data as Record<string, unknown>;
+          if (row.full_name) setFullName(row.full_name as string);
+          if (row.cargo) setCargo(row.cargo as string);
+          if (row.avatar_url) setAvatarPreview(row.avatar_url as string);
+        }
+        setPrefilled(true);
+      });
+  }, [open, userId, prefilled]);
 
   function handleFinish() {
     complete.mutate(
@@ -49,8 +61,8 @@ export function OnboardingWizard({ open, onClose }: OnboardingWizardProps) {
           toast.success("Perfil configurado! Agora vamos ao seu onboarding.");
           router.push("/onboarding");
         },
-        onError: () => {
-          toast.error("Erro ao salvar perfil. Tente novamente.");
+        onError: (err) => {
+          toast.error(`Erro ao salvar perfil: ${err.message}`);
         },
       },
     );
@@ -92,7 +104,6 @@ export function OnboardingWizard({ open, onClose }: OnboardingWizardProps) {
           {step === 1 && (
             <StepWelcome
               onNext={() => setStep(2)}
-              onSkip={handleSkip}
             />
           )}
 
@@ -107,8 +118,7 @@ export function OnboardingWizard({ open, onClose }: OnboardingWizardProps) {
               onAvatarChange={handleAvatarChange}
               onNext={() => setStep(3)}
               onBack={() => setStep(1)}
-              onSkip={handleSkip}
-              isLoading={isLoading}
+              isLoading={complete.isPending}
             />
           )}
 
@@ -116,8 +126,7 @@ export function OnboardingWizard({ open, onClose }: OnboardingWizardProps) {
             <StepTour
               onFinish={handleFinish}
               onBack={() => setStep(2)}
-              onSkip={handleSkip}
-              isLoading={isLoading}
+              isLoading={complete.isPending}
             />
           )}
         </div>

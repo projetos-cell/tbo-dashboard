@@ -36,11 +36,10 @@ const MODULES_BY_ROLE: Record<RoleSlug, Module[]> = {
 interface StepTourProps {
   onFinish: () => void;
   onBack: () => void;
-  onSkip: () => void;
   isLoading: boolean;
 }
 
-export function StepTour({ onFinish, onBack, onSkip, isLoading }: StepTourProps) {
+export function StepTour({ onFinish, onBack, isLoading }: StepTourProps) {
   const role = useAuthStore((s) => s.role);
   const modules = MODULES_BY_ROLE[role ?? "colaborador"];
 
@@ -74,14 +73,9 @@ export function StepTour({ onFinish, onBack, onSkip, isLoading }: StepTourProps)
         <Button variant="ghost" size="sm" onClick={onBack} disabled={isLoading}>
           ← Voltar
         </Button>
-        <div className="flex gap-2">
-          <Button variant="ghost" size="sm" onClick={onSkip} disabled={isLoading}>
-            Pular por agora
-          </Button>
-          <Button onClick={onFinish} disabled={isLoading}>
-            {isLoading ? "Entrando..." : "Entrar no TBO OS →"}
-          </Button>
-        </div>
+        <Button onClick={onFinish} disabled={isLoading}>
+          {isLoading ? "Entrando..." : "Entrar no TBO OS →"}
+        </Button>
       </div>
     </div>
   );

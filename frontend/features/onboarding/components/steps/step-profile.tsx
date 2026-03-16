@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { IconCamera } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,21 +18,18 @@ interface StepProfileProps {
   onAvatarChange: (file: File, preview: string) => void;
   onNext: () => void;
   onBack: () => void;
-  onSkip: () => void;
   isLoading: boolean;
 }
 
 export function StepProfile({
   fullName,
   cargo,
-  avatarFile,
   avatarPreview,
   onFullNameChange,
   onCargoChange,
   onAvatarChange,
   onNext,
   onBack,
-  onSkip,
   isLoading,
 }: StepProfileProps) {
   const user = useAuthStore((s) => s.user);
@@ -116,14 +113,9 @@ export function StepProfile({
         <Button variant="ghost" size="sm" onClick={onBack} disabled={isLoading}>
           ← Voltar
         </Button>
-        <div className="flex gap-2">
-          <Button variant="ghost" size="sm" onClick={onSkip} disabled={isLoading}>
-            Pular por agora
-          </Button>
-          <Button onClick={onNext} disabled={isLoading}>
-            {isLoading ? "Salvando..." : "Salvar e seguir →"}
-          </Button>
-        </div>
+        <Button onClick={onNext} disabled={isLoading}>
+          {isLoading ? "Salvando..." : "Salvar e seguir →"}
+        </Button>
       </div>
     </div>
   );

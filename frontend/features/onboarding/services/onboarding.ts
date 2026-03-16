@@ -35,14 +35,19 @@ export async function completeOnboarding(
   userId: string,
   profileUpdates: Pick<ProfileUpdate, "full_name" | "cargo" | "avatar_url">,
 ): Promise<void> {
+  // Build update payload — only include fields with actual values
+  const payload: Record<string, unknown> = {
+    first_login_completed: true,
+    onboarding_wizard_completed: true,
+    updated_at: new Date().toISOString(),
+  };
+  if (profileUpdates.full_name) payload.full_name = profileUpdates.full_name;
+  if (profileUpdates.cargo) payload.cargo = profileUpdates.cargo;
+  if (profileUpdates.avatar_url) payload.avatar_url = profileUpdates.avatar_url;
+
   const { error } = await supabase
     .from("profiles")
-    .update({
-      ...profileUpdates,
-      first_login_completed: true,
-      onboarding_wizard_completed: true,
-      updated_at: new Date().toISOString(),
-    } as never)
+    .update(payload as never)
     .eq("id", userId);
   if (error) throw error;
 }
@@ -63,7 +68,11 @@ export async function getOnboardingChecklist(
     .select("onboarding_checklist" as never)
     .eq("id", userId)
     .single();
-  if (error) throw error;
+  // Graceful fallback if column doesn't exist yet (migration not applied)
+  if (error) {
+    console.warn("onboarding_checklist fetch error:", error.message);
+    return {};
+  }
   const row = data as unknown as { onboarding_checklist?: ChecklistProgress };
   return row?.onboarding_checklist ?? {};
 }

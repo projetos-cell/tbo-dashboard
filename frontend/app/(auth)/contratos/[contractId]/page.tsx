@@ -2,6 +2,7 @@
 
 import { use } from "react";
 import Link from "next/link";
+import { RequireRole } from "@/features/auth/components/require-role";
 import { IconArrowLeft, IconSend, IconCircleX, IconBell, IconFileText, IconDownload } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -115,6 +116,7 @@ export default function ContractDetailPage({ params }: PageProps) {
       : type ?? "—";
 
   return (
+    <RequireRole minRole="diretoria">
     <div className="p-6 space-y-6 max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
@@ -328,5 +330,6 @@ export default function ContractDetailPage({ params }: PageProps) {
         </div>
       </div>
     </div>
+    </RequireRole>
   );
 }

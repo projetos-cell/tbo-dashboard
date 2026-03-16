@@ -41,6 +41,7 @@ export const ROLE_MODULES: Record<RoleSlug, string[]> = {
     "intelligence",
     "audit-logs",
     "admin",
+    "academy",
   ],
   lider: [
     "dashboard",
@@ -49,7 +50,6 @@ export const ROLE_MODULES: Record<RoleSlug, string[]> = {
     "pessoas",
     "agenda",
     "clientes",
-    "contratos",
     "okrs",
     "chat",
     "cultura",
@@ -102,6 +102,7 @@ const ALL_MODULES = [
   "diretoria",
   "system-health",
   "audit-logs",
+  "academy",
 ];
 
 /**

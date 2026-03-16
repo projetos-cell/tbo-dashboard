@@ -322,10 +322,12 @@ export function useSendMessage() {
 
       return { previous, qk };
     },
-    onError: (_err, _msg, context) => {
+    onError: (err, _msg, context) => {
       if (context?.previous) {
         qc.setQueryData(context.qk, context.previous);
       }
+      const msg = err instanceof Error ? err.message : "Erro ao enviar";
+      toast.error(`Mensagem não enviada: ${msg}`);
     },
     // Realtime INSERT will replace optimistic with real message
   });

@@ -453,11 +453,17 @@ export function ChatLayout() {
       return;
     }
     // Create or find DM channel
-    const { createClient } = await import("@/lib/supabase/client");
-    const { findOrCreateDirectChannel } = await import("@/features/chat/services/chat");
-    const supabase = createClient();
-    const dm = await findOrCreateDirectChannel(supabase, tenantId, userId, mentionedUserId);
-    handleSelectChannel(dm.id);
+    try {
+      const { createClient } = await import("@/lib/supabase/client");
+      const { findOrCreateDirectChannel } = await import("@/features/chat/services/chat");
+      const supabase = createClient();
+      const dm = await findOrCreateDirectChannel(supabase, tenantId, userId, mentionedUserId);
+      await qc.invalidateQueries({ queryKey: ["chat-channels-members"] });
+      handleSelectChannel(dm.id);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro desconhecido";
+      toast.error(`Falha ao abrir conversa: ${msg}`);
+    }
   }
 
   function handleEdit(messageId: string, content: string) { editMsg.mutate({ messageId, content }); }
@@ -492,7 +498,14 @@ export function ChatLayout() {
       return;
     }
     const msgType = messageType ?? (files?.length ? "file" : "text");
-    const message = await sendMsg.mutateAsync({ channel_id: selectedChannelId, sender_id: userId, content, message_type: msgType });
+    let message;
+    try {
+      message = await sendMsg.mutateAsync({ channel_id: selectedChannelId, sender_id: userId, content, message_type: msgType });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro desconhecido";
+      toast.error(`Falha ao enviar mensagem: ${msg}`);
+      return;
+    }
     const supabase = (await import("@/lib/supabase/client")).createClient();
     // Collect direct @user mentions (UUIDs)
     const mentionedIds = extractMentionIds(content);

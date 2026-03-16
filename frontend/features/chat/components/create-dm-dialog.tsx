@@ -21,6 +21,8 @@ import {
   findOrCreateDirectChannel,
   createGroupDM,
 } from "@/features/chat/services/chat";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 export function CreateDMDialog() {
   const open = useChatStore((s) => s.isCreateDMOpen);
@@ -30,6 +32,7 @@ export function CreateDMDialog() {
   const userId = useAuthStore((s) => s.user?.id);
   const tenantId = useAuthStore((s) => s.tenantId);
 
+  const qc = useQueryClient();
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
@@ -69,8 +72,13 @@ export function CreateDMDialog() {
           selectedUsers,
         );
       }
+      // Refresh channel list so the new DM appears in the sidebar
+      await qc.invalidateQueries({ queryKey: ["chat-channels-members"] });
       setSelectedChannelId(channel.id);
       handleClose();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro desconhecido";
+      toast.error(`Falha ao criar conversa: ${msg}`);
     } finally {
       setLoading(false);
     }

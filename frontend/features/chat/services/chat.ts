@@ -472,7 +472,14 @@ export async function findOrCreateDirectChannel(
     type: "direct",
     created_by: userId,
   });
-  await addChannelMembers(supabase, channel.id, [userId, targetUserId]);
+  // IMPORTANT: Add creator FIRST (separate call) so that RLS can see the
+  // creator as a member when adding the target user in the second call.
+  // A single upsert of both rows fails because the WITH CHECK on the
+  // target row reads chat_channels through channels_select RLS which
+  // requires membership — but the creator's row isn't visible in the same
+  // transaction snapshot.
+  await addChannelMembers(supabase, channel.id, [userId]);
+  await addChannelMembers(supabase, channel.id, [targetUserId]);
   return channel;
 }
 
@@ -489,7 +496,11 @@ export async function createGroupDM(
     type: "group",
     created_by: userId,
   });
-  await addChannelMembers(supabase, channel.id, [userId, ...memberIds]);
+  // Add creator first (see findOrCreateDirectChannel comment about RLS)
+  await addChannelMembers(supabase, channel.id, [userId]);
+  if (memberIds.length > 0) {
+    await addChannelMembers(supabase, channel.id, memberIds);
+  }
   return channel;
 }
 

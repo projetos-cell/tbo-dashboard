@@ -69,6 +69,7 @@ import { BookmarksPanel } from "./bookmarks-panel";
 import { MediaGalleryPanel } from "./media-gallery-panel";
 import { ChannelSwitcher } from "./channel-switcher";
 import { BrowseChannelsDialog } from "./browse-channels-dialog";
+import { CreateTaskFromMessageDialog } from "./create-task-from-message-dialog";
 import { hasPermission, type RoleSlug } from "@/lib/permissions";
 import { canPerformChannelAction } from "@/features/chat/utils/chat-permissions";
 import { buildProfileMap } from "@/features/chat/utils/profile-utils";
@@ -98,6 +99,8 @@ export function ChatLayout() {
   const [threadMessage, setThreadMessage] = useState<import("@/features/chat/services/chat").MessageRow | null>(null);
   // #12 — Forward dialog state
   const [forwardMessage, setForwardMessage] = useState<import("@/features/chat/services/chat").MessageRow | null>(null);
+  // #43 — Create task from message state
+  const [taskSourceMessage, setTaskSourceMessage] = useState<import("@/features/chat/services/chat").MessageRow | null>(null);
   // #14 — Scheduled messages panel state
   const [scheduledPanelOpen, setScheduledPanelOpen] = useState(false);
   // #17 — Bookmarks panel state
@@ -506,6 +509,7 @@ export function ChatLayout() {
                   onBookmark={handleBookmark}
                   bookmarkedMessageIds={bookmarkedMessageIds}
                   canDeleteOthers={canDeleteOthers}
+                  onCreateTask={setTaskSourceMessage}
                   initialUnreadCount={initialUnreadCount}
                 />
               )}
@@ -579,6 +583,13 @@ export function ChatLayout() {
         onOpenChange={setBookmarksPanelOpen}
         profileMap={profileMap}
         onJumpToMessage={handleScrollToMessage}
+      />
+
+      {/* #43 — Create task from message */}
+      <CreateTaskFromMessageDialog
+        message={taskSourceMessage}
+        open={!!taskSourceMessage}
+        onOpenChange={(open) => { if (!open) setTaskSourceMessage(null); }}
       />
 
       {/* #12 — Forward message dialog */}

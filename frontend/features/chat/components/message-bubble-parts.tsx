@@ -10,6 +10,7 @@ import {
   IconArrowForwardUp,
   IconBookmark,
   IconMoodPlus,
+  IconCheckbox,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -224,6 +225,7 @@ export function MessageMenu({
   onForward,
   onBookmark,
   isBookmarked,
+  onCreateTask,
 }: {
   canEdit: boolean;
   canDelete: boolean;
@@ -237,6 +239,7 @@ export function MessageMenu({
   onForward?: () => void;
   onBookmark?: () => void;
   isBookmarked?: boolean;
+  onCreateTask?: () => void;
 }) {
   if (!canEdit && !canDelete && !canPin && !onQuickReact && !onReplyInThread && !onForward) {
     return null;
@@ -294,6 +297,18 @@ export function MessageMenu({
           title={isBookmarked ? "Remover dos favoritos" : "Salvar mensagem"}
         >
           <IconBookmark size={14} className={isBookmarked ? "fill-primary" : ""} />
+        </Button>
+      )}
+      {/* #43 — create task from message */}
+      {onCreateTask && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={onCreateTask}
+          title="Criar tarefa a partir desta mensagem"
+        >
+          <IconCheckbox size={14} />
         </Button>
       )}
       {canPin && (

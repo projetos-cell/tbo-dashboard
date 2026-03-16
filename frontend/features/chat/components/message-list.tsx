@@ -31,6 +31,7 @@ interface MessageListProps {
   onBookmark?: (messageId: string, remove: boolean) => void;
   bookmarkedMessageIds?: Set<string>;
   canDeleteOthers?: boolean;
+  onCreateTask?: (message: MessageRow) => void;
   /** Number of unread messages when this channel was first opened */
   initialUnreadCount?: number;
 }
@@ -72,6 +73,7 @@ export function MessageList({
   onBookmark,
   bookmarkedMessageIds,
   canDeleteOthers,
+  onCreateTask,
   initialUnreadCount = 0,
 }: MessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -302,6 +304,7 @@ export function MessageList({
                   onForward={onForwardMessage}
                   onBookmark={onBookmark}
                   bookmarkedMessageIds={bookmarkedMessageIds}
+                  onCreateTask={onCreateTask}
                 />
               </div>
             </div>

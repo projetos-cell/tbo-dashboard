@@ -65,6 +65,7 @@ interface MessageBubbleProps {
   onOpenThread?: (message: MessageRow) => void;
   onForward?: (message: MessageRow) => void;
   onBookmark?: (messageId: string, remove: boolean) => void;
+  onCreateTask?: (message: MessageRow) => void;
 }
 
 export function MessageBubble({
@@ -85,6 +86,7 @@ export function MessageBubble({
   onOpenThread,
   onForward,
   onBookmark,
+  onCreateTask,
 }: MessageBubbleProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content ?? "");
@@ -289,6 +291,7 @@ export function MessageBubble({
                 : undefined
             }
             isBookmarked={bookmarkedMessageIds?.has(message.id)}
+            onCreateTask={onCreateTask ? () => onCreateTask(message) : undefined}
           />
         </div>
       )}

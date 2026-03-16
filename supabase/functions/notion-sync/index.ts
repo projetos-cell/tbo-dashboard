@@ -870,7 +870,7 @@ async function importDemandsToTasks(
     .from("demands")
     .select("id, title, status, responsible, prioridade, start_date, due_date, bus, tags, notion_page_id, feito, info")
     .eq("tenant_id", tenantId)
-    .eq("notion_project_name", projectName);
+    .ilike("notion_project_name", projectName);
 
   if (dErr) throw new Error(`Query demands: ${dErr.message}`);
   if (!demands || demands.length === 0) {

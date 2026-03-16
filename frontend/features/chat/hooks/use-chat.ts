@@ -11,6 +11,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
 import { logAuditTrail } from "@/lib/audit-trail";
+import { useChatStore } from "@/features/chat/stores/chat-store";
 import { toast } from "sonner";
 import type { Database } from "@/lib/supabase/types";
 import type { MessageRow, ChannelRow, SectionRow, ReactionRow } from "@/features/chat/services/chat";
@@ -755,6 +756,7 @@ export function useRemoveReaction() {
 export function useMarkAsRead() {
   const supabase = createClient();
   const qc = useQueryClient();
+  const clearUnread = useChatStore.getState().clearUnread;
 
   return useMutation({
     mutationFn: ({
@@ -764,6 +766,10 @@ export function useMarkAsRead() {
       channelId: string;
       userId: string;
     }) => updateLastRead(supabase, channelId, userId),
+    onMutate: ({ channelId }) => {
+      // Optimistic: clear badge immediately
+      clearUnread(channelId);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["chat-unread-counts"] });
     },

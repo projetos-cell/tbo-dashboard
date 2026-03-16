@@ -300,7 +300,7 @@ export function ChatLayout() {
   const updateSectionMut = useUpdateSection();
   const deleteSectionMut = useDeleteSection();
 
-  // Auto mark-as-read
+  // Auto mark-as-read on channel change
   useEffect(() => {
     if (!selectedChannelId || !userId) return;
     const timer = setTimeout(() => {
@@ -309,6 +309,17 @@ export function ChatLayout() {
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedChannelId, userId]);
+
+  // Re-mark-as-read when new messages arrive while viewing the channel
+  const latestPageLen = messagesQuery.data?.pages?.[0]?.length ?? 0;
+  useEffect(() => {
+    if (!selectedChannelId || !userId || latestPageLen === 0) return;
+    const timer = setTimeout(() => {
+      markAsRead.mutate({ channelId: selectedChannelId, userId });
+    }, 1000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [latestPageLen]);
 
   const messages = flattenMessages(messagesQuery.data);
   const selectedChannel = channels?.find((c) => c.id === selectedChannelId);

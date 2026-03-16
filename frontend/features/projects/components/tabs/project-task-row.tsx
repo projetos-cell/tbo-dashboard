@@ -305,7 +305,7 @@ export function ProjectTaskRow({ task, subtasks, onSelect, extraColumns = [], se
         </div>
 
         {/* Assignee (multi-avatar via junction table) */}
-        <div className="hidden px-2 md:block" style={{ width: columnWidths.assignee_name ?? 140, flex: "0 0 auto" }} onClick={(e) => e.stopPropagation()}>
+        <div className="hidden px-2 md:block overflow-hidden" style={{ width: columnWidths.assignee_name ?? 140, flex: "0 0 auto" }} onClick={(e) => e.stopPropagation()}>
           <TaskAssigneePicker task={task} />
         </div>
 

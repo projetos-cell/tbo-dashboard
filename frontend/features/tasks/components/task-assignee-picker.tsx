@@ -140,7 +140,7 @@ export function TaskAssigneePicker({ task }: TaskAssigneePickerProps) {
         <button
           type="button"
           className={cn(
-            "flex items-center gap-2 text-sm rounded-md px-1.5 py-0.5 -mx-1.5",
+            "flex items-center gap-2 text-sm rounded-md px-1.5 py-0.5 -mx-1.5 min-w-0 max-w-full",
             "hover:bg-accent/50 transition-colors cursor-pointer",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           )}
@@ -176,7 +176,7 @@ export function TaskAssigneePicker({ task }: TaskAssigneePickerProps) {
                   {getInitials(task.assignee_name)}
                 </AvatarFallback>
               </Avatar>
-              <span>{task.assignee_name}</span>
+              <span className="truncate">{task.assignee_name}</span>
             </>
           ) : (
             <span className="text-muted-foreground">Sem responsável</span>

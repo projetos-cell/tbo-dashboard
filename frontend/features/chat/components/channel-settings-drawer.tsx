@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { IconArchive, IconBell, IconBellOff, IconBellRinging, IconClock, IconPlus, IconSpeakerphone, IconUpload, IconVolume, IconVolumeOff, IconX } from "@tabler/icons-react";
+import { IconArchive, IconBell, IconBellOff, IconBellRinging, IconClock, IconCopy, IconPlus, IconSpeakerphone, IconTrash, IconUpload, IconVolume, IconVolumeOff, IconX, IconWebhook } from "@tabler/icons-react";
 import {
   Sheet,
   SheetContent,
@@ -52,6 +52,12 @@ import { Switch } from "@/components/ui/switch";
 import { setChannelUploadLimit, DEFAULT_MAX_FILE_SIZE_MB } from "@/features/chat/services/chat-attachments";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import {
+  useChannelWebhooks,
+  useCreateWebhook,
+  useDeleteWebhook,
+} from "@/features/chat/hooks/use-channel-webhooks";
+import { getWebhookUrl } from "@/features/chat/services/chat-webhooks";
 
 interface ChannelSettingsDrawerProps {
   channel: ChannelRow;
@@ -394,6 +400,14 @@ export function ChannelSettingsDrawer({ channel, soundEnabled = true, onToggleSo
             </div>
           </div>
 
+          {/* #46 — Webhook management */}
+          {canEdit && (
+            <>
+              <Separator />
+              <WebhookSection channelId={channel.id} />
+            </>
+          )}
+
           {/* Danger zone */}
           {canEdit && (
             <>
@@ -426,5 +440,88 @@ export function ChannelSettingsDrawer({ channel, soundEnabled = true, onToggleSo
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+// ── #46 — Webhook Section ─────────────────────────────────────────────
+
+function WebhookSection({ channelId }: { channelId: string }) {
+  const { data: webhooks = [], isLoading } = useChannelWebhooks(channelId);
+  const createWh = useCreateWebhook(channelId);
+  const deleteWh = useDeleteWebhook(channelId);
+  const [newName, setNewName] = useState("");
+
+  function handleCreate() {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    createWh.mutate(trimmed, { onSuccess: () => setNewName("") });
+  }
+
+  function copyUrl(token: string) {
+    navigator.clipboard.writeText(getWebhookUrl(token));
+    toast.success("URL copiada!");
+  }
+
+  return (
+    <div className="space-y-2">
+      <Label className="text-sm font-medium flex items-center gap-1.5">
+        <IconWebhook size={13} />
+        Webhooks (Bot)
+      </Label>
+
+      {isLoading ? (
+        <div className="text-xs text-muted-foreground">Carregando...</div>
+      ) : (
+        <div className="space-y-1.5">
+          {webhooks.map((wh) => (
+            <div
+              key={wh.id}
+              className="flex items-center gap-2 rounded-md border bg-muted/40 px-2.5 py-1.5"
+            >
+              <span className="text-xs flex-1 truncate">{wh.name}</span>
+              <button
+                type="button"
+                onClick={() => copyUrl(wh.token)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                title="Copiar URL"
+              >
+                <IconCopy size={13} />
+              </button>
+              <button
+                type="button"
+                onClick={() => deleteWh.mutate(wh.id)}
+                className="text-destructive/60 hover:text-destructive transition-colors"
+                title="Remover webhook"
+              >
+                <IconTrash size={13} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex gap-1.5">
+        <Input
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          placeholder="Nome do webhook (ex: GitHub, Jira...)"
+          className="h-8 text-xs"
+          maxLength={50}
+          onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+        />
+        <Button
+          size="sm"
+          className="h-8 px-2.5 gap-1 text-xs"
+          onClick={handleCreate}
+          disabled={!newName.trim() || createWh.isPending}
+        >
+          <IconPlus size={12} />
+          Criar
+        </Button>
+      </div>
+      <p className="text-[10px] text-muted-foreground">
+        POST para a URL do webhook para enviar mensagens automáticas neste canal.
+      </p>
+    </div>
   );
 }

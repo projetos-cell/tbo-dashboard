@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { z } from "zod";
 import {
   IconBuilding,
@@ -42,6 +43,7 @@ import { useApplyProjectTemplate, PROJECT_TEMPLATES, DEFAULT_TEMPLATE_ID } from 
 import { formatProjectName } from "@/features/projects/services/projects";
 import { useTeamMembers } from "@/hooks/use-team";
 import { useAuthStore } from "@/stores/auth-store";
+import { createClient } from "@/lib/supabase/client";
 import { BU_LIST, BU_COLORS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -72,6 +74,8 @@ export function ProjectForm({ open, onOpenChange }: ProjectFormProps) {
   const createProject = useCreateProject();
   const applyTemplate = useApplyProjectTemplate();
   const tenantId = useAuthStore((s) => s.tenantId);
+  const user = useAuthStore((s) => s.user);
+  const router = useRouter();
 
   const isPending = createProject.isPending || applyTemplate.isPending;
 
@@ -122,17 +126,35 @@ export function ProjectForm({ open, onOpenChange }: ProjectFormProps) {
       tenant_id: tenantId,
     } as never);
 
+    const projectId = (project as { id?: string })?.id;
+
     // Apply template: creates sections + zeroed tasks
-    if (useTemplate && (project as { id?: string })?.id) {
+    if (useTemplate && projectId) {
       await applyTemplate.mutateAsync({
-        projectId: (project as { id: string }).id,
+        projectId,
         tenantId,
         templateId: selectedTemplateId,
       });
     }
 
+    // Auto-add creator as first project member
+    if (projectId && user?.id) {
+      const supabase = createClient();
+      await supabase.from("project_memberships").insert({
+        project_id: projectId,
+        user_id: user.id,
+        tenant_id: tenantId,
+        granted_by: user.id,
+      } as never).single();
+    }
+
     resetForm();
     onOpenChange(false);
+
+    // Navigate to the newly created project
+    if (projectId) {
+      router.push(`/projetos/${projectId}`);
+    }
   }
 
   const selectedTemplate = PROJECT_TEMPLATES.find((t) => t.id === selectedTemplateId);

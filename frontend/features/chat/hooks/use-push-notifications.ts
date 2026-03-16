@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
 import { useChatStore } from "@/features/chat/stores/chat-store";
+import { useIsDndActive } from "@/features/chat/hooks/use-dnd";
 
 export type NotifSetting = "all" | "mentions" | "nothing";
 
@@ -17,12 +18,14 @@ interface UsePushNotificationsOptions {
  * Feature #7 — Browser push notifications via the Notification API.
  * Shows a notification for new messages when the tab is not focused
  * or the user is viewing a different channel.
+ * Feature #36 — Suppresses notifications when DND is active.
  */
 export function usePushNotifications({
   channelNames,
   senderNames,
   notifPrefs = {},
 }: UsePushNotificationsOptions) {
+  const isDndActive = useIsDndActive();
   const userId = useAuthStore((s) => s.user?.id);
   const tenantId = useAuthStore((s) => s.tenantId);
 
@@ -75,6 +78,9 @@ export function usePushNotifications({
 
           // Skip own messages
           if (msg.sender_id === userId) return;
+
+          // #36 — Do Not Disturb: suppress notifications during DND window
+          if (isDndActive) return;
 
           const pref: NotifSetting = notifPrefsRef.current[msg.channel_id] ?? "all";
           if (pref === "nothing") return;

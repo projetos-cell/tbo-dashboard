@@ -1,11 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import {
   IconMessageCircle2,
   IconMessage,
   IconPlus,
   IconFolderPlus,
   IconCompass,
+  IconBellOff,
+  IconBell,
 } from "@tabler/icons-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -22,6 +25,8 @@ import type { SectionRow } from "@/features/chat/services/chat";
 import type { ProfileInfo } from "@/features/chat/utils/profile-utils";
 import { UserStatusPicker } from "./user-status-picker";
 import { useUserStatus } from "@/features/chat/hooks/use-user-status";
+import { DndSettingsDialog } from "./dnd-settings-dialog";
+import { useIsDndActive } from "@/features/chat/hooks/use-dnd";
 
 interface ChatSidebarProps {
   channels: ChannelWithMembers[] | undefined;
@@ -82,6 +87,8 @@ export function ChatSidebar({
   const setBrowseChannelsOpen = useChatStore((s) => s.setBrowseChannelsOpen);
 
   const { data: myStatus } = useUserStatus(currentUserId);
+  const isDndActive = useIsDndActive();
+  const [isDndDialogOpen, setDndDialogOpen] = useState(false);
 
   return (
     <div
@@ -153,13 +160,13 @@ export function ChatSidebar({
         </div>
       </div>
 
-      {/* #34 — User status footer */}
+      {/* #34 — User status footer + #36 DND toggle */}
       {currentUserId && (
-        <div className="border-b">
+        <div className="border-b flex items-center">
           <UserStatusPicker>
             <button
               type="button"
-              className="flex w-full items-center gap-2 px-4 py-2.5 text-xs hover:bg-muted/50 transition-colors"
+              className="flex flex-1 items-center gap-2 px-4 py-2.5 text-xs hover:bg-muted/50 transition-colors"
             >
               <span className="text-base leading-none">
                 {myStatus?.emoji ?? <IconMessageCircle2 size={14} className="text-muted-foreground" />}
@@ -169,8 +176,27 @@ export function ChatSidebar({
               </span>
             </button>
           </UserStatusPicker>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => setDndDialogOpen(true)}
+                className={cn(
+                  "px-2 py-2.5 hover:bg-muted/50 transition-colors shrink-0",
+                  isDndActive && "text-amber-500",
+                )}
+                aria-label="Configurar Não Perturbe"
+              >
+                {isDndActive ? <IconBellOff size={14} /> : <IconBell size={14} className="text-muted-foreground" />}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {isDndActive ? "Não Perturbe ativo" : "Configurar Não Perturbe"}
+            </TooltipContent>
+          </Tooltip>
         </div>
       )}
+      <DndSettingsDialog open={isDndDialogOpen} onOpenChange={setDndDialogOpen} />
 
       {/* Channel list */}
       <div className="flex-1 overflow-y-auto p-2">

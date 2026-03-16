@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
 import { useChatStore } from "@/features/chat/stores/chat-store";
+import { useIsDndActive } from "@/features/chat/hooks/use-dnd";
 import type { NotifSetting } from "@/features/chat/services/chat-notification-prefs";
 
 const STORAGE_KEY = "tbo-chat-sound-enabled";
@@ -66,10 +67,12 @@ export function useNotificationSound({
 }: UseNotificationSoundOptions): void {
   const userId = useAuthStore((s) => s.user?.id);
   const tenantId = useAuthStore((s) => s.tenantId);
+  const isDndActive = useIsDndActive();
 
   const selectedChannelIdRef = useRef<string | null>(null);
   const soundEnabledRef = useRef(soundEnabled);
   const notifPrefsRef = useRef(notifPrefs);
+  const isDndActiveRef = useRef(isDndActive);
 
   const selectedChannelId = useChatStore((s) => s.selectedChannelId);
   useEffect(() => {
@@ -81,6 +84,9 @@ export function useNotificationSound({
   useEffect(() => {
     notifPrefsRef.current = notifPrefs;
   }, [notifPrefs]);
+  useEffect(() => {
+    isDndActiveRef.current = isDndActive;
+  }, [isDndActive]);
 
   useEffect(() => {
     if (!userId || !tenantId) return;
@@ -93,6 +99,8 @@ export function useNotificationSound({
         { event: "INSERT", schema: "public", table: "chat_messages" },
         (payload) => {
           if (!soundEnabledRef.current) return;
+          // #36 — Suppress sound during Do Not Disturb
+          if (isDndActiveRef.current) return;
 
           const msg = payload.new as {
             channel_id: string;

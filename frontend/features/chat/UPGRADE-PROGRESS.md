@@ -65,9 +65,9 @@
 | # | Feature | Status | Data |
 |---|---------|--------|------|
 | 34 | Status customizado — emoji + texto | ✅ concluído | 2026-03-15 |
-| 35 | Away automático — detectar inatividade | pendente | — |
-| 36 | Do Not Disturb — modo silencioso com horário | pendente | — |
-| 37 | "Visto por último" — última vez online | pendente | — |
+| 35 | Away automático — detectar inatividade | ✅ concluído | 2026-03-15 |
+| 36 | Do Not Disturb — modo silencioso com horário | ✅ concluído | 2026-03-15 |
+| 37 | "Visto por último" — última vez online | ✅ concluído | 2026-03-15 |
 
 ## FASE 7 — Arquivos & Mídia
 

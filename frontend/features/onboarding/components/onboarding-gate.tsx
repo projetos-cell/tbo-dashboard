@@ -1,19 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { IconSparkles, IconX } from "@tabler/icons-react";
+import Link from "next/link";
+import { IconSparkles, IconX, IconRocket } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth-store";
 import { useOnboardingStatus } from "../hooks/use-onboarding";
 import { OnboardingWizard } from "./onboarding-wizard";
 
 /**
- * Renders nothing visible itself — purely orchestrates wizard visibility.
+ * Orchestrates onboarding visibility:
  *
- * Logic:
- * - wizardCompleted = true  → nothing
+ * - wizardCompleted = true  → show onboarding checklist banner (if incomplete)
  * - !firstLoginCompleted    → open wizard immediately (first visit)
- * - firstLoginCompleted && !wizardCompleted → show "retomar" banner
+ * - firstLoginCompleted && !wizardCompleted → show "retomar wizard" banner
  */
 export function OnboardingGate() {
   const userId = useAuthStore((s) => s.user?.id);
@@ -34,14 +34,43 @@ export function OnboardingGate() {
   // Don't render until auth + profile are ready
   if (!userId || isAuthLoading || isLoading || !status) return null;
 
-  // Wizard fully completed — nothing to show
-  if (status.wizardCompleted) return null;
+  // Everything done — nothing to show
+  if (status.wizardCompleted && bannerDismissed) return null;
 
-  const showBanner = status.firstLoginCompleted && !status.wizardCompleted && !bannerDismissed;
+  // Wizard completed → show banner linking to /onboarding checklist
+  if (status.wizardCompleted && !bannerDismissed) {
+    return (
+      <div className="flex items-center gap-3 border-b bg-primary/5 px-4 py-2.5 text-sm">
+        <IconRocket className="h-4 w-4 shrink-0 text-primary" />
+        <span className="flex-1 text-muted-foreground">
+          Continue seu onboarding — complete o checklist de 5 dias.
+        </span>
+        <Button
+          variant="default"
+          size="sm"
+          className="h-7 text-xs"
+          asChild
+        >
+          <Link href="/onboarding">Ir para Onboarding</Link>
+        </Button>
+        <button
+          type="button"
+          onClick={() => setBannerDismissed(true)}
+          className="text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Fechar aviso"
+        >
+          <IconX className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }
+
+  // First login skipped → show retomar wizard banner
+  const showWizardBanner = status.firstLoginCompleted && !status.wizardCompleted && !bannerDismissed;
 
   return (
     <>
-      {showBanner && (
+      {showWizardBanner && (
         <div className="flex items-center gap-3 border-b bg-muted/50 px-4 py-2.5 text-sm">
           <IconSparkles className="h-4 w-4 shrink-0 text-primary" />
           <span className="flex-1 text-muted-foreground">

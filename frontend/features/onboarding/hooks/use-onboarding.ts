@@ -8,6 +8,9 @@ import {
   getOnboardingStatus,
   skipOnboarding,
   completeOnboarding,
+  getOnboardingChecklist,
+  toggleChecklistTask,
+  type ChecklistProgress,
 } from "@/features/onboarding/services/onboarding";
 
 export function useOnboardingStatus() {
@@ -69,6 +72,62 @@ export function useCompleteOnboarding() {
         wizardCompleted: true,
       });
       qc.invalidateQueries({ queryKey: ["profile", userId] });
+    },
+  });
+}
+
+// ── Onboarding Checklist hooks ──────────────────────────────────────────────
+
+export function useOnboardingChecklist() {
+  const supabase = createClient();
+  const userId = useAuthStore((s) => s.user?.id);
+
+  return useQuery({
+    queryKey: ["onboarding-checklist", userId],
+    queryFn: () => getOnboardingChecklist(supabase, userId!),
+    enabled: !!userId,
+  });
+}
+
+export function useToggleChecklistTask() {
+  const supabase = createClient();
+  const userId = useAuthStore((s) => s.user?.id);
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      taskId,
+      currentChecklist,
+    }: {
+      taskId: string;
+      currentChecklist: ChecklistProgress;
+    }) => toggleChecklistTask(supabase, userId!, taskId, currentChecklist),
+    onMutate: async ({ taskId, currentChecklist }) => {
+      await qc.cancelQueries({ queryKey: ["onboarding-checklist", userId] });
+      const previous = qc.getQueryData<ChecklistProgress>([
+        "onboarding-checklist",
+        userId,
+      ]);
+
+      const optimistic = { ...currentChecklist };
+      if (optimistic[taskId]?.completed) {
+        delete optimistic[taskId];
+      } else {
+        optimistic[taskId] = {
+          completed: true,
+          completed_at: new Date().toISOString(),
+        };
+      }
+      qc.setQueryData(["onboarding-checklist", userId], optimistic);
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        qc.setQueryData(["onboarding-checklist", userId], context.previous);
+      }
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["onboarding-checklist", userId] });
     },
   });
 }

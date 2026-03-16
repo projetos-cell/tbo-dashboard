@@ -34,11 +34,24 @@ export async function updateProfile(
   return data as unknown as ProfileRow;
 }
 
+const ALLOWED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+const MAX_AVATAR_SIZE = 5 * 1024 * 1024; // 5 MB
+
 export async function uploadAvatar(
   supabase: SupabaseClient<Database>,
   userId: string,
   file: File,
 ): Promise<string> {
+  // Validate file type
+  if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+    throw new Error("Formato não suportado. Use JPG, PNG, GIF ou WebP.");
+  }
+
+  // Validate file size
+  if (file.size > MAX_AVATAR_SIZE) {
+    throw new Error("Arquivo muito grande. Máximo 5 MB.");
+  }
+
   const ext = file.name.split(".").pop() ?? "png";
   const path = `${userId}/avatar.${ext}`;
 
@@ -48,7 +61,7 @@ export async function uploadAvatar(
   if (uploadError) throw uploadError;
 
   const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-  return data.publicUrl;
+  return `${data.publicUrl}?t=${Date.now()}`;
 }
 
 // ── Users (Admin) ────────────────────────────────────────────────────

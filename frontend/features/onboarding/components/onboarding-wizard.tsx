@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { StepWelcome } from "./steps/step-welcome";
@@ -16,6 +17,7 @@ interface OnboardingWizardProps {
 }
 
 export function OnboardingWizard({ open, onClose }: OnboardingWizardProps) {
+  const router = useRouter();
   const [step, setStep] = useState(1);
 
   // Profile state lifted here so it persists across step navigation
@@ -44,7 +46,8 @@ export function OnboardingWizard({ open, onClose }: OnboardingWizardProps) {
       {
         onSuccess: () => {
           onClose();
-          toast.success("Perfil configurado. Bem-vindo ao TBO OS!");
+          toast.success("Perfil configurado! Agora vamos ao seu onboarding.");
+          router.push("/onboarding");
         },
         onError: () => {
           toast.error("Erro ao salvar perfil. Tente novamente.");

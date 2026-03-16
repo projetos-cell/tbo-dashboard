@@ -29,10 +29,12 @@ import {
   SidebarHeader,
   SidebarInput,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import { useChatStore } from "@/features/chat/stores/chat-store";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth-store";
 import { useSidebarStore, undoSidebarReorder } from "@/stores/sidebar-store";
@@ -52,6 +54,11 @@ export function AppSidebar() {
   const modules = useAuthStore((s) => s.modules);
   const logout = useLogout();
   const { query, setQuery, filteredGroups } = useSidebarSearch(SIDEBAR_NAV_GROUPS);
+  const chatUnreadCounts = useChatStore((s) => s.unreadCounts);
+  const chatTotalUnread = useMemo(
+    () => Object.values(chatUnreadCounts).reduce((sum, n) => sum + n, 0),
+    [chatUnreadCounts],
+  );
 
   // Initialize sidebar store with default nav groups
   const initFromDefaults = useSidebarStore((s) => s.initFromDefaults);
@@ -172,6 +179,7 @@ export function AppSidebar() {
               {PINNED_NAV_ITEMS.filter((item) => canSee(item.module)).map((item) => {
                 const Icon = getIcon(item.icon);
                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                const badge = item.href === "/chat" && chatTotalUnread > 0 ? chatTotalUnread : 0;
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton asChild isActive={isActive}>
@@ -180,6 +188,11 @@ export function AppSidebar() {
                         <span>{item.label}</span>
                       </Link>
                     </SidebarMenuButton>
+                    {badge > 0 && (
+                      <SidebarMenuBadge className="bg-destructive text-destructive-foreground text-[10px] font-semibold min-w-5 h-5 flex items-center justify-center rounded-full">
+                        {badge > 99 ? "99+" : badge}
+                      </SidebarMenuBadge>
+                    )}
                   </SidebarMenuItem>
                 );
               })}

@@ -4,6 +4,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { Header } from "@/components/layout/header";
 import { RoleLoader } from "@/features/auth/components/role-loader";
 import { OnboardingGate } from "@/features/onboarding/components/onboarding-gate";
+import { ChatUnreadProvider } from "@/components/layout/chat-unread-provider";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ export default async function AuthLayout({
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
       <RoleLoader />
+      <ChatUnreadProvider />
       <AppSidebar />
       <SidebarInset>
         <Header />

@@ -90,6 +90,11 @@ export function ChannelSettingsDrawer({ channel, soundEnabled = true, onToggleSo
     String(channelMaxMb ?? DEFAULT_MAX_FILE_SIZE_MB)
   );
   const [savingLimit, setSavingLimit] = useState(false);
+  // #47 — Welcome message
+  const [welcomeMsg, setWelcomeMsg] = useState(
+    (channel as unknown as { welcome_message?: string | null }).welcome_message ?? ""
+  );
+  const [savingWelcome, setSavingWelcome] = useState(false);
 
   // Reset upload limit when channel changes
   useEffect(() => {
@@ -143,6 +148,21 @@ export function ChannelSettingsDrawer({ channel, soundEnabled = true, onToggleSo
       toast.error("Erro ao salvar limite de upload");
     } finally {
       setSavingLimit(false);
+    }
+  }
+
+  async function handleSaveWelcomeMessage() {
+    setSavingWelcome(true);
+    try {
+      await updateChannel.mutateAsync({
+        id: channel.id,
+        welcome_message: welcomeMsg.trim() || null,
+      } as never);
+      toast.success("Mensagem de boas-vindas salva!");
+    } catch {
+      toast.error("Erro ao salvar mensagem de boas-vindas");
+    } finally {
+      setSavingWelcome(false);
     }
   }
 
@@ -285,6 +305,35 @@ export function ChannelSettingsDrawer({ channel, soundEnabled = true, onToggleSo
                 <p className="text-xs text-muted-foreground">
                   Tamanho máximo por arquivo neste canal.
                 </p>
+              </div>
+            )}
+
+            {/* #47 — Welcome message */}
+            {canEdit && (
+              <div className="space-y-1.5">
+                <Label htmlFor="welcome-msg" className="text-sm font-medium">
+                  Mensagem de boas-vindas
+                </Label>
+                <textarea
+                  id="welcome-msg"
+                  value={welcomeMsg}
+                  onChange={(e) => setWelcomeMsg(e.target.value)}
+                  placeholder="Olá {user}, bem-vindo ao #{channel}! 🎉"
+                  rows={2}
+                  maxLength={500}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring placeholder:text-muted-foreground"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Use {"{user}"} e {"{channel}"} como variáveis. Enviada automaticamente quando um membro entra.
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleSaveWelcomeMessage}
+                  disabled={savingWelcome}
+                >
+                  {savingWelcome ? "..." : "Salvar boas-vindas"}
+                </Button>
               </div>
             )}
 

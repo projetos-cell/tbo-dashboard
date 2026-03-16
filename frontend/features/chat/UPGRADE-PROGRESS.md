@@ -87,7 +87,7 @@
 | 44 | Integração com Projetos — canal auto-criado por projeto | ✅ concluído | 2026-03-15 |
 | 45 | Resumo AI do canal — "O que perdi?" via LLM | ✅ concluído | 2026-03-15 |
 | 46 | Webhook / Bot messages — notificações de sistemas externos | ✅ concluído | 2026-03-15 |
-| 47 | Bot de boas-vindas — mensagem automática para novos membros | pendente | — |
+| 47 | Bot de boas-vindas — mensagem automática para novos membros | ✅ concluído | 2026-03-15 |
 
 ## FASE 9 — UX & Polish
 

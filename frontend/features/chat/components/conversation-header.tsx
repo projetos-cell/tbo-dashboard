@@ -12,6 +12,7 @@ import {
   IconPencil,
   IconCheck,
   IconX,
+  IconPhoto,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,8 @@ interface ConversationHeaderProps {
   // #31 — Topic editing
   canEditTopic?: boolean;
   onUpdateTopic?: (channelId: string, description: string) => void;
+  // #38 — Media gallery
+  onOpenMediaGallery?: () => void;
 }
 
 export function ConversationHeader({
@@ -62,6 +65,7 @@ export function ConversationHeader({
   onJumpToMessage,
   canEditTopic = false,
   onUpdateTopic,
+  onOpenMediaGallery,
 }: ConversationHeaderProps) {
   const toggleSearch = useChatStore((s) => s.toggleSearch);
   const setChannelSettingsOpen = useChatStore((s) => s.setChannelSettingsOpen);
@@ -234,6 +238,18 @@ export function ConversationHeader({
               </Button>
             </TooltipTrigger>
             <TooltipContent>Mensagens salvas</TooltipContent>
+          </Tooltip>
+        )}
+
+        {/* #38 — Media gallery */}
+        {onOpenMediaGallery && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onOpenMediaGallery}>
+                <IconPhoto size={16} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Arquivos & Mídia</TooltipContent>
           </Tooltip>
         )}
         <Tooltip>

@@ -64,6 +64,7 @@ import { useChannelFavorites } from "@/features/chat/hooks/use-channel-favorites
 import { setNotificationPref } from "@/features/chat/services/chat-notification-prefs";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BookmarksPanel } from "./bookmarks-panel";
+import { MediaGalleryPanel } from "./media-gallery-panel";
 import { ChannelSwitcher } from "./channel-switcher";
 import { BrowseChannelsDialog } from "./browse-channels-dialog";
 import { hasPermission, type RoleSlug } from "@/lib/permissions";
@@ -99,6 +100,8 @@ export function ChatLayout() {
   const [scheduledPanelOpen, setScheduledPanelOpen] = useState(false);
   // #17 — Bookmarks panel state
   const [bookmarksPanelOpen, setBookmarksPanelOpen] = useState(false);
+  // #38 — Media gallery panel state
+  const [mediaGalleryOpen, setMediaGalleryOpen] = useState(false);
   // #23 — Channel switcher state (Ctrl+K)
   const [channelSwitcherOpen, setChannelSwitcherOpen] = useState(false);
   // #10 — Sound preference (localStorage-backed, UI preference only)
@@ -142,13 +145,17 @@ export function ChatLayout() {
           setBookmarksPanelOpen(false);
           return;
         }
+        if (mediaGalleryOpen) {
+          setMediaGalleryOpen(false);
+          return;
+        }
         if (scheduledPanelOpen) {
           setScheduledPanelOpen(false);
           return;
         }
       }
     },
-    [isSearchOpen, toggleSearch, setSearchQuery, channelSwitcherOpen, threadMessage, bookmarksPanelOpen, scheduledPanelOpen],
+    [isSearchOpen, toggleSearch, setSearchQuery, channelSwitcherOpen, threadMessage, bookmarksPanelOpen, mediaGalleryOpen, scheduledPanelOpen],
   );
   useEffect(() => {
     document.addEventListener("keydown", handleGlobalKeyboard);
@@ -465,6 +472,7 @@ export function ChatLayout() {
                 onJumpToMessage={handleScrollToMessage}
                 canEditTopic={canManageChannels || selectedChannel?.created_by === userId}
                 onUpdateTopic={handleUpdateTopic}
+                onOpenMediaGallery={() => setMediaGalleryOpen((v) => !v)}
               />
               <PinnedBanner channelId={selectedChannelId} profileMap={profileMap} onClickMessage={handleScrollToMessage} />
               {messagesQuery.isLoading ? (
@@ -518,6 +526,15 @@ export function ChatLayout() {
             profileMap={profileMap}
             currentUserId={userId}
             onClose={() => setThreadMessage(null)}
+          />
+        )}
+
+        {/* #38 — Media gallery panel */}
+        {mediaGalleryOpen && selectedChannelId && (
+          <MediaGalleryPanel
+            channelId={selectedChannelId}
+            channelName={selectedChannel?.name ?? undefined}
+            onClose={() => setMediaGalleryOpen(false)}
           />
         )}
       </div>

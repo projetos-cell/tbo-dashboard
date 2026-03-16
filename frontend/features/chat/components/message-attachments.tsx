@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ChatAttachmentRow } from "@/features/chat/services/chat-attachments";
 import { isImageFile } from "@/features/chat/services/chat-attachments";
+import { isVideoFile, isPdfFile } from "@/features/chat/services/chat-media-gallery";
+import { PdfPreview } from "./pdf-preview";
+import { VideoPreview } from "./video-preview";
 
 interface MessageAttachmentsProps {
   attachments: ChatAttachmentRow[];
@@ -22,7 +25,11 @@ export function MessageAttachments({ attachments }: MessageAttachmentsProps) {
   if (attachments.length === 0) return null;
 
   const images = attachments.filter((a) => isImageFile(a.file_type));
-  const files = attachments.filter((a) => !isImageFile(a.file_type));
+  const videos = attachments.filter((a) => isVideoFile(a.file_type));
+  const pdfs = attachments.filter((a) => isPdfFile(a.file_type));
+  const files = attachments.filter(
+    (a) => !isImageFile(a.file_type) && !isVideoFile(a.file_type) && !isPdfFile(a.file_type),
+  );
 
   return (
     <div className="mt-1 space-y-1.5">
@@ -35,7 +42,28 @@ export function MessageAttachments({ attachments }: MessageAttachmentsProps) {
         </div>
       )}
 
-      {/* File list */}
+      {/* #40 — Video players */}
+      {videos.map((v) => (
+        <VideoPreview
+          key={v.id}
+          url={v.file_url}
+          fileName={v.file_name}
+          fileSize={v.file_size}
+          fileType={v.file_type}
+        />
+      ))}
+
+      {/* #39 — PDF previews */}
+      {pdfs.map((p) => (
+        <PdfPreview
+          key={p.id}
+          url={p.file_url}
+          fileName={p.file_name}
+          fileSize={p.file_size}
+        />
+      ))}
+
+      {/* Generic file list */}
       {files.map((file) => (
         <FileItem key={file.id} attachment={file} />
       ))}

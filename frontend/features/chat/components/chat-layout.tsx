@@ -357,17 +357,25 @@ export function ChatLayout() {
   useNotificationSound({ soundEnabled, notifPrefs: notifPrefsData ?? {} });
 
   const mentionOptions: MentionOption[] = useMemo(() => {
-    if (!selectedChannel?.chat_channel_members || !userId) return [];
-    const members = selectedChannel.chat_channel_members
-      .filter((m) => m.user_id !== userId)
-      .map((m) => {
-        const p = profileMap[m.user_id];
-        return { id: m.user_id, name: p?.name ?? "Usuário", avatarUrl: p?.avatarUrl };
-      })
-      .filter((o) => o.name !== "Usuário");
+    if (!userId) return [];
+    const channelMemberIds = new Set(
+      (selectedChannel?.chat_channel_members ?? []).map((m) => m.user_id),
+    );
+    // Show ALL workspace profiles (not just channel members) so users can @mention anyone
+    const allUsers = Object.entries(profileMap)
+      .filter(([id, p]) => id !== userId && p.name && p.name !== "Usuário")
+      .map(([id, p]) => ({
+        id,
+        name: p.name,
+        avatarUrl: p.avatarUrl,
+        // Channel members first, then others
+        _inChannel: channelMemberIds.has(id),
+      }))
+      .sort((a, b) => (a._inChannel === b._inChannel ? 0 : a._inChannel ? -1 : 1))
+      .map(({ _inChannel, ...rest }) => rest);
     // Prepend broadcast mentions for public channels (not DMs)
-    const isPublic = selectedChannel.type === "channel" || selectedChannel.type === "private";
-    return isPublic ? [...SPECIAL_MENTION_OPTIONS, ...members] : members;
+    const isPublic = selectedChannel?.type === "channel" || selectedChannel?.type === "private";
+    return isPublic ? [...SPECIAL_MENTION_OPTIONS, ...allUsers] : allUsers;
   }, [selectedChannel, userId, profileMap]);
 
   const headerInfo = useMemo((): ConversationHeaderInfo | null => {

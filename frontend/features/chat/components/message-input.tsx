@@ -58,6 +58,7 @@ export function MessageInput({
   const [pendingVoiceFile, setPendingVoiceFile] = useState<File | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionStart, setMentionStart] = useState(-1);
+  const [mentionActiveIndex, setMentionActiveIndex] = useState(0);
 
   // #25 — Slash commands
   const [slashQuery, setSlashQuery] = useState<string | null>(null);
@@ -180,6 +181,7 @@ export function MessageInput({
     }
     setMentionStart(atIndex);
     setMentionQuery(query);
+    setMentionActiveIndex(0);
   }, []);
 
   function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
@@ -235,14 +237,23 @@ export function MessageInput({
     }
 
     if (mentionQuery !== null && mentionOptions.length > 0) {
-      if (["ArrowDown", "ArrowUp", "Tab"].includes(e.key)) return;
-      if (e.key === "Enter") {
-        e.preventDefault();
-        const filtered = mentionOptions.filter((o) =>
-          o.name.toLowerCase().includes((mentionQuery ?? "").toLowerCase()),
-        );
-        if (filtered.length > 0) {
-          handleMentionSelect(filtered[0]);
+      const filteredMentions = mentionOptions.filter((o) =>
+        o.name.toLowerCase().includes((mentionQuery ?? "").toLowerCase()),
+      );
+      if (filteredMentions.length > 0) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setMentionActiveIndex((i) => Math.min(i + 1, filteredMentions.length - 1));
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setMentionActiveIndex((i) => Math.max(i - 1, 0));
+          return;
+        }
+        if (e.key === "Tab" || (e.key === "Enter" && !e.shiftKey)) {
+          e.preventDefault();
+          handleMentionSelect(filteredMentions[mentionActiveIndex] ?? filteredMentions[0]);
           return;
         }
       }
@@ -324,6 +335,8 @@ export function MessageInput({
             query={mentionQuery}
             onSelect={handleMentionSelect}
             onClose={() => setMentionQuery(null)}
+            externalActiveIndex={mentionActiveIndex}
+            onChangeActive={setMentionActiveIndex}
           />
         )}
 

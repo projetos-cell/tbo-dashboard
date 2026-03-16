@@ -33,6 +33,10 @@ interface MentionPopupProps {
   onClose: () => void;
   /** Anchor position relative to parent (bottom-left of the @ cursor) */
   position?: { top: number; left: number };
+  /** Externally controlled active index (from parent keyboard handling) */
+  externalActiveIndex?: number;
+  /** Callback when active index changes (mouse hover) */
+  onChangeActive?: (index: number) => void;
 }
 
 export function MentionPopup({
@@ -41,8 +45,12 @@ export function MentionPopup({
   onSelect,
   onClose,
   position,
+  externalActiveIndex,
+  onChangeActive,
 }: MentionPopupProps) {
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [internalActiveIndex, setInternalActiveIndex] = useState(0);
+  const activeIndex = externalActiveIndex ?? internalActiveIndex;
+  const setActiveIndex = onChangeActive ?? setInternalActiveIndex;
   const listRef = useRef<HTMLDivElement>(null);
 
   const filtered = options.filter((o) =>
@@ -52,7 +60,7 @@ export function MentionPopup({
   // Reset active index when filtered list changes
   useEffect(() => {
     setActiveIndex(0);
-  }, [query]);
+  }, [query, setActiveIndex]);
 
   // Scroll active item into view
   useEffect(() => {
@@ -65,10 +73,10 @@ export function MentionPopup({
   function handleKeyDown(e: KeyboardEvent) {
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setActiveIndex((i) => (i + 1) % filtered.length);
+      setActiveIndex((activeIndex + 1) % filtered.length);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setActiveIndex((i) => (i - 1 + filtered.length) % filtered.length);
+      setActiveIndex((activeIndex - 1 + filtered.length) % filtered.length);
     } else if (e.key === "Enter" || e.key === "Tab") {
       e.preventDefault();
       if (filtered[activeIndex]) {

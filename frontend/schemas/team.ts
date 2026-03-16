@@ -33,10 +33,7 @@ export type TeamMember = z.infer<typeof TeamMemberSchema>;
 
 export const InviteUserSchema = z.object({
   email: z.string().email("E-mail inválido"),
-  full_name: z
-    .string()
-    .min(2, "Nome precisa ter ao menos 2 caracteres")
-    .max(100),
+  full_name: z.string().max(100).optional(),
   role: RoleEnum,
   department: z.string().max(50).optional(),
 });

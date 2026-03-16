@@ -75,9 +75,12 @@ serve(async (req: Request) => {
       department?: string | null;
     };
 
-    if (!email || !full_name || !role) {
-      return jsonError("Campos email, full_name e role sao obrigatorios.", 400);
+    if (!email || !role) {
+      return jsonError("Campos email e role sao obrigatorios.", 400);
     }
+
+    // Derive full_name from email prefix if not provided
+    const resolvedName = full_name || email.split("@")[0].replace(/[._-]/g, " ");
 
     if (!["founder", "diretoria", "lider", "colaborador"].includes(role)) {
       return jsonError("Role invalida. Use: founder, diretoria, lider, colaborador.", 400);
@@ -106,7 +109,7 @@ serve(async (req: Request) => {
     const { data: inviteData, error: inviteError } =
       await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
         data: {
-          full_name,
+          full_name: resolvedName,
           role,
           tenant_id: callerProfile.tenant_id,
         },
@@ -127,7 +130,7 @@ serve(async (req: Request) => {
       .insert({
         id: newUserId,
         email,
-        full_name,
+        full_name: resolvedName,
         role,
         department: department ?? null,
         is_active: true,
@@ -168,7 +171,7 @@ serve(async (req: Request) => {
       action: "team_member.invited",
       resource_type: "team_member",
       resource_id: newUserId,
-      details: { email, full_name, role, department: department ?? null },
+      details: { email, full_name: resolvedName, role, department: department ?? null },
       created_at: new Date().toISOString(),
     });
 

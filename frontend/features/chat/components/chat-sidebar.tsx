@@ -93,7 +93,7 @@ export function ChatSidebar({
   return (
     <div
       className={cn(
-        "w-80 shrink-0 border-r flex flex-col",
+        "w-full h-full border-r flex flex-col",
         showConversation && "hidden md:flex",
       )}
     >

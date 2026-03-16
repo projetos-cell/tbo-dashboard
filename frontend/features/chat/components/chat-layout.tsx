@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IconMessageCircle2 } from "@tabler/icons-react";
 import { PinnedBanner } from "./pinned-banner";
 import { MessageList } from "./message-list";
@@ -94,6 +94,37 @@ export function ChatLayout() {
   const setUnreadCounts = useChatStore((s) => s.setUnreadCounts);
 
   const [showConversation, setShowConversation] = useState(false);
+  // #49 — Sidebar resize
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("chat-sidebar-width");
+      return saved ? parseInt(saved, 10) : 320;
+    }
+    return 320;
+  });
+  const isDraggingRef = useRef(false);
+  const handleSidebarMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingRef.current = true;
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+    function onMove(ev: MouseEvent) {
+      if (!isDraggingRef.current) return;
+      const next = Math.max(200, Math.min(480, startWidth + ev.clientX - startX));
+      setSidebarWidth(next);
+    }
+    function onUp() {
+      isDraggingRef.current = false;
+      setSidebarWidth((w) => {
+        localStorage.setItem("chat-sidebar-width", String(w));
+        return w;
+      });
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    }
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, [sidebarWidth]);
   // #5 — Capture unread count snapshot when channel opens (before markAsRead clears it)
   const [initialUnreadCount, setInitialUnreadCount] = useState(0);
   // #11 — Thread panel state
@@ -451,30 +482,42 @@ export function ChatLayout() {
 
   return (
     <div className="flex h-[calc(100vh-8rem)] rounded-xl border bg-background overflow-hidden">
-      <ChatSidebar
-        channels={channels}
-        archivedChannels={archivedChannels ?? []}
-        sections={sections ?? []}
-        selectedChannelId={selectedChannelId}
-        unreadCounts={unreadCounts}
-        currentUserId={userId}
-        profileMap={profileMap}
-        isLoading={loadingChannels}
-        canCreateChannel={canCreateChannel}
-        canManageChannels={canManageChannels}
-        showConversation={showConversation}
-        onSelectChannel={handleSelectChannel}
-        onArchiveChannel={handleArchiveChannel}
-        onDeleteChannel={handleDeleteChannel}
-        onUnarchiveChannel={handleUnarchiveChannel}
-        onMoveToSection={handleMoveToSection}
-        onCreateSection={handleCreateSection}
-        onRenameSection={handleRenameSection}
-        onDeleteSection={handleDeleteSection}
-        favoriteIds={favoriteIds}
-        onToggleFavorite={toggleFavorite}
-        mutedChannelIds={mutedChannelIds}
-        onMuteToggle={handleMuteToggle}
+      {/* #49 — Resizable sidebar wrapper */}
+      <div style={{ width: sidebarWidth, flexShrink: 0 }} className={cn(showConversation ? "hidden md:block" : "block")}>
+        <ChatSidebar
+          channels={channels}
+          archivedChannels={archivedChannels ?? []}
+          sections={sections ?? []}
+          selectedChannelId={selectedChannelId}
+          unreadCounts={unreadCounts}
+          currentUserId={userId}
+          profileMap={profileMap}
+          isLoading={loadingChannels}
+          canCreateChannel={canCreateChannel}
+          canManageChannels={canManageChannels}
+          showConversation={showConversation}
+          onSelectChannel={handleSelectChannel}
+          onArchiveChannel={handleArchiveChannel}
+          onDeleteChannel={handleDeleteChannel}
+          onUnarchiveChannel={handleUnarchiveChannel}
+          onMoveToSection={handleMoveToSection}
+          onCreateSection={handleCreateSection}
+          onRenameSection={handleRenameSection}
+          onDeleteSection={handleDeleteSection}
+          favoriteIds={favoriteIds}
+          onToggleFavorite={toggleFavorite}
+          mutedChannelIds={mutedChannelIds}
+          onMuteToggle={handleMuteToggle}
+        />
+      </div>
+      {/* Drag handle */}
+      <div
+        onMouseDown={handleSidebarMouseDown}
+        className={cn(
+          "w-1 cursor-col-resize hover:bg-primary/40 active:bg-primary/60 transition-colors shrink-0 hidden md:block",
+          showConversation ? "hidden" : "",
+        )}
+        title="Arrastar para redimensionar"
       />
 
       {/* Conversation area + thread panel */}
@@ -498,7 +541,7 @@ export function ChatLayout() {
               />
               <PinnedBanner channelId={selectedChannelId} profileMap={profileMap} onClickMessage={handleScrollToMessage} />
               {messagesQuery.isLoading ? (
-                <div className="flex flex-1 items-center justify-center"><Skeleton className="h-8 w-40" /></div>
+                <MessageListSkeleton />
               ) : (
                 <MessageList
                   messages={messages}
@@ -637,6 +680,41 @@ export function ChatLayout() {
         profileMap={profileMap}
         onSelectChannel={handleSelectChannel}
       />
+    </div>
+  );
+}
+
+// ── #50 — Realistic message list skeleton ────────────────────────────
+
+const SKELETON_ROWS = [
+  { avatar: true, lines: [{ w: "w-24" }, { w: "w-64" }, { w: "w-48" }] },
+  { avatar: false, lines: [{ w: "w-80" }] },
+  { avatar: false, lines: [{ w: "w-56" }, { w: "w-72" }] },
+  { avatar: true, lines: [{ w: "w-20" }, { w: "w-96" }, { w: "w-44" }, { w: "w-60" }] },
+  { avatar: false, lines: [{ w: "w-64" }] },
+  { avatar: true, lines: [{ w: "w-28" }, { w: "w-52" }] },
+  { avatar: false, lines: [{ w: "w-80" }, { w: "w-40" }] },
+];
+
+function MessageListSkeleton() {
+  return (
+    <div className="flex flex-1 flex-col overflow-hidden py-3 px-4 gap-2">
+      {SKELETON_ROWS.map((row, i) => (
+        <div
+          key={i}
+          className={cn("flex items-start gap-3", row.avatar ? "mt-3" : "mt-0.5 pl-11")}
+        >
+          {row.avatar && (
+            <Skeleton className="h-8 w-8 rounded-full shrink-0" />
+          )}
+          <div className="flex flex-col gap-1.5 flex-1">
+            {row.avatar && <Skeleton className="h-3 w-24" />}
+            {row.lines.map((line, j) => (
+              <Skeleton key={j} className={cn("h-4", line.w)} />
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

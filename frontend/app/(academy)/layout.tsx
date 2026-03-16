@@ -30,11 +30,13 @@ export default async function AcademyLayout({
   } else {
     const { data: member } = await supabase
       .from("tenant_members")
-      .select("role")
+      .select("roles ( slug )")
       .eq("user_id", user.id)
+      .eq("is_active", true)
       .maybeSingle()
-    if (member?.role) {
-      role = member.role as RoleSlug
+    const slug = (member as Record<string, unknown>)?.roles as { slug: string } | null
+    if (slug?.slug) {
+      role = slug.slug as RoleSlug
     }
   }
 

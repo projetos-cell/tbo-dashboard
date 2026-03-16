@@ -249,12 +249,17 @@ export function MessageList({
           const showUnreadSeparator =
             unreadSeparatorIndex > 0 && idx === unreadSeparatorIndex;
 
-          // Message grouping: show avatar if first message or different sender or different day
-          const showAvatar =
-            !prevMsg ||
-            prevMsg.sender_id !== msg.sender_id ||
-            showDateSeparator ||
-            showUnreadSeparator;
+          // #48 — Message grouping: show avatar if first message, different sender,
+          // different day, unread separator, or >5min gap from previous same-sender message
+          const isSameSenderWithinWindow =
+            !!prevMsg &&
+            prevMsg.sender_id === msg.sender_id &&
+            !showDateSeparator &&
+            !showUnreadSeparator &&
+            new Date(msg.created_at ?? "").getTime() -
+              new Date(prevMsg.created_at ?? "").getTime() <
+              5 * 60 * 1000;
+          const showAvatar = !isSameSenderWithinWindow;
 
           return (
             <div key={msg.id}>

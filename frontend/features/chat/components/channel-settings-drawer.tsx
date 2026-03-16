@@ -58,6 +58,7 @@ import {
   useDeleteWebhook,
 } from "@/features/chat/hooks/use-channel-webhooks";
 import { getWebhookUrl } from "@/features/chat/services/chat-webhooks";
+import { IconRobot } from "@tabler/icons-react";
 
 interface ChannelSettingsDrawerProps {
   channel: ChannelRow;
@@ -454,6 +455,14 @@ export function ChannelSettingsDrawer({ channel, soundEnabled = true, onToggleSo
             <>
               <Separator />
               <WebhookSection channelId={channel.id} />
+            </>
+          )}
+
+          {/* #47 — Welcome bot */}
+          {canEdit && (
+            <>
+              <Separator />
+              <WelcomeBotSection channel={channel} />
             </>
           )}
 

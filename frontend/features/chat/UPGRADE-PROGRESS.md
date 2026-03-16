@@ -93,6 +93,6 @@
 
 | # | Feature | Status | Data |
 |---|---------|--------|------|
-| 48 | Message grouping otimizado — agrupar mensagens <5min | pendente | — |
+| 48 | Message grouping otimizado — agrupar mensagens <5min | ✅ concluído | 2026-03-15 |
 | 49 | Resize da sidebar — drag handle para ajustar largura | pendente | — |
 | 50 | Skeleton loading refinado — skeleton que replica layout real | pendente | — |

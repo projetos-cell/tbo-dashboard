@@ -400,13 +400,12 @@ export async function checkAndNotifyReminders(
   const todayStr = today.toISOString();
 
   // Get tasks with reminders assigned to this user
+  // Note: reminder_days column may not exist yet — query gracefully
   const { data: tasks, error } = await supabase
     .from("os_tasks")
-    .select("id,title,due_date,reminder_days")
+    .select("id,title,due_date")
     .eq("assignee_id", userId)
     .eq("is_completed", false)
-    .not("reminder_days", "is", null)
-    .gt("reminder_days", 0)
     .is("parent_id", null);
 
   if (error || !tasks || tasks.length === 0) return 0;
@@ -427,7 +426,7 @@ export async function checkAndNotifyReminders(
   for (const task of tasks) {
     if (!task.due_date || alreadyNotified.has(task.id)) continue;
 
-    const reminderDays = (task as Record<string, unknown>).reminder_days as number;
+    const reminderDays = ((task as Record<string, unknown>).reminder_days as number) ?? 1;
     const dueDate = new Date(task.due_date);
     const reminderDate = new Date(dueDate);
     reminderDate.setDate(reminderDate.getDate() - reminderDays);

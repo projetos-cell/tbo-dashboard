@@ -6245,7 +6245,7 @@ export type Database = {
           parent_id: string | null
           priority: string | null
           project_id: string | null
-          reminder_days: number | null
+
           section_id: string | null
           start_date: string | null
           status: string
@@ -6268,7 +6268,7 @@ export type Database = {
           parent_id?: string | null
           priority?: string | null
           project_id?: string | null
-          reminder_days?: number | null
+
           section_id?: string | null
           start_date?: string | null
           status?: string
@@ -6291,7 +6291,7 @@ export type Database = {
           parent_id?: string | null
           priority?: string | null
           project_id?: string | null
-          reminder_days?: number | null
+
           section_id?: string | null
           start_date?: string | null
           status?: string

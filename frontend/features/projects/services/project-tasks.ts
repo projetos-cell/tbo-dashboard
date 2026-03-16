@@ -4,7 +4,7 @@ import type { Database } from "@/lib/supabase/types";
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 
 const TASK_COLS =
-  "id,tenant_id,project_id,section_id,parent_id,title,description,status,assignee_id,assignee_name,start_date,due_date,completed_at,priority,order_index,is_completed,legacy_demand_id,created_by,reminder_days,created_at,updated_at";
+  "id,tenant_id,project_id,section_id,parent_id,title,description,status,assignee_id,assignee_name,start_date,due_date,completed_at,priority,order_index,is_completed,legacy_demand_id,created_by,created_at,updated_at";
 
 /** Fetch ALL os_tasks for a project (parents + subtasks) in one query. */
 export async function getProjectTasks(

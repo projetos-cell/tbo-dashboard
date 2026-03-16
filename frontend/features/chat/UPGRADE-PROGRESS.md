@@ -84,8 +84,8 @@
 | # | Feature | Status | Data |
 |---|---------|--------|------|
 | 43 | Integração com Tarefas — criar tarefa de uma mensagem | ✅ concluído | 2026-03-15 |
-| 44 | Integração com Projetos — canal auto-criado por projeto | pendente | — |
-| 45 | Resumo AI do canal — "O que perdi?" via LLM | pendente | — |
+| 44 | Integração com Projetos — canal auto-criado por projeto | ✅ concluído | 2026-03-15 |
+| 45 | Resumo AI do canal — "O que perdi?" via LLM | ✅ concluído | 2026-03-15 |
 | 46 | Webhook / Bot messages — notificações de sistemas externos | pendente | — |
 | 47 | Bot de boas-vindas — mensagem automática para novos membros | pendente | — |
 

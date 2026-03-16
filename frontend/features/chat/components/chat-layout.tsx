@@ -70,6 +70,7 @@ import { MediaGalleryPanel } from "./media-gallery-panel";
 import { ChannelSwitcher } from "./channel-switcher";
 import { BrowseChannelsDialog } from "./browse-channels-dialog";
 import { CreateTaskFromMessageDialog } from "./create-task-from-message-dialog";
+import { ChannelSummaryPanel } from "./channel-summary-panel";
 import { hasPermission, type RoleSlug } from "@/lib/permissions";
 import { canPerformChannelAction } from "@/features/chat/utils/chat-permissions";
 import { buildProfileMap } from "@/features/chat/utils/profile-utils";
@@ -101,6 +102,8 @@ export function ChatLayout() {
   const [forwardMessage, setForwardMessage] = useState<import("@/features/chat/services/chat").MessageRow | null>(null);
   // #43 — Create task from message state
   const [taskSourceMessage, setTaskSourceMessage] = useState<import("@/features/chat/services/chat").MessageRow | null>(null);
+  // #45 — AI summary panel state
+  const [summaryPanelOpen, setSummaryPanelOpen] = useState(false);
   // #14 — Scheduled messages panel state
   const [scheduledPanelOpen, setScheduledPanelOpen] = useState(false);
   // #17 — Bookmarks panel state
@@ -154,13 +157,17 @@ export function ChatLayout() {
           setMediaGalleryOpen(false);
           return;
         }
+        if (summaryPanelOpen) {
+          setSummaryPanelOpen(false);
+          return;
+        }
         if (scheduledPanelOpen) {
           setScheduledPanelOpen(false);
           return;
         }
       }
     },
-    [isSearchOpen, toggleSearch, setSearchQuery, channelSwitcherOpen, threadMessage, bookmarksPanelOpen, mediaGalleryOpen, scheduledPanelOpen],
+    [isSearchOpen, toggleSearch, setSearchQuery, channelSwitcherOpen, threadMessage, bookmarksPanelOpen, mediaGalleryOpen, scheduledPanelOpen, summaryPanelOpen],
   );
   useEffect(() => {
     document.addEventListener("keydown", handleGlobalKeyboard);
@@ -487,6 +494,7 @@ export function ChatLayout() {
                 canEditTopic={canManageChannels || selectedChannel?.created_by === userId}
                 onUpdateTopic={handleUpdateTopic}
                 onOpenMediaGallery={() => setMediaGalleryOpen((v) => !v)}
+                onOpenSummary={() => setSummaryPanelOpen((v) => !v)}
               />
               <PinnedBanner channelId={selectedChannelId} profileMap={profileMap} onClickMessage={handleScrollToMessage} />
               {messagesQuery.isLoading ? (
@@ -541,6 +549,15 @@ export function ChatLayout() {
             profileMap={profileMap}
             currentUserId={userId}
             onClose={() => setThreadMessage(null)}
+          />
+        )}
+
+        {/* #45 — AI summary panel */}
+        {summaryPanelOpen && selectedChannelId && (
+          <ChannelSummaryPanel
+            channelId={selectedChannelId}
+            channelName={selectedChannel?.name ?? undefined}
+            onClose={() => setSummaryPanelOpen(false)}
           />
         )}
 

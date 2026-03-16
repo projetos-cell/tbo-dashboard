@@ -13,6 +13,8 @@ import {
   IconCheck,
   IconX,
   IconPhoto,
+  IconBriefcase,
+  IconSparkles,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +56,10 @@ interface ConversationHeaderProps {
   onUpdateTopic?: (channelId: string, description: string) => void;
   // #38 — Media gallery
   onOpenMediaGallery?: () => void;
+  // #44 — Project-linked channel
+  projectName?: string | null;
+  // #45 — AI summary
+  onOpenSummary?: () => void;
 }
 
 export function ConversationHeader({
@@ -66,6 +72,8 @@ export function ConversationHeader({
   canEditTopic = false,
   onUpdateTopic,
   onOpenMediaGallery,
+  projectName,
+  onOpenSummary,
 }: ConversationHeaderProps) {
   const toggleSearch = useChatStore((s) => s.toggleSearch);
   const setChannelSettingsOpen = useChatStore((s) => s.setChannelSettingsOpen);
@@ -148,6 +156,13 @@ export function ConversationHeader({
             <Badge variant="outline" className="shrink-0 gap-1 text-[10px] h-4 px-1.5 py-0">
               <IconLock size={9} />
               Só admins
+            </Badge>
+          )}
+          {/* #44 — Project badge */}
+          {projectName && (
+            <Badge variant="outline" className="shrink-0 gap-1 text-[10px] h-4 px-1.5 py-0 text-muted-foreground">
+              <IconBriefcase size={9} />
+              {projectName}
             </Badge>
           )}
         </div>
@@ -250,6 +265,17 @@ export function ConversationHeader({
               </Button>
             </TooltipTrigger>
             <TooltipContent>Arquivos & Mídia</TooltipContent>
+          </Tooltip>
+        )}
+        {/* #45 — AI summary */}
+        {onOpenSummary && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onOpenSummary}>
+                <IconSparkles size={16} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>O que perdi? (resumo IA)</TooltipContent>
           </Tooltip>
         )}
         <Tooltip>

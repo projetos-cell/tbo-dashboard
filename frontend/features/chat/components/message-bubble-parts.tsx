@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 import {
   IconPencil,
   IconTrash,
@@ -164,9 +165,11 @@ function isHtmlContent(content: string): boolean {
 export function MessageContent({
   content,
   profileMap,
+  onMentionClick,
 }: {
   content: string;
   profileMap: Record<string, ProfileInfo>;
+  onMentionClick?: (userId: string) => void;
 }) {
   // Rich text (HTML from Tiptap)
   if (isHtmlContent(content)) {
@@ -197,7 +200,23 @@ export function MessageContent({
         ) : (
           <span
             key={i}
-            className="inline-flex items-center rounded bg-primary/10 px-1 py-0.5 text-xs font-medium text-primary cursor-default"
+            role={!seg.isSpecial && onMentionClick ? "button" : undefined}
+            tabIndex={!seg.isSpecial && onMentionClick ? 0 : undefined}
+            onClick={() => {
+              if (!seg.isSpecial && onMentionClick) onMentionClick(seg.userId);
+            }}
+            onKeyDown={(e) => {
+              if (!seg.isSpecial && onMentionClick && (e.key === "Enter" || e.key === " ")) {
+                e.preventDefault();
+                onMentionClick(seg.userId);
+              }
+            }}
+            className={cn(
+              "inline-flex items-center rounded bg-primary/10 px-1 py-0.5 text-xs font-medium text-primary",
+              !seg.isSpecial && onMentionClick
+                ? "cursor-pointer hover:bg-primary/20 transition-colors"
+                : "cursor-default",
+            )}
           >
             @{seg.name}
           </span>

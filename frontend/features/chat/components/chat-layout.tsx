@@ -93,6 +93,7 @@ export function ChatLayout() {
   const setSearchQuery = useChatStore((s) => s.setSearchQuery);
   const unreadCounts = useChatStore((s) => s.unreadCounts);
   const setUnreadCounts = useChatStore((s) => s.setUnreadCounts);
+  const setChannelSettingsOpen = useChatStore((s) => s.setChannelSettingsOpen);
 
   const [showConversation, setShowConversation] = useState(false);
   // #49 — Sidebar resize
@@ -439,6 +440,26 @@ export function ChatLayout() {
   function handleUpdateTopic(channelId: string, description: string) {
     updateChannelMut.mutate({ id: channelId, updates: { description: description || null } });
   }
+  async function handleMentionClick(mentionedUserId: string) {
+    if (!userId || !tenantId || mentionedUserId === userId) return;
+    // Check if there's already a DM with this user in loaded channels
+    const existingDM = channels?.find(
+      (ch) =>
+        ch.type === "direct" &&
+        ch.chat_channel_members?.some((m) => m.user_id === mentionedUserId),
+    );
+    if (existingDM) {
+      handleSelectChannel(existingDM.id);
+      return;
+    }
+    // Create or find DM channel
+    const { createClient } = await import("@/lib/supabase/client");
+    const { findOrCreateDirectChannel } = await import("@/features/chat/services/chat");
+    const supabase = createClient();
+    const dm = await findOrCreateDirectChannel(supabase, tenantId, userId, mentionedUserId);
+    handleSelectChannel(dm.id);
+  }
+
   function handleEdit(messageId: string, content: string) { editMsg.mutate({ messageId, content }); }
   function handleDelete(messageId: string) { deleteMsg.mutate({ messageId }); }
   function handleTogglePin(messageId: string, pinned: boolean) { togglePin.mutate({ messageId, pinned }); }
@@ -539,6 +560,13 @@ export function ChatLayout() {
           onToggleFavorite={toggleFavorite}
           mutedChannelIds={mutedChannelIds}
           onMuteToggle={handleMuteToggle}
+          onMarkAsRead={(channelId) => {
+            if (userId) markAsRead.mutate({ channelId, userId });
+          }}
+          onOpenSettings={(channelId) => {
+            handleSelectChannel(channelId);
+            setTimeout(() => setChannelSettingsOpen(true), 100);
+          }}
         />
       </div>
       {/* Drag handle */}
@@ -593,6 +621,7 @@ export function ChatLayout() {
                   canDeleteOthers={canDeleteOthers}
                   onCreateTask={setTaskSourceMessage}
                   initialUnreadCount={initialUnreadCount}
+                  onMentionClick={handleMentionClick}
                 />
               )}
               <TypingIndicator channelId={selectedChannelId} />

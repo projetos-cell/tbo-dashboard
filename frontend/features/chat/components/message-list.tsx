@@ -34,6 +34,7 @@ interface MessageListProps {
   onCreateTask?: (message: MessageRow) => void;
   /** Number of unread messages when this channel was first opened */
   initialUnreadCount?: number;
+  onMentionClick?: (userId: string) => void;
 }
 
 function formatDateSeparator(dateStr: string): string {
@@ -75,6 +76,7 @@ export function MessageList({
   canDeleteOthers,
   onCreateTask,
   initialUnreadCount = 0,
+  onMentionClick,
 }: MessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -310,6 +312,7 @@ export function MessageList({
                   onBookmark={onBookmark}
                   bookmarkedMessageIds={bookmarkedMessageIds}
                   onCreateTask={onCreateTask}
+                  onMentionClick={onMentionClick}
                 />
               </div>
             </div>

@@ -4,7 +4,7 @@ import type { Database } from "@/lib/supabase/types";
 export type ChatAttachmentRow =
   Database["public"]["Tables"]["chat_attachments"]["Row"];
 
-const BUCKET = "chat-attachments";
+const BUCKET = "chat-files";
 /** Global fallback limit when channel has no custom limit */
 export const DEFAULT_MAX_FILE_SIZE_MB = 10;
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];

@@ -54,6 +54,9 @@ interface ChatSidebarProps {
   // #28 — Mute
   mutedChannelIds?: Set<string>;
   onMuteToggle?: (id: string, muted: boolean) => void;
+  // Context menu
+  onMarkAsRead?: (channelId: string) => void;
+  onOpenSettings?: (channelId: string) => void;
 }
 
 export function ChatSidebar({
@@ -80,6 +83,8 @@ export function ChatSidebar({
   onToggleFavorite,
   mutedChannelIds,
   onMuteToggle,
+  onMarkAsRead,
+  onOpenSettings,
 }: ChatSidebarProps) {
   const setCreateDMOpen = useChatStore((s) => s.setCreateDMOpen);
   const setCreateSectionOpen = useChatStore((s) => s.setCreateSectionOpen);
@@ -239,6 +244,8 @@ export function ChatSidebar({
             onToggleFavorite={onToggleFavorite}
             mutedChannelIds={mutedChannelIds}
             onMuteToggle={onMuteToggle}
+            onMarkAsRead={onMarkAsRead}
+            onOpenSettings={onOpenSettings}
           />
         )}
       </div>

@@ -66,6 +66,7 @@ interface MessageBubbleProps {
   onForward?: (message: MessageRow) => void;
   onBookmark?: (messageId: string, remove: boolean) => void;
   onCreateTask?: (message: MessageRow) => void;
+  onMentionClick?: (userId: string) => void;
 }
 
 export function MessageBubble({
@@ -87,6 +88,7 @@ export function MessageBubble({
   onForward,
   onBookmark,
   onCreateTask,
+  onMentionClick,
 }: MessageBubbleProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content ?? "");
@@ -225,7 +227,7 @@ export function MessageBubble({
                 <VoiceMessagePlayer url={voiceAttachment.file_url} />
               ) : (
                 <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-                  <MessageContent content={message.content ?? ""} profileMap={profileMap} />
+                  <MessageContent content={message.content ?? ""} profileMap={profileMap} onMentionClick={onMentionClick} />
                 </p>
               )}
               {!showAvatar && (

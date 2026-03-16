@@ -54,6 +54,9 @@ interface ChannelListProps {
   // #28 — Mute
   mutedChannelIds?: Set<string>;
   onMuteToggle?: (id: string, muted: boolean) => void;
+  // Context menu actions
+  onMarkAsRead?: (channelId: string) => void;
+  onOpenSettings?: (channelId: string) => void;
 }
 
 export function ChannelList({
@@ -77,6 +80,8 @@ export function ChannelList({
   onToggleFavorite,
   mutedChannelIds = new Set(),
   onMuteToggle,
+  onMarkAsRead,
+  onOpenSettings,
 }: ChannelListProps) {
   const collapsedSections = useChatStore((s) => s.collapsedSections);
   const showArchivedChannels = useChatStore((s) => s.showArchivedChannels);
@@ -167,6 +172,8 @@ export function ChannelList({
     canManageChannels,
     onToggleFavorite,
     onMuteToggle,
+    onMarkAsRead,
+    onOpenSettings,
   };
 
   const isPublicChannel = (ch: ChannelWithMembers) =>

@@ -14,6 +14,10 @@ import {
   IconStarFilled,
   IconBellOff,
   IconBell,
+  IconLink,
+  IconCheck,
+  IconPinned,
+  IconSettings,
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import {
@@ -84,6 +88,8 @@ export interface ChannelItemProps {
   onToggleFavorite?: (id: string) => void;
   isMuted?: boolean;
   onMuteToggle?: (id: string, muted: boolean) => void;
+  onMarkAsRead?: (channelId: string) => void;
+  onOpenSettings?: (channelId: string) => void;
 }
 
 export function ChannelItem({
@@ -104,6 +110,8 @@ export function ChannelItem({
   onToggleFavorite,
   isMuted = false,
   onMuteToggle,
+  onMarkAsRead,
+  onOpenSettings,
 }: ChannelItemProps) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const unread = unreadCounts[channel.id] ?? 0;
@@ -186,12 +194,12 @@ export function ChannelItem({
     </button>
   );
 
-  // No context menu for DMs/groups or non-managers
-  if ((!isPublicType && !isArchived) || !canManageChannels) {
-    return channelButton;
-  }
-
   const currentSectionId = (channel as unknown as Record<string, unknown>).section_id as string | null;
+
+  function handleCopyLink() {
+    const url = `${window.location.origin}/chat?channel=${channel.id}`;
+    navigator.clipboard.writeText(url);
+  }
 
   return (
     <>
@@ -199,69 +207,105 @@ export function ChannelItem({
         <ContextMenuTrigger asChild>
           {channelButton}
         </ContextMenuTrigger>
-        <ContextMenuContent className="w-52">
+        <ContextMenuContent className="w-56">
           {isArchived ? (
             <>
-              <ContextMenuItem onClick={() => onUnarchiveChannel?.(channel.id)}>
-                <IconArrowBackUp size={14} className="mr-2" />
-                Desarquivar
-              </ContextMenuItem>
+              {canManageChannels && (
+                <ContextMenuItem onClick={() => onUnarchiveChannel?.(channel.id)}>
+                  <IconArrowBackUp size={14} className="mr-2" />
+                  Desarquivar
+                </ContextMenuItem>
+              )}
               <ContextMenuSeparator />
-              <ContextMenuItem
-                onClick={() => setDeleteOpen(true)}
-                className="text-destructive focus:text-destructive"
-              >
-                <IconTrash size={14} className="mr-2" />
-                Deletar permanentemente
-              </ContextMenuItem>
+              {canManageChannels && (
+                <ContextMenuItem
+                  onClick={() => setDeleteOpen(true)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <IconTrash size={14} className="mr-2" />
+                  Deletar permanentemente
+                </ContextMenuItem>
+              )}
             </>
           ) : (
             <>
-              {sections && sections.length > 0 && onMoveToSection && (
-                <ContextMenuSub>
-                  <ContextMenuSubTrigger>
-                    <IconFolder size={14} className="mr-2" />
-                    Mover para seção
-                  </ContextMenuSubTrigger>
-                  <ContextMenuSubContent className="w-48">
-                    <ContextMenuItem
-                      onClick={() => onMoveToSection(channel.id, null)}
-                      disabled={!currentSectionId}
-                    >
-                      Sem seção
-                    </ContextMenuItem>
-                    {sections.map((s) => (
-                      <ContextMenuItem
-                        key={s.id}
-                        onClick={() => onMoveToSection(channel.id, s.id)}
-                        disabled={currentSectionId === s.id}
-                      >
-                        {s.name}
-                      </ContextMenuItem>
-                    ))}
-                  </ContextMenuSubContent>
-                </ContextMenuSub>
+              {/* ── Quick actions (available for all users) ── */}
+              {onMarkAsRead && unread > 0 && (
+                <ContextMenuItem onClick={() => onMarkAsRead(channel.id)}>
+                  <IconCheck size={14} className="mr-2" />
+                  Marcar como lido
+                </ContextMenuItem>
+              )}
+              {onToggleFavorite && (
+                <ContextMenuItem onClick={() => onToggleFavorite(channel.id)}>
+                  {isFavorite
+                    ? <IconStarFilled size={14} className="mr-2 text-yellow-500" />
+                    : <IconStar size={14} className="mr-2" />}
+                  {isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                </ContextMenuItem>
               )}
               {onMuteToggle && (
                 <ContextMenuItem onClick={() => onMuteToggle(channel.id, !isMuted)}>
                   {isMuted
                     ? <IconBell size={14} className="mr-2" />
                     : <IconBellOff size={14} className="mr-2" />}
-                  {isMuted ? "Reativar notificações" : "Silenciar canal"}
+                  {isMuted ? "Reativar notificações" : "Silenciar"}
                 </ContextMenuItem>
               )}
-              <ContextMenuItem onClick={() => onArchiveChannel?.(channel.id)}>
-                <IconArchive size={14} className="mr-2" />
-                Arquivar canal
+              <ContextMenuItem onClick={handleCopyLink}>
+                <IconLink size={14} className="mr-2" />
+                Copiar link
               </ContextMenuItem>
-              <ContextMenuSeparator />
-              <ContextMenuItem
-                onClick={() => setDeleteOpen(true)}
-                className="text-destructive focus:text-destructive"
-              >
-                <IconTrash size={14} className="mr-2" />
-                Deletar permanentemente
-              </ContextMenuItem>
+
+              {/* ── Management actions (channels only, managers) ── */}
+              {isPublicType && canManageChannels && (
+                <>
+                  <ContextMenuSeparator />
+                  {sections && sections.length > 0 && onMoveToSection && (
+                    <ContextMenuSub>
+                      <ContextMenuSubTrigger>
+                        <IconFolder size={14} className="mr-2" />
+                        Mover para seção
+                      </ContextMenuSubTrigger>
+                      <ContextMenuSubContent className="w-48">
+                        <ContextMenuItem
+                          onClick={() => onMoveToSection(channel.id, null)}
+                          disabled={!currentSectionId}
+                        >
+                          Sem seção
+                        </ContextMenuItem>
+                        {sections.map((s) => (
+                          <ContextMenuItem
+                            key={s.id}
+                            onClick={() => onMoveToSection(channel.id, s.id)}
+                            disabled={currentSectionId === s.id}
+                          >
+                            {s.name}
+                          </ContextMenuItem>
+                        ))}
+                      </ContextMenuSubContent>
+                    </ContextMenuSub>
+                  )}
+                  {onOpenSettings && (
+                    <ContextMenuItem onClick={() => onOpenSettings(channel.id)}>
+                      <IconSettings size={14} className="mr-2" />
+                      Configurações do canal
+                    </ContextMenuItem>
+                  )}
+                  <ContextMenuItem onClick={() => onArchiveChannel?.(channel.id)}>
+                    <IconArchive size={14} className="mr-2" />
+                    Arquivar canal
+                  </ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem
+                    onClick={() => setDeleteOpen(true)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <IconTrash size={14} className="mr-2" />
+                    Deletar permanentemente
+                  </ContextMenuItem>
+                </>
+              )}
             </>
           )}
         </ContextMenuContent>

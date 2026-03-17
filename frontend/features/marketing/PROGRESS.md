@@ -43,11 +43,11 @@
 - [x] #28 — Conteúdo: inline status update (clicar no badge → dropdown de status) — 2026-03-17 · `conteudo/page.tsx` (InlineStatusBadge + DropdownMenu)
 - [x] #29 — Calendário: visão mensal real (grid 7×5 com items posicionados por data) — 2026-03-17 · `conteudo/calendario/page.tsx` (buildCalendarDays + DroppableCell)
 - [x] #30 — Calendário: drag-and-drop de conteúdos entre dias para reagendar — 2026-03-17 · `content/calendar-dnd.tsx` + DndContext optimistic update + rollback
-- [ ] #31 — Calendário: mini-card de conteúdo no dia com cor por canal
-- [ ] #32 — Briefs: listagem com status e KPIs (total, aprovados, em revisão)
-- [ ] #33 — Briefs: modal criar/editar brief (título, objetivo, público, mensagens, entregáveis, prazo)
-- [ ] #34 — Briefs: fluxo aprovação (draft→aprovado) com campo de feedback
-- [ ] #35 — Assets: grid de cards de arquivos com thumbnail (imagem) / ícone (outros tipos)
+- [x] #31 — Calendário: mini-card de conteúdo no dia com cor por canal — 2026-03-17 · `calendar-dnd.tsx` (dot colorido + borderLeft 3px por canal + title tooltip com canal)
+- [x] #32 — Briefs: listagem com status e KPIs (total, aprovados, em revisão) — 2026-03-17 · `conteudo/briefs/page.tsx` (KpiCard × 4 + skeleton loading)
+- [x] #33 — Briefs: modal criar/editar brief (título, objetivo, público, mensagens, entregáveis, prazo) — 2026-03-17 · `content/brief-form-modal.tsx` (ChipInput para arrays + zodResolver)
+- [x] #34 — Briefs: fluxo aprovação (draft→revisão→aprovado) com campo de feedback — 2026-03-17 · `conteudo/briefs/page.tsx` (AlertDialog + Textarea feedback + useUpdateContentBrief)
+- [x] #35 — Assets: grid de cards de arquivos com thumbnail (imagem) / ícone (outros tipos) — 2026-03-17 · `conteudo/assets/page.tsx` (img tag + onError fallback + filtro por tipo + hover scale)
 - [ ] #36 — Assets: upload de arquivo com drag-drop zone e progresso de upload para Supabase Storage
 - [ ] #37 — Assets: filtro por tipo (imagem/vídeo/doc/outros) e tags
 - [ ] #38 — Assets: modal de detalhe com preview, metadados e botão download/copy URL

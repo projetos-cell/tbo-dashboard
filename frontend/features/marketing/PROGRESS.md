@@ -61,11 +61,11 @@
 - [x] #43 — Contas: toggle ativo/inativo com optimistic update — 2026-03-17 · `hooks/use-rsm.ts` (useUpdateRsmAccount + onMutate optimistic + rollback) + Switch no card
 - [x] #44 — Agendamento: lista de posts agendados com filtro por plataforma e status — 2026-03-17 · `redes-sociais/agendamento/page.tsx` (platform chips derivados de accounts + coluna Plataforma lookup)
 - [x] #45 — Agendamento: modal criar post (conteúdo, plataforma/conta, mídia URLs, agendamento) — 2026-03-17 · `social/social-post-form-modal.tsx` (account select + tipo + content + media_urls + scheduled_date)
-- [ ] #46 — Agendamento: calendário de posts agendados (visão semanal)
-- [ ] #47 — Performance: KPIs por plataforma (seguidores, alcance, engajamento, taxa engajamento)
-- [ ] #48 — Performance: gráfico de engajamento por período (seletor 7d/30d/90d)
-- [ ] #49 — Performance: tabela comparativa entre plataformas
-- [ ] #50 — Relatórios Social: exportar relatório de performance (PDF/CSV placeholder)
+- [x] #46 — Agendamento: calendário de posts agendados (visão semanal) — 2026-03-17 · `agendamento/page.tsx` (WeekCalendar + navegação prev/next + cards por plataforma com cor + toggle Lista/Semana)
+- [x] #47 — Performance: KPIs por plataforma (seguidores, alcance, engajamento, taxa engajamento) — 2026-03-17 · `performance/page.tsx` (computePlatformStats + 4 KPICards + seletor de período 7d/30d/90d)
+- [x] #48 — Performance: gráfico de engajamento por período (seletor 7d/30d/90d) — 2026-03-17 · `performance/page.tsx` (BarChart recharts Seguidores+Engajamento+Posts por plataforma)
+- [x] #49 — Performance: tabela comparativa entre plataformas — 2026-03-17 · `performance/page.tsx` (ComparativeTable com barra relativa de alcance + taxa engajamento colorida)
+- [x] #50 — Relatórios Social: exportar relatório de performance (PDF/CSV placeholder) — 2026-03-17 · `relatorios/page.tsx` (4 templates: performance CSV + posts CSV + mensal PDF placeholder + comparativo CSV + downloadCsv helper)
 
 ## Módulo 5: Analytics (`/marketing/analytics`)
 

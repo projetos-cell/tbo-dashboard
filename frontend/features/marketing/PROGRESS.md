@@ -82,11 +82,11 @@
 
 ## Módulo 6: RSM — Relatório Semanal de Mídias
 
-- [ ] #61 — RSM: página principal com seletor de conta e período
-- [ ] #62 — RSM: integração do RsmAccountDashboard na rota `/marketing/rsm`
-- [ ] #63 — RSM: RSM Posts Diagnostics — tabela de posts com métricas e diagnóstico
-- [ ] #64 — RSM: RSM Recommended Actions — lista de recomendações geradas por análise
-- [ ] #65 — RSM: exportar RSM como PDF (botão + placeholder)
+- [x] #61 — RSM: página principal com seletor de conta e período — 2026-03-17 · `rsm/page.tsx` (Select de contas + period selector 1/3/6/12 meses)
+- [x] #62 — RSM: integração do RsmAccountDashboard na rota `/marketing/rsm` — 2026-03-17 · `rsm/page.tsx` (Tab Dashboard + card RSM no hub de marketing)
+- [x] #63 — RSM: RSM Posts Diagnostics — tabela de posts com métricas e diagnóstico — 2026-03-17 · `rsm/page.tsx` (Tab Posts com RsmPostsDiagnostics + empty state)
+- [x] #64 — RSM: RSM Recommended Actions — lista de recomendações geradas por análise — 2026-03-17 · `rsm/page.tsx` (Tab Ações com RsmRecommendedActions)
+- [x] #65 — RSM: exportar RSM como PDF (botão + placeholder) — 2026-03-17 · `rsm/page.tsx` (botão "Exportar PDF" + toast "em desenvolvimento")
 
 ## Módulo 7: Integrações e Cross-módulo
 

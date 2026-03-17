@@ -1,6 +1,11 @@
 export { ConfirmDialog } from "./confirm-dialog";
+export { DataPagination, paginateArray } from "./data-pagination";
+export type { PaginationState } from "./data-pagination";
 export { EmptyState } from "./empty-state";
 export { ErrorState } from "./error-state";
 export { PageHeader } from "./page-header";
 export { RBACGuard } from "./rbac-guard";
 export { TabErrorBoundary } from "./tab-error-boundary";
+export { TableDensityToggle } from "./table-density-toggle";
+export type { TableDensity } from "./table-density-toggle";
+export { DENSITY_ROW_PADDING, DENSITY_TEXT } from "./table-density-toggle";

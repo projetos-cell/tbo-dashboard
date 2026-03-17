@@ -1,6 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+// Feature #76 — Toggle density
+// Feature #77 — Filter persistence (Supabase view_filters)
+// Feature #79 — Ações em lote (bulk actions)
+// Feature #80 — Paginação
+
+import { useState, useMemo, useCallback, useEffect } from "react";
 import {
   IconPlus,
   IconSearch,
@@ -11,6 +16,10 @@ import {
   IconDownload,
   IconStar,
   IconStarFilled,
+  IconArchive,
+  IconSquareCheck,
+  IconSquare,
+  IconCheck,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,20 +35,38 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { EmptyState, ErrorState } from "@/components/shared";
+import {
+  EmptyState,
+  ErrorState,
+  TableDensityToggle,
+  DENSITY_ROW_PADDING,
+  DataPagination,
+  paginateArray,
+} from "@/components/shared";
+import type { TableDensity, PaginationState } from "@/components/shared";
 import { RequireRole } from "@/features/auth/components/require-role";
 import {
   useMarketingCampaigns,
   useDeleteMarketingCampaign,
   useDuplicateMarketingCampaign,
   useToggleFavoriteCampaign,
+  useUpdateMarketingCampaign,
 } from "@/features/marketing/hooks/use-marketing-campaigns";
+import { useViewFilters } from "@/features/marketing/hooks/use-view-filters";
 import { CampaignFormModal } from "@/features/marketing/components/campaigns/campaign-form-modal";
 import { CampaignDetailDrawer } from "@/features/marketing/components/campaigns/campaign-detail-drawer";
 import { CampaignTableSkeleton } from "@/features/marketing/components/campaigns/campaign-table-skeleton";
 import { MARKETING_CAMPAIGN_STATUS } from "@/lib/constants";
 import type { MarketingCampaign, MarketingCampaignStatus } from "@/features/marketing/types/marketing";
+import { toast } from "sonner";
 
 // ── Sub-components ───────────────────────────────────────────────────
 
@@ -112,23 +139,157 @@ function ChannelFilterChips({
   );
 }
 
+// Feature #79 — Bulk action bar
+interface BulkActionBarProps {
+  selectedIds: Set<string>;
+  allFiltered: MarketingCampaign[];
+  onSelectAll: () => void;
+  onClearSelection: () => void;
+  onBulkDelete: () => void;
+  onBulkStatusChange: (status: MarketingCampaignStatus) => void;
+  isDeleting: boolean;
+}
+
+function BulkActionBar({
+  selectedIds,
+  allFiltered,
+  onSelectAll,
+  onClearSelection,
+  onBulkDelete,
+  onBulkStatusChange,
+  isDeleting,
+}: BulkActionBarProps) {
+  const count = selectedIds.size;
+  const allSelected = count > 0 && count === allFiltered.length;
+  const partialSelected = count > 0 && !allSelected;
+
+  return (
+    <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 px-4 py-2.5 animate-in slide-in-from-top-1 duration-150">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={allSelected ? onClearSelection : onSelectAll}
+          className="flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+        >
+          {allSelected ? (
+            <IconSquareCheck className="h-4 w-4" />
+          ) : partialSelected ? (
+            <IconCheck className="h-4 w-4" />
+          ) : (
+            <IconSquare className="h-4 w-4" />
+          )}
+          {count} {count === 1 ? "selecionada" : "selecionadas"}
+        </button>
+        <span className="text-muted-foreground/40">|</span>
+        <button
+          onClick={onClearSelection}
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Limpar seleção
+        </button>
+      </div>
+      <div className="flex items-center gap-2">
+        {/* Alterar status em lote */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5">
+              <IconArchive className="h-3.5 w-3.5" />
+              Alterar status
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {Object.entries(MARKETING_CAMPAIGN_STATUS).map(([key, def]) => (
+              <DropdownMenuItem
+                key={key}
+                onClick={() => onBulkStatusChange(key as MarketingCampaignStatus)}
+              >
+                <span
+                  className="mr-2 h-2 w-2 rounded-full"
+                  style={{ backgroundColor: def.color }}
+                />
+                {def.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Excluir em lote */}
+        <Button
+          variant="destructive"
+          size="sm"
+          className="h-8 text-xs gap-1.5"
+          onClick={onBulkDelete}
+          disabled={isDeleting}
+        >
+          <IconTrash className="h-3.5 w-3.5" />
+          {isDeleting ? "Excluindo..." : "Excluir"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ── Default filters ──────────────────────────────────────────────────
+
+const DEFAULT_FILTERS = {
+  status: "all" as MarketingCampaignStatus | "all",
+  channels: [] as string[],
+  search: "",
+  favoritosOnly: false,
+};
+
 // ── Main content ─────────────────────────────────────────────────────
 
 function CampanhasContent() {
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<MarketingCampaignStatus | "all">("all");
-  const [channelFilter, setChannelFilter] = useState<string[]>([]);
-  // Feature #70 — filtro de favoritos
-  const [favoritosOnly, setFavoritosOnly] = useState(false);
+  // Feature #77 — persistent filters
+  const { filters, setFilters, isLoaded } = useViewFilters("marketing-campanhas", DEFAULT_FILTERS);
+
+  // Local UI state (not persisted)
+  const [density, setDensity] = useState<TableDensity>("normal");
+  const [pagination, setPagination] = useState<PaginationState>({ page: 1, pageSize: 25 });
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<MarketingCampaign | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<MarketingCampaign | null>(null);
 
+  // Feature #79 — bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
   const { data: campaigns, isLoading, error, refetch } = useMarketingCampaigns();
   const deleteMutation = useDeleteMarketingCampaign();
   const duplicateMutation = useDuplicateMarketingCampaign();
   const favoriteMutation = useToggleFavoriteCampaign();
+  const updateMutation = useUpdateMarketingCampaign();
+
+  // Shorthand accessors for persisted filter fields
+  const statusFilter = filters.status;
+  const channelFilter = filters.channels;
+  const search = filters.search;
+  const favoritosOnly = filters.favoritosOnly;
+
+  const setStatusFilter = useCallback(
+    (v: MarketingCampaignStatus | "all") => setFilters((f) => ({ ...f, status: v })),
+    [setFilters],
+  );
+  const setChannelFilter = useCallback(
+    (v: string[]) => setFilters((f) => ({ ...f, channels: v })),
+    [setFilters],
+  );
+  const setSearch = useCallback(
+    (v: string) => setFilters((f) => ({ ...f, search: v })),
+    [setFilters],
+  );
+  const setFavoritosOnly = useCallback(
+    (v: boolean) => setFilters((f) => ({ ...f, favoritosOnly: v })),
+    [setFilters],
+  );
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setPagination((p) => ({ ...p, page: 1 }));
+    setSelectedIds(new Set());
+  }, [statusFilter, channelFilter, search, favoritosOnly]);
 
   // Deriva lista de canais únicos para o filtro
   const allChannels = useMemo(() => {
@@ -143,7 +304,6 @@ function CampanhasContent() {
         if (statusFilter !== "all" && c.status !== statusFilter) return false;
         if (channelFilter.length > 0 && !channelFilter.some((ch) => c.channels.includes(ch)))
           return false;
-        // Feature #70 — filter by favorites
         if (favoritosOnly && !c.is_favorited) return false;
         if (!search) return true;
         const q = search.toLowerCase();
@@ -152,13 +312,16 @@ function CampanhasContent() {
     [campaigns, statusFilter, channelFilter, search, favoritosOnly],
   );
 
+  // Feature #80 — paginated slice of filtered
+  const paginated = useMemo(() => paginateArray(filtered, pagination), [filtered, pagination]);
+
   const active = (campaigns ?? []).filter((c) => c.status === "ativa").length;
   const totalBudget = (campaigns ?? []).reduce((s, c) => s + (c.budget ?? 0), 0);
   const totalSpent = (campaigns ?? []).reduce((s, c) => s + (c.spent ?? 0), 0);
 
   function toggleChannel(ch: string) {
-    setChannelFilter((prev) =>
-      prev.includes(ch) ? prev.filter((c) => c !== ch) : [...prev, ch],
+    setChannelFilter(
+      channelFilter.includes(ch) ? channelFilter.filter((c) => c !== ch) : [...channelFilter, ch],
     );
   }
 
@@ -196,6 +359,52 @@ function CampanhasContent() {
     URL.revokeObjectURL(url);
   }
 
+  // Feature #79 — Bulk actions
+  function toggleSelectAll() {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map((c) => c.id)));
+    }
+  }
+
+  function toggleSelectOne(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleBulkDelete() {
+    setIsBulkDeleting(true);
+    try {
+      await Promise.all([...selectedIds].map((id) => deleteMutation.mutateAsync(id)));
+      toast.success(`${selectedIds.size} campanha(s) excluída(s)`);
+      setSelectedIds(new Set());
+    } catch {
+      toast.error("Erro ao excluir campanhas em lote");
+    } finally {
+      setIsBulkDeleting(false);
+      setBulkDeleteOpen(false);
+    }
+  }
+
+  async function handleBulkStatusChange(status: MarketingCampaignStatus) {
+    const ids = [...selectedIds];
+    try {
+      await Promise.all(ids.map((id) => updateMutation.mutateAsync({ id, data: { status } })));
+      toast.success(`Status atualizado para ${MARKETING_CAMPAIGN_STATUS[status]?.label ?? status}`);
+      setSelectedIds(new Set());
+    } catch {
+      toast.error("Erro ao alterar status em lote");
+    }
+  }
+
+  const rowPadding = DENSITY_ROW_PADDING[density];
+  const hasFilters = search || statusFilter !== "all" || channelFilter.length > 0 || favoritosOnly;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -207,6 +416,8 @@ function CampanhasContent() {
           </p>
         </div>
         <div className="flex gap-2">
+          {/* Feature #76 — density toggle */}
+          <TableDensityToggle density={density} onChange={setDensity} />
           {(campaigns ?? []).length > 0 && (
             <Button variant="outline" onClick={exportCSV}>
               <IconDownload className="mr-1 h-4 w-4" /> Exportar CSV
@@ -237,23 +448,25 @@ function CampanhasContent() {
       {/* Filters */}
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-3">
-          <Tabs
-            value={statusFilter}
-            onValueChange={(v) => setStatusFilter(v as MarketingCampaignStatus | "all")}
-          >
-            <TabsList>
-              <TabsTrigger value="all">Todos</TabsTrigger>
-              {Object.entries(MARKETING_CAMPAIGN_STATUS).map(([key, def]) => (
-                <TabsTrigger key={key} value={key}>
-                  {def.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+          {isLoaded && (
+            <Tabs
+              value={statusFilter}
+              onValueChange={(v) => setStatusFilter(v as MarketingCampaignStatus | "all")}
+            >
+              <TabsList>
+                <TabsTrigger value="all">Todos</TabsTrigger>
+                {Object.entries(MARKETING_CAMPAIGN_STATUS).map(([key, def]) => (
+                  <TabsTrigger key={key} value={key}>
+                    {def.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          )}
           {/* Feature #70 — filtro de favoritos */}
           <button
             type="button"
-            onClick={() => setFavoritosOnly((v) => !v)}
+            onClick={() => setFavoritosOnly(!favoritosOnly)}
             className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
               favoritosOnly
                 ? "border-amber-400 bg-amber-400/10 text-amber-600 dark:text-amber-400"
@@ -294,27 +507,35 @@ function CampanhasContent() {
         )}
       </div>
 
+      {/* Feature #79 — Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <BulkActionBar
+          selectedIds={selectedIds}
+          allFiltered={filtered}
+          onSelectAll={toggleSelectAll}
+          onClearSelection={() => setSelectedIds(new Set())}
+          onBulkDelete={() => setBulkDeleteOpen(true)}
+          onBulkStatusChange={handleBulkStatusChange}
+          isDeleting={isBulkDeleting}
+        />
+      )}
+
       {/* Table / States */}
       {error ? (
         <ErrorState message="Erro ao carregar campanhas." onRetry={() => refetch()} />
       ) : isLoading ? (
-        // Feature #71 — Skeleton content-aware que reflete o layout real
         <CampaignTableSkeleton rows={5} />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={IconSpeakerphone}
-          title={
-            search || statusFilter !== "all" || channelFilter.length > 0
-              ? "Nenhuma campanha encontrada"
-              : "Nenhuma campanha ainda"
-          }
+          title={hasFilters ? "Nenhuma campanha encontrada" : "Nenhuma campanha ainda"}
           description={
-            search || statusFilter !== "all" || channelFilter.length > 0
+            hasFilters
               ? "Ajuste os filtros para encontrar campanhas."
               : "Crie sua primeira campanha de marketing."
           }
           cta={
-            !search && statusFilter === "all" && channelFilter.length === 0
+            !hasFilters
               ? { label: "Nova campanha", onClick: () => setCreateOpen(true) }
               : undefined
           }
@@ -324,6 +545,22 @@ function CampanhasContent() {
           <table className="w-full text-sm">
             <thead className="bg-muted/40">
               <tr>
+                {/* Select all checkbox */}
+                <th className="w-8 px-2 py-3" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={toggleSelectAll}
+                    className="rounded p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                    title="Selecionar todas"
+                    aria-label="Selecionar todas as campanhas"
+                  >
+                    {selectedIds.size > 0 && selectedIds.size === filtered.length ? (
+                      <IconSquareCheck className="h-4 w-4 text-primary" />
+                    ) : (
+                      <IconSquare className="h-4 w-4" />
+                    )}
+                  </button>
+                </th>
                 <th className="w-8 px-2 py-3" />
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Campanha</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
@@ -340,17 +577,35 @@ function CampanhasContent() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {filtered.map((campaign) => {
+              {paginated.map((campaign) => {
                 const statusDef =
                   MARKETING_CAMPAIGN_STATUS[campaign.status as MarketingCampaignStatus];
+                const isSelected = selectedIds.has(campaign.id);
                 return (
                   <tr
                     key={campaign.id}
-                    className="cursor-pointer hover:bg-muted/30 transition-colors"
+                    className={`cursor-pointer transition-colors ${
+                      isSelected ? "bg-primary/5" : "hover:bg-muted/30"
+                    }`}
                     onClick={() => openDrawer(campaign)}
                   >
+                    {/* Feature #79 — row checkbox */}
+                    <td className={`px-2 ${rowPadding}`} onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => toggleSelectOne(campaign.id)}
+                        className="rounded p-0.5 text-muted-foreground hover:text-primary transition-colors"
+                        aria-label={isSelected ? "Desmarcar" : "Selecionar"}
+                      >
+                        {isSelected ? (
+                          <IconSquareCheck className="h-4 w-4 text-primary" />
+                        ) : (
+                          <IconSquare className="h-4 w-4" />
+                        )}
+                      </button>
+                    </td>
                     {/* Feature #70 — star icon */}
-                    <td className="px-2 py-3" onClick={(e) => e.stopPropagation()}>
+                    <td className={`px-2 ${rowPadding}`} onClick={(e) => e.stopPropagation()}>
                       <button
                         type="button"
                         onClick={() =>
@@ -369,15 +624,15 @@ function CampanhasContent() {
                         )}
                       </button>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className={`px-4 ${rowPadding}`}>
                       <p className="font-medium">{campaign.name}</p>
-                      {campaign.description && (
+                      {campaign.description && density !== "compact" && (
                         <p className="text-xs text-muted-foreground truncate max-w-xs">
                           {campaign.description}
                         </p>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className={`px-4 ${rowPadding}`}>
                       {statusDef ? (
                         <Badge
                           variant="secondary"
@@ -389,7 +644,7 @@ function CampanhasContent() {
                         campaign.status
                       )}
                     </td>
-                    <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
+                    <td className={`hidden px-4 ${rowPadding} text-muted-foreground md:table-cell`}>
                       {campaign.start_date
                         ? new Date(campaign.start_date).toLocaleDateString("pt-BR")
                         : "--"}
@@ -397,10 +652,10 @@ function CampanhasContent() {
                         ` → ${new Date(campaign.end_date).toLocaleDateString("pt-BR")}`}
                     </td>
                     {/* Feature #5: Budget bar */}
-                    <td className="hidden px-4 py-3 lg:table-cell">
+                    <td className={`hidden px-4 ${rowPadding} lg:table-cell`}>
                       <BudgetBar budget={campaign.budget} spent={campaign.spent} />
                     </td>
-                    <td className="hidden px-4 py-3 lg:table-cell">
+                    <td className={`hidden px-4 ${rowPadding} lg:table-cell`}>
                       <div className="flex gap-1 flex-wrap">
                         {campaign.channels.slice(0, 3).map((ch) => (
                           <Badge key={ch} variant="outline" className="text-xs">
@@ -415,7 +670,7 @@ function CampanhasContent() {
                       </div>
                     </td>
                     {/* Feature #3 + #13: Delete + Duplicate actions */}
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <td className={`px-4 ${rowPadding}`} onClick={(e) => e.stopPropagation()}>
                       <div className="flex gap-0.5">
                         <button
                           onClick={() => duplicateMutation.mutate(campaign)}
@@ -439,9 +694,16 @@ function CampanhasContent() {
               })}
             </tbody>
           </table>
-          <div className="border-t bg-muted/20 px-4 py-2 text-xs text-muted-foreground">
-            {filtered.length} {filtered.length === 1 ? "campanha" : "campanhas"}
-          </div>
+
+          {/* Feature #80 — Pagination */}
+          <DataPagination
+            total={filtered.length}
+            pagination={pagination}
+            onPageChange={(page) => setPagination((p) => ({ ...p, page }))}
+            onPageSizeChange={(pageSize) => setPagination({ page: 1, pageSize })}
+            labelSingular="campanha"
+            labelPlural="campanhas"
+          />
         </div>
       )}
 
@@ -479,6 +741,29 @@ function CampanhasContent() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteMutation.isPending ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Feature #79: Bulk delete confirmation */}
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={(v) => !v && setBulkDeleteOpen(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {selectedIds.size} campanhas?</AlertDialogTitle>
+            <AlertDialogDescription>
+              As campanhas selecionadas serão excluídas permanentemente.
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              disabled={isBulkDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isBulkDeleting ? "Excluindo..." : `Excluir ${selectedIds.size}`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

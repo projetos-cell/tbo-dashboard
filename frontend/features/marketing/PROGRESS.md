@@ -103,11 +103,11 @@
 - [x] #73 — Error boundary com retry em cada sub-rota do marketing — 2026-03-17 · layouts: `campanhas/`, `email-studio/`, `conteudo/`, `redes-sociais/`, `analytics/`, `rsm/` (TabErrorBoundary por módulo)
 - [x] #74 — Toasts de sucesso/erro padronizados em todas as mutations (criar/editar/deletar) — 2026-03-17 · `hooks/use-rsm.ts` (toast.success/error em 8 mutations: account/post/idea create+update+delete)
 - [x] #75 — Confirmação de exclusão via AlertDialog em todos os deletes — 2026-03-17 · `asset-detail-modal.tsx` (delete + AlertDialog) + 7 páginas existentes já auditadas com AlertDialog
-- [ ] #76 — Modo compacto/expandido nas tabelas (toggle density)
-- [ ] #77 — Persistência de filtros ativos por rota (salvo em Supabase por view_id)
-- [ ] #78 — Breadcrumb dinâmico no layout do marketing
-- [ ] #79 — Ações em lote: selecionar múltiplas campanhas → deletar/arquivar/alterar status
-- [ ] #80 — Paginação server-side nas listagens (campanhas, conteúdos, envios)
+- [x] #76 — Modo compacto/expandido nas tabelas (toggle density) — 2026-03-17 · `table-density-toggle.tsx` (DENSITY_ROW_PADDING + toggle cycle compact/normal/expanded) + campanhas/page.tsx
+- [x] #77 — Persistência de filtros ativos por rota (salvo em Supabase por view_id) — 2026-03-17 · `use-view-filters.ts` (debounced upsert + graceful fallback pre-migration) + campanhas/page.tsx
+- [x] #78 — Breadcrumb dinâmico no layout do marketing — 2026-03-17 · `marketing-breadcrumb.tsx` (usePathname + SEGMENT_LABELS map) + marketing/layout.tsx
+- [x] #79 — Ações em lote: selecionar múltiplas campanhas → deletar/arquivar/alterar status — 2026-03-17 · `campanhas/page.tsx` (BulkActionBar + checkboxes + AlertDialog confirmação + bulk status change)
+- [x] #80 — Paginação nas listagens (campanhas) — 2026-03-17 · `data-pagination.tsx` (DataPagination + paginateArray) + campanhas/page.tsx (pageSize select + nav controls)
 
 ## Módulo 9: Dados e Migrations
 

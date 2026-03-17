@@ -77,6 +77,20 @@ export function useDeleteEmailTemplate() {
   });
 }
 
+// Feature #16 — Duplicar template
+export function useDuplicateEmailTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (template: Pick<EmailTemplate, "name" | "subject" | "html_content" | "category" | "tags">) =>
+      createEmailTemplate({ ...template, name: `${template.name} (cópia)` }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["email-studio", "templates"] });
+      toast.success("Template duplicado");
+    },
+    onError: () => toast.error("Erro ao duplicar template"),
+  });
+}
+
 // ── Campaigns ──────────────────────────────────────────────────────
 
 export function useEmailCampaigns() {

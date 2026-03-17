@@ -25,11 +25,11 @@
 
 ## Módulo 2: Email Studio (`/marketing/email-studio`)
 
-- [ ] #16 — Templates: grid de cards com thumbnail preview, nome, categoria, ações (editar/duplicar/excluir)
-- [ ] #17 — Templates: modal criar/editar template com campos nome, assunto, categoria, tags + editor HTML básico
-- [ ] #18 — Templates: filtro por categoria com tabs dinâmicas
-- [ ] #19 — Campanhas Email: modal criar campanha (nome, assunto, template, lista, agendamento)
-- [ ] #20 — Campanhas Email: badge de status com cores por estado (draft/scheduled/sending/sent)
+- [x] #16 — Templates: grid de cards com thumbnail preview, nome, categoria, ações (editar/duplicar/excluir) — 2026-03-17 · `email-studio/templates/page.tsx` (DropdownMenu com edit/duplicate/delete)
+- [x] #17 — Templates: modal criar/editar template com campos nome, assunto, categoria, tags + editor HTML básico — 2026-03-17 · `email-template-form-modal.tsx` (editor HTML textarea + TagsAutocomplete)
+- [x] #18 — Templates: filtro por categoria com tabs dinâmicas — 2026-03-17 · `email-studio/templates/page.tsx` (Tabs derivadas de categorias únicas dos dados)
+- [x] #19 — Campanhas Email: modal criar campanha (nome, assunto, template, lista, agendamento) — 2026-03-17 · `email-campaign-form-modal.tsx` (auto-fill assunto ao selecionar template)
+- [x] #20 — Campanhas Email: badge de status com cores por estado (draft/scheduled/sending/sent) — 2026-03-17 · `email-studio/campanhas/page.tsx` (Badge com bg/color de EMAIL_CAMPAIGN_STATUS + ações pausar/cancelar)
 - [ ] #21 — Campanhas Email: ação de cancelar/pausar campanha com confirmação
 - [ ] #22 — Envios: tabela de histórico de envios com métricas (enviados, entregues, abertos, clicados)
 - [ ] #23 — Envios: barra de progresso de envio em tempo real para campanhas "sending"

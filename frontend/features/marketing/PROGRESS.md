@@ -30,11 +30,11 @@
 - [x] #18 — Templates: filtro por categoria com tabs dinâmicas — 2026-03-17 · `email-studio/templates/page.tsx` (Tabs derivadas de categorias únicas dos dados)
 - [x] #19 — Campanhas Email: modal criar campanha (nome, assunto, template, lista, agendamento) — 2026-03-17 · `email-campaign-form-modal.tsx` (auto-fill assunto ao selecionar template)
 - [x] #20 — Campanhas Email: badge de status com cores por estado (draft/scheduled/sending/sent) — 2026-03-17 · `email-studio/campanhas/page.tsx` (Badge com bg/color de EMAIL_CAMPAIGN_STATUS + ações pausar/cancelar)
-- [ ] #21 — Campanhas Email: ação de cancelar/pausar campanha com confirmação
-- [ ] #22 — Envios: tabela de histórico de envios com métricas (enviados, entregues, abertos, clicados)
-- [ ] #23 — Envios: barra de progresso de envio em tempo real para campanhas "sending"
-- [ ] #24 — Analytics Email: KPI cards (open rate, click rate, bounce rate, unsubscribe rate) com benchmarks
-- [ ] #25 — Analytics Email: gráfico de barras de performance por campanha (top 5)
+- [x] #21 — Campanhas Email: ação de cancelar/pausar campanha com confirmação — 2026-03-17 · `email-studio/campanhas/page.tsx` (AlertDialog + confirmAction + optimistic update via useUpdateEmailCampaign)
+- [x] #22 — Envios: tabela de histórico de envios com métricas (enviados, entregues, abertos, clicados) — 2026-03-17 · `email-studio/envios/page.tsx` (colunas: recipient_count, delivered, opened, clicked, open_rate calculado)
+- [x] #23 — Envios: barra de progresso de envio em tempo real para campanhas "sending" — 2026-03-17 · `email-studio/envios/page.tsx` (SendProgressBar + refetchInterval condicional via query.state.data)
+- [x] #24 — Analytics Email: KPI cards (open rate, click rate, bounce rate, unsubscribe rate) com benchmarks — 2026-03-17 · `email-studio/analytics/page.tsx` (KPICard com getBenchmarkStatus + indicadores ArrowUp/Down)
+- [x] #25 — Analytics Email: gráfico de barras de performance por campanha (top 5) — 2026-03-17 · `email-studio/analytics/page.tsx` (BarChart recharts top5 por open_rate + benchmark bar)
 
 ## Módulo 3: Conteúdo (`/marketing/conteudo`)
 

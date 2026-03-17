@@ -111,11 +111,11 @@
 
 ## Módulo 9: Dados e Migrations
 
-- [ ] #81 — Migration: tabela `marketing_campaigns` com RLS
-- [ ] #82 — Migration: tabela `campaign_briefings` com RLS
-- [ ] #83 — Migration: tabela `campaign_pieces` com RLS
-- [ ] #84 — Migration: tabela `campaign_budgets` com RLS
-- [ ] #85 — Migration: tabela `email_templates` com RLS
+- [x] #81 — Migration: tabela `marketing_campaigns` com RLS — 2026-03-17 · `20260317_create_marketing_campaigns.sql` (status enum + owner FK + channels/tags arrays + is_favorited + updated_at trigger)
+- [x] #82 — Migration: tabela `campaign_briefings` com RLS — 2026-03-17 · `20260317_create_campaign_briefings.sql` (UNIQUE campaign_id + status enum + arrays key_messages/deliverables/references + approved_by FK)
+- [x] #83 — Migration: tabela `campaign_pieces` com RLS — 2026-03-17 · `20260317_create_campaign_pieces.sql` (status enum + assigned_to FK + content_item_id para relação bidirecional feature #67)
+- [x] #84 — Migration: tabela `campaign_budgets` com RLS — 2026-03-17 · `20260317_create_campaign_budgets.sql` (planned/actual NUMERIC + trigger sync_campaign_spent → atualiza marketing_campaigns.spent automaticamente)
+- [x] #85 — Migration: tabela `email_templates` com RLS — 2026-03-17 · `20260317_create_email_templates.sql` (tags TEXT[] + GIN index + category + html_content + thumbnail_url)
 - [ ] #86 — Migration: tabela `email_campaigns` com RLS
 - [ ] #87 — Migration: tabela `email_sends` com RLS
 - [ ] #88 — Migration: tabela `content_items` com RLS

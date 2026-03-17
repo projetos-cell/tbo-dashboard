@@ -73,13 +73,28 @@ export function useUpdateMarketingCampaign() {
 
 export function useDeleteMarketingCampaign() {
   const qc = useQueryClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
   return useMutation({
     mutationFn: (id: string) => deleteCampaign(createClient(), id),
+    onMutate: async (id: string) => {
+      await qc.cancelQueries({ queryKey: ["marketing-campaigns", tenantId] });
+      const previous = qc.getQueryData<MarketingCampaign[]>(["marketing-campaigns", tenantId]);
+      qc.setQueryData<MarketingCampaign[]>(
+        ["marketing-campaigns", tenantId],
+        (old) => old?.filter((c) => c.id !== id) ?? [],
+      );
+      return { previous };
+    },
+    onError: (_err, _id, ctx) => {
+      if (ctx?.previous) {
+        qc.setQueryData(["marketing-campaigns", tenantId], ctx.previous);
+      }
+      toast.error("Erro ao excluir campanha");
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["marketing-campaigns"] });
-      toast.success("Campanha excluida");
+      toast.success("Campanha excluída");
     },
-    onError: () => toast.error("Erro ao excluir campanha"),
   });
 }
 

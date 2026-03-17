@@ -11,10 +11,15 @@ import {
   deleteCampaign,
   getCampaignBriefings,
   createCampaignBriefing,
+  updateCampaignBriefing,
   getCampaignPieces,
   createCampaignPiece,
+  updateCampaignPiece,
+  deleteCampaignPiece,
   getCampaignBudget,
   createBudgetItem,
+  updateBudgetItem,
+  deleteBudgetItem,
 } from "../services/marketing-campaigns";
 import type {
   MarketingCampaign,
@@ -122,6 +127,19 @@ export function useCreateCampaignBriefing() {
   });
 }
 
+export function useUpdateCampaignBriefing() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, campaignId, data }: { id: string; campaignId: string; data: Partial<CampaignBriefing> }) =>
+      updateCampaignBriefing(createClient(), id, data),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["marketing-campaigns", variables.campaignId, "briefings"] });
+      toast.success("Briefing atualizado");
+    },
+    onError: () => toast.error("Erro ao atualizar briefing"),
+  });
+}
+
 // ── Pieces ─────────────────────────────────────────────────────────
 
 export function useCampaignPieces(campaignId: string | null) {
@@ -146,6 +164,32 @@ export function useCreateCampaignPiece() {
   });
 }
 
+export function useUpdateCampaignPiece() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, campaignId, data }: { id: string; campaignId: string; data: Partial<CampaignPiece> }) =>
+      updateCampaignPiece(createClient(), id, data),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["marketing-campaigns", variables.campaignId, "pieces"] });
+      toast.success("Peca atualizada");
+    },
+    onError: () => toast.error("Erro ao atualizar peca"),
+  });
+}
+
+export function useDeleteCampaignPiece() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, campaignId }: { id: string; campaignId: string }) =>
+      deleteCampaignPiece(createClient(), id),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["marketing-campaigns", variables.campaignId, "pieces"] });
+      toast.success("Peca excluida");
+    },
+    onError: () => toast.error("Erro ao excluir peca"),
+  });
+}
+
 // ── Budget ─────────────────────────────────────────────────────────
 
 export function useCampaignBudget(campaignId: string | null) {
@@ -167,5 +211,31 @@ export function useCreateBudgetItem() {
       toast.success("Item de budget adicionado");
     },
     onError: () => toast.error("Erro ao adicionar item de budget"),
+  });
+}
+
+export function useUpdateBudgetItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, campaignId, data }: { id: string; campaignId: string; data: Partial<CampaignBudget> }) =>
+      updateBudgetItem(createClient(), id, data),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["marketing-campaigns", variables.campaignId, "budget"] });
+      toast.success("Item atualizado");
+    },
+    onError: () => toast.error("Erro ao atualizar item"),
+  });
+}
+
+export function useDeleteBudgetItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, campaignId }: { id: string; campaignId: string }) =>
+      deleteBudgetItem(createClient(), id),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["marketing-campaigns", variables.campaignId, "budget"] });
+      toast.success("Item removido");
+    },
+    onError: () => toast.error("Erro ao remover item"),
   });
 }

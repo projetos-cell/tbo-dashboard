@@ -149,3 +149,70 @@ export async function createBudgetItem(
   if (error) throw error;
   return data as unknown as CampaignBudget;
 }
+
+// ── Briefing update ─────────────────────────────────────────────────
+
+export async function updateCampaignBriefing(
+  supabase: Client,
+  id: string,
+  updates: Partial<CampaignBriefing>,
+): Promise<CampaignBriefing> {
+  const { data, error } = await (supabase as SupabaseClient)
+    .from("marketing_campaign_briefings")
+    .update(updates as never)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as unknown as CampaignBriefing;
+}
+
+// ── Piece update / delete ───────────────────────────────────────────
+
+export async function updateCampaignPiece(
+  supabase: Client,
+  id: string,
+  updates: Partial<CampaignPiece>,
+): Promise<CampaignPiece> {
+  const { data, error } = await (supabase as SupabaseClient)
+    .from("marketing_campaign_pieces")
+    .update(updates as never)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as unknown as CampaignPiece;
+}
+
+export async function deleteCampaignPiece(supabase: Client, id: string): Promise<void> {
+  const { error } = await (supabase as SupabaseClient)
+    .from("marketing_campaign_pieces")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+}
+
+// ── Budget update / delete ──────────────────────────────────────────
+
+export async function updateBudgetItem(
+  supabase: Client,
+  id: string,
+  updates: Partial<CampaignBudget>,
+): Promise<CampaignBudget> {
+  const { data, error } = await (supabase as SupabaseClient)
+    .from("marketing_campaign_budget")
+    .update(updates as never)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as unknown as CampaignBudget;
+}
+
+export async function deleteBudgetItem(supabase: Client, id: string): Promise<void> {
+  const { error } = await (supabase as SupabaseClient)
+    .from("marketing_campaign_budget")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+}

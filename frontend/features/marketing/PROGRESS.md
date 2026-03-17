@@ -12,11 +12,11 @@
 - [x] #3 — Ação de deletar campanha com AlertDialog de confirmação + optimistic update com rollback — 2026-03-17 · `campanhas/page.tsx` + hook
 - [x] #4 — Filtro por canal (chips multi-select derivados dos dados) na listagem de campanhas — 2026-03-17 · `campanhas/page.tsx`
 - [x] #5 — Indicador de progresso de budget (spent/budget bar com cores: verde/âmbar/vermelho) em cada linha da tabela — 2026-03-17 · `campanhas/page.tsx`
-- [ ] #6 — Briefing: form de criação/edição de briefing com campos objetivo, público, mensagens-chave
-- [ ] #7 — Briefing: fluxo de aprovação (enviar para aprovação → aprovado/revisão) com badge de status
-- [ ] #8 — Peças: listagem de peças da campanha com status kanban (pendente→publicado)
-- [ ] #9 — Peças: criar/editar peça com campos tipo, responsável, prazo
-- [ ] #10 — Budget: tabela de itens de budget (categoria, planejado, realizado, fornecedor) com CRUD inline
+- [x] #6 — Briefing: form de criação/edição de briefing com campos objetivo, público, mensagens-chave — 2026-03-17 · `briefing-form-modal.tsx` + `campanhas/briefing/page.tsx`
+- [x] #7 — Briefing: fluxo de aprovação (enviar para aprovação → aprovado/revisão) com badge de status — 2026-03-17 · `campanhas/briefing/page.tsx` (BriefingCard + updateMutation)
+- [x] #8 — Peças: listagem de peças da campanha com status kanban (pendente→publicado) — 2026-03-17 · `campanhas/pecas/page.tsx` (KanbanColumn)
+- [x] #9 — Peças: criar/editar peça com campos tipo, responsável, prazo — 2026-03-17 · `piece-form-modal.tsx` + `campanhas/pecas/page.tsx`
+- [x] #10 — Budget: tabela de itens de budget (categoria, planejado, realizado, fornecedor) com CRUD inline — 2026-03-17 · `campanhas/budget/page.tsx` (AddRow + EditableRowComponent)
 - [ ] #11 — Budget: gráfico de barras planejado vs realizado por categoria
 - [ ] #12 — Timeline visual de campanhas (Gantt simplificado: nome + barra de datas)
 - [ ] #13 — Duplicar campanha (copia nome + configurações, status = planejamento)

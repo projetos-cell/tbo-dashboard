@@ -12,6 +12,7 @@ import {
   IconTemplate,
   IconCalendarEvent,
   IconPhoto,
+  IconReportAnalytics,
 } from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -99,6 +100,14 @@ const MODULE_CARDS: ModuleCard[] = [
     color: "#22c55e",
     bgClass: "bg-emerald-500/10",
     minRole: "diretoria",
+  },
+  {
+    href: "/marketing/rsm",
+    label: "RSM",
+    description: "Relatório Semanal de Mídias com diagnóstico e recomendações",
+    icon: IconReportAnalytics,
+    color: "#6366f1",
+    bgClass: "bg-indigo-500/10",
   },
 ];
 

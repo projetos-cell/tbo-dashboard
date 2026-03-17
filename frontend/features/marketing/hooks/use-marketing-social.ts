@@ -16,4 +16,6 @@ export {
   useUpdateRsmIdea,
   useDeleteRsmIdea,
   useRsmMetrics,
+  useCreateRsmAccount,
+  useUpdateRsmAccount,
 } from "@/hooks/use-rsm";

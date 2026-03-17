@@ -56,11 +56,11 @@
 
 ## Módulo 4: Redes Sociais (`/marketing/redes-sociais`)
 
-- [ ] #41 — Contas: grid de cards por plataforma (Instagram, Facebook, LinkedIn, etc.) com métricas básicas
-- [ ] #42 — Contas: adicionar/editar conta com campos plataforma, handle, nome, avatar
-- [ ] #43 — Contas: toggle ativo/inativo com optimistic update
-- [ ] #44 — Agendamento: lista de posts agendados com filtro por plataforma e status
-- [ ] #45 — Agendamento: modal criar post (conteúdo, plataforma/conta, mídia URLs, agendamento)
+- [x] #41 — Contas: grid de cards por plataforma (Instagram, Facebook, LinkedIn, etc.) com métricas básicas — 2026-03-17 · `redes-sociais/contas/page.tsx` (header com totais active+followers, cards com ícone/cor por plataforma)
+- [x] #42 — Contas: adicionar/editar conta com campos plataforma, handle, profile_url — 2026-03-17 · `social/social-account-form-modal.tsx` (zodResolver + Select + Input + create/update mutations)
+- [x] #43 — Contas: toggle ativo/inativo com optimistic update — 2026-03-17 · `hooks/use-rsm.ts` (useUpdateRsmAccount + onMutate optimistic + rollback) + Switch no card
+- [x] #44 — Agendamento: lista de posts agendados com filtro por plataforma e status — 2026-03-17 · `redes-sociais/agendamento/page.tsx` (platform chips derivados de accounts + coluna Plataforma lookup)
+- [x] #45 — Agendamento: modal criar post (conteúdo, plataforma/conta, mídia URLs, agendamento) — 2026-03-17 · `social/social-post-form-modal.tsx` (account select + tipo + content + media_urls + scheduled_date)
 - [ ] #46 — Agendamento: calendário de posts agendados (visão semanal)
 - [ ] #47 — Performance: KPIs por plataforma (seguidores, alcance, engajamento, taxa engajamento)
 - [ ] #48 — Performance: gráfico de engajamento por período (seletor 7d/30d/90d)

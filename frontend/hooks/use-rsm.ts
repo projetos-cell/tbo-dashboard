@@ -15,6 +15,8 @@ import {
   createIdea,
   updateIdea,
   deleteIdea,
+  createAccount,
+  updateAccount,
 } from "@/services/rsm";
 import type { Database } from "@/lib/supabase/types";
 
@@ -57,6 +59,41 @@ export function useRsmMetrics(accountId: string) {
     queryFn: () => listMetrics(supabase, accountId),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!accountId,
+  });
+}
+
+export function useCreateRsmAccount() {
+  const supabase = useSupabase();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (a: Database["public"]["Tables"]["rsm_accounts"]["Insert"]) =>
+      createAccount(supabase, a),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["rsm-accounts"] }),
+  });
+}
+
+export function useUpdateRsmAccount() {
+  const supabase = useSupabase();
+  const qc = useQueryClient();
+  type AccountRow = Database["public"]["Tables"]["rsm_accounts"]["Row"];
+  type UpdateVars = { id: string; updates: Database["public"]["Tables"]["rsm_accounts"]["Update"] };
+  type Ctx = { prev: unknown };
+  return useMutation<AccountRow, Error, UpdateVars, Ctx>({
+    mutationFn: (vars: UpdateVars) => updateAccount(supabase, vars.id, vars.updates),
+    onMutate: async (vars: UpdateVars): Promise<Ctx> => {
+      await qc.cancelQueries({ queryKey: ["rsm-accounts"] });
+      const prev = qc.getQueryData(["rsm-accounts"]);
+      qc.setQueryData(
+        ["rsm-accounts"],
+        (old: AccountRow[] | undefined) =>
+          old?.map((a) => (a.id === vars.id ? { ...a, ...vars.updates } : a)) ?? []
+      );
+      return { prev };
+    },
+    onError: (_err: Error, _vars: UpdateVars, ctx: Ctx | undefined) => {
+      if (ctx?.prev) qc.setQueryData(["rsm-accounts"], ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["rsm-accounts"] }),
   });
 }
 

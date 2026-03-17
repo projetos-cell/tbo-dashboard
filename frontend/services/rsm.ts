@@ -168,6 +168,36 @@ export async function listMetrics(
   return (data ?? []) as Database["public"]["Tables"]["rsm_metrics"]["Row"][];
 }
 
+// ── Account mutations ────────────────────────────────────────
+
+export async function createAccount(
+  supabase: SupabaseClient<Database>,
+  account: Database["public"]["Tables"]["rsm_accounts"]["Insert"]
+): Promise<RsmAccountRow> {
+  const { data, error } = await supabase
+    .from("rsm_accounts")
+    .insert(account as never)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as unknown as RsmAccountRow;
+}
+
+export async function updateAccount(
+  supabase: SupabaseClient<Database>,
+  id: string,
+  updates: Database["public"]["Tables"]["rsm_accounts"]["Update"]
+): Promise<RsmAccountRow> {
+  const { data, error } = await supabase
+    .from("rsm_accounts")
+    .update(updates as never)
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as unknown as RsmAccountRow;
+}
+
 // ── KPI helpers (client-side aggregation) ─────────────────────
 
 export interface RsmKPIs {

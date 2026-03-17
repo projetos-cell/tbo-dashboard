@@ -69,11 +69,11 @@
 
 ## Módulo 5: Analytics (`/marketing/analytics`)
 
-- [ ] #51 — Dashboard Analytics: KPI cards consolidados (leads, oportunidades, receita, CAC, ROI)
-- [ ] #52 — Dashboard Analytics: seletor de período (mês atual / últimos 30d / trimestre / custom)
-- [ ] #53 — Funil: visualização de funil de conversão com estágios e taxas
-- [ ] #54 — Funil: comparativo período atual vs anterior para cada estágio
-- [ ] #55 — Funil: tabela detalhada de estágios com valores monetários
+- [x] #51 — Dashboard Analytics: KPI cards consolidados (leads, oportunidades, receita, CAC, ROI) — 2026-03-17 · `analytics/page.tsx` (5 KPICards com trend arrows + change_pct vs período anterior)
+- [x] #52 — Dashboard Analytics: seletor de período (mês atual / últimos 30d / trimestre / custom) — 2026-03-17 · `analytics/page.tsx` (period state + custom date pickers + passa period ao hook)
+- [x] #53 — Funil: visualização de funil de conversão com estágios e taxas — 2026-03-17 · `analytics/funil/page.tsx` (FunnelVisualization trapezoidal + clipPath proporcional + taxa conv entre etapas)
+- [x] #54 — Funil: comparativo período atual vs anterior para cada estágio — 2026-03-17 · `analytics/funil/page.tsx` (period selector + FunnelStage.previous_count/previous_conversion_rate + delta icons)
+- [x] #55 — Funil: tabela detalhada de estágios com valores monetários — 2026-03-17 · `analytics/funil/page.tsx` (FunnelTable com volume + delta + taxa conv + valor monetário + total no footer)
 - [ ] #56 — Atribuição: tabela de canais com leads, oportunidades, receita, custo, ROI
 - [ ] #57 — Atribuição: gráfico de barras de ROI por canal
 - [ ] #58 — Atribuição: filtro por período e canal

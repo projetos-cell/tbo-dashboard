@@ -48,11 +48,11 @@
 - [x] #33 — Briefs: modal criar/editar brief (título, objetivo, público, mensagens, entregáveis, prazo) — 2026-03-17 · `content/brief-form-modal.tsx` (ChipInput para arrays + zodResolver)
 - [x] #34 — Briefs: fluxo aprovação (draft→revisão→aprovado) com campo de feedback — 2026-03-17 · `conteudo/briefs/page.tsx` (AlertDialog + Textarea feedback + useUpdateContentBrief)
 - [x] #35 — Assets: grid de cards de arquivos com thumbnail (imagem) / ícone (outros tipos) — 2026-03-17 · `conteudo/assets/page.tsx` (img tag + onError fallback + filtro por tipo + hover scale)
-- [ ] #36 — Assets: upload de arquivo com drag-drop zone e progresso de upload para Supabase Storage
-- [ ] #37 — Assets: filtro por tipo (imagem/vídeo/doc/outros) e tags
-- [ ] #38 — Assets: modal de detalhe com preview, metadados e botão download/copy URL
-- [ ] #39 — Aprovações: lista de conteúdos pendentes com ação aprovar/rejeitar + campo de feedback
-- [ ] #40 — Aprovações: histórico de aprovações com timeline de status
+- [x] #36 — Assets: upload de arquivo com drag-drop zone e progresso de upload para Supabase Storage — 2026-03-17 · `content/upload-asset-modal.tsx` (DnD zone + Progress por arquivo + Storage upload real)
+- [x] #37 — Assets: filtro por tipo (imagem/vídeo/doc/outros) e tags — 2026-03-17 · `assets/page.tsx` (chips multi-select de tags derivados dos dados)
+- [x] #38 — Assets: modal de detalhe com preview, metadados e botão download/copy URL — 2026-03-17 · `content/asset-detail-modal.tsx` (preview img / ícone + grid de metadados + download + clipboard)
+- [x] #39 — Aprovações: lista de conteúdos pendentes com ação aprovar/rejeitar + campo de feedback — 2026-03-17 · `aprovacoes/page.tsx` (FeedbackDialog com Textarea ao rejeitar/solicitar revisão)
+- [x] #40 — Aprovações: histórico de aprovações com timeline de status — 2026-03-17 · `aprovacoes/page.tsx` (TimelineItem com ícone colorido por status + bubble de feedback)
 
 ## Módulo 4: Redes Sociais (`/marketing/redes-sociais`)
 

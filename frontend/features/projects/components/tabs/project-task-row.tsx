@@ -77,9 +77,11 @@ interface ProjectTaskRowProps {
   customFields?: CustomFieldDef[];
   fieldValues?: Map<string, unknown>;
   onFieldChange?: (taskId: string, fieldId: string, value: unknown) => void;
+  selectedIds?: Set<string>;
+  onClearSelection?: () => void;
 }
 
-export function ProjectTaskRow({ task, subtasks, onSelect, extraColumns = [], sections, columnWidths = {}, customFields, fieldValues, onFieldChange }: ProjectTaskRowProps) {
+export function ProjectTaskRow({ task, subtasks, onSelect, extraColumns = [], sections, columnWidths = {}, customFields, fieldValues, onFieldChange, selectedIds, onClearSelection }: ProjectTaskRowProps) {
   const [expanded, setExpanded] = useState(false);
   const updateTask = useUpdateTask();
   const done = !!task.is_completed;
@@ -139,7 +141,7 @@ export function ProjectTaskRow({ task, subtasks, onSelect, extraColumns = [], se
   const recurrence = ((task as Record<string, unknown>).recurrence ?? "none") as string;
 
   return (
-    <TaskContextMenu task={task} onSelect={onSelect}>
+    <TaskContextMenu task={task} onSelect={onSelect} selectedIds={selectedIds} onClearSelection={onClearSelection}>
     <motion.div
       whileHover={{ y: -1, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
       transition={{ duration: 0.15 }}

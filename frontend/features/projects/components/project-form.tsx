@@ -145,6 +145,7 @@ export function ProjectForm({ open, onOpenChange }: ProjectFormProps) {
         user_id: user.id,
         tenant_id: tenantId,
         granted_by: user.id,
+        role_id: "2faa534a-7672-4931-a071-0a4565b6f8db", // Colaborador (default)
       } as never).single();
     }
 

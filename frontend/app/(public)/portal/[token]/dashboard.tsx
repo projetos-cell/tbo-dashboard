@@ -4,10 +4,10 @@ import { useMemo, useState } from "react";
 import { IconBrandInstagram } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RsmAccountDashboard } from "@/app/(auth)/rsm/[accountId]/_components/rsm-account-dashboard";
-import { RsmPostsDiagnostics } from "@/app/(auth)/rsm/[accountId]/_components/rsm-posts-diagnostics";
-import { RsmRecommendedActions } from "@/app/(auth)/rsm/[accountId]/_components/rsm-recommended-actions";
-import type { RsmAccountRow, RsmMetricRow, RsmPostRow } from "@/app/(auth)/rsm/[accountId]/_components/rsm-helpers";
+import { RsmAccountDashboard } from "@/features/marketing/components/rsm/rsm-account-dashboard";
+import { RsmPostsDiagnostics } from "@/features/marketing/components/rsm/rsm-posts-diagnostics";
+import { RsmRecommendedActions } from "@/features/marketing/components/rsm/rsm-recommended-actions";
+import type { RsmAccountRow, RsmMetricRow, RsmPostRow } from "@/features/marketing/components/rsm/rsm-helpers";
 
 interface Props {
   clientName: string;

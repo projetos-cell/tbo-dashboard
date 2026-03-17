@@ -7,6 +7,7 @@ import {
   OKRS_NAV_ITEMS,
   CULTURA_NAV_ITEMS,
   MERCADO_NAV_ITEMS,
+  MARKETING_NAV_ITEMS,
 } from "@/lib/constants";
 
 /** A single navigation item in the L1 sidebar. */
@@ -61,7 +62,7 @@ export const SIDEBAR_NAV_GROUPS: readonly NavGroup[] = [
       { href: "/okrs", label: "OKRs", icon: "target", module: "okrs", subItems: OKRS_NAV_ITEMS },
       { href: "/mercado", label: "Mercado", icon: "trending-up", module: "mercado", subItems: MERCADO_NAV_ITEMS },
       { href: "/relatorios", label: "Relatórios", icon: "bar-chart-3", module: "relatorios" },
-      { href: "/rsm", label: "Redes Sociais", icon: "share-2", module: "rsm" },
+      { href: "/marketing", label: "Marketing", icon: "speakerphone", module: "marketing", subItems: MARKETING_NAV_ITEMS as unknown as SubNavItem[] },
     ],
   },
   {

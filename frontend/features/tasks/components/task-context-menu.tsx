@@ -41,46 +41,52 @@ interface TaskContextMenuProps {
   task: TaskRow;
   children: ReactNode;
   onSelect?: (id: string) => void;
+  /** When multi-select is active, these IDs will be acted upon instead of just the single task */
+  selectedIds?: Set<string>;
+  onClearSelection?: () => void;
 }
 
-export function TaskContextMenu({ task, children, onSelect }: TaskContextMenuProps) {
+export function TaskContextMenu({ task, children, onSelect, selectedIds, onClearSelection }: TaskContextMenuProps) {
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
   const { toast } = useToast();
   const { data: members } = useTeamMembers({ is_active: true });
   const [deleteOpen, setDeleteOpen] = useState(false);
 
+  // If this task is part of a multi-selection, act on all selected tasks
+  const isBulk = selectedIds && selectedIds.size > 1 && selectedIds.has(task.id);
+  const targetIds = isBulk ? [...selectedIds] : [task.id];
+  const bulkCount = targetIds.length;
+
   const done = !!task.is_completed;
 
+  function mutateAll(updates: Record<string, unknown>) {
+    for (const id of targetIds) {
+      updateTask.mutate({ id, updates });
+    }
+    if (isBulk) {
+      toast({ title: `${bulkCount} tarefas atualizadas` });
+      onClearSelection?.();
+    }
+  }
+
   function handleToggleComplete() {
-    updateTask.mutate({
-      id: task.id,
-      updates: {
-        is_completed: !done,
-        status: !done ? "concluida" : "pendente",
-      },
+    mutateAll({
+      is_completed: !done,
+      status: !done ? "concluida" : "pendente",
     });
   }
 
   function handleSetStatus(status: string) {
-    updateTask.mutate({
-      id: task.id,
-      updates: { status, is_completed: status === "concluida" },
-    });
+    mutateAll({ status, is_completed: status === "concluida" });
   }
 
   function handleSetPriority(priority: string | null) {
-    updateTask.mutate({
-      id: task.id,
-      updates: { priority },
-    });
+    mutateAll({ priority });
   }
 
   function handleSetAssignee(id: string | null, name: string | null) {
-    updateTask.mutate({
-      id: task.id,
-      updates: { assignee_id: id, assignee_name: name },
-    });
+    mutateAll({ assignee_id: id, assignee_name: name });
   }
 
   function handleSetDueDate(offset: "today" | "tomorrow" | "next_week" | "clear") {
@@ -102,10 +108,7 @@ export function TaskContextMenu({ task, children, onSelect }: TaskContextMenuPro
         date = null;
         break;
     }
-    updateTask.mutate({
-      id: task.id,
-      updates: { due_date: date },
-    });
+    mutateAll({ due_date: date });
   }
 
   function handleCopyTitle() {
@@ -120,7 +123,13 @@ export function TaskContextMenu({ task, children, onSelect }: TaskContextMenuPro
   }
 
   function handleDeleteConfirm() {
-    deleteTask.mutate(task.id);
+    for (const id of targetIds) {
+      deleteTask.mutate(id);
+    }
+    if (isBulk) {
+      toast({ title: `${bulkCount} tarefas excluídas` });
+      onClearSelection?.();
+    }
   }
 
   const sortedMembers = useMemo(() => {
@@ -134,8 +143,18 @@ export function TaskContextMenu({ task, children, onSelect }: TaskContextMenuPro
           {children}
         </ContextMenuTrigger>
         <ContextMenuContent className="w-56">
-          {/* Open detail */}
-          {onSelect && (
+          {/* Bulk indicator */}
+          {isBulk && (
+            <>
+              <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                {bulkCount} tarefas selecionadas
+              </div>
+              <ContextMenuSeparator />
+            </>
+          )}
+
+          {/* Open detail (only for single task) */}
+          {onSelect && !isBulk && (
             <>
               <ContextMenuItem onClick={() => onSelect(task.id)} className="gap-2">
                 <IconExternalLink className="size-4" />
@@ -150,12 +169,12 @@ export function TaskContextMenu({ task, children, onSelect }: TaskContextMenuPro
             {done ? (
               <>
                 <IconCircle className="size-4" />
-                Marcar como pendente
+                {isBulk ? `Reabrir ${bulkCount} tarefas` : "Marcar como pendente"}
               </>
             ) : (
               <>
                 <IconCircleCheck className="size-4 text-green-500" />
-                Marcar como concluída
+                {isBulk ? `Concluir ${bulkCount} tarefas` : "Marcar como concluída"}
               </>
             )}
           </ContextMenuItem>
@@ -289,17 +308,20 @@ export function TaskContextMenu({ task, children, onSelect }: TaskContextMenuPro
 
           <ContextMenuSeparator />
 
-          {/* Copy actions */}
-          <ContextMenuItem onClick={handleCopyTitle} className="gap-2">
-            <IconClipboard className="size-4" />
-            Copiar título
-          </ContextMenuItem>
-          <ContextMenuItem onClick={handleCopyLink} className="gap-2">
-            <IconCopy className="size-4" />
-            Copiar link
-          </ContextMenuItem>
-
-          <ContextMenuSeparator />
+          {/* Copy actions (only for single task) */}
+          {!isBulk && (
+            <>
+              <ContextMenuItem onClick={handleCopyTitle} className="gap-2">
+                <IconClipboard className="size-4" />
+                Copiar título
+              </ContextMenuItem>
+              <ContextMenuItem onClick={handleCopyLink} className="gap-2">
+                <IconCopy className="size-4" />
+                Copiar link
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+            </>
+          )}
 
           {/* Delete */}
           <ContextMenuItem
@@ -307,7 +329,7 @@ export function TaskContextMenu({ task, children, onSelect }: TaskContextMenuPro
             className="gap-2 text-red-600 focus:text-red-600"
           >
             <IconTrash className="size-4" />
-            Excluir tarefa
+            {isBulk ? `Excluir ${bulkCount} tarefas` : "Excluir tarefa"}
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
@@ -315,8 +337,12 @@ export function TaskContextMenu({ task, children, onSelect }: TaskContextMenuPro
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Excluir tarefa"
-        description={`Excluir "${task.title}"? Esta ação não pode ser desfeita.`}
+        title={isBulk ? `Excluir ${bulkCount} tarefas` : "Excluir tarefa"}
+        description={
+          isBulk
+            ? `Excluir ${bulkCount} tarefas selecionadas? Esta ação não pode ser desfeita.`
+            : `Excluir "${task.title}"? Esta ação não pode ser desfeita.`
+        }
         confirmLabel="Excluir"
         onConfirm={handleDeleteConfirm}
       />

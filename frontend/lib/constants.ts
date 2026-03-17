@@ -324,7 +324,6 @@ export const NAV_ITEMS = [
   { href: "/chat", label: "Chat", icon: "message-square", module: "chat" },
   { href: "/cultura", label: "Cultura", icon: "heart-handshake", module: "cultura" },
   { href: "/marketing", label: "Marketing", icon: "speakerphone", module: "marketing" },
-  { href: "/rsm", label: "Redes Sociais", icon: "share-2", module: "rsm" },
   { href: "/relatorios", label: "Relatórios", icon: "bar-chart-3", module: "relatorios" },
   { href: "/alerts", label: "Alertas", icon: "bell", module: "alerts" },
   { href: "/portal-cliente", label: "Portal Cliente", icon: "globe", module: "portal-cliente" },

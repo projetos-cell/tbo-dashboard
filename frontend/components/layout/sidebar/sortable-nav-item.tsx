@@ -172,11 +172,6 @@ export const SortableNavItem = memo(function SortableNavItem({
         {...attributes}
         {...listeners}
       >
-        <NavItemDragHandle
-          item={item}
-          isHovered={isHovered}
-          isDragOverlay={isDragOverlay}
-        />
         {/* Spacer to align with chevron of collapsible items */}
         <span className="shrink-0 p-0.5"><span className="inline-block h-3.5 w-3.5" /></span>
         <SidebarMenuButton asChild isActive={isActive} className="pl-0">
@@ -205,11 +200,6 @@ export const SortableNavItem = memo(function SortableNavItem({
         {...attributes}
         {...listeners}
       >
-        <NavItemDragHandle
-          item={item}
-          isHovered={isHovered}
-          isDragOverlay={isDragOverlay}
-        />
         <CollapsibleTrigger asChild>
           <button
             type="button"

@@ -135,6 +135,81 @@ export async function deleteProject(
   if (error) throw error;
 }
 
+// ── Project Members ──────────────────────────────────────────────────────────
+
+export interface ProjectMember {
+  id: string;
+  project_id: string;
+  user_id: string;
+  tenant_id: string;
+  role_id: string;
+  granted_by: string | null;
+  granted_at: string | null;
+  profile?: {
+    id: string;
+    full_name: string | null;
+    avatar_url: string | null;
+    email: string | null;
+  };
+}
+
+export async function getProjectMembers(
+  supabase: SupabaseClient<Database>,
+  projectId: string,
+): Promise<ProjectMember[]> {
+  const { data, error } = await supabase
+    .from("project_memberships")
+    .select("*")
+    .eq("project_id", projectId);
+
+  if (error) throw error;
+
+  const memberships = data ?? [];
+  if (memberships.length === 0) return [];
+
+  // Enrich with profile data
+  const userIds = memberships.map((m) => m.user_id);
+  const { data: profilesData } = await supabase
+    .from("profiles")
+    .select("id, full_name, avatar_url, email")
+    .in("id", userIds);
+
+  const profileMap = new Map(
+    (profilesData ?? []).map((p) => [p.id, p]),
+  );
+
+  return memberships.map((m) => ({
+    ...m,
+    profile: profileMap.get(m.user_id) ?? undefined,
+  })) as ProjectMember[];
+}
+
+export async function addProjectMember(
+  supabase: SupabaseClient<Database>,
+  params: { projectId: string; userId: string; tenantId: string; grantedBy: string },
+): Promise<void> {
+  const { error } = await supabase.from("project_memberships").insert({
+    project_id: params.projectId,
+    user_id: params.userId,
+    tenant_id: params.tenantId,
+    granted_by: params.grantedBy,
+  } as never);
+
+  if (error) throw error;
+}
+
+export async function removeProjectMember(
+  supabase: SupabaseClient<Database>,
+  membershipId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("project_memberships")
+    .delete()
+    .eq("id", membershipId);
+
+  if (error) throw error;
+}
+
 export interface ProjectStats {
   totalTasks: number;
   completedTasks: number;

@@ -200,6 +200,9 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* Divider — separates pinned items from customizable groups */}
+        <div className="mx-3 border-t border-border/40" />
+
         {/* Nav groups with D&D */}
         {isSearching ? (
           // During search, render without D&D (static filtered view)

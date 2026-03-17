@@ -8,6 +8,9 @@ import {
   getProjectById,
   getProjectDemands,
   getProjectStats,
+  getProjectMembers,
+  addProjectMember,
+  removeProjectMember,
   createProject,
   updateProject,
   deleteProject,
@@ -205,6 +208,46 @@ export function useProjectStats(projectId: string) {
     queryFn: () => getProjectStats(supabase, projectId),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId && !!projectId,
+  });
+}
+
+// ── Project Members ──────────────────────────────────────────────────────────
+
+export function useProjectMembers(projectId: string) {
+  const supabase = useSupabase();
+  const tenantId = useTenantId();
+
+  return useQuery({
+    queryKey: ["project-members", projectId],
+    queryFn: () => getProjectMembers(supabase, projectId),
+    staleTime: 1000 * 60 * 5,
+    enabled: !!tenantId && !!projectId,
+  });
+}
+
+export function useAddProjectMember() {
+  const supabase = useSupabase();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: { projectId: string; userId: string; tenantId: string; grantedBy: string }) =>
+      addProjectMember(supabase, params),
+    onSettled: (_data, _err, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["project-members", variables.projectId] });
+    },
+  });
+}
+
+export function useRemoveProjectMember() {
+  const supabase = useSupabase();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ membershipId, projectId }: { membershipId: string; projectId: string }) =>
+      removeProjectMember(supabase, membershipId),
+    onSettled: (_data, _err, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["project-members", variables.projectId] });
+    },
   });
 }
 

@@ -25,7 +25,7 @@ const protectedRoutes = [
   '/templates',
   '/changelog',
   '/configuracoes',
-  '/rsm',
+  '/marketing',
   '/mercado',
   '/relatorios',
   '/alerts',

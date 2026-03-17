@@ -8,9 +8,11 @@ import { ErrorState } from "@/components/shared";
 import { ProjectTopbar, type ProjectTabKey } from "@/features/projects/components/project-topbar";
 import { ProjectOverview } from "@/features/projects/components/tabs/project-overview";
 import { TaskDetailSheet } from "@/features/tasks/components/task-detail-sheet";
-import { useProject } from "@/features/projects/hooks/use-projects";
+import { useProject, useProjectMembers, useAddProjectMember, useRemoveProjectMember } from "@/features/projects/hooks/use-projects";
 import { useProfiles } from "@/features/people/hooks/use-people";
 import { useUser } from "@/hooks/use-user";
+import { useAuthStore } from "@/stores/auth-store";
+import { useToast } from "@/hooks/use-toast";
 import type { UserOption } from "@/components/ui/user-selector";
 import type { MemberInfo } from "@/features/projects/components/member-avatar-stack";
 
@@ -41,6 +43,12 @@ export default function ProjectDetailPage({
   useUser();
   const { data: project, isLoading, error, refetch } = useProject(id);
   const { data: profiles } = useProfiles();
+  const { data: projectMembers } = useProjectMembers(id);
+  const addMember = useAddProjectMember();
+  const removeMember = useRemoveProjectMember();
+  const currentUser = useAuthStore((s) => s.user);
+  const tenantId = useAuthStore((s) => s.tenantId);
+  const { toast } = useToast();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -98,13 +106,55 @@ export default function ProjectDetailPage({
     email: p.email,
   }));
 
-  const members: MemberInfo[] = (profiles || [])
+  // Map user_id → membership_id for removal lookup
+  const membershipMap = new Map(
+    (projectMembers || []).map((pm) => [pm.user_id, pm.id]),
+  );
+
+  // Real project members from project_memberships table (id = user_id for filtering)
+  const members: MemberInfo[] = (projectMembers || [])
+    .map((pm) => ({
+      id: pm.user_id,
+      full_name: pm.profile?.full_name ?? null,
+      avatar_url: pm.profile?.avatar_url ?? null,
+    }))
+    .filter((m) => m.full_name);
+
+  // All profiles for add-member picker
+  const allProfiles: MemberInfo[] = (profiles || [])
     .filter((p) => p.full_name)
     .map((p) => ({
       id: p.id,
       full_name: p.full_name,
       avatar_url: p.avatar_url,
     }));
+
+  const handleAddMember = useCallback(
+    (member: MemberInfo) => {
+      if (!tenantId || !currentUser?.id) return;
+      addMember.mutate(
+        { projectId: id, userId: member.id, tenantId, grantedBy: currentUser.id },
+        {
+          onError: () => toast({ title: "Erro ao adicionar membro", variant: "destructive" }),
+        },
+      );
+    },
+    [id, tenantId, currentUser?.id, addMember, toast],
+  );
+
+  const handleRemoveMember = useCallback(
+    (userId: string) => {
+      const membershipId = membershipMap.get(userId);
+      if (!membershipId) return;
+      removeMember.mutate(
+        { membershipId, projectId: id },
+        {
+          onError: () => toast({ title: "Erro ao remover membro", variant: "destructive" }),
+        },
+      );
+    },
+    [id, membershipMap, removeMember, toast],
+  );
 
   if (isLoading) {
     return (
@@ -160,9 +210,11 @@ export default function ProjectDetailPage({
         project={project}
         users={users}
         members={members}
-        allProfiles={members}
+        allProfiles={allProfiles}
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        onAddMember={handleAddMember}
+        onRemoveMember={handleRemoveMember}
         membersOpen={membersOpen}
         onMembersOpenChange={setMembersOpen}
       />

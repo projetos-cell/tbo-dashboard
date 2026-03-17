@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback, type MouseEvent as ReactMouseEvent } from "react";
 import {
   IconChevronRight,
   IconListCheck,
@@ -56,6 +56,16 @@ import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Sheet,
   SheetContent,
   SheetHeader,
@@ -80,7 +90,7 @@ import {
   useMoveProjectTask,
   useReorderProjectTasks,
 } from "@/features/projects/hooks/use-project-tasks";
-import { useCreateTask } from "@/features/tasks/hooks/use-tasks";
+import { useCreateTask, useDeleteTask } from "@/features/tasks/hooks/use-tasks";
 
 import { useAuthStore } from "@/stores/auth-store";
 import { useUndoStack } from "@/hooks/use-undo-stack";
@@ -96,6 +106,8 @@ import {
 } from "./project-tasks-toolbar";
 import { TASK_STATUS, TASK_PRIORITY, type TaskStatusKey, type TaskPriorityKey } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { useMultiSelect } from "@/hooks/use-multi-select";
+import { SelectionMarquee } from "@/components/shared/selection-marquee";
 import type { Database } from "@/lib/supabase/types";
 import {
   useProjectCustomFields,
@@ -341,6 +353,9 @@ export function ProjectTaskList({
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
   const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
   const [columnOrder, setColumnOrder] = useState<string[]>(COLUMNS.map((c) => c.id));
+
+  // ── Multi-select (Shift+Click + Marquee) ─────────────────────────────────
+  const marqueeContainerRef = useRef<HTMLDivElement>(null);
 
   // P01 — Custom fields per project
   const { data: customFields } = useProjectCustomFields(projectId);
@@ -838,6 +853,55 @@ export function ProjectTaskList({
     return groupTasks(sorted, filters.groupBy, sections ?? undefined);
   }, [filtered, filters.sortField, filters.sortDir, filters.groupBy, sections]);
 
+  // Flat ordered IDs for multi-select range calculation
+  const flatTaskIds = useMemo(
+    () => processed.flatMap((g) => g.items.map((t) => t.id)),
+    [processed],
+  );
+  const multiSelect = useMultiSelect(flatTaskIds);
+
+  // Marquee callback: replace selection with intersected IDs
+  const handleMarqueeSelect = useCallback(
+    (ids: string[]) => {
+      multiSelect.selectRange(ids);
+    },
+    [multiSelect],
+  );
+
+  // Bulk delete
+  const deleteTask = useDeleteTask();
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+
+  const handleBulkDelete = useCallback(() => {
+    const ids = [...multiSelect.selectedIds];
+    if (ids.length === 0) return;
+    for (const id of ids) {
+      deleteTask.mutate(id);
+    }
+    toast({ title: `${ids.length} tarefa${ids.length > 1 ? "s" : ""} excluída${ids.length > 1 ? "s" : ""}` });
+    multiSelect.clearSelection();
+    setConfirmBulkDelete(false);
+  }, [multiSelect, deleteTask, toast]);
+
+  // Keyboard: Escape to clear, Delete/Backspace to delete selected
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger when typing in inputs
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement).isContentEditable) return;
+
+      if (e.key === "Escape" && multiSelect.count > 0) {
+        multiSelect.clearSelection();
+      }
+      if ((e.key === "Delete" || e.key === "Backspace") && multiSelect.count > 0) {
+        e.preventDefault();
+        setConfirmBulkDelete(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [multiSelect]);
+
   const SortIcon = ({ field }: { field: TaskSortField }) => {
     if (filters.sortField !== field) return <IconArrowsSort className="size-3 opacity-0 group-hover:opacity-40" />;
     return filters.sortDir === "asc" ? (
@@ -908,6 +972,59 @@ export function ProjectTaskList({
         onFiltersChange={setFilters}
       />
 
+      {/* Multi-select floating toolbar */}
+      {multiSelect.count > 1 && (
+        <div className="sticky top-0 z-30 flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2 shadow-sm backdrop-blur-sm">
+          <span className="text-sm font-medium">
+            {multiSelect.count} tarefas selecionadas
+          </span>
+          <button
+            type="button"
+            className="flex items-center gap-1 rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-1 text-xs font-medium text-destructive hover:bg-destructive/20 transition-colors"
+            onClick={() => setConfirmBulkDelete(true)}
+          >
+            <IconTrash className="size-3" />
+            Excluir
+          </button>
+          <div className="flex-1" />
+          <button
+            type="button"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            onClick={multiSelect.selectAll}
+          >
+            Selecionar todas ({flatTaskIds.length})
+          </button>
+          <button
+            type="button"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            onClick={multiSelect.clearSelection}
+          >
+            Limpar
+          </button>
+        </div>
+      )}
+
+      {/* Bulk delete confirmation */}
+      <AlertDialog open={confirmBulkDelete} onOpenChange={setConfirmBulkDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {multiSelect.count} tarefas?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. As tarefas selecionadas serão excluídas permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir {multiSelect.count} tarefas
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {filtered.length === 0 && newTaskTitle === null ? (
         <EmptyState
           icon={IconListCheck}
@@ -929,7 +1046,12 @@ export function ProjectTaskList({
           compact
         />
       ) : (
-          <div className="overflow-x-auto rounded-lg border border-border/60">
+          <div ref={marqueeContainerRef} className="relative overflow-x-auto rounded-lg border border-border/60">
+            <SelectionMarquee
+              containerRef={marqueeContainerRef}
+              onSelect={handleMarqueeSelect}
+              enabled={!activeId}
+            />
             {/* Sortable header — outside DndContext to avoid sensor conflicts */}
             <div className="flex items-center gap-0 border-b border-border/60 bg-muted/40 px-3 py-2">
               {/* Drag handle column */}
@@ -1190,6 +1312,10 @@ export function ProjectTaskList({
                             customFields={customFields}
                             fieldValues={fieldValuesMap.get(task.id)}
                             onFieldChange={handleFieldChange}
+                            isSelected={multiSelect.isSelected(task.id)}
+                            onMultiSelectClick={(id, e) => multiSelect.handleClick(id, e)}
+                            selectedIds={multiSelect.count > 1 ? multiSelect.selectedIds : undefined}
+                            onClearSelection={multiSelect.clearSelection}
                           />
                         ))}
                       </SortableContext>
@@ -1293,6 +1419,10 @@ function SortableTaskRow({
   customFields,
   fieldValues,
   onFieldChange,
+  isSelected,
+  onMultiSelectClick,
+  selectedIds,
+  onClearSelection,
 }: {
   task: TaskRow;
   subtasks: TaskRow[];
@@ -1303,6 +1433,10 @@ function SortableTaskRow({
   customFields?: CustomField[];
   fieldValues?: Map<string, unknown>;
   onFieldChange?: (taskId: string, fieldId: string, value: unknown) => void;
+  isSelected?: boolean;
+  onMultiSelectClick?: (id: string, e: ReactMouseEvent) => void;
+  selectedIds?: Set<string>;
+  onClearSelection?: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
@@ -1315,10 +1449,26 @@ function SortableTaskRow({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="flex items-stretch">
+    <div
+      ref={setNodeRef}
+      style={style}
+      data-select-id={task.id}
+      className={cn(
+        "flex items-stretch",
+        isSelected && "bg-primary/5 ring-1 ring-inset ring-primary/20",
+      )}
+      onClick={(e) => {
+        if ((e.shiftKey || e.ctrlKey || e.metaKey) && onMultiSelectClick) {
+          e.preventDefault();
+          e.stopPropagation();
+          onMultiSelectClick(task.id, e);
+        }
+      }}
+    >
       <div
         {...attributes}
         {...listeners}
+        data-drag-handle
         className="flex w-[28px] shrink-0 cursor-grab items-center justify-center text-muted-foreground/30 hover:text-muted-foreground active:cursor-grabbing"
       >
         <IconGripVertical className="size-3.5" />
@@ -1334,6 +1484,8 @@ function SortableTaskRow({
           customFields={customFields}
           fieldValues={fieldValues}
           onFieldChange={onFieldChange}
+          selectedIds={selectedIds}
+          onClearSelection={onClearSelection}
         />
       </div>
     </div>

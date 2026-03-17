@@ -15,7 +15,12 @@ type Client = SupabaseClient<Database>;
 
 // ── KPIs ───────────────────────────────────────────────────────────
 
-export async function getMarketingKPIs(supabase: Client): Promise<MarketingKPI[]> {
+export async function getMarketingKPIs(
+  supabase: Client,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _period?: string,
+): Promise<MarketingKPI[]> {
+  // TODO: filter by _period when marketing_kpis table supports date ranges
   const { data, error } = await (supabase as SupabaseClient)
     .from("marketing_kpis")
     .select("*")
@@ -26,7 +31,12 @@ export async function getMarketingKPIs(supabase: Client): Promise<MarketingKPI[]
 
 // ── Funnel ─────────────────────────────────────────────────────────
 
-export async function getFunnelData(supabase: Client): Promise<FunnelStage[]> {
+export async function getFunnelData(
+  supabase: Client,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _period?: string,
+): Promise<FunnelStage[]> {
+  // TODO: filter by _period when marketing_funnel table supports date ranges
   const { data, error } = await (supabase as SupabaseClient)
     .from("marketing_funnel")
     .select("*")

@@ -14,21 +14,21 @@ import {
 import type { MarketingReport } from "../types/marketing";
 import { toast } from "sonner";
 
-export function useMarketingKPIs() {
+export function useMarketingKPIs(period?: string) {
   const tenantId = useAuthStore((s) => s.tenantId);
   return useQuery({
-    queryKey: ["marketing-kpis", tenantId],
-    queryFn: () => getMarketingKPIs(createClient()),
+    queryKey: ["marketing-kpis", tenantId, period ?? "mes_atual"],
+    queryFn: () => getMarketingKPIs(createClient(), period),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
 }
 
-export function useFunnelData() {
+export function useFunnelData(period?: string) {
   const tenantId = useAuthStore((s) => s.tenantId);
   return useQuery({
-    queryKey: ["marketing-funnel", tenantId],
-    queryFn: () => getFunnelData(createClient()),
+    queryKey: ["marketing-funnel", tenantId, period ?? "mes_atual"],
+    queryFn: () => getFunnelData(createClient(), period),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });

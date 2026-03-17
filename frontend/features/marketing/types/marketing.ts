@@ -291,7 +291,9 @@ export interface MarketingKPI {
 export interface FunnelStage {
   stage: string;
   count: number;
+  previous_count?: number | null;
   conversion_rate: number;
+  previous_conversion_rate?: number | null;
   value: number;
 }
 

@@ -1,8 +1,19 @@
 "use client";
 
 // Feature #10 — Budget: tabela de itens com CRUD inline (categoria, planejado, realizado, fornecedor)
+// Feature #11 — Budget: gráfico de barras planejado vs realizado por categoria
 
 import { useState } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 import {
   IconCurrencyDollar,
   IconPlus,
@@ -12,6 +23,7 @@ import {
   IconX,
   IconTrendingUp,
   IconReceipt,
+  IconChartBar,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -243,11 +255,73 @@ function KPICard({ label, value, icon: Icon, color, isLoading }: { label: string
   );
 }
 
+// Feature #11 — Gráfico de barras planejado vs realizado por categoria
+function BudgetBarChart({ items }: { items: CampaignBudget[] }) {
+  const data = Object.entries(
+    items.reduce<Record<string, { planned: number; actual: number }>>((acc, item) => {
+      if (!acc[item.category]) acc[item.category] = { planned: 0, actual: 0 };
+      acc[item.category]!.planned += item.planned;
+      acc[item.category]!.actual += item.actual;
+      return acc;
+    }, {}),
+  ).map(([category, vals]) => ({
+    category,
+    Planejado: vals.planned / 100,
+    Realizado: vals.actual / 100,
+  }));
+
+  if (data.length === 0) return null;
+
+  return (
+    <div className="rounded-lg border bg-card p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <IconChartBar size={16} className="text-muted-foreground" />
+        <p className="text-sm font-medium">Planejado vs Realizado por Categoria</p>
+      </div>
+      <ResponsiveContainer width="100%" height={240}>
+        <BarChart data={data} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+          <XAxis
+            dataKey="category"
+            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+            tickLine={false}
+            axisLine={false}
+          />
+          <YAxis
+            tickFormatter={(v: number) => `R$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+            tickLine={false}
+            axisLine={false}
+          />
+          <Tooltip
+            formatter={(value: number | undefined) =>
+              value != null
+                ? `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                : "—"
+            }
+            contentStyle={{
+              borderRadius: 8,
+              fontSize: 12,
+              border: "1px solid hsl(var(--border))",
+              background: "hsl(var(--popover))",
+              color: "hsl(var(--popover-foreground))",
+            }}
+          />
+          <Legend wrapperStyle={{ fontSize: 12 }} />
+          <Bar dataKey="Planejado" fill="#3b82f6" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="Realizado" fill="#f59e0b" radius={[3, 3, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 function BudgetContent() {
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
   const [showAddRow, setShowAddRow] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CampaignBudget | null>(null);
+  const [showChart, setShowChart] = useState(false);
 
   const { data: campaigns, isLoading: campaignsLoading } = useMarketingCampaigns();
   const { data: budgetItems, isLoading: budgetLoading, error, refetch } = useCampaignBudget(
@@ -273,9 +347,20 @@ function BudgetContent() {
           <h1 className="text-2xl font-bold tracking-tight">Budget & ROI</h1>
           <p className="text-sm text-muted-foreground">Controle detalhado de orçamento por categoria e fornecedor.</p>
         </div>
-        <Button onClick={() => setShowAddRow(true)} disabled={!selectedCampaignId || showAddRow}>
-          <IconPlus className="mr-1 h-4 w-4" /> Adicionar Item
-        </Button>
+        <div className="flex gap-2">
+          {selectedCampaignId && (budgetItems ?? []).length > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => setShowChart((v) => !v)}
+            >
+              <IconChartBar className="mr-1 h-4 w-4" />
+              {showChart ? "Ocultar gráfico" : "Ver gráfico"}
+            </Button>
+          )}
+          <Button onClick={() => setShowAddRow(true)} disabled={!selectedCampaignId || showAddRow}>
+            <IconPlus className="mr-1 h-4 w-4" /> Adicionar Item
+          </Button>
+        </div>
       </div>
 
       {/* Campaign selector */}
@@ -300,6 +385,11 @@ function BudgetContent() {
           <KPICard label="Saldo" value={fmt(variance)} icon={IconCurrencyDollar} color={variance >= 0 ? "#22c55e" : "#ef4444"} isLoading={budgetLoading} />
           <KPICard label="Utilização" value={`${utilizationPct}%`} icon={IconTrendingUp} color="#8b5cf6" isLoading={budgetLoading} />
         </div>
+      )}
+
+      {/* Feature #11: Gráfico de barras */}
+      {showChart && (budgetItems ?? []).length > 0 && (
+        <BudgetBarChart items={budgetItems ?? []} />
       )}
 
       {/* Content */}

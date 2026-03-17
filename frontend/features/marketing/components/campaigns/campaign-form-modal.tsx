@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -23,14 +23,120 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { IconX } from "@tabler/icons-react";
+import { IconX, IconPlus } from "@tabler/icons-react";
 import {
   useCreateMarketingCampaign,
   useUpdateMarketingCampaign,
+  useMarketingCampaigns,
 } from "../../hooks/use-marketing-campaigns";
 import { MARKETING_CAMPAIGN_STATUS } from "@/lib/constants";
 import type { MarketingCampaign, MarketingCampaignStatus } from "../../types/marketing";
 import { useAuthStore } from "@/stores/auth-store";
+
+// Feature #15 — Tags autocomplete multi-select com tags existentes do tenant
+function TagsAutocomplete({
+  selected,
+  onChange,
+  suggestions,
+}: {
+  selected: string[];
+  onChange: (tags: string[]) => void;
+  suggestions: string[];
+}) {
+  const [input, setInput] = useState("");
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const filtered = suggestions.filter(
+    (t) => t.toLowerCase().includes(input.toLowerCase()) && !selected.includes(t),
+  );
+
+  function addTag(tag: string) {
+    const trimmed = tag.trim();
+    if (trimmed && !selected.includes(trimmed)) {
+      onChange([...selected, trimmed]);
+    }
+    setInput("");
+    setOpen(false);
+  }
+
+  function removeTag(tag: string) {
+    onChange(selected.filter((t) => t !== tag));
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if ((e.key === "Enter" || e.key === ",") && input.trim()) {
+      e.preventDefault();
+      addTag(input);
+    } else if (e.key === "Backspace" && !input && selected.length > 0) {
+      onChange(selected.slice(0, -1));
+    }
+  }
+
+  // Close on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <div className="flex flex-wrap gap-1.5 rounded-md border border-input bg-background px-3 py-2 min-h-10 focus-within:ring-1 focus-within:ring-ring cursor-text" onClick={() => wrapperRef.current?.querySelector("input")?.focus()}>
+        {selected.map((tag) => (
+          <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium">
+            {tag}
+            <button type="button" onClick={() => removeTag(tag)} className="opacity-60 hover:opacity-100">
+              <IconX size={10} />
+            </button>
+          </span>
+        ))}
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => { setInput(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={handleKeyDown}
+          placeholder={selected.length === 0 ? "Adicionar tag..." : ""}
+          className="flex-1 min-w-[80px] bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+        />
+      </div>
+      {open && (filtered.length > 0 || input.trim()) && (
+        <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md">
+          <ul className="max-h-40 overflow-auto py-1">
+            {filtered.slice(0, 8).map((tag) => (
+              <li key={tag}>
+                <button
+                  type="button"
+                  onClick={() => addTag(tag)}
+                  className="w-full px-3 py-1.5 text-left text-sm hover:bg-accent transition-colors"
+                >
+                  {tag}
+                </button>
+              </li>
+            ))}
+            {input.trim() && !suggestions.includes(input.trim()) && !selected.includes(input.trim()) && (
+              <li>
+                <button
+                  type="button"
+                  onClick={() => addTag(input)}
+                  className="w-full px-3 py-1.5 text-left text-sm hover:bg-accent flex items-center gap-1.5 text-primary transition-colors"
+                >
+                  <IconPlus size={12} />
+                  Criar &ldquo;{input.trim()}&rdquo;
+                </button>
+              </li>
+            )}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const CHANNELS = [
   "Instagram",
@@ -79,6 +185,12 @@ export function CampaignFormModal({ open, onClose, campaign }: Props) {
   const createMutation = useCreateMarketingCampaign();
   const updateMutation = useUpdateMarketingCampaign();
   const isEditing = !!campaign;
+
+  // Feature #15: derive existing tags from all campaigns
+  const { data: allCampaigns } = useMarketingCampaigns();
+  const existingTags = Array.from(
+    new Set((allCampaigns ?? []).flatMap((c) => c.tags ?? [])),
+  ).sort();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -301,6 +413,25 @@ export function CampaignFormModal({ open, onClose, campaign }: Props) {
               </div>
             )}
           </div>
+
+          {/* Feature #15: Tags autocomplete */}
+          <FormField
+            control={form.control}
+            name="tags"
+            render={({ field }) => (
+              <div className="space-y-2">
+                <FormLabel>Tags</FormLabel>
+                <TagsAutocomplete
+                  selected={field.value}
+                  onChange={field.onChange}
+                  suggestions={existingTags}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Digite e pressione Enter ou vírgula para adicionar. Selecione tags existentes.
+                </p>
+              </div>
+            )}
+          />
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>

@@ -7,6 +7,8 @@ import {
   IconSpeakerphone,
   IconTrash,
   IconX,
+  IconCopy,
+  IconDownload,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +30,7 @@ import { RequireRole } from "@/features/auth/components/require-role";
 import {
   useMarketingCampaigns,
   useDeleteMarketingCampaign,
+  useDuplicateMarketingCampaign,
 } from "@/features/marketing/hooks/use-marketing-campaigns";
 import { CampaignFormModal } from "@/features/marketing/components/campaigns/campaign-form-modal";
 import { CampaignDetailDrawer } from "@/features/marketing/components/campaigns/campaign-detail-drawer";
@@ -118,6 +121,7 @@ function CampanhasContent() {
 
   const { data: campaigns, isLoading, error, refetch } = useMarketingCampaigns();
   const deleteMutation = useDeleteMarketingCampaign();
+  const duplicateMutation = useDuplicateMarketingCampaign();
 
   // Deriva lista de canais únicos para o filtro
   const allChannels = useMemo(() => {
@@ -160,6 +164,29 @@ function CampanhasContent() {
     setDeleteTarget(null);
   }
 
+  // Feature #14: Export CSV
+  function exportCSV() {
+    const headers = ["Nome", "Status", "Início", "Fim", "Budget (R$)", "Gasto (R$)", "Canais", "Tags"];
+    const rows = filtered.map((c) => [
+      `"${c.name.replace(/"/g, '""')}"`,
+      c.status,
+      c.start_date ? new Date(c.start_date).toLocaleDateString("pt-BR") : "",
+      c.end_date ? new Date(c.end_date).toLocaleDateString("pt-BR") : "",
+      c.budget != null ? (c.budget / 100).toFixed(2) : "",
+      c.spent != null ? (c.spent / 100).toFixed(2) : "",
+      `"${c.channels.join("; ")}"`,
+      `"${c.tags.join("; ")}"`,
+    ]);
+    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `campanhas-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -170,9 +197,16 @@ function CampanhasContent() {
             Timeline de campanhas, briefings, peças e budget.
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <IconPlus className="mr-1 h-4 w-4" /> Nova Campanha
-        </Button>
+        <div className="flex gap-2">
+          {(campaigns ?? []).length > 0 && (
+            <Button variant="outline" onClick={exportCSV}>
+              <IconDownload className="mr-1 h-4 w-4" /> Exportar CSV
+            </Button>
+          )}
+          <Button onClick={() => setCreateOpen(true)}>
+            <IconPlus className="mr-1 h-4 w-4" /> Nova Campanha
+          </Button>
+        </div>
       </div>
 
       {/* KPIs */}
@@ -278,7 +312,7 @@ function CampanhasContent() {
                 <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
                   Canais
                 </th>
-                <th className="px-4 py-3 w-10" />
+                <th className="px-4 py-3 w-20" />
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -336,15 +370,25 @@ function CampanhasContent() {
                         )}
                       </div>
                     </td>
-                    {/* Feature #3: Delete action */}
+                    {/* Feature #3 + #13: Delete + Duplicate actions */}
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => setDeleteTarget(campaign)}
-                        className="rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                        title="Excluir campanha"
-                      >
-                        <IconTrash size={15} />
-                      </button>
+                      <div className="flex gap-0.5">
+                        <button
+                          onClick={() => duplicateMutation.mutate(campaign)}
+                          disabled={duplicateMutation.isPending}
+                          className="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                          title="Duplicar campanha"
+                        >
+                          <IconCopy size={15} />
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(campaign)}
+                          className="rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          title="Excluir campanha"
+                        >
+                          <IconTrash size={15} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

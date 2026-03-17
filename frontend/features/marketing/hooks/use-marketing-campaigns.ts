@@ -103,6 +103,32 @@ export function useDeleteMarketingCampaign() {
   });
 }
 
+export function useDuplicateMarketingCampaign() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (campaign: MarketingCampaign) =>
+      createCampaign(createClient(), {
+        tenant_id: campaign.tenant_id,
+        name: `${campaign.name} (cópia)`,
+        description: campaign.description,
+        status: "planejamento",
+        start_date: null,
+        end_date: null,
+        budget: campaign.budget,
+        spent: null,
+        owner_id: campaign.owner_id,
+        owner_name: campaign.owner_name,
+        channels: campaign.channels,
+        tags: campaign.tags,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["marketing-campaigns"] });
+      toast.success("Campanha duplicada com sucesso");
+    },
+    onError: () => toast.error("Erro ao duplicar campanha"),
+  });
+}
+
 // ── Briefings ──────────────────────────────────────────────────────
 
 export function useCampaignBriefings(campaignId: string | null) {

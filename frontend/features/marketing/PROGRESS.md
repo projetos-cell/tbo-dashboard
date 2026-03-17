@@ -17,11 +17,11 @@
 - [x] #8 — Peças: listagem de peças da campanha com status kanban (pendente→publicado) — 2026-03-17 · `campanhas/pecas/page.tsx` (KanbanColumn)
 - [x] #9 — Peças: criar/editar peça com campos tipo, responsável, prazo — 2026-03-17 · `piece-form-modal.tsx` + `campanhas/pecas/page.tsx`
 - [x] #10 — Budget: tabela de itens de budget (categoria, planejado, realizado, fornecedor) com CRUD inline — 2026-03-17 · `campanhas/budget/page.tsx` (AddRow + EditableRowComponent)
-- [ ] #11 — Budget: gráfico de barras planejado vs realizado por categoria
-- [ ] #12 — Timeline visual de campanhas (Gantt simplificado: nome + barra de datas)
-- [ ] #13 — Duplicar campanha (copia nome + configurações, status = planejamento)
-- [ ] #14 — Export CSV da listagem de campanhas
-- [ ] #15 — Tags: autocomplete multi-select nas campanhas com tags existentes do tenant
+- [x] #11 — Budget: gráfico de barras planejado vs realizado por categoria — 2026-03-17 · `budget/page.tsx` (BudgetBarChart + toggle "Ver gráfico")
+- [x] #12 — Timeline visual de campanhas (Gantt simplificado: nome + barra de datas) — 2026-03-17 · `campanhas/timeline/page.tsx` (GanttRow + MonthHeaders)
+- [x] #13 — Duplicar campanha (copia nome + configurações, status = planejamento) — 2026-03-17 · `useDuplicateMarketingCampaign` hook + IconCopy na tabela
+- [x] #14 — Export CSV da listagem de campanhas — 2026-03-17 · `campanhas/page.tsx` (exportCSV + botão "Exportar CSV")
+- [x] #15 — Tags: autocomplete multi-select nas campanhas com tags existentes do tenant — 2026-03-17 · `campaign-form-modal.tsx` (TagsAutocomplete component)
 
 ## Módulo 2: Email Studio (`/marketing/email-studio`)
 

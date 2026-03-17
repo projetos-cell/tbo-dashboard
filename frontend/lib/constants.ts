@@ -323,6 +323,7 @@ export const NAV_ITEMS = [
   { href: "/okrs", label: "OKRs", icon: "target", module: "okrs" },
   { href: "/chat", label: "Chat", icon: "message-square", module: "chat" },
   { href: "/cultura", label: "Cultura", icon: "heart-handshake", module: "cultura" },
+  { href: "/marketing", label: "Marketing", icon: "speakerphone", module: "marketing" },
   { href: "/rsm", label: "Redes Sociais", icon: "share-2", module: "rsm" },
   { href: "/relatorios", label: "Relatórios", icon: "bar-chart-3", module: "relatorios" },
   { href: "/alerts", label: "Alertas", icon: "bell", module: "alerts" },
@@ -600,4 +601,51 @@ export const MERCADO_NAV_ITEMS: readonly SubNavItem[] = [
   { href: "/mercado/censo", label: "Censo IBGE", icon: "map-pin" },
   { href: "/mercado/lancamentos", label: "Lançamentos", icon: "building-2" },
   { href: "/mercado/indicadores", label: "Indicadores", icon: "trending-up" },
+] as const;
+
+// ─── Marketing module ───────────────────────────────────────────────
+
+export const MARKETING_CAMPAIGN_STATUS = {
+  planejamento: { label: "Planejamento", color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
+  briefing: { label: "Briefing", color: "#6366f1", bg: "rgba(99,102,241,0.12)" },
+  em_producao: { label: "Em Producao", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
+  ativa: { label: "Ativa", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  pausada: { label: "Pausada", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+  finalizada: { label: "Finalizada", color: "#9ca3af", bg: "rgba(156,163,175,0.12)" },
+  cancelada: { label: "Cancelada", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+} as const;
+
+export type MarketingCampaignStatusKey = keyof typeof MARKETING_CAMPAIGN_STATUS;
+
+export const MARKETING_CONTENT_STATUS = {
+  ideia: { label: "Ideia", color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
+  briefing: { label: "Briefing", color: "#6366f1", bg: "rgba(99,102,241,0.12)" },
+  em_producao: { label: "Em Producao", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
+  revisao: { label: "Revisao", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+  aprovado: { label: "Aprovado", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  agendado: { label: "Agendado", color: "#8b5cf6", bg: "rgba(139,92,246,0.12)" },
+  publicado: { label: "Publicado", color: "#0ea5e9", bg: "rgba(14,165,233,0.12)" },
+  arquivado: { label: "Arquivado", color: "#9ca3af", bg: "rgba(156,163,175,0.12)" },
+} as const;
+
+export type MarketingContentStatusKey = keyof typeof MARKETING_CONTENT_STATUS;
+
+export const EMAIL_CAMPAIGN_STATUS = {
+  draft: { label: "Rascunho", color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
+  scheduled: { label: "Agendada", color: "#8b5cf6", bg: "rgba(139,92,246,0.12)" },
+  sending: { label: "Enviando", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
+  sent: { label: "Enviada", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  paused: { label: "Pausada", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+  cancelled: { label: "Cancelada", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+} as const;
+
+export type EmailCampaignStatusKey = keyof typeof EMAIL_CAMPAIGN_STATUS;
+
+export const MARKETING_NAV_ITEMS: readonly SubNavItem[] = [
+  { href: "/marketing", label: "Visao Geral", icon: "layout-dashboard" },
+  { href: "/marketing/email-studio", label: "Email Studio", icon: "mail" },
+  { href: "/marketing/conteudo", label: "Conteudo", icon: "pencil" },
+  { href: "/marketing/redes-sociais", label: "Redes Sociais", icon: "brand-instagram" },
+  { href: "/marketing/campanhas", label: "Campanhas", icon: "speakerphone" },
+  { href: "/marketing/analytics", label: "Analytics", icon: "chart-bar", min_role: "diretoria" },
 ] as const;

@@ -19,6 +19,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { useMarketingCampaigns } from "@/features/marketing/hooks/use-marketing-campaigns";
 import { useContentItems } from "@/features/marketing/hooks/use-marketing-content";
+import { MarketingApprovalsBadge } from "@/features/marketing/components/marketing-approvals-badge";
+import { MarketingGlobalSearch } from "@/features/marketing/components/marketing-global-search";
 
 function KPICard({
   label,
@@ -124,12 +126,19 @@ function MarketingPageContent() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Marketing</h1>
-        <p className="text-muted-foreground mt-1">
-          Central de marketing: email, conteudo, redes sociais, campanhas e analytics.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Marketing</h1>
+          <p className="text-muted-foreground mt-1">
+            Central de marketing: email, conteudo, redes sociais, campanhas e analytics.
+          </p>
+        </div>
+        {/* Feature #69 — busca global */}
+        <MarketingGlobalSearch />
       </div>
+
+      {/* Feature #68 — badge de aprovações pendentes */}
+      <MarketingApprovalsBadge />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">

@@ -9,6 +9,8 @@ import {
   IconX,
   IconCopy,
   IconDownload,
+  IconStar,
+  IconStarFilled,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +33,7 @@ import {
   useMarketingCampaigns,
   useDeleteMarketingCampaign,
   useDuplicateMarketingCampaign,
+  useToggleFavoriteCampaign,
 } from "@/features/marketing/hooks/use-marketing-campaigns";
 import { CampaignFormModal } from "@/features/marketing/components/campaigns/campaign-form-modal";
 import { CampaignDetailDrawer } from "@/features/marketing/components/campaigns/campaign-detail-drawer";
@@ -114,6 +117,8 @@ function CampanhasContent() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<MarketingCampaignStatus | "all">("all");
   const [channelFilter, setChannelFilter] = useState<string[]>([]);
+  // Feature #70 — filtro de favoritos
+  const [favoritosOnly, setFavoritosOnly] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<MarketingCampaign | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -122,6 +127,7 @@ function CampanhasContent() {
   const { data: campaigns, isLoading, error, refetch } = useMarketingCampaigns();
   const deleteMutation = useDeleteMarketingCampaign();
   const duplicateMutation = useDuplicateMarketingCampaign();
+  const favoriteMutation = useToggleFavoriteCampaign();
 
   // Deriva lista de canais únicos para o filtro
   const allChannels = useMemo(() => {
@@ -136,11 +142,13 @@ function CampanhasContent() {
         if (statusFilter !== "all" && c.status !== statusFilter) return false;
         if (channelFilter.length > 0 && !channelFilter.some((ch) => c.channels.includes(ch)))
           return false;
+        // Feature #70 — filter by favorites
+        if (favoritosOnly && !c.is_favorited) return false;
         if (!search) return true;
         const q = search.toLowerCase();
         return c.name.toLowerCase().includes(q) || c.description?.toLowerCase().includes(q);
       }),
-    [campaigns, statusFilter, channelFilter, search],
+    [campaigns, statusFilter, channelFilter, search, favoritosOnly],
   );
 
   const active = (campaigns ?? []).filter((c) => c.status === "ativa").length;
@@ -241,6 +249,23 @@ function CampanhasContent() {
               ))}
             </TabsList>
           </Tabs>
+          {/* Feature #70 — filtro de favoritos */}
+          <button
+            type="button"
+            onClick={() => setFavoritosOnly((v) => !v)}
+            className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+              favoritosOnly
+                ? "border-amber-400 bg-amber-400/10 text-amber-600 dark:text-amber-400"
+                : "border-border text-muted-foreground hover:border-amber-300 hover:text-amber-500"
+            }`}
+          >
+            {favoritosOnly ? (
+              <IconStarFilled className="h-3.5 w-3.5 text-amber-500" />
+            ) : (
+              <IconStar className="h-3.5 w-3.5" />
+            )}
+            Favoritos
+          </button>
           <div className="relative max-w-xs flex-1">
             <IconSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -301,6 +326,7 @@ function CampanhasContent() {
           <table className="w-full text-sm">
             <thead className="bg-muted/40">
               <tr>
+                <th className="w-8 px-2 py-3" />
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Campanha</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
                 <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
@@ -325,6 +351,26 @@ function CampanhasContent() {
                     className="cursor-pointer hover:bg-muted/30 transition-colors"
                     onClick={() => openDrawer(campaign)}
                   >
+                    {/* Feature #70 — star icon */}
+                    <td className="px-2 py-3" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          favoriteMutation.mutate({
+                            id: campaign.id,
+                            is_favorited: !campaign.is_favorited,
+                          })
+                        }
+                        className="rounded p-1 transition-colors hover:bg-amber-500/10"
+                        title={campaign.is_favorited ? "Remover favorito" : "Favoritar"}
+                      >
+                        {campaign.is_favorited ? (
+                          <IconStarFilled className="h-4 w-4 text-amber-500" />
+                        ) : (
+                          <IconStar className="h-4 w-4 text-muted-foreground/40 hover:text-amber-400" />
+                        )}
+                      </button>
+                    </td>
                     <td className="px-4 py-3">
                       <p className="font-medium">{campaign.name}</p>
                       {campaign.description && (

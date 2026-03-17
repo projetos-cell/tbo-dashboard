@@ -103,6 +103,35 @@ export function useDeleteMarketingCampaign() {
   });
 }
 
+// Feature #70 — Favoritar campanha com optimistic update
+export function useToggleFavoriteCampaign() {
+  const qc = useQueryClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
+  return useMutation({
+    mutationFn: ({ id, is_favorited }: { id: string; is_favorited: boolean }) =>
+      updateCampaign(createClient(), id, { is_favorited }),
+    onMutate: async ({ id, is_favorited }) => {
+      await qc.cancelQueries({ queryKey: ["marketing-campaigns", tenantId] });
+      const previous = qc.getQueryData<MarketingCampaign[]>(["marketing-campaigns", tenantId]);
+      qc.setQueryData<MarketingCampaign[]>(
+        ["marketing-campaigns", tenantId],
+        (old) => old?.map((c) => c.id === id ? { ...c, is_favorited } : c) ?? [],
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) {
+        qc.setQueryData(["marketing-campaigns", tenantId], ctx.previous);
+      }
+      toast.error("Erro ao atualizar favorito");
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["marketing-campaigns"] });
+      toast.success(vars.is_favorited ? "Campanha favoritada" : "Favorito removido");
+    },
+  });
+}
+
 export function useDuplicateMarketingCampaign() {
   const qc = useQueryClient();
   return useMutation({

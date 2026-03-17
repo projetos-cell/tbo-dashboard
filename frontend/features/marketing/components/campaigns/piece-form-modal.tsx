@@ -27,6 +27,7 @@ import {
   useCreateCampaignPiece,
   useUpdateCampaignPiece,
 } from "../../hooks/use-marketing-campaigns";
+import { useContentItems } from "../../hooks/use-marketing-content";
 import type { CampaignPiece } from "../../types/marketing";
 
 const PIECE_TYPES = [
@@ -58,6 +59,8 @@ const schema = z.object({
   assigned_to: z.string().max(100).optional(),
   due_date: z.string().optional(),
   file_url: z.string().url("URL inválida").optional().or(z.literal("")),
+  // Feature #67 — vincular a content item
+  content_item_id: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -72,6 +75,7 @@ interface Props {
 export function PieceFormModal({ open, onClose, campaignId, piece }: Props) {
   const createMutation = useCreateCampaignPiece();
   const updateMutation = useUpdateCampaignPiece();
+  const { data: contentItems } = useContentItems();
   const isEditing = !!piece;
 
   const form = useForm<FormValues>({
@@ -83,6 +87,7 @@ export function PieceFormModal({ open, onClose, campaignId, piece }: Props) {
       assigned_to: "",
       due_date: "",
       file_url: "",
+      content_item_id: "",
     },
   });
 
@@ -95,9 +100,10 @@ export function PieceFormModal({ open, onClose, campaignId, piece }: Props) {
         assigned_to: piece.assigned_to ?? "",
         due_date: piece.due_date?.split("T")[0] ?? "",
         file_url: piece.file_url ?? "",
+        content_item_id: piece.content_item_id ?? "",
       });
     } else {
-      form.reset({ name: "", type: "banner", status: "pendente", assigned_to: "", due_date: "", file_url: "" });
+      form.reset({ name: "", type: "banner", status: "pendente", assigned_to: "", due_date: "", file_url: "", content_item_id: "" });
     }
   }, [piece, form, open]);
 
@@ -110,6 +116,7 @@ export function PieceFormModal({ open, onClose, campaignId, piece }: Props) {
       assigned_to: values.assigned_to || null,
       due_date: values.due_date || null,
       file_url: values.file_url || null,
+      content_item_id: values.content_item_id || null,
     };
     if (isEditing && piece) {
       await updateMutation.mutateAsync({ id: piece.id, campaignId, data: payload });
@@ -214,6 +221,27 @@ export function PieceFormModal({ open, onClose, campaignId, piece }: Props) {
               <FormItem>
                 <FormLabel>URL do arquivo</FormLabel>
                 <Input placeholder="https://..." {...field} value={field.value ?? ""} />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Feature #67 — vincular a content item */}
+          <FormField
+            control={form.control}
+            name="content_item_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Conteúdo vinculado</FormLabel>
+                <Select value={field.value ?? ""} onValueChange={field.onChange}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar conteúdo..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Nenhum</SelectItem>
+                    {(contentItems ?? []).map((ci) => (
+                      <SelectItem key={ci.id} value={ci.id}>{ci.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}

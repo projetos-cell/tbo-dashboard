@@ -90,11 +90,11 @@
 
 ## Módulo 7: Integrações e Cross-módulo
 
-- [ ] #66 — Vincular conteúdo a campanha (select de campanha no form de conteúdo com dados reais)
-- [ ] #67 — Vincular peça de campanha a content item (relação bidirecional)
-- [ ] #68 — Notificações in-app para aprovações pendentes (badge no nav + toast)
-- [ ] #69 — Busca global dentro do módulo marketing (campanhas + conteúdos + posts)
-- [ ] #70 — Favoritar campanhas (star icon + filtro "favoritos")
+- [x] #66 — Vincular conteúdo a campanha (select de campanha no form de conteúdo com dados reais) — 2026-03-17 · `conteudo/page.tsx` (campaignMap + coluna Campanha + chips de filtro por campanha)
+- [x] #67 — Vincular peça de campanha a content item (relação bidirecional) — 2026-03-17 · `types/marketing.ts` (content_item_id em CampaignPiece) + `piece-form-modal.tsx` (select de conteúdo)
+- [x] #68 — Notificações in-app para aprovações pendentes (badge no nav + toast) — 2026-03-17 · `marketing-approvals-badge.tsx` + `marketing/page.tsx` (toast com useEffect + banner âmbar)
+- [x] #69 — Busca global dentro do módulo marketing (campanhas + conteúdos + posts) — 2026-03-17 · `marketing-global-search.tsx` (popover com resultados agrupados por tipo) + `marketing/page.tsx`
+- [x] #70 — Favoritar campanhas (star icon + filtro "favoritos") — 2026-03-17 · `useToggleFavoriteCampaign` (optimistic update) + `campanhas/page.tsx` (star icon + botão filtro Favoritos)
 
 ## Módulo 8: UX / Componentes Transversais
 

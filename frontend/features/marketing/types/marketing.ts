@@ -84,6 +84,8 @@ export interface MarketingCampaign {
   owner_name: string | null;
   channels: string[];
   tags: string[];
+  /** Feature #70 — favoritar campanha */
+  is_favorited?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -121,6 +123,8 @@ export interface CampaignPiece {
   file_url: string | null;
   assigned_to: string | null;
   due_date: string | null;
+  /** Feature #67 — relação bidirecional com ContentItem */
+  content_item_id: string | null;
   created_at: string;
   updated_at: string;
 }

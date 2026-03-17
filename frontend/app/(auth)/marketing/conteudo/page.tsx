@@ -2,8 +2,9 @@
 
 // Features #27 — filtro combinado tipo + status + canal com chips de filtro ativo
 // Feature #28 — inline status update (clicar no badge → dropdown de status)
+// Feature #66 — campanha vinculada exibida na listagem + filtro por campanha
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   IconCalendarEvent,
@@ -47,6 +48,7 @@ import {
   useDeleteContentItem,
 } from "@/features/marketing/hooks/use-marketing-content";
 import { ContentItemFormModal } from "@/features/marketing/components/content/content-item-form-modal";
+import { useMarketingCampaigns } from "@/features/marketing/hooks/use-marketing-campaigns";
 import { MARKETING_CONTENT_STATUS } from "@/lib/constants";
 import type { ContentItem, ContentStatus, ContentType } from "@/features/marketing/types/marketing";
 
@@ -166,12 +168,21 @@ function ConteudoContent() {
   const [filterTypes, setFilterTypes] = useState<ContentType[]>([]);
   const [filterStatuses, setFilterStatuses] = useState<ContentStatus[]>([]);
   const [filterChannels, setFilterChannels] = useState<string[]>([]);
+  // Feature #66 — filter by campaign
+  const [filterCampaigns, setFilterCampaigns] = useState<string[]>([]);
 
   const { data: items, isLoading: l1, error: e1, refetch } = useContentItems();
   const { data: briefs, isLoading: l2 } = useContentBriefs();
   const { data: assets, isLoading: l3 } = useContentAssets();
   const { data: approvals, isLoading: l4 } = useContentApprovals();
+  const { data: campaigns } = useMarketingCampaigns();
   const deleteMutation = useDeleteContentItem();
+
+  // Feature #66 — campaign name lookup map
+  const campaignMap = useMemo(
+    () => new Map((campaigns ?? []).map((c) => [c.id, c.name])),
+    [campaigns],
+  );
 
   const isLoading = l1 || l2 || l3 || l4;
   const pending = approvals?.filter((a) => a.status === "pending").length ?? 0;
@@ -185,10 +196,16 @@ function ConteudoContent() {
     if (filterTypes.length && !filterTypes.includes(i.type)) return false;
     if (filterStatuses.length && !filterStatuses.includes(i.status)) return false;
     if (filterChannels.length && !filterChannels.includes(i.channel ?? "")) return false;
+    // Feature #66 — filter by campaign
+    if (filterCampaigns.length && !filterCampaigns.includes(i.campaign_id ?? "")) return false;
     return true;
   });
 
-  const hasActiveFilters = filterTypes.length > 0 || filterStatuses.length > 0 || filterChannels.length > 0;
+  const hasActiveFilters =
+    filterTypes.length > 0 ||
+    filterStatuses.length > 0 ||
+    filterChannels.length > 0 ||
+    filterCampaigns.length > 0;
 
   const toggleType = (t: ContentType) =>
     setFilterTypes((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
@@ -198,6 +215,9 @@ function ConteudoContent() {
 
   const toggleChannel = (c: string) =>
     setFilterChannels((prev) => prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]);
+
+  const toggleCampaign = (id: string) =>
+    setFilterCampaigns((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
 
   return (
     <div className="space-y-6">
@@ -254,6 +274,7 @@ function ConteudoContent() {
                 setFilterTypes([]);
                 setFilterStatuses([]);
                 setFilterChannels([]);
+                setFilterCampaigns([]);
               }}
             >
               <IconX className="h-3 w-3" /> Limpar filtros
@@ -290,6 +311,18 @@ function ConteudoContent() {
                 onRemove={() => toggleChannel(c)}
               />
             ))}
+            {/* Feature #66 — chips de campanha */}
+            {(campaigns ?? [])
+              .filter((c) => (items ?? []).some((i) => i.campaign_id === c.id))
+              .map((c) => (
+                <FilterChip
+                  key={c.id}
+                  label={`📣 ${c.name}`}
+                  active={filterCampaigns.includes(c.id)}
+                  onToggle={() => toggleCampaign(c.id)}
+                  onRemove={() => toggleCampaign(c.id)}
+                />
+              ))}
           </div>
         )}
       </div>
@@ -327,6 +360,7 @@ function ConteudoContent() {
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Canal</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Data</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden xl:table-cell">Campanha</th>
                 <th className="w-20 px-4 py-3" />
               </tr>
             </thead>
@@ -357,6 +391,16 @@ function ConteudoContent() {
                     {item.scheduled_date
                       ? new Date(item.scheduled_date).toLocaleDateString("pt-BR")
                       : "—"}
+                  </td>
+                  {/* Feature #66 — campanha vinculada */}
+                  <td className="px-4 py-3 hidden xl:table-cell">
+                    {item.campaign_id ? (
+                      <Badge variant="outline" className="text-xs font-normal truncate max-w-[120px]">
+                        {campaignMap.get(item.campaign_id) ?? "Campanha"}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

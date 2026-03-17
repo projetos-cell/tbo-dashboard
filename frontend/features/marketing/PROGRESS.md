@@ -38,11 +38,11 @@
 
 ## Módulo 3: Conteúdo (`/marketing/conteudo`)
 
-- [ ] #26 — Conteúdo: modal criar/editar item (título, tipo, status, canal, data agendada, autor, campanha, tags)
-- [ ] #27 — Conteúdo: filtro combinado tipo + status + canal com chips de filtro ativo
-- [ ] #28 — Conteúdo: inline status update (clicar no badge → dropdown de status)
-- [ ] #29 — Calendário: visão mensal real (grid 7×5 com items posicionados por data)
-- [ ] #30 — Calendário: drag-and-drop de conteúdos entre dias para reagendar
+- [x] #26 — Conteúdo: modal criar/editar item (título, tipo, status, canal, data agendada, autor, campanha, tags) — 2026-03-17 · `content/content-item-form-modal.tsx`
+- [x] #27 — Conteúdo: filtro combinado tipo + status + canal com chips de filtro ativo — 2026-03-17 · `conteudo/page.tsx` (FilterChip + filtros derivados dos dados)
+- [x] #28 — Conteúdo: inline status update (clicar no badge → dropdown de status) — 2026-03-17 · `conteudo/page.tsx` (InlineStatusBadge + DropdownMenu)
+- [x] #29 — Calendário: visão mensal real (grid 7×5 com items posicionados por data) — 2026-03-17 · `conteudo/calendario/page.tsx` (buildCalendarDays + DroppableCell)
+- [x] #30 — Calendário: drag-and-drop de conteúdos entre dias para reagendar — 2026-03-17 · `content/calendar-dnd.tsx` + DndContext optimistic update + rollback
 - [ ] #31 — Calendário: mini-card de conteúdo no dia com cor por canal
 - [ ] #32 — Briefs: listagem com status e KPIs (total, aprovados, em revisão)
 - [ ] #33 — Briefs: modal criar/editar brief (título, objetivo, público, mensagens, entregáveis, prazo)

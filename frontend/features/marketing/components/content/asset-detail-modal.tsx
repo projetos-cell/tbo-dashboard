@@ -1,6 +1,7 @@
 "use client";
 
 // Feature #38 — Modal de detalhe com preview, metadados, download e copy URL
+// Feature #75 — Delete com AlertDialog de confirmação
 
 import { useState } from "react";
 import {
@@ -10,12 +11,24 @@ import {
   IconFile,
   IconVideo,
   IconFileText,
+  IconTrash,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { useDeleteContentAsset } from "@/features/marketing/hooks/use-marketing-content";
 import type { ContentAsset } from "@/features/marketing/types/marketing";
 
 interface AssetDetailModalProps {
@@ -42,6 +55,8 @@ function getFileIcon(fileType: string): React.ElementType {
 
 export function AssetDetailModal({ asset, onClose }: AssetDetailModalProps) {
   const [copied, setCopied] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const deleteMutation = useDeleteContentAsset();
 
   if (!asset) return null;
 
@@ -71,6 +86,7 @@ export function AssetDetailModal({ asset, onClose }: AssetDetailModalProps) {
   };
 
   return (
+    <>
     <Dialog open={!!asset} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
@@ -144,8 +160,45 @@ export function AssetDetailModal({ asset, onClose }: AssetDetailModalProps) {
             )}
             {copied ? "Copiado!" : "Copiar URL"}
           </Button>
+          {/* Feature #75 — Delete com AlertDialog */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            title="Excluir asset"
+            onClick={() => setConfirmDelete(true)}
+          >
+            <IconTrash className="size-4" />
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Feature #75 — AlertDialog de confirmação de exclusão */}
+    <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Excluir asset?</AlertDialogTitle>
+          <AlertDialogDescription>
+            O arquivo <strong>{asset.name}</strong> será removido permanentemente.
+            Esta ação não pode ser desfeita.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={async () => {
+              await deleteMutation.mutateAsync(asset.id);
+              setConfirmDelete(false);
+              onClose();
+            }}
+          >
+            {deleteMutation.isPending ? "Excluindo..." : "Excluir"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

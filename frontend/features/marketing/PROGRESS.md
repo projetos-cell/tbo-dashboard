@@ -98,11 +98,11 @@
 
 ## Módulo 8: UX / Componentes Transversais
 
-- [ ] #71 — Skeleton content-aware para cards de campanha (reflete layout real)
-- [ ] #72 — Empty state com CTA em todas as listagens sem dados
-- [ ] #73 — Error boundary com retry em cada sub-rota do marketing
-- [ ] #74 — Toasts de sucesso/erro padronizados em todas as mutations (criar/editar/deletar)
-- [ ] #75 — Confirmação de exclusão via AlertDialog em todos os deletes
+- [x] #71 — Skeleton content-aware para cards de campanha (reflete layout real) — 2026-03-17 · `campaign-table-skeleton.tsx` (CampaignTableSkeleton + CardGridSkeleton + ListSkeleton)
+- [x] #72 — Empty state com CTA em todas as listagens sem dados — 2026-03-17 · `analytics/page.tsx` (ErrorState + EmptyState adicionados) + 20 rotas auditadas com EmptyState
+- [x] #73 — Error boundary com retry em cada sub-rota do marketing — 2026-03-17 · layouts: `campanhas/`, `email-studio/`, `conteudo/`, `redes-sociais/`, `analytics/`, `rsm/` (TabErrorBoundary por módulo)
+- [x] #74 — Toasts de sucesso/erro padronizados em todas as mutations (criar/editar/deletar) — 2026-03-17 · `hooks/use-rsm.ts` (toast.success/error em 8 mutations: account/post/idea create+update+delete)
+- [x] #75 — Confirmação de exclusão via AlertDialog em todos os deletes — 2026-03-17 · `asset-detail-modal.tsx` (delete + AlertDialog) + 7 páginas existentes já auditadas com AlertDialog
 - [ ] #76 — Modo compacto/expandido nas tabelas (toggle density)
 - [ ] #77 — Persistência de filtros ativos por rota (salvo em Supabase por view_id)
 - [ ] #78 — Breadcrumb dinâmico no layout do marketing

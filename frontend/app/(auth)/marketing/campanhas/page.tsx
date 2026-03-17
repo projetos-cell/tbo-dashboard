@@ -37,6 +37,7 @@ import {
 } from "@/features/marketing/hooks/use-marketing-campaigns";
 import { CampaignFormModal } from "@/features/marketing/components/campaigns/campaign-form-modal";
 import { CampaignDetailDrawer } from "@/features/marketing/components/campaigns/campaign-detail-drawer";
+import { CampaignTableSkeleton } from "@/features/marketing/components/campaigns/campaign-table-skeleton";
 import { MARKETING_CAMPAIGN_STATUS } from "@/lib/constants";
 import type { MarketingCampaign, MarketingCampaignStatus } from "@/features/marketing/types/marketing";
 
@@ -297,11 +298,8 @@ function CampanhasContent() {
       {error ? (
         <ErrorState message="Erro ao carregar campanhas." onRetry={() => refetch()} />
       ) : isLoading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-16 w-full rounded-lg" />
-          ))}
-        </div>
+        // Feature #71 — Skeleton content-aware que reflete o layout real
+        <CampaignTableSkeleton rows={5} />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={IconSpeakerphone}

@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
+import { toast } from "sonner"; // Feature #74 — Toasts padronizados
 import {
   listAccounts,
   getAccount,
@@ -68,7 +69,11 @@ export function useCreateRsmAccount() {
   return useMutation({
     mutationFn: (a: Database["public"]["Tables"]["rsm_accounts"]["Insert"]) =>
       createAccount(supabase, a),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["rsm-accounts"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rsm-accounts"] });
+      toast.success("Conta conectada com sucesso");
+    },
+    onError: () => toast.error("Erro ao conectar conta"),
   });
 }
 
@@ -92,7 +97,9 @@ export function useUpdateRsmAccount() {
     },
     onError: (_err: Error, _vars: UpdateVars, ctx: Ctx | undefined) => {
       if (ctx?.prev) qc.setQueryData(["rsm-accounts"], ctx.prev);
+      toast.error("Erro ao atualizar conta");
     },
+    onSuccess: () => toast.success("Conta atualizada"),
     onSettled: () => qc.invalidateQueries({ queryKey: ["rsm-accounts"] }),
   });
 }
@@ -120,7 +127,11 @@ export function useCreateRsmPost() {
   return useMutation({
     mutationFn: (p: Database["public"]["Tables"]["rsm_posts"]["Insert"]) =>
       createPost(supabase, p),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["rsm-posts"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rsm-posts"] });
+      toast.success("Post criado com sucesso");
+    },
+    onError: () => toast.error("Erro ao criar post"),
   });
 }
 
@@ -135,7 +146,11 @@ export function useUpdateRsmPost() {
       id: string;
       updates: Database["public"]["Tables"]["rsm_posts"]["Update"];
     }) => updatePost(supabase, id, updates),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["rsm-posts"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rsm-posts"] });
+      toast.success("Post atualizado");
+    },
+    onError: () => toast.error("Erro ao atualizar post"),
   });
 }
 
@@ -144,7 +159,11 @@ export function useDeleteRsmPost() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deletePost(supabase, id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["rsm-posts"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rsm-posts"] });
+      toast.success("Post excluído");
+    },
+    onError: () => toast.error("Erro ao excluir post"),
   });
 }
 
@@ -168,7 +187,11 @@ export function useCreateRsmIdea() {
   return useMutation({
     mutationFn: (idea: Database["public"]["Tables"]["rsm_ideas"]["Insert"]) =>
       createIdea(supabase, idea),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["rsm-ideas"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rsm-ideas"] });
+      toast.success("Ideia criada");
+    },
+    onError: () => toast.error("Erro ao criar ideia"),
   });
 }
 
@@ -183,7 +206,11 @@ export function useUpdateRsmIdea() {
       id: string;
       updates: Database["public"]["Tables"]["rsm_ideas"]["Update"];
     }) => updateIdea(supabase, id, updates),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["rsm-ideas"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rsm-ideas"] });
+      toast.success("Ideia atualizada");
+    },
+    onError: () => toast.error("Erro ao atualizar ideia"),
   });
 }
 
@@ -192,6 +219,10 @@ export function useDeleteRsmIdea() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteIdea(supabase, id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["rsm-ideas"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rsm-ideas"] });
+      toast.success("Ideia excluída");
+    },
+    onError: () => toast.error("Erro ao excluir ideia"),
   });
 }

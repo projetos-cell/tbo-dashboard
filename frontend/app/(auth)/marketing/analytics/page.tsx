@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState, ErrorState } from "@/components/shared";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { useMarketingKPIs } from "@/features/marketing/hooks/use-marketing-analytics";
 import type { MarketingKPI } from "@/features/marketing/types/marketing";
@@ -187,7 +188,7 @@ function AnalyticsContent() {
   const apiPeriod =
     period === "custom" ? `custom:${customStart}:${customEnd}` : period;
 
-  const { data: kpis, isLoading } = useMarketingKPIs(apiPeriod);
+  const { data: kpis, isLoading, error, refetch } = useMarketingKPIs(apiPeriod);
 
   return (
     <div className="space-y-6">
@@ -238,23 +239,39 @@ function AnalyticsContent() {
         </div>
       )}
 
+      {/* Feature #72 — Error state */}
+      {error && (
+        <ErrorState message="Erro ao carregar métricas de analytics." onRetry={() => refetch()} />
+      )}
+
       {/* KPI Cards — #51 */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        {KPI_CONFIG.map((cfg) => {
-          const kpi = findKpi(kpis, cfg.key);
-          return (
-            <KPICard
-              key={cfg.key}
-              label={cfg.label}
-              value={cfg.format(kpi?.value ?? 0)}
-              change_pct={kpi?.change_pct ?? null}
-              icon={cfg.icon}
-              color={cfg.color}
-              isLoading={isLoading}
-            />
-          );
-        })}
-      </div>
+      {!error && (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          {KPI_CONFIG.map((cfg) => {
+            const kpi = findKpi(kpis, cfg.key);
+            return (
+              <KPICard
+                key={cfg.key}
+                label={cfg.label}
+                value={cfg.format(kpi?.value ?? 0)}
+                change_pct={kpi?.change_pct ?? null}
+                icon={cfg.icon}
+                color={cfg.color}
+                isLoading={isLoading}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {/* Feature #72 — Empty state: sem dados após load */}
+      {!isLoading && !error && kpis?.length === 0 && (
+        <EmptyState
+          icon={IconChartBar}
+          title="Sem dados de analytics"
+          description="Nenhuma métrica encontrada para o período selecionado."
+        />
+      )}
 
       {/* Sub-module navigation */}
       <div className="grid gap-4 sm:grid-cols-3">

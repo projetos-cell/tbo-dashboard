@@ -74,11 +74,11 @@
 - [x] #53 — Funil: visualização de funil de conversão com estágios e taxas — 2026-03-17 · `analytics/funil/page.tsx` (FunnelVisualization trapezoidal + clipPath proporcional + taxa conv entre etapas)
 - [x] #54 — Funil: comparativo período atual vs anterior para cada estágio — 2026-03-17 · `analytics/funil/page.tsx` (period selector + FunnelStage.previous_count/previous_conversion_rate + delta icons)
 - [x] #55 — Funil: tabela detalhada de estágios com valores monetários — 2026-03-17 · `analytics/funil/page.tsx` (FunnelTable com volume + delta + taxa conv + valor monetário + total no footer)
-- [ ] #56 — Atribuição: tabela de canais com leads, oportunidades, receita, custo, ROI
-- [ ] #57 — Atribuição: gráfico de barras de ROI por canal
-- [ ] #58 — Atribuição: filtro por período e canal
-- [ ] #59 — Relatórios: listagem de relatórios gerados com tipo, período, autor
-- [ ] #60 — Relatórios: modal criar relatório (nome, tipo, período) com geração async
+- [x] #56 — Atribuição: tabela de canais com leads, oportunidades, receita, custo, ROI — 2026-03-17 · `analytics/attribution/page.tsx` (AttributionTable com tfoot totais + ROI badge colorido)
+- [x] #57 — Atribuição: gráfico de barras de ROI por canal — 2026-03-17 · `analytics/attribution/page.tsx` (RoiBarChart recharts + ReferenceLine breakeven)
+- [x] #58 — Atribuição: filtro por período e canal — 2026-03-17 · `analytics/attribution/page.tsx` (period buttons + channel chips multi-select + clear filter)
+- [x] #59 — Relatórios: listagem de relatórios gerados com tipo, período, autor — 2026-03-17 · `analytics/relatorios/page.tsx` (coluna Autor com IconUser + badge tipo colorido por categoria)
+- [x] #60 — Relatórios: modal criar relatório (nome, tipo, período) com geração async — 2026-03-17 · `analytics/relatorios/page.tsx` (CreateReportModal + useCreateMarketingReport + loading state + download handler)
 
 ## Módulo 6: RSM — Relatório Semanal de Mídias
 

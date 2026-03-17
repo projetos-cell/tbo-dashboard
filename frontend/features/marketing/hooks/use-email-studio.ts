@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { createClient } from "@/lib/supabase/client";
 import {
   getEmailTemplates,
   getEmailTemplate,
@@ -17,7 +18,7 @@ import {
   getEmailAnalytics,
   getEmailCampaignAnalytics,
 } from "../services/email-studio";
-import type { EmailTemplate, EmailCampaign } from "../types/marketing";
+import type { EmailTemplate, EmailCampaign, EmailSend } from "../types/marketing";
 import { toast } from "sonner";
 
 // ── Templates ──────────────────────────────────────────────────────
@@ -25,7 +26,7 @@ import { toast } from "sonner";
 export function useEmailTemplates() {
   return useQuery({
     queryKey: ["email-studio", "templates"],
-    queryFn: getEmailTemplates,
+    queryFn: () => getEmailTemplates(createClient()),
     staleTime: 1000 * 60 * 5,
   });
 }
@@ -33,7 +34,7 @@ export function useEmailTemplates() {
 export function useEmailTemplate(id: string | null) {
   return useQuery({
     queryKey: ["email-studio", "templates", id],
-    queryFn: () => getEmailTemplate(id!),
+    queryFn: () => getEmailTemplate(createClient(), id!),
     enabled: !!id,
     staleTime: 1000 * 60 * 5,
   });
@@ -43,7 +44,7 @@ export function useCreateEmailTemplate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: Pick<EmailTemplate, "name" | "subject" | "html_content" | "category" | "tags">) =>
-      createEmailTemplate(data),
+      createEmailTemplate(createClient(), data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["email-studio", "templates"] });
       toast.success("Template criado com sucesso");
@@ -56,7 +57,7 @@ export function useUpdateEmailTemplate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<Pick<EmailTemplate, "name" | "subject" | "html_content" | "category" | "tags">> }) =>
-      updateEmailTemplate(id, data),
+      updateEmailTemplate(createClient(), id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["email-studio", "templates"] });
       toast.success("Template atualizado");
@@ -68,21 +69,20 @@ export function useUpdateEmailTemplate() {
 export function useDeleteEmailTemplate() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => deleteEmailTemplate(id),
+    mutationFn: (id: string) => deleteEmailTemplate(createClient(), id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["email-studio", "templates"] });
-      toast.success("Template excluido");
+      toast.success("Template excluído");
     },
     onError: () => toast.error("Erro ao excluir template"),
   });
 }
 
-// Feature #16 — Duplicar template
 export function useDuplicateEmailTemplate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (template: Pick<EmailTemplate, "name" | "subject" | "html_content" | "category" | "tags">) =>
-      createEmailTemplate({ ...template, name: `${template.name} (cópia)` }),
+      createEmailTemplate(createClient(), { ...template, name: `${template.name} (cópia)` }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["email-studio", "templates"] });
       toast.success("Template duplicado");
@@ -96,7 +96,7 @@ export function useDuplicateEmailTemplate() {
 export function useEmailCampaigns() {
   return useQuery({
     queryKey: ["email-studio", "campaigns"],
-    queryFn: getEmailCampaigns,
+    queryFn: () => getEmailCampaigns(createClient()),
     staleTime: 1000 * 60 * 5,
   });
 }
@@ -104,7 +104,7 @@ export function useEmailCampaigns() {
 export function useEmailCampaign(id: string | null) {
   return useQuery({
     queryKey: ["email-studio", "campaigns", id],
-    queryFn: () => getEmailCampaign(id!),
+    queryFn: () => getEmailCampaign(createClient(), id!),
     enabled: !!id,
     staleTime: 1000 * 60 * 5,
   });
@@ -114,7 +114,7 @@ export function useCreateEmailCampaign() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: Pick<EmailCampaign, "name" | "subject" | "template_id" | "list_id" | "scheduled_at">) =>
-      createEmailCampaign(data),
+      createEmailCampaign(createClient(), data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["email-studio", "campaigns"] });
       toast.success("Campanha de email criada");
@@ -127,7 +127,7 @@ export function useUpdateEmailCampaign() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<Pick<EmailCampaign, "name" | "subject" | "template_id" | "list_id" | "scheduled_at" | "status">> }) =>
-      updateEmailCampaign(id, data),
+      updateEmailCampaign(createClient(), id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["email-studio", "campaigns"] });
       toast.success("Campanha atualizada");
@@ -139,7 +139,7 @@ export function useUpdateEmailCampaign() {
 export function useSendEmailCampaign() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => sendEmailCampaign(id),
+    mutationFn: (id: string) => sendEmailCampaign(createClient(), id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["email-studio"] });
       toast.success("Campanha enviada");
@@ -153,7 +153,7 @@ export function useSendEmailCampaign() {
 export function useEmailSends() {
   return useQuery({
     queryKey: ["email-studio", "sends"],
-    queryFn: getEmailSends,
+    queryFn: () => getEmailSends(createClient()),
     staleTime: 1000 * 60 * 2,
   });
 }
@@ -161,7 +161,7 @@ export function useEmailSends() {
 export function useEmailSendsByCampaign(campaignId: string | null) {
   return useQuery({
     queryKey: ["email-studio", "sends", campaignId],
-    queryFn: () => getEmailSendsByCampaign(campaignId!),
+    queryFn: () => getEmailSendsByCampaign(createClient(), campaignId!),
     enabled: !!campaignId,
     staleTime: 1000 * 60 * 2,
   });
@@ -172,7 +172,7 @@ export function useEmailSendsByCampaign(campaignId: string | null) {
 export function useEmailAnalytics() {
   return useQuery({
     queryKey: ["email-studio", "analytics"],
-    queryFn: getEmailAnalytics,
+    queryFn: () => getEmailAnalytics(createClient()),
     staleTime: 1000 * 60 * 5,
   });
 }
@@ -180,8 +180,22 @@ export function useEmailAnalytics() {
 export function useEmailCampaignAnalytics(campaignId: string | null) {
   return useQuery({
     queryKey: ["email-studio", "analytics", campaignId],
-    queryFn: () => getEmailCampaignAnalytics(campaignId!),
+    queryFn: () => getEmailCampaignAnalytics(createClient(), campaignId!),
     enabled: !!campaignId,
     staleTime: 1000 * 60 * 5,
+  });
+}
+
+// ── Envios page — query com refetchInterval condicional ─────────────
+
+export function useEmailSendsWithPolling() {
+  return useQuery({
+    queryKey: ["email-studio", "sends"],
+    queryFn: () => getEmailSends(createClient()),
+    staleTime: 1000 * 60 * 2,
+    refetchInterval: (query) => {
+      const data = query.state.data as EmailSend[] | undefined;
+      return data?.some((s) => s.status === "sending") ? 10_000 : false;
+    },
   });
 }

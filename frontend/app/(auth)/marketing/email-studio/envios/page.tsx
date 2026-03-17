@@ -15,8 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { EmptyState, ErrorState } from "@/components/shared";
 import { RequireRole } from "@/features/auth/components/require-role";
-import { useQuery } from "@tanstack/react-query";
-import { getEmailSends } from "@/features/marketing/services/email-studio";
+import { useEmailSendsWithPolling } from "@/features/marketing/hooks/use-email-studio";
 import type { EmailSend } from "@/features/marketing/types/marketing";
 
 const SEND_STATUS_MAP: Record<
@@ -57,16 +56,8 @@ function SendProgressBar({ send }: { send: EmailSend }) {
 }
 
 function EnviosContent() {
-  // Feature #23 — polling a cada 10s se houver envios "sending" (refetchInterval como função)
-  const { data: sends, isLoading, error, refetch } = useQuery({
-    queryKey: ["email-studio", "sends"],
-    queryFn: getEmailSends,
-    staleTime: 1000 * 60 * 2,
-    refetchInterval: (query) => {
-      const data = query.state.data as EmailSend[] | undefined;
-      return data?.some((s) => s.status === "sending") ? 10_000 : false;
-    },
-  });
+  // Feature #23 — polling a cada 10s se houver envios "sending"
+  const { data: sends, isLoading, error, refetch } = useEmailSendsWithPolling();
 
   const hasSending = (sends ?? []).some((s) => s.status === "sending");
 

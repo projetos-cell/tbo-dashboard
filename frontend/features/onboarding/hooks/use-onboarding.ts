@@ -10,7 +10,11 @@ import {
   completeOnboarding,
   getOnboardingChecklist,
   toggleChecklistTask,
+  getQuizProgress,
+  submitQuizDay,
   type ChecklistProgress,
+  type QuizProgress,
+  type QuizDayResult,
 } from "@/features/onboarding/services/onboarding";
 
 export function useOnboardingStatus() {
@@ -86,6 +90,57 @@ export function useOnboardingChecklist() {
     queryKey: ["onboarding-checklist", userId],
     queryFn: () => getOnboardingChecklist(supabase, userId!),
     enabled: !!userId,
+  });
+}
+
+// ── Quiz hooks ──────────────────────────────────────────────────────────────
+
+export function useQuizProgress() {
+  const supabase = createClient();
+  const userId = useAuthStore((s) => s.user?.id);
+
+  return useQuery({
+    queryKey: ["onboarding-quiz", userId],
+    queryFn: () => getQuizProgress(supabase, userId!),
+    enabled: !!userId,
+  });
+}
+
+export function useSubmitQuiz() {
+  const supabase = createClient();
+  const userId = useAuthStore((s) => s.user?.id);
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      dayKey,
+      result,
+      currentProgress,
+    }: {
+      dayKey: string;
+      result: QuizDayResult;
+      currentProgress: QuizProgress;
+    }) => submitQuizDay(supabase, userId!, dayKey, result, currentProgress),
+    onMutate: async ({ dayKey, result, currentProgress }) => {
+      await qc.cancelQueries({ queryKey: ["onboarding-quiz", userId] });
+      const previous = qc.getQueryData<QuizProgress>([
+        "onboarding-quiz",
+        userId,
+      ]);
+      qc.setQueryData(["onboarding-quiz", userId], {
+        ...currentProgress,
+        [dayKey]: result,
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        qc.setQueryData(["onboarding-quiz", userId], context.previous);
+      }
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["onboarding-quiz", userId] });
+    },
   });
 }
 

@@ -91,7 +91,19 @@ export default function MercadoPage() {
       </div>
 
       {/* Navigation Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <ModuleCard
+          href="/mercado/orulo"
+          icon={IconBuilding}
+          title="Catálogo Órulo"
+          description="Empreendimentos em tempo real — filtros por UF, cidade, preço, tipologia. Sincronização automática."
+          highlights={[
+            "API v2 em tempo real",
+            "Filtros avançados",
+            "Sync Supabase",
+          ]}
+          badge="LIVE"
+        />
         <ModuleCard
           href="/mercado/censo"
           icon={IconMapPin}
@@ -103,10 +115,11 @@ export default function MercadoPage() {
             `${CENSO_PR_RESUMO.totalMunicipios} municípios`,
           ]}
           badge="IBGE"
+          badgeVariant="secondary"
         />
         <ModuleCard
           href="/mercado/lancamentos"
-          icon={IconBuilding}
+          icon={IconTarget}
           title="Lançamentos PR"
           description="Tracker de empreendimentos do mercado primário — incorporadoras, tipologias, preço/m², velocidade de vendas"
           highlights={[
@@ -115,7 +128,7 @@ export default function MercadoPage() {
             `Batel: R$ ${fmtNum(MERCADO_CURITIBA.precoM2Batel)}/m²`,
           ]}
           badge="Órulo"
-          badgeVariant="secondary"
+          badgeVariant="outline"
         />
         <ModuleCard
           href="/mercado/indicadores"
@@ -175,7 +188,9 @@ export default function MercadoPage() {
 
       <p className="text-center text-xs text-muted-foreground">
         Fontes: IBGE Censo 2022 · IPARDES · FipeZap · CBIC · SINDUSCON-PR ·
-        Integração Órulo API em desenvolvimento
+        <Link href="/mercado/orulo" className="underline hover:text-foreground ml-1">
+          Órulo API (tempo real)
+        </Link>
       </p>
     </div>
   );

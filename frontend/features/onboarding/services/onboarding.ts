@@ -106,3 +106,53 @@ export async function toggleChecklistTask(
 
   return updated;
 }
+
+// ── Onboarding Quiz ─────────────────────────────────────────────────────────
+
+export interface QuizDayResult {
+  answers: Record<string, string>; // questionId -> selectedOptionId
+  score: number;
+  total: number;
+  passed: boolean;
+  completed_at: string;
+}
+
+export type QuizProgress = Record<string, QuizDayResult>; // "day_1" -> result
+
+export async function getQuizProgress(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+): Promise<QuizProgress> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("onboarding_quiz" as never)
+    .eq("id", userId)
+    .single();
+  if (error) {
+    console.warn("onboarding_quiz fetch error:", error.message);
+    return {};
+  }
+  const row = data as unknown as { onboarding_quiz?: QuizProgress };
+  return row?.onboarding_quiz ?? {};
+}
+
+export async function submitQuizDay(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  dayKey: string,
+  result: QuizDayResult,
+  currentProgress: QuizProgress,
+): Promise<QuizProgress> {
+  const updated = { ...currentProgress, [dayKey]: result };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      onboarding_quiz: updated,
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq("id", userId);
+  if (error) throw error;
+
+  return updated;
+}

@@ -1,8 +1,10 @@
 ﻿"use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   useOneOnOnes,
+  useOneOnOne,
   useUpcomingOneOnOnes,
   useOverdueOneOnOnes,
   usePendingOneOnOneActions,
@@ -47,12 +49,25 @@ import {
 } from "@tabler/icons-react";
 
 export default function Reunioes1on1Page() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const detailId = searchParams.get("id");
+
   const { data: profiles } = useProfiles();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [formOpen, setFormOpen] = useState(false);
   const [editData, setEditData] = useState<OneOnOneRow | null>(null);
   const [detailItem, setDetailItem] = useState<OneOnOneRow | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
+  const detailOpen = !!detailId;
+
+  // ── Deep-link: fetch 1:1 by URL param ───────────────────────────────
+  const { data: deepLinkedItem } = useOneOnOne(detailId);
+
+  useEffect(() => {
+    if (deepLinkedItem) {
+      setDetailItem(deepLinkedItem);
+    }
+  }, [deepLinkedItem]);
 
   // ── Data fetching ─────────────────────────────────────────────────────
   const filters = useMemo(
@@ -108,7 +123,12 @@ export default function Reunioes1on1Page() {
   // ── Handlers ──────────────────────────────────────────────────────────
   function handleOpenDetail(item: OneOnOneRow) {
     setDetailItem(item);
-    setDetailOpen(true);
+    router.push(`/pessoas/1on1?id=${item.id}`, { scroll: false });
+  }
+
+  function handleCloseDetail() {
+    router.push("/pessoas/1on1", { scroll: false });
+    setDetailItem(null);
   }
 
   function handleEdit(item: OneOnOneRow) {
@@ -363,7 +383,9 @@ export default function Reunioes1on1Page() {
       <OneOnOneDetail
         oneOnOne={detailItem}
         open={detailOpen}
-        onOpenChange={setDetailOpen}
+        onOpenChange={(open) => {
+          if (!open) handleCloseDetail();
+        }}
       />
     </div>
   );

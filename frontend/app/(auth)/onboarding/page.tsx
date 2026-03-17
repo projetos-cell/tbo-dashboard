@@ -4,13 +4,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   IconCheck,
-  IconExternalLink,
   IconArrowRight,
   IconConfetti,
   IconChevronDown,
   IconChevronRight,
   IconCircleCheck,
   IconCircle,
+  IconBrain,
+  IconLock,
+  IconCircleCheckFilled,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -21,13 +23,21 @@ import { useAuthStore } from "@/stores/auth-store";
 import {
   useOnboardingChecklist,
   useToggleChecklistTask,
+  useQuizProgress,
+  useSubmitQuiz,
 } from "@/features/onboarding/hooks/use-onboarding";
 import {
   ONBOARDING_DAYS,
+  ONBOARDING_QUIZZES,
   TOTAL_TASKS,
   type OnboardingTask,
 } from "@/features/onboarding/constants";
-import type { ChecklistProgress } from "@/features/onboarding/services/onboarding";
+import type {
+  ChecklistProgress,
+  QuizProgress,
+  QuizDayResult,
+} from "@/features/onboarding/services/onboarding";
+import { QuizDialog } from "@/features/onboarding/components/quiz-dialog";
 
 function OnboardingSkeleton() {
   return (
@@ -58,9 +68,7 @@ function TaskItem({
   const router = useRouter();
 
   function handleAction() {
-    if (task.action === "link" && task.notionUrl) {
-      window.open(task.notionUrl, "_blank", "noopener");
-    } else if (task.action === "internal" && task.internalRoute) {
+    if (task.action === "internal" && task.internalRoute) {
       router.push(task.internalRoute);
     }
   }
@@ -101,22 +109,14 @@ function TaskItem({
         </p>
       </div>
 
-      {(task.action === "link" || task.action === "internal") && (
+      {task.action === "internal" && (
         <Button
           variant="ghost"
           size="sm"
           className="h-7 shrink-0 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
           onClick={handleAction}
         >
-          {task.action === "link" ? (
-            <>
-              Abrir <IconExternalLink className="ml-1 h-3 w-3" />
-            </>
-          ) : (
-            <>
-              Ir <IconArrowRight className="ml-1 h-3 w-3" />
-            </>
-          )}
+          Ir <IconArrowRight className="ml-1 h-3 w-3" />
         </Button>
       )}
     </div>
@@ -129,34 +129,50 @@ function DaySection({
   onToggleTask,
   isPending,
   isFirstIncomplete,
+  quizResult,
+  onOpenQuiz,
+  previousDayQuizPassed,
 }: {
   day: (typeof ONBOARDING_DAYS)[number];
   checklist: ChecklistProgress;
   onToggleTask: (taskId: string) => void;
   isPending: boolean;
   isFirstIncomplete: boolean;
+  quizResult?: QuizDayResult;
+  onOpenQuiz: () => void;
+  previousDayQuizPassed: boolean;
 }) {
   const completedCount = day.tasks.filter(
     (t) => checklist[t.id]?.completed,
   ).length;
-  const allComplete = completedCount === day.tasks.length;
-  const [expanded, setExpanded] = useState(isFirstIncomplete || allComplete);
+  const allTasksComplete = completedCount === day.tasks.length;
+  const quizPassed = !!quizResult?.passed;
+  const dayFullyComplete = allTasksComplete && quizPassed;
+  const canAccessDay = previousDayQuizPassed;
+  const [expanded, setExpanded] = useState(
+    (isFirstIncomplete && canAccessDay) || dayFullyComplete,
+  );
 
   return (
     <div
       className={cn(
         "rounded-xl border transition-all duration-300",
-        allComplete
+        dayFullyComplete
           ? "border-primary/20 bg-primary/5"
-          : isFirstIncomplete
+          : isFirstIncomplete && canAccessDay
             ? "border-primary/40 shadow-sm"
-            : "border-border",
+            : !canAccessDay
+              ? "border-border opacity-60"
+              : "border-border",
       )}
     >
       <button
         type="button"
-        onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center gap-4 p-4 text-left"
+        onClick={() => canAccessDay && setExpanded(!expanded)}
+        className={cn(
+          "flex w-full items-center gap-4 p-4 text-left",
+          !canAccessDay && "cursor-not-allowed",
+        )}
       >
         <span className="text-2xl">{day.icon}</span>
         <div className="flex-1 min-w-0">
@@ -164,7 +180,10 @@ function DaySection({
             <h3 className="font-semibold text-sm">
               Dia {day.day} — {day.title}
             </h3>
-            {allComplete && (
+            {!canAccessDay && (
+              <IconLock className="h-3.5 w-3.5 text-muted-foreground" />
+            )}
+            {dayFullyComplete && (
               <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                 <IconCheck className="h-3 w-3" /> Completo
               </span>
@@ -176,15 +195,16 @@ function DaySection({
           <span className="text-xs text-muted-foreground tabular-nums">
             {completedCount}/{day.tasks.length}
           </span>
-          {expanded ? (
-            <IconChevronDown className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <IconChevronRight className="h-4 w-4 text-muted-foreground" />
-          )}
+          {canAccessDay &&
+            (expanded ? (
+              <IconChevronDown className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <IconChevronRight className="h-4 w-4 text-muted-foreground" />
+            ))}
         </div>
       </button>
 
-      {expanded && (
+      {expanded && canAccessDay && (
         <div className="space-y-2 px-4 pb-4">
           {day.tasks.map((task) => (
             <TaskItem
@@ -195,6 +215,47 @@ function DaySection({
               isPending={isPending}
             />
           ))}
+
+          {/* Quiz CTA */}
+          <div
+            className={cn(
+              "mt-3 flex items-center gap-3 rounded-lg border p-3 transition-all",
+              quizPassed
+                ? "border-emerald-500/20 bg-emerald-500/5"
+                : allTasksComplete
+                  ? "border-primary/30 bg-primary/5"
+                  : "border-dashed border-muted-foreground/20 bg-muted/30",
+            )}
+          >
+            {quizPassed ? (
+              <IconCircleCheckFilled className="h-5 w-5 shrink-0 text-emerald-500" />
+            ) : (
+              <IconBrain className="h-5 w-5 shrink-0 text-muted-foreground" />
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium">
+                {quizPassed
+                  ? `Quiz concluído — ${quizResult.score}/${quizResult.total} acertos`
+                  : "Quiz do Dia"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {quizPassed
+                  ? "Parabéns! Você passou neste quiz."
+                  : allTasksComplete
+                    ? "Todas as tarefas concluídas. Faça o quiz para liberar o próximo dia."
+                    : "Complete todas as tarefas acima para desbloquear o quiz."}
+              </p>
+            </div>
+            <Button
+              variant={quizPassed ? "ghost" : "default"}
+              size="sm"
+              className="h-8 shrink-0 text-xs"
+              disabled={!allTasksComplete}
+              onClick={onOpenQuiz}
+            >
+              {quizPassed ? "Rever" : "Iniciar quiz"}
+            </Button>
+          </div>
         </div>
       )}
     </div>
@@ -206,10 +267,16 @@ export default function OnboardingPage() {
   const firstName =
     user?.user_metadata?.full_name?.split(" ")[0] ?? "Novo membro";
 
-  const { data: checklistData, isLoading } = useOnboardingChecklist();
+  const { data: checklistData, isLoading: checklistLoading } =
+    useOnboardingChecklist();
+  const { data: quizData, isLoading: quizLoading } = useQuizProgress();
   const toggle = useToggleChecklistTask();
+  const submitQuiz = useSubmitQuiz();
+  const [activeQuizDay, setActiveQuizDay] = useState<number | null>(null);
 
-  if (isLoading || !checklistData) {
+  const isLoading = checklistLoading || quizLoading;
+
+  if (isLoading || !checklistData || !quizData) {
     return (
       <div className="mx-auto max-w-2xl p-6">
         <OnboardingSkeleton />
@@ -218,27 +285,41 @@ export default function OnboardingPage() {
   }
 
   const checklist: ChecklistProgress = checklistData;
+  const quizProgress: QuizProgress = quizData;
 
-  const completedCount = Object.values(checklist).filter(
+  // Count completed tasks + passed quizzes for progress
+  const completedTaskCount = Object.values(checklist).filter(
     (v) => v.completed,
   ).length;
-  const progress = Math.round((completedCount / TOTAL_TASKS) * 100);
-  const allComplete = completedCount === TOTAL_TASKS;
+  const passedQuizCount = Object.values(quizProgress).filter(
+    (v) => v.passed,
+  ).length;
+  const totalItems = TOTAL_TASKS + ONBOARDING_QUIZZES.length;
+  const completedItems = completedTaskCount + passedQuizCount;
+  const progress = Math.round((completedItems / totalItems) * 100);
+  const allComplete = completedItems === totalItems;
 
-  // Find first day with incomplete tasks
-  const firstIncompleteDayIndex = ONBOARDING_DAYS.findIndex((day) =>
-    day.tasks.some((t) => !checklist[t.id]?.completed),
-  );
+  // Find first day with incomplete tasks or quiz
+  const firstIncompleteDayIndex = ONBOARDING_DAYS.findIndex((day) => {
+    const tasksIncomplete = day.tasks.some(
+      (t) => !checklist[t.id]?.completed,
+    );
+    const quizNotPassed = !quizProgress[`day_${day.day}`]?.passed;
+    return tasksIncomplete || quizNotPassed;
+  });
 
   function handleToggle(taskId: string) {
     toggle.mutate(
       { taskId, currentChecklist: checklist },
       {
         onSuccess: (updated) => {
-          const newCompleted = Object.values(updated).filter(
+          const tasksDone = Object.values(updated).filter(
             (v) => v.completed,
           ).length;
-          if (newCompleted === TOTAL_TASKS) {
+          const quizzesDone = Object.values(quizProgress).filter(
+            (v) => v.passed,
+          ).length;
+          if (tasksDone + quizzesDone === totalItems) {
             toast.success(
               "Onboarding completo! Bem-vindo oficialmente ao time TBO.",
             );
@@ -247,6 +328,30 @@ export default function OnboardingPage() {
       },
     );
   }
+
+  function handleQuizSubmit(dayNum: number, result: QuizDayResult) {
+    const dayKey = `day_${dayNum}`;
+    submitQuiz.mutate(
+      { dayKey, result, currentProgress: quizProgress },
+      {
+        onSuccess: () => {
+          if (result.passed) {
+            setActiveQuizDay(null);
+            toast.success(
+              `Quiz do Dia ${dayNum} aprovado! ${result.score}/${result.total} acertos.`,
+            );
+          }
+        },
+        onError: () => {
+          toast.error("Erro ao salvar quiz. Tente novamente.");
+        },
+      },
+    );
+  }
+
+  const activeQuiz = activeQuizDay
+    ? ONBOARDING_QUIZZES.find((q) => q.day === activeQuizDay)
+    : null;
 
   return (
     <div className="mx-auto max-w-2xl p-6 space-y-6">
@@ -265,8 +370,8 @@ export default function OnboardingPage() {
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
           {allComplete
-            ? "Você concluiu todas as etapas. Agora é oficialmente parte do time."
-            : "Complete as etapas abaixo em até 5 dias para alcançar autonomia total na TBO."}
+            ? "Você concluiu todas as etapas e quizzes. Agora é oficialmente parte do time."
+            : "Complete as tarefas e o quiz de cada dia para desbloquear o próximo. 5 dias para autonomia total."}
         </p>
       </div>
 
@@ -275,7 +380,7 @@ export default function OnboardingPage() {
         <div className="flex items-center justify-between text-xs">
           <span className="text-muted-foreground">Progresso geral</span>
           <span className="font-medium tabular-nums">
-            {completedCount}/{TOTAL_TASKS} tarefas ({progress}%)
+            {completedItems}/{totalItems} ({progress}%)
           </span>
         </div>
         <Progress value={progress} className="h-2" />
@@ -283,26 +388,46 @@ export default function OnboardingPage() {
 
       {/* Day sections */}
       <div className="space-y-3">
-        {ONBOARDING_DAYS.map((day, index) => (
-          <DaySection
-            key={day.day}
-            day={day}
-            checklist={checklist}
-            onToggleTask={handleToggle}
-            isPending={toggle.isPending}
-            isFirstIncomplete={index === firstIncompleteDayIndex}
-          />
-        ))}
+        {ONBOARDING_DAYS.map((day, index) => {
+          const dayKey = `day_${day.day}`;
+          const previousDayKey = `day_${day.day - 1}`;
+          const previousDayQuizPassed =
+            index === 0 || !!quizProgress[previousDayKey]?.passed;
+
+          return (
+            <DaySection
+              key={day.day}
+              day={day}
+              checklist={checklist}
+              onToggleTask={handleToggle}
+              isPending={toggle.isPending}
+              isFirstIncomplete={index === firstIncompleteDayIndex}
+              quizResult={quizProgress[dayKey]}
+              onOpenQuiz={() => setActiveQuizDay(day.day)}
+              previousDayQuizPassed={previousDayQuizPassed}
+            />
+          );
+        })}
       </div>
+
+      {/* Quiz dialog */}
+      {activeQuiz && (
+        <QuizDialog
+          quiz={activeQuiz}
+          previousResult={quizProgress[`day_${activeQuiz.day}`]}
+          open={!!activeQuizDay}
+          onOpenChange={(open) => !open && setActiveQuizDay(null)}
+          onSubmit={(result) => handleQuizSubmit(activeQuiz.day, result)}
+          isSubmitting={submitQuiz.isPending}
+        />
+      )}
 
       {/* Footer */}
       <div className="rounded-lg border bg-muted/30 p-4 text-center">
         <p className="text-xs text-muted-foreground">
           Dúvidas? Fale com seu Product Owner ou acesse o{" "}
           <a
-            href="https://www.notion.so/2193782e356143e5b41756c78e230cec"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/cultura/manual"
             className="text-primary underline underline-offset-2"
           >
             Manual de Cultura

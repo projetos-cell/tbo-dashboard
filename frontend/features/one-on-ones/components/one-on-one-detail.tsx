@@ -1,6 +1,8 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { marked } from "marked";
+import { sanitizeHtml } from "@/lib/sanitize";
 import {
   Sheet,
   SheetContent,
@@ -35,6 +37,8 @@ import {
   IconPencil,
   IconDeviceFloppy,
   IconTarget,
+  IconLink,
+  IconCheck,
 } from "@tabler/icons-react";
 import { PdiForm } from "@/features/pdi/components/pdi-form";
 
@@ -53,6 +57,7 @@ export function OneOnOneDetail({ oneOnOne, open, onOpenChange }: OneOnOneDetailP
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesValue, setNotesValue] = useState("");
   const [pdiFormOpen, setPdiFormOpen] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const profileMap = new Map(
     (profiles ?? []).map((p) => [p.id, p.full_name ?? "Sem nome"])
@@ -60,6 +65,12 @@ export function OneOnOneDetail({ oneOnOne, open, onOpenChange }: OneOnOneDetailP
   function getName(id: string) {
     return profileMap.get(id) ?? "Desconhecido";
   }
+
+  const transcriptHtml = useMemo(() => {
+    if (!oneOnOne?.transcript_summary) return "";
+    const raw = marked.parse(oneOnOne.transcript_summary);
+    return sanitizeHtml(typeof raw === "string" ? raw : "");
+  }, [oneOnOne?.transcript_summary]);
 
   if (!oneOnOne) return null;
 
@@ -109,10 +120,31 @@ export function OneOnOneDetail({ oneOnOne, open, onOpenChange }: OneOnOneDetailP
           <div className="space-y-5 p-6">
             {/* Header */}
             <SheetHeader className="space-y-1">
-              <SheetTitle className="text-lg">
-                {getName(oneOnOne.leader_id)} ↔ {getName(oneOnOne.collaborator_id)}
-              </SheetTitle>
-              <p className="text-sm text-gray-500">Reunião 1:1</p>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <SheetTitle className="text-lg">
+                    {getName(oneOnOne.leader_id)} ↔ {getName(oneOnOne.collaborator_id)}
+                  </SheetTitle>
+                  <p className="text-sm text-gray-500">Reunião 1:1</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="shrink-0 text-xs text-gray-500"
+                  onClick={() => {
+                    const url = `${window.location.origin}/pessoas/1on1?id=${oneOnOne.id}`;
+                    navigator.clipboard.writeText(url);
+                    setLinkCopied(true);
+                    setTimeout(() => setLinkCopied(false), 2000);
+                  }}
+                >
+                  {linkCopied ? (
+                    <><IconCheck className="mr-1 h-3.5 w-3.5 text-green-600" /> Copiado</>
+                  ) : (
+                    <><IconLink className="mr-1 h-3.5 w-3.5" /> Copiar link</>
+                  )}
+                </Button>
+              </div>
             </SheetHeader>
 
             {/* Quick status actions */}
@@ -238,14 +270,22 @@ export function OneOnOneDetail({ oneOnOne, open, onOpenChange }: OneOnOneDetailP
             </div>
 
             {/* Transcript summary */}
-            {oneOnOne.transcript_summary && (
+            {transcriptHtml && (
               <>
                 <Separator />
                 <div className="space-y-2">
                   <h4 className="text-sm font-semibold">Resumo da Transcrição</h4>
-                  <p className="whitespace-pre-wrap rounded-lg bg-gray-100/50 p-3 text-sm">
-                    {oneOnOne.transcript_summary}
-                  </p>
+                  <div
+                    className="prose prose-sm dark:prose-invert max-w-none rounded-lg bg-gray-100/50 p-4
+                      prose-headings:font-semibold prose-headings:tracking-tight
+                      prose-h2:text-base prose-h2:mt-6 prose-h2:mb-2 prose-h2:pb-1.5 prose-h2:border-b
+                      prose-h3:text-sm prose-h3:mt-4 prose-h3:mb-1.5
+                      prose-p:leading-relaxed prose-p:text-gray-600
+                      prose-li:text-gray-600 prose-li:leading-relaxed
+                      prose-strong:text-gray-900 prose-strong:font-semibold
+                      prose-ul:my-2 prose-ol:my-2"
+                    dangerouslySetInnerHTML={{ __html: transcriptHtml }}
+                  />
                 </div>
               </>
             )}

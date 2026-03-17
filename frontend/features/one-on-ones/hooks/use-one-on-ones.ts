@@ -16,6 +16,7 @@ import {
   deleteOneOnOne,
   getOneOnOneActions,
   createAction,
+  updateAction,
   toggleAction,
   deleteAction,
   type OneOnOneFilters,
@@ -215,6 +216,28 @@ export function useToggleAction() {
       completed: boolean;
       oneOnOneId: string;
     }) => toggleAction(supabase, actionId, completed),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["one-on-one-actions", variables.oneOnOneId] });
+      queryClient.invalidateQueries({ queryKey: ["one-on-one-pending-actions"] });
+      queryClient.invalidateQueries({ queryKey: ["one-on-one", variables.oneOnOneId] });
+    },
+  });
+}
+
+export function useUpdateAction() {
+  const supabase = useSupabase();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      actionId,
+      oneOnOneId,
+      updates,
+    }: {
+      actionId: string;
+      oneOnOneId: string;
+      updates: Partial<Pick<import("@/features/one-on-ones/services/one-on-ones").ActionRow, "text" | "due_date" | "category">>;
+    }) => updateAction(supabase, actionId, updates),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["one-on-one-actions", variables.oneOnOneId] });
       queryClient.invalidateQueries({ queryKey: ["one-on-one-pending-actions"] });

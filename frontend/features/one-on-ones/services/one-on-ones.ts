@@ -194,6 +194,22 @@ export async function toggleAction(
   return data;
 }
 
+export async function updateAction(
+  supabase: SupabaseClient<Database>,
+  actionId: string,
+  updates: Partial<Pick<ActionRow, "text" | "due_date" | "category">>,
+): Promise<ActionRow> {
+  const { data, error } = await supabase
+    .from("one_on_one_actions")
+    .update(updates as never)
+    .eq("id", actionId)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 export async function deleteAction(
   supabase: SupabaseClient<Database>,
   actionId: string,

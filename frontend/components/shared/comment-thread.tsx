@@ -17,6 +17,7 @@ export function CommentThread({ taskId, className }: CommentThreadProps) {
   const { data: comments, isLoading } = useComments(taskId);
   const createComment = useCreateComment();
   const userId = useAuthStore((s) => s.user?.id);
+  const tenantId = useAuthStore((s) => s.tenantId);
 
   const topLevel = (comments || []).filter((c) => !c.parent_id);
   const replies = (comments || []).filter((c) => c.parent_id);
@@ -49,7 +50,7 @@ export function CommentThread({ taskId, className }: CommentThreadProps) {
               task_id: taskId,
               content,
               author_id: userId!,
-              tenant_id: "",
+              tenant_id: tenantId!,
             } as Database["public"]["Tables"]["project_comments"]["Insert"],
           })
         }

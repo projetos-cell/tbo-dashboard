@@ -10,5 +10,5 @@
       "cwd": "frontend"
     }
   ],
-  "autoVerify": false
+  "autoVerify": true
 }

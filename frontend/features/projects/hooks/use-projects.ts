@@ -15,6 +15,7 @@ import {
   formatProjectName,
 } from "@/features/projects/services/projects";
 import { logAuditTrail } from "@/lib/audit-trail";
+import { createProjectDriveFolder } from "@/features/projects/services/google-drive";
 import type { Database } from "@/lib/supabase/types";
 
 function useSupabase() {
@@ -110,6 +111,15 @@ export function useCreateProject() {
         for (const [queryKey, data] of context.previousProjects) {
           queryClient.setQueryData(queryKey, data);
         }
+      }
+    },
+
+    onSuccess: (data) => {
+      // Auto-create Google Drive folder structure after project creation
+      if (data?.id && data?.name) {
+        createProjectDriveFolder(data.id, data.name).catch(() => {
+          // Non-blocking — folder creation failure shouldn't break project creation
+        });
       }
     },
 

@@ -116,11 +116,11 @@
 - [x] #83 — Migration: tabela `campaign_pieces` com RLS — 2026-03-17 · `20260317_create_campaign_pieces.sql` (status enum + assigned_to FK + content_item_id para relação bidirecional feature #67)
 - [x] #84 — Migration: tabela `campaign_budgets` com RLS — 2026-03-17 · `20260317_create_campaign_budgets.sql` (planned/actual NUMERIC + trigger sync_campaign_spent → atualiza marketing_campaigns.spent automaticamente)
 - [x] #85 — Migration: tabela `email_templates` com RLS — 2026-03-17 · `20260317_create_email_templates.sql` (tags TEXT[] + GIN index + category + html_content + thumbnail_url)
-- [ ] #86 — Migration: tabela `email_campaigns` com RLS
-- [ ] #87 — Migration: tabela `email_sends` com RLS
-- [ ] #88 — Migration: tabela `content_items` com RLS
-- [ ] #89 — Migration: tabela `content_briefs` com RLS
-- [ ] #90 — Migration: tabela `content_assets` com RLS
+- [x] #86 — Migration: tabela `email_campaigns` com RLS — 2026-03-17 · `20260317_create_email_campaigns.sql` (email_campaign_status enum + template_id FK + list_id/list_name + scheduled_at/sent_at + updated_at trigger)
+- [x] #87 — Migration: tabela `email_sends` com RLS — 2026-03-17 · `20260317_create_email_sends.sql` (email_send_status enum + métricas delivered/opened/clicked/bounced/unsubscribed + colunas GENERATED open_rate/click_rate/bounce_rate)
+- [x] #88 — Migration: tabela `content_items` com RLS — 2026-03-17 · `20260317_create_content_items.sql` (content_type + content_status enums + campaign_id FK + tags GIN index + FK retroativo em campaign_pieces.content_item_id)
+- [x] #89 — Migration: tabela `content_briefs` com RLS — 2026-03-17 · `20260317_create_content_briefs.sql` (content_brief_status enum + arrays key_messages/references/deliverables + feedback + approved_by FK + FK retroativo em content_items.brief_id)
+- [x] #90 — Migration: tabela `content_assets` com RLS — 2026-03-17 · `20260317_create_content_assets.sql` (storage_path + dimensões width/height + duration_ms + alt_text + bucket marketing-assets 50MB + Storage RLS policies)
 - [ ] #91 — Migration: tabela `content_approvals` com RLS
 - [ ] #92 — Migration: tabela `social_accounts` com RLS
 - [ ] #93 — Migration: tabela `social_posts` com RLS

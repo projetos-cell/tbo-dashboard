@@ -1,6 +1,7 @@
 "use client";
 
 // Features #29 #30 — Calendar DnD primitives (DraggableCard + DroppableCell)
+// Feature #31 — Mini-card com cor por canal (dot + borderLeft)
 
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
@@ -8,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { MARKETING_CONTENT_STATUS } from "@/lib/constants";
 import type { ContentItem, ContentStatus } from "../../types/marketing";
 
-const CHANNEL_COLORS: Record<string, string> = {
+export const CHANNEL_COLORS: Record<string, string> = {
   Instagram: "#e1306c",
   Facebook: "#1877f2",
   LinkedIn: "#0a66c2",
@@ -32,27 +33,33 @@ export function DraggableCard({ item }: DraggableCardProps) {
 
   const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined;
   const statusDef = MARKETING_CONTENT_STATUS[item.status as ContentStatus];
-  const channelColor = item.channel ? CHANNEL_COLORS[item.channel] : undefined;
+  const channelColor = item.channel ? (CHANNEL_COLORS[item.channel] ?? "#6366f1") : (statusDef?.color ?? "#6366f1");
 
   return (
     <div
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      className={`text-[11px] rounded px-1.5 py-0.5 truncate cursor-grab select-none border transition-opacity ${
+      className={`text-[11px] rounded px-1.5 py-0.5 cursor-grab select-none border transition-opacity flex items-center gap-1 overflow-hidden ${
         isDragging ? "opacity-40 z-50" : "opacity-100"
       }`}
       style={{
         ...style,
         backgroundColor: statusDef?.bg ?? "rgba(99,102,241,0.1)",
-        borderColor: (statusDef?.color ?? "#6366f1") + "40",
+        borderColor: channelColor + "40",
         color: statusDef?.color ?? "#6366f1",
-        borderLeftColor: channelColor ?? statusDef?.color ?? "#6366f1",
-        borderLeftWidth: 2,
+        borderLeftColor: channelColor,
+        borderLeftWidth: 3,
       }}
-      title={item.title}
+      title={`${item.title}${item.channel ? ` · ${item.channel}` : ""}`}
     >
-      {item.title}
+      {/* Channel color dot */}
+      <span
+        className="shrink-0 w-1.5 h-1.5 rounded-full"
+        style={{ backgroundColor: channelColor }}
+        aria-hidden
+      />
+      <span className="truncate">{item.title}</span>
     </div>
   );
 }

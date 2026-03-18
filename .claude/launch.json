@@ -8,6 +8,12 @@
       "port": 3001,
       "autoPort": true,
       "cwd": "frontend"
+    },
+    {
+      "name": "blueprint-lp",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "npx", "serve", "C:/Users/marco/Downloads", "-l", "3099", "--no-clipboard"],
+      "port": 3099
     }
   ],
   "autoVerify": true

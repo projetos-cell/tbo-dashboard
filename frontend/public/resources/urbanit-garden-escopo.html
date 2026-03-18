@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Urbanit Garden — Escopo de Projeto | TBO</title>
+<style>
+@font-face {
+  font-family: 'Helvetica Neue LT Pro';
+  src: local('HelveticaNeueLTPro-Roman'), local('Helvetica Neue LT Pro Roman');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Helvetica Neue LT Pro';
+  src: local('HelveticaNeueLTPro-Lt'), local('Helvetica Neue LT Pro Light');
+  font-weight: 300;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Helvetica Neue LT Pro';
+  src: local('HelveticaNeueLTPro-Bd'), local('Helvetica Neue LT Pro Bold');
+  font-weight: 700;
+  font-style: normal;
+}
+:root {
+  --o: #e85102;
+  --o-light: #fff3ed;
+  --o-mid: #fdd5b8;
+  --dark: #1a1a1a;
+  --g900: #2d2d2d;
+  --g700: #555;
+  --g500: #888;
+  --g300: #c4c4c4;
+  --g200: #e2e2e2;
+  --g100: #f0f0f0;
+  --g50: #f8f8f8;
+  --white: #fff;
+  --green: #1a7a4c;
+  --green-bg: #e8f5ee;
+  --blue: #1a5fa5;
+  --blue-bg: #e6f0fb;
+  --purple: #5a3fb5;
+  --purple-bg: #eeedfe;
+  --amber: #9a6b10;
+  --amber-bg: #fef6e6;
+  --red: #a32d2d;
+  --red-bg: #fcebeb;
+  --r: 10px;
+  --rs: 6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Helvetica Neue LT Pro','Helvetica Neue',Helvetica,Arial,sans-serif;background:var(--g50);color:var(--dark);line-height:1.5;font-weight:300;-webkit-font-smoothing:antialiased}
+
+.topbar{background:var(--dark);padding:16px 32px;display:flex;align-items:center;justify-content:space-between}
+.topbar .logo{display:flex;align-items:center}
+.topbar .logo svg{height:28px;width:auto}
+.topbar .tag{font-size:11px;color:var(--g300);letter-spacing:.5px}
+
+.hero{background:linear-gradient(135deg,var(--dark) 0%,#2a1a0e 100%);padding:48px 32px 40px;color:var(--white)}
+.hero-label{font-size:11px;font-weight:400;letter-spacing:2px;text-transform:uppercase;color:var(--o);margin-bottom:8px}
+.hero h1{font-size:32px;font-weight:700;line-height:1.15;margin-bottom:6px}
+.hero h1 em{color:var(--o);font-style:normal}
+.hero .sub{font-size:14px;color:var(--g300);font-weight:300}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;background:var(--g200);border-bottom:1px solid var(--g200)}
+.si{background:var(--white);padding:20px 24px;text-align:center}
+.si .v{font-size:26px;font-weight:700;color:var(--dark)}
+.si .v.accent{color:var(--o)}
+.si .l{font-size:11px;color:var(--g500);margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
+
+.nav{background:var(--white);border-bottom:1px solid var(--g200);padding:0 32px;display:flex;gap:0;overflow-x:auto;position:sticky;top:0;z-index:100}
+.nav-item{padding:14px 20px;font-size:13px;font-weight:400;color:var(--g500);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s;user-select:none}
+.nav-item:hover{color:var(--dark)}
+.nav-item.active{color:var(--o);border-bottom-color:var(--o)}
+.nav-item .n{display:inline-flex;width:18px;height:18px;border-radius:50%;background:var(--g100);color:var(--g500);font-size:10px;font-weight:400;align-items:center;justify-content:center;margin-right:6px;transition:all .2s}
+.nav-item.active .n{background:var(--o);color:var(--white)}
+
+.content{padding:32px;max-width:960px;margin:0 auto}
+.panel{display:none;animation:fadeIn .3s ease}
+.panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.section{margin-bottom:28px}
+.sh{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--g100)}
+.sh h2{font-size:16px;font-weight:400;color:var(--dark)}
+.badge{font-size:10px;font-weight:400;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px}
+.b-o{background:var(--o-light);color:var(--o)}
+.b-gr{background:var(--green-bg);color:var(--green)}
+.b-bl{background:var(--blue-bg);color:var(--blue)}
+.b-pu{background:var(--purple-bg);color:var(--purple)}
+.b-am{background:var(--amber-bg);color:var(--amber)}
+.b-re{background:var(--red-bg);color:var(--red)}
+.b-gy{background:var(--g100);color:var(--g700)}
+.badge-sm{font-size:9px;padding:2px 7px;border-radius:20px;font-weight:400}
+
+.card{background:var(--white);border:1px solid var(--g200);border-radius:var(--r);padding:16px 20px;margin-bottom:10px;transition:border-color .2s}
+.card:hover{border-color:var(--g300)}
+.card-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.card-t{font-size:14px;font-weight:400;color:var(--dark)}
+.card-s{font-size:12px;color:var(--g500)}
+
+.img-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;font-size:13px;color:var(--dark)}
+.img-row+.img-row{border-top:1px solid var(--g100)}
+.img-row .name{flex:1}
+.img-row .name b{font-weight:400}
+
+.rule{background:var(--o-light);border-left:3px solid var(--o);border-radius:0 var(--rs) var(--rs) 0;padding:10px 14px;margin-bottom:6px;font-size:12px;color:var(--g700);line-height:1.5}
+.rule b{color:var(--dark);font-weight:400}
+.dep{background:var(--purple-bg);border-left:3px solid var(--purple);border-radius:0 var(--rs) var(--rs) 0;padding:10px 14px;margin-bottom:6px;font-size:12px;color:var(--g700);line-height:1.5}
+.dep b{color:var(--purple);font-weight:400}
+.warn{background:var(--red-bg);border-left:3px solid var(--red);border-radius:0 var(--rs) var(--rs) 0;padding:10px 14px;margin-bottom:10px;font-size:12px;color:var(--g700);line-height:1.5}
+.warn b{color:var(--red);font-weight:400}
+.note{background:var(--g50);border-radius:var(--rs);padding:10px 14px;margin-bottom:6px;font-size:12px;color:var(--g700);line-height:1.5}
+.note b{color:var(--dark);font-weight:400}
+
+.dt{width:100%;border-collapse:collapse;font-size:13px}
+.dt td{padding:8px 0;vertical-align:top}
+.dt td:first-child{color:var(--g500);font-size:11px;font-weight:400;text-transform:uppercase;letter-spacing:.3px;width:140px;padding-right:16px}
+.dt tr+tr td{border-top:1px solid var(--g100)}
+.dt .sub{font-size:11px;color:var(--g500);margin-top:2px}
+
+.mg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.ms{background:var(--g50);border-radius:var(--rs);padding:10px 12px}
+.ms .mv{font-size:15px;font-weight:700;color:var(--dark)}
+.ms .ml{font-size:10px;color:var(--g500);margin-top:1px;text-transform:uppercase;letter-spacing:.3px}
+
+.cp{font-size:13px;font-weight:400;color:var(--dark);margin:20px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--o-light);display:flex;align-items:center;gap:8px}
+.cp .line{flex:1;height:2px;background:var(--g100)}
+
+.task{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:var(--rs);cursor:pointer;transition:background .15s;user-select:none}
+.task:hover{background:var(--g50)}
+.task+.task{border-top:1px solid var(--g100)}
+.task .cb{width:18px;height:18px;border-radius:4px;border:2px solid var(--g300);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.task.done .cb{background:var(--o);border-color:var(--o)}
+.task.done .cb::after{content:'';width:5px;height:9px;border:solid white;border-width:0 2px 2px 0;transform:rotate(45deg);margin-top:-2px}
+.task.done .tt{text-decoration:line-through;color:var(--g300)}
+.tc{flex:1}
+.tt{font-size:13px;color:var(--dark);line-height:1.4}
+.tm{display:flex;gap:6px;margin-top:3px;flex-wrap:wrap}
+.tag{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:400}
+.t-own{background:var(--o-light);color:var(--o)}
+.t-date{background:var(--amber-bg);color:var(--amber)}
+.t-ext{background:var(--purple-bg);color:var(--purple)}
+.t-risk{background:var(--red-bg);color:var(--red)}
+.t-team{background:var(--green-bg);color:var(--green)}
+
+.pbar{background:var(--white);border:1px solid var(--g200);border-radius:var(--r);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px}
+.ptrack{flex:1;height:6px;background:var(--g100);border-radius:3px;overflow:hidden}
+.pfill{height:100%;background:var(--o);border-radius:3px;transition:width .4s ease;width:0%}
+.plabel{font-size:13px;font-weight:400;color:var(--dark);min-width:44px;text-align:right}
+
+.footer{text-align:center;padding:24px;font-size:11px;color:var(--g500);border-top:1px solid var(--g200);margin-top:40px;display:flex;align-items:center;justify-content:center;gap:8px}
+.footer-logo svg{height:18px;width:auto}
+
+@media(max-width:640px){
+  .hero{padding:32px 20px}.hero h1{font-size:24px}.content{padding:20px}.nav{padding:0 16px}
+  .nav-item{padding:12px 14px;font-size:12px}.topbar{padding:12px 20px}.stats{grid-template-columns:repeat(2,1fr)}.mg{grid-template-columns:1fr}.dt td:first-child{width:100px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo"><svg id="Camada_2" data-name="Camada 2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 367.82 143.27">
+  <defs>
+    <style>
+      .cls-1 {
+        font-family: MounstaRegular, Mounsta;
+        font-size: 133.15px;
+      }
+
+      .cls-1, .cls-2 {
+        fill: #eaeaea;
+      }
+
+      .cls-3 {
+        fill: url(#Gradiente_sem_nome_10);
+      }
+    </style>
+    <linearGradient id="Gradiente_sem_nome_10" data-name="Gradiente sem nome 10" x1="26.8" y1="58.18" x2="81.91" y2="58.18" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#e85102"/>
+      <stop offset="1" stop-color="#ec7602"/>
+    </linearGradient>
+  </defs>
+  <g id="Camada_1-2" data-name="Camada 1">
+    <g>
+      <text class="cls-1" transform="translate(113.24 113.18)"><tspan x="0" y="0">tbo</tspan></text>
+      <g>
+        <circle class="cls-2" cx="65.16" cy="97.84" r="14.16"/>
+        <circle class="cls-2" cx="15.87" cy="46.43" r="14.16"/>
+        <circle class="cls-2" cx="14.16" cy="98.48" r="14.16"/>
+        <path class="cls-3" d="M55.01,73.86s0-.3.04-.75c.02-.14.03-.27.04-.41.22-1.95-1.02-8.08,2.27-11.37,2.33-2.33,5.52-3.11,8.75-2.66,1.93.27,3.91.21,5.78-.36,2.15-.65,4.17-1.82,5.87-3.52,5.53-5.53,5.53-14.5,0-20.03-5.53-5.53-14.5-5.53-20.03,0-1.7,1.7-2.87,3.72-3.52,5.87-.57,1.87-.63,3.84-.36,5.78.45,3.23-.32,6.42-2.66,8.75-3.29,3.29-9.42,2.06-11.37,2.27-.14.01-.27.02-.41.04-.45.04-.75.04-.75.04l.06.06c-3.78.61-7.37,2.73-9.75,6.44-2.94,4.58-2.91,10.67.09,15.21.57.87,1.22,1.63,1.91,2.33.69.69,1.46,1.34,2.33,1.91,4.54,3,10.63,3.03,15.21.09,3.7-2.37,5.83-5.96,6.44-9.75l.06.06Z"/>
+      </g>
+    </g>
+  </g>
+</svg></div>
+  <div class="tag">Documento interno — Projeto Digital 3D</div>
+</div>
+
+<div class="hero">
+  <div class="hero-label">Base Empreendimentos — Sorriso, MT</div>
+  <h1>Urbanit <em>Garden</em></h1>
+  <div class="sub">Escopo consolidado de produção 3D — 30 imagens + vídeo IA — Mar/Abr 2026</div>
+</div>
+
+<div class="stats">
+  <div class="si"><div class="v accent">30</div><div class="l">Imagens</div></div>
+  <div class="si"><div class="v">3</div><div class="l">Blocos</div></div>
+  <div class="si"><div class="v">~95</div><div class="l">Ajustes</div></div>
+  <div class="si"><div class="v">1</div><div class="l">Vídeo IA</div></div>
+</div>
+
+<div class="nav">
+  <div class="nav-item active" onclick="showTab(0)"><span class="n">1</span>Escopo geral</div>
+  <div class="nav-item" onclick="showTab(1)"><span class="n">2</span>Escopo TBO</div>
+  <div class="nav-item" onclick="showTab(2)"><span class="n">3</span>Escopo Arcvisual</div>
+  <div class="nav-item" onclick="showTab(3)"><span class="n">4</span>Checklist</div>
+</div>
+
+<div class="content">
+
+<!-- ===== TAB 1: ESCOPO GERAL ===== -->
+<div class="panel active" id="p0">
+
+<div class="section">
+  <div class="sh"><h2>Ficha do projeto</h2></div>
+  <div class="card">
+    <table class="dt">
+      <tr><td>Empreendimento</td><td>Urbanit Garden — Sorriso, MT</td></tr>
+      <tr><td>Incorporadora</td><td>Base Empreendimentos (CEO: João Paulo Cerutti)</td></tr>
+      <tr><td>Contato 3D</td><td>Pierre Rosset (ajustes técnicos e direção de cena)</td></tr>
+      <tr><td>Grupo WhatsApp</td><td>URBANIT | TBO x Base | Imagens<div class="sub">Participantes: Agência, Cá, Nathália, Pierre, +55 66 9912-9930</div></td></tr>
+      <tr><td>Conceito</td><td>"Sua vida urbana conectada à natureza"</td></tr>
+      <tr><td>Endereço</td><td>Av. Noêmia Tonello Dalmolin, nº 1595 — Sorriso, MT</td></tr>
+      <tr><td>Terreno</td><td>6.490,97m² · Área construída: 15.623,44m²</td></tr>
+      <tr><td>Programa</td><td>2 torres (76 + 78 aptos) · 15 pavimentos · 54m altura · 6 tipos de planta (56–77m²) · 7 salas comerciais · 2 rooftops (~400m²)</td></tr>
+      <tr><td>Diferenciais</td><td>+2.000m² lazer térreo · Garagem 100% coberta (156 vagas) · Reconhecimento facial · Churrasqueira a carvão (tipos 01/02/04/05)</td></tr>
+      <tr><td>Base 3D</td><td>SketchUp da arquiteta (confirmado)</td></tr>
+      <tr><td>Book referência</td><td>APRESENTAÇÃO URBANIT GARDEN R03.pdf (49 páginas, 21MB)</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="section">
+  <div class="sh"><h2>Entregáveis consolidados</h2></div>
+  <div class="card">
+    <table class="dt">
+      <tr><td>Bloco 1</td><td><b>8 imagens</b> — Áreas externas condomínio — <b>28/03</b> — Arcvisual</td></tr>
+      <tr><td>Bloco 2</td><td><b>10 imagens</b> — Fachadas e rooftop — <b>06/04</b> — TBO</td></tr>
+      <tr><td>Bloco 3</td><td><b>12 imagens</b> — Internas condomínio (térreo) — <b>13/04</b> — Arcvisual</td></tr>
+      <tr><td>Vídeo IA</td><td><b>60s</b> (45s + 15s) — Data TBD — Executor TBD<div class="sub">Formato provável: filme conceitual + tag institucional</div></td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="section">
+  <div class="sh"><h2>Regras globais de ajuste (aplicar em todos os blocos)</h2></div>
+  <div class="rule"><b>Iluminação:</b> 75% das sacadas iluminadas com luz interna visível</div>
+  <div class="rule"><b>Sacadas:</b> Remover feixo branco em volta das sacadas</div>
+  <div class="rule"><b>Logo Urbanit:</b> Melhorar iluminação na fachada</div>
+  <div class="rule"><b>Vidros comerciais:</b> Espelhar — não mostrar interior das salas</div>
+  <div class="rule"><b>Churrasqueira:</b> Revestimento em pastilha cinza clara c/ rejunte claro, cobrindo bloco todo</div>
+  <div class="rule"><b>Guarda-corpo rooftop:</b> Corrigir modelo em todas as vistas</div>
+  <div class="rule"><b>Proporção:</b> Todas em 16:9 horizontal salvo indicação contrária</div>
+  <div class="rule"><b>Humanização:</b> Mais carros/vultos passando nas fachadas</div>
+</div>
+
+<div class="section">
+  <div class="sh">
+    <span class="badge b-am">Atenção</span>
+    <h2>Entregáveis no DOCX Pierre fora dos 3 blocos</h2>
+  </div>
+  <div class="warn"><b>Confirmar com cliente:</b> Os itens abaixo constam no DOCX do Pierre mas não aparecem no rol de 30 imagens do João Paulo. Podem ser fase separada ou escopo adicional.</div>
+  <div class="card">
+    <table class="dt">
+      <tr><td>Plantas humanizadas</td><td>7 tipos de apto + pavimento tipo (8 plantas). Ajuste padrão: melhorar guarda-roupas + baixar corte portas (só folha, sem bandeira).</td></tr>
+      <tr><td>Aptos internos (3D)</td><td>5 apartamentos (01, 02, 04, 05, 06). Faltam pós-produção + iluminação móveis cozinha.</td></tr>
+      <tr><td>Implantação geral</td><td>Planta baixa térreo + rooftop. Modelar depósitos, banheiros, lobby novo, quadra, bicicletário.</td></tr>
+      <tr><td>Implantação drone</td><td>Composição 3D sobre foto real de drone (pendente da Base).</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="section">
+  <div class="sh"><h2>Dependências externas (bloqueios)</h2></div>
+  <div class="dep"><b>Foto drone real</b> — Base captura em dia claro → imagens implantação + localização</div>
+  <div class="dep"><b>Prints SketchUp ângulos panorâmicos</b> — Pierre/arquiteta envia → aprovação antes de produzir</div>
+  <div class="dep"><b>Versão final DOCX ajustes</b> — Pierre revisa 18/03, pode adicionar itens</div>
+  <div class="dep"><b>Definição pedra moledo</b> — substituir material "datado" → decisão Base/arquiteta</div>
+  <div class="dep"><b>Definição imagem "a definir"</b> — Bloco 1, 8ª imagem</div>
+  <div class="dep"><b>Definição vídeo IA</b> — executor, prazo, referências, roteiro</div>
+</div>
+</div>
+
+<!-- ===== TAB 2: ESCOPO TBO ===== -->
+<div class="panel" id="p1">
+
+<div class="section">
+  <div class="mg">
+    <div class="ms"><div class="mv">10 imagens</div><div class="ml">Bloco 2</div></div>
+    <div class="ms"><div class="mv">06/04</div><div class="ml">Deadline</div></div>
+    <div class="ms"><div class="mv">Fachadas e rooftop</div><div class="ml">Escopo</div></div>
+    <div class="ms"><div class="mv">Nath → Duda/Tiago</div><div class="ml">Execução</div></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="sh">
+    <span class="badge b-gr">Bloco 2</span>
+    <h2>Fachadas e rooftop</h2>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><span class="card-t">Fachadas — 4 imagens</span></div>
+    <div class="img-row"><span class="name"><b>Fachada 01</b> — Céu novo. Observador na altura da laje comercial. Lobby visível.</span></div>
+    <div class="img-row"><span class="name"><b>Fachada 02</b> — Tirar logo salas comerciais. Foco portaria, câmera mais à esquerda, pegando torre 02.</span></div>
+    <div class="img-row"><span class="name"><b>Fachada 03</b> — Câmera mais à direita, tirar ipê da frente da torre. Redário (pergolado). Muros c/ desnível.</span></div>
+    <div class="img-row"><span class="name"><b>Fachada 04</b> — Novo ângulo (1 nova)</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><span class="card-t">Região das piscinas — 3 imagens</span></div>
+    <div class="img-row"><span class="name"><b>Piscina 01</b> — Corrigir nível da água, cobertura quiosque visível, banco afundado.</span></div>
+    <div class="img-row"><span class="name"><b>Piscina 02</b> — Ajustes DOCX Pierre. Não cortar rooftop.</span></div>
+    <div class="img-row"><span class="name"><b>Piscina 03</b> — Novo ângulo/posição (1 nova)</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><span class="card-t">Região living externo — 2 imagens</span></div>
+    <div class="img-row"><span class="name"><b>Living 01</b> — Luz na convivência, arrumar móveis. Palmeiras sem tapar prédio. Pet space realocado. Playground tom pastel. Muros c/ trepadeiras.</span></div>
+    <div class="img-row"><span class="name"><b>Living 02</b> — Novo ângulo (1 nova)</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><span class="card-t">Quadra poliesportiva — 1 imagem</span></div>
+    <div class="img-row"><span class="name"><b>Quadra</b> — Corrigir conforme implantação</span></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="sh"><h2>Regras globais (aplicar em todas as fachadas)</h2></div>
+  <div class="rule"><b>Iluminação sacadas 75%</b> · <b>Feixo branco</b> remover · <b>Logo Urbanit</b> iluminar · <b>Vidros comerciais</b> espelhar · <b>Churrasqueira</b> pastilha cinza · <b>Guarda-corpo rooftop</b> corrigir · <b>16:9 horizontal</b></div>
+</div>
+
+<div class="section">
+  <div class="sh"><h2>Observações operacionais</h2></div>
+  <div class="note"><b>Base 3D:</b> SketchUp da arquiteta (confirmado no DOCX Pierre)</div>
+  <div class="note"><b>Modelos:</b> Usar mobílias e vegetações dos modelos da Base, fazer complementações/melhorias. Não é projeto fixo para eles.</div>
+  <div class="note"><b>Coordenação:</b> Nath distribui entre Duda e Tiago conforme complexidade. Início após entrega Bloco 1 (28/03).</div>
+  <div class="note"><b>Mari:</b> Não entra nesse projeto. Marco assume moodboard.</div>
+</div>
+
+<div class="warn"><b>Risco de prazo:</b> 28/03 → 06/04 = 9 dias corridos (~6 úteis) para 10 imagens com ajustes pesados (mudanças de câmera, reposicionamento de elementos, troca de materiais). Avaliar carga de Duda + Tiago frente a outros projetos em andamento.</div>
+</div>
+
+<!-- ===== TAB 3: ESCOPO ARCVISUAL ===== -->
+<div class="panel" id="p2">
+
+<div class="section">
+  <div class="mg">
+    <div class="ms"><div class="mv">20 imagens</div><div class="ml">Blocos 1 + 3</div></div>
+    <div class="ms"><div class="mv">28/03 + 13/04</div><div class="ml">Deadlines</div></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="sh">
+    <span class="badge b-o">Bloco 1</span>
+    <h2>Áreas externas condomínio</h2>
+  </div>
+  <div class="card">
+    <div class="card-h">
+      <span class="card-t">8 imagens</span>
+      <span class="card-s">Entrega 28/03</span>
+    </div>
+    <div class="img-row"><span class="name"><b>Localização</b> — aérea c/ pontos de interesse, drone real + composição 3D</span></div>
+    <div class="img-row"><span class="name"><b>Panorâmica térreo</b> — vista geral, ângulo a confirmar via print SketchUp</span></div>
+    <div class="img-row"><span class="name"><b>Rooftop panorâmica</b> — 1° plano roof 01, fundo roof 02 desfocado, humanizados</span></div>
+    <div class="img-row"><span class="name"><b>Rooftop jardins</b> — ajustes DOCX Pierre</span></div>
+    <div class="img-row"><span class="name"><b>Rooftop meditação</b> — ajustes DOCX Pierre</span></div>
+    <div class="img-row"><span class="name"><b>Rooftop eventos</b> (2x) — ajustes DOCX Pierre</span></div>
+    <div class="img-row"><span class="name"><b>A definir</b> — cena não especificada, aguardando definição</span></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="sh">
+    <span class="badge b-pu">Bloco 3</span>
+    <h2>Internas condomínio — térreo</h2>
+  </div>
+  <div class="card">
+    <div class="card-h">
+      <span class="card-t">12 imagens</span>
+      <span class="card-s">Entrega 13/04</span>
+    </div>
+    <div class="img-row"><span class="name"><b>Ambientes térreo</b> — hall social, lobby, pub, academia, brinquedoteca, beauty, spa, coworking, market, sauna, living externo, etc.</span></div>
+    <div class="note" style="margin-top:8px"><b>Imagens novas:</b> Hall de entrada com elevadores + 1 a definir. Demais seguem ajustes do DOCX Pierre (beauty: 2 cadeiras de atendimento, spa: trocar por maca de massagem, etc.)</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="sh"><h2>Insumos necessários para cotação/produção</h2></div>
+  <div class="dep"><b>Modelo SketchUp</b> da arquiteta — TBO envia</div>
+  <div class="dep"><b>DOCX ajustes Pierre</b> — versão final (Pierre revisa 18/03)</div>
+  <div class="dep"><b>Foto de drone real</b> — Base captura em dia claro (implantação + localização)</div>
+  <div class="dep"><b>Prints SketchUp ângulos</b> panorâmicas — aprovação antes da produção</div>
+  <div class="dep"><b>Moodboard / referências de clima</b> — Marco monta (book R03 como base)</div>
+  <div class="dep"><b>Definição 8ª imagem</b> — Bloco 1, cena "a definir"</div>
+  <div class="dep"><b>Decisão pedra moledo</b> — material datado, substituir (decisão Base/arquiteta)</div>
+</div>
+</div>
+
+<!-- ===== TAB 4: CHECKLIST ===== -->
+<div class="panel" id="p3">
+
+<div class="pbar">
+  <span style="font-size:12px;color:var(--g500)">Progresso</span>
+  <div class="ptrack"><div class="pfill" id="pf"></div></div>
+  <span class="plabel" id="pl">0/18</span>
+</div>
+
+<div class="cp">Imediato — até 19/03 (quarta)<div class="line"></div></div>
+
+<div class="task" onclick="tog(this)"><div class="cb"></div><div class="tc"><div class="tt">Analisar versão final do DOCX de ajustes (Pierre revisa amanhã)</div><div class="tm"><span class="tag t-own">Marco</span><span class="tag t-date">18/03</span></div></div></div>
+<div class="task" onclick="tog(this)"><div class="cb"></div><div class="tc"><div class="tt">Montar briefing estruturado para Arcvisual: regras globais + ajustes por imagem + rol de blocos</div><div class="tm"><span class="tag t-own">Marco</span><span class="tag t-date">19/03</span></div></div></div>
+<div class="task" onclick="tog(this)"><div class="cb"></div><div class="tc"><div class="tt">Cotar Arcvisual — 20 imagens (Bloco 1 + 3), negociar pacote fechado</div><div class="tm"><span class="tag t-own">Marco</span><span class="tag t-date">19/03</span></div></div></div>
+<div class="task" onclick="tog(this)"><div class="cb"></div><div class="tc"><div class="tt">Montar moodboard / referências de clima (usar book R03 como base)</div><div class="tm"><span class="tag t-own">Marco</span><span class="tag t-date">19/03</span></div></div></div>
+<div class="task" onclick="tog(this)"><div class="cb"></div><div class="tc"><div class="tt">Briefar Nath: vídeo explicativo + compartilhar book R03 + DOCX Pierre + rol de blocos</div><div class="tm"><span class="tag t-own">Marco</span><span class="tag t-date">19/03</span></div></div></div>
+<div class="task" onclick="tog(this)"><div class="cb"></div><div class="tc"><div class="tt">Confirmar com cliente: plantas humanizadas + aptos internos estão no escopo dos 30 ou são fase separada?</div><div class="tm"><span class="tag t-own">Marco</span><span class="tag t-date">19/03</span></div></div></div>
+
+<div class="cp">Pré-produção — até 21/03 (sexta)<div class="line"></div></div>
+
+<div class="task" onclick="tog(this)"><div class="cb"></div><div class="tc"><div class="tt">Fechar contrato Arcvisual + enviar briefing Bloco 1</div><div class="tm"><span class="tag t-own">Marco</span><span class="tag t-date">21/03</span></div></div></div>
+<div class="task" onclick="tog(this)"><div class="cb"></div><div class="tc"><div class="tt">Cobrar insumos pendentes do cliente: foto drone, prints SketchUp, 8ª imagem, pedra moledo</div><div class="tm"><span class="tag t-own">Marco / Nath</span><span class="tag t-date">21/03</span></div></div></div>
+<div class="task" onclick="tog(this)"><div class="cb"></div><div class="tc"><div class="tt">Nath: receber modelo SketchUp + preparar setup de cena para Bloco 2</div><div class="tm"><span class="tag t-team">Nath</span><span class="tag t-date">21/03</span></div></div></div>
+
+<div class="cp">Produção Bloco 1 — 21/03 → 28/03<div class="line"></div></div>
+
+<div class="task" onclick="tog(this)"><div class="cb"></div><div class="tc"><div class="tt">Arcvisual produz 8 imagens Bloco 1 (áreas externas)</div><div class="tm"><span class="tag t-ext">Arcvisual</span><span class="tag t-date">28/03</span></div></div></div>
+<div class="task" onclick="tog(this)"><div class="cb"></div><div class="tc"><div class="tt">Check-in intermediário ~24/03 — prévias para revisão</div><div class="tm"><span class="tag t-team">Nath monitora</span></div></div></div>
+<div class="task" onclick="tog(this)"><div class="cb"></div><div class="tc"><div class="tt">Enviar briefing Bloco 3 para Arcvisual (junto com entrega do Bloco 1)</div><div class="tm"><span class="tag t-own">Marco / Nath</span><span class="tag t-date">28/03</span></div></div></div>
+
+<div class="cp">Produção Bloco 2 — 28/03 → 06/04<div class="line"></div></div>
+
+<div class="task" onclick="tog(this)"><div class="cb"></div><div class="tc"><div class="tt">TBO produz 10 imagens Bloco 2 — Nath distribui entre Duda e Tiago</div><div class="tm"><span class="tag t-team">Nath → Duda/Tiago</span><span class="tag t-date">06/04</span></div></div></div>
+<div class="task" onclick="tog(this)"><div class="cb"></div><div class="tc"><div class="tt">Check-in intermediário ~02/04 — prévias para revisão Marco</div><div class="tm"><span class="tag t-team">Nath</span></div></div></div>
+
+<div class="cp">Produção Bloco 3 — 28/03 → 13/04<div class="line"></div></div>
+
+<div class="task" onclick="tog(this)"><div class="cb"></div><div class="tc"><div class="tt">Arcvisual produz 12 imagens Bloco 3 (internas térreo)</div><div class="tm"><span class="tag t-ext">Arcvisual</span><span class="tag t-date">13/04</span></div></div></div>
+<div class="task" onclick="tog(this)"><div class="cb"></div><div class="tc"><div class="tt">Check-in intermediário ~07/04 — prévias para revisão</div><div class="tm"><span class="tag t-team">Nath monitora</span></div></div></div>
+
+<div class="cp">Pendências sem data<div class="line"></div></div>
+
+<div class="task" onclick="tog(this)"><div class="cb"></div><div class="tc"><div class="tt">Definir executor e prazo do Vídeo IA 60s (45+15)</div><div class="tm"><span class="tag t-own">Marco</span><span class="tag t-risk">sem data</span></div></div></div>
+<div class="task" onclick="tog(this)"><div class="cb"></div><div class="tc"><div class="tt">Definir se plantas humanizadas (7) + aptos internos (5) + implantação são deste escopo ou fase posterior</div><div class="tm"><span class="tag t-own">Marco</span><span class="tag t-risk">sem data</span></div></div></div>
+
+</div>
+</div>
+
+<div class="footer">
+  <span class="footer-logo"><svg id="Camada_2_ft" data-name="Camada 2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 367.82 143.27">
+  <defs>
+    <style>
+      .cls-1 {
+        font-family: MounstaRegular, Mounsta;
+        font-size: 133.15px;
+      }
+
+      .cls-1, .cls-2 {
+        fill: #0f0f0f;
+      }
+
+      .cls-3 {
+        fill: url(#Grad_ft);
+      }
+    </style>
+    <linearGradient id="Grad_ft" data-name="Gradiente sem nome 10" x1="26.8" y1="58.18" x2="81.91" y2="58.18" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#e85102"/>
+      <stop offset="1" stop-color="#ec7602"/>
+    </linearGradient>
+  </defs>
+  <g id="Camada_1-2" data-name="Camada 1">
+    <g>
+      <text class="cls-1" transform="translate(113.24 113.18)"><tspan x="0" y="0">tbo</tspan></text>
+      <g>
+        <circle class="cls-2" cx="65.16" cy="97.84" r="14.16"/>
+        <circle class="cls-2" cx="15.87" cy="46.43" r="14.16"/>
+        <circle class="cls-2" cx="14.16" cy="98.48" r="14.16"/>
+        <path class="cls-3" d="M55.01,73.86s0-.3.04-.75c.02-.14.03-.27.04-.41.22-1.95-1.02-8.08,2.27-11.37,2.33-2.33,5.52-3.11,8.75-2.66,1.93.27,3.91.21,5.78-.36,2.15-.65,4.17-1.82,5.87-3.52,5.53-5.53,5.53-14.5,0-20.03-5.53-5.53-14.5-5.53-20.03,0-1.7,1.7-2.87,3.72-3.52,5.87-.57,1.87-.63,3.84-.36,5.78.45,3.23-.32,6.42-2.66,8.75-3.29,3.29-9.42,2.06-11.37,2.27-.14.01-.27.02-.41.04-.45.04-.75.04-.75.04l.06.06c-3.78.61-7.37,2.73-9.75,6.44-2.94,4.58-2.91,10.67.09,15.21.57.87,1.22,1.63,1.91,2.33.69.69,1.46,1.34,2.33,1.91,4.54,3,10.63,3.03,15.21.09,3.7-2.37,5.83-5.96,6.44-9.75l.06.06Z"/>
+      </g>
+    </g>
+  </g>
+</svg></span>
+  <span>We Are TBO · Documento interno · Gerado em 18/03/2026</span>
+</div>
+
+<script>
+function showTab(n){
+  document.querySelectorAll('.nav-item').forEach((t,i)=>t.classList.toggle('active',i===n));
+  document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',i===n));
+}
+function tog(el){
+  el.classList.toggle('done');
+  el.querySelector('.cb').classList.toggle('checked');
+  var t=document.querySelectorAll('#p3 .task').length;
+  var d=document.querySelectorAll('#p3 .task.done').length;
+  document.getElementById('pf').style.width=Math.round(d/t*100)+'%';
+  document.getElementById('pl').textContent=d+'/'+t;
+}
+</script>
+</body>
+</html>

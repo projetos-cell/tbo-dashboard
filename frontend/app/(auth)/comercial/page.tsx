@@ -10,6 +10,7 @@ import {
   useUpdateDeal,
 } from "@/features/comercial/hooks/use-commercial";
 import { DealKPICards } from "@/features/comercial/components/deal-kpis";
+import { DadosComerciaisMensais } from "@/features/comercial/components/dados-comerciais-mensais";
 import { RdPipelineKanban } from "@/features/comercial/components/rd-pipeline-kanban";
 import { DealPipeline } from "@/features/comercial/components/deal-pipeline";
 import { PipelineFilters } from "@/features/comercial/components/pipeline-filters";
@@ -192,6 +193,9 @@ export default function ComercialPage() {
 
         {/* KPIs */}
         <DealKPICards kpis={kpis} />
+
+        {/* Dados Comerciais Mensais — editable + RD cross-reference */}
+        <DadosComerciaisMensais />
 
         {/* Pipeline selector tabs */}
         {rdPipelines.length > 0 && (

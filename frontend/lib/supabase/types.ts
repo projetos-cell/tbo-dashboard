@@ -1627,6 +1627,69 @@ export type Database = {
           },
         ]
       }
+      commercial_monthly_data: {
+        Row: {
+          id: string
+          tenant_id: string
+          year_month: string
+          reunioes_agendadas: number
+          reunioes_realizadas: number
+          vendas_quantidade: number
+          vendas_valor: number
+          prospeccoes_outbound: number
+          leads_inbound: number
+          produtos_vendidos: string
+          rd_leads_total: number
+          rd_deals_won: number
+          rd_deals_won_value: number
+          rd_pipeline_value: number
+          rd_conversion_rate: number
+          updated_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          year_month: string
+          reunioes_agendadas?: number
+          reunioes_realizadas?: number
+          vendas_quantidade?: number
+          vendas_valor?: number
+          prospeccoes_outbound?: number
+          leads_inbound?: number
+          produtos_vendidos?: string
+          rd_leads_total?: number
+          rd_deals_won?: number
+          rd_deals_won_value?: number
+          rd_pipeline_value?: number
+          rd_conversion_rate?: number
+          updated_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          year_month?: string
+          reunioes_agendadas?: number
+          reunioes_realizadas?: number
+          vendas_quantidade?: number
+          vendas_valor?: number
+          prospeccoes_outbound?: number
+          leads_inbound?: number
+          produtos_vendidos?: string
+          rd_leads_total?: number
+          rd_deals_won?: number
+          rd_deals_won_value?: number
+          rd_pipeline_value?: number
+          rd_conversion_rate?: number
+          updated_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       crm_deals: {
         Row: {
           activities: Json | null

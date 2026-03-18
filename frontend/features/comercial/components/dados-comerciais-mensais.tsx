@@ -265,12 +265,12 @@ export function DadosComerciaisMensais() {
   }
 
   return (
-    <Card className="border-border/50">
+    <Card className="border-border/50 overflow-hidden">
       {/* Header */}
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
               <IconChartBar className="h-5 w-5" />
             </div>
             <div>
@@ -282,7 +282,7 @@ export function DadosComerciaisMensais() {
           </div>
           <div className="flex items-center gap-2">
             {/* Month navigator */}
-            <div className="flex items-center gap-1 rounded-lg border bg-muted/50 px-1">
+            <div className="flex items-center rounded-lg border bg-muted/50">
               <Button
                 variant="ghost"
                 size="icon"
@@ -291,7 +291,7 @@ export function DadosComerciaisMensais() {
               >
                 <IconChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="px-2 text-sm font-medium capitalize min-w-[140px] text-center">
+              <span className="px-1 text-sm font-medium capitalize text-center whitespace-nowrap">
                 {formatMonth(yearMonth)}
               </span>
               <Button
@@ -468,19 +468,16 @@ function EditableRow({
   onChange: (val: string) => void;
 }) {
   return (
-    <div className="group flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5 transition-colors hover:bg-muted/50">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
+    <div className="group flex items-center gap-2 rounded-lg border bg-card px-3 py-2 transition-colors hover:bg-muted/50 overflow-hidden">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-primary/10 text-[11px] font-bold text-primary">
         {String(index).padStart(2, "0")}
       </span>
-      <div className="flex flex-1 items-center gap-2 min-w-0">
-        <field.icon className={`h-4 w-4 shrink-0 ${field.color}`} />
-        <span className="text-sm truncate">{field.label}</span>
-      </div>
-      <div className="flex items-center gap-2">
+      <field.icon className={`h-4 w-4 shrink-0 ${field.color}`} />
+      <span className="flex-1 text-sm truncate min-w-0">{field.label}</span>
+      <div className="flex items-center gap-1.5 shrink-0">
         <Input
-          type={field.type === "text" ? "text" : "text"}
           inputMode={field.type === "text" ? "text" : "decimal"}
-          className="h-8 w-32 text-right text-sm font-medium tabular-nums"
+          className="h-7 w-24 text-right text-sm font-medium tabular-nums"
           value={
             field.type === "currency" && typeof value === "number" && value > 0
               ? value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })
@@ -492,7 +489,7 @@ function EditableRow({
           onChange={(e) => onChange(e.target.value)}
         />
         {field.unit && (
-          <span className="text-xs text-muted-foreground w-16 text-right">
+          <span className="text-[11px] text-muted-foreground w-14 text-right whitespace-nowrap">
             {field.unit}
           </span>
         )}

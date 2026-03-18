@@ -6,6 +6,14 @@
   "outputDirectory": ".next",
   "crons": [
     {
+      "path": "/api/finance/data-quality",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/finance/sync-omie",
+      "schedule": "0 */4 * * *"
+    },
+    {
       "path": "/api/finance/sync-extrato",
       "schedule": "0 3 * * *"
     }

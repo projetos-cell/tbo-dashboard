@@ -72,24 +72,52 @@ export async function syncContasPagar(
         // PREFIXED omie_id to avoid collision with receivables
         const omieId = `payable_${rawOmieId}`;
 
-        let status = "previsto";
         const statusOmie = String(conta.status_titulo || "").toLowerCase();
-        if (statusOmie === "liquidado" || statusOmie === "pago") status = "pago";
-        else if (statusOmie === "atrasado" || statusOmie === "vencido") status = "atrasado";
-        else if (statusOmie === "cancelado") status = "cancelado";
+        const rawPagoForStatus = Number(conta.valor_pago || 0);
+        const valorDocForStatus = Number(conta.valor_documento || 0);
+
+        let status = "previsto";
+        if (statusOmie === "liquidado" || statusOmie === "pago") {
+          // Detect partial payment: paid but valor_pago < valor_documento
+          if (rawPagoForStatus > 0 && rawPagoForStatus < valorDocForStatus) {
+            status = "parcial";
+          } else {
+            status = "pago";
+          }
+        } else if (statusOmie === "atrasado" || statusOmie === "vencido") {
+          // Even if overdue, check if there was a partial payment
+          if (rawPagoForStatus > 0 && rawPagoForStatus < valorDocForStatus) {
+            status = "parcial";
+          } else {
+            status = "atrasado";
+          }
+        } else if (statusOmie === "cancelado") {
+          status = "cancelado";
+        }
 
         const bankAccountOmieId = conta.codigo_conta_corrente
           ? String(conta.codigo_conta_corrente)
           : null;
+
+        // Calculate real paid_amount: valor_pago if available, else derive from valor_documento + juros + multa - desconto
+        const rawPago = Number(conta.valor_pago || 0);
+        const valorDoc = Number(conta.valor_documento || 0);
+        const juros = Number(conta.nValorJuros || 0);
+        const multa = Number(conta.nValorMulta || 0);
+        const desconto = Number(conta.nValorDesconto || 0);
+        const computedPaidAmount = rawPago > 0
+          ? rawPago
+          : (status === "pago" || status === "parcial")
+            ? valorDoc + juros + multa - desconto
+            : 0;
 
         allRecords.push({
           tenant_id: tenantId,
           type: "despesa",
           status,
           description: String(conta.observacao || conta.complemento || "Conta a pagar"),
-          amount: Number(conta.valor_documento || 0),
-          // Omie's ListarContasPagar doesn't return valor_pago — use valor_documento when paid
-          paid_amount: Number(conta.valor_pago || (status === "pago" ? conta.valor_documento : 0) || 0),
+          amount: valorDoc,
+          paid_amount: computedPaidAmount,
           date:
             parseOmieDate(conta.data_emissao) ||
             parseOmieDate(conta.data_vencimento) ||
@@ -185,24 +213,50 @@ export async function syncContasReceber(
         // PREFIXED omie_id to avoid collision with payables
         const omieId = `receivable_${rawOmieId}`;
 
-        let status = "previsto";
         const statusOmie = String(conta.status_titulo || "").toLowerCase();
-        if (statusOmie === "liquidado" || statusOmie === "recebido") status = "pago";
-        else if (statusOmie === "atrasado" || statusOmie === "vencido") status = "atrasado";
-        else if (statusOmie === "cancelado") status = "cancelado";
+        const rawRecebidoForStatus = Number(conta.valor_recebido || conta.valor_pago || 0);
+        const valorDocForStatusAR = Number(conta.valor_documento || 0);
+
+        let status = "previsto";
+        if (statusOmie === "liquidado" || statusOmie === "recebido") {
+          if (rawRecebidoForStatus > 0 && rawRecebidoForStatus < valorDocForStatusAR) {
+            status = "parcial";
+          } else {
+            status = "pago";
+          }
+        } else if (statusOmie === "atrasado" || statusOmie === "vencido") {
+          if (rawRecebidoForStatus > 0 && rawRecebidoForStatus < valorDocForStatusAR) {
+            status = "parcial";
+          } else {
+            status = "atrasado";
+          }
+        } else if (statusOmie === "cancelado") {
+          status = "cancelado";
+        }
 
         const bankAccountOmieId = conta.codigo_conta_corrente
           ? String(conta.codigo_conta_corrente)
           : null;
+
+        // Calculate real paid_amount: valor_recebido/valor_pago if available, else derive
+        const rawRecebido = Number(conta.valor_recebido || conta.valor_pago || 0);
+        const valorDocAR = Number(conta.valor_documento || 0);
+        const jurosAR = Number(conta.nValorJuros || 0);
+        const multaAR = Number(conta.nValorMulta || 0);
+        const descontoAR = Number(conta.nValorDesconto || 0);
+        const computedPaidAmountAR = rawRecebido > 0
+          ? rawRecebido
+          : (status === "pago" || status === "parcial")
+            ? valorDocAR + jurosAR + multaAR - descontoAR
+            : 0;
 
         allRecords.push({
           tenant_id: tenantId,
           type: "receita",
           status,
           description: String(conta.observacao || conta.complemento || "Conta a receber"),
-          amount: Number(conta.valor_documento || 0),
-          // Omie's ListarContasReceber doesn't return valor_recebido — use valor_documento when paid
-          paid_amount: Number(conta.valor_recebido || conta.valor_pago || (status === "pago" ? conta.valor_documento : 0) || 0),
+          amount: valorDocAR,
+          paid_amount: computedPaidAmountAR,
           date:
             parseOmieDate(conta.data_emissao) ||
             parseOmieDate(conta.data_vencimento) ||

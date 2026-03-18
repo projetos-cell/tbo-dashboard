@@ -92,6 +92,40 @@ export const STATE_CONFIG: Record<
   },
 };
 
+// ── Freshness detection ─────────────────────────────────────────────────────
+
+export type FreshnessLevel = "fresh" | "aging" | "stale" | "unknown";
+
+const FRESHNESS_THRESHOLD_AGING_MS = 4 * 60 * 60 * 1000; // 4h
+const FRESHNESS_THRESHOLD_STALE_MS = 6 * 60 * 60 * 1000; // 6h
+
+export function getSyncFreshness(latest: OmieSyncLog | null): {
+  level: FreshnessLevel;
+  label: string;
+  ageMs: number;
+} {
+  if (!latest || !latest.finished_at) {
+    return { level: "unknown", label: "Sem dados de sync", ageMs: 0 };
+  }
+
+  const ageMs = Date.now() - new Date(latest.finished_at).getTime();
+
+  if (ageMs < FRESHNESS_THRESHOLD_AGING_MS) {
+    return { level: "fresh", label: `Atualizado ${formatRelativeTime(latest.finished_at)}`, ageMs };
+  }
+  if (ageMs < FRESHNESS_THRESHOLD_STALE_MS) {
+    return { level: "aging", label: `Dados de ${formatRelativeTime(latest.finished_at)}`, ageMs };
+  }
+  return { level: "stale", label: `Desatualizado — ${formatRelativeTime(latest.finished_at)}`, ageMs };
+}
+
+export const FRESHNESS_STYLES: Record<FreshnessLevel, { dot: string; text: string }> = {
+  fresh: { dot: "bg-emerald-500", text: "text-emerald-700" },
+  aging: { dot: "bg-amber-500", text: "text-amber-700" },
+  stale: { dot: "bg-red-500 animate-pulse", text: "text-red-700" },
+  unknown: { dot: "bg-gray-400", text: "text-gray-500" },
+};
+
 // ── Tooltip builder ─────────────────────────────────────────────────────────
 
 export function buildTooltipLines(

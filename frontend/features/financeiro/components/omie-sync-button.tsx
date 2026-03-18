@@ -27,6 +27,8 @@ import {
   formatRelativeTime,
   getTotalRecords,
   buildTooltipLines,
+  getSyncFreshness,
+  FRESHNESS_STYLES,
 } from "./omie-sync-helpers";
 
 // ── Sub-components ───────────────────────────────────────────────────────────
@@ -103,6 +105,10 @@ export function OmieSyncButton() {
   const config = STATE_CONFIG[state];
   const isDisabled = state === "syncing" || trigger.isPending;
 
+  // Freshness: only show when not actively syncing
+  const freshness = state !== "syncing" ? getSyncFreshness(latest) : null;
+  const freshnessStyle = freshness ? FRESHNESS_STYLES[freshness.level] : null;
+
   async function handleSync() {
     try {
       await trigger.mutateAsync(undefined);
@@ -124,6 +130,11 @@ export function OmieSyncButton() {
   }
 
   const tooltipLines = buildTooltipLines(latest, state);
+  if (freshness && freshness.level === "stale") {
+    tooltipLines.push("⚠ Dados com mais de 6h — recomendado sincronizar");
+  } else if (freshness && freshness.level === "aging") {
+    tooltipLines.push("⏳ Dados com mais de 4h — próxima sync automática em breve");
+  }
 
   return (
     <TooltipProvider>
@@ -143,6 +154,18 @@ export function OmieSyncButton() {
 
             {/* Separator */}
             <div className="h-3 w-px bg-current opacity-15 shrink-0" />
+
+            {/* Freshness indicator */}
+            {freshness && freshnessStyle && freshness.level !== "unknown" && (
+              <div className="flex items-center gap-1 shrink-0">
+                <span className={cn("h-1.5 w-1.5 rounded-full", freshnessStyle.dot)} />
+                {(freshness.level === "aging" || freshness.level === "stale") && (
+                  <span className={cn("text-[10px] font-medium", freshnessStyle.text)}>
+                    {freshness.level === "stale" ? "Desatualizado" : "Envelhecendo"}
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* Meta info */}
             <MetaInfo state={state} latest={latest} />

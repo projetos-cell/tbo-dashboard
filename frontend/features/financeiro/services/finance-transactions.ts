@@ -238,34 +238,49 @@ export async function getFinanceStatusWithAmounts(
   };
 }
 
-// ── Chart data (unpaginated) ─────────────────────────────────────────────────
+// ── Chart data (fetches all matching records, paginated internally) ──────────
+
+const CHART_PAGE_SIZE = 1000;
 
 export async function getFinanceChartData(
   supabase: FinanceSupabase,
   filters: Omit<FinanceFilters, "page" | "pageSize" | "search"> = {}
 ): Promise<FinanceTransaction[]> {
-  let query = supabase
-    .from(TABLE_TRANSACTIONS)
-    .select(
-      "id, type, status, amount, paid_amount, date, due_date, category_id, cost_center_id, business_unit"
-    )
-    .order("date", { ascending: true })
-    .limit(500);
+  const allData: FinanceTransaction[] = [];
+  let from = 0;
+  let hasMore = true;
 
-  if (filters.type) query = query.eq("type", filters.type);
-  if (filters.typeIn?.length) query = query.in("type", filters.typeIn);
-  if (filters.statusIn?.length) query = query.in("status", filters.statusIn);
-  if (filters.status) query = query.eq("status", filters.status);
-  if (filters.category_id) query = query.eq("category_id", filters.category_id);
-  if (filters.business_unit) query = query.eq("business_unit", filters.business_unit);
+  while (hasMore) {
+    let query = supabase
+      .from(TABLE_TRANSACTIONS)
+      .select(
+        "id, type, status, amount, paid_amount, date, due_date, category_id, cost_center_id, business_unit"
+      )
+      .order("date", { ascending: true })
+      .range(from, from + CHART_PAGE_SIZE - 1);
 
-  const dateField = filters.dateField ?? "date";
-  if (filters.dateFrom) query = query.gte(dateField, filters.dateFrom);
-  if (filters.dateTo) query = query.lte(dateField, filters.dateTo);
+    if (filters.type) query = query.eq("type", filters.type);
+    if (filters.typeIn?.length) query = query.in("type", filters.typeIn);
+    if (filters.statusIn?.length) query = query.in("status", filters.statusIn);
+    if (filters.status) query = query.eq("status", filters.status);
+    if (filters.category_id) query = query.eq("category_id", filters.category_id);
+    if (filters.business_unit) query = query.eq("business_unit", filters.business_unit);
 
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data ?? []) as FinanceTransaction[];
+    const dateField = filters.dateField ?? "date";
+    if (filters.dateFrom) query = query.gte(dateField, filters.dateFrom);
+    if (filters.dateTo) query = query.lte(dateField, filters.dateTo);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const rows = (data ?? []) as FinanceTransaction[];
+    allData.push(...rows);
+
+    hasMore = rows.length === CHART_PAGE_SIZE;
+    from += CHART_PAGE_SIZE;
+  }
+
+  return allData;
 }
 
 // ── Client-side API wrappers ─────────────────────────────────────────────────

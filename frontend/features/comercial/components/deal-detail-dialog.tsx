@@ -15,7 +15,10 @@ import {
   IconBuilding,
   IconUser,
   IconMail,
+  IconPhone,
   IconTarget,
+  IconGitBranch,
+  IconClock,
 } from "@tabler/icons-react";
 import type { Database } from "@/lib/supabase/types";
 import { DEAL_STAGES, type DealStageKey } from "@/lib/constants";
@@ -43,6 +46,12 @@ export function DealDetailDialog({
   onEdit,
 }: DealDetailDialogProps) {
   if (!deal) return null;
+
+  // Fields that may not be in the strict type but exist via migration
+  const dealAny = deal as Record<string, unknown>;
+  const contactPhone = dealAny.contact_phone ? String(dealAny.contact_phone) : null;
+  const rdPipelineName = dealAny.rd_pipeline_name ? String(dealAny.rd_pipeline_name) : null;
+  const rdStageName = dealAny.rd_stage_name ? String(dealAny.rd_stage_name) : null;
 
   const stageConfig =
     DEAL_STAGES[deal.stage as DealStageKey] ?? {
@@ -97,7 +106,17 @@ export function DealDetailDialog({
             {deal.contact_email && (
               <div className="flex items-center gap-2">
                 <IconMail className="h-4 w-4 text-gray-500" />
-                <span>{deal.contact_email}</span>
+                <a href={`mailto:${deal.contact_email}`} className="text-blue-600 hover:underline">
+                  {deal.contact_email}
+                </a>
+              </div>
+            )}
+            {contactPhone && (
+              <div className="flex items-center gap-2">
+                <IconPhone className="h-4 w-4 text-gray-500" />
+                <a href={`tel:${contactPhone}`} className="text-blue-600 hover:underline">
+                  {contactPhone}
+                </a>
               </div>
             )}
           </div>
@@ -136,6 +155,57 @@ export function DealDetailDialog({
               </div>
             )}
           </div>
+
+          {/* RD Station info */}
+          {deal.source === "rdstation" && (
+            <>
+              <Separator />
+              <div className="space-y-2 text-sm">
+                <h4 className="font-medium flex items-center gap-2">
+                  <IconGitBranch className="h-4 w-4" />
+                  RD Station
+                </h4>
+                {rdPipelineName && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-500">Funil</span>
+                    <span>{rdPipelineName}</span>
+                  </div>
+                )}
+                {rdStageName && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-500">Etapa RD</span>
+                    <Badge variant="secondary" className="text-xs">
+                      {rdStageName}
+                    </Badge>
+                  </div>
+                )}
+                {deal.created_at && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-500">Criado em</span>
+                    <span className="flex items-center gap-1">
+                      <IconClock className="h-3 w-3" />
+                      {new Date(deal.created_at).toLocaleDateString("pt-BR", {
+                        day: "2-digit", month: "2-digit", year: "numeric",
+                        hour: "2-digit", minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                )}
+                {deal.updated_at && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-500">Última atualização</span>
+                    <span className="flex items-center gap-1">
+                      <IconClock className="h-3 w-3" />
+                      {new Date(deal.updated_at).toLocaleDateString("pt-BR", {
+                        day: "2-digit", month: "2-digit", year: "numeric",
+                        hour: "2-digit", minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
 
           {/* Services */}
           {deal.services && deal.services.length > 0 && (

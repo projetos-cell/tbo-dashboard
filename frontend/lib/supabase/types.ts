@@ -1696,6 +1696,7 @@ export type Database = {
           company: string | null
           contact: string | null
           contact_email: string | null
+          contact_phone: string | null
           cost: number | null
           created_at: string | null
           expected_close: string | null
@@ -1725,6 +1726,7 @@ export type Database = {
           company?: string | null
           contact?: string | null
           contact_email?: string | null
+          contact_phone?: string | null
           cost?: number | null
           created_at?: string | null
           expected_close?: string | null

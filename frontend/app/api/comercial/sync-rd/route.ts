@@ -14,6 +14,7 @@ interface RdDeal {
     id: string;
     name: string;
     emails?: Array<{ email: string }>;
+    phones?: Array<{ phone: string }>;
   }>;
   user?: { id: string; name: string } | null;
   win?: boolean;
@@ -117,28 +118,87 @@ async function rdFetchAll<T>(
 // ── Stage mapping (fallback for deals without proper RD stage) ───────────────────
 
 const RD_STAGE_MAP: Record<string, string> = {
-  qualificação: "qualificacao",
-  qualificacao: "qualificacao",
-  qualification: "qualificacao",
-  proposta: "proposta",
-  proposal: "proposta",
-  negociação: "negociacao",
-  negociacao: "negociacao",
-  negotiation: "negociacao",
-  fechamento: "fechamento",
-  closing: "fechamento",
-  ganho: "fechado_ganho",
-  won: "fechado_ganho",
-  "fechado ganho": "fechado_ganho",
-  perdido: "fechado_perdido",
-  lost: "fechado_perdido",
-  "fechado perdido": "fechado_perdido",
+  // Lead / Prospecção
   prospecção: "lead",
   prospeccao: "lead",
   prospecting: "lead",
   "contato inicial": "lead",
   "initial contact": "lead",
+  lead: "lead",
+  // Qualificação
+  qualificação: "qualificacao",
+  qualificacao: "qualificacao",
+  qualification: "qualificacao",
+  // Proposta (inclui stages reais do RD Station TBO)
+  proposta: "proposta",
+  proposal: "proposta",
+  "proposta em aberto": "proposta",
+  "propostas em aberto": "proposta",
+  apresentação: "proposta",
+  apresentacao: "proposta",
+  // Reunião
+  reunião: "qualificacao",
+  reuniao: "qualificacao",
+  meeting: "qualificacao",
+  // Qualificados
+  qualificados: "qualificacao",
+  qualified: "qualificacao",
+  // Negociação
+  negociação: "negociacao",
+  negociacao: "negociacao",
+  negotiation: "negociacao",
+  fechamento: "negociacao",
+  closing: "negociacao",
+  // Ganho (inclui stages reais do RD Station TBO)
+  ganho: "fechado_ganho",
+  won: "fechado_ganho",
+  "fechado ganho": "fechado_ganho",
+  vendas: "fechado_ganho",
+  venda: "fechado_ganho",
+  vendido: "fechado_ganho",
+  vendida: "fechado_ganho",
+  "venda realizada": "fechado_ganho",
+  "contrato assinado": "fechado_ganho",
+  "contrato fechado": "fechado_ganho",
+  "negócio fechado": "fechado_ganho",
+  "negocio fechado": "fechado_ganho",
+  aprovado: "fechado_ganho",
+  converted: "fechado_ganho",
+  closed: "fechado_ganho",
+  // Perdido (inclui stages reais do RD Station TBO)
+  perdido: "fechado_perdido",
+  perdida: "fechado_perdido",
+  lost: "fechado_perdido",
+  "fechado perdido": "fechado_perdido",
+  "propostas perdidas": "fechado_perdido",
+  "proposta perdida": "fechado_perdido",
+  descartado: "fechado_perdido",
+  cancelado: "fechado_perdido",
+  arquivado: "fechado_perdido",
 };
+
+// Keywords que indicam ganho/perda pelo nome do stage (fuzzy)
+const WON_KEYWORDS = [
+  "ganho", "won", "venda", "vendas", "vendido", "vendida",
+  "assinado", "aprovado", "converted", "closed",
+];
+const LOST_KEYWORDS = [
+  "perdido", "perdida", "perdidas", "lost",
+  "descartado", "cancelado", "arquivado",
+];
+
+function inferWonLostFromStageName(
+  stageName: string | undefined,
+): "won" | "lost" | null {
+  if (!stageName) return null;
+  const n = stageName.toLowerCase().trim();
+
+  // Perdido checks first (mais específico — "fechado perdido" deve ser perdido, não ganho)
+  if (LOST_KEYWORDS.some((k) => n.includes(k))) return "lost";
+  if (WON_KEYWORDS.some((k) => n.includes(k))) return "won";
+
+  return null;
+}
 
 function mapRdStage(
   rdStageName: string | undefined,
@@ -146,6 +206,7 @@ function mapRdStage(
   isWon: boolean,
   isClosed: boolean,
 ): string {
+  // 1. Flags explícitas do RD (win/closed_at)
   if (isWon) {
     return stages.find((s) => s.id === "fechado_ganho")?.id ?? "fechado_ganho";
   }
@@ -155,26 +216,41 @@ function mapRdStage(
     );
   }
 
+  // 2. Inferir ganho/perda pelo nome do stage (caso win/closed_at não venham)
+  const inferred = inferWonLostFromStageName(rdStageName);
+  if (inferred === "won") {
+    return stages.find((s) => s.id === "fechado_ganho")?.id ?? "fechado_ganho";
+  }
+  if (inferred === "lost") {
+    return stages.find((s) => s.id === "fechado_perdido")?.id ?? "fechado_perdido";
+  }
+
   if (!rdStageName) {
     return stages[0]?.id ?? "lead";
   }
 
   const normalized = rdStageName.toLowerCase().trim();
 
+  // 3. Match direto no id
   const directMatch = stages.find((s) => s.id === normalized);
   if (directMatch) return directMatch.id;
 
+  // 4. Match pelo label
   const labelMatch = stages.find(
     (s) => s.label.toLowerCase() === normalized,
   );
   if (labelMatch) return labelMatch.id;
 
+  // 5. Lookup no mapa estático
   const mapped = RD_STAGE_MAP[normalized];
   if (mapped) {
     const stageMatch = stages.find((s) => s.id === mapped);
     if (stageMatch) return stageMatch.id;
+    // Se o mapped stage não existir na tabela crm_stages, retornar o mapped diretamente
+    return mapped;
   }
 
+  // 6. Fuzzy match
   const fuzzy = stages.find(
     (s) =>
       s.label.toLowerCase().includes(normalized) ||
@@ -182,6 +258,7 @@ function mapRdStage(
   );
   if (fuzzy) return fuzzy.id;
 
+  // 7. Fallback — primeiro stage não-fechado, ou "lead"
   return (
     stages.find((s) => !s.id.startsWith("fechado"))?.id ??
     stages[0]?.id ??
@@ -358,7 +435,15 @@ export async function POST(req: NextRequest) {
     for (const rd of rdDeals) {
       try {
         const isClosed = !!rd.closed_at;
-        const isWon = !!rd.win;
+        // RD Station pode enviar win como boolean, string "true", ou number 1
+        const rawWin: unknown = rd.win;
+        const isWon = Boolean(
+          rawWin === true
+          || String(rawWin) === "true"
+          || rawWin === 1
+          || (isClosed && rd.deal_stage?.name
+            && inferWonLostFromStageName(rd.deal_stage.name) === "won"),
+        );
 
         const stage = mapRdStage(
           rd.deal_stage?.name,
@@ -369,6 +454,7 @@ export async function POST(req: NextRequest) {
 
         const contact = rd.contacts?.[0];
         const contactEmail = contact?.emails?.[0]?.email ?? null;
+        const contactPhone = contact?.phones?.[0]?.phone ?? null;
 
         const rdPipelineId = rd.deal_pipeline_id ?? null;
         const pipelineInfo = rdPipelineId
@@ -400,6 +486,7 @@ export async function POST(req: NextRequest) {
           company: rd.organization?.name ?? null,
           contact: contact?.name ?? null,
           contact_email: contactEmail,
+          contact_phone: contactPhone,
           stage,
           value: rd.amount_total ?? null,
           probability: isWon

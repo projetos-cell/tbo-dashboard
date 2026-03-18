@@ -161,7 +161,7 @@ export default function ComercialPage() {
 
   return (
     <RequireRole module="comercial">
-      <div className="space-y-6">
+      <div className="space-y-6 min-w-0">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

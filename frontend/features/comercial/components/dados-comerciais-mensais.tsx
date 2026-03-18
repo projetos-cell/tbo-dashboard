@@ -265,7 +265,7 @@ export function DadosComerciaisMensais() {
   }
 
   return (
-    <Card className="border-border/50 overflow-hidden">
+    <Card className="border-border/50 min-w-0 w-full overflow-hidden">
       {/* Header */}
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -468,13 +468,15 @@ function EditableRow({
   onChange: (val: string) => void;
 }) {
   return (
-    <div className="group flex items-center gap-2 rounded-lg border bg-card px-3 py-2 transition-colors hover:bg-muted/50 overflow-hidden">
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-primary/10 text-[11px] font-bold text-primary">
-        {String(index).padStart(2, "0")}
-      </span>
-      <field.icon className={`h-4 w-4 shrink-0 ${field.color}`} />
-      <span className="flex-1 text-sm truncate min-w-0">{field.label}</span>
-      <div className="flex items-center gap-1.5 shrink-0">
+    <div className="group grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-lg border bg-card px-3 py-2 transition-colors hover:bg-muted/50">
+      <div className="flex items-center gap-2 shrink-0">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-primary/10 text-[11px] font-bold text-primary">
+          {String(index).padStart(2, "0")}
+        </span>
+        <field.icon className={`h-4 w-4 shrink-0 ${field.color}`} />
+      </div>
+      <span className="text-sm truncate">{field.label}</span>
+      <div className="flex items-center gap-1.5">
         <Input
           inputMode={field.type === "text" ? "text" : "decimal"}
           className="h-7 w-24 text-right text-sm font-medium tabular-nums"

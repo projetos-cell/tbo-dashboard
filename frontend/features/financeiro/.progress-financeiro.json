@@ -1,6 +1,6 @@
 {
-  "current_item": 3,
-  "items_completed": [1, 2],
+  "current_item": 4,
+  "items_completed": [1, 2, 3],
   "quality_scores": {
     "1": {
       "build": true,
@@ -18,6 +18,16 @@
       "tests": true,
       "score": 100,
       "notes": "ofx-parser.ts (18 testes), cnab-parser.ts (14 testes), Edge Function import-bank-statement/index.ts. Zod v4 validation, TypeScript strict. Build limpo, 275/275 testes passando."
+    },
+    "3": {
+      "build": true,
+      "types": true,
+      "rls": true,
+      "service": true,
+      "hook": true,
+      "audit": true,
+      "score": 100,
+      "notes": "reconciliation-engine.ts: exact/fuzzy/rule-based scoring (0-100 pts: amount 40+date 35+desc 15+rule 10), auto>=86/suggest 50-85/unmatched<50. use-reconciliation.ts: hooks useReconciliationCandidates, useApplyReconciliation, useAutoReconcile, useUnreconcile com React Query. Migration 20260318_create_finance_reconciliation_log.sql com RLS. TypeScript strict, build limpo."
     }
   }
 }

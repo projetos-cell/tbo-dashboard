@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+// Extend Vercel serverless timeout (Pro: max 300s, Hobby: max 60s)
+export const maxDuration = 60;
+
 // ── Types ────────────────────────────────────────────────────────────────────────
 
 interface RdDeal {
@@ -53,12 +56,13 @@ const RD_BASE = "https://crm.rdstation.com/api/v1";
 async function rdFetchAll<T>(
   endpoint: string,
   token: string,
-  limit = 200,
+  limit = 50,
 ): Promise<T[]> {
   const all: T[] = [];
   let page = 1;
   let hasMore = true;
-  const MAX_RETRIES = 3;
+  const MAX_RETRIES = 5;
+  const THROTTLE_MS = 600; // ~100 req/min — under RD's 120/min limit
 
   while (hasMore) {
     const sep = endpoint.includes("?") ? "&" : "?";
@@ -67,6 +71,14 @@ async function rdFetchAll<T>(
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      // Throttle: wait before each request to stay under rate limit
+      if (attempt > 0 || page > 1) {
+        const delay = attempt > 0
+          ? Math.min(2000 * Math.pow(2, attempt), 30000) // retry: 2s, 4s, 8s, 16s, 30s
+          : THROTTLE_MS; // pagination throttle
+        await new Promise((r) => setTimeout(r, delay));
+      }
+
       const res = await fetch(url, {
         headers: { Accept: "application/json" },
       });
@@ -95,8 +107,12 @@ async function rdFetchAll<T>(
       }
 
       if (res.status === 429) {
-        const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
-        await new Promise((r) => setTimeout(r, delay));
+        // Read Retry-After header if available
+        const retryAfter = res.headers.get("Retry-After");
+        const waitMs = retryAfter
+          ? parseInt(retryAfter, 10) * 1000
+          : Math.min(3000 * Math.pow(2, attempt), 30000);
+        await new Promise((r) => setTimeout(r, waitMs));
         lastError = new Error(
           `RD Station rate limited (429) after ${MAX_RETRIES} retries`,
         );

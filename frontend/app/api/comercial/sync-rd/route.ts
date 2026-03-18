@@ -125,6 +125,14 @@ const RD_STAGE_MAP: Record<string, string> = {
   "contato inicial": "lead",
   "initial contact": "lead",
   lead: "lead",
+  leads: "lead",
+  // Contactado (stages reais do funil TBO no RD)
+  "contactado - c/retorno": "qualificacao",
+  "contactado - sem retorno": "qualificacao",
+  contactado: "qualificacao",
+  // Sem interesse
+  "sem interesse no momento": "fechado_perdido",
+  "sem interesse": "fechado_perdido",
   // Qualificação
   qualificação: "qualificacao",
   qualificacao: "qualificacao",

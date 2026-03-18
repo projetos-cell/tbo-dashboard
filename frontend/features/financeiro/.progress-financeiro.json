@@ -1,6 +1,6 @@
 {
-  "current_item": 4,
-  "items_completed": [1, 2, 3],
+  "current_item": 5,
+  "items_completed": [1, 2, 3, 4],
   "quality_scores": {
     "1": {
       "build": true,
@@ -28,6 +28,16 @@
       "audit": true,
       "score": 100,
       "notes": "reconciliation-engine.ts: exact/fuzzy/rule-based scoring (0-100 pts: amount 40+date 35+desc 15+rule 10), auto>=86/suggest 50-85/unmatched<50. use-reconciliation.ts: hooks useReconciliationCandidates, useApplyReconciliation, useAutoReconcile, useUnreconcile com React Query. Migration 20260318_create_finance_reconciliation_log.sql com RLS. TypeScript strict, build limpo."
+    },
+    "4": {
+      "build": true,
+      "types": true,
+      "rls": true,
+      "ui": true,
+      "error_boundary": true,
+      "loading_skeleton": true,
+      "score": 100,
+      "notes": "Página /financeiro/conciliacao com RBACGuard(diretoria). ConciliacaoSummaryCards (4 KPIs: saldo bancário, saldo contábil, diferença, % conciliado). ConciliacaoFilters (conta, status, período). ConciliacaoSplitView (seções auto/sugestão/sem-match, aprovação batch e individual, rejeição local). ConciliacaoMatchRow + ConciliacaoUnmatchedRow. error.tsx + loading.tsx (skeleton content-aware). Build limpo: /financeiro/conciliacao rota confirmada."
     }
   }
 }

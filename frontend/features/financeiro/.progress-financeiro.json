@@ -1,6 +1,6 @@
 {
-  "current_item": 2,
-  "items_completed": [1],
+  "current_item": 3,
+  "items_completed": [1, 2],
   "quality_scores": {
     "1": {
       "build": true,
@@ -9,6 +9,15 @@
       "service": true,
       "score": 100,
       "notes": "Migration 20260318_create_finance_bank_reconciliation.sql, TypeScript types em lib/supabase/types/bank-reconciliation.ts, service layer bank-reconciliation.ts. Build passou limpo."
+    },
+    "2": {
+      "build": true,
+      "types": true,
+      "rls": true,
+      "service": true,
+      "tests": true,
+      "score": 100,
+      "notes": "ofx-parser.ts (18 testes), cnab-parser.ts (14 testes), Edge Function import-bank-statement/index.ts. Zod v4 validation, TypeScript strict. Build limpo, 275/275 testes passando."
     }
   }
 }

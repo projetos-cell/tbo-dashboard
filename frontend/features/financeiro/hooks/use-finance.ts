@@ -378,43 +378,6 @@ export function usePayrollBreakdown(dateFrom: string, dateTo: string) {
   });
 }
 
-// ── Sheet Payroll (Google Sheets — Equipe & Folha) ──────────────────────────
-
-export interface SheetTeamMember {
-  name: string;
-  role: string;
-  salary: number;
-  section: string;
-}
-
-export interface SheetPayrollData {
-  members: SheetTeamMember[];
-  totalFolha: number;
-  totalDespesas: number;
-  headcount: number;
-  month: string;
-  year: number;
-}
-
-export function useSheetPayroll(month: string) {
-  return useQuery<SheetPayrollData>({
-    queryKey: ["sheet-payroll", month],
-    queryFn: async () => {
-      const res = await fetch(`/api/sheets/payroll?month=${month}`);
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(
-          (body as Record<string, string>).error ?? `HTTP ${res.status}`
-        );
-      }
-      return res.json() as Promise<SheetPayrollData>;
-    },
-    enabled: !!month && /^\d{4}-\d{2}$/.test(month),
-    staleTime: 1000 * 60 * 5,
-    refetchInterval: 1000 * 60 * 10,
-  });
-}
-
 // ── Overdue Entries (Contas a Pagar/Receber) ────────────────────────────────
 
 export function useOverdueEntries(type: "ar" | "ap" | "all" = "all") {

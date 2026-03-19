@@ -53,6 +53,8 @@ import {
   IconUsers,
   IconSchool,
   IconWallet,
+  IconArrowsLeftRight,
+  IconReceipt,
 } from "@tabler/icons-react";
 
 /**
@@ -117,6 +119,8 @@ const ICON_MAP: Record<string, React.ElementType> = {
   users: IconUsers,
   "users-group": IconUsersGroup,
   wallet: IconWallet,
+  "git-compare": IconArrowsLeftRight,
+  receipt: IconReceipt,
 };
 
 /** Get a Tabler icon by kebab-case key. Falls back to IconLayoutDashboard. */

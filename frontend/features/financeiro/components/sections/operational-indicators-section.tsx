@@ -1,7 +1,6 @@
 "use client";
 
-import { IconUsers, IconReceipt, IconSettings, IconUserMinus } from "@tabler/icons-react";
-import { AreaChart, Area, ResponsiveContainer } from "recharts";
+import { IconUsers, IconReceipt, IconSettings } from "@tabler/icons-react";
 import { KpiCard } from "@/features/founder-dashboard/components/kpi-card";
 import { KpiGrid } from "@/features/founder-dashboard/components/kpi-grid";
 import type { FounderDashboardSnapshot } from "@/features/founder-dashboard/services/founder-dashboard";
@@ -12,6 +11,12 @@ interface Props {
   isLoading: boolean;
   errMsg: string | null;
   onRetry: () => void;
+  /** Folha real vinda de finance_team_payroll */
+  folhaReal: number;
+  /** Headcount real vindo de finance_team_payroll */
+  headcountReal: number;
+  /** Loading state da payroll */
+  payrollLoading: boolean;
 }
 
 export function OperationalIndicatorsSection({
@@ -19,128 +24,83 @@ export function OperationalIndicatorsSection({
   isLoading,
   errMsg,
   onRetry,
+  folhaReal,
+  headcountReal,
+  payrollLoading,
 }: Props) {
+  const anyLoading = isLoading || payrollLoading;
+
+  // Receita realizada (YTD) do dashboard
+  const receitaRealizada = d?.receitaRealizada ?? 0;
+
+  // Receita/colaborador usando headcount real da payroll
+  const receitaPerColab = headcountReal > 0 ? receitaRealizada / headcountReal : 0;
+
+  // Custos operacionais = total despesas Omie - folha real
+  const totalDespesas = d ? d.folhaPagamento + d.custosOperacionais : 0;
+  const custosOp = Math.max(0, totalDespesas - folhaReal);
+
+  // Percentuais
+  const totalCustos = folhaReal + custosOp;
+  const folhaPct = totalCustos > 0 ? (folhaReal / totalCustos) * 100 : 0;
+  const opPct = totalCustos > 0 ? (custosOp / totalCustos) * 100 : 0;
+
   return (
     <div>
-      <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+      <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
         Indicadores Operacionais
       </h2>
-      <KpiGrid columns={4}>
+      <KpiGrid columns={3}>
         <KpiCard
           title="Receita / Colaborador"
-          value={d ? fmt(d.receitaPorColaborador) : "—"}
-          sublabel={d ? `${d.headcount} colaboradores ativos` : undefined}
+          value={!anyLoading ? fmt(receitaPerColab) : "\u2014"}
+          sublabel={!anyLoading ? `${headcountReal} colaboradores ativos` : undefined}
           icon={<IconUsers className="h-4 w-4 text-indigo-500" />}
           colorClass="text-indigo-600 dark:text-indigo-400"
           tooltip={{
             description:
-              "Receita total dividida pelo número de colaboradores ativos.",
-            formula: "receita_realizada / headcount",
-            source: "Omie (receita) + Pessoas (headcount)",
+              "Receita realizada dividida pelo headcount da folha.",
+            formula: "receita_realizada / headcount_payroll",
+            source: "Omie (receita) + Folha (headcount)",
           }}
-          isLoading={isLoading}
-          isEmpty={!isLoading && !!d && d.headcount === 0}
-          emptyMessage="Nenhum colaborador ativo cadastrado."
+          isLoading={anyLoading}
+          isEmpty={!anyLoading && headcountReal === 0}
+          emptyMessage="Nenhum colaborador ativo na folha."
           error={errMsg}
           onRetry={onRetry}
         />
         <KpiCard
           title="Folha de Pagamento"
-          value={d ? fmt(d.folhaPagamento) : "—"}
-          sublabel={
-            d ? `${fmtPct(d.folhaPct)} do total de custos` : undefined
-          }
+          value={!anyLoading ? fmt(folhaReal) : "\u2014"}
+          sublabel={!anyLoading ? `${fmtPct(folhaPct)} do total de custos` : undefined}
           icon={<IconReceipt className="h-4 w-4 text-rose-500" />}
           colorClass="text-rose-600 dark:text-rose-400"
           tooltip={{
             description:
-              "Custos classificados como Folha de Pagamento no período.",
-            enters: "Despesas com categoria 'folha' ou 'salários'.",
-            source: "Omie (contas a pagar — categoria folha)",
+              "Total da folha de pagamento registrada no mes.",
+            source: "Folha (finance_team_payroll)",
           }}
-          isLoading={isLoading}
+          isLoading={anyLoading}
           error={errMsg}
           onRetry={onRetry}
         />
         <KpiCard
           title="Custos Operacionais"
-          value={d ? fmt(d.custosOperacionais) : "—"}
-          sublabel={
-            d ? `${fmtPct(d.operacionalPct)} do total de custos` : undefined
-          }
+          value={!anyLoading ? fmt(custosOp) : "\u2014"}
+          sublabel={!anyLoading ? `${fmtPct(opPct)} do total de custos` : undefined}
           icon={<IconSettings className="h-4 w-4 text-slate-500" />}
           colorClass="text-slate-600 dark:text-slate-400"
           tooltip={{
             description:
-              "Custos operacionais excluindo folha de pagamento.",
-            formula: "total_despesas - folha_pagamento",
-            source: "Omie (contas a pagar — exceto categoria folha)",
+              "Despesas pagas excluindo a folha de pagamento.",
+            formula: "total_despesas_omie - folha_payroll",
+            source: "Omie (despesas pagas) - Folha",
           }}
-          isLoading={isLoading}
-          error={errMsg}
-          onRetry={onRetry}
-        />
-        <KpiCard
-          title="Churn Rate"
-          value={d ? fmtPct(d.churnRate) : "—"}
-          sublabel="Clientes perdidos (mês atual)"
-          icon={<IconUserMinus className="h-4 w-4 text-red-500" />}
-          colorClass={
-            d && d.churnRate > 10
-              ? "text-red-600 dark:text-red-400"
-              : d && d.churnRate > 5
-                ? "text-amber-600 dark:text-amber-400"
-                : "text-emerald-600 dark:text-emerald-400"
-          }
-          tooltip={{
-            description:
-              "Taxa de churn: percentual de clientes que deixaram de gerar receita.",
-            formula:
-              "clientes_perdidos / clientes_ativos_mês_anterior × 100",
-            source: "Omie (receita por cliente — comparação mensal)",
-          }}
-          isLoading={isLoading}
-          isEmpty={!isLoading && !!d && d.churnHistory.length === 0}
-          emptyMessage="Dados insuficientes para calcular churn (mínimo 2 meses)."
+          isLoading={anyLoading}
           error={errMsg}
           onRetry={onRetry}
         />
       </KpiGrid>
-
-      {/* Churn sparkline */}
-      {d && d.churnHistory.length > 1 && !isLoading && (
-        <div className="mt-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-medium text-gray-500">
-              Evolução do Churn
-            </p>
-            <div className="flex gap-3">
-              {d.churnHistory.slice(-3).map((p) => (
-                <span key={p.month} className="text-xs text-gray-400">
-                  {p.label}:{" "}
-                  <span className="font-medium text-gray-600">
-                    {p.rate.toFixed(1)}%
-                  </span>
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="h-16">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={d.churnHistory}>
-                <Area
-                  type="monotone"
-                  dataKey="rate"
-                  stroke="#ef4444"
-                  fill="#ef4444"
-                  fillOpacity={0.1}
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

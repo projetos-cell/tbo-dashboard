@@ -1,31 +1,53 @@
 "use client";
 
-import { Suspense } from "react";
 import { RBACGuard } from "@/components/rbac-guard";
 import { useQueryParamNumber } from "@/hooks/use-query-param";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { CashflowProjectionChart, SaldoDiarioChart } from "@/features/financeiro/components/cashflow-chart";
 import { useFinanceCashFlowProjection } from "@/features/financeiro/hooks/use-finance";
 import { fmt } from "@/features/financeiro/lib/formatters";
+import { IconAlertCircle, IconRefresh, IconTrendingUp } from "@tabler/icons-react";
 
 function FluxoCaixaContent() {
   const [projDays, setProjDays] = useQueryParamNumber("proj", 30 as 30 | 60 | 90, [30, 60, 90] as const);
   const [histDays, setHistDays] = useQueryParamNumber("hist", 90 as 30 | 90 | 180, [30, 90, 180] as const);
-  const { data: projData } = useFinanceCashFlowProjection(projDays);
+  const { data: projData, isLoading, isError, refetch } = useFinanceCashFlowProjection(projDays);
 
   // Summary from projection data
   const totalIn = projData?.reduce((s, p) => s + p.inflow, 0) ?? 0;
   const totalOut = projData?.reduce((s, p) => s + p.outflow, 0) ?? 0;
   const netFlow = totalIn - totalOut;
+  const hasData = projData && projData.some((p) => p.inflow > 0 || p.outflow > 0);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Fluxo de Caixa</h1>
-        <p className="text-sm text-muted-foreground">
-          Projeção de entradas e saídas + histórico de saldo diário.
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Fluxo de Caixa</h1>
+          <p className="text-sm text-muted-foreground">
+            Projeção de entradas e saídas + histórico de saldo diário.
+          </p>
+        </div>
+        {isError && (
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <IconRefresh className="size-3.5 mr-1.5" />
+            Tentar novamente
+          </Button>
+        )}
       </div>
+
+      {/* Error banner */}
+      {isError && (
+        <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950 p-4">
+          <IconAlertCircle className="size-5 text-red-500 shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-red-700 dark:text-red-300">Erro ao carregar projeção de caixa</p>
+            <p className="text-xs text-red-600/70 dark:text-red-400/70">Verifique a conexão e tente novamente.</p>
+          </div>
+        </div>
+      )}
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -36,7 +58,11 @@ function FluxoCaixaContent() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xl font-bold text-emerald-600">{fmt(totalIn)}</p>
+            {isLoading ? (
+              <Skeleton className="h-7 w-28" />
+            ) : (
+              <p className="text-xl font-bold text-emerald-600">{fmt(totalIn)}</p>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -46,7 +72,11 @@ function FluxoCaixaContent() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xl font-bold text-red-600">{fmt(totalOut)}</p>
+            {isLoading ? (
+              <Skeleton className="h-7 w-28" />
+            ) : (
+              <p className="text-xl font-bold text-red-600">{fmt(totalOut)}</p>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -56,9 +86,13 @@ function FluxoCaixaContent() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className={`text-xl font-bold ${netFlow >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-              {fmt(netFlow)}
-            </p>
+            {isLoading ? (
+              <Skeleton className="h-7 w-28" />
+            ) : (
+              <p className={`text-xl font-bold ${netFlow >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                {fmt(netFlow)}
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -113,8 +147,19 @@ function FluxoCaixaContent() {
         </CardContent>
       </Card>
 
+      {/* Empty state */}
+      {!isLoading && !isError && !hasData && (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground">
+            <IconTrendingUp className="h-10 w-10" />
+            <p className="text-sm font-medium">Sem movimentações projetadas</p>
+            <p className="text-xs">Sincronize os dados do Omie para ver o fluxo de caixa.</p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Upcoming entries table */}
-      {projData && projData.length > 0 && (
+      {projData && hasData && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold">Movimentações Agendadas</CardTitle>
@@ -138,10 +183,10 @@ function FluxoCaixaContent() {
                       <tr key={i} className="border-b last:border-0">
                         <td className="py-2">{p.label}</td>
                         <td className="py-2 text-right text-emerald-600">
-                          {p.inflow > 0 ? fmt(p.inflow) : "—"}
+                          {p.inflow > 0 ? fmt(p.inflow) : "\u2014"}
                         </td>
                         <td className="py-2 text-right text-red-600">
-                          {p.outflow > 0 ? fmt(p.outflow) : "—"}
+                          {p.outflow > 0 ? fmt(p.outflow) : "\u2014"}
                         </td>
                         <td className={`py-2 text-right font-medium ${p.balance >= 0 ? "text-foreground" : "text-red-600"}`}>
                           {fmt(p.balance)}

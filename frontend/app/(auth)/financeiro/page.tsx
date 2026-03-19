@@ -1,6 +1,5 @@
 "use client";
 
-import { Suspense } from "react";
 import { RBACGuard } from "@/components/rbac-guard";
 import { useFounderDashboard } from "@/features/founder-dashboard/hooks/use-founder-dashboard";
 import { PeriodFilter } from "@/features/founder-dashboard/components/period-filter";
@@ -14,14 +13,19 @@ import { FinancialHealthSection } from "@/features/financeiro/components/section
 import { ExpiringContractsSection } from "@/features/financeiro/components/sections/expiring-contracts-section";
 import { StrategicSection } from "@/features/financeiro/components/sections/strategic-section";
 import { OmieSyncButton } from "@/features/financeiro/components/omie-sync-button";
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { IconUsers, IconReceipt, IconUserMinus, IconArrowRight } from "@tabler/icons-react";
+import { IconUsers, IconReceipt, IconSettings, IconCurrencyDollar, IconArrowRight, IconAlertCircle, IconRefresh } from "@tabler/icons-react";
+import { useTeamPayroll } from "@/features/financeiro/hooks/use-team-payroll";
+import { fmt } from "@/features/financeiro/lib/formatters";
 
 function FinanceiroContent() {
   const [period, setPeriod] = usePersistedPeriod("ytd");
   const { data: manualCaixa } = useLatestCashBalance();
 
-  const { data, isLoading, error, refetch } = useFounderDashboard(period);
+  const { data, isLoading, error, isError, refetch } = useFounderDashboard(period);
+  const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+  const { data: payroll } = useTeamPayroll(currentMonth);
 
   const d = data;
   const errMsg = error ? (error as Error).message : null;
@@ -43,10 +47,29 @@ function FinanceiroContent() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {isError && (
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              <IconRefresh className="size-3.5 mr-1.5" />
+              Tentar novamente
+            </Button>
+          )}
           <OmieSyncButton />
           <PeriodFilter value={period} onChange={setPeriod} />
         </div>
       </div>
+
+      {/* Error banner */}
+      {isError && (
+        <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950 p-4">
+          <IconAlertCircle className="size-5 text-red-500 shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-red-700 dark:text-red-300">Erro ao carregar dados financeiros</p>
+            <p className="text-xs text-red-600/70 dark:text-red-400/70">
+              {errMsg || "Verifique a conexão com o Omie e tente novamente."}
+            </p>
+          </div>
+        </div>
+      )}
 
       <FounderMetricsSection
         d={d}
@@ -68,39 +91,44 @@ function FinanceiroContent() {
 
       {/* ── Indicadores Operacionais (resumo) ─────────────────────────── */}
       <div>
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-          Indicadores Operacionais
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          Operacional
         </h2>
         <Link
           href="/financeiro/operacional"
-          className="block rounded-xl border bg-white p-4 shadow-sm hover:border-tbo-orange/30 hover:shadow-md transition group"
+          className="block rounded-xl border border-border bg-card p-4 shadow-sm hover:border-tbo-orange/30 hover:shadow-md transition group"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
                 <IconUsers className="h-4 w-4 text-indigo-500" />
                 <div>
-                  <p className="text-xs text-gray-500">Receita/Colab.</p>
-                  <p className="text-sm font-semibold text-gray-900">
-                    {d ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(d.receitaPorColaborador) : "—"}
-                  </p>
+                  <p className="text-xs text-muted-foreground">Headcount</p>
+                  <p className="text-sm font-semibold">{payroll ? payroll.headcount : "\u2014"}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <IconReceipt className="h-4 w-4 text-rose-500" />
                 <div>
-                  <p className="text-xs text-gray-500">Folha</p>
-                  <p className="text-sm font-semibold text-gray-900">
-                    {d ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(d.folhaPagamento) : "—"}
+                  <p className="text-xs text-muted-foreground">Folha</p>
+                  <p className="text-sm font-semibold">{payroll ? fmt(payroll.totalFolha) : "\u2014"}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <IconCurrencyDollar className="h-4 w-4 text-emerald-500" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Receita/Colab</p>
+                  <p className="text-sm font-semibold">
+                    {d && payroll && payroll.headcount > 0 ? fmt(d.receitaRealizada / payroll.headcount) : "\u2014"}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <IconUserMinus className="h-4 w-4 text-red-500" />
+                <IconSettings className="h-4 w-4 text-slate-500" />
                 <div>
-                  <p className="text-xs text-gray-500">Churn</p>
-                  <p className="text-sm font-semibold text-gray-900">
-                    {d ? `${d.churnRate.toFixed(1)}%` : "—"}
+                  <p className="text-xs text-muted-foreground">Custos Op.</p>
+                  <p className="text-sm font-semibold">
+                    {d && payroll ? fmt(Math.max(0, (d.folhaPagamento + d.custosOperacionais) - payroll.totalFolha)) : "\u2014"}
                   </p>
                 </div>
               </div>

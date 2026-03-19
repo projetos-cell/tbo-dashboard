@@ -5,10 +5,11 @@ import {
   IconUsers,
   IconReceipt,
   IconSettings,
+  IconCurrencyDollar,
   IconCalendar,
   IconChevronLeft,
   IconChevronRight,
-  IconCurrencyDollar,
+  IconCopy,
   IconRefresh,
 } from "@tabler/icons-react";
 import { RBACGuard } from "@/components/rbac-guard";
@@ -16,10 +17,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { useSheetPayroll, useFounderKPIs } from "@/features/financeiro/hooks/use-finance";
-import { OperationalIndicatorsSection } from "@/features/financeiro/components/sections/operational-indicators-section";
+import {
+  useTeamPayroll,
+  useUpsertTeamPayroll,
+  useUpdateTeamPayroll,
+  useDeleteTeamPayroll,
+  useDuplicateMonthPayroll,
+} from "@/features/financeiro/hooks/use-team-payroll";
+import { PayrollTable } from "@/features/financeiro/components/payroll-table";
 import { useFounderDashboard } from "@/features/founder-dashboard/hooks/use-founder-dashboard";
 import { fmt, fmtPct } from "@/features/financeiro/lib/formatters";
+import { toast } from "sonner";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -45,165 +53,124 @@ function formatMonthLabel(month: string): string {
 function OperacionalContent() {
   const [month, setMonthParam] = useQueryParam("month", getCurrentMonth());
 
-  // Google Sheets payroll data
   const {
     data: payroll,
     isLoading: payrollLoading,
     isError: payrollError,
     refetch: refetchPayroll,
     isFetching,
-  } = useSheetPayroll(month);
+  } = useTeamPayroll(month);
 
-  // Founder KPIs for receita
-  const { data: kpis } = useFounderKPIs();
+  const upsertMut = useUpsertTeamPayroll();
+  const updateMut = useUpdateTeamPayroll(month);
+  const deleteMut = useDeleteTeamPayroll(month);
+  const duplicateMut = useDuplicateMonthPayroll();
 
-  // Dashboard for operational section
-  const {
-    data: dashData,
-    isLoading: dashLoading,
-    error: dashError,
-    refetch,
-  } = useFounderDashboard({ preset: "ytd" });
+  const { data: dashData, isLoading: dashLoading } = useFounderDashboard({ preset: "ytd" });
 
   const isCurrentMonth = month === getCurrentMonth();
-  const receitaPerColaborador =
-    payroll && payroll.headcount > 0 && kpis
-      ? kpis.receitaMTD / payroll.headcount
-      : 0;
+  const anyLoading = payrollLoading || dashLoading;
+
+  // Derived KPIs
+  const headcount = payroll?.headcount ?? 0;
+  const folha = payroll?.totalFolha ?? 0;
+  const receitaRealizada = dashData?.receitaRealizada ?? 0;
+  const receitaPerColab = headcount > 0 ? receitaRealizada / headcount : 0;
+  const totalDespOmie = dashData ? dashData.folhaPagamento + dashData.custosOperacionais : 0;
+  const custosOp = Math.max(0, totalDespOmie - folha);
+
+  function handleDuplicatePreviousMonth() {
+    const prev = shiftMonth(month, -1);
+    duplicateMut.mutate(
+      { sourceMonth: prev, targetMonth: month },
+      {
+        onSuccess: (data) => toast.success(`${data.length} registros copiados de ${formatMonthLabel(prev)}`),
+        onError: (err) => toast.error(err.message),
+      },
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Indicadores Operacionais</h1>
-        <p className="text-sm text-muted-foreground">
-          Equipe e custos via orçamento TBO (Google Sheets).
-        </p>
-      </div>
-
-      {/* Month selector */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => setMonthParam(shiftMonth(month, -1))}
-          className="p-1.5 rounded-md hover:bg-gray-100 transition"
-          title="Mês anterior"
-        >
-          <IconChevronLeft className="h-4 w-4" />
-        </button>
-        <div className="flex items-center gap-2">
-          <IconCalendar className="h-4 w-4 text-gray-400" />
-          <span className="text-sm font-semibold text-gray-900 capitalize min-w-[160px] text-center">
-            {formatMonthLabel(month)}
-          </span>
-          {isCurrentMonth && (
-            <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
-              Atual
-            </Badge>
-          )}
+      {/* Header + Month selector */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Operacional</h1>
+          <p className="text-sm text-muted-foreground">Equipe, folha e indicadores.</p>
         </div>
-        <button
-          onClick={() => setMonthParam(shiftMonth(month, 1))}
-          disabled={isCurrentMonth}
-          className="p-1.5 rounded-md hover:bg-gray-100 transition disabled:opacity-30 disabled:cursor-not-allowed"
-          title="Próximo mês"
-        >
-          <IconChevronRight className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMonthParam(shiftMonth(month, -1))}>
+            <IconChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex items-center gap-2">
+            <IconCalendar className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-semibold capitalize min-w-[140px] text-center">
+              {formatMonthLabel(month)}
+            </span>
+            {isCurrentMonth && (
+              <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800">
+                Atual
+              </Badge>
+            )}
+          </div>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMonthParam(shiftMonth(month, 1))} disabled={isCurrentMonth}>
+            <IconChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
-      {/* KPI summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground uppercase flex items-center gap-1">
-              <IconUsers className="size-3.5 text-indigo-500" />
-              Headcount
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {payrollLoading ? (
-              <Skeleton className="h-7 w-16" />
-            ) : (
-              <>
-                <p className="text-xl font-bold text-indigo-600">{payroll?.headcount ?? 0}</p>
-                <p className="text-xs text-muted-foreground">colaboradores com salário</p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground uppercase flex items-center gap-1">
-              <IconReceipt className="size-3.5 text-rose-500" />
-              Folha de Pagamento
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {payrollLoading ? (
-              <Skeleton className="h-7 w-24" />
-            ) : (
-              <>
-                <p className="text-xl font-bold text-rose-600">{fmt(payroll?.totalFolha ?? 0)}</p>
-                <p className="text-xs text-muted-foreground">salários totais</p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground uppercase flex items-center gap-1">
-              <IconSettings className="size-3.5 text-slate-500" />
-              Desp. Pessoas (seção)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {payrollLoading ? (
-              <Skeleton className="h-7 w-24" />
-            ) : (
-              <>
-                <p className="text-xl font-bold text-slate-600">{fmt(payroll?.totalDespesas ?? 0)}</p>
-                <p className="text-xs text-muted-foreground">subtotal planilha</p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground uppercase flex items-center gap-1">
-              <IconCurrencyDollar className="size-3.5 text-emerald-500" />
-              Receita / Colaborador
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {payrollLoading ? (
-              <Skeleton className="h-7 w-24" />
-            ) : (
-              <>
-                <p className="text-xl font-bold text-emerald-600">{fmt(receitaPerColaborador)}</p>
-                <p className="text-xs text-muted-foreground">receita MTD / headcount</p>
-              </>
-            )}
-          </CardContent>
-        </Card>
+      {/* KPI cards — single row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiSummaryCard
+          icon={<IconUsers className="size-3.5 text-indigo-500" />}
+          label="Headcount"
+          value={String(headcount)}
+          sub="colaboradores ativos"
+          color="text-indigo-600 dark:text-indigo-400"
+          loading={payrollLoading}
+        />
+        <KpiSummaryCard
+          icon={<IconReceipt className="size-3.5 text-rose-500" />}
+          label="Folha"
+          value={fmt(folha)}
+          sub="salarios totais"
+          color="text-rose-600 dark:text-rose-400"
+          loading={payrollLoading}
+        />
+        <KpiSummaryCard
+          icon={<IconCurrencyDollar className="size-3.5 text-emerald-500" />}
+          label="Receita / Colab"
+          value={fmt(receitaPerColab)}
+          sub={`receita YTD / ${headcount} pessoas`}
+          color="text-emerald-600 dark:text-emerald-400"
+          loading={anyLoading}
+        />
+        <KpiSummaryCard
+          icon={<IconSettings className="size-3.5 text-slate-500" />}
+          label="Custos Operacionais"
+          value={fmt(custosOp)}
+          sub={custosOp + folha > 0 ? `${fmtPct((custosOp / (custosOp + folha)) * 100)} do total` : "sem dados"}
+          color="text-slate-600 dark:text-slate-400"
+          loading={anyLoading}
+        />
       </div>
 
-      {/* Equipe & Folha — from Google Sheets */}
+      {/* Equipe & Folha */}
       <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-semibold">Equipe & Folha</CardTitle>
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-xs">
-                {payroll?.headcount ?? 0} colaboradores
+                {headcount} colaboradores
               </Badge>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => refetchPayroll()}
-                disabled={isFetching}
-                title="Atualizar dados da planilha"
-              >
+              {payroll && payroll.entries.length === 0 && (
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleDuplicatePreviousMonth} disabled={duplicateMut.isPending}>
+                  <IconCopy className="h-3.5 w-3.5 mr-1" />
+                  Copiar mes anterior
+                </Button>
+              )}
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => refetchPayroll()} disabled={isFetching} title="Atualizar">
                 <IconRefresh className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
               </Button>
             </div>
@@ -217,85 +184,89 @@ function OperacionalContent() {
               ))}
             </div>
           ) : payrollError ? (
-            <div className="flex flex-col items-center justify-center py-8 gap-2 text-red-500">
+            <div className="flex flex-col items-center justify-center py-8 gap-2 text-destructive">
               <IconSettings className="h-8 w-8" />
-              <p className="text-sm font-medium">Erro ao carregar planilha</p>
-              <p className="text-xs text-muted-foreground">
-                Verifique se a planilha está compartilhada como &quot;qualquer pessoa com o link&quot;.
-              </p>
-              <Button variant="outline" size="sm" onClick={() => refetchPayroll()}>
-                Tentar novamente
-              </Button>
+              <p className="text-sm font-medium">Erro ao carregar dados</p>
+              <p className="text-xs text-muted-foreground">Verifique sua conexao e tente novamente.</p>
+              <Button variant="outline" size="sm" onClick={() => refetchPayroll()}>Tentar novamente</Button>
             </div>
-          ) : !payroll?.members.length ? (
+          ) : !payroll?.entries.length ? (
             <div className="flex flex-col items-center justify-center py-8 gap-2 text-muted-foreground">
               <IconUsers className="h-8 w-8" />
-              <p className="text-sm font-medium">Nenhum colaborador encontrado</p>
-              <p className="text-xs">Verifique a aba &quot;Fluxo de Caixa 2026&quot; na planilha.</p>
+              <p className="text-sm font-medium">Nenhum colaborador neste mes</p>
+              <p className="text-xs">Adicione manualmente ou copie do mes anterior.</p>
+              <Button variant="outline" size="sm" onClick={handleDuplicatePreviousMonth} disabled={duplicateMut.isPending}>
+                <IconCopy className="h-3.5 w-3.5 mr-1" />
+                Copiar mes anterior
+              </Button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-muted-foreground">
-                    <th className="pb-2 font-medium">Colaborador</th>
-                    <th className="pb-2 font-medium">Cargo</th>
-                    <th className="pb-2 font-medium">Área</th>
-                    <th className="pb-2 font-medium text-right">Salário</th>
-                    <th className="pb-2 font-medium text-right">% Folha</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payroll.members
-                    .filter((m) => m.salary > 0)
-                    .sort((a, b) => b.salary - a.salary)
-                    .map((m) => (
-                      <tr key={m.name} className="border-b last:border-0">
-                        <td className="py-2 font-medium">{m.name}</td>
-                        <td className="py-2 text-muted-foreground">{m.role || "—"}</td>
-                        <td className="py-2">
-                          <Badge
-                            variant="outline"
-                            className={
-                              m.section === "vendas"
-                                ? "text-blue-700 border-blue-300 bg-blue-50"
-                                : "text-indigo-700 border-indigo-300 bg-indigo-50"
-                            }
-                          >
-                            {m.section === "vendas" ? "Vendas" : "Equipe"}
-                          </Badge>
-                        </td>
-                        <td className="py-2 text-right text-rose-600 font-medium">
-                          {fmt(m.salary)}
-                        </td>
-                        <td className="py-2 text-right text-muted-foreground">
-                          {payroll.totalFolha > 0
-                            ? fmtPct((m.salary / payroll.totalFolha) * 100)
-                            : "0%"}
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-              <div className="mt-3 pt-3 border-t flex justify-between text-sm font-medium">
-                <span className="text-muted-foreground">Total Folha</span>
-                <span className="text-rose-600">{fmt(payroll.totalFolha)}</span>
-              </div>
-            </div>
+            <PayrollTable
+              entries={payroll.entries}
+              totalFolha={payroll.totalFolha}
+              month={month}
+              onUpdate={(id, updates) =>
+                updateMut.mutate(
+                  { id, updates },
+                  {
+                    onSuccess: () => toast.success("Registro atualizado"),
+                    onError: (err) => toast.error(`Erro ao atualizar: ${err.message}`),
+                  },
+                )
+              }
+              onDelete={(id) =>
+                deleteMut.mutate(id, {
+                  onSuccess: () => toast.success("Colaborador removido"),
+                  onError: (err) => toast.error(`Erro ao remover: ${err.message}`),
+                })
+              }
+              onAdd={(entry) =>
+                upsertMut.mutate(entry, {
+                  onSuccess: () => toast.success("Colaborador adicionado"),
+                  onError: (err) => toast.error(`Erro ao adicionar: ${err.message}`),
+                })
+              }
+            />
           )}
         </CardContent>
       </Card>
-
-      {/* Operational KPIs (churn, etc.) */}
-      <OperationalIndicatorsSection
-        d={dashData}
-        isLoading={dashLoading}
-        errMsg={dashError ? (dashError as Error).message : null}
-        onRetry={refetch}
-      />
     </div>
   );
 }
+
+// ── KPI Card (inline) ────────────────────────────────────────────────────────
+
+function KpiSummaryCard({ icon, label, value, sub, color, loading }: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  sub: string;
+  color: string;
+  loading: boolean;
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-xs font-medium text-muted-foreground uppercase flex items-center gap-1">
+          {icon}
+          {label}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <Skeleton className="h-7 w-20" />
+        ) : (
+          <>
+            <p className={`text-xl font-bold ${color}`}>{value}</p>
+            <p className="text-xs text-muted-foreground">{sub}</p>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Export ────────────────────────────────────────────────────────────────────
 
 export default function OperacionalPage() {
   return (

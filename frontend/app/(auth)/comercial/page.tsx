@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   useDeals,
   useUpdateDealStage,
@@ -16,13 +16,16 @@ import { DealPipeline } from "@/features/comercial/components/deal-pipeline";
 import { PipelineFilters } from "@/features/comercial/components/pipeline-filters";
 import { DealDetailDialog } from "@/features/comercial/components/deal-detail-dialog";
 import { DealFormDialog } from "@/features/comercial/components/deal-form-dialog";
+import { BulkActionBar } from "@/features/comercial/components/bulk-action-bar";
 import { computeDealKPIs } from "@/features/comercial/services/commercial";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { ErrorState } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { IconPlus, IconGitBranch } from "@tabler/icons-react";
+import { IconPlus, IconGitBranch, IconCheckbox } from "@tabler/icons-react";
+import { toast } from "sonner";
+import { DEAL_STAGES, type DealStageKey } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 
 type DealRow = Database["public"]["Tables"]["crm_deals"]["Row"];
@@ -36,6 +39,24 @@ export default function ComercialPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<DealRow | null>(null);
   const [selectedPipelineId, setSelectedPipelineId] = useState<string>("all");
+
+  // ── Bulk selection ──────────────────────────────────────────────────────────
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const handleBulkToggle = useCallback((dealId: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(dealId);
+      else next.delete(dealId);
+      return next;
+    });
+  }, []);
+
+  const handleBulkClear = useCallback(() => {
+    setSelectedIds(new Set());
+    setBulkMode(false);
+  }, []);
 
   // ── Data fetching ───────────────────────────────────────────────────────────
   const { data: pipelines = [], isLoading: pipelinesLoading } =
@@ -85,8 +106,33 @@ export default function ComercialPage() {
   // ── KPIs ────────────────────────────────────────────────────────────────────
   const kpis = useMemo(() => computeDealKPIs(deals), [deals]);
 
+  const stageDistribution = useMemo(() => {
+    const stages = Object.keys(DEAL_STAGES) as DealStageKey[];
+    return stages.map((stage) => {
+      const stageDeals = deals.filter((d) => d.stage === stage);
+      return {
+        stage,
+        count: stageDeals.length,
+        value: stageDeals.reduce((s, d) => s + (d.value ?? 0), 0),
+      };
+    });
+  }, [deals]);
+
+  // ── Quick edit handler ──────────────────────────────────────────────────────
+  function handleQuickUpdate(dealId: string, field: string, value: unknown) {
+    if (field === "stage") {
+      updateStage.mutate({ id: dealId, stage: value as string });
+    } else {
+      updateDeal.mutate({ id: dealId, updates: { [field]: value } as never });
+    }
+  }
+
   // ── Handlers ────────────────────────────────────────────────────────────────
   function handleSelect(deal: DealRow) {
+    if (bulkMode) {
+      handleBulkToggle(deal.id, !selectedIds.has(deal.id));
+      return;
+    }
     setSelectedDeal(deal);
     setDetailOpen(true);
   }
@@ -104,6 +150,10 @@ export default function ComercialPage() {
 
   function handleStageDrop(dealId: string, newStage: string) {
     updateStage.mutate({ id: dealId, stage: newStage });
+    toast("Deal movido", {
+      description: "Ctrl+Z para desfazer",
+      duration: 3000,
+    });
   }
 
   async function handlePipelineStageDrop(
@@ -120,12 +170,35 @@ export default function ComercialPage() {
         stage: mappedStage,
       } as never,
     });
+    toast("Deal movido", {
+      description: "Ctrl+Z para desfazer",
+      duration: 3000,
+    });
   }
 
   function handlePipelineChange(pipelineId: string) {
     setSelectedPipelineId(pipelineId);
     setStageFilter("");
     setOwnerFilter("");
+  }
+
+  // ── Bulk actions ──────────────────────────────────────────────────────────
+  function handleBulkMoveToStage(stage: DealStageKey) {
+    const ids = Array.from(selectedIds);
+    for (const id of ids) {
+      updateStage.mutate({ id, stage });
+    }
+    toast.success(`${ids.length} deal${ids.length > 1 ? "s" : ""} movido${ids.length > 1 ? "s" : ""} para ${stage}`);
+    handleBulkClear();
+  }
+
+  function handleBulkAssignOwner(ownerName: string) {
+    const ids = Array.from(selectedIds);
+    for (const id of ids) {
+      updateDeal.mutate({ id, updates: { owner_name: ownerName } as never });
+    }
+    toast.success(`${ids.length} deal${ids.length > 1 ? "s" : ""} atribuído${ids.length > 1 ? "s" : ""} a ${ownerName}`);
+    handleBulkClear();
   }
 
   if (error) {
@@ -150,6 +223,15 @@ export default function ComercialPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant={bulkMode ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => { setBulkMode(!bulkMode); setSelectedIds(new Set()); }}
+              className="gap-1.5"
+            >
+              <IconCheckbox className="h-4 w-4" />
+              {bulkMode ? "Cancelar seleção" : "Selecionar"}
+            </Button>
             <Button onClick={handleNew}>
               <IconPlus className="mr-2 h-4 w-4" />
               Novo Deal
@@ -158,7 +240,7 @@ export default function ComercialPage() {
         </div>
 
         {/* KPIs */}
-        <DealKPICards kpis={kpis} />
+        <DealKPICards kpis={kpis} distribution={stageDistribution} />
 
         {/* Dados Comerciais Mensais */}
         <DadosComerciaisMensais />
@@ -223,6 +305,10 @@ export default function ComercialPage() {
             isLoading={isLoading || pipelinesLoading}
             onSelect={handleSelect}
             onStageDrop={handlePipelineStageDrop}
+            bulkMode={bulkMode}
+            selectedIds={selectedIds}
+            onBulkToggle={handleBulkToggle}
+            onQuickUpdate={handleQuickUpdate}
           />
         ) : (
           <DealPipeline
@@ -230,8 +316,21 @@ export default function ComercialPage() {
             isLoading={isLoading}
             onSelect={handleSelect}
             onStageDrop={handleStageDrop}
+            bulkMode={bulkMode}
+            selectedIds={selectedIds}
+            onBulkToggle={handleBulkToggle}
+            onQuickUpdate={handleQuickUpdate}
           />
         )}
+
+        {/* Bulk action bar */}
+        <BulkActionBar
+          selectedCount={selectedIds.size}
+          onMoveToStage={handleBulkMoveToStage}
+          onAssignOwner={handleBulkAssignOwner}
+          onClear={handleBulkClear}
+          owners={owners}
+        />
 
         {/* Dialogs */}
         <DealDetailDialog

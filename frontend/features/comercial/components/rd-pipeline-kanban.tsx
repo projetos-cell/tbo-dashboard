@@ -30,6 +30,10 @@ interface RdPipelineKanbanProps {
   isLoading: boolean;
   onSelect: (deal: DealRow) => void;
   onStageDrop?: (dealId: string, newStageId: string, newStageName: string) => Promise<void> | void;
+  bulkMode?: boolean;
+  selectedIds?: Set<string>;
+  onBulkToggle?: (dealId: string, checked: boolean) => void;
+  onQuickUpdate?: (dealId: string, field: string, value: unknown) => void;
 }
 
 export function RdPipelineKanban({
@@ -38,6 +42,10 @@ export function RdPipelineKanban({
   isLoading,
   onSelect,
   onStageDrop,
+  bulkMode,
+  selectedIds,
+  onBulkToggle,
+  onQuickUpdate,
 }: RdPipelineKanbanProps) {
   const {
     activeDeal,
@@ -55,7 +63,7 @@ export function RdPipelineKanban({
     return (
       <div className="flex gap-4 overflow-x-auto pb-4">
         {(orderedStages.length > 0 ? orderedStages : Array.from({ length: 5 })).map((_, i) => (
-          <div key={i} className="min-w-[260px] flex-1">
+          <div key={i} className="min-w-[240px] sm:min-w-[260px] flex-1">
             <div className="h-8 w-28 animate-pulse rounded bg-gray-100 mb-3" />
             <div className="space-y-2">
               {Array.from({ length: 2 }).map((__, j) => (
@@ -95,7 +103,7 @@ export function RdPipelineKanban({
           const color = getStageColor(idx);
 
           return (
-            <div key={stage.id} className="min-w-[260px] flex-1">
+            <div key={stage.id} className="min-w-[240px] sm:min-w-[260px] flex-1">
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="h-3 w-3 rounded-full" style={{ backgroundColor: color }} />
@@ -121,6 +129,10 @@ export function RdPipelineKanban({
                       deal={deal}
                       onSelect={onSelect}
                       isDragActive={activeDeal?.id === deal.id}
+                      selectable={bulkMode}
+                      selected={selectedIds?.has(deal.id)}
+                      onBulkToggle={onBulkToggle}
+                      onQuickUpdate={onQuickUpdate}
                     />
                   ))
                 )}
@@ -131,7 +143,7 @@ export function RdPipelineKanban({
 
         {/* Unmatched deals */}
         {(grouped["__unmatched__"]?.length ?? 0) > 0 && (
-          <div className="min-w-[260px] flex-1">
+          <div className="min-w-[240px] sm:min-w-[260px] flex-1">
             <div className="mb-3 flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-gray-400" />
               <span className="text-sm font-medium text-gray-500">Sem etapa</span>

@@ -10,12 +10,20 @@ interface DraggableDealProps {
   deal: DealRow;
   onSelect: (deal: DealRow) => void;
   isDragActive: boolean;
+  selectable?: boolean;
+  selected?: boolean;
+  onBulkToggle?: (dealId: string, checked: boolean) => void;
+  onQuickUpdate?: (dealId: string, field: string, value: unknown) => void;
 }
 
 export function DraggableDeal({
   deal,
   onSelect,
   isDragActive,
+  selectable,
+  selected,
+  onBulkToggle,
+  onQuickUpdate,
 }: DraggableDealProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
@@ -31,11 +39,18 @@ export function DraggableDeal({
     <div
       ref={setNodeRef}
       style={style}
-      className={isDragging ? "z-50 opacity-50" : ""}
+      className={`${isDragging ? "z-50 opacity-40 scale-[0.97]" : "cursor-grab active:cursor-grabbing"} transition-opacity`}
       {...listeners}
       {...attributes}
     >
-      <DealCard deal={deal} onClick={onSelect} />
+      <DealCard
+        deal={deal}
+        onClick={onSelect}
+        selectable={selectable}
+        selected={selected}
+        onSelect={onBulkToggle}
+        onQuickUpdate={onQuickUpdate}
+      />
     </div>
   );
 }

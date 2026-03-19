@@ -130,7 +130,7 @@ export function KpiSimulationPanel({
       </div>
 
       {/* KPI grid */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard
           label="Taxa de Realização"
           value={`${kpis.taxaRealizacao.toFixed(1)}%`}
@@ -171,7 +171,7 @@ export function KpiSimulationPanel({
             Dados cruzados automaticamente
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <RdMetric
             label="Leads no Pipeline"
             value={simulationData.rd_leads_total}

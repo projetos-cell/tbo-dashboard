@@ -1,6 +1,6 @@
 {
-  "current_item": 5,
-  "items_completed": [1, 2, 3, 4],
+  "current_item": 6,
+  "items_completed": [1, 2, 3, 4, 5],
   "quality_scores": {
     "1": {
       "build": true,
@@ -38,6 +38,19 @@
       "loading_skeleton": true,
       "score": 100,
       "notes": "Página /financeiro/conciliacao com RBACGuard(diretoria). ConciliacaoSummaryCards (4 KPIs: saldo bancário, saldo contábil, diferença, % conciliado). ConciliacaoFilters (conta, status, período). ConciliacaoSplitView (seções auto/sugestão/sem-match, aprovação batch e individual, rejeição local). ConciliacaoMatchRow + ConciliacaoUnmatchedRow. error.tsx + loading.tsx (skeleton content-aware). Build limpo: /financeiro/conciliacao rota confirmada."
+    },
+    "5": {
+      "build": true,
+      "types": true,
+      "rls": true,
+      "service": true,
+      "edge_function": true,
+      "hook": true,
+      "ui": true,
+      "error_boundary": true,
+      "loading_skeleton": true,
+      "score": 100,
+      "notes": "Migration 20260318_create_finance_boletos.sql (finance_boletos com RLS: select/insert/update diretoria+, delete founder-only). TypeScript types lib/supabase/types/boletos.ts. boleto-generator.ts: generateBarcode (BB Convênio 7, FEBRABAN), generateDigitableLine (mod10/mod11), generateNossoNumero, parseCNAB400Retorno, generateRemessaFile. boleto-service.ts: CRUD + markOverdue + applyRetorno. Edge Function process-bank-return/index.ts (Deno). use-boletos.ts: hooks useBoletos, useBoletosSummary, useGenerateBoleto, useCancelBoleto, useMarkRemessaSent, useUploadRetorno, useMarkOverdue. UI: /financeiro/boletos + error.tsx + loading.tsx + BoletosSummaryCards + BoletosTable. Build limpo: /financeiro/boletos rota confirmada."
     }
   }
 }

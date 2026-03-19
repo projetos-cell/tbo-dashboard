@@ -22,6 +22,9 @@ import {
   getBankStatements,
   getBankStatementCashFlow,
   getLatestBankStatementBalance,
+  createFinanceTransaction,
+  updateFinanceTransaction,
+  deleteFinanceTransaction,
   type FinanceTransaction,
   type FinanceCategory,
   type FinanceCostCenter,
@@ -38,6 +41,13 @@ import {
   type BankStatement,
   type BankStatementFilters,
 } from "@/features/financeiro/services";
+import type {
+  CreateTransactionInput,
+  UpdateTransactionInput,
+} from "@/features/financeiro/services/finance-schemas";
+import {
+  batchAutoCategorize,
+} from "@/features/financeiro/services/auto-categorize";
 
 // ── Transactions ──────────────────────────────────────────────────────────────
 
@@ -243,7 +253,7 @@ export function useFounderKPIs() {
       return getFounderKPIs(supabase);
     },
     enabled: !!tenantId,
-    staleTime: 1000 * 60 * 2,
+    staleTime: 1000 * 60 * 5,
     refetchInterval: 1000 * 60 * 5,
   });
 }
@@ -442,5 +452,129 @@ export function useBankStatementCashFlow(dateFrom: string, dateTo: string) {
     },
     enabled: !!tenantId && !!dateFrom && !!dateTo,
     staleTime: 1000 * 60 * 5,
+  });
+}
+
+// ── Transaction CRUD Mutations ──────────────────────────────────────────────
+
+function invalidateAllFinanceQueries(
+  qc: ReturnType<typeof useQueryClient>,
+  tenantId: string | null
+) {
+  const keys = [
+    "finance-transactions",
+    "finance-status",
+    "finance-status-amounts",
+    "finance-founder-kpis",
+    "finance-snapshots",
+    "finance-aging",
+    "finance-cashflow-projection",
+    "finance-chart-data",
+  ];
+  for (const k of keys) {
+    qc.invalidateQueries({ queryKey: [k, tenantId] });
+  }
+}
+
+export function useCreateTransaction() {
+  const qc = useQueryClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
+  const userId = useAuthStore((s) => s.user?.id);
+
+  return useMutation({
+    mutationFn: async (input: CreateTransactionInput) => {
+      if (!tenantId || !userId) throw new Error("Não autenticado");
+      const supabase = createClient();
+      return createFinanceTransaction(supabase, tenantId, userId, input);
+    },
+    onSuccess: () => invalidateAllFinanceQueries(qc, tenantId),
+  });
+}
+
+export function useUpdateTransaction() {
+  const qc = useQueryClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
+  const userId = useAuthStore((s) => s.user?.id);
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      updates,
+    }: {
+      id: string;
+      updates: UpdateTransactionInput;
+    }) => {
+      if (!userId) throw new Error("Não autenticado");
+      const supabase = createClient();
+      return updateFinanceTransaction(supabase, id, userId, updates);
+    },
+    onSuccess: () => invalidateAllFinanceQueries(qc, tenantId),
+  });
+}
+
+export function useDeleteTransaction() {
+  const qc = useQueryClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const supabase = createClient();
+      return deleteFinanceTransaction(supabase, id);
+    },
+    onSuccess: () => invalidateAllFinanceQueries(qc, tenantId),
+  });
+}
+
+// ── Bulk Auto-Categorize ──────────────────────────────────────────────────
+
+export function useBulkAutoCategorize() {
+  const qc = useQueryClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
+  const userId = useAuthStore((s) => s.user?.id);
+
+  return useMutation({
+    mutationFn: async ({
+      transactions,
+      categories,
+      costCenters,
+    }: {
+      transactions: Array<{
+        id: string;
+        description: string;
+        type: "receita" | "despesa" | "transferencia";
+        counterpart: string | null;
+        business_unit: string | null;
+        category_id: string | null;
+        cost_center_id: string | null;
+      }>;
+      categories: FinanceCategory[];
+      costCenters: FinanceCostCenter[];
+    }) => {
+      if (!userId) throw new Error("Não autenticado");
+
+      const suggestions = batchAutoCategorize(transactions, categories, costCenters);
+      if (suggestions.length === 0) return { updated: 0, total: transactions.length };
+
+      const supabase = createClient();
+
+      let updated = 0;
+      for (const s of suggestions) {
+        const updates: Record<string, unknown> = {};
+        if (s.category_id) updates.category_id = s.category_id;
+        if (s.cost_center_id) updates.cost_center_id = s.cost_center_id;
+        updates.updated_by = userId;
+        updates.updated_at = new Date().toISOString();
+
+        const { error } = await supabase
+          .from("finance_transactions")
+          .update(updates as never)
+          .eq("id", s.id);
+
+        if (!error) updated++;
+      }
+
+      return { updated, total: suggestions.length };
+    },
+    onSuccess: () => invalidateAllFinanceQueries(qc, tenantId),
   });
 }

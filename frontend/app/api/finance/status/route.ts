@@ -28,23 +28,27 @@ export async function GET() {
 
     const tenantId = profile.tenant_id;
 
+    // Use untyped client for tables not in generated types
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as unknown as any;
+
     // Fetch stats in parallel
     const [txRes, catRes, ccRes, syncRes] = await Promise.all([
-      (supabase as any)
+      db
         .from("finance_transactions")
         .select("type, status", { count: "exact" })
         .eq("tenant_id", tenantId),
-      (supabase as any)
+      db
         .from("finance_categories")
         .select("id", { count: "exact" })
         .eq("tenant_id", tenantId)
         .eq("is_active", true),
-      (supabase as any)
+      db
         .from("finance_cost_centers")
         .select("id", { count: "exact" })
         .eq("tenant_id", tenantId)
         .eq("is_active", true),
-      (supabase as any)
+      db
         .from("omie_sync_log")
         .select("finished_at, status, records_synced")
         .eq("tenant_id", tenantId)
@@ -61,8 +65,8 @@ export async function GET() {
 
     const receitas = transactions.filter((t) => t.type === "receita").length;
     const despesas = transactions.filter((t) => t.type === "despesa").length;
-    const pending = transactions.filter((t) => t.status === "pendente").length;
-    const paid = transactions.filter((t) => t.status === "pago").length;
+    const pending = transactions.filter((t) => t.status === "previsto" || t.status === "provisionado").length;
+    const paid = transactions.filter((t) => t.status === "pago" || t.status === "liquidado").length;
     const overdue = transactions.filter((t) => t.status === "atrasado").length;
 
     return NextResponse.json({

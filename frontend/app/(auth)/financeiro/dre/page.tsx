@@ -10,7 +10,9 @@ import {
   IconChevronRight,
   IconRefresh,
   IconAlertCircle,
+  IconDownload,
 } from "@tabler/icons-react";
+import { buildDRELines } from "@/features/financeiro/services/finance-accounting";
 import { toast } from "sonner";
 import { DRESummaryCards } from "@/features/financeiro/components/dre-summary-cards";
 import { DRETable } from "@/features/financeiro/components/dre-table";
@@ -56,6 +58,24 @@ function DREContent() {
   const { data: trend, isLoading: trendLoading } = useDRETrend(12);
   const { mutate: computeDRE, isPending: computing } = useComputeDRE();
 
+  function handleExportCSV() {
+    if (!snapshot) return;
+    const lines = buildDRELines(snapshot);
+    const BOM = "\uFEFF";
+    const header = "Linha;Valor (R$)";
+    const fmtValue = (v: number) =>
+      v.toFixed(2).replace(".", ",");
+    const rows = lines.map((l) => `"${l.label}";${fmtValue(l.value)}`);
+    const csv = BOM + header + "\n" + rows.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `dre_${month}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function handleCompute() {
     computeDRE(month, {
       onSuccess: () => toast.success(`DRE de ${formatMonthLabel(month)} calculado com sucesso.`),
@@ -77,15 +97,23 @@ function DREContent() {
             Estrutura completa de receitas, custos, despesas e resultado líquido.
           </p>
         </div>
-        <Button
-          onClick={handleCompute}
-          disabled={computing || isFuture}
-          size="sm"
-          variant="outline"
-        >
-          <IconRefresh className={`size-3.5 mr-1.5 ${computing ? "animate-spin" : ""}`} />
-          {computing ? "Calculando…" : "Calcular DRE"}
-        </Button>
+        <div className="flex items-center gap-2">
+          {snapshot && (
+            <Button onClick={handleExportCSV} size="sm" variant="outline">
+              <IconDownload className="size-3.5 mr-1.5" />
+              Exportar CSV
+            </Button>
+          )}
+          <Button
+            onClick={handleCompute}
+            disabled={computing || isFuture}
+            size="sm"
+            variant="outline"
+          >
+            <IconRefresh className={`size-3.5 mr-1.5 ${computing ? "animate-spin" : ""}`} />
+            {computing ? "Calculando…" : "Calcular DRE"}
+          </Button>
+        </div>
       </div>
 
       {/* Period navigation */}

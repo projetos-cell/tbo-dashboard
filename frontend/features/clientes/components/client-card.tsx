@@ -57,7 +57,7 @@ export function ClientCard({ client, onClick }: ClientCardProps) {
           </Badge>
           {client.source && client.source !== "manual" && (
             <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal text-gray-400">
-              {client.source === "omie" ? "Omie" : client.source === "rdstation" ? "RD" : client.source === "merged" ? "Omie+RD" : client.source}
+              {client.source === "omie" ? "Omie" : client.source === "merged" ? "Omie+CRM" : client.source === "crm" ? "CRM" : client.source}
             </Badge>
           )}
           {client.segment && (

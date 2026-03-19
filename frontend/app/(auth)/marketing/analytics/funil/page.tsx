@@ -216,7 +216,7 @@ function FunilContent() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Funil de Marketing</h1>
           <p className="text-sm text-muted-foreground">
-            Conversão por etapa: RD Station até Comercial.
+            Conversão por etapa do funil comercial.
           </p>
         </div>
         <div className="flex items-center gap-1.5">
@@ -251,7 +251,7 @@ function FunilContent() {
         <EmptyState
           icon={IconFilter}
           title="Sem dados de funil"
-          description="Conecte o RD Station para visualizar o funil de marketing."
+          description="Adicione deals no CRM para visualizar o funil de marketing."
         />
       ) : (
         <>

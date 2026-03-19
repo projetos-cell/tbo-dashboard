@@ -163,7 +163,7 @@ export async function getDealPipelines(
   }));
 }
 
-// ── RD Pipelines (with stages from RD Station) ──────────────────────────────────
+// ── Pipelines (com stages persistidos) ───────────────────────────────────────
 
 export async function getRdPipelines(
   supabase: SupabaseClient<Database>,

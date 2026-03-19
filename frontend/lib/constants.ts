@@ -254,7 +254,7 @@ export const DEAL_STAGES = {
 
 export type DealStageKey = keyof typeof DEAL_STAGES;
 
-export const DEAL_SOURCES = ["site", "indicacao", "rd_station", "linkedin", "evento", "outbound", "outro"] as const;
+export const DEAL_SOURCES = ["site", "indicacao", "linkedin", "evento", "outbound", "outro"] as const;
 
 // ─── OKR status / levels ─────────────────────────────────────────────
 export const OKR_STATUS = {

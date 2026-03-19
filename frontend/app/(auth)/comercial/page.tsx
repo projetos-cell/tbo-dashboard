@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import {
   useDeals,
   useUpdateDealStage,
-  useRdSyncDeals,
+  usePipelines as useDealPipelines,
   useRdPipelines,
   useDealOwners,
   useUpdateDeal,
@@ -22,8 +22,7 @@ import { ErrorState } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { IconPlus, IconRefresh, IconLoader2, IconGitBranch } from "@tabler/icons-react";
-import { toast } from "sonner";
+import { IconPlus, IconGitBranch } from "@tabler/icons-react";
 import type { Database } from "@/lib/supabase/types";
 
 type DealRow = Database["public"]["Tables"]["crm_deals"]["Row"];
@@ -39,27 +38,26 @@ export default function ComercialPage() {
   const [selectedPipelineId, setSelectedPipelineId] = useState<string>("all");
 
   // ── Data fetching ───────────────────────────────────────────────────────────
-  const { data: rdPipelines = [], isLoading: pipelinesLoading } =
+  const { data: pipelines = [], isLoading: pipelinesLoading } =
     useRdPipelines();
   const { data: owners = [] } = useDealOwners(
     selectedPipelineId !== "all" ? selectedPipelineId : undefined,
   );
 
-  const isRdViewForFilters =
+  const isPipelineView =
     selectedPipelineId !== "all" &&
-    rdPipelines.some((p) => p.rd_pipeline_id === selectedPipelineId);
+    pipelines.some((p) => p.rd_pipeline_id === selectedPipelineId);
 
   const activeFilters = useMemo(
     () => ({
-      // In RD view, filter by rd_stage_id; in legacy view, filter by stage
-      stage: !isRdViewForFilters && stageFilter ? stageFilter : undefined,
-      rd_stage_id: isRdViewForFilters && stageFilter ? stageFilter : undefined,
+      stage: !isPipelineView && stageFilter ? stageFilter : undefined,
+      rd_stage_id: isPipelineView && stageFilter ? stageFilter : undefined,
       search: search || undefined,
       pipeline:
         selectedPipelineId !== "all" ? selectedPipelineId : undefined,
       owner_name: ownerFilter || undefined,
     }),
-    [stageFilter, search, selectedPipelineId, ownerFilter, isRdViewForFilters],
+    [stageFilter, search, selectedPipelineId, ownerFilter, isPipelineView],
   );
 
   const {
@@ -71,13 +69,12 @@ export default function ComercialPage() {
 
   const updateStage = useUpdateDealStage();
   const updateDeal = useUpdateDeal();
-  const rdSync = useRdSyncDeals();
 
   // ── Selected pipeline data ──────────────────────────────────────────────────
   const selectedPipeline = useMemo(
     () =>
-      rdPipelines.find((p) => p.rd_pipeline_id === selectedPipelineId) ?? null,
-    [rdPipelines, selectedPipelineId],
+      pipelines.find((p) => p.rd_pipeline_id === selectedPipelineId) ?? null,
+    [pipelines, selectedPipelineId],
   );
 
   const pipelineStages = useMemo(
@@ -89,19 +86,6 @@ export default function ComercialPage() {
   const kpis = useMemo(() => computeDealKPIs(deals), [deals]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
-  function handleSyncRd() {
-    rdSync.mutate(undefined, {
-      onSuccess: (data) => {
-        toast.success(
-          `Sync RD Station: ${data.created} novos, ${data.updated} atualizados, ${data.pipelines_synced ?? 0} funis`,
-        );
-      },
-      onError: (err) => {
-        toast.error(`Erro no sync: ${err.message}`);
-      },
-    });
-  }
-
   function handleSelect(deal: DealRow) {
     setSelectedDeal(deal);
     setDetailOpen(true);
@@ -118,20 +102,16 @@ export default function ComercialPage() {
     setFormOpen(true);
   }
 
-  // Stage drop for legacy kanban (all pipelines view)
   function handleStageDrop(dealId: string, newStage: string) {
     updateStage.mutate({ id: dealId, stage: newStage });
   }
 
-  // Stage drop for RD pipeline kanban (updates rd_stage_id + rd_stage_name)
-  async function handleRdStageDrop(
+  async function handlePipelineStageDrop(
     dealId: string,
     newStageId: string,
     newStageName: string,
   ) {
-    // Map RD stage to our internal stage for compatibility
-    const mappedStage = mapRdStageToInternal(newStageName);
-
+    const mappedStage = mapStageToInternal(newStageName);
     updateDeal.mutate({
       id: dealId,
       updates: {
@@ -144,7 +124,6 @@ export default function ComercialPage() {
 
   function handlePipelineChange(pipelineId: string) {
     setSelectedPipelineId(pipelineId);
-    // Reset stage filter when switching pipelines
     setStageFilter("");
     setOwnerFilter("");
   }
@@ -157,7 +136,7 @@ export default function ComercialPage() {
     );
   }
 
-  const isRdView = selectedPipelineId !== "all" && selectedPipeline;
+  const showPipelineView = selectedPipelineId !== "all" && selectedPipeline;
 
   return (
     <RequireRole module="comercial">
@@ -167,23 +146,10 @@ export default function ComercialPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Comercial</h1>
             <p className="text-sm text-gray-500">
-              Pipeline CRM — funis importados do RD Station.
+              Pipeline CRM — gestão de deals e funis comerciais.
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSyncRd}
-              disabled={rdSync.isPending}
-            >
-              {rdSync.isPending ? (
-                <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <IconRefresh className="mr-2 h-4 w-4" />
-              )}
-              Sync RD Station
-            </Button>
             <Button onClick={handleNew}>
               <IconPlus className="mr-2 h-4 w-4" />
               Novo Deal
@@ -194,15 +160,15 @@ export default function ComercialPage() {
         {/* KPIs */}
         <DealKPICards kpis={kpis} />
 
-        {/* Dados Comerciais Mensais — editable + RD cross-reference */}
+        {/* Dados Comerciais Mensais */}
         <DadosComerciaisMensais />
 
         {/* Pipeline selector tabs */}
-        {rdPipelines.length > 0 && (
+        {pipelines.length > 0 && (
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
               <IconGitBranch className="h-3.5 w-3.5" />
-              <span>Funis RD Station</span>
+              <span>Funis</span>
             </div>
             <Tabs
               value={selectedPipelineId}
@@ -218,7 +184,7 @@ export default function ComercialPage() {
                     {deals.length}
                   </Badge>
                 </TabsTrigger>
-                {rdPipelines.map((p) => (
+                {pipelines.map((p) => (
                   <TabsTrigger
                     key={p.rd_pipeline_id}
                     value={p.rd_pipeline_id}
@@ -238,38 +204,25 @@ export default function ComercialPage() {
         )}
 
         {/* Filters */}
-        {isRdView ? (
-          <PipelineFilters
-            search={search}
-            onSearchChange={setSearch}
-            stageFilter={stageFilter}
-            onStageChange={setStageFilter}
-            ownerFilter={ownerFilter}
-            onOwnerChange={setOwnerFilter}
-            stages={pipelineStages}
-            owners={owners}
-          />
-        ) : (
-          <PipelineFilters
-            search={search}
-            onSearchChange={setSearch}
-            stageFilter={stageFilter}
-            onStageChange={setStageFilter}
-            ownerFilter={ownerFilter}
-            onOwnerChange={setOwnerFilter}
-            stages={[]}
-            owners={owners}
-          />
-        )}
+        <PipelineFilters
+          search={search}
+          onSearchChange={setSearch}
+          stageFilter={stageFilter}
+          onStageChange={setStageFilter}
+          ownerFilter={ownerFilter}
+          onOwnerChange={setOwnerFilter}
+          stages={showPipelineView ? pipelineStages : []}
+          owners={owners}
+        />
 
         {/* Kanban board */}
-        {isRdView ? (
+        {showPipelineView ? (
           <RdPipelineKanban
             deals={deals}
             stages={pipelineStages}
             isLoading={isLoading || pipelinesLoading}
             onSelect={handleSelect}
-            onStageDrop={handleRdStageDrop}
+            onStageDrop={handlePipelineStageDrop}
           />
         ) : (
           <DealPipeline
@@ -298,9 +251,9 @@ export default function ComercialPage() {
   );
 }
 
-// ── Helper: map RD stage name to internal stage ─────────────────────────────────
+// ── Helper: map pipeline stage name to internal stage ─────────────────────────
 
-function mapRdStageToInternal(stageName: string): string {
+function mapStageToInternal(stageName: string): string {
   const normalized = stageName.toLowerCase().trim();
 
   const map: Record<string, string> = {

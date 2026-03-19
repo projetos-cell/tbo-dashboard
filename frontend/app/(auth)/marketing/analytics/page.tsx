@@ -151,7 +151,7 @@ const SECTIONS = [
   {
     href: "/marketing/analytics/funil",
     label: "Funil",
-    description: "RD Station → Comercial: conversão por etapa",
+    description: "CRM → Comercial: conversão por etapa",
     icon: IconFilter,
     color: "#8b5cf6",
     bgClass: "bg-purple-500/10",

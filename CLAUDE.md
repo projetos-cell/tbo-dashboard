@@ -5,7 +5,8 @@
 - Supabase (PostgreSQL + RLS + Edge Functions + Realtime)
 - Vercel deploy
 - Auth: Supabase Auth (Login Google) com RBAC
-- Integracoes: OMIE (ERP), RD Station (CRM), Fireflies (Transcricao)
+- Integracoes: OMIE (ERP), Fireflies (Transcricao)
+- CRM: nativo (dados migrados do RD Station para Supabase — crm_deals, crm_deal_activities, rd_pipelines)
 
 ## Arquitetura
 - 7 grupos modulares: Dashboard, Estrategia, Execucao, Receita & Caixa, Pessoas, Cultura & Governanca, Intelligence

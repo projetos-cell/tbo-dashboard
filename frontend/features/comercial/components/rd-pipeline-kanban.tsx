@@ -73,7 +73,7 @@ export function RdPipelineKanban({
       <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
         <IconBriefcase className="mb-3 h-10 w-10 text-gray-500/50" />
         <p className="text-sm font-medium">Nenhum deal neste funil</p>
-        <p className="text-xs text-gray-500">Sincronize o RD Station para importar deals.</p>
+        <p className="text-xs text-gray-500">Crie um deal ou importe dados para começar.</p>
       </div>
     );
   }

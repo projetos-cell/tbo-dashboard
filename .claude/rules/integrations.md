@@ -1,6 +1,6 @@
-﻿---
-description: Rules for external integrations (OMIE, RD Station, Fireflies)
-globs: ["**/integrations/**", "**/services/**", "**/*omie*", "**/*rdstation*", "**/*fireflies*", "**/*sync*"]
+---
+description: Rules for external integrations (OMIE, Fireflies)
+globs: ["**/integrations/**", "**/services/**", "**/*omie*", "**/*fireflies*", "**/*sync*"]
 ---
 
 # Integration Rules
@@ -10,15 +10,16 @@ globs: ["**/integrations/**", "**/services/**", "**/*omie*", "**/*rdstation*", "
 - Feeds: Receita & Caixa, DRE, Fluxo de Caixa
 - Sync: faturas, clientes, contas a pagar/receber, fluxo de caixa
 
-## RD Station (CRM/Marketing)
-- Direction: Unidirectional (RD Station → TBO OS)
-- Feeds: Pipeline, ROI Comercial, Intelligence
-- Sync: leads, pipeline stages, conversoes
-
 ## Fireflies (Transcricao)
 - Direction: Fireflies -> TBO OS (read only)
 - Feeds: 1:1s module, Action Items, PDI
 - Sync: meeting transcriptions
+
+## CRM (Nativo)
+- Dados migrados do RD Station para Supabase (2026-03-20)
+- Tabelas: crm_deals, crm_deal_activities, rd_pipelines, crm_stages
+- SEM dependencia externa — tudo no Supabase
+- Pipeline kanban funciona direto contra crm_deals
 
 ## Implementation Pattern
 - ALWAYS error handling + retry (3 attempts with exponential backoff)

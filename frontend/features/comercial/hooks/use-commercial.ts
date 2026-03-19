@@ -107,44 +107,6 @@ export function useUpdateDeal() {
   });
 }
 
-// ── RD Station Sync ─────────────────────────────────────────────────────────────
-
-export function useRdSyncDeals() {
-  const qc = useQueryClient();
-  const tenantId = useAuthStore((s) => s.tenantId);
-
-  return useMutation({
-    mutationFn: async () => {
-      const res = await fetch("/api/comercial/sync-rd", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tenant_id: tenantId }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Erro de rede" }));
-        throw new Error(err.error || `HTTP ${res.status}`);
-      }
-      return res.json();
-    },
-    onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ["deals"] });
-      qc.invalidateQueries({ queryKey: ["rd-sync-logs"] });
-
-      logAuditTrail({
-        userId: useAuthStore.getState().user?.id ?? "unknown",
-        action: "update",
-        table: "crm_deals",
-        recordId: "rd_sync",
-        metadata: {
-          source: "rdstation",
-          created: data.created,
-          updated: data.updated,
-        },
-      });
-    },
-  });
-}
-
 export function usePipelines() {
   const tenantId = useAuthStore((s) => s.tenantId);
 
@@ -159,7 +121,7 @@ export function usePipelines() {
   });
 }
 
-// ── RD Pipelines (with stages from RD Station) ──────────────────────────────────
+// ── Pipelines (com stages persistidos) ───────────────────────────────────────
 
 export function useRdPipelines() {
   const tenantId = useAuthStore((s) => s.tenantId);

@@ -23,13 +23,9 @@ export function DealCard({ deal, onClick }: DealCardProps) {
         {deal.source && deal.source !== "manual" && (
           <Badge
             variant="outline"
-            className={
-              deal.source === "rdstation"
-                ? "text-[10px] px-1.5 py-0 h-4 border-blue-300 text-blue-600 bg-blue-50 shrink-0"
-                : "text-[10px] px-1.5 py-0 h-4 border-gray-300 text-gray-600 shrink-0"
-            }
+            className="text-[10px] px-1.5 py-0 h-4 border-gray-300 text-gray-600 shrink-0"
           >
-            {deal.source === "rdstation" ? "RD" : deal.source}
+            {deal.source}
           </Badge>
         )}
       </div>

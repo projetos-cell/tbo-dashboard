@@ -15,98 +15,23 @@ interface ImportedClient {
   city?: string;
   state?: string;
   segment?: string;
-  source: "omie" | "rdstation" | "merged";
+  source: "omie" | "crm" | "merged";
   omie_id?: string;
   rd_id?: string;
   notes?: string;
   sales_owner?: string;
 }
 
-interface RdContact {
+interface CrmDeal {
   id: string;
   name: string;
-  title?: string;
-  emails?: Array<{ email: string }>;
-  phones?: Array<{ phone: string }>;
-  organization?: { id: string; name: string } | null;
-  deal_ids?: string[];
-  custom_fields?: Record<string, unknown>;
-}
-
-interface RdOrganization {
-  id: string;
-  name: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  custom_fields?: Record<string, unknown>;
-}
-
-interface RdDeal {
-  id: string;
-  name: string;
-  amount_total?: number;
-  deal_stage?: { id: string; name: string };
-  organization?: { id: string; name: string } | null;
-  contacts?: Array<{ id: string; name: string }>;
-  win?: boolean;
-  closed_at?: string;
-  created_at?: string;
-}
-
-// ── RD Station API helpers ──────────────────────────────────────────────────────
-
-const RD_BASE = "https://crm.rdstation.com/api/v1";
-
-async function rdFetchAll<T>(
-  endpoint: string,
-  token: string,
-  limit = 200,
-): Promise<T[]> {
-  const all: T[] = [];
-  let page = 1;
-  let hasMore = true;
-
-  while (hasMore) {
-    const sep = endpoint.includes("?") ? "&" : "?";
-    const url = `${RD_BASE}${endpoint}${sep}token=${token}&page=${page}&limit=${limit}`;
-    const res = await fetch(url, {
-      headers: { Accept: "application/json" },
-    });
-
-    if (!res.ok) {
-      if (res.status === 429) {
-        // rate limit — wait and retry
-        await new Promise((r) => setTimeout(r, 2000));
-        continue;
-      }
-      break;
-    }
-
-    const body = await res.json();
-
-    // RD returns { contacts: [...] } or { deals: [...] } or { organizations: [...] }
-    // or sometimes an array directly
-    let items: T[];
-    if (Array.isArray(body)) {
-      items = body;
-    } else {
-      // Extract the first array property
-      const key = Object.keys(body).find((k) => Array.isArray(body[k]));
-      items = key ? body[key] : [];
-    }
-
-    if (items.length === 0) {
-      hasMore = false;
-    } else {
-      all.push(...items);
-      page++;
-      // safety cap
-      if (all.length >= 5000) break;
-    }
-  }
-
-  return all;
+  value: number | null;
+  stage: string;
+  company: string | null;
+  contact: string | null;
+  contact_email: string | null;
+  owner_name: string | null;
+  rd_deal_id: string | null;
 }
 
 // ── Normalization helpers ───────────────────────────────────────────────────────
@@ -121,52 +46,29 @@ function normEmail(raw?: string | null): string {
   return raw.toLowerCase().trim();
 }
 
-function normName(raw?: string | null): string {
-  if (!raw) return "";
-  return raw
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .replace(/(^|\s)\S/g, (l) => l.toUpperCase());
-}
-
 // ── Classification engine ───────────────────────────────────────────────────────
+
+const CLOSED_WON = "fechado_ganho";
+const CLOSED_LOST = "fechado_perdido";
+const OPEN_STAGES = ["lead", "qualificacao", "proposta", "negociacao"];
 
 function classifyClient(
   client: ImportedClient,
   projectCount: number,
   projectValue: number,
   hasActiveProject: boolean,
-  rdDeals: RdDeal[],
+  deals: CrmDeal[],
 ): "vip" | "ativo" | "prospect" | "lead" | "inativo" {
-  // VIP: high-value client (>R$100k in projects or 3+ projects)
   if (projectValue > 100000 || projectCount >= 3) return "vip";
-
-  // Ativo: has active projects
   if (hasActiveProject) return "ativo";
 
-  // Check RD Station deals
-  const openDeals = rdDeals.filter(
-    (d) =>
-      d.deal_stage?.name &&
-      !["fechado_perdido", "lost", "perdido"].some((s) =>
-        d.deal_stage!.name.toLowerCase().includes(s),
-      ) &&
-      !d.closed_at,
-  );
-  const wonDeals = rdDeals.filter((d) => d.win);
+  const wonDeals = deals.filter((d) => d.stage === CLOSED_WON);
+  const openDeals = deals.filter((d) => OPEN_STAGES.includes(d.stage));
 
-  // Ativo: has won deals in RD
   if (wonDeals.length > 0 && projectCount > 0) return "ativo";
-
-  // Prospect: has open deals in RD
   if (openDeals.length > 0) return "prospect";
-
-  // Lead: from RD but no deals, or new contact
-  if (client.source === "rdstation" || client.rd_id) return "lead";
-
-  // Inativo: from Omie but no projects and no RD activity
-  if (projectCount === 0 && rdDeals.length === 0) return "inativo";
+  if (client.source === "crm" || client.rd_id) return "lead";
+  if (projectCount === 0 && deals.length === 0) return "inativo";
 
   return "lead";
 }
@@ -176,7 +78,7 @@ function classifyClient(
 async function importClients(tenantId: string, db: SupabaseClient) {
   const results = {
     omie_imported: 0,
-    rd_imported: 0,
+    crm_imported: 0,
     merged: 0,
     classified: { vip: 0, ativo: 0, prospect: 0, lead: 0, inativo: 0 },
     projects_linked: 0,
@@ -194,10 +96,8 @@ async function importClients(tenantId: string, db: SupabaseClient) {
     results.errors.push(`Omie load: ${omieErr.message}`);
   }
 
-  // Build client map keyed by normalized CNPJ and email
   const clientMap = new Map<string, ImportedClient>();
-  const cnpjIndex = new Map<string, string>(); // cnpj → mapKey
-  const emailIndex = new Map<string, string>(); // email → mapKey
+  const emailIndex = new Map<string, string>();
 
   for (const oc of omieClients ?? []) {
     const key = `omie_${oc.omie_id || oc.id}`;
@@ -213,130 +113,64 @@ async function importClients(tenantId: string, db: SupabaseClient) {
     };
     clientMap.set(key, client);
 
-    const cnpj = normCnpj(oc.cnpj);
-    if (cnpj) cnpjIndex.set(cnpj, key);
-
     const email = normEmail(oc.email);
     if (email) emailIndex.set(email, key);
 
     results.omie_imported++;
   }
 
-  // ── 2. Load RD Station contacts + organizations + deals ──
+  // ── 2. Load CRM deals (already in Supabase, migrated from RD Station) ──
 
-  const { data: rdConfig } = await db
-    .from("rd_config")
-    .select("*")
-    .eq("tenant_id", tenantId)
-    .eq("enabled", true)
-    .maybeSingle();
+  const { data: crmDeals, error: crmErr } = await db
+    .from("crm_deals")
+    .select("id, name, value, stage, company, contact, contact_email, owner_name, rd_deal_id")
+    .eq("tenant_id", tenantId);
 
-  let rdContacts: RdContact[] = [];
-  let rdOrganizations: RdOrganization[] = [];
-  let rdDeals: RdDeal[] = [];
+  if (crmErr) {
+    results.errors.push(`CRM deals load: ${crmErr.message}`);
+  }
 
-  if (rdConfig?.api_token) {
-    const token = rdConfig.api_token;
+  const deals = (crmDeals ?? []) as CrmDeal[];
 
-    try {
-      [rdContacts, rdOrganizations, rdDeals] = await Promise.all([
-        rdFetchAll<RdContact>("/contacts", token),
-        rdFetchAll<RdOrganization>("/organizations", token),
-        rdFetchAll<RdDeal>("/deals", token),
-      ]);
-    } catch (err) {
-      results.errors.push(
-        `RD Station fetch: ${err instanceof Error ? err.message : "unknown"}`,
-      );
-    }
+  // Build unique companies from CRM deals
+  const companyDeals = new Map<string, CrmDeal[]>();
+  for (const deal of deals) {
+    const company = deal.company?.toLowerCase().trim();
+    if (!company) continue;
+    const arr = companyDeals.get(company) ?? [];
+    arr.push(deal);
+    companyDeals.set(company, arr);
+  }
 
-    // Build org map
-    const orgMap = new Map<string, RdOrganization>();
-    for (const org of rdOrganizations) {
-      orgMap.set(org.id, org);
-    }
+  // Create client entries from CRM deals (by company)
+  for (const [companyLower, companyDealList] of companyDeals) {
+    const firstDeal = companyDealList[0];
+    const email = normEmail(firstDeal.contact_email);
 
-    // Build deal-by-org and deal-by-contact indexes
-    const dealsByOrg = new Map<string, RdDeal[]>();
-    const dealsByContact = new Map<string, RdDeal[]>();
-    for (const deal of rdDeals) {
-      if (deal.organization?.id) {
-        const arr = dealsByOrg.get(deal.organization.id) ?? [];
-        arr.push(deal);
-        dealsByOrg.set(deal.organization.id, arr);
-      }
-      for (const c of deal.contacts ?? []) {
-        const arr = dealsByContact.get(c.id) ?? [];
-        arr.push(deal);
-        dealsByContact.set(c.id, arr);
-      }
-    }
+    // Check if already exists by email
+    let existingKey: string | undefined;
+    if (email) existingKey = emailIndex.get(email);
 
-    // Process RD contacts — merge or create
-    for (const rc of rdContacts) {
-      const rcEmail = normEmail(rc.emails?.[0]?.email);
-      const org = rc.organization ? orgMap.get(rc.organization.id) : null;
-
-      // Try to match existing client by email
-      let existingKey: string | undefined;
-      if (rcEmail) existingKey = emailIndex.get(rcEmail);
-
-      if (existingKey) {
-        // Merge RD data into existing Omie client
-        const existing = clientMap.get(existingKey)!;
-        existing.rd_id = rc.id;
-        existing.source = "merged";
-        if (!existing.contact_name && rc.name) existing.contact_name = rc.name;
-        if (!existing.sales_owner && rc.title) existing.sales_owner = rc.title;
-        if (org) {
-          if (!existing.address && org.address) existing.address = org.address;
-          if (!existing.city && org.city) existing.city = org.city;
-          if (!existing.state && org.state) existing.state = org.state;
-        }
-        results.merged++;
-      } else {
-        // New client from RD
-        const key = `rd_${rc.id}`;
-        const client: ImportedClient = {
-          name: org?.name || rc.name || "Desconhecido",
-          trading_name: org?.name && rc.name !== org.name ? org.name : undefined,
-          contact_name: rc.name || undefined,
-          email: rcEmail || undefined,
-          phone: rc.phones?.[0]?.phone || undefined,
-          address: org?.address || undefined,
-          city: org?.city || undefined,
-          state: org?.state || undefined,
-          source: "rdstation",
-          rd_id: rc.id,
-          segment: "marketing", // leads from RD are typically marketing-sourced
-        };
-        clientMap.set(key, client);
-
-        if (rcEmail) emailIndex.set(rcEmail, key);
-
-        results.rd_imported++;
-      }
-    }
-
-    // Also import organizations that have no contacts (companies only)
-    for (const org of rdOrganizations) {
-      const orgDeals = dealsByOrg.get(org.id) ?? [];
-      // Check if already imported via a contact
-      const alreadyImported = Array.from(clientMap.values()).some(
-        (c) => c.name === org.name || c.trading_name === org.name,
-      );
-      if (!alreadyImported && orgDeals.length > 0) {
-        const key = `rd_org_${org.id}`;
+    if (existingKey) {
+      const existing = clientMap.get(existingKey)!;
+      existing.source = "merged";
+      if (!existing.contact_name && firstDeal.contact) existing.contact_name = firstDeal.contact;
+      if (!existing.sales_owner && firstDeal.owner_name) existing.sales_owner = firstDeal.owner_name;
+      results.merged++;
+    } else {
+      const key = `crm_${companyLower}`;
+      if (!clientMap.has(key)) {
         clientMap.set(key, {
-          name: org.name,
-          address: org.address || undefined,
-          city: org.city || undefined,
-          state: org.state || undefined,
-          source: "rdstation",
-          rd_id: `org_${org.id}`,
+          name: firstDeal.company ?? "Desconhecido",
+          contact_name: firstDeal.contact ?? undefined,
+          email: email || undefined,
+          source: "crm",
+          rd_id: firstDeal.rd_deal_id ?? undefined,
+          sales_owner: firstDeal.owner_name ?? undefined,
           segment: "marketing",
         });
-        results.rd_imported++;
+        if (email) emailIndex.set(email, key);
+        results.crm_imported++;
       }
     }
   }
@@ -348,22 +182,12 @@ async function importClients(tenantId: string, db: SupabaseClient) {
     .select("id, name, client, client_company, client_id, status, value")
     .eq("tenant_id", tenantId);
 
-  const ACTIVE_STATUSES = [
-    "briefing",
-    "em_andamento",
-    "revisao",
-    "aprovado",
-  ];
+  const ACTIVE_STATUSES = ["briefing", "em_andamento", "revisao", "aprovado"];
 
-  // Build project-by-client-name index (fuzzy match)
   function matchProject(
     clientName: string,
     tradingName?: string,
-  ): Array<{
-    id: string;
-    value: number;
-    isActive: boolean;
-  }> {
+  ): Array<{ id: string; value: number; isActive: boolean }> {
     const matches: Array<{ id: string; value: number; isActive: boolean }> = [];
     const nameL = clientName.toLowerCase();
     const tradingL = tradingName?.toLowerCase() ?? "";
@@ -389,23 +213,17 @@ async function importClients(tenantId: string, db: SupabaseClient) {
     return matches;
   }
 
-  // ── 4. Classify and upsert ──
+  // ── 4. Build deal-by-company index for classification ──
 
-  // Build deal index by rd_id for classification
-  const dealsByRdId = new Map<string, RdDeal[]>();
-  for (const deal of rdDeals) {
-    for (const c of deal.contacts ?? []) {
-      const arr = dealsByRdId.get(c.id) ?? [];
-      arr.push(deal);
-      dealsByRdId.set(c.id, arr);
-    }
-    if (deal.organization?.id) {
-      const orgKey = `org_${deal.organization.id}`;
-      const arr = dealsByRdId.get(orgKey) ?? [];
-      arr.push(deal);
-      dealsByRdId.set(orgKey, arr);
-    }
+  function getDealsForClient(client: ImportedClient): CrmDeal[] {
+    const name = client.name.toLowerCase().trim();
+    return deals.filter((d) => {
+      const company = d.company?.toLowerCase().trim();
+      return company && (company.includes(name) || name.includes(company));
+    });
   }
+
+  // ── 5. Classify and upsert ──
 
   const upsertBatch: Array<Record<string, unknown>> = [];
 
@@ -414,9 +232,7 @@ async function importClients(tenantId: string, db: SupabaseClient) {
     const projectCount = matched.length;
     const projectValue = matched.reduce((s, p) => s + p.value, 0);
     const hasActiveProject = matched.some((p) => p.isActive);
-    const clientDeals = client.rd_id
-      ? dealsByRdId.get(client.rd_id) ?? []
-      : [];
+    const clientDeals = getDealsForClient(client);
 
     const status = classifyClient(
       client,
@@ -451,12 +267,10 @@ async function importClients(tenantId: string, db: SupabaseClient) {
   }
 
   // Upsert using find-then-update/insert pattern
-  // (partial unique indexes don't work with PostgREST upsert)
   for (const item of upsertBatch) {
     try {
       let existingId: string | null = null;
 
-      // Try to find existing client by omie_id or rd_id
       if (item.omie_id) {
         const { data } = await db
           .from("clients")
@@ -477,7 +291,6 @@ async function importClients(tenantId: string, db: SupabaseClient) {
         if (data) existingId = data.id;
       }
 
-      // Fallback: match by name + tenant
       if (!existingId) {
         const { data } = await db
           .from("clients")
@@ -489,14 +302,12 @@ async function importClients(tenantId: string, db: SupabaseClient) {
       }
 
       if (existingId) {
-        // Update existing
         const { id: _, tenant_id: __, ...updates } = item as Record<string, unknown>;
         await db
           .from("clients")
           .update(updates as never)
           .eq("id", existingId);
       } else {
-        // Insert new
         await db.from("clients").insert(item as never);
       }
     } catch (err) {
@@ -506,7 +317,7 @@ async function importClients(tenantId: string, db: SupabaseClient) {
     }
   }
 
-  // ── 5. Link projects to clients by name matching ──
+  // ── 6. Link projects to clients by name matching ──
 
   const { data: allClients } = await db
     .from("clients")
@@ -514,7 +325,7 @@ async function importClients(tenantId: string, db: SupabaseClient) {
     .eq("tenant_id", tenantId);
 
   for (const p of projects ?? []) {
-    if (p.client_id) continue; // already linked
+    if (p.client_id) continue;
 
     const pc = (p.client || "").toLowerCase();
     const pcc = (p.client_company || "").toLowerCase();
@@ -527,9 +338,7 @@ async function importClients(tenantId: string, db: SupabaseClient) {
         (pc && (cName.includes(pc) || pc.includes(cName))) ||
         (pcc && (cName.includes(pcc) || pcc.includes(cName))) ||
         (pc && cTrading && (cTrading.includes(pc) || pc.includes(cTrading))) ||
-        (pcc &&
-          cTrading &&
-          (cTrading.includes(pcc) || pcc.includes(cTrading)))
+        (pcc && cTrading && (cTrading.includes(pcc) || pcc.includes(cTrading)))
       );
     });
 
@@ -551,13 +360,11 @@ export async function POST(req: NextRequest) {
   try {
     const db = await createClient();
 
-    // Verify authenticated user
     const { data: { user }, error: authErr } = await db.auth.getUser();
     if (authErr || !user) {
       return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
-    // Extract tenant from body
     const body = await req.json().catch(() => ({}));
     const tenantId = body.tenant_id;
 
@@ -574,7 +381,7 @@ export async function POST(req: NextRequest) {
       success: true,
       ...results,
       total_imported:
-        results.omie_imported + results.rd_imported + results.merged,
+        results.omie_imported + results.crm_imported + results.merged,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
@@ -588,6 +395,6 @@ export async function GET() {
   return NextResponse.json({
     status: "ready",
     description:
-      "POST with { tenant_id } to import clients from Omie + RD Station",
+      "POST with { tenant_id } to import clients from Omie + CRM deals (Supabase)",
   });
 }

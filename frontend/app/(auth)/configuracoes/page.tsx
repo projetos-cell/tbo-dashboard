@@ -12,7 +12,6 @@ import { WorkspaceSettings } from "@/features/configuracoes/components/workspace
 import { NotionSync } from "@/features/configuracoes/components/notion-sync";
 import { UserManagement } from "@/features/configuracoes/components/user-management";
 import { AuditLogTable } from "@/features/configuracoes/components/audit-log-table";
-import { RdStationPanel } from "@/features/integrations/components/rd-station-panel";
 import { FirefliesPanel } from "@/features/integrations/components/fireflies-panel";
 import type { SettingsTabId } from "@/lib/constants";
 
@@ -65,7 +64,6 @@ function SettingsContent() {
           {activeTab === "integracoes" && isAdmin && (
             <div className="space-y-8">
               <NotionSync />
-              <RdStationPanel />
               <FirefliesPanel />
             </div>
           )}

@@ -124,7 +124,7 @@ export function KpiSimulationPanel({
                 )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Atualizar dados do RD Station</TooltipContent>
+            <TooltipContent>Atualizar dados comerciais</TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </div>
@@ -161,11 +161,11 @@ export function KpiSimulationPanel({
         />
       </div>
 
-      {/* RD Station cross-reference */}
+      {/* CRM cross-reference */}
       <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="text-[10px]">
-            RD Station
+            CRM
           </Badge>
           <span className="text-xs text-muted-foreground">
             Dados cruzados automaticamente

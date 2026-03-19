@@ -38,7 +38,7 @@ export default function ClientesPage() {
     importMutation.mutate(undefined, {
       onSuccess: (result) => {
         toast.success(
-          `Importados: ${result.omie_imported} Omie + ${result.rd_imported} RD Station` +
+          `Importados: ${result.omie_imported} Omie + ${result.crm_imported} CRM` +
           (result.merged ? ` (${result.merged} mesclados)` : "") +
           (result.projects_linked ? ` · ${result.projects_linked} projetos vinculados` : "")
         );

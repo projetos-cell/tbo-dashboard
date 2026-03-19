@@ -100,12 +100,12 @@ export function useCreateInteraction() {
   });
 }
 
-// ── Import from Omie + RD Station ─────────────────────────────────────────────
+// ── Import from Omie + CRM ────────────────────────────────────────────────────
 
 export interface ImportResult {
   success: boolean;
   omie_imported: number;
-  rd_imported: number;
+  crm_imported: number;
   merged: number;
   classified: Record<string, number>;
   projects_linked: number;

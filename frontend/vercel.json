@@ -7,7 +7,7 @@
   "crons": [
     {
       "path": "/api/finance/data-quality",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 * * * *"
     },
     {
       "path": "/api/finance/sync-omie",

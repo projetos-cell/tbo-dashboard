@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import Link from "next/link";
 import {
   useContracts,
   useContractPersonNames,
@@ -11,20 +12,28 @@ import { ContractKPICards } from "@/features/contratos/components/contract-kpis"
 import { ContractDataTable } from "@/features/contratos/components/contract-data-table";
 import { ContractDetailDialog } from "@/features/contratos/components/contract-detail-dialog";
 import { ContractFormDialog } from "@/features/contratos/components/contract-form-dialog";
-import { NewContractDropdown } from "@/features/contratos/components/new-contract-dropdown";
 import {
   ContractFiltersPanel,
   ActiveFiltersBadges,
 } from "@/features/contratos/components/contract-filters-panel";
+import { ContractGenerator } from "@/features/contratos/components/contract-generator";
 import { computeTabKPIs } from "@/features/contratos/services/contracts";
 import type { ContractFilters } from "@/features/contratos/services/contracts";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { ErrorState, EmptyState } from "@/components/shared";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 import { useImportClicksignContracts } from "@/features/contratos/hooks/use-clicksign";
-import { IconFileText, IconSearch, IconDownload, IconLoader2 } from "@tabler/icons-react";
+import {
+  IconFileText,
+  IconSearch,
+  IconDownload,
+  IconLoader2,
+  IconPlus,
+  IconFilter,
+} from "@tabler/icons-react";
 import { CONTRACT_TABS } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
 
@@ -59,7 +68,6 @@ export default function ContratosPage() {
     () => ({
       ...advancedFilters,
       search: search || undefined,
-      // Tab categories override advanced category filter
       categories: lockedCategories
         ? [...lockedCategories]
         : advancedFilters.categories,
@@ -75,33 +83,25 @@ export default function ContratosPage() {
     refetch,
   } = useContracts(mergedFilters);
 
-  // ─── KPIs dinâmicos por tab ───────────────────────────────────────
   const kpis = useMemo(
     () => computeTabKPIs(contracts, activeTab),
     [contracts, activeTab],
   );
 
-  // ─── Filter handlers ──────────────────────────────────────────────
+  // ─── Handlers ─────────────────────────────────────────────────────
   const handleFiltersChange = useCallback(
     (next: ContractFilters) => {
-      // Keep search separate from advanced filters
       const { search: _s, categories: _c, ...rest } = next;
       setAdvancedFilters(rest);
     },
     [],
   );
 
-  // Reset advanced filters when switching tabs
-  const handleTabChange = useCallback(
-    (tabKey: string) => {
-      setActiveTab(tabKey);
-      // Keep non-category filters, reset categories to let tab take over
-      setAdvancedFilters((prev) => ({ ...prev, categories: undefined }));
-    },
-    [],
-  );
+  const handleTabChange = useCallback((tabKey: string) => {
+    setActiveTab(tabKey);
+    setAdvancedFilters((prev) => ({ ...prev, categories: undefined }));
+  }, []);
 
-  // ─── Handlers ─────────────────────────────────────────────────────
   function handleSelect(contract: ContractRow) {
     setSelectedContract(contract);
     setDetailOpen(true);
@@ -128,8 +128,7 @@ export default function ContratosPage() {
           onError: () =>
             toast({
               title: "Erro ao atualizar",
-              description:
-                "Não foi possível salvar a alteração. Tente novamente.",
+              description: "Nao foi possivel salvar a alteracao.",
               variant: "destructive",
             }),
         },
@@ -144,13 +143,13 @@ export default function ContratosPage() {
       setDetailOpen(false);
       setSelectedContract(null);
       toast({
-        title: "Contrato excluído",
-        description: `"${contract.title}" foi removido com sucesso.`,
+        title: "Contrato excluido",
+        description: `"${contract.title}" foi removido.`,
       });
     } catch {
       toast({
         title: "Erro ao excluir",
-        description: "Não foi possível excluir o contrato. Tente novamente.",
+        description: "Nao foi possivel excluir o contrato.",
         variant: "destructive",
       });
     }
@@ -165,99 +164,118 @@ export default function ContratosPage() {
     );
   }
 
+  const activeFilterCount = Object.values(advancedFilters).filter(
+    (v) => v !== undefined && v !== null && v !== "",
+  ).length;
+
   return (
     <RequireRole module="contratos" minRole="diretoria">
-      <div className="space-y-6">
-        {/* ── Header ───────────────────────────────────────────────── */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Contratos</h1>
-            <p className="text-sm text-muted-foreground">
-              Gerencie contratos, valores e prazos de vencimento.
-            </p>
+      <div className="space-y-4">
+        {/* ── Header — compact single row ─────────────────────── */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-semibold tracking-tight">Contratos</h1>
+            <Badge variant="secondary" className="font-mono text-xs">
+              {contracts.length}
+            </Badge>
           </div>
+
           <div className="flex items-center gap-2">
-            {/* Busca global */}
+            {/* Search inline */}
             <div className="relative">
-              <IconSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <IconSearch className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Buscar contratos..."
+                placeholder="Buscar..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 w-[220px]"
+                className="pl-8 h-8 w-[180px] text-xs"
               />
             </div>
-            {/* Filtros avançados */}
+
+            {/* Filters */}
             <ContractFiltersPanel
               filters={mergedFilters}
               onChange={handleFiltersChange}
               personNames={personNames}
               lockedCategories={lockedCategories}
             />
+            {activeFilterCount > 0 && (
+              <Badge variant="outline" className="text-[10px] h-5">
+                <IconFilter className="h-2.5 w-2.5 mr-0.5" />
+                {activeFilterCount}
+              </Badge>
+            )}
+
+            {/* Import */}
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
+              className="h-8 text-xs"
               onClick={() => importClicksign.mutate()}
               disabled={importClicksign.isPending}
             >
               {importClicksign.isPending ? (
-                <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+                <IconLoader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <IconDownload className="mr-2 h-4 w-4" />
+                <IconDownload className="h-3.5 w-3.5" />
               )}
-              Importar Clicksign
             </Button>
-            <NewContractDropdown onSelect={handleNewWithCategory} />
+
+            {/* Generator */}
+            <ContractGenerator variant="ghost" size="sm" label="" />
+
+            {/* New contract — stepper */}
+            <Button size="sm" className="h-8" asChild>
+              <Link href="/contratos/novo">
+                <IconPlus className="h-3.5 w-3.5 mr-1" />
+                Novo
+              </Link>
+            </Button>
           </div>
         </div>
 
-        {/* ── Active filter badges ────────────────────────────────── */}
+        {/* ── Tabs — pill style ───────────────────────────────── */}
+        <div className="flex items-center gap-1 rounded-lg bg-muted/50 p-1 w-fit">
+          {CONTRACT_TABS.map((tab) => {
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => handleTabChange(tab.key)}
+                className={`
+                  px-3 py-1.5 text-xs font-medium rounded-md transition-all
+                  ${
+                    isActive
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }
+                `}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── Active filter badges ────────────────────────────── */}
         <ActiveFiltersBadges
           filters={mergedFilters}
           onChange={handleFiltersChange}
           lockedCategories={lockedCategories}
         />
 
-        {/* ── Tabs ─────────────────────────────────────────────────── */}
-        <div className="border-b border-border/50">
-          <nav className="-mb-px flex gap-6" aria-label="Tabs">
-            {CONTRACT_TABS.map((tab) => {
-              const isActive = activeTab === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => handleTabChange(tab.key)}
-                  className={`
-                    relative pb-3 text-sm font-medium transition-colors
-                    ${
-                      isActive
-                        ? "text-[#f97316]"
-                        : "text-muted-foreground hover:text-foreground"
-                    }
-                  `}
-                >
-                  {tab.label}
-                  {isActive && (
-                    <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-[#f97316]" />
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* ── KPI Cards ────────────────────────────────────────────── */}
+        {/* ── KPIs — inline compact ───────────────────────────── */}
         <ContractKPICards kpis={kpis} tab={activeTab} />
 
-        {/* ── Data Table ───────────────────────────────────────────── */}
+        {/* ── Data Table ──────────────────────────────────────── */}
         {!isLoading && contracts.length === 0 ? (
           <EmptyState
             icon={IconFileText}
             title="Nenhum contrato encontrado"
             description={
               search
-                ? `Nenhum resultado para "${search}". Tente outro termo.`
-                : "Cadastre o primeiro contrato para controlar valores e prazos."
+                ? `Nenhum resultado para "${search}".`
+                : "Crie o primeiro contrato ou importe do Clicksign."
             }
             cta={{
               label: "Novo Contrato",
@@ -276,7 +294,7 @@ export default function ContratosPage() {
           />
         )}
 
-        {/* ── Dialogs ──────────────────────────────────────────────── */}
+        {/* ── Dialogs ─────────────────────────────────────────── */}
         <ContractDetailDialog
           contract={selectedContract}
           open={detailOpen}

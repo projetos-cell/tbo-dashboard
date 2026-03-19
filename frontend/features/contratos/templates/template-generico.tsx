@@ -1,10 +1,12 @@
 import React from "react";
 import { Document, Page, Text, View } from "@react-pdf/renderer";
 import { pdfStyles as s } from "./pdf-styles";
+import { TBO_DEFAULTS } from "./types";
 import {
   PdfHeader,
   PdfFooter,
-  PdfParties,
+  PdfPageHeader,
+  PdfPartiesBlock,
   PdfScopeTable,
   PdfSignatures,
   PdfCustomClauses,
@@ -15,12 +17,12 @@ import {
 import type { ContractPdfData } from "./types";
 
 /**
- * Generic contract template — covers aditivo and general-purpose contracts.
- * Used as fallback when no specific template matches.
+ * Template Generico — Covers aditivo and general-purpose contracts
  */
 export function TemplateGenerico({ data }: { data: ContractPdfData }) {
   const isAditivo = data.type === "aditivo";
-  const penalty = data.penaltyPercent ?? 10;
+  const penalty = data.penaltyPercent ?? TBO_DEFAULTS.penaltyPercent;
+  const forum = data.forumCity ?? TBO_DEFAULTS.forumCity;
 
   return (
     <Document>
@@ -28,8 +30,7 @@ export function TemplateGenerico({ data }: { data: ContractPdfData }) {
         <PdfHeader data={data} />
         <PdfFooter />
 
-        {/* Title */}
-        <View style={{ alignItems: "center", marginBottom: 20 }}>
+        <View style={{ alignItems: "center", marginBottom: 16 }}>
           <Text style={{ fontSize: 14, fontWeight: "bold", textTransform: "uppercase" }}>
             {isAditivo ? "Termo Aditivo ao Contrato" : "Contrato de Servicos"}
           </Text>
@@ -38,8 +39,7 @@ export function TemplateGenerico({ data }: { data: ContractPdfData }) {
           </Text>
         </View>
 
-        {/* Parties */}
-        <PdfParties data={data} />
+        <PdfPartiesBlock data={data} />
 
         {isAditivo && (
           <View>
@@ -53,45 +53,40 @@ export function TemplateGenerico({ data }: { data: ContractPdfData }) {
           </View>
         )}
 
-        {/* Object */}
-        <Text style={s.sectionTitle}>Clausula 1 — Do Objeto</Text>
-        <Text style={s.paragraph}>
-          {isAditivo
-            ? "O presente termo aditivo tem por objeto a alteracao das condicoes do contrato original, conforme descricao abaixo:"
-            : "O presente contrato tem por objeto a prestacao dos servicos descritos no escopo abaixo, pela CONTRATADA a CONTRATANTE, nas condicoes aqui estipuladas."}
+        {/* Objeto */}
+        <Text style={s.sectionTitle}>
+          Clausula Primeira — {isAditivo ? "Das Alteracoes" : "Do Objeto"}
         </Text>
-        {data.description && (
-          <View style={s.highlightBox}>
-            <Text style={s.paragraph}>{data.description}</Text>
-          </View>
-        )}
+        <Text style={s.paragraph}>
+          {data.aiObjectClause || data.description || (
+            isAditivo
+              ? "O presente termo aditivo tem por objeto a alteracao das condicoes do contrato original."
+              : "O presente contrato tem por objeto a prestacao dos servicos descritos no escopo abaixo."
+          )}
+        </Text>
 
-        {/* Scope */}
+        {/* Escopo */}
         {data.scopeItems.length > 0 && (
           <View>
-            <Text style={s.sectionTitle}>
-              Clausula 2 — {isAditivo ? "Das Alteracoes no Escopo" : "Do Escopo"}
-            </Text>
+            <Text style={s.sectionTitle}>Clausula Segunda — Do Escopo</Text>
             <PdfScopeTable data={data} />
           </View>
         )}
 
-        {/* Duration */}
-        <Text style={s.sectionTitle}>Clausula 3 — Da Vigencia</Text>
+        {/* Vigencia */}
+        <Text style={s.sectionTitle}>Clausula Terceira — Da Vigencia</Text>
         <Text style={s.paragraph}>
           {isAditivo
             ? `O presente aditivo entra em vigor em ${formatDate(data.startDate)} e tera validade ate ${formatDate(data.endDate)}.`
-            : `O presente contrato tera vigencia de ${formatDate(data.startDate)} a ${formatDate(data.endDate)}, podendo ser prorrogado mediante acordo escrito entre as partes.`}
+            : `Vigencia ate autorizacao de entrega final por escrito. Prazos negociados entre as partes.`}
         </Text>
 
-        {/* Payment */}
+        {/* Valor */}
         {data.totalValue > 0 && (
           <View>
-            <Text style={s.sectionTitle}>Clausula 4 — Do Valor</Text>
+            <Text style={s.sectionTitle}>Clausula Quarta — Do Valor</Text>
             <Text style={s.paragraph}>
-              {isAditivo
-                ? `O valor do presente aditivo e de ${formatCurrency(data.totalValue)} (${valorExtenso(data.totalValue)}), que sera acrescido ao valor do contrato original.`
-                : `O valor total dos servicos e de ${formatCurrency(data.totalValue)} (${valorExtenso(data.totalValue)}).`}
+              Valor: {formatCurrency(data.totalValue)} ({valorExtenso(data.totalValue)}).
             </Text>
             {data.paymentConditions && (
               <Text style={s.paragraph}>{data.paymentConditions}</Text>
@@ -99,47 +94,52 @@ export function TemplateGenerico({ data }: { data: ContractPdfData }) {
           </View>
         )}
 
-        {/* Confidentiality */}
-        <Text style={s.sectionTitle}>
-          Clausula 5 — Da Confidencialidade
-        </Text>
+        {/* Confidencialidade */}
+        <Text style={s.sectionTitle}>Clausula Quinta — Da Confidencialidade</Text>
         <Text style={s.paragraph}>
-          {data.confidentialityClause ??
-            "As partes se comprometem a manter sigilo sobre informacoes confidenciais trocadas durante e apos a vigencia do presente instrumento."}
+          As partes se comprometem a manter sigilo sobre informacoes confidenciais
+          trocadas, de acordo com a LGPD (Lei n. 13.709/2018), durante e apos a
+          vigencia do presente instrumento.
         </Text>
 
-        {/* Termination */}
+        {/* Rescisao */}
         {!isAditivo && (
           <View>
-            <Text style={s.sectionTitle}>Clausula 6 — Da Rescisao</Text>
+            <Text style={s.sectionTitle}>Clausula Sexta — Da Rescisao</Text>
             <Text style={s.paragraph}>
-              O presente contrato podera ser rescindido por qualquer das partes
-              mediante notificacao escrita com 30 (trinta) dias de antecedencia.
-              A parte que rescindir sem justa causa arcara com multa de {penalty}%
-              sobre o valor remanescente.
+              A parte que der causa ao rompimento incorrera multa de {penalty}% sobre
+              o valor total dos servicos. Direito de rescisao garantido com 60 dias
+              uteis de antecedencia por escrito.
             </Text>
           </View>
         )}
 
-        {/* Custom clauses */}
-        <PdfCustomClauses clauses={data.customClauses} />
+        {/* Natureza Civil */}
+        <Text style={s.sectionTitle}>
+          Clausula {isAditivo ? "Sexta" : "Setima"} — Responsabilidade Judicial
+        </Text>
+        <Text style={s.paragraph}>
+          Contrato de natureza estritamente civil, sem relacao de trabalho ou
+          representacao comercial, regido pela boa-fe contratual do Codigo Civil.
+        </Text>
 
-        {/* General provisions */}
+        <PdfCustomClauses clauses={data.customClauses} startNumber={isAditivo ? 7 : 8} />
+
+        {/* Disposicoes Gerais */}
         <Text style={s.sectionTitle}>Disposicoes Gerais</Text>
         <Text style={s.paragraph}>
           {isAditivo
-            ? "As demais clausulas e condicoes do contrato original permanecem inalteradas e em pleno vigor."
-            : "Os casos omissos serao resolvidos de comum acordo entre as partes, prevalecendo os principios de boa-fe e probidade."}
+            ? "As demais clausulas do contrato original permanecem inalteradas e em pleno vigor."
+            : "Este contrato e a expressao final dos entendimentos entre as PARTES, firmado na modalidade NAO EXCLUSIVA."}
         </Text>
 
-        {/* Forum */}
+        {/* Foro */}
         <Text style={s.sectionTitle}>Do Foro</Text>
         <Text style={s.paragraph}>
-          Fica eleito o foro da Comarca de Sao Paulo/SP para dirimir quaisquer
-          controversias oriundas deste instrumento.
+          Fica eleito o foro da Comarca de {forum} para dirimir questoes ou
+          litigios resultantes deste instrumento.
         </Text>
 
-        {/* Signatures */}
         <PdfSignatures signers={data.signers} />
       </Page>
     </Document>

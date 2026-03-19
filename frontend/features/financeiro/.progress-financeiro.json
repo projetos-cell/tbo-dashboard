@@ -1,6 +1,7 @@
 {
-  "current_item": 8,
-  "items_completed": [1, 2, 3, 4, 5, 6, 7],
+  "current_item": 9,
+  "items_completed": [1, 2, 3, 4, 5, 6, 7, 8],
+  "pipeline_complete": true,
   "quality_scores": {
     "1": {
       "build": true,
@@ -75,13 +76,15 @@
       "loading_skeleton": true,
       "score": 100,
       "notes": "Migration 20260319_create_finance_accounting.sql: finance_chart_of_accounts + finance_dre_snapshots com RLS (diretoria+). finance-accounting.ts: computeAndUpsertDRE (calcula DRE a partir de transações + categorias + folha), buildDRELines (17 linhas DRE estruturado), buildDRESummary, mapeamento categoria→grupo DRE. use-accounting.ts: useDRESnapshot, useDRESummary, useDRETrend, useComputeDRE, useUpdateDREMeta, useChartOfAccounts. Componentes: DRESummaryCards (4 KPIs + delta vs meta), DRETable (tabela DRE completa + % receita), DRETrendChart (AreaChart recharts 12 meses). /financeiro/dre page com navegação mensal, CTA empty state, error.tsx + loading.tsx. Build limpo."
+    },
+    "8": {
+      "build": true,
+      "nav": true,
+      "api_route": true,
+      "ui": true,
+      "score": 100,
+      "notes": "FINANCEIRO_NAV_ITEMS: adicionados fiscal (file-check-2) e dre (table-2). API route GET+POST /api/finance/dre: auth + RBAC diretoria+, query param month YYYY-MM, GET retorna snapshot do cache, POST computa e persiste. Página principal /financeiro: seção 'Módulos Avançados' com cards de acesso rápido para Conciliação, Fiscal e DRE. Build limpo. Pipeline completo — todos os 8 itens concluídos."
     }
   },
-  "pending_items": [
-    {
-      "id": 8,
-      "description": "Dashboard financeiro consolidado — navegação global entre sub-módulos (tabs/nav), API route /api/finance/dre para computação server-side, sidebar links para /dre e demais sub-páginas",
-      "phase": "Dashboard financeiro consolidado"
-    }
-  ]
+  "pending_items": []
 }

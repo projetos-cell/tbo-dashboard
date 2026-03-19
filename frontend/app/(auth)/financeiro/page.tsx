@@ -15,7 +15,7 @@ import { StrategicSection } from "@/features/financeiro/components/sections/stra
 import { OmieSyncButton } from "@/features/financeiro/components/omie-sync-button";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { IconUsers, IconReceipt, IconSettings, IconCurrencyDollar, IconArrowRight, IconAlertCircle, IconRefresh } from "@tabler/icons-react";
+import { IconUsers, IconReceipt, IconSettings, IconCurrencyDollar, IconArrowRight, IconAlertCircle, IconRefresh, IconFileCheck, IconTable, IconGitCompare } from "@tabler/icons-react";
 import { useTeamPayroll } from "@/features/financeiro/hooks/use-team-payroll";
 import { fmt } from "@/features/financeiro/lib/formatters";
 
@@ -142,6 +142,56 @@ function FinanceiroContent() {
       </div>
 
       <ExpiringContractsSection contracts={d?.expiringContracts ?? []} />
+
+      {/* ── Módulos Avançados ─────────────────────────────────────────────── */}
+      <div>
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          Módulos Avançados
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Link
+            href="/financeiro/conciliacao"
+            className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 shadow-sm hover:border-blue-400/40 hover:shadow-md transition group"
+          >
+            <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950">
+              <IconGitCompare className="size-4 text-blue-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold">Conciliação Bancária</p>
+              <p className="text-xs text-muted-foreground truncate">OFX, CNAB, reconciliação automática</p>
+            </div>
+            <IconArrowRight className="size-4 text-muted-foreground group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all" />
+          </Link>
+
+          <Link
+            href="/financeiro/fiscal"
+            className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 shadow-sm hover:border-emerald-400/40 hover:shadow-md transition group"
+          >
+            <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950">
+              <IconFileCheck className="size-4 text-emerald-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold">Motor Fiscal</p>
+              <p className="text-xs text-muted-foreground truncate">NF-e, ISS, PIS/COFINS, relatórios</p>
+            </div>
+            <IconArrowRight className="size-4 text-muted-foreground group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all" />
+          </Link>
+
+          <Link
+            href="/financeiro/dre"
+            className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 shadow-sm hover:border-violet-400/40 hover:shadow-md transition group"
+          >
+            <div className="p-2 rounded-lg bg-violet-50 dark:bg-violet-950">
+              <IconTable className="size-4 text-violet-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold">DRE</p>
+              <p className="text-xs text-muted-foreground truncate">Demonstração do resultado mensal</p>
+            </div>
+            <IconArrowRight className="size-4 text-muted-foreground group-hover:text-violet-500 group-hover:translate-x-0.5 transition-all" />
+          </Link>
+        </div>
+      </div>
 
       {/* ── Alertas ──────────────────────────────────────────────────────── */}
       <div>

@@ -15,6 +15,7 @@ import { StepSigners } from "./step-signers";
 import { StepDocument } from "./step-document";
 import { StepReview } from "./step-review";
 import { STEPS, useContractStepper } from "./use-contract-stepper";
+import type { ContractPdfData } from "../../templates/types";
 
 export function ContractStepper() {
   const {
@@ -51,7 +52,33 @@ export function ContractStepper() {
             <StepSigners signers={signers} onChange={setSigners} />
           )}
           {currentStep === 3 && (
-            <StepDocument file={file} onChange={setFile} />
+            <StepDocument
+              file={file}
+              onChange={setFile}
+              generatorPrefill={{
+                title: basics.title,
+                description: basics.description,
+                category: basics.category ?? "cliente",
+                type: basics.type ?? "pj",
+                totalValue: basics.total_value,
+                startDate: basics.start_date,
+                endDate: basics.end_date,
+                scopeItems: scopeItems.map((item) => ({
+                  title: item.title,
+                  description: item.description,
+                  category: item.category,
+                  value: item.value ?? 0,
+                  estimated_start: item.estimated_start,
+                  estimated_end: item.estimated_end,
+                })),
+                signers: signers.map((s) => ({
+                  name: s.name,
+                  email: s.email,
+                  cpf: s.cpf,
+                  role: s.role,
+                })),
+              } satisfies Partial<ContractPdfData>}
+            />
           )}
           {currentStep === 4 && (
             <StepReview

@@ -3,10 +3,14 @@
 import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { IconFileUpload, IconX, IconFileText } from "@tabler/icons-react";
+import { ContractGenerator } from "../contract-generator";
+import type { ContractPdfData } from "../../templates/types";
 
 interface StepDocumentProps {
   file: File | null;
   onChange: (file: File | null) => void;
+  /** Pre-fill data for the generator (from stepper state) */
+  generatorPrefill?: Partial<ContractPdfData>;
 }
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
@@ -22,7 +26,7 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function StepDocument({ file, onChange }: StepDocumentProps) {
+export function StepDocument({ file, onChange, generatorPrefill }: StepDocumentProps) {
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -121,6 +125,22 @@ export function StepDocument({ file, onChange }: StepDocumentProps) {
       )}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
+
+      <div className="flex items-center gap-3 rounded-lg border border-dashed bg-muted/30 p-4">
+        <div className="flex-1">
+          <p className="text-sm font-medium">Nao tem o documento pronto?</p>
+          <p className="text-xs text-muted-foreground">
+            Gere automaticamente um PDF profissional com os dados do contrato.
+          </p>
+        </div>
+        <ContractGenerator
+          prefill={generatorPrefill}
+          onGenerated={(generatedFile) => onChange(generatedFile)}
+          variant="default"
+          size="sm"
+          label="Gerar PDF"
+        />
+      </div>
 
       <p className="text-xs text-muted-foreground">
         O documento sera enviado ao Clicksign junto com o envelope de

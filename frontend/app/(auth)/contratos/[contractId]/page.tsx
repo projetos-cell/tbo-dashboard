@@ -23,6 +23,7 @@ import { ScopeItemsTable } from "@/features/contratos/components/scope-items-tab
 import { SignersList } from "@/features/contratos/components/signers-list";
 import { ContractTimeline } from "@/features/contratos/components/contract-timeline";
 import { ScopeProgressBar } from "@/features/contratos/components/scope-progress-bar";
+import { ContractGenerator } from "@/features/contratos/components/contract-generator";
 import { CONTRACT_CATEGORY, CONTRACT_TYPE } from "@/lib/constants";
 
 interface PageProps {
@@ -144,6 +145,46 @@ export default function ContractDetailPage({ params }: PageProps) {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          <ContractGenerator
+            prefill={{
+              contractNumber,
+              title,
+              description,
+              category: category ?? "cliente",
+              type: type ?? "pj",
+              totalValue,
+              startDate,
+              endDate,
+              scopeItems: (scopeItems as Array<{
+                title: string;
+                description?: string | null;
+                category?: string | null;
+                value: number;
+                estimated_start?: string | null;
+                estimated_end?: string | null;
+              }>).map((item) => ({
+                title: item.title,
+                description: item.description,
+                category: item.category,
+                value: item.value,
+                estimated_start: item.estimated_start,
+                estimated_end: item.estimated_end,
+              })),
+              signers: (signers as Array<{
+                name: string;
+                email: string;
+                cpf?: string | null;
+                role: string;
+              }>).map((s) => ({
+                name: s.name,
+                email: s.email,
+                cpf: s.cpf,
+                role: s.role as "signer" | "witness" | "approver",
+              })),
+            }}
+            variant="outline"
+            size="sm"
+          />
           {canSend && (
             <Button
               size="sm"

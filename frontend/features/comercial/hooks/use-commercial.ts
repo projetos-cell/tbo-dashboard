@@ -14,6 +14,9 @@ import {
   getDealPipelines,
   getRdPipelines,
   getDealOwners,
+  getCrmStages,
+  createCrmStage,
+  deleteCrmStage,
 } from "@/features/comercial/services/commercial";
 
 interface DealFilters {
@@ -174,6 +177,59 @@ export function useUpdateDealStage() {
     },
     onError: (err) => {
       toast.error(`Erro ao mover deal: ${err.message}`);
+    },
+  });
+}
+
+// ── CRM Stages (dynamic) ────────────────────────────────────────────────────
+
+export function useCrmStages() {
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery({
+    queryKey: ["crm-stages", tenantId],
+    queryFn: async () => {
+      const supabase = createClient();
+      return getCrmStages(supabase);
+    },
+    staleTime: 1000 * 60 * 10,
+    enabled: !!tenantId,
+  });
+}
+
+export function useCreateCrmStage() {
+  const qc = useQueryClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useMutation({
+    mutationFn: async (stage: { id: string; label: string; sort_order: number; color: string; bg: string }) => {
+      if (!tenantId) throw new Error("Tenant não encontrado");
+      const supabase = createClient();
+      return createCrmStage(supabase, { ...stage, tenant_id: tenantId });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["crm-stages"] });
+      qc.invalidateQueries({ queryKey: ["deals"] });
+    },
+    onError: (err) => {
+      toast.error(`Erro ao criar etapa: ${err.message}`);
+    },
+  });
+}
+
+export function useDeleteCrmStage() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const supabase = createClient();
+      return deleteCrmStage(supabase, id);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["crm-stages"] });
+    },
+    onError: (err) => {
+      toast.error(`Erro ao deletar etapa: ${err.message}`);
     },
   });
 }

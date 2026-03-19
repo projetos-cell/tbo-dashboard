@@ -10,8 +10,8 @@ import { DealCard } from "./deal-card";
 import { DraggableDeal } from "./draggable-deal";
 import { DroppableStageColumn } from "./droppable-stage-column";
 import { formatCurrency } from "@/features/comercial/lib/format-currency";
-import { DEAL_STAGES } from "@/lib/constants";
-import { IconBriefcase, IconArrowsSort } from "@tabler/icons-react";
+import { DEAL_STAGES, type DealStageKey } from "@/lib/constants";
+import { IconBriefcase, IconArrowsSort, IconPlus } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,6 +20,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useDealPipelineDnd } from "@/features/comercial/hooks/use-deal-pipeline-dnd";
+import { AddStageDialog } from "./add-stage-dialog";
+import type { CrmStageRow } from "@/features/comercial/services/commercial";
 import type { Database } from "@/lib/supabase/types";
 
 type DealRow = Database["public"]["Tables"]["crm_deals"]["Row"];
@@ -63,6 +65,7 @@ interface DealPipelineProps {
   selectedIds?: Set<string>;
   onBulkToggle?: (dealId: string, checked: boolean) => void;
   onQuickUpdate?: (dealId: string, field: string, value: unknown) => void;
+  customStages?: CrmStageRow[];
 }
 
 export function DealPipeline({
@@ -74,8 +77,10 @@ export function DealPipeline({
   selectedIds,
   onBulkToggle,
   onQuickUpdate,
+  customStages,
 }: DealPipelineProps) {
   const [columnSort, setColumnSort] = useState<SortKey>("updated_at");
+  const [addStageOpen, setAddStageOpen] = useState(false);
 
   const {
     activeDeal,
@@ -87,7 +92,25 @@ export function DealPipeline({
     handleDragOver,
     handleDragEnd,
     handleDragCancel,
-  } = useDealPipelineDnd({ deals, onStageDrop });
+  } = useDealPipelineDnd({ deals, onStageDrop, customStages });
+
+  // Build stage config map (constants + custom from Supabase)
+  const stageConfigMap = useMemo(() => {
+    const map = new Map<string, { label: string; color: string; bg: string }>();
+    for (const [key, cfg] of Object.entries(DEAL_STAGES)) {
+      map.set(key, { label: cfg.label, color: cfg.color, bg: cfg.bg });
+    }
+    if (customStages) {
+      for (const s of customStages) {
+        map.set(s.id, {
+          label: s.label,
+          color: s.color ?? "#6b7280",
+          bg: s.bg ?? "rgba(107,114,128,0.12)",
+        });
+      }
+    }
+    return map;
+  }, [customStages]);
 
   // Apply sorting to each stage group
   const sortedGrouped = useMemo(() => {
@@ -169,7 +192,7 @@ export function DealPipeline({
       >
         <div className="flex gap-4 overflow-x-auto pb-4">
           {orderedStages.map((stage) => {
-            const cfg = DEAL_STAGES[stage];
+            const cfg = stageConfigMap.get(stage) ?? { label: stage, color: "#6b7280", bg: "rgba(107,114,128,0.12)" };
             const stageDeals = sortedGrouped[stage] ?? [];
             const stageTotal = stageDeals.reduce(
               (s, d) => s + (d.value ?? 0),
@@ -220,6 +243,19 @@ export function DealPipeline({
               </div>
             );
           })}
+
+          {/* Add stage column */}
+          <div className="min-w-[120px] flex items-start justify-center pt-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs text-gray-400 hover:text-gray-600 gap-1"
+              onClick={() => setAddStageOpen(true)}
+            >
+              <IconPlus className="h-3.5 w-3.5" />
+              Etapa
+            </Button>
+          </div>
         </div>
 
         <DragOverlay dropAnimation={null}>
@@ -230,6 +266,12 @@ export function DealPipeline({
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      <AddStageDialog
+        open={addStageOpen}
+        onOpenChange={setAddStageOpen}
+        existingStageCount={orderedStages.length}
+      />
     </div>
   );
 }

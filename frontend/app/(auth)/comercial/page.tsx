@@ -8,9 +8,9 @@ import {
   useRdPipelines,
   useDealOwners,
   useUpdateDeal,
+  useCrmStages,
 } from "@/features/comercial/hooks/use-commercial";
 import { DealKPICards } from "@/features/comercial/components/deal-kpis";
-import { DadosComerciaisMensais } from "@/features/comercial/components/dados-comerciais-mensais";
 import { RdPipelineKanban } from "@/features/comercial/components/rd-pipeline-kanban";
 import { DealPipeline } from "@/features/comercial/components/deal-pipeline";
 import { PipelineFilters } from "@/features/comercial/components/pipeline-filters";
@@ -64,6 +64,7 @@ export default function ComercialPage() {
   const { data: owners = [] } = useDealOwners(
     selectedPipelineId !== "all" ? selectedPipelineId : undefined,
   );
+  const { data: crmStages } = useCrmStages();
 
   const isPipelineView =
     selectedPipelineId !== "all" &&
@@ -242,9 +243,6 @@ export default function ComercialPage() {
         {/* KPIs */}
         <DealKPICards kpis={kpis} distribution={stageDistribution} />
 
-        {/* Dados Comerciais Mensais */}
-        <DadosComerciaisMensais />
-
         {/* Pipeline selector tabs */}
         {pipelines.length > 0 && (
           <div className="space-y-1">
@@ -320,6 +318,7 @@ export default function ComercialPage() {
             selectedIds={selectedIds}
             onBulkToggle={handleBulkToggle}
             onQuickUpdate={handleQuickUpdate}
+            customStages={crmStages}
           />
         )}
 

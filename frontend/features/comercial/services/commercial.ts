@@ -214,6 +214,71 @@ export async function getDealOwners(
   return Array.from(unique).sort();
 }
 
+// ── CRM Stages (dynamic, from Supabase) ─────────────────────────────────────
+
+export interface CrmStageRow {
+  id: string;
+  label: string;
+  sort_order: number;
+  color: string | null;
+  bg: string | null;
+  tenant_id: string;
+}
+
+export async function getCrmStages(
+  supabase: SupabaseClient<Database>,
+): Promise<CrmStageRow[]> {
+  const { data, error } = await supabase
+    .from("crm_stages")
+    .select("*")
+    .order("sort_order");
+
+  if (error) throw error;
+  return (data ?? []) as CrmStageRow[];
+}
+
+export async function createCrmStage(
+  supabase: SupabaseClient<Database>,
+  stage: { id: string; label: string; sort_order: number; color: string; bg: string; tenant_id: string },
+): Promise<CrmStageRow> {
+  const { data, error } = await supabase
+    .from("crm_stages")
+    .insert(stage as never)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as unknown as CrmStageRow;
+}
+
+export async function updateCrmStage(
+  supabase: SupabaseClient<Database>,
+  id: string,
+  updates: Partial<{ label: string; sort_order: number; color: string; bg: string }>,
+): Promise<CrmStageRow> {
+  const { data, error } = await supabase
+    .from("crm_stages")
+    .update(updates as never)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as unknown as CrmStageRow;
+}
+
+export async function deleteCrmStage(
+  supabase: SupabaseClient<Database>,
+  id: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("crm_stages")
+    .delete()
+    .eq("id", id);
+
+  if (error) throw error;
+}
+
 const CLOSED_STAGES = ["fechado_ganho", "fechado_perdido"];
 
 export function computeDealKPIs(deals: DealRow[]) {

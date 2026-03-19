@@ -12,21 +12,25 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { DEAL_STAGES, type DealStageKey } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
+import type { CrmStageRow } from "@/features/comercial/services/commercial";
 
 type DealRow = Database["public"]["Tables"]["crm_deals"]["Row"];
 
-const orderedStages = Object.entries(DEAL_STAGES)
+const defaultOrderedStages = Object.entries(DEAL_STAGES)
   .sort(([, a], [, b]) => a.order - b.order)
   .map(([key]) => key as DealStageKey);
 
 interface UseDealPipelineDndOptions {
   deals: DealRow[];
   onStageDrop?: (dealId: string, newStage: string) => Promise<void> | void;
+  /** Dynamic stages from Supabase — merged with DEAL_STAGES constants */
+  customStages?: CrmStageRow[];
 }
 
 export function useDealPipelineDnd({
   deals,
   onStageDrop,
+  customStages,
 }: UseDealPipelineDndOptions) {
   const { toast } = useToast();
   const [localDeals, setLocalDeals] = useState<DealRow[]>(deals);
@@ -35,7 +39,6 @@ export function useDealPipelineDnd({
   const [undoStack, setUndoStack] = useState<DealRow[][]>([]);
   const [isMutating, setIsMutating] = useState(false);
 
-  // Sync localDeals from prop when not mutating (external refresh)
   useEffect(() => {
     if (!isMutating) setLocalDeals(deals);
   }, [deals, isMutating]);
@@ -66,15 +69,40 @@ export function useDealPipelineDnd({
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
+  // Merge default + custom stages, dedup by id, sort by order
+  const orderedStages = useMemo(() => {
+    if (!customStages || customStages.length === 0) return defaultOrderedStages;
+
+    const map = new Map<string, number>();
+    // Defaults
+    for (const [key, cfg] of Object.entries(DEAL_STAGES)) {
+      map.set(key, cfg.order);
+    }
+    // Custom stages (override/extend)
+    for (const s of customStages) {
+      map.set(s.id, s.sort_order);
+    }
+
+    return Array.from(map.entries())
+      .sort(([, a], [, b]) => a - b)
+      .map(([key]) => key);
+  }, [customStages]);
+
   const grouped = useMemo(() => {
     const map: Record<string, DealRow[]> = {};
     for (const stage of orderedStages) map[stage] = [];
     for (const deal of localDeals) {
-      const key = deal.stage as DealStageKey;
-      if (map[key]) map[key].push(deal);
+      const key = deal.stage;
+      if (map[key]) {
+        map[key].push(deal);
+      } else {
+        // Deal in unknown stage — add to first column
+        const first = orderedStages[0];
+        if (first && map[first]) map[first].push(deal);
+      }
     }
     return map;
-  }, [localDeals]);
+  }, [localDeals, orderedStages]);
 
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
@@ -121,15 +149,11 @@ export function useDealPipelineDnd({
       const deal = localDeals.find((d) => d.id === dealId);
       if (!deal || deal.stage === targetStage) return;
 
-      // 1. Push to undo stack (max 20)
       setUndoStack((prev) => [...prev.slice(-19), [...localDeals]]);
-
-      // 2. Optimistic update
       setLocalDeals((prev) =>
         prev.map((d) => (d.id === dealId ? { ...d, stage: targetStage } : d))
       );
 
-      // 3. Persist with rollback on error
       setIsMutating(true);
       try {
         await onStageDrop(dealId, targetStage);

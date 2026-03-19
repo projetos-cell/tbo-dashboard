@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DEAL_STAGES, DEAL_SOURCES } from "@/lib/constants";
+import { useDealOwners, useCrmStages } from "@/features/comercial/hooks/use-commercial";
 
 export interface DealFormValues {
   name: string;
@@ -32,6 +34,120 @@ interface DealFormFieldsProps {
   errors: Partial<Record<keyof DealFormValues, string>>;
   onChange: (field: keyof DealFormValues, value: string) => void;
 }
+
+// ── Owner Combobox ──────────────────────────────────────────────────────────
+
+function OwnerCombobox({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const { data: owners = [] } = useDealOwners();
+  const [isCustom, setIsCustom] = useState(false);
+
+  // If the current value is not in the list, show input mode
+  const showInput = isCustom || (value && !owners.includes(value));
+
+  if (showInput) {
+    return (
+      <div className="flex gap-2">
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Nome do responsável"
+          className="flex-1"
+        />
+        {owners.length > 0 && (
+          <button
+            type="button"
+            onClick={() => { setIsCustom(false); onChange(""); }}
+            className="text-xs text-gray-500 hover:text-gray-700 whitespace-nowrap px-2"
+          >
+            Escolher existente
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <Select value={value || "__empty__"} onValueChange={(v) => {
+      if (v === "__new__") {
+        setIsCustom(true);
+        onChange("");
+      } else if (v === "__empty__") {
+        onChange("");
+      } else {
+        onChange(v);
+      }
+    }}>
+      <SelectTrigger>
+        <SelectValue placeholder="Selecione..." />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="__empty__">Sem responsável</SelectItem>
+        {owners.map((owner) => (
+          <SelectItem key={owner} value={owner}>
+            {owner}
+          </SelectItem>
+        ))}
+        <SelectItem value="__new__" className="text-blue-600 font-medium">
+          + Novo responsável
+        </SelectItem>
+      </SelectContent>
+    </Select>
+  );
+}
+
+// ── Stage Select (dynamic from Supabase + fallback to constants) ────────────
+
+function StageSelect({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const { data: dbStages = [] } = useCrmStages();
+
+  // Merge: DB stages + DEAL_STAGES constants (dedup by id)
+  const allStages = (() => {
+    const map = new Map<string, { label: string; order: number }>();
+
+    // Constants first (fallback)
+    for (const [key, cfg] of Object.entries(DEAL_STAGES)) {
+      map.set(key, { label: cfg.label, order: cfg.order });
+    }
+
+    // DB stages override
+    for (const s of dbStages) {
+      map.set(s.id, { label: s.label, order: s.sort_order });
+    }
+
+    return Array.from(map.entries())
+      .map(([id, { label, order }]) => ({ id, label, order }))
+      .sort((a, b) => a.order - b.order);
+  })();
+
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {allStages.map((stage) => (
+          <SelectItem key={stage.id} value={stage.id}>
+            {stage.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+// ── Main Form ───────────────────────────────────────────────────────────────
 
 export function DealFormFields({ form, errors, onChange }: DealFormFieldsProps) {
   return (
@@ -86,18 +202,7 @@ export function DealFormFields({ form, errors, onChange }: DealFormFieldsProps) 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="stage">Etapa</Label>
-          <Select value={form.stage} onValueChange={(v) => onChange("stage", v)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(DEAL_STAGES).map(([key, cfg]) => (
-                <SelectItem key={key} value={key}>
-                  {cfg.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <StageSelect value={form.stage} onChange={(v) => onChange("stage", v)} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="source">Origem</Label>
@@ -152,11 +257,7 @@ export function DealFormFields({ form, errors, onChange }: DealFormFieldsProps) 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="owner_name">Responsável</Label>
-          <Input
-            id="owner_name"
-            value={form.owner_name}
-            onChange={(e) => onChange("owner_name", e.target.value)}
-          />
+          <OwnerCombobox value={form.owner_name} onChange={(v) => onChange("owner_name", v)} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="priority">Prioridade</Label>

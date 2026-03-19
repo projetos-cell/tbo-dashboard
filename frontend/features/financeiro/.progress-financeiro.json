@@ -1,6 +1,6 @@
 {
-  "current_item": 6,
-  "items_completed": [1, 2, 3, 4, 5],
+  "current_item": 8,
+  "items_completed": [1, 2, 3, 4, 5, 6, 7],
   "quality_scores": {
     "1": {
       "build": true,
@@ -51,6 +51,37 @@
       "loading_skeleton": true,
       "score": 100,
       "notes": "Migration 20260318_create_finance_boletos.sql (finance_boletos com RLS: select/insert/update diretoria+, delete founder-only). TypeScript types lib/supabase/types/boletos.ts. boleto-generator.ts: generateBarcode (BB Convênio 7, FEBRABAN), generateDigitableLine (mod10/mod11), generateNossoNumero, parseCNAB400Retorno, generateRemessaFile. boleto-service.ts: CRUD + markOverdue + applyRetorno. Edge Function process-bank-return/index.ts (Deno). use-boletos.ts: hooks useBoletos, useBoletosSummary, useGenerateBoleto, useCancelBoleto, useMarkRemessaSent, useUploadRetorno, useMarkOverdue. UI: /financeiro/boletos + error.tsx + loading.tsx + BoletosSummaryCards + BoletosTable. Build limpo: /financeiro/boletos rota confirmada."
+    },
+    "6": {
+      "build": true,
+      "types": true,
+      "rls": true,
+      "service": true,
+      "hook": true,
+      "ui": true,
+      "error_boundary": true,
+      "loading_skeleton": true,
+      "score": 100,
+      "notes": "fiscal-engine.ts: TaxConfig + NotaFiscal + cálculo ISS/PIS/COFINS/IR/CSLL por regime tributário. Migration 20260318_create_finance_notas_fiscais.sql com RLS. use-fiscal.ts: hooks useNotasFiscais, useFiscalSummary, useCreateNF, useCancelNF. Componentes: FiscalSummaryCards (4 KPIs), NotasFiscaisTable. /financeiro/fiscal page com RBACGuard(diretoria), error.tsx, loading.tsx. Build limpo."
+    },
+    "7": {
+      "build": true,
+      "types": true,
+      "rls": true,
+      "service": true,
+      "hook": true,
+      "ui": true,
+      "error_boundary": true,
+      "loading_skeleton": true,
+      "score": 100,
+      "notes": "Migration 20260319_create_finance_accounting.sql: finance_chart_of_accounts + finance_dre_snapshots com RLS (diretoria+). finance-accounting.ts: computeAndUpsertDRE (calcula DRE a partir de transações + categorias + folha), buildDRELines (17 linhas DRE estruturado), buildDRESummary, mapeamento categoria→grupo DRE. use-accounting.ts: useDRESnapshot, useDRESummary, useDRETrend, useComputeDRE, useUpdateDREMeta, useChartOfAccounts. Componentes: DRESummaryCards (4 KPIs + delta vs meta), DRETable (tabela DRE completa + % receita), DRETrendChart (AreaChart recharts 12 meses). /financeiro/dre page com navegação mensal, CTA empty state, error.tsx + loading.tsx. Build limpo."
     }
-  }
+  },
+  "pending_items": [
+    {
+      "id": 8,
+      "description": "Dashboard financeiro consolidado — navegação global entre sub-módulos (tabs/nav), API route /api/finance/dre para computação server-side, sidebar links para /dre e demais sub-páginas",
+      "phase": "Dashboard financeiro consolidado"
+    }
+  ]
 }

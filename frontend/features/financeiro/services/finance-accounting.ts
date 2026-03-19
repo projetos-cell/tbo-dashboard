@@ -7,6 +7,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
 import { TABLE_TRANSACTIONS, TABLE_CATEGORIES } from "./finance-types";
+import { getTBOMonthRangeFromString } from "./finance-cycle";
 
 // Use untyped client for new tables (finance_dre_snapshots, finance_chart_of_accounts)
 // not yet in generated Database types.
@@ -107,42 +108,88 @@ export interface DRETrend {
   ebitdaMargin: number;
 }
 
-// ── Category → DRE group mapping ─────────────────────────────────────────────
+// ── OMIE categoria_codigo → DRE group mapping ───────────────────────────────
+// OMIE uses a hierarchical numeric code: first digit = type (1=receita, 2=despesa).
+// Second level = major group. We map the prefix to the DRE bucket.
 
+// Mapping calibrated against TBO's internal budget spreadsheet (Orçamento Agência TBO.xlsx).
+// Codes verified against real transaction data from OMIE.
+const OMIE_CODE_DRE_MAP: Array<[string, DreGroup]> = [
+  // 1.xx = Receitas (Serviços Prestados, BV, Indicações)
+  ["1.", "receita_bruta"],
+  // 2.01 = Despesas de Pessoas (salários equipe — ~R$61k/mês)
+  ["2.01.", "despesa_pessoal"],
+  // 2.02 = Deduções (ISS, PIS, COFINS)
+  ["2.02.", "deducoes"],
+  // 2.03 = Terceirização / Custo de Produção (freelancers 3D, branding, AV, interiores)
+  ["2.03.", "custo_producao"],
+  // 2.04 = Despesas Operacionais (contabilidade, BPO, associações, plataformas, INSS, mentoria)
+  ["2.04.", "despesa_admin"],
+  // 2.05 = Impostos e taxas operacionais
+  ["2.05.", "deducoes"],
+  // 2.06 = Depreciação e amortização
+  ["2.06.", "depreciacao"],
+  // 2.07 = Despesas de Vendas (comissão, CRM RD Station, comercial)
+  ["2.07.", "despesa_marketing"],
+  // 2.08 = Marketing e Comercial (campanhas, agência terceirizada, comissões)
+  ["2.08.", "despesa_marketing"],
+  // 2.09 = Resultado financeiro (juros, tarifas bancárias)
+  ["2.09.", "despesa_financeira"],
+  // 2.10 = Resultado financeiro (empréstimos, consórcio)
+  ["2.10.", "despesa_financeira"],
+  // 2.11+ = Impostos sobre renda (IRPJ, CSLL)
+  ["2.11.", "impostos_renda"],
+];
+
+function inferDreGroupFromOmieCode(code: string): DreGroup | null {
+  for (const [prefix, group] of OMIE_CODE_DRE_MAP) {
+    if (code.startsWith(prefix)) return group;
+  }
+  return null;
+}
+
+// Fallback: category name → DRE group (for transactions without omie_categoria_codigo)
+// Keywords matched against normalized category name (lowercase, underscored).
+// Calibrated against real TBO category names from OMIE:
+//   (-) Custos - Mão de Obra, (-) Pessoal - Pró-Labore, (-) Impostos - Simples Nacional,
+//   (-) Financeira - Tarifas Bancárias, (-) Administrativas - ..., (+) Receitas - ...
 const CATEGORY_DRE_MAP: Record<string, DreGroup> = {
-  // receitas
-  "receita_servico": "receita_bruta",
-  "receita_producao": "receita_bruta",
-  "receita_fee": "receita_bruta",
-  "receita_midia": "receita_bruta",
+  // receitas (todas as (+) Receitas - ...)
+  "receitas": "receita_bruta", "receita": "receita_bruta",
+  "conta_a_receber": "receita_bruta",
   // deduções
-  "impostos": "deducoes",
-  "iss": "deducoes",
-  "pis_cofins": "deducoes",
-  // custo
-  "custo_producao": "custo_producao",
-  "fornecedor": "custo_producao",
-  "freelancer": "custo_producao",
-  // pessoal
-  "folha": "despesa_pessoal",
-  "beneficios": "despesa_pessoal",
-  "encargos": "despesa_pessoal",
+  "impostos": "deducoes", "simples_nacional": "deducoes",
+  "iss": "deducoes", "pis_cofins": "deducoes",
+  // custo de produção (mão de obra = freelancers + fixa alocada em projetos)
+  "mao_de_obra": "custo_producao", "freelancer": "custo_producao",
+  "custos_-_mao": "custo_producao",
+  // pessoal (pró-labore, INSS, benefícios)
+  "pro-labore": "despesa_pessoal", "pro_labore": "despesa_pessoal",
+  "inss": "despesa_pessoal", "irrf": "despesa_pessoal",
+  "pessoal": "despesa_pessoal", "folha": "despesa_pessoal",
+  "beneficios": "despesa_pessoal", "encargos": "despesa_pessoal",
+  // marketing / comercial
+  "comercial": "despesa_marketing", "marketing": "despesa_marketing",
+  "midia": "despesa_marketing",
   // admin
-  "aluguel": "despesa_admin",
-  "administrativo": "despesa_admin",
-  "contabilidade": "despesa_admin",
-  "juridico": "despesa_admin",
-  // tecnologia
-  "software": "despesa_tecnologia",
-  "tecnologia": "despesa_tecnologia",
-  "hosting": "despesa_tecnologia",
+  "administrativas": "despesa_admin", "administrativo": "despesa_admin",
+  "sindicatos": "despesa_admin", "associacoes": "despesa_admin",
+  "contabilidade": "despesa_admin", "bpo": "despesa_admin",
+  "consultorias": "despesa_admin", "mentoria": "despesa_admin",
+  "software": "despesa_admin", "assinaturas": "despesa_admin",
+  "juridico": "despesa_admin", "aluguel": "despesa_admin",
+  "servicos_terceiros": "despesa_admin",
+  "conta_a_pagar": "despesa_admin", "outros_custos": "despesa_admin",
+  "outros": "despesa_admin",
   // financeiro
-  "juros": "despesa_financeira",
-  "tarifas_bancarias": "despesa_financeira",
-  "emprestimo": "despesa_financeira",
+  "tarifas_bancarias": "despesa_financeira", "tarifas": "despesa_financeira",
+  "juros": "despesa_financeira", "emprestimo": "despesa_financeira",
+  "financiamento": "despesa_financeira", "parcelamentos": "despesa_financeira",
+  "consorcios": "despesa_financeira", "investimento": "despesa_financeira",
+  "financeira": "despesa_financeira",
 };
 
-function inferDreGroup(categoryName: string): DreGroup {
+function inferDreGroupFromName(categoryName: string): DreGroup {
   const lower = categoryName.toLowerCase().replace(/\s+/g, "_");
   for (const [key, group] of Object.entries(CATEGORY_DRE_MAP)) {
     if (lower.includes(key)) return group;
@@ -158,6 +205,7 @@ interface RawTransaction {
   paid_amount: number;
   status: string;
   category_id: string | null;
+  omie_categoria_codigo: string | null;
 }
 
 interface RawCategory {
@@ -193,8 +241,14 @@ function buildDREFromTransactions(
     const val = tx.paid_amount || tx.amount || 0;
     if (val <= 0) continue;
 
+    // Priority: 1) OMIE category code  2) category name  3) tx type fallback
+    const omieGroup = tx.omie_categoria_codigo
+      ? inferDreGroupFromOmieCode(tx.omie_categoria_codigo)
+      : null;
     const cat = tx.category_id ? catMap.get(tx.category_id) : null;
-    const group = cat ? inferDreGroup(cat.name) : (tx.type === "receita" ? "receita_bruta" : "outros");
+    const group = omieGroup
+      ?? (cat ? inferDreGroupFromName(cat.name) : null)
+      ?? (tx.type === "receita" ? "receita_bruta" : "outros");
 
     buckets[group] += val;
   }
@@ -292,31 +346,39 @@ export async function computeAndUpsertDRE(
   month: string
 ): Promise<DRESnapshot> {
   const db = supabase as AnySupabase;
-  const [from, to] = (() => {
-    const [y, m] = month.split("-").map(Number);
-    const start = `${y}-${String(m).padStart(2, "0")}-01`;
-    const end = new Date(y, m, 0).toISOString().split("T")[0];
-    return [start, end];
-  })();
+
+  // Resolve tenant_id from the authenticated user's profile (required by RLS + UNIQUE constraint).
+  const { data: { user } } = await db.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { data: profile } = await db
+    .from("profiles")
+    .select("tenant_id")
+    .eq("id", user.id)
+    .single();
+  if (!profile?.tenant_id) throw new Error("Tenant not found");
+  const tenantId: string = profile.tenant_id;
+
+  // TBO financial cycle: month runs from day 15 to day 14 of next month
+  const { from, to } = getTBOMonthRangeFromString(month);
 
   const [txRes, catRes, payrollRes] = await Promise.all([
     db
       .from(TABLE_TRANSACTIONS)
-      .select("type, amount, paid_amount, status, category_id")
+      .select("type, amount, paid_amount, status, category_id, omie_categoria_codigo")
       .gte("date", from)
       .lte("date", to),
     db.from(TABLE_CATEGORIES).select("id, name, type"),
     db
       .from("finance_team_payroll")
-      .select("gross_salary, benefits_total, employer_taxes")
-      .eq("month", month),
+      .select("salary, is_active")
+      .eq("month", month)
+      .eq("is_active", true),
   ]);
 
   const payrollTotal = ((payrollRes.data ?? []) as Array<{
-    gross_salary: number;
-    benefits_total: number;
-    employer_taxes: number;
-  }>).reduce((s, p) => s + (p.gross_salary || 0) + (p.benefits_total || 0) + (p.employer_taxes || 0), 0);
+    salary: number;
+    is_active: boolean;
+  }>).reduce((s, p) => s + (p.salary || 0), 0);
 
   const dreData = buildDREFromTransactions(
     (txRes.data ?? []) as RawTransaction[],
@@ -331,8 +393,21 @@ export async function computeAndUpsertDRE(
     .eq("month", month)
     .maybeSingle();
 
+  // Exclude GENERATED ALWAYS AS STORED columns — Postgres rejects explicit values for them.
+  const {
+    receita_liquida: _rl,
+    lucro_bruto: _lb,
+    total_desp_op: _tdo,
+    ebitda: _eb,
+    ebit: _ebit,
+    lair: _lair,
+    lucro_liquido: _ll,
+    ...inputFields
+  } = dreData;
+
   const upsertPayload = {
-    ...dreData,
+    ...inputFields,
+    tenant_id: tenantId,
     meta_receita: (existing as { meta_receita?: number | null } | null)?.meta_receita ?? null,
     meta_ebitda: (existing as { meta_ebitda?: number | null } | null)?.meta_ebitda ?? null,
     source: "computed",
@@ -398,6 +473,116 @@ export function buildDRELines(snap: DRESnapshot): DRELine[] {
     { label: "(-) IRPJ + CSLL", key: "irpj_csll", value: v(snap.irpj_csll), indent: 1, isSubtotal: false, isTotal: false, isPositive: false, sign: -1 },
     { label: "(=) Lucro Líquido", key: "lucro_liquido", value: v(snap.lucro_liquido), indent: 0, isSubtotal: false, isTotal: true, isPositive: snap.lucro_liquido >= 0, sign: 1 },
   ];
+}
+
+// ── DRE Comparison ────────────────────────────────────────────────────────────
+
+export interface DREComparisonLine {
+  label: string;
+  key: string;
+  current: number;
+  previous: number;
+  /** Absolute difference: current - previous */
+  delta: number;
+  /** Percentage change (null if previous = 0) */
+  deltaPct: number | null;
+  /**
+   * Whether the delta direction is favorable.
+   * true = good, false = bad, null = neutral (computed subtotals)
+   */
+  isPositiveDelta: boolean | null;
+  /** Highlight when |deltaPct| > 10% */
+  isSignificant: boolean;
+}
+
+export interface DREComparison {
+  currentMonth: string;
+  previousMonth: string;
+  lines: DREComparisonLine[];
+  current: DRESnapshot | null;
+  previous: DRESnapshot | null;
+}
+
+/** Numeric DRE keys in waterfall order */
+const DRE_NUMERIC_KEYS: Array<keyof DRESnapshot> = [
+  "receita_bruta", "deducoes", "receita_liquida", "custo_producao",
+  "lucro_bruto", "desp_pessoal", "desp_marketing", "desp_admin",
+  "desp_tecnologia", "desp_outros", "total_desp_op", "ebitda",
+  "depreciacao", "ebit", "result_financeiro", "lair", "irpj_csll", "lucro_liquido",
+];
+
+const DRE_LABEL_MAP: Record<string, string> = {
+  receita_bruta: "Receita Bruta",
+  deducoes: "(-) Deduções",
+  receita_liquida: "(=) Receita Líquida",
+  custo_producao: "(-) Custo de Produção",
+  lucro_bruto: "(=) Lucro Bruto",
+  desp_pessoal: "(-) Despesas com Pessoal",
+  desp_marketing: "(-) Despesas de Marketing",
+  desp_admin: "(-) Despesas Administrativas",
+  desp_tecnologia: "(-) Despesas com Tecnologia",
+  desp_outros: "(-) Outras Despesas",
+  total_desp_op: "(=) Total Despesas Op.",
+  ebitda: "(=) EBITDA",
+  depreciacao: "(-) Depreciação",
+  ebit: "(=) EBIT",
+  result_financeiro: "Resultado Financeiro",
+  lair: "(=) LAIR",
+  irpj_csll: "(-) IRPJ + CSLL",
+  lucro_liquido: "(=) Lucro Líquido",
+};
+
+// Lines where a positive delta is favorable (revenue/profit)
+const REVENUE_KEYS = new Set([
+  "receita_bruta", "receita_liquida", "lucro_bruto", "ebitda",
+  "ebit", "result_financeiro", "lair", "lucro_liquido",
+]);
+// Lines where a negative delta is favorable (expenses — lower is better)
+const EXPENSE_KEYS = new Set([
+  "deducoes", "custo_producao", "desp_pessoal", "desp_marketing",
+  "desp_admin", "desp_tecnologia", "desp_outros", "total_desp_op",
+  "depreciacao", "irpj_csll",
+]);
+
+/**
+ * Compare two DRE snapshots, computing delta and % variation per line.
+ * Variations > 10% in absolute value are flagged as `isSignificant`.
+ */
+export async function getDREComparison(
+  supabase: AccountingSupabase,
+  currentMonth: string,
+  previousMonth: string
+): Promise<DREComparison> {
+  const [current, previous] = await Promise.all([
+    getDRESnapshot(supabase, currentMonth),
+    getDRESnapshot(supabase, previousMonth),
+  ]);
+
+  const lines: DREComparisonLine[] = DRE_NUMERIC_KEYS.map((key) => {
+    const cur = typeof current?.[key] === "number" ? (current[key] as number) : 0;
+    const prev = typeof previous?.[key] === "number" ? (previous[key] as number) : 0;
+    const delta = cur - prev;
+    const deltaPct = prev !== 0 ? (delta / Math.abs(prev)) * 100 : null;
+
+    let isPositiveDelta: boolean | null = null;
+    if (delta !== 0) {
+      if (REVENUE_KEYS.has(key)) isPositiveDelta = delta > 0;
+      else if (EXPENSE_KEYS.has(key)) isPositiveDelta = delta < 0;
+    }
+
+    return {
+      label: DRE_LABEL_MAP[key] ?? key,
+      key,
+      current: cur,
+      previous: prev,
+      delta,
+      deltaPct,
+      isPositiveDelta,
+      isSignificant: deltaPct !== null && Math.abs(deltaPct) > 10,
+    };
+  });
+
+  return { currentMonth, previousMonth, lines, current, previous };
 }
 
 export function buildDRESummary(snap: DRESnapshot): DRESummary {

@@ -4,8 +4,6 @@ import { RBACGuard } from "@/components/rbac-guard";
 import { useFounderDashboard } from "@/features/founder-dashboard/hooks/use-founder-dashboard";
 import { PeriodFilter } from "@/features/founder-dashboard/components/period-filter";
 import { usePersistedPeriod } from "@/hooks/use-persisted-period";
-import { FounderAlerts } from "@/features/founder-dashboard/components/founder-alerts";
-import { ForecastPanel } from "@/features/founder-dashboard/components/forecast-panel";
 import { useLatestCashBalance } from "@/features/financeiro/hooks/use-cash-entries";
 
 import { FounderMetricsSection } from "@/features/financeiro/components/sections/founder-metrics-section";
@@ -190,22 +188,6 @@ function FinanceiroContent() {
             </div>
             <IconArrowRight className="size-4 text-muted-foreground group-hover:text-violet-500 group-hover:translate-x-0.5 transition-all" />
           </Link>
-        </div>
-      </div>
-
-      {/* ── Alertas ──────────────────────────────────────────────────────── */}
-      <div>
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-          Alertas
-        </h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <FounderAlerts alerts={d?.alerts ?? []} isLoading={isLoading} />
-          <ForecastPanel
-            total={d?.forecast90d.total ?? 0}
-            proposalsTotal={d?.forecastProposalsTotal}
-            months={d?.forecast90d.months ?? []}
-            isLoading={isLoading}
-          />
         </div>
       </div>
 

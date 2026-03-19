@@ -1,5 +1,23 @@
 import { z } from "zod";
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Strip formatting from CPF/CNPJ and validate length */
+function isValidCpfCnpj(v: string): boolean {
+  const digits = v.replace(/\D/g, "");
+  return digits.length === 11 || digits.length === 14;
+}
+
+/** Normalize monetary value to 2 decimal places */
+export function roundMoney(v: number): number {
+  return Math.round(v * 100) / 100;
+}
+
+/** Sanitize text input: trim whitespace */
+export function sanitizeText(v: string): string {
+  return v.trim();
+}
+
 // ── Enums ────────────────────────────────────────────────────────────────────
 
 export const transactionTypeEnum = z.enum(["receita", "despesa", "transferencia"]);
@@ -29,6 +47,23 @@ export const dateFieldEnum = z.enum(["date", "paid_date"]);
 const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Data deve estar no formato YYYY-MM-DD");
+
+/** ISO date string validated against 2-year future cap */
+const isoDateCapped = isoDate.refine(
+  (d) => {
+    const twoYearsAhead = new Date();
+    twoYearsAhead.setFullYear(twoYearsAhead.getFullYear() + 2);
+    return new Date(d) <= twoYearsAhead;
+  },
+  "Data não pode ser mais de 2 anos no futuro"
+);
+
+/** CPF (11 digits) or CNPJ (14 digits), with or without formatting */
+const cpfOrCnpj = z
+  .string()
+  .refine(isValidCpfCnpj, "CPF deve ter 11 dígitos ou CNPJ 14 dígitos")
+  .nullable()
+  .optional();
 
 /** UUID v4 */
 const uuid = z.string().uuid();
@@ -126,3 +161,93 @@ export const overdueTypeSchema = overdueTypeEnum.default("all");
 // ── Days param (cash flow projection) ───────────────────────────────────────
 
 export const daysParamSchema = z.coerce.number().int().min(1).max(365).default(30);
+
+// ── Recurring rule input ────────────────────────────────────────────────────
+
+const buEnum = z.enum(["Branding", "Digital 3D", "Marketing", "Audiovisual", "Interiores"]);
+
+export const recurringRuleSchema = z
+  .object({
+    type: categoryTypeEnum,
+    description: z.string().min(3, "Descrição deve ter ao menos 3 caracteres").max(300),
+    amount: z.number().positive("Valor deve ser positivo"),
+    category_id: uuid.nullable().optional(),
+    cost_center_id: uuid.nullable().optional(),
+    counterpart: z.string().max(200).nullable().optional(),
+    counterpart_doc: cpfOrCnpj,
+    payment_method: z.string().max(100).nullable().optional(),
+    bank_account: z.string().max(100).nullable().optional(),
+    business_unit: buEnum.nullable().optional(),
+    tags: z.array(z.string()).optional(),
+    day_of_month: z.number().int().min(1).max(28),
+    start_month: monthString,
+    end_month: monthString.nullable().optional(),
+    notes: z.string().max(1000).nullable().optional(),
+  })
+  .refine(
+    (d) => !d.end_month || d.end_month >= d.start_month,
+    { message: "Mês final não pode ser anterior ao mês inicial", path: ["end_month"] }
+  );
+
+export type RecurringRuleInput = z.infer<typeof recurringRuleSchema>;
+
+// ── Transaction CRUD input ─────────────────────────────────────────────────
+
+const PAID_STATUSES = ["pago", "liquidado"] as const;
+
+/** Base object schema (no refinements) — used for .partial() on update */
+const transactionBaseSchema = z.object({
+  type: transactionTypeEnum,
+  status: transactionStatusEnum.default("previsto"),
+  description: z.string().min(3, "Descrição deve ter ao menos 3 caracteres").max(500),
+  amount: z.number().positive("Valor deve ser positivo"),
+  paid_amount: z.number().nonnegative().default(0),
+  date: isoDate,
+  due_date: isoDate.nullable().optional(),
+  paid_date: isoDate.nullable().optional(),
+  category_id: uuid.nullable().optional(),
+  cost_center_id: uuid.nullable().optional(),
+  project_id: uuid.nullable().optional(),
+  counterpart: z.string().max(200).nullable().optional(),
+  counterpart_doc: cpfOrCnpj,
+  payment_method: z.string().max(100).nullable().optional(),
+  bank_account: z.string().max(100).nullable().optional(),
+  business_unit: buEnum.nullable().optional(),
+  tags: z.array(z.string()).optional(),
+  notes: z.string().max(2000).nullable().optional(),
+  contract_id: uuid.nullable().optional(),
+});
+
+export const createTransactionSchema = transactionBaseSchema
+  .refine(
+    (d) => {
+      if (PAID_STATUSES.includes(d.status as (typeof PAID_STATUSES)[number])) {
+        return !!d.paid_date;
+      }
+      return true;
+    },
+    { message: "Data de pagamento obrigatória para status pago/liquidado", path: ["paid_date"] }
+  )
+  .refine(
+    (d) => {
+      if (PAID_STATUSES.includes(d.status as (typeof PAID_STATUSES)[number])) {
+        return (d.paid_amount ?? 0) > 0;
+      }
+      return true;
+    },
+    { message: "Valor pago deve ser maior que zero para status pago/liquidado", path: ["paid_amount"] }
+  )
+  .refine(
+    (d) => {
+      const twoYearsAhead = new Date();
+      twoYearsAhead.setFullYear(twoYearsAhead.getFullYear() + 2);
+      return new Date(d.date) <= twoYearsAhead;
+    },
+    { message: "Data não pode ser mais de 2 anos no futuro", path: ["date"] }
+  );
+
+export type CreateTransactionInput = z.infer<typeof createTransactionSchema>;
+
+export const updateTransactionSchema = transactionBaseSchema.partial();
+
+export type UpdateTransactionInput = z.infer<typeof updateTransactionSchema>;

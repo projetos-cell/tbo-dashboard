@@ -9,3 +9,6 @@ export * from "./finance-payroll";
 export * from "./cash-entries";
 export * from "./operational-indicators";
 export * from "./omie-sync";
+export * from "./contract-revenue";
+export * from "./auto-categorize";
+export * from "./finance-cycle";

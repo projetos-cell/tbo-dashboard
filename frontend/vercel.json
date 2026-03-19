@@ -16,6 +16,14 @@
     {
       "path": "/api/finance/sync-extrato",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/finance/generate-recurring",
+      "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/finance/generate-contract-revenue",
+      "schedule": "0 4 * * *"
     }
   ]
 }

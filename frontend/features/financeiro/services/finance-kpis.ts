@@ -8,6 +8,7 @@ import {
   type ClientConcentration,
   type RevenueConcentrationData,
 } from "./finance-types";
+import { getTBOMonthRange } from "./finance-cycle";
 
 // ── Founder KPI aggregations ─────────────────────────────────────────────────
 
@@ -15,7 +16,7 @@ export async function getFounderKPIs(
   supabase: FinanceSupabase
 ): Promise<FounderKPIs> {
   const now = new Date();
-  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  const { from: monthStart } = getTBOMonthRange(now);
   const today = now.toISOString().split("T")[0];
   const in30 = new Date(now);
   in30.setDate(in30.getDate() + 30);
@@ -215,21 +216,27 @@ export async function getRevenueConcentrationByClient(
   dateFrom?: string,
   dateTo?: string
 ): Promise<RevenueConcentrationData> {
-  let query = supabase
+  // Fetch paid_date + date so we can apply the same fallback logic used by
+  // the founder-dashboard service: effective date = paid_date ?? date.
+  // This keeps the concentration chart in sync with the other tables on the
+  // performance page (unit revenue, top projects, client margins).
+  const query = supabase
     .from("finance_transactions")
-    .select("counterpart, paid_amount, amount")
+    .select("counterpart, paid_amount, amount, paid_date, date")
     .eq("type", "receita")
     .in("status", ["pago", "parcial", "liquidado"])
     .not("counterpart", "is", null);
-
-  if (dateFrom) query = query.gte("date", dateFrom);
-  if (dateTo) query = query.lte("date", dateTo);
 
   const { data, error } = await query;
   if (error) throw new Error(error.message);
 
   const clientMap = new Map<string, { revenue: number; count: number }>();
   for (const tx of data ?? []) {
+    // Use paid_date with fallback to date — same logic as founder-dashboard
+    const effectiveDate = (tx.paid_date as string | null) ?? (tx.date as string | null);
+    if (dateFrom && (!effectiveDate || effectiveDate < dateFrom)) continue;
+    if (dateTo && (!effectiveDate || effectiveDate > dateTo)) continue;
+
     const name: string = (tx.counterpart as string) || "Sem identificação";
     const val: number = (tx.paid_amount as number) ?? (tx.amount as number) ?? 0;
     const cur = clientMap.get(name) ?? { revenue: 0, count: 0 };

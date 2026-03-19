@@ -1,3 +1,6 @@
+// OMIE: READ-ONLY — Finança Azul manages OMIE data. This integration ONLY reads from OMIE.
+// All writes go to Supabase local tables. NEVER call POST/PUT/DELETE on OMIE endpoints.
+
 import { createClient } from "@/lib/supabase/server";
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -8,6 +11,54 @@ export const BATCH_SIZE = 500;
 export const MAX_RETRIES = 5;
 export const INTER_PAGE_DELAY_MS = 2000;
 export const INTER_PHASE_DELAY_MS = 4000;
+
+// ── Circuit Breaker ──────────────────────────────────────────────────────────
+
+/** Circuit breaker state — in-memory per Edge Function instance */
+interface CircuitBreakerState {
+  failures: number;
+  openedAt: number | null;
+}
+
+const _cb: CircuitBreakerState = { failures: 0, openedAt: null };
+const CB_THRESHOLD = 3;
+const CB_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+
+export function isCircuitOpen(): boolean {
+  if (!_cb.openedAt) return false;
+  if (Date.now() - _cb.openedAt > CB_COOLDOWN_MS) {
+    // Auto-reset after cooldown
+    _cb.failures = 0;
+    _cb.openedAt = null;
+    return false;
+  }
+  return true;
+}
+
+export function getCircuitState(): { open: boolean; failures: number; openedAt: number | null; remainingMs: number | null } {
+  const open = isCircuitOpen();
+  const remainingMs = open && _cb.openedAt
+    ? Math.max(0, CB_COOLDOWN_MS - (Date.now() - _cb.openedAt))
+    : null;
+  return { open, failures: _cb.failures, openedAt: _cb.openedAt, remainingMs };
+}
+
+function recordCircuitSuccess(): void {
+  _cb.failures = 0;
+  _cb.openedAt = null;
+}
+
+function recordCircuitFailure(): void {
+  _cb.failures++;
+  if (_cb.failures >= CB_THRESHOLD && !_cb.openedAt) {
+    _cb.openedAt = Date.now();
+    // Note: we can't call log here (defined later) — caller logs the open event
+  }
+}
+
+export function wasCircuitJustOpened(prevOpen: boolean): boolean {
+  return !prevOpen && isCircuitOpen();
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -92,25 +143,51 @@ import { createSyncLogger } from "./_logger";
 
 const log = createSyncLogger("omie-api");
 
+// OMIE: READ-ONLY — this function only sends read requests (ListarXxx calls)
 export async function omieCall(
   creds: OmieCredentials,
   endpoint: string,
   call: string,
   params: Record<string, unknown>[]
 ): Promise<Record<string, unknown>> {
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    const res = await fetch(`${OMIE_BASE_URL}/${endpoint}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        call,
-        app_key: creds.app_key,
-        app_secret: creds.app_secret,
-        param: params,
-      }),
-    });
+  // Circuit breaker guard
+  if (isCircuitOpen()) {
+    const state = getCircuitState();
+    const remainSec = state.remainingMs ? Math.ceil(state.remainingMs / 1000) : "?";
+    throw new Error(`Omie circuit breaker OPEN — aguardar ${remainSec}s antes de tentar novamente`);
+  }
 
-    const text = await res.text().catch(() => "");
+  // Exponential backoff delays (ms): 1s, 3s, 9s for transient errors
+  const BACKOFF_MS = [1000, 3000, 9000];
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    let res: Response;
+    let text: string;
+
+    try {
+      res = await fetch(`${OMIE_BASE_URL}/${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          call,
+          app_key: creds.app_key,
+          app_secret: creds.app_secret,
+          param: params,
+        }),
+        signal: AbortSignal.timeout(30_000), // 30s per request
+      });
+      text = await res.text().catch(() => "");
+    } catch (networkErr) {
+      // Network error — retry with exponential backoff
+      if (attempt < MAX_RETRIES) {
+        const waitMs = BACKOFF_MS[attempt] ?? 9000;
+        log.warn("Network error, retrying", { call, attempt: attempt + 1, waitMs, error: String(networkErr) });
+        await sleep(waitMs);
+        continue;
+      }
+      recordCircuitFailure();
+      throw new Error(`Omie network error for ${call}: ${String(networkErr)}`);
+    }
 
     if (
       !res.ok &&
@@ -124,6 +201,14 @@ export async function omieCall(
     }
 
     if (!res.ok) {
+      // Transient server error (5xx) — retry with exponential backoff
+      if (res.status >= 500 && attempt < MAX_RETRIES) {
+        const waitMs = BACKOFF_MS[attempt] ?? 9000;
+        log.warn("Server error, retrying", { call, status: res.status, attempt: attempt + 1, waitMs });
+        await sleep(waitMs);
+        continue;
+      }
+      recordCircuitFailure();
       throw new Error(`Omie HTTP ${res.status}: ${text.slice(0, 200)}`);
     }
 
@@ -131,6 +216,7 @@ export async function omieCall(
     try {
       data = JSON.parse(text);
     } catch {
+      recordCircuitFailure();
       throw new Error(`Omie invalid JSON: ${text.slice(0, 200)}`);
     }
 
@@ -142,12 +228,16 @@ export async function omieCall(
         await sleep(waitSec * 1000);
         continue;
       }
+      recordCircuitFailure();
       throw new Error(`Omie error: ${fault}`);
     }
 
+    // Success — reset circuit breaker
+    recordCircuitSuccess();
     return data;
   }
 
+  recordCircuitFailure();
   throw new Error(`Omie: max retries exceeded for ${call}`);
 }
 

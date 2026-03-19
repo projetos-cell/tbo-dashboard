@@ -13,6 +13,7 @@ export const TABLE_COST_CENTERS = "finance_cost_centers";
 export const TABLE_SNAPSHOTS = "finance_snapshots_daily";
 export const TABLE_CASH_ENTRIES = "fin_cash_entries";
 export const TABLE_BANK_STATEMENTS = "finance_bank_statements";
+export const TABLE_RECURRING_RULES = "finance_recurring_rules";
 
 // ── Core types ───────────────────────────────────────────────────────────────
 
@@ -41,6 +42,8 @@ export interface FinanceTransaction {
   business_unit: string | null;
   responsible_id: string | null;
   omie_raw: Record<string, unknown> | null;
+  recurring_rule_id: string | null;
+  contract_id: string | null;
   created_by: string | null;
   updated_by: string | null;
   created_at: string;
@@ -293,4 +296,47 @@ export interface BankStatementFilters {
   type?: "credit" | "debit";
   page?: number;
   pageSize?: number;
+}
+
+// ── Recurring rule types ────────────────────────────────────────────────────
+
+export type RecurringFrequency = "monthly";
+
+export interface RecurringRule {
+  id: string;
+  tenant_id: string;
+  type: "receita" | "despesa";
+  description: string;
+  amount: number;
+  category_id: string | null;
+  cost_center_id: string | null;
+  counterpart: string | null;
+  counterpart_doc: string | null;
+  payment_method: string | null;
+  bank_account: string | null;
+  business_unit: string | null;
+  tags: string[];
+  frequency: RecurringFrequency;
+  day_of_month: number;
+  start_month: string;
+  end_month: string | null;
+  is_active: boolean;
+  notes: string | null;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RecurringRuleSummary {
+  rules: RecurringRule[];
+  activeCount: number;
+  totalDespesaMensal: number;
+  totalReceitaMensal: number;
+}
+
+export interface GenerateResult {
+  created: number;
+  skipped: number;
+  errors: string[];
 }

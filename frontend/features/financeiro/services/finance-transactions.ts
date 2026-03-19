@@ -13,6 +13,32 @@ import {
   type FinanceFilters,
   type FinanceSyncResult,
 } from "./finance-types";
+import type { CreateTransactionInput, UpdateTransactionInput } from "./finance-schemas";
+import { roundMoney, sanitizeText } from "./finance-schemas";
+
+// ── Input sanitization ────────────────────────────────────────────────────────
+
+function sanitizeCreateInput(input: CreateTransactionInput): CreateTransactionInput {
+  return {
+    ...input,
+    description: sanitizeText(input.description),
+    amount: roundMoney(input.amount),
+    paid_amount: roundMoney(input.paid_amount ?? 0),
+    counterpart: input.counterpart ? sanitizeText(input.counterpart) : input.counterpart,
+    notes: input.notes ? sanitizeText(input.notes) : input.notes,
+  };
+}
+
+function sanitizeUpdateInput(input: UpdateTransactionInput): UpdateTransactionInput {
+  return {
+    ...input,
+    description: input.description !== undefined ? sanitizeText(input.description) : undefined,
+    amount: input.amount !== undefined ? roundMoney(input.amount) : undefined,
+    paid_amount: input.paid_amount !== undefined ? roundMoney(input.paid_amount) : undefined,
+    counterpart: input.counterpart ? sanitizeText(input.counterpart) : input.counterpart,
+    notes: input.notes ? sanitizeText(input.notes) : input.notes,
+  };
+}
 
 // ── Transactions (paginated) ─────────────────────────────────────────────────
 
@@ -69,7 +95,7 @@ export async function getFinanceTransactions(
   if (error) throw error;
 
   return {
-    data: (data ?? []) as FinanceTransaction[],
+    data: (data ?? []) as unknown as FinanceTransaction[],
     count: count ?? 0,
   };
 }
@@ -254,7 +280,7 @@ export async function getFinanceChartData(
     let query = supabase
       .from(TABLE_TRANSACTIONS)
       .select(
-        "id, type, status, amount, paid_amount, date, due_date, category_id, cost_center_id, business_unit"
+        "id, type, status, description, counterpart, amount, paid_amount, date, due_date, category_id, cost_center_id, business_unit"
       )
       .order("date", { ascending: true })
       .range(from, from + CHART_PAGE_SIZE - 1);
@@ -273,7 +299,7 @@ export async function getFinanceChartData(
     const { data, error } = await query;
     if (error) throw error;
 
-    const rows = (data ?? []) as FinanceTransaction[];
+    const rows = (data ?? []) as unknown as FinanceTransaction[];
     allData.push(...rows);
 
     hasMore = rows.length === CHART_PAGE_SIZE;
@@ -281,6 +307,117 @@ export async function getFinanceChartData(
   }
 
   return allData;
+}
+
+// ── Create Transaction ──────────────────────────────────────────────────────
+
+export async function createFinanceTransaction(
+  supabase: FinanceSupabase,
+  tenantId: string,
+  userId: string,
+  input: CreateTransactionInput
+): Promise<FinanceTransaction> {
+  const sanitized = sanitizeCreateInput(input);
+  const { data, error } = await supabase
+    .from(TABLE_TRANSACTIONS)
+    .insert({
+      ...sanitized,
+      tenant_id: tenantId,
+      created_by: userId,
+      updated_by: userId,
+    } as never)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data as unknown as FinanceTransaction;
+}
+
+// ── Update Transaction ──────────────────────────────────────────────────────
+
+const AUDIT_FIELDS = ["status", "amount", "paid_amount", "paid_date", "category_id", "cost_center_id"] as const;
+
+export async function updateFinanceTransaction(
+  supabase: FinanceSupabase,
+  id: string,
+  userId: string,
+  updates: UpdateTransactionInput
+): Promise<FinanceTransaction> {
+  const updates_ = sanitizeUpdateInput(updates);
+  // Fetch current values for audit trail
+  const { data: current, error: fetchErr } = await supabase
+    .from(TABLE_TRANSACTIONS)
+    .select("tenant_id, status, amount, paid_amount, paid_date, category_id, cost_center_id")
+    .eq("id", id)
+    .single();
+
+  if (fetchErr) throw fetchErr;
+  const prev = current as Record<string, unknown>;
+
+  const { data, error } = await supabase
+    .from(TABLE_TRANSACTIONS)
+    .update({
+      ...updates_,
+      updated_by: userId,
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+
+  // Log audit trail for changed fields
+  const auditRows = AUDIT_FIELDS
+    .filter((f) => f in updates_ && String(updates_[f as keyof typeof updates_] ?? "") !== String(prev[f] ?? ""))
+    .map((f) => ({
+      tenant_id: prev.tenant_id,
+      transaction_id: id,
+      field_name: f,
+      old_value: prev[f] != null ? String(prev[f]) : null,
+      new_value: updates_[f as keyof typeof updates_] != null ? String(updates_[f as keyof typeof updates_]) : null,
+      changed_by: userId,
+      source: "manual",
+    }));
+
+  if (auditRows.length > 0) {
+    // Table not yet in generated Database types — cast to untyped client
+    await (supabase as unknown as { from: (t: string) => { insert: (d: unknown[]) => Promise<unknown> } })
+      .from("finance_transaction_audit")
+      .insert(auditRows);
+  }
+
+  return data as unknown as FinanceTransaction;
+}
+
+// ── Delete Transaction ──────────────────────────────────────────────────────
+
+export async function deleteFinanceTransaction(
+  supabase: FinanceSupabase,
+  id: string
+): Promise<void> {
+  const { error } = await supabase
+    .from(TABLE_TRANSACTIONS)
+    .delete()
+    .eq("id", id);
+
+  if (error) throw error;
+}
+
+// ── Get single transaction ──────────────────────────────────────────────────
+
+export async function getFinanceTransactionById(
+  supabase: FinanceSupabase,
+  id: string
+): Promise<FinanceTransaction> {
+  const { data, error } = await supabase
+    .from(TABLE_TRANSACTIONS)
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) throw error;
+  return data as unknown as FinanceTransaction;
 }
 
 // ── Client-side API wrappers ─────────────────────────────────────────────────

@@ -567,6 +567,8 @@ export const FINANCEIRO_NAV_ITEMS: readonly SubNavItem[] = [
   { href: "/financeiro/boletos", label: "Boletos", icon: "receipt" },
   { href: "/financeiro/fiscal", label: "Fiscal", icon: "file-check-2" },
   { href: "/financeiro/dre", label: "DRE", icon: "table-2" },
+  { href: "/financeiro/transacoes", label: "Transações", icon: "list" },
+  { href: "/financeiro/recorrentes", label: "Recorrentes", icon: "repeat" },
 ] as const;
 
 export const COMERCIAL_NAV_ITEMS: readonly SubNavItem[] = [

@@ -670,9 +670,10 @@ async function phaseReconciliation(
     document_number: string | null;
   }>;
 
-  // Find "previsto" transactions with matching amounts in bank statements
+  // Find unpaid transactions (previsto, provisionado, parcial) with matching amounts in bank statements
+  const RECONCILABLE_STATUSES = ["previsto", "provisionado", "parcial"];
   const pendingTx = transactions.filter(
-    (tx) => tx.status === "previsto" && tx.date && new Date(tx.date) >= thirtyDaysAgo
+    (tx) => RECONCILABLE_STATUSES.includes(tx.status) && tx.date && new Date(tx.date) >= thirtyDaysAgo
   );
 
   for (const tx of pendingTx) {
@@ -709,6 +710,7 @@ async function phaseReconciliation(
           status: "pago",
           paid_amount: txAmount,
           paid_date: match.date,
+          reconciled_source: "auto",
           dq_flags: newFlags,
           dq_last_checked_at: new Date().toISOString(),
         } as never)

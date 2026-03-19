@@ -18,6 +18,11 @@ import {
 interface ConciliacaoSummaryCardsProps {
   summary: ReconciliationSummary | undefined;
   isLoading: boolean;
+  /**
+   * Saldo bancário real vindo de finance_bank_accounts.balance (import OFX).
+   * Quando null, fallback para summary.balance (soma de transações).
+   */
+  actualBankBalance?: number | null;
   /** Saldo contábil (soma dos lançamentos internos não cancelados) */
   ledgerBalance?: number;
 }
@@ -60,9 +65,12 @@ function KpiCard({ label, value, sub, icon, valueClass, isLoading }: KpiCardProp
 export function ConciliacaoSummaryCards({
   summary,
   isLoading,
+  actualBankBalance,
   ledgerBalance = 0,
 }: ConciliacaoSummaryCardsProps) {
-  const bankBalance = summary?.balance ?? 0;
+  // Prefer real balance from finance_bank_accounts; fallback to computed sum
+  const bankBalance = actualBankBalance ?? summary?.balance ?? 0;
+  const bankBalanceSource = actualBankBalance != null ? "Atualizado via extrato OFX" : "Calculado por transações";
   const diff = bankBalance - ledgerBalance;
   const pct = summary?.reconciledPct ?? 0;
 
@@ -80,7 +88,9 @@ export function ConciliacaoSummaryCards({
       <KpiCard
         label="Saldo Bancário"
         value={fmt(bankBalance)}
-        sub={summary ? `${summary.reconciled} conciliados de ${summary.total}` : undefined}
+        sub={summary
+          ? `${summary.reconciled} conciliados de ${summary.total} · ${bankBalanceSource}`
+          : bankBalanceSource}
         icon={<IconBuildingBank className="size-3.5" />}
         isLoading={isLoading}
       />

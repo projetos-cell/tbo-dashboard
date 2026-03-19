@@ -24,6 +24,43 @@ import { createSyncLogger } from "./_logger";
 
 const log = createSyncLogger("sync-transactions");
 
+// ── Helper: filter out records already reconciled natively ───────────────
+
+async function filterReconciledRecords(
+  supabase: SupabaseClient,
+  tenantId: string,
+  records: Record<string, unknown>[]
+): Promise<Record<string, unknown>[]> {
+  const omieIds = records
+    .map((r) => r.omie_id as string)
+    .filter(Boolean);
+
+  if (omieIds.length === 0) return records;
+
+  // Fetch omie_ids that are already reconciled via manual or auto (not OMIE)
+  const { data } = await supabase
+    .from("finance_transactions")
+    .select("omie_id")
+    .eq("tenant_id", tenantId)
+    .in("omie_id", omieIds)
+    .in("reconciled_source", ["manual", "auto"]);
+
+  if (!data?.length) return records;
+
+  const protectedIds = new Set(
+    (data as unknown as Array<{ omie_id: string }>).map((r) => r.omie_id)
+  );
+
+  const filtered = records.filter((r) => !protectedIds.has(r.omie_id as string));
+  const skipped = records.length - filtered.length;
+
+  if (skipped > 0) {
+    log.info("Skipped natively reconciled records", { skipped, protectedIds: protectedIds.size });
+  }
+
+  return filtered;
+}
+
 // ── Sync contas a pagar → finance_transactions ──────────────────────────────
 
 export async function syncContasPagar(
@@ -157,7 +194,9 @@ export async function syncContasPagar(
     errors.push(`Contas a pagar: ${err instanceof Error ? err.message : String(err)}`);
   }
 
-  const result = await batchUpsert(supabase, "finance_transactions", allRecords, "tenant_id,omie_id");
+  // Skip records already reconciled natively (manual/auto) to prevent OMIE overwrite
+  const safeRecords = await filterReconciledRecords(supabase, tenantId, allRecords);
+  const result = await batchUpsert(supabase, "finance_transactions", safeRecords, "tenant_id,omie_id");
   errors.push(...result.errors);
 
   log.info("Contas a Pagar done", { upserted: result.inserted, errors: errors.length });
@@ -311,7 +350,9 @@ export async function syncContasReceber(
     errors.push(`Contas a receber: ${err instanceof Error ? err.message : String(err)}`);
   }
 
-  const result = await batchUpsert(supabase, "finance_transactions", allRecords, "tenant_id,omie_id");
+  // Skip records already reconciled natively (manual/auto) to prevent OMIE overwrite
+  const safeRecords = await filterReconciledRecords(supabase, tenantId, allRecords);
+  const result = await batchUpsert(supabase, "finance_transactions", safeRecords, "tenant_id,omie_id");
   errors.push(...result.errors);
 
   log.info("Contas a Receber done", { upserted: result.inserted, errors: errors.length });

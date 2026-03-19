@@ -10,12 +10,14 @@ import {
 
 export const FOLHA_KEYWORDS = [
   "folha", "salário", "salario", "benefício", "beneficio", "encargo",
-  "clt", "pj", "prolabore", "pró-labore", "inss", "fgts", "férias", "ferias", "13",
+  "clt", "pj", "prolabore", "pró-labore", "pro-labore", "inss", "fgts",
+  "férias", "ferias", "13", "mão de obra", "mao de obra",
 ];
 
 export const FOLHA_VENDORS = [
-  "ruy", "arqfreelas", "nathalia", "rafaela", "lucca", "marco",
-  "nelson", "celso", "mariane", "tiago", "eduarda", "carol lima",
+  "ruy", "arqfreelas", "nathalia", "rafaela", "lucca", "marco andolfato",
+  "nelson", "celso", "mariane", "tiago", "eduarda", "bruna",
+  "m&n performance", "gustavo bientinez",
 ];
 
 // ── Payroll Breakdown (Auto-detect from transactions) ────────────────────────
@@ -59,8 +61,9 @@ export async function getPayrollBreakdown(
     const counterpart = rawCounterpart.toLowerCase();
     const resolvedName = rawCounterpart || String((row as Record<string, unknown>).description ?? "");
 
+    const description = String((row as Record<string, unknown>).description ?? "").toLowerCase();
     const isFolha =
-      FOLHA_KEYWORDS.some((kw) => ccName.includes(kw)) ||
+      FOLHA_KEYWORDS.some((kw) => ccName.includes(kw) || description.includes(kw)) ||
       FOLHA_VENDORS.some((name) => counterpart.includes(name));
 
     if (isFolha) {

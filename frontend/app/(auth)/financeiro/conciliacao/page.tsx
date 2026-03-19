@@ -1,6 +1,6 @@
 "use client";
 
-// ── Conciliação Bancária — página principal ────────────────────────────────────
+// ── Conciliação Bancária — página principal ───────────────────────────────────
 // RBACGuard: diretoria+. Split-view auto/sugestão/sem-match com ações inline.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -17,6 +17,7 @@ import { ConciliacaoSummaryCards } from "@/features/financeiro/components/concil
 import { ConciliacaoFilters, DEFAULT_FILTERS } from "@/features/financeiro/components/conciliacao-filters";
 import { ConciliacaoSplitView } from "@/features/financeiro/components/conciliacao-split-view";
 import type { ConciliacaoFiltersState } from "@/features/financeiro/components/conciliacao-filters";
+import { ConciliacaoUpload } from "@/features/financeiro/components/conciliacao-upload";
 import { Button } from "@/components/ui/button";
 import { IconRefresh } from "@tabler/icons-react";
 
@@ -43,6 +44,14 @@ function ConciliacaoContent() {
       ),
     enabled: !!tenantId,
   });
+
+  // ── Saldo bancário real (da conta, atualizado via upload OFX) ───────────────
+  // finance_bank_accounts.balance é atualizado no import de extrato OFX.
+  const actualBankBalance = filters.bankAccountId
+    ? (bankAccounts.find((a) => a.id === filters.bankAccountId)?.balance ?? null)
+    : bankAccounts.length > 0
+    ? bankAccounts.reduce((s, a) => s + (a.balance ?? 0), 0)
+    : null;
 
   // ── Run reconciliation engine ─────────────────────────────────────────────
   const {
@@ -71,21 +80,30 @@ function ConciliacaoContent() {
             Reconciliação automática de transações bancárias com lançamentos internos.
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => void refetch()}
-          disabled={isLoadingEngine}
-        >
-          <IconRefresh className={`size-3.5 mr-1.5 ${isLoadingEngine ? "animate-spin" : ""}`} />
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void refetch()}
+            disabled={isLoadingEngine}
+          >
+            <IconRefresh className={`size-3.5 mr-1.5 ${isLoadingEngine ? "animate-spin" : ""}`} />
+            Atualizar
+          </Button>
+        </div>
       </div>
+
+      {/* Upload extrato */}
+      <ConciliacaoUpload
+        bankAccounts={bankAccounts}
+        onImportComplete={() => void refetch()}
+      />
 
       {/* KPI cards */}
       <ConciliacaoSummaryCards
         summary={summary}
-        isLoading={isLoadingSummary}
+        isLoading={isLoadingSummary || isLoadingAccounts}
+        actualBankBalance={actualBankBalance}
       />
 
       {/* Filters */}

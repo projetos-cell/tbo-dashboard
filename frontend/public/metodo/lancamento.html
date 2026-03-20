@@ -158,37 +158,46 @@ body.mobile-mode .mob-nav{display:flex}
 /* ── RESPONSIVE (max-width: 640px) ── */
 @media(max-width:640px){
   /* Topbar */
-  .topbar{padding:0 20px;height:48px}
-  .topbar-title{font-size:10px;letter-spacing:1px}
+  .topbar{padding:0 16px;height:48px;gap:8px}
+  .topbar-left{gap:10px;min-width:0;overflow:hidden}
+  .topbar-title{font-size:9px;letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .topbar-tagline{display:none}
   .topbar-divider{display:none}
-  .topbar-logo-svg{height:18px}
-  .mode-toggle{padding:4px 10px;font-size:9px}
+  .topbar-logo-svg{height:18px;flex-shrink:0}
+  .topbar-right{gap:8px;flex-shrink:0}
+  .mode-toggle{padding:4px 8px;font-size:9px}
+
+  /* Theme toggle mobile */
+  .theme-toggle{margin-left:0}
+  .toggle-track{width:40px;height:22px}
+  .toggle-thumb{width:16px;height:16px}
+  .toggle-sun,.toggle-moon{font-size:10px}
 
   /* Scroll & container */
-  .scroll-wrapper{top:48px;bottom:36px;overflow-x:auto;scroll-snap-type:x mandatory}
+  .scroll-wrapper{top:48px;bottom:36px;overflow-x:hidden;overflow-y:hidden;scroll-snap-type:none}
   .container{flex-direction:column;height:auto}
-  .section{width:100%!important;height:calc(100vh - 84px);flex-direction:column}
+  .section{width:100%!important;height:calc(100vh - 84px);flex-direction:column;display:none}
+  .section.mob-active{display:flex}
   .section-hero{width:100%!important}
   .section-phase{width:100%!important}
 
   /* Hero */
-  .hero-inner{padding:0 20px}
+  .hero-inner{padding:0 20px;justify-content:flex-start;padding-top:24px}
   .hero-inner h1{font-size:28px;letter-spacing:-1px}
   .hero-eyebrow{font-size:9px;letter-spacing:3px;margin-bottom:16px}
   .hero-sub{font-size:12px;margin-top:14px;max-width:100%}
   .hero-scroll-hint{display:none}
   .hero-diagram{flex-wrap:wrap;gap:4px;margin-top:28px;padding-top:20px;max-width:100%}
-  .hero-diagram-step{flex:0 0 auto;min-width:60px}
+  .hero-diagram-step{flex:0 0 auto;min-width:50px}
   .hero-diagram-label{font-size:7px;letter-spacing:1px}
-  .hero-diagram-line{min-width:10px}
+  .hero-diagram-line{min-width:8px}
   .hero-funnel{margin-top:18px}
-  .hero-funnel-item{font-size:8px;padding:4px 8px}
+  .hero-funnel-item{font-size:8px;padding:4px 8px;word-break:break-word}
 
   /* Phase layout: stack columns vertically */
-  .phase-inner{flex-direction:column;height:100%}
+  .phase-inner{flex-direction:column;height:100%;overflow-y:auto}
   .phase-left{width:100%;border-right:none;padding:20px 20px 12px;flex-shrink:0;overflow-y:visible;height:auto}
-  .phase-right{padding:12px 20px 80px;overflow-y:auto;flex:1}
+  .phase-right{padding:12px 20px 80px;overflow-y:visible;flex:0 0 auto}
   .phase-name{font-size:28px;letter-spacing:-1px}
   .phase-num{font-size:9px;letter-spacing:3px;margin-bottom:4px}
   .phase-subtitle{font-size:10px;margin-top:10px;line-height:1.6}
@@ -197,6 +206,7 @@ body.mobile-mode .mob-nav{display:flex}
   .phase-meta{padding:12px 14px;margin-top:16px;gap:8px}
   .meta-label{font-size:8px}
   .meta-value{font-size:10px}
+  .meta-row{flex-direction:row;gap:8px}
   .buyer-strip{margin-top:14px;padding:10px 12px;gap:8px}
   .buyer-label{font-size:8px}
   .buyer-text{font-size:9.5px}
@@ -212,20 +222,22 @@ body.mobile-mode .mob-nav{display:flex}
   .card.primary .card-title{font-size:12.5px}
 
   /* Next button */
-  .next-btn{bottom:16px;right:20px;padding:10px 20px;font-size:10px;letter-spacing:1px}
+  .next-btn{bottom:44px;right:20px;padding:10px 20px;font-size:10px;letter-spacing:1px}
 
   /* Bottombar */
-  .bottombar{height:36px;padding:0 12px}
-  .phase-nav{flex:1}
-  .phase-nav-item{padding:6px 4px;font-size:7px;letter-spacing:.8px;flex:1;text-align:center}
+  .bottombar{height:36px;padding:0 8px}
+  .phase-nav{flex:1;overflow:hidden}
+  .phase-nav-item{padding:6px 3px;font-size:7px;letter-spacing:.5px;flex:1;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-right:1px solid var(--divider)}
+  .phase-nav-item:last-child{border-right:none}
   .scroll-indicator{display:none}
 
   /* Mobile nav */
+  .mob-nav{display:flex}
   .mob-nav-btn{width:28px;height:22px}
   .mob-nav-counter{font-size:9px}
 
   /* Password gate */
-  .pw-card{width:92vw;padding:28px 20px}
+  .pw-card{width:92vw;max-width:360px;padding:28px 20px}
   .pw-title{font-size:16px}
   .pw-subtitle{font-size:12px;margin-bottom:18px}
   .pw-input{padding:10px 14px;font-size:13px;margin-bottom:12px}
@@ -233,6 +245,79 @@ body.mobile-mode .mob-nav{display:flex}
   .pw-logo{margin-bottom:18px}
   .pw-logo svg{width:40px;height:40px}
 }
+
+/* ── THEME TOGGLE ── */
+.theme-toggle{position:relative;cursor:pointer;display:flex;align-items:center}
+.theme-toggle input{display:none}
+.toggle-track{width:48px;height:26px;background:rgba(0,0,0,0.08);border-radius:13px;position:relative;display:flex;align-items:center;padding:0 4px;transition:background 0.3s}
+.toggle-thumb{width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;left:3px;transition:transform 0.3s ease;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
+.theme-toggle input:checked ~ .toggle-track{background:#3F3F46}
+.theme-toggle input:checked ~ .toggle-track .toggle-thumb{transform:translateX(22px)}
+.toggle-sun,.toggle-moon{font-size:12px;line-height:1;z-index:1}
+.toggle-sun{margin-right:auto}
+.toggle-moon{margin-left:auto}
+
+/* ── DARK MODE ── */
+[data-theme="dark"]{--bg:#0F0F0F;--white:#1C1C1E;--card-border:#2C2C2E;--divider:#2C2C2E;--gray-900:#F5F5F5;--gray-800:#E5E5E5;--gray-700:#D4D4D4;--gray-600:#A1A1AA;--gray-500:#8E8E93;--gray-400:#636366;--gray-300:#3A3A3C;--gray-200:#2C2C2E;--gray-100:#1C1C1E;--gray-50:#161616}
+[data-theme="dark"] body{background:#0F0F0F;color:#F5F5F5}
+[data-theme="dark"] .topbar{background:rgba(15,15,15,0.9);border-color:#2C2C2E}
+[data-theme="dark"] .topbar-logo-svg text{fill:#F5F5F5}
+[data-theme="dark"] .topbar-logo-svg circle:not(:first-child){fill:#F5F5F5}
+[data-theme="dark"] .topbar-logo-svg circle:nth-child(1){fill:#F5F5F5}
+[data-theme="dark"] .topbar-divider{background:rgba(255,255,255,0.1)}
+[data-theme="dark"] .bottombar{background:rgba(15,15,15,0.95);border-color:#2C2C2E}
+[data-theme="dark"] .phase-nav-item{color:#636366;border-color:#2C2C2E}
+[data-theme="dark"] .phase-nav-item:hover{color:#F5F5F5}
+[data-theme="dark"] .phase-nav-item.active{color:var(--orange)}
+[data-theme="dark"] .scroll-track{background:rgba(255,255,255,0.06)}
+[data-theme="dark"] .section{border-color:#2C2C2E}
+[data-theme="dark"] .phase-left{border-color:#2C2C2E}
+[data-theme="dark"] .card{background:#1C1C1E;border-color:#2C2C2E}
+[data-theme="dark"] .card:hover{border-color:rgba(232,81,2,0.3);box-shadow:0 4px 20px rgba(0,0,0,0.2)}
+[data-theme="dark"] .card-title{color:#F5F5F5}
+[data-theme="dark"] .card-desc{color:#8E8E93}
+[data-theme="dark"] .card-index{color:#636366}
+[data-theme="dark"] .card.primary{background:rgba(232,81,2,0.06);border-color:rgba(232,81,2,0.15)}
+[data-theme="dark"] .card.primary .card-index{color:var(--orange-light)}
+[data-theme="dark"] .phase-meta{background:#1C1C1E;border-color:#2C2C2E}
+[data-theme="dark"] .meta-value{color:#D4D4D4}
+[data-theme="dark"] .meta-label{color:#636366}
+[data-theme="dark"] .meta-icon{color:#636366}
+[data-theme="dark"] .buyer-strip{background:#1C1C1E;border-color:#2C2C2E}
+[data-theme="dark"] .buyer-text{color:#A1A1AA}
+[data-theme="dark"] .buyer-label{color:var(--orange-light)}
+[data-theme="dark"] .buyer-icon{color:var(--orange)}
+[data-theme="dark"] .row-label{color:#636366}
+[data-theme="dark"] .row-divider{background:#2C2C2E}
+[data-theme="dark"] .row-divider::before{background:var(--orange);opacity:.2}
+[data-theme="dark"] .hero-inner h1{color:#F5F5F5}
+[data-theme="dark"] .hero-sub{color:#8E8E93}
+[data-theme="dark"] .hero-eyebrow{color:var(--orange)}
+[data-theme="dark"] .hero-diagram{border-color:#2C2C2E}
+[data-theme="dark"] .hero-diagram-dot{background:#1C1C1E;border-color:#3A3A3C}
+[data-theme="dark"] .hero-diagram-dot.active{background:var(--orange);border-color:var(--orange)}
+[data-theme="dark"] .hero-diagram-label{color:#636366}
+[data-theme="dark"] .hero-diagram-line{background:#3A3A3C}
+[data-theme="dark"] .hero-funnel-item{border-color:#2C2C2E;color:#636366}
+[data-theme="dark"] .hero-scroll-hint{color:#636366}
+[data-theme="dark"] .phase-subtitle{color:#8E8E93}
+[data-theme="dark"] .phase-num{color:#636366}
+[data-theme="dark"] .mode-toggle{border-color:rgba(255,255,255,0.08);color:#8E8E93}
+[data-theme="dark"] .mode-toggle:hover{border-color:var(--orange);color:var(--orange)}
+[data-theme="dark"] .mob-nav-btn{border-color:rgba(255,255,255,0.08);color:#8E8E93}
+[data-theme="dark"] .mob-nav-btn:hover{border-color:var(--orange);color:var(--orange)}
+[data-theme="dark"] .mob-nav-counter{color:#636366}
+[data-theme="dark"] .scroll-pct{color:#636366}
+[data-theme="dark"] .next-btn{background:var(--orange);color:#fff}
+[data-theme="dark"] .next-btn:hover{background:var(--orange-deep)}
+[data-theme="dark"] .toggle-track{background:rgba(255,255,255,0.08)}
+[data-theme="dark"] .p02 .phase-meta{border-color:rgba(232,81,2,0.2)}
+[data-theme="dark"] .p02 .meta-icon{color:var(--orange-light)}
+[data-theme="dark"] .p02 .buyer-strip{border-color:rgba(232,81,2,0.15);background:rgba(232,81,2,0.04)}
+[data-theme="dark"] .p02 .card{border-color:rgba(232,81,2,0.1)}
+[data-theme="dark"] .p02 .card:hover{border-color:rgba(232,81,2,0.3)}
+[data-theme="dark"] .p02 .card-index{color:var(--orange-light)}
+[data-theme="dark"] .p02 .card.primary{border-color:rgba(232,81,2,0.2);background:rgba(232,81,2,0.06)}
 
 /* ── PASSWORD GATE ── */
 .pw-gate{position:fixed;inset:0;z-index:99999;background:#0F0F0F;display:flex;align-items:center;justify-content:center;transition:opacity .4s ease,visibility .4s ease}
@@ -277,6 +362,14 @@ if(sessionStorage.getItem('metodo_auth')==='1'){document.getElementById('pwGate'
   </div>
   <div class="topbar-right">
     <span class="topbar-tagline">think · build · own</span>
+    <label class="theme-toggle" title="Alternar tema">
+      <input type="checkbox" id="themeSwitch">
+      <span class="toggle-track">
+        <span class="toggle-sun">☀️</span>
+        <span class="toggle-moon">🌙</span>
+        <span class="toggle-thumb"></span>
+      </span>
+    </label>
     <button class="mode-toggle" onclick="toggleMode()">
       <svg class="icon-mobile" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>
       <svg class="icon-desktop" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
@@ -590,6 +683,25 @@ sw.addEventListener('wheel',e=>{if(isMobile)return;e.preventDefault();sw.scrollL
 let touchStartX=0;
 sw.addEventListener('touchstart',e=>{if(!isMobile)return;touchStartX=e.touches[0].clientX});
 sw.addEventListener('touchend',e=>{if(!isMobile)return;const diff=touchStartX-e.changedTouches[0].clientX;if(Math.abs(diff)>60){diff>0?mobStep(1):mobStep(-1)}});
+
+// Auto-activate mobile mode on small screens
+function checkAutoMobile(){
+  if(window.innerWidth<=640 && !isMobile){toggleMode()}
+  else if(window.innerWidth>640 && isMobile){toggleMode()}
+}
+checkAutoMobile();
+
+// Dark mode
+var themeSwitch=document.getElementById('themeSwitch');
+function setTheme(dark){
+  document.documentElement.setAttribute('data-theme',dark?'dark':'light');
+  localStorage.setItem('metodo_theme',dark?'dark':'light');
+  if(themeSwitch)themeSwitch.checked=dark;
+}
+if(themeSwitch){themeSwitch.addEventListener('change',function(){setTheme(this.checked)})}
+var saved=localStorage.getItem('metodo_theme');
+if(saved==='dark')setTheme(true);
+else if(!saved&&window.matchMedia('(prefers-color-scheme: dark)').matches)setTheme(true);
 </script>
 </body>
 </html>

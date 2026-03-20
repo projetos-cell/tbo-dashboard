@@ -308,16 +308,28 @@
 
   /* ── MOBILE ── */
   @media (max-width: 640px) {
+    body { overflow-x: hidden; }
+
+    .topbar {
+      padding: 0 16px;
+      gap: 10px;
+      overflow: hidden;
+    }
+    .topbar-logo { height: 18px; }
+    .topbar-title { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+    .topbar-badge { font-size: 10px; padding: 3px 8px; white-space: nowrap; flex-shrink: 0; }
+
     .hero {
       flex-direction: column;
       align-items: flex-start;
       padding: 24px 20px 0;
       gap: 20px;
     }
-    .hero h1 { font-size: 24px; }
-    .hero-desc { font-size: 13px; }
-    .hero-stats { gap: 12px; flex-wrap: wrap; }
-    .stat { min-width: 72px; padding: 12px 14px; }
+    .hero-text { max-width: 100%; }
+    .hero h1 { font-size: 24px; word-wrap: break-word; }
+    .hero-desc { font-size: 13px; max-width: 100%; }
+    .hero-stats { gap: 12px; flex-wrap: wrap; width: 100%; }
+    .stat { min-width: 72px; padding: 12px 14px; flex: 1; }
     .stat-num { font-size: 22px; }
     .stat-label { font-size: 9px; }
 
@@ -327,16 +339,17 @@
 
     .pipeline-wrapper {
       padding: 20px 16px 32px;
-      overflow-x: visible;
+      overflow-x: hidden;
     }
     .pipeline {
       flex-direction: column;
       min-width: unset;
       gap: 0;
+      width: 100%;
     }
 
     .connector {
-      width: auto;
+      width: 100%;
       height: 28px;
       justify-content: center;
     }
@@ -356,7 +369,19 @@
       border-bottom: none;
     }
 
-    .gate-node { margin: 0; padding: 12px 0; }
+    .gate-node {
+      margin: 0;
+      padding: 12px 0;
+      width: 100%;
+    }
+    .gate-node::before {
+      left: 50%; right: auto;
+      top: 0; bottom: 0;
+      width: 1.5px; height: 100%;
+      background: linear-gradient(180deg, var(--border, #E4E4E7), var(--neutral-300, #D4D4D8), var(--border, #E4E4E7));
+    }
+    .gate-label { white-space: normal; word-wrap: break-word; }
+    .gate-sla { white-space: normal; word-wrap: break-word; }
 
     .phase-card {
       min-width: unset;
@@ -367,11 +392,123 @@
     .phase-card.is-end { min-width: unset; }
     .phase-card:hover { transform: none; }
 
-    .legend { flex-wrap: wrap; padding: 16px 20px; gap: 10px 16px; }
-    .footnote { padding: 0 20px 32px; font-size: 11px; }
+    .card-deliverables { padding: 0 16px 14px; }
+    .deliverable { word-wrap: break-word; overflow-wrap: break-word; }
+    .spec-tags { flex-wrap: wrap; }
+
+    .card-footer { padding: 10px 16px; flex-wrap: wrap; gap: 8px; }
+
+    .legend { flex-wrap: wrap; padding: 16px 20px; gap: 10px 16px; justify-content: flex-start; }
+    .legend-item { font-size: 11px; }
+    .footnote { padding: 0 20px 32px; font-size: 11px; word-wrap: break-word; }
 
     /* Password gate */
-    .pw-card { width: 92vw; padding: 28px 24px; }
+    .pw-card { width: 92vw; max-width: 360px; padding: 28px 24px; }
+
+    /* Theme toggle mobile */
+    .theme-toggle { margin-left: auto; }
+    .toggle-track { width: 40px; height: 22px; }
+    .toggle-thumb { width: 16px; height: 16px; }
+    .toggle-sun, .toggle-moon { font-size: 10px; }
+  }
+
+  /* ── DARK MODE TOGGLE ── */
+  .theme-toggle { position: relative; cursor: pointer; display: flex; align-items: center; }
+  .theme-toggle input { display: none; }
+  .toggle-track { width: 48px; height: 26px; background: var(--neutral-200); border-radius: 13px; position: relative; display: flex; align-items: center; padding: 0 4px; transition: background 0.3s; }
+  .toggle-thumb { width: 20px; height: 20px; background: #fff; border-radius: 50%; position: absolute; left: 3px; transition: transform 0.3s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  .theme-toggle input:checked ~ .toggle-track { background: var(--neutral-700); }
+  .theme-toggle input:checked ~ .toggle-track .toggle-thumb { transform: translateX(22px); }
+  .toggle-sun, .toggle-moon { font-size: 12px; line-height: 1; z-index: 1; }
+  .toggle-sun { margin-right: auto; }
+  .toggle-moon { margin-left: auto; }
+
+  /* ── DARK MODE OVERRIDES ── */
+  [data-theme="dark"] body,
+  [data-theme="dark"] { background: #0F0F0F; color: #F5F5F5; }
+
+  [data-theme="dark"] .topbar {
+    background: rgba(15,15,15,0.85);
+    border-bottom-color: #2C2C2E;
+  }
+  [data-theme="dark"] .topbar-logo text { fill: #F5F5F5; }
+  [data-theme="dark"] .topbar-logo circle { fill: #F5F5F5; }
+  [data-theme="dark"] .topbar-logo path { fill: #F5F5F5; }
+  [data-theme="dark"] .topbar-sep { background: #2C2C2E; }
+  [data-theme="dark"] .topbar-title { color: #8E8E93; }
+  [data-theme="dark"] .topbar-title span { color: #F5F5F5; }
+  [data-theme="dark"] .topbar-badge { background: rgba(232,81,2,0.12); border-color: rgba(232,81,2,0.15); }
+
+  [data-theme="dark"] .hero h1 { color: #F5F5F5; }
+  [data-theme="dark"] .hero h1 em { color: #8E8E93; }
+  [data-theme="dark"] .hero-label { color: #8E8E93; }
+  [data-theme="dark"] .hero-desc { color: #8E8E93; }
+
+  [data-theme="dark"] .stat { background: #1C1C1E; border-color: #2C2C2E; }
+  [data-theme="dark"] .stat-num { color: #F5F5F5; }
+  [data-theme="dark"] .stat-label { color: #8E8E93; }
+
+  [data-theme="dark"] .phase-card:not(.is-start):not(.is-end) {
+    background: #1C1C1E;
+    border-color: #2C2C2E;
+  }
+  [data-theme="dark"] .phase-card:not(.is-start):not(.is-end):hover {
+    border-color: #3F3F46;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+  [data-theme="dark"] .phase-card:not(.is-start):not(.is-end) .card-title { color: #F5F5F5; }
+  [data-theme="dark"] .phase-card:not(.is-start):not(.is-end) .card-subtitle { color: #8E8E93; }
+  [data-theme="dark"] .phase-card:not(.is-start):not(.is-end) .card-desc { color: #8E8E93; }
+  [data-theme="dark"] .phase-card:not(.is-start):not(.is-end) .card-step {
+    background: #27272A; color: #8E8E93; border-color: #3F3F46;
+  }
+
+  [data-theme="dark"] .phase-card:not(.is-start):not(.is-end) .deliverable {
+    background: #27272A; border-color: #2C2C2E; color: #8E8E93;
+  }
+  [data-theme="dark"] .phase-card:not(.is-start):not(.is-end) .deliverable:hover {
+    background: #2C2C2E; border-color: #3F3F46;
+  }
+
+  [data-theme="dark"] .phase-card:not(.is-start):not(.is-end) .card-footer {
+    border-top-color: #2C2C2E;
+  }
+  [data-theme="dark"] .phase-card:not(.is-start):not(.is-end) .card-owner { color: #8E8E93; }
+  [data-theme="dark"] .phase-card:not(.is-start):not(.is-end) .card-tag.tag-create { background: rgba(232,81,2,0.12); }
+  [data-theme="dark"] .phase-card:not(.is-start):not(.is-end) .card-tag.tag-input { background: rgba(59,130,246,0.12); }
+
+  [data-theme="dark"] .connector::before {
+    background: linear-gradient(90deg, #2C2C2E, #3F3F46, #2C2C2E);
+  }
+  [data-theme="dark"] .connector::after { border-left-color: #3F3F46; }
+
+  [data-theme="dark"] .gate-diamond { background: #1C1C1E; border-color: #2C2C2E; }
+  [data-theme="dark"] .gate-label { color: #8E8E93; background: #0F0F0F; }
+  [data-theme="dark"] .gate-action { background: #0F0F0F; }
+  [data-theme="dark"] .gate-sla { background: #0F0F0F; border-color: #3F3F46; color: #8E8E93; }
+  [data-theme="dark"] .gate-node::before {
+    background: linear-gradient(90deg, #2C2C2E, #3F3F46, #2C2C2E);
+  }
+
+  [data-theme="dark"] .legend-item { color: #8E8E93; }
+  [data-theme="dark"] .footnote { color: #8E8E93; }
+  [data-theme="dark"] .footnote strong { color: #F5F5F5; }
+
+  [data-theme="dark"] .scroll-hint { color: #8E8E93; }
+
+  [data-theme="dark"] ::selection { background: rgba(232, 81, 2, 0.25); color: #F5F5F5; }
+
+  @media (max-width: 640px) {
+    [data-theme="dark"] .connector::before {
+      background: linear-gradient(180deg, #2C2C2E, #3F3F46, #2C2C2E);
+    }
+    [data-theme="dark"] .connector::after {
+      border-top-color: #3F3F46;
+      border-left-color: transparent;
+    }
+    [data-theme="dark"] .gate-node::before {
+      background: linear-gradient(180deg, #2C2C2E, #3F3F46, #2C2C2E);
+    }
   }
 
   /* ── PASSWORD GATE ── */
@@ -472,6 +609,14 @@ if (sessionStorage.getItem('metodo_auth') === '1') {
   <div class="topbar-sep"></div>
   <div class="topbar-title">Marketing · <span>Fluxo de Serviços</span></div>
   <div class="topbar-badge">ON / OFF</div>
+  <label class="theme-toggle" title="Alternar tema">
+    <input type="checkbox" id="themeSwitch">
+    <span class="toggle-track">
+      <span class="toggle-sun">☀️</span>
+      <span class="toggle-moon">🌙</span>
+      <span class="toggle-thumb"></span>
+    </span>
+  </label>
 </div>
 
 <div class="main">
@@ -733,6 +878,18 @@ if (sessionStorage.getItem('metodo_auth') === '1') {
     if (e.ctrlKey && e.shiftKey && ['I','J','C'].includes(e.key)) e.preventDefault();
     if (e.ctrlKey && ['u','U','s','S'].includes(e.key)) e.preventDefault();
   });
+</script>
+<script>
+var themeSwitch = document.getElementById('themeSwitch');
+function setTheme(dark) {
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  localStorage.setItem('metodo_theme', dark ? 'dark' : 'light');
+  if (themeSwitch) themeSwitch.checked = dark;
+}
+if (themeSwitch) { themeSwitch.addEventListener('change', function() { setTheme(this.checked); }); }
+var saved = localStorage.getItem('metodo_theme');
+if (saved === 'dark') setTheme(true);
+else if (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches) setTheme(true);
 </script>
 </body>
 </html>

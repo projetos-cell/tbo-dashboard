@@ -741,9 +741,119 @@
     .pipeline-wrapper { overflow: visible; }
     .card-image-area input[type="file"] { display: none; }
   }
+
+  /* ── PASSWORD GATE ── */
+  .pw-gate {
+    position: fixed; inset: 0; z-index: 99999;
+    background: var(--black);
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.4s ease, visibility 0.4s ease;
+  }
+  .pw-gate.is-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+  .pw-card {
+    background: var(--neutral-900);
+    border: 1px solid var(--neutral-800);
+    border-radius: 16px;
+    padding: 40px;
+    width: 360px;
+    text-align: center;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+  }
+  .pw-logo { margin-bottom: 24px; }
+  .pw-logo svg { width: 48px; height: 48px; }
+  .pw-title {
+    font-family: var(--font-heading);
+    font-size: 18px; font-weight: 600;
+    color: var(--neutral-100);
+    margin-bottom: 6px;
+  }
+  .pw-subtitle {
+    font-size: 13px; color: var(--neutral-500);
+    margin-bottom: 24px;
+  }
+  .pw-input-wrap {
+    position: relative; margin-bottom: 16px;
+  }
+  .pw-input {
+    width: 100%; padding: 12px 16px;
+    background: var(--neutral-800);
+    border: 1.5px solid var(--neutral-700);
+    border-radius: 10px;
+    color: var(--neutral-100);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .pw-input:focus { border-color: var(--orange); }
+  .pw-input.is-error { border-color: #EF4444; animation: pw-shake 0.4s ease; }
+  .pw-btn {
+    width: 100%; padding: 12px;
+    background: var(--orange);
+    color: #fff;
+    border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .pw-btn:hover { background: var(--orange-dark); }
+  .pw-btn:active { transform: scale(0.98); }
+  .pw-error {
+    font-size: 12px; color: #EF4444;
+    margin-top: 8px; min-height: 18px;
+  }
+  @keyframes pw-shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+  }
 </style>
 </head>
 <body>
+
+<!-- ── Password Gate ── -->
+<div class="pw-gate" id="pwGate">
+  <div class="pw-card">
+    <div class="pw-logo">
+      <svg viewBox="0 0 48 48" fill="none"><rect width="48" height="48" rx="12" fill="var(--orange)" opacity="0.1"/><path d="M14 24h20M24 14v20" stroke="var(--orange)" stroke-width="3" stroke-linecap="round"/></svg>
+    </div>
+    <div class="pw-title">Acesso restrito</div>
+    <div class="pw-subtitle">Insira a senha para visualizar o fluxo de projeto.</div>
+    <form id="pwForm" onsubmit="return handlePwSubmit(event)">
+      <div class="pw-input-wrap">
+        <input type="password" class="pw-input" id="pwInput" placeholder="Senha de acesso" autocomplete="off" autofocus>
+      </div>
+      <button type="submit" class="pw-btn">Entrar</button>
+      <div class="pw-error" id="pwError"></div>
+    </form>
+  </div>
+</div>
+
+<script>
+function handlePwSubmit(e) {
+  e.preventDefault();
+  var input = document.getElementById('pwInput');
+  var gate = document.getElementById('pwGate');
+  var errorEl = document.getElementById('pwError');
+  if (input.value === 'agenciatbo') {
+    gate.classList.add('is-hidden');
+    sessionStorage.setItem('metodo_auth', '1');
+    document.body.style.overflow = '';
+  } else {
+    input.classList.add('is-error');
+    errorEl.textContent = 'Senha incorreta. Tente novamente.';
+    setTimeout(function() { input.classList.remove('is-error'); }, 500);
+    input.value = '';
+    input.focus();
+  }
+  return false;
+}
+// Auto-unlock if already authenticated in this session
+if (sessionStorage.getItem('metodo_auth') === '1') {
+  document.getElementById('pwGate').classList.add('is-hidden');
+} else {
+  document.body.style.overflow = 'hidden';
+}
+</script>
 
 <!-- ── Topbar ── -->
 <div class="topbar">

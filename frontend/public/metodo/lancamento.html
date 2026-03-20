@@ -155,6 +155,85 @@ body.mobile-mode .mob-nav{display:flex}
 .mob-nav-btn:hover{border-color:var(--orange);color:var(--orange)}
 .mob-nav-counter{font-size:10px;color:var(--gray-400);font-variant-numeric:tabular-nums}
 
+/* ── RESPONSIVE (max-width: 640px) ── */
+@media(max-width:640px){
+  /* Topbar */
+  .topbar{padding:0 20px;height:48px}
+  .topbar-title{font-size:10px;letter-spacing:1px}
+  .topbar-tagline{display:none}
+  .topbar-divider{display:none}
+  .topbar-logo-svg{height:18px}
+  .mode-toggle{padding:4px 10px;font-size:9px}
+
+  /* Scroll & container */
+  .scroll-wrapper{top:48px;bottom:36px;overflow-x:auto;scroll-snap-type:x mandatory}
+  .container{flex-direction:column;height:auto}
+  .section{width:100%!important;height:calc(100vh - 84px);flex-direction:column}
+  .section-hero{width:100%!important}
+  .section-phase{width:100%!important}
+
+  /* Hero */
+  .hero-inner{padding:0 20px}
+  .hero-inner h1{font-size:28px;letter-spacing:-1px}
+  .hero-eyebrow{font-size:9px;letter-spacing:3px;margin-bottom:16px}
+  .hero-sub{font-size:12px;margin-top:14px;max-width:100%}
+  .hero-scroll-hint{display:none}
+  .hero-diagram{flex-wrap:wrap;gap:4px;margin-top:28px;padding-top:20px;max-width:100%}
+  .hero-diagram-step{flex:0 0 auto;min-width:60px}
+  .hero-diagram-label{font-size:7px;letter-spacing:1px}
+  .hero-diagram-line{min-width:10px}
+  .hero-funnel{margin-top:18px}
+  .hero-funnel-item{font-size:8px;padding:4px 8px}
+
+  /* Phase layout: stack columns vertically */
+  .phase-inner{flex-direction:column;height:100%}
+  .phase-left{width:100%;border-right:none;padding:20px 20px 12px;flex-shrink:0;overflow-y:visible;height:auto}
+  .phase-right{padding:12px 20px 80px;overflow-y:auto;flex:1}
+  .phase-name{font-size:28px;letter-spacing:-1px}
+  .phase-num{font-size:9px;letter-spacing:3px;margin-bottom:4px}
+  .phase-subtitle{font-size:10px;margin-top:10px;line-height:1.6}
+
+  /* Phase meta & buyer strip */
+  .phase-meta{padding:12px 14px;margin-top:16px;gap:8px}
+  .meta-label{font-size:8px}
+  .meta-value{font-size:10px}
+  .buyer-strip{margin-top:14px;padding:10px 12px;gap:8px}
+  .buyer-label{font-size:8px}
+  .buyer-text{font-size:9.5px}
+
+  /* Cards */
+  .cards-grid{grid-template-columns:1fr;gap:10px;margin-bottom:20px}
+  .row-label{font-size:8px;letter-spacing:2px;margin-bottom:10px}
+  .row-divider{margin-bottom:12px}
+  .card{padding:14px 16px}
+  .card-index{font-size:8px;margin-bottom:5px}
+  .card-title{font-size:12px;margin-bottom:4px}
+  .card-desc{font-size:9.5px}
+  .card.primary .card-title{font-size:12.5px}
+
+  /* Next button */
+  .next-btn{bottom:16px;right:20px;padding:10px 20px;font-size:10px;letter-spacing:1px}
+
+  /* Bottombar */
+  .bottombar{height:36px;padding:0 12px}
+  .phase-nav{flex:1}
+  .phase-nav-item{padding:6px 4px;font-size:7px;letter-spacing:.8px;flex:1;text-align:center}
+  .scroll-indicator{display:none}
+
+  /* Mobile nav */
+  .mob-nav-btn{width:28px;height:22px}
+  .mob-nav-counter{font-size:9px}
+
+  /* Password gate */
+  .pw-card{width:92vw;padding:28px 20px}
+  .pw-title{font-size:16px}
+  .pw-subtitle{font-size:12px;margin-bottom:18px}
+  .pw-input{padding:10px 14px;font-size:13px;margin-bottom:12px}
+  .pw-btn{padding:10px;font-size:13px}
+  .pw-logo{margin-bottom:18px}
+  .pw-logo svg{width:40px;height:40px}
+}
+
 /* ── PASSWORD GATE ── */
 .pw-gate{position:fixed;inset:0;z-index:99999;background:#0F0F0F;display:flex;align-items:center;justify-content:center;transition:opacity .4s ease,visibility .4s ease}
 .pw-gate.is-hidden{opacity:0;visibility:hidden;pointer-events:none}

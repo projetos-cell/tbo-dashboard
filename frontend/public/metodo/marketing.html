@@ -306,6 +306,74 @@
     .pipeline-wrapper { overflow: visible; }
   }
 
+  /* ── MOBILE ── */
+  @media (max-width: 640px) {
+    .hero {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 24px 20px 0;
+      gap: 20px;
+    }
+    .hero h1 { font-size: 24px; }
+    .hero-desc { font-size: 13px; }
+    .hero-stats { gap: 12px; flex-wrap: wrap; }
+    .stat { min-width: 72px; padding: 12px 14px; }
+    .stat-num { font-size: 22px; }
+    .stat-label { font-size: 9px; }
+
+    .timeline-section { padding: 16px 20px 0; }
+
+    .scroll-hint { display: none !important; }
+
+    .pipeline-wrapper {
+      padding: 20px 16px 32px;
+      overflow-x: visible;
+    }
+    .pipeline {
+      flex-direction: column;
+      min-width: unset;
+      gap: 0;
+    }
+
+    .connector {
+      width: auto;
+      height: 28px;
+      justify-content: center;
+    }
+    .connector::before {
+      left: 50%; right: auto;
+      top: 0; bottom: 0;
+      width: 1.5px; height: 100%;
+      background: linear-gradient(180deg, var(--border, #E4E4E7), var(--neutral-300, #D4D4D8), var(--border, #E4E4E7));
+    }
+    .connector::after {
+      right: auto; left: 50%;
+      top: auto; bottom: -1px;
+      transform: translateX(-50%);
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 6px solid var(--neutral-300, #D4D4D8);
+      border-bottom: none;
+    }
+
+    .gate-node { margin: 0; padding: 12px 0; }
+
+    .phase-card {
+      min-width: unset;
+      max-width: 100%;
+      width: 100%;
+    }
+    .phase-card.is-start { min-width: unset; }
+    .phase-card.is-end { min-width: unset; }
+    .phase-card:hover { transform: none; }
+
+    .legend { flex-wrap: wrap; padding: 16px 20px; gap: 10px 16px; }
+    .footnote { padding: 0 20px 32px; font-size: 11px; }
+
+    /* Password gate */
+    .pw-card { width: 92vw; padding: 28px 24px; }
+  }
+
   /* ── PASSWORD GATE ── */
   .pw-gate {
     position: fixed; inset: 0; z-index: 99999;

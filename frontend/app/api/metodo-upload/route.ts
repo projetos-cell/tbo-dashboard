@@ -95,3 +95,34 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(matching);
 }
+
+export async function DELETE(req: NextRequest) {
+  const bu = req.nextUrl.searchParams.get("bu");
+  const step = req.nextUrl.searchParams.get("step");
+
+  if (!bu || !step) {
+    return NextResponse.json({ error: "Missing bu or step param" }, { status: 400 });
+  }
+
+  const safeBu = bu.replace(/[^a-z0-9-]/gi, "").toLowerCase();
+  const safeStep = step.replace(/[^a-z0-9-]/gi, "").toLowerCase();
+  const supabase = await createClient();
+
+  const { data: files } = await supabase.storage
+    .from(BUCKET)
+    .list(FOLDER, { search: `${safeBu}_${safeStep}` });
+
+  if (!files || files.length === 0) {
+    return NextResponse.json({ deleted: 0 });
+  }
+
+  const toRemove = files
+    .filter((f) => f.name.startsWith(`${safeBu}_${safeStep}`))
+    .map((f) => `${FOLDER}/${f.name}`);
+
+  if (toRemove.length > 0) {
+    await supabase.storage.from(BUCKET).remove(toRemove);
+  }
+
+  return NextResponse.json({ deleted: toRemove.length });
+}

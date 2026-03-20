@@ -34,7 +34,8 @@ export async function updateSession(request: NextRequest) {
   const isAuthRoute = request.nextUrl.pathname.startsWith("/login");
   const isPublicRoute =
     request.nextUrl.pathname.startsWith("/portal") ||
-    request.nextUrl.pathname.startsWith("/metodo");
+    request.nextUrl.pathname.startsWith("/metodo") ||
+    request.nextUrl.pathname.startsWith("/api/metodo-upload");
 
   if (!user && !isAuthRoute && !isPublicRoute) {
     const url = request.nextUrl.clone();

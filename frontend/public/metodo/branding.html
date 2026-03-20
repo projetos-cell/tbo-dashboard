@@ -295,6 +295,242 @@
   .phase-card:nth-child(19) { animation-delay: 0.45s; }
   .phase-card:nth-child(21) { animation-delay: 0.50s; }
 
+  /* ── CARD IMAGE AREA ── */
+  .card-image-area {
+    width: 100%;
+    height: 120px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.25s ease;
+  }
+  .card-image-area.has-image {
+    height: 140px;
+    cursor: pointer;
+  }
+  .card-image-area.has-image:hover { opacity: 0.88; }
+  .card-image-area input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 2;
+  }
+  .card-image-area.has-image input[type="file"] {
+    display: none;
+  }
+  .card-image-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: var(--neutral-50);
+    border-bottom: 1px solid var(--border-light);
+    transition: all 0.25s ease;
+  }
+  .card-image-area:not(.has-image):hover .card-image-placeholder {
+    background: var(--neutral-100);
+  }
+  .card-image-placeholder svg {
+    opacity: 0.3;
+    transition: opacity 0.25s ease;
+  }
+  .card-image-area:not(.has-image):hover .card-image-placeholder svg {
+    opacity: 0.5;
+  }
+  .card-image-placeholder span {
+    font-family: var(--font-title);
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .card-image-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  /* expand hint on hover */
+  .card-image-area.has-image::after {
+    content: '';
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    background: rgba(0,0,0,0.45) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7'/%3E%3C/svg%3E") no-repeat center;
+    background-size: 14px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .card-image-area.has-image:hover::after { opacity: 1; }
+
+  /* start/end card image variants */
+  .is-start .card-image-placeholder {
+    background: rgba(255,255,255,0.08);
+    border-bottom-color: rgba(255,255,255,0.12);
+  }
+  .is-start .card-image-area:not(.has-image):hover .card-image-placeholder {
+    background: rgba(255,255,255,0.14);
+  }
+  .is-start .card-image-placeholder svg { opacity: 0.25; }
+  .is-start .card-image-placeholder svg path,
+  .is-start .card-image-placeholder svg rect { stroke: rgba(255,255,255,0.5); }
+  .is-start .card-image-placeholder span { color: rgba(255,255,255,0.45); }
+
+  .is-end .card-image-placeholder {
+    background: rgba(255,255,255,0.04);
+    border-bottom-color: rgba(255,255,255,0.06);
+  }
+  .is-end .card-image-area:not(.has-image):hover .card-image-placeholder {
+    background: rgba(255,255,255,0.08);
+  }
+  .is-end .card-image-placeholder svg { opacity: 0.2; }
+  .is-end .card-image-placeholder svg path,
+  .is-end .card-image-placeholder svg rect { stroke: rgba(255,255,255,0.35); }
+  .is-end .card-image-placeholder span { color: rgba(255,255,255,0.3); }
+
+  /* ── IMAGE DRAWER ── */
+  .drawer-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0,0,0,0);
+    visibility: hidden;
+    transition: background 0.35s ease, visibility 0s 0.35s;
+  }
+  .drawer-overlay.is-open {
+    background: rgba(0,0,0,0.5);
+    visibility: visible;
+    transition: background 0.35s ease, visibility 0s 0s;
+  }
+  .drawer-panel {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: min(560px, 90vw);
+    z-index: 201;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    box-shadow: -20px 0 60px rgba(0,0,0,0.12);
+    transform: translateX(100%);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+  }
+  .drawer-panel.is-open {
+    transform: translateX(0);
+  }
+  .drawer-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .drawer-title-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .drawer-step {
+    width: 28px; height: 28px; border-radius: var(--radius-xs);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-title); font-size: 12px; font-weight: 400;
+    background: var(--neutral-100); color: var(--neutral-600); border: 1px solid var(--border);
+  }
+  .drawer-title {
+    font-family: var(--font-title);
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .drawer-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 1px;
+  }
+  .drawer-close {
+    width: 32px; height: 32px;
+    border-radius: var(--radius-xs);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+  .drawer-close:hover { background: var(--neutral-100); border-color: var(--neutral-300); }
+  .drawer-close svg { width: 16px; height: 16px; }
+  .drawer-body {
+    flex: 1;
+    overflow: hidden;
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--neutral-50);
+    cursor: grab;
+    position: relative;
+  }
+  .drawer-body.is-dragging { cursor: grabbing; }
+  .drawer-body img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    transform-origin: center center;
+    transition: transform 0.15s ease;
+    pointer-events: none;
+    user-select: none;
+  }
+  .drawer-zoom-controls {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: var(--shadow-md);
+    z-index: 5;
+  }
+  .drawer-zoom-controls button {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 300; color: var(--text-secondary);
+    transition: all 0.15s;
+  }
+  .drawer-zoom-controls button:hover { background: var(--neutral-100); color: var(--text); }
+  .drawer-zoom-level {
+    font-family: var(--font-title);
+    font-size: 11px;
+    color: var(--text-muted);
+    min-width: 36px;
+    text-align: center;
+    letter-spacing: 0.02em;
+  }
+
   @media print {
     .topbar { position: relative; backdrop-filter: none; background: #fff; }
     .phase-card { break-inside: avoid; box-shadow: none; }
@@ -350,6 +586,17 @@
 
       <!-- 00 · BRIEFING -->
       <div class="phase-card is-start">
+        <div class="card-image-area" data-step="00">
+          <input type="file" accept="image/*" onchange="handleImageUpload(this)">
+          <div class="card-image-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--neutral-400)"/>
+              <path d="M3 16l5-5 4 4 3-3 6 6" stroke="var(--neutral-400)" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.5" cy="8.5" r="1.5" stroke="var(--neutral-400)"/>
+            </svg>
+            <span>Upload visual</span>
+          </div>
+        </div>
         <div class="card-header">
           <div class="card-step">00</div>
           <div class="card-title-group">
@@ -388,6 +635,17 @@
 
       <!-- 01 · PESQUISA + CONCEITO -->
       <div class="phase-card">
+        <div class="card-image-area" data-step="01">
+          <input type="file" accept="image/*" onchange="handleImageUpload(this)">
+          <div class="card-image-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--neutral-400)"/>
+              <path d="M3 16l5-5 4 4 3-3 6 6" stroke="var(--neutral-400)" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.5" cy="8.5" r="1.5" stroke="var(--neutral-400)"/>
+            </svg>
+            <span>Upload visual</span>
+          </div>
+        </div>
         <div class="card-header">
           <div class="card-step">01</div>
           <div class="card-title-group">
@@ -422,6 +680,17 @@
 
       <!-- 02 · NAMING + IDENTIDADE -->
       <div class="phase-card">
+        <div class="card-image-area" data-step="02">
+          <input type="file" accept="image/*" onchange="handleImageUpload(this)">
+          <div class="card-image-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--neutral-400)"/>
+              <path d="M3 16l5-5 4 4 3-3 6 6" stroke="var(--neutral-400)" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.5" cy="8.5" r="1.5" stroke="var(--neutral-400)"/>
+            </svg>
+            <span>Upload visual</span>
+          </div>
+        </div>
         <div class="card-header">
           <div class="card-step">02</div>
           <div class="card-title-group">
@@ -479,6 +748,17 @@
 
       <!-- 03 · KEY VISUAL -->
       <div class="phase-card">
+        <div class="card-image-area" data-step="03">
+          <input type="file" accept="image/*" onchange="handleImageUpload(this)">
+          <div class="card-image-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--neutral-400)"/>
+              <path d="M3 16l5-5 4 4 3-3 6 6" stroke="var(--neutral-400)" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.5" cy="8.5" r="1.5" stroke="var(--neutral-400)"/>
+            </svg>
+            <span>Upload visual</span>
+          </div>
+        </div>
         <div class="card-header">
           <div class="card-step">03</div>
           <div class="card-title-group">
@@ -526,6 +806,17 @@
 
       <!-- 04 · BOOK DE VENDAS -->
       <div class="phase-card">
+        <div class="card-image-area" data-step="04">
+          <input type="file" accept="image/*" onchange="handleImageUpload(this)">
+          <div class="card-image-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--neutral-400)"/>
+              <path d="M3 16l5-5 4 4 3-3 6 6" stroke="var(--neutral-400)" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.5" cy="8.5" r="1.5" stroke="var(--neutral-400)"/>
+            </svg>
+            <span>Upload visual</span>
+          </div>
+        </div>
         <div class="card-header">
           <div class="card-step">04</div>
           <div class="card-title-group">
@@ -573,6 +864,17 @@
 
       <!-- 05 · MATERIAIS GRÁFICOS + PDV -->
       <div class="phase-card">
+        <div class="card-image-area" data-step="05">
+          <input type="file" accept="image/*" onchange="handleImageUpload(this)">
+          <div class="card-image-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--neutral-400)"/>
+              <path d="M3 16l5-5 4 4 3-3 6 6" stroke="var(--neutral-400)" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.5" cy="8.5" r="1.5" stroke="var(--neutral-400)"/>
+            </svg>
+            <span>Upload visual</span>
+          </div>
+        </div>
         <div class="card-header">
           <div class="card-step">05</div>
           <div class="card-title-group">
@@ -624,6 +926,17 @@
 
       <!-- 06 · SOCIAL MEDIA + WEB -->
       <div class="phase-card">
+        <div class="card-image-area" data-step="06">
+          <input type="file" accept="image/*" onchange="handleImageUpload(this)">
+          <div class="card-image-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--neutral-400)"/>
+              <path d="M3 16l5-5 4 4 3-3 6 6" stroke="var(--neutral-400)" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.5" cy="8.5" r="1.5" stroke="var(--neutral-400)"/>
+            </svg>
+            <span>Upload visual</span>
+          </div>
+        </div>
         <div class="card-header">
           <div class="card-step">06</div>
           <div class="card-title-group">
@@ -680,6 +993,17 @@
 
       <!-- 07 · R01 — AJUSTES -->
       <div class="phase-card">
+        <div class="card-image-area" data-step="07">
+          <input type="file" accept="image/*" onchange="handleImageUpload(this)">
+          <div class="card-image-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--neutral-400)"/>
+              <path d="M3 16l5-5 4 4 3-3 6 6" stroke="var(--neutral-400)" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.5" cy="8.5" r="1.5" stroke="var(--neutral-400)"/>
+            </svg>
+            <span>Upload visual</span>
+          </div>
+        </div>
         <div class="card-header">
           <div class="card-step">07</div>
           <div class="card-title-group">
@@ -725,6 +1049,17 @@
 
       <!-- 08 · R02 — FINALIZAÇÃO -->
       <div class="phase-card">
+        <div class="card-image-area" data-step="08">
+          <input type="file" accept="image/*" onchange="handleImageUpload(this)">
+          <div class="card-image-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--neutral-400)"/>
+              <path d="M3 16l5-5 4 4 3-3 6 6" stroke="var(--neutral-400)" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.5" cy="8.5" r="1.5" stroke="var(--neutral-400)"/>
+            </svg>
+            <span>Upload visual</span>
+          </div>
+        </div>
         <div class="card-header">
           <div class="card-step">08</div>
           <div class="card-title-group">
@@ -772,6 +1107,17 @@
 
       <!-- 09 · ENTREGA FINAL -->
       <div class="phase-card is-end">
+        <div class="card-image-area" data-step="09">
+          <input type="file" accept="image/*" onchange="handleImageUpload(this)">
+          <div class="card-image-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--neutral-400)"/>
+              <path d="M3 16l5-5 4 4 3-3 6 6" stroke="var(--neutral-400)" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.5" cy="8.5" r="1.5" stroke="var(--neutral-400)"/>
+            </svg>
+            <span>Upload visual</span>
+          </div>
+        </div>
         <div class="card-header">
           <div class="card-step">09</div>
           <div class="card-title-group">
@@ -863,7 +1209,212 @@
 
 </div>
 
+<!-- ── Image Drawer ── -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<div class="drawer-panel" id="drawerPanel">
+  <div class="drawer-header">
+    <div class="drawer-title-group">
+      <div class="drawer-step" id="drawerStep">00</div>
+      <div>
+        <div class="drawer-title" id="drawerTitle">—</div>
+        <div class="drawer-subtitle" id="drawerSubtitle">—</div>
+      </div>
+    </div>
+    <button class="drawer-close" id="drawerClose">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--neutral-600)" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body" id="drawerBody">
+    <img id="drawerImg" src="" alt="Visual da etapa">
+    <div class="drawer-zoom-controls">
+      <button id="zoomOut" title="Diminuir">−</button>
+      <span class="drawer-zoom-level" id="zoomLevel">100%</span>
+      <button id="zoomIn" title="Aumentar">+</button>
+      <button id="zoomReset" title="Resetar" style="font-size:12px;">↺</button>
+    </div>
+  </div>
+</div>
+
 <script>
+  // ── Drawer logic ──
+  const overlay = document.getElementById('drawerOverlay');
+  const panel = document.getElementById('drawerPanel');
+  const drawerImg = document.getElementById('drawerImg');
+  const drawerStep = document.getElementById('drawerStep');
+  const drawerTitle = document.getElementById('drawerTitle');
+  const drawerSubtitle = document.getElementById('drawerSubtitle');
+  const drawerClose = document.getElementById('drawerClose');
+
+  function openDrawer(area) {
+    const img = area.querySelector('.card-image-preview');
+    if (!img) return;
+
+    const card = area.closest('.phase-card');
+    const step = card.querySelector('.card-step')?.textContent || '';
+    const title = card.querySelector('.card-title')?.textContent || '';
+    const subtitle = card.querySelector('.card-subtitle')?.textContent || '';
+
+    drawerImg.src = img.src;
+    drawerStep.textContent = step;
+    drawerTitle.textContent = title;
+    drawerSubtitle.textContent = subtitle;
+
+    resetZoom();
+    overlay.classList.add('is-open');
+    panel.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDrawer() {
+    overlay.classList.remove('is-open');
+    panel.classList.remove('is-open');
+    document.body.style.overflow = '';
+    resetZoom();
+  }
+
+  // ── Zoom & Pan ──
+  var zoomScale = 1;
+  var panX = 0, panY = 0;
+  var isDragging = false, dragStartX = 0, dragStartY = 0, panStartX = 0, panStartY = 0;
+  var drawerBody = document.getElementById('drawerBody');
+  var zoomLevelEl = document.getElementById('zoomLevel');
+
+  function updateTransform() {
+    drawerImg.style.transform = 'scale(' + zoomScale + ') translate(' + (panX / zoomScale) + 'px, ' + (panY / zoomScale) + 'px)';
+    drawerImg.style.transition = isDragging ? 'none' : 'transform 0.15s ease';
+    zoomLevelEl.textContent = Math.round(zoomScale * 100) + '%';
+  }
+
+  function resetZoom() {
+    zoomScale = 1; panX = 0; panY = 0;
+    updateTransform();
+  }
+
+  function zoomTo(newScale) {
+    zoomScale = Math.max(0.25, Math.min(5, newScale));
+    if (zoomScale === 1) { panX = 0; panY = 0; }
+    updateTransform();
+  }
+
+  document.getElementById('zoomIn').addEventListener('click', function() { zoomTo(zoomScale * 1.3); });
+  document.getElementById('zoomOut').addEventListener('click', function() { zoomTo(zoomScale / 1.3); });
+  document.getElementById('zoomReset').addEventListener('click', resetZoom);
+
+  // Scroll wheel zoom
+  drawerBody.addEventListener('wheel', function(e) {
+    e.preventDefault();
+    var delta = e.deltaY > 0 ? 0.9 : 1.1;
+    zoomTo(zoomScale * delta);
+  }, { passive: false });
+
+  // Double-click to toggle zoom
+  drawerBody.addEventListener('dblclick', function() {
+    if (zoomScale > 1.05) { resetZoom(); }
+    else { zoomTo(2.5); }
+  });
+
+  // Pan with mouse drag
+  drawerBody.addEventListener('mousedown', function(e) {
+    if (zoomScale <= 1) return;
+    isDragging = true;
+    dragStartX = e.clientX; dragStartY = e.clientY;
+    panStartX = panX; panStartY = panY;
+    drawerBody.classList.add('is-dragging');
+  });
+  window.addEventListener('mousemove', function(e) {
+    if (!isDragging) return;
+    panX = panStartX + (e.clientX - dragStartX);
+    panY = panStartY + (e.clientY - dragStartY);
+    updateTransform();
+  });
+  window.addEventListener('mouseup', function() {
+    if (!isDragging) return;
+    isDragging = false;
+    drawerBody.classList.remove('is-dragging');
+  });
+
+  overlay.addEventListener('click', closeDrawer);
+  drawerClose.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeDrawer();
+  });
+
+  // Click on image area opens drawer (only if has image)
+  document.querySelectorAll('.card-image-area').forEach(area => {
+    area.addEventListener('click', function(e) {
+      // If clicking the file input, let it handle naturally
+      if (e.target.tagName === 'INPUT') return;
+      if (this.classList.contains('has-image')) {
+        e.preventDefault();
+        e.stopPropagation();
+        openDrawer(this);
+      }
+    });
+  });
+
+  // ── Image upload handler (persists to server) ──
+  var BU_SLUG = 'branding';
+
+  function handleImageUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const area = input.closest('.card-image-area');
+    const step = area.getAttribute('data-step');
+
+    // Show preview immediately
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      setCardImage(area, e.target.result);
+    };
+    reader.readAsDataURL(file);
+
+    // Persist to server
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('bu', BU_SLUG);
+    formData.append('step', step);
+
+    fetch('/api/metodo-upload', { method: 'POST', body: formData })
+      .then(r => r.json())
+      .then(data => {
+        if (data.url) {
+          setCardImage(area, data.url);
+        }
+      })
+      .catch(err => console.warn('Upload failed, image shown locally only', err));
+  }
+
+  function setCardImage(area, src) {
+    area.classList.add('has-image');
+    const placeholder = area.querySelector('.card-image-placeholder');
+    const existingImg = area.querySelector('.card-image-preview');
+    if (existingImg) existingImg.remove();
+
+    const img = document.createElement('img');
+    img.className = 'card-image-preview';
+    img.src = src;
+    img.alt = 'Visual da etapa';
+    area.insertBefore(img, placeholder);
+    placeholder.style.display = 'none';
+  }
+
+  // Load saved images from server on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/metodo-upload?bu=' + BU_SLUG)
+      .then(r => r.json())
+      .then(images => {
+        document.querySelectorAll('.card-image-area').forEach(area => {
+          const step = area.getAttribute('data-step');
+          if (images[step]) {
+            setCardImage(area, images[step]);
+          }
+        });
+      })
+      .catch(() => {});
+  });
+
+  // Prevent context menu / inspect
   document.addEventListener('contextmenu', e => e.preventDefault());
   document.addEventListener('keydown', e => {
     if (e.key === 'F12') e.preventDefault();

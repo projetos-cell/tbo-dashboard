@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jornada do Lançamento Imobiliário — TBO</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--orange:#e85102;--orange-light:#fd8241;--orange-pale:#fed5c0;--orange-deep:#be4202;--orange-dark:#3f1601;--black:#0f0f0f;--gray-900:#1a1a1a;--gray-800:#2a2a2a;--gray-700:#444;--gray-600:#606060;--gray-500:#808080;--gray-400:#9f9f9f;--gray-300:#c4c4c4;--gray-200:#dfdfdf;--gray-100:#eaeaea;--gray-50:#f4f4f2;--white:#fafaf8;--bg:#f4f4f2;--card-border:rgba(0,0,0,0.06);--divider:rgba(0,0,0,0.05)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--gray-900);font-family:'Plus Jakarta Sans','Helvetica Neue',Helvetica,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased}
+
+/* TOPBAR */
+.topbar{position:fixed;top:0;left:0;right:0;height:56px;background:var(--white);border-bottom:1px solid var(--divider);display:flex;align-items:center;justify-content:space-between;padding:0 48px;z-index:200}
+.topbar-left{display:flex;align-items:center;gap:20px}
+.topbar-logo{font-size:13px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--orange)}
+.topbar-divider{width:1px;height:16px;background:rgba(0,0,0,0.1)}
+.topbar-title{font-size:12px;font-weight:400;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray-500)}
+.topbar-right{display:flex;align-items:center;gap:20px}
+.topbar-tagline{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--gray-400)}
+.mode-toggle{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1px solid rgba(0,0,0,0.08);background:transparent;color:var(--gray-500);font-family:inherit;font-size:10px;font-weight:500;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .3s}
+.mode-toggle:hover{border-color:var(--orange);color:var(--orange)}
+.mode-toggle .icon-desktop{display:none}
+
+/* SCROLL */
+.scroll-wrapper{position:fixed;top:56px;left:0;right:0;bottom:40px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;cursor:grab}
+.scroll-wrapper:active{cursor:grabbing}
+.scroll-wrapper::-webkit-scrollbar{height:0}
+.container{display:flex;height:100%}
+
+/* SECTIONS */
+.section{scroll-snap-align:start;flex-shrink:0;height:100%;border-right:1px solid var(--divider);position:relative;display:flex;overflow:clip;contain:paint}
+.section:last-child{border-right:none}
+
+/* Hero = 100vw, same as phases */
+.section-hero{width:100vw}
+/* Phases = 100vw each */
+.section-phase{width:100vw}
+
+/* HERO INNER */
+.hero-inner{display:flex;flex-direction:column;justify-content:center;padding:0 80px;width:100%;position:relative}
+.hero-eyebrow{font-size:10px;font-weight:500;letter-spacing:4px;text-transform:uppercase;color:var(--orange);margin-bottom:24px}
+.hero-inner h1{font-size:48px;font-weight:800;letter-spacing:-2px;line-height:1.05;text-transform:uppercase;color:var(--gray-900)}
+.hero-inner h1 span{color:var(--orange)}
+.hero-sub{font-size:14px;font-weight:300;line-height:1.8;color:var(--gray-600);max-width:460px;margin-top:20px}
+.hero-diagram{display:flex;align-items:center;gap:0;margin-top:48px;padding-top:32px;border-top:1px solid var(--divider);max-width:520px}
+.hero-diagram-step{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1}
+.hero-diagram-dot{width:10px;height:10px;border-radius:50%;border:2px solid var(--gray-300);background:var(--white)}
+.hero-diagram-dot.active{background:var(--orange);border-color:var(--orange)}
+.hero-diagram-label{font-size:8px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray-500);text-align:center}
+.hero-diagram-line{flex:1;height:1px;background:var(--gray-300);min-width:16px;margin:0 -2px;margin-top:-12px}
+.hero-funnel{display:flex;gap:8px;margin-top:28px;flex-wrap:wrap}
+.hero-funnel-item{font-size:9px;font-weight:500;letter-spacing:1px;text-transform:uppercase;padding:5px 12px;border-radius:4px;border:1px solid var(--divider);color:var(--gray-500)}
+.hero-scroll-hint{position:absolute;bottom:40px;right:80px;display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--gray-400);animation:pulseH 2s ease infinite}
+@keyframes pulseH{0%,100%{opacity:.3}50%{opacity:1}}
+.hero-scroll-hint svg{animation:slideR 1.5s ease infinite}
+@keyframes slideR{0%,100%{transform:translateX(0)}50%{transform:translateX(5px)}}
+
+/* Next phase button */
+.next-btn{display:inline-flex;align-items:center;gap:10px;padding:12px 28px;border-radius:6px;background:var(--orange);color:#fff;font-family:inherit;font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;border:none;cursor:pointer;transition:all .25s;position:absolute;bottom:24px;right:48px;z-index:10;visibility:hidden}
+.next-btn.visible{visibility:visible}
+.next-btn:hover{background:var(--orange-deep);transform:translateX(4px)}
+.next-btn svg{transition:transform .25s}
+.next-btn:hover svg{transform:translateX(3px)}
+
+/* PHASE INNER - two column layout */
+.phase-inner{display:flex;width:100%;height:100%}
+.phase-left{width:380px;flex-shrink:0;padding:40px 40px 40px 48px;display:flex;flex-direction:column;border-right:1px solid var(--divider);overflow-y:auto}
+.phase-right{flex:1;padding:40px 48px;overflow-y:auto}
+
+/* Phase head (left column) */
+.phase-num{font-size:10px;font-weight:500;letter-spacing:4px;text-transform:uppercase;color:var(--gray-400);margin-bottom:6px}
+.phase-name{font-size:44px;font-weight:800;letter-spacing:-2px;line-height:.9;text-transform:uppercase}
+.p01 .phase-name{color:var(--gray-800)}
+.p02 .phase-name{color:var(--orange)}
+.p03 .phase-name{color:var(--gray-900)}
+.p04 .phase-name{color:var(--gray-700)}
+.phase-subtitle{font-size:11px;font-weight:300;color:var(--gray-500);margin-top:16px;line-height:1.7}
+
+/* Phase meta */
+.phase-meta{margin-top:24px;padding:16px 18px;border-radius:8px;border:1px solid var(--card-border);background:var(--white);display:flex;flex-direction:column;gap:12px}
+.meta-row{display:flex;align-items:flex-start;gap:10px}
+.meta-icon{width:16px;height:16px;flex-shrink:0;margin-top:1px;color:var(--gray-400)}
+.meta-label{font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--gray-400);margin-bottom:2px}
+.meta-value{font-size:11px;font-weight:400;color:var(--gray-700);line-height:1.5}
+.p02 .phase-meta{border-color:rgba(232,81,2,0.12)}
+.p02 .meta-icon{color:var(--orange-deep)}
+
+/* Buyer strip (left column) */
+.buyer-strip{margin-top:20px;padding:14px 16px;border-radius:8px;background:var(--white);border:1px solid var(--card-border);display:flex;align-items:flex-start;gap:12px}
+.buyer-icon{width:18px;height:18px;flex-shrink:0;color:var(--orange);margin-top:1px}
+.buyer-label{font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--orange-deep);margin-bottom:3px}
+.buyer-text{font-size:10.5px;font-weight:400;color:var(--gray-600);line-height:1.6}
+.p02 .buyer-strip{border-color:rgba(232,81,2,0.1);background:rgba(232,81,2,0.02)}
+
+/* Cards (right column) */
+.row-label{font-size:9px;font-weight:500;letter-spacing:3px;text-transform:uppercase;color:var(--gray-400);margin-bottom:14px;padding-left:2px}
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:32px}
+.row-divider{width:100%;height:1px;background:var(--divider);margin-bottom:16px;position:relative}
+.row-divider::before{content:'';position:absolute;left:0;top:0;width:32px;height:1px;background:var(--orange);opacity:.3}
+.card{padding:18px 20px;border-radius:8px;border:1px solid var(--card-border);background:var(--white);transition:all .3s cubic-bezier(.25,0,.25,1);position:relative}
+.card:hover{border-color:rgba(232,81,2,0.2);transform:translateY(-2px);box-shadow:0 4px 20px rgba(0,0,0,0.04)}
+.card::before{content:'';position:absolute;top:0;left:18px;right:18px;height:1px;background:transparent;transition:background .3s}
+.card:hover::before{background:var(--orange)}
+.card-index{font-size:9px;font-weight:600;letter-spacing:2px;color:var(--gray-400);margin-bottom:8px;text-transform:uppercase}
+.card-title{font-size:13px;font-weight:600;color:var(--gray-900);line-height:1.3;margin-bottom:6px;letter-spacing:-.2px}
+.card-desc{font-size:10.5px;font-weight:300;line-height:1.6;color:var(--gray-500)}
+.card.primary{border-color:rgba(232,81,2,0.1);background:rgba(232,81,2,0.015)}
+.card.primary::before{background:var(--orange);opacity:.25}
+.card.primary:hover::before{opacity:1}
+.card.primary .card-title{font-size:14px}
+.card.primary .card-index{color:var(--orange-deep)}
+.p02 .card{border-color:rgba(232,81,2,0.06)}
+.p02 .card:hover{border-color:rgba(232,81,2,0.2)}
+.p02 .card-index{color:var(--orange-deep)}
+.p02 .card.primary{border-color:rgba(232,81,2,0.14);background:rgba(232,81,2,0.025)}
+
+/* BOTTOMBAR */
+.bottombar{position:fixed;bottom:0;left:0;right:0;height:40px;background:var(--white);border-top:1px solid var(--divider);display:flex;align-items:center;justify-content:space-between;padding:0 48px;z-index:200}
+.phase-nav{display:flex;gap:0}
+.phase-nav-item{padding:8px 20px;font-size:10px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray-400);cursor:pointer;transition:color .2s;border-right:1px solid var(--divider);position:relative}
+.phase-nav-item:last-child{border-right:none}
+.phase-nav-item:hover{color:var(--gray-900)}
+.phase-nav-item.active{color:var(--orange)}
+.phase-nav-item.active::after{content:'';position:absolute;bottom:-1px;left:20px;right:20px;height:1px;background:var(--orange)}
+.scroll-indicator{display:flex;align-items:center;gap:12px}
+.scroll-track{width:120px;height:2px;background:rgba(0,0,0,0.06);border-radius:1px;overflow:hidden}
+.scroll-thumb{height:100%;width:20%;background:var(--orange);border-radius:1px;transition:transform .15s}
+.scroll-pct{font-size:10px;color:var(--gray-400);font-variant-numeric:tabular-nums;min-width:28px;text-align:right}
+
+/* MOBILE */
+body.mobile-mode .scroll-wrapper{overflow:hidden;scroll-snap-type:none;cursor:default}
+body.mobile-mode .container{flex-direction:column;height:auto}
+body.mobile-mode .section{width:100%!important;height:calc(100vh - 96px);display:none;flex-direction:column}
+body.mobile-mode .section.mob-active{display:flex}
+body.mobile-mode .phase-inner{flex-direction:column;height:100%}
+body.mobile-mode .phase-left{width:100%;border-right:none;padding:28px 24px 16px;flex-shrink:0;overflow-y:visible;height:auto}
+body.mobile-mode .phase-right{padding:16px 24px;overflow-y:auto;flex:1}
+body.mobile-mode .phase-name{font-size:36px}
+body.mobile-mode .hero-inner{padding:0 28px}
+body.mobile-mode .hero-inner h1{font-size:34px}
+body.mobile-mode .hero-scroll-hint{display:none}
+body.mobile-mode .cards-grid{grid-template-columns:1fr}
+body.mobile-mode .topbar{padding:0 24px}
+body.mobile-mode .topbar-tagline{display:none}
+body.mobile-mode .bottombar{padding:0 12px}
+body.mobile-mode .phase-nav{flex:1}
+body.mobile-mode .phase-nav-item{padding:8px 6px;font-size:8px;letter-spacing:1px;flex:1;text-align:center}
+body.mobile-mode .scroll-indicator{display:none}
+body.mobile-mode .mode-toggle .icon-mobile{display:none}
+body.mobile-mode .mode-toggle .icon-desktop{display:block}
+.mob-nav{display:none;align-items:center;gap:10px}
+body.mobile-mode .mob-nav{display:flex}
+.mob-nav-btn{width:32px;height:24px;border:1px solid rgba(0,0,0,0.08);border-radius:4px;background:transparent;color:var(--gray-500);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.mob-nav-btn:hover{border-color:var(--orange);color:var(--orange)}
+.mob-nav-counter{font-size:10px;color:var(--gray-400);font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <svg class="topbar-logo-svg" height="22" viewBox="0 0 367.82 143.27" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="tboG1" x1="26.8" y1="58.18" x2="81.91" y2="58.18" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#e85102"/><stop offset="1" stop-color="#ec7602"/></linearGradient></defs><text fill="#0f0f0f" font-family="'Plus Jakarta Sans','Helvetica Neue',sans-serif" font-weight="800" font-size="110" transform="translate(113.24 113.18)">tbo</text><circle fill="#0f0f0f" cx="65.16" cy="97.84" r="14.16"/><circle fill="#0f0f0f" cx="15.87" cy="46.43" r="14.16"/><circle fill="#0f0f0f" cx="14.16" cy="98.48" r="14.16"/><path fill="url(#tboG1)" d="M55.01,73.86s0-.3.04-.75c.02-.14.03-.27.04-.41.22-1.95-1.02-8.08,2.27-11.37,2.33-2.33,5.52-3.11,8.75-2.66,1.93.27,3.91.21,5.78-.36,2.15-.65,4.17-1.82,5.87-3.52,5.53-5.53,5.53-14.5,0-20.03-5.53-5.53-14.5-5.53-20.03,0-1.7,1.7-2.87,3.72-3.52,5.87-.57,1.87-.63,3.84-.36,5.78.45,3.23-.32,6.42-2.66,8.75-3.29,3.29-9.42,2.06-11.37,2.27-.14.01-.27.02-.41.04-.45.04-.75.04-.75.04l.06.06c-3.78.61-7.37,2.73-9.75,6.44-2.94,4.58-2.91,10.67.09,15.21.57.87,1.22,1.63,1.91,2.33.69.69,1.46,1.34,2.33,1.91,4.54,3,10.63,3.03,15.21.09,3.7-2.37,5.83-5.96,6.44-9.75l.06.06Z"/></svg>
+    <div class="topbar-divider"></div>
+    <div class="topbar-title">Jornada do Lançamento Imobiliário</div>
+  </div>
+  <div class="topbar-right">
+    <span class="topbar-tagline">think · build · own</span>
+    <button class="mode-toggle" onclick="toggleMode()">
+      <svg class="icon-mobile" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>
+      <svg class="icon-desktop" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      <span id="toggleLabel">Mobile</span>
+    </button>
+  </div>
+</div>
+
+<div class="scroll-wrapper" id="sw">
+<div class="container">
+
+<!-- ===== INTRO (85vw — teases next) ===== -->
+<div class="section section-hero mob-active" data-step="0">
+  <div class="hero-inner">
+    <div class="hero-eyebrow">Lançamento imobiliário</div>
+    <h1>DO CONCEITO<br>AO <span>SOLD OUT</span></h1>
+    <div class="hero-sub">Cada lançamento é uma operação em quatro fases. Em cada fase, o comprador está num estágio diferente de decisão — e cada ponto de contato precisa ser cirúrgico. É assim que a TBO conduz o processo.</div>
+    <div class="hero-diagram">
+      <div class="hero-diagram-step"><div class="hero-diagram-dot active"></div><div class="hero-diagram-label">Breve lançamento</div></div>
+      <div class="hero-diagram-line"></div>
+      <div class="hero-diagram-step"><div class="hero-diagram-dot active"></div><div class="hero-diagram-label">Pré lançamento</div></div>
+      <div class="hero-diagram-line"></div>
+      <div class="hero-diagram-step"><div class="hero-diagram-dot active"></div><div class="hero-diagram-label">Lançamento</div></div>
+      <div class="hero-diagram-line"></div>
+      <div class="hero-diagram-step"><div class="hero-diagram-dot"></div><div class="hero-diagram-label">Sustentação</div></div>
+    </div>
+    <div class="hero-funnel">
+      <div class="hero-funnel-item">Desconhecimento → Curiosidade → Desejo → Decisão → Fidelização</div>
+    </div>
+  </div>
+  <button class="next-btn" onclick="goToStep(1)">
+    Breve lançamento
+    <svg width="18" height="12" viewBox="0 0 18 12" fill="none"><path d="M1 6h14M12 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+</div>
+
+<!-- ===== FASE 01 — BREVE LANÇAMENTO ===== -->
+<div class="section section-phase p01" data-step="1">
+  <div class="phase-inner">
+    <div class="phase-left">
+      <div class="phase-num">Fase 01 · 30–45 dias</div>
+      <div class="phase-name">Breve lançamento</div>
+      <div class="phase-subtitle">O empreendimento vai ao mercado pela primeira vez. Nome, logotipo, conceito e hotsite são revelados. A comunicação "em breve" gera os primeiros leads e posiciona o produto antes da abertura oficial de vendas.</div>
+      <div class="phase-meta">
+        <div class="meta-row">
+          <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          <div><div class="meta-label">Entregas</div><div class="meta-value">Hotsite ativo, campanha "em breve" rodando, primeiros leads na base, identidade no mercado</div></div>
+        </div>
+        <div class="meta-row">
+          <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          <div><div class="meta-label">Pré-requisitos prontos</div><div class="meta-value">Naming, brandbook, imagens 3D, filme, book de vendas e planejamento de campanha</div></div>
+        </div>
+      </div>
+      <div class="buyer-strip">
+        <svg class="buyer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        <div><div class="buyer-label">O comprador nesta fase</div><div class="buyer-text">Descobre que algo novo está chegando. Vê o nome, o logo e o conceito pela primeira vez. A curiosidade se ativa — ele se cadastra para saber mais.</div></div>
+      </div>
+    </div>
+    <div class="phase-right">
+      <div class="row-label">Revelação & posicionamento</div>
+      <div class="cards-grid">
+        <div class="card primary"><div class="card-index">01.1</div><div class="card-title">Lançamento da marca</div><div class="card-desc">Nome, logotipo e conceito vão ao mercado. Primeira impressão pública — a identidade começa a construir percepção de valor.</div></div>
+        <div class="card primary"><div class="card-index">01.2</div><div class="card-title">Hotsite "em breve"</div><div class="card-desc">Site com conceito, primeiras imagens e formulário de interesse. Integrado ao CRM para qualificação automática dos leads.</div></div>
+        <div class="card primary"><div class="card-index">01.3</div><div class="card-title">Campanha digital — breve</div><div class="card-desc">Peças em Meta e Google com comunicação "em breve": imagens conceituais, localização e captação de leads de interesse.</div></div>
+        <div class="card"><div class="card-index">01.4</div><div class="card-title">OOH — comunicação de chegada</div><div class="card-desc">Outdoors e painéis na região sinalizando que algo novo está chegando. Presença física antes da revelação completa.</div></div>
+        <div class="card"><div class="card-index">01.5</div><div class="card-title">Assessoria de imprensa</div><div class="card-desc">Releases para portais de arquitetura e mercado imobiliário. Cobertura editorial do novo produto.</div></div>
+      </div>
+      <div class="row-divider"></div>
+      <div class="row-label">Aquecimento & inteligência</div>
+      <div class="cards-grid">
+        <div class="card"><div class="card-index">01.6</div><div class="card-title">Social media — storytelling</div><div class="card-desc">Conteúdo editorial sobre o bairro, o conceito e o estilo de vida. Construção de desejo e narrativa.</div></div>
+        <div class="card"><div class="card-index">01.7</div><div class="card-title">E-mail de aquecimento</div><div class="card-desc">Primeiras comunicações para a base: apresentação do conceito, localização e convite para acompanhar novidades.</div></div>
+        <div class="card"><div class="card-index">01.8</div><div class="card-title">Qualificação de leads</div><div class="card-desc">Segmentação por perfil e interesse. Identificação dos leads mais quentes para priorização no pré-lançamento.</div></div>
+        <div class="card"><div class="card-index">01.9</div><div class="card-title">Monitoramento de mercado</div><div class="card-desc">Acompanhamento da reação do mercado e concorrentes. Ajustes de comunicação em tempo real.</div></div>
+      </div>
+    </div>
+  </div>
+  <button class="next-btn" onclick="goToStep(2)">Pré lançamento <svg width="18" height="12" viewBox="0 0 18 12" fill="none"><path d="M1 6h14M12 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+</div>
+
+<!-- ===== FASE 02 — PRÉ LANÇAMENTO ===== -->
+<div class="section section-phase p02" data-step="2">
+  <div class="phase-inner">
+    <div class="phase-left">
+      <div class="phase-num">Fase 02 · 3–4 semanas antes do dia D</div>
+      <div class="phase-name">Pré lançamento</div>
+      <div class="phase-subtitle">A comunicação evolui de "em breve" para revelação progressiva. Materiais completos disponíveis. Foco em aquecer a base, apresentar para investidores e preparar a operação comercial para o dia D.</div>
+      <div class="phase-meta">
+        <div class="meta-row">
+          <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          <div><div class="meta-label">Entregas</div><div class="meta-value">Revelação progressiva do produto, evento para investidores, base qualificada e aquecida, stand pronto</div></div>
+        </div>
+        <div class="meta-row">
+          <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          <div><div class="meta-label">Meta</div><div class="meta-value">Base aquecida de leads pré-lançamento e equipe comercial 100% preparada</div></div>
+        </div>
+      </div>
+      <div class="buyer-strip">
+        <svg class="buyer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        <div><div class="buyer-label">O comprador nesta fase</div><div class="buyer-text">Já sabe que o empreendimento existe. Agora recebe imagens completas, detalhes de planta e localização. A curiosidade vira desejo. Os mais decididos querem condições de antecipação.</div></div>
+      </div>
+    </div>
+    <div class="phase-right">
+      <div class="row-label">Revelação progressiva</div>
+      <div class="cards-grid">
+        <div class="card primary"><div class="card-index">02.1</div><div class="card-title">Campanha de revelação</div><div class="card-desc">Imagens 3D completas, detalhes de planta, diferenciais. De "em breve" para "conheça". Tráfego pago com intensidade crescente.</div></div>
+        <div class="card primary"><div class="card-index">02.2</div><div class="card-title">Evento exclusivo — investidores</div><div class="card-desc">Apresentação fechada para investidores e corretores. Acesso ao book, filme e condições especiais de antecipação.</div></div>
+        <div class="card"><div class="card-index">02.3</div><div class="card-title">Hotsite completo</div><div class="card-desc">Galeria completa de imagens 3D, plantas, tour virtual, tabela e integração com agendamento de visita.</div></div>
+        <div class="card"><div class="card-index">02.4</div><div class="card-title">OOH — revelação</div><div class="card-desc">Atualização de outdoors e painéis com imagens do empreendimento, logo consolidado e chamada para o hotsite.</div></div>
+      </div>
+      <div class="row-divider"></div>
+      <div class="row-label">Preparação comercial</div>
+      <div class="cards-grid">
+        <div class="card primary"><div class="card-index">02.5</div><div class="card-title">Treinamento de corretores</div><div class="card-desc">Capacitação com book, filme, argumentário, objeções e tabela. Equipe pronta para o dia D.</div></div>
+        <div class="card"><div class="card-index">02.6</div><div class="card-title">E-mail de revelação</div><div class="card-desc">Sequência para base captada no breve: imagens completas, planta e convite para evento ou visita antecipada.</div></div>
+        <div class="card"><div class="card-index">02.7</div><div class="card-title">Social media — produto</div><div class="card-desc">Carrosséis com imagens 3D, vídeo conceitual, diferenciais e destaques arquitetônicos.</div></div>
+        <div class="card"><div class="card-index">02.8</div><div class="card-title">Preparação do stand</div><div class="card-desc">Ambientação do ponto de venda: sinalização, totens, banners e experiência sensorial alinhada ao conceito.</div></div>
+      </div>
+    </div>
+  </div>
+  <button class="next-btn" onclick="goToStep(3)">Lançamento <svg width="18" height="12" viewBox="0 0 18 12" fill="none"><path d="M1 6h14M12 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+</div>
+
+<!-- ===== FASE 03 — LANÇAMENTO ===== -->
+<div class="section section-phase p03" data-step="3">
+  <div class="phase-inner">
+    <div class="phase-left">
+      <div class="phase-num">Fase 03 · Dia D + 4–8 semanas</div>
+      <div class="phase-name">Lançamento</div>
+      <div class="phase-subtitle">Revelação total. Todos os canais ativados com intensidade máxima. Evento presencial, campanha full-funnel e operação comercial em velocidade total. O momento de maior concentração de investimento e resultado.</div>
+      <div class="phase-meta">
+        <div class="meta-row">
+          <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          <div><div class="meta-label">Entregas</div><div class="meta-value">Campanha multicanal, evento de lançamento, stand ativo, dashboard de performance em tempo real</div></div>
+        </div>
+        <div class="meta-row">
+          <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          <div><div class="meta-label">Indicadores</div><div class="meta-value">Leads/dia, CPL, agendamentos, visitas, propostas, unidades vendidas</div></div>
+        </div>
+      </div>
+      <div class="buyer-strip">
+        <svg class="buyer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        <div><div class="buyer-label">O comprador nesta fase</div><div class="buyer-text">Vê tudo: imagens, preço, planta, localização, filme. Compara opções, visita o stand, recebe proposta. É a janela de decisão — cada touchpoint confirma o desejo e reduz a objeção.</div></div>
+      </div>
+      </div>
+    <div class="phase-right">
+      <div class="row-label">Ativação & evento</div>
+      <div class="cards-grid">
+        <div class="card primary"><div class="card-index">03.1</div><div class="card-title">Evento de lançamento</div><div class="card-desc">Experiência imersiva: projeção do filme, maquete, tour virtual, atendimento e condições exclusivas.</div></div>
+        <div class="card primary"><div class="card-index">03.2</div><div class="card-title">Campanha full-funnel</div><div class="card-desc">Google, Meta, programática e remarketing com intensidade máxima. Criativos segmentados por público e estágio.</div></div>
+        <div class="card primary"><div class="card-index">03.3</div><div class="card-title">Mídia off — OOH</div><div class="card-desc">Outdoors, busdoors, painéis de LED e empenas nos principais corredores. Presença inescapável.</div></div>
+        <div class="card"><div class="card-index">03.4</div><div class="card-title">Assessoria de imprensa</div><div class="card-desc">Cobertura do evento, matérias em veículos especializados e conteúdo para portais.</div></div>
+        <div class="card"><div class="card-index">03.5</div><div class="card-title">Social media — lançamento</div><div class="card-desc">Cobertura em stories/reels, posts de revelação, tour virtual ao vivo e interação com audiência.</div></div>
+      </div>
+      <div class="row-divider"></div>
+      <div class="row-label">Performance & conversão</div>
+      <div class="cards-grid">
+        <div class="card primary"><div class="card-index">03.6</div><div class="card-title">Gestão de leads em tempo real</div><div class="card-desc">Qualificação, scoring e distribuição automática para corretores via CRM. Lead quente não espera.</div></div>
+        <div class="card primary"><div class="card-index">03.7</div><div class="card-title">Dashboard de performance</div><div class="card-desc">Relatório diário: leads, CPL, agendamentos, visitas, propostas, conversão e ROAS por canal.</div></div>
+        <div class="card"><div class="card-index">03.8</div><div class="card-title">E-mail de conversão</div><div class="card-desc">Sequências para leads quentes: convite para visita, condições de lançamento e plantas disponíveis.</div></div>
+        <div class="card"><div class="card-index">03.9</div><div class="card-title">Otimização de criativos</div><div class="card-desc">A/B testing contínuo de peças, copies e audiências. Redistribuição de budget por performance.</div></div>
+        <div class="card"><div class="card-index">03.10</div><div class="card-title">Material de PDV</div><div class="card-desc">Banners, totens, sinalização e ambientação completa do stand alinhada ao conceito.</div></div>
+      </div>
+    </div>
+  </div>
+  <button class="next-btn" onclick="goToStep(4)">Sustentação <svg width="18" height="12" viewBox="0 0 18 12" fill="none"><path d="M1 6h14M12 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+</div>
+
+<!-- ===== FASE 04 — SUSTENTAÇÃO ===== -->
+<div class="section section-phase p04" data-step="4">
+  <div class="phase-inner">
+    <div class="phase-left">
+      <div class="phase-num">Fase 04 · 3–12+ meses</div>
+      <div class="phase-name">Sustentação</div>
+      <div class="phase-subtitle">O pico passou, mas as vendas continuam. Campanha otimizada, conteúdo editorial, acompanhamento de obra e pós-venda. Do remarketing à última unidade — e à preparação do próximo lançamento.</div>
+      <div class="phase-meta">
+        <div class="meta-row">
+          <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          <div><div class="meta-label">Entregas</div><div class="meta-value">Remarketing, conteúdo editorial, reports mensais, programa de indicação, base para próximo lançamento</div></div>
+        </div>
+        <div class="meta-row">
+          <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          <div><div class="meta-label">Indicadores</div><div class="meta-value">Custo por venda, ROI acumulado, estoque restante, NPS, taxa de indicação</div></div>
+        </div>
+      </div>
+      <div class="buyer-strip">
+        <svg class="buyer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        <div><div class="buyer-label">O comprador nesta fase</div><div class="buyer-text">O indeciso precisa de reforço: prova social, updates de obra e urgência. O comprador que já fechou quer acompanhar a obra e ter certeza da escolha. Cada update transforma comprador em embaixador.</div></div>
+      </div>
+    </div>
+    <div class="phase-right">
+      <div class="row-label">Campanha & conversão contínua</div>
+      <div class="cards-grid">
+        <div class="card primary"><div class="card-index">04.1</div><div class="card-title">Remarketing inteligente</div><div class="card-desc">Campanhas segmentadas por estágio de funil. Budget otimizado para leads que já interagiram com o empreendimento.</div></div>
+        <div class="card primary"><div class="card-index">04.2</div><div class="card-title">Conteúdo editorial</div><div class="card-desc">Updates da obra, lifestyle do bairro, depoimentos de compradores. Conteúdo que mantém a marca viva.</div></div>
+        <div class="card"><div class="card-index">04.3</div><div class="card-title">Campanha de últimas unidades</div><div class="card-desc">Comunicação de escassez, condições especiais de fechamento e senso de urgência.</div></div>
+        <div class="card"><div class="card-index">04.4</div><div class="card-title">Gestão de obra como conteúdo</div><div class="card-desc">Drone, timelapse, marcos construtivos. Tangibilidade que alimenta todos os canais.</div></div>
+        <div class="card"><div class="card-index">04.5</div><div class="card-title">E-mail de nutrição</div><div class="card-desc">Fluxos para leads frios: novidades da obra, condições atualizadas e cases de compradores.</div></div>
+      </div>
+      <div class="row-divider"></div>
+      <div class="row-label">Pós-venda & expansão</div>
+      <div class="cards-grid">
+        <div class="card primary"><div class="card-index">04.6</div><div class="card-title">Reports mensais</div><div class="card-desc">Vendas atribuídas, ROI acumulado, custo por venda e recomendações estratégicas para o próximo período.</div></div>
+        <div class="card primary"><div class="card-index">04.7</div><div class="card-title">Programa de indicação</div><div class="card-desc">Mecânica de incentivo para compradores indicarem. Cada comprador satisfeito vira canal de aquisição.</div></div>
+        <div class="card"><div class="card-index">04.8</div><div class="card-title">Comunidade de compradores</div><div class="card-desc">Grupo exclusivo com updates, enquetes e relacionamento direto até a entrega das chaves.</div></div>
+        <div class="card"><div class="card-index">04.9</div><div class="card-title">Conteúdo de entrega</div><div class="card-desc">Cobertura da entrega: vídeos, depoimentos e conteúdo emocional que fecha o ciclo.</div></div>
+        <div class="card"><div class="card-index">04.10</div><div class="card-title">Base para próximo lançamento</div><div class="card-desc">Compradores e leads não-convertidos formam a base mais qualificada para o próximo empreendimento.</div></div>
+      </div>
+    </div>
+  </div>
+  <button class="next-btn" onclick="goToStep(0)">Voltar ao início <svg width="18" height="12" viewBox="0 0 18 12" fill="none"><path d="M17 6H3M6 1L1 6l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+</div>
+
+</div>
+</div>
+
+<div class="bottombar">
+  <div class="phase-nav">
+    <div class="phase-nav-item active" data-target="0">Intro</div>
+    <div class="phase-nav-item" data-target="1">Breve lançamento</div>
+    <div class="phase-nav-item" data-target="2">Pré lançamento</div>
+    <div class="phase-nav-item" data-target="3">Lançamento</div>
+    <div class="phase-nav-item" data-target="4">Sustentação</div>
+  </div>
+  <div class="scroll-indicator">
+    <div class="scroll-track"><div class="scroll-thumb" id="thumb"></div></div>
+    <div class="scroll-pct" id="pct">0%</div>
+  </div>
+  <div class="mob-nav">
+    <button class="mob-nav-btn" onclick="mobStep(-1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <span class="mob-nav-counter" id="mobCounter">1 / 5</span>
+    <button class="mob-nav-btn" onclick="mobStep(1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg></button>
+  </div>
+</div>
+
+<script>
+const sw=document.getElementById('sw'),thumb=document.getElementById('thumb'),pctEl=document.getElementById('pct'),navItems=document.querySelectorAll('.phase-nav-item'),allSteps=document.querySelectorAll('[data-step]');
+let isMobile=false,currentMobStep=0;
+
+function updateButtons(activeIdx){
+  document.querySelectorAll('.next-btn').forEach(btn=>btn.classList.remove('visible'));
+  const activeSection=allSteps[activeIdx];
+  if(activeSection){const btn=activeSection.querySelector('.next-btn');if(btn)btn.classList.add('visible')}
+}
+// Show first button on load
+updateButtons(0);
+
+function goToStep(idx){
+  if(isMobile){showMobStep(idx)}
+  else{
+    let x=0;for(let i=0;i<idx;i++)x+=allSteps[i].offsetWidth;
+    sw.scrollTo({left:x,behavior:'smooth'});
+  }
+}
+
+function toggleMode(){
+  isMobile=!isMobile;
+  document.body.classList.toggle('mobile-mode',isMobile);
+  document.getElementById('toggleLabel').textContent=isMobile?'Desktop':'Mobile';
+  if(isMobile){currentMobStep=0;showMobStep(0)}
+  else{sw.scrollLeft=0;allSteps.forEach(s=>s.style.display='');allSteps.forEach(s=>s.classList.remove('mob-active'));updateScrollbar()}
+}
+function showMobStep(idx){
+  currentMobStep=Math.max(0,Math.min(idx,allSteps.length-1));
+  allSteps.forEach(s=>s.classList.remove('mob-active'));
+  allSteps[currentMobStep].classList.add('mob-active');
+  navItems.forEach(n=>n.classList.remove('active'));
+  navItems[currentMobStep].classList.add('active');
+  document.getElementById('mobCounter').textContent=(currentMobStep+1)+' / '+allSteps.length;
+  const pr=allSteps[currentMobStep].querySelector('.phase-right');if(pr)pr.scrollTop=0;
+  updateButtons(currentMobStep);
+}
+function mobStep(dir){showMobStep(currentMobStep+dir)}
+function updateScrollbar(){
+  if(isMobile)return;
+  const max=sw.scrollWidth-sw.clientWidth;
+  const pct=max>0?sw.scrollLeft/max:0;
+  thumb.style.transform='translateX('+(pct*400)+'%)';
+  pctEl.textContent=Math.round(pct*100)+'%';
+}
+sw.addEventListener('scroll',()=>{
+  if(isMobile)return;
+  updateScrollbar();
+  // Detect active section
+  const swRect=sw.getBoundingClientRect();
+  const center=sw.scrollLeft+swRect.width/2;
+  let cumX=0;
+  allSteps.forEach((s,i)=>{
+    const start=cumX,end=cumX+s.offsetWidth;
+    if(center>=start&&center<end){navItems.forEach(n=>n.classList.remove('active'));navItems[i].classList.add('active');updateButtons(i)}
+    cumX=end;
+  });
+});
+navItems.forEach(item=>{
+  item.addEventListener('click',()=>{
+    const idx=parseInt(item.dataset.target);
+    if(isMobile){showMobStep(idx)}
+    else{
+      let x=0;for(let i=0;i<idx;i++)x+=allSteps[i].offsetWidth;
+      sw.scrollTo({left:x,behavior:'smooth'});
+    }
+  });
+});
+// Drag scroll
+let isDown=false,startX,scrollLeft;
+sw.addEventListener('mousedown',e=>{if(isMobile)return;isDown=true;startX=e.pageX;scrollLeft=sw.scrollLeft});
+sw.addEventListener('mouseleave',()=>isDown=false);sw.addEventListener('mouseup',()=>isDown=false);
+sw.addEventListener('mousemove',e=>{if(!isDown||isMobile)return;e.preventDefault();sw.scrollLeft=scrollLeft-(e.pageX-startX)*1.5});
+sw.addEventListener('wheel',e=>{if(isMobile)return;e.preventDefault();sw.scrollLeft+=e.deltaY*2.5},{passive:false});
+// Touch swipe mobile
+let touchStartX=0;
+sw.addEventListener('touchstart',e=>{if(!isMobile)return;touchStartX=e.touches[0].clientX});
+sw.addEventListener('touchend',e=>{if(!isMobile)return;const diff=touchStartX-e.changedTouches[0].clientX;if(Math.abs(diff)>60){diff>0?mobStep(1):mobStep(-1)}});
+</script>
+</body>
+</html>

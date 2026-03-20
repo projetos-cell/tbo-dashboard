@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TBO — Fluxo de Projeto · Imagens 3D</title>
+<style>
+  :root {
+    --orange: #E85102;
+    --orange-light: #FED5C0;
+    --orange-mid: #FD8241;
+    --orange-dark: #BE4202;
+    --orange-deep: #3F1601;
+    --orange-glow: rgba(232, 81, 2, 0.10);
+    --orange-soft: rgba(232, 81, 2, 0.05);
+
+    --neutral-50: #FAFAFA;
+    --neutral-100: #F4F4F5;
+    --neutral-200: #E4E4E7;
+    --neutral-300: #D4D4D8;
+    --neutral-400: #A1A1AA;
+    --neutral-500: #71717A;
+    --neutral-600: #52525B;
+    --neutral-700: #3F3F46;
+    --neutral-800: #27272A;
+    --neutral-900: #18181B;
+    --black: #0F0F0F;
+
+    --bg: #FAFAFA;
+    --surface: #FFFFFF;
+    --border: #E4E4E7;
+    --border-light: #F4F4F5;
+    --text: var(--neutral-900);
+    --text-secondary: var(--neutral-600);
+    --text-muted: var(--neutral-400);
+
+    --blue: #3B82F6;
+    --blue-soft: rgba(59, 130, 246, 0.06);
+    --green: #10B981;
+    --green-soft: rgba(16, 185, 129, 0.06);
+    --amber: #F59E0B;
+    --amber-soft: rgba(245, 158, 11, 0.06);
+    --purple: #8B5CF6;
+    --purple-soft: rgba(139, 92, 246, 0.06);
+
+    --radius: 12px;
+    --radius-sm: 8px;
+    --radius-xs: 6px;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
+    --shadow-lg: 0 12px 40px rgba(0,0,0,0.08);
+    --shadow-orange: 0 4px 24px rgba(232,81,2,0.12);
+
+    --font-title: 'HelveticaNeueLTPro-Roman', 'Helvetica Neue LT Pro', 'HelveticaNeue', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --font-body: 'HelveticaNeueLTPro-Lt', 'Helvetica Neue LT Pro Light', 'HelveticaNeue-Light', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-weight: 300;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: auto;
+    overflow-y: auto;
+  }
+
+  ::selection { background: rgba(232, 81, 2, 0.15); color: var(--black); }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(255,255,255,0.88); backdrop-filter: blur(24px) saturate(1.4);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px; display: flex; align-items: center; height: 56px; gap: 16px;
+  }
+  .topbar-logo { height: 22px; width: auto; flex-shrink: 0; }
+  .topbar-sep { width: 1px; height: 20px; background: var(--border); }
+  .topbar-title {
+    font-family: var(--font-title);
+    font-size: 13px; font-weight: 400; color: var(--text-secondary);
+    letter-spacing: -0.01em;
+  }
+  .topbar-title span { color: var(--text); }
+  .topbar-badge {
+    margin-left: auto;
+    font-family: var(--font-title); font-size: 11px; font-weight: 400;
+    color: var(--orange); background: var(--orange-soft);
+    border: 1px solid rgba(232,81,2,0.08);
+    padding: 4px 10px; border-radius: 20px;
+    letter-spacing: 0.02em;
+  }
+
+  /* ── MAIN ── */
+  .main { margin-top: 56px; }
+
+  /* ── HERO ── */
+  .hero {
+    padding: 48px 48px 0;
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 32px;
+  }
+  .hero-text { max-width: 560px; }
+  .hero-label {
+    font-family: var(--font-title); font-size: 11px; font-weight: 400;
+    color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .hero-label::before { content: ''; width: 6px; height: 6px; border-radius: 2px; background: var(--orange); }
+  .hero h1 {
+    font-family: var(--font-title);
+    font-size: 36px; font-weight: 400; line-height: 1.15; letter-spacing: -0.025em; color: var(--text);
+  }
+  .hero h1 em { font-style: normal; color: var(--text-secondary); }
+  .hero-desc { font-size: 14px; line-height: 1.7; color: var(--text-secondary); margin-top: 14px; max-width: 480px; }
+  .hero-stats { display: flex; gap: 24px; flex-shrink: 0; }
+  .stat {
+    text-align: center; padding: 16px 20px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); min-width: 88px;
+  }
+  .stat-num { font-family: var(--font-title); font-size: 28px; font-weight: 400; color: var(--text); letter-spacing: -0.03em; line-height: 1; }
+  .stat-label { font-family: var(--font-title); font-size: 11px; font-weight: 400; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 6px; }
+
+  /* ── TIMELINE GLOBAL ── */
+  .timeline-section {
+    padding: 24px 48px 0;
+  }
+  .timeline-bar-global {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow: hidden;
+  }
+  .tl-phases {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex: 1;
+    min-width: 0;
+  }
+  .tl-phase {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    min-width: 0;
+  }
+  .tl-phase-bar {
+    height: 6px;
+    border-radius: 3px;
+    width: 100%;
+    position: relative;
+  }
+  .tl-phase-label {
+    font-family: var(--font-title);
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+    margin-top: 8px;
+    white-space: nowrap;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tl-phase-days {
+    font-family: var(--font-title);
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text);
+    margin-bottom: 8px;
+    white-space: nowrap;
+    letter-spacing: -0.01em;
+  }
+  .tl-connector {
+    width: 8px;
+    flex-shrink: 0;
+    height: 6px;
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .tl-connector::before {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    top: 50%;
+    height: 2px;
+    background: var(--neutral-200);
+    transform: translateY(-50%);
+  }
+  .tl-total {
+    padding-left: 20px;
+    border-left: 1px solid var(--border);
+    margin-left: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .tl-total-num {
+    font-family: var(--font-title);
+    font-size: 32px;
+    font-weight: 400;
+    color: var(--orange);
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+  .tl-total-label {
+    font-family: var(--font-title);
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 4px;
+  }
+  @media (max-width: 900px) {
+    .tl-phase-label { font-size: 8px; }
+    .tl-phase-days { font-size: 9px; }
+    .tl-connector { width: 4px; }
+  }
+
+  /* ── PIPELINE ── */
+  .pipeline-wrapper { padding: 40px 48px 48px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .pipeline { display: flex; gap: 12px; align-items: stretch; min-width: max-content; }
+
+  /* ── CONNECTOR ── */
+  .connector { display: flex; align-items: center; flex-shrink: 0; width: 24px; position: relative; }
+  .connector::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1.5px; background: linear-gradient(90deg, var(--border), var(--neutral-300), var(--border)); }
+  .connector::after { content: ''; position: absolute; right: -1px; top: 50%; transform: translateY(-50%); width: 0; height: 0; border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-left: 6px solid var(--neutral-300); }
+
+  /* ── CARD ── */
+  .phase-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    min-width: 260px; max-width: 280px; flex-shrink: 0;
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: default; overflow: hidden;
+    display: flex; flex-direction: column;
+    animation: cardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .phase-card:hover { border-color: var(--neutral-300); box-shadow: var(--shadow-md); transform: translateY(-3px); }
+  .phase-card.is-start { background: var(--orange); border-color: var(--orange); min-width: 240px; }
+  .phase-card.is-start:hover { box-shadow: var(--shadow-orange); border-color: var(--orange-dark); }
+  .phase-card.is-end { background: var(--neutral-900); border-color: var(--neutral-900); min-width: 280px; }
+  .phase-card.is-end:hover { box-shadow: var(--shadow-lg); border-color: var(--neutral-700); }
+
+  /* ── CARD IMAGE AREA ── */
+  .card-image-area {
+    width: 100%;
+    height: 120px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.25s ease;
+  }
+  .card-image-area.has-image {
+    height: 140px;
+    cursor: pointer;
+  }
+  .card-image-area.has-image:hover { opacity: 0.88; }
+  .card-image-area input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 2;
+  }
+  .card-image-area.has-image input[type="file"] {
+    display: none;
+  }
+  .card-image-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: var(--neutral-50);
+    border-bottom: 1px solid var(--border-light);
+    transition: all 0.25s ease;
+  }
+  .card-image-area:not(.has-image):hover .card-image-placeholder {
+    background: var(--neutral-100);
+  }
+  .card-image-placeholder svg {
+    opacity: 0.3;
+    transition: opacity 0.25s ease;
+  }
+  .card-image-area:not(.has-image):hover .card-image-placeholder svg {
+    opacity: 0.5;
+  }
+  .card-image-placeholder span {
+    font-family: var(--font-title);
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .card-image-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  /* expand hint on hover */
+  .card-image-area.has-image::after {
+    content: '';
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    background: rgba(0,0,0,0.45) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7'/%3E%3C/svg%3E") no-repeat center;
+    background-size: 14px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .card-image-area.has-image:hover::after { opacity: 1; }
+
+  /* start/end card image variants */
+  .is-start .card-image-placeholder {
+    background: rgba(255,255,255,0.08);
+    border-bottom-color: rgba(255,255,255,0.12);
+  }
+  .is-start .card-image-area:not(.has-image):hover .card-image-placeholder {
+    background: rgba(255,255,255,0.14);
+  }
+  .is-start .card-image-placeholder svg { opacity: 0.25; }
+  .is-start .card-image-placeholder svg path,
+  .is-start .card-image-placeholder svg rect { stroke: rgba(255,255,255,0.5); }
+  .is-start .card-image-placeholder span { color: rgba(255,255,255,0.45); }
+
+  .is-end .card-image-placeholder {
+    background: rgba(255,255,255,0.04);
+    border-bottom-color: rgba(255,255,255,0.06);
+  }
+  .is-end .card-image-area:not(.has-image):hover .card-image-placeholder {
+    background: rgba(255,255,255,0.08);
+  }
+  .is-end .card-image-placeholder svg { opacity: 0.2; }
+  .is-end .card-image-placeholder svg path,
+  .is-end .card-image-placeholder svg rect { stroke: rgba(255,255,255,0.35); }
+  .is-end .card-image-placeholder span { color: rgba(255,255,255,0.3); }
+
+  /* ── IMAGE DRAWER ── */
+  .drawer-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0,0,0,0);
+    visibility: hidden;
+    transition: background 0.35s ease, visibility 0s 0.35s;
+  }
+  .drawer-overlay.is-open {
+    background: rgba(0,0,0,0.5);
+    visibility: visible;
+    transition: background 0.35s ease, visibility 0s 0s;
+  }
+  .drawer-panel {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: min(560px, 90vw);
+    z-index: 201;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    box-shadow: -20px 0 60px rgba(0,0,0,0.12);
+    transform: translateX(100%);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+  }
+  .drawer-panel.is-open {
+    transform: translateX(0);
+  }
+  .drawer-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .drawer-title-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .drawer-step {
+    width: 28px; height: 28px; border-radius: var(--radius-xs);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-title); font-size: 12px; font-weight: 400;
+    background: var(--neutral-100); color: var(--neutral-600); border: 1px solid var(--border);
+  }
+  .drawer-title {
+    font-family: var(--font-title);
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .drawer-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 1px;
+  }
+  .drawer-close {
+    width: 32px; height: 32px;
+    border-radius: var(--radius-xs);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+  .drawer-close:hover { background: var(--neutral-100); border-color: var(--neutral-300); }
+  .drawer-close svg { width: 16px; height: 16px; }
+  .drawer-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--neutral-50);
+  }
+  .drawer-body img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* ── CARD TIMELINE ── */
+  .card-timeline {
+    padding: 0 20px;
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-timeline-bar {
+    flex: 1;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--neutral-100);
+    position: relative;
+    overflow: hidden;
+  }
+  .card-timeline-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    border-radius: 2px;
+    width: 100%;
+  }
+  .card-timeline-days {
+    font-family: var(--font-title);
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .is-start .card-timeline-bar { background: rgba(255,255,255,0.12); }
+  .is-start .card-timeline-days { color: rgba(255,255,255,0.7); }
+  .is-end .card-timeline-bar { background: rgba(255,255,255,0.08); }
+  .is-end .card-timeline-days { color: rgba(255,255,255,0.5); }
+
+  .card-header { padding: 16px 20px 0; display: flex; align-items: flex-start; gap: 12px; }
+  .card-step {
+    width: 28px; height: 28px; border-radius: var(--radius-xs);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-title); font-size: 12px; font-weight: 400; flex-shrink: 0;
+    background: var(--neutral-100); color: var(--neutral-600); border: 1px solid var(--border);
+  }
+  .is-start .card-step { background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.15); }
+  .is-end .card-step { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.08); }
+
+  .card-title-group { flex: 1; }
+  .card-title { font-family: var(--font-title); font-size: 15px; font-weight: 400; letter-spacing: -0.01em; color: var(--text); line-height: 1.3; }
+  .is-start .card-title, .is-end .card-title { color: #fff; }
+  .card-subtitle { font-size: 11px; font-weight: 300; color: var(--text-muted); margin-top: 2px; }
+  .is-start .card-subtitle { color: rgba(255,255,255,0.65); }
+  .is-end .card-subtitle { color: rgba(255,255,255,0.45); }
+
+  .card-body { padding: 10px 20px 12px; }
+  .card-desc { font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); }
+  .is-start .card-desc { color: rgba(255,255,255,0.75); }
+  .is-end .card-desc { color: rgba(255,255,255,0.55); }
+
+  .card-deliverables { padding: 0 20px 12px; display: flex; flex-direction: column; gap: 5px; }
+  .deliverable {
+    display: flex; align-items: flex-start; gap: 8px;
+    font-size: 12px; color: var(--text-secondary);
+    padding: 7px 10px; border-radius: var(--radius-xs);
+    background: var(--neutral-50); border: 1px solid var(--border-light);
+    transition: all 0.2s ease;
+  }
+  .deliverable:hover { background: var(--neutral-100); border-color: var(--border); }
+  .deliverable-icon {
+    width: 18px; height: 18px; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 10px; margin-top: 1px;
+  }
+  .deliverable-icon.ref { background: var(--blue-soft); color: var(--blue); }
+  .deliverable-icon.model { background: var(--orange-soft); color: var(--orange); }
+  .deliverable-icon.render { background: var(--green-soft); color: var(--green); }
+  .deliverable-icon.check { background: var(--amber-soft); color: var(--amber); }
+
+  .is-start .deliverable { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.12); color: rgba(255,255,255,0.7); }
+  .is-end .deliverable { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); }
+  .is-end .deliverable:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.12); }
+
+  .spec-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 3px; }
+  .spec-tag {
+    font-family: var(--font-title); font-size: 9px; font-weight: 400;
+    padding: 2px 6px; border-radius: 3px; letter-spacing: 0.03em; text-transform: uppercase;
+  }
+  .spec-tag.format { background: var(--blue-soft); color: var(--blue); }
+  .spec-tag.res { background: var(--purple-soft); color: var(--purple); }
+  .spec-tag.channel { background: var(--green-soft); color: var(--green); }
+  .is-end .spec-tag.format { background: rgba(59,130,246,0.12); color: #93C5FD; }
+  .is-end .spec-tag.res { background: rgba(139,92,246,0.12); color: #C4B5FD; }
+  .is-end .spec-tag.channel { background: rgba(16,185,129,0.12); color: #6EE7B7; }
+
+  .card-footer {
+    padding: 12px 20px; margin-top: auto;
+    border-top: 1px solid var(--border-light);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .is-start .card-footer { border-color: rgba(255,255,255,0.12); }
+  .is-end .card-footer { border-color: rgba(255,255,255,0.08); }
+  .card-tag {
+    font-family: var(--font-title); font-size: 10px; font-weight: 400;
+    padding: 3px 8px; border-radius: 4px; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .tag-input { background: var(--blue-soft); color: var(--blue); }
+  .tag-create { background: var(--orange-soft); color: var(--orange); }
+  .tag-output { background: var(--green-soft); color: var(--green); }
+  .is-start .tag-input { background: rgba(255,255,255,0.15); color: #fff; }
+  .is-end .tag-output { background: rgba(16,185,129,0.15); color: #6EE7B7; }
+  .card-owner { font-family: var(--font-title); font-size: 11px; font-weight: 400; color: var(--text-muted); }
+
+  /* ── GATE NODE ── */
+  .gate-node {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 5px; flex-shrink: 0; width: 136px; position: relative; padding: 12px 0;
+  }
+  .gate-node::before {
+    content: ''; position: absolute; left: 0; right: 0;
+    top: 50%; height: 1.5px;
+    background: linear-gradient(90deg, var(--border), var(--neutral-300), var(--border));
+    z-index: 0;
+  }
+  .gate-diamond {
+    position: relative; z-index: 1;
+    width: 32px; height: 32px; border-radius: 6px;
+    background: var(--surface); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow-sm);
+  }
+  .gate-label {
+    position: relative; z-index: 1;
+    font-family: var(--font-title); font-size: 9px; font-weight: 400;
+    color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;
+    white-space: nowrap; text-align: center;
+    background: var(--bg); padding: 0 6px;
+  }
+  .gate-action {
+    position: relative; z-index: 1;
+    font-family: var(--font-body); font-size: 10px; font-weight: 300;
+    color: var(--amber); text-align: center;
+    background: var(--bg); padding: 0 4px;
+    line-height: 1.45;
+  }
+  .gate-action.is-approved { color: var(--green); }
+
+  /* ── LEGEND ── */
+  .legend { padding: 0 48px 32px; display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); }
+  .legend-swatch { width: 10px; height: 10px; border-radius: 3px; }
+
+  /* ── FOOTNOTE ── */
+  .footnote {
+    padding: 0 48px 40px;
+    font-size: 12px; color: var(--text-muted); line-height: 1.7;
+    max-width: 800px; margin: 0 auto; text-align: center;
+  }
+  .footnote strong { color: var(--text-secondary); font-weight: 400; font-family: var(--font-title); }
+
+  .scroll-hint {
+    display: none; padding: 8px 48px 0;
+    font-family: var(--font-title); font-size: 11px; color: var(--text-muted); letter-spacing: 0.04em;
+  }
+  @media (max-width: 1400px) { .scroll-hint { display: block; } }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .phase-card:nth-child(1)  { animation-delay: 0s; }
+  .phase-card:nth-child(3)  { animation-delay: 0.05s; }
+  .phase-card:nth-child(5)  { animation-delay: 0.10s; }
+  .phase-card:nth-child(7)  { animation-delay: 0.15s; }
+  .phase-card:nth-child(9)  { animation-delay: 0.20s; }
+  .phase-card:nth-child(11) { animation-delay: 0.25s; }
+  .phase-card:nth-child(13) { animation-delay: 0.30s; }
+  .phase-card:nth-child(15) { animation-delay: 0.35s; }
+  .phase-card:nth-child(17) { animation-delay: 0.40s; }
+
+  @media print {
+    .topbar { position: relative; backdrop-filter: none; background: #fff; }
+    .phase-card { break-inside: avoid; box-shadow: none; }
+    .pipeline-wrapper { overflow: visible; }
+    .card-image-area input[type="file"] { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Topbar ── -->
+<div class="topbar">
+  <svg class="topbar-logo" viewBox="0 0 367.82 143.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <defs>
+      <linearGradient id="tg10" x1="26.8" y1="58.18" x2="81.91" y2="58.18" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#e85102"/><stop offset="1" stop-color="#ec7602"/>
+      </linearGradient>
+    </defs>
+    <g>
+      <text font-family="MounstaRegular, Mounsta, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="133.15" fill="#0f0f0f" transform="translate(113.24 113.18)"><tspan x="0" y="0">tbo</tspan></text>
+      <g>
+        <circle fill="#0f0f0f" cx="65.16" cy="97.84" r="14.16"/>
+        <circle fill="#0f0f0f" cx="15.87" cy="46.43" r="14.16"/>
+        <circle fill="#0f0f0f" cx="14.16" cy="98.48" r="14.16"/>
+        <path fill="url(#tg10)" d="M55.01,73.86s0-.3.04-.75c.02-.14.03-.27.04-.41.22-1.95-1.02-8.08,2.27-11.37,2.33-2.33,5.52-3.11,8.75-2.66,1.93.27,3.91.21,5.78-.36,2.15-.65,4.17-1.82,5.87-3.52,5.53-5.53,5.53-14.5,0-20.03-5.53-5.53-14.5-5.53-20.03,0-1.7,1.7-2.87,3.72-3.52,5.87-.57,1.87-.63,3.84-.36,5.78.45,3.23-.32,6.42-2.66,8.75-3.29,3.29-9.42,2.06-11.37,2.27-.14.01-.27.02-.41.04-.45.04-.75.04-.75.04l.06.06c-3.78.61-7.37,2.73-9.75,6.44-2.94,4.58-2.91,10.67.09,15.21.57.87,1.22,1.63,1.91,2.33.69.69,1.46,1.34,2.33,1.91,4.54,3,10.63,3.03,15.21.09,3.7-2.37,5.83-5.96,6.44-9.75l.06.06Z"/>
+      </g>
+    </g>
+  </svg>
+  <div class="topbar-sep"></div>
+  <div class="topbar-title">Digital 3D · <span>Fluxo de Projeto</span></div>
+  <div class="topbar-badge">Imagens 3D</div>
+</div>
+
+<!-- ── Main ── -->
+<div class="main">
+
+  <div class="hero">
+    <div class="hero-text">
+      <div class="hero-label">Pipeline · Digital 3D</div>
+      <h1>Fluxo de Projeto<br><em>Imagens 3D</em></h1>
+      <p class="hero-desc">Pipeline completo para produção de imagens 3D: do briefing à entrega final aprovada, passando por direção de arte, modelagem, clay render e rodadas de refinamento com aprovação do cliente em cada etapa.</p>
+    </div>
+    <div class="hero-stats">
+      <div class="stat"><div class="stat-num">8</div><div class="stat-label">Fases</div></div>
+      <div class="stat"><div class="stat-num">4</div><div class="stat-label">Entregas</div></div>
+      <div class="stat"><div class="stat-num">3</div><div class="stat-label">Rodadas</div></div>
+    </div>
+  </div>
+
+  <!-- ── TIMELINE GLOBAL ── -->
+  <div class="timeline-section">
+    <div class="timeline-bar-global">
+      <div class="tl-phases">
+        <div class="tl-phase" style="flex-grow:2;">
+          <div class="tl-phase-days">1–2d</div>
+          <div class="tl-phase-bar" style="background:var(--orange);"></div>
+          <div class="tl-phase-label">Briefing</div>
+        </div>
+        <div class="tl-connector"></div>
+        <div class="tl-phase" style="flex-grow:3;">
+          <div class="tl-phase-days">2–3d</div>
+          <div class="tl-phase-bar" style="background:var(--blue);"></div>
+          <div class="tl-phase-label">Dir. Visual</div>
+        </div>
+        <div class="tl-connector"></div>
+        <div class="tl-phase" style="flex-grow:11;">
+          <div class="tl-phase-days">10–12d</div>
+          <div class="tl-phase-bar" style="background:var(--orange-mid);"></div>
+          <div class="tl-phase-label">Modelagem</div>
+        </div>
+        <div class="tl-connector"></div>
+        <div class="tl-phase" style="flex-grow:5;">
+          <div class="tl-phase-days">até 5d</div>
+          <div class="tl-phase-bar" style="background:var(--orange-mid);"></div>
+          <div class="tl-phase-label">Clay</div>
+        </div>
+        <div class="tl-connector"></div>
+        <div class="tl-phase" style="flex-grow:4;">
+          <div class="tl-phase-days">3–5d</div>
+          <div class="tl-phase-bar" style="background:var(--amber); opacity:0.5;"></div>
+          <div class="tl-phase-label" style="font-size:9px;">Aprov.</div>
+        </div>
+        <div class="tl-connector"></div>
+        <div class="tl-phase" style="flex-grow:17;">
+          <div class="tl-phase-days">15–20d</div>
+          <div class="tl-phase-bar" style="background:var(--orange-mid);"></div>
+          <div class="tl-phase-label">Emissão Inicial</div>
+        </div>
+        <div class="tl-connector"></div>
+        <div class="tl-phase" style="flex-grow:4;">
+          <div class="tl-phase-days">3–5d</div>
+          <div class="tl-phase-bar" style="background:var(--amber); opacity:0.5;"></div>
+          <div class="tl-phase-label" style="font-size:9px;">Aprov.</div>
+        </div>
+        <div class="tl-connector"></div>
+        <div class="tl-phase" style="flex-grow:4;">
+          <div class="tl-phase-days">3–5d</div>
+          <div class="tl-phase-bar" style="background:var(--orange-mid);"></div>
+          <div class="tl-phase-label">R01</div>
+        </div>
+        <div class="tl-connector"></div>
+        <div class="tl-phase" style="flex-grow:4;">
+          <div class="tl-phase-days">3–5d</div>
+          <div class="tl-phase-bar" style="background:var(--amber); opacity:0.5;"></div>
+          <div class="tl-phase-label" style="font-size:9px;">Aprov.</div>
+        </div>
+        <div class="tl-connector"></div>
+        <div class="tl-phase" style="flex-grow:4;">
+          <div class="tl-phase-days">3–5d</div>
+          <div class="tl-phase-bar" style="background:var(--orange-mid);"></div>
+          <div class="tl-phase-label">R02</div>
+        </div>
+        <div class="tl-connector"></div>
+        <div class="tl-phase" style="flex-grow:4;">
+          <div class="tl-phase-days">3–5d</div>
+          <div class="tl-phase-bar" style="background:var(--green); opacity:0.5;"></div>
+          <div class="tl-phase-label" style="font-size:9px;">Aprov.</div>
+        </div>
+        <div class="tl-connector"></div>
+        <div class="tl-phase" style="flex-grow:2;">
+          <div class="tl-phase-days">1–2d</div>
+          <div class="tl-phase-bar" style="background:var(--neutral-900);"></div>
+          <div class="tl-phase-label">Entrega</div>
+        </div>
+      </div>
+      <div class="tl-total">
+        <div class="tl-total-num">55–80</div>
+        <div class="tl-total-label">dias úteis</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scroll-hint">← scroll horizontal para navegar →</div>
+
+  <div class="pipeline-wrapper">
+    <div class="pipeline">
+
+      <!-- 00 · BRIEFING -->
+      <div class="phase-card is-start">
+        <div class="card-image-area" data-step="00">
+          <input type="file" accept="image/*" onchange="handleImageUpload(this)">
+          <div class="card-image-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--neutral-400)"/>
+              <path d="M3 16l5-5 4 4 3-3 6 6" stroke="var(--neutral-400)" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.5" cy="8.5" r="1.5" stroke="var(--neutral-400)"/>
+            </svg>
+            <span>Upload visual</span>
+          </div>
+          
+        </div>
+        <div class="card-header">
+          <div class="card-step">00</div>
+          <div class="card-title-group">
+            <div class="card-title">Briefing + Projeto Arq.</div>
+            <div class="card-subtitle">Kickoff</div>
+          </div>
+        </div>
+        <div class="card-timeline">
+          <div class="card-timeline-bar"><div class="card-timeline-fill" style="background:rgba(255,255,255,0.3);"></div></div>
+          <div class="card-timeline-days">1–2 dias</div>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">Recebimento do projeto arquitetônico, briefing do cliente e alinhamento de expectativas visuais com a equipe.</div>
+        </div>
+        <div class="card-deliverables">
+          <div class="deliverable" style="background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);">
+            <div class="deliverable-icon" style="background:rgba(255,255,255,0.12);color:#fff;">◆</div>
+            Plantas / Cortes / Fachadas
+          </div>
+          <div class="deliverable" style="background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);">
+            <div class="deliverable-icon" style="background:rgba(255,255,255,0.12);color:#fff;">◆</div>
+            Briefing de referências do cliente
+          </div>
+          <div class="deliverable" style="background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);">
+            <div class="deliverable-icon" style="background:rgba(255,255,255,0.12);color:#fff;">◆</div>
+            Definição de câmeras / ângulos
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="card-tag tag-input">INPUT</div>
+          <div class="card-owner" style="color:rgba(255,255,255,0.5);">Cliente + TBO</div>
+        </div>
+      </div>
+
+      <div class="connector"></div>
+
+      <!-- 01 · DIREÇÃO VISUAL -->
+      <div class="phase-card">
+        <div class="card-image-area" data-step="01">
+          <input type="file" accept="image/*" onchange="handleImageUpload(this)">
+          <div class="card-image-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--neutral-400)"/>
+              <path d="M3 16l5-5 4 4 3-3 6 6" stroke="var(--neutral-400)" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.5" cy="8.5" r="1.5" stroke="var(--neutral-400)"/>
+            </svg>
+            <span>Upload visual</span>
+          </div>
+          
+        </div>
+        <div class="card-header">
+          <div class="card-step">01</div>
+          <div class="card-title-group">
+            <div class="card-title">Direção Visual</div>
+            <div class="card-subtitle">Referências + Conceito</div>
+          </div>
+        </div>
+        <div class="card-timeline">
+          <div class="card-timeline-bar"><div class="card-timeline-fill" style="background:var(--blue);"></div></div>
+          <div class="card-timeline-days">2–3 dias</div>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">Captação de referências visuais, montagem de moodboard, definição de paleta de materiais, atmosfera, iluminação e enquadramentos.</div>
+        </div>
+        <div class="card-deliverables">
+          <div class="deliverable">
+            <div class="deliverable-icon ref">◆</div>
+            Moodboard visual
+          </div>
+          <div class="deliverable">
+            <div class="deliverable-icon ref">◆</div>
+            Paleta de materiais / acabamentos
+          </div>
+          <div class="deliverable">
+            <div class="deliverable-icon ref">◆</div>
+            Atmosfera, iluminação, enquadramentos
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="card-tag tag-create">PRODUÇÃO</div>
+          <div class="card-owner">TBO</div>
+        </div>
+      </div>
+
+      <div class="connector"></div>
+
+      <!-- 02 · MODELAGEM 3D -->
+      <div class="phase-card">
+        <div class="card-image-area" data-step="02">
+          <input type="file" accept="image/*" onchange="handleImageUpload(this)">
+          <div class="card-image-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--neutral-400)"/>
+              <path d="M3 16l5-5 4 4 3-3 6 6" stroke="var(--neutral-400)" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.5" cy="8.5" r="1.5" stroke="var(--neutral-400)"/>
+            </svg>
+            <span>Upload visual</span>
+          </div>
+          
+        </div>
+        <div class="card-header">
+          <div class="card-step">02</div>
+          <div class="card-title-group">
+            <div class="card-title">Modelagem 3D</div>
+            <div class="card-subtitle">Construção do modelo</div>
+          </div>
+        </div>
+        <div class="card-timeline">
+          <div class="card-timeline-bar"><div class="card-timeline-fill" style="background:var(--orange-mid);"></div></div>
+          <div class="card-timeline-days">10–12 dias</div>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">Modelagem do empreendimento a partir do projeto arquitetônico e da direção visual aprovada. Setup de câmeras conforme briefing.</div>
+        </div>
+        <div class="card-deliverables">
+          <div class="deliverable">
+            <div class="deliverable-icon model">▲</div>
+            Modelagem estrutural + volumetria
+          </div>
+          <div class="deliverable">
+            <div class="deliverable-icon model">▲</div>
+            Paisagismo + entorno
+          </div>
+          <div class="deliverable">
+            <div class="deliverable-icon model">▲</div>
+            Interiores + setup de câmeras
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="card-tag tag-create">PRODUÇÃO</div>
+          <div class="card-owner">TBO</div>
+        </div>
+      </div>
+
+      <div class="connector"></div>
+
+      <!-- 03 · CLAY RENDER -->
+      <div class="phase-card">
+        <div class="card-image-area" data-step="03">
+          <input type="file" accept="image/*" onchange="handleImageUpload(this)">
+          <div class="card-image-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--neutral-400)"/>
+              <path d="M3 16l5-5 4 4 3-3 6 6" stroke="var(--neutral-400)" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.5" cy="8.5" r="1.5" stroke="var(--neutral-400)"/>
+            </svg>
+            <span>Upload visual</span>
+          </div>
+          
+        </div>
+        <div class="card-header">
+          <div class="card-step">03</div>
+          <div class="card-title-group">
+            <div class="card-title">Clay Render</div>
+            <div class="card-subtitle">Validação volumétrica</div>
+          </div>
+        </div>
+        <div class="card-timeline">
+          <div class="card-timeline-bar"><div class="card-timeline-fill" style="background:var(--orange-mid);"></div></div>
+          <div class="card-timeline-days">até 5 dias</div>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">Render sem materiais para validação de volumetria, proporções, iluminação e composição de câmera.</div>
+        </div>
+        <div class="card-deliverables">
+          <div class="deliverable">
+            <div class="deliverable-icon render">●</div>
+            <div>
+              Render clay de todas as câmeras
+              <div class="spec-tags">
+                <span class="spec-tag format">JPG</span>
+                <span class="spec-tag res">Web 72dpi</span>
+                <span class="spec-tag channel">Google Drive</span>
+              </div>
+            </div>
+          </div>
+          <div class="deliverable">
+            <div class="deliverable-icon check">✓</div>
+            Validação de proporções e composição
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="card-tag tag-create">PRODUÇÃO</div>
+          <div class="card-owner">TBO</div>
+        </div>
+      </div>
+
+      <!-- GATE: Aprovação Clay -->
+      <div class="gate-node">
+        <div class="gate-diamond">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2L22 12L12 22L2 12Z" fill="var(--amber)" opacity="0.15" stroke="var(--amber)" stroke-width="1.5"/></svg>
+        </div>
+        <div class="gate-label">Entrega ao cliente</div>
+        <div class="gate-action">Aprovação<br>do Clay</div>
+      </div>
+
+      <!-- 04 · EMISSÃO INICIAL -->
+      <div class="phase-card">
+        <div class="card-image-area" data-step="04">
+          <input type="file" accept="image/*" onchange="handleImageUpload(this)">
+          <div class="card-image-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--neutral-400)"/>
+              <path d="M3 16l5-5 4 4 3-3 6 6" stroke="var(--neutral-400)" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.5" cy="8.5" r="1.5" stroke="var(--neutral-400)"/>
+            </svg>
+            <span>Upload visual</span>
+          </div>
+          
+        </div>
+        <div class="card-header">
+          <div class="card-step">04</div>
+          <div class="card-title-group">
+            <div class="card-title">Emissão Inicial</div>
+            <div class="card-subtitle">1ª Rodada de Render</div>
+          </div>
+        </div>
+        <div class="card-timeline">
+          <div class="card-timeline-bar"><div class="card-timeline-fill" style="background:var(--orange-mid);"></div></div>
+          <div class="card-timeline-days">15–20 dias</div>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">Primeira rodada com materiais aplicados em todos os ângulos. Ambientação, humanização e iluminação geral.</div>
+        </div>
+        <div class="card-deliverables">
+          <div class="deliverable">
+            <div class="deliverable-icon render">●</div>
+            <div>
+              Renders com materiais aplicados
+              <div class="spec-tags">
+                <span class="spec-tag format">JPG</span>
+                <span class="spec-tag res">Web 72dpi</span>
+                <span class="spec-tag channel">Google Drive</span>
+              </div>
+            </div>
+          </div>
+          <div class="deliverable">
+            <div class="deliverable-icon render">●</div>
+            Ambientação + humanização
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="card-tag tag-create">PRODUÇÃO</div>
+          <div class="card-owner">TBO</div>
+        </div>
+      </div>
+
+      <!-- GATE: Considerações Emissão Inicial -->
+      <div class="gate-node">
+        <div class="gate-diamond">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2L22 12L12 22L2 12Z" fill="var(--amber)" opacity="0.15" stroke="var(--amber)" stroke-width="1.5"/></svg>
+        </div>
+        <div class="gate-label">Entrega ao cliente</div>
+        <div class="gate-action">Considerações sobre<br>Emissão Inicial</div>
+      </div>
+
+      <!-- 05 · R01 -->
+      <div class="phase-card">
+        <div class="card-image-area" data-step="05">
+          <input type="file" accept="image/*" onchange="handleImageUpload(this)">
+          <div class="card-image-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--neutral-400)"/>
+              <path d="M3 16l5-5 4 4 3-3 6 6" stroke="var(--neutral-400)" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.5" cy="8.5" r="1.5" stroke="var(--neutral-400)"/>
+            </svg>
+            <span>Upload visual</span>
+          </div>
+          
+        </div>
+        <div class="card-header">
+          <div class="card-step">05</div>
+          <div class="card-title-group">
+            <div class="card-title">R01</div>
+            <div class="card-subtitle">2ª Rodada de Render</div>
+          </div>
+        </div>
+        <div class="card-timeline">
+          <div class="card-timeline-bar"><div class="card-timeline-fill" style="background:var(--orange-mid);"></div></div>
+          <div class="card-timeline-days">3–5 dias</div>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">Ajustes de materiais, iluminação, vegetação e entorno detalhado com base nas considerações do cliente sobre a Emissão Inicial.</div>
+        </div>
+        <div class="card-deliverables">
+          <div class="deliverable">
+            <div class="deliverable-icon render">●</div>
+            <div>
+              Ajustes de materiais + iluminação
+              <div class="spec-tags">
+                <span class="spec-tag format">JPG</span>
+                <span class="spec-tag res">Web 72dpi</span>
+                <span class="spec-tag channel">Google Drive</span>
+              </div>
+            </div>
+          </div>
+          <div class="deliverable">
+            <div class="deliverable-icon render">●</div>
+            Vegetação e entorno detalhados
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="card-tag tag-create">PRODUÇÃO</div>
+          <div class="card-owner">TBO</div>
+        </div>
+      </div>
+
+      <!-- GATE: Considerações R01 -->
+      <div class="gate-node">
+        <div class="gate-diamond">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2L22 12L12 22L2 12Z" fill="var(--amber)" opacity="0.15" stroke="var(--amber)" stroke-width="1.5"/></svg>
+        </div>
+        <div class="gate-label">Entrega ao cliente</div>
+        <div class="gate-action">Considerações<br>sobre R01</div>
+      </div>
+
+      <!-- 06 · R02 -->
+      <div class="phase-card">
+        <div class="card-image-area" data-step="06">
+          <input type="file" accept="image/*" onchange="handleImageUpload(this)">
+          <div class="card-image-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--neutral-400)"/>
+              <path d="M3 16l5-5 4 4 3-3 6 6" stroke="var(--neutral-400)" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.5" cy="8.5" r="1.5" stroke="var(--neutral-400)"/>
+            </svg>
+            <span>Upload visual</span>
+          </div>
+          
+        </div>
+        <div class="card-header">
+          <div class="card-step">06</div>
+          <div class="card-title-group">
+            <div class="card-title">R02</div>
+            <div class="card-subtitle">3ª Rodada de Render</div>
+          </div>
+        </div>
+        <div class="card-timeline">
+          <div class="card-timeline-bar"><div class="card-timeline-fill" style="background:var(--orange-mid);"></div></div>
+          <div class="card-timeline-days">3–5 dias</div>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">Pós-produção, color grading e últimos ajustes de detalhe. Máximo de 1 rodada de correções pontuais após entrega.</div>
+        </div>
+        <div class="card-deliverables">
+          <div class="deliverable">
+            <div class="deliverable-icon render">●</div>
+            <div>
+              Pós-produção + color grading
+              <div class="spec-tags">
+                <span class="spec-tag format">JPG</span>
+                <span class="spec-tag res">Web 72dpi</span>
+                <span class="spec-tag channel">Google Drive</span>
+              </div>
+            </div>
+          </div>
+          <div class="deliverable">
+            <div class="deliverable-icon check">✓</div>
+            Máx. 1 rodada de ajustes pontuais
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="card-tag tag-create">PRODUÇÃO</div>
+          <div class="card-owner">TBO</div>
+        </div>
+      </div>
+
+      <!-- GATE: Aprovação Final -->
+      <div class="gate-node">
+        <div class="gate-diamond">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2L22 12L12 22L2 12Z" fill="var(--green)" opacity="0.15" stroke="var(--green)" stroke-width="1.5"/></svg>
+        </div>
+        <div class="gate-label">Entrega ao cliente</div>
+        <div class="gate-action is-approved">Aprovação<br>final</div>
+      </div>
+
+      <!-- 07 · ENTREGA FINAL -->
+      <div class="phase-card is-end">
+        <div class="card-image-area" data-step="07">
+          <input type="file" accept="image/*" onchange="handleImageUpload(this)">
+          <div class="card-image-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--neutral-400)"/>
+              <path d="M3 16l5-5 4 4 3-3 6 6" stroke="var(--neutral-400)" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.5" cy="8.5" r="1.5" stroke="var(--neutral-400)"/>
+            </svg>
+            <span>Upload visual</span>
+          </div>
+          
+        </div>
+        <div class="card-header">
+          <div class="card-step">07</div>
+          <div class="card-title-group">
+            <div class="card-title">Entrega Final</div>
+            <div class="card-subtitle">Empacotamento</div>
+          </div>
+        </div>
+        <div class="card-timeline">
+          <div class="card-timeline-bar"><div class="card-timeline-fill" style="background:rgba(255,255,255,0.25);"></div></div>
+          <div class="card-timeline-days">1–2 dias</div>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">Empacotamento e entrega de todos os assets finais aprovados. Organização no Drive com estrutura padrão TBO.</div>
+        </div>
+        <div class="card-deliverables">
+          <div class="deliverable">
+            <div class="deliverable-icon" style="background:rgba(16,185,129,0.15);color:#6EE7B7;">●</div>
+            <div style="color:rgba(255,255,255,0.6);">
+              Renders em alta resolução
+              <div class="spec-tags">
+                <span class="spec-tag format">TIFF / PNG</span>
+                <span class="spec-tag res">300dpi</span>
+              </div>
+            </div>
+          </div>
+          <div class="deliverable">
+            <div class="deliverable-icon" style="background:rgba(16,185,129,0.15);color:#6EE7B7;">●</div>
+            <div style="color:rgba(255,255,255,0.6);">
+              Renders para web
+              <div class="spec-tags">
+                <span class="spec-tag format">JPG</span>
+                <span class="spec-tag res">72dpi</span>
+              </div>
+            </div>
+          </div>
+          <div class="deliverable">
+            <div class="deliverable-icon" style="background:rgba(16,185,129,0.15);color:#6EE7B7;">●</div>
+            <div style="color:rgba(255,255,255,0.6);">
+              Tour 360° + Flythrough
+              <div class="spec-tags">
+                <span class="spec-tag format">MP4 / HTML</span>
+                <span class="spec-tag res">Opcional</span>
+              </div>
+            </div>
+          </div>
+          <div class="deliverable">
+            <div class="deliverable-icon" style="background:rgba(16,185,129,0.15);color:#6EE7B7;">●</div>
+            <div style="color:rgba(255,255,255,0.6);">
+              Arquivos-fonte + handoff AV
+              <div class="spec-tags">
+                <span class="spec-tag channel">Google Drive</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="card-tag tag-output">OUTPUT</div>
+          <div class="card-owner" style="color:rgba(255,255,255,0.4);">Cliente</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--orange);"></div> Kickoff / Input</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--blue);"></div> Referência</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--orange-mid);"></div> Produção TBO</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--amber);"></div> Entrega + Aprovação Cliente</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--green);"></div> Aprovação Final</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--neutral-900);"></div> Entrega Final</div>
+  </div>
+
+  <!-- Footnote -->
+  <div class="footnote">
+    <strong>Observações</strong><br>
+    Cada entrega ao cliente (Clay, Emissão Inicial, R01, R02) requer aprovação formal por e-mail ou registro em ata antes de iniciar a produção da próxima rodada.<br>
+    Rodadas durante o processo são entregues em JPG 72dpi via Google Drive. A entrega final inclui versões HQ (TIFF/PNG 300dpi) e web (JPG 72dpi).<br>
+    Rodadas adicionais além da R02 são escopo extra e requerem aditivo contratual. Tour 360° e Flythrough são opcionais conforme escopo contratado.<br>
+    <em style="color:var(--text-muted);font-size:11px;">Prazos estimados consideram projeto de complexidade média. Janelas de aprovação do cliente (3–5d) estão incluídas na timeline total.</em>
+  </div>
+
+</div>
+
+<!-- ── Image Drawer ── -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<div class="drawer-panel" id="drawerPanel">
+  <div class="drawer-header">
+    <div class="drawer-title-group">
+      <div class="drawer-step" id="drawerStep">00</div>
+      <div>
+        <div class="drawer-title" id="drawerTitle">—</div>
+        <div class="drawer-subtitle" id="drawerSubtitle">—</div>
+      </div>
+    </div>
+    <button class="drawer-close" id="drawerClose">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--neutral-600)" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body">
+    <img id="drawerImg" src="" alt="Visual da etapa">
+  </div>
+</div>
+
+<script>
+  // ── Drawer logic ──
+  const overlay = document.getElementById('drawerOverlay');
+  const panel = document.getElementById('drawerPanel');
+  const drawerImg = document.getElementById('drawerImg');
+  const drawerStep = document.getElementById('drawerStep');
+  const drawerTitle = document.getElementById('drawerTitle');
+  const drawerSubtitle = document.getElementById('drawerSubtitle');
+  const drawerClose = document.getElementById('drawerClose');
+
+  function openDrawer(area) {
+    const img = area.querySelector('.card-image-preview');
+    if (!img) return;
+
+    const card = area.closest('.phase-card');
+    const step = card.querySelector('.card-step')?.textContent || '';
+    const title = card.querySelector('.card-title')?.textContent || '';
+    const subtitle = card.querySelector('.card-subtitle')?.textContent || '';
+
+    drawerImg.src = img.src;
+    drawerStep.textContent = step;
+    drawerTitle.textContent = title;
+    drawerSubtitle.textContent = subtitle;
+
+    overlay.classList.add('is-open');
+    panel.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDrawer() {
+    overlay.classList.remove('is-open');
+    panel.classList.remove('is-open');
+    document.body.style.overflow = '';
+  }
+
+  overlay.addEventListener('click', closeDrawer);
+  drawerClose.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeDrawer();
+  });
+
+  // Click on image area opens drawer (only if has image)
+  document.querySelectorAll('.card-image-area').forEach(area => {
+    area.addEventListener('click', function(e) {
+      // If clicking the file input, let it handle naturally
+      if (e.target.tagName === 'INPUT') return;
+      if (this.classList.contains('has-image')) {
+        e.preventDefault();
+        e.stopPropagation();
+        openDrawer(this);
+      }
+    });
+  });
+
+  // ── Image upload handler (persists to server) ──
+  var BU_SLUG = 'd3d';
+
+  function handleImageUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const area = input.closest('.card-image-area');
+    const step = area.getAttribute('data-step');
+
+    // Show preview immediately
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      setCardImage(area, e.target.result);
+    };
+    reader.readAsDataURL(file);
+
+    // Persist to server
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('bu', BU_SLUG);
+    formData.append('step', step);
+
+    fetch('/api/metodo-upload', { method: 'POST', body: formData })
+      .then(r => r.json())
+      .then(data => {
+        if (data.url) {
+          setCardImage(area, data.url);
+        }
+      })
+      .catch(err => console.warn('Upload failed, image shown locally only', err));
+  }
+
+  function setCardImage(area, src) {
+    area.classList.add('has-image');
+    const placeholder = area.querySelector('.card-image-placeholder');
+    const existingImg = area.querySelector('.card-image-preview');
+    if (existingImg) existingImg.remove();
+
+    const img = document.createElement('img');
+    img.className = 'card-image-preview';
+    img.src = src;
+    img.alt = 'Visual da etapa';
+    area.insertBefore(img, placeholder);
+    placeholder.style.display = 'none';
+  }
+
+  // Load saved images from server on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/metodo-upload?bu=' + BU_SLUG)
+      .then(r => r.json())
+      .then(images => {
+        document.querySelectorAll('.card-image-area').forEach(area => {
+          const step = area.getAttribute('data-step');
+          if (images[step]) {
+            setCardImage(area, images[step]);
+          }
+        });
+      })
+      .catch(() => {});
+  });
+
+  // Prevent context menu / inspect
+  document.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('keydown', e => {
+    if (e.key === 'F12') e.preventDefault();
+    if (e.ctrlKey && e.shiftKey && ['I','J','C'].includes(e.key)) e.preventDefault();
+    if (e.ctrlKey && ['u','U','s','S'].includes(e.key)) e.preventDefault();
+  });
+</script>
+</body>
+</html>

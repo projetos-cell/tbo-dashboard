@@ -12,6 +12,9 @@ import {
   IconUsers,
   IconUserCheck,
   IconClock,
+  IconCopy,
+  IconExternalLink,
+  IconRoute,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +47,8 @@ import {
 } from "@/features/clientes/hooks/use-portal-cliente";
 import { computePortalKPIs } from "@/services/portal-cliente";
 import { useAuthStore } from "@/stores/auth-store";
+import { BU_METHOD_PAGES, LANCAMENTO_METHOD_PAGE } from "@/lib/constants";
+import { toast } from "sonner";
 import type { Database } from "@/lib/supabase/types";
 
 type PortalAccessRow =
@@ -166,6 +171,57 @@ export default function PortalClientePage() {
             />
           </div>
         )}
+
+        {/* Method links — shareable with clients */}
+        <section>
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
+            <IconRoute className="h-4 w-4" />
+            Nosso Método — Links compartilháveis
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {[
+              ...Object.entries(BU_METHOD_PAGES).map(([bu, m]) => ({ ...m, bu })),
+              { bu: "Lançamento", ...LANCAMENTO_METHOD_PAGE },
+            ].map((m) => (
+              <div
+                key={m.slug}
+                className="flex items-center gap-2 rounded-lg border bg-white px-3 py-2"
+              >
+                <a
+                  href={`/metodo/${m.slug}.html`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+                >
+                  {m.bu}
+                </a>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    title="Abrir"
+                    onClick={() => window.open(`/metodo/${m.slug}.html`, "_blank")}
+                  >
+                    <IconExternalLink className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    title="Copiar link"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/metodo/${m.slug}.html`);
+                      toast.success(`Link do método ${m.bu} copiado!`);
+                    }}
+                  >
+                    <IconCopy className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
 
         {/* Search filter */}
         <div className="relative max-w-sm">

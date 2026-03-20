@@ -120,6 +120,17 @@ export const BU_COLORS: Record<string, { bg: string; color: string; icon: string
   Interiores: { bg: "#e0f2fe", color: "#0c4a6e", icon: "armchair" },
 };
 
+// BU workflow method pages — static HTML in /metodo/
+export const BU_METHOD_PAGES: Record<string, { slug: string; label: string }> = {
+  "Digital 3D": { slug: "d3d", label: "Fluxo de Projeto — Imagens 3D" },
+  Branding: { slug: "branding", label: "Fluxo de Projeto — Branding" },
+  Marketing: { slug: "marketing", label: "Fluxo de Projeto — Marketing ON/OFF" },
+  Audiovisual: { slug: "audiovisual", label: "Fluxo de Serviços — Audiovisual" },
+};
+
+// Lançamento Imobiliário is cross-BU (not tied to a single BU)
+export const LANCAMENTO_METHOD_PAGE = { slug: "lancamento", label: "Jornada do Lançamento Imobiliário" };
+
 // People status configuration
 export const PEOPLE_STATUS = {
   active: { label: "Ativo", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
@@ -541,6 +552,7 @@ export const PROJETOS_NAV_ITEMS: readonly SubNavItem[] = [
   { href: "/projetos/calendario", label: "Calendário", icon: "calendar" },
   { href: "/projetos/arquivos", label: "Arquivos", icon: "folder-open" },
   { href: "/projetos/templates", label: "Templates", icon: "copy" },
+  { href: "/projetos/fluxo-3d", label: "Fluxo 3D", icon: "cube" },
   { href: "/projetos/decisoes", label: "Decisões", icon: "check-square" },
   { href: "/projetos/configuracoes", label: "Configurações", icon: "settings" },
 ] as const;
@@ -578,8 +590,6 @@ export const COMERCIAL_NAV_ITEMS: readonly SubNavItem[] = [
   { href: "/comercial/servicos", label: "Servicos", icon: "package" },
   { href: "/comercial/atividades", label: "Atividades", icon: "activity" },
   { href: "/comercial/relatorios", label: "Relatórios", icon: "bar-chart-3" },
-  { href: "/comercial/integracoes", label: "Integrações", icon: "plug" },
-  { href: "/comercial/configuracoes", label: "Configurações", icon: "settings" },
 ] as const;
 
 export const CLIENTES_NAV_ITEMS: readonly SubNavItem[] = [

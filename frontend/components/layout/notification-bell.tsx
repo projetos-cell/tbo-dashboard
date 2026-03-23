@@ -8,8 +8,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAlertCount } from "@/hooks/use-alert-count";
 import { useNotifications, useMarkAsRead, useMarkAllAsRead } from "@/hooks/use-alerts";
-import { IconBell, IconCheck } from "@tabler/icons-react";
+import { IconBell, IconCheck, IconTrophy } from "@tabler/icons-react";
+import { DealWonDrawer } from "./deal-won-drawer";
 import type { NotificationRow } from "@/services/alerts";
+
+function isDealWonNotification(n: NotificationRow): boolean {
+  return n.type === "success" && n.entity_type === "deal" && (n.title?.includes("Deal Fechado") || n.title?.includes("Deal Fechado!") || n.title?.includes("Novo Deal Fechado"));
+}
 
 // ── Notification Item ─────────────────────────────────
 
@@ -17,27 +22,40 @@ export function NotificationItem({
   notification,
   onMarkRead,
   onClose,
+  onDealWon,
 }: {
   notification: NotificationRow;
   onMarkRead: (id: string) => void;
   onClose: () => void;
+  onDealWon?: (dealId: string) => void;
 }) {
   const router = useRouter();
   const timeLabel = notification.created_at
     ? formatDistanceToNow(new Date(notification.created_at), { locale: ptBR, addSuffix: false })
     : "";
 
+  const isDealWon = isDealWonNotification(notification);
+
   return (
     <button
       onClick={() => {
         if (!notification.read) onMarkRead(notification.id);
-        onClose();
-        if (notification.action_url) router.push(notification.action_url);
+        if (isDealWon && notification.entity_id && onDealWon) {
+          onClose();
+          onDealWon(notification.entity_id);
+        } else {
+          onClose();
+          if (notification.action_url) router.push(notification.action_url);
+        }
       }}
       className="flex w-full items-start gap-3 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-accent/50"
     >
-      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
-        <IconBell className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+      <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${isDealWon ? "bg-[#fff4ec]" : "bg-muted"}`}>
+        {isDealWon ? (
+          <IconTrophy className="h-4 w-4 text-[#ff6200]" strokeWidth={1.5} />
+        ) : (
+          <IconBell className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <p className={`text-sm leading-snug ${!notification.read ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
@@ -49,7 +67,7 @@ export function NotificationItem({
         <p className="mt-1 text-[11px] text-muted-foreground/70">{timeLabel}</p>
       </div>
       {!notification.read && (
-        <div className="mt-2 h-2 w-2 shrink-0 rounded-full bg-blue-500" />
+        <div className={`mt-2 h-2 w-2 shrink-0 rounded-full ${isDealWon ? "bg-[#ff6200]" : "bg-blue-500"}`} />
       )}
     </button>
   );
@@ -61,10 +79,17 @@ export function NotificationBell() {
   const router = useRouter();
   const count = useAlertCount();
   const [open, setOpen] = useState(false);
+  const [dealWonOpen, setDealWonOpen] = useState(false);
+  const [dealWonId, setDealWonId] = useState<string | null>(null);
 
   const { data: allNotifications = [] } = useNotifications();
   const markRead = useMarkAsRead();
   const markAllRead = useMarkAllAsRead();
+
+  const handleDealWon = (dealId: string) => {
+    setDealWonId(dealId);
+    setDealWonOpen(true);
+  };
 
   const displayItems = useMemo(() => {
     const unread = allNotifications.filter((n) => !n.read);
@@ -73,6 +98,7 @@ export function NotificationBell() {
   }, [allNotifications]);
 
   return (
+    <>
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
@@ -114,6 +140,7 @@ export function NotificationBell() {
                   notification={n}
                   onMarkRead={(id) => markRead.mutate(id)}
                   onClose={() => setOpen(false)}
+                  onDealWon={handleDealWon}
                 />
               ))}
             </div>
@@ -131,5 +158,12 @@ export function NotificationBell() {
         )}
       </PopoverContent>
     </Popover>
+
+    <DealWonDrawer
+      open={dealWonOpen}
+      onOpenChange={setDealWonOpen}
+      dealId={dealWonId}
+    />
+    </>
   );
 }

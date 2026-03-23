@@ -41,8 +41,14 @@ export const ROLE_MODULES: Record<RoleSlug, string[]> = {
     "usuarios",
     "intelligence",
     "audit-logs",
+    "audit-log",
     "admin",
     "academy",
+    "compras",
+    "ativos",
+    "conhecimento",
+    "portal-cliente",
+    "changelog",
   ],
   lider: [
     "dashboard",
@@ -59,6 +65,8 @@ export const ROLE_MODULES: Record<RoleSlug, string[]> = {
     "marketing",
     "relatorios",
     "intelligence",
+    "conhecimento",
+    "ativos",
   ],
   colaborador: [
     "dashboard",
@@ -69,6 +77,7 @@ export const ROLE_MODULES: Record<RoleSlug, string[]> = {
     "chat",
     "cultura",
     "mercado",
+    "conhecimento",
   ],
 };
 
@@ -104,7 +113,11 @@ const ALL_MODULES = [
   "diretoria",
   "system-health",
   "audit-logs",
+  "audit-log",
   "academy",
+  "compras",
+  "ativos",
+  "conhecimento",
 ];
 
 /**

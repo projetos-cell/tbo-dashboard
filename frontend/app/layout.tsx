@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 import { PROJECT_CONFIG } from "@/config/project-config";
 import { Providers } from "@/components/providers";
+import { Preloader } from "@/components/layout/preloader";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -29,7 +30,10 @@ export default function RootLayout({
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <NextTopLoader showSpinner={false} />
-        <Providers>{children}</Providers>
+        <Providers>
+          <Preloader />
+          {children}
+        </Providers>
       </body>
     </html>
   );

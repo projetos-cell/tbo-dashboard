@@ -8,8 +8,10 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import type { ReconciliationResult, ReconciliationCandidate } from "@/features/financeiro/services/reconciliation-engine";
 import type { BankTransaction } from "@/lib/supabase/types/bank-reconciliation";
+import type { FinanceTransaction, FinanceCategory, FinanceCostCenter } from "@/features/financeiro/services/finance-types";
 import { useApplyReconciliation, useAutoReconcile } from "@/features/financeiro/hooks/use-reconciliation";
 import { ConciliacaoMatchRow, ConciliacaoUnmatchedRow } from "./conciliacao-match-row";
+import { ConciliacaoAIPanel } from "./conciliacao-ai-panel";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -107,6 +109,9 @@ interface ConciliacaoSplitViewProps {
   isLoading: boolean;
   isError: boolean;
   onRetry: () => void;
+  availableFinanceTxs?: FinanceTransaction[];
+  categories?: FinanceCategory[];
+  costCenters?: FinanceCostCenter[];
 }
 
 export function ConciliacaoSplitView({
@@ -114,6 +119,9 @@ export function ConciliacaoSplitView({
   isLoading,
   isError,
   onRetry,
+  availableFinanceTxs = [],
+  categories = [],
+  costCenters = [],
 }: ConciliacaoSplitViewProps) {
   const { toast } = useToast();
   const applyMutation = useApplyReconciliation();
@@ -244,7 +252,16 @@ export function ConciliacaoSplitView({
             count={unmatchedList.length}
             colorClass="text-muted-foreground"
           />
-          <div className="divide-y divide-border/50">
+
+          {/* AI Analysis Panel */}
+          <ConciliacaoAIPanel
+            unmatchedBankTxs={unmatchedList}
+            availableFinanceTxs={availableFinanceTxs}
+            categories={categories}
+            costCenters={costCenters}
+          />
+
+          <div className="divide-y divide-border/50 mt-4">
             {unmatchedList.map((tx: BankTransaction) => (
               <ConciliacaoUnmatchedRow key={tx.id} tx={tx} />
             ))}

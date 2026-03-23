@@ -43,7 +43,7 @@ import { useSidebarSearch } from "@/hooks/use-sidebar-search";
 import { useSidebarDnd } from "@/hooks/use-sidebar-dnd";
 import { useSidebarPreferences } from "@/hooks/use-sidebar-preferences";
 import { getIcon } from "@/lib/icons";
-import { SIDEBAR_NAV_GROUPS, PINNED_NAV_ITEMS, FOOTER_NAV_ITEMS } from "@/lib/navigation";
+import { SIDEBAR_NAV_GROUPS, PINNED_NAV_ITEMS } from "@/lib/navigation";
 import { SortableNavGroup } from "@/components/layout/sidebar/sortable-nav-group";
 import { SortableNavItem } from "@/components/layout/sidebar/sortable-nav-item";
 import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
@@ -262,21 +262,6 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="space-y-1 border-t p-2">
-        <SidebarMenu>
-          {FOOTER_NAV_ITEMS.map((item) => {
-            const Icon = getIcon(item.icon);
-            return (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton asChild isActive={pathname === item.href}>
-                  <Link href={item.href}>
-                    <Icon className="h-4 w-4" />
-                    <span>{item.label}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            );
-          })}
-        </SidebarMenu>
         <Button variant="ghost" className="w-full justify-start gap-2" onClick={logout}>
           <IconLogout className="h-4 w-4" />
           Sair

@@ -114,6 +114,35 @@ export const SortableNavGroup = memo(function SortableNavGroup({
 
   if (orderedItems.length === 0) return null;
 
+  // Single-item group: skip group header to avoid "Pessoas > Pessoas" duplication
+  const isSingleItem = orderedItems.length === 1;
+
+  if (isSingleItem) {
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={cn(
+          isDragging && "opacity-30",
+          isDragOverlay && "bg-sidebar rounded-md shadow-lg opacity-95",
+          isDropTarget && "ring-2 ring-primary/30 rounded-md bg-primary/5",
+        )}
+      >
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SortableNavItem
+                item={orderedItems[0]}
+                groupLabel={group.label}
+                onAction={onItemAction}
+              />
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={setNodeRef}

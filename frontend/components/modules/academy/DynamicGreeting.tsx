@@ -27,9 +27,6 @@ export function DynamicGreeting() {
       <h1 className="text-4xl font-bold tracking-tight md:text-5xl">
         {greeting}, {name}!
       </h1>
-      <p className="text-muted-foreground text-lg">
-        O que você quer aprender agora?
-      </p>
     </div>
   );
 }

@@ -35,7 +35,9 @@ export async function updateSession(request: NextRequest) {
   const isPublicRoute =
     request.nextUrl.pathname.startsWith("/portal") ||
     request.nextUrl.pathname.startsWith("/metodo") ||
-    request.nextUrl.pathname.startsWith("/api/metodo-upload");
+    request.nextUrl.pathname.startsWith("/api/metodo-upload") ||
+    request.nextUrl.pathname.startsWith("/pesquisa-clima") ||
+    request.nextUrl.pathname.startsWith("/api/pesquisa-clima");
 
   if (!user && !isAuthRoute && !isPublicRoute) {
     const url = request.nextUrl.clone();

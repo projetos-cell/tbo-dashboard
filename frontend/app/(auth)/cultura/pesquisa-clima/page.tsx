@@ -1,0 +1,624 @@
+"use client";
+
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { RBACGuard } from "@/components/shared/rbac-guard";
+import {
+  SURVEY_SECTIONS,
+  SURVEY_QUESTIONS,
+} from "@/features/pesquisa-clima/constants";
+import {
+  analyzeSections,
+  computeOverview,
+  generateInsights,
+  getQuestionStats,
+  type SurveyResponse,
+  type InsightItem,
+  type ScaleStats,
+  type SelectStats,
+  type MultiSelectStats,
+} from "@/features/pesquisa-clima/analysis";
+
+// ── Types ──
+interface Survey {
+  id: string;
+  title: string;
+  edition: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+interface TokenRow {
+  email: string;
+  token: string;
+  used: boolean;
+}
+
+// ── TBO Team emails ──
+const TBO_TEAM_EMAILS = [
+  "marco@agenciatbo.com.br",
+  "ruy@agenciatbo.com.br",
+  "lucca@agenciatbo.com.br",
+  "rafa@agenciatbo.com.br",
+  "gustavo@agenciatbo.com.br",
+  "celso@agenciatbo.com.br",
+  "nelson@agenciatbo.com.br",
+  "eduarda@agenciatbo.com.br",
+  "mariane@agenciatbo.com.br",
+  "lucio@agenciatbo.com.br",
+];
+
+// ── Score color helper ──
+function scoreColor(score: number, max: number = 5): string {
+  const pct = score / max;
+  if (pct >= 0.8) return "text-emerald-600";
+  if (pct >= 0.6) return "text-amber-600";
+  return "text-red-600";
+}
+
+function scoreBg(score: number, max: number = 5): string {
+  const pct = score / max;
+  if (pct >= 0.8) return "bg-emerald-50 border-emerald-200";
+  if (pct >= 0.6) return "bg-amber-50 border-amber-200";
+  return "bg-red-50 border-red-200";
+}
+
+function insightIcon(type: InsightItem["type"]) {
+  switch (type) {
+    case "positive": return "text-emerald-600";
+    case "negative": return "text-red-600";
+    case "warning": return "text-amber-600";
+    case "info": return "text-blue-600";
+  }
+}
+
+function insightBg(type: InsightItem["type"]) {
+  switch (type) {
+    case "positive": return "bg-emerald-50 border-emerald-200";
+    case "negative": return "bg-red-50 border-red-200";
+    case "warning": return "bg-amber-50 border-amber-200";
+    case "info": return "bg-blue-50 border-blue-200";
+  }
+}
+
+function insightEmoji(type: InsightItem["type"]) {
+  switch (type) {
+    case "positive": return "+";
+    case "negative": return "!";
+    case "warning": return "?";
+    case "info": return "i";
+  }
+}
+
+// ── Bar chart component ──
+function HorizontalBar({ label, value, max, color = "bg-primary/60" }: { label: string; value: number; max: number; color?: string }) {
+  const pct = max > 0 ? (value / max) * 100 : 0;
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-muted-foreground truncate max-w-[70%]">{label}</span>
+        <span className="font-medium tabular-nums">{value}</span>
+      </div>
+      <div className="h-2 bg-muted rounded-full overflow-hidden">
+        <div className={`h-full rounded-full transition-all duration-500 ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+// ── Scale distribution mini chart ──
+function ScaleDistribution({ stats }: { stats: ScaleStats }) {
+  const maxCount = Math.max(...stats.distribution, 1);
+  return (
+    <div className="space-y-2">
+      <div className="flex items-baseline gap-2">
+        <span className={`text-3xl font-bold tabular-nums ${scoreColor(stats.avg)}`}>
+          {stats.avg.toFixed(1)}
+        </span>
+        <span className="text-sm text-muted-foreground">/ 5</span>
+      </div>
+      <div className="flex items-end gap-1 h-10">
+        {stats.distribution.map((count, i) => (
+          <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+            <div
+              className={`w-full rounded-sm transition-all duration-500 ${
+                i + 1 <= Math.round(stats.avg) ? "bg-primary/40" : "bg-muted"
+              }`}
+              style={{ height: `${(count / maxCount) * 40}px`, minHeight: count > 0 ? "4px" : "1px" }}
+            />
+            <span className="text-[9px] text-muted-foreground">{i + 1}</span>
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-between text-[9px] text-muted-foreground">
+        <span>{stats.scaleMin}</span>
+        <span>{stats.scaleMax}</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page ──
+export default function PesquisaClimaPage() {
+  return (
+    <RBACGuard
+      minRole="diretoria"
+      fallback={
+        <div className="p-6 text-center space-y-2">
+          <h1 className="text-xl font-bold">Acesso restrito</h1>
+          <p className="text-sm text-muted-foreground">
+            O dashboard da Pesquisa de Clima é restrito à diretoria e founders.
+          </p>
+        </div>
+      }
+    >
+      <PesquisaClimaAdmin />
+    </RBACGuard>
+  );
+}
+
+function PesquisaClimaAdmin() {
+  const [surveys, setSurveys] = useState<Survey[]>([]);
+  const [selectedSurvey, setSelectedSurvey] = useState<string | null>(null);
+  const [tokens, setTokens] = useState<TokenRow[]>([]);
+  const [responses, setResponses] = useState<SurveyResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [tab, setTab] = useState<"dashboard" | "detalhado" | "links">("dashboard");
+  const [copied, setCopied] = useState<string | null>(null);
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+
+  const supabase = createClient();
+
+  useEffect(() => {
+    async function load() {
+      const { data } = await supabase
+        .from("climate_surveys" as never)
+        .select("*" as never)
+        .order("created_at" as never, { ascending: false } as never) as unknown as { data: Survey[] | null };
+
+      if (data?.length) {
+        setSurveys(data);
+        setSelectedSurvey(data[0].id);
+      }
+      setLoading(false);
+    }
+    load();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadSurveyData = useCallback(async (surveyId: string) => {
+    const [tokensRes, responsesRes] = await Promise.all([
+      supabase
+        .from("climate_survey_tokens" as never)
+        .select("email, token, used" as never)
+        .eq("survey_id" as never, surveyId as never) as unknown as Promise<{ data: TokenRow[] | null }>,
+      supabase
+        .from("climate_survey_responses" as never)
+        .select("*" as never)
+        .eq("survey_id" as never, surveyId as never)
+        .order("submitted_at" as never, { ascending: false } as never) as unknown as Promise<{ data: SurveyResponse[] | null }>,
+    ]);
+    setTokens(tokensRes.data ?? []);
+    setResponses(responsesRes.data ?? []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (selectedSurvey) loadSurveyData(selectedSurvey);
+  }, [selectedSurvey, loadSurveyData]);
+
+  // ── Computed analysis ──
+  const overview = useMemo(() => computeOverview(responses, tokens.length), [responses, tokens.length]);
+  const sections = useMemo(() => analyzeSections(responses), [responses]);
+  const insights = useMemo(() => generateInsights(overview, sections, responses), [overview, sections, responses]);
+
+  // ── Actions ──
+  async function handleCreateSurvey() {
+    setCreating(true);
+    const edition = surveys.length + 1;
+    const { data } = await supabase
+      .from("climate_surveys" as never)
+      .insert({ title: `${edition}ª Pesquisa de Clima — Agência TBO`, edition, is_active: true, sections: SURVEY_SECTIONS, questions: SURVEY_QUESTIONS } as never)
+      .select("*" as never)
+      .single() as unknown as { data: Survey | null };
+    if (data) { setSurveys((prev) => [data, ...prev]); setSelectedSurvey(data.id); }
+    setCreating(false);
+  }
+
+  async function handleGenerateTokens() {
+    if (!selectedSurvey) return;
+    setGenerating(true);
+    const res = await fetch("/api/pesquisa-clima/generate-tokens", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ surveyId: selectedSurvey, emails: TBO_TEAM_EMAILS }),
+    });
+    const data = await res.json();
+    if (data.tokens) {
+      setTokens(data.tokens.map((t: { email: string; token: string }) => ({ email: t.email, token: t.token, used: false })));
+    }
+    setGenerating(false);
+  }
+
+  function copyLink(token: string) {
+    navigator.clipboard.writeText(`${window.location.origin}/pesquisa-clima/${token}`);
+    setCopied(token); setTimeout(() => setCopied(null), 2000);
+  }
+
+  function copyAllLinks() {
+    const links = tokens.map((t) => `${t.email}: ${window.location.origin}/pesquisa-clima/${t.token}`).join("\n");
+    navigator.clipboard.writeText(links);
+    setCopied("all"); setTimeout(() => setCopied(null), 2000);
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6 space-y-4">
+        <div className="h-8 w-64 bg-muted animate-pulse rounded" />
+        <div className="grid grid-cols-4 gap-4">{[1,2,3,4].map(i => <div key={i} className="h-24 bg-muted animate-pulse rounded-xl" />)}</div>
+        <div className="h-64 bg-muted animate-pulse rounded-xl" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 space-y-6 max-w-6xl">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Pesquisa de Clima</h1>
+          <p className="text-sm text-muted-foreground">Dashboard analítico com insights automatizados.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {surveys.length > 0 && (
+            <select value={selectedSurvey ?? ""} onChange={(e) => setSelectedSurvey(e.target.value)}
+              className="rounded-lg border border-border bg-background px-3 py-2 text-sm">
+              {surveys.map((s) => (<option key={s.id} value={s.id}>{s.title} {s.is_active ? "(Ativa)" : "(Encerrada)"}</option>))}
+            </select>
+          )}
+          <button onClick={handleCreateSurvey} disabled={creating}
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+            {creating ? "Criando..." : "+ Nova edição"}
+          </button>
+        </div>
+      </div>
+
+      {!selectedSurvey && (
+        <div className="rounded-xl border border-dashed border-border p-12 text-center">
+          <p className="text-muted-foreground">Nenhuma pesquisa criada ainda.</p>
+        </div>
+      )}
+
+      {selectedSurvey && responses.length > 0 && (
+        <>
+          {/* ════ KPI Cards ════ */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="rounded-xl border border-border bg-card p-4 space-y-1">
+              <div className="text-xs text-muted-foreground font-medium">Respostas</div>
+              <div className="text-2xl font-bold">{overview.totalResponses}/{overview.totalTokens}</div>
+              <div className="text-xs text-muted-foreground">{overview.responseRate}% taxa de resposta</div>
+            </div>
+            <div className={`rounded-xl border p-4 space-y-1 ${scoreBg(overview.happinessScore)}`}>
+              <div className="text-xs text-muted-foreground font-medium">Felicidade</div>
+              <div className={`text-2xl font-bold ${scoreColor(overview.happinessScore)}`}>{overview.happinessScore}/5</div>
+              <div className="text-xs text-muted-foreground">Média geral da equipe</div>
+            </div>
+            <div className={`rounded-xl border p-4 space-y-1 ${overview.enps >= 50 ? "bg-emerald-50 border-emerald-200" : overview.enps >= 0 ? "bg-amber-50 border-amber-200" : "bg-red-50 border-red-200"}`}>
+              <div className="text-xs text-muted-foreground font-medium">eNPS</div>
+              <div className={`text-2xl font-bold ${overview.enps >= 50 ? "text-emerald-600" : overview.enps >= 0 ? "text-amber-600" : "text-red-600"}`}>{overview.enps}</div>
+              <div className="text-xs text-muted-foreground">{overview.enps >= 50 ? "Excelente" : overview.enps >= 0 ? "Bom" : "Crítico"} · {overview.enpsPromoters}% prom · {overview.enpsDetractors}% detr</div>
+            </div>
+            <div className={`rounded-xl border p-4 space-y-1 ${scoreBg(overview.overallScore)}`}>
+              <div className="text-xs text-muted-foreground font-medium">Score Geral</div>
+              <div className={`text-2xl font-bold ${scoreColor(overview.overallScore)}`}>{overview.overallScore}/5</div>
+              <div className="text-xs text-muted-foreground">Média de todas as escalas</div>
+            </div>
+          </div>
+
+          {/* ════ Secondary KPIs ════ */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            {[
+              { label: "Pertencimento", value: `${overview.belongingScore}/5`, good: overview.belongingScore >= 4.0 },
+              { label: "Orgulho", value: `${overview.prideScore}/5`, good: overview.prideScore >= 4.0 },
+              { label: "Permanência 12m", value: `${overview.retentionScore}/5`, good: overview.retentionScore >= 4.0 },
+              { label: "Seg. psicológica", value: `${overview.psychSafetyScore}/5`, good: overview.psychSafetyScore >= 4.0 },
+              { label: "Propósito", value: `${overview.purposeScore}/5`, good: overview.purposeScore >= 4.0 },
+            ].map((kpi) => (
+              <div key={kpi.label} className="rounded-xl border border-border bg-card p-3 space-y-0.5">
+                <div className="text-[11px] text-muted-foreground">{kpi.label}</div>
+                <div className={`text-lg font-bold ${kpi.good ? "text-emerald-600" : "text-amber-600"}`}>{kpi.value}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* ════ Tertiary KPIs ════ */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            {[
+              { label: "Liderança", value: `${overview.leadershipScore}/5`, good: overview.leadershipScore >= 4.0 },
+              { label: "Comunicação", value: `${overview.communicationScore}/5`, good: overview.communicationScore >= 4.0 },
+              { label: "Carga de trabalho", value: `${overview.workloadScore}/5`, good: overview.workloadScore >= 4.0 },
+              { label: "Clareza carreira", value: `${overview.careerClarityScore}/5`, good: overview.careerClarityScore >= 3.5 },
+              { label: "Justiça salarial", value: `${overview.remunerationFairnessScore}/5`, good: overview.remunerationFairnessScore >= 3.5 },
+            ].map((kpi) => (
+              <div key={kpi.label} className="rounded-xl border border-border bg-card p-3 space-y-0.5">
+                <div className="text-[11px] text-muted-foreground">{kpi.label}</div>
+                <div className={`text-lg font-bold ${kpi.good ? "text-emerald-600" : "text-amber-600"}`}>{kpi.value}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* ════ Tabs ════ */}
+          <div className="flex gap-1 rounded-lg bg-muted p-1">
+            {(["dashboard", "detalhado", "links"] as const).map((t) => (
+              <button key={t} onClick={() => setTab(t)}
+                className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition capitalize ${tab === t ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                {t === "dashboard" ? "Dashboard" : t === "detalhado" ? "Detalhado" : `Links (${tokens.length})`}
+              </button>
+            ))}
+          </div>
+
+          {/* ════ Tab: Dashboard ════ */}
+          {tab === "dashboard" && (
+            <div className="space-y-6">
+              {/* Insights automatizados */}
+              <div className="space-y-3">
+                <h2 className="text-lg font-bold">Análise Automatizada</h2>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {insights.map((insight, i) => (
+                    <div key={i} className={`rounded-xl border p-4 space-y-1.5 ${insightBg(insight.type)}`}>
+                      <div className="flex items-start gap-2">
+                        <div className={`flex-shrink-0 h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold ${insightIcon(insight.type)} bg-white/80`}>
+                          {insightEmoji(insight.type)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold">{insight.title}</span>
+                            {insight.metric && (
+                              <span className={`text-xs font-bold ${insightIcon(insight.type)}`}>{insight.metric}</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">{insight.description}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Radar de seções */}
+              <div className="space-y-3">
+                <h2 className="text-lg font-bold">Score por Seção</h2>
+                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                  {sections.map((s) => (
+                    <div key={s.sectionId}
+                      className={`rounded-xl border p-4 space-y-2 cursor-pointer transition hover:shadow-sm ${
+                        s.avgScore !== null ? scoreBg(s.avgScore) : "border-border bg-card"
+                      }`}
+                      onClick={() => { setTab("detalhado"); setExpandedSection(s.sectionId); }}>
+                      <div className="text-xs text-muted-foreground font-medium truncate">{s.title}</div>
+                      {s.avgScore !== null ? (
+                        <div className={`text-2xl font-bold ${scoreColor(s.avgScore)}`}>{s.avgScore.toFixed(1)}/5</div>
+                      ) : (
+                        <div className="text-2xl font-bold text-muted-foreground">—</div>
+                      )}
+                      <div className="text-[10px] text-muted-foreground">{s.questions.length} perguntas</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Equilíbrio de carga */}
+              <div className="space-y-3">
+                <h2 className="text-lg font-bold">Equilíbrio de Carga de Trabalho</h2>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                    <div className="text-xs text-muted-foreground font-medium">Carga de trabalho</div>
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1">
+                        <div className="h-3 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-700 ${
+                              overview.workloadScore >= 4 ? "bg-emerald-500" : overview.workloadScore >= 3 ? "bg-amber-500" : "bg-red-500"
+                            }`}
+                            style={{ width: `${(overview.workloadScore / 5) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                      <span className={`text-sm font-bold tabular-nums ${scoreColor(overview.workloadScore)}`}>{overview.workloadScore}/5</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {overview.workloadScore < 3
+                        ? "Alerta: equipe não consegue entregar com qualidade sem comprometer saúde."
+                        : overview.workloadScore < 4
+                        ? "Atenção: parte da equipe relata carga no limite."
+                        : "Carga equilibrada — equipe consegue entregar com qualidade."}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                    <div className="text-xs text-muted-foreground font-medium">Equilíbrio vida-trabalho</div>
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1">
+                        <div className="h-3 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-700 ${
+                              overview.workLifeBalance >= 4 ? "bg-emerald-500" : overview.workLifeBalance >= 3 ? "bg-amber-500" : "bg-red-500"
+                            }`}
+                            style={{ width: `${(overview.workLifeBalance / 5) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                      <span className={`text-sm font-bold tabular-nums ${scoreColor(overview.workLifeBalance)}`}>{overview.workLifeBalance}/5</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {overview.workLifeBalance < 3
+                        ? "Trabalho invadindo vida pessoal. Risco de burnout."
+                        : overview.workLifeBalance < 4
+                        ? "Equilíbrio frágil. Monitorar de perto."
+                        : "Equilíbrio saudável entre vida pessoal e profissional."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Respostas abertas destacadas */}
+              <div className="space-y-3">
+                <h2 className="text-lg font-bold">Destaques das Respostas Abertas</h2>
+                <div className="space-y-4">
+                  {[
+                    { qId: "q48", title: "Sugestões para a diretoria" },
+                    { qId: "q47", title: "Visão de futuro da TBO" },
+                    { qId: "q23", title: "O que mudariam na rotina" },
+                  ].map(({ qId, title }) => {
+                    const q = SURVEY_QUESTIONS.find((q) => q.id === qId)!;
+                    const stats = getQuestionStats(q, responses);
+                    if (stats.type !== "text" || stats.answers.length === 0) return null;
+                    return (
+                      <div key={qId} className="rounded-xl border border-border bg-card p-4 space-y-2">
+                        <h3 className="text-sm font-semibold">{title}</h3>
+                        <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                          {stats.answers.map((a, i) => (
+                            <div key={i} className="rounded-lg bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+                              &ldquo;{a}&rdquo;
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ════ Tab: Detalhado ════ */}
+          {tab === "detalhado" && (
+            <div className="space-y-6">
+              {sections.map((section) => (
+                <div key={section.sectionId} className="space-y-3">
+                  <button
+                    onClick={() => setExpandedSection(expandedSection === section.sectionId ? null : section.sectionId)}
+                    className="w-full flex items-center justify-between text-left"
+                  >
+                    <div>
+                      <h3 className="text-base font-bold">{section.title}</h3>
+                      {section.description && <p className="text-xs text-muted-foreground">{section.description}</p>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {section.avgScore !== null && (
+                        <span className={`text-sm font-bold ${scoreColor(section.avgScore)}`}>{section.avgScore.toFixed(1)}/5</span>
+                      )}
+                      <svg className={`h-4 w-4 text-muted-foreground transition-transform ${expandedSection === section.sectionId ? "rotate-180" : ""}`}
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </button>
+
+                  {expandedSection === section.sectionId && (
+                    <div className="grid gap-3 md:grid-cols-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                      {section.questions.map(({ question, stats }) => (
+                        <div key={question.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
+                          <p className="text-sm font-medium leading-snug">{question.label}</p>
+
+                          {stats.type === "scale" && <ScaleDistribution stats={stats} />}
+
+                          {stats.type === "select" && (
+                            <div className="space-y-1.5">
+                              {Object.entries((stats as SelectStats).counts).map(([opt, count]) => (
+                                <HorizontalBar key={opt} label={opt} value={count} max={(stats as SelectStats).total}
+                                  color={opt === "Sim" ? "bg-emerald-400" : opt === "Não" ? "bg-red-400" : "bg-amber-400"} />
+                              ))}
+                              <p className="text-[10px] text-muted-foreground pt-1">{(stats as SelectStats).total} respostas</p>
+                            </div>
+                          )}
+
+                          {stats.type === "multi_select" && (
+                            <div className="space-y-1.5">
+                              {Object.entries((stats as MultiSelectStats).counts)
+                                .sort((a, b) => b[1] - a[1])
+                                .map(([opt, count]) => (
+                                  <HorizontalBar key={opt} label={opt} value={count} max={(stats as MultiSelectStats).total} color="bg-blue-400" />
+                                ))}
+                            </div>
+                          )}
+
+                          {stats.type === "text" && (
+                            <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                              {stats.answers.length > 0 ? (
+                                stats.answers.map((a, i) => (
+                                  <div key={i} className="rounded-lg bg-muted/50 px-2.5 py-1.5 text-xs text-muted-foreground">{a}</div>
+                                ))
+                              ) : (
+                                <p className="text-xs text-muted-foreground italic">Sem respostas.</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ════ Tab: Links ════ */}
+          {tab === "links" && (
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <button onClick={handleGenerateTokens} disabled={generating}
+                  className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+                  {generating ? "Gerando..." : "Gerar links para equipe"}
+                </button>
+                {tokens.length > 0 && (
+                  <button onClick={copyAllLinks} className="rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted">
+                    {copied === "all" ? "Copiado!" : "Copiar todos"}
+                  </button>
+                )}
+              </div>
+              {tokens.length > 0 && (
+                <div className="rounded-xl border border-border overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        <th className="text-left px-4 py-2 font-medium">E-mail</th>
+                        <th className="text-left px-4 py-2 font-medium">Status</th>
+                        <th className="text-right px-4 py-2 font-medium">Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {tokens.map((t) => (
+                        <tr key={t.email}>
+                          <td className="px-4 py-2.5 font-mono text-xs">{t.email}</td>
+                          <td className="px-4 py-2.5">
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                              t.used ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                              {t.used ? "Respondido" : "Pendente"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5 text-right">
+                            <button onClick={() => copyLink(t.token)} className="text-xs text-primary hover:underline">
+                              {copied === t.token ? "Copiado!" : "Copiar link"}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {selectedSurvey && responses.length === 0 && !loading && (
+        <div className="rounded-xl border border-dashed border-border p-12 text-center space-y-2">
+          <p className="text-muted-foreground">Nenhuma resposta recebida ainda.</p>
+          <p className="text-xs text-muted-foreground">Gere os links na aba &quot;Links&quot; e envie para a equipe.</p>
+        </div>
+      )}
+    </div>
+  );
+}

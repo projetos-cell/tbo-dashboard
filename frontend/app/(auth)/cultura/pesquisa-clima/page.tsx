@@ -17,7 +17,15 @@ import {
   type ScaleStats,
   type SelectStats,
   type MultiSelectStats,
+  type OverviewMetrics,
 } from "@/features/pesquisa-clima/analysis";
+import {
+  HISTORICAL_EDITIONS,
+  TREND_METRICS,
+  getMetricTrend,
+  computeDelta,
+  type HistoricalEdition,
+} from "@/features/pesquisa-clima/historical-data";
 
 // ── Types ──
 interface Survey {
@@ -165,7 +173,7 @@ function PesquisaClimaAdmin() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [tab, setTab] = useState<"dashboard" | "detalhado" | "links">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "detalhado" | "historico" | "links">("dashboard");
   const [copied, setCopied] = useState<string | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
@@ -350,10 +358,10 @@ function PesquisaClimaAdmin() {
 
           {/* ════ Tabs ════ */}
           <div className="flex gap-1 rounded-lg bg-muted p-1">
-            {(["dashboard", "detalhado", "links"] as const).map((t) => (
+            {(["dashboard", "detalhado", "historico", "links"] as const).map((t) => (
               <button key={t} onClick={() => setTab(t)}
-                className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition capitalize ${tab === t ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-                {t === "dashboard" ? "Dashboard" : t === "detalhado" ? "Detalhado" : "Compartilhar"}
+                className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition ${tab === t ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                {t === "dashboard" ? "Dashboard" : t === "detalhado" ? "Detalhado" : t === "historico" ? "Histórico" : "Compartilhar"}
               </button>
             ))}
           </div>
@@ -563,6 +571,9 @@ function PesquisaClimaAdmin() {
             </div>
           )}
 
+          {/* ════ Tab: Histórico ════ */}
+          {tab === "historico" && <HistoricoTab currentOverview={overview} />}
+
           {/* ════ Tab: Compartilhar ════ */}
           {tab === "links" && (
             <div className="space-y-4">
@@ -611,12 +622,319 @@ function PesquisaClimaAdmin() {
         </>
       )}
 
-      {selectedSurvey && responses.length === 0 && !loading && (
-        <div className="rounded-xl border border-dashed border-border p-12 text-center space-y-2">
+      {selectedSurvey && responses.length === 0 && !loading && tab !== "historico" && (
+        <div className="rounded-xl border border-dashed border-border p-12 text-center space-y-4">
           <p className="text-muted-foreground">Nenhuma resposta recebida ainda.</p>
-          <p className="text-xs text-muted-foreground">Gere os links na aba &quot;Links&quot; e envie para a equipe.</p>
+          <p className="text-xs text-muted-foreground">Gere os links na aba &quot;Compartilhar&quot; e envie para a equipe.</p>
+          <button onClick={() => setTab("historico")}
+            className="rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted transition">
+            Ver edições anteriores
+          </button>
         </div>
       )}
+
+      {/* Histórico always accessible, even without current responses */}
+      {selectedSurvey && responses.length === 0 && tab === "historico" && (
+        <>
+          <div className="flex gap-1 rounded-lg bg-muted p-1">
+            {(["historico", "links"] as const).map((t) => (
+              <button key={t} onClick={() => setTab(t)}
+                className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition ${tab === t ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                {t === "historico" ? "Histórico" : "Compartilhar"}
+              </button>
+            ))}
+          </div>
+          <HistoricoTab currentOverview={null} />
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Histórico Tab Component ──
+function HistoricoTab({ currentOverview }: { currentOverview: OverviewMetrics | null }) {
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [expandedEdition, setExpandedEdition] = useState<number | null>(null);
+
+  const categories = [
+    { key: "all", label: "Todos" },
+    { key: "clima", label: "Clima" },
+    { key: "lideranca", label: "Liderança" },
+    { key: "carreira", label: "Carreira" },
+    { key: "remuneracao", label: "Remuneração" },
+  ];
+
+  const filteredMetrics = selectedCategory === "all"
+    ? TREND_METRICS
+    : TREND_METRICS.filter((m) => m.category === selectedCategory);
+
+  const allEditions = useMemo(() => {
+    if (!currentOverview || currentOverview.totalResponses === 0) return HISTORICAL_EDITIONS;
+    const current: HistoricalEdition = {
+      edition: 4,
+      label: "4ª Pesquisa",
+      date: "Mar 2026",
+      totalResponses: currentOverview.totalResponses,
+      teamSize: currentOverview.totalTokens || currentOverview.totalResponses,
+      felicidade: currentOverview.happinessScore,
+      overallScore: currentOverview.overallScore,
+      culturaClareza: 0,
+      confortoEquipe: 0,
+      diaAgradavel: 0,
+      workLifeBalance: currentOverview.workLifeBalance,
+      satisfacaoFuncoes: 0,
+      planoCarreira: currentOverview.careerClarityScore,
+      homeOffice: 0,
+      workloadScore: currentOverview.workloadScore,
+      leadershipScore: currentOverview.leadershipScore,
+      communicationScore: currentOverview.communicationScore,
+      careerClarityScore: currentOverview.careerClarityScore,
+      pertencimento: currentOverview.belongingScore >= 4 ? 100 : currentOverview.belongingScore >= 3 ? 70 : 40,
+      orgulho: currentOverview.prideScore >= 4 ? 100 : currentOverview.prideScore >= 3 ? 70 : 40,
+      crescimento: 0,
+      satisfRemuneracao: currentOverview.remunerationFairnessScore >= 4 ? 100 : currentOverview.remunerationFairnessScore >= 3 ? 50 : 20,
+      salarioJusto: 0,
+      distributions: { felicidade: [], culturaClareza: [], confortoEquipe: [], satisfacaoFuncoes: [], planoCarreira: [], workLifeBalance: [] },
+      openResponses: { sugestoesDiretoria: [], pontosAtencao: [], futuroTBO: [], beneficiosFalta: [], cargosAlvo: [] },
+    };
+    return [...HISTORICAL_EDITIONS, current];
+  }, [currentOverview]);
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-1">
+        <h2 className="text-lg font-bold">Evolução das Pesquisas de Clima</h2>
+        <p className="text-sm text-muted-foreground">
+          Comparativo entre as {allEditions.length} edições ({allEditions[0].date} — {allEditions[allEditions.length - 1].date}).
+        </p>
+      </div>
+
+      {/* Edition Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {allEditions.map((e, i) => {
+          const prev = i > 0 ? allEditions[i - 1] : null;
+          const delta = prev ? computeDelta(e.felicidade, prev.felicidade) : null;
+          return (
+            <div key={e.edition} className="rounded-xl border border-border bg-card p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">{e.label}</span>
+                <span className="text-[10px] text-muted-foreground">{e.date}</span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className={`text-2xl font-bold ${scoreColor(e.felicidade)}`}>{e.felicidade}</span>
+                <span className="text-xs text-muted-foreground">/5 felicidade</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">{e.totalResponses} respostas</span>
+                {delta && (
+                  <span className={delta.direction === "up" ? "text-emerald-600 font-medium" : delta.direction === "down" ? "text-red-600 font-medium" : "text-muted-foreground"}>
+                    {delta.direction === "up" ? "↑" : delta.direction === "down" ? "↓" : "="} {delta.label}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Category filter */}
+      <div className="flex gap-1.5 flex-wrap">
+        {categories.map((c) => (
+          <button key={c.key} onClick={() => setSelectedCategory(c.key)}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+              selectedCategory === c.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+            }`}>
+            {c.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Trend Charts */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {filteredMetrics.map((metric) => {
+          const trend = getMetricTrend(metric.key, allEditions);
+          const max = metric.max;
+          const lastTwo = trend.filter((t) => t.value > 0);
+          const lastDelta = lastTwo.length >= 2
+            ? computeDelta(lastTwo[lastTwo.length - 1].value, lastTwo[lastTwo.length - 2].value)
+            : null;
+
+          return (
+            <div key={metric.key} className="rounded-xl border border-border bg-card p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-semibold">{metric.label}</div>
+                  <div className="text-[10px] text-muted-foreground">{metric.description}</div>
+                </div>
+                {lastDelta && lastDelta.direction !== "stable" && (
+                  <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
+                    lastDelta.direction === "up" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+                  }`}>
+                    {lastDelta.direction === "up" ? "↑" : "↓"} {lastDelta.label}{metric.format === "percent" ? "pp" : ""}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-end gap-2 h-20">
+                {trend.map((point, idx) => {
+                  const val = point.value;
+                  if (val === 0) return (
+                    <div key={idx} className="flex-1 flex flex-col items-center gap-1">
+                      <div className="w-full h-12 flex items-center justify-center">
+                        <span className="text-[9px] text-muted-foreground">—</span>
+                      </div>
+                      <span className="text-[9px] text-muted-foreground">{point.date}</span>
+                    </div>
+                  );
+                  const pct = metric.format === "scale"
+                    ? ((val - 1) / (max - 1)) * 100
+                    : (val / max) * 100;
+                  const isLast = idx === trend.length - 1;
+                  return (
+                    <div key={idx} className="flex-1 flex flex-col items-center gap-1">
+                      <span className={`text-[10px] font-bold tabular-nums ${isLast ? scoreColor(val, max) : "text-muted-foreground"}`}>
+                        {val}{metric.format === "percent" ? "%" : ""}
+                      </span>
+                      <div className="w-full bg-muted rounded-sm overflow-hidden" style={{ height: "48px" }}>
+                        <div
+                          className={`w-full rounded-sm transition-all duration-700 ${
+                            isLast ? "bg-primary/60" : "bg-muted-foreground/20"
+                          }`}
+                          style={{ height: `${Math.max(pct, 5)}%`, marginTop: `${100 - Math.max(pct, 5)}%` }}
+                        />
+                      </div>
+                      <span className="text-[9px] text-muted-foreground leading-tight text-center">{point.date}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Edition Detail Expanders */}
+      <div className="space-y-3">
+        <h3 className="text-base font-bold">Detalhes por Edição</h3>
+        {[...allEditions].reverse().map((edition) => (
+          <div key={edition.edition} className="rounded-xl border border-border bg-card overflow-hidden">
+            <button
+              onClick={() => setExpandedEdition(expandedEdition === edition.edition ? null : edition.edition)}
+              className="w-full flex items-center justify-between p-4 text-left hover:bg-muted/50 transition"
+            >
+              <div className="flex items-center gap-3">
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold ${scoreBg(edition.felicidade)}`}>
+                  <span className={scoreColor(edition.felicidade)}>{edition.edition}</span>
+                </div>
+                <div>
+                  <span className="text-sm font-semibold">{edition.label}</span>
+                  <span className="text-xs text-muted-foreground ml-2">{edition.date} · {edition.totalResponses} respostas</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className={`text-sm font-bold ${scoreColor(edition.overallScore)}`}>{edition.overallScore}/5</span>
+                <svg className={`h-4 w-4 text-muted-foreground transition-transform ${expandedEdition === edition.edition ? "rotate-180" : ""}`}
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </button>
+
+            {expandedEdition === edition.edition && (
+              <div className="px-4 pb-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {[
+                    { label: "Felicidade", value: edition.felicidade },
+                    { label: "Equilíbrio vida-trabalho", value: edition.workLifeBalance },
+                    { label: "Liderança", value: edition.leadershipScore },
+                    { label: "Comunicação", value: edition.communicationScore },
+                    { label: "Carreira", value: edition.careerClarityScore },
+                    { label: "Carga trabalho", value: edition.workloadScore },
+                    { label: "Home office", value: edition.homeOffice },
+                    { label: "Score geral", value: edition.overallScore },
+                  ].filter(m => m.value > 0).map((m) => (
+                    <div key={m.label} className="rounded-lg border border-border p-2.5 space-y-0.5">
+                      <div className="text-[10px] text-muted-foreground">{m.label}</div>
+                      <div className={`text-base font-bold ${scoreColor(m.value)}`}>{m.value}/5</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {[
+                    { label: "Pertencimento", value: edition.pertencimento },
+                    { label: "Orgulho", value: edition.orgulho },
+                    { label: "Vê crescimento", value: edition.crescimento },
+                    { label: "Satisf. remuneração", value: edition.satisfRemuneracao },
+                  ].filter(m => m.value > 0).map((m) => (
+                    <div key={m.label} className="rounded-lg border border-border p-2.5 space-y-0.5">
+                      <div className="text-[10px] text-muted-foreground">{m.label}</div>
+                      <div className={`text-base font-bold ${m.value >= 70 ? "text-emerald-600" : m.value >= 40 ? "text-amber-600" : "text-red-600"}`}>
+                        {m.value}%
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {edition.openResponses.sugestoesDiretoria.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Sugestões para a Diretoria</h4>
+                    <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                      {edition.openResponses.sugestoesDiretoria.map((s, i) => (
+                        <div key={i} className="rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">{s}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {edition.openResponses.pontosAtencao.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Pontos de Atenção</h4>
+                    <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                      {edition.openResponses.pontosAtencao.map((s, i) => (
+                        <div key={i} className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">{s}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {edition.openResponses.futuroTBO.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Visão de Futuro da TBO</h4>
+                    <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                      {edition.openResponses.futuroTBO.map((s, i) => (
+                        <div key={i} className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-800">{s}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {edition.openResponses.beneficiosFalta.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Benefícios Solicitados</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {edition.openResponses.beneficiosFalta.map((b, i) => (
+                        <span key={i} className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-medium text-muted-foreground">{b}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {edition.openResponses.cargosAlvo.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Cargos Almejados</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {edition.openResponses.cargosAlvo.map((c, i) => (
+                        <span key={i} className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-medium text-primary">{c}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

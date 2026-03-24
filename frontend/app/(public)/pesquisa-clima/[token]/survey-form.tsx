@@ -41,33 +41,33 @@ function ScaleInput({
 }) {
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between gap-4">
-        <span className="text-xs text-zinc-500 flex-shrink-0">{minLabel}</span>
-        <div className="flex gap-2">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => onChange(String(n))}
-              className={`
-                h-11 w-11 rounded-full text-sm font-semibold transition-all duration-150
-                ${
-                  value === String(n)
-                    ? "text-white shadow-lg scale-110"
-                    : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:scale-105"
-                }
-              `}
-              style={
+      <div className="flex gap-2 justify-center">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => onChange(String(n))}
+            className={`
+              h-12 w-12 rounded-full text-sm font-semibold transition-all duration-150
+              ${
                 value === String(n)
-                  ? { background: "linear-gradient(135deg, #E85102, #EC7602)" }
-                  : undefined
+                  ? "text-white shadow-lg scale-110"
+                  : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:scale-105"
               }
-            >
-              {n}
-            </button>
-          ))}
-        </div>
-        <span className="text-xs text-zinc-500 flex-shrink-0">{maxLabel}</span>
+            `}
+            style={
+              value === String(n)
+                ? { background: "linear-gradient(135deg, #E85102, #EC7602)" }
+                : undefined
+            }
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+      <div className="flex justify-between text-xs text-zinc-500 px-1">
+        <span>{minLabel}</span>
+        <span>{maxLabel}</span>
       </div>
     </div>
   );
@@ -566,7 +566,7 @@ export function ClimateSurveyForm({
       </div>
 
       <div className="relative flex items-start justify-center p-4 pt-8 md:pt-16">
-        <div className="w-full max-w-lg space-y-6">
+        <div className="w-full max-w-2xl space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">

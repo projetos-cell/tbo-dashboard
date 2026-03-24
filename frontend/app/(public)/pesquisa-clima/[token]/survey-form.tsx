@@ -206,10 +206,12 @@ function SelectInput({
   return (
     <div className="space-y-2">
       {options.map((opt) => (
-        <label
+        <button
           key={opt}
+          type="button"
+          onClick={() => onChange(opt)}
           className={`
-            flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-all duration-150
+            flex w-full items-center gap-3 rounded-lg border p-3 cursor-pointer transition-all duration-150 text-left
             ${
               value === opt
                 ? "border-zinc-900 bg-zinc-50"
@@ -228,7 +230,7 @@ function SelectInput({
             )}
           </div>
           <span className="text-sm text-zinc-700">{opt}</span>
-        </label>
+        </button>
       ))}
     </div>
   );
@@ -468,12 +470,8 @@ export function ClimateSurveyForm({
             </h1>
 
             <div className="space-y-4 text-sm text-zinc-600 leading-relaxed">
-              <p className="font-medium text-zinc-900">{SURVEY_INTRO.greeting}</p>
               {SURVEY_INTRO.body.split("\n\n").map((paragraph, i) => (
-                <p key={i} dangerouslySetInnerHTML={{
-                  __html: paragraph
-                    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-zinc-900">$1</strong>')
-                }} />
+                <p key={i}>{paragraph}</p>
               ))}
             </div>
 
@@ -481,14 +479,8 @@ export function ClimateSurveyForm({
               <svg className="h-5 w-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
-              <span>
-                <strong>100% anônima:</strong> suas respostas não são vinculadas ao seu e-mail ou identidade.
-              </span>
+              <span>{SURVEY_INTRO.anonymity}</span>
             </div>
-
-            <p className="text-sm font-semibold text-zinc-900">
-              {SURVEY_INTRO.cta}
-            </p>
 
             <button
               type="button"

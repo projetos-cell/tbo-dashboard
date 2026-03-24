@@ -609,16 +609,13 @@ export const SURVEY_QUESTIONS: SurveyQuestion[] = [
 ];
 
 export const SURVEY_INTRO = {
-  title: "4ª Pesquisa de Clima — Agência TBO",
-  greeting: "Fala turmaa!",
-  body: `A jornada da Agência TBO é repleta de aprendizados e evolução. Estamos na nossa quarta edição da Pesquisa de Clima!
+  title: "Pesquisa de Clima",
+  edition: "4ª edição",
+  body: `Essa pesquisa existe para ouvir você de verdade.
 
-Como uma empresa em constante crescimento, temos o compromisso de criar um impacto positivo — seja por meio do sucesso de nossos lançamentos imobiliários, que envolvem uma cadeia de profissionais e afetam a vida de muitas pessoas, ou por meio de um ambiente de trabalho saudável, onde todos se sintam valorizados e engajados.
+Queremos entender como está sendo sua experiência na TBO — o que funciona, o que incomoda, o que pode melhorar. Sem filtro, sem julgamento.
 
-A sua opinião tem um valor imenso para nós. Estamos abertos a mudanças e buscando constantemente o equilíbrio dentro da nossa empresa.
-
-**A pesquisa é 100% anônima.** Sejam sinceros nas respostas.
-
-Contamos com a participação de todos para construir um ambiente ainda mais inspirador na TBO.`,
-  cta: "Bora com tudo nessa jornada de crescimento!",
+As últimas edições já geraram mudanças reais. Essa também vai.`,
+  anonymity: "Suas respostas são 100% anônimas. Nenhum dado pessoal é coletado ou vinculado à sua identidade.",
+  cta: "Começar pesquisa",
 };

@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { SURVEY_INTRO, SURVEY_SECTIONS, SURVEY_QUESTIONS } from "@/features/pesquisa-clima/constants";
+import Image from "next/image";
+import {
+  SURVEY_INTRO,
+  SURVEY_SECTIONS,
+  SURVEY_QUESTIONS,
+} from "@/features/pesquisa-clima/constants";
 
 export default function PesquisaClimaEntryPage() {
   const router = useRouter();
@@ -36,88 +41,122 @@ export default function PesquisaClimaEntryPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-start justify-center bg-zinc-50 p-4 pt-12 md:pt-20">
-      <div className="w-full max-w-lg space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 p-4">
+      {/* Background gradient accent */}
+      <div
+        className="pointer-events-none fixed inset-0 opacity-30"
+        style={{
+          background:
+            "radial-gradient(ellipse 60% 40% at 50% 0%, #E85102 0%, transparent 70%)",
+        }}
+      />
+
+      <div className="relative w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
         {/* Logo */}
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-zinc-900 flex items-center justify-center">
-            <span className="text-white text-xs font-bold">TBO</span>
-          </div>
-          <span className="text-sm font-medium text-zinc-400">
-            Pesquisa de Clima
-          </span>
+        <div className="flex justify-center">
+          <Image
+            src="/logo-tbo-dark.svg"
+            alt="TBO"
+            width={120}
+            height={40}
+            priority
+          />
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 md:p-8 shadow-sm space-y-5">
-          <h1 className="text-xl md:text-2xl font-bold text-zinc-900">
-            {SURVEY_INTRO.title}
-          </h1>
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 md:p-8 shadow-2xl backdrop-blur-sm space-y-6">
+          {/* Header */}
+          <div className="space-y-1">
+            <p
+              className="text-xs font-semibold uppercase tracking-widest"
+              style={{ color: "#E85102" }}
+            >
+              {SURVEY_INTRO.edition}
+            </p>
+            <h1 className="text-2xl md:text-3xl font-bold text-white">
+              {SURVEY_INTRO.title}
+            </h1>
+          </div>
 
-          <div className="space-y-4 text-sm text-zinc-600 leading-relaxed">
-            <p className="font-medium text-zinc-900">{SURVEY_INTRO.greeting}</p>
+          {/* Body */}
+          <div className="space-y-4 text-sm leading-relaxed text-zinc-400">
             {SURVEY_INTRO.body.split("\n\n").map((paragraph, i) => (
-              <p
-                key={i}
-                dangerouslySetInnerHTML={{
-                  __html: paragraph.replace(
-                    /\*\*(.*?)\*\*/g,
-                    '<strong class="text-zinc-900">$1</strong>'
-                  ),
-                }}
-              />
+              <p key={i}>{paragraph}</p>
             ))}
           </div>
 
-          <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-800 flex items-start gap-2">
-            <svg
-              className="h-5 w-5 flex-shrink-0 mt-0.5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
+          {/* Divider */}
+          <div className="border-t border-zinc-800" />
+
+          {/* Anonymity badge */}
+          <div className="flex items-start gap-3 rounded-xl bg-zinc-800/60 p-4">
+            <div
+              className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg"
+              style={{ background: "rgba(232, 81, 2, 0.15)" }}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-              />
-            </svg>
-            <span>
-              <strong>100% anônima.</strong> Nenhum dado pessoal é coletado.
-              Suas respostas não são vinculadas à sua identidade.
-            </span>
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="#E85102"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
+              </svg>
+            </div>
+            <p className="text-sm text-zinc-300 leading-relaxed">
+              {SURVEY_INTRO.anonymity}
+            </p>
           </div>
 
-          <p className="text-sm font-semibold text-zinc-900">
-            {SURVEY_INTRO.cta}
-          </p>
-
+          {/* Error */}
           {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">
               {error}
             </div>
           )}
 
+          {/* CTA */}
           <button
             type="button"
             onClick={handleStart}
             disabled={loading}
-            className="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-medium text-white shadow-sm transition-all hover:bg-zinc-800 hover:shadow-md active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full rounded-xl px-4 py-3.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              background: "linear-gradient(135deg, #E85102 0%, #EC7602 100%)",
+            }}
           >
-            {loading ? "Preparando..." : "Começar pesquisa"}
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Preparando...
+              </span>
+            ) : (
+              SURVEY_INTRO.cta
+            )}
           </button>
 
-          <div className="flex items-center justify-center gap-4 text-xs text-zinc-400">
+          {/* Meta */}
+          <div className="flex items-center justify-center gap-3 text-xs text-zinc-600">
             <span>{SURVEY_SECTIONS.length} seções</span>
-            <span>·</span>
+            <span className="text-zinc-700">·</span>
             <span>{SURVEY_QUESTIONS.length} perguntas</span>
-            <span>·</span>
+            <span className="text-zinc-700">·</span>
             <span>~9 min</span>
           </div>
         </div>
 
-        <p className="text-center text-xs text-zinc-300">Powered by TBO OS</p>
+        {/* Footer */}
+        <p className="text-center text-[11px] text-zinc-700">
+          Powered by TBO OS
+        </p>
       </div>
     </div>
   );

@@ -49,76 +49,86 @@ export default function PesquisaClimaEntryPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 p-4 overflow-hidden">
-      {/* Animated gradient background */}
+      {/* Japanese gradient background — full bleed, smooth accelerated motion */}
       <style>{`
-        @keyframes aurora-drift {
-          0%, 100% {
-            transform: translate(0%, 0%) scale(1);
-            opacity: 0.25;
-          }
-          25% {
-            transform: translate(10%, 5%) scale(1.1);
-            opacity: 0.35;
-          }
-          50% {
-            transform: translate(-5%, -3%) scale(1.05);
-            opacity: 0.2;
-          }
-          75% {
-            transform: translate(-10%, 4%) scale(1.15);
-            opacity: 0.3;
-          }
+        @keyframes jp-orbit-1 {
+          0%   { transform: translate(0, 0) scale(1) rotate(0deg); }
+          14%  { transform: translate(12%, -14%) scale(1.18) rotate(4deg); }
+          32%  { transform: translate(-6%, -8%) scale(0.92) rotate(-2deg); }
+          48%  { transform: translate(-16%, 10%) scale(1.1) rotate(-5deg); }
+          67%  { transform: translate(8%, 16%) scale(0.88) rotate(3deg); }
+          83%  { transform: translate(14%, -4%) scale(1.14) rotate(-1deg); }
+          100% { transform: translate(0, 0) scale(1) rotate(0deg); }
         }
-        @keyframes aurora-drift-2 {
-          0%, 100% {
-            transform: translate(0%, 0%) scale(1.1);
-            opacity: 0.15;
-          }
-          33% {
-            transform: translate(-15%, -5%) scale(1);
-            opacity: 0.25;
-          }
-          66% {
-            transform: translate(10%, 3%) scale(1.2);
-            opacity: 0.18;
-          }
+        @keyframes jp-orbit-2 {
+          0%   { transform: translate(0, 0) scale(1.05) rotate(0deg); }
+          18%  { transform: translate(-14%, -10%) scale(0.9) rotate(-4deg); }
+          36%  { transform: translate(-8%, 14%) scale(1.2) rotate(2deg); }
+          52%  { transform: translate(16%, 6%) scale(0.88) rotate(5deg); }
+          71%  { transform: translate(10%, -12%) scale(1.12) rotate(-3deg); }
+          88%  { transform: translate(-4%, -6%) scale(1.02) rotate(1deg); }
+          100% { transform: translate(0, 0) scale(1.05) rotate(0deg); }
         }
-        @keyframes aurora-drift-3 {
-          0%, 100% {
-            transform: translate(5%, -3%) scale(1);
-            opacity: 0.1;
-          }
-          50% {
-            transform: translate(-8%, 5%) scale(1.15);
-            opacity: 0.2;
-          }
+        @keyframes jp-orbit-3 {
+          0%   { transform: translate(0, 0) scale(1); }
+          22%  { transform: translate(10%, 14%) scale(1.22) rotate(3deg); }
+          41%  { transform: translate(-14%, 6%) scale(0.86) rotate(-4deg); }
+          58%  { transform: translate(-8%, -12%) scale(1.14) rotate(2deg); }
+          76%  { transform: translate(12%, -6%) scale(0.92) rotate(-2deg); }
+          100% { transform: translate(0, 0) scale(1); }
+        }
+        @keyframes jp-orbit-4 {
+          0%   { transform: translate(0, 0) scale(1) rotate(0deg); }
+          16%  { transform: translate(-12%, -8%) scale(1.16) rotate(-3deg); }
+          35%  { transform: translate(6%, -16%) scale(0.9) rotate(5deg); }
+          53%  { transform: translate(14%, 10%) scale(1.08) rotate(-4deg); }
+          72%  { transform: translate(-6%, 14%) scale(0.94) rotate(2deg); }
+          89%  { transform: translate(-14%, 2%) scale(1.12) rotate(-1deg); }
+          100% { transform: translate(0, 0) scale(1) rotate(0deg); }
         }
       `}</style>
-      <div className="pointer-events-none fixed inset-0">
-        {/* Primary warm glow — top center */}
-        <div
-          className="absolute -top-1/4 left-1/2 h-[80vh] w-[120vw] -translate-x-1/2"
-          style={{
-            background: "radial-gradient(ellipse 50% 50% at 50% 30%, #E85102 0%, transparent 70%)",
-            animation: "aurora-drift 12s ease-in-out infinite",
-          }}
-        />
-        {/* Secondary amber glow — right side */}
-        <div
-          className="absolute -top-1/3 -right-1/4 h-[70vh] w-[80vw]"
-          style={{
-            background: "radial-gradient(ellipse 40% 50% at 60% 20%, #EC7602 0%, transparent 65%)",
-            animation: "aurora-drift-2 16s ease-in-out infinite",
-          }}
-        />
-        {/* Subtle deep red glow — left side */}
-        <div
-          className="absolute -top-1/4 -left-1/4 h-[60vh] w-[70vw]"
-          style={{
-            background: "radial-gradient(ellipse 45% 40% at 30% 25%, #B8400A 0%, transparent 60%)",
-            animation: "aurora-drift-3 20s ease-in-out infinite",
-          }}
-        />
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        {/* Base: near-black */}
+        <div className="absolute inset-0 bg-zinc-950" />
+
+        {/* Orange blob */}
+        <div className="absolute h-[72vh] w-[58vw] top-[5%] left-[30%]" style={{
+          background: "radial-gradient(circle at 50% 50%, rgba(220, 100, 30, 0.95) 0%, rgba(200, 75, 15, 0.4) 45%, transparent 70%)",
+          animation: "jp-orbit-1 8s cubic-bezier(0.4, 0, 0.2, 1) infinite",
+          filter: "blur(50px)",
+        }} />
+
+        {/* Cream highlight — top-right to balance */}
+        <div className="absolute h-[52vh] w-[46vw] top-[-10%] right-[-10%]" style={{
+          background: "radial-gradient(circle at 50% 50%, rgba(240, 228, 210, 0.8) 0%, rgba(220, 200, 170, 0.2) 45%, transparent 65%)",
+          animation: "jp-orbit-2 11s cubic-bezier(0.4, 0, 0.2, 1) infinite",
+          filter: "blur(45px)",
+        }} />
+
+        {/* Dark plum — bottom */}
+        <div className="absolute h-[58vh] w-[65vw] bottom-[-12%] left-[0%]" style={{
+          background: "radial-gradient(circle at 50% 50%, rgba(55, 20, 28, 0.9) 0%, rgba(70, 30, 35, 0.25) 50%, transparent 70%)",
+          animation: "jp-orbit-3 9s cubic-bezier(0.4, 0, 0.2, 1) infinite",
+          filter: "blur(50px)",
+        }} />
+
+        {/* Sienna accent — fast */}
+        <div className="absolute h-[46vh] w-[39vw] top-[25%] right-[0%]" style={{
+          background: "radial-gradient(circle at 50% 50%, rgba(180, 70, 15, 0.7) 0%, rgba(150, 55, 10, 0.15) 50%, transparent 70%)",
+          animation: "jp-orbit-4 7s cubic-bezier(0.4, 0, 0.2, 1) infinite",
+          filter: "blur(55px)",
+        }} />
+
+        {/* Grain */}
+        <div className="absolute inset-0" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='0.06'/%3E%3C/svg%3E")`,
+          opacity: 0.45,
+        }} />
+
+        {/* Radial overlay — darker at center (card area), lighter at edges */}
+        <div className="absolute inset-0" style={{
+          background: "radial-gradient(ellipse 50% 60% at 50% 50%, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.35) 70%, rgba(0,0,0,0.25) 100%)",
+        }} />
       </div>
 
       <div className="relative w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
@@ -149,9 +159,9 @@ export default function PesquisaClimaEntryPage() {
           </div>
 
           {/* Body */}
-          <div className="space-y-4 text-sm leading-relaxed text-zinc-400">
+          <div className="space-y-4 leading-relaxed">
             {SURVEY_INTRO.body.split("\n\n").map((paragraph, i) => (
-              <p key={i}>{paragraph}</p>
+              <p key={i} className={i === 0 ? "text-base text-zinc-300" : "text-sm text-zinc-400"}>{paragraph}</p>
             ))}
           </div>
 
@@ -214,7 +224,7 @@ export default function PesquisaClimaEntryPage() {
           </button>
 
           {/* Meta */}
-          <div className="flex items-center justify-center gap-3 text-xs text-zinc-600">
+          <div className="flex items-center justify-center gap-3 text-xs text-zinc-500">
             <span>{SURVEY_SECTIONS.length} seções</span>
             <span className="text-zinc-700">·</span>
             <span>{SURVEY_QUESTIONS.length} perguntas</span>

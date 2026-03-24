@@ -276,55 +276,126 @@ function PesquisaClimaAdmin() {
     );
   }
 
+  // Build unified edition list for the cards
+  const activeSurvey = surveys.find((s) => s.is_active) ?? surveys[0];
+  const editionCards = useMemo(() => {
+    const cards: Array<{
+      id: string;
+      edition: number;
+      label: string;
+      date: string;
+      responses: number;
+      score: number;
+      isActive: boolean;
+      isHistorical: boolean;
+    }> = HISTORICAL_EDITIONS.map((e) => ({
+      id: `hist-${e.edition}`,
+      edition: e.edition,
+      label: `${e.edition}ª Pesquisa`,
+      date: e.date,
+      responses: e.totalResponses,
+      score: e.felicidade,
+      isActive: false,
+      isHistorical: true,
+    }));
+
+    // 4ª Pesquisa — always visible
+    cards.push({
+      id: activeSurvey?.id ?? "create-new",
+      edition: 4,
+      label: "4ª Pesquisa",
+      date: "Mar 2026",
+      responses: responses.length,
+      score: responses.length > 0 ? overview.happinessScore : 0,
+      isActive: true,
+      isHistorical: false,
+    });
+
+    return cards;
+  }, [activeSurvey, responses.length, overview.happinessScore]);
+
+  const effectiveSelection = selectedSurvey ?? activeSurvey?.id ?? "create-new";
+
+  async function handleSelectEdition(id: string) {
+    if (id.startsWith("hist-")) {
+      setSelectedSurvey(id);
+      setTab("historico");
+      setResponses([]);
+      setTokens([]);
+      return;
+    }
+    // If selecting the 4ª card but no Supabase survey exists, auto-create
+    if (id === "create-new" && !activeSurvey) {
+      setCreating(true);
+      const edition = HISTORICAL_EDITIONS.length + 1;
+      const { data } = await supabase
+        .from("climate_surveys" as never)
+        .insert({ title: `${edition}ª Pesquisa de Clima — Agência TBO`, edition, is_active: true, sections: SURVEY_SECTIONS, questions: SURVEY_QUESTIONS } as never)
+        .select("*" as never)
+        .single() as unknown as { data: Survey | null };
+      if (data) {
+        setSurveys([data]);
+        setSelectedSurvey(data.id);
+      }
+      setCreating(false);
+      return;
+    }
+    setSelectedSurvey(id);
+    setTab("dashboard");
+  }
+
   return (
     <div className="p-6 space-y-6 max-w-6xl">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Pesquisa de Clima</h1>
-          <p className="text-sm text-muted-foreground">Dashboard analítico com insights automatizados.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <select
-            value={selectedSurvey ?? ""}
-            onChange={(e) => {
-              const val = e.target.value;
-              setSelectedSurvey(val);
-              if (val.startsWith("hist-")) {
-                setTab("historico");
-                setResponses([]);
-                setTokens([]);
-              } else {
-                setTab("dashboard");
-              }
-            }}
-            className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-          >
-            {surveys.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.title} {s.is_active ? "(Ativa)" : "(Encerrada)"}
-              </option>
-            ))}
-            <optgroup label="Edições anteriores (Google Forms)">
-              {[...HISTORICAL_EDITIONS].reverse().map((e) => (
-                <option key={`hist-${e.edition}`} value={`hist-${e.edition}`}>
-                  {e.label} — {e.date} ({e.totalResponses} respostas)
-                </option>
-              ))}
-            </optgroup>
-          </select>
-          <button onClick={handleCreateSurvey} disabled={creating}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-            {creating ? "Criando..." : "+ Nova edição"}
-          </button>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold">Pesquisa de Clima</h1>
+        <p className="text-sm text-muted-foreground">Dashboard analítico com insights automatizados.</p>
       </div>
 
-      {!selectedSurvey && (
-        <div className="rounded-xl border border-dashed border-border p-12 text-center">
-          <p className="text-muted-foreground">Nenhuma pesquisa criada ainda.</p>
-        </div>
-      )}
+      {/* Edition Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {editionCards.map((card) => {
+          const isSelected = effectiveSelection === card.id;
+          return (
+            <button
+              key={card.id}
+              onClick={() => handleSelectEdition(card.id)}
+              className={`rounded-xl border-2 p-4 text-left transition-all space-y-2 ${
+                isSelected
+                  ? "border-primary bg-primary/5 shadow-sm"
+                  : "border-border bg-card hover:border-primary/40 hover:shadow-sm"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className={`text-xs font-semibold ${isSelected ? "text-primary" : "text-muted-foreground"}`}>
+                  {card.label}
+                </span>
+                {card.isActive && (
+                  <span className="text-[9px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">
+                    Ativa
+                  </span>
+                )}
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                {card.score > 0 ? (
+                  <>
+                    <span className={`text-2xl font-bold ${scoreColor(card.score)}`}>{card.score}</span>
+                    <span className="text-xs text-muted-foreground">/5</span>
+                  </>
+                ) : (
+                  <span className="text-lg font-bold text-muted-foreground">—</span>
+                )}
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground">{card.date}</span>
+                <span className="text-[10px] text-muted-foreground">
+                  {card.responses > 0 ? `${card.responses} resp.` : "Sem respostas"}
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
 
       {/* ════ Historical Edition View ════ */}
       {isHistorical && historicalEdition && (
@@ -332,7 +403,7 @@ function PesquisaClimaAdmin() {
       )}
 
       {/* ════ Active/Supabase Survey View ════ */}
-      {selectedSurvey && !isHistorical && responses.length > 0 && (
+      {effectiveSelection && !isHistorical && responses.length > 0 && (
         <>
           {/* ════ KPI Cards ════ */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -656,13 +727,12 @@ function PesquisaClimaAdmin() {
         </>
       )}
 
-      {selectedSurvey && !isHistorical && responses.length === 0 && !loading && (
+      {effectiveSelection && !isHistorical && responses.length === 0 && !loading && (
         <div className="space-y-4">
-          {/* Link compartilhável sempre visível */}
           <div className="rounded-xl border border-border bg-card p-6 space-y-4">
             <h3 className="text-base font-bold">Link da pesquisa</h3>
             <p className="text-sm text-muted-foreground">
-              Envie este link no grupo da equipe. Cada pessoa que clicar gera um token anônimo automaticamente.
+              Envie este link no grupo da equipe. Cada pessoa gera um token anônimo ao clicar.
             </p>
             <div className="flex items-center gap-2">
               <code className="flex-1 rounded-lg bg-muted px-4 py-2.5 text-sm font-mono truncate">
@@ -679,18 +749,18 @@ function PesquisaClimaAdmin() {
                 {copied === "link" ? "Copiado!" : "Copiar link"}
               </button>
             </div>
-            <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-800 flex items-start gap-2">
-              <svg className="h-4 w-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 flex items-start gap-2">
+              <svg className="h-4 w-4 flex-shrink-0 mt-0.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
-              <span className="text-xs">
+              <span className="text-xs text-emerald-800">
                 <strong>Anonimato garantido:</strong> nenhum e-mail ou dado pessoal é coletado.
               </span>
             </div>
           </div>
 
           <div className="rounded-xl border border-dashed border-border p-8 text-center space-y-2">
-            <p className="text-muted-foreground">Nenhuma resposta recebida ainda para esta edição.</p>
+            <p className="text-muted-foreground">Nenhuma resposta recebida ainda.</p>
             <p className="text-xs text-muted-foreground">Compartilhe o link acima com a equipe.</p>
           </div>
         </div>

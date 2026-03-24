@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import Image from "next/image";
 import {
   SURVEY_SECTIONS,
   SURVEY_QUESTIONS,
@@ -41,7 +42,7 @@ function ScaleInput({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-4">
-        <span className="text-xs text-zinc-400 flex-shrink-0">{minLabel}</span>
+        <span className="text-xs text-zinc-500 flex-shrink-0">{minLabel}</span>
         <div className="flex gap-2">
           {[1, 2, 3, 4, 5].map((n) => (
             <button
@@ -52,16 +53,21 @@ function ScaleInput({
                 h-11 w-11 rounded-full text-sm font-semibold transition-all duration-150
                 ${
                   value === String(n)
-                    ? "bg-zinc-900 text-white shadow-md scale-110"
-                    : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:scale-105"
+                    ? "text-white shadow-lg scale-110"
+                    : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:scale-105"
                 }
               `}
+              style={
+                value === String(n)
+                  ? { background: "linear-gradient(135deg, #E85102, #EC7602)" }
+                  : undefined
+              }
             >
               {n}
             </button>
           ))}
         </div>
-        <span className="text-xs text-zinc-400 flex-shrink-0">{maxLabel}</span>
+        <span className="text-xs text-zinc-500 flex-shrink-0">{maxLabel}</span>
       </div>
     </div>
   );
@@ -83,13 +89,13 @@ function NpsInput({
 
   function npsColor(n: number, selected: boolean): string {
     if (!selected) {
-      if (n <= 6) return "bg-red-50 text-red-400 hover:bg-red-100";
-      if (n <= 8) return "bg-amber-50 text-amber-400 hover:bg-amber-100";
-      return "bg-emerald-50 text-emerald-400 hover:bg-emerald-100";
+      if (n <= 6) return "bg-red-950/40 text-red-400 hover:bg-red-900/50";
+      if (n <= 8) return "bg-amber-950/40 text-amber-400 hover:bg-amber-900/50";
+      return "bg-emerald-950/40 text-emerald-400 hover:bg-emerald-900/50";
     }
-    if (n <= 6) return "bg-red-500 text-white shadow-md scale-110";
-    if (n <= 8) return "bg-amber-500 text-white shadow-md scale-110";
-    return "bg-emerald-500 text-white shadow-md scale-110";
+    if (n <= 6) return "bg-red-500 text-white shadow-lg scale-110";
+    if (n <= 8) return "bg-amber-500 text-white shadow-lg scale-110";
+    return "bg-emerald-500 text-white shadow-lg scale-110";
   }
 
   return (
@@ -110,22 +116,22 @@ function NpsInput({
         ))}
       </div>
       <div className="flex items-center justify-between">
-        <span className="text-xs text-zinc-400">{minLabel}</span>
+        <span className="text-xs text-zinc-500">{minLabel}</span>
         <div className="flex gap-3 text-[10px]">
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-1 text-zinc-500">
             <span className="h-2 w-2 rounded-full bg-red-400" />
             Detratores (0-6)
           </span>
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-1 text-zinc-500">
             <span className="h-2 w-2 rounded-full bg-amber-400" />
             Neutros (7-8)
           </span>
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-1 text-zinc-500">
             <span className="h-2 w-2 rounded-full bg-emerald-400" />
             Promotores (9-10)
           </span>
         </div>
-        <span className="text-xs text-zinc-400">{maxLabel}</span>
+        <span className="text-xs text-zinc-500">{maxLabel}</span>
       </div>
     </div>
   );
@@ -147,7 +153,6 @@ function MultiSelectInput({
     if (value.includes(opt)) {
       onChange(value.filter((v) => v !== opt));
     } else if (maxSelections && value.length >= maxSelections) {
-      // At limit — replace oldest selection
       return;
     } else {
       onChange([...value, opt]);
@@ -158,7 +163,7 @@ function MultiSelectInput({
   return (
     <div className="space-y-2">
       {maxSelections && (
-        <p className="text-xs text-zinc-400">
+        <p className="text-xs text-zinc-500">
           {value.length}/{maxSelections} selecionados
         </p>
       )}
@@ -166,27 +171,35 @@ function MultiSelectInput({
         const isSelected = value.includes(opt);
         const isDisabled = atLimit && !isSelected;
         return (
-          <label
+          <button
             key={opt}
+            type="button"
+            onClick={() => !isDisabled && toggle(opt)}
+            disabled={isDisabled}
             className={`
-              flex items-start gap-3 rounded-lg border p-3 transition-all duration-150
+              flex w-full items-start gap-3 rounded-lg border p-3 transition-all duration-150 text-left
               ${isSelected
-                ? "border-zinc-900 bg-zinc-50 cursor-pointer"
+                ? "border-orange-500/50 bg-orange-500/10"
                 : isDisabled
-                ? "border-zinc-100 bg-zinc-50/50 cursor-not-allowed opacity-50"
-                : "border-zinc-200 hover:border-zinc-300 cursor-pointer"
+                ? "border-zinc-800 bg-zinc-900/50 cursor-not-allowed opacity-50"
+                : "border-zinc-700 hover:border-zinc-600 cursor-pointer"
               }
             `}
           >
-            <input
-              type="checkbox"
-              checked={isSelected}
-              onChange={() => toggle(opt)}
-              disabled={isDisabled}
-              className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900"
-            />
-            <span className="text-sm text-zinc-700">{opt}</span>
-          </label>
+            <div
+              className={`
+                mt-0.5 h-4 w-4 rounded border-2 flex items-center justify-center flex-shrink-0
+                ${isSelected ? "border-orange-500 bg-orange-500" : "border-zinc-600"}
+              `}
+            >
+              {isSelected && (
+                <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+            <span className="text-sm text-zinc-300">{opt}</span>
+          </button>
         );
       })}
     </div>
@@ -214,22 +227,22 @@ function SelectInput({
             flex w-full items-center gap-3 rounded-lg border p-3 cursor-pointer transition-all duration-150 text-left
             ${
               value === opt
-                ? "border-zinc-900 bg-zinc-50"
-                : "border-zinc-200 hover:border-zinc-300"
+                ? "border-orange-500/50 bg-orange-500/10"
+                : "border-zinc-700 hover:border-zinc-600"
             }
           `}
         >
           <div
             className={`
               h-4 w-4 rounded-full border-2 flex items-center justify-center flex-shrink-0
-              ${value === opt ? "border-zinc-900" : "border-zinc-300"}
+              ${value === opt ? "border-orange-500" : "border-zinc-600"}
             `}
           >
             {value === opt && (
-              <div className="h-2 w-2 rounded-full bg-zinc-900" />
+              <div className="h-2 w-2 rounded-full bg-orange-500" />
             )}
           </div>
-          <span className="text-sm text-zinc-700">{opt}</span>
+          <span className="text-sm text-zinc-300">{opt}</span>
         </button>
       ))}
     </div>
@@ -251,12 +264,12 @@ function QuestionCard({
   return (
     <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300" style={{ animationDelay: `${index * 50}ms` }}>
       <div className="space-y-1">
-        <label className="text-sm font-medium text-zinc-900">
+        <label className="text-sm font-medium text-zinc-200">
           {question.label}
-          {question.required && <span className="text-red-500 ml-1">*</span>}
+          {question.required && <span className="text-orange-500 ml-1">*</span>}
         </label>
         {question.helperText && (
-          <p className="text-xs text-zinc-400">{question.helperText}</p>
+          <p className="text-xs text-zinc-500">{question.helperText}</p>
         )}
       </div>
 
@@ -265,7 +278,7 @@ function QuestionCard({
           type="text"
           value={(answer as string) ?? ""}
           onChange={(e) => onAnswer(e.target.value)}
-          className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 transition"
+          className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500/50 transition"
           placeholder="Sua resposta..."
         />
       )}
@@ -275,7 +288,7 @@ function QuestionCard({
           value={(answer as string) ?? ""}
           onChange={(e) => onAnswer(e.target.value)}
           rows={3}
-          className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 transition resize-y"
+          className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500/50 transition resize-y"
           placeholder="Sua resposta..."
         />
       )}
@@ -325,7 +338,6 @@ export function ClimateSurveyForm({
   surveyId,
   surveyTitle,
 }: ClimateSurveyFormProps) {
-  // -1 = intro, 0..N = sections, N+1 = submitting/done
   const [currentStep, setCurrentStep] = useState(-1);
   const [answers, setAnswers] = useState<Answers>({});
   const [submitting, setSubmitting] = useState(false);
@@ -341,40 +353,45 @@ export function ClimateSurveyForm({
 
   const visibleQuestions = useMemo(() => {
     if (!currentSection) return [];
-    return SURVEY_QUESTIONS.filter(
-      (q) => q.sectionId === currentSection.id && isQuestionVisible(q, answers)
-    );
+    return SURVEY_QUESTIONS
+      .filter((q) => q.sectionId === currentSection.id)
+      .filter((q) => isQuestionVisible(q, answers));
   }, [currentSection, answers]);
 
   const handleAnswer = useCallback((questionId: string, value: string | string[]) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
   }, []);
 
-  // Validate current section
   function isSectionValid(): boolean {
     return visibleQuestions.every((q) => {
       if (!q.required) return true;
       const a = answers[q.id];
       if (Array.isArray(a)) return a.length > 0;
-      return typeof a === "string" && a.trim() !== "";
+      return typeof a === "string" && a.trim().length > 0;
     });
   }
 
   function handleNext() {
-    if (currentStep < totalSteps - 1) {
-      setCurrentStep((s) => s + 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+    if (!isSectionValid()) {
+      setError("Por favor, responda todas as perguntas obrigatórias.");
+      return;
     }
+    setError(null);
+    setCurrentStep((s) => s + 1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function handlePrev() {
-    if (currentStep > 0) {
-      setCurrentStep((s) => s - 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
+    setError(null);
+    setCurrentStep((s) => s - 1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function handleSubmit() {
+    if (!isSectionValid()) {
+      setError("Por favor, responda todas as perguntas obrigatórias.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
 
@@ -405,17 +422,32 @@ export function ClimateSurveyForm({
     }
   }
 
+  // ── Background gradient (shared) ──
+  const bgGradient = (
+    <div
+      className="pointer-events-none fixed inset-0 opacity-20"
+      style={{
+        background:
+          "radial-gradient(ellipse 60% 40% at 50% 0%, #E85102 0%, transparent 70%)",
+      }}
+    />
+  );
+
   // ── Submitted State ──
   if (submitted) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-4">
-        <div className="w-full max-w-md text-center space-y-5 animate-in fade-in zoom-in-95 duration-500">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100">
+      <div className="flex min-h-screen items-center justify-center bg-zinc-950 p-4">
+        {bgGradient}
+        <div className="relative w-full max-w-md text-center space-y-6 animate-in fade-in zoom-in-95 duration-500">
+          <div
+            className="mx-auto flex h-20 w-20 items-center justify-center rounded-full"
+            style={{ background: "rgba(232, 81, 2, 0.15)" }}
+          >
             <svg
-              className="h-10 w-10 text-emerald-600"
+              className="h-10 w-10"
               fill="none"
               viewBox="0 0 24 24"
-              stroke="currentColor"
+              stroke="#E85102"
               strokeWidth={2}
             >
               <path
@@ -425,17 +457,17 @@ export function ClimateSurveyForm({
               />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-zinc-900">
+          <h1 className="text-2xl font-bold text-white">
             Obrigado pela sua participação!
           </h1>
-          <p className="text-zinc-500 leading-relaxed">
+          <p className="text-zinc-400 leading-relaxed">
             Sua resposta foi enviada com sucesso e é completamente anônima.
             <br />
             Valorizamos muito a sua opinião.
           </p>
-          <div className="pt-4">
-            <div className="inline-flex items-center gap-2 rounded-full bg-zinc-100 px-4 py-2 text-sm text-zinc-500">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div className="pt-2">
+            <div className="inline-flex items-center gap-2 rounded-full bg-zinc-800/60 px-4 py-2 text-sm text-zinc-400">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="#E85102" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
               Pesquisa 100% anônima
@@ -449,59 +481,66 @@ export function ClimateSurveyForm({
   // ── Intro Screen ──
   if (currentStep === -1) {
     return (
-      <div className="flex min-h-screen items-start justify-center bg-zinc-50 p-4 pt-12 md:pt-20">
-        <div className="w-full max-w-lg space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {/* Logo / Header */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-zinc-900 flex items-center justify-center">
-                <span className="text-white text-xs font-bold">TBO</span>
-              </div>
-              <span className="text-sm font-medium text-zinc-400">
-                Pesquisa de Clima
-              </span>
-            </div>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 p-4">
+        {bgGradient}
+        <div className="relative w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
+          <div className="flex justify-center">
+            <Image src="/logo-tbo-dark.svg" alt="TBO" width={120} height={40} priority />
           </div>
 
-          {/* Card */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-6 md:p-8 shadow-sm space-y-5">
-            <h1 className="text-xl md:text-2xl font-bold text-zinc-900">
-              {surveyTitle}
-            </h1>
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 md:p-8 shadow-2xl backdrop-blur-sm space-y-6">
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#E85102" }}>
+                {SURVEY_INTRO.edition}
+              </p>
+              <h1 className="text-2xl md:text-3xl font-bold text-white">
+                {surveyTitle}
+              </h1>
+            </div>
 
-            <div className="space-y-4 text-sm text-zinc-600 leading-relaxed">
+            <div className="space-y-4 text-sm leading-relaxed text-zinc-400">
               {SURVEY_INTRO.body.split("\n\n").map((paragraph, i) => (
                 <p key={i}>{paragraph}</p>
               ))}
             </div>
 
-            <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-800 flex items-start gap-2">
-              <svg className="h-5 w-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              <span>{SURVEY_INTRO.anonymity}</span>
+            <div className="border-t border-zinc-800" />
+
+            <div className="flex items-start gap-3 rounded-xl bg-zinc-800/60 p-4">
+              <div
+                className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg"
+                style={{ background: "rgba(232, 81, 2, 0.15)" }}
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="#E85102" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <p className="text-sm text-zinc-300 leading-relaxed">
+                {SURVEY_INTRO.anonymity}
+              </p>
             </div>
 
             <button
               type="button"
               onClick={() => setCurrentStep(0)}
-              className="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-medium text-white shadow-sm transition-all hover:bg-zinc-800 hover:shadow-md active:scale-[0.98]"
+              className="w-full rounded-xl px-4 py-3.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl hover:brightness-110 active:scale-[0.98]"
+              style={{
+                background: "linear-gradient(135deg, #E85102 0%, #EC7602 100%)",
+              }}
             >
-              Começar pesquisa
+              {SURVEY_INTRO.cta}
             </button>
 
-            <div className="flex items-center justify-center gap-4 text-xs text-zinc-400">
+            <div className="flex items-center justify-center gap-3 text-xs text-zinc-600">
               <span>{totalSteps} seções</span>
-              <span>·</span>
+              <span className="text-zinc-700">·</span>
               <span>{SURVEY_QUESTIONS.length} perguntas</span>
-              <span>·</span>
-              <span>~8 min</span>
+              <span className="text-zinc-700">·</span>
+              <span>~9 min</span>
             </div>
           </div>
 
-          <p className="text-center text-xs text-zinc-300">
-            Powered by TBO OS
-          </p>
+          <p className="text-center text-[11px] text-zinc-700">Powered by TBO OS</p>
         </div>
       </div>
     );
@@ -512,38 +551,45 @@ export function ClimateSurveyForm({
   const progress = ((currentStep + 1) / totalSteps) * 100;
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-zinc-950">
+      {bgGradient}
+
       {/* Progress bar */}
-      <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-zinc-200">
+      <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-zinc-800">
         <div
-          className="h-full bg-zinc-900 transition-all duration-500 ease-out"
-          style={{ width: `${progress}%` }}
+          className="h-full transition-all duration-500 ease-out"
+          style={{
+            width: `${progress}%`,
+            background: "linear-gradient(90deg, #E85102, #EC7602)",
+          }}
         />
       </div>
 
-      <div className="flex items-start justify-center p-4 pt-8 md:pt-16">
+      <div className="relative flex items-start justify-center p-4 pt-8 md:pt-16">
         <div className="w-full max-w-lg space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="h-7 w-7 rounded-md bg-zinc-900 flex items-center justify-center">
-                <span className="text-white text-[10px] font-bold">TBO</span>
-              </div>
-              <span className="text-xs text-zinc-400">Pesquisa de Clima</span>
+              <Image src="/logo-tbo-dark.svg" alt="TBO" width={80} height={28} />
+              <span className="text-xs text-zinc-600">|</span>
+              <span className="text-xs text-zinc-500">Pesquisa de Clima</span>
             </div>
-            <span className="text-xs font-medium text-zinc-400">
+            <span className="text-xs font-medium text-zinc-500">
               {currentStep + 1} / {totalSteps}
             </span>
           </div>
 
           {/* Section Card */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-6 md:p-8 shadow-sm space-y-6">
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 md:p-8 shadow-2xl backdrop-blur-sm space-y-6">
             {/* Section title */}
             <div className="space-y-1">
-              <div className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
+              <div
+                className="text-xs font-semibold uppercase tracking-widest"
+                style={{ color: "#E85102" }}
+              >
                 Seção {currentStep + 1}
               </div>
-              <h2 className="text-lg font-bold text-zinc-900">
+              <h2 className="text-lg font-bold text-white">
                 {currentSection?.title}
               </h2>
               {currentSection?.description && (
@@ -553,7 +599,7 @@ export function ClimateSurveyForm({
               )}
             </div>
 
-            <div className="h-px bg-zinc-100" />
+            <div className="h-px bg-zinc-800" />
 
             {/* Questions */}
             <div className="space-y-6">
@@ -570,7 +616,7 @@ export function ClimateSurveyForm({
 
             {/* Error */}
             {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-600">
+              <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm text-red-400">
                 {error}
               </div>
             )}
@@ -581,7 +627,7 @@ export function ClimateSurveyForm({
                 <button
                   type="button"
                   onClick={handlePrev}
-                  className="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-medium text-zinc-600 transition-all hover:bg-zinc-50 hover:border-zinc-300 active:scale-[0.98]"
+                  className="rounded-xl border border-zinc-700 px-4 py-2.5 text-sm font-medium text-zinc-400 transition-all hover:bg-zinc-800 hover:border-zinc-600 active:scale-[0.98]"
                 >
                   Voltar
                 </button>
@@ -594,16 +640,32 @@ export function ClimateSurveyForm({
                   type="button"
                   onClick={handleSubmit}
                   disabled={submitting || !isSectionValid()}
-                  className="rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-emerald-700 hover:shadow-md active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-xl px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    background: "linear-gradient(135deg, #E85102 0%, #EC7602 100%)",
+                  }}
                 >
-                  {submitting ? "Enviando..." : "Enviar pesquisa"}
+                  {submitting ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Enviando...
+                    </span>
+                  ) : (
+                    "Enviar pesquisa"
+                  )}
                 </button>
               ) : (
                 <button
                   type="button"
                   onClick={handleNext}
                   disabled={!isSectionValid()}
-                  className="rounded-xl bg-zinc-900 px-6 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-zinc-800 hover:shadow-md active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-xl px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    background: "linear-gradient(135deg, #E85102 0%, #EC7602 100%)",
+                  }}
                 >
                   Próxima seção
                 </button>
@@ -618,16 +680,21 @@ export function ClimateSurveyForm({
                 key={i}
                 className={`h-1.5 rounded-full transition-all duration-300 ${
                   i === currentStep
-                    ? "w-6 bg-zinc-900"
+                    ? "w-6"
                     : i < currentStep
-                    ? "w-1.5 bg-zinc-400"
-                    : "w-1.5 bg-zinc-200"
+                    ? "w-1.5 bg-orange-500/50"
+                    : "w-1.5 bg-zinc-800"
                 }`}
+                style={
+                  i === currentStep
+                    ? { background: "linear-gradient(90deg, #E85102, #EC7602)" }
+                    : undefined
+                }
               />
             ))}
           </div>
 
-          <p className="text-center text-xs text-zinc-300 pb-8">
+          <p className="text-center text-[11px] text-zinc-700 pb-8">
             Powered by TBO OS
           </p>
         </div>

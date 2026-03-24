@@ -48,15 +48,78 @@ export default function PesquisaClimaEntryPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 p-4">
-      {/* Background gradient accent */}
-      <div
-        className="pointer-events-none fixed inset-0 opacity-30"
-        style={{
-          background:
-            "radial-gradient(ellipse 60% 40% at 50% 0%, #E85102 0%, transparent 70%)",
-        }}
-      />
+    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 p-4 overflow-hidden">
+      {/* Animated gradient background */}
+      <style>{`
+        @keyframes aurora-drift {
+          0%, 100% {
+            transform: translate(0%, 0%) scale(1);
+            opacity: 0.25;
+          }
+          25% {
+            transform: translate(10%, 5%) scale(1.1);
+            opacity: 0.35;
+          }
+          50% {
+            transform: translate(-5%, -3%) scale(1.05);
+            opacity: 0.2;
+          }
+          75% {
+            transform: translate(-10%, 4%) scale(1.15);
+            opacity: 0.3;
+          }
+        }
+        @keyframes aurora-drift-2 {
+          0%, 100% {
+            transform: translate(0%, 0%) scale(1.1);
+            opacity: 0.15;
+          }
+          33% {
+            transform: translate(-15%, -5%) scale(1);
+            opacity: 0.25;
+          }
+          66% {
+            transform: translate(10%, 3%) scale(1.2);
+            opacity: 0.18;
+          }
+        }
+        @keyframes aurora-drift-3 {
+          0%, 100% {
+            transform: translate(5%, -3%) scale(1);
+            opacity: 0.1;
+          }
+          50% {
+            transform: translate(-8%, 5%) scale(1.15);
+            opacity: 0.2;
+          }
+        }
+      `}</style>
+      <div className="pointer-events-none fixed inset-0">
+        {/* Primary warm glow — top center */}
+        <div
+          className="absolute -top-1/4 left-1/2 h-[80vh] w-[120vw] -translate-x-1/2"
+          style={{
+            background: "radial-gradient(ellipse 50% 50% at 50% 30%, #E85102 0%, transparent 70%)",
+            animation: "aurora-drift 12s ease-in-out infinite",
+          }}
+        />
+        {/* Secondary amber glow — right side */}
+        <div
+          className="absolute -top-1/3 -right-1/4 h-[70vh] w-[80vw]"
+          style={{
+            background: "radial-gradient(ellipse 40% 50% at 60% 20%, #EC7602 0%, transparent 65%)",
+            animation: "aurora-drift-2 16s ease-in-out infinite",
+          }}
+        />
+        {/* Subtle deep red glow — left side */}
+        <div
+          className="absolute -top-1/4 -left-1/4 h-[60vh] w-[70vw]"
+          style={{
+            background: "radial-gradient(ellipse 45% 40% at 30% 25%, #B8400A 0%, transparent 60%)",
+            animation: "aurora-drift-3 20s ease-in-out infinite",
+          }}
+        />
+      </div>
 
       <div className="relative w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
         {/* Logo */}

@@ -74,6 +74,7 @@ export const SIDEBAR_NAV_GROUPS: readonly NavGroup[] = [
     label: "Cultura",
     items: [
       { href: "/cultura", label: "Cultura", icon: "heart-handshake", module: "cultura", subItems: CULTURA_NAV_ITEMS as unknown as SubNavItem[] },
+      { href: "/cultura/pesquisa-clima", label: "Pesquisa de Clima", icon: "clipboard-check", module: "cultura" },
     ],
   },
   // ── Marketing (execução & conteúdo) ───────────────────────────
@@ -81,6 +82,7 @@ export const SIDEBAR_NAV_GROUPS: readonly NavGroup[] = [
     label: "Marketing",
     items: [
       { href: "/marketing", label: "Marketing", icon: "speakerphone", module: "marketing", subItems: MARKETING_NAV_ITEMS as unknown as SubNavItem[] },
+      { href: "/blog", label: "Blog", icon: "file-text", module: "marketing" },
     ],
   },
   // ── Estratégia (direção & inteligência) ───────────────────────

@@ -177,6 +177,12 @@ function PesquisaClimaAdmin() {
   const [copied, setCopied] = useState<string | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
+  // Whether a historical (pre-Supabase) edition is selected
+  const isHistorical = selectedSurvey?.startsWith("hist-") ?? false;
+  const historicalEdition = isHistorical
+    ? HISTORICAL_EDITIONS.find((e) => `hist-${e.edition}` === selectedSurvey) ?? null
+    : null;
+
   const supabase = createClient();
 
   useEffect(() => {
@@ -214,7 +220,7 @@ function PesquisaClimaAdmin() {
   }, []);
 
   useEffect(() => {
-    if (selectedSurvey) loadSurveyData(selectedSurvey);
+    if (selectedSurvey && !selectedSurvey.startsWith("hist-")) loadSurveyData(selectedSurvey);
   }, [selectedSurvey, loadSurveyData]);
 
   // ── Computed analysis ──
@@ -279,12 +285,34 @@ function PesquisaClimaAdmin() {
           <p className="text-sm text-muted-foreground">Dashboard analítico com insights automatizados.</p>
         </div>
         <div className="flex items-center gap-2">
-          {surveys.length > 0 && (
-            <select value={selectedSurvey ?? ""} onChange={(e) => setSelectedSurvey(e.target.value)}
-              className="rounded-lg border border-border bg-background px-3 py-2 text-sm">
-              {surveys.map((s) => (<option key={s.id} value={s.id}>{s.title} {s.is_active ? "(Ativa)" : "(Encerrada)"}</option>))}
-            </select>
-          )}
+          <select
+            value={selectedSurvey ?? ""}
+            onChange={(e) => {
+              const val = e.target.value;
+              setSelectedSurvey(val);
+              if (val.startsWith("hist-")) {
+                setTab("historico");
+                setResponses([]);
+                setTokens([]);
+              } else {
+                setTab("dashboard");
+              }
+            }}
+            className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+          >
+            {surveys.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.title} {s.is_active ? "(Ativa)" : "(Encerrada)"}
+              </option>
+            ))}
+            <optgroup label="Edições anteriores (Google Forms)">
+              {[...HISTORICAL_EDITIONS].reverse().map((e) => (
+                <option key={`hist-${e.edition}`} value={`hist-${e.edition}`}>
+                  {e.label} — {e.date} ({e.totalResponses} respostas)
+                </option>
+              ))}
+            </optgroup>
+          </select>
           <button onClick={handleCreateSurvey} disabled={creating}
             className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
             {creating ? "Criando..." : "+ Nova edição"}
@@ -298,7 +326,13 @@ function PesquisaClimaAdmin() {
         </div>
       )}
 
-      {selectedSurvey && responses.length > 0 && (
+      {/* ════ Historical Edition View ════ */}
+      {isHistorical && historicalEdition && (
+        <HistoricoTab currentOverview={null} focusEdition={historicalEdition.edition} />
+      )}
+
+      {/* ════ Active/Supabase Survey View ════ */}
+      {selectedSurvey && !isHistorical && responses.length > 0 && (
         <>
           {/* ════ KPI Cards ════ */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -622,39 +656,53 @@ function PesquisaClimaAdmin() {
         </>
       )}
 
-      {selectedSurvey && responses.length === 0 && !loading && tab !== "historico" && (
-        <div className="rounded-xl border border-dashed border-border p-12 text-center space-y-4">
-          <p className="text-muted-foreground">Nenhuma resposta recebida ainda.</p>
-          <p className="text-xs text-muted-foreground">Gere os links na aba &quot;Compartilhar&quot; e envie para a equipe.</p>
-          <button onClick={() => setTab("historico")}
-            className="rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted transition">
-            Ver edições anteriores
-          </button>
-        </div>
-      )}
-
-      {/* Histórico always accessible, even without current responses */}
-      {selectedSurvey && responses.length === 0 && tab === "historico" && (
-        <>
-          <div className="flex gap-1 rounded-lg bg-muted p-1">
-            {(["historico", "links"] as const).map((t) => (
-              <button key={t} onClick={() => setTab(t)}
-                className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition ${tab === t ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-                {t === "historico" ? "Histórico" : "Compartilhar"}
+      {selectedSurvey && !isHistorical && responses.length === 0 && !loading && (
+        <div className="space-y-4">
+          {/* Link compartilhável sempre visível */}
+          <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+            <h3 className="text-base font-bold">Link da pesquisa</h3>
+            <p className="text-sm text-muted-foreground">
+              Envie este link no grupo da equipe. Cada pessoa que clicar gera um token anônimo automaticamente.
+            </p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 rounded-lg bg-muted px-4 py-2.5 text-sm font-mono truncate">
+                {typeof window !== "undefined" ? `${window.location.origin}/pesquisa-clima` : "https://os.wearetbo.com.br/pesquisa-clima"}
+              </code>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/pesquisa-clima`);
+                  setCopied("link");
+                  setTimeout(() => setCopied(null), 2000);
+                }}
+                className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 flex-shrink-0"
+              >
+                {copied === "link" ? "Copiado!" : "Copiar link"}
               </button>
-            ))}
+            </div>
+            <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-800 flex items-start gap-2">
+              <svg className="h-4 w-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <span className="text-xs">
+                <strong>Anonimato garantido:</strong> nenhum e-mail ou dado pessoal é coletado.
+              </span>
+            </div>
           </div>
-          <HistoricoTab currentOverview={null} />
-        </>
+
+          <div className="rounded-xl border border-dashed border-border p-8 text-center space-y-2">
+            <p className="text-muted-foreground">Nenhuma resposta recebida ainda para esta edição.</p>
+            <p className="text-xs text-muted-foreground">Compartilhe o link acima com a equipe.</p>
+          </div>
+        </div>
       )}
     </div>
   );
 }
 
 // ── Histórico Tab Component ──
-function HistoricoTab({ currentOverview }: { currentOverview: OverviewMetrics | null }) {
+function HistoricoTab({ currentOverview, focusEdition }: { currentOverview: OverviewMetrics | null; focusEdition?: number }) {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [expandedEdition, setExpandedEdition] = useState<number | null>(null);
+  const [expandedEdition, setExpandedEdition] = useState<number | null>(focusEdition ?? null);
 
   const categories = [
     { key: "all", label: "Todos" },

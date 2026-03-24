@@ -266,17 +266,7 @@ function PesquisaClimaAdmin() {
     setCopied("all"); setTimeout(() => setCopied(null), 2000);
   }
 
-  if (loading) {
-    return (
-      <div className="p-6 space-y-4">
-        <div className="h-8 w-64 bg-muted animate-pulse rounded" />
-        <div className="grid grid-cols-4 gap-4">{[1,2,3,4].map(i => <div key={i} className="h-24 bg-muted animate-pulse rounded-xl" />)}</div>
-        <div className="h-64 bg-muted animate-pulse rounded-xl" />
-      </div>
-    );
-  }
-
-  // Build unified edition list for the cards
+  // Build unified edition list for the cards (must be before any early return)
   const activeSurvey = surveys.find((s) => s.is_active) ?? surveys[0];
   const editionCards = useMemo(() => {
     const cards: Array<{
@@ -315,6 +305,16 @@ function PesquisaClimaAdmin() {
   }, [activeSurvey, responses.length, overview.happinessScore]);
 
   const effectiveSelection = selectedSurvey ?? activeSurvey?.id ?? "create-new";
+
+  if (loading) {
+    return (
+      <div className="p-6 space-y-4">
+        <div className="h-8 w-64 bg-muted animate-pulse rounded" />
+        <div className="grid grid-cols-4 gap-4">{[1,2,3,4].map(i => <div key={i} className="h-24 bg-muted animate-pulse rounded-xl" />)}</div>
+        <div className="h-64 bg-muted animate-pulse rounded-xl" />
+      </div>
+    );
+  }
 
   async function handleSelectEdition(id: string) {
     if (id.startsWith("hist-")) {

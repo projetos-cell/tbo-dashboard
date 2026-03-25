@@ -11,6 +11,7 @@ import {
   IconSettings,
   IconCompass,
   IconLogout,
+  IconStethoscope,
 } from "@tabler/icons-react"
 import {
   Sidebar,
@@ -38,6 +39,7 @@ const ACADEMY_NAV = [
       { href: "/academy/explorar", label: "Explorar Cursos", icon: IconCompass },
       { href: "/academy/meus-cursos", label: "Meus Cursos", icon: IconBook2 },
       { href: "/academy/trilhas", label: "Trilhas", icon: IconRoute },
+      { href: "/academy/diagnostico", label: "Diagnóstico", icon: IconStethoscope },
     ],
   },
   {

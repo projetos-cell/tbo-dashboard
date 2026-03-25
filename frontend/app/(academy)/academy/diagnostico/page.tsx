@@ -1,0 +1,128 @@
+"use client"
+
+import { useCallback, useState } from "react"
+import { useRouter } from "next/navigation"
+import { cn } from "@/lib/utils"
+import { DiagnosticContextStep } from "@/features/diagnostico/components/diagnostic-context-step"
+import { DiagnosticQuestionsStep, type Answers } from "@/features/diagnostico/components/diagnostic-questions-step"
+import { DiagnosticResultsStep } from "@/features/diagnostico/components/diagnostic-results-step"
+import { ProcessingOverlay } from "@/features/diagnostico/components/processing-overlay"
+import { PricingDialog } from "@/features/diagnostico/components/pricing-dialog"
+
+const STEP_LABELS = ["Contexto", "Diagnóstico", "Resultado"]
+
+export default function DiagnosticoPage() {
+  const router = useRouter()
+  const [step, setStep] = useState(0)
+  const [processing, setProcessing] = useState(false)
+  const [pricingOpen, setPricingOpen] = useState(false)
+
+  // Context form data
+  const [contextData, setContextData] = useState({
+    stage: "",
+    vgv: "",
+    freq: "",
+    dep: "",
+    invest: "",
+  })
+
+  // Answers: key = "etapaIdx_questionIdx", value = 1..5
+  const [answers, setAnswers] = useState<Answers>({})
+
+  const goStep = useCallback((n: number) => {
+    setStep(n)
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }, [])
+
+  const handleAnswer = useCallback((key: string, value: number) => {
+    setAnswers((prev) => ({ ...prev, [key]: value }))
+  }, [])
+
+  const handleSubmit = useCallback(() => {
+    setProcessing(true)
+  }, [])
+
+  const handleProcessingComplete = useCallback(() => {
+    setProcessing(false)
+    goStep(2)
+  }, [goStep])
+
+  const handleCTA = useCallback(() => {
+    setPricingOpen(true)
+  }, [])
+
+  return (
+    <div className="min-h-screen">
+      {/* Steps bar */}
+      <div className="sticky top-0 z-40 flex items-center justify-center gap-0 border-b border-zinc-200 bg-white/80 backdrop-blur-sm py-3 px-6 dark:border-zinc-800 dark:bg-zinc-900/80">
+        {STEP_LABELS.map((label, i) => (
+          <div key={i} className="flex items-center gap-2 px-5 relative">
+            <div
+              className={cn(
+                "flex size-[22px] items-center justify-center rounded-full border-2 text-[9px] font-bold transition-all",
+                i === step
+                  ? "bg-[#b8f724] border-[#b8f724] text-[#0a1f1d]"
+                  : i < step
+                    ? "bg-emerald-500 border-emerald-500 text-white"
+                    : "border-zinc-300 text-zinc-400"
+              )}
+            >
+              {i < step ? "✓" : i + 1}
+            </div>
+            <span
+              className={cn(
+                "text-[9px] font-medium tracking-[1px] uppercase transition-colors whitespace-nowrap",
+                i === step ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400"
+              )}
+            >
+              {label}
+            </span>
+            {i < STEP_LABELS.length - 1 && (
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-px h-4 bg-zinc-200 dark:bg-zinc-700" />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div className="max-w-[1100px] mx-auto px-6 py-10 md:px-12">
+        {step === 0 && (
+          <DiagnosticContextStep
+            data={contextData}
+            onChange={setContextData}
+            onNext={() => goStep(1)}
+          />
+        )}
+        {step === 1 && (
+          <DiagnosticQuestionsStep
+            answers={answers}
+            onAnswer={handleAnswer}
+            onBack={() => goStep(0)}
+            onSubmit={handleSubmit}
+          />
+        )}
+        {step === 2 && (
+          <DiagnosticResultsStep
+            answers={answers}
+            context={{
+              vgv: contextData.vgv,
+              freq: contextData.freq,
+              invest: contextData.invest,
+            }}
+            onBack={() => goStep(1)}
+            onCTA={handleCTA}
+          />
+        )}
+      </div>
+
+      {/* Processing overlay */}
+      <ProcessingOverlay
+        active={processing}
+        onComplete={handleProcessingComplete}
+      />
+
+      {/* Pricing dialog */}
+      <PricingDialog open={pricingOpen} onOpenChange={setPricingOpen} />
+    </div>
+  )
+}

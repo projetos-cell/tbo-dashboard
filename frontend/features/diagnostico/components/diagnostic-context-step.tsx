@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { cn } from "@/lib/utils"
 import {
   IconBuilding,
@@ -35,8 +36,19 @@ export function DiagnosticContextStep({
   onChange,
   onNext,
 }: DiagnosticContextStepProps) {
+  const [attempted, setAttempted] = useState(false)
+
   const update = (key: keyof ContextFormData, value: string) => {
     onChange({ ...data, [key]: value })
+  }
+
+  const isComplete =
+    !!data.stage && !!data.vgv && !!data.freq && !!data.dep && !!data.invest
+
+  const handleNext = () => {
+    setAttempted(true)
+    if (!isComplete) return
+    onNext()
   }
 
   return (
@@ -76,9 +88,12 @@ export function DiagnosticContextStep({
 
       {/* Stage selector */}
       <label className="block text-[8px] font-semibold tracking-[1.5px] uppercase text-zinc-400 mb-3">
-        Qual seu momento atual?
+        Qual seu momento atual? <span className="text-red-400">*</span>
       </label>
-      <div className="grid grid-cols-2 gap-3 mb-6 lg:grid-cols-4">
+      <div className={cn(
+        "grid grid-cols-2 gap-3 mb-1 lg:grid-cols-4 rounded-xl transition-all",
+        attempted && !data.stage ? "ring-2 ring-red-400/50 ring-offset-2" : ""
+      )}>
         {STAGE_OPTIONS.map((opt) => {
           const Icon = STAGE_ICONS[opt.icon]
           const selected = data.stage === opt.value
@@ -100,6 +115,10 @@ export function DiagnosticContextStep({
           )
         })}
       </div>
+      {attempted && !data.stage && (
+        <p className="text-[9px] text-red-400 mb-5 mt-1">Selecione seu momento atual</p>
+      )}
+      {(!attempted || !!data.stage) && <div className="mb-6" />}
 
       {/* Context forms */}
       <div className="grid grid-cols-1 gap-5 mb-6 md:grid-cols-2">
@@ -114,6 +133,7 @@ export function DiagnosticContextStep({
               label="VGV médio por empreendimento"
               value={data.vgv}
               onChange={(v) => update("vgv", v)}
+              error={attempted}
               options={[
                 { value: "10", label: "Até R$ 10M" },
                 { value: "30", label: "R$ 10M — R$ 30M" },
@@ -127,6 +147,7 @@ export function DiagnosticContextStep({
               label="Lançamentos por ano (média)"
               value={data.freq}
               onChange={(v) => update("freq", v)}
+              error={attempted}
               options={[
                 { value: "0.5", label: "Menos de 1" },
                 { value: "1", label: "1 por ano" },
@@ -149,6 +170,7 @@ export function DiagnosticContextStep({
               label="Como lida com marketing hoje?"
               value={data.dep}
               onChange={(v) => update("dep", v)}
+              error={attempted}
               options={[
                 { value: "full", label: "Terceirizo tudo com agência" },
                 { value: "partial", label: "Terceirizo parte, faço parte interno" },
@@ -161,6 +183,7 @@ export function DiagnosticContextStep({
                 label="Investimento em marketing (% do VGV)"
                 value={data.invest}
                 onChange={(v) => update("invest", v)}
+                error={attempted}
                 options={[
                   { value: "0.5", label: "Menos de 1%" },
                   { value: "1", label: "1% a 2%" },
@@ -178,11 +201,24 @@ export function DiagnosticContextStep({
         </div>
       </div>
 
+      {/* Validation message */}
+      {attempted && !isComplete && (
+        <p className="text-[9px] text-red-400 text-right mb-2">
+          Preencha todos os campos obrigatórios antes de continuar
+        </p>
+      )}
+
       {/* CTA */}
-      <div className="flex justify-end mt-8">
+      <div className="flex justify-end mt-4">
         <button
-          onClick={onNext}
-          className="inline-flex items-center gap-2 rounded-lg bg-[#b8f724] px-7 py-3.5 text-[11px] font-semibold tracking-[1.5px] uppercase text-[#0a1f1d] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_6px_24px_rgba(184,247,36,0.25)]"
+          onClick={handleNext}
+          disabled={attempted && !isComplete}
+          className={cn(
+            "inline-flex items-center gap-2 rounded-lg px-7 py-3.5 text-[11px] font-semibold tracking-[1.5px] uppercase transition-all duration-200",
+            isComplete
+              ? "bg-[#b8f724] text-[#0a1f1d] hover:-translate-y-0.5 hover:shadow-[0_6px_24px_rgba(184,247,36,0.25)]"
+              : "bg-zinc-200 text-zinc-400 cursor-not-allowed dark:bg-zinc-800 dark:text-zinc-600"
+          )}
         >
           Começar diagnóstico →
         </button>
@@ -196,21 +232,28 @@ function SelectField({
   value,
   onChange,
   options,
+  error,
 }: {
   label: string
   value: string
   onChange: (v: string) => void
   options: { value: string; label: string }[]
+  error?: boolean
 }) {
   return (
     <div>
       <label className="block text-[8px] font-semibold tracking-[1.5px] uppercase text-zinc-400 mb-1">
-        {label}
+        {label} <span className="text-red-400">*</span>
       </label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full appearance-none rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-[11px] text-zinc-900 outline-none transition-colors focus:border-[#b8f724] dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+        className={cn(
+          "w-full appearance-none rounded-md border bg-zinc-50 px-3 py-2.5 text-[11px] text-zinc-900 outline-none transition-colors focus:border-[#b8f724] dark:bg-zinc-800 dark:text-zinc-100",
+          error && !value
+            ? "border-red-400 dark:border-red-500"
+            : "border-zinc-200 dark:border-zinc-700"
+        )}
       >
         <option value="">Selecione...</option>
         {options.map((opt) => (
@@ -219,6 +262,9 @@ function SelectField({
           </option>
         ))}
       </select>
+      {error && !value && (
+        <p className="text-[8px] text-red-400 mt-0.5">Campo obrigatório</p>
+      )}
     </div>
   )
 }

@@ -5,7 +5,16 @@ import { useQueryParamNumber } from "@/hooks/use-query-param";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { CashflowProjectionChart, SaldoDiarioChart } from "@/features/financeiro/components/cashflow-chart";
+import dynamic from "next/dynamic";
+
+const CashflowProjectionChart = dynamic(
+  () => import("@/features/financeiro/components/cashflow-chart").then((m) => ({ default: m.CashflowProjectionChart })),
+  { ssr: false, loading: () => <div className="h-[300px] animate-pulse rounded-lg bg-muted" /> }
+);
+const SaldoDiarioChart = dynamic(
+  () => import("@/features/financeiro/components/cashflow-chart").then((m) => ({ default: m.SaldoDiarioChart })),
+  { ssr: false, loading: () => <div className="h-[300px] animate-pulse rounded-lg bg-muted" /> }
+);
 import { useFinanceCashFlowProjection } from "@/features/financeiro/hooks/use-finance";
 import { fmt } from "@/features/financeiro/lib/formatters";
 import { IconAlertCircle, IconRefresh, IconTrendingUp } from "@tabler/icons-react";

@@ -16,7 +16,12 @@ import { buildDRELines } from "@/features/financeiro/services/finance-accounting
 import { toast } from "sonner";
 import { DRESummaryCards } from "@/features/financeiro/components/dre-summary-cards";
 import { DRETable } from "@/features/financeiro/components/dre-table";
-import { DRETrendChart } from "@/features/financeiro/components/dre-trend-chart";
+import dynamic from "next/dynamic";
+
+const DRETrendChart = dynamic(
+  () => import("@/features/financeiro/components/dre-trend-chart").then((m) => ({ default: m.DRETrendChart })),
+  { ssr: false, loading: () => <div className="h-[300px] animate-pulse rounded-lg bg-muted" /> }
+);
 import {
   useDRESnapshot,
   useDRESummary,

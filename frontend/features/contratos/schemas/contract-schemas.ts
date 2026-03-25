@@ -22,7 +22,9 @@ export const SignerSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
   email: z.string().email("E-mail inválido"),
   cpf: z.string().optional(),
-  role: z.enum(["signer", "witness", "approver"]).default("signer"),
+  role: z
+    .enum(["contractor", "contractee", "signer", "witness", "approver"])
+    .default("signer"),
 });
 
 export type SignerInput = z.infer<typeof SignerSchema>;
@@ -53,10 +55,32 @@ export const SCOPE_ITEM_STATUS = {
 } as const;
 
 export const SIGNER_ROLE = {
-  signer: { label: "Signatário" },
-  witness: { label: "Testemunha" },
-  approver: { label: "Aprovador" },
+  contractor: { label: "Contratante", description: "Parte que contrata os servicos" },
+  contractee: { label: "Contratado", description: "Parte que presta os servicos" },
+  signer: { label: "Signatario", description: "Signatario adicional" },
+  witness: { label: "Testemunha", description: "Testemunha do contrato" },
+  approver: { label: "Aprovador", description: "Aprovador interno" },
 } as const;
+
+export type SignerRoleKey = keyof typeof SIGNER_ROLE;
+
+/** Maps internal roles to Clicksign qualification */
+export const SIGNER_ROLE_TO_CLICKSIGN: Record<SignerRoleKey, string> = {
+  contractor: "sign",
+  contractee: "sign",
+  signer: "sign",
+  witness: "witness",
+  approver: "approve",
+};
+
+/** Maps roles to PDF signature labels */
+export const SIGNER_ROLE_PDF_LABELS: Record<SignerRoleKey, string> = {
+  contractor: "CONTRATANTE",
+  contractee: "CONTRATADO",
+  signer: "Signatario",
+  witness: "Testemunha",
+  approver: "Aprovador",
+};
 
 export const SIGNER_STATUS = {
   pending: { label: "Pendente", color: "#eab308", bg: "rgba(234,179,8,0.12)" },

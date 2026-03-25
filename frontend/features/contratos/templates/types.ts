@@ -13,7 +13,7 @@ export interface ContractPdfSigner {
   name: string;
   email: string;
   cpf?: string | null;
-  role: "signer" | "witness" | "approver";
+  role: "contractor" | "contractee" | "signer" | "witness" | "approver";
 }
 
 export interface ContractPdfData {

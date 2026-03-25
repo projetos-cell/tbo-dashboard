@@ -4,7 +4,12 @@ import { RBACGuard } from "@/components/rbac-guard";
 import { useQueryParam } from "@/hooks/use-query-param";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AgingChart } from "@/features/financeiro/components/aging-chart";
+import dynamic from "next/dynamic";
+
+const AgingChart = dynamic(
+  () => import("@/features/financeiro/components/aging-chart").then((m) => ({ default: m.AgingChart })),
+  { ssr: false, loading: () => <div className="h-[300px] animate-pulse rounded-lg bg-muted" /> }
+);
 import { useOverdueEntries, useFinanceAging } from "@/features/financeiro/hooks/use-finance";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fmt } from "@/features/financeiro/lib/formatters";

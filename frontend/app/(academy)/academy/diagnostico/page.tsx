@@ -11,6 +11,7 @@ import { DiagnosticResultsDashboard } from "@/features/diagnostico/components/di
 import { ProcessingOverlay } from "@/features/diagnostico/components/processing-overlay"
 import { PricingDialog } from "@/features/diagnostico/components/pricing-dialog"
 import { ETAPAS } from "@/features/diagnostico/data/diagnostic-data"
+import { useDiagnosticPersistence } from "@/features/diagnostico/hooks/use-diagnostic-persistence"
 import { toast } from "sonner"
 
 const STEP_LABELS = ["Contexto", "Diagnóstico", "Resultado"]
@@ -53,10 +54,27 @@ export default function DiagnosticoPage() {
     setProcessing(true)
   }, [answers, totalQuestions])
 
+  const handleRestore = useCallback(
+    (draft: { answers: Answers; contextData: typeof contextData; currentStep: number }) => {
+      setAnswers(draft.answers)
+      setContextData(draft.contextData)
+      setStep(draft.currentStep)
+    },
+    []
+  )
+
+  const { clearDraft } = useDiagnosticPersistence({
+    answers,
+    contextData,
+    currentStep: step,
+    onRestore: handleRestore,
+  })
+
   const handleProcessingComplete = useCallback(() => {
     setProcessing(false)
+    clearDraft()
     goStep(2)
-  }, [goStep])
+  }, [goStep, clearDraft])
 
   return (
     <div className="min-h-screen">

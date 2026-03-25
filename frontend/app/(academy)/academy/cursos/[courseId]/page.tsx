@@ -10,6 +10,7 @@ import { CourseAbout } from "@/features/courses/components/course-about"
 import type { CourseModule } from "@/features/courses/types"
 import { EmptyState } from "@/components/shared"
 import { IconSchool } from "@tabler/icons-react"
+import { ContentGate } from "@/features/academy/components/content-gate"
 
 export default function AcademyCourseDetailPage() {
   const params = useParams<{ courseId: string }>()
@@ -54,22 +55,26 @@ export default function AcademyCourseDetailPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <CourseVideoPlayer
-            category={course.category}
-            currentModuleTitle={activeModule?.title ?? course.title}
-          />
+          <ContentGate label="Assista às aulas com o plano Essencial">
+            <CourseVideoPlayer
+              category={course.category}
+              currentModuleTitle={activeModule?.title ?? course.title}
+            />
+          </ContentGate>
           <CourseAbout course={course} />
         </div>
 
         <div className="lg:col-span-1">
-          <CourseModulesList
-            modules={modules}
-            completedCount={course.completedModules}
-            totalCount={course.totalModules}
-            progress={course.progress}
-            activeModuleId={activeModule?.id}
-            onModuleClick={setActiveModule}
-          />
+          <ContentGate label="Acesse os módulos do curso">
+            <CourseModulesList
+              modules={modules}
+              completedCount={course.completedModules}
+              totalCount={course.totalModules}
+              progress={course.progress}
+              activeModuleId={activeModule?.id}
+              onModuleClick={setActiveModule}
+            />
+          </ContentGate>
         </div>
       </div>
     </div>

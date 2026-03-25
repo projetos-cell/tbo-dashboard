@@ -5,6 +5,7 @@ import { AcademySidebar } from "@/components/layout/academy-sidebar"
 import { Header } from "@/components/layout/header"
 import { RoleLoader } from "@/features/auth/components/role-loader"
 import { PreviewInitializer } from "@/features/diagnostico/components/preview-initializer"
+import { OnboardingGate } from "@/features/academy/components/onboarding-gate"
 import { createClient } from "@/lib/supabase/server"
 import { canAccessModule, SUPER_ADMIN_EMAILS, type RoleSlug } from "@/lib/permissions"
 
@@ -61,6 +62,7 @@ export default async function AcademyLayout({
     <SidebarProvider defaultOpen={defaultOpen}>
       {!isGuest && <RoleLoader />}
       <PreviewInitializer />
+      {!isGuest && <OnboardingGate />}
       <AcademySidebar />
       <SidebarInset>
         <Header />

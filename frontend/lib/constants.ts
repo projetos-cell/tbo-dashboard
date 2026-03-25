@@ -409,6 +409,7 @@ export const CULTURA_NAV_ITEMS = [
   { href: "/cultura/reconhecimentos", label: "Reconhecimentos", icon: "award" },
   { href: "/cultura/recompensas", label: "Recompensas", icon: "gift" },
   { href: "/cultura/academy", label: "TBO Academy", icon: "school" },
+  { href: "/cultura/pesquisa-clima", label: "Pesquisa de Clima", icon: "clipboard-check" },
 ] as const;
 
 // ─── TBO Company Values ─────────────────────────────────────────────
@@ -647,8 +648,19 @@ export const MARKETING_NAV_ITEMS: readonly SubNavItem[] = [
   { href: "/marketing/conteudo", label: "Conteúdo", icon: "pencil" },
   { href: "/marketing/email-studio", label: "Email Studio", icon: "mail" },
   { href: "/marketing/redes-sociais", label: "Redes Sociais", icon: "brand-instagram" },
+  { href: "/blog", label: "Blog", icon: "article" },
   { href: "/marketing/analytics", label: "Analytics", icon: "chart-bar", min_role: "diretoria" },
 ] as const;
+
+// ─── Blog ────────────────────────────────────────────────────
+export const BLOG_POST_STATUS = {
+  rascunho: { label: "Rascunho", color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
+  revisao: { label: "Revisao", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+  publicado: { label: "Publicado", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  arquivado: { label: "Arquivado", color: "#9ca3af", bg: "rgba(156,163,175,0.12)" },
+} as const;
+
+export type BlogPostStatusKey = keyof typeof BLOG_POST_STATUS;
 
 // ─── Contratos (promoted to full module) ──────────────────────────
 export const CONTRATOS_NAV_ITEMS: readonly SubNavItem[] = [

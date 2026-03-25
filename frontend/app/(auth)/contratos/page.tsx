@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useImportClicksignContracts } from "@/features/contratos/hooks/use-clicksign";
+import { ClicksignStatusBadge } from "@/features/contratos/components/clicksign-status-badge";
 import {
   IconFileText,
   IconSearch,
@@ -178,6 +179,7 @@ export default function ContratosPage() {
             <Badge variant="secondary" className="font-mono text-xs">
               {contracts.length}
             </Badge>
+            <ClicksignStatusBadge />
           </div>
 
           <div className="flex items-center gap-2">

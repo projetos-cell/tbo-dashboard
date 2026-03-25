@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useMemo } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { cn } from "@/lib/utils"
 import { ETAPAS } from "../data/diagnostic-data"
 import {
@@ -42,6 +42,8 @@ export function DiagnosticQuestionsStep({
   onBack,
   onSubmit,
 }: DiagnosticQuestionsStepProps) {
+  const [attempted, setAttempted] = useState(false)
+
   const totalQuestions = useMemo(
     () => ETAPAS.reduce((a, e) => a + e.qs.length, 0),
     []
@@ -68,6 +70,18 @@ export function DiagnosticQuestionsStep({
     },
     [answers]
   )
+
+  const getEtapaAnsweredCount = useCallback(
+    (ei: number) => {
+      return ETAPAS[ei].qs.filter((_, qi) => answers[`${ei}_${qi}`] !== undefined).length
+    },
+    [answers]
+  )
+
+  const handleSubmit = () => {
+    setAttempted(true)
+    onSubmit()
+  }
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-400">
@@ -115,9 +129,21 @@ export function DiagnosticQuestionsStep({
                   </h3>
                   <p className="text-[9px] text-zinc-500 mt-0.5">{etapa.sub}</p>
                 </div>
-                <span className="text-[11px] font-bold text-[#b8f724] bg-[#b8f724]/10 px-3 py-1 rounded">
-                  {getEtapaScore(ei)}/{etapa.max}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={cn(
+                    "text-[9px] font-medium px-2 py-0.5 rounded",
+                    getEtapaAnsweredCount(ei) === etapa.qs.length
+                      ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20"
+                      : attempted && getEtapaAnsweredCount(ei) < etapa.qs.length
+                        ? "text-red-500 bg-red-50 dark:bg-red-900/20"
+                        : "text-zinc-400 bg-zinc-100 dark:bg-zinc-800"
+                  )}>
+                    {getEtapaAnsweredCount(ei)}/{etapa.qs.length} respondidas
+                  </span>
+                  <span className="text-[11px] font-bold text-[#b8f724] bg-[#b8f724]/10 px-3 py-1 rounded">
+                    {getEtapaScore(ei)}/{etapa.max}
+                  </span>
+                </div>
               </div>
 
               {/* Questions */}
@@ -125,14 +151,17 @@ export function DiagnosticQuestionsStep({
                 {etapa.qs.map((q, qi) => {
                   const key = `${ei}_${qi}`
                   const currentVal = answers[key]
+                  const isUnanswered = attempted && currentVal === undefined
                   return (
                     <div
                       key={qi}
                       className={cn(
                         "flex items-center gap-3 rounded-lg border px-3.5 py-3 transition-all duration-200",
-                        currentVal
-                          ? "border-[#b8f724]/10 bg-[#b8f724]/[0.02]"
-                          : "border-zinc-100 hover:border-[#b8f724]/15 dark:border-zinc-800"
+                        isUnanswered
+                          ? "border-red-300 bg-red-50/50 dark:border-red-800 dark:bg-red-900/10"
+                          : currentVal
+                            ? "border-[#b8f724]/10 bg-[#b8f724]/[0.02]"
+                            : "border-zinc-100 hover:border-[#b8f724]/15 dark:border-zinc-800"
                       )}
                     >
                       <span className="text-[8px] font-bold text-zinc-300 w-4 text-center shrink-0">
@@ -186,7 +215,7 @@ export function DiagnosticQuestionsStep({
           ← Voltar
         </button>
         <button
-          onClick={onSubmit}
+          onClick={handleSubmit}
           className="inline-flex items-center gap-2 rounded-lg bg-[#b8f724] px-7 py-3.5 text-[11px] font-semibold tracking-[1.5px] uppercase text-[#0a1f1d] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_6px_24px_rgba(184,247,36,0.25)]"
         >
           Ver meu diagnóstico →

@@ -2,8 +2,9 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { IconFileText, IconUsers, IconListCheck, IconCalendar, IconCurrencyDollar } from "@tabler/icons-react";
+import { IconFileText, IconUsers, IconListCheck, IconCalendar, IconCurrencyDollar, IconPlugConnected } from "@tabler/icons-react";
 import { CONTRACT_CATEGORY, CONTRACT_TYPE } from "@/lib/constants";
+import { ClicksignStatusBadge } from "../clicksign-status-badge";
 import {
   SCOPE_CATEGORIES,
   SIGNER_ROLE,
@@ -172,6 +173,29 @@ export function StepReview({
             Nenhum documento anexado (pode ser adicionado depois)
           </p>
         )}
+      </section>
+
+      <Separator />
+
+      {/* Clicksign Status */}
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold flex items-center gap-2">
+          <IconPlugConnected className="h-4 w-4 text-muted-foreground" />
+          Assinatura Digital
+        </h3>
+        <div className="rounded-lg border bg-card p-3 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">Clicksign</p>
+            <p className="text-xs text-muted-foreground">
+              {signers.length > 0 && file
+                ? "Contrato sera enviado automaticamente para assinatura"
+                : signers.length > 0
+                  ? "Adicione um documento para envio automatico"
+                  : "Adicione signatarios e documento para envio automatico"}
+            </p>
+          </div>
+          <ClicksignStatusBadge />
+        </div>
       </section>
     </div>
   );

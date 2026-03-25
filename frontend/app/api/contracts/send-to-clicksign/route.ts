@@ -4,6 +4,8 @@ import { createEnvelope, activateEnvelope } from "@/services/clicksign/envelopes
 import { uploadDocument } from "@/services/clicksign/documents";
 import { addSigner } from "@/services/clicksign/signers";
 import type { CreateSignerInput } from "@/services/clicksign/types";
+import { SIGNER_ROLE_TO_CLICKSIGN } from "@/features/contratos/schemas/contract-schemas";
+import type { SignerRoleKey } from "@/features/contratos/schemas/contract-schemas";
 
 export const maxDuration = 60;
 
@@ -51,6 +53,7 @@ export async function POST(request: NextRequest) {
       name: string;
       email: string;
       cpf: string | null;
+      role: string;
     }>;
 
     if (!typedSigners.length) {
@@ -83,14 +86,18 @@ export async function POST(request: NextRequest) {
       await uploadDocument(envelopeId, file, fileName);
     }
 
-    // 4. Add signers to envelope
+    // 4. Add signers to envelope — map roles to Clicksign qualifications
     for (const signer of typedSigners) {
+      const signerRole = (signer.role ?? "signer") as SignerRoleKey;
+      const qualification =
+        SIGNER_ROLE_TO_CLICKSIGN[signerRole] ?? "sign";
+
       const signerInput: CreateSignerInput = {
         name: signer.name,
         email: signer.email,
         cpf: signer.cpf ?? undefined,
         has_documentation: !!signer.cpf,
-        qualification: "sign",
+        qualification,
         communicate_events: true,
       };
 

@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { IconSend } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
-import { RichTextEditor } from "@/components/shared/rich-text-editor";
+import dynamic from "next/dynamic";
+
+const RichTextEditor = dynamic(
+  () => import("@/components/shared/rich-text-editor").then((m) => ({ default: m.RichTextEditor })),
+  { ssr: false, loading: () => <div className="h-[80px] animate-pulse rounded-md bg-muted" /> }
+);
 import { useMentionProvider } from "@/features/tasks/hooks/use-mention-provider";
 import type { Database } from "@/lib/supabase/types";
 

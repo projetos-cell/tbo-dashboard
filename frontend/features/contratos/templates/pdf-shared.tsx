@@ -86,6 +86,8 @@ export function valorExtenso(value: number): string {
 }
 
 const SIGNER_ROLE_LABELS: Record<string, string> = {
+  contractor: "CONTRATANTE",
+  contractee: "CONTRATADO",
   signer: "Signatario",
   witness: "Testemunha",
   approver: "Aprovador",
@@ -344,8 +346,16 @@ export function PdfScopeLettered({ data }: { data: ContractPdfData }) {
 }
 
 export function PdfSignatures({ signers }: { signers: ContractPdfSigner[] }) {
-  const signersOnly = signers.filter((sn) => sn.role === "signer" || sn.role === "approver");
+  // Separate by party role: contratante, contratado, then other signers
+  const contractors = signers.filter((sn) => sn.role === "contractor");
+  const contractees = signers.filter((sn) => sn.role === "contractee");
+  const otherSigners = signers.filter(
+    (sn) => sn.role === "signer" || sn.role === "approver"
+  );
   const witnesses = signers.filter((sn) => sn.role === "witness");
+
+  // Build main signature pairs: contractor + contractee first, then extras
+  const mainSigners = [...contractors, ...contractees, ...otherSigners];
 
   return (
     <View style={s.signatureBlock}>
@@ -359,10 +369,10 @@ export function PdfSignatures({ signers }: { signers: ContractPdfSigner[] }) {
         Curitiba, {formatDateLong(null)}.
       </Text>
 
-      {/* Main signers */}
+      {/* Main signers — contractor + contractee */}
       <View style={s.signatureRow}>
-        {signersOnly.length > 0 ? (
-          signersOnly.slice(0, 2).map((signer, idx) => (
+        {mainSigners.length > 0 ? (
+          mainSigners.slice(0, 2).map((signer, idx) => (
             <View key={idx} style={s.signatureItem}>
               <View style={s.signatureLine} />
               <Text style={s.signatureName}>{signer.name}</Text>
@@ -387,6 +397,24 @@ export function PdfSignatures({ signers }: { signers: ContractPdfSigner[] }) {
           </>
         )}
       </View>
+
+      {/* Additional signers beyond the first pair */}
+      {mainSigners.length > 2 && (
+        <View style={[s.signatureRow, { marginTop: 16 }]}>
+          {mainSigners.slice(2, 4).map((signer, idx) => (
+            <View key={idx} style={s.signatureItem}>
+              <View style={s.signatureLine} />
+              <Text style={s.signatureName}>{signer.name}</Text>
+              <Text style={s.signatureRole}>
+                {SIGNER_ROLE_LABELS[signer.role] ?? signer.role}
+              </Text>
+              {signer.cpf && (
+                <Text style={s.signatureCpf}>CPF: {signer.cpf}</Text>
+              )}
+            </View>
+          ))}
+        </View>
+      )}
 
       {/* Witnesses */}
       {witnesses.length > 0 ? (

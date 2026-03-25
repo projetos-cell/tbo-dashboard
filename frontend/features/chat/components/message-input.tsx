@@ -8,7 +8,12 @@ import {
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import dynamic from "next/dynamic";
+
+const RichTextEditor = dynamic(
+  () => import("@/components/ui/rich-text-editor").then((m) => ({ default: m.RichTextEditor })),
+  { ssr: false, loading: () => <div className="h-[80px] animate-pulse rounded-md bg-muted" /> }
+);
 import { isImageFile } from "@/features/chat/services/chat-attachments";
 import { MentionPopup, type MentionOption } from "./mention-popup";
 import { EmojiPicker } from "./emoji-picker";

@@ -11,7 +11,12 @@ import {
 } from "@tabler/icons-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { RichTextEditor } from "@/components/shared/rich-text-editor";
+import dynamic from "next/dynamic";
+
+const RichTextEditor = dynamic(
+  () => import("@/components/shared/rich-text-editor").then((m) => ({ default: m.RichTextEditor })),
+  { ssr: false, loading: () => <div className="h-[80px] animate-pulse rounded-md bg-muted" /> }
+);
 import { useCreateComment, useUpdateComment, useDeleteComment } from "@/hooks/use-comments";
 import { LikeButton } from "@/features/tasks/components/like-button";
 import { CommentReactions } from "@/features/tasks/components/comment-reactions";

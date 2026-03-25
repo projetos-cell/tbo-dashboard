@@ -14,7 +14,26 @@
       "runtimeExecutable": "cmd",
       "runtimeArgs": ["/c", "npx", "serve", "C:/Users/marco/Downloads", "-l", "3099", "--no-clipboard"],
       "port": 3099
+    },
+    {
+      "name": "email-preview",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "npx", "serve", "C:/Users/marco/Desktop/tbo-dashboard-main/frontend/public", "-l", "3098", "--no-clipboard"],
+      "port": 3098
+    },
+    {
+      "name": "tbo-site",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "npx", "serve", "C:/Users/marco/Downloads", "-l", "3097", "--no-clipboard"],
+      "port": 3097
+    },
+    {
+      "name": "wearetbo-next",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd", "/d", "C:\\Users\\marco\\Desktop\\wearetbo-site", "&&", "pnpm", "run", "dev"],
+      "port": 3000,
+      "autoPort": true
     }
   ],
-  "autoVerify": true
+  "autoVerify": false
 }

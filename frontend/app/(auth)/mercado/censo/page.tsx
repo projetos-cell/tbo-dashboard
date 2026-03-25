@@ -39,7 +39,16 @@ import type { CidadePR } from "@/features/mercado/utils/censo-pr-data";
 import { fmtNum, fmtPct } from "@/features/mercado/components/mercado-utils";
 import { KPIBig } from "@/features/mercado/components/mercado-page-components";
 import { ReportHeader } from "@/features/mercado/components/report-header";
-import { TopCitiesBarChart, HistoricalEvolutionChart } from "@/features/mercado/components/censo-pr-charts";
+import dynamic from "next/dynamic";
+
+const TopCitiesBarChart = dynamic(
+  () => import("@/features/mercado/components/censo-pr-charts").then((m) => ({ default: m.TopCitiesBarChart })),
+  { ssr: false, loading: () => <div className="h-[300px] animate-pulse rounded-lg bg-muted" /> }
+);
+const HistoricalEvolutionChart = dynamic(
+  () => import("@/features/mercado/components/censo-pr-charts").then((m) => ({ default: m.HistoricalEvolutionChart })),
+  { ssr: false, loading: () => <div className="h-[300px] animate-pulse rounded-lg bg-muted" /> }
+);
 import { MapaPR } from "@/features/mercado/components/mapa-pr";
 
 /* ── Sort helpers ────────────────────────────────────── */

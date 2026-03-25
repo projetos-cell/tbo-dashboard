@@ -12,7 +12,7 @@ interface MaterialCardProps {
 
 const FORMAT_COLORS: Record<string, string> = {
   pdf: "bg-red-500/10 text-red-500",
-  figma: "bg-purple-500/10 text-purple-500",
+  figma: "bg-[#b8f724]/10 text-[#b8f724]",
   psd: "bg-blue-500/10 text-blue-500",
   zip: "bg-green-500/10 text-green-500",
 };

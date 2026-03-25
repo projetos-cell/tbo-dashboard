@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useState } from "react"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { DiagnosticContextStep } from "@/features/diagnostico/components/diagnostic-context-step"
 import {
@@ -15,7 +16,8 @@ import { toast } from "sonner"
 
 const STEP_LABELS = ["Contexto", "Diagnóstico", "Resultado"]
 
-export default function DiagnosticoPage() {
+export default function DiagnosticoPublicPage() {
+  const router = useRouter()
   const [step, setStep] = useState(0)
   const [processing, setProcessing] = useState(false)
   const [pricingOpen, setPricingOpen] = useState(false)
@@ -30,8 +32,6 @@ export default function DiagnosticoPage() {
 
   const [answers, setAnswers] = useState<Answers>({})
 
-  const totalQuestions = ETAPAS.reduce((a, e) => a + e.qs.length, 0)
-
   const goStep = useCallback((n: number) => {
     setStep(n)
     window.scrollTo({ top: 0, behavior: "smooth" })
@@ -41,7 +41,10 @@ export default function DiagnosticoPage() {
     setAnswers((prev) => ({ ...prev, [key]: value }))
   }, [])
 
+  const totalQuestions = ETAPAS.reduce((a, e) => a + e.qs.length, 0)
+
   const handleSubmit = useCallback(() => {
+    // Validate all questions answered
     const answeredCount = Object.keys(answers).length
     if (answeredCount < totalQuestions) {
       const missing = totalQuestions - answeredCount
@@ -58,10 +61,23 @@ export default function DiagnosticoPage() {
     goStep(2)
   }, [goStep])
 
+  const handleCTA = useCallback(() => {
+    setPricingOpen(true)
+  }, [])
+
+  const handleExploreAcademy = useCallback(async () => {
+    // Set preview cookie for server-side access + sessionStorage for client
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("academy_preview", "true")
+      await fetch("/api/academy-preview", { method: "POST" })
+    }
+    router.push("/academy")
+  }, [router])
+
   return (
     <div className="min-h-screen">
       {/* Steps bar */}
-      <div className="sticky top-0 z-40 flex items-center justify-center gap-0 border-b border-zinc-200 bg-white/80 backdrop-blur-sm py-3 px-6 dark:border-zinc-800 dark:bg-zinc-900/80">
+      <div className="sticky top-14 z-40 flex items-center justify-center gap-0 border-b border-black/5 bg-white/80 backdrop-blur-sm py-3 px-6">
         {STEP_LABELS.map((label, i) => (
           <div key={i} className="flex items-center gap-2 px-5 relative">
             <div
@@ -79,18 +95,19 @@ export default function DiagnosticoPage() {
             <span
               className={cn(
                 "text-[9px] font-medium tracking-[1px] uppercase transition-colors whitespace-nowrap",
-                i === step ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400"
+                i === step ? "text-zinc-900" : "text-zinc-400"
               )}
             >
               {label}
             </span>
             {i < STEP_LABELS.length - 1 && (
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-px h-4 bg-zinc-200 dark:bg-zinc-700" />
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-px h-4 bg-zinc-200" />
             )}
           </div>
         ))}
       </div>
 
+      {/* Content */}
       <div className="max-w-[1100px] mx-auto px-6 py-10 md:px-12">
         {step === 0 && (
           <DiagnosticContextStep
@@ -116,8 +133,8 @@ export default function DiagnosticoPage() {
               invest: contextData.invest,
             }}
             onBack={() => goStep(1)}
-            onCTA={() => setPricingOpen(true)}
-            onExplore={() => setPricingOpen(true)}
+            onCTA={handleCTA}
+            onExplore={handleExploreAcademy}
           />
         )}
       </div>
@@ -126,6 +143,7 @@ export default function DiagnosticoPage() {
         active={processing}
         onComplete={handleProcessingComplete}
       />
+
       <PricingDialog open={pricingOpen} onOpenChange={setPricingOpen} />
     </div>
   )

@@ -57,8 +57,8 @@ export function CourseStatsCards({ courses }: CourseStatsCardsProps) {
       label: "Horas de Aprendizado",
       value: `${totalHours}h`,
       icon: IconClock,
-      color: "text-purple-600",
-      bgColor: "bg-purple-500/10",
+      color: "text-[#b8f724]",
+      bgColor: "bg-[#b8f724]/10",
     },
   ]
 

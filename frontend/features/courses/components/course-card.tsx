@@ -12,12 +12,14 @@ import {
   IconStar,
   IconClock,
   IconBooks,
+  IconLock,
 } from "@tabler/icons-react"
 import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
+import { usePreviewStore } from "@/features/diagnostico/stores/preview-store"
 import type { Course } from "../types"
 
 interface CourseCardProps {
@@ -30,7 +32,7 @@ const CATEGORY_CONFIG: Record<
   { icon: React.ElementType; gradient: string }
 > = {
   Design: { icon: IconBrush, gradient: "from-pink-500 to-rose-600" },
-  Branding: { icon: IconBulb, gradient: "from-violet-500 to-purple-600" },
+  Branding: { icon: IconBulb, gradient: "from-[#b8f724] to-emerald-600" },
   "Marketing Digital": {
     icon: IconSpeakerphone,
     gradient: "from-blue-500 to-cyan-600",
@@ -40,7 +42,7 @@ const CATEGORY_CONFIG: Record<
     icon: IconVideo,
     gradient: "from-emerald-500 to-teal-600",
   },
-  "UI/UX": { icon: IconLayout, gradient: "from-indigo-500 to-blue-600" },
+  "UI/UX": { icon: IconLayout, gradient: "from-teal-500 to-cyan-600" },
   "Social Media": {
     icon: IconBrandInstagram,
     gradient: "from-pink-500 to-fuchsia-600",
@@ -64,6 +66,9 @@ const LEVEL_VARIANTS: Record<string, "default" | "secondary" | "outline"> = {
 }
 
 export function CourseCard({ course, basePath = "/academy/cursos" }: CourseCardProps) {
+  const isPreview = usePreviewStore((s) => s.isPreview)
+  const openPricing = usePreviewStore((s) => s.openPricing)
+
   const config = CATEGORY_CONFIG[course.category] ?? {
     icon: IconBooks,
     gradient: "from-gray-500 to-gray-600",
@@ -77,8 +82,30 @@ export function CourseCard({ course, basePath = "/academy/cursos" }: CourseCardP
         ? "Continuar"
         : "Iniciar"
 
+  const handleLockedClick = (e: React.MouseEvent) => {
+    if (isPreview) {
+      e.preventDefault()
+      openPricing()
+    }
+  }
+
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow group">
+    <Card className="overflow-hidden hover:shadow-md transition-shadow group relative">
+      {/* Lock overlay for preview mode */}
+      {isPreview && (
+        <button
+          onClick={handleLockedClick}
+          className="absolute inset-0 z-10 flex items-center justify-center bg-black/0 opacity-0 group-hover:bg-black/40 group-hover:opacity-100 transition-all duration-200 cursor-pointer"
+        >
+          <div className="flex flex-col items-center gap-1.5 rounded-xl bg-[#0a1f1d]/90 px-5 py-3 backdrop-blur-sm">
+            <IconLock className="size-5 text-[#b8f724]" />
+            <span className="text-[9px] font-bold tracking-[1px] uppercase text-white">
+              Desbloquear
+            </span>
+          </div>
+        </button>
+      )}
+
       {/* Thumbnail */}
       <div
         className={`h-32 bg-gradient-to-br ${config.gradient} flex items-center justify-center relative`}
@@ -87,6 +114,11 @@ export function CourseCard({ course, basePath = "/academy/cursos" }: CourseCardP
         <Badge className="absolute top-2 left-2 bg-white/20 text-white border-0 text-[10px]">
           {course.category}
         </Badge>
+        {isPreview && (
+          <div className="absolute top-2 right-2">
+            <IconLock className="size-4 text-white/60" />
+          </div>
+        )}
       </div>
 
       <CardContent className="p-4 space-y-3">
@@ -134,16 +166,27 @@ export function CourseCard({ course, basePath = "/academy/cursos" }: CourseCardP
           </Badge>
         </div>
 
-        <Button
-          size="sm"
-          className="w-full"
-          variant={course.status === "concluido" ? "outline" : "default"}
-          asChild
-        >
-          <Link href={`${basePath}/${course.id}`}>
-            {buttonLabel}
-          </Link>
-        </Button>
+        {isPreview ? (
+          <Button
+            size="sm"
+            className="w-full bg-[#0a1f1d] text-[#b8f724] hover:bg-[#0a1f1d]/90"
+            onClick={handleLockedClick}
+          >
+            <IconLock className="size-3 mr-1" />
+            Desbloquear curso
+          </Button>
+        ) : (
+          <Button
+            size="sm"
+            className="w-full"
+            variant={course.status === "concluido" ? "outline" : "default"}
+            asChild
+          >
+            <Link href={`${basePath}/${course.id}`}>
+              {buttonLabel}
+            </Link>
+          </Button>
+        )}
       </CardContent>
     </Card>
   )

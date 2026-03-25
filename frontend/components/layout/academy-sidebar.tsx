@@ -72,7 +72,7 @@ export function AcademySidebar() {
 
       <SidebarContent>
         {/* Progress overview card */}
-        <div className="mx-3 mt-3 rounded-lg bg-gradient-to-br from-violet-500/10 to-indigo-500/10 p-3 border border-violet-500/20">
+        <div className="mx-3 mt-3 rounded-lg bg-gradient-to-br from-[#b8f724]/10 to-[#0a1f1d]/10 p-3 border border-[#b8f724]/20">
           <p className="text-xs font-medium text-muted-foreground mb-1">
             Progresso geral
           </p>

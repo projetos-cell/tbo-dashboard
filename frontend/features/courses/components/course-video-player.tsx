@@ -8,13 +8,13 @@ import { IconPlayerPlay, IconVideo } from "@tabler/icons-react"
 import { toast } from "sonner"
 
 const CATEGORY_GRADIENTS: Record<string, string> = {
-  Design: "from-violet-500 to-purple-600",
+  Design: "from-[#b8f724] to-emerald-600",
   Branding: "from-amber-500 to-orange-600",
   "Marketing Digital": "from-blue-500 to-cyan-600",
   Copywriting: "from-emerald-500 to-teal-600",
   "Motion Graphics": "from-pink-500 to-rose-600",
-  "UI/UX": "from-indigo-500 to-blue-600",
-  "Social Media": "from-fuchsia-500 to-purple-600",
+  "UI/UX": "from-teal-500 to-cyan-600",
+  "Social Media": "from-pink-500 to-rose-600",
   Gestao: "from-slate-500 to-gray-600",
 }
 

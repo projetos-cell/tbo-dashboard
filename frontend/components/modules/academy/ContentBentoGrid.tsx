@@ -31,7 +31,7 @@ export function ContentBentoGrid() {
           label="Áudio"
           description="Conversas sobre mercado imobiliário, branding e processo criativo."
           icon={IconMicrophone}
-          gradient="bg-gradient-to-r from-purple-950/90 via-blue-950/80 to-slate-900/90"
+          gradient="bg-gradient-to-r from-[#0a1f1d] via-teal-950/80 to-slate-900/90"
           ctaLabel="Em breve"
           ctaIcon={IconMicrophone}
           status="Em breve"
@@ -75,7 +75,7 @@ export function ContentBentoGrid() {
           label="Rede profissional"
           description="Novidades, posicionamento e cultura da TBO no LinkedIn."
           icon={IconBrandLinkedin}
-          gradient="bg-gradient-to-r from-blue-950/90 via-indigo-950/80 to-slate-900/90"
+          gradient="bg-gradient-to-r from-blue-950/90 via-[#0a1f1d]/80 to-slate-900/90"
           ctaLabel="Seguir"
           ctaIcon={IconBrandLinkedin}
           href={LINKEDIN_URL}
@@ -86,7 +86,7 @@ export function ContentBentoGrid() {
           label="Social"
           description="Visual e bastidores do trabalho criativo da TBO."
           icon={IconBrandInstagram}
-          gradient="bg-gradient-to-r from-pink-950/90 via-purple-950/80 to-slate-900/90"
+          gradient="bg-gradient-to-r from-pink-950/90 via-[#0a1f1d]/80 to-slate-900/90"
           ctaLabel="Seguir"
           ctaIcon={IconBrandInstagram}
           href={INSTAGRAM_URL}

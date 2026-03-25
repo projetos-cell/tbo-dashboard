@@ -43,7 +43,7 @@ export default function AcademyDashboardPage() {
   return (
     <div className="space-y-6">
       {/* Welcome hero */}
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-700 p-6 text-white md:p-8">
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-[#0a1f1d] via-[#0d2e2b] to-[#112e1e] p-6 text-white md:p-8">
         <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-10" />
         <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="space-y-2">
@@ -63,7 +63,7 @@ export default function AcademyDashboardPage() {
             {inProgressCourses[0] && (
               <Button
                 asChild
-                className="bg-white text-violet-700 hover:bg-white/90"
+                className="bg-[#b8f724] text-[#0a1f1d] hover:bg-[#b8f724]/90"
               >
                 <Link href={`/academy/cursos/${inProgressCourses[0].id}`}>
                   <IconPlayerPlay className="size-4 mr-1" />
@@ -80,8 +80,8 @@ export default function AcademyDashboardPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-950/30">
-                <IconBook2 className="size-5 text-violet-600" />
+              <div className="flex size-10 items-center justify-center rounded-lg bg-[#b8f724]/10 dark:bg-[#b8f724]/10">
+                <IconBook2 className="size-5 text-[#b8f724]" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{inProgressCourses.length}</p>

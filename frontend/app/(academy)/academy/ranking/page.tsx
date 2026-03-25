@@ -105,8 +105,8 @@ export default function RankingPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-950/30">
-              <IconMedal className="size-5 text-violet-600" />
+            <div className="flex size-10 items-center justify-center rounded-lg bg-[#b8f724]/10 dark:bg-[#b8f724]/10">
+              <IconMedal className="size-5 text-[#b8f724]" />
             </div>
             <div>
               <p className="text-sm font-medium">Sua posição</p>

@@ -196,7 +196,7 @@ function MessageBubble({
           "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
           isUser
             ? "bg-primary/10 text-primary"
-            : "bg-gradient-to-br from-violet-500/20 to-purple-600/20 text-violet-600 dark:text-violet-400"
+            : "bg-gradient-to-br from-[#b8f724]/20 to-[#0a1f1d]/20 text-[#b8f724] dark:text-[#b8f724]"
         )}
       >
         {isUser ? (
@@ -221,9 +221,9 @@ function MessageBubble({
           <MarkdownContent content={message.content} />
         ) : isLastAssistant && isStreaming ? (
           <div className="flex items-center gap-1.5 py-1">
-            <div className="h-2 w-2 animate-pulse rounded-full bg-violet-500/60" />
-            <div className="h-2 w-2 animate-pulse rounded-full bg-violet-500/60 [animation-delay:150ms]" />
-            <div className="h-2 w-2 animate-pulse rounded-full bg-violet-500/60 [animation-delay:300ms]" />
+            <div className="h-2 w-2 animate-pulse rounded-full bg-[#b8f724]/60" />
+            <div className="h-2 w-2 animate-pulse rounded-full bg-[#b8f724]/60 [animation-delay:150ms]" />
+            <div className="h-2 w-2 animate-pulse rounded-full bg-[#b8f724]/60 [animation-delay:300ms]" />
           </div>
         ) : null}
       </div>
@@ -261,7 +261,7 @@ export function AIChatPanel({
         </button>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 text-sm font-medium">
-            <IconSparkles className="h-4 w-4 text-violet-500" />
+            <IconSparkles className="h-4 w-4 text-[#b8f724]" />
             TAI
           </div>
         </div>

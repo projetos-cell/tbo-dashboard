@@ -39,11 +39,11 @@ export default function TrilhasPage() {
         return (
           <div key={path.id} className="space-y-4">
             <Card className="overflow-hidden">
-              <div className="bg-gradient-to-r from-violet-500/10 to-indigo-500/10 p-6 border-b">
+              <div className="bg-gradient-to-r from-[#b8f724]/10 to-[#0a1f1d]/10 p-6 border-b">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <IconRoute className="size-5 text-violet-600" />
+                      <IconRoute className="size-5 text-[#b8f724]" />
                       <h2 className="text-lg font-semibold">{path.title}</h2>
                     </div>
                     <p className="text-sm text-muted-foreground max-w-lg">

@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-export async function updateSession(request: NextRequest) {
+export async function updateSession(request: NextRequest, options?: { defaultRedirect?: string }) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -33,11 +33,14 @@ export async function updateSession(request: NextRequest) {
   // Redirect unauthenticated users to login
   const isAuthRoute = request.nextUrl.pathname.startsWith("/login");
   const isPublicRoute =
+    request.nextUrl.pathname.startsWith("/auth/callback") ||
     request.nextUrl.pathname.startsWith("/portal") ||
     request.nextUrl.pathname.startsWith("/metodo") ||
     request.nextUrl.pathname.startsWith("/api/metodo-upload") ||
     request.nextUrl.pathname.startsWith("/pesquisa-clima") ||
-    request.nextUrl.pathname.startsWith("/api/pesquisa-clima");
+    request.nextUrl.pathname.startsWith("/api/pesquisa-clima") ||
+    request.nextUrl.pathname.startsWith("/diagnostico") ||
+    request.nextUrl.pathname.startsWith("/api/webhooks/stripe");
 
   if (!user && !isAuthRoute && !isPublicRoute) {
     const url = request.nextUrl.clone();
@@ -48,7 +51,7 @@ export async function updateSession(request: NextRequest) {
   // Redirect authenticated users away from login
   if (user && isAuthRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = "/projetos";
+    url.pathname = options?.defaultRedirect ?? "/projetos";
     return NextResponse.redirect(url);
   }
 

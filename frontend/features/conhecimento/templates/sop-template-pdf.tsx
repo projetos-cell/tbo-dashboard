@@ -4,9 +4,11 @@ import {
   Page,
   Text,
   View,
+  Image,
   StyleSheet,
   Font,
 } from "@react-pdf/renderer";
+import path from "path";
 
 // ─── Fonts ───────────────────────────────────────────────────────────────────
 
@@ -19,15 +21,20 @@ Font.register({
   ],
 });
 
-// ─── Colors ──────────────────────────────────────────────────────────────────
+// ─── TBO Brand tokens ────────────────────────────────────────────────────────
 
-const c = {
-  primary: "#1a1a1a",
-  secondary: "#4a4a4a",
+const brand = {
+  orange: "#ff6200",
+  orangeLight: "#fff4ec",
+  orangeMuted: "#ffad66",
+  black: "#0a0a0a",
+  dark: "#1a1a1a",
+  body: "#3a3a3a",
   muted: "#8a8a8a",
-  accent: "#F97316", // TBO orange
-  border: "#e5e5e5",
-  bgLight: "#f8f8f8",
+  subtle: "#b0b0b0",
+  border: "#e0e0e0",
+  borderLight: "#f0f0f0",
+  bg: "#f7f7f7",
   white: "#ffffff",
 };
 
@@ -36,227 +43,296 @@ const c = {
 const s = StyleSheet.create({
   page: {
     fontFamily: "Helvetica",
-    fontSize: 10,
-    color: c.primary,
-    paddingTop: 70,
-    paddingBottom: 60,
-    paddingHorizontal: 50,
-    lineHeight: 1.5,
+    fontSize: 9.5,
+    color: brand.body,
+    paddingTop: 80,
+    paddingBottom: 65,
+    paddingHorizontal: 56,
+    lineHeight: 1.55,
   },
-  // Letterhead header
-  headerBar: {
+
+  // ─── Top accent bar ─────────────────────
+  topBar: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    height: 4,
-    backgroundColor: c.accent,
+    height: 5,
+    backgroundColor: brand.orange,
   },
+
+  // ─── Header / Letterhead ────────────────
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
-    marginBottom: 20,
-    paddingBottom: 12,
-    borderBottomWidth: 1.5,
-    borderBottomColor: c.primary,
+    marginBottom: 28,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: brand.border,
   },
-  headerBrand: {
-    fontSize: 22,
-    fontWeight: "bold",
-    letterSpacing: 3,
-    color: c.primary,
+  logo: {
+    width: 72,
+    height: 28,
+    objectFit: "contain",
   },
-  headerSub: {
-    fontSize: 7,
-    color: c.muted,
-    marginTop: 2,
-    letterSpacing: 0.5,
-  },
-  headerMeta: {
+  headerRight: {
     textAlign: "right",
-    fontSize: 7.5,
-    color: c.muted,
-    lineHeight: 1.6,
+    gap: 2,
   },
-  // Document title
-  docTitle: {
-    fontSize: 14,
+  headerCode: {
+    fontSize: 8,
     fontWeight: "bold",
-    color: c.primary,
+    color: brand.orange,
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+  },
+  headerDate: {
+    fontSize: 7,
+    color: brand.muted,
+  },
+  headerBu: {
+    fontSize: 7,
+    color: brand.muted,
+  },
+
+  // ─── Document title ─────────────────────
+  titleBlock: {
+    marginBottom: 20,
+  },
+  docTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: brand.dark,
+    letterSpacing: 0.3,
     marginBottom: 4,
-    letterSpacing: 0.5,
+    lineHeight: 1.3,
   },
   docSubtitle: {
-    fontSize: 9,
-    color: c.muted,
-    marginBottom: 16,
+    fontSize: 8.5,
+    color: brand.muted,
+    lineHeight: 1.4,
   },
-  // Metadata badge row
-  metaRow: {
+
+  // ─── Metadata strip ─────────────────────
+  metaStrip: {
     flexDirection: "row",
-    gap: 12,
-    marginBottom: 16,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: c.border,
+    backgroundColor: brand.bg,
+    borderRadius: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 24,
+    gap: 24,
   },
   metaItem: {
-    flexDirection: "row",
-    gap: 3,
+    gap: 1,
   },
   metaLabel: {
-    fontSize: 7,
-    color: c.muted,
+    fontSize: 6.5,
+    color: brand.muted,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
+    fontWeight: "bold",
   },
   metaValue: {
-    fontSize: 7.5,
+    fontSize: 8,
+    color: brand.dark,
     fontWeight: "bold",
-    color: c.secondary,
   },
-  // Section
-  sectionTitle: {
-    fontSize: 11,
+
+  // ─── Section heading ────────────────────
+  sectionHeading: {
+    fontSize: 10.5,
     fontWeight: "bold",
-    color: c.primary,
-    marginTop: 16,
-    marginBottom: 6,
-    paddingBottom: 3,
-    borderBottomWidth: 1,
-    borderBottomColor: c.border,
+    color: brand.dark,
+    marginTop: 20,
+    marginBottom: 10,
+    paddingBottom: 5,
+    paddingLeft: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: brand.orange,
     textTransform: "uppercase",
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
   },
-  // Content text
+
+  // ─── Body text ──────────────────────────
   paragraph: {
     fontSize: 9,
-    marginBottom: 4,
-    color: c.secondary,
+    marginBottom: 5,
+    color: brand.body,
     lineHeight: 1.6,
   },
   bold: {
     fontWeight: "bold",
-    color: c.primary,
+    color: brand.dark,
   },
-  // Code block (template content)
+
+  // ─── Code block ─────────────────────────
   codeBlock: {
-    backgroundColor: c.bgLight,
+    backgroundColor: brand.bg,
     borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: 3,
-    padding: 10,
-    marginVertical: 6,
-    fontFamily: "Courier",
-    fontSize: 8,
-    color: c.secondary,
-    lineHeight: 1.5,
+    borderColor: brand.border,
+    borderRadius: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginVertical: 8,
   },
-  // Checklist
+  codeLabel: {
+    fontSize: 6.5,
+    fontWeight: "bold",
+    color: brand.muted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  codeText: {
+    fontFamily: "Courier",
+    fontSize: 7.5,
+    color: brand.dark,
+    lineHeight: 1.6,
+  },
+
+  // ─── Checklist ──────────────────────────
   checkItem: {
     flexDirection: "row",
-    gap: 6,
-    marginBottom: 3,
-    paddingLeft: 4,
+    gap: 8,
+    marginBottom: 4,
+    paddingVertical: 3,
+    paddingHorizontal: 6,
+  },
+  checkItemAlt: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 4,
+    paddingVertical: 3,
+    paddingHorizontal: 6,
+    backgroundColor: brand.bg,
+    borderRadius: 2,
   },
   checkBox: {
-    width: 9,
-    height: 9,
-    borderWidth: 1,
-    borderColor: c.secondary,
-    borderRadius: 1.5,
-    marginTop: 1,
+    width: 10,
+    height: 10,
+    borderWidth: 1.2,
+    borderColor: brand.border,
+    borderRadius: 2,
+    marginTop: 0.5,
   },
   checkText: {
-    fontSize: 9,
-    color: c.secondary,
+    fontSize: 8.5,
+    color: brand.body,
     flex: 1,
+    lineHeight: 1.5,
   },
-  // List item
+
+  // ─── List items ─────────────────────────
   listItem: {
     flexDirection: "row",
-    gap: 6,
-    marginBottom: 3,
+    gap: 8,
+    marginBottom: 4,
     paddingLeft: 4,
   },
   listBullet: {
     fontSize: 9,
-    color: c.accent,
-    width: 8,
+    color: brand.orange,
+    width: 10,
+    fontWeight: "bold",
   },
   listText: {
     fontSize: 9,
-    color: c.secondary,
+    color: brand.body,
     flex: 1,
+    lineHeight: 1.55,
   },
-  // Table
+
+  // ─── Table ──────────────────────────────
   table: {
-    marginVertical: 6,
+    marginVertical: 8,
     borderWidth: 1,
-    borderColor: c.border,
+    borderColor: brand.border,
+    borderRadius: 3,
+    overflow: "hidden",
   },
   tableHeaderRow: {
     flexDirection: "row",
-    backgroundColor: c.primary,
-    paddingVertical: 5,
-    paddingHorizontal: 6,
+    backgroundColor: brand.dark,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
   },
   tableHeaderCell: {
     fontSize: 7,
     fontWeight: "bold",
-    color: c.white,
+    color: brand.white,
     textTransform: "uppercase",
-    letterSpacing: 0.3,
+    letterSpacing: 0.4,
   },
   tableRow: {
     flexDirection: "row",
-    paddingVertical: 4,
-    paddingHorizontal: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: c.border,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    borderBottomWidth: 0.5,
+    borderBottomColor: brand.borderLight,
   },
   tableRowAlt: {
     flexDirection: "row",
-    paddingVertical: 4,
-    paddingHorizontal: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: c.border,
-    backgroundColor: c.bgLight,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    borderBottomWidth: 0.5,
+    borderBottomColor: brand.borderLight,
+    backgroundColor: brand.bg,
   },
   tableCell: {
     fontSize: 8,
-    color: c.secondary,
+    color: brand.body,
+    lineHeight: 1.4,
   },
-  // Footer
+
+  // ─── Divider ────────────────────────────
+  divider: {
+    borderBottomWidth: 1,
+    borderBottomColor: brand.borderLight,
+    marginVertical: 14,
+  },
+
+  // ─── Footer ─────────────────────────────
   footer: {
     position: "absolute",
-    bottom: 25,
-    left: 50,
-    right: 50,
+    bottom: 28,
+    left: 56,
+    right: 56,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     borderTopWidth: 1,
-    borderTopColor: c.border,
-    paddingTop: 6,
+    borderTopColor: brand.border,
+    paddingTop: 8,
   },
-  footerText: {
-    fontSize: 6.5,
-    color: c.muted,
+  footerLeft: {
+    gap: 1,
+  },
+  footerCompany: {
+    fontSize: 6,
+    fontWeight: "bold",
+    color: brand.muted,
+    letterSpacing: 0.3,
+  },
+  footerAddress: {
+    fontSize: 5.5,
+    color: brand.subtle,
   },
   footerPage: {
-    fontSize: 6.5,
-    color: c.muted,
+    fontSize: 7,
+    color: brand.muted,
+    fontWeight: "bold",
   },
-  // Accent bar at bottom
-  footerBar: {
+
+  // ─── Bottom accent bar ──────────────────
+  bottomBar: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
     height: 3,
-    backgroundColor: c.accent,
+    backgroundColor: brand.orange,
   },
 });
 
@@ -274,7 +350,7 @@ export interface SOPTemplatePdfData {
 // ─── Content parser ──────────────────────────────────────────────────────────
 
 interface ContentBlock {
-  type: "text" | "code" | "checklist" | "table" | "heading";
+  type: "text" | "code" | "checklist" | "table" | "heading" | "divider";
   content: string;
   rows?: string[][];
 }
@@ -300,6 +376,13 @@ function parseContent(raw: string): ContentBlock[] {
       continue;
     }
 
+    // Horizontal rule
+    if (/^[-—_]{3,}\s*$/.test(line.trim())) {
+      blocks.push({ type: "divider", content: "" });
+      i++;
+      continue;
+    }
+
     // Table row
     if (line.trim().startsWith("|") && line.trim().endsWith("|")) {
       const tableRows: string[][] = [];
@@ -314,7 +397,6 @@ function parseContent(raw: string): ContentBlock[] {
           .replace(/\|$/, "")
           .split("|")
           .map((c) => c.trim());
-        // Skip separator rows
         if (!cells.every((c) => /^[-:]+$/.test(c))) {
           tableRows.push(cells);
         }
@@ -336,7 +418,7 @@ function parseContent(raw: string): ContentBlock[] {
       continue;
     }
 
-    // Bold heading (** at start)
+    // Bold heading (**TITLE** on its own line)
     if (/^\*\*[^*]+\*\*\s*$/.test(line.trim())) {
       blocks.push({
         type: "heading",
@@ -362,6 +444,12 @@ export function SOPTemplatePdf({ data }: { data: SOPTemplatePdfData }) {
   const blocks = parseContent(data.stepContent);
   const cleanStepTitle = data.stepTitle.replace(/^\d+\.\s*/, "");
   const today = new Date().toLocaleDateString("pt-BR");
+  const sopCode = data.sopSlug.split("-").slice(0, 3).join("-").toUpperCase();
+
+  // Resolve logo path for server-side rendering
+  const logoPath = path.join(process.cwd(), "public", "logo-tbo.png");
+
+  let checklistIdx = 0;
 
   return (
     <Document
@@ -369,72 +457,79 @@ export function SOPTemplatePdf({ data }: { data: SOPTemplatePdfData }) {
       author="TBO — Agencia de Publicidade"
     >
       <Page size="A4" style={s.page}>
-        {/* Orange top bar */}
-        <View style={s.headerBar} fixed />
+        {/* ─── Top orange bar ─── */}
+        <View style={s.topBar} fixed />
 
-        {/* Letterhead header */}
+        {/* ─── Letterhead header ─── */}
         <View style={s.header} fixed>
-          <View>
-            <Text style={s.headerBrand}>TBO</Text>
-            <Text style={s.headerSub}>AGENCIA DE PUBLICIDADE</Text>
-          </View>
-          <View style={s.headerMeta}>
-            <Text>{data.sopSlug.toUpperCase()}</Text>
-            <Text>Versao {data.sopVersion} | {today}</Text>
-            <Text>BU: {data.sopBu}</Text>
+          <Image style={s.logo} src={logoPath} />
+          <View style={s.headerRight}>
+            <Text style={s.headerCode}>{sopCode}</Text>
+            <Text style={s.headerDate}>v{data.sopVersion} | {today}</Text>
+            <Text style={s.headerBu}>{data.sopBu}</Text>
           </View>
         </View>
 
-        {/* Document title */}
-        <Text style={s.docTitle}>{cleanStepTitle}</Text>
-        <Text style={s.docSubtitle}>
-          Extraido do SOP: {data.sopTitle}
-        </Text>
+        {/* ─── Title block ─── */}
+        <View style={s.titleBlock}>
+          <Text style={s.docTitle}>{cleanStepTitle}</Text>
+          <Text style={s.docSubtitle}>
+            Extraido do SOP: {data.sopTitle}
+          </Text>
+        </View>
 
-        {/* Metadata badges */}
-        <View style={s.metaRow}>
+        {/* ─── Metadata strip ─── */}
+        <View style={s.metaStrip}>
           <View style={s.metaItem}>
-            <Text style={s.metaLabel}>Codigo: </Text>
-            <Text style={s.metaValue}>
-              {data.sopSlug.split("-").slice(0, 3).join("-").toUpperCase()}
-            </Text>
+            <Text style={s.metaLabel}>Codigo</Text>
+            <Text style={s.metaValue}>{sopCode}</Text>
           </View>
           <View style={s.metaItem}>
-            <Text style={s.metaLabel}>Area: </Text>
+            <Text style={s.metaLabel}>Area</Text>
             <Text style={s.metaValue}>{data.sopBu}</Text>
           </View>
           <View style={s.metaItem}>
-            <Text style={s.metaLabel}>Gerado em: </Text>
+            <Text style={s.metaLabel}>Versao</Text>
+            <Text style={s.metaValue}>{data.sopVersion}</Text>
+          </View>
+          <View style={s.metaItem}>
+            <Text style={s.metaLabel}>Gerado em</Text>
             <Text style={s.metaValue}>{today}</Text>
           </View>
         </View>
 
-        {/* Content blocks */}
+        {/* ─── Content blocks ─── */}
         {blocks.map((block, idx) => {
           switch (block.type) {
             case "heading":
               return (
-                <Text key={idx} style={s.sectionTitle}>
+                <Text key={idx} style={s.sectionHeading}>
                   {block.content}
                 </Text>
               );
 
+            case "divider":
+              return <View key={idx} style={s.divider} />;
+
             case "code":
               return (
                 <View key={idx} style={s.codeBlock}>
-                  <Text>{block.content}</Text>
+                  <Text style={s.codeLabel}>Referencia</Text>
+                  <Text style={s.codeText}>{block.content}</Text>
                 </View>
               );
 
-            case "checklist":
+            case "checklist": {
+              const isAlt = checklistIdx++ % 2 === 1;
               return (
-                <View key={idx} style={s.checkItem}>
+                <View key={idx} style={isAlt ? s.checkItemAlt : s.checkItem}>
                   <View style={s.checkBox} />
                   <Text style={s.checkText}>{block.content}</Text>
                 </View>
               );
+            }
 
-            case "table":
+            case "table": {
               if (!block.rows || block.rows.length === 0) return null;
               const headerRow = block.rows[0];
               const dataRows = block.rows.slice(1);
@@ -468,33 +563,37 @@ export function SOPTemplatePdf({ data }: { data: SOPTemplatePdfData }) {
                   ))}
                 </View>
               );
+            }
 
             case "text": {
               const text = block.content;
-              // Handle lines starting with - as list items
+
+              // List items with dash/bullet
               if (/^\s*[-—•]\s+/.test(text)) {
                 const cleaned = text.replace(/^\s*[-—•]\s+/, "");
                 return (
                   <View key={idx} style={s.listItem}>
-                    <Text style={s.listBullet}>•</Text>
+                    <Text style={s.listBullet}>—</Text>
                     <Text style={s.listText}>{cleaned}</Text>
                   </View>
                 );
               }
-              // Handle numbered items
-              if (/^\s*\d+\.\s+/.test(text)) {
-                const num = text.match(/^\s*(\d+)\./)?.[1] ?? "";
-                const cleaned = text.replace(/^\s*\d+\.\s+/, "");
+
+              // Numbered items
+              if (/^\s*\d+[.)]\s+/.test(text)) {
+                const num = text.match(/^\s*(\d+)[.)]/)?.[1] ?? "";
+                const cleaned = text.replace(/^\s*\d+[.)]\s+/, "");
                 return (
                   <View key={idx} style={s.listItem}>
-                    <Text style={[s.listBullet, { color: c.primary }]}>
+                    <Text style={[s.listBullet, { color: brand.dark }]}>
                       {num}.
                     </Text>
                     <Text style={s.listText}>{cleaned}</Text>
                   </View>
                 );
               }
-              // Bold inline
+
+              // Inline bold
               if (/\*\*.+\*\*/.test(text)) {
                 const parts = text.split(/(\*\*[^*]+\*\*)/);
                 return (
@@ -511,6 +610,7 @@ export function SOPTemplatePdf({ data }: { data: SOPTemplatePdfData }) {
                   </Text>
                 );
               }
+
               return (
                 <Text key={idx} style={s.paragraph}>
                   {text}
@@ -523,21 +623,27 @@ export function SOPTemplatePdf({ data }: { data: SOPTemplatePdfData }) {
           }
         })}
 
-        {/* Footer */}
+        {/* ─── Footer ─── */}
         <View style={s.footer} fixed>
-          <Text style={s.footerText}>
-            AGENCIA DE PUBLICIDADE TBO LTDA | CNPJ 41.312.686/0001-33
-          </Text>
+          <View style={s.footerLeft}>
+            <Text style={s.footerCompany}>
+              AGENCIA DE PUBLICIDADE TBO LTDA
+            </Text>
+            <Text style={s.footerAddress}>
+              CNPJ 41.312.686/0001-33 | Rua dos Cedros, 39 — Alphaville
+              Graciosa, Pinhais/PR
+            </Text>
+          </View>
           <Text
             style={s.footerPage}
             render={({ pageNumber, totalPages }) =>
-              `Pagina ${pageNumber} de ${totalPages}`
+              `${pageNumber}/${totalPages}`
             }
           />
         </View>
 
-        {/* Orange bottom bar */}
-        <View style={s.footerBar} fixed />
+        {/* ─── Bottom orange bar ─── */}
+        <View style={s.bottomBar} fixed />
       </Page>
     </Document>
   );

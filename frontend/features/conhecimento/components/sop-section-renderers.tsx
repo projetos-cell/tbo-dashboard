@@ -455,11 +455,12 @@ export function isChecklistSection(title: string): boolean {
 
 // ─── Detector ────────────────────────────────────────────────────
 
-export type SpecialSectionType = "tools" | "sla" | "flowchart" | "glossary" | "checklist" | null;
+export type SpecialSectionType = "tools" | "sla" | "flowchart" | "glossary" | "checklist" | "template" | null;
 
 export function detectSpecialSection(title: string): SpecialSectionType {
   const lower = title.toLowerCase();
-  if (lower.includes("ferramenta") || lower.includes("template") || lower.includes("software")) return "tools";
+  if (lower.includes("template") || lower.includes("modelo") || lower.includes("formulário") || lower.includes("formulario")) return "template";
+  if (lower.includes("ferramenta") || lower.includes("software")) return "tools";
   if (lower.includes("sla") || lower.includes("prazo")) return "sla";
   if (lower.includes("fluxograma") || lower.includes("fluxo")) return "flowchart";
   if (lower.includes("glossário") || lower.includes("glossario") || lower.includes("definições") || lower.includes("definicoes")) return "glossary";

@@ -68,6 +68,7 @@ import {
 } from "./sop-section-renderers";
 import { SOPStepEditor } from "./sop-step-editor";
 import { SOPTemplateDownload, StepTemplateDownloadButton } from "./sop-template-download";
+import { TemplateCardsRenderer } from "./sop-template-cards";
 
 interface SOPDetailViewProps {
   bu: SOPBu;
@@ -582,6 +583,15 @@ function SectionAccordion({
   function renderSpecialContent(content: string) {
     if (isRACI) return <RACIMatrix content={content} />;
     switch (specialType) {
+      case "template": return (
+        <TemplateCardsRenderer
+          content={content}
+          sopTitle={sopTitle ?? ""}
+          sopSlug={sopSlug ?? ""}
+          sopBu={sopBu ?? ""}
+          sopVersion={sopVersion ?? 1}
+        />
+      );
       case "tools": return <ToolsRenderer content={content} />;
       case "sla": return <SLARenderer content={content} />;
       case "flowchart": return <FlowchartRenderer content={content} />;

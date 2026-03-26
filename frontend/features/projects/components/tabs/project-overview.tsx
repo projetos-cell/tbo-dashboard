@@ -20,6 +20,7 @@ import {
   IconArrowRight,
   IconTrash,
   IconExternalLink,
+  IconEye,
 } from "@tabler/icons-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -48,8 +49,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
 import { useProject, useUpdateProject } from "@/features/projects/hooks/use-projects";
+import { useReviewProjectsByProject } from "@/features/review/hooks/use-review-projects";
+import { WORKFLOW_STAGE_CONFIG } from "@/features/review/constants";
 import { useProjectResources, useCreateProjectResource, useDeleteProjectResource } from "@/features/projects/hooks/use-project-resources";
 import { useProjectTasks, useProjectSections, useProjectTaskStats } from "@/features/projects/hooks/use-project-tasks";
 import { useProfiles } from "@/features/people/hooks/use-people";
@@ -86,11 +90,13 @@ function getInitials(name: string | null): string {
 }
 
 export function ProjectOverview({ projectId, members = [], onOpenMembers }: ProjectOverviewProps) {
+  const router = useRouter();
   const { data: project, isLoading: projectLoading } = useProject(projectId);
   const { data: stats, isLoading: statsLoading } = useProjectTaskStats(projectId);
   const { allTasks, isLoading: tasksLoading } = useProjectTasks(projectId);
   const { data: sections } = useProjectSections(projectId);
   const { data: profiles } = useProfiles();
+  const { data: reviewProjects } = useReviewProjectsByProject(projectId);
   const updateProject = useUpdateProject();
 
   const isLoading = projectLoading || statsLoading || tasksLoading;
@@ -819,6 +825,53 @@ export function ProjectOverview({ projectId, members = [], onOpenMembers }: Proj
               )}
             </CardContent>
           </Card>
+
+          {/* Creative Review */}
+          {reviewProjects && reviewProjects.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                    <IconEye className="h-4 w-4" />
+                    Creative Review
+                  </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => router.push("/review")}
+                  >
+                    Ver todos
+                    <IconArrowRight className="ml-1 h-3 w-3" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {reviewProjects.map((rp) => {
+                    const stageConfig = WORKFLOW_STAGE_CONFIG[rp.workflow_stage as keyof typeof WORKFLOW_STAGE_CONFIG];
+                    return (
+                      <button
+                        key={rp.id}
+                        type="button"
+                        className="w-full flex items-center justify-between rounded-md border px-3 py-2 text-left text-sm hover:bg-accent transition-colors"
+                        onClick={() => router.push(`/review/${rp.id}`)}
+                      >
+                        <span className="font-medium truncate">{rp.name}</span>
+                        <Badge
+                          variant="secondary"
+                          className="ml-2 shrink-0 text-xs"
+                          style={{ backgroundColor: stageConfig?.color + "20", color: stageConfig?.color }}
+                        >
+                          {stageConfig?.label ?? rp.workflow_stage}
+                        </Badge>
+                      </button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

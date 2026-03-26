@@ -13,6 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { IconLoader2 } from "@tabler/icons-react";
 import {
   CreateReviewProjectSchema,
@@ -22,6 +29,7 @@ import {
   useCreateReviewProject,
   useUpdateReviewProject,
 } from "@/features/review/hooks/use-review-projects";
+import { useProjects } from "@/features/projects/hooks/use-projects";
 import type { ReviewProject } from "@/features/review/types";
 
 interface ReviewProjectFormProps {
@@ -38,11 +46,14 @@ export function ReviewProjectForm({
   const isEditing = !!project;
   const createMut = useCreateReviewProject();
   const updateMut = useUpdateReviewProject();
+  const { data: projects } = useProjects();
 
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<CreateReviewProjectInput>({
     resolver: zodResolver(CreateReviewProjectSchema),
@@ -98,6 +109,26 @@ export function ReviewProjectForm({
               placeholder="Nome do cliente"
               {...register("client_name")}
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="project_id">Projeto TBO</Label>
+            <Select
+              value={watch("project_id") ?? "none"}
+              onValueChange={(v) => setValue("project_id", v === "none" ? null : v)}
+            >
+              <SelectTrigger id="project_id">
+                <SelectValue placeholder="Vincular a um projeto existente (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhum</SelectItem>
+                {(projects ?? []).map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-1.5">

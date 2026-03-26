@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   getReviewProjects,
   getReviewProject,
+  getReviewProjectsByProject,
   createReviewProject,
   updateReviewProject,
   deleteReviewProject,
@@ -32,6 +33,18 @@ export function useReviewProject(projectId: string | undefined) {
   return useQuery({
     queryKey: ["review-project", projectId],
     queryFn: () => getReviewProject(supabase, projectId!),
+    enabled: !!projectId && !!tenantId,
+    staleTime: 1000 * 60 * 2,
+  });
+}
+
+export function useReviewProjectsByProject(projectId: string | undefined) {
+  const supabase = createClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery({
+    queryKey: ["review-projects-by-project", projectId, tenantId],
+    queryFn: () => getReviewProjectsByProject(supabase, projectId!),
     enabled: !!projectId && !!tenantId,
     staleTime: 1000 * 60 * 2,
   });

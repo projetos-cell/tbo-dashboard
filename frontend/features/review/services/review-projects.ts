@@ -88,6 +88,26 @@ export async function updateReviewProject(
   return data as ReviewProject;
 }
 
+export async function getReviewProjectsByProject(
+  supabase: AnyClient,
+  projectId: string
+): Promise<ReviewProject[]> {
+  const { data, error } = await supabase
+    .from("review_projects")
+    .select(`*, scenes_count:review_scenes(count)`)
+    .eq("project_id", projectId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  return (data ?? []).map((row: Record<string, unknown>) => ({
+    ...row,
+    scenes_count: Array.isArray(row.scenes_count)
+      ? (row.scenes_count[0] as { count: number })?.count ?? 0
+      : 0,
+  })) as ReviewProject[];
+}
+
 export async function deleteReviewProject(
   supabase: AnyClient,
   id: string

@@ -330,15 +330,68 @@ export interface SOPTemplatePdfData {
 // ─── Content parser ──────────────────────────────────────────────────────────
 
 interface ContentBlock {
-  type: "text" | "content" | "checklist" | "table" | "heading" | "divider" | "field";
+  type: "text" | "content" | "checklist" | "table" | "heading" | "divider" | "field" | "multifield";
   content: string;
   label?: string;
   value?: string;
+  fields?: { label: string; value: string }[];
   rows?: string[][];
 }
 
+/**
+ * Replace emoji characters that Helvetica can't render with text equivalents
+ */
+function sanitizeEmoji(text: string): string {
+  return text
+    .replace(/🟢/g, "SIM")
+    .replace(/🟡/g, "PARCIAL")
+    .replace(/🔴/g, "NAO")
+    .replace(/✅/g, "[OK]")
+    .replace(/❌/g, "[X]")
+    .replace(/⚠️/g, "[!]")
+    .replace(/✓/g, "SIM")
+    .replace(/✗/g, "NAO")
+    .replace(/→/g, ">")
+    .replace(/←/g, "<")
+    .replace(/🎯/g, "-")
+    .replace(/🚧/g, "-")
+    .replace(/📋/g, "")
+    .replace(/📌/g, "")
+    .replace(/📎/g, "")
+    .replace(/💡/g, "")
+    .replace(/🔗/g, "");
+}
+
+/**
+ * Check if a line contains pipe-separated fields (e.g. "Label: value | Label2: value2")
+ */
+function hasPipeSeparatedFields(line: string): boolean {
+  // Must have at least one pipe that separates content (not at start/end like markdown tables)
+  const trimmed = line.trim();
+  if (trimmed.startsWith("|") && trimmed.endsWith("|")) return false; // markdown table
+  return trimmed.includes(" | ") && trimmed.includes(":");
+}
+
+/**
+ * Parse pipe-separated fields into an array of {label, value} pairs
+ * e.g. "Posicionamento: | Tom: | 3 adjetivos:" → 3 fields
+ */
+function parsePipeFields(line: string): { label: string; value: string }[] {
+  const segments = line.split("|").map((s) => s.trim()).filter(Boolean);
+  return segments.map((seg) => {
+    if (seg.includes(":")) {
+      const colonIdx = seg.indexOf(":");
+      return {
+        label: seg.substring(0, colonIdx).trim(),
+        value: seg.substring(colonIdx + 1).trim(),
+      };
+    }
+    return { label: seg, value: "" };
+  });
+}
+
 function isFieldLine(line: string): boolean {
-  return /^[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ\s/()[\]]{2,}:\s*.*/i.test(line.trim()) &&
+  return /^[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ@\s/()[\]#.0-9]{2,}:\s*.*/i.test(line.trim()) &&
     !line.trim().startsWith("**") &&
     line.includes(":");
 }
@@ -351,9 +404,44 @@ function parseFieldLine(line: string): { label: string; value: string } {
   };
 }
 
+/**
+ * Parse a single content line (from inside a code block or regular text) into a block
+ */
+function parseStructuredLine(line: string): ContentBlock {
+  const trimmed = sanitizeEmoji(line.trim());
+
+  // Pipe-separated multi-field line
+  if (hasPipeSeparatedFields(trimmed)) {
+    const fields = parsePipeFields(trimmed);
+    return { type: "multifield", content: trimmed, fields };
+  }
+
+  // Single field (LABEL: value)
+  if (isFieldLine(trimmed)) {
+    const { label, value } = parseFieldLine(trimmed);
+    return { type: "field", content: trimmed, label, value };
+  }
+
+  // Checklist
+  if (/^\s*\[[ x]\]\s*/i.test(trimmed)) {
+    return {
+      type: "checklist",
+      content: trimmed.replace(/^\s*\[[ x]\]\s*/, "").trim(),
+    };
+  }
+
+  // ALL CAPS heading
+  if (/^[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ\s]{3,}$/.test(trimmed) && trimmed === trimmed.toUpperCase()) {
+    return { type: "heading", content: trimmed };
+  }
+
+  return { type: "content", content: trimmed };
+}
+
 function parseContent(raw: string): ContentBlock[] {
   const blocks: ContentBlock[] = [];
-  const lines = raw.split("\n");
+  const input = sanitizeEmoji(raw);
+  const lines = input.split("\n");
   let i = 0;
 
   while (i < lines.length) {
@@ -365,19 +453,7 @@ function parseContent(raw: string): ContentBlock[] {
       while (i < lines.length && !lines[i].trim().startsWith("```")) {
         const trimmed = lines[i].trim();
         if (trimmed) {
-          if (isFieldLine(trimmed)) {
-            const { label, value } = parseFieldLine(trimmed);
-            blocks.push({ type: "field", content: trimmed, label, value });
-          } else if (/^\s*\[[ x]\]\s*/i.test(trimmed)) {
-            blocks.push({
-              type: "checklist",
-              content: trimmed.replace(/^\s*\[[ x]\]\s*/, "").trim(),
-            });
-          } else if (/^[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ\s]{3,}$/.test(trimmed) && trimmed === trimmed.toUpperCase()) {
-            blocks.push({ type: "heading", content: trimmed });
-          } else {
-            blocks.push({ type: "content", content: trimmed });
-          }
+          blocks.push(parseStructuredLine(trimmed));
         }
         i++;
       }
@@ -392,7 +468,7 @@ function parseContent(raw: string): ContentBlock[] {
       continue;
     }
 
-    // Table row
+    // Table row (markdown format: |col|col|)
     if (line.trim().startsWith("|") && line.trim().endsWith("|")) {
       const tableRows: string[][] = [];
       while (
@@ -511,6 +587,28 @@ export function SOPTemplatePdf({ data }: { data: SOPTemplatePdfData }) {
                 return <Text key={idx} style={s.contentLabel}>{text}</Text>;
               }
               return <Text key={idx} style={s.contentLine}>{text}</Text>;
+            }
+
+            case "multifield": {
+              const isAltMf = fieldIdx++ % 2 === 1;
+              const mfFields = block.fields ?? [];
+              const mfColWidth = `${100 / mfFields.length}%`;
+              return (
+                <View key={idx} style={[isAltMf ? s.fieldRowAlt : s.fieldRow, { gap: 4 }]}>
+                  {mfFields.map((f, fi) => (
+                    <View key={fi} style={{ width: mfColWidth }}>
+                      <Text style={[s.fieldLabel, { width: "100%", marginBottom: 2 }]}>
+                        {f.label}
+                      </Text>
+                      {f.value ? (
+                        <Text style={[s.fieldValue, { width: "100%" }]}>{f.value}</Text>
+                      ) : (
+                        <View style={{ borderBottomWidth: 0.5, borderBottomColor: brand.muted, paddingBottom: 6, marginTop: 2 }} />
+                      )}
+                    </View>
+                  ))}
+                </View>
+              );
             }
 
             case "field": {

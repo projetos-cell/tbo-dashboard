@@ -8,7 +8,7 @@ export async function proxy(request: NextRequest) {
 
   // Academy subdomain: redirect authenticated users to /dashboard, not /projetos
   if (host === ACADEMY_HOST || host.startsWith("academy.")) {
-    return updateSession(request, { defaultRedirect: "/dashboard" })
+    return updateSession(request, { defaultRedirect: "/explorar" })
   }
 
   // Redirect legacy /academy/* URLs to the standalone academy subdomain

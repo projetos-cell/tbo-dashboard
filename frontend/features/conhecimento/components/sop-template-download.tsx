@@ -9,6 +9,8 @@ import type { SOPTemplatePdfData } from "../templates/sop-template-pdf";
 
 function isTemplateStep(step: SOPStep): boolean {
   const title = step.title.toLowerCase();
+  // Exclude "Ferramentas e Templates" — those are tools sections, not downloadable templates
+  if (title.includes("ferramenta")) return false;
   return (
     title.includes("template") ||
     title.includes("modelo") ||

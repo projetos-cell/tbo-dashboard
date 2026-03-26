@@ -55,10 +55,18 @@ export function useCompleteOnboarding() {
       fullName,
       cargo,
       avatarFile,
+      department,
+      phone,
+      theme,
+      notificationsEnabled,
     }: {
       fullName: string;
       cargo: string;
       avatarFile: File | null;
+      department?: string;
+      phone?: string;
+      theme?: string;
+      notificationsEnabled?: boolean;
     }) => {
       let avatarUrl: string | undefined;
       if (avatarFile && userId) {
@@ -69,6 +77,23 @@ export function useCompleteOnboarding() {
         cargo: cargo || undefined,
         avatar_url: avatarUrl,
       });
+
+      // Save extra profile fields
+      const extraUpdates: Record<string, unknown> = {};
+      if (department) extraUpdates.department = department;
+      if (phone) extraUpdates.phone = phone;
+      if (theme || notificationsEnabled !== undefined) {
+        extraUpdates.preferences = {
+          theme: theme ?? "system",
+          notifications_enabled: notificationsEnabled ?? true,
+        };
+      }
+      if (Object.keys(extraUpdates).length > 0) {
+        await supabase
+          .from("profiles")
+          .update(extraUpdates as never)
+          .eq("id", userId!);
+      }
     },
     onSuccess: () => {
       qc.setQueryData(["onboarding-status", userId], {

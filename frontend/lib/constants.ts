@@ -712,3 +712,7 @@ export const WEBSITE_ADMIN_NAV_ITEMS: readonly SubNavItem[] = [
   { href: "/website-admin/paginas", label: "Seções do Site", icon: "layout" },
   { href: "/website-admin/config", label: "Configurações", icon: "settings" },
 ] as const;
+
+export const REVIEW_NAV_ITEMS: readonly SubNavItem[] = [
+  { href: "/review", label: "Todos os Projetos", icon: "layout-grid" },
+] as const;

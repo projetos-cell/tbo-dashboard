@@ -91,6 +91,7 @@ export function SearchButton() {
       <TooltipTrigger asChild>
         <button
           onClick={openSearch}
+          data-tour="search-btn"
           className="rounded-md text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
           aria-label="Buscar (⌘K)"
         >
@@ -134,6 +135,7 @@ export function UserAvatar() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
+          data-tour="user-avatar"
           className="rounded-full outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           aria-label="Menu do usuário"
         >

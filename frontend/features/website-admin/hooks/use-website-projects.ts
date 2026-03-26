@@ -100,3 +100,48 @@ export function useUploadWebsiteImage() {
     onError: () => toast.error("Erro ao enviar imagem"),
   });
 }
+
+/** Import an external image URL into Supabase Storage */
+async function importImageFromUrl(
+  url: string,
+  tenantId: string,
+  folder: string,
+): Promise<string> {
+  const res = await fetch("/api/website-admin/import-image", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url, tenantId, folder }),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error ?? "Falha ao importar imagem");
+  }
+  const data = await res.json();
+  return data.publicUrl as string;
+}
+
+/** Batch-import external images into Supabase Storage */
+export function useImportExternalImages() {
+  return useMutation({
+    mutationFn: async ({
+      urls,
+      tenantId,
+      folder,
+      onProgress,
+    }: {
+      urls: string[];
+      tenantId: string;
+      folder: string;
+      onProgress?: (done: number, total: number) => void;
+    }) => {
+      const results: string[] = [];
+      for (let i = 0; i < urls.length; i++) {
+        const newUrl = await importImageFromUrl(urls[i], tenantId, folder);
+        results.push(newUrl);
+        onProgress?.(i + 1, urls.length);
+      }
+      return results;
+    },
+    onError: () => toast.error("Erro ao importar imagens"),
+  });
+}

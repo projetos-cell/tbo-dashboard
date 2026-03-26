@@ -59,6 +59,12 @@ export function WorkspaceSwitcher() {
 
   const handleSwitch = (ws: (typeof WORKSPACES)[number]) => {
     setActiveWorkspace(ws.id)
+    // Academy is now a separate app on its own subdomain
+    if (ws.id === "tbo-academy") {
+      const academyUrl = process.env.NEXT_PUBLIC_ACADEMY_URL ?? "https://academy.wearetbo.com.br"
+      window.location.href = academyUrl
+      return
+    }
     router.push(ws.href)
   }
 

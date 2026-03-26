@@ -1,40 +1,72 @@
 "use client";
 
 import { useRef } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { IconCamera } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuthStore } from "@/stores/auth-store";
+import {
+  profileStepSchema,
+  type ProfileStepValues,
+} from "../../schemas/onboarding-schemas";
+
+const DEPARTMENTS = [
+  "Criacao",
+  "3D / Archviz",
+  "Design",
+  "Video / Motion",
+  "Atendimento / CS",
+  "Comercial",
+  "Marketing",
+  "Financeiro",
+  "Tecnologia",
+  "Gestao / Diretoria",
+  "Outro",
+];
 
 interface StepProfileProps {
-  fullName: string;
-  cargo: string;
-  avatarFile: File | null;
+  defaultValues: ProfileStepValues;
   avatarPreview: string | null;
-  onFullNameChange: (v: string) => void;
-  onCargoChange: (v: string) => void;
   onAvatarChange: (file: File, preview: string) => void;
-  onNext: () => void;
+  onSubmit: (values: ProfileStepValues) => void;
   onBack: () => void;
   isLoading: boolean;
 }
 
 export function StepProfile({
-  fullName,
-  cargo,
+  defaultValues,
   avatarPreview,
-  onFullNameChange,
-  onCargoChange,
   onAvatarChange,
-  onNext,
+  onSubmit,
   onBack,
   isLoading,
 }: StepProfileProps) {
   const user = useAuthStore((s) => s.user);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<ProfileStepValues>({
+    resolver: zodResolver(profileStepSchema),
+    defaultValues,
+  });
+
+  const fullName = watch("fullName");
   const initials = (fullName || user?.email || "?")
     .split(" ")
     .map((w) => w[0])
@@ -50,11 +82,13 @@ export function StepProfile({
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Complete seu perfil</h2>
+        <h2 className="text-xl font-semibold tracking-tight">
+          Complete seu perfil
+        </h2>
         <p className="text-muted-foreground text-sm mt-1">
-          Essas informações aparecem para o seu time.
+          Essas informacoes aparecem para o seu time.
         </p>
       </div>
 
@@ -82,41 +116,88 @@ export function StepProfile({
         </div>
         <div className="text-sm text-muted-foreground">
           <p>Foto de perfil</p>
-          <p className="text-xs">JPG, PNG ou GIF</p>
+          <p className="text-xs">JPG, PNG ou GIF — opcional</p>
         </div>
       </div>
 
       {/* Fields */}
       <div className="grid gap-4">
         <div className="grid gap-1.5">
-          <Label htmlFor="fullName">Nome completo</Label>
+          <Label htmlFor="fullName">
+            Nome completo <span className="text-destructive">*</span>
+          </Label>
           <Input
             id="fullName"
-            value={fullName}
-            onChange={(e) => onFullNameChange(e.target.value)}
-            placeholder={user?.email ?? "Seu nome"}
+            {...register("fullName")}
+            placeholder={user?.email ?? "Seu nome completo"}
           />
+          {errors.fullName && (
+            <p className="text-xs text-destructive">{errors.fullName.message}</p>
+          )}
         </div>
 
         <div className="grid gap-1.5">
-          <Label htmlFor="cargo">Cargo</Label>
+          <Label htmlFor="cargo">
+            Cargo <span className="text-destructive">*</span>
+          </Label>
           <Input
             id="cargo"
-            value={cargo}
-            onChange={(e) => onCargoChange(e.target.value)}
-            placeholder="Ex: Líder de Projetos"
+            {...register("cargo")}
+            placeholder="Ex: Lider de Projetos"
           />
+          {errors.cargo && (
+            <p className="text-xs text-destructive">{errors.cargo.message}</p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-1.5">
+            <Label htmlFor="department">Departamento</Label>
+            <Select
+              value={watch("department") ?? ""}
+              onValueChange={(v) => setValue("department", v)}
+            >
+              <SelectTrigger id="department">
+                <SelectValue placeholder="Selecione..." />
+              </SelectTrigger>
+              <SelectContent>
+                {DEPARTMENTS.map((d) => (
+                  <SelectItem key={d} value={d}>
+                    {d}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label htmlFor="phone">Telefone</Label>
+            <Input
+              id="phone"
+              {...register("phone")}
+              placeholder="(41) 99999-0000"
+            />
+            {errors.phone && (
+              <p className="text-xs text-destructive">{errors.phone.message}</p>
+            )}
+          </div>
         </div>
       </div>
 
       <div className="flex items-center justify-between pt-2">
-        <Button variant="ghost" size="sm" onClick={onBack} disabled={isLoading}>
-          ← Voltar
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onBack}
+          disabled={isLoading}
+        >
+          Voltar
         </Button>
-        <Button onClick={onNext} disabled={isLoading}>
-          {isLoading ? "Salvando..." : "Salvar e seguir →"}
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? "Salvando..." : "Continuar"}
         </Button>
       </div>
-    </div>
+    </form>
   );
 }

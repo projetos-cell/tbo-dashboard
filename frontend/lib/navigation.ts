@@ -13,6 +13,7 @@ import {
   ATIVOS_NAV_ITEMS,
   SOPS_NAV_ITEMS,
   WEBSITE_ADMIN_NAV_ITEMS,
+  REVIEW_NAV_ITEMS,
 } from "@/lib/constants";
 
 /** A single navigation item in the L1 sidebar. */
@@ -53,6 +54,13 @@ export const SIDEBAR_NAV_GROUPS: readonly NavGroup[] = [
       { href: "/clientes", label: "Clientes", icon: "building-2", module: "clientes", subItems: CLIENTES_NAV_ITEMS },
       { href: "/portal-cliente", label: "Portal do Cliente", icon: "external-link", module: "portal-cliente" },
       { href: "/contratos", label: "Contratos", icon: "file-text", module: "contratos", subItems: CONTRATOS_NAV_ITEMS },
+    ],
+  },
+  // ── Execução (produção & entrega) ──────────────────────────────
+  {
+    label: "Execução",
+    items: [
+      { href: "/review", label: "Creative Review", icon: "eye", module: "review", subItems: REVIEW_NAV_ITEMS },
     ],
   },
   // ── Financeiro (caixa & controle) ─────────────────────────────

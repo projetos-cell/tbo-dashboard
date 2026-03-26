@@ -49,6 +49,7 @@ export const ROLE_MODULES: Record<RoleSlug, string[]> = {
     "conhecimento",
     "portal-cliente",
     "changelog",
+    "review",
   ],
   lider: [
     "dashboard",
@@ -67,6 +68,7 @@ export const ROLE_MODULES: Record<RoleSlug, string[]> = {
     "intelligence",
     "conhecimento",
     "ativos",
+    "review",
   ],
   colaborador: [
     "dashboard",
@@ -78,6 +80,7 @@ export const ROLE_MODULES: Record<RoleSlug, string[]> = {
     "cultura",
     "mercado",
     "conhecimento",
+    "review",
   ],
 };
 
@@ -118,6 +121,7 @@ const ALL_MODULES = [
   "compras",
   "ativos",
   "conhecimento",
+  "review",
 ];
 
 /**
@@ -196,7 +200,9 @@ export type PermissionKey =
   | "reconhecimentos"
   | "chat.create_channel"
   | "chat.manage_channels"
-  | "chat.delete_messages";
+  | "chat.delete_messages"
+  | "review.approve"
+  | "review.delete";
 
 /**
  * Permission matrix from architecture.md.
@@ -219,6 +225,8 @@ const PERMISSION_MATRIX: Record<PermissionKey, RoleSlug[]> = {
   "chat.create_channel": ["founder", "diretoria", "lider"],
   "chat.manage_channels": ["founder", "diretoria"],
   "chat.delete_messages": ["founder", "diretoria"],
+  "review.approve": ["founder", "diretoria", "lider"],
+  "review.delete": ["founder", "diretoria"],
 };
 
 /** Check if a role has a specific granular permission */

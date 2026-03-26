@@ -25,8 +25,9 @@ export default async function AuthLayout({
       <AppSidebar />
       <SidebarInset>
         <Header />
-        <OnboardingGate />
-        <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
+        <OnboardingGate>
+          <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
+        </OnboardingGate>
       </SidebarInset>
     </SidebarProvider>
   );

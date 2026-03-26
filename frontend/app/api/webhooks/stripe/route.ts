@@ -129,21 +129,25 @@ async function verifyWebhookSignature(req: NextRequest): Promise<StripeEvent> {
   const signature = req.headers.get("stripe-signature")
   if (!signature) throw new Error("Missing stripe-signature header")
 
-  // Dynamically require Stripe to allow tree-shaking in non-webhook contexts
-  // Run: pnpm add stripe  before this route becomes active
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const StripeModule = require("stripe") as {
-    default: new (
-      key: string,
-      opts: { apiVersion: string }
-    ) => {
-      webhooks: {
-        constructEvent: (body: string, sig: string, secret: string) => StripeEvent
-      }
+  // Dynamic import — Stripe SDK must be installed: pnpm add stripe
+  // Using dynamic import so the build doesn't break if the package isn't installed yet
+  let StripeConstructor: new (
+    key: string,
+    opts: { apiVersion: string }
+  ) => {
+    webhooks: {
+      constructEvent: (body: string, sig: string, secret: string) => StripeEvent
     }
   }
 
-  const stripe = new StripeModule.default(stripeKey, {
+  try {
+    const mod = await import("stripe")
+    StripeConstructor = (mod.default ?? mod) as typeof StripeConstructor
+  } catch {
+    throw new Error("Stripe SDK not installed. Run: pnpm add stripe")
+  }
+
+  const stripe = new StripeConstructor(stripeKey, {
     apiVersion: "2025-02-24.acacia",
   })
 

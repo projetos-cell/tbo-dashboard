@@ -38,6 +38,7 @@ import { blogPostSchema, generateSlug, type BlogPostFormValues } from "../schema
 import { BlogCoverUpload } from "./blog-cover-upload";
 import { BlogAuthorPicker } from "./blog-author-picker";
 import { BlogStatusBadge } from "./blog-status-badge";
+import { BlogAiGenerateDialog } from "./blog-ai-generate-dialog";
 import type { BlogPostWithAuthor, BlogPostStatus } from "../types";
 import {
   AlertDialog,
@@ -175,6 +176,29 @@ export function BlogPostEditor({ post, mode }: BlogPostEditorProps) {
     router.push("/blog");
   };
 
+  // ─── AI Generate handler ────────────────────────────
+  const handleAiGenerated = useCallback(
+    (result: { title: string; excerpt: string; tags: string[]; body: string }) => {
+      if (result.title) {
+        form.setValue("title", result.title, { shouldDirty: true });
+        if (autoSlug) {
+          form.setValue("slug", generateSlug(result.title));
+        }
+      }
+      if (result.excerpt) {
+        form.setValue("excerpt", result.excerpt, { shouldDirty: true });
+      }
+      if (result.tags?.length) {
+        form.setValue("tags", result.tags, { shouldDirty: true });
+      }
+      if (result.body && editor) {
+        editor.commands.setContent(result.body);
+        form.setValue("body", result.body, { shouldDirty: true });
+      }
+    },
+    [editor, form, autoSlug],
+  );
+
   const saving = createMutation.isPending || updateMutation.isPending;
 
   return (
@@ -215,6 +239,7 @@ export function BlogPostEditor({ post, mode }: BlogPostEditorProps) {
               </AlertDialogContent>
             </AlertDialog>
           )}
+          <BlogAiGenerateDialog onGenerated={handleAiGenerated} />
           <Button onClick={onSubmit} disabled={saving} size="sm">
             <IconDeviceFloppy className="h-4 w-4 mr-1.5" />
             {saving ? "Salvando..." : "Salvar"}

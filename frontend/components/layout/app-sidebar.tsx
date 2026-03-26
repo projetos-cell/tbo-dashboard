@@ -151,7 +151,7 @@ export function AppSidebar() {
   const isSearching = query.trim().length > 0;
 
   return (
-    <Sidebar variant="inset">
+    <Sidebar variant="inset" data-tour="sidebar">
       <SidebarHeader className="border-b px-2 py-2">
         <WorkspaceSwitcher />
       </SidebarHeader>
@@ -173,7 +173,7 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {/* Pinned items — fixed, no group label */}
-        <SidebarGroup className="px-2 pb-1 pt-0">
+        <SidebarGroup className="px-2 pb-1 pt-0" data-tour="pinned-items">
           <SidebarGroupContent>
             <SidebarMenu>
               {PINNED_NAV_ITEMS.filter((item) => canSee(item.module)).map((item) => {
@@ -181,7 +181,7 @@ export function AppSidebar() {
                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
                 const badge = item.href === "/chat" && chatTotalUnread > 0 ? chatTotalUnread : 0;
                 return (
-                  <SidebarMenuItem key={item.href}>
+                  <SidebarMenuItem key={item.href} data-tour={item.href === "/projetos" ? "nav-projetos" : undefined}>
                     <SidebarMenuButton asChild isActive={isActive}>
                       <Link href={item.href}>
                         <Icon className="h-4 w-4" />

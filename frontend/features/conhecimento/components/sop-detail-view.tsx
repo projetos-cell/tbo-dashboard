@@ -21,6 +21,8 @@ import {
   IconChevronRight,
   IconUser,
   IconCalendar,
+  IconPencil,
+  IconEye,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -64,6 +66,8 @@ import {
   ChecklistRenderer,
   detectSpecialSection,
 } from "./sop-section-renderers";
+import { SOPStepEditor } from "./sop-step-editor";
+import { SOPTemplateDownload, StepTemplateDownloadButton } from "./sop-template-download";
 
 interface SOPDetailViewProps {
   bu: SOPBu;
@@ -154,6 +158,7 @@ export function SOPDetailView({ bu, slug }: SOPDetailViewProps) {
   const deleteSop = useDeleteSop();
   const updateSop = useUpdateSop();
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["section-5"]));
+  const [isEditing, setIsEditing] = useState(false);
 
   const buConfig = SOP_BU_CONFIG[bu];
 
@@ -252,6 +257,24 @@ export function SOPDetailView({ bu, slug }: SOPDetailViewProps) {
 
         <RequireRole minRole="lider">
           <div className="flex items-center gap-2 shrink-0">
+            <SOPTemplateDownload steps={steps ?? []} sopSlug={sop.slug} />
+            <Button
+              size="sm"
+              variant={isEditing ? "default" : "outline"}
+              onClick={() => setIsEditing(!isEditing)}
+            >
+              {isEditing ? (
+                <>
+                  <IconEye className="size-4 mr-1" />
+                  Visualizar
+                </>
+              ) : (
+                <>
+                  <IconPencil className="size-4 mr-1" />
+                  Editar
+                </>
+              )}
+            </Button>
             {sop.status === "draft" && (
               <Button
                 size="sm"
@@ -332,6 +355,13 @@ export function SOPDetailView({ bu, slug }: SOPDetailViewProps) {
                 <p className="text-sm">Nenhuma seção documentada ainda.</p>
               </CardContent>
             </Card>
+          ) : isEditing ? (
+            /* ─── Modo Edição: todos os steps editáveis ─── */
+            <div className="space-y-2">
+              {(steps ?? []).map((step) => (
+                <SOPStepEditor key={step.id} step={step} sopId={sop.id} />
+              ))}
+            </div>
           ) : (
             <>
               {/* Contexto (Objetivo, Escopo, RACI, Pré-requisitos) — colapsável */}
@@ -344,6 +374,7 @@ export function SOPDetailView({ bu, slug }: SOPDetailViewProps) {
                       isOpen={expandedSections.has(section.id)}
                       onToggle={() => toggleSection(section.id)}
                       defaultCollapsed
+                      sopSlug={sop.slug}
                     />
                   ))}
                 </div>
@@ -410,6 +441,7 @@ export function SOPDetailView({ bu, slug }: SOPDetailViewProps) {
                       isOpen={expandedSections.has(section.id)}
                       onToggle={() => toggleSection(section.id)}
                       defaultCollapsed
+                      sopSlug={sop.slug}
                     />
                   ))}
                 </div>
@@ -515,11 +547,13 @@ function SectionAccordion({
   isOpen,
   onToggle,
   defaultCollapsed,
+  sopSlug,
 }: {
   section: { title: string; id: string; steps: SOPStep[] };
   isOpen: boolean;
   onToggle: () => void;
   defaultCollapsed?: boolean;
+  sopSlug?: string;
 }) {
   const firstStep = section.steps[0];
   const subSteps = section.steps.slice(1);
@@ -552,6 +586,9 @@ function SectionAccordion({
               <IconChevronRight className="size-4 text-muted-foreground shrink-0" />
             )}
             <span className="font-medium text-sm">{section.title}</span>
+            {sopSlug && firstStep && (
+              <StepTemplateDownloadButton step={firstStep} sopSlug={sopSlug} />
+            )}
             {!isOpen && subSteps.length > 0 && !hasSpecialRenderer && (
               <span className="text-[10px] text-muted-foreground ml-auto">
                 {subSteps.length + 1} itens

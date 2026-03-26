@@ -1,37 +1,42 @@
 "use client";
 
+import {
+  IconRocket,
+  IconLayoutSidebar,
+  IconSearch,
+  IconBell,
+  IconFolderPlus,
+  IconLifebuoy,
+} from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
-import { useAuthStore } from "@/stores/auth-store";
-import type { RoleSlug } from "@/lib/permissions";
 
-interface Module {
-  icon: string;
-  title: string;
-  description: string;
-}
-
-const MODULES_BY_ROLE: Record<RoleSlug, Module[]> = {
-  founder: [
-    { icon: "📊", title: "Dashboard", description: "Visão executiva completa do negócio" },
-    { icon: "💰", title: "Financeiro", description: "DRE, caixa e fluxo financeiro" },
-    { icon: "🧠", title: "Intelligence", description: "Insights estratégicos e mercado" },
-  ],
-  diretoria: [
-    { icon: "💰", title: "Financeiro", description: "DRE, caixa e pipeline comercial" },
-    { icon: "🎯", title: "OKRs", description: "Defina e acompanhe metas da empresa" },
-    { icon: "🧠", title: "Intelligence", description: "Insights e dados estratégicos" },
-  ],
-  lider: [
-    { icon: "📋", title: "Projetos", description: "Crie, delegue e gerencie" },
-    { icon: "👥", title: "Pessoas", description: "PDI, 1:1s e histórico do time" },
-    { icon: "🎯", title: "OKRs", description: "Defina e acompanhe metas" },
-  ],
-  colaborador: [
-    { icon: "✅", title: "Tarefas", description: "Suas tarefas e entregas" },
-    { icon: "📋", title: "Projetos", description: "Projetos atribuídos a você" },
-    { icon: "🎯", title: "OKRs", description: "Check-in nas suas metas" },
-  ],
-};
+const TOUR_PREVIEW = [
+  {
+    icon: IconLayoutSidebar,
+    title: "Menu de navegacao",
+    description: "Conheça todos os modulos disponiveis",
+  },
+  {
+    icon: IconSearch,
+    title: "Busca rapida (Ctrl+K)",
+    description: "Encontre qualquer coisa no sistema",
+  },
+  {
+    icon: IconFolderPlus,
+    title: "Criar seu primeiro projeto",
+    description: "Vamos te guiar nessa primeira acao",
+  },
+  {
+    icon: IconBell,
+    title: "Notificacoes",
+    description: "Saiba onde ficam seus alertas",
+  },
+  {
+    icon: IconLifebuoy,
+    title: "Ajuda e suporte",
+    description: "Onde buscar ajuda quando precisar",
+  },
+];
 
 interface StepTourProps {
   onFinish: () => void;
@@ -40,41 +45,53 @@ interface StepTourProps {
 }
 
 export function StepTour({ onFinish, onBack, isLoading }: StepTourProps) {
-  const role = useAuthStore((s) => s.role);
-  const modules = MODULES_BY_ROLE[role ?? "colaborador"];
-
   return (
     <div className="flex flex-col gap-6">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+          <IconRocket className="h-5 w-5 text-primary" />
+        </div>
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight">Tudo pronto!</h2>
+          <p className="text-muted-foreground text-sm">
+            Seu perfil foi configurado com sucesso.
+          </p>
+        </div>
+      </div>
+
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight">O que você pode fazer aqui</h2>
-        <p className="text-muted-foreground text-sm mt-1">
-          Seus módulos principais estão prontos pra usar.
+        <p className="text-sm text-muted-foreground mb-3">
+          Agora vamos fazer um tour rapido pela plataforma. Voce vai conhecer:
         </p>
+        <div className="space-y-2">
+          {TOUR_PREVIEW.map(({ icon: Icon, title, description }) => (
+            <div
+              key={title}
+              className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5"
+            >
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted">
+                <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">{title}</p>
+                <p className="text-xs text-muted-foreground">{description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        {modules.map((mod) => (
-          <div
-            key={mod.title}
-            className="rounded-lg border bg-card p-4 flex flex-col gap-2 hover:bg-accent/50 transition-colors"
-          >
-            <span className="text-2xl">{mod.icon}</span>
-            <p className="font-medium text-sm">{mod.title}</p>
-            <p className="text-xs text-muted-foreground">{mod.description}</p>
-          </div>
-        ))}
-      </div>
-
-      <p className="text-xs text-muted-foreground">
-        Explore o menu lateral para acessar todos os módulos disponíveis.
-      </p>
 
       <div className="flex items-center justify-between pt-2">
-        <Button variant="ghost" size="sm" onClick={onBack} disabled={isLoading}>
-          ← Voltar
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onBack}
+          disabled={isLoading}
+        >
+          Voltar
         </Button>
-        <Button onClick={onFinish} disabled={isLoading}>
-          {isLoading ? "Entrando..." : "Entrar no TBO OS →"}
+        <Button onClick={onFinish} disabled={isLoading} size="lg">
+          {isLoading ? "Preparando..." : "Iniciar tour"}
         </Button>
       </div>
     </div>

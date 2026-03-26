@@ -47,6 +47,7 @@ import {
 } from "../hooks/use-website-projects";
 import { ProjectCoverUpload } from "./project-cover-upload";
 import { GalleryUpload } from "./gallery-upload";
+import { ImportImagesButton } from "./import-images-button";
 import { TagsInput } from "./tags-input";
 import {
   websiteProjectSchema,
@@ -215,6 +216,20 @@ export function ProjectEditor({ project, mode }: ProjectEditorProps) {
           </Button>
         </div>
       </div>
+
+      {/* Import external images banner */}
+      {mode === "edit" && (
+        <ImportImagesButton
+          coverUrl={form.watch("cover_url") ?? null}
+          gallery={form.watch("gallery")}
+          onCoverChange={(url) =>
+            form.setValue("cover_url", url, { shouldDirty: true })
+          }
+          onGalleryChange={(urls) =>
+            form.setValue("gallery", urls, { shouldDirty: true })
+          }
+        />
+      )}
 
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

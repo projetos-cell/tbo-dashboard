@@ -13,7 +13,7 @@ import {
   FOUNDER_WIDGETS,
   GENERAL_WIDGETS,
 } from "@/features/dashboard/utils/dashboard-widgets";
-import { DynamicGreeting } from "@/components/modules/academy/DynamicGreeting";
+import { DynamicGreeting } from "@/features/dashboard/components/dynamic-greeting";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function DashboardSkeleton() {

@@ -257,7 +257,13 @@ export function SOPDetailView({ bu, slug }: SOPDetailViewProps) {
 
         <RequireRole minRole="lider">
           <div className="flex items-center gap-2 shrink-0">
-            <SOPTemplateDownload steps={steps ?? []} sopSlug={sop.slug} />
+            <SOPTemplateDownload
+              steps={steps ?? []}
+              sopTitle={sop.title}
+              sopSlug={sop.slug}
+              sopBu={buConfig.label}
+              sopVersion={sop.version}
+            />
             <Button
               size="sm"
               variant={isEditing ? "default" : "outline"}
@@ -375,6 +381,9 @@ export function SOPDetailView({ bu, slug }: SOPDetailViewProps) {
                       onToggle={() => toggleSection(section.id)}
                       defaultCollapsed
                       sopSlug={sop.slug}
+                      sopTitle={sop.title}
+                      sopBu={buConfig.label}
+                      sopVersion={sop.version}
                     />
                   ))}
                 </div>
@@ -442,6 +451,9 @@ export function SOPDetailView({ bu, slug }: SOPDetailViewProps) {
                       onToggle={() => toggleSection(section.id)}
                       defaultCollapsed
                       sopSlug={sop.slug}
+                      sopTitle={sop.title}
+                      sopBu={buConfig.label}
+                      sopVersion={sop.version}
                     />
                   ))}
                 </div>
@@ -548,12 +560,18 @@ function SectionAccordion({
   onToggle,
   defaultCollapsed,
   sopSlug,
+  sopTitle,
+  sopBu,
+  sopVersion,
 }: {
   section: { title: string; id: string; steps: SOPStep[] };
   isOpen: boolean;
   onToggle: () => void;
   defaultCollapsed?: boolean;
   sopSlug?: string;
+  sopTitle?: string;
+  sopBu?: string;
+  sopVersion?: number;
 }) {
   const firstStep = section.steps[0];
   const subSteps = section.steps.slice(1);
@@ -587,7 +605,13 @@ function SectionAccordion({
             )}
             <span className="font-medium text-sm">{section.title}</span>
             {sopSlug && firstStep && (
-              <StepTemplateDownloadButton step={firstStep} sopSlug={sopSlug} />
+              <StepTemplateDownloadButton
+                step={firstStep}
+                sopSlug={sopSlug}
+                sopTitle={sopTitle ?? ""}
+                sopBu={sopBu ?? ""}
+                sopVersion={sopVersion ?? 1}
+              />
             )}
             {!isOpen && subSteps.length > 0 && !hasSpecialRenderer && (
               <span className="text-[10px] text-muted-foreground ml-auto">

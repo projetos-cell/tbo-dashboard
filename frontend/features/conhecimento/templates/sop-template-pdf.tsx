@@ -21,20 +21,17 @@ Font.register({
   ],
 });
 
-// ─── TBO Brand tokens ────────────────────────────────────────────────────────
+// ─── TBO Brand tokens (from letterhead) ──────────────────────────────────────
 
 const brand = {
-  orange: "#ff6200",
-  orangeLight: "#fff4ec",
-  orangeMuted: "#ffad66",
-  black: "#0a0a0a",
+  orange: "#e85102",
   dark: "#1a1a1a",
   body: "#3a3a3a",
-  muted: "#8a8a8a",
-  subtle: "#b0b0b0",
-  border: "#e0e0e0",
-  borderLight: "#f0f0f0",
-  bg: "#f7f7f7",
+  muted: "#7a7a7a",
+  subtle: "#a0a0a0",
+  border: "#d8d8d8",
+  borderLight: "#ebebeb",
+  bg: "#f5f3f1",
   white: "#ffffff",
 };
 
@@ -45,68 +42,66 @@ const s = StyleSheet.create({
     fontFamily: "Helvetica",
     fontSize: 9.5,
     color: brand.body,
-    paddingTop: 80,
-    paddingBottom: 65,
-    paddingHorizontal: 56,
+    paddingTop: 90,
+    paddingBottom: 90,
+    paddingHorizontal: 60,
     lineHeight: 1.55,
   },
 
-  // ─── Top accent bar ─────────────────────
-  topBar: {
+  // ─── Full page background (letterhead) ──
+  bgImage: {
     position: "absolute",
     top: 0,
     left: 0,
-    right: 0,
-    height: 5,
-    backgroundColor: brand.orange,
+    width: "100%",
+    height: "100%",
   },
 
-  // ─── Header / Letterhead ────────────────
+  // ─── Header area ────────────────────────
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-end",
-    marginBottom: 28,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: brand.border,
+    alignItems: "flex-start",
+    marginBottom: 32,
   },
-  logo: {
-    width: 72,
-    height: 28,
-    objectFit: "contain",
+  headerLeft: {
+    gap: 2,
+  },
+  headerCode: {
+    fontSize: 9,
+    fontWeight: "bold",
+    color: brand.orange,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  headerBu: {
+    fontSize: 7.5,
+    color: brand.muted,
   },
   headerRight: {
     textAlign: "right",
     gap: 2,
   },
-  headerCode: {
-    fontSize: 8,
-    fontWeight: "bold",
-    color: brand.orange,
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
-  },
-  headerDate: {
-    fontSize: 7,
+  headerVersion: {
+    fontSize: 7.5,
     color: brand.muted,
   },
-  headerBu: {
-    fontSize: 7,
+  headerDate: {
+    fontSize: 7.5,
     color: brand.muted,
   },
 
-  // ─── Document title ─────────────────────
+  // ─── Title ──────────────────────────────
   titleBlock: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   docTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
     color: brand.dark,
-    letterSpacing: 0.3,
-    marginBottom: 4,
-    lineHeight: 1.3,
+    letterSpacing: 0.2,
+    marginBottom: 6,
+    lineHeight: 1.25,
   },
   docSubtitle: {
     fontSize: 8.5,
@@ -114,45 +109,28 @@ const s = StyleSheet.create({
     lineHeight: 1.4,
   },
 
-  // ─── Metadata strip ─────────────────────
-  metaStrip: {
-    flexDirection: "row",
-    backgroundColor: brand.bg,
-    borderRadius: 4,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginBottom: 24,
-    gap: 24,
+  // ─── Divider line ───────────────────────
+  dividerOrange: {
+    borderBottomWidth: 2,
+    borderBottomColor: brand.orange,
+    marginBottom: 20,
+    width: 40,
   },
-  metaItem: {
-    gap: 1,
-  },
-  metaLabel: {
-    fontSize: 6.5,
-    color: brand.muted,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-    fontWeight: "bold",
-  },
-  metaValue: {
-    fontSize: 8,
-    color: brand.dark,
-    fontWeight: "bold",
+  divider: {
+    borderBottomWidth: 1,
+    borderBottomColor: brand.borderLight,
+    marginVertical: 14,
   },
 
   // ─── Section heading ────────────────────
   sectionHeading: {
-    fontSize: 10.5,
+    fontSize: 10,
     fontWeight: "bold",
     color: brand.dark,
-    marginTop: 20,
-    marginBottom: 10,
-    paddingBottom: 5,
-    paddingLeft: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: brand.orange,
+    marginTop: 18,
+    marginBottom: 8,
     textTransform: "uppercase",
-    letterSpacing: 0.6,
+    letterSpacing: 0.8,
   },
 
   // ─── Body text ──────────────────────────
@@ -160,62 +138,93 @@ const s = StyleSheet.create({
     fontSize: 9,
     marginBottom: 5,
     color: brand.body,
-    lineHeight: 1.6,
+    lineHeight: 1.65,
   },
   bold: {
     fontWeight: "bold",
     color: brand.dark,
   },
 
-  // ─── Code block ─────────────────────────
-  codeBlock: {
-    backgroundColor: brand.bg,
-    borderWidth: 1,
-    borderColor: brand.border,
-    borderRadius: 4,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    marginVertical: 8,
+  // ─── Content line (from former code blocks) ──
+  contentLine: {
+    fontSize: 9,
+    color: brand.body,
+    lineHeight: 1.65,
+    marginBottom: 3,
   },
-  codeLabel: {
-    fontSize: 6.5,
+  contentLabel: {
+    fontSize: 9,
     fontWeight: "bold",
-    color: brand.muted,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 6,
-  },
-  codeText: {
-    fontFamily: "Courier",
-    fontSize: 7.5,
     color: brand.dark,
-    lineHeight: 1.6,
+    lineHeight: 1.65,
+    marginBottom: 3,
+    marginTop: 6,
+  },
+
+  // ─── Field row (KEY: value) ─────────────
+  fieldRow: {
+    flexDirection: "row",
+    marginBottom: 2,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderBottomWidth: 0.5,
+    borderBottomColor: brand.borderLight,
+  },
+  fieldRowAlt: {
+    flexDirection: "row",
+    marginBottom: 2,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    backgroundColor: "rgba(0,0,0,0.02)",
+    borderRadius: 2,
+    borderBottomWidth: 0.5,
+    borderBottomColor: brand.borderLight,
+  },
+  fieldLabel: {
+    fontSize: 8,
+    fontWeight: "bold",
+    color: brand.dark,
+    width: "35%",
+    letterSpacing: 0.2,
+  },
+  fieldValue: {
+    fontSize: 8.5,
+    color: brand.body,
+    width: "65%",
+  },
+  fieldBlank: {
+    fontSize: 8.5,
+    color: brand.subtle,
+    width: "65%",
+    borderBottomWidth: 0.5,
+    borderBottomColor: brand.muted,
+    paddingBottom: 2,
   },
 
   // ─── Checklist ──────────────────────────
   checkItem: {
     flexDirection: "row",
     gap: 8,
-    marginBottom: 4,
-    paddingVertical: 3,
-    paddingHorizontal: 6,
+    marginBottom: 3,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
   },
   checkItemAlt: {
     flexDirection: "row",
     gap: 8,
-    marginBottom: 4,
-    paddingVertical: 3,
-    paddingHorizontal: 6,
-    backgroundColor: brand.bg,
+    marginBottom: 3,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: "rgba(0,0,0,0.02)",
     borderRadius: 2,
   },
   checkBox: {
     width: 10,
     height: 10,
-    borderWidth: 1.2,
+    borderWidth: 1,
     borderColor: brand.border,
     borderRadius: 2,
-    marginTop: 0.5,
+    marginTop: 1,
   },
   checkText: {
     fontSize: 8.5,
@@ -241,7 +250,7 @@ const s = StyleSheet.create({
     fontSize: 9,
     color: brand.body,
     flex: 1,
-    lineHeight: 1.55,
+    lineHeight: 1.6,
   },
 
   // ─── Table ──────────────────────────────
@@ -249,7 +258,7 @@ const s = StyleSheet.create({
     marginVertical: 8,
     borderWidth: 1,
     borderColor: brand.border,
-    borderRadius: 3,
+    borderRadius: 2,
     overflow: "hidden",
   },
   tableHeaderRow: {
@@ -278,7 +287,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 8,
     borderBottomWidth: 0.5,
     borderBottomColor: brand.borderLight,
-    backgroundColor: brand.bg,
+    backgroundColor: "rgba(0,0,0,0.02)",
   },
   tableCell: {
     fontSize: 8,
@@ -286,53 +295,24 @@ const s = StyleSheet.create({
     lineHeight: 1.4,
   },
 
-  // ─── Divider ────────────────────────────
-  divider: {
-    borderBottomWidth: 1,
-    borderBottomColor: brand.borderLight,
-    marginVertical: 14,
-  },
-
-  // ─── Footer ─────────────────────────────
-  footer: {
+  // ─── Footer info (above the logo area) ──
+  footerInfo: {
     position: "absolute",
-    bottom: 28,
-    left: 56,
-    right: 56,
+    bottom: 70,
+    left: 60,
+    right: 60,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    borderTopWidth: 1,
-    borderTopColor: brand.border,
-    paddingTop: 8,
   },
-  footerLeft: {
-    gap: 1,
-  },
-  footerCompany: {
+  footerText: {
     fontSize: 6,
-    fontWeight: "bold",
-    color: brand.muted,
-    letterSpacing: 0.3,
-  },
-  footerAddress: {
-    fontSize: 5.5,
     color: brand.subtle,
   },
   footerPage: {
     fontSize: 7,
     color: brand.muted,
     fontWeight: "bold",
-  },
-
-  // ─── Bottom accent bar ──────────────────
-  bottomBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 3,
-    backgroundColor: brand.orange,
   },
 });
 
@@ -350,9 +330,25 @@ export interface SOPTemplatePdfData {
 // ─── Content parser ──────────────────────────────────────────────────────────
 
 interface ContentBlock {
-  type: "text" | "code" | "checklist" | "table" | "heading" | "divider";
+  type: "text" | "content" | "checklist" | "table" | "heading" | "divider" | "field";
   content: string;
+  label?: string;
+  value?: string;
   rows?: string[][];
+}
+
+function isFieldLine(line: string): boolean {
+  return /^[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ\s/()[\]]{2,}:\s*.*/i.test(line.trim()) &&
+    !line.trim().startsWith("**") &&
+    line.includes(":");
+}
+
+function parseFieldLine(line: string): { label: string; value: string } {
+  const colonIdx = line.indexOf(":");
+  return {
+    label: line.substring(0, colonIdx).trim(),
+    value: line.substring(colonIdx + 1).trim(),
+  };
 }
 
 function parseContent(raw: string): ContentBlock[] {
@@ -363,16 +359,29 @@ function parseContent(raw: string): ContentBlock[] {
   while (i < lines.length) {
     const line = lines[i];
 
-    // Code block
+    // Code block → parse as structured content (NO code styling)
     if (line.trim().startsWith("```")) {
       i++;
-      const codeLines: string[] = [];
       while (i < lines.length && !lines[i].trim().startsWith("```")) {
-        codeLines.push(lines[i]);
+        const trimmed = lines[i].trim();
+        if (trimmed) {
+          if (isFieldLine(trimmed)) {
+            const { label, value } = parseFieldLine(trimmed);
+            blocks.push({ type: "field", content: trimmed, label, value });
+          } else if (/^\s*\[[ x]\]\s*/i.test(trimmed)) {
+            blocks.push({
+              type: "checklist",
+              content: trimmed.replace(/^\s*\[[ x]\]\s*/, "").trim(),
+            });
+          } else if (/^[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ\s]{3,}$/.test(trimmed) && trimmed === trimmed.toUpperCase()) {
+            blocks.push({ type: "heading", content: trimmed });
+          } else {
+            blocks.push({ type: "content", content: trimmed });
+          }
+        }
         i++;
       }
-      if (i < lines.length) i++; // skip closing ```
-      blocks.push({ type: "code", content: codeLines.join("\n") });
+      if (i < lines.length) i++;
       continue;
     }
 
@@ -418,7 +427,7 @@ function parseContent(raw: string): ContentBlock[] {
       continue;
     }
 
-    // Bold heading (**TITLE** on its own line)
+    // Bold heading (**TITLE**)
     if (/^\*\*[^*]+\*\*\s*$/.test(line.trim())) {
       blocks.push({
         type: "heading",
@@ -446,10 +455,10 @@ export function SOPTemplatePdf({ data }: { data: SOPTemplatePdfData }) {
   const today = new Date().toLocaleDateString("pt-BR");
   const sopCode = data.sopSlug.split("-").slice(0, 3).join("-").toUpperCase();
 
-  // Resolve logo path for server-side rendering
-  const logoPath = path.join(process.cwd(), "public", "logo-tbo.png");
+  const bgPath = path.join(process.cwd(), "public", "tbo-letterhead-bg.jpg");
 
   let checklistIdx = 0;
+  let fieldIdx = 0;
 
   return (
     <Document
@@ -457,46 +466,31 @@ export function SOPTemplatePdf({ data }: { data: SOPTemplatePdfData }) {
       author="TBO — Agencia de Publicidade"
     >
       <Page size="A4" style={s.page}>
-        {/* ─── Top orange bar ─── */}
-        <View style={s.topBar} fixed />
+        {/* ─── Full-page letterhead background ─── */}
+        <Image style={s.bgImage} src={bgPath} fixed />
 
-        {/* ─── Letterhead header ─── */}
+        {/* ─── Header ─── */}
         <View style={s.header} fixed>
-          <Image style={s.logo} src={logoPath} />
-          <View style={s.headerRight}>
+          <View style={s.headerLeft}>
             <Text style={s.headerCode}>{sopCode}</Text>
-            <Text style={s.headerDate}>v{data.sopVersion} | {today}</Text>
             <Text style={s.headerBu}>{data.sopBu}</Text>
+          </View>
+          <View style={s.headerRight}>
+            <Text style={s.headerVersion}>Versao {data.sopVersion}</Text>
+            <Text style={s.headerDate}>{today}</Text>
           </View>
         </View>
 
-        {/* ─── Title block ─── */}
+        {/* ─── Title ─── */}
         <View style={s.titleBlock}>
           <Text style={s.docTitle}>{cleanStepTitle}</Text>
           <Text style={s.docSubtitle}>
-            Extraido do SOP: {data.sopTitle}
+            SOP: {data.sopTitle}
           </Text>
         </View>
 
-        {/* ─── Metadata strip ─── */}
-        <View style={s.metaStrip}>
-          <View style={s.metaItem}>
-            <Text style={s.metaLabel}>Codigo</Text>
-            <Text style={s.metaValue}>{sopCode}</Text>
-          </View>
-          <View style={s.metaItem}>
-            <Text style={s.metaLabel}>Area</Text>
-            <Text style={s.metaValue}>{data.sopBu}</Text>
-          </View>
-          <View style={s.metaItem}>
-            <Text style={s.metaLabel}>Versao</Text>
-            <Text style={s.metaValue}>{data.sopVersion}</Text>
-          </View>
-          <View style={s.metaItem}>
-            <Text style={s.metaLabel}>Gerado em</Text>
-            <Text style={s.metaValue}>{today}</Text>
-          </View>
-        </View>
+        {/* ─── Orange accent line ─── */}
+        <View style={s.dividerOrange} />
 
         {/* ─── Content blocks ─── */}
         {blocks.map((block, idx) => {
@@ -511,13 +505,28 @@ export function SOPTemplatePdf({ data }: { data: SOPTemplatePdfData }) {
             case "divider":
               return <View key={idx} style={s.divider} />;
 
-            case "code":
+            case "content": {
+              const text = block.content;
+              if (/^[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ]/.test(text) && text.length < 60 && !text.includes(":")) {
+                return <Text key={idx} style={s.contentLabel}>{text}</Text>;
+              }
+              return <Text key={idx} style={s.contentLine}>{text}</Text>;
+            }
+
+            case "field": {
+              const isAlt = fieldIdx++ % 2 === 1;
+              const hasBlank = !block.value || block.value.includes("___");
               return (
-                <View key={idx} style={s.codeBlock}>
-                  <Text style={s.codeLabel}>Referencia</Text>
-                  <Text style={s.codeText}>{block.content}</Text>
+                <View key={idx} style={isAlt ? s.fieldRowAlt : s.fieldRow}>
+                  <Text style={s.fieldLabel}>{block.label}</Text>
+                  {hasBlank ? (
+                    <Text style={s.fieldBlank}>{block.value || ""}</Text>
+                  ) : (
+                    <Text style={s.fieldValue}>{block.value}</Text>
+                  )}
                 </View>
               );
+            }
 
             case "checklist": {
               const isAlt = checklistIdx++ % 2 === 1;
@@ -568,7 +577,6 @@ export function SOPTemplatePdf({ data }: { data: SOPTemplatePdfData }) {
             case "text": {
               const text = block.content;
 
-              // List items with dash/bullet
               if (/^\s*[-—•]\s+/.test(text)) {
                 const cleaned = text.replace(/^\s*[-—•]\s+/, "");
                 return (
@@ -579,7 +587,6 @@ export function SOPTemplatePdf({ data }: { data: SOPTemplatePdfData }) {
                 );
               }
 
-              // Numbered items
               if (/^\s*\d+[.)]\s+/.test(text)) {
                 const num = text.match(/^\s*(\d+)[.)]/)?.[1] ?? "";
                 const cleaned = text.replace(/^\s*\d+[.)]\s+/, "");
@@ -593,7 +600,6 @@ export function SOPTemplatePdf({ data }: { data: SOPTemplatePdfData }) {
                 );
               }
 
-              // Inline bold
               if (/\*\*.+\*\*/.test(text)) {
                 const parts = text.split(/(\*\*[^*]+\*\*)/);
                 return (
@@ -623,17 +629,11 @@ export function SOPTemplatePdf({ data }: { data: SOPTemplatePdfData }) {
           }
         })}
 
-        {/* ─── Footer ─── */}
-        <View style={s.footer} fixed>
-          <View style={s.footerLeft}>
-            <Text style={s.footerCompany}>
-              AGENCIA DE PUBLICIDADE TBO LTDA
-            </Text>
-            <Text style={s.footerAddress}>
-              CNPJ 41.312.686/0001-33 | Rua dos Cedros, 39 — Alphaville
-              Graciosa, Pinhais/PR
-            </Text>
-          </View>
+        {/* ─── Footer info ─── */}
+        <View style={s.footerInfo} fixed>
+          <Text style={s.footerText}>
+            AGENCIA DE PUBLICIDADE TBO LTDA | CNPJ 41.312.686/0001-33
+          </Text>
           <Text
             style={s.footerPage}
             render={({ pageNumber, totalPages }) =>
@@ -641,9 +641,6 @@ export function SOPTemplatePdf({ data }: { data: SOPTemplatePdfData }) {
             }
           />
         </View>
-
-        {/* ─── Bottom orange bar ─── */}
-        <View style={s.bottomBar} fixed />
       </Page>
     </Document>
   );

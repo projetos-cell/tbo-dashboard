@@ -12,6 +12,7 @@ import {
   MARKETING_NAV_ITEMS,
   ATIVOS_NAV_ITEMS,
   SOPS_NAV_ITEMS,
+  WEBSITE_ADMIN_NAV_ITEMS,
 } from "@/lib/constants";
 
 /** A single navigation item in the L1 sidebar. */
@@ -108,6 +109,13 @@ export const SIDEBAR_NAV_GROUPS: readonly NavGroup[] = [
       { href: "/conhecimento/sops", label: "SOPs", icon: "book-marked", module: "conhecimento", subItems: SOPS_NAV_ITEMS },
       { href: "/conhecimento/templates", label: "Templates", icon: "copy", module: "conhecimento" },
       { href: "/conhecimento/guias", label: "Guias & Processos", icon: "map", module: "conhecimento" },
+    ],
+  },
+  // ── Website Admin (CMS do site) ───────────────────────────
+  {
+    label: "Website - Admin",
+    items: [
+      { href: "/website-admin", label: "Website Admin", icon: "world", module: "website-admin", subItems: WEBSITE_ADMIN_NAV_ITEMS as unknown as SubNavItem[] },
     ],
   },
   // ── Sistema (admin unificado) ─────────────────────────────────

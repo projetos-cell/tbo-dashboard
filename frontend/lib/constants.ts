@@ -706,3 +706,9 @@ export const KNOWLEDGE_BASE_NAV_ITEMS = {
   templates: { href: "/conhecimento/templates", label: "Templates", icon: "copy" },
   guias: { href: "/conhecimento/guias", label: "Guias & Processos", icon: "map" },
 } as const;
+
+export const WEBSITE_ADMIN_NAV_ITEMS: readonly SubNavItem[] = [
+  { href: "/website-admin/projetos", label: "Projetos", icon: "folder" },
+  { href: "/website-admin/paginas", label: "Seções do Site", icon: "layout" },
+  { href: "/website-admin/config", label: "Configurações", icon: "settings" },
+] as const;

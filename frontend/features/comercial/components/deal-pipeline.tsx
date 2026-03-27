@@ -66,6 +66,7 @@ interface DealPipelineProps {
   onBulkToggle?: (dealId: string, checked: boolean) => void;
   onQuickUpdate?: (dealId: string, field: string, value: unknown) => void;
   customStages?: CrmStageRow[];
+  onCreateDeal?: () => void;
 }
 
 export function DealPipeline({
@@ -78,6 +79,7 @@ export function DealPipeline({
   onBulkToggle,
   onQuickUpdate,
   customStages,
+  onCreateDeal,
 }: DealPipelineProps) {
   const [columnSort, setColumnSort] = useState<SortKey>("updated_at");
   const [addStageOpen, setAddStageOpen] = useState(false);
@@ -153,6 +155,17 @@ export function DealPipeline({
         <p className="text-xs text-gray-500">
           Ajuste os filtros ou adicione novos deals ao pipeline.
         </p>
+        {onCreateDeal && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-4 gap-1.5"
+            onClick={onCreateDeal}
+          >
+            <IconPlus className="h-4 w-4" />
+            Novo Deal
+          </Button>
+        )}
       </div>
     );
   }
@@ -190,7 +203,7 @@ export function DealPipeline({
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div className="flex gap-4 overflow-x-auto pb-4" role="region" aria-label="Pipeline de deals">
           {orderedStages.map((stage) => {
             const cfg = stageConfigMap.get(stage) ?? { label: stage, color: "#6b7280", bg: "rgba(107,114,128,0.12)" };
             const stageDeals = sortedGrouped[stage] ?? [];
@@ -201,7 +214,7 @@ export function DealPipeline({
             const isOver = overColumnId === stage;
 
             return (
-              <div key={stage} className="min-w-[240px] sm:min-w-[260px] flex-1">
+              <div key={stage} className="min-w-[240px] sm:min-w-[260px] flex-1" role="group" aria-label={cfg.label}>
                 <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div
@@ -220,7 +233,7 @@ export function DealPipeline({
                   )}
                 </div>
 
-                <DroppableStageColumn stage={stage} isOver={isOver}>
+                <DroppableStageColumn stage={stage} isOver={isOver} label={cfg.label}>
                   {stageDeals.length === 0 ? (
                     <p className="py-6 text-center text-xs text-gray-500">
                       {isOver ? "Soltar aqui" : "Nenhum deal"}

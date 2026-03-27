@@ -52,6 +52,11 @@ export interface ServiceUpdate {
   margin_pct?: number;
   status?: ServiceStatus;
   sort_order?: number;
+  hours_estimated?: number | null;
+  third_party_cost?: number | null;
+  complexity_multiplier?: number | null;
+  revisions_included?: number | null;
+  min_price?: number | null;
 }
 
 export interface ServicePriceHistoryRow {

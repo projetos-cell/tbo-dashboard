@@ -47,7 +47,7 @@ export function useCreateService() {
   const qc = useQueryClient();
   const tenantId = useAuthStore((s) => s.tenantId);
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async (input: Omit<ServiceInsert, "tenant_id">) => {
       const supabase = createClient();
       return createService(supabase, { ...input, tenant_id: tenantId! });
@@ -64,16 +64,22 @@ export function useCreateService() {
         after: data as unknown as Record<string, unknown>,
       });
     },
-    onError: (err) => {
-      toast.error(`Erro ao criar servico: ${err.message}`);
+    onError: (err, variables) => {
+      toast.error(`Erro ao criar servico: ${err.message}`, {
+        action: {
+          label: "Tentar novamente",
+          onClick: () => mutation.mutate(variables),
+        },
+      });
     },
   });
+  return mutation;
 }
 
 export function useUpdateService() {
   const qc = useQueryClient();
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: ServiceUpdate }) => {
       const supabase = createClient();
       return updateService(supabase, id, updates);
@@ -91,16 +97,22 @@ export function useUpdateService() {
         after: variables.updates as unknown as Record<string, unknown>,
       });
     },
-    onError: (err) => {
-      toast.error(`Erro ao atualizar servico: ${err.message}`);
+    onError: (err, variables) => {
+      toast.error(`Erro ao atualizar servico: ${err.message}`, {
+        action: {
+          label: "Tentar novamente",
+          onClick: () => mutation.mutate(variables),
+        },
+      });
     },
   });
+  return mutation;
 }
 
 export function useDeleteService() {
   const qc = useQueryClient();
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async (id: string) => {
       const supabase = createClient();
       return deleteService(supabase, id);
@@ -116,10 +128,16 @@ export function useDeleteService() {
         recordId: id,
       });
     },
-    onError: (err) => {
-      toast.error(`Erro ao remover servico: ${err.message}`);
+    onError: (err, variables) => {
+      toast.error(`Erro ao remover servico: ${err.message}`, {
+        action: {
+          label: "Tentar novamente",
+          onClick: () => mutation.mutate(variables),
+        },
+      });
     },
   });
+  return mutation;
 }
 
 export function useServicePriceHistory(serviceId: string | null) {

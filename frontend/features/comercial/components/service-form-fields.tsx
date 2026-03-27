@@ -30,7 +30,7 @@ export const SERVICE_TYPE_OPTIONS = [
 
 export const SERVICE_UNIT_OPTIONS = [
   { value: "projeto", label: "Por Projeto" },
-  { value: "mes", label: "Por Mes" },
+  { value: "mes", label: "Por Mês" },
   { value: "hora", label: "Por Hora" },
   { value: "pacote", label: "Por Pacote" },
   { value: "unidade", label: "Unidade" },
@@ -40,6 +40,13 @@ export const SERVICE_STATUS_OPTIONS = [
   { value: "active", label: "Ativo" },
   { value: "draft", label: "Rascunho" },
   { value: "archived", label: "Arquivado" },
+] as const;
+
+export const COMPLEXITY_OPTIONS = [
+  { value: "0.8", label: "0.8× — Simples" },
+  { value: "1",   label: "1.0× — Padrão" },
+  { value: "1.3", label: "1.3× — Alto" },
+  { value: "1.5", label: "1.5× — Premium" },
 ] as const;
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -53,6 +60,12 @@ export interface ServiceFormValues {
   unit: "unidade" | "hora" | "mes" | "pacote" | "projeto";
   margin_pct?: string;
   status: "active" | "draft" | "archived";
+  // Campos de precificação
+  hours_estimated?: string;
+  third_party_cost?: string;
+  complexity_multiplier?: string;
+  revisions_included?: string;
+  min_price?: string;
 }
 
 // ── ServiceBasicFields ───────────────────────────────────────────────────────
@@ -71,7 +84,7 @@ export function ServiceBasicFields({
           <FormItem>
             <FormLabel>Nome</FormLabel>
             <FormControl>
-              <Input placeholder="Ex: Branding Completo" {...field} />
+              <Input placeholder="Ex: Identidade Visual" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -83,9 +96,9 @@ export function ServiceBasicFields({
         name="description"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Descricao</FormLabel>
+            <FormLabel>Descrição</FormLabel>
             <FormControl>
-              <Textarea placeholder="Descreva o servico..." rows={3} {...field} />
+              <Textarea placeholder="Descreva o serviço..." rows={2} {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -156,9 +169,9 @@ export function ServicePricingFields({
           name="base_price"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Preco Base (R$)</FormLabel>
+              <FormLabel>Preço Base (R$)</FormLabel>
               <FormControl>
-                <Input placeholder="0.00" {...field} />
+                <Input type="number" min={0} step={0.01} placeholder="0.00" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -193,12 +206,97 @@ export function ServicePricingFields({
             <FormItem>
               <FormLabel>Margem (%)</FormLabel>
               <FormControl>
-                <Input placeholder="0" {...field} />
+                <Input type="number" min={0} max={100} step={0.1} placeholder="30" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+      </div>
+
+      {/* Parâmetros do motor de precificação */}
+      <div className="border-t pt-3">
+        <p className="text-xs font-medium text-muted-foreground mb-3">Parâmetros de Precificação</p>
+        <div className="grid grid-cols-2 gap-3">
+          <FormField
+            control={form.control}
+            name="hours_estimated"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs">Horas Estimadas</FormLabel>
+                <FormControl>
+                  <Input type="number" min={0} step={0.5} placeholder="0" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="third_party_cost"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs">Custo Terceiro (R$)</FormLabel>
+                <FormControl>
+                  <Input type="number" min={0} step={100} placeholder="0" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="min_price"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs">Preço Mínimo (R$)</FormLabel>
+                <FormControl>
+                  <Input type="number" min={0} step={100} placeholder="0" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="revisions_included"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs">Revisões Inclusas</FormLabel>
+                <FormControl>
+                  <Input type="number" min={0} step={1} placeholder="0" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="mt-3">
+          <FormField
+            control={form.control}
+            name="complexity_multiplier"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs">Multiplicador de Complexidade</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger><SelectValue placeholder="1.0× — Padrão" /></SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {COMPLEXITY_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
       </div>
 
       <FormField

@@ -10,7 +10,8 @@ import { DraggableDeal } from "./draggable-deal";
 import { DroppableStageColumn } from "./droppable-stage-column";
 import { formatCurrency } from "@/features/comercial/lib/format-currency";
 import { usePipelineDnd } from "@/features/comercial/hooks/use-pipeline-dnd";
-import { IconBriefcase } from "@tabler/icons-react";
+import { IconBriefcase, IconPlus } from "@tabler/icons-react";
+import { Button } from "@/components/ui/button";
 import type { Database } from "@/lib/supabase/types";
 import type { RdPipelineStage } from "@/features/comercial/services/commercial";
 
@@ -34,6 +35,7 @@ interface RdPipelineKanbanProps {
   selectedIds?: Set<string>;
   onBulkToggle?: (dealId: string, checked: boolean) => void;
   onQuickUpdate?: (dealId: string, field: string, value: unknown) => void;
+  onCreateDeal?: () => void;
 }
 
 export function RdPipelineKanban({
@@ -46,6 +48,7 @@ export function RdPipelineKanban({
   selectedIds,
   onBulkToggle,
   onQuickUpdate,
+  onCreateDeal,
 }: RdPipelineKanbanProps) {
   const {
     activeDeal,
@@ -82,6 +85,17 @@ export function RdPipelineKanban({
         <IconBriefcase className="mb-3 h-10 w-10 text-gray-500/50" />
         <p className="text-sm font-medium">Nenhum deal neste funil</p>
         <p className="text-xs text-gray-500">Crie um deal ou importe dados para começar.</p>
+        {onCreateDeal && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-4 gap-1.5"
+            onClick={onCreateDeal}
+          >
+            <IconPlus className="h-4 w-4" />
+            Novo Deal
+          </Button>
+        )}
       </div>
     );
   }
@@ -95,7 +109,7 @@ export function RdPipelineKanban({
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="flex gap-4 overflow-x-auto pb-4" role="region" aria-label="Pipeline de deals">
         {orderedStages.map((stage, idx) => {
           const stageDeals = grouped[stage.id] ?? [];
           const stageTotal = stageDeals.reduce((s, d) => s + (d.value ?? 0), 0);
@@ -103,7 +117,7 @@ export function RdPipelineKanban({
           const color = getStageColor(idx);
 
           return (
-            <div key={stage.id} className="min-w-[240px] sm:min-w-[260px] flex-1">
+            <div key={stage.id} className="min-w-[240px] sm:min-w-[260px] flex-1" role="group" aria-label={stage.name}>
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="h-3 w-3 rounded-full" style={{ backgroundColor: color }} />
@@ -117,7 +131,7 @@ export function RdPipelineKanban({
                 )}
               </div>
 
-              <DroppableStageColumn stage={stage.id} isOver={isOver}>
+              <DroppableStageColumn stage={stage.id} isOver={isOver} label={stage.name}>
                 {stageDeals.length === 0 ? (
                   <p className="py-6 text-center text-xs text-gray-500">
                     {isOver ? "Soltar aqui" : "Nenhum deal"}

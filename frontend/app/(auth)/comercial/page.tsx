@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import {
   useDeals,
   useUpdateDealStage,
@@ -20,6 +20,7 @@ import { BulkActionBar } from "@/features/comercial/components/bulk-action-bar";
 import { computeDealKPIs } from "@/features/comercial/services/commercial";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { ErrorState } from "@/components/shared";
+import { useGlobalShortcuts } from "@/hooks/use-global-shortcuts";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +58,34 @@ export default function ComercialPage() {
     setSelectedIds(new Set());
     setBulkMode(false);
   }, []);
+
+  // ── Global shortcuts ────────────────────────────────────────────────────────
+  useGlobalShortcuts();
+
+  // Cmd+K → focus search input (inside PipelineFilters)
+  useEffect(() => {
+    function onOpenSearch() {
+      const input = document.querySelector<HTMLInputElement>(
+        'input[placeholder*="Buscar"]',
+      );
+      input?.focus();
+    }
+    window.addEventListener("tbo:open-search", onOpenSearch);
+    return () => window.removeEventListener("tbo:open-search", onOpenSearch);
+  }, []);
+
+  // "n" key (no modifiers, not in input) → open new deal form
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== "n" || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if ((e.target as HTMLElement)?.isContentEditable) return;
+      handleNew();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Data fetching ───────────────────────────────────────────────────────────
   const { data: pipelines = [], isLoading: pipelinesLoading } =
@@ -307,6 +336,7 @@ export default function ComercialPage() {
             selectedIds={selectedIds}
             onBulkToggle={handleBulkToggle}
             onQuickUpdate={handleQuickUpdate}
+            onCreateDeal={handleNew}
           />
         ) : (
           <DealPipeline
@@ -319,6 +349,7 @@ export default function ComercialPage() {
             onBulkToggle={handleBulkToggle}
             onQuickUpdate={handleQuickUpdate}
             customStages={crmStages}
+            onCreateDeal={handleNew}
           />
         )}
 

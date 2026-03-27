@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useDeals, useUpdateDealStage } from "@/features/comercial/hooks/use-commercial";
-import { DealDetailDialog } from "@/features/comercial/components/deal-detail-dialog";
-import { DealFormDialog } from "@/features/comercial/components/deal-form-dialog";
-import { formatCurrency } from "@/features/comercial/lib/format-currency";
+import { useProposals, useProposal, useDeleteProposal, useUpdateProposal } from "@/features/comercial/hooks/use-proposals";
+import { ProposalEditorDialog } from "@/features/comercial/components/proposal-editor-dialog";
 import { EmptyState, ErrorState } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,21 +10,48 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   IconPlus,
   IconSearch,
   IconFileDescription,
-  IconCalendar,
-  IconBuilding,
+  IconDots,
+  IconEdit,
+  IconTrash,
   IconCheck,
   IconX,
+  IconSend,
 } from "@tabler/icons-react";
-import { DEAL_STAGES, type DealStageKey } from "@/lib/constants";
-import { toast } from "sonner";
-import type { Database } from "@/lib/supabase/types";
+import type { ProposalRow, ProposalStatus } from "@/features/comercial/services/proposals";
 
-type DealRow = Database["public"]["Tables"]["crm_deals"]["Row"];
+function formatBRL(n: number) {
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
 
-const PROPOSAL_STAGES: DealStageKey[] = ["proposta", "negociacao"];
+const STATUS_CONFIG: Record<ProposalStatus, { label: string; color: string; bg: string }> = {
+  draft: { label: "Rascunho", color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
+  sent: { label: "Enviada", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
+  approved: { label: "Aprovada", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  rejected: { label: "Recusada", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+  expired: { label: "Expirada", color: "#9ca3af", bg: "rgba(156,163,175,0.12)" },
+};
+
+const ALL_STATUSES: ProposalStatus[] = ["draft", "sent", "approved", "rejected", "expired"];
 
 function KPICard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
@@ -38,86 +63,159 @@ function KPICard({ label, value, sub }: { label: string; value: string; sub?: st
   );
 }
 
-function ProbabilityBar({ value }: { value: number }) {
-  const color = value >= 70 ? "#22c55e" : value >= 40 ? "#f59e0b" : "#ef4444";
+function ProposalRow_({ proposal, onEdit, onDelete, onStatusChange }: {
+  proposal: ProposalRow;
+  onEdit: () => void;
+  onDelete: () => void;
+  onStatusChange: (status: ProposalStatus) => void;
+}) {
+  const status = STATUS_CONFIG[proposal.status];
+  const expiresAt = proposal.created_at
+    ? new Date(new Date(proposal.created_at).getTime() + proposal.valid_days * 86400000)
+    : null;
+  const isExpired = expiresAt ? expiresAt < new Date() : false;
+
   return (
-    <div className="flex items-center gap-2">
-      <div className="h-1.5 flex-1 rounded-full bg-muted">
-        <div
-          className="h-full rounded-full transition-all"
-          style={{ width: `${value}%`, backgroundColor: color }}
-        />
-      </div>
-      <span className="text-xs font-medium" style={{ color }}>{value}%</span>
-    </div>
+    <tr className="hover:bg-muted/30 transition-colors">
+      <td className="px-4 py-3">
+        <div className="font-medium">{proposal.name}</div>
+        {proposal.ref_code && (
+          <div className="text-xs text-muted-foreground font-mono">{proposal.ref_code}</div>
+        )}
+      </td>
+      <td className="hidden px-4 py-3 md:table-cell text-sm text-muted-foreground">
+        <div>{proposal.company ?? "—"}</div>
+        {proposal.contact_name && (
+          <div className="text-xs">{proposal.contact_name}</div>
+        )}
+      </td>
+      <td className="hidden px-4 py-3 sm:table-cell text-sm text-muted-foreground">
+        {proposal.project_type ?? "—"}
+      </td>
+      <td className="px-4 py-3 font-semibold text-sm">
+        {proposal.value > 0 ? formatBRL(proposal.value) : <span className="text-muted-foreground">—</span>}
+      </td>
+      <td className="hidden px-4 py-3 lg:table-cell text-xs text-muted-foreground">
+        {expiresAt ? (
+          <span className={isExpired ? "text-red-500" : ""}>
+            {expiresAt.toLocaleDateString("pt-BR")}
+          </span>
+        ) : "—"}
+      </td>
+      <td className="px-4 py-3">
+        <Badge
+          variant="secondary"
+          className="text-xs"
+          style={{ backgroundColor: status.bg, color: status.color }}
+        >
+          {status.label}
+        </Badge>
+      </td>
+      <td className="px-4 py-3 text-right">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-7 w-7">
+              <IconDots className="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuItem onClick={onEdit}>
+              <IconEdit className="h-3.5 w-3.5 mr-2" /> Editar
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            {proposal.status === "draft" && (
+              <DropdownMenuItem onClick={() => onStatusChange("sent")}>
+                <IconSend className="h-3.5 w-3.5 mr-2" /> Marcar como Enviada
+              </DropdownMenuItem>
+            )}
+            {proposal.status === "sent" && (
+              <>
+                <DropdownMenuItem
+                  onClick={() => onStatusChange("approved")}
+                  className="text-emerald-600"
+                >
+                  <IconCheck className="h-3.5 w-3.5 mr-2" /> Aprovada
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => onStatusChange("rejected")}
+                  className="text-red-500"
+                >
+                  <IconX className="h-3.5 w-3.5 mr-2" /> Recusada
+                </DropdownMenuItem>
+              </>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onDelete} className="text-destructive">
+              <IconTrash className="h-3.5 w-3.5 mr-2" /> Excluir
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </td>
+    </tr>
   );
 }
 
 export default function ComercialPropostas() {
-  const [stageTab, setStageTab] = useState<DealStageKey | "all">("all");
+  const [statusTab, setStatusTab] = useState<ProposalStatus | "all">("all");
   const [search, setSearch] = useState("");
-  const [selectedDeal, setSelectedDeal] = useState<DealRow | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingDeal, setEditingDeal] = useState<DealRow | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ProposalRow | null>(null);
 
-  const updateStage = useUpdateDealStage();
-  const { data: allDeals = [], isLoading, error, refetch } = useDeals();
+  const { data: allProposals = [], isLoading, error, refetch } = useProposals();
+  const { data: editingProposal } = useProposal(editingId);
+  const deleteMutation = useDeleteProposal();
+  const updateMutation = useUpdateProposal();
 
-  const proposals = useMemo(() => {
-    let list = allDeals.filter((d) => PROPOSAL_STAGES.includes(d.stage as DealStageKey));
-    if (stageTab !== "all") list = list.filter((d) => d.stage === stageTab);
+  const filtered = useMemo(() => {
+    let list = allProposals;
+    if (statusTab !== "all") list = list.filter((p) => p.status === statusTab);
     if (search) {
       const q = search.toLowerCase();
       list = list.filter(
-        (d) =>
-          d.name?.toLowerCase().includes(q) ||
-          d.company?.toLowerCase().includes(q) ||
-          d.contact?.toLowerCase().includes(q) ||
-          d.owner_name?.toLowerCase().includes(q),
+        (p) =>
+          p.name?.toLowerCase().includes(q) ||
+          p.company?.toLowerCase().includes(q) ||
+          p.contact_name?.toLowerCase().includes(q) ||
+          p.ref_code?.toLowerCase().includes(q),
       );
     }
-    return list.sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
-  }, [allDeals, stageTab, search]);
+    return list;
+  }, [allProposals, statusTab, search]);
 
   const kpis = useMemo(() => {
-    const base = allDeals.filter((d) => PROPOSAL_STAGES.includes(d.stage as DealStageKey));
-    const total = base.length;
-    const totalValue = base.reduce((s, d) => s + (d.value ?? 0), 0);
-    const weighted = base.reduce((s, d) => s + (d.value ?? 0) * ((d.probability ?? 50) / 100), 0);
-    return { total, totalValue, weighted };
-  }, [allDeals]);
+    const total = allProposals.length;
+    const open = allProposals.filter((p) => ["draft", "sent"].includes(p.status));
+    const openValue = open.reduce((s, p) => s + (p.value ?? 0), 0);
+    const approved = allProposals.filter((p) => p.status === "approved");
+    const approvedValue = approved.reduce((s, p) => s + (p.value ?? 0), 0);
+    return { total, openValue, approvedValue };
+  }, [allProposals]);
 
-  function handleSelect(deal: DealRow) {
-    setSelectedDeal(deal);
-    setDetailOpen(true);
-  }
-
-  function handleEdit(deal: DealRow) {
-    setDetailOpen(false);
-    setEditingDeal(deal);
-    setFormOpen(true);
+  function handleEdit(id: string) {
+    setEditingId(id);
+    setEditorOpen(true);
   }
 
   function handleNew() {
-    setEditingDeal(null);
-    setFormOpen(true);
+    setEditingId(null);
+    setEditorOpen(true);
   }
 
-  function handleMarkGanho(deal: DealRow, e: React.MouseEvent) {
-    e.stopPropagation();
-    updateStage.mutate(
-      { id: deal.id, stage: "fechado_ganho" },
-      { onSuccess: () => toast.success(`"${deal.name}" marcado como Fechado Ganho 🎉`) },
-    );
+  function handleEditorClose(open: boolean) {
+    setEditorOpen(open);
+    if (!open) setEditingId(null);
   }
 
-  function handleMarkPerdido(deal: DealRow, e: React.MouseEvent) {
-    e.stopPropagation();
-    updateStage.mutate(
-      { id: deal.id, stage: "fechado_perdido" },
-      { onSuccess: () => toast.error(`"${deal.name}" marcado como Fechado Perdido`) },
-    );
+  function handleStatusChange(id: string, status: ProposalStatus) {
+    updateMutation.mutate({ id, updates: { status } });
+  }
+
+  function handleDeleteConfirm() {
+    if (!deleteTarget) return;
+    deleteMutation.mutate(deleteTarget.id, {
+      onSuccess: () => setDeleteTarget(null),
+    });
   }
 
   return (
@@ -126,41 +224,38 @@ export default function ComercialPropostas() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Propostas</h1>
-          <p className="text-muted-foreground text-sm">Criação e acompanhamento de propostas comerciais.</p>
+          <p className="text-sm text-muted-foreground">
+            Geração e acompanhamento de propostas comerciais.
+          </p>
         </div>
         <Button onClick={handleNew}>
-          <IconPlus className="mr-1 h-4 w-4" /> Nova Proposta
+          <IconPlus className="h-4 w-4 mr-1" /> Nova Proposta
         </Button>
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <KPICard label="Propostas abertas" value={String(kpis.total)} />
-        <KPICard label="Valor total em aberto" value={formatCurrency(kpis.totalValue)} />
-        <KPICard
-          label="Receita ponderada"
-          value={formatCurrency(kpis.weighted)}
-          sub="valor × probabilidade"
-        />
+        <KPICard label="Total de propostas" value={String(kpis.total)} />
+        <KPICard label="Em aberto (draft + enviada)" value={formatBRL(kpis.openValue)} />
+        <KPICard label="Aprovadas" value={formatBRL(kpis.approvedValue)} />
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <Tabs value={stageTab} onValueChange={(v) => setStageTab(v as DealStageKey | "all")}>
+        <Tabs value={statusTab} onValueChange={(v) => setStatusTab(v as ProposalStatus | "all")}>
           <TabsList>
             <TabsTrigger value="all">Todas</TabsTrigger>
-            {PROPOSAL_STAGES.map((s) => (
+            {ALL_STATUSES.map((s) => (
               <TabsTrigger key={s} value={s}>
-                {DEAL_STAGES[s].label}
+                {STATUS_CONFIG[s].label}
               </TabsTrigger>
             ))}
           </TabsList>
         </Tabs>
-
         <div className="relative max-w-sm flex-1">
           <IconSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nome, empresa..."
+            placeholder="Buscar por nome, empresa, ref..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -174,19 +269,19 @@ export default function ComercialPropostas() {
       ) : isLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-20 w-full rounded-lg" />
+            <Skeleton key={i} className="h-16 w-full rounded-lg" />
           ))}
         </div>
-      ) : proposals.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <EmptyState
           icon={IconFileDescription}
-          title={search || stageTab !== "all" ? "Nenhuma proposta encontrada" : "Nenhuma proposta em aberto"}
+          title={search || statusTab !== "all" ? "Nenhuma proposta encontrada" : "Nenhuma proposta ainda"}
           description={
-            search || stageTab !== "all"
+            search || statusTab !== "all"
               ? "Tente ajustar os filtros."
-              : "Quando leads avançarem no pipeline, as propostas aparecerão aqui."
+              : "Crie sua primeira proposta comercial com serviços do catálogo."
           }
-          cta={!search && stageTab === "all" ? { label: "Nova Proposta", onClick: handleNew } : undefined}
+          cta={!search && statusTab === "all" ? { label: "Nova Proposta", onClick: handleNew } : undefined}
         />
       ) : (
         <div className="rounded-lg border overflow-hidden">
@@ -194,119 +289,62 @@ export default function ComercialPropostas() {
             <thead className="bg-muted/40">
               <tr>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Proposta</th>
-                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">Empresa</th>
+                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">Cliente</th>
+                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground sm:table-cell">Tipologia</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Valor</th>
-                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">Probabilidade</th>
-                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground xl:table-cell">Previsão</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Etapa</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Ações</th>
+                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">Validade</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y">
-              {proposals.map((deal) => {
-                const stage = DEAL_STAGES[deal.stage as DealStageKey];
-                return (
-                  <tr
-                    key={deal.id}
-                    className="cursor-pointer transition-colors hover:bg-muted/30"
-                    onClick={() => handleSelect(deal)}
-                  >
-                    <td className="px-4 py-3">
-                      <div className="font-medium">{deal.name}</div>
-                      {deal.owner_name && (
-                        <div className="text-xs text-muted-foreground">{deal.owner_name}</div>
-                      )}
-                    </td>
-                    <td className="hidden px-4 py-3 md:table-cell">
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        {deal.company && <IconBuilding className="h-3.5 w-3.5 shrink-0" />}
-                        <span>{deal.company ?? "—"}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 font-semibold">
-                      {deal.value != null ? formatCurrency(deal.value) : "—"}
-                    </td>
-                    <td className="hidden px-4 py-3 lg:table-cell w-36">
-                      {deal.probability != null ? (
-                        <ProbabilityBar value={deal.probability} />
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </td>
-                    <td className="hidden px-4 py-3 xl:table-cell text-muted-foreground">
-                      {deal.expected_close ? (
-                        <div className="flex items-center gap-1">
-                          <IconCalendar className="h-3.5 w-3.5" />
-                          {new Date(deal.expected_close).toLocaleDateString("pt-BR")}
-                        </div>
-                      ) : "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      {stage ? (
-                        <Badge
-                          variant="secondary"
-                          style={{ backgroundColor: stage.bg, color: stage.color }}
-                        >
-                          {stage.label}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground">{deal.stage}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-green-600 hover:bg-green-50 hover:text-green-700"
-                          title="Marcar como ganho"
-                          onClick={(e) => handleMarkGanho(deal, e)}
-                          disabled={updateStage.isPending}
-                        >
-                          <IconCheck className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-red-500 hover:bg-red-50 hover:text-red-600"
-                          title="Marcar como perdido"
-                          onClick={(e) => handleMarkPerdido(deal, e)}
-                          disabled={updateStage.isPending}
-                        >
-                          <IconX className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+              {filtered.map((proposal) => (
+                <ProposalRow_
+                  key={proposal.id}
+                  proposal={proposal}
+                  onEdit={() => handleEdit(proposal.id)}
+                  onDelete={() => setDeleteTarget(proposal)}
+                  onStatusChange={(status) => handleStatusChange(proposal.id, status)}
+                />
+              ))}
             </tbody>
           </table>
           <div className="border-t bg-muted/20 px-4 py-2 text-xs text-muted-foreground">
-            {proposals.length} {proposals.length === 1 ? "proposta" : "propostas"} — valor total:{" "}
-            <strong>{formatCurrency(proposals.reduce((s, d) => s + (d.value ?? 0), 0))}</strong>
+            {filtered.length} {filtered.length === 1 ? "proposta" : "propostas"}
+            {" — "}valor total:{" "}
+            <strong>{formatBRL(filtered.reduce((s, p) => s + (p.value ?? 0), 0))}</strong>
           </div>
         </div>
       )}
 
-      <DealDetailDialog
-        deal={selectedDeal}
-        open={detailOpen}
-        onOpenChange={(open) => {
-          setDetailOpen(open);
-          if (!open) setSelectedDeal(null);
-        }}
-        onEdit={handleEdit}
+      {/* Editor dialog */}
+      <ProposalEditorDialog
+        open={editorOpen}
+        onOpenChange={handleEditorClose}
+        proposal={editingId && editingProposal ? editingProposal : null}
       />
 
-      <DealFormDialog
-        open={formOpen}
-        onOpenChange={(open) => {
-          setFormOpen(open);
-          if (!open) setEditingDeal(null);
-        }}
-        deal={editingDeal}
-      />
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir proposta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A proposta <strong>"{deleteTarget?.name}"</strong> e todos os seus itens serão
+              excluídos permanentemente. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

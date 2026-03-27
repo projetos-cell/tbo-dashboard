@@ -42,6 +42,8 @@ export function DraggableDeal({
       className={`${isDragging ? "z-50 opacity-40 scale-[0.97]" : "cursor-grab active:cursor-grabbing"} transition-opacity`}
       {...listeners}
       {...attributes}
+      aria-roledescription="deal arrastável"
+      aria-label={deal.name}
     >
       <DealCard
         deal={deal}

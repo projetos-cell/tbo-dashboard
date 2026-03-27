@@ -34,6 +34,11 @@ const serviceSchema = z.object({
   unit: z.enum(["unidade", "hora", "mes", "pacote", "projeto"]),
   margin_pct: z.string().optional(),
   status: z.enum(["active", "draft", "archived"]),
+  hours_estimated: z.string().optional(),
+  third_party_cost: z.string().optional(),
+  complexity_multiplier: z.string().optional(),
+  revisions_included: z.string().optional(),
+  min_price: z.string().optional(),
 });
 
 // ── Props ────────────────────────────────────────────────────────────────────
@@ -44,6 +49,14 @@ interface ServiceFormDialogProps {
   service?: ServiceRow | null;
 }
 
+const DEFAULT_VALUES: ServiceFormValues = {
+  name: "", description: "", bu: "",
+  type: "projeto", base_price: "0",
+  unit: "projeto", margin_pct: "30", status: "active",
+  hours_estimated: "0", third_party_cost: "0",
+  complexity_multiplier: "1", revisions_included: "0", min_price: "0",
+};
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 export function ServiceFormDialog({ open, onOpenChange, service }: ServiceFormDialogProps) {
@@ -53,11 +66,7 @@ export function ServiceFormDialog({ open, onOpenChange, service }: ServiceFormDi
 
   const form = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceSchema),
-    defaultValues: {
-      name: "", description: "", bu: "",
-      type: "projeto", base_price: "0",
-      unit: "projeto", margin_pct: "0", status: "active",
-    },
+    defaultValues: DEFAULT_VALUES,
   });
 
   useEffect(() => {
@@ -69,15 +78,16 @@ export function ServiceFormDialog({ open, onOpenChange, service }: ServiceFormDi
         type: service.type,
         base_price: String(service.base_price),
         unit: service.unit,
-        margin_pct: String(service.margin_pct ?? 0),
+        margin_pct: String(service.margin_pct ?? 30),
         status: service.status,
+        hours_estimated: String(service.hours_estimated ?? 0),
+        third_party_cost: String(service.third_party_cost ?? 0),
+        complexity_multiplier: String(service.complexity_multiplier ?? 1),
+        revisions_included: String(service.revisions_included ?? 0),
+        min_price: String(service.min_price ?? 0),
       });
     } else {
-      form.reset({
-        name: "", description: "", bu: "",
-        type: "projeto", base_price: "0",
-        unit: "projeto", margin_pct: "0", status: "active",
-      });
+      form.reset(DEFAULT_VALUES);
     }
   }, [service, form]);
 
@@ -89,8 +99,13 @@ export function ServiceFormDialog({ open, onOpenChange, service }: ServiceFormDi
       type: values.type,
       base_price: parseFloat(values.base_price) || 0,
       unit: values.unit,
-      margin_pct: parseFloat(values.margin_pct ?? "0") || 0,
+      margin_pct: parseFloat(values.margin_pct ?? "30") || 30,
       status: values.status,
+      hours_estimated: parseFloat(values.hours_estimated ?? "0") || 0,
+      third_party_cost: parseFloat(values.third_party_cost ?? "0") || 0,
+      complexity_multiplier: parseFloat(values.complexity_multiplier ?? "1") || 1,
+      revisions_included: parseInt(values.revisions_included ?? "0") || 0,
+      min_price: parseFloat(values.min_price ?? "0") || 0,
     };
 
     if (isEditing) {
@@ -105,9 +120,9 @@ export function ServiceFormDialog({ open, onOpenChange, service }: ServiceFormDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Editar Servico" : "Novo Servico"}</DialogTitle>
+          <DialogTitle>{isEditing ? "Editar Serviço" : "Novo Serviço"}</DialogTitle>
         </DialogHeader>
 
         <Form form={form} onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

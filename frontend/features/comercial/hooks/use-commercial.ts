@@ -56,7 +56,7 @@ export function useDeal(id: string | null) {
 
 export function useCreateDeal() {
   const qc = useQueryClient();
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async (
       deal: Parameters<typeof createDeal>[1],
     ) => {
@@ -74,15 +74,21 @@ export function useCreateDeal() {
         after: variables as unknown as Record<string, unknown>,
       });
     },
-    onError: (err) => {
-      toast.error(`Erro ao criar deal: ${err.message}`);
+    onError: (err, variables) => {
+      toast.error(`Erro ao criar deal: ${err.message}`, {
+        action: {
+          label: "Tentar novamente",
+          onClick: () => mutation.mutate(variables),
+        },
+      });
     },
   });
+  return mutation;
 }
 
 export function useUpdateDeal() {
   const qc = useQueryClient();
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async ({
       id,
       updates,
@@ -104,10 +110,16 @@ export function useUpdateDeal() {
         after: variables.updates as Record<string, unknown>,
       });
     },
-    onError: (err) => {
-      toast.error(`Erro ao atualizar deal: ${err.message}`);
+    onError: (err, variables) => {
+      toast.error(`Erro ao atualizar deal: ${err.message}`, {
+        action: {
+          label: "Tentar novamente",
+          onClick: () => mutation.mutate(variables),
+        },
+      });
     },
   });
+  return mutation;
 }
 
 export function usePipelines() {
@@ -158,7 +170,7 @@ export function useDealOwners(pipelineId?: string) {
 
 export function useUpdateDealStage() {
   const qc = useQueryClient();
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async ({ id, stage }: { id: string; stage: string }) => {
       const supabase = createClient();
       return updateDealStage(supabase, id, stage);
@@ -175,10 +187,16 @@ export function useUpdateDealStage() {
         metadata: { field: "stage" },
       });
     },
-    onError: (err) => {
-      toast.error(`Erro ao mover deal: ${err.message}`);
+    onError: (err, variables) => {
+      toast.error(`Erro ao mover deal: ${err.message}`, {
+        action: {
+          label: "Tentar novamente",
+          onClick: () => mutation.mutate(variables),
+        },
+      });
     },
   });
+  return mutation;
 }
 
 // ── CRM Stages (dynamic) ────────────────────────────────────────────────────
@@ -201,7 +219,7 @@ export function useCreateCrmStage() {
   const qc = useQueryClient();
   const tenantId = useAuthStore((s) => s.tenantId);
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async (stage: { id: string; label: string; sort_order: number; color: string; bg: string }) => {
       if (!tenantId) throw new Error("Tenant não encontrado");
       const supabase = createClient();
@@ -211,16 +229,22 @@ export function useCreateCrmStage() {
       qc.invalidateQueries({ queryKey: ["crm-stages"] });
       qc.invalidateQueries({ queryKey: ["deals"] });
     },
-    onError: (err) => {
-      toast.error(`Erro ao criar etapa: ${err.message}`);
+    onError: (err, variables) => {
+      toast.error(`Erro ao criar etapa: ${err.message}`, {
+        action: {
+          label: "Tentar novamente",
+          onClick: () => mutation.mutate(variables),
+        },
+      });
     },
   });
+  return mutation;
 }
 
 export function useDeleteCrmStage() {
   const qc = useQueryClient();
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async (id: string) => {
       const supabase = createClient();
       return deleteCrmStage(supabase, id);
@@ -228,8 +252,14 @@ export function useDeleteCrmStage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["crm-stages"] });
     },
-    onError: (err) => {
-      toast.error(`Erro ao deletar etapa: ${err.message}`);
+    onError: (err, variables) => {
+      toast.error(`Erro ao deletar etapa: ${err.message}`, {
+        action: {
+          label: "Tentar novamente",
+          onClick: () => mutation.mutate(variables),
+        },
+      });
     },
   });
+  return mutation;
 }

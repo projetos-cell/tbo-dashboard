@@ -15,6 +15,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useToast } from "@/hooks/use-toast";
 import type { UserOption } from "@/components/ui/user-selector";
 import type { MemberInfo } from "@/features/projects/components/member-avatar-stack";
+import { RequireRole } from "@/features/auth/components/require-role";
 
 // ── Lazy-loaded tabs — only download JS when tab becomes active ───────────
 // Next.js 16 Turbopack requires inline object literals for dynamic() options
@@ -205,6 +206,7 @@ export default function ProjectDetailPage({
   }
 
   return (
+    <RequireRole module="projetos">
     <div className="space-y-6">
       <ProjectTopbar
         project={project}
@@ -269,5 +271,6 @@ export default function ProjectDetailPage({
         projectName={project.name}
       />
     </div>
+    </RequireRole>
   );
 }

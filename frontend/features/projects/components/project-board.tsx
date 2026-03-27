@@ -15,7 +15,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { IconPlus } from "@tabler/icons-react";
+import { IconPlus, IconLayoutKanban } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -53,7 +53,7 @@ function SortableCard({ project }: { project: Project }) {
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes}>
+    <div ref={setNodeRef} style={style} {...attributes} aria-roledescription="projeto arrastável" aria-label={project.name ?? ""}>
       <ProjectCard project={project} editable dragListeners={listeners} />
     </div>
   );
@@ -314,13 +314,15 @@ export function ProjectBoard({ projects }: ProjectBoardProps) {
         collisionDetection={closestCorners}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex gap-3 overflow-x-auto pb-4">
+        <div className="flex gap-3 overflow-x-auto pb-4" role="region" aria-label="Board de projetos">
           {columns.map((col) => {
             const statusProjects = getProjectsByStatus(col.key);
             return (
               <div
                 key={col.key}
                 className="flex w-[260px] min-w-[260px] shrink-0 flex-col"
+                role="group"
+                aria-label={col.label}
               >
                 {/* Column header */}
                 <div className="mb-3 flex items-center gap-2">
@@ -342,9 +344,15 @@ export function ProjectBoard({ projects }: ProjectBoardProps) {
                 >
                   <div className="flex flex-col gap-2 rounded-lg bg-muted/40 p-2 min-h-[100px]">
                     {statusProjects.length === 0 ? (
-                      <p className="py-8 text-center text-xs text-gray-500">
-                        Nenhum projeto
-                      </p>
+                      <div className="flex flex-col items-center justify-center rounded-md border border-dashed border-muted-foreground/20 py-8 text-center">
+                        <IconLayoutKanban className="mb-2 h-6 w-6 text-muted-foreground/30" />
+                        <p className="text-xs text-gray-500">
+                          Nenhum projeto
+                        </p>
+                        <p className="mt-0.5 text-[10px] text-gray-400">
+                          Arraste um card para cá
+                        </p>
+                      </div>
                     ) : (
                       statusProjects.map((project) => (
                         <SortableCard key={project.id} project={project} />

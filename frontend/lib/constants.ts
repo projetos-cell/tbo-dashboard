@@ -108,7 +108,7 @@ export function computeProjectHealth(stats: {
 }
 
 // BU (Business Unit) list — ordered for tab display
-export const BU_LIST = ["Digital 3D", "Branding", "Marketing", "Audiovisual", "Interiores"] as const;
+export const BU_LIST = ["Digital 3D", "Branding", "Marketing", "Audiovisual", "Gamificação", "Interiores"] as const;
 export type BUKey = (typeof BU_LIST)[number];
 
 // BU badge colors — matches legacy TBO_QUADRO_PROJETOS._BU_COLORS

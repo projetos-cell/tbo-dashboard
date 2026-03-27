@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { IconPlus, IconSearch, IconFolderPlus, IconStarFilled } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,6 +26,8 @@ import {
   type GroupField,
 } from "@/features/projects/components/project-list-toolbar";
 import { cn } from "@/lib/utils";
+import { RequireRole } from "@/features/auth/components/require-role";
+import { useGlobalShortcuts } from "@/hooks/use-global-shortcuts";
 
 export default function ProjetosPage() {
   const [view, setView] = useState<ViewMode>("list");
@@ -40,7 +42,32 @@ export default function ProjetosPage() {
     customFilters: [],
   });
 
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
   useUser();
+  useGlobalShortcuts();
+
+  // Cmd+K → focus search input
+  useEffect(() => {
+    function onOpenSearch() {
+      searchInputRef.current?.focus();
+    }
+    window.addEventListener("tbo:open-search", onOpenSearch);
+    return () => window.removeEventListener("tbo:open-search", onOpenSearch);
+  }, []);
+
+  // "n" key (no modifiers, not in input) → open new project form
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== "n" || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if ((e.target as HTMLElement)?.isContentEditable) return;
+      setFormOpen(true);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   const { data: rawProjects, isLoading, error, refetch } = useProjects();
 
@@ -146,6 +173,7 @@ export default function ProjetosPage() {
   }
 
   return (
+    <RequireRole module="projetos">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -159,6 +187,7 @@ export default function ProjetosPage() {
           <div className="relative">
             <IconSearch className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
             <Input
+              ref={searchInputRef}
               placeholder="Buscar projetos..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -243,6 +272,7 @@ export default function ProjetosPage() {
 
       <ProjectForm open={formOpen} onOpenChange={setFormOpen} />
     </div>
+    </RequireRole>
   );
 }
 

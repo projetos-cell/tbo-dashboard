@@ -12,29 +12,23 @@ export async function getScenesByProject(
     .from("review_scenes")
     .select(
       `*,
-      latest_version:review_versions(
-        id, version_label, version_number, file_url, thumbnail_url, status, created_at
-      ),
-      versions_count:review_versions(count),
-      annotations_count:review_annotations(count)`
+      review_versions(id, version_label, version_number, file_url, thumbnail_url, status, created_at)`
     )
     .eq("project_id", projectId)
     .order("sort_order", { ascending: true });
 
   if (error) throw error;
 
-  return (data ?? []).map((row: Record<string, unknown>) => ({
-    ...row,
-    versions_count: Array.isArray(row.versions_count)
-      ? (row.versions_count[0] as { count: number })?.count ?? 0
-      : 0,
-    annotations_count: Array.isArray(row.annotations_count)
-      ? (row.annotations_count[0] as { count: number })?.count ?? 0
-      : 0,
-    latest_version: Array.isArray(row.latest_version)
-      ? (row.latest_version[0] ?? null)
-      : row.latest_version ?? null,
-  })) as ReviewScene[];
+  return (data ?? []).map((row: Record<string, unknown>) => {
+    const versions = (Array.isArray(row.review_versions) ? row.review_versions : []) as Array<{ version_number: number }>;
+    const sorted = [...versions].sort((a, b) => b.version_number - a.version_number);
+    return {
+      ...row,
+      versions_count: versions.length,
+      annotations_count: 0,
+      latest_version: sorted[0] ?? null,
+    };
+  }) as ReviewScene[];
 }
 
 export async function getScene(

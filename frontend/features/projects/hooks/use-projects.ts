@@ -18,6 +18,7 @@ import {
   formatProjectName,
 } from "@/features/projects/services/projects";
 import { logAuditTrail } from "@/lib/audit-trail";
+import { toast } from "sonner";
 import { createProjectDriveFolder } from "@/features/projects/services/google-drive";
 import type { Database } from "@/lib/supabase/types";
 
@@ -138,7 +139,7 @@ export function useUpdateProject() {
 
   type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: ({
       id,
       updates,
@@ -170,7 +171,7 @@ export function useUpdateProject() {
       return { previousProjects, previousProject };
     },
 
-    onError: (_err, variables, context) => {
+    onError: (err, variables, context) => {
       if (context?.previousProjects) {
         for (const [queryKey, data] of context.previousProjects) {
           queryClient.setQueryData(queryKey, data);
@@ -179,6 +180,12 @@ export function useUpdateProject() {
       if (context?.previousProject) {
         queryClient.setQueryData(["project", variables.id], context.previousProject);
       }
+      toast.error(`Erro ao atualizar projeto: ${err.message}`, {
+        action: {
+          label: "Tentar novamente",
+          onClick: () => mutation.mutate(variables),
+        },
+      });
     },
 
     onSuccess: (_data, variables) => {
@@ -197,6 +204,7 @@ export function useUpdateProject() {
       queryClient.invalidateQueries({ queryKey: ["project", variables.id] });
     },
   });
+  return mutation;
 }
 
 export function useProjectStats(projectId: string) {
@@ -257,7 +265,7 @@ export function useDeleteProject() {
 
   type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: (id: string) => deleteProject(supabase, id),
 
     onMutate: async (id) => {
@@ -270,12 +278,18 @@ export function useDeleteProject() {
       return { previousProjects };
     },
 
-    onError: (_err, _variables, context) => {
+    onError: (err, variables, context) => {
       if (context?.previousProjects) {
         for (const [queryKey, data] of context.previousProjects) {
           queryClient.setQueryData(queryKey, data);
         }
       }
+      toast.error(`Erro ao deletar projeto: ${err.message}`, {
+        action: {
+          label: "Tentar novamente",
+          onClick: () => mutation.mutate(variables),
+        },
+      });
     },
 
     onSuccess: (_data, id) => {
@@ -292,4 +306,5 @@ export function useDeleteProject() {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
   });
+  return mutation;
 }

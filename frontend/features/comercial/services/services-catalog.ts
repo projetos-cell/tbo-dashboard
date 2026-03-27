@@ -22,6 +22,12 @@ export interface ServiceRow {
   created_at: string;
   updated_at: string;
   created_by: string | null;
+  // Campos de precificacao (adicionados em 20260327)
+  hours_estimated: number | null;
+  third_party_cost: number | null;
+  complexity_multiplier: number | null;
+  revisions_included: number | null;
+  min_price: number | null;
 }
 
 export interface ServiceInsert {

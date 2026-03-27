@@ -577,7 +577,8 @@ export const FINANCEIRO_NAV_ITEMS: readonly SubNavItem[] = [
 export const COMERCIAL_NAV_ITEMS: readonly SubNavItem[] = [
   { href: "/comercial/leads", label: "Leads", icon: "user-plus" },
   { href: "/comercial/propostas", label: "Propostas", icon: "file-text" },
-  { href: "/comercial/servicos", label: "Servicos", icon: "package" },
+  { href: "/comercial/servicos", label: "Serviços", icon: "package" },
+  { href: "/comercial/precificacao", label: "Precificação", icon: "calculator" },
   { href: "/comercial/atividades", label: "Atividades", icon: "activity" },
   { href: "/comercial/relatorios", label: "Relatórios", icon: "bar-chart-3" },
 ] as const;

@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { createClient } from "@/lib/supabase/client"
 import { ROLE_LABELS, ROLE_COLORS } from "../types"
@@ -73,6 +74,9 @@ export function UserTeam({ department, currentUserId }: UserTeamProps) {
           <p className="text-xs text-muted-foreground">
             Não há outros membros ativos em {department}.
           </p>
+          <Button asChild variant="outline" size="sm" className="mt-2">
+            <Link href="/configuracoes?tab=usuarios">Convidar membro</Link>
+          </Button>
         </CardContent>
       </Card>
     )

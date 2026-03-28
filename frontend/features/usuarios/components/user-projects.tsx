@@ -1,8 +1,10 @@
 "use client"
 
+import Link from "next/link"
 import { useQuery } from "@tanstack/react-query"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { createClient } from "@/lib/supabase/client"
 
@@ -63,6 +65,9 @@ export function UserProjects({ userId }: UserProjectsProps) {
           <p className="text-xs text-muted-foreground">
             Quando demandas forem atribuídas a este usuário, elas aparecerão aqui.
           </p>
+          <Button asChild variant="outline" size="sm" className="mt-2">
+            <Link href="/projetos">Atribuir demanda</Link>
+          </Button>
         </CardContent>
       </Card>
     )

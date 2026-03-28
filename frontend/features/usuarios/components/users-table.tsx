@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import {
   Table,
   TableBody,
@@ -10,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Button } from "@/components/ui/button"
 import { type User } from "../types"
 import { UsersTablePagination } from "./users-table-pagination"
 import { UserRow } from "./user-row"
@@ -37,6 +39,8 @@ export function UsersTable({
 }: UsersTableProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
+  // NOTE(single-tenant): Base ~10-20 usuários — paginação client-side é suficiente.
+  // Para multi-tenant ou bases maiores, implementar server-side via Supabase .range().
   const totalItems = users.length
   const start = page * pageSize
   const end = Math.min(start + pageSize, totalItems)
@@ -92,11 +96,13 @@ export function UsersTable({
           <TableBody>
             {paginatedUsers.length === 0 ? (
               <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  Nenhum usuário encontrado.
+                <TableCell colSpan={7} className="h-32 text-center">
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <p className="text-sm">Nenhum usuário encontrado.</p>
+                    <Button asChild variant="outline" size="sm">
+                      <Link href="/configuracoes?tab=usuarios">Convidar membro</Link>
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (

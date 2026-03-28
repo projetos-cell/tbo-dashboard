@@ -19,7 +19,10 @@ export function useProfile() {
 
   return useQuery({
     queryKey: ["profile", userId],
-    queryFn: () => getProfile(supabase, userId!),
+    queryFn: () => {
+      if (!userId) throw new Error("Unauthenticated");
+      return getProfile(supabase, userId);
+    },
     staleTime: 1000 * 60 * 5,
     enabled: !!userId,
   });
@@ -31,8 +34,10 @@ export function useUpdateProfile() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: (updates: Parameters<typeof updateProfile>[2]) =>
-      updateProfile(supabase, userId!, updates),
+    mutationFn: (updates: Parameters<typeof updateProfile>[2]) => {
+      if (!userId) throw new Error("Unauthenticated");
+      return updateProfile(supabase, userId, updates);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["profile", userId] });
     },
@@ -47,8 +52,9 @@ export function useUploadAvatar() {
 
   return useMutation({
     mutationFn: async (file: File) => {
-      const url = await uploadAvatar(supabase, userId!, file);
-      await updateProfile(supabase, userId!, { avatar_url: url });
+      if (!userId) throw new Error("Unauthenticated");
+      const url = await uploadAvatar(supabase, userId, file);
+      await updateProfile(supabase, userId, { avatar_url: url });
       return url;
     },
     onSuccess: () => {

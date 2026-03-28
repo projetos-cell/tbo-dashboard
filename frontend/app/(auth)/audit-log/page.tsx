@@ -4,10 +4,8 @@ import { useState, useMemo } from "react";
 import {
   IconSearch,
   IconShield,
-  IconFilter,
   IconChevronLeft,
   IconChevronRight,
-  IconDownload,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/shared";
 import {
   Sheet,
   SheetContent,
@@ -79,7 +80,7 @@ interface TaskPanelProps {
 }
 
 function TaskPanel({ taskId, projectName, onClose, onOpenTask, isFullscreen, onToggleFullscreen }: TaskPanelProps) {
-  const { data: task, isLoading } = useTaskDetail(taskId);
+  const { data: task, isLoading, error, refetch } = useTaskDetail(taskId);
   const { data: subtasks = [] } = useSubtasks(taskId);
 
   const [projectPickerOpen, setProjectPickerOpen] = useState(false);
@@ -117,7 +118,8 @@ function TaskPanel({ taskId, projectName, onClose, onOpenTask, isFullscreen, onT
   const resolvedProjectName =
     projectName || (task?.project_id ? "Projeto vinculado" : null);
 
-  if (isLoading || !task) return <DetailSkeleton />;
+  if (isLoading) return <DetailSkeleton />;
+  if (error || !task) return <ErrorState message={error?.message ?? "Tarefa não encontrada"} onRetry={() => refetch()} />;
 
   return (
     <>

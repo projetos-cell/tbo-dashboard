@@ -48,6 +48,7 @@ import { ROLE_CONFIG } from "./team-ui";
 import {
   type RoleSlug,
   ROLE_HIERARCHY,
+  hasMinRole,
 } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/client";
 
@@ -158,12 +159,12 @@ export function EditUserDialog({
   const assignableRoles = (
     ["founder", "diretoria", "lider", "colaborador"] as const
   ).filter((role) => {
-    if (currentUserRole === "founder") return true;
+    if (hasMinRole(currentUserRole, "diretoria")) return true;
     return ROLE_HIERARCHY[currentUserRole] > ROLE_HIERARCHY[role];
   });
 
   const canEdit =
-    currentUserRole === "founder" ||
+    hasMinRole(currentUserRole, "diretoria") ||
     (member
       ? ROLE_HIERARCHY[currentUserRole] > ROLE_HIERARCHY[member.role]
       : false);

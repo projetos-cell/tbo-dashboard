@@ -33,7 +33,7 @@ function SettingsContent() {
   const [activeTab, setActiveTab] = useState<SettingsTabId>(initialTab);
   const role = useAuthStore((s) => s.role);
   const isAdmin = role === "founder" || role === "diretoria";
-  const isFounder = role === "founder";
+  const isFounder = isAdmin; // founder e diretoria têm mesmos privilégios
 
   return (
     <div className="space-y-6">

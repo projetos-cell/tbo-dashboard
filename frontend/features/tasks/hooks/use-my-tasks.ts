@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
+import { toast } from "sonner";
 import { useEffect, useCallback } from "react";
 import type {
   MyTasksSection,
@@ -107,6 +108,7 @@ export function useCreateSection() {
       if (context?.previous) {
         queryClient.setQueryData(myTasksKeys.sections(userId ?? ""), context.previous);
       }
+      toast.error("Erro ao criar seção. Tente novamente.");
     },
 
     onSettled: () => {
@@ -139,6 +141,7 @@ export function useUpdateSection() {
       if (context?.previous) {
         queryClient.setQueryData(myTasksKeys.sections(userId ?? ""), context.previous);
       }
+      toast.error("Erro ao atualizar seção. Tente novamente.");
     },
 
     onSettled: () => {
@@ -170,6 +173,7 @@ export function useDeleteSection() {
       if (context?.previous) {
         queryClient.setQueryData(myTasksKeys.sections(userId ?? ""), context.previous);
       }
+      toast.error("Erro ao excluir seção. Tente novamente.");
     },
 
     onSettled: () => {
@@ -209,6 +213,7 @@ export function useReorderSections() {
       if (context?.previous) {
         queryClient.setQueryData(myTasksKeys.sections(userId ?? ""), context.previous);
       }
+      toast.error("Erro ao reordenar seções. Ordem revertida.");
     },
 
     onSettled: () => {
@@ -265,6 +270,7 @@ export function useMoveTaskToSection() {
         const key = myTasksKeys.tasks(userId ?? "");
         queryClient.setQueryData(key, context.previous);
       }
+      toast.error("Erro ao mover tarefa. Posição revertida.");
     },
 
     onSettled: () => {

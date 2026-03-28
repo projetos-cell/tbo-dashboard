@@ -100,7 +100,7 @@ export default function AdminPage() {
   }
 
   return (
-    <RequireRole allowed={["founder"]} module="admin">
+    <RequireRole minRole="diretoria" module="admin">
       <div className="space-y-6">
         {/* Header */}
         <div>

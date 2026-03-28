@@ -27,6 +27,7 @@ import {
   type ColumnPref,
 } from "@/features/tasks/lib/my-tasks-columns";
 import { ErrorState, EmptyState } from "@/components/shared";
+import { RequireRole } from "@/features/auth/components/require-role";
 import type { Database } from "@/lib/supabase/types";
 import {
   IconPlus,
@@ -50,9 +51,11 @@ const VIEWS = [
 
 export default function MinhasTarefasPage() {
   return (
-    <Suspense fallback={<div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => (<Skeleton key={i} className="h-10 w-full" />))}</div>}>
-      <MinhasTarefasContent />
-    </Suspense>
+    <RequireRole module="tarefas">
+      <Suspense fallback={<div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => (<Skeleton key={i} className="h-10 w-full" />))}</div>}>
+        <MinhasTarefasContent />
+      </Suspense>
+    </RequireRole>
   );
 }
 

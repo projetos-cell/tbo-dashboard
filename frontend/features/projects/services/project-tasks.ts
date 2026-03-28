@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
+import type { TaskStatusKey } from "@/lib/constants";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 
@@ -196,7 +197,7 @@ export async function getProjectTaskStats(
 
   for (const t of parents) {
     // Status aggregation
-    const s = t.status || "pendente";
+    const s = (t.status || "pendente") as TaskStatusKey;
     byStatus[s] = (byStatus[s] ?? 0) + 1;
 
     // Priority aggregation
@@ -206,8 +207,9 @@ export async function getProjectTaskStats(
     if (t.is_completed) {
       completed++;
     } else {
-      if (s === "em_andamento" || s === "revisao") inProgress++;
-      if (s === "bloqueada") blocked++;
+      const inProgressStatuses: TaskStatusKey[] = ["em_andamento", "revisao"];
+      if (inProgressStatuses.includes(s)) inProgress++;
+      if (s === ("bloqueada" as TaskStatusKey)) blocked++;
       if (t.due_date && t.due_date < now) overdue++;
     }
   }

@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
+import { toast } from "sonner";
 import {
   getProjectResources,
   createProjectResource,
@@ -38,6 +39,9 @@ export function useCreateProjectResource() {
         queryKey: ["project-resources", variables.project_id],
       });
     },
+    onError: () => {
+      toast.error("Erro ao adicionar recurso. Tente novamente.");
+    },
   });
 }
 
@@ -52,6 +56,9 @@ export function useDeleteProjectResource(projectId: string) {
       queryClient.invalidateQueries({
         queryKey: ["project-resources", projectId],
       });
+    },
+    onError: () => {
+      toast.error("Erro ao remover recurso. Tente novamente.");
     },
   });
 }

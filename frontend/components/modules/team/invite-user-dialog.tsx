@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { InviteUserSchema, type InviteUserInput } from "@/schemas/team";
 import { useInviteTeamMember } from "@/hooks/use-team";
-import { ROLE_HIERARCHY, type RoleSlug } from "@/lib/permissions";
+import { ROLE_HIERARCHY, hasMinRole, type RoleSlug } from "@/lib/permissions";
 import { ROLE_CONFIG } from "./team-ui";
 
 type InviteUserDialogProps = {
@@ -47,7 +47,7 @@ export function InviteUserDialog({
   const assignableRoles = (
     ["founder", "diretoria", "lider", "colaborador"] as const
   ).filter((role) =>
-    currentUserRole === "founder" ? true : ROLE_HIERARCHY[currentUserRole] > ROLE_HIERARCHY[role],
+    hasMinRole(currentUserRole, "diretoria") ? true : ROLE_HIERARCHY[currentUserRole] > ROLE_HIERARCHY[role],
   );
 
   function handleClose() {

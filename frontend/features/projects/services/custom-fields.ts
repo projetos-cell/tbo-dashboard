@@ -43,6 +43,7 @@ export interface CreateCustomFieldInput {
   order_index?: number;
 }
 
+// TODO: regenerate types with `supabase gen types` to remove these `any` casts
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function fieldsTable(): any {
   return createClient().from("os_custom_fields" as never);

@@ -92,11 +92,12 @@ export function useSectionDnd({ tasks, dndDisabled }: UseSectionDndOptions) {
       if (targetSectionId === task.my_section_id) return;
 
       const oldSectionId = task.my_section_id;
+      const oldSortOrder = task.my_sort_order;
 
       undo.push({
         type: "MOVE_TASK_SECTION",
         payload: { taskId, toSection: targetSectionId },
-        inverse: { taskId, toSection: oldSectionId },
+        inverse: { taskId, toSection: oldSectionId, sortOrder: oldSortOrder },
       });
 
       const targetTasks = tasks.filter(
@@ -104,11 +105,22 @@ export function useSectionDnd({ tasks, dndDisabled }: UseSectionDndOptions) {
       );
       const maxOrder = targetTasks.reduce((max, t) => Math.max(max, t.my_sort_order), 0);
 
-      moveTask.mutate({
-        task_id: taskId,
-        section_id: targetSectionId,
-        sort_order: maxOrder + 1,
-      });
+      moveTask.mutate(
+        {
+          task_id: taskId,
+          section_id: targetSectionId,
+          sort_order: maxOrder + 1,
+        },
+        {
+          onError: () => {
+            toast({
+              title: "Erro ao mover tarefa",
+              description: "A tarefa foi revertida para a posição anterior.",
+              variant: "destructive",
+            });
+          },
+        }
+      );
     },
     [tasks, sections, moveTask, undo, dndDisabled]
   );
@@ -117,13 +129,14 @@ export function useSectionDnd({ tasks, dndDisabled }: UseSectionDndOptions) {
     const action = undo.pop();
     if (!action) return;
 
-    const { taskId, toSection } = action.inverse as {
+    const { taskId, toSection, sortOrder } = action.inverse as {
       taskId: string;
       toSection: string | null;
+      sortOrder: number;
     };
 
     moveTask.mutate(
-      { task_id: taskId, section_id: toSection, sort_order: 0 },
+      { task_id: taskId, section_id: toSection, sort_order: sortOrder ?? 0 },
       {
         onSuccess: () => {
           toast({ title: "Desfeito", description: "Tarefa movida de volta." });

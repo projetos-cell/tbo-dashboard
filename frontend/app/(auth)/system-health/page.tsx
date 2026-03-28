@@ -318,7 +318,7 @@ function SystemHealthContent() {
 
 export default function SystemHealthPage() {
   return (
-    <RequireRole allowed={["founder"]} module="system-health">
+    <RequireRole minRole="diretoria" module="system-health">
       <SystemHealthContent />
     </RequireRole>
   );

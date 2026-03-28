@@ -245,8 +245,9 @@ export async function getProjectStats(
   }[];
   const now = new Date().toISOString().split("T")[0];
 
+  const DONE_STATUSES = ["concluído", "concluido", "concluida", "concluída", "done"];
   const isDone = (d: { status: string; feito: boolean | null }) =>
-    d.feito || d.status === "Concluído" || d.status === "Concluido";
+    d.feito || DONE_STATUSES.includes(d.status?.toLowerCase());
 
   return {
     totalTasks: demandsRes.count ?? demands.length,

@@ -26,7 +26,7 @@ function AccessDenied() {
         <p className="text-sm text-gray-500 mt-1">
           Voce nao tem permissao para acessar este modulo.
           <br />
-          Fale com o founder caso precise de acesso.
+          Fale com a diretoria caso precise de acesso.
         </p>
       </div>
     </div>

@@ -20,7 +20,23 @@ import {
 import { logAuditTrail } from "@/lib/audit-trail";
 import { toast } from "sonner";
 import { createProjectDriveFolder } from "@/features/projects/services/google-drive";
+import { hasMinRole, hasPermission } from "@/lib/permissions";
 import type { Database } from "@/lib/supabase/types";
+
+/** Throws if user's role doesn't meet the minimum required */
+function assertMinRole(minRole: "founder" | "diretoria" | "lider" | "colaborador", action: string) {
+  const role = useAuthStore.getState().role;
+  if (!hasMinRole(role, minRole)) {
+    throw new Error(`Permissão insuficiente para ${action}. Requer nível ${minRole} ou superior.`);
+  }
+}
+
+function assertPermission(permission: Parameters<typeof hasPermission>[1], action: string) {
+  const role = useAuthStore.getState().role;
+  if (!hasPermission(role, permission)) {
+    throw new Error(`Permissão insuficiente para ${action}.`);
+  }
+}
 
 function useSupabase() {
   return createClient();
@@ -74,6 +90,7 @@ export function useCreateProject() {
 
   return useMutation({
     mutationFn: async (project: Database["public"]["Tables"]["projects"]["Insert"]) => {
+      assertPermission("projetos.create", "criar projeto");
       if (!project.code) {
         const code = await generateProjectCode(supabase);
         project = { ...project, code };
@@ -146,7 +163,10 @@ export function useUpdateProject() {
     }: {
       id: string;
       updates: Database["public"]["Tables"]["projects"]["Update"];
-    }) => updateProject(supabase, id, updates),
+    }) => {
+      assertMinRole("lider", "atualizar projeto");
+      return updateProject(supabase, id, updates);
+    },
 
     onMutate: async ({ id, updates }) => {
       await queryClient.cancelQueries({ queryKey: ["projects"] });
@@ -238,8 +258,10 @@ export function useAddProjectMember() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (params: { projectId: string; userId: string; tenantId: string; grantedBy: string }) =>
-      addProjectMember(supabase, params),
+    mutationFn: (params: { projectId: string; userId: string; tenantId: string; grantedBy: string }) => {
+      assertMinRole("lider", "adicionar membro ao projeto");
+      return addProjectMember(supabase, params);
+    },
     onSettled: (_data, _err, variables) => {
       queryClient.invalidateQueries({ queryKey: ["project-members", variables.projectId] });
     },
@@ -251,8 +273,10 @@ export function useRemoveProjectMember() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ membershipId, projectId }: { membershipId: string; projectId: string }) =>
-      removeProjectMember(supabase, membershipId),
+    mutationFn: ({ membershipId, projectId }: { membershipId: string; projectId: string }) => {
+      assertMinRole("lider", "remover membro do projeto");
+      return removeProjectMember(supabase, membershipId);
+    },
     onSettled: (_data, _err, variables) => {
       queryClient.invalidateQueries({ queryKey: ["project-members", variables.projectId] });
     },
@@ -266,7 +290,10 @@ export function useDeleteProject() {
   type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 
   const mutation = useMutation({
-    mutationFn: (id: string) => deleteProject(supabase, id),
+    mutationFn: (id: string) => {
+      assertMinRole("diretoria", "deletar projeto");
+      return deleteProject(supabase, id);
+    },
 
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ["projects"] });

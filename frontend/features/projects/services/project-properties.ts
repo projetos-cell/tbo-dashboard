@@ -35,7 +35,7 @@ export interface UpdatePropertyOptionInput {
   sort_order?: number;
 }
 
-// Table not in generated types yet — use schema-less RPC approach
+// TODO: regenerate types with `supabase gen types` to remove this `any` cast
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function table(): any {
   return createClient().from("project_property_options" as never);
@@ -99,7 +99,6 @@ export async function reorderPropertyOptions(
       .eq("id", id)
   );
   const results = await Promise.all(promises);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const failed = results.find((r: any) => r.error);
+  const failed = results.find((r: { error: unknown }) => r.error);
   if (failed?.error) throw failed.error;
 }

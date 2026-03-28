@@ -137,7 +137,7 @@ export async function getRunningTimer(
     .maybeSingle();
 
   if (error) throw error;
-  return (data as TimeEntry) ?? null;
+  return (data as unknown as TimeEntry) ?? null;
 }
 
 export async function getTimeStats(

@@ -307,7 +307,7 @@ export async function getDRESnapshot(
     .select("*")
     .eq("month", month)
     .maybeSingle();
-  return (data as DRESnapshot | null) ?? null;
+  return (data as unknown as DRESnapshot | null) ?? null;
 }
 
 export async function getDRETrend(

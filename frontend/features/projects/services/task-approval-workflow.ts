@@ -120,5 +120,5 @@ export async function getNextPendingStep(
     .maybeSingle();
 
   if (error) throw error;
-  return (data as ApprovalStep) ?? null;
+  return (data as unknown as ApprovalStep) ?? null;
 }

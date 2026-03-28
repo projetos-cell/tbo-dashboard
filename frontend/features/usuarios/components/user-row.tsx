@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useAuthStore } from "@/stores/auth-store"
+import { isAdmin } from "@/lib/permissions"
 import {
   TableCell,
   TableRow,
@@ -55,6 +57,8 @@ export function UserRow({
   onToggleActive,
   onDelete,
 }: UserRowProps) {
+  const role = useAuthStore((s) => s.role)
+  const canManage = isAdmin(role)
   const [confirmSuspend, setConfirmSuspend] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -150,31 +154,37 @@ export function UserRow({
                   Ver Perfil
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onEdit(user)}>
-                <IconEdit className="mr-2 h-4 w-4" />
-                Editar
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setConfirmSuspend(true)}>
-                {isSuspended ? (
-                  <>
-                    <IconCheck className="mr-2 h-4 w-4" />
-                    Ativar
-                  </>
-                ) : (
-                  <>
-                    <IconBan className="mr-2 h-4 w-4" />
-                    Suspender
-                  </>
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
-                onClick={() => setConfirmDelete(true)}
-              >
-                <IconTrash className="mr-2 h-4 w-4" />
-                Excluir
-              </DropdownMenuItem>
+              {canManage && (
+                <DropdownMenuItem onClick={() => onEdit(user)}>
+                  <IconEdit className="mr-2 h-4 w-4" />
+                  Editar
+                </DropdownMenuItem>
+              )}
+              {canManage && <DropdownMenuSeparator />}
+              {canManage && (
+                <DropdownMenuItem onClick={() => setConfirmSuspend(true)}>
+                  {isSuspended ? (
+                    <>
+                      <IconCheck className="mr-2 h-4 w-4" />
+                      Ativar
+                    </>
+                  ) : (
+                    <>
+                      <IconBan className="mr-2 h-4 w-4" />
+                      Suspender
+                    </>
+                  )}
+                </DropdownMenuItem>
+              )}
+              {canManage && (
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  <IconTrash className="mr-2 h-4 w-4" />
+                  Excluir
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </TableCell>

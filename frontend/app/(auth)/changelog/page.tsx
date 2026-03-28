@@ -22,6 +22,16 @@ import {
   useUpdateChangelog,
   useDeleteChangelog,
 } from "@/features/changelog/hooks/use-changelog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ErrorState, EmptyState } from "@/components/shared";
 import {
   CHANGELOG_TAGS,
@@ -40,6 +50,7 @@ export default function ChangelogPage() {
   const [moduleFilter, setModuleFilter] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<ChangelogRow | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<ChangelogRow | null>(null);
 
   const { data: entries = [], isLoading, error, refetch } = useChangelog();
   const createChangelog = useCreateChangelog();
@@ -81,8 +92,13 @@ export default function ChangelogPage() {
   }
 
   function handleDelete(entry: ChangelogRow) {
-    if (!confirm(`Excluir a entrada "${entry.title}"?`)) return;
-    deleteChangelog.mutate(entry.id);
+    setPendingDelete(entry);
+  }
+
+  function confirmDelete() {
+    if (!pendingDelete) return;
+    deleteChangelog.mutate(pendingDelete.id);
+    setPendingDelete(null);
   }
 
   async function handleSave(data: {
@@ -262,6 +278,27 @@ export default function ChangelogPage() {
         entry={editingEntry}
         onSave={handleSave}
       />
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!pendingDelete} onOpenChange={(open) => { if (!open) setPendingDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir entrada?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A entrada &quot;{pendingDelete?.title}&quot; será removida permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={confirmDelete}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

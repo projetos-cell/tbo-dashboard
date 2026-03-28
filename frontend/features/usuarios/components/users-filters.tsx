@@ -24,6 +24,7 @@ interface UsersFiltersProps {
   onDepartmentChange: (value: string) => void
   onExport: () => void
   onInvite: () => void
+  canManage?: boolean
 }
 
 export function UsersFilters({
@@ -37,6 +38,7 @@ export function UsersFilters({
   onDepartmentChange,
   onExport,
   onInvite,
+  canManage = false,
 }: UsersFiltersProps) {
   return (
     <div className="space-y-4">
@@ -106,10 +108,12 @@ export function UsersFilters({
             <IconDownload className="mr-1.5 h-4 w-4" />
             Exportar
           </Button>
-          <Button size="sm" onClick={onInvite}>
-            <IconUserPlus className="mr-1.5 h-4 w-4" />
-            Adicionar Usuário
-          </Button>
+          {canManage && (
+            <Button size="sm" onClick={onInvite}>
+              <IconUserPlus className="mr-1.5 h-4 w-4" />
+              Adicionar Usuário
+            </Button>
+          )}
         </div>
       </div>
     </div>

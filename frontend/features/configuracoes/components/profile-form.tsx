@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { z } from "zod";
+import { toast } from "sonner";
 import { useProfile, useUpdateProfile, useUploadAvatar } from "@/features/configuracoes/hooks/use-settings";
 import { useAuthStore } from "@/stores/auth-store";
 import { Input } from "@/components/ui/input";
@@ -74,7 +75,7 @@ export function ProfileForm() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      alert("Arquivo muito grande (máx. 5MB)");
+      toast.error("Arquivo muito grande (máx. 5MB)");
       return;
     }
     uploadAvatar.mutate(file);

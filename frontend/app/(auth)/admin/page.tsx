@@ -1,72 +1,27 @@
-﻿"use client";
+"use client";
 
-import { useState, useMemo, Fragment } from "react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { useState, useMemo } from "react";
 import {
-  IconSearch,
-  IconShield,
-  IconChevronDown,
-  IconChevronRight,
   IconActivity,
   IconUsers,
   IconCalendar,
   IconTag,
 } from "@tabler/icons-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ErrorState, EmptyState } from "@/components/shared";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ErrorState } from "@/components/shared";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { useAuditLogs } from "@/features/auth/hooks/use-admin";
 import { computeAdminKPIs } from "@/features/auth/services/admin";
-
-const ENTITY_TYPE_OPTIONS = [
-  { value: "all", label: "Todos os tipos" },
-  { value: "project", label: "Projeto" },
-  { value: "demand", label: "Tarefa" },
-  { value: "client", label: "Cliente" },
-  { value: "contract", label: "Contrato" },
-  { value: "financial", label: "Financeiro" },
-  { value: "profile", label: "Perfil" },
-  { value: "team", label: "Time" },
-];
-
-const ACTION_COLORS: Record<string, { bg: string; color: string }> = {
-  create: { bg: "#dcfce7", color: "#15803d" },
-  insert: { bg: "#dcfce7", color: "#15803d" },
-  update: { bg: "#dbeafe", color: "#1d4ed8" },
-  delete: { bg: "#fee2e2", color: "#b91c1c" },
-  remove: { bg: "#fee2e2", color: "#b91c1c" },
-  status_change: { bg: "#fef9c3", color: "#a16207" },
-  login: { bg: "#f3e8ff", color: "#7c3aed" },
-  logout: { bg: "#f1f5f9", color: "#475569" },
-};
+import { KpiCard } from "@/features/admin/components/kpi-card";
+import { AuditFilters } from "@/features/admin/components/audit-filters";
+import { AuditTable } from "@/features/admin/components/audit-table";
 
 export default function AdminPage() {
   const [search, setSearch] = useState("");
   const [entityType, setEntityType] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Build filters
   const filters = useMemo(() => {
     const f: {
       search?: string;
@@ -86,14 +41,8 @@ export default function AdminPage() {
   }, [search, entityType, dateFrom, dateTo]);
 
   const { data: logs = [], isLoading, error, refetch } = useAuditLogs(filters);
-
-  // KPIs from unfiltered logs
   const { data: allLogs = [] } = useAuditLogs();
   const kpis = useMemo(() => computeAdminKPIs(allLogs), [allLogs]);
-
-  function toggleExpand(id: string) {
-    setExpandedId((prev) => (prev === id ? null : id));
-  }
 
   if (error) {
     return <ErrorState message={error.message} onRetry={() => refetch()} />;
@@ -102,7 +51,6 @@ export default function AdminPage() {
   return (
     <RequireRole minRole="admin" module="admin">
       <div className="space-y-6">
-        {/* Header */}
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Admin Portal</h1>
           <p className="text-sm text-gray-500">
@@ -110,7 +58,6 @@ export default function AdminPage() {
           </p>
         </div>
 
-        {/* KPIs */}
         {isLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[...Array(4)].map((_, i) => (
@@ -145,251 +92,20 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative">
-            <IconSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-            <Input
-              placeholder="Buscar ação, entidade, usuário..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 w-[260px]"
-            />
-          </div>
+        <AuditFilters
+          search={search}
+          entityType={entityType}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onSearchChange={setSearch}
+          onEntityTypeChange={setEntityType}
+          onDateFromChange={setDateFrom}
+          onDateToChange={setDateTo}
+          onClear={() => { setSearch(""); setEntityType("all"); setDateFrom(""); setDateTo(""); }}
+        />
 
-          <Select value={entityType} onValueChange={setEntityType}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Tipo de entidade" />
-            </SelectTrigger>
-            <SelectContent>
-              {ENTITY_TYPE_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="w-[160px]"
-            placeholder="De"
-          />
-          <Input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="w-[160px]"
-            placeholder="Até"
-          />
-
-          {(search || entityType !== "all" || dateFrom || dateTo) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSearch("");
-                setEntityType("all");
-                setDateFrom("");
-                setDateTo("");
-              }}
-            >
-              Limpar filtros
-            </Button>
-          )}
-        </div>
-
-        {/* Table */}
-        {isLoading ? (
-          <div className="space-y-2">
-            {[...Array(8)].map((_, i) => (
-              <Skeleton key={i} className="h-12 rounded-lg" />
-            ))}
-          </div>
-        ) : logs.length === 0 ? (
-          <EmptyState
-            icon={IconShield}
-            title="Nenhum registro encontrado"
-            description="Ajuste os filtros ou aguarde novas ações no sistema."
-          />
-        ) : (
-          <div className="rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[30px]" />
-                  <TableHead>Data/Hora</TableHead>
-                  <TableHead>Usuário</TableHead>
-                  <TableHead>Ação</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Entidade</TableHead>
-                  <TableHead>Transição</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {logs.map((log) => {
-                  const isExpanded = expandedId === log.id;
-                  const actionStyle = ACTION_COLORS[log.action] ?? {
-                    bg: "#f1f5f9",
-                    color: "#475569",
-                  };
-
-                  return (
-                    <Fragment key={log.id}>
-                      <TableRow
-                        className="cursor-pointer"
-                        onClick={() => toggleExpand(log.id)}
-                      >
-                        <TableCell>
-                          {isExpanded ? (
-                            <IconChevronDown className="h-4 w-4 text-gray-500" />
-                          ) : (
-                            <IconChevronRight className="h-4 w-4 text-gray-500" />
-                          )}
-                        </TableCell>
-                        <TableCell className="text-gray-500 text-xs">
-                          {log.created_at
-                            ? format(
-                              new Date(log.created_at),
-                              "dd MMM yyyy, HH:mm",
-                              { locale: ptBR }
-                            )
-                            : "—"}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {log.user_name || "Sistema"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="secondary"
-                            style={{
-                              backgroundColor: actionStyle.bg,
-                              color: actionStyle.color,
-                            }}
-                          >
-                            {log.action}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-gray-500">
-                          {log.entity_type}
-                        </TableCell>
-                        <TableCell className="max-w-[200px] truncate">
-                          {log.entity_name || log.entity_id}
-                        </TableCell>
-                        <TableCell className="text-xs text-gray-500">
-                          {log.from_state || log.to_state ? (
-                            <span>
-                              {log.from_state && (
-                                <Badge
-                                  variant="secondary"
-                                  className="mr-1 text-xs"
-                                >
-                                  {log.from_state}
-                                </Badge>
-                              )}
-                              {log.from_state && log.to_state && (
-                                <span className="mx-1">→</span>
-                              )}
-                              {log.to_state && (
-                                <Badge
-                                  variant="secondary"
-                                  className="text-xs"
-                                >
-                                  {log.to_state}
-                                </Badge>
-                              )}
-                            </span>
-                          ) : (
-                            "—"
-                          )}
-                        </TableCell>
-                      </TableRow>
-
-                      {/* Expanded details */}
-                      {isExpanded && (
-                        <TableRow>
-                          <TableCell colSpan={7} className="bg-gray-100/30 p-4">
-                            <div className="space-y-3">
-                              {log.reason && (
-                                <div>
-                                  <p className="text-xs font-medium text-gray-500 mb-1">
-                                    Motivo
-                                  </p>
-                                  <p className="text-sm">{log.reason}</p>
-                                </div>
-                              )}
-                              {log.details && (
-                                <div>
-                                  <p className="text-xs font-medium text-gray-500 mb-1">
-                                    Detalhes
-                                  </p>
-                                  <pre className="text-xs bg-gray-100 rounded p-3 overflow-x-auto max-h-48">
-                                    {JSON.stringify(log.details, null, 2)}
-                                  </pre>
-                                </div>
-                              )}
-                              {log.metadata && (
-                                <div>
-                                  <p className="text-xs font-medium text-gray-500 mb-1">
-                                    Metadata
-                                  </p>
-                                  <pre className="text-xs bg-gray-100 rounded p-3 overflow-x-auto max-h-48">
-                                    {JSON.stringify(log.metadata, null, 2)}
-                                  </pre>
-                                </div>
-                              )}
-                              {!log.reason &&
-                                !log.details &&
-                                !log.metadata && (
-                                  <p className="text-sm text-gray-500">
-                                    Nenhum detalhe adicional disponível.
-                                  </p>
-                                )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </Fragment>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+        <AuditTable logs={logs} isLoading={isLoading} />
       </div>
     </RequireRole>
-  );
-}
-
-/* ─── Sub-components ─── */
-
-function KpiCard({
-  label,
-  value,
-  color,
-  isText,
-  icon,
-}: {
-  label: string;
-  value: number | string;
-  color?: string;
-  isText?: boolean;
-  icon?: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-lg border bg-white p-4">
-      <div className="flex items-center gap-2">
-        {icon}
-        <p className="text-sm text-gray-500">{label}</p>
-      </div>
-      <p
-        className={`mt-1 font-bold ${isText ? "text-base" : "text-2xl"}`}
-        style={color ? { color } : undefined}
-      >
-        {value}
-      </p>
-    </div>
   );
 }

@@ -3,6 +3,16 @@
 import { useState, useMemo } from "react";
 import { IconPlus } from "@tabler/icons-react";
 import { RequireRole } from "@/features/auth/components/require-role";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   useRoles,
@@ -29,6 +39,7 @@ function PermissoesContent() {
   const { data: roles = [], isLoading: rolesLoading, error: rolesError, refetch: rolesRefetch } = useRoles();
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [pendingDeleteRoleId, setPendingDeleteRoleId] = useState<string | null>(null);
 
   const selectedRole = useMemo(
     () => roles.find((r) => r.id === selectedRoleId) ?? null,
@@ -59,10 +70,15 @@ function PermissoesContent() {
   }
 
   function handleDeleteRole(roleId: string) {
-    if (!confirm("Tem certeza que deseja excluir esta role?")) return;
-    deleteRoleMutation.mutate(roleId, {
-      onSuccess: () => { if (selectedRoleId === roleId) setSelectedRoleId(null); },
+    setPendingDeleteRoleId(roleId);
+  }
+
+  function confirmDeleteRole() {
+    if (!pendingDeleteRoleId) return;
+    deleteRoleMutation.mutate(pendingDeleteRoleId, {
+      onSuccess: () => { if (selectedRoleId === pendingDeleteRoleId) setSelectedRoleId(null); },
     });
+    setPendingDeleteRoleId(null);
   }
 
   if (rolesError) {
@@ -110,6 +126,26 @@ function PermissoesContent() {
         isCreating={createRoleMutation.isPending}
         onSubmit={handleCreateRole}
       />
+
+      <AlertDialog open={!!pendingDeleteRoleId} onOpenChange={(open) => { if (!open) setPendingDeleteRoleId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir role?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. A role será removida permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={confirmDeleteRole}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

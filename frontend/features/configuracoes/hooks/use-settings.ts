@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
 import {
@@ -35,6 +36,7 @@ export function useUpdateProfile() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["profile", userId] });
     },
+    onError: () => toast.error("Erro ao salvar perfil. Tente novamente."),
   });
 }
 
@@ -52,6 +54,7 @@ export function useUploadAvatar() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["profile", userId] });
     },
+    onError: () => toast.error("Erro ao fazer upload do avatar. Tente novamente."),
   });
 }
 
@@ -78,6 +81,7 @@ export function useUpdateUserRole() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["users", tenantId] });
     },
+    onError: () => toast.error("Erro ao atualizar role. Tente novamente."),
   });
 }
 

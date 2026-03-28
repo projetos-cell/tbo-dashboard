@@ -104,7 +104,7 @@ export default function KanbanPage() {
           {/* pb-4 → espaço abaixo para a scrollbar não sobrepor os cartões   */}
           <div className="flex h-full flex-nowrap gap-4 pb-4">
             {COLUMN_CONFIG.map(({ status, label }) => (
-              <KanbanColumn key={status} title={label} count={tasksByStatus[status].length}>
+              <KanbanColumn key={status} id={status} title={label} count={tasksByStatus[status].length}>
                 {tasksByStatus[status].map((task) => (
                   <KanbanCard key={task.id} task={task} />
                 ))}

@@ -116,7 +116,7 @@ function PermissoesContent() {
 
 export default function PermissoesPage() {
   return (
-    <RequireRole minRole="diretoria" module="permissoes">
+    <RequireRole minRole="admin" module="permissoes">
       <PermissoesContent />
     </RequireRole>
   );

@@ -150,12 +150,12 @@ function ScaleDistribution({ stats }: { stats: ScaleStats }) {
 export default function PesquisaClimaPage() {
   return (
     <RBACGuard
-      minRole="diretoria"
+      minRole="admin"
       fallback={
         <div className="p-6 text-center space-y-2">
           <h1 className="text-xl font-bold">Acesso restrito</h1>
           <p className="text-sm text-muted-foreground">
-            O dashboard da Pesquisa de Clima é restrito à diretoria e founders.
+            O dashboard da Pesquisa de Clima é restrito a administradores.
           </p>
         </div>
       }

@@ -3,11 +3,10 @@
 import { type ReactNode } from "react";
 import { useAuthStore } from "@/stores/auth-store";
 
-export type Role = "founder" | "diretoria" | "lider" | "colaborador";
+export type Role = "admin" | "lider" | "colaborador";
 
 const ROLE_HIERARCHY: Record<Role, number> = {
-  founder: 4,
-  diretoria: 3,
+  admin: 4,
   lider: 2,
   colaborador: 1,
 };

@@ -221,7 +221,7 @@ function ToolCard({
 
 export default function FerramentasPage() {
   const { role } = useAuthStore();
-  const canEdit = role === "founder" || role === "diretoria";
+  const canEdit = role === "admin";
 
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);

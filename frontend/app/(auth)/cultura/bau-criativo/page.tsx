@@ -222,7 +222,7 @@ function ModerationTab() {
 
 export default function BauCriativoPage() {
   const { role } = useAuthStore()
-  const canModerate = role === "founder" || role === "diretoria"
+  const canModerate = role === "admin"
 
   const [search, setSearch] = useState("")
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>(

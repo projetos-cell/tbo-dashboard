@@ -178,7 +178,7 @@ function ContasContent() {
 
 export default function ContasPage() {
   return (
-    <RBACGuard minRole="diretoria">
+    <RBACGuard minRole="admin">
       <ContasContent />
     </RBACGuard>
   );

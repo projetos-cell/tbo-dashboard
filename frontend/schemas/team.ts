@@ -4,7 +4,7 @@ import { z } from "zod";
 // Role enum — matches lib/permissions.ts RoleSlug
 // ────────────────────────────────────────────────────
 
-const RoleEnum = z.enum(["founder", "diretoria", "lider", "colaborador"]);
+const RoleEnum = z.enum(["admin", "lider", "colaborador"]);
 
 // ────────────────────────────────────────────────────
 // Base schemas

@@ -8,7 +8,7 @@ import { computeAndUpsertDRE, getDRESnapshot } from "@/features/financeiro/servi
  *
  * POST /api/finance/dre?month=YYYY-MM
  * Computes and upserts DRE for the given month (server-side calculation).
- * Restricted to diretoria+ roles.
+ * Restricted to admin+ roles.
  */
 
 function getCurrentMonth(): string {
@@ -33,7 +33,7 @@ async function getAuthContext(supabase: Awaited<ReturnType<typeof createClient>>
   return profile ?? null;
 }
 
-const ALLOWED_ROLES = ["founder", "diretoria"] as const;
+const ALLOWED_ROLES = ["admin"] as const;
 type AllowedRole = (typeof ALLOWED_ROLES)[number];
 
 function hasAccess(role: string): role is AllowedRole {

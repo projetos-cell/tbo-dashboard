@@ -58,7 +58,7 @@ type ModuleCard = {
   icon: typeof IconMail;
   color: string;
   bgClass: string;
-  minRole?: "founder" | "diretoria" | "lider";
+  minRole?: "admin" | "lider";
 };
 
 const MODULE_CARDS: ModuleCard[] = [
@@ -101,7 +101,7 @@ const MODULE_CARDS: ModuleCard[] = [
     icon: IconChartBar,
     color: "#22c55e",
     bgClass: "bg-emerald-500/10",
-    minRole: "diretoria",
+    minRole: "admin",
   },
   {
     href: "/marketing/rsm",

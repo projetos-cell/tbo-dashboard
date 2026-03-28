@@ -294,7 +294,7 @@ function AttributionContent() {
 
 export default function AttributionPage() {
   return (
-    <RequireRole module="marketing" minRole="diretoria">
+    <RequireRole module="marketing" minRole="admin">
       <AttributionContent />
     </RequireRole>
   );

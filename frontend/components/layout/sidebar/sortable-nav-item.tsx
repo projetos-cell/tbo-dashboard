@@ -137,7 +137,7 @@ export const SortableNavItem = memo(function SortableNavItem({
           return hasMinRole(role as RoleSlug, sub.min_role as RoleSlug);
         }
         if ("founders_only" in sub && (sub as Record<string, unknown>).founders_only) {
-          return role === "founder" || role === "diretoria";
+          return role === "admin";
         }
         return true;
       }),

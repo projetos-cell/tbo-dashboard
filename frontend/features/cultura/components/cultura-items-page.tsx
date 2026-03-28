@@ -111,7 +111,7 @@ export function CulturaItemsPage({
   const deleteItem = useDeleteCulturaItem();
   const reorder = useReorderCulturaItems(category);
   const { user, tenantId, role } = useAuthStore();
-  const canEdit = role === "founder" || role === "diretoria";
+  const canEdit = role === "admin";
 
   const [orderedItems, setOrderedItems] = useState<CulturaRow[]>([]);
   const undoStack = useRef<CulturaRow[][]>([]);

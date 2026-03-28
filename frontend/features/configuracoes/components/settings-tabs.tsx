@@ -23,18 +23,15 @@ const ICONS: Record<string, React.ElementType> = {
 };
 
 const ADMIN_TABS = new Set(["workspace", "usuarios", "audit", "integracoes"]);
-const FOUNDER_TABS = new Set(["workspace"]);
 
 interface SettingsTabsProps {
   active: SettingsTabId;
   onChange: (id: SettingsTabId) => void;
   isAdmin: boolean;
-  isFounder: boolean;
 }
 
-export function SettingsTabs({ active, onChange, isAdmin, isFounder }: SettingsTabsProps) {
+export function SettingsTabs({ active, onChange, isAdmin }: SettingsTabsProps) {
   const visibleTabs = SETTINGS_TABS.filter((t) => {
-    if (FOUNDER_TABS.has(t.id)) return isFounder;
     if (ADMIN_TABS.has(t.id)) return isAdmin;
     return true;
   });

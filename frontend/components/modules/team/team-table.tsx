@@ -60,7 +60,7 @@ export function TeamTable({
   onDelete,
   onClearFilters,
 }: TeamTableProps) {
-  const canManageUsers = currentUserRole === "founder" || currentUserRole === "diretoria";
+  const canManageUsers = currentUserRole === "admin";
 
   const columns = useTeamTableColumns({
     currentUserId,

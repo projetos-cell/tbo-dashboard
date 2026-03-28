@@ -11,7 +11,7 @@ import { useDashboardStore } from "@/features/dashboard/stores/dashboard-store";
 import type { WidgetDef } from "@/features/dashboard/utils/dashboard-widgets";
 
 interface WidgetToolbarProps {
-  view: "founder" | "general";
+  view: "admin" | "general";
   widgets: WidgetDef[];
 }
 
@@ -20,7 +20,7 @@ export function WidgetToolbar({ view, widgets }: WidgetToolbarProps) {
     useDashboardStore();
 
   const hidden =
-    view === "founder" ? state.founderHidden : state.generalHidden;
+    view === "admin" ? state.adminHidden : state.generalHidden;
 
   const hiddenWidgets = widgets.filter((w) => hidden.includes(w.id));
 

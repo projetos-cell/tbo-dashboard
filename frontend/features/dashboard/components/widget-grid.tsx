@@ -33,7 +33,7 @@ interface WidgetGridProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: Record<string, any>;
   /** Which dashboard view is active */
-  view: "founder" | "general";
+  view: "admin" | "general";
 }
 
 // ── Component ───────────────────────────────────────────────────
@@ -42,9 +42,9 @@ export function WidgetGrid({ widgets, data, view }: WidgetGridProps) {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const store = useDashboardStore();
 
-  const order = view === "founder" ? store.founderOrder : store.generalOrder;
+  const order = view === "admin" ? store.adminOrder : store.generalOrder;
   const hidden =
-    view === "founder" ? store.founderHidden : store.generalHidden;
+    view === "admin" ? store.adminHidden : store.generalHidden;
 
   // Visible widgets sorted by persisted order
   const visibleWidgets = useMemo(() => {

@@ -12,7 +12,7 @@ export default function TeamPage() {
   if (!user || !appRole) return null;
 
   return (
-    <RequireRole allowed={["founder", "diretoria"]} module="admin">
+    <RequireRole allowed={["admin"]} module="admin">
       <TeamManagementPage
         currentUserId={user.id}
         currentUserRole={appRole}

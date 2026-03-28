@@ -27,7 +27,7 @@ export function TeamToolbar({
   filters,
   onFilterChange,
 }: TeamToolbarProps) {
-  const roles = ["founder", "diretoria", "lider", "colaborador"] as const;
+  const roles = ["admin", "lider", "colaborador"] as const;
 
   return (
     <Card>

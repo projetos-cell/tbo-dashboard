@@ -44,7 +44,7 @@ const TREND_PERIODS = [
 
 export default function CulturaAnalyticsPage() {
   return (
-    <RequireRole minRole="diretoria">
+    <RequireRole minRole="admin">
       <AnalyticsContent />
     </RequireRole>
   );

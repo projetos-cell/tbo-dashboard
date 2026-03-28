@@ -10,7 +10,7 @@ export interface User {
   name: string
   email: string
   avatar?: string
-  role: "founder" | "diretoria" | "lider" | "colaborador"
+  role: "admin" | "lider" | "colaborador"
   department: string
   cargo?: string
   status: "ativo" | "inativo" | "suspenso"
@@ -27,15 +27,13 @@ export type UserRole = User["role"]
 export type UserStatus = User["status"]
 
 export const ROLE_LABELS: Record<UserRole, string> = {
-  founder: "Founder",
-  diretoria: "Diretoria",
+  admin: "Admin",
   lider: "Líder",
   colaborador: "Colaborador",
 }
 
 export const ROLE_COLORS: Record<UserRole, string> = {
-  founder: "bg-purple-100 text-purple-700 border-purple-200",
-  diretoria: "bg-blue-100 text-blue-700 border-blue-200",
+  admin: "bg-purple-100 text-purple-700 border-purple-200",
   lider: "bg-amber-100 text-amber-700 border-amber-200",
   colaborador: "bg-gray-100 text-gray-700 border-gray-200",
 }

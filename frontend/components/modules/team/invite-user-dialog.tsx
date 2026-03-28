@@ -45,9 +45,9 @@ export function InviteUserDialog({
   });
 
   const assignableRoles = (
-    ["founder", "diretoria", "lider", "colaborador"] as const
+    ["admin", "lider", "colaborador"] as const
   ).filter((role) =>
-    hasMinRole(currentUserRole, "diretoria") ? true : ROLE_HIERARCHY[currentUserRole] > ROLE_HIERARCHY[role],
+    hasMinRole(currentUserRole, "admin") ? true : ROLE_HIERARCHY[currentUserRole] > ROLE_HIERARCHY[role],
   );
 
   function handleClose() {

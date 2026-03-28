@@ -159,7 +159,7 @@ export default function ContratosPage() {
   // ─── Error state ──────────────────────────────────────────────────
   if (error) {
     return (
-      <RequireRole module="contratos" minRole="diretoria">
+      <RequireRole module="contratos" minRole="admin">
         <ErrorState message={error.message} onRetry={() => refetch()} />
       </RequireRole>
     );
@@ -170,7 +170,7 @@ export default function ContratosPage() {
   ).length;
 
   return (
-    <RequireRole module="contratos" minRole="diretoria">
+    <RequireRole module="contratos" minRole="admin">
       <div className="space-y-4">
         {/* ── Header — compact single row ─────────────────────── */}
         <div className="flex items-center justify-between gap-3">

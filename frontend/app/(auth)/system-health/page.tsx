@@ -318,7 +318,7 @@ function SystemHealthContent() {
 
 export default function SystemHealthPage() {
   return (
-    <RequireRole minRole="diretoria" module="system-health">
+    <RequireRole minRole="admin" module="system-health">
       <SystemHealthContent />
     </RequireRole>
   );

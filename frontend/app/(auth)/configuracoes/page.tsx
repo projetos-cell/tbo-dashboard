@@ -32,8 +32,7 @@ function SettingsContent() {
     tabParam && VALID_TABS.includes(tabParam) ? tabParam : "perfil";
   const [activeTab, setActiveTab] = useState<SettingsTabId>(initialTab);
   const role = useAuthStore((s) => s.role);
-  const isAdmin = role === "founder" || role === "diretoria";
-  const isFounder = isAdmin; // founder e diretoria têm mesmos privilégios
+  const isAdmin = role === "admin";
 
   return (
     <div className="space-y-6">
@@ -51,7 +50,6 @@ function SettingsContent() {
             active={activeTab}
             onChange={setActiveTab}
             isAdmin={isAdmin}
-            isFounder={isFounder}
           />
         </aside>
 
@@ -60,7 +58,7 @@ function SettingsContent() {
           {activeTab === "perfil" && <ProfileForm />}
           {activeTab === "aparencia" && <AppearanceSettings />}
           {activeTab === "notificacoes" && <NotificationsSettings />}
-          {activeTab === "workspace" && isFounder && <WorkspaceSettings />}
+          {activeTab === "workspace" && isAdmin && <WorkspaceSettings />}
           {activeTab === "integracoes" && isAdmin && (
             <div className="space-y-8">
               <NotionSync />

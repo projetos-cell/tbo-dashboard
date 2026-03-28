@@ -350,7 +350,7 @@ function RelatoriosContent() {
 
 export default function RelatoriosMarketingPage() {
   return (
-    <RequireRole module="marketing" minRole="diretoria">
+    <RequireRole module="marketing" minRole="admin">
       <RelatoriosContent />
     </RequireRole>
   );

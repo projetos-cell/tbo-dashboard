@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Tooltip,
@@ -123,6 +124,20 @@ const KPI_CONFIG: Record<
 };
 
 // ---------------------------------------------------------------------------
+// Motion variants
+// ---------------------------------------------------------------------------
+
+const gridVariants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.05 } },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.25, ease: "easeOut" } },
+};
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -146,7 +161,12 @@ export function PeopleKPICardsV2({
   }
 
   return (
-    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+    <motion.div
+      variants={gridVariants}
+      initial="hidden"
+      animate="show"
+      className="grid grid-cols-2 gap-4 md:grid-cols-4"
+    >
       {KPI_KEYS.map((key) => {
         const cfg = KPI_CONFIG[key];
         const Icon = cfg.icon;
@@ -154,31 +174,33 @@ export function PeopleKPICardsV2({
         const isActive = activeKPI === key;
 
         return (
-          <Tooltip key={key}>
-            <TooltipTrigger asChild>
-              <Card
-                className={`cursor-pointer transition-all hover:shadow-md ${
-                  isActive ? "ring-2 ring-tbo-orange" : ""
-                }`}
-                onClick={() => onKPIClick(key)}
-              >
-                <CardContent className="flex items-center gap-3 p-4">
-                  <div className={`rounded-lg p-2 ${cfg.bg}`}>
-                    <Icon className={`h-5 w-5 ${cfg.color}`} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-2xl font-bold">{value}</p>
-                    <p className="truncate text-xs text-gray-500">
-                      {cfg.label}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">{cfg.tooltip}</TooltipContent>
-          </Tooltip>
+          <motion.div key={key} variants={cardVariants}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Card
+                  className={`cursor-pointer transition-all hover:shadow-md ${
+                    isActive ? "ring-2 ring-tbo-orange" : ""
+                  }`}
+                  onClick={() => onKPIClick(key)}
+                >
+                  <CardContent className="flex items-center gap-3 p-4">
+                    <div className={`rounded-lg p-2 ${cfg.bg}`}>
+                      <Icon className={`h-5 w-5 ${cfg.color}`} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-2xl font-bold">{value}</p>
+                      <p className="truncate text-xs text-gray-500">
+                        {cfg.label}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">{cfg.tooltip}</TooltipContent>
+            </Tooltip>
+          </motion.div>
         );
       })}
-    </div>
+    </motion.div>
   );
 }

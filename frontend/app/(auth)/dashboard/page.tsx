@@ -144,7 +144,7 @@ function GeneralBentoDashboard() {
 
 export default function DashboardPage() {
   const role = useAuthStore((s) => s.role);
-  const isFounderOrDiretoria = hasMinRole(role, "diretoria");
+  const isAdmin = hasMinRole(role, "admin");
 
   return (
     <div className="min-h-screen bg-background">
@@ -153,7 +153,7 @@ export default function DashboardPage() {
         <div>
           <DynamicGreeting />
           <p className="mt-1 text-sm text-muted-foreground">
-            {isFounderOrDiretoria
+            {isAdmin
               ? "Visao executiva da TBO"
               : "Suas tarefas, projetos e agenda"}
           </p>
@@ -161,7 +161,7 @@ export default function DashboardPage() {
 
         {/* Role-based Bento dashboard */}
         <Suspense fallback={<BentoSkeleton />}>
-          {isFounderOrDiretoria ? (
+          {isAdmin ? (
             <FounderBentoDashboard />
           ) : (
             <GeneralBentoDashboard />

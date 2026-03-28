@@ -119,7 +119,7 @@ export default function PortalClientePage() {
   }
 
   return (
-    <RequireRole module="portal-cliente" minRole="diretoria">
+    <RequireRole module="portal-cliente" minRole="admin">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

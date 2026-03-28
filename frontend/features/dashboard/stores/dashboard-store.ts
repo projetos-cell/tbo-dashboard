@@ -1,18 +1,18 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {
-  FOUNDER_WIDGETS,
+  ADMIN_WIDGETS,
   GENERAL_WIDGETS,
   getDefaultOrder,
 } from "@/features/dashboard/utils/dashboard-widgets";
 
 // ── Types ───────────────────────────────────────────────────────
 
-type View = "founder" | "general";
+type View = "admin" | "general";
 
 interface DashboardLayoutState {
-  founderOrder: string[];
-  founderHidden: string[];
+  adminOrder: string[];
+  adminHidden: string[];
   generalOrder: string[];
   generalHidden: string[];
 
@@ -28,7 +28,7 @@ interface DashboardLayoutState {
 
 // ── Defaults ────────────────────────────────────────────────────
 
-const DEFAULT_FOUNDER_ORDER = getDefaultOrder(FOUNDER_WIDGETS);
+const DEFAULT_ADMIN_ORDER = getDefaultOrder(ADMIN_WIDGETS);
 const DEFAULT_GENERAL_ORDER = getDefaultOrder(GENERAL_WIDGETS);
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -58,25 +58,25 @@ function ensureAllWidgets(
 export const useDashboardStore = create<DashboardLayoutState>()(
   persist(
     (set) => ({
-      founderOrder: DEFAULT_FOUNDER_ORDER,
-      founderHidden: [],
+      adminOrder: DEFAULT_ADMIN_ORDER,
+      adminHidden: [],
       generalOrder: DEFAULT_GENERAL_ORDER,
       generalHidden: [],
 
       reorder: (view, ids) =>
         set(
-          view === "founder"
-            ? { founderOrder: ids }
+          view === "admin"
+            ? { adminOrder: ids }
             : { generalOrder: ids }
         ),
 
       hideWidget: (view, id) =>
         set((s) => {
-          if (view === "founder") {
+          if (view === "admin") {
             return {
-              founderHidden: s.founderHidden.includes(id)
-                ? s.founderHidden
-                : [...s.founderHidden, id],
+              adminHidden: s.adminHidden.includes(id)
+                ? s.adminHidden
+                : [...s.adminHidden, id],
             };
           }
           return {
@@ -88,13 +88,13 @@ export const useDashboardStore = create<DashboardLayoutState>()(
 
       showWidget: (view, id) =>
         set((s) => {
-          if (view === "founder") {
-            const order = s.founderOrder.includes(id)
-              ? s.founderOrder
-              : [...s.founderOrder, id];
+          if (view === "admin") {
+            const order = s.adminOrder.includes(id)
+              ? s.adminOrder
+              : [...s.adminOrder, id];
             return {
-              founderHidden: s.founderHidden.filter((h) => h !== id),
-              founderOrder: order,
+              adminHidden: s.adminHidden.filter((h) => h !== id),
+              adminOrder: order,
             };
           }
           const order = s.generalOrder.includes(id)
@@ -108,10 +108,10 @@ export const useDashboardStore = create<DashboardLayoutState>()(
 
       resetLayout: (view) =>
         set(
-          view === "founder"
+          view === "admin"
             ? {
-                founderOrder: DEFAULT_FOUNDER_ORDER,
-                founderHidden: [],
+                adminOrder: DEFAULT_ADMIN_ORDER,
+                adminHidden: [],
               }
             : {
                 generalOrder: DEFAULT_GENERAL_ORDER,
@@ -124,9 +124,9 @@ export const useDashboardStore = create<DashboardLayoutState>()(
       // On rehydration, ensure new widgets are included
       onRehydrateStorage: () => (state) => {
         if (!state) return;
-        state.founderOrder = ensureAllWidgets(
-          state.founderOrder,
-          DEFAULT_FOUNDER_ORDER
+        state.adminOrder = ensureAllWidgets(
+          state.adminOrder,
+          DEFAULT_ADMIN_ORDER
         );
         state.generalOrder = ensureAllWidgets(
           state.generalOrder,

@@ -33,7 +33,7 @@ type RewardRow = Database["public"]["Tables"]["recognition_rewards"]["Row"];
 
 export default function RecompensasPage() {
   const { user, tenantId, role } = useAuthStore();
-  const canManage = role === "founder" || role === "diretoria";
+  const canManage = role === "admin";
   const [tab, setTab] = useState("catalogo");
   const [redeemingReward, setRedeemingReward] = useState<CatalogReward | null>(null);
 

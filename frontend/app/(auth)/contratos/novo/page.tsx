@@ -8,7 +8,7 @@ import { RequireRole } from "@/features/auth/components/require-role";
 
 export default function NovoContratoPage() {
   return (
-    <RequireRole minRole="diretoria">
+    <RequireRole minRole="admin">
     <div className="flex flex-col gap-6 p-6 h-[calc(100vh-4rem)]">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild>

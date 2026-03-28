@@ -247,7 +247,7 @@ function BoletosContent() {
 
 export default function BoletosPage() {
   return (
-    <RBACGuard minRole="diretoria">
+    <RBACGuard minRole="admin">
       <BoletosContent />
     </RBACGuard>
   );

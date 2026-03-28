@@ -214,7 +214,7 @@ function FluxoCaixaContent() {
 
 export default function FluxoCaixaPage() {
   return (
-    <RBACGuard minRole="diretoria">
+    <RBACGuard minRole="admin">
       <FluxoCaixaContent />
     </RBACGuard>
   );

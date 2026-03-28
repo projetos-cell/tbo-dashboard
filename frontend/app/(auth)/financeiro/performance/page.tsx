@@ -97,7 +97,7 @@ function PerformanceContent() {
 
 export default function PerformancePage() {
   return (
-    <RBACGuard minRole="diretoria">
+    <RBACGuard minRole="admin">
       <PerformanceContent />
     </RBACGuard>
   );

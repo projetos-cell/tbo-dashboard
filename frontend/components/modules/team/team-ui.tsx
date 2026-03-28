@@ -10,16 +10,10 @@ export const ROLE_CONFIG: Record<
   RoleSlug,
   { label: string; description: string; className: string }
 > = {
-  founder: {
-    label: "Founder",
+  admin: {
+    label: "Admin",
     description: "Acesso total — Owner + Admin",
     className: "bg-brand/15 text-brand border-brand/30",
-  },
-  diretoria: {
-    label: "Diretoria",
-    description: "Gerencia modulos e equipe",
-    className:
-      "bg-violet-500/15 text-violet-700 border-violet-500/30 dark:text-violet-400",
   },
   lider: {
     label: "Lider",

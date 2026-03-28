@@ -70,7 +70,7 @@ export default function AuditLogPage() {
   }
 
   return (
-    <RBACGuard minRole="founder">
+    <RBACGuard minRole="admin">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

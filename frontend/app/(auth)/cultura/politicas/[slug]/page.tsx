@@ -19,7 +19,7 @@ export default function PolicySlugPage({ params }: PolicySlugPageProps) {
   const { slug } = use(params);
   const router = useRouter();
   const { user, role } = useAuthStore();
-  const canEdit = role === "founder" || role === "diretoria";
+  const canEdit = role === "admin";
 
   const { data: policy, isLoading } = usePolicy(slug);
   const updatePolicy = useUpdatePolicy();

@@ -39,8 +39,8 @@ export function CustomFieldsSection({ taskId }: CustomFieldsSectionProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   const role = useAuthStore((s) => s.role);
-  const canManageDefs = hasMinRole(role, "diretoria"); // founder + diretoria
-  const isFounder = role === "founder";
+  const canManageDefs = hasMinRole(role, "admin"); // admin
+  const isAdmin = role === "admin";
   const canFillValues = hasMinRole(role, "colaborador"); // todos
 
   const { data: definitions = [], isLoading: defsLoading } = useFieldDefinitions();
@@ -117,7 +117,7 @@ export function CustomFieldsSection({ taskId }: CustomFieldsSectionProps) {
                 taskId={taskId}
                 currentValue={getValueForField(def.id)}
                 readonly={!canFillValues}
-                canDelete={isFounder}
+                canDelete={isAdmin}
                 onDelete={() => deleteDef.mutate(def.id)}
               />
             ))}
@@ -177,7 +177,7 @@ function CustomFieldRow({
         />
       </div>
 
-      {/* Delete action (founder only) */}
+      {/* Delete action (admin only) */}
       {canDelete && hovered && (
         <Tooltip>
           <TooltipTrigger asChild>

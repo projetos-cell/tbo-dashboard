@@ -203,7 +203,7 @@ function FinanceiroContent() {
 
 export default function FinanceiroPage() {
   return (
-    <RBACGuard minRole="diretoria">
+    <RBACGuard minRole="admin">
       <FinanceiroContent />
     </RBACGuard>
   );

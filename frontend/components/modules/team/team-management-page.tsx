@@ -73,7 +73,7 @@ export function TeamManagementPage({
   const { data: allMembers } = useTeamMembers();
   const statsSource = hasActiveFilters ? (allMembers ?? members) : members;
 
-  const canManageUsers = hasMinRole(currentUserRole, "diretoria");
+  const canManageUsers = hasMinRole(currentUserRole, "admin");
   const activeCount = statsSource.filter((m) => m.is_active).length;
 
   function handleClearFilters() {

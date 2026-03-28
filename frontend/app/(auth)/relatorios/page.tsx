@@ -49,7 +49,7 @@ export default function RelatoriosPage() {
   const kpis = useMemo(() => computeReportsKPIs(schedules, allRuns), [schedules, allRuns]);
 
   return (
-    <RequireRole minRole="diretoria" module="relatorios">
+    <RequireRole minRole="admin" module="relatorios">
       <div className="space-y-4">
         <Breadcrumb>
           <BreadcrumbList>

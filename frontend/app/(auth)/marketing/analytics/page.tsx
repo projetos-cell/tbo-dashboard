@@ -303,7 +303,7 @@ function AnalyticsContent() {
 
 export default function AnalyticsPage() {
   return (
-    <RequireRole module="marketing" minRole="diretoria">
+    <RequireRole module="marketing" minRole="admin">
       <AnalyticsContent />
     </RequireRole>
   );

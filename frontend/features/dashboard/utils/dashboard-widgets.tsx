@@ -28,22 +28,22 @@ export interface WidgetDef {
   propsKey: string | null;
   /** Name of the prop to pass the data as (e.g. "projects", "entries") */
   propName: string | null;
-  /** Only visible on founder/admin dashboards */
-  founderOnly: boolean;
+  /** Only visible on admin dashboards */
+  adminOnly: boolean;
   /** CSS grid column span (default 1) */
   colSpan?: 1 | 2;
 }
 
-// ── Founder widgets ─────────────────────────────────────────────
+// ── Admin widgets ─────────────────────────────────────────────
 
-export const FOUNDER_WIDGETS: WidgetDef[] = [
+export const ADMIN_WIDGETS: WidgetDef[] = [
   {
     id: "pipeline-overview",
     label: "Pipeline Comercial",
     component: PipelineOverview,
     propsKey: "deals",
     propName: "deals",
-    founderOnly: true,
+    adminOnly: true,
   },
   {
     id: "active-projects",
@@ -51,7 +51,7 @@ export const FOUNDER_WIDGETS: WidgetDef[] = [
     component: ActiveProjects,
     propsKey: "projects",
     propName: "projects",
-    founderOnly: true,
+    adminOnly: true,
   },
   {
     id: "urgent-tasks",
@@ -59,7 +59,7 @@ export const FOUNDER_WIDGETS: WidgetDef[] = [
     component: UrgentTasks,
     propsKey: "tasks",
     propName: "tasks",
-    founderOnly: true,
+    adminOnly: true,
   },
   {
     id: "okr-snapshot",
@@ -67,7 +67,7 @@ export const FOUNDER_WIDGETS: WidgetDef[] = [
     component: OkrSnapshotCard,
     propsKey: "okrSnapshots",
     propName: "snapshots",
-    founderOnly: true,
+    adminOnly: true,
   },
   {
     id: "alerts-panel",
@@ -75,7 +75,7 @@ export const FOUNDER_WIDGETS: WidgetDef[] = [
     component: AlertsPanel,
     propsKey: "alerts",
     propName: "alerts",
-    founderOnly: true,
+    adminOnly: true,
   },
 ];
 
@@ -88,7 +88,7 @@ export const GENERAL_WIDGETS: WidgetDef[] = [
     component: ProjectsOverview,
     propsKey: "projects",
     propName: "projects",
-    founderOnly: false,
+    adminOnly: false,
   },
   {
     id: "tasks-overview",
@@ -96,7 +96,7 @@ export const GENERAL_WIDGETS: WidgetDef[] = [
     component: TasksOverview,
     propsKey: "tasks",
     propName: "tasks",
-    founderOnly: false,
+    adminOnly: false,
   },
   {
     id: "agenda-summary",
@@ -104,7 +104,7 @@ export const GENERAL_WIDGETS: WidgetDef[] = [
     component: AgendaSummary,
     propsKey: null,
     propName: null,
-    founderOnly: false,
+    adminOnly: false,
   },
   {
     id: "quick-actions",
@@ -112,7 +112,7 @@ export const GENERAL_WIDGETS: WidgetDef[] = [
     component: QuickActions,
     propsKey: null,
     propName: null,
-    founderOnly: false,
+    adminOnly: false,
   },
 ];
 

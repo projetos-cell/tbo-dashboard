@@ -533,7 +533,7 @@ export type SubNavItem = {
   readonly href: string;
   readonly label: string;
   readonly icon: string;
-  readonly min_role?: "founder" | "diretoria" | "lider";
+  readonly min_role?: "admin" | "lider";
 };
 
 export const PROJETOS_NAV_ITEMS: readonly SubNavItem[] = [
@@ -651,7 +651,7 @@ export const MARKETING_NAV_ITEMS: readonly SubNavItem[] = [
   { href: "/marketing/email-studio", label: "Email Studio", icon: "mail" },
   { href: "/marketing/redes-sociais", label: "Redes Sociais", icon: "brand-instagram" },
   { href: "/blog", label: "Blog", icon: "article" },
-  { href: "/marketing/analytics", label: "Analytics", icon: "chart-bar", min_role: "diretoria" },
+  { href: "/marketing/analytics", label: "Analytics", icon: "chart-bar", min_role: "admin" },
 ] as const;
 
 // ─── Blog ────────────────────────────────────────────────────

@@ -133,7 +133,7 @@ function NotificationsSection() {
 
 export default function ProjetosConfiguracoes() {
   return (
-    <RequireRole module="projetos" allowed={["founder", "diretoria", "lider"]}>
+    <RequireRole module="projetos" allowed={["admin", "lider"]}>
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <div className="flex size-9 items-center justify-center rounded-lg bg-muted">

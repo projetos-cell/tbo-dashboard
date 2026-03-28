@@ -179,7 +179,7 @@ function applyStatusFilter(
 
 export default function ConciliacaoPage() {
   return (
-    <RBACGuard minRole="diretoria">
+    <RBACGuard minRole="admin">
       <ConciliacaoContent />
     </RBACGuard>
   );

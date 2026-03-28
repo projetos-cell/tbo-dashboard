@@ -216,8 +216,8 @@ export default function CulturaPage() {
         </Link>
       </div>
 
-      {/* Analytics link — founder/diretoria only */}
-      <RequireRole minRole="diretoria">
+      {/* Analytics link — admin only */}
+      <RequireRole minRole="admin">
         <Link href="/cultura/analytics" className="group block">
           <Card className="transition-colors group-hover:border-indigo-400/40 bg-indigo-50/40 dark:bg-indigo-900/10 border-dashed">
             <CardContent className="p-4 flex items-center gap-3">

@@ -14,7 +14,7 @@ export type ChannelAction =
   | "pin_message";
 
 interface ChannelPermissionContext {
-  /** Global role slug (founder, diretoria, lider, colaborador) */
+  /** Global role slug (admin, lider, colaborador) */
   userRole: string | null;
   /** User's role within the channel (admin | member | null if not a member) */
   channelMemberRole: string | null;
@@ -27,7 +27,7 @@ interface ChannelPermissionContext {
   isCreator: boolean;
 }
 
-const ELEVATED_ROLES = new Set(["founder", "diretoria"]);
+const ELEVATED_ROLES = new Set(["admin"]);
 
 export function canPerformChannelAction(
   action: ChannelAction,

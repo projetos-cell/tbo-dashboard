@@ -38,14 +38,14 @@ export function useTeamTableColumns({
   onEdit,
   onDelete,
 }: UseTeamTableColumnsProps) {
-  const canManageUsers = hasMinRole(currentUserRole, "diretoria");
-  const canDeleteUsers = hasMinRole(currentUserRole, "diretoria");
+  const canManageUsers = hasMinRole(currentUserRole, "admin");
+  const canDeleteUsers = hasMinRole(currentUserRole, "admin");
 
   const canActOn = useMemo(
     () =>
       (target: TeamMember): boolean => {
         if (target.id === currentUserId) return false;
-        if (hasMinRole(currentUserRole, "diretoria")) return true;
+        if (hasMinRole(currentUserRole, "admin")) return true;
         return ROLE_HIERARCHY[currentUserRole] > ROLE_HIERARCHY[target.role];
       },
     [currentUserId, currentUserRole]

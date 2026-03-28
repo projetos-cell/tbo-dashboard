@@ -25,7 +25,7 @@ export function TeamStatsCards({
     {} as Record<string, number>
   );
 
-  const roles = ["founder", "diretoria", "lider", "colaborador"] as const;
+  const roles = ["admin", "lider", "colaborador"] as const;
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

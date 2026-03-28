@@ -62,7 +62,7 @@ export function SetCareerLevelDialog({
 }: SetCareerLevelDialogProps) {
   const role = useAuthStore((s) => s.role);
   const canPromote = hasMinRole(role, "lider");
-  const canManage = hasMinRole(role, "diretoria");
+  const canManage = hasMinRole(role, "admin");
 
   const { data: paths } = useCareerPaths();
   const { data: career } = usePersonCareer(profileId);

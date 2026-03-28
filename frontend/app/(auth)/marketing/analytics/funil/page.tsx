@@ -275,7 +275,7 @@ function FunilContent() {
 
 export default function FunilPage() {
   return (
-    <RequireRole module="marketing" minRole="diretoria">
+    <RequireRole module="marketing" minRole="admin">
       <FunilContent />
     </RequireRole>
   );

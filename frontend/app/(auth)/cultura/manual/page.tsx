@@ -33,7 +33,7 @@ export default function ManualPage() {
   const deleteItem = useDeleteCulturaItem();
   const reorder = useReorderCulturaItems("manual");
   const { user, tenantId, role } = useAuthStore();
-  const canEdit = role === "founder" || role === "diretoria";
+  const canEdit = role === "admin";
 
   const [orderedItems, setOrderedItems] = useState<CulturaRow[]>([]);
   const undoStack = useRef<CulturaRow[][]>([]);

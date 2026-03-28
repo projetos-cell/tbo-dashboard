@@ -40,7 +40,7 @@ import type { Database } from "@/lib/supabase/types";
 
 export default function ReconhecimentosPage() {
   const { user, tenantId, role } = useAuthStore();
-  const canManage = role === "founder" || role === "diretoria";
+  const canManage = role === "admin";
   const [showForm, setShowForm] = useState(false);
   const [tab, setTab] = useState("feed");
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -123,7 +123,7 @@ export default function ReconhecimentosPage() {
         value_name: data.value_name,
         value_emoji: data.value_emoji,
         message: data.message,
-        points: role === "founder" ? 2 : 1,
+        points: role === "admin" ? 2 : 1,
         source: "manual",
         reviewed: true,
       } as Database["public"]["Tables"]["recognitions"]["Insert"]);

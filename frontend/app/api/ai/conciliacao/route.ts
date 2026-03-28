@@ -1,7 +1,7 @@
 // ── AI Conciliação API Route ─────────────────────────────────────────────────
 // POST /api/ai/conciliacao
 // Actions: analyze (F1), categorize (F2), anomalies (F3), summary (F5)
-// RBAC: diretoria+ (validated via Supabase session)
+// RBAC: admin+ (validated via Supabase session)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { NextRequest, NextResponse } from "next/server";
@@ -176,7 +176,7 @@ async function getUserFromRequest(req: NextRequest): Promise<{ userId: string; t
   };
 }
 
-const ALLOWED_ROLES = ["founder", "diretoria"];
+const ALLOWED_ROLES = ["admin"];
 
 async function checkCachedSuggestion(
   tenantId: string,

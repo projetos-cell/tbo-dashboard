@@ -21,7 +21,7 @@ export interface UserRoleInfo {
  * - The query fails (no Supabase creds, network error)
  * - The user has no tenant_members record
  *
- * Super-admin emails are always promoted to "founder" regardless of DB value.
+ * Super-admin emails are always promoted to "admin" regardless of DB value.
  */
 export async function fetchUserRole(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -45,12 +45,12 @@ export async function fetchUserRole(
       tenantId = (data as Record<string, unknown>).tenant_id as string | null;
     }
 
-    // Super-admin override -- hardcoded emails always get founder
+    // Super-admin override -- hardcoded emails always get admin
     if (isSuperAdmin(userEmail)) {
       return {
-        roleSlug: "founder",
-        roleLabel: "Founder",
-        modules: getModulesForRole("founder"),
+        roleSlug: "admin",
+        roleLabel: "Admin",
+        modules: getModulesForRole("admin"),
         tenantId,
       };
     }
@@ -81,20 +81,20 @@ export async function fetchUserRole(
 }
 
 /**
- * Map any DB role slug to one of the 4 frontend roles.
- * Architecture: founder > diretoria > lider > colaborador
+ * Map any DB role slug to one of the 3 frontend roles.
+ * Architecture: admin > lider > colaborador
  *
  * The DB may have specific slugs (e.g. "3d-artist", "design", "video-editor")
- * which map to the 4-tier hierarchy.
+ * which map to the 3-tier hierarchy.
  */
 function mapDbSlugToRole(dbSlug: string): RoleSlug {
   const mapping: Record<string, RoleSlug> = {
     // Direct matches
-    founder: "founder",
-    admin: "founder",
-    diretoria: "diretoria",
-    director: "diretoria",
-    manager: "diretoria",
+    founder: "admin",
+    admin: "admin",
+    diretoria: "admin",
+    director: "admin",
+    manager: "admin",
     po: "lider",
     lider: "lider",
     lead: "lider",

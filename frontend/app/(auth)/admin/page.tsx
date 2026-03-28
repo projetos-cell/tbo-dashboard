@@ -100,7 +100,7 @@ export default function AdminPage() {
   }
 
   return (
-    <RequireRole minRole="diretoria" module="admin">
+    <RequireRole minRole="admin" module="admin">
       <div className="space-y-6">
         {/* Header */}
         <div>

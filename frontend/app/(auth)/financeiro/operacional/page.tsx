@@ -270,7 +270,7 @@ function KpiSummaryCard({ icon, label, value, sub, color, loading }: {
 
 export default function OperacionalPage() {
   return (
-    <RBACGuard minRole="diretoria">
+    <RBACGuard minRole="admin">
       <OperacionalContent />
     </RBACGuard>
   );

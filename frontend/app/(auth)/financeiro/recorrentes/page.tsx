@@ -249,7 +249,7 @@ function RecorrentesContent() {
 
 export default function RecorrentesPage() {
   return (
-    <RBACGuard minRole="diretoria">
+    <RBACGuard minRole="admin">
       <RecorrentesContent />
     </RBACGuard>
   );

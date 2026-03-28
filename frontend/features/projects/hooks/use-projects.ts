@@ -24,7 +24,7 @@ import { hasMinRole, hasPermission } from "@/lib/permissions";
 import type { Database } from "@/lib/supabase/types";
 
 /** Throws if user's role doesn't meet the minimum required */
-function assertMinRole(minRole: "founder" | "diretoria" | "lider" | "colaborador", action: string) {
+function assertMinRole(minRole: "admin" | "lider" | "colaborador", action: string) {
   const role = useAuthStore.getState().role;
   if (!hasMinRole(role, minRole)) {
     throw new Error(`Permissão insuficiente para ${action}. Requer nível ${minRole} ou superior.`);
@@ -291,7 +291,7 @@ export function useDeleteProject() {
 
   const mutation = useMutation({
     mutationFn: (id: string) => {
-      assertMinRole("diretoria", "deletar projeto");
+      assertMinRole("admin", "deletar projeto");
       return deleteProject(supabase, id);
     },
 

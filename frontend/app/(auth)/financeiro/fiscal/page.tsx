@@ -325,7 +325,7 @@ function FiscalContent() {
 
 export default function FiscalPage() {
   return (
-    <RBACGuard minRole="diretoria">
+    <RBACGuard minRole="admin">
       <FiscalContent />
     </RBACGuard>
   );

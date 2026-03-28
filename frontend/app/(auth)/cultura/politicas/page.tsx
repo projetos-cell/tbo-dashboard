@@ -26,7 +26,7 @@ type PolicyRow = Database["public"]["Tables"]["policies"]["Row"];
 
 export default function PoliticasPage() {
   const { user, tenantId, role } = useAuthStore();
-  const canEdit = role === "founder" || role === "diretoria";
+  const canEdit = role === "admin";
 
   // Filters state
   const [filters, setFilters] = useState<PolicyFilterValues>({

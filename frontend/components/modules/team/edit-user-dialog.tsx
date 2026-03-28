@@ -160,14 +160,14 @@ export function EditUserDialog({
   );
 
   const assignableRoles = (
-    ["founder", "diretoria", "lider", "colaborador"] as const
+    ["admin", "lider", "colaborador"] as const
   ).filter((role) => {
-    if (hasMinRole(currentUserRole, "diretoria")) return true;
+    if (hasMinRole(currentUserRole, "admin")) return true;
     return ROLE_HIERARCHY[currentUserRole] > ROLE_HIERARCHY[role];
   });
 
   const canEdit =
-    hasMinRole(currentUserRole, "diretoria") ||
+    hasMinRole(currentUserRole, "admin") ||
     (member
       ? ROLE_HIERARCHY[currentUserRole] > ROLE_HIERARCHY[member.role]
       : false);

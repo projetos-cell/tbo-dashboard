@@ -1,57 +1,24 @@
 // RBAC -- Role-based access control for the frontend
-// 3 tiers: founder/diretoria (admin) > lider > colaborador
-// founder e diretoria têm privilégios idênticos (admin tier)
+// 3 tiers: admin > lider > colaborador
 
-export type RoleSlug = "founder" | "diretoria" | "lider" | "colaborador";
+export type RoleSlug = "admin" | "lider" | "colaborador";
 
 /**
  * Role hierarchy -- higher number = more privileges.
  * Used by hasMinRole() for permission checks.
  */
 export const ROLE_HIERARCHY: Record<RoleSlug, number> = {
-  founder: 4,
-  diretoria: 3,
+  admin: 4,
   lider: 2,
   colaborador: 1,
 };
 
 /**
  * Modules each role can SEE in the sidebar and access via URL.
- * Founder uses "*" wildcard = unrestricted access.
+ * Admin uses "*" wildcard = unrestricted access.
  */
 export const ROLE_MODULES: Record<RoleSlug, string[]> = {
-  founder: ["*"],
-  diretoria: [
-    "dashboard",
-    "projetos",
-    "tarefas",
-    "pessoas",
-    "agenda",
-    "financeiro",
-    "comercial",
-    "clientes",
-    "contratos",
-    "okrs",
-    "chat",
-    "cultura",
-    "configuracoes",
-    "relatorios",
-    "mercado",
-
-    "marketing",
-    "usuarios",
-    "intelligence",
-    "audit-logs",
-    "audit-log",
-    "admin",
-    "academy",
-    "compras",
-    "ativos",
-    "conhecimento",
-    "portal-cliente",
-    "changelog",
-    "review",
-  ],
+  admin: ["*"],
   lider: [
     "dashboard",
     "projetos",
@@ -63,7 +30,6 @@ export const ROLE_MODULES: Record<RoleSlug, string[]> = {
     "chat",
     "cultura",
     "mercado",
-
     "marketing",
     "relatorios",
     "intelligence",
@@ -118,7 +84,6 @@ const ALL_MODULES = [
   "system-health",
   "audit-logs",
   "audit-log",
-  "academy",
   "compras",
   "ativos",
   "conhecimento",
@@ -126,8 +91,7 @@ const ALL_MODULES = [
 ];
 
 /**
- * Super-admin emails -- always treated as founder regardless of DB role.
- * Matches legacy TBO_PERMISSIONS._superAdmins.
+ * Super-admin emails -- always treated as admin regardless of DB role.
  */
 export const SUPER_ADMIN_EMAILS = [
   "marco@agenciatbo.com.br",
@@ -136,13 +100,10 @@ export const SUPER_ADMIN_EMAILS = [
 
 /**
  * Check if userRole meets a minimum role threshold using the hierarchy.
- *
- * Example: hasMinRole("lider", "diretoria") => false (2 < 3)
- * Example: hasMinRole("founder", "diretoria") => true (4 >= 3)
  */
 export function hasMinRole(
   userRole: RoleSlug | null,
-  minRole: RoleSlug
+  minRole: RoleSlug,
 ): boolean {
   if (!userRole) return false;
   return ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY[minRole];
@@ -155,13 +116,9 @@ export function canAccessModule(role: RoleSlug, module: string): boolean {
   return allowed.includes("*") || allowed.includes(module);
 }
 
-/**
- * True for admin-tier roles (founder OR diretoria).
- * Both have identical privileges — the distinction is cosmetic.
- * Super-admin emails are promoted to founder in the auth service.
- */
+/** True for admin-tier role */
 export function isAdmin(role: RoleSlug | null): boolean {
-  return role === "founder" || role === "diretoria";
+  return role === "admin";
 }
 
 /** True if email matches a hardcoded super-admin */
@@ -205,40 +162,40 @@ export type PermissionKey =
   | "chat.delete_messages"
   | "review.approve"
   | "review.delete"
-  | "career.manage"   // criar/editar paths e níveis (founder + diretoria)
-  | "career.promote"; // promover/definir nível de pessoa (founder + diretoria + lider)
+  | "career.manage"
+  | "career.promote";
 
 /**
  * Permission matrix from architecture.md.
  * Maps each permission to the roles that have it.
  */
 const PERMISSION_MATRIX: Record<PermissionKey, RoleSlug[]> = {
-  "financeiro.view": ["founder", "diretoria"],
-  "pipeline.view": ["founder", "diretoria"],
-  "okrs.create": ["founder", "diretoria"],
-  "okrs.checkin": ["founder", "diretoria", "lider", "colaborador"],
-  "projetos.create": ["founder", "diretoria", "lider"],
-  "projetos.view_all": ["founder", "diretoria", "lider"],
-  "intelligence.full": ["founder", "diretoria"],
-  "intelligence.partial": ["founder", "diretoria", "lider"],
-  "rbac.manage": ["founder", "diretoria"],
-  "audit_logs.view": ["founder", "diretoria"],
-  "one_on_one.conduct": ["founder", "diretoria", "lider"],
-  "one_on_one.participate": ["founder", "diretoria", "lider", "colaborador"],
-  reconhecimentos: ["founder", "diretoria", "lider", "colaborador"],
-  "chat.create_channel": ["founder", "diretoria", "lider"],
-  "chat.manage_channels": ["founder", "diretoria"],
-  "chat.delete_messages": ["founder", "diretoria"],
-  "review.approve": ["founder", "diretoria", "lider"],
-  "review.delete": ["founder", "diretoria"],
-  "career.manage": ["founder", "diretoria"],
-  "career.promote": ["founder", "diretoria", "lider"],
+  "financeiro.view": ["admin"],
+  "pipeline.view": ["admin"],
+  "okrs.create": ["admin"],
+  "okrs.checkin": ["admin", "lider", "colaborador"],
+  "projetos.create": ["admin", "lider"],
+  "projetos.view_all": ["admin", "lider"],
+  "intelligence.full": ["admin"],
+  "intelligence.partial": ["admin", "lider"],
+  "rbac.manage": ["admin"],
+  "audit_logs.view": ["admin"],
+  "one_on_one.conduct": ["admin", "lider"],
+  "one_on_one.participate": ["admin", "lider", "colaborador"],
+  reconhecimentos: ["admin", "lider", "colaborador"],
+  "chat.create_channel": ["admin", "lider"],
+  "chat.manage_channels": ["admin"],
+  "chat.delete_messages": ["admin"],
+  "review.approve": ["admin", "lider"],
+  "review.delete": ["admin"],
+  "career.manage": ["admin"],
+  "career.promote": ["admin", "lider"],
 };
 
 /** Check if a role has a specific granular permission */
 export function hasPermission(
   role: RoleSlug | null,
-  permission: PermissionKey
+  permission: PermissionKey,
 ): boolean {
   if (!role) return false;
   const allowed = PERMISSION_MATRIX[permission];

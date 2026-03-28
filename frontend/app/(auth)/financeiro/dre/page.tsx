@@ -232,7 +232,7 @@ function DREContent() {
 
 export default function DREPage() {
   return (
-    <RBACGuard minRole="diretoria">
+    <RBACGuard minRole="admin">
       <DREContent />
     </RBACGuard>
   );

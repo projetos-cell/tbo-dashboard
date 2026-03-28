@@ -10,7 +10,7 @@ import { toast } from "sonner";
 /**
  * #32 — Auto-archive
  * On mount, checks for channels that exceeded their auto_archive_days
- * threshold and archives them automatically. Only runs for founders/diretoria
+ * threshold and archives them automatically. Only runs for admins
  * to avoid race conditions with multiple clients.
  */
 export function useAutoArchive() {
@@ -19,9 +19,9 @@ export function useAutoArchive() {
   const qc = useQueryClient();
 
   useEffect(() => {
-    // Only founders and diretoria trigger auto-archive to avoid race conditions
+    // Only admins trigger auto-archive to avoid race conditions
     if (!tenantId || !role) return;
-    if (role !== "founder" && role !== "diretoria") return;
+    if (role !== "admin") return;
 
     const supabase = createClient();
 

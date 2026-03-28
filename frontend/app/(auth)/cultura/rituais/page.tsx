@@ -73,7 +73,7 @@ function SortableRitualCard({
 
 export default function RituaisPage() {
   const { user, tenantId, role } = useAuthStore();
-  const canEdit = role === "founder" || role === "diretoria";
+  const canEdit = role === "admin";
 
   const { data: rituals, isLoading, error, refetch } = useRitualTypes(canEdit);
   const createRitual = useCreateRitualType();

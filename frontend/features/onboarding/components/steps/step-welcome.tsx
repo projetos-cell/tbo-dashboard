@@ -9,22 +9,13 @@ import { useAuthStore } from "@/stores/auth-store";
 import type { RoleSlug } from "@/lib/permissions";
 
 const ROLE_CONTENT: Record<RoleSlug, { label: string; can: string[] }> = {
-  founder: {
-    label: "Fundador",
+  admin: {
+    label: "Admin",
     can: [
       "Acesso total ao sistema",
       "Gestao financeira completa",
-      "Configurar RBAC e permissoes",
+      "Pipeline comercial e OKRs",
       "Todos os modulos e relatorios",
-    ],
-  },
-  diretoria: {
-    label: "Diretoria",
-    can: [
-      "Gestao financeira (DRE, Caixa)",
-      "Pipeline comercial",
-      "OKRs e projetos",
-      "Intelligence completo",
     ],
   },
   lider: {

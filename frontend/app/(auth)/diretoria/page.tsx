@@ -245,7 +245,7 @@ function DiretoriaContent() {
 
 export default function DiretoriaPage() {
   return (
-    <RequireRole allowed={["founder", "diretoria"]} module="diretoria">
+    <RequireRole allowed={["admin"]} module="diretoria">
       <DiretoriaContent />
     </RequireRole>
   );

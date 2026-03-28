@@ -2,6 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/shared";
 import { TASK_STATUS, TASK_PRIORITY } from "@/lib/constants";
 import { useUpdateTask } from "@/features/tasks/hooks/use-tasks";
 import type { Database } from "@/lib/supabase/types";
@@ -24,9 +25,10 @@ function getInitials(name: string): string {
 interface TaskCompactListProps {
   tasks: TaskRow[];
   onSelect: (task: TaskRow) => void;
+  onCreateTask?: () => void;
 }
 
-export function TaskCompactList({ tasks, onSelect }: TaskCompactListProps) {
+export function TaskCompactList({ tasks, onSelect, onCreateTask }: TaskCompactListProps) {
   const updateTask = useUpdateTask();
 
   const toggleComplete = useCallback(
@@ -45,9 +47,12 @@ export function TaskCompactList({ tasks, onSelect }: TaskCompactListProps) {
 
   if (tasks.length === 0) {
     return (
-      <p className="py-12 text-center text-sm text-gray-500">
-        Nenhuma tarefa encontrada
-      </p>
+      <EmptyState
+        title="Nenhuma tarefa encontrada"
+        description="Crie uma tarefa para começar a acompanhar o trabalho."
+        compact
+        cta={onCreateTask ? { label: "Nova tarefa", onClick: onCreateTask } : undefined}
+      />
     );
   }
 

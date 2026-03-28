@@ -58,10 +58,34 @@ src/
 - `pnpm lint` â€” ESLint + type-check
 - `pnpm test` â€” testes
 
-## Agents QA Pipeline
-Para auditoria, correcao e validacao do TBO OS, usar o sistema de agentes:
-- @docs/agents/auditor-guide.md â€” Auditor (6 camadas de analise)
-- @docs/agents/implementor-guide.md â€” Implementor (11 templates + regras globais)
-- @docs/agents/validator-guide.md â€” Validator (7 fases + loop de re-implementacao)
-- Pipeline completo: Auditor -> Implementor -> Validator (+ Scorer opcional)
-- Trigger: "auditar", "pipeline QA", "health score", "checar regras globais"
+## Agents QA Pipeline (15 Agentes)
+Sistema de melhoria continua com 15 agentes em 4 camadas, foco em /projetos e /pessoas.
+Skill: .claude/skills/tbo-os-orchestrator.md
+Guides: docs/agents/*.md
+
+### Camada 1 — Infraestrutura (core)
+- #1 Orchestrator (orchestrator-guide.md) — coordenacao, health score, priorizacao
+- #2 Auditor (auditor-guide.md) — 6 camadas de conformidade
+- #3 Implementor (implementor-guide.md) — 11 templates de execucao
+- #4 Validator (validator-guide.md) — 7 fases + loop
+
+### Camada 2 — Projetos (270 arquivos, 40.9k linhas)
+- #5 Projetos Structural (projetos-structural-agent.md) — splits, any, imports
+- #6 Projetos UX Craft (projetos-ux-agent.md) — loading/empty/error, motion
+- #7 Projetos Tasks (projetos-tasks-agent.md) — subsistema tarefas (114 arq)
+- #8 Projetos Views (projetos-views-agent.md) — 10 views (board, gantt, etc.)
+- #9 Projetos Integrations (projetos-integrations-agent.md) — GDrive, templates, 3D
+
+### Camada 3 — Pessoas (87 arquivos, 15.4k linhas)
+- #10 Pessoas Structural (pessoas-structural-agent.md) — 6 sub-modulos
+- #11 Pessoas Performance (pessoas-performance-agent.md) — scoring, radar
+- #12 Pessoas Growth (pessoas-growth-agent.md) — PDI + Career + 1on1
+- #13 Pessoas Analytics (pessoas-analytics-agent.md) — KPIs, nudges, clima
+
+### Camada 4 — Cross-Module
+- #14 Data Contracts (data-contracts-agent.md) — types ↔ schema, null safety
+- #15 Regression Guard (regression-guard-agent.md) — build health, smoke tests
+
+### Pipeline: Orchestrator → [Camada 2+3+4 paralelo] → Auditor → Implementor → Validator → Regression Guard
+### Triggers: “melhorar TBO OS”, “ciclo de melhoria”, “orquestrador”, “health check”,
+  “auditoria ERP”, “proximo ciclo”, “pipeline QA”, “health score”, “debt”, “roadmap”

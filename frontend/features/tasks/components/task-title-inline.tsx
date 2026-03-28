@@ -99,24 +99,26 @@ export function TaskTitleInline({ task }: TaskTitleInlineProps) {
   }
 
   return (
-    <h2
-      className={cn(
-        "text-lg font-semibold py-2 leading-snug cursor-text rounded-md px-1 -mx-1",
-        "hover:bg-muted/50 transition-colors duration-150",
-        task.is_completed && "line-through text-muted-foreground"
-      )}
-      onClick={() => setIsEditing(true)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          setIsEditing(true);
-        }
-      }}
-      aria-label={`Título: ${task.title}. Clique para editar.`}
-    >
-      {task.title}
-    </h2>
+    <div className="py-1">
+      <h2
+        className={cn(
+          "text-xl font-bold py-2 leading-tight cursor-text rounded-md px-1.5 -mx-1.5",
+          "hover:bg-muted/50 transition-colors duration-150",
+          task.is_completed && "line-through text-muted-foreground"
+        )}
+        onClick={() => setIsEditing(true)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setIsEditing(true);
+          }
+        }}
+        aria-label={`Título: ${task.title}. Clique para editar.`}
+      >
+        {task.title}
+      </h2>
+    </div>
   );
 }

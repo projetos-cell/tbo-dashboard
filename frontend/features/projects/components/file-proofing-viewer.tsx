@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/shared";
 import {
   Dialog,
   DialogContent,
@@ -245,17 +246,24 @@ export function FileProofingViewer({
                         <IconCircleCheck className="size-3" />
                         {ann.resolved ? "Reabrir" : "Resolver"}
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 text-[10px] text-red-500 hover:text-red-600"
-                        onClick={() => {
+                      <ConfirmDialog
+                        title="Excluir anotação?"
+                        description="Esta anotação será removida permanentemente."
+                        confirmLabel="Excluir"
+                        onConfirm={() => {
                           deleteAnnotation.mutate(ann.id);
                           setSelectedPinId(null);
                         }}
-                      >
-                        <IconTrash className="size-3" />
-                      </Button>
+                        trigger={
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 text-[10px] text-red-500 hover:text-red-600"
+                          >
+                            <IconTrash className="size-3" />
+                          </Button>
+                        }
+                      />
                     </div>
                   </div>
                 );

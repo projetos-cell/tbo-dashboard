@@ -20,12 +20,9 @@ import { TaskDetailFields } from "./task-detail-fields";
 import { TaskDetailDescription } from "./task-detail-description";
 import { TaskDetailSidebar } from "./task-detail-sidebar";
 import { TaskSubtasksSection } from "./task-subtasks-section";
-import { TaskDependenciesSection } from "./task-dependencies-section";
 import { TaskAttachmentsSection } from "./task-attachments-section";
 import { CommentThread } from "@/components/shared/comment-thread";
 import { TaskHistoryTimeline } from "./task-history-timeline";
-import { TaskComputedFields } from "./task-computed-fields";
-import { useSubtasks } from "@/features/tasks/hooks/use-tasks";
 
 // ─── Props ──────────────────────────────────────────
 
@@ -81,7 +78,6 @@ interface TaskPanelProps {
 
 function TaskPanel({ taskId, projectName, onClose, onOpenTask, isFullscreen, onToggleFullscreen }: TaskPanelProps) {
   const { data: task, isLoading, error, refetch } = useTaskDetail(taskId);
-  const { data: subtasks = [] } = useSubtasks(taskId);
 
   const [projectPickerOpen, setProjectPickerOpen] = useState(false);
   const lastKeyRef = useRef<string | null>(null);
@@ -131,32 +127,33 @@ function TaskPanel({ taskId, projectName, onClose, onOpenTask, isFullscreen, onT
       />
       <div className="flex-1 overflow-y-auto">
         <div className="px-6 pb-6 space-y-0">
+          {/* ── Título ─────────────────────────── */}
           <TaskTitleInline task={task} />
+
+          {/* ── Propriedades core ──────────────── */}
           <TaskDetailFields
             task={task}
             projectName={resolvedProjectName}
             projectPickerOpen={projectPickerOpen}
             onProjectPickerOpenChange={setProjectPickerOpen}
           />
-          <Separator className="my-2" />
-          <TaskDetailDescription taskId={task.id} description={task.description} />
+
+          {/* ── Descrição ─────────────────────── */}
           <div className="pt-3 pb-1">
+            <TaskDetailDescription taskId={task.id} description={task.description} />
+          </div>
+
+          {/* ── Subtarefas ────────────────────── */}
+          <Separator className="my-3" />
+          <div className="pb-1">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
               Subtarefas
             </p>
             <TaskSubtasksSection task={task} onOpenTask={onOpenTask} />
           </div>
 
-          <TaskComputedFields task={task} subtasks={subtasks} />
-
-          <Separator className="my-4" />
-
-          <div className="pb-1">
-            <TaskDependenciesSection task={task} onOpenTask={onOpenTask} />
-          </div>
-
-          <Separator className="my-4" />
-
+          {/* ── Anexos ────────────────────────── */}
+          <Separator className="my-3" />
           <div className="pb-2">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
               Anexos
@@ -164,8 +161,8 @@ function TaskPanel({ taskId, projectName, onClose, onOpenTask, isFullscreen, onT
             <TaskAttachmentsSection taskId={task.id} />
           </div>
 
-          <Separator className="my-4" />
-
+          {/* ── Comentários ───────────────────── */}
+          <Separator className="my-3" />
           <div className="pb-4">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
               Comentarios
@@ -173,8 +170,8 @@ function TaskPanel({ taskId, projectName, onClose, onOpenTask, isFullscreen, onT
             <CommentThread taskId={task.id} />
           </div>
 
-          <Separator className="my-4" />
-
+          {/* ── Histórico ─────────────────────── */}
+          <Separator className="my-3" />
           <div className="pb-4">
             <TaskHistoryTimeline taskId={task.id} />
           </div>
@@ -231,6 +228,7 @@ export function TaskDetailSheet({
     <Sheet open={open} onOpenChange={(o) => !o && handleClose()}>
       <SheetContent
         side="right"
+        showCloseButton={false}
         className={
           isFullscreen
             ? "w-full sm:w-[85vw] sm:max-w-[85vw] overflow-y-auto p-0 flex flex-col transition-all duration-300"

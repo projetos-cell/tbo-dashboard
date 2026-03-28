@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { IconPlus, IconTrash, IconSearch } from "@tabler/icons-react";
+import { ConfirmDialog } from "@/components/shared";
 import {
   Dialog,
   DialogContent,
@@ -49,6 +50,14 @@ export function MembersDrawer({
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [addSearch, setAddSearch] = useState("");
+  const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
+
+  const handleConfirmRemove = useCallback(() => {
+    if (pendingRemoveId) {
+      onRemoveMember(pendingRemoveId);
+      setPendingRemoveId(null);
+    }
+  }, [pendingRemoveId, onRemoveMember]);
 
   const filteredMembers = useMemo(() => {
     if (!search) return members;
@@ -159,7 +168,7 @@ export function MembersDrawer({
                     variant="ghost"
                     size="icon"
                     className="size-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-red-600"
-                    onClick={() => onRemoveMember(member.id)}
+                    onClick={() => setPendingRemoveId(member.id)}
                   >
                     <IconTrash className="size-3.5" />
                   </Button>
@@ -169,6 +178,15 @@ export function MembersDrawer({
           </div>
         </div>
       </DialogContent>
+
+      <ConfirmDialog
+        open={pendingRemoveId !== null}
+        onOpenChange={(o) => { if (!o) setPendingRemoveId(null); }}
+        title="Remover membro?"
+        description="Este membro será removido do projeto."
+        confirmLabel="Remover"
+        onConfirm={handleConfirmRemove}
+      />
     </Dialog>
   );
 }

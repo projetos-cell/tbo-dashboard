@@ -2,37 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "dev",
+      "name": "TBO-OS",
       "runtimeExecutable": "cmd",
       "runtimeArgs": ["/c", "pnpm", "run", "dev"],
       "port": 3001,
       "autoPort": true,
       "cwd": "frontend"
-    },
-    {
-      "name": "blueprint-lp",
-      "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "npx", "serve", "C:/Users/marco/Downloads", "-l", "3099", "--no-clipboard"],
-      "port": 3099
-    },
-    {
-      "name": "email-preview",
-      "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "npx", "serve", "C:/Users/marco/Desktop/tbo-dashboard-main/frontend/public", "-l", "3098", "--no-clipboard"],
-      "port": 3098
-    },
-    {
-      "name": "tbo-site",
-      "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "npx", "serve", "C:/Users/marco/Downloads", "-l", "3097", "--no-clipboard"],
-      "port": 3097
-    },
-    {
-      "name": "wearetbo-next",
-      "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "cd", "/d", "C:\\Users\\marco\\Desktop\\wearetbo-site", "&&", "pnpm", "run", "dev"],
-      "port": 3000,
-      "autoPort": true
     }
   ],
   "autoVerify": false

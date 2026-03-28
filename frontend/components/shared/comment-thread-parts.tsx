@@ -50,13 +50,17 @@ export function CommentComposer({
   const [submitting, setSubmitting] = useState(false);
   const mentionProvider = useMentionProvider();
 
+  const isContentEmpty = (html: string) => {
+    const stripped = html.replace(/<[^>]*>/g, "").trim();
+    return !stripped;
+  };
+
   const handleSubmit = async (html?: string) => {
     const value = html || content;
-    const clean = value === "<p></p>" ? "" : value.trim();
-    if (!clean || !userId) return;
+    if (isContentEmpty(value) || !userId) return;
     setSubmitting(true);
     try {
-      await onSubmit(clean);
+      await onSubmit(value.trim());
       setContent("");
       onCancel?.();
     } finally {
@@ -71,8 +75,8 @@ export function CommentComposer({
           content={content}
           onChange={setContent}
           placeholder={parentId ? "Responder..." : "Escreva um comentario..."}
-          minimal
-          toolbar={false}
+          minimal={false}
+          toolbar
           mentionProvider={mentionProvider}
           autoFocus={autoFocus}
           onSubmit={handleSubmit}
@@ -83,7 +87,7 @@ export function CommentComposer({
           size="icon"
           className="size-8"
           onClick={() => handleSubmit()}
-          disabled={(!content.trim() || content === "<p></p>") || submitting}
+          disabled={isContentEmpty(content) || submitting}
           aria-label="Enviar comentario"
         >
           <IconSend className="size-3.5" />

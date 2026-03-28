@@ -56,7 +56,23 @@
       "Bash(vercel env:*)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000)",
       "Bash(netstat -ano)",
-      "Bash(pnpm tsc:*)"
+      "Bash(pnpm tsc:*)",
+      "mcp__4dff071f-e24b-460d-9c91-1450b1b8ac41__list_tables",
+      "Bash(while read:*)",
+      "Bash(do wc:*)",
+      "Bash(sort -k2)",
+      "Bash(find /c/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/frontend/app/\\\\\\(auth\\\\\\)/tarefas -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" \\\\\\) -exec wc -l {} +)",
+      "Bash(for file:*)",
+      "Read(//c/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/**)",
+      "Bash(find /c/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/frontend/app/\\\\\\(auth\\\\\\)/projetos -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" \\\\\\) -exec wc -l {} +)",
+      "Bash(sort -k1 -nr)",
+      "Bash(ls /c/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/frontend/app/\\\\\\(auth\\\\\\)/projetos/page.tsx)",
+      "Bash(/tmp/summary_stats.txt:*)",
+      "Read(//tmp/**)",
+      "Bash(for dir:*)",
+      "Bash(do echo:*)",
+      "Read(//c/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/frontend/features/**)",
+      "Bash(find \"/c/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/frontend/app/\\(auth\\)/pessoas\" -type f \\\\\\( -name \"*.tsx\" -o -name \"*.ts\" \\\\\\))"
     ]
   }
 }

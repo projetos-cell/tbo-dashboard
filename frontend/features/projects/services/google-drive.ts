@@ -1,3 +1,7 @@
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("google-drive");
+
 /**
  * Creates Google Drive folder structure for a project.
  * Calls the API route that uses a Google Service Account.
@@ -15,13 +19,13 @@ export async function createProjectDriveFolder(
 
     if (!res.ok) {
       const err = await res.json();
-      console.error("[google-drive] Failed to create folder:", err);
+      log.error("Failed to create folder", { projectId, err });
       return null;
     }
 
     return res.json();
   } catch (err) {
-    console.error("[google-drive] Error:", err);
+    log.error("Unexpected error", { projectId, err: String(err) });
     return null;
   }
 }

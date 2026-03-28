@@ -4,6 +4,8 @@ import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { IconArrowUp, IconArrowDown, IconArrowsSort } from "@tabler/icons-react";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { EmptyState } from "@/components/shared";
+import { IconFolderOpen } from "@tabler/icons-react";
 import {
   useUpdateProject,
   useDeleteProject,
@@ -199,7 +201,12 @@ export function ProjectCompactList({ projects }: ProjectCompactListProps) {
         </div>
 
         {processed.every((g) => g.items.length === 0) ? (
-          <p className="py-12 text-center text-sm text-muted-foreground">Nenhum projeto encontrado</p>
+          <EmptyState
+            icon={IconFolderOpen}
+            title="Nenhum projeto encontrado"
+            description="Ajuste os filtros ou crie um novo projeto para começar."
+            compact
+          />
         ) : (
           processed.map((group) => (
             <div key={group.label || "all"}>

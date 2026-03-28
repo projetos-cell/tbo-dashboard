@@ -25,6 +25,7 @@ import {
   useDeleteAttachment,
 } from "@/hooks/use-attachments";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { EmptyState } from "@/components/shared";
 import { FileProofingViewer } from "@/features/projects/components/file-proofing-viewer";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -259,9 +260,12 @@ export function ProjectFiles({ projectId }: ProjectFilesProps) {
       )}
 
       {(!attachments || attachments.length === 0) && (
-        <p className="text-sm text-gray-500 text-center py-4">
-          Nenhum arquivo anexado
-        </p>
+        <EmptyState
+          icon={IconFile}
+          title="Nenhum arquivo anexado"
+          description="Adicione arquivos para organizar os materiais do projeto."
+          compact
+        />
       )}
 
       <ConfirmDialog

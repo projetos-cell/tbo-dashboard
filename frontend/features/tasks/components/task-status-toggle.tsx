@@ -91,7 +91,7 @@ export function TaskStatusToggle({ task, compact }: TaskStatusToggleProps) {
       >
         {task.is_completed && <IconCheck className="h-2.5 w-2.5" strokeWidth={3} />}
       </span>
-      {task.is_completed ? "Concluída" : "Marcar como concluída"}
+      {task.is_completed ? "Concluída" : "Concluir"}
     </button>
   );
 }

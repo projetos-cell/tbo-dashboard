@@ -1,4 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("project-templates");
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -298,7 +301,7 @@ export async function saveProjectAsTemplate(
     description: description ?? null,
     sections_json: JSON.stringify(templateSections),
   };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table missing from generated types
   const result = await (supabase as any)
     .from("project_templates")
     .insert(insertPayload)
@@ -317,7 +320,7 @@ export async function getSavedTemplates(
   tenantId: string,
 ): Promise<SavedTemplate[]> {
   const supabase = createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table missing from generated types
   const result = await (supabase as any)
     .from("project_templates")
     .select("*")
@@ -370,7 +373,7 @@ export async function applyProjectTemplate(
       .single();
 
     if (sectionError || !section) {
-      console.error("Erro ao criar seção:", sectionError);
+      log.error("Erro ao criar seção", { sectionError, projectId });
       continue;
     }
 
@@ -393,7 +396,7 @@ export async function applyProjectTemplate(
         .insert(taskInserts as never[]);
 
       if (tasksError) {
-        console.error("Erro ao criar tasks:", tasksError);
+        log.error("Erro ao criar tasks", { tasksError, projectId });
       }
     }
   }

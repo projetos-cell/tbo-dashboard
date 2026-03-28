@@ -12,6 +12,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { EmptyState } from "@/components/shared";
 import { useState, useRef, useEffect } from "react";
 import { useUpdateProject } from "@/features/projects/hooks/use-projects";
 
@@ -270,9 +271,12 @@ export function OverviewLeftColumn({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground italic">
-            Nenhum arquivo adicionado a este projeto.
-          </p>
+          <EmptyState
+            icon={IconFile}
+            title="Nenhum arquivo"
+            description="Adicione arquivos na aba Arquivos do projeto."
+            compact
+          />
         </CardContent>
       </Card>
     </div>

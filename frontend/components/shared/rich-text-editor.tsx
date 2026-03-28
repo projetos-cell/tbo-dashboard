@@ -115,10 +115,11 @@ export function RichTextEditor({
         ),
       },
       handleKeyDown: (_view, event) => {
-        if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+        // Shift+Enter submits; Enter creates new line (default)
+        if (event.key === "Enter" && event.shiftKey && onSubmitRef.current) {
           event.preventDefault();
           const html = editor?.getHTML() ?? "";
-          onSubmitRef.current?.(html);
+          onSubmitRef.current(html);
           return true;
         }
         return false;
@@ -132,9 +133,14 @@ export function RichTextEditor({
     },
   });
 
-  // Sync content from outside
+  // Sync content from outside (only when content meaningfully changes)
   useEffect(() => {
-    if (editor && content !== undefined && editor.getHTML() !== content) {
+    if (!editor || content === undefined) return;
+    const current = editor.getHTML();
+    // Treat "" and "<p></p>" as equivalent empty states
+    const isEmpty = (s: string) => !s || s === "<p></p>" || s === "<p><br></p>";
+    if (isEmpty(content) && isEmpty(current)) return;
+    if (current !== content) {
       editor.commands.setContent(content, false);
     }
   }, [content, editor]);

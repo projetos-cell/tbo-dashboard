@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import {
   IconFileText,
-  IconDownload,
+  IconFileWord,
   IconLoader2,
   IconCode,
   IconChecklist,
@@ -11,7 +11,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import type { SOPTemplatePdfData } from "../templates/sop-template-pdf";
+import type { SOPTemplateData } from "../templates/sop-content-parser";
 
 // ─── Parse sub-templates from content ────────────────────────────────────────
 
@@ -108,23 +108,37 @@ const TYPE_LABELS: Record<SubTemplate["type"], string> = {
 
 // ─── Download helper ─────────────────────────────────────────────────────────
 
-async function downloadTemplatePdf(pdfData: SOPTemplatePdfData) {
-  const res = await fetch("/api/sops/generate-template-pdf", {
+type TemplateFormat = "pdf" | "docx";
+
+async function downloadTemplate(
+  data: SOPTemplateData,
+  format: TemplateFormat
+) {
+  const endpoint =
+    format === "pdf"
+      ? "/api/sops/generate-template-pdf"
+      : "/api/sops/generate-template-docx";
+
+  const res = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(pdfData),
+    body: JSON.stringify(data),
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Erro desconhecido" }));
-    throw new Error(err.error ?? "Erro ao gerar PDF");
+    const err = await res
+      .json()
+      .catch(() => ({ error: "Erro desconhecido" }));
+    throw new Error(
+      err.error ?? `Erro ao gerar ${format.toUpperCase()}`
+    );
   }
 
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   const disposition = res.headers.get("Content-Disposition");
   const filenameMatch = disposition?.match(/filename="(.+?)"/);
-  const filename = filenameMatch?.[1] ?? "template.pdf";
+  const filename = filenameMatch?.[1] ?? `template.${format}`;
 
   const a = document.createElement("a");
   a.href = url;
@@ -185,29 +199,37 @@ function TemplateCard({
   sopBu: string;
   sopVersion: number;
 }) {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<TemplateFormat | null>(null);
   const Icon = TYPE_ICONS[template.type];
 
-  const handleDownload = useCallback(async () => {
-    setLoading(true);
-    try {
-      await downloadTemplatePdf({
-        sopTitle,
-        sopSlug,
-        sopBu,
-        sopVersion,
-        stepTitle: template.title,
-        stepContent: `**${template.title}**\n${template.content}`,
-      });
-      toast.success("Template baixado em PDF");
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Erro ao gerar PDF"
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [template, sopTitle, sopSlug, sopBu, sopVersion]);
+  const handleDownload = useCallback(
+    async (format: TemplateFormat) => {
+      setLoading(format);
+      try {
+        await downloadTemplate(
+          {
+            sopTitle,
+            sopSlug,
+            sopBu,
+            sopVersion,
+            stepTitle: template.title,
+            stepContent: `**${template.title}**\n${template.content}`,
+          },
+          format
+        );
+        toast.success(
+          `Template baixado em ${format.toUpperCase()}`
+        );
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Erro ao gerar template"
+        );
+      } finally {
+        setLoading(null);
+      }
+    },
+    [template, sopTitle, sopSlug, sopBu, sopVersion]
+  );
 
   return (
     <Card className="group hover:border-foreground/20 transition-colors">
@@ -231,21 +253,37 @@ function TemplateCard({
           {template.preview}
         </div>
 
-        {/* Download button */}
-        <Button
-          size="sm"
-          variant="outline"
-          className="w-full h-8 text-xs gap-1.5"
-          onClick={handleDownload}
-          disabled={loading}
-        >
-          {loading ? (
-            <IconLoader2 className="size-3.5 animate-spin" />
-          ) : (
-            <IconDownload className="size-3.5" />
-          )}
-          Baixar PDF
-        </Button>
+        {/* Download buttons */}
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="flex-1 h-8 text-xs gap-1.5"
+            onClick={() => handleDownload("pdf")}
+            disabled={loading !== null}
+          >
+            {loading === "pdf" ? (
+              <IconLoader2 className="size-3.5 animate-spin" />
+            ) : (
+              <IconFileText className="size-3.5" />
+            )}
+            PDF
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="flex-1 h-8 text-xs gap-1.5"
+            onClick={() => handleDownload("docx")}
+            disabled={loading !== null}
+          >
+            {loading === "docx" ? (
+              <IconLoader2 className="size-3.5 animate-spin" />
+            ) : (
+              <IconFileWord className="size-3.5" />
+            )}
+            DOCX
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

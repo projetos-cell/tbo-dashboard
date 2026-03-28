@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import {
   Sheet,
   SheetContent,
@@ -16,8 +17,8 @@ interface CareerLevelDetailSheetProps {
   level: CareerLevelWithCompetencies | null | undefined;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Scores reais da pessoa para comparação */
   actualScores?: Record<string, number>;
+  trackType?: "base" | "gestao" | "tecnica";
 }
 
 export function CareerLevelDetailSheet({
@@ -25,17 +26,25 @@ export function CareerLevelDetailSheet({
   open,
   onOpenChange,
   actualScores,
+  trackType,
 }: CareerLevelDetailSheetProps) {
   if (!level) return null;
 
   const hardComps = level.career_level_competencies.filter((c) => c.competency_type === "hard");
   const softComps = level.career_level_competencies.filter((c) => c.competency_type === "soft");
+  const trackMeta = trackType ? TRACK_TYPE_META[trackType] : null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader className="pb-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {trackMeta && (
+              <Badge variant="secondary" className="text-xs gap-1">
+                <span className={`h-1.5 w-1.5 rounded-full ${trackMeta.dot}`} />
+                {trackMeta.label}
+              </Badge>
+            )}
             {level.is_transition_point && (
               <Badge variant="outline" className="text-xs border-dashed">
                 Ponto de Bifurcação
@@ -50,7 +59,12 @@ export function CareerLevelDetailSheet({
 
         {/* Resumo das competências */}
         <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-3 rounded-lg border bg-muted/30 p-4">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, delay: 0.1 }}
+            className="grid grid-cols-2 gap-3 rounded-lg border bg-muted/30 p-4"
+          >
             <div className="text-center">
               <p className="text-2xl font-bold">
                 {hardComps.length > 0
@@ -67,17 +81,21 @@ export function CareerLevelDetailSheet({
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">Média Soft Skills</p>
             </div>
-          </div>
+          </motion.div>
 
           {/* Scorecard */}
           {level.career_level_competencies.length > 0 && (
-            <div>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.25, delay: 0.2 }}
+            >
               <h4 className="text-sm font-semibold mb-3">Competências Esperadas</h4>
               <CareerScorecard
                 competencies={level.career_level_competencies}
                 actualScores={actualScores}
               />
-            </div>
+            </motion.div>
           )}
         </div>
       </SheetContent>

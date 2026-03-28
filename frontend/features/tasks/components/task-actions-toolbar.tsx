@@ -10,6 +10,7 @@ import {
   IconFolderSymlink,
   IconPrinter,
   IconTrash,
+  IconX,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -174,6 +175,25 @@ export function TaskActionsToolbar({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* Separator + Close */}
+        <div className="w-px h-4 bg-border mx-0.5" />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7"
+              aria-label="Fechar"
+              onClick={onClose}
+            >
+              <IconX className="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs">
+            Fechar
+          </TooltipContent>
+        </Tooltip>
       </div>
 
       {/* Delete confirmation */}

@@ -1,5 +1,40 @@
 # TBO OS — Audit Log
 
+## Ciclo 44 — 2026-03-28 (Orquestrador — 15 agentes)
+
+**Health Score**: 66/100 (baseline)
+**Agentes rodados**: #5 Structural (6/10), #6 UX (7/10), #7 Tasks (8.5/10), #14 Data Contracts (5/10), #15 Regression Guard (baseline)
+**Build**: ✅ (zero erros TypeScript)
+
+### Issues Resolvidas
+
+| Issue | Antes | Depois | Arquivos |
+|-------|-------|--------|----------|
+| /tarefas sem error.tsx | ❌ sem error boundary | ✅ error.tsx criado | app/(auth)/tarefas/error.tsx |
+| 4x console.error em produção | ⚠️ console.error direto | ✅ createLogger() estruturado | google-drive.ts, project-templates.ts |
+| Delete annotation sem confirm | ❌ mutate direto | ✅ ConfirmDialog | file-proofing-viewer.tsx |
+| Remove member sem confirm | ❌ callback direto | ✅ ConfirmDialog controlado | members-drawer.tsx |
+| Empty state project-files | ❌ `<p>` simples | ✅ EmptyState component | tabs/project-files.tsx |
+| Empty state compact-list | ❌ `<p>` simples | ✅ EmptyState component | project-compact-list.tsx |
+| Empty state overview-files | ❌ `<p>` italic | ✅ EmptyState component | tabs/overview-left-column.tsx |
+
+### Debt técnico
+- 6x `any` em project services (custom-fields.ts 3x, project-properties.ts 1x, project-templates.ts 2x) — bloqueado até `supabase gen types` regenerar com tabelas novas
+- `as never` sistêmico (~40+ locais) — mesma root cause
+- select('*') em one-on-ones (11x) e pdi (9x) — próximo ciclo
+- 13 sub-rotas de /projetos sem loading.tsx — próximo ciclo
+- Task filters não persistidos ao Supabase — próximo ciclo
+- Career types manuais sem Insert/Update variants — próximo ciclo
+
+### Próximo ciclo sugerido
+1. Regenerar `supabase gen types` para incluir tabelas novas (career_*, project_templates, etc.)
+2. Criar loading.tsx nas 13 sub-rotas de /projetos
+3. Persistir task filters ao Supabase (reusar useViewFilters do marketing)
+4. Substituir select('*') por colunas específicas em one-on-ones e pdi
+5. Decompor project-details-dialog.tsx (528L) em sub-componentes
+
+---
+
 ## Ciclo 43 — 2026-03-14 (scheduled)
 
 **Módulo**: Projetos/Lista + Cultura/Manual split + Permissões split

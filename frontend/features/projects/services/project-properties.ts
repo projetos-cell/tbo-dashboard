@@ -35,11 +35,8 @@ export interface UpdatePropertyOptionInput {
   sort_order?: number;
 }
 
-// TODO: regenerate types with `supabase gen types` to remove this `any` cast
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function table(): any {
-  return createClient().from("project_property_options" as never);
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- table missing from generated types
+function table(): any { return createClient().from("project_property_options" as never); }
 
 export async function getPropertyOptions(
   tenantId: string,

@@ -43,16 +43,11 @@ export interface CreateCustomFieldInput {
   order_index?: number;
 }
 
-// TODO: regenerate types with `supabase gen types` to remove these `any` casts
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function fieldsTable(): any {
-  return createClient().from("os_custom_fields" as never);
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function valuesTable(): any {
-  return createClient().from("os_task_field_values" as never);
-}
+// TODO: regenerate types with `supabase gen types` to get proper table types
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- table missing from generated types
+function fieldsTable(): any { return createClient().from("os_custom_fields" as never); }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- table missing from generated types
+function valuesTable(): any { return createClient().from("os_task_field_values" as never); }
 
 // ─── Custom Field CRUD ──────────────────────────────────────────────────────────
 
@@ -166,10 +161,8 @@ export async function upsertTaskFieldValue(
 
 // ─── View Preferences (column widths, order, visibility) ────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function prefsTable(): any {
-  return createClient().from("user_view_preferences" as never);
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- table missing from generated types
+function prefsTable(): any { return createClient().from("user_view_preferences" as never); }
 
 export interface ViewPreferences {
   id: string;

@@ -14,7 +14,9 @@ import { OneOnOneKPICards } from "@/features/one-on-ones/components/one-on-one-k
 import { PendingActionsList } from "@/features/one-on-ones/components/one-on-one-actions";
 import { OneOnOneForm } from "@/features/one-on-ones/components/one-on-one-form";
 import { OneOnOneDetail } from "@/features/one-on-ones/components/one-on-one-detail";
+import { OneOnOneCard } from "@/features/one-on-ones/components/one-on-one-card";
 import { ErrorState, EmptyState } from "@/components/shared";
+import { RBACGuard } from "@/components/rbac-guard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,16 +35,11 @@ import {
 import {
   ONE_ON_ONE_STATUS,
   STATUS_KEYS,
-  getStatusBadgeProps,
-  formatDateTime,
   relativeLabel,
-  isOverdue,
-  type OneOnOneStatusKey,
 } from "@/features/one-on-ones/utils/one-on-one-utils";
 import { useToggleAction } from "@/features/one-on-ones/hooks/use-one-on-ones";
 import {
   IconPlus,
-  IconCalendar,
   IconAlertTriangle,
   IconClock,
   IconMessage,
@@ -145,60 +142,8 @@ export default function Reunioes1on1Page() {
     toggleAction.mutate({ actionId, completed, oneOnOneId });
   }
 
-  // ── OneOnOne Card (reusable row) ──────────────────────────────────────
-  function OneOnOneCard({ item }: { item: OneOnOneRow }) {
-    const badgeProps = getStatusBadgeProps(item.status);
-    const overdueItem = isOverdue(item.status, item.scheduled_at);
-
-    return (
-      <div
-        className={`flex cursor-pointer items-center gap-4 rounded-lg border p-4 transition-colors hover:bg-gray-100/50 ${
-          overdueItem ? "border-red-200 bg-red-50/50 dark:border-red-900/40 dark:bg-red-950/20" : ""
-        }`}
-        onClick={() => handleOpenDetail(item)}
-      >
-        <div className="flex-1 space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="font-medium text-sm">
-              {getName(item.leader_id)} ↔ {getName(item.collaborator_id)}
-            </span>
-            <Badge
-              variant="default"
-              className="text-[10px]"
-              style={badgeProps.style}
-            >
-              {badgeProps.label}
-            </Badge>
-          </div>
-          <div className="flex items-center gap-3 text-xs text-gray-500">
-            <span className="flex items-center gap-1">
-              <IconCalendar className="h-3 w-3" />
-              {formatDateTime(item.scheduled_at)}
-            </span>
-            {overdueItem && (
-              <span className="flex items-center gap-1 font-medium text-red-600">
-                <IconAlertTriangle className="h-3 w-3" />
-                Atrasada
-              </span>
-            )}
-          </div>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="shrink-0"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleEdit(item);
-          }}
-        >
-          Editar
-        </Button>
-      </div>
-    );
-  }
-
   return (
+    <RBACGuard minRole="colaborador">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -329,7 +274,7 @@ export default function Reunioes1on1Page() {
           ) : (
             <div className="space-y-2">
               {scheduled.map((item) => (
-                <OneOnOneCard key={item.id} item={item} />
+                <OneOnOneCard key={item.id} item={item} getName={getName} onOpenDetail={handleOpenDetail} onEdit={handleEdit} />
               ))}
             </div>
           )}
@@ -352,7 +297,7 @@ export default function Reunioes1on1Page() {
           ) : (
             <div className="space-y-2">
               {history.map((item) => (
-                <OneOnOneCard key={item.id} item={item} />
+                <OneOnOneCard key={item.id} item={item} getName={getName} onOpenDetail={handleOpenDetail} onEdit={handleEdit} />
               ))}
             </div>
           )}
@@ -388,5 +333,6 @@ export default function Reunioes1on1Page() {
         }}
       />
     </div>
+    </RBACGuard>
   );
 }

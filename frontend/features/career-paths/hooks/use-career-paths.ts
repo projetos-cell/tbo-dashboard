@@ -108,7 +108,7 @@ export function usePathMembers(pathId: string | null) {
 
 // ── Mutation hooks ───────────────────────────────────────────────────────────
 
-/** Promove uma pessoa para um novo nível (cria progressão + atualiza perfil) */
+/** Promove uma pessoa para um novo nível (RPC transacional) */
 export function usePromotePersonCareer() {
   const supabase = useSupabase();
   const tenantId = useTenantId();
@@ -140,27 +140,47 @@ export function usePromotePersonCareer() {
         notes: notes ?? null,
       };
 
-      await promotePersonCareer(supabase, progressionData, toLevelId, pathId);
+      return promotePersonCareer(supabase, progressionData, toLevelId, pathId);
     },
-    onSuccess: (_, { profileId, pathId }) => {
+    onMutate: async ({ profileId, toLevelId, pathId }) => {
+      await queryClient.cancelQueries({ queryKey: [CAREER_QUERY_KEYS.personCareer, profileId] });
+      const previous = queryClient.getQueryData([CAREER_QUERY_KEYS.personCareer, profileId]);
+      queryClient.setQueryData([CAREER_QUERY_KEYS.personCareer, profileId], (old: unknown) => {
+        if (!old || typeof old !== "object") return old;
+        return { ...(old as object), career_level_id: toLevelId, career_path_id: pathId };
+      });
+      return { previous, profileId };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(
+          [CAREER_QUERY_KEYS.personCareer, context.profileId],
+          context.previous
+        );
+      }
+    },
+    onSuccess: (_, { profileId, fromLevelId, toLevelId, pathId }) => {
       queryClient.invalidateQueries({ queryKey: [CAREER_QUERY_KEYS.personCareer, profileId] });
       queryClient.invalidateQueries({ queryKey: [CAREER_QUERY_KEYS.progressions, profileId] });
       queryClient.invalidateQueries({ queryKey: [CAREER_QUERY_KEYS.pathMembers, pathId] });
       queryClient.invalidateQueries({ queryKey: [CAREER_QUERY_KEYS.paths] });
+
       logAuditTrail({
         userId: userId ?? "",
         action: "update",
-        table: "profiles",
+        table: "career_progressions",
         recordId: profileId,
-        after: { career_promotion: true },
+        before: { career_level_id: fromLevelId },
+        after: { career_level_id: toLevelId, career_path_id: pathId },
       });
     },
   });
 }
 
-/** Atualiza diretamente o nível de carreira de uma pessoa (sem histórico) */
+/** Atualiza diretamente o nível de carreira (sem histórico — correção manual) */
 export function useUpdatePersonCareerLevel() {
   const supabase = useSupabase();
+  const userId = useUserId();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -172,12 +192,40 @@ export function useUpdatePersonCareerLevel() {
       profileId: string;
       levelId: string | null;
       pathId: string | null;
+      previousLevelId?: string | null;
+      previousPathId?: string | null;
     }) => {
       await updatePersonCareerLevel(supabase, profileId, levelId, pathId);
     },
-    onSuccess: (_, { profileId }) => {
+    onMutate: async ({ profileId, levelId, pathId }) => {
+      await queryClient.cancelQueries({ queryKey: [CAREER_QUERY_KEYS.personCareer, profileId] });
+      const previous = queryClient.getQueryData([CAREER_QUERY_KEYS.personCareer, profileId]);
+      queryClient.setQueryData([CAREER_QUERY_KEYS.personCareer, profileId], (old: unknown) => {
+        if (!old || typeof old !== "object") return old;
+        return { ...(old as object), career_level_id: levelId, career_path_id: pathId };
+      });
+      return { previous, profileId };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(
+          [CAREER_QUERY_KEYS.personCareer, context.profileId],
+          context.previous
+        );
+      }
+    },
+    onSuccess: (_, { profileId, levelId, pathId, previousLevelId, previousPathId }) => {
       queryClient.invalidateQueries({ queryKey: [CAREER_QUERY_KEYS.personCareer, profileId] });
       queryClient.invalidateQueries({ queryKey: [CAREER_QUERY_KEYS.paths] });
+
+      logAuditTrail({
+        userId: userId ?? "",
+        action: "update",
+        table: "profiles",
+        recordId: profileId,
+        before: { career_level_id: previousLevelId ?? null, career_path_id: previousPathId ?? null },
+        after: { career_level_id: levelId, career_path_id: pathId },
+      });
     },
   });
 }

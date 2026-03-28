@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { IconCheck, IconSelector, IconUserOff, IconUsers, IconPlus } from "@tabler/icons-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import {
   Popover,
   PopoverContent,
@@ -47,13 +46,6 @@ function getInitials(name: string): string {
     .join("")
     .toUpperCase();
 }
-
-const ROLE_LABELS: Record<string, string> = {
-  founder: "Founder",
-  diretoria: "Diretoria",
-  lider: "Líder",
-  colaborador: "Colaborador",
-};
 
 // ─── Component ────────────────────────────────────────
 
@@ -248,13 +240,6 @@ export function TaskAssigneePicker({ task }: TaskAssigneePickerProps) {
                         {member.full_name}
                       </span>
                     </div>
-
-                    <Badge
-                      variant="outline"
-                      className="text-[9px] px-1 py-0 shrink-0 font-normal"
-                    >
-                      {ROLE_LABELS[member.role] ?? member.role}
-                    </Badge>
                   </CommandItem>
                 );
               })}

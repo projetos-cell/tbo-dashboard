@@ -77,7 +77,7 @@ export function TaskComputedFields({ task, subtasks }: TaskComputedFieldsProps) 
   if (!hasFormulas && !hasRollups) return null;
 
   return (
-    <div className="space-y-0 py-1">
+    <div className="space-y-0">
       <button
         type="button"
         onClick={() => setCollapsed((c) => !c)}
@@ -88,7 +88,7 @@ export function TaskComputedFields({ task, subtasks }: TaskComputedFieldsProps) 
         ) : (
           <IconChevronUp className="h-3.5 w-3.5" />
         )}
-        Campos computados
+        Progresso
       </button>
 
       {!collapsed && (

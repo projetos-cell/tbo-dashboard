@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { IconUsersPlus } from "@tabler/icons-react";
+import { IconUsersPlus, IconX } from "@tabler/icons-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Tooltip,
@@ -9,7 +9,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useTaskCollaborators } from "@/features/tasks/hooks/use-task-collaborators";
+import {
+  useTaskCollaborators,
+  useRemoveCollaborator,
+} from "@/features/tasks/hooks/use-task-collaborators";
 import { TaskCollaboratorPicker } from "./task-collaborator-picker";
 
 // ─── Constants ────────────────────────────────────────
@@ -43,34 +46,46 @@ interface TaskCollaboratorsListProps {
 export function TaskCollaboratorsList({ taskId }: TaskCollaboratorsListProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const { data: collaborators = [] } = useTaskCollaborators(taskId);
+  const removeCollaborator = useRemoveCollaborator();
 
   const visible = collaborators.slice(0, MAX_VISIBLE);
   const overflow = collaborators.length - MAX_VISIBLE;
+
+  function handleRemove(userId: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    removeCollaborator.mutate({ taskId, userId });
+  }
 
   return (
     <TooltipProvider delayDuration={300}>
       <div className="flex items-center gap-1">
         {/* Avatar group */}
-        <button
-          type="button"
-          onClick={() => setPickerOpen(true)}
-          className="flex items-center gap-0 hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
-          aria-label="Gerenciar colaboradores"
-        >
+        <div className="flex items-center gap-0">
           {visible.map((collab) => (
             <Tooltip key={collab.user_id}>
               <TooltipTrigger asChild>
-                <Avatar className="h-6 w-6 -ml-1 first:ml-0 ring-2 ring-background">
-                  {collab.avatar_url && (
-                    <AvatarImage
-                      src={collab.avatar_url}
-                      alt={collab.full_name}
-                    />
-                  )}
-                  <AvatarFallback className="text-[9px] font-semibold bg-blue-100 text-blue-700">
-                    {getInitials(collab.full_name)}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="relative group/collab -ml-1 first:ml-0">
+                  <Avatar className="h-6 w-6 ring-2 ring-background cursor-default">
+                    {collab.avatar_url && (
+                      <AvatarImage
+                        src={collab.avatar_url}
+                        alt={collab.full_name}
+                      />
+                    )}
+                    <AvatarFallback className="text-[9px] font-semibold bg-blue-100 text-blue-700">
+                      {getInitials(collab.full_name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  {/* Remove button on hover */}
+                  <button
+                    type="button"
+                    onClick={(e) => handleRemove(collab.user_id, e)}
+                    className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover/collab:opacity-100 transition-opacity duration-150 hover:bg-destructive/90 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    aria-label={`Remover ${collab.full_name}`}
+                  >
+                    <IconX className="h-2 w-2" strokeWidth={3} />
+                  </button>
+                </div>
               </TooltipTrigger>
               <TooltipContent side="top" className="text-xs">
                 <p className="font-medium">{collab.full_name}</p>
@@ -85,7 +100,7 @@ export function TaskCollaboratorsList({ taskId }: TaskCollaboratorsListProps) {
           {overflow > 0 && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="h-6 w-6 -ml-1 ring-2 ring-background rounded-full bg-muted flex items-center justify-center text-[9px] font-semibold text-muted-foreground">
+                <span className="h-6 w-6 -ml-1 ring-2 ring-background rounded-full bg-muted flex items-center justify-center text-[9px] font-semibold text-muted-foreground cursor-default">
                   +{overflow}
                 </span>
               </TooltipTrigger>
@@ -95,7 +110,7 @@ export function TaskCollaboratorsList({ taskId }: TaskCollaboratorsListProps) {
               </TooltipContent>
             </Tooltip>
           )}
-        </button>
+        </div>
 
         {/* Add button */}
         <TaskCollaboratorPicker

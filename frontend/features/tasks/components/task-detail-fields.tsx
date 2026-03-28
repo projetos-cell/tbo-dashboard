@@ -1,11 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   IconCalendar,
   IconFolder,
-  IconUsersGroup,
   IconCircleCheck,
   IconGitBranch,
   IconTag,
@@ -15,11 +15,14 @@ import {
   IconClock,
   IconRepeat,
   IconBell,
+  IconChevronDown,
+  IconChevronUp,
+  IconSettings,
 } from "@tabler/icons-react";
+import { cn } from "@/lib/utils";
 import { TaskAssigneePicker } from "./task-assignee-picker";
 import { TaskDateRange } from "./task-date-range";
 import { TaskProjectsList } from "./task-projects-list";
-import { TaskCollaboratorsList } from "./task-collaborators-list";
 import { TaskTagsDisplay } from "./task-tags-display";
 import { TaskDependenciesSection } from "./task-dependencies-section";
 import { CustomFieldsSection } from "./custom-fields-section";
@@ -53,86 +56,109 @@ export function TaskDetailFields({
   onProjectPickerOpenChange,
   onOpenTask,
 }: TaskDetailFieldsProps) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Detect if any advanced field has a value (auto-expand if so)
+  const taskAny = task as Record<string, unknown>;
+  const hasAdvancedValue =
+    !!taskAny.is_milestone ||
+    !!taskAny.estimated_hours ||
+    !!taskAny.logged_hours ||
+    !!taskAny.recurrence_rule ||
+    !!taskAny.reminder_at;
+
   return (
-    <div className="divide-y divide-border/50">
-      {/* Responsável */}
-      <FieldRow label="Responsável" icon={<IconUsers className="h-3.5 w-3.5" />}>
-        <TaskAssigneePicker task={task} />
-      </FieldRow>
-
-      {/* Datas: Início + Prazo via TaskDateRange */}
-      <FieldRow label="Datas" icon={<IconCalendar className="h-3.5 w-3.5" />}>
-        <TaskDateRange task={task} />
-      </FieldRow>
-
-      {/* Concluída em */}
-      {task.is_completed && task.completed_at && (
-        <FieldRow
-          label="Concluída em"
-          icon={<IconCircleCheck className="h-3.5 w-3.5 text-green-600" />}
-        >
-          <span className="text-sm text-green-700">
-            {format(new Date(task.completed_at), "dd MMM yyyy 'às' HH:mm", {
-              locale: ptBR,
-            })}
-          </span>
+    <div className="space-y-0">
+      {/* ── Campos essenciais ─────────────────── */}
+      <div className="divide-y divide-border/40">
+        <FieldRow label="Responsável" icon={<IconUsers className="h-3.5 w-3.5" />}>
+          <TaskAssigneePicker task={task} />
         </FieldRow>
-      )}
 
-      {/* Projetos (multi-home) */}
-      <FieldRow label="Projeto" icon={<IconFolder className="h-3.5 w-3.5" />}>
-        <TaskProjectsList
-          taskId={task.id}
-          pickerOpen={projectPickerOpen}
-          onPickerOpenChange={onProjectPickerOpenChange}
-        />
-      </FieldRow>
+        <FieldRow label="Datas" icon={<IconCalendar className="h-3.5 w-3.5" />}>
+          <TaskDateRange task={task} />
+        </FieldRow>
 
-      {/* Tags */}
-      <FieldRow label="Tags" icon={<IconTag className="h-3.5 w-3.5" />}>
-        <TaskTagsDisplay taskId={task.id} />
-      </FieldRow>
+        {task.is_completed && task.completed_at && (
+          <FieldRow
+            label="Concluída em"
+            icon={<IconCircleCheck className="h-3.5 w-3.5 text-green-600" />}
+          >
+            <span className="text-sm text-green-700">
+              {format(new Date(task.completed_at), "dd MMM yyyy 'às' HH:mm", {
+                locale: ptBR,
+              })}
+            </span>
+          </FieldRow>
+        )}
 
-      {/* Colaboradores */}
-      <FieldRow
-        label="Colaboradores"
-        icon={<IconUsersGroup className="h-3.5 w-3.5" />}
-      >
-        <TaskCollaboratorsList taskId={task.id} />
-      </FieldRow>
+        <FieldRow label="Projeto" icon={<IconFolder className="h-3.5 w-3.5" />}>
+          <TaskProjectsList
+            taskId={task.id}
+            pickerOpen={projectPickerOpen}
+            onPickerOpenChange={onProjectPickerOpenChange}
+          />
+        </FieldRow>
 
-      {/* T01 — Aprovação */}
-      <FieldRow label="Aprovação" icon={<IconShieldCheck className="h-3.5 w-3.5" />}>
-        <TaskApprovalSelect task={task} />
-      </FieldRow>
+        <FieldRow label="Tags" icon={<IconTag className="h-3.5 w-3.5" />}>
+          <TaskTagsDisplay taskId={task.id} />
+        </FieldRow>
 
-      {/* T02 — Milestone */}
-      <FieldRow label="Marco" icon={<IconDiamond className="h-3.5 w-3.5" />}>
-        <TaskMilestoneToggle task={task} />
-      </FieldRow>
+        <FieldRow label="Aprovação" icon={<IconShieldCheck className="h-3.5 w-3.5" />}>
+          <TaskApprovalSelect task={task} />
+        </FieldRow>
 
-      {/* T03 — Effort */}
-      <FieldRow label="Esforço" icon={<IconClock className="h-3.5 w-3.5" />}>
-        <TaskEffortFields task={task} />
-      </FieldRow>
+        {/* Dependências */}
+        <FieldRow label="Dependências" icon={<IconGitBranch className="h-3.5 w-3.5" />}>
+          <TaskDependenciesSection task={task} onOpenTask={onOpenTask} />
+        </FieldRow>
+      </div>
 
-      {/* T04 — Recurrence */}
-      <FieldRow label="Repetição" icon={<IconRepeat className="h-3.5 w-3.5" />}>
-        <TaskRecurrenceSelect task={task} />
-      </FieldRow>
+      {/* ── Campos avançados (colapsável) ─────── */}
+      <div className="pt-2">
+        <button
+          type="button"
+          onClick={() => setShowAdvanced((prev) => !prev)}
+          className={cn(
+            "flex items-center gap-1.5 w-full text-left py-1.5 group",
+            "text-xs font-medium text-muted-foreground hover:text-foreground transition-colors",
+          )}
+        >
+          <IconSettings className="h-3 w-3" />
+          <span>Detalhes avançados</span>
+          {showAdvanced ? (
+            <IconChevronUp className="h-3 w-3 ml-auto" />
+          ) : (
+            <IconChevronDown className="h-3 w-3 ml-auto" />
+          )}
+          {!showAdvanced && hasAdvancedValue && (
+            <span className="h-1.5 w-1.5 rounded-full bg-primary ml-1" />
+          )}
+        </button>
 
-      {/* A06 — Reminder */}
-      <FieldRow label="Lembrete" icon={<IconBell className="h-3.5 w-3.5" />}>
-        <TaskReminderSelect task={task} />
-      </FieldRow>
+        {(showAdvanced || hasAdvancedValue) && (
+          <div className="divide-y divide-border/40 animate-in fade-in slide-in-from-top-1 duration-150">
+            <FieldRow label="Marco" icon={<IconDiamond className="h-3.5 w-3.5" />}>
+              <TaskMilestoneToggle task={task} />
+            </FieldRow>
 
-      {/* Dependências */}
-      <FieldRow label="Dependências" icon={<IconGitBranch className="h-3.5 w-3.5" />}>
-        <TaskDependenciesSection task={task} onOpenTask={onOpenTask} />
-      </FieldRow>
+            <FieldRow label="Esforço" icon={<IconClock className="h-3.5 w-3.5" />}>
+              <TaskEffortFields task={task} />
+            </FieldRow>
 
-      {/* Campos personalizados */}
-      <div className="py-1">
+            <FieldRow label="Repetição" icon={<IconRepeat className="h-3.5 w-3.5" />}>
+              <TaskRecurrenceSelect task={task} />
+            </FieldRow>
+
+            <FieldRow label="Lembrete" icon={<IconBell className="h-3.5 w-3.5" />}>
+              <TaskReminderSelect task={task} />
+            </FieldRow>
+          </div>
+        )}
+      </div>
+
+      {/* ── Campos personalizados ─────────────── */}
+      <div className="pt-1">
         <CustomFieldsSection taskId={task.id} />
       </div>
     </div>
@@ -151,7 +177,7 @@ function FieldRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start gap-3 py-2.5 min-h-[36px]">
+    <div className="flex items-start gap-3 py-2.5 min-h-[36px] group/row hover:bg-muted/30 -mx-2 px-2 rounded-md transition-colors duration-100">
       <div className="flex items-center gap-1.5 w-[120px] shrink-0 mt-0.5">
         {icon && <span className="text-muted-foreground">{icon}</span>}
         <span className="text-xs font-medium text-muted-foreground">{label}</span>

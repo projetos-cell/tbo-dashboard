@@ -1,4 +1,4 @@
-export type BlogPostStatus = "rascunho" | "revisao" | "publicado" | "arquivado";
+export type BlogPostStatus = "rascunho" | "revisao" | "agendado" | "publicado" | "arquivado";
 
 export interface BlogPost {
   id: string;

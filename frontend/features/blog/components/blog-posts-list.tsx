@@ -76,6 +76,7 @@ export function BlogPostsList() {
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="rascunho">Rascunho</SelectItem>
             <SelectItem value="revisao">Revisao</SelectItem>
+            <SelectItem value="agendado">Agendado</SelectItem>
             <SelectItem value="publicado">Publicado</SelectItem>
             <SelectItem value="arquivado">Arquivado</SelectItem>
           </SelectContent>

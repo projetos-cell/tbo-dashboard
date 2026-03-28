@@ -10,7 +10,7 @@ export const blogPostSchema = z.object({
   excerpt: z.string().max(500).nullable().optional(),
   body: z.string().default(""),
   cover_url: z.string().url().nullable().optional(),
-  status: z.enum(["rascunho", "revisao", "publicado", "arquivado"]).default("rascunho"),
+  status: z.enum(["rascunho", "revisao", "agendado", "publicado", "arquivado"]).default("rascunho"),
   author_id: z.string().uuid().nullable().optional(),
   published_at: z.string().nullable().optional(),
   tags: z.array(z.string()).default([]),

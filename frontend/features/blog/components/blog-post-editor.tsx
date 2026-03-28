@@ -158,7 +158,9 @@ export function BlogPostEditor({ post, mode }: BlogPostEditorProps) {
       published_at:
         v.status === "publicado" && !v.published_at
           ? new Date().toISOString()
-          : (v.published_at ?? null),
+          : v.status === "agendado" && !v.published_at
+            ? (() => { throw new Error("Data de publicacao obrigatoria para posts agendados"); })()
+            : (v.published_at ?? null),
     };
 
     if (mode === "create") {
@@ -350,6 +352,7 @@ export function BlogPostEditor({ post, mode }: BlogPostEditorProps) {
                     <SelectContent>
                       <SelectItem value="rascunho">Rascunho</SelectItem>
                       <SelectItem value="revisao">Revisao</SelectItem>
+                      <SelectItem value="agendado">Agendado</SelectItem>
                       <SelectItem value="publicado">Publicado</SelectItem>
                       <SelectItem value="arquivado">Arquivado</SelectItem>
                     </SelectContent>
@@ -410,7 +413,12 @@ export function BlogPostEditor({ post, mode }: BlogPostEditorProps) {
 
             {/* Data de publicacao */}
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Data de publicacao</Label>
+              <Label className="text-xs text-muted-foreground">
+                Data de publicacao
+                {form.watch("status") === "agendado" && (
+                  <span className="text-destructive ml-1">*</span>
+                )}
+              </Label>
               <Controller
                 control={form.control}
                 name="published_at"
@@ -425,6 +433,12 @@ export function BlogPostEditor({ post, mode }: BlogPostEditorProps) {
                   />
                 )}
               />
+              {form.watch("status") === "agendado" && form.watch("published_at") && (
+                <p className="text-[10px] text-blue-500">
+                  Sera publicado automaticamente em{" "}
+                  {new Date(form.watch("published_at") as string).toLocaleString("pt-BR")}
+                </p>
+              )}
             </div>
 
             {/* Excerpt */}

@@ -170,17 +170,35 @@ export function EditUserDialog({
       : false);
 
   async function onSubmit(data: UpdateUserInput) {
+    if (!member) return;
     try {
+      const raw = member as Record<string, unknown>;
       const cleaned: UpdateUserInput = { id: data.id };
-      if (data.full_name) cleaned.full_name = data.full_name;
-      if (data.role) cleaned.role = data.role;
-      if (data.department !== undefined)
+
+      // Só enviar campos que realmente mudaram
+      if (data.full_name && data.full_name !== member.full_name)
+        cleaned.full_name = data.full_name;
+      if (data.role && data.role !== member.role)
+        cleaned.role = data.role;
+      if ((data.department || null) !== (member.department || null))
         cleaned.department = data.department || null;
-      if (data.is_active !== undefined) cleaned.is_active = data.is_active;
-      if (data.phone !== undefined) cleaned.phone = data.phone || null;
-      if (data.cargo !== undefined) cleaned.cargo = data.cargo || null;
-      if (data.bio !== undefined) cleaned.bio = data.bio || null;
-      if (data.avatar_url !== undefined) cleaned.avatar_url = data.avatar_url;
+      if (data.is_active !== member.is_active)
+        cleaned.is_active = data.is_active;
+      if ((data.phone || null) !== ((raw.phone as string) || null))
+        cleaned.phone = data.phone || null;
+      if ((data.cargo || null) !== ((raw.cargo as string) || null))
+        cleaned.cargo = data.cargo || null;
+      if ((data.bio || null) !== ((raw.bio as string) || null))
+        cleaned.bio = data.bio || null;
+      if (data.avatar_url !== (member.avatar_url ?? null))
+        cleaned.avatar_url = data.avatar_url;
+
+      // Se nada mudou, não enviar request
+      const changedKeys = Object.keys(cleaned).filter((k) => k !== "id");
+      if (changedKeys.length === 0) {
+        onOpenChange(false);
+        return;
+      }
 
       await update.mutateAsync(cleaned);
       toast.success("Perfil atualizado com sucesso!");

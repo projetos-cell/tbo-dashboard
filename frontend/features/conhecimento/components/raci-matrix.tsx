@@ -50,19 +50,94 @@ function getAvatarColor(name: string): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
-// Parsear conteúdo de RACI em texto corrido
-// Formato típico: "Papel\nResponsável\nAprovador\nInformado\nArtista 3D\nExecução da modelagem\nMarco (Dir. Criativo)\nPO do projeto\n..."
+// Detectar se o conteúdo é uma tabela markdown (linhas com |)
+function isMarkdownTable(content: string): boolean {
+  const lines = content.split("\n").filter((l) => l.trim().length > 0);
+  return lines.length >= 3 && lines[0].includes("|") && lines[1].includes("---");
+}
+
+// Parsear tabela markdown RACI
+// Formato: | Atividade | Responsável | Aprovador | Consultado | Informado |
+function parseMarkdownRACITable(content: string): RACIEntry[] {
+  const lines = content
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && !l.match(/^\|[\s-|]+\|$/));
+
+  if (lines.length < 2) return [];
+
+  // Parsear header para encontrar índices das colunas
+  const headerCells = lines[0].split("|").map((c) => c.trim()).filter(Boolean);
+  const headerLower = headerCells.map((h) => h.toLowerCase());
+
+  const colIdx = {
+    activity: headerLower.findIndex((h) => h.includes("atividade") || h.includes("papel") || h.includes("etapa")),
+    responsible: headerLower.findIndex((h) => h.includes("responsável") || h.includes("responsavel")),
+    accountable: headerLower.findIndex((h) => h.includes("aprovador") || h.includes("accountable")),
+    consulted: headerLower.findIndex((h) => h.includes("consultado") || h.includes("consulted")),
+    informed: headerLower.findIndex((h) => h.includes("informado") || h.includes("informed")),
+  };
+
+  const entries: RACIEntry[] = [];
+
+  // Pular header (já processado) — data rows começam no índice 1
+  for (let i = 1; i < lines.length; i++) {
+    const cells = lines[i].split("|").map((c) => c.trim()).filter(Boolean);
+    if (cells.length < 2) continue;
+
+    const activity = colIdx.activity >= 0 ? (cells[colIdx.activity] || "") : (cells[0] || "");
+    const responsible = colIdx.responsible >= 0 ? (cells[colIdx.responsible] || "—") : "—";
+    const accountable = colIdx.accountable >= 0 ? (cells[colIdx.accountable] || "—") : "—";
+    const consulted = colIdx.consulted >= 0 ? (cells[colIdx.consulted] || "—") : "—";
+    const informed = colIdx.informed >= 0 ? (cells[colIdx.informed] || "—") : "—";
+
+    if (!activity || activity === "—") continue;
+
+    // Determinar papel RACI principal baseado em quem tem conteúdo
+    let raciRole = "R";
+    if (responsible !== "—" && responsible.length > 0) {
+      raciRole = "R";
+    }
+    // Se a atividade envolve "aprovação", marcar como A
+    const lowerActivity = activity.toLowerCase();
+    if (lowerActivity.includes("aprovação") || lowerActivity.includes("aprovação")) {
+      raciRole = "A";
+    } else if (lowerActivity.includes("registro") || lowerActivity.includes("revisão")) {
+      raciRole = "R";
+    } else if (lowerActivity.includes("knowledge") || lowerActivity.includes("transfer")) {
+      raciRole = "R";
+    }
+
+    entries.push({
+      person: activity,
+      role: raciRole,
+      responsible,
+      accountable,
+      informed: [consulted !== "—" ? `C: ${consulted}` : "", informed !== "—" ? `I: ${informed}` : ""]
+        .filter(Boolean)
+        .join(" | ") || "—",
+    });
+  }
+
+  return entries;
+}
+
+// Parsear conteúdo de RACI — suporta tabela markdown e texto corrido
 function parseRACIContent(content: string): RACIEntry[] {
+  // Tentar primeiro como tabela markdown
+  if (isMarkdownTable(content)) {
+    const entries = parseMarkdownRACITable(content);
+    if (entries.length > 0) return entries;
+  }
+
+  // Fallback: texto corrido (formato legado)
   const lines = content
     .split("\n")
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
 
-  // Encontrar onde os headers terminam e os dados começam
-  // Headers típicos: Papel, Responsável, Aprovador, Informado (ou Consultado)
   const headerKeywords = ["papel", "responsável", "aprovador", "informado", "consultado"];
 
-  // Encontrar o índice onde terminam os headers
   let dataStart = 0;
   for (let i = 0; i < Math.min(lines.length, 6); i++) {
     if (headerKeywords.includes(lines[i].toLowerCase())) {
@@ -70,13 +145,8 @@ function parseRACIContent(content: string): RACIEntry[] {
     }
   }
 
-  // Verificar se há headers de 4 colunas (Papel, Responsável, Aprovador, Informado)
-  // Os dados vêm em blocos de 4 linhas por pessoa
   const entries: RACIEntry[] = [];
   const dataLines = lines.slice(dataStart);
-
-  // Tentar agrupar em blocos — cada pessoa tem N campos
-  // Heurística: se temos headers com 3-4 colunas, agrupar de 3 em 3 ou 4 em 4
   const hasInfoColumn = lines.some((l) => l.toLowerCase() === "informado");
   const blockSize = hasInfoColumn ? 4 : 3;
 
@@ -86,10 +156,8 @@ function parseRACIContent(content: string): RACIEntry[] {
     const accountable = dataLines[i + 2] || "";
     const informed = blockSize === 4 ? (dataLines[i + 3] || "") : "";
 
-    // Pular linhas que são claramente separadores ou vazias
     if (person === "—" || person === "-" || person.length < 2) continue;
 
-    // Determinar o papel RACI baseado no conteúdo
     let raciRole = "R";
     const lowerResp = responsible.toLowerCase();
     const lowerPerson = person.toLowerCase();
@@ -149,9 +217,11 @@ export function RACIMatrix({ content }: RACIMatrixProps) {
             </Avatar>
             <div className="min-w-0 flex-1">
               <p className="font-medium text-sm truncate">{entry.person}</p>
-              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                {entry.responsible}
-              </p>
+              {entry.responsible && entry.responsible !== "—" && (
+                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                  {entry.responsible}
+                </p>
+              )}
               <div className="mt-1.5">
                 <span
                   className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${badgeCfg.color}`}
@@ -163,6 +233,11 @@ export function RACIMatrix({ content }: RACIMatrixProps) {
               {entry.accountable && entry.accountable !== "—" && (
                 <p className="text-[10px] text-muted-foreground mt-1">
                   Aprova: {entry.accountable}
+                </p>
+              )}
+              {entry.informed && entry.informed !== "—" && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {entry.informed}
                 </p>
               )}
             </div>

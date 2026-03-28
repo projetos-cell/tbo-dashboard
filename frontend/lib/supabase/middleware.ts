@@ -51,7 +51,7 @@ export async function updateSession(request: NextRequest, options?: { defaultRed
   // Redirect authenticated users away from login
   if (user && isAuthRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = options?.defaultRedirect ?? "/projetos";
+    url.pathname = options?.defaultRedirect ?? "/dashboard";
     return NextResponse.redirect(url);
   }
 

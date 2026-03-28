@@ -1,6 +1,6 @@
 import { create } from "zustand"
 
-export type WorkspaceId = "tbo-os" | "tbo-academy"
+export type WorkspaceId = "tbo-os"
 
 interface WorkspaceInfo {
   id: WorkspaceId
@@ -17,13 +17,6 @@ export const WORKSPACES: WorkspaceInfo[] = [
     description: "Gestão & Operações",
     icon: "🏠",
     href: "/dashboard",
-  },
-  {
-    id: "tbo-academy",
-    label: "TBO Academy",
-    description: "Aprendizado & Desenvolvimento",
-    icon: "🎓",
-    href: "/academy",
   },
 ]
 

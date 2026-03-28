@@ -54,8 +54,10 @@ export async function getAuditLogs(
   }
 
   if (filters.search) {
+    // Sanitize to prevent PostgREST filter injection — remove chars with special meaning in filter syntax
+    const safe = filters.search.replace(/[(),]/g, "");
     query = query.or(
-      `action.ilike.%${filters.search}%,entity_type.ilike.%${filters.search}%,entity_id.ilike.%${filters.search}%`
+      `action.ilike.%${safe}%,entity_type.ilike.%${safe}%,entity_id.ilike.%${safe}%`
     );
   }
 
@@ -98,7 +100,8 @@ export async function getAuditLogActions(
   const { data, error } = await supabase
     .from("audit_logs")
     .select("action")
-    .order("action");
+    .order("action")
+    .limit(1000);
 
   if (error) throw error;
 
@@ -113,7 +116,8 @@ export async function getAuditLogEntityTypes(
     .from("audit_logs")
     .select("entity_type")
     .not("entity_type", "is", null)
-    .order("entity_type");
+    .order("entity_type")
+    .limit(1000);
 
   if (error) throw error;
 

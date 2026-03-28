@@ -81,11 +81,17 @@ export async function getUsers(
   return (data ?? []) as ProfileRow[];
 }
 
+const ALLOWED_ROLES = ["admin", "lider", "colaborador"] as const;
+
 export async function updateUserRole(
   supabase: SupabaseClient<Database>,
   userId: string,
   role: string,
 ): Promise<ProfileRow> {
+  if (!(ALLOWED_ROLES as readonly string[]).includes(role)) {
+    throw new Error(`Role inválido: "${role}". Valores aceitos: ${ALLOWED_ROLES.join(", ")}`);
+  }
+
   const payload: Database["public"]["Tables"]["profiles"]["Update"] = {
     role,
     updated_at: new Date().toISOString(),

@@ -60,6 +60,7 @@ export function UserManagement() {
   const updateRole = useUpdateUserRole();
   const currentUserId = useAuthStore((s) => s.user?.id);
   const [search, setSearch] = useState("");
+  const [roleOverrides, setRoleOverrides] = useState<Record<string, string>>({});
 
   if (isLoading) return <UserManagementSkeleton />;
 
@@ -168,10 +169,22 @@ export function UserManagement() {
                       </span>
                     ) : (
                       <Select
-                        defaultValue={user.role ?? "colaborador"}
-                        onValueChange={(role) =>
-                          updateRole.mutate({ userId: user.id, role })
-                        }
+                        value={roleOverrides[user.id] ?? user.role ?? "colaborador"}
+                        onValueChange={(role) => {
+                          setRoleOverrides((prev) => ({ ...prev, [user.id]: role }));
+                          updateRole.mutate(
+                            { userId: user.id, role },
+                            {
+                              onError: () => {
+                                setRoleOverrides((prev) => {
+                                  const next = { ...prev };
+                                  delete next[user.id];
+                                  return next;
+                                });
+                              },
+                            }
+                          );
+                        }}
                         disabled={updateRole.isPending}
                       >
                         <SelectTrigger className="w-[120px] h-8 text-xs">

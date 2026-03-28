@@ -17,7 +17,7 @@ import {
   IconCheck,
   IconX,
   IconClock,
-  IconSkipForward,
+  IconPlayerSkipForward,
   IconGitBranch,
   IconCircleCheck,
   IconCircleX,
@@ -58,7 +58,7 @@ const STATUS_CONFIG = {
   skipped: {
     label: "Ignorado",
     color: "bg-gray-100 text-gray-500 border-gray-200",
-    icon: IconSkipForward,
+    icon: IconPlayerSkipForward,
   },
 } as const;
 

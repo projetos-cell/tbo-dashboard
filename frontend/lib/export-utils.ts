@@ -130,43 +130,7 @@ export async function exportToXLSX(
 ): Promise<void> {
   if (!data.length) return;
 
-  // Dynamic import to avoid SSR issues if xlsx is installed
-  try {
-    const XLSX = await import("xlsx").catch(() => null);
-
-    if (XLSX) {
-      const cols =
-        columns ??
-        Object.keys(data[0]).map((k) => ({ key: k, label: k, type: undefined }));
-
-      const wsData = [
-        cols.map((c) => c.label),
-        ...data.map((row) =>
-          cols.map((c) => {
-            const raw = row[c.key];
-            // Keep numbers as numbers for XLSX
-            if (
-              (c.type === "number" || c.type === "currency" || c.type === "percent") &&
-              typeof raw === "number"
-            ) {
-              return raw;
-            }
-            return formatCellValue(raw, c.type);
-          })
-        ),
-      ];
-
-      const ws = XLSX.utils.aoa_to_sheet(wsData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
-      XLSX.writeFile(wb, filename.endsWith(".xlsx") ? filename : `${filename}.xlsx`);
-      return;
-    }
-  } catch {
-    // Fall through to manual implementation
-  }
-
-  // Manual XLSX implementation (OpenDocument SpreadsheetML)
+  // XLSX implementation using SpreadsheetML (no external dependency)
   const cols =
     columns ??
     Object.keys(data[0]).map((k) => ({ key: k, label: k, type: undefined }));

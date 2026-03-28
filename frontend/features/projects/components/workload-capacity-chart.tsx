@@ -116,14 +116,21 @@ export function WorkloadCapacityChart({
   const { data: workloadData, isLoading } = useQuery({
     queryKey: ["workload-capacity", projectId, tenantId],
     queryFn: async () => {
+      // estimated_hours/logged_hours are planned columns — query only existing cols for now
       const { data: tasks, error } = await supabase
         .from("os_tasks")
-        .select("assignee_id,assignee_name,estimated_hours,logged_hours,is_completed")
+        .select("assignee_id,assignee_name,is_completed")
         .eq("project_id", projectId)
         .not("assignee_id", "is", null);
 
       if (error) throw error;
-      return tasks ?? [];
+      return (tasks ?? []) as Array<{
+        assignee_id: string | null;
+        assignee_name: string | null;
+        is_completed: boolean | null;
+        estimated_hours?: number | null;
+        logged_hours?: number | null;
+      }>;
     },
     staleTime: 1000 * 60 * 5,
     enabled: !!projectId && !!tenantId,

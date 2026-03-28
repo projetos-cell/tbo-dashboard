@@ -301,12 +301,11 @@ export async function saveProjectAsTemplate(
     description: description ?? null,
     sections_json: JSON.stringify(templateSections),
   };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table missing from generated types
-  const result = await (supabase as any)
-    .from("project_templates")
-    .insert(insertPayload)
-    .select("*")
-    .single() as { data: Record<string, unknown> | null; error: { message: string } | null };
+  const result = await supabase
+    .from("project_templates" as never)
+    .insert(insertPayload as never)
+    .select("id,tenant_id,name,description,sections_json,created_at")
+    .single() as unknown as { data: Record<string, unknown> | null; error: { message: string } | null };
 
   if (result.error) throw result.error;
   return {
@@ -320,12 +319,11 @@ export async function getSavedTemplates(
   tenantId: string,
 ): Promise<SavedTemplate[]> {
   const supabase = createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table missing from generated types
-  const result = await (supabase as any)
-    .from("project_templates")
-    .select("*")
-    .eq("tenant_id", tenantId)
-    .order("created_at", { ascending: false }) as {
+  const result = await supabase
+    .from("project_templates" as never)
+    .select("id,tenant_id,name,description,sections_json,created_at")
+    .eq("tenant_id" as never, tenantId as never)
+    .order("created_at" as never, { ascending: false } as never) as unknown as {
       data: Record<string, unknown>[] | null;
       error: { message: string } | null;
     };

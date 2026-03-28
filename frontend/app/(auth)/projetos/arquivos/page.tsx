@@ -1,5 +1,10 @@
+"use client";
+
+import { RequireRole } from "@/features/auth/components/require-role";
+
 export default function ProjetosArquivos() {
   return (
+    <RequireRole module="projetos">
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Arquivos</h1>
@@ -9,5 +14,6 @@ export default function ProjetosArquivos() {
         Em desenvolvimento
       </div>
     </div>
+    </RequireRole>
   );
 }

@@ -61,21 +61,32 @@ export const SortableSubNavItem = memo(function SortableSubNavItem({
       className={cn(
         "group/subitem relative cursor-grab active:cursor-grabbing",
         isDragging && "opacity-30",
-        isDragOverlay && "bg-sidebar-accent rounded-md shadow-md opacity-90",
-        isOver && !isDragging && "bg-accent/40",
+        isDragOverlay && "bg-sidebar-accent rounded-lg shadow-lg shadow-black/10 opacity-90",
+        isOver && !isDragging && "bg-sidebar-accent/40",
       )}
       {...attributes}
       {...listeners}
     >
       <span
-        className="text-muted-foreground/50 absolute left-0 top-1/2 z-10 -translate-y-1/2 p-0.5 opacity-0 transition-opacity duration-150 pointer-events-none group-hover/subitem:opacity-100"
+        className="text-muted-foreground/40 absolute left-0 top-1/2 z-10 -translate-y-1/2 p-0.5 opacity-0 transition-opacity duration-300 pointer-events-none group-hover/subitem:opacity-100"
         aria-hidden="true"
       >
-        <IconGripVertical className="h-2.5 w-2.5" />
+        <IconGripVertical className="size-2.5" />
       </span>
-      <SidebarMenuSubButton asChild isActive={subActive} size="sm" className="pl-5">
+      <SidebarMenuSubButton
+        asChild
+        isActive={subActive}
+        size="sm"
+        className={cn(
+          "pl-5 rounded-md transition-colors duration-150",
+          subActive && "font-medium text-sidebar-accent-foreground",
+        )}
+      >
         <Link href={sub.href}>
-          <SubIcon className="h-3.5 w-3.5" />
+          <SubIcon className={cn(
+            "size-3.5 transition-colors duration-150",
+            subActive ? "text-sidebar-primary" : "text-muted-foreground/50",
+          )} />
           <span>{sub.label}</span>
         </Link>
       </SidebarMenuSubButton>

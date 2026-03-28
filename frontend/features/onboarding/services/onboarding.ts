@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("onboarding");
 
 type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
 
@@ -70,7 +73,7 @@ export async function getOnboardingChecklist(
     .single();
   // Graceful fallback if column doesn't exist yet (migration not applied)
   if (error) {
-    console.warn("onboarding_checklist fetch error:", error.message);
+    log.warn("onboarding_checklist fetch error", { message: error.message });
     return {};
   }
   const row = data as unknown as { onboarding_checklist?: ChecklistProgress };
@@ -129,7 +132,7 @@ export async function getQuizProgress(
     .eq("id", userId)
     .single();
   if (error) {
-    console.warn("onboarding_quiz fetch error:", error.message);
+    log.warn("onboarding_quiz fetch error", { message: error.message });
     return {};
   }
   const row = data as unknown as { onboarding_quiz?: QuizProgress };

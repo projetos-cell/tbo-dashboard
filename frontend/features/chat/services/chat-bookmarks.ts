@@ -13,17 +13,16 @@ export interface BookmarkWithMessage extends BookmarkRow {
   chat_messages: MessageRow | null;
 }
 
-// Tables not yet in codegen — use any-cast as per TBO OS convention for new tables
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function anyClient(supabase: SupabaseClient<Database>): any {
-  return supabase;
+// Tables not yet in codegen — cast to untyped client to allow .from() on new tables
+function untypedClient(supabase: SupabaseClient<Database>): SupabaseClient {
+  return supabase as unknown as SupabaseClient;
 }
 
 export async function getBookmarks(
   supabase: SupabaseClient<Database>,
   userId: string,
 ): Promise<BookmarkWithMessage[]> {
-  const { data, error } = await anyClient(supabase)
+  const { data, error } = await untypedClient(supabase)
     .from("chat_bookmarks")
     .select("*, chat_messages(*)")
     .eq("user_id", userId)
@@ -37,7 +36,7 @@ export async function addBookmark(
   userId: string,
   messageId: string,
 ): Promise<void> {
-  const { error } = await anyClient(supabase)
+  const { error } = await untypedClient(supabase)
     .from("chat_bookmarks")
     .upsert({ user_id: userId, message_id: messageId }, { onConflict: "user_id,message_id" });
   if (error) throw error;
@@ -48,7 +47,7 @@ export async function removeBookmark(
   userId: string,
   messageId: string,
 ): Promise<void> {
-  const { error } = await anyClient(supabase)
+  const { error } = await untypedClient(supabase)
     .from("chat_bookmarks")
     .delete()
     .eq("user_id", userId)

@@ -26,6 +26,7 @@ import {
 import { usePeople } from "@/features/people/hooks/use-people";
 import { useAuthStore } from "@/stores/auth-store";
 import type { Database } from "@/lib/supabase/types";
+import { RBACGuard } from "@/components/rbac-guard";
 
 export default function PessoasReconhecimentosPage() {
   const { user, tenantId, role } = useAuthStore();
@@ -87,6 +88,7 @@ export default function PessoasReconhecimentosPage() {
   }
 
   return (
+    <RBACGuard minRole="colaborador">
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
@@ -249,5 +251,6 @@ export default function PessoasReconhecimentosPage() {
         isSubmitting={createRecognition.isPending}
       />
     </div>
+    </RBACGuard>
   );
 }

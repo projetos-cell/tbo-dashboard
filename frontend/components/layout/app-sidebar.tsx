@@ -4,7 +4,7 @@ import { useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { toast } from "sonner";
-import { IconLogout, IconSearch } from "@tabler/icons-react";
+import { IconSearch } from "@tabler/icons-react";
 import {
   DndContext,
   DragOverlay,
@@ -27,7 +27,6 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarHeader,
-  SidebarInput,
   SidebarMenu,
   SidebarMenuBadge,
   SidebarMenuButton,
@@ -35,10 +34,8 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { useChatStore } from "@/features/chat/stores/chat-store";
-import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth-store";
 import { useSidebarStore, undoSidebarReorder } from "@/stores/sidebar-store";
-import { useLogout } from "@/hooks/use-logout";
 import { useSidebarSearch } from "@/hooks/use-sidebar-search";
 import { useSidebarDnd } from "@/hooks/use-sidebar-dnd";
 import { useSidebarPreferences } from "@/hooks/use-sidebar-preferences";
@@ -46,13 +43,14 @@ import { getIcon } from "@/lib/icons";
 import { SIDEBAR_NAV_GROUPS, PINNED_NAV_ITEMS } from "@/lib/navigation";
 import { SortableNavGroup } from "@/components/layout/sidebar/sortable-nav-group";
 import { SortableNavItem } from "@/components/layout/sidebar/sortable-nav-item";
+import { SidebarUserFooter } from "@/components/layout/sidebar/sidebar-user-footer";
 import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
+import { cn } from "@/lib/utils";
 import type { NavGroupItem } from "@/lib/navigation";
 
 export function AppSidebar() {
   const pathname = usePathname();
   const modules = useAuthStore((s) => s.modules);
-  const logout = useLogout();
   const { query, setQuery, filteredGroups } = useSidebarSearch(SIDEBAR_NAV_GROUPS);
   const chatUnreadCounts = useChatStore((s) => s.unreadCounts);
   const chatTotalUnread = useMemo(
@@ -152,44 +150,66 @@ export function AppSidebar() {
 
   return (
     <Sidebar variant="inset" data-tour="sidebar">
-      <SidebarHeader className="border-b px-2 py-2">
+      {/* ── Header: Workspace Branding ── */}
+      <SidebarHeader className="px-1 pb-0 pt-1">
         <WorkspaceSwitcher />
+        {/* Gradient separator */}
+        <div className="mx-3 h-px bg-gradient-to-r from-transparent via-sidebar-border to-transparent" />
       </SidebarHeader>
 
       <SidebarContent>
-        {/* Search */}
-        <SidebarGroup className="px-2 py-2">
+        {/* ── Search ── */}
+        <SidebarGroup className="px-3 py-2.5">
           <SidebarGroupContent>
             <div className="relative">
-              <IconSearch className="text-muted-foreground absolute top-1/2 left-2 h-3.5 w-3.5 -translate-y-1/2" />
-              <SidebarInput
+              <IconSearch className="text-muted-foreground/60 absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 transition-colors duration-150 peer-focus:text-foreground" />
+              <input
+                type="text"
                 placeholder="Buscar..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="pl-7"
+                className="peer h-8 w-full rounded-lg border-0 bg-sidebar-accent/50 pl-8 pr-10 text-sm text-sidebar-foreground placeholder:text-muted-foreground/50 outline-none ring-1 ring-sidebar-border/50 transition-all duration-200 focus:bg-sidebar-accent/80 focus:ring-sidebar-ring/30"
               />
+              {/* Keyboard shortcut hint */}
+              <kbd className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 select-none rounded border border-sidebar-border/60 bg-sidebar/80 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground/50">
+                ⌘K
+              </kbd>
             </div>
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Pinned items — fixed, no group label */}
-        <SidebarGroup className="px-2 pb-1 pt-0" data-tour="pinned-items">
+        {/* ── Pinned items ── */}
+        <SidebarGroup className="px-3 pb-1 pt-0" data-tour="pinned-items">
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-0.5">
               {PINNED_NAV_ITEMS.filter((item) => canSee(item.module)).map((item) => {
                 const Icon = getIcon(item.icon);
                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
                 const badge = item.href === "/chat" && chatTotalUnread > 0 ? chatTotalUnread : 0;
                 return (
                   <SidebarMenuItem key={item.href} data-tour={item.href === "/projetos" ? "nav-projetos" : undefined}>
-                    <SidebarMenuButton asChild isActive={isActive}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      className={cn(
+                        "relative rounded-lg transition-all duration-150",
+                        isActive && "bg-sidebar-accent font-medium shadow-sm shadow-black/[0.03]",
+                      )}
+                    >
                       <Link href={item.href}>
-                        <Icon className="h-4 w-4" />
+                        {/* Active indicator bar */}
+                        {isActive && (
+                          <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full bg-sidebar-indicator" />
+                        )}
+                        <Icon className={cn(
+                          "size-[18px] transition-colors duration-150",
+                          isActive ? "text-sidebar-primary" : "text-muted-foreground/70",
+                        )} />
                         <span>{item.label}</span>
                       </Link>
                     </SidebarMenuButton>
                     {badge > 0 && (
-                      <SidebarMenuBadge className="bg-destructive text-destructive-foreground text-[10px] font-semibold min-w-5 h-5 flex items-center justify-center rounded-full">
+                      <SidebarMenuBadge className="animate-badge-pulse bg-destructive text-destructive-foreground text-[10px] font-semibold min-w-5 h-5 flex items-center justify-center rounded-full shadow-sm shadow-destructive/30">
                         {badge > 99 ? "99+" : badge}
                       </SidebarMenuBadge>
                     )}
@@ -200,12 +220,11 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Divider — separates pinned items from customizable groups */}
-        <div className="mx-3 border-t border-border/40" />
+        {/* ── Gradient separator ── */}
+        <div className="mx-4 h-px bg-gradient-to-r from-transparent via-sidebar-border/60 to-transparent" />
 
-        {/* Nav groups with D&D */}
+        {/* ── Nav groups with D&D ── */}
         {isSearching ? (
-          // During search, render without D&D (static filtered view)
           displayGroups.map((group) => (
             <SortableNavGroup
               key={group.label}
@@ -240,7 +259,6 @@ export function AppSidebar() {
               ))}
             </SortableContext>
 
-            {/* Drag overlay — ghost element while dragging */}
             <DragOverlay dropAnimation={null}>
               {activeDrag?.type === "group" && activeDrag.group ? (
                 <SortableNavGroup
@@ -261,11 +279,9 @@ export function AppSidebar() {
         )}
       </SidebarContent>
 
-      <SidebarFooter className="space-y-1 border-t p-2">
-        <Button variant="ghost" className="w-full justify-start gap-2" onClick={logout}>
-          <IconLogout className="h-4 w-4" />
-          Sair
-        </Button>
+      {/* ── Footer: User profile ── */}
+      <SidebarFooter className="border-t border-sidebar-border/40 p-2">
+        <SidebarUserFooter />
       </SidebarFooter>
 
       <SidebarRail />

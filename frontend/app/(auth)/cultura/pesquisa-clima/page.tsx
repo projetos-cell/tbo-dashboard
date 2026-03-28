@@ -46,7 +46,7 @@ interface TokenRow {
 const TBO_TEAM_EMAILS = [
   "marco@agenciatbo.com.br",
   "ruy@agenciatbo.com.br",
-  "lucca@agenciatbo.com.br",
+  "luccan@agenciatbo.com.br",
   "rafa@agenciatbo.com.br",
   "gustavo@agenciatbo.com.br",
   "celso@agenciatbo.com.br",

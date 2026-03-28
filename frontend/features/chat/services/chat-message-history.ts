@@ -9,16 +9,16 @@ export interface MessageHistoryRow {
   edited_by: string | null;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function anyClient(supabase: SupabaseClient<Database>): any {
-  return supabase;
+// Table not yet in codegen — cast to untyped client to allow .from() on new tables
+function untypedClient(supabase: SupabaseClient<Database>): SupabaseClient {
+  return supabase as unknown as SupabaseClient;
 }
 
 export async function getMessageEditHistory(
   supabase: SupabaseClient<Database>,
   messageId: string,
 ): Promise<MessageHistoryRow[]> {
-  const { data, error } = await anyClient(supabase)
+  const { data, error } = await untypedClient(supabase)
     .from("chat_message_history")
     .select("*")
     .eq("message_id", messageId)

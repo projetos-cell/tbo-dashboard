@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { IconPlus } from "@tabler/icons-react";
 import type { Database } from "@/lib/supabase/types";
+import { RequireRole } from "@/features/auth/components/require-role";
 
 type DecisionRow = Database["public"]["Tables"]["decisions"]["Row"];
 
@@ -54,6 +55,7 @@ export default function DecisionsPage() {
   };
 
   return (
+    <RequireRole module="projetos">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
@@ -133,5 +135,6 @@ export default function DecisionsPage() {
       {/* Create form */}
       <DecisionForm open={formOpen} onOpenChange={setFormOpen} />
     </div>
+    </RequireRole>
   );
 }

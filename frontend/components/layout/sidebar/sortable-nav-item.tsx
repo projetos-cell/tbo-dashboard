@@ -165,7 +165,7 @@ export const SortableNavItem = memo(function SortableNavItem({
         className={cn(
           "group/item relative flex items-center cursor-grab active:cursor-grabbing",
           isDragging && "opacity-30",
-          isDragOverlay && "bg-sidebar-accent rounded-md shadow-lg opacity-90",
+          isDragOverlay && "bg-sidebar-accent rounded-lg shadow-lg shadow-black/10 opacity-90",
         )}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -173,10 +173,23 @@ export const SortableNavItem = memo(function SortableNavItem({
         {...listeners}
       >
         {/* Spacer to align with chevron of collapsible items */}
-        <span className="shrink-0 p-0.5"><span className="inline-block h-3.5 w-3.5" /></span>
-        <SidebarMenuButton asChild isActive={isActive} className="pl-0">
+        <span className="shrink-0 p-0.5"><span className="inline-block size-3.5" /></span>
+        <SidebarMenuButton
+          asChild
+          isActive={isActive}
+          className={cn(
+            "relative pl-0 rounded-lg transition-all duration-150",
+            isActive && "bg-sidebar-accent font-medium shadow-sm shadow-black/[0.03]",
+          )}
+        >
           <Link href={item.href}>
-            <Icon className="h-4 w-4" />
+            {isActive && (
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full bg-sidebar-indicator" />
+            )}
+            <Icon className={cn(
+              "size-[18px] transition-colors duration-150",
+              isActive ? "text-sidebar-primary" : "text-muted-foreground/60",
+            )} />
             <span className="truncate">{item.label}</span>
           </Link>
         </SidebarMenuButton>
@@ -193,7 +206,7 @@ export const SortableNavItem = memo(function SortableNavItem({
         className={cn(
           "group/item relative flex items-center cursor-grab active:cursor-grabbing",
           isDragging && "opacity-30",
-          isDragOverlay && "bg-sidebar-accent rounded-md shadow-lg opacity-90",
+          isDragOverlay && "bg-sidebar-accent rounded-lg shadow-lg shadow-black/10 opacity-90",
         )}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -203,15 +216,29 @@ export const SortableNavItem = memo(function SortableNavItem({
         <CollapsibleTrigger asChild>
           <button
             type="button"
-            className="text-muted-foreground hover:text-foreground flex shrink-0 items-center rounded-sm p-0.5 transition-colors duration-150"
+            className="text-muted-foreground/50 hover:text-foreground flex shrink-0 items-center rounded-md p-0.5 transition-colors duration-150"
             aria-label={`Expandir ${item.label}`}
           >
-            <IconChevronRight className="h-3.5 w-3.5 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+            <IconChevronRight className="size-3.5 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
           </button>
         </CollapsibleTrigger>
-        <SidebarMenuButton asChild isActive={isActive} tooltip={item.label} className="pl-0">
+        <SidebarMenuButton
+          asChild
+          isActive={isActive}
+          tooltip={item.label}
+          className={cn(
+            "relative pl-0 rounded-lg transition-all duration-150",
+            isActive && "bg-sidebar-accent font-medium shadow-sm shadow-black/[0.03]",
+          )}
+        >
           <Link href={item.href}>
-            <Icon className="h-4 w-4" />
+            {isActive && (
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full bg-sidebar-indicator" />
+            )}
+            <Icon className={cn(
+              "size-[18px] transition-colors duration-150",
+              isActive ? "text-sidebar-primary" : "text-muted-foreground/60",
+            )} />
             <span className="truncate">{item.label}</span>
           </Link>
         </SidebarMenuButton>

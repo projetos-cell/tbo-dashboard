@@ -20,6 +20,7 @@ import { computePdiKPIs } from "@/features/pdi/services/pdi";
 import { PDI_STATUS_KEYS, PDI_STATUS } from "@/features/pdi/utils/pdi-utils";
 import { IconPlus, IconSearch } from "@tabler/icons-react";
 import type { PdiRow } from "@/features/pdi/services/pdi";
+import { RBACGuard } from "@/components/rbac-guard";
 
 export default function PDIPage() {
   const { data: pdis, isLoading } = usePdis();
@@ -82,6 +83,7 @@ export default function PDIPage() {
   }, [pdis, detailItem]);
 
   return (
+    <RBACGuard minRole="colaborador">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -158,5 +160,6 @@ export default function PDIPage() {
         editData={editData}
       />
     </div>
+    </RBACGuard>
   );
 }

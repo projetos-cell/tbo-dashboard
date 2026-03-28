@@ -2,6 +2,7 @@
 
 import { useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import { IconCamera } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -270,12 +271,29 @@ function GalleryCard({ project }: { project: Project }) {
   );
 }
 
+const galleryVariants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.05 } },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.25, ease: "easeOut" } },
+};
+
 export function ProjectGallery({ projects }: ProjectGalleryProps) {
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+    <motion.div
+      variants={galleryVariants}
+      initial="hidden"
+      animate="show"
+      className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+    >
       {projects.map((project) => (
-        <GalleryCard key={project.id} project={project} />
+        <motion.div key={project.id} variants={cardVariants} className="w-full">
+          <GalleryCard project={project} />
+        </motion.div>
       ))}
-    </div>
+    </motion.div>
   );
 }

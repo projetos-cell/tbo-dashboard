@@ -1,7 +1,8 @@
 "use client";
 
 import type { ElementType } from "react";
-
+import { useDraggable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 import { IconGripVertical, IconDots, IconFlag, IconFlag2, IconFlag3 } from "@tabler/icons-react";
 
 import type { KanbanTask } from "@/validations/kanban.schema";
@@ -46,18 +47,36 @@ function getInitials(name: string): string {
 
 interface KanbanCardProps {
   task: KanbanTask;
+  isDragOverlay?: boolean;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export function KanbanCard({ task }: KanbanCardProps) {
+export function KanbanCard({ task, isDragOverlay = false }: KanbanCardProps) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
   const priority = priorityConfig[task.priority];
   const PriorityIcon = priority.icon;
 
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    opacity: isDragging ? 0.4 : 1,
+  };
+
   return (
-    <Card className="group dark:bg-card relative cursor-grab gap-0 rounded-lg bg-white py-0 shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing">
+    <Card
+      ref={setNodeRef}
+      style={isDragOverlay ? undefined : style}
+      {...attributes}
+      {...listeners}
+      className={[
+        "group dark:bg-card relative gap-0 rounded-lg bg-white py-0 shadow-sm transition-shadow",
+        isDragOverlay
+          ? "rotate-1 cursor-grabbing shadow-xl"
+          : "cursor-grab hover:shadow-md active:cursor-grabbing",
+      ].join(" ")}
+    >
       {/* Drag handle — flutua no topo-esquerdo, aparece no hover */}
       <span
         aria-hidden
@@ -66,11 +85,8 @@ export function KanbanCard({ task }: KanbanCardProps) {
         <IconGripVertical size={14} />
       </span>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Header: Label (esq) | Dots (dir)                                    */}
-      {/* ------------------------------------------------------------------ */}
+      {/* Header: Label (esq) | Dots (dir) */}
       <CardHeader className="flex flex-row items-center justify-between px-3 pt-3 pb-0">
-        {/* Label badge — outline com toque laranja */}
         {task.label ? (
           <Badge
             variant="outline"
@@ -79,11 +95,9 @@ export function KanbanCard({ task }: KanbanCardProps) {
             {task.label}
           </Badge>
         ) : (
-          /* mantém altura do header quando não há label */
           <span className="h-5" />
         )}
 
-        {/* Botão de opções — ícone escuro, hover com fundo */}
         <button
           type="button"
           aria-label="Opções do card"
@@ -93,22 +107,16 @@ export function KanbanCard({ task }: KanbanCardProps) {
         </button>
       </CardHeader>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Content: Título + Footer (prioridade + avatar)                       */}
-      {/* ------------------------------------------------------------------ */}
+      {/* Content: Título + Footer */}
       <CardContent className="flex flex-col gap-3 px-3 pt-2 pb-3">
-        {/* Title */}
         <p className="text-sm leading-snug font-medium text-zinc-900 dark:text-zinc-100">{task.title}</p>
 
-        {/* Footer: priority + assignee */}
         <div className="flex items-center justify-between">
-          {/* Priority */}
           <span className={`flex items-center gap-1 text-xs ${priority.className}`}>
             <PriorityIcon size={13} />
             {priority.label}
           </span>
 
-          {/* Assignee */}
           {task.assignee && (
             <Avatar size="sm" title={task.assignee.name}>
               <AvatarImage src={task.assignee.avatarUrl} alt={task.assignee.name} />

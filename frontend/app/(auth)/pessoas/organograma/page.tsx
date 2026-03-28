@@ -8,6 +8,7 @@ import { usePersonById } from "@/features/people/hooks/use-person-by-id";
 import { ErrorState } from "@/components/shared";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
+import { RBACGuard } from "@/components/rbac-guard";
 
 export default function OrganogramaPage() {
   const { data, isLoading, error, refetch } = useOrgChart();
@@ -22,6 +23,7 @@ export default function OrganogramaPage() {
   }, []);
 
   return (
+    <RBACGuard minRole="colaborador">
     <div className="space-y-6">
       {/* Header */}
       <div>
@@ -70,5 +72,6 @@ export default function OrganogramaPage() {
         }}
       />
     </div>
+    </RBACGuard>
   );
 }

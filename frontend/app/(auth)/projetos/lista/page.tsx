@@ -13,6 +13,7 @@ import { ProjectForm } from "@/features/projects/components/project-form";
 import { useProjects } from "@/features/projects/hooks/use-projects";
 import { useUser } from "@/hooks/use-user";
 import { parseBus } from "@/features/projects/utils/parse-bus";
+import { RequireRole } from "@/features/auth/components/require-role";
 
 export default function ProjetosListaPage() {
   const [search, setSearch] = useState("");
@@ -54,6 +55,7 @@ export default function ProjetosListaPage() {
   }
 
   return (
+    <RequireRole module="projetos">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
@@ -118,5 +120,6 @@ export default function ProjetosListaPage() {
 
       <ProjectForm open={formOpen} onOpenChange={setFormOpen} />
     </div>
+    </RequireRole>
   );
 }

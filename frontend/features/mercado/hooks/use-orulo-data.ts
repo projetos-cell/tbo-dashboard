@@ -297,7 +297,7 @@ export function useOruloSync() {
 // ---------------------------------------------------------------------------
 
 export function useOruloSyncedBuildings(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tables not in generated types (orulo_buildings, orulo_units)
   supabase: any | null,
   tenantId: string | undefined,
   filters?: {
@@ -340,7 +340,7 @@ export function useOruloSyncedBuildings(
 }
 
 export function useOruloSyncLog(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tables not in generated types (orulo_buildings, orulo_units)
   supabase: any | null,
   tenantId: string | undefined,
 ) {

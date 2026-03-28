@@ -123,12 +123,13 @@ export const SortableNavGroup = memo(function SortableNavGroup({
         ref={setNodeRef}
         style={style}
         className={cn(
+          "transition-all duration-200",
           isDragging && "opacity-30",
-          isDragOverlay && "bg-sidebar rounded-md shadow-lg opacity-95",
-          isDropTarget && "ring-2 ring-primary/30 rounded-md bg-primary/5",
+          isDragOverlay && "bg-sidebar rounded-xl shadow-lg shadow-black/10 opacity-95",
+          isDropTarget && "rounded-xl bg-sidebar-primary/5 shadow-[0_0_0_1px_var(--sidebar-primary)/20]",
         )}
       >
-        <SidebarGroup>
+        <SidebarGroup className="px-3">
           <SidebarGroupContent>
             <SidebarMenu>
               <SortableNavItem
@@ -148,41 +149,43 @@ export const SortableNavGroup = memo(function SortableNavGroup({
       ref={setNodeRef}
       style={style}
       className={cn(
+        "transition-all duration-200",
         isDragging && "opacity-30",
-        isDragOverlay && "bg-sidebar rounded-md shadow-lg opacity-95",
-        isDropTarget && "ring-2 ring-primary/30 rounded-md bg-primary/5",
+        isDragOverlay && "bg-sidebar rounded-xl shadow-lg shadow-black/10 opacity-95",
+        isDropTarget && "rounded-xl bg-sidebar-primary/5 shadow-[0_0_0_1px_var(--sidebar-primary)/20]",
       )}
     >
       <Collapsible
         open={!isCollapsed}
         onOpenChange={() => toggleGroup(group.label)}
       >
-        <SidebarGroup>
+        <SidebarGroup className="px-3">
           <div
             className={cn(
-              "group/grouplabel relative flex items-center cursor-grab active:cursor-grabbing",
+              "group/grouplabel relative flex items-center cursor-grab active:cursor-grabbing rounded-md transition-colors duration-150",
+              isHovered && "bg-sidebar-accent/30",
             )}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             {...attributes}
             {...listeners}
           >
-            {/* Drag handle visual indicator */}
+            {/* Drag handle — appears with slight delay */}
             <span
               className={cn(
-                "text-muted-foreground/50 absolute left-0 top-1/2 z-10 -translate-y-1/2 p-0.5 opacity-0 transition-opacity duration-150 pointer-events-none",
+                "text-muted-foreground/40 absolute left-0 top-1/2 z-10 -translate-y-1/2 p-0.5 opacity-0 transition-opacity duration-300 pointer-events-none",
                 (isHovered || isDragOverlay) && "opacity-100",
               )}
               aria-hidden="true"
             >
-              <IconGripVertical className="h-3 w-3" />
+              <IconGripVertical className="size-2.5" />
             </span>
 
             <CollapsibleTrigger asChild>
-              <SidebarGroupLabel className="flex-1 cursor-pointer pl-4">
+              <SidebarGroupLabel className="flex-1 cursor-pointer pl-4 text-[10px] uppercase tracking-widest text-muted-foreground/60 font-semibold">
                 <IconChevronRight
                   className={cn(
-                    "mr-1 h-3 w-3 transition-transform duration-200",
+                    "mr-1.5 size-3 transition-transform duration-200",
                     !isCollapsed && "rotate-90",
                   )}
                 />
@@ -190,16 +193,16 @@ export const SortableNavGroup = memo(function SortableNavGroup({
               </SidebarGroupLabel>
             </CollapsibleTrigger>
 
-            {/* Hover actions do grupo */}
+            {/* Hover actions */}
             <div
               className={cn(
-                "absolute right-1 top-1/2 z-10 flex -translate-y-1/2 items-center gap-0.5 opacity-0 transition-opacity duration-150",
+                "absolute right-0.5 top-1/2 z-10 flex -translate-y-1/2 items-center gap-0.5 opacity-0 transition-opacity duration-200",
                 (isHovered || isDragOverlay) && "opacity-100",
               )}
             >
               <button
                 type="button"
-                className="text-muted-foreground hover:text-foreground hover:bg-accent rounded-sm p-0.5 transition-colors"
+                className="text-muted-foreground/50 hover:text-foreground hover:bg-sidebar-accent rounded-md p-1 transition-colors duration-150"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -208,20 +211,20 @@ export const SortableNavGroup = memo(function SortableNavGroup({
                 }}
                 aria-label={`Ir para ${group.label}`}
               >
-                <IconPlus className="h-3 w-3" />
+                <IconPlus className="size-3" />
               </button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="text-muted-foreground hover:text-foreground hover:bg-accent rounded-sm p-0.5 transition-colors"
+                    className="text-muted-foreground/50 hover:text-foreground hover:bg-sidebar-accent rounded-md p-1 transition-colors duration-150"
                     onClick={(e) => e.stopPropagation()}
                     aria-label={`Opções de ${group.label}`}
                   >
-                    <IconDots className="h-3 w-3" />
+                    <IconDots className="size-3" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent side="right" align="start" className="w-48">
+                <DropdownMenuContent side="right" align="start" className="w-48 rounded-xl">
                   <DropdownMenuItem disabled>Renomear seção</DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={(e) => {
@@ -241,7 +244,7 @@ export const SortableNavGroup = memo(function SortableNavGroup({
 
           <CollapsibleContent>
             <SidebarGroupContent>
-              <SidebarMenu>
+              <SidebarMenu className="gap-0.5">
                 <SortableContext
                   items={itemIds}
                   strategy={verticalListSortingStrategy}

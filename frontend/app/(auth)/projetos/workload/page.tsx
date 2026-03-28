@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useTasks } from "@/features/tasks/hooks/use-tasks";
 import { useTeamMembers } from "@/hooks/use-team";
 import { cn } from "@/lib/utils";
+import { RequireRole } from "@/features/auth/components/require-role";
 
 const WEEKS_TO_SHOW = 8;
 
@@ -94,6 +95,7 @@ export default function WorkloadPage() {
   }, [selectedCell, tasks, weeks]);
 
   return (
+    <RequireRole module="projetos">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -257,5 +259,6 @@ export default function WorkloadPage() {
         </div>
       )}
     </div>
+    </RequireRole>
   );
 }

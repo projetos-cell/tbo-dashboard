@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { PropertyEditor } from "@/features/projects/components/property-editor";
 import { usePropertyOptions } from "@/features/projects/hooks/use-project-properties";
+import { RequireRole } from "@/features/auth/components/require-role";
 
 function StatusSection() {
   const { data: statusOptions } = usePropertyOptions("status");
@@ -132,6 +133,7 @@ function NotificationsSection() {
 
 export default function ProjetosConfiguracoes() {
   return (
+    <RequireRole module="projetos" allowed={["founder", "diretoria", "lider"]}>
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <div className="flex size-9 items-center justify-center rounded-lg bg-muted">
@@ -152,5 +154,6 @@ export default function ProjetosConfiguracoes() {
         <NotificationsSection />
       </div>
     </div>
+    </RequireRole>
   );
 }

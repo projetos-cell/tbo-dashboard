@@ -36,6 +36,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Database } from "@/lib/supabase/types";
+import { RequireRole } from "@/features/auth/components/require-role";
 
 type Project = Database["public"]["Tables"]["projects"]["Row"];
 
@@ -72,6 +73,7 @@ export default function PortfolioPage() {
   }
 
   return (
+    <RequireRole module="projetos">
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -135,6 +137,7 @@ export default function PortfolioPage() {
         </div>
       )}
     </div>
+    </RequireRole>
   );
 }
 

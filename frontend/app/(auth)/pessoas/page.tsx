@@ -27,6 +27,7 @@ import {
   hasActiveFilters,
 } from "@/features/people/utils/people-filters";
 import { IconUsers, IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
+import { RBACGuard } from "@/components/rbac-guard";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -193,6 +194,7 @@ export default function PessoasPage() {
   );
 
   return (
+    <RBACGuard minRole="colaborador">
     <div className="space-y-6">
       {/* Header */}
       <div>
@@ -303,5 +305,6 @@ export default function PessoasPage() {
         onOpenChange={setDetailOpen}
       />
     </div>
+    </RBACGuard>
   );
 }

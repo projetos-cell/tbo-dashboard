@@ -38,6 +38,7 @@ import { useTasks } from "@/features/tasks/hooks/use-tasks";
 import { useProjects } from "@/features/projects/hooks/use-projects";
 import { TASK_STATUS, BU_LIST, type TaskStatusKey } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
+import { RequireRole } from "@/features/auth/components/require-role";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
@@ -115,6 +116,7 @@ export default function ProjetosCalendarioGlobal() {
   }
 
   return (
+    <RequireRole module="projetos">
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -241,6 +243,7 @@ export default function ProjetosCalendarioGlobal() {
         </div>
       </div>
     </div>
+    </RequireRole>
   );
 }
 

@@ -12,13 +12,19 @@ const d3d = (supabase: Supabase) => ({
   stages: () => (supabase as unknown as SupabaseClient).from("project_d3d_stages"),
 });
 
+// Explicit column lists — avoids select("*") over-fetching
+const D3D_FLOW_COLS =
+  "id,project_id,tenant_id,current_stage,total_estimated_days,started_at,completed_at,created_by,share_token,share_enabled,created_at,updated_at";
+const D3D_STAGE_COLS =
+  "id,flow_id,stage_key,stage_type,status,sort_order,image_url,started_at,completed_at,approved_by,approval_feedback,estimated_days,actual_days,notes,tenant_id,created_at,updated_at";
+
 // ── Queries ──────────────────────────────────────────────────────────
 
 /** Get all D3D flows for the tenant (with project info) */
 export async function getD3DFlows(supabase: Supabase): Promise<D3DPipelineData[]> {
   const { data: flows, error } = await d3d(supabase)
     .flows()
-    .select("*")
+    .select(D3D_FLOW_COLS)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
@@ -28,7 +34,7 @@ export async function getD3DFlows(supabase: Supabase): Promise<D3DPipelineData[]
   const projectIds = (flows as D3DFlow[]).map((f) => f.project_id);
 
   const [stagesRes, projectsRes] = await Promise.all([
-    d3d(supabase).stages().select("*").in("flow_id", flowIds).order("sort_order"),
+    d3d(supabase).stages().select(D3D_STAGE_COLS).in("flow_id", flowIds).order("sort_order"),
     supabase.from("projects").select("id, name, client, bus").in("id", projectIds),
   ]);
 
@@ -62,7 +68,7 @@ export async function getD3DFlowByProject(
 ): Promise<D3DPipelineData | null> {
   const { data: flow, error } = await d3d(supabase)
     .flows()
-    .select("*")
+    .select(D3D_FLOW_COLS)
     .eq("project_id", projectId)
     .maybeSingle();
 
@@ -72,7 +78,7 @@ export async function getD3DFlowByProject(
   const typedFlow = flow as D3DFlow;
 
   const [stagesRes, projectRes] = await Promise.all([
-    d3d(supabase).stages().select("*").eq("flow_id", typedFlow.id).order("sort_order"),
+    d3d(supabase).stages().select(D3D_STAGE_COLS).eq("flow_id", typedFlow.id).order("sort_order"),
     supabase.from("projects").select("id, name, client, bus").eq("id", projectId).single(),
   ]);
 
@@ -94,7 +100,7 @@ export async function getD3DFlowByToken(
 ): Promise<D3DPipelineData | null> {
   const { data: flow, error } = await d3d(supabase)
     .flows()
-    .select("*")
+    .select(D3D_FLOW_COLS)
     .eq("share_token", token)
     .eq("share_enabled", true)
     .maybeSingle();
@@ -105,7 +111,7 @@ export async function getD3DFlowByToken(
   const typedFlow = flow as D3DFlow;
 
   const [stagesRes, projectRes] = await Promise.all([
-    d3d(supabase).stages().select("*").eq("flow_id", typedFlow.id).order("sort_order"),
+    d3d(supabase).stages().select(D3D_STAGE_COLS).eq("flow_id", typedFlow.id).order("sort_order"),
     supabase.from("projects").select("id, name, client, bus").eq("id", typedFlow.project_id).single(),
   ]);
 
@@ -136,7 +142,7 @@ export async function createD3DFlow(
       current_stage: "00_briefing",
       share_token: crypto.randomUUID().replace(/-/g, "").slice(0, 16),
     })
-    .select("*")
+    .select(D3D_FLOW_COLS)
     .single();
 
   if (error) throw error;

@@ -42,6 +42,7 @@ import {
   IconAlertTriangle,
   IconCalculator,
 } from "@tabler/icons-react";
+import { RBACGuard } from "@/components/rbac-guard";
 
 // ---------------------------------------------------------------------------
 // Generate last 6 months for period selector
@@ -153,6 +154,7 @@ export default function PerformancePage() {
   }
 
   return (
+    <RBACGuard minRole="lider">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -406,5 +408,6 @@ export default function PerformancePage() {
         period={period}
       />
     </div>
+    </RBACGuard>
   );
 }

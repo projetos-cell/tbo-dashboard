@@ -4,6 +4,9 @@ import type { PeopleFiltersSpec } from "@/features/people/utils/people-filters";
 import { PRIORITY_SORT_FIELD } from "@/features/people/utils/people-filters";
 import type { SortSpec } from "@/services/view-state";
 import { getPeopleSnapshots, computePriorityScore } from "@/features/people/services/people-snapshot";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("people");
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type TeamRow = Database["public"]["Tables"]["teams"]["Row"];
@@ -203,7 +206,7 @@ async function getPeopleByKPI(
   );
 
   if (error) {
-    console.warn("[getPeopleByKPI] RPC failed:", error.message);
+    log.warn("RPC get_people_ids_by_kpi failed", { kpi, error: error.message });
     return { data: [], count: 0 };
   }
 
@@ -341,7 +344,7 @@ export async function getPeopleKPIs(
   );
 
   if (error) {
-    console.warn("[getPeopleKPIs] RPC failed, using fallback:", error.message);
+    log.warn("RPC get_people_kpis failed, using fallback", { error: error.message });
     return { ...EMPTY_KPIS };
   }
 
@@ -433,7 +436,7 @@ export async function getCriticalScoreCount(
     .lt("media_avaliacao", 50);
 
   if (error) {
-    console.warn("[getCriticalScoreCount] Query failed:", error.message);
+    log.warn("getCriticalScoreCount query failed", { error: error.message });
     return 0;
   }
   return count ?? 0;

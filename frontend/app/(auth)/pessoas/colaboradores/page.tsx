@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PEOPLE_STATUS } from "@/lib/constants";
 import { IconSearch, IconUsers, IconX } from "@tabler/icons-react";
 import type { Database } from "@/lib/supabase/types";
+import { RBACGuard } from "@/components/rbac-guard";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type PeopleStatusKey = keyof typeof PEOPLE_STATUS;
@@ -62,6 +63,7 @@ export default function ColaboradoresPage() {
   };
 
   return (
+    <RBACGuard minRole="colaborador">
     <div className="space-y-6">
       {/* Header */}
       <div>
@@ -228,5 +230,6 @@ export default function ColaboradoresPage() {
         }}
       />
     </div>
+    </RBACGuard>
   );
 }

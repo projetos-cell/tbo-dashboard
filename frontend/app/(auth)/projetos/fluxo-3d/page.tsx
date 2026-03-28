@@ -37,6 +37,7 @@ import {
   useUpdateStageStatus,
   useToggleD3DShare,
 } from "@/features/projects/d3d-pipeline";
+import { RequireRole } from "@/features/auth/components/require-role";
 
 export default function ProjetosFluxo3DPage() {
   const { toast } = useToast();
@@ -133,6 +134,7 @@ export default function ProjetosFluxo3DPage() {
   }
 
   return (
+    <RequireRole module="projetos">
     <div className="flex h-full min-h-0 flex-col gap-6">
       {/* Header */}
       <div className="flex items-start justify-between">
@@ -322,6 +324,7 @@ export default function ProjetosFluxo3DPage() {
         isCreating={createFlow.isPending}
       />
     </div>
+    </RequireRole>
   );
 }
 

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type CustomFieldType =
   | "text"
@@ -44,10 +45,9 @@ export interface CreateCustomFieldInput {
 }
 
 // TODO: regenerate types with `supabase gen types` to get proper table types
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- table missing from generated types
-function fieldsTable(): any { return createClient().from("os_custom_fields" as never); }
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- table missing from generated types
-function valuesTable(): any { return createClient().from("os_task_field_values" as never); }
+function untypedDb(): SupabaseClient { return createClient() as unknown as SupabaseClient; }
+function fieldsTable() { return untypedDb().from("os_custom_fields"); }
+function valuesTable() { return untypedDb().from("os_task_field_values"); }
 
 // ─── Custom Field CRUD ──────────────────────────────────────────────────────────
 
@@ -56,7 +56,7 @@ export async function getProjectCustomFields(
   projectId: string,
 ): Promise<CustomField[]> {
   const { data, error } = await fieldsTable()
-    .select("*")
+    .select("id,tenant_id,scope,project_id,name,type,config_json,order_index,is_visible,created_at,updated_at")
     .eq("tenant_id", tenantId)
     .eq("project_id", projectId)
     .eq("is_visible", true)
@@ -115,7 +115,7 @@ export async function getTaskFieldValues(
 ): Promise<TaskFieldValue[]> {
   if (taskIds.length === 0) return [];
   const { data, error } = await valuesTable()
-    .select("*")
+    .select("id,tenant_id,task_id,field_id,value_json,created_at,updated_at")
     .eq("tenant_id", tenantId)
     .in("task_id", taskIds);
 
@@ -161,8 +161,7 @@ export async function upsertTaskFieldValue(
 
 // ─── View Preferences (column widths, order, visibility) ────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- table missing from generated types
-function prefsTable(): any { return createClient().from("user_view_preferences" as never); }
+function prefsTable() { return untypedDb().from("user_view_preferences"); }
 
 export interface ViewPreferences {
   id: string;
@@ -178,7 +177,7 @@ export async function getViewPreferences(
   projectId: string,
 ): Promise<ViewPreferences | null> {
   const { data, error } = await prefsTable()
-    .select("*")
+    .select("id,user_id,project_id,column_widths,column_order,hidden_columns")
     .eq("user_id", userId)
     .eq("project_id", projectId)
     .maybeSingle();

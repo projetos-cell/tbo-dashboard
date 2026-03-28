@@ -20,6 +20,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 import { useProjects } from "@/features/projects/hooks/use-projects";
 import { PROJECT_STATUS, BU_COLORS } from "@/lib/constants";
+import { RequireRole } from "@/features/auth/components/require-role";
 import {
   startOfMonth,
   endOfMonth,
@@ -164,6 +165,7 @@ export default function ProjetosTimeline() {
   }
 
   return (
+    <RequireRole module="projetos">
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -315,5 +317,6 @@ export default function ProjetosTimeline() {
         </div>
       </div>
     </div>
+    </RequireRole>
   );
 }

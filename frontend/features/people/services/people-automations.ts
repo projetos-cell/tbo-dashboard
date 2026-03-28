@@ -2,6 +2,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
 import { getPeopleSnapshots, type PersonSnapshot } from "@/features/people/services/people-snapshot";
 import { logPeopleEvent, hasRecentEvent } from "@/features/people/services/people-events";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("people-automations");
 
 // ---------------------------------------------------------------------------
 // Fase 6 — AUTOMACAO LEVE (Deterministica)
@@ -118,7 +121,7 @@ async function getExistingAutoTasks(
     .neq("status" as never, "done" as never);
 
   if (error) {
-    console.warn("[Automations] Failed to fetch existing auto-tasks:", error.message);
+    log.warn("Failed to fetch existing auto-tasks", { error: error.message });
     return new Map();
   }
 
@@ -158,7 +161,7 @@ async function createAutoTask(
   } as never);
 
   if (error) {
-    console.warn(`[Automations] Failed to create task (${trigger}):`, error.message);
+    log.warn("Failed to create auto task", { trigger, error: error.message });
     return false;
   }
   return true;
@@ -191,7 +194,7 @@ async function logAutomationAlert(
       tenant_id: tenantId,
     } as never);
   } catch (err) {
-    console.warn("[Automations] Failed to log alert:", err);
+    log.warn("Failed to log automation alert", { err: String(err) });
   }
 }
 

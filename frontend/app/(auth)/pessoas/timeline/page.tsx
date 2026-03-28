@@ -13,6 +13,7 @@ import { PeopleTimeline } from "@/features/people/components/people-timeline";
 import { usePeopleEvents } from "@/features/people/hooks/use-people-events";
 import { useProfiles } from "@/features/people/hooks/use-people";
 import type { PeopleEventType, EventSeverity, PeopleEventsFilter } from "@/features/people/services/people-events";
+import { RBACGuard } from "@/components/rbac-guard";
 
 // ---------------------------------------------------------------------------
 // Event type & severity options for filters
@@ -67,6 +68,7 @@ export default function PessoasTimelinePage() {
   }, [profiles]);
 
   return (
+    <RBACGuard minRole="lider">
     <div className="space-y-6">
       {/* Header */}
       <div>
@@ -149,5 +151,6 @@ export default function PessoasTimelinePage() {
         </CardContent>
       </Card>
     </div>
+    </RBACGuard>
   );
 }

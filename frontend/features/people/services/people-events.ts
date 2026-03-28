@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("people-events");
 
 // ---------------------------------------------------------------------------
 // Fase 7 — TIMELINE VIVA (People Events)
@@ -77,7 +80,7 @@ export async function logPeopleEvent(
       created_at: new Date().toISOString(),
     } as never);
   } catch (err) {
-    console.warn("[PeopleEvents] Failed to log event:", err);
+    log.warn("Failed to log event", { err: String(err) });
   }
 }
 
@@ -103,7 +106,7 @@ export async function hasRecentEvent(
       .limit(1);
 
     if (error) {
-      console.warn("[PeopleEvents] Dedup check failed:", error.message);
+      log.warn("Dedup check failed", { error: error.message });
       return false;
     }
 
@@ -130,7 +133,7 @@ export async function getPersonEvents(
     .limit(limit);
 
   if (error) {
-    console.warn("[PeopleEvents] Failed to fetch person events:", error.message);
+    log.warn("Failed to fetch person events", { personId, error: error.message });
     return [];
   }
 
@@ -167,7 +170,7 @@ export async function getAllPeopleEvents(
   const { data, error } = await query;
 
   if (error) {
-    console.warn("[PeopleEvents] Failed to fetch all events:", error.message);
+    log.warn("Failed to fetch all events", { error: error.message });
     return [];
   }
 

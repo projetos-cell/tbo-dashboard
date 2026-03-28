@@ -27,6 +27,8 @@ import { Badge } from "@/components/ui/badge";
 import { IconPlus, IconGitBranch, IconCheckbox } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { DEAL_STAGES, type DealStageKey } from "@/lib/constants";
+import { DealWonDrawer } from "@/components/layout/deal-won-drawer";
+import { useDealWonAutomation } from "@/features/comercial/hooks/use-deal-won-automation";
 import type { Database } from "@/lib/supabase/types";
 
 type DealRow = Database["public"]["Tables"]["crm_deals"]["Row"];
@@ -40,6 +42,11 @@ export default function ComercialPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<DealRow | null>(null);
   const [selectedPipelineId, setSelectedPipelineId] = useState<string>("all");
+
+  // ── Deal Won automation ─────────────────────────────────────────────────────
+  const [wonDrawerOpen, setWonDrawerOpen] = useState(false);
+  const [wonDealId, setWonDealId] = useState<string | null>(null);
+  const dealWonAutomation = useDealWonAutomation();
 
   // ── Bulk selection ──────────────────────────────────────────────────────────
   const [bulkMode, setBulkMode] = useState(false);
@@ -180,10 +187,20 @@ export default function ComercialPage() {
 
   function handleStageDrop(dealId: string, newStage: string) {
     updateStage.mutate({ id: dealId, stage: newStage });
-    toast("Deal movido", {
-      description: "Ctrl+Z para desfazer",
-      duration: 3000,
-    });
+
+    if (newStage === "fechado_ganho") {
+      const deal = deals.find((d) => d.id === dealId);
+      if (deal) {
+        dealWonAutomation.mutate({ deal });
+        setWonDealId(dealId);
+        setWonDrawerOpen(true);
+      }
+    } else {
+      toast("Deal movido", {
+        description: "Ctrl+Z para desfazer",
+        duration: 3000,
+      });
+    }
   }
 
   async function handlePipelineStageDrop(
@@ -200,10 +217,20 @@ export default function ComercialPage() {
         stage: mappedStage,
       } as never,
     });
-    toast("Deal movido", {
-      description: "Ctrl+Z para desfazer",
-      duration: 3000,
-    });
+
+    if (mappedStage === "fechado_ganho") {
+      const deal = deals.find((d) => d.id === dealId);
+      if (deal) {
+        dealWonAutomation.mutate({ deal });
+        setWonDealId(dealId);
+        setWonDrawerOpen(true);
+      }
+    } else {
+      toast("Deal movido", {
+        description: "Ctrl+Z para desfazer",
+        duration: 3000,
+      });
+    }
   }
 
   function handlePipelineChange(pipelineId: string) {
@@ -374,6 +401,13 @@ export default function ComercialPage() {
           open={formOpen}
           onOpenChange={setFormOpen}
           deal={editingDeal}
+        />
+
+        {/* Deal Won celebration + automation feedback */}
+        <DealWonDrawer
+          open={wonDrawerOpen}
+          onOpenChange={setWonDrawerOpen}
+          dealId={wonDealId}
         />
       </div>
     </RequireRole>

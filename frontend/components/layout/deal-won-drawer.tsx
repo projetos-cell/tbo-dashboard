@@ -104,15 +104,14 @@ export function DealWonDrawer({
 
       if (!deal) return;
 
-      // Find project created from this deal
+      // Find project created from this deal (by deal_id or legacy name match)
       const { data: project } = await supabase
         .from("projects")
         .select("id, code")
-        .eq("source", "deal_automation")
-        .ilike("name", `%${deal.company}%`)
+        .or(`deal_id.eq.${id},and(source.eq.deal_automation,name.ilike.%${deal.company ?? "___NOMATCH___"}%)`)
         .order("created_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       setData({
         dealId: deal.id,

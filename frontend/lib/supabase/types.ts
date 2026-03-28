@@ -7563,6 +7563,7 @@ export type Database = {
           construtora: string | null
           cover_url: string | null
           created_at: string | null
+          deal_id: string | null
           due_date_end: string | null
           due_date_start: string | null
           google_folder_id: string | null
@@ -7591,6 +7592,7 @@ export type Database = {
           construtora?: string | null
           cover_url?: string | null
           created_at?: string | null
+          deal_id?: string | null
           due_date_end?: string | null
           due_date_start?: string | null
           google_folder_id?: string | null
@@ -7619,6 +7621,7 @@ export type Database = {
           construtora?: string | null
           cover_url?: string | null
           created_at?: string | null
+          deal_id?: string | null
           due_date_end?: string | null
           due_date_start?: string | null
           google_folder_id?: string | null

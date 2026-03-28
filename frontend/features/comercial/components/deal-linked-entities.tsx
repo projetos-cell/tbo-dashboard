@@ -24,12 +24,11 @@ export function DealLinkedEntities({ dealId, company }: DealLinkedEntitiesProps)
     queryFn: async () => {
       const supabase = createClient();
 
-      // Find project linked via deal automation
+      // Find project linked via deal_id or legacy name match
       const { data: projects } = await supabase
         .from("projects")
         .select("id, name, code, status")
-        .eq("source", "deal_automation")
-        .ilike("name", `%${company ?? "___NOMATCH___"}%`)
+        .or(`deal_id.eq.${dealId},and(source.eq.deal_automation,name.ilike.%${company ?? "___NOMATCH___"}%)`)
         .order("created_at", { ascending: false })
         .limit(1);
 

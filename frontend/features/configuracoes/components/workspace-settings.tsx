@@ -83,7 +83,7 @@ export function WorkspaceSettings() {
   const handleSave = () => {
     const currentPrefs = parsePreferences(profile?.preferences);
     updateProfile.mutate(
-      { preferences: { ...currentPrefs, workspace } as Json },
+      { preferences: { ...currentPrefs, workspace } as unknown as Json },
       {
         onSuccess: () => {
           setDirty(false);

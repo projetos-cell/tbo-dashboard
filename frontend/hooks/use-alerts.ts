@@ -55,6 +55,7 @@ export function useMarkAsRead() {
     mutationFn: (id: string) => markAsRead(supabase, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications-unread-count"] });
     },
   });
 }
@@ -63,12 +64,12 @@ export function useMarkAllAsRead() {
   const supabase = createClient();
   const queryClient = useQueryClient();
   const userId = useAuthStore((s) => s.user?.id);
-  const tenantId = useAuthStore((s) => s.tenantId);
 
   return useMutation({
     mutationFn: () => markAllAsRead(supabase, userId!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications-unread-count"] });
     },
   });
 }
@@ -81,6 +82,7 @@ export function useDeleteNotification() {
     mutationFn: (id: string) => deleteNotification(supabase, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications-unread-count"] });
     },
   });
 }

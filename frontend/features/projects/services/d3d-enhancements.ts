@@ -13,6 +13,7 @@ import type {
   D3DGateApproval,
   RevisionStatus,
   D3DStageRevision,
+  D3DStageTimeMetric,
   D3DTimeMetrics,
 } from "./d3d-enhancement-types";
 

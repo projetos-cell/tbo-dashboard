@@ -1,5 +1,6 @@
 // RBAC -- Role-based access control for the frontend
-// 4 roles per architecture.md: founder > diretoria > lider > colaborador
+// 3 tiers: founder/diretoria (admin) > lider > colaborador
+// founder e diretoria têm privilégios idênticos (admin tier)
 
 export type RoleSlug = "founder" | "diretoria" | "lider" | "colaborador";
 
@@ -155,11 +156,12 @@ export function canAccessModule(role: RoleSlug, module: string): boolean {
 }
 
 /**
- * True for founder role (the only role with full admin privileges).
+ * True for admin-tier roles (founder OR diretoria).
+ * Both have identical privileges — the distinction is cosmetic.
  * Super-admin emails are promoted to founder in the auth service.
  */
 export function isAdmin(role: RoleSlug | null): boolean {
-  return role === "founder";
+  return role === "founder" || role === "diretoria";
 }
 
 /** True if email matches a hardcoded super-admin */
@@ -202,7 +204,9 @@ export type PermissionKey =
   | "chat.manage_channels"
   | "chat.delete_messages"
   | "review.approve"
-  | "review.delete";
+  | "review.delete"
+  | "career.manage"   // criar/editar paths e níveis (founder + diretoria)
+  | "career.promote"; // promover/definir nível de pessoa (founder + diretoria + lider)
 
 /**
  * Permission matrix from architecture.md.
@@ -217,7 +221,7 @@ const PERMISSION_MATRIX: Record<PermissionKey, RoleSlug[]> = {
   "projetos.view_all": ["founder", "diretoria", "lider"],
   "intelligence.full": ["founder", "diretoria"],
   "intelligence.partial": ["founder", "diretoria", "lider"],
-  "rbac.manage": ["founder"],
+  "rbac.manage": ["founder", "diretoria"],
   "audit_logs.view": ["founder", "diretoria"],
   "one_on_one.conduct": ["founder", "diretoria", "lider"],
   "one_on_one.participate": ["founder", "diretoria", "lider", "colaborador"],
@@ -227,6 +231,8 @@ const PERMISSION_MATRIX: Record<PermissionKey, RoleSlug[]> = {
   "chat.delete_messages": ["founder", "diretoria"],
   "review.approve": ["founder", "diretoria", "lider"],
   "review.delete": ["founder", "diretoria"],
+  "career.manage": ["founder", "diretoria"],
+  "career.promote": ["founder", "diretoria", "lider"],
 };
 
 /** Check if a role has a specific granular permission */

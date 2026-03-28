@@ -27,6 +27,7 @@ import { PeopleTimeline } from "@/features/people/components/people-timeline";
 import { usePersonEvents } from "@/features/people/hooks/use-people-events";
 import { PersonPdiSection } from "@/features/people/components/person-pdi-section";
 import { PersonRewardsSection } from "@/features/people/components/person-rewards-section";
+import { PersonCareerSection } from "@/features/career-paths/components/person-career-section";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -159,6 +160,14 @@ export function PersonDetail({ person, open, onOpenChange }: PersonDetailProps) 
                   : "—"}
               </span>
             </div>
+          </div>
+
+          <Separator />
+
+          {/* Trilha de Carreira */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold">Carreira</h3>
+            <PersonCareerSection personId={person.id} personName={person.full_name ?? undefined} />
           </div>
 
           <Separator />

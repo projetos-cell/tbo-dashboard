@@ -21,10 +21,17 @@ const STATUS_KEYS = Object.keys(PEOPLE_STATUS) as PeopleStatusKey[];
 export default function ColaboradoresPage() {
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<PeopleStatusKey | null>(null);
+  const [selectedBu, setSelectedBu] = useState<string | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<ProfileRow | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
   const { data, isLoading, isError, refetch } = usePeople();
+
+  // Extrai BUs únicas dos dados carregados
+  const buOptions = useMemo(() => {
+    const all = data?.data ?? [];
+    return [...new Set(all.map((p) => p.bu).filter(Boolean))].sort() as string[];
+  }, [data]);
 
   const people = useMemo(() => {
     const list = data?.data ?? [];
@@ -36,11 +43,12 @@ export default function ColaboradoresPage() {
         (p.cargo?.toLowerCase().includes(q) ?? false) ||
         (p.email?.toLowerCase().includes(q) ?? false);
       const matchesStatus = !selectedStatus || p.status === selectedStatus;
-      return matchesSearch && matchesStatus;
+      const matchesBu = !selectedBu || p.bu === selectedBu;
+      return matchesSearch && matchesStatus && matchesBu;
     });
-  }, [data, search, selectedStatus]);
+  }, [data, search, selectedStatus, selectedBu]);
 
-  const hasFilters = !!search || !!selectedStatus;
+  const hasFilters = !!search || !!selectedStatus || !!selectedBu;
 
   const handlePersonClick = (person: ProfileRow) => {
     setSelectedPerson(person);
@@ -50,6 +58,7 @@ export default function ColaboradoresPage() {
   const clearFilters = () => {
     setSearch("");
     setSelectedStatus(null);
+    setSelectedBu(null);
   };
 
   return (
@@ -105,6 +114,29 @@ export default function ColaboradoresPage() {
             );
           })}
         </div>
+
+        {/* Núcleo/BU filter pills */}
+        {buOptions.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            <span className="text-xs text-muted-foreground self-center mr-1">Núcleo:</span>
+            {buOptions.map((bu) => {
+              const isActive = selectedBu === bu;
+              return (
+                <button
+                  key={bu}
+                  onClick={() => setSelectedBu(isActive ? null : bu)}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-all ${
+                    isActive
+                      ? "bg-orange-100 border-orange-400 text-orange-700 font-semibold"
+                      : "border-gray-200 text-muted-foreground hover:border-gray-400 hover:text-foreground"
+                  }`}
+                >
+                  {bu}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Count */}

@@ -3,9 +3,23 @@
 import { useState, useCallback } from "react";
 import Image from "next/image";
 import { useDropzone } from "react-dropzone";
-import { IconPhoto, IconTrash, IconLoader2 } from "@tabler/icons-react";
+import { IconPhoto, IconTrash, IconLoader2, IconAlertTriangle } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+
+async function checkImageDimensions(file: File): Promise<{ width: number; height: number }> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const img = new window.Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve({ width: 0, height: 0 }); };
+    img.src = url;
+  });
+}
 
 interface BlogCoverUploadProps {
   coverUrl: string | null;
@@ -23,6 +37,12 @@ export function BlogCoverUpload({ coverUrl, onUpload, onRemove, disabled }: Blog
       if (!file) return;
       setUploading(true);
       try {
+        const { width, height } = await checkImageDimensions(file);
+        if (width > 0 && height > 0 && (width < 1200 || height < 630)) {
+          toast.warning(`Imagem pequena (${width}×${height}px)`, {
+            description: "Recomendado 1200×630px ou maior para melhor aparencia em redes sociais.",
+          });
+        }
         await onUpload(file);
       } finally {
         setUploading(false);

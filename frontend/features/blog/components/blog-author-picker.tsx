@@ -9,11 +9,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTeamMembers } from "@/hooks/use-team";
 import { getInitials } from "@/lib/utils";
 
+export interface BlogAuthorInfo {
+  id: string | null;
+  name: string | null;
+  avatarUrl: string | null;
+}
+
 interface BlogAuthorPickerProps {
   authorId: string | null;
   authorName?: string | null;
   authorAvatarUrl?: string | null;
-  onSelect: (authorId: string | null) => void;
+  onSelect: (author: BlogAuthorInfo) => void;
   disabled?: boolean;
 }
 
@@ -49,7 +55,7 @@ export function BlogAuthorPicker({
                 className="ml-auto text-muted-foreground hover:text-foreground"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onSelect(null);
+                  onSelect({ id: null, name: null, avatarUrl: null });
                 }}
               >
                 <IconX className="h-3.5 w-3.5" />
@@ -74,7 +80,7 @@ export function BlogAuthorPicker({
                   key={m.id}
                   value={m.full_name}
                   onSelect={() => {
-                    onSelect(m.id);
+                    onSelect({ id: m.id, name: m.full_name, avatarUrl: m.avatar_url ?? null });
                     setOpen(false);
                   }}
                   className="flex items-center gap-2"

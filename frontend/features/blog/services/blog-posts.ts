@@ -113,3 +113,43 @@ export async function uploadBlogCover(
   const { data } = supabase.storage.from("marketing-assets").getPublicUrl(path);
   return data.publicUrl;
 }
+
+export async function uploadBlogImage(
+  supabase: Client,
+  tenantId: string,
+  file: File,
+): Promise<string> {
+  const ext = file.name.split(".").pop() ?? "jpg";
+  const path = `${tenantId}/blog-images/${crypto.randomUUID()}.${ext}`;
+
+  const { error } = await supabase.storage
+    .from("marketing-assets")
+    .upload(path, file, { contentType: file.type, upsert: false });
+  if (error) throw error;
+
+  const { data } = supabase.storage.from("marketing-assets").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+export async function checkSlugExists(
+  supabase: Client,
+  slug: string,
+  excludeId?: string,
+): Promise<boolean> {
+  let query = (supabase as SupabaseClient)
+    .from("blog_posts")
+    .select("id")
+    .eq("slug", slug);
+  if (excludeId) query = query.neq("id", excludeId);
+  const { data } = await query.limit(1);
+  return (data?.length ?? 0) > 0;
+}
+
+export async function getBlogTags(supabase: Client): Promise<string[]> {
+  const { data } = await (supabase as SupabaseClient)
+    .from("blog_posts")
+    .select("tags");
+  if (!data) return [];
+  const all = (data as { tags: string[] }[]).flatMap((r) => r.tags ?? []);
+  return [...new Set(all)].sort();
+}

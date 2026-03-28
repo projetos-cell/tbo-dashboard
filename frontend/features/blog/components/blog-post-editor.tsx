@@ -1,55 +1,54 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import LinkExt from "@tiptap/extension-link";
 import ImageExt from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
-import { useForm, Controller } from "react-hook-form";
+import TableExt from "@tiptap/extension-table";
+import TableRow from "@tiptap/extension-table-row";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
+import TextAlign from "@tiptap/extension-text-align";
+import Highlight from "@tiptap/extension-highlight";
+import Superscript from "@tiptap/extension-superscript";
+import Subscript from "@tiptap/extension-subscript";
+import { useForm, Controller, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  IconBold,
-  IconItalic,
-  IconLink,
-  IconCode,
-  IconH1,
-  IconH2,
-  IconH3,
-  IconList,
-  IconListNumbers,
-  IconBlockquote,
-  IconPhoto,
-  IconArrowLeft,
-  IconDeviceFloppy,
-  IconEye,
-  IconTrash,
+  IconBold, IconItalic, IconStrikethrough, IconLink,
+  IconArrowLeft, IconDeviceFloppy, IconEye, IconEdit,
+  IconTrash, IconSettings,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
-import { useCreateBlogPost, useUpdateBlogPost, useDeleteBlogPost, useUploadBlogCover } from "../hooks/use-blog-posts";
+import {
+  useCreateBlogPost,
+  useUpdateBlogPost,
+  useDeleteBlogPost,
+  useUploadBlogCover,
+  useUploadBlogImage,
+} from "../hooks/use-blog-posts";
 import { blogPostSchema, generateSlug, type BlogPostFormValues } from "../schemas/blog-schemas";
 import { BlogCoverUpload } from "./blog-cover-upload";
-import { BlogAuthorPicker } from "./blog-author-picker";
 import { BlogStatusBadge } from "./blog-status-badge";
 import { BlogAiGenerateDialog } from "./blog-ai-generate-dialog";
+import { BlogPreview } from "./blog-preview";
+import { BlogEditorToolbar } from "./blog-editor-toolbar";
+import { BlogEditorSidebar } from "./blog-editor-sidebar";
+import { BlogSlashMenu } from "./blog-slash-menu";
+import { SlashCommandExtension, buildSlashSuggestion, type SlashCommand } from "./blog-slash-commands";
+import type { BlogAuthorInfo } from "./blog-author-picker";
 import type { BlogPostWithAuthor, BlogPostStatus } from "../types";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
+  AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 interface BlogPostEditorProps {
@@ -60,6 +59,16 @@ interface BlogPostEditorProps {
 const TOOLBAR_BTN =
   "p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground data-[active=true]:text-foreground data-[active=true]:bg-muted";
 
+function getWordCount(html: string): number {
+  const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  if (!text) return 0;
+  return text.split(/\s+/).length;
+}
+
+function getReadingTime(wordCount: number): number {
+  return Math.max(1, Math.ceil(wordCount / 200));
+}
+
 export function BlogPostEditor({ post, mode }: BlogPostEditorProps) {
   const router = useRouter();
   const tenantId = useAuthStore((s) => s.tenantId);
@@ -68,12 +77,18 @@ export function BlogPostEditor({ post, mode }: BlogPostEditorProps) {
   const updateMutation = useUpdateBlogPost();
   const deleteMutation = useDeleteBlogPost();
   const uploadCover = useUploadBlogCover();
+  const uploadImage = useUploadBlogImage();
 
   const [autoSlug, setAutoSlug] = useState(mode === "create");
   const [coverUrl, setCoverUrl] = useState<string | null>(post?.cover_url ?? null);
   const [authorId, setAuthorId] = useState<string | null>(post?.author_id ?? userId ?? null);
   const [authorName, setAuthorName] = useState<string | null>(post?.author_name ?? null);
   const [authorAvatarUrl, setAuthorAvatarUrl] = useState<string | null>(post?.author_avatar_url ?? null);
+  const [viewMode, setViewMode] = useState<"edit" | "preview">("edit");
+  const [slashItems, setSlashItems] = useState<SlashCommand[]>([]);
+  const [slashRect, setSlashRect] = useState<(() => DOMRect | null) | null>(null);
+  const [slashCommand, setSlashCommand] = useState<((item: SlashCommand) => void) | null>(null);
+  const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const form = useForm({
     resolver: zodResolver(blogPostSchema),
@@ -91,26 +106,120 @@ export function BlogPostEditor({ post, mode }: BlogPostEditorProps) {
   });
 
   const title = form.watch("title");
+  const body = form.watch("body");
+  const excerpt = form.watch("excerpt");
+  const tags = form.watch("tags");
+  const publishedAt = form.watch("published_at");
+  const status = form.watch("status");
+  const slug = form.watch("slug");
 
+  const wordCount = getWordCount(body ?? "");
+  const readingTime = getReadingTime(wordCount);
+
+  // Auto-slug on title change
   useEffect(() => {
     if (autoSlug && title) {
       form.setValue("slug", generateSlug(title));
     }
   }, [title, autoSlug, form]);
 
+  // Auto-save every 30s for edit mode (not when published)
+  useEffect(() => {
+    if (mode !== "edit" || !post || !form.formState.isDirty || status === "publicado") return;
+    if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
+    autoSaveRef.current = setTimeout(async () => {
+      if (!form.formState.isDirty) return;
+      try {
+        const values = form.getValues() as BlogPostFormValues;
+        await updateMutation.mutateAsync({
+          id: post.id,
+          data: {
+            title: values.title,
+            slug: values.slug,
+            excerpt: values.excerpt ?? null,
+            body: values.body,
+            status: values.status,
+            tags: values.tags,
+            cover_url: coverUrl,
+            author_id: authorId,
+            published_at: values.published_at ?? null,
+          },
+        });
+        toast("Rascunho salvo", { description: "Auto-save", duration: 2000 });
+      } catch {
+        // Silent fail on auto-save
+      }
+    }, 30000);
+    return () => { if (autoSaveRef.current) clearTimeout(autoSaveRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [body, title, status]);
+
+  // Unsaved changes guard
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (form.formState.isDirty) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [form.formState.isDirty]);
+
+  // Keyboard shortcut Cmd/Ctrl+Shift+P to toggle preview
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "p") {
+        e.preventDefault();
+        setViewMode((v) => (v === "edit" ? "preview" : "edit"));
+      }
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, []);
+
+  // ─── Slash commands ─────────────────────────────────
+  const slashSuggestion = buildSlashSuggestion(
+    (items, props) => {
+      setSlashItems(items);
+      setSlashRect(() => props.clientRect);
+      setSlashCommand(() => props.command);
+    },
+    () => {
+      setSlashItems([]);
+      setSlashRect(null);
+      setSlashCommand(null);
+    },
+  );
+
   // ─── TipTap Editor ──────────────────────────────────
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
-      LinkExt.configure({ openOnClick: false }),
+      LinkExt.configure({ openOnClick: false, HTMLAttributes: { class: "text-primary underline" } }),
       ImageExt.configure({ inline: false, allowBase64: true }),
-      Placeholder.configure({ placeholder: "Comece a escrever seu artigo..." }),
+      Placeholder.configure({ placeholder: 'Comece a escrever ou digite "/" para inserir bloco...' }),
+      TableExt.configure({ resizable: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      Highlight.configure({ multicolor: false }),
+      Superscript,
+      Subscript,
+      SlashCommandExtension.configure({ suggestion: slashSuggestion }),
     ],
     content: post?.body || "",
     editorProps: {
-      attributes: {
-        class:
-          "prose prose-sm sm:prose-base max-w-none focus:outline-none min-h-[400px] px-4 py-3 prose-headings:font-semibold prose-headings:text-foreground prose-p:text-foreground prose-code:text-xs prose-code:bg-muted prose-code:px-1 prose-code:rounded prose-img:rounded-lg prose-img:mx-auto",
+      attributes: { class: "blog-prose focus:outline-none min-h-[400px] px-4 py-3" },
+      handleDrop: (view, event, _slice, moved) => {
+        if (!moved && event.dataTransfer?.files?.length) {
+          const file = event.dataTransfer.files[0];
+          if (file?.type.startsWith("image/")) {
+            handleInlineImageDrop(file);
+            return true;
+          }
+        }
+        return false;
       },
     },
     onUpdate: ({ editor: e }) => {
@@ -118,15 +227,30 @@ export function BlogPostEditor({ post, mode }: BlogPostEditorProps) {
     },
   });
 
-  // ─── Image insert ───────────────────────────────────
-  const insertImage = useCallback(() => {
-    const url = window.prompt("URL da imagem:");
-    if (url && editor) {
-      editor.chain().focus().setImage({ src: url }).run();
-    }
-  }, [editor]);
+  // Inline image drop handler
+  const handleInlineImageDrop = useCallback(
+    async (file: File) => {
+      if (!tenantId || !editor) return;
+      try {
+        const url = await uploadImage.mutateAsync({ tenantId, file });
+        editor.chain().focus().setImage({ src: url }).run();
+      } catch {
+        // error handled in mutation
+      }
+    },
+    [tenantId, uploadImage, editor],
+  );
 
-  // ─── Cover upload handler ───────────────────────────
+  // Image upload from toolbar
+  const handleToolbarImageUpload = useCallback(
+    async (file: File): Promise<string> => {
+      if (!tenantId) throw new Error("Sem tenant");
+      return uploadImage.mutateAsync({ tenantId, file });
+    },
+    [tenantId, uploadImage],
+  );
+
+  // Cover upload
   const handleCoverUpload = useCallback(
     async (file: File): Promise<string> => {
       if (!tenantId) throw new Error("Sem tenant");
@@ -143,9 +267,17 @@ export function BlogPostEditor({ post, mode }: BlogPostEditorProps) {
     form.setValue("cover_url", null);
   }, [form]);
 
+  const handleAuthorSelect = useCallback((author: BlogAuthorInfo) => {
+    setAuthorId(author.id);
+    setAuthorName(author.name);
+    setAuthorAvatarUrl(author.avatarUrl);
+    form.setValue("author_id", author.id);
+  }, [form]);
+
   // ─── Submit ─────────────────────────────────────────
   const onSubmit = form.handleSubmit(async (values) => {
     const v = values as BlogPostFormValues;
+    const isScheduled = v.status === "publicado" && v.published_at != null && new Date(v.published_at) > new Date();
     const payload = {
       title: v.title,
       slug: v.slug,
@@ -156,7 +288,7 @@ export function BlogPostEditor({ post, mode }: BlogPostEditorProps) {
       cover_url: coverUrl,
       author_id: authorId,
       published_at:
-        v.status === "publicado" && !v.published_at
+        v.status === "publicado" && !isScheduled && !v.published_at
           ? new Date().toISOString()
           : (v.published_at ?? null),
     };
@@ -176,21 +308,14 @@ export function BlogPostEditor({ post, mode }: BlogPostEditorProps) {
     router.push("/blog");
   };
 
-  // ─── AI Generate handler ────────────────────────────
   const handleAiGenerated = useCallback(
     (result: { title: string; excerpt: string; tags: string[]; body: string }) => {
       if (result.title) {
         form.setValue("title", result.title, { shouldDirty: true });
-        if (autoSlug) {
-          form.setValue("slug", generateSlug(result.title));
-        }
+        if (autoSlug) form.setValue("slug", generateSlug(result.title));
       }
-      if (result.excerpt) {
-        form.setValue("excerpt", result.excerpt, { shouldDirty: true });
-      }
-      if (result.tags?.length) {
-        form.setValue("tags", result.tags, { shouldDirty: true });
-      }
+      if (result.excerpt) form.setValue("excerpt", result.excerpt, { shouldDirty: true });
+      if (result.tags?.length) form.setValue("tags", result.tags, { shouldDirty: true });
       if (result.body && editor) {
         editor.commands.setContent(result.body);
         form.setValue("body", result.body, { shouldDirty: true });
@@ -200,6 +325,22 @@ export function BlogPostEditor({ post, mode }: BlogPostEditorProps) {
   );
 
   const saving = createMutation.isPending || updateMutation.isPending;
+
+  // Sidebar content (reused in both desktop sidebar and mobile sheet)
+  const sidebarContent = (
+    <BlogEditorSidebar
+      form={form as UseFormReturn<BlogPostFormValues>}
+      mode={mode}
+      post={post}
+      authorId={authorId}
+      authorName={authorName}
+      authorAvatarUrl={authorAvatarUrl}
+      coverUrl={coverUrl}
+      autoSlug={autoSlug}
+      onSetAutoSlug={setAutoSlug}
+      onAuthorSelect={handleAuthorSelect}
+    />
+  );
 
   return (
     <div className="flex flex-col h-full">
@@ -215,12 +356,38 @@ export function BlogPostEditor({ post, mode }: BlogPostEditorProps) {
           {post && <BlogStatusBadge status={post.status} />}
         </div>
         <div className="flex items-center gap-2">
+          {/* View toggle */}
+          <div className="flex items-center rounded-lg border bg-muted/30 p-0.5">
+            <button type="button" onClick={() => setViewMode("edit")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === "edit" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+              <IconEdit className="h-3.5 w-3.5" />Editar
+            </button>
+            <button type="button" onClick={() => setViewMode("preview")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === "preview" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+              <IconEye className="h-3.5 w-3.5" />Preview
+            </button>
+          </div>
+
+          {/* Mobile sidebar trigger */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="lg:hidden">
+                <IconSettings className="h-4 w-4" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-80 overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle className="text-sm">Metadados</SheetTitle>
+              </SheetHeader>
+              <div className="mt-4">{sidebarContent}</div>
+            </SheetContent>
+          </Sheet>
+
+          <Separator orientation="vertical" className="h-6" />
+
           {mode === "edit" && post && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-                  <IconTrash className="h-4 w-4 mr-1.5" />
-                  Excluir
+                  <IconTrash className="h-4 w-4 mr-1.5" />Excluir
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -249,239 +416,94 @@ export function BlogPostEditor({ post, mode }: BlogPostEditorProps) {
 
       {/* Content */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Main editor area */}
+        {/* Main area */}
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-3xl mx-auto py-8 px-6 space-y-6">
-            {/* Cover */}
-            <BlogCoverUpload
+          {viewMode === "preview" ? (
+            <BlogPreview
+              title={title}
+              excerpt={excerpt ?? null}
+              body={body ?? ""}
               coverUrl={coverUrl}
-              onUpload={handleCoverUpload}
-              onRemove={handleCoverRemove}
+              authorName={authorName}
+              authorAvatarUrl={authorAvatarUrl}
+              publishedAt={publishedAt ?? null}
+              tags={(tags as string[]) ?? []}
             />
-
-            {/* Title */}
-            <Controller
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <input
-                  {...field}
-                  placeholder="Titulo do artigo"
-                  className="w-full text-3xl font-bold bg-transparent border-0 outline-none placeholder:text-muted-foreground/40"
-                />
-              )}
-            />
-
-            {/* Toolbar */}
-            {editor && (
-              <div className="flex items-center gap-0.5 border rounded-lg px-2 py-1 bg-muted/30 flex-wrap">
-                <button type="button" className={TOOLBAR_BTN} data-active={editor.isActive("heading", { level: 1 })} onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}>
-                  <IconH1 className="h-4 w-4" />
-                </button>
-                <button type="button" className={TOOLBAR_BTN} data-active={editor.isActive("heading", { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
-                  <IconH2 className="h-4 w-4" />
-                </button>
-                <button type="button" className={TOOLBAR_BTN} data-active={editor.isActive("heading", { level: 3 })} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>
-                  <IconH3 className="h-4 w-4" />
-                </button>
-                <Separator orientation="vertical" className="h-5 mx-1" />
-                <button type="button" className={TOOLBAR_BTN} data-active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
-                  <IconBold className="h-4 w-4" />
-                </button>
-                <button type="button" className={TOOLBAR_BTN} data-active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}>
-                  <IconItalic className="h-4 w-4" />
-                </button>
-                <button type="button" className={TOOLBAR_BTN} data-active={editor.isActive("code")} onClick={() => editor.chain().focus().toggleCode().run()}>
-                  <IconCode className="h-4 w-4" />
-                </button>
-                <Separator orientation="vertical" className="h-5 mx-1" />
-                <button type="button" className={TOOLBAR_BTN} data-active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()}>
-                  <IconList className="h-4 w-4" />
-                </button>
-                <button type="button" className={TOOLBAR_BTN} data-active={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()}>
-                  <IconListNumbers className="h-4 w-4" />
-                </button>
-                <button type="button" className={TOOLBAR_BTN} data-active={editor.isActive("blockquote")} onClick={() => editor.chain().focus().toggleBlockquote().run()}>
-                  <IconBlockquote className="h-4 w-4" />
-                </button>
-                <Separator orientation="vertical" className="h-5 mx-1" />
-                <button
-                  type="button"
-                  className={TOOLBAR_BTN}
-                  data-active={editor.isActive("link")}
-                  onClick={() => {
-                    const url = window.prompt("URL do link:", editor.getAttributes("link").href as string);
-                    if (url === null) return;
-                    if (url === "") { editor.chain().focus().unsetLink().run(); return; }
-                    editor.chain().focus().setLink({ href: url }).run();
-                  }}
-                >
-                  <IconLink className="h-4 w-4" />
-                </button>
-                <button type="button" className={TOOLBAR_BTN} onClick={insertImage}>
-                  <IconPhoto className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-
-            {/* Editor */}
-            <div className="rounded-lg border border-border/60 focus-within:border-ring/60 transition-colors bg-background min-h-[400px]">
-              <EditorContent editor={editor} />
-            </div>
-          </div>
-        </div>
-
-        {/* Sidebar */}
-        <div className="w-80 border-l overflow-y-auto bg-muted/20 p-6 space-y-6 shrink-0 hidden lg:block">
-          <div className="space-y-4">
-            <h2 className="text-sm font-semibold text-foreground">Metadados</h2>
-
-            {/* Status */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Status</Label>
+          ) : (
+            <div className="max-w-3xl mx-auto py-8 px-6 space-y-6">
+              <BlogCoverUpload
+                coverUrl={coverUrl}
+                onUpload={handleCoverUpload}
+                onRemove={handleCoverRemove}
+              />
               <Controller
                 control={form.control}
-                name="status"
+                name="title"
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={(v) => field.onChange(v as BlogPostStatus)}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="rascunho">Rascunho</SelectItem>
-                      <SelectItem value="revisao">Revisao</SelectItem>
-                      <SelectItem value="publicado">Publicado</SelectItem>
-                      <SelectItem value="arquivado">Arquivado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
-
-            {/* Slug */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-muted-foreground">Slug</Label>
-                {mode === "create" && (
-                  <button
-                    type="button"
-                    className="text-[10px] text-primary hover:underline"
-                    onClick={() => setAutoSlug(!autoSlug)}
-                  >
-                    {autoSlug ? "Editar manual" : "Gerar auto"}
-                  </button>
-                )}
-              </div>
-              <Controller
-                control={form.control}
-                name="slug"
-                render={({ field, fieldState }) => (
-                  <div>
-                    <Input
-                      {...field}
-                      className="h-9 text-xs font-mono"
-                      disabled={autoSlug}
-                      onChange={(e) => {
-                        setAutoSlug(false);
-                        field.onChange(e);
-                      }}
-                    />
-                    {fieldState.error && (
-                      <p className="text-xs text-destructive mt-1">{fieldState.error.message}</p>
-                    )}
-                  </div>
-                )}
-              />
-            </div>
-
-            {/* Autor */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Autor</Label>
-              <BlogAuthorPicker
-                authorId={authorId}
-                authorName={authorName}
-                authorAvatarUrl={authorAvatarUrl}
-                onSelect={(id) => {
-                  setAuthorId(id);
-                  form.setValue("author_id", id);
-                }}
-              />
-            </div>
-
-            {/* Data de publicacao */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Data de publicacao</Label>
-              <Controller
-                control={form.control}
-                name="published_at"
-                render={({ field }) => (
-                  <Input
-                    type="datetime-local"
-                    className="h-9 text-xs"
-                    value={field.value ? new Date(field.value).toISOString().slice(0, 16) : ""}
-                    onChange={(e) => {
-                      field.onChange(e.target.value ? new Date(e.target.value).toISOString() : null);
-                    }}
-                  />
-                )}
-              />
-            </div>
-
-            {/* Excerpt */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Resumo (excerpt)</Label>
-              <Controller
-                control={form.control}
-                name="excerpt"
-                render={({ field }) => (
-                  <Textarea
+                  <input
                     {...field}
-                    value={field.value ?? ""}
-                    rows={3}
-                    className="text-xs resize-none"
-                    placeholder="Breve descricao do artigo..."
+                    placeholder="Titulo do artigo"
+                    className="w-full text-3xl font-bold bg-transparent border-0 outline-none placeholder:text-muted-foreground/40"
                   />
                 )}
               />
-            </div>
 
-            {/* Tags */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Tags (separadas por virgula)</Label>
-              <Controller
-                control={form.control}
-                name="tags"
-                render={({ field }) => (
-                  <Input
-                    className="h-9 text-xs"
-                    value={(field.value as string[] ?? []).join(", ")}
-                    onChange={(e) => {
-                      const tags = e.target.value
-                        .split(",")
-                        .map((t) => t.trim())
-                        .filter(Boolean);
-                      field.onChange(tags);
-                    }}
-                    placeholder="marketing, tendencias, cases"
-                  />
-                )}
-              />
-            </div>
-          </div>
+              {editor && (
+                <BlogEditorToolbar editor={editor} onImageUpload={handleToolbarImageUpload} />
+              )}
 
-          {/* Info */}
-          {post && (
-            <div className="space-y-2 pt-4 border-t">
-              <p className="text-xs text-muted-foreground">
-                Criado em {new Date(post.created_at).toLocaleDateString("pt-BR")}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Atualizado em {new Date(post.updated_at).toLocaleDateString("pt-BR")}
-              </p>
+              {editor && (
+                <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }} className="flex items-center gap-0.5 rounded-md border bg-background p-1 shadow-md">
+                  <button type="button" className={TOOLBAR_BTN} data-active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
+                    <IconBold className="h-3.5 w-3.5" />
+                  </button>
+                  <button type="button" className={TOOLBAR_BTN} data-active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}>
+                    <IconItalic className="h-3.5 w-3.5" />
+                  </button>
+                  <button type="button" className={TOOLBAR_BTN} data-active={editor.isActive("strike")} onClick={() => editor.chain().focus().toggleStrike().run()}>
+                    <IconStrikethrough className="h-3.5 w-3.5" />
+                  </button>
+                  <button type="button" className={TOOLBAR_BTN} data-active={editor.isActive("link")} onClick={() => editor.chain().focus().setLink({ href: "" }).run()}>
+                    <IconLink className="h-3.5 w-3.5" />
+                  </button>
+                </BubbleMenu>
+              )}
+
+              <div className="rounded-lg border border-border/60 focus-within:border-ring/60 transition-colors bg-background min-h-[400px]">
+                <EditorContent editor={editor} />
+              </div>
+
+              <div className="flex items-center justify-end gap-4 text-xs text-muted-foreground">
+                <span>{wordCount} palavras</span>
+                <span>{readingTime} min de leitura</span>
+              </div>
             </div>
           )}
         </div>
+
+        {/* Desktop sidebar */}
+        <div className="w-80 border-l overflow-y-auto bg-muted/20 p-6 shrink-0 hidden lg:block">
+          {sidebarContent}
+        </div>
       </div>
+
+      {/* Slash commands menu portal */}
+      {slashItems.length > 0 && editor && (
+        <BlogSlashMenu
+          items={slashItems}
+          clientRect={slashRect}
+          onSelect={(item) => {
+            item.command(editor);
+            if (slashCommand) slashCommand(item);
+            setSlashItems([]);
+            setSlashRect(null);
+          }}
+          onClose={() => {
+            setSlashItems([]);
+            setSlashRect(null);
+          }}
+        />
+      )}
     </div>
   );
 }

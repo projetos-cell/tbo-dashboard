@@ -39,8 +39,8 @@ const TAG_ICONS: Record<string, React.ElementType> = {
 interface ChangelogListProps {
   entries: ChangelogRow[];
   isLoading: boolean;
-  onEdit: (entry: ChangelogRow) => void;
-  onDelete: (entry: ChangelogRow) => void;
+  onEdit?: (entry: ChangelogRow) => void;
+  onDelete?: (entry: ChangelogRow) => void;
 }
 
 export function ChangelogList({
@@ -127,31 +127,37 @@ export function ChangelogList({
                     <h3 className="text-sm font-semibold">{entry.title}</h3>
                   </div>
 
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                        aria-label="Acoes"
-                      >
-                        <IconDots className="size-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onEdit(entry)}>
-                        <IconPencil className="size-4 mr-2" />
-                        Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => onDelete(entry)}
-                        className="text-red-500"
-                      >
-                        <IconTrash className="size-4 mr-2" />
-                        Excluir
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {(onEdit || onDelete) && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label="Acoes"
+                        >
+                          <IconDots className="size-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {onEdit && (
+                          <DropdownMenuItem onClick={() => onEdit(entry)}>
+                            <IconPencil className="size-4 mr-2" />
+                            Editar
+                          </DropdownMenuItem>
+                        )}
+                        {onDelete && (
+                          <DropdownMenuItem
+                            onClick={() => onDelete(entry)}
+                            className="text-red-500"
+                          >
+                            <IconTrash className="size-4 mr-2" />
+                            Excluir
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 mt-1 flex-wrap">

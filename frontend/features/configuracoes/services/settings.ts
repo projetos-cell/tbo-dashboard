@@ -24,14 +24,18 @@ export async function updateProfile(
   userId: string,
   updates: Database["public"]["Tables"]["profiles"]["Update"],
 ): Promise<ProfileRow> {
+  const payload: Database["public"]["Tables"]["profiles"]["Update"] = {
+    ...updates,
+    updated_at: new Date().toISOString(),
+  };
   const { data, error } = await supabase
     .from("profiles")
-    .update({ ...updates, updated_at: new Date().toISOString() } as never)
+    .update(payload)
     .eq("id", userId)
     .select()
     .single();
   if (error) throw error;
-  return data as unknown as ProfileRow;
+  return data as ProfileRow;
 }
 
 const ALLOWED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
@@ -82,14 +86,18 @@ export async function updateUserRole(
   userId: string,
   role: string,
 ): Promise<ProfileRow> {
+  const payload: Database["public"]["Tables"]["profiles"]["Update"] = {
+    role,
+    updated_at: new Date().toISOString(),
+  };
   const { data, error } = await supabase
     .from("profiles")
-    .update({ role, updated_at: new Date().toISOString() } as never)
+    .update(payload)
     .eq("id", userId)
     .select()
     .single();
   if (error) throw error;
-  return data as unknown as ProfileRow;
+  return data as ProfileRow;
 }
 
 // ── Audit Logs ───────────────────────────────────────────────────────
@@ -125,5 +133,5 @@ export async function getAuditLogs(
 
   const { data, error, count } = await query;
   if (error) throw error;
-  return { data: (data ?? []) as unknown as AuditLogWithUser[], count: count ?? 0 };
+  return { data: (data ?? []) as AuditLogWithUser[], count: count ?? 0 };
 }

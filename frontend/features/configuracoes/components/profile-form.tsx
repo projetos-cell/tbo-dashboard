@@ -41,7 +41,7 @@ export function ProfileForm() {
     setFullName(profile.full_name ?? "");
     setPhone(profile.phone ?? "");
     setDepartment(profile.department ?? "");
-    setBio((profile as Record<string, unknown>).bio as string ?? "");
+    setBio((profile.preferences as Record<string, unknown>)?.bio as string ?? "");
     populated.current = true;
   }
 
@@ -57,8 +57,9 @@ export function ProfileForm() {
       return;
     }
     setErrors({});
+    const currentPrefs = (profile?.preferences as Record<string, unknown>) ?? {};
     updateProfile.mutate(
-      { full_name: fullName, phone, department },
+      { full_name: fullName, phone, department, preferences: { ...currentPrefs, bio } },
       {
         onSuccess: () => {
           setDirty(false);

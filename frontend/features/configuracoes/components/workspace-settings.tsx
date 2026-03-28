@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { IconBuilding } from "@tabler/icons-react";
 import { useProfile, useUpdateProfile } from "@/features/configuracoes/hooks/use-settings";
 import { createClient } from "@/lib/supabase/client";
+import type { Json } from "@/lib/supabase/types";
 import {
   WorkspaceSkeleton,
   WorkspaceSaveBar,
@@ -31,7 +32,7 @@ export function WorkspaceSettings() {
   }));
 
   // Initialize once when profile loads
-  const initialized = { current: false };
+  const initialized = useRef(false);
   if (profile && !initialized.current) {
     const stored = ((profile as Record<string, unknown>)?.preferences as Record<string, unknown> | null)
       ?.workspace as Partial<WorkspacePrefs> | undefined;
@@ -82,7 +83,7 @@ export function WorkspaceSettings() {
   const handleSave = () => {
     const currentPrefs = ((profile as Record<string, unknown>)?.preferences as Record<string, unknown>) ?? {};
     updateProfile.mutate(
-      { preferences: { ...currentPrefs, workspace } } as never,
+      { preferences: { ...currentPrefs, workspace } as Json },
       {
         onSuccess: () => {
           setDirty(false);

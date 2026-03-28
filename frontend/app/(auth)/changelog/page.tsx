@@ -2,6 +2,8 @@
 
 import { useState, useMemo } from "react";
 import { IconPlus, IconSearch, IconBook } from "@tabler/icons-react";
+import { useAuthStore } from "@/stores/auth-store";
+import { isAdmin } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +33,9 @@ import type { Database } from "@/lib/supabase/types";
 type ChangelogRow = Database["public"]["Tables"]["changelog_entries"]["Row"];
 
 export default function ChangelogPage() {
-  const [search, setIconSearch] = useState("");
+  const role = useAuthStore((s) => s.role);
+  const canEdit = isAdmin(role);
+  const [search, setSearch] = useState("");
   const [tagFilter, setTagFilter] = useState("");
   const [moduleFilter, setModuleFilter] = useState("");
   const [formOpen, setFormOpen] = useState(false);
@@ -122,10 +126,12 @@ export default function ChangelogPage() {
             Historico de atualizacoes e mudancas da plataforma.
           </p>
         </div>
-        <Button onClick={handleNew}>
-          <IconPlus className="mr-2 h-4 w-4" />
-          Nova Entrada
-        </Button>
+        {canEdit && (
+          <Button onClick={handleNew}>
+            <IconPlus className="mr-2 h-4 w-4" />
+            Nova Entrada
+          </Button>
+        )}
       </div>
 
       {/* Filters */}
@@ -134,7 +140,7 @@ export default function ChangelogPage() {
           <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-500" />
           <Input
             value={search}
-            onChange={(e) => setIconSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por titulo, versao..."
             className="pl-9"
           />
@@ -189,7 +195,7 @@ export default function ChangelogPage() {
             onClick={() => {
               setTagFilter("");
               setModuleFilter("");
-              setIconSearch("");
+              setSearch("");
             }}
           >
             Limpar filtros
@@ -244,8 +250,8 @@ export default function ChangelogPage() {
         <ChangelogList
           entries={filtered}
           isLoading={isLoading}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
+          onEdit={canEdit ? handleEdit : undefined}
+          onDelete={canEdit ? handleDelete : undefined}
         />
       )}
 

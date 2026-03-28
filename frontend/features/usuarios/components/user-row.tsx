@@ -30,15 +30,9 @@ import {
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { ROLE_LABELS, ROLE_COLORS, STATUS_LABELS, STATUS_COLORS, type User } from "../types"
 import { formatRelativeDate } from "../utils/format-date"
+import { getInitials } from "../utils/get-initials"
 
-export function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .slice(0, 2)
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-}
+export { getInitials }
 
 interface UserRowProps {
   user: User

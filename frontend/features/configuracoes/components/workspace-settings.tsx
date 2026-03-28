@@ -2,9 +2,11 @@
 
 import { useState, useCallback, useRef } from "react";
 import { IconBuilding } from "@tabler/icons-react";
+import { RBACGuard } from "@/components/rbac-guard";
 import { useProfile, useUpdateProfile } from "@/features/configuracoes/hooks/use-settings";
 import { createClient } from "@/lib/supabase/client";
 import type { Json } from "@/lib/supabase/types";
+import { parsePreferences } from "@/features/configuracoes/types";
 import {
   WorkspaceSkeleton,
   WorkspaceSaveBar,
@@ -23,8 +25,7 @@ export function WorkspaceSettings() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  const storedWorkspace = ((profile as Record<string, unknown>)?.preferences as Record<string, unknown> | null)
-    ?.workspace as Partial<WorkspacePrefs> | undefined;
+  const storedWorkspace = parsePreferences(profile?.preferences).workspace as Partial<WorkspacePrefs> | undefined;
 
   const [workspace, setWorkspace] = useState<WorkspacePrefs>(() => ({
     ...DEFAULT_WORKSPACE,
@@ -34,8 +35,7 @@ export function WorkspaceSettings() {
   // Initialize once when profile loads
   const initialized = useRef(false);
   if (profile && !initialized.current) {
-    const stored = ((profile as Record<string, unknown>)?.preferences as Record<string, unknown> | null)
-      ?.workspace as Partial<WorkspacePrefs> | undefined;
+    const stored = parsePreferences(profile.preferences).workspace as Partial<WorkspacePrefs> | undefined;
     if (stored) setWorkspace({ ...DEFAULT_WORKSPACE, ...stored });
     initialized.current = true;
   }
@@ -81,7 +81,7 @@ export function WorkspaceSettings() {
   };
 
   const handleSave = () => {
-    const currentPrefs = ((profile as Record<string, unknown>)?.preferences as Record<string, unknown>) ?? {};
+    const currentPrefs = parsePreferences(profile?.preferences);
     updateProfile.mutate(
       { preferences: { ...currentPrefs, workspace } as Json },
       {
@@ -95,14 +95,13 @@ export function WorkspaceSettings() {
   };
 
   const handleDiscard = () => {
-    const stored = ((profile as Record<string, unknown>)?.preferences as Record<string, unknown> | null)
-      ?.workspace as Partial<WorkspacePrefs> | undefined;
+    const stored = parsePreferences(profile?.preferences).workspace as Partial<WorkspacePrefs> | undefined;
     setWorkspace({ ...DEFAULT_WORKSPACE, ...(stored ?? {}) });
     setDirty(false);
     setUploadError(null);
   };
 
-  if (isLoading) return <WorkspaceSkeleton />;
+  if (isLoading) return <RBACGuard minRole="admin"><WorkspaceSkeleton /></RBACGuard>;
 
   const logoInitials = (workspace.name || "TBO")
     .split(" ")
@@ -112,6 +111,7 @@ export function WorkspaceSettings() {
     .toUpperCase();
 
   return (
+    <RBACGuard minRole="admin">
     <div className="space-y-6">
       <WorkspaceIdentityCard
         workspace={workspace}
@@ -131,5 +131,6 @@ export function WorkspaceSettings() {
         onDiscard={handleDiscard}
       />
     </div>
+    </RBACGuard>
   );
 }

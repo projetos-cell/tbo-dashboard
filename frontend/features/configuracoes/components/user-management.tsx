@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useUsers, useUpdateUserRole } from "@/features/configuracoes/hooks/use-settings";
 import { useAuthStore } from "@/stores/auth-store";
+import { RBACGuard } from "@/components/rbac-guard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -62,7 +63,7 @@ export function UserManagement() {
   const [search, setSearch] = useState("");
   const [roleOverrides, setRoleOverrides] = useState<Record<string, string>>({});
 
-  if (isLoading) return <UserManagementSkeleton />;
+  if (isLoading) return <RBACGuard minRole="admin"><UserManagementSkeleton /></RBACGuard>;
 
   const activeUsers = users?.filter((u) => u.is_active) ?? [];
   const inactiveUsers = users?.filter((u) => !u.is_active) ?? [];
@@ -84,6 +85,7 @@ export function UserManagement() {
   }));
 
   return (
+    <RBACGuard minRole="admin">
     <div className="space-y-4">
       {/* Role KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -232,5 +234,6 @@ export function UserManagement() {
         </Card>
       )}
     </div>
+    </RBACGuard>
   );
 }

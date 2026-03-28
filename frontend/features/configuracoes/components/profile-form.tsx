@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useProfile, useUpdateProfile, useUploadAvatar } from "@/features/configuracoes/hooks/use-settings";
+import { parsePreferences } from "@/features/configuracoes/types";
 import { useAuthStore } from "@/stores/auth-store";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,7 +43,7 @@ export function ProfileForm() {
     setFullName(profile.full_name ?? "");
     setPhone(profile.phone ?? "");
     setDepartment(profile.department ?? "");
-    setBio((profile.preferences as Record<string, unknown>)?.bio as string ?? "");
+    setBio(parsePreferences(profile.preferences).bio ?? "");
     populated.current = true;
   }
 
@@ -58,7 +59,7 @@ export function ProfileForm() {
       return;
     }
     setErrors({});
-    const currentPrefs = (profile?.preferences as Record<string, unknown>) ?? {};
+    const currentPrefs = parsePreferences(profile?.preferences);
     updateProfile.mutate(
       { full_name: fullName, phone, department, preferences: { ...currentPrefs, bio } },
       {

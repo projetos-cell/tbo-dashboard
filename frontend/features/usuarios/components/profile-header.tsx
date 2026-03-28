@@ -11,19 +11,11 @@ import {
   IconMapPin,
 } from "@tabler/icons-react"
 import { ROLE_LABELS, ROLE_COLORS, STATUS_LABELS, STATUS_COLORS, type User } from "../types"
+import { getInitials } from "../utils/get-initials"
 
 interface ProfileHeaderProps {
   user: User
   onEdit?: () => void
-}
-
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .slice(0, 2)
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
 }
 
 export function ProfileHeader({ user, onEdit }: ProfileHeaderProps) {

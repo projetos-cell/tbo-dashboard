@@ -8,6 +8,10 @@ import {
   getFounderDashboardData,
   computeKPIs,
 } from "@/features/dashboard/services/dashboard";
+import { getFounderKPIs } from "@/features/financeiro/services/finance-kpis";
+import { getFinanceCashFlowProjection } from "@/features/financeiro/services/finance-cashflow";
+import type { FounderKPIs } from "@/features/financeiro/services/finance-types";
+import type { CashFlowPoint } from "@/features/financeiro/services/finance-types";
 
 export function useDashboard() {
   const supabase = createClient();
@@ -39,6 +43,29 @@ export function useFounderDashboard() {
     queryFn: () => getFounderDashboardData(supabase),
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
-    refetchInterval: 5 * 60 * 1000, // refresh every 5 min
+    refetchInterval: 5 * 60 * 1000,
+  });
+}
+
+export interface FinanceDashboardData {
+  kpis: FounderKPIs;
+  cashFlow: CashFlowPoint[];
+}
+
+export function useFinanceDashboard() {
+  const supabase = createClient();
+  const tenantId = useAuthStore((s) => s.tenantId);
+
+  return useQuery<FinanceDashboardData>({
+    queryKey: ["finance-dashboard", tenantId],
+    queryFn: async () => {
+      const [kpis, cashFlow] = await Promise.all([
+        getFounderKPIs(supabase),
+        getFinanceCashFlowProjection(supabase, 30),
+      ]);
+      return { kpis, cashFlow };
+    },
+    staleTime: 1000 * 60 * 5,
+    enabled: !!tenantId,
   });
 }

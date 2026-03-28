@@ -19,40 +19,7 @@ import {
 import { useRouter } from "next/navigation";
 import { PROJECT_TEMPLATES, type ProjectTemplate } from "@/features/projects/services/project-templates";
 import { cn } from "@/lib/utils";
-
-export default function ProjetosTemplatesPage() {
-  const [previewTemplate, setPreviewTemplate] = useState<ProjectTemplate | null>(null);
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Templates de Projeto</h1>
-          <p className="text-muted-foreground">
-            Modelos pré-configurados com seções e tarefas para criar projetos rapidamente.
-          </p>
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {PROJECT_TEMPLATES.map((template) => (
-          <TemplateCard
-            key={template.id}
-            template={template}
-            onPreview={() => setPreviewTemplate(template)}
-          />
-        ))}
-      </div>
-
-      {/* Preview sheet */}
-      <Sheet open={!!previewTemplate} onOpenChange={(open) => !open && setPreviewTemplate(null)}>
-        <SheetContent className="sm:max-w-lg overflow-y-auto">
-          {previewTemplate && <TemplatePreview template={previewTemplate} />}
-        </SheetContent>
-      </Sheet>
-    </div>
-  );
-}
+import { RequireRole } from "@/features/auth/components/require-role";
 
 function TemplateCard({
   template,
@@ -96,7 +63,6 @@ function TemplateCard({
             {totalTasks} tarefas
           </span>
         </div>
-        {/* Section color bar */}
         <div className="flex h-1 gap-0.5 rounded-full overflow-hidden">
           {template.sections.map((s) => (
             <div
@@ -180,5 +146,40 @@ function TemplatePreview({ template }: { template: ProjectTemplate }) {
         Usar Template
       </Button>
     </div>
+  );
+}
+
+export default function ProjetosTemplatesPage() {
+  const [previewTemplate, setPreviewTemplate] = useState<ProjectTemplate | null>(null);
+
+  return (
+    <RequireRole module="projetos">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Templates de Projeto</h1>
+            <p className="text-muted-foreground">
+              Modelos pré-configurados com seções e tarefas para criar projetos rapidamente.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {PROJECT_TEMPLATES.map((template) => (
+            <TemplateCard
+              key={template.id}
+              template={template}
+              onPreview={() => setPreviewTemplate(template)}
+            />
+          ))}
+        </div>
+
+        <Sheet open={!!previewTemplate} onOpenChange={(open) => !open && setPreviewTemplate(null)}>
+          <SheetContent className="sm:max-w-lg overflow-y-auto">
+            {previewTemplate && <TemplatePreview template={previewTemplate} />}
+          </SheetContent>
+        </Sheet>
+      </div>
+    </RequireRole>
   );
 }

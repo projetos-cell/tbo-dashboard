@@ -71,7 +71,7 @@ export function CashFlowMiniChart({ data }: CashFlowMiniChartProps) {
               className="fill-muted-foreground"
             />
             <Tooltip
-              formatter={(v: number) => [`R$ ${v.toLocaleString("pt-BR")}`, "Saldo"]}
+              formatter={(v: number | undefined) => [`R$ ${(v ?? 0).toLocaleString("pt-BR")}`, "Saldo"]}
               contentStyle={{
                 borderRadius: 8,
                 fontSize: 12,

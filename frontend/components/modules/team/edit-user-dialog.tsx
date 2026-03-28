@@ -129,7 +129,7 @@ export function EditUserDialog({
       try {
         const supabase = createClient();
         const ext = file.name.split(".").pop() ?? "jpg";
-        const path = `avatars/${member.id}.${ext}`;
+        const path = `${member.id}/avatar.${ext}`;
 
         const { error: uploadError } = await supabase.storage
           .from("avatars")
@@ -144,6 +144,9 @@ export function EditUserDialog({
         const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
         setAvatarPreview(publicUrl);
         form.setValue("avatar_url", publicUrl);
+
+        // Persistir avatar_url no DB imediatamente
+        await update.mutateAsync({ id: member.id, avatar_url: publicUrl });
         toast.success("Avatar atualizado!");
       } catch (err) {
         toast.error(
@@ -153,7 +156,7 @@ export function EditUserDialog({
         setUploading(false);
       }
     },
-    [member, form]
+    [member, form, update]
   );
 
   const assignableRoles = (

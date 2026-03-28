@@ -117,5 +117,5 @@ export async function getDefaultFilter(
     .maybeSingle();
 
   if (error) throw error;
-  return (data as SavedFilter) ?? null;
+  return (data as unknown as SavedFilter) ?? null;
 }

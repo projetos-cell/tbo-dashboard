@@ -40,7 +40,7 @@ export function PersonCard({ person, snapshot, onClick }: PersonCardProps) {
               {person.full_name ?? "Sem nome"}
             </p>
             <p className="truncate text-xs text-gray-500">
-              {person.cargo ?? "—"}
+              {person.nivel_atual ?? person.cargo ?? "—"}
             </p>
           </div>
         </div>

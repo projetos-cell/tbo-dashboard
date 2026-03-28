@@ -21,6 +21,10 @@ export const TeamMemberSchema = z.object({
   role: RoleEnum,
   department: z.string().max(50).nullable().optional(),
   is_active: z.boolean().default(true),
+  cargo: z.string().max(100).nullable().optional(),
+  nivel_atual: z.string().max(100).nullable().optional(),
+  career_level_id: z.string().uuid().nullable().optional(),
+  career_path_id: z.string().uuid().nullable().optional(),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
 });

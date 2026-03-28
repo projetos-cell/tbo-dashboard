@@ -36,6 +36,7 @@ import {
   IconDeviceFloppy,
   IconCamera,
   IconLoader2,
+  IconLock,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import {
@@ -284,24 +285,40 @@ export function EditUserDialog({
               />
 
               <div className="grid grid-cols-2 gap-3">
-                <FormField
-                  control={form.control}
-                  name="cargo"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cargo</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          value={field.value ?? ""}
-                          placeholder="Ex: Designer Senior"
-                          disabled={!canEdit}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium leading-none">Cargo</label>
+                  {member.nivel_atual ? (
+                    <div className="flex items-center gap-2 rounded-md border bg-muted/50 px-3 py-2 text-sm">
+                      <IconLock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <span className="truncate text-foreground">
+                        {member.nivel_atual}
+                      </span>
+                    </div>
+                  ) : (
+                    <FormField
+                      control={form.control}
+                      name="cargo"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              value={field.value ?? ""}
+                              placeholder="Ex: Designer Senior"
+                              disabled={!canEdit}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   )}
-                />
+                  {member.nivel_atual && (
+                    <p className="text-[10px] text-muted-foreground">
+                      Definido pela trilha de carreira
+                    </p>
+                  )}
+                </div>
 
                 <FormField
                   control={form.control}

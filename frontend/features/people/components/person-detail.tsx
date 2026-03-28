@@ -55,7 +55,7 @@ export function PersonDetail({ person, open, onOpenChange }: PersonDetailProps) 
             <div>
               <SheetTitle>{person.full_name ?? "Sem nome"}</SheetTitle>
               <p className="text-sm text-gray-500">
-                {person.cargo ?? "—"}
+                {person.nivel_atual ?? person.cargo ?? "—"}
               </p>
             </div>
           </div>

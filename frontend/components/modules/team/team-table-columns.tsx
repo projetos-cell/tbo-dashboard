@@ -79,6 +79,20 @@ export function useTeamTableColumns({
         cell: (info) => <RoleBadge role={info.getValue()} />,
         size: 140,
       }),
+      columnHelper.display({
+        id: "cargo",
+        header: "Cargo",
+        cell: ({ row }) => {
+          const m = row.original as TeamMember & { nivel_atual?: string | null; cargo?: string | null };
+          const label = m.nivel_atual ?? m.cargo;
+          return (
+            <span className="text-sm text-muted-foreground">
+              {label ?? "\u2014"}
+            </span>
+          );
+        },
+        size: 180,
+      }),
       columnHelper.accessor("department", {
         header: "Departamento",
         cell: (info) => (
@@ -86,7 +100,7 @@ export function useTeamTableColumns({
             {info.getValue() ?? "\u2014"}
           </span>
         ),
-        size: 160,
+        size: 140,
       }),
       columnHelper.accessor("is_active", {
         header: "Status",

@@ -23,7 +23,16 @@ async function ensureProfileExists(userId: string, userEmail: string, fullName: 
     .eq("id", userId)
     .single();
 
-  if (existing) return; // Profile exists, nothing to do
+  if (existing) {
+    // Update avatar_url from Google OAuth on every login (tokens expire)
+    if (avatarUrl) {
+      await admin
+        .from("profiles")
+        .update({ avatar_url: avatarUrl })
+        .eq("id", userId);
+    }
+    return;
+  }
 
   // Find the first active tenant (TBO)
   const { data: tenant } = await admin

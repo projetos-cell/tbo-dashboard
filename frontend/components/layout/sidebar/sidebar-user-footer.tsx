@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { useAuthStore } from "@/stores/auth-store";
+import { useProfile } from "@/features/configuracoes/hooks/use-settings";
 import { useLogout } from "@/hooks/use-logout";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -32,6 +33,7 @@ const ROLE_LABELS: Record<string, string> = {
 export function SidebarUserFooter() {
   const user = useAuthStore((s) => s.user);
   const role = useAuthStore((s) => s.role);
+  const { data: profile } = useProfile();
   const logout = useLogout();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -51,8 +53,8 @@ export function SidebarUserFooter() {
 
   if (!user) return null;
 
-  const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
-  const fullName = (user.user_metadata?.full_name as string) || user.email?.split("@")[0] || "Usuário";
+  const avatarUrl = profile?.avatar_url || (user.user_metadata?.avatar_url as string | undefined);
+  const fullName = profile?.full_name || (user.user_metadata?.full_name as string) || user.email?.split("@")[0] || "Usuário";
   const initials = fullName
     .split(" ")
     .slice(0, 2)

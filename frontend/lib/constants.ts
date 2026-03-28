@@ -536,6 +536,11 @@ export type SubNavItem = {
   readonly min_role?: "admin" | "lider";
 };
 
+export const TAREFAS_NAV_ITEMS: readonly SubNavItem[] = [
+  { href: "/tarefas", label: "Minhas Tarefas", icon: "user-check" },
+  { href: "/tarefas/todas", label: "Todas as Tarefas", icon: "list-check" },
+] as const;
+
 export const PROJETOS_NAV_ITEMS: readonly SubNavItem[] = [
   { href: "/projetos/lista", label: "Lista", icon: "list" },
   { href: "/projetos/board", label: "Board", icon: "kanban" },

@@ -293,17 +293,31 @@ export function useDeleteTask() {
 
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ["tasks"] });
+      await queryClient.cancelQueries({ queryKey: ["my-tasks"] });
+
       const previousTasks = queryClient.getQueriesData<TaskRow[]>({ queryKey: ["tasks"] });
+      const previousMyTasks = queryClient.getQueriesData<TaskRow[]>({ queryKey: ["my-tasks"] });
+
       queryClient.setQueriesData<TaskRow[]>(
         { queryKey: ["tasks"] },
         (old) => old?.filter((task) => task.id !== id)
       );
-      return { previousTasks };
+      queryClient.setQueriesData<TaskRow[]>(
+        { queryKey: ["my-tasks"] },
+        (old) => old?.filter((task) => task.id !== id)
+      );
+
+      return { previousTasks, previousMyTasks };
     },
 
     onError: (_err, _variables, context) => {
       if (context?.previousTasks) {
         for (const [queryKey, data] of context.previousTasks) {
+          queryClient.setQueryData(queryKey, data);
+        }
+      }
+      if (context?.previousMyTasks) {
+        for (const [queryKey, data] of context.previousMyTasks) {
           queryClient.setQueryData(queryKey, data);
         }
       }
@@ -328,6 +342,7 @@ export function useDeleteTask() {
 
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["my-tasks"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });

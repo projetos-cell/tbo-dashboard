@@ -1,4 +1,5 @@
 export { ConfirmDialog } from "./confirm-dialog";
+export { ExportButton } from "./export-button";
 export { DataPagination, paginateArray } from "./data-pagination";
 export type { PaginationState } from "./data-pagination";
 export { EmptyState } from "./empty-state";

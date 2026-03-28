@@ -30,6 +30,15 @@ globs: ["**/components/**", "**/*.tsx", "**/features/**"]
 - Save actions: optimistic + success toast
 - Error actions: inline message + retry button
 
+## Optimistic Updates (MANDATORY)
+- EVERY mutation (create, update, delete) MUST have optimistic update via onMutate
+- Remove/add/modify item in cache BEFORE server confirms
+- ALWAYS include rollback on error (restore previous cache state)
+- ALWAYS cancel in-flight queries before optimistic update (queryClient.cancelQueries)
+- ALWAYS invalidate ALL related query keys on settled (e.g. ["tasks"] AND ["my-tasks"] AND ["dashboard"])
+- Pattern: onMutate (optimistic) -> onError (rollback) -> onSettled (invalidate all related keys)
+- NEVER rely only on onSettled/invalidation for UI updates — the user must see the change immediately
+
 ## Whitespace
 - Cards: p-4 minimum internal padding
 - Sections: space-y-6 between major sections

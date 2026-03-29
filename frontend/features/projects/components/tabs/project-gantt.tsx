@@ -24,6 +24,7 @@ import { GanttTaskList } from "./gantt-task-list";
 import { GANTT_ROW_H, GANTT_HEADER_H, MIN_GANTT_ROWS } from "./gantt-helpers";
 import { useGanttDnd } from "./use-gantt-dnd";
 import { useGanttData } from "./use-gantt-data";
+import { useFilteredTasks } from "@/features/projects/hooks/use-filtered-tasks";
 import { useGanttRenderer } from "./use-gantt-renderer";
 
 // ─── Props ────────────────────────────────────────────────
@@ -41,6 +42,10 @@ export function ProjectGantt({ projectId, onSelectTask }: ProjectGanttProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const createTask = useCreateTask();
+
+  // Shared task filters
+  const { filtered: sharedFiltered } = useFilteredTasks(projectId);
+  const visibleTaskIds = useMemo(() => new Set(sharedFiltered.map((t) => t.id)), [sharedFiltered]);
 
   // UI state
   const [options, setOptions] = useState<GanttOptions>(DEFAULT_GANTT_OPTIONS);
@@ -67,6 +72,7 @@ export function ProjectGantt({ projectId, onSelectTask }: ProjectGanttProps) {
     options,
     collapsedSections,
     collapsedTasks,
+    visibleTaskIds,
   });
 
   // DnD hook

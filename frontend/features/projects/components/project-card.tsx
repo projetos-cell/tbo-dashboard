@@ -38,7 +38,7 @@ interface ProjectCardProps {
   dragListeners?: SyntheticListenerMap;
 }
 
-const DONE_STATUSES: string[] = ["finalizado"];
+const DONE_STATUSES: string[] = ["concluido"];
 
 export function ProjectCard({ project, editable = false, dragListeners }: ProjectCardProps) {
   const router = useRouter();
@@ -52,7 +52,7 @@ export function ProjectCard({ project, editable = false, dragListeners }: Projec
   const isFavorite = (favoriteIds || []).includes(project.id);
 
   // A07 — Health badge from task stats
-  const isDone = project.status === "finalizado";
+  const isDone = project.status === "concluido";
   const { data: taskStats } = useProjectTaskStats(isDone ? undefined : project.id);
   const healthKey = taskStats
     ? computeProjectHealth({ total: taskStats.totalTasks, overdue: taskStats.overdueTasks })

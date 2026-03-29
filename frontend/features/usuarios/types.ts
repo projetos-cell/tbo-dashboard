@@ -14,7 +14,7 @@ export interface User {
   department: string
   cargo?: string
   status: "ativo" | "inativo" | "suspenso"
-  lastActive: string
+  lastActive: string | null
   phone?: string
   location?: string
   joinedAt: string

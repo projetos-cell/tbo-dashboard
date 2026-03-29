@@ -27,6 +27,7 @@ export const TeamMemberSchema = z.object({
   career_path_id: z.string().uuid().nullable().optional(),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
+  last_seen_at: z.string().datetime().nullable().optional(),
 });
 
 export type TeamMember = z.infer<typeof TeamMemberSchema>;

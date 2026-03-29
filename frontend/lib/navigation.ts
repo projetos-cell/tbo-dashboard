@@ -37,6 +37,7 @@ export interface NavGroup {
 /** Fixed top-level nav items — always visible, no collapsible group. */
 export const PINNED_NAV_ITEMS: readonly NavGroupItem[] = [
   { href: "/dashboard", label: "Meu Dashboard", icon: "layout-dashboard", module: "dashboard" },
+  { href: "/projetos", label: "Projetos", icon: "briefcase", module: "projetos" },
   { href: "/tarefas", label: "Tarefas", icon: "list-checks", module: "tarefas", subItems: TAREFAS_NAV_ITEMS },
   { href: "/chat", label: "Chat", icon: "message-square", module: "chat" },
 ] as const;
@@ -47,17 +48,6 @@ export const PINNED_NAV_ITEMS: readonly NavGroupItem[] = [
  * Items with `subItems` expand inline sub-nav when active.
  */
 export const SIDEBAR_NAV_GROUPS: readonly NavGroup[] = [
-  // ── Projetos (produção por vertical) ──────────────────────────────
-  {
-    label: "Projetos",
-    items: [
-      { href: "/projetos", label: "Quadro Geral", icon: "layout-dashboard", module: "projetos", subItems: PROJETOS_NAV_ITEMS },
-      { href: "/projetos/digital-3d", label: "Digital 3D", icon: "cube", module: "projetos" },
-      { href: "/projetos/branding", label: "Branding", icon: "palette", module: "projetos" },
-      { href: "/projetos/audiovisual", label: "Audiovisual", icon: "video", module: "projetos" },
-      { href: "/projetos/marketing", label: "Marketing", icon: "megaphone", module: "projetos" },
-    ],
-  },
   // ── Receita & Caixa (motor comercial + financeiro) ──────────────
   {
     label: "Receita & Caixa",

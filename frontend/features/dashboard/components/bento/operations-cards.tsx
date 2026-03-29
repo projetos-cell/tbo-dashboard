@@ -56,7 +56,7 @@ export function OperationsCards({ kpis }: OperationsCardsProps) {
         iconBg="bg-blue-50 dark:bg-blue-950/30"
         iconColor="text-blue-600"
         href="/projetos"
-        subtitle={`${kpis.completedProjects} finalizados`}
+        subtitle={`${kpis.completedProjects} concluídos`}
       />
       <StatCard
         label="Tarefas Pendentes"
@@ -93,7 +93,7 @@ export function OperationsCards({ kpis }: OperationsCardsProps) {
         href="/comercial/clientes"
       />
       <StatCard
-        label="Finalizados"
+        label="Concluídos"
         value={kpis.completedProjects}
         icon={IconCheck}
         iconBg="bg-emerald-50 dark:bg-emerald-950/30"

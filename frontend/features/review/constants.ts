@@ -54,7 +54,7 @@ export const WORKFLOW_STAGE_CONFIG: Record<
     color: "#06b6d4",
     bg: "rgba(6,182,212,0.12)",
     icon: "check-circle",
-    description: "Projeto finalizado e entregue",
+    description: "Projeto concluído e entregue",
   },
 };
 

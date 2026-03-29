@@ -167,20 +167,7 @@ export async function getFounderDashboardData(
     });
   });
 
-  // Stalled projects
-  const stalledProjects = baseData.projects.filter(
-    (p) => p.status === "parado" || p.status === "pausado"
-  );
-  stalledProjects.slice(0, 3).forEach((p) => {
-    alerts.push({
-      id: `project-${p.id}`,
-      type: "stalled_project",
-      title: p.name ?? "Projeto sem nome",
-      detail: `Status: ${p.status}`,
-      severity: "medium",
-      href: `/projetos/${p.id}`,
-    });
-  });
+  // Stalled projects alert removed — "parado"/"pausado" statuses no longer exist
 
   // OKRs at risk — uses the same status values as the OKR module
   okrSnapshots
@@ -231,14 +218,12 @@ export function computeKPIs(data: DashboardData): DashboardKPIs {
   const now = new Date().toISOString().split("T")[0];
 
   const activeProjects = data.projects.filter(
-    (p) => !["finalizado", "cancelado"].includes(p.status ?? "")
+    (p) => !["concluido", "cancelado"].includes(p.status ?? "")
   );
   const completedProjects = data.projects.filter(
-    (p) => p.status === "finalizado"
+    (p) => p.status === "concluido"
   );
-  const stoppedProjects = data.projects.filter(
-    (p) => p.status === "parado" || p.status === "pausado"
-  );
+  const stoppedProjects: typeof data.projects = [];
 
   const pendingTasks = data.tasks.filter(
     (t) => !t.is_completed && t.status !== "cancelada"

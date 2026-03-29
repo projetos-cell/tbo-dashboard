@@ -7,8 +7,11 @@ import {
   applyProjectTemplate,
   saveProjectAsTemplate,
   getSavedTemplates,
+  updateSavedTemplate,
+  deleteSavedTemplate,
   PROJECT_TEMPLATES,
   DEFAULT_TEMPLATE_ID,
+  type TemplateSection,
 } from "@/features/projects/services/project-templates";
 
 export { PROJECT_TEMPLATES, DEFAULT_TEMPLATE_ID };
@@ -84,6 +87,45 @@ export function useSaveProjectAsTemplate() {
         description: "Não foi possível salvar a estrutura do projeto.",
         variant: "destructive",
       });
+    },
+  });
+}
+
+export function useUpdateSavedTemplate() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      updates,
+    }: {
+      id: string;
+      updates: { name?: string; description?: string | null; sections_json?: TemplateSection[] };
+    }) => updateSavedTemplate(id, updates),
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["saved-templates"] });
+      toast({ title: "Template atualizado" });
+    },
+    onError: () => {
+      toast({ title: "Erro ao atualizar template", variant: "destructive" });
+    },
+  });
+}
+
+export function useDeleteSavedTemplate() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: (id: string) => deleteSavedTemplate(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["saved-templates"] });
+      toast({ title: "Template excluído" });
+    },
+    onError: () => {
+      toast({ title: "Erro ao excluir template", variant: "destructive" });
     },
   });
 }

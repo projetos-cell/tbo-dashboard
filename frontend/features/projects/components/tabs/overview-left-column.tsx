@@ -12,9 +12,25 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { EmptyState } from "@/components/shared";
-import { useState, useRef, useEffect } from "react";
-import { useUpdateProject } from "@/features/projects/hooks/use-projects";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { useState, useMemo, useRef } from "react";
+import dynamic from "next/dynamic";
+import { useUpdateProject, useAddProjectMember, useProjectMembers } from "@/features/projects/hooks/use-projects";
+import { useProfiles } from "@/features/people/hooks/use-people";
+import { useAuthStore } from "@/stores/auth-store";
+
+const RichTextEditor = dynamic(
+  () => import("@/components/ui/rich-text-editor").then((m) => ({ default: m.RichTextEditor })),
+  { ssr: false, loading: () => <div className="h-[120px] animate-pulse rounded-md bg-muted" /> },
+);
+const RichTextViewer = dynamic(
+  () => import("@/components/ui/rich-text-editor").then((m) => ({ default: m.RichTextViewer })),
+  { ssr: false },
+);
 
 const AVATAR_COLORS = [
   { bg: "#d1e8fb", text: "#0c447c" },
@@ -57,17 +73,29 @@ export function OverviewLeftColumn({
   onOpenMembers,
 }: OverviewLeftColumnProps) {
   const updateProject = useUpdateProject();
+  const addMember = useAddProjectMember();
+  const { data: projectMembers } = useProjectMembers(projectId);
+  const { data: profiles } = useProfiles();
+  const tenantId = useAuthStore((s) => s.tenantId);
+  const currentUserId = useAuthStore((s) => s.user?.id);
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesValue, setNotesValue] = useState("");
-  const notesRef = useRef<HTMLTextAreaElement>(null);
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
+  const [addMemberSearch, setAddMemberSearch] = useState("");
+  const addMemberInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (editingNotes && notesRef.current) {
-      notesRef.current.focus();
-      notesRef.current.style.height = "auto";
-      notesRef.current.style.height = notesRef.current.scrollHeight + "px";
-    }
-  }, [editingNotes]);
+  const memberIds = useMemo(
+    () => new Set((projectMembers ?? []).map((m) => m.user_id)),
+    [projectMembers],
+  );
+
+  const availableProfiles = useMemo(() => {
+    if (!profiles) return [];
+    const q = addMemberSearch.toLowerCase();
+    return profiles.filter(
+      (p) => p.full_name && !memberIds.has(p.id) && (!q || p.full_name.toLowerCase().includes(q)),
+    );
+  }, [profiles, memberIds, addMemberSearch]);
 
   function handleSaveNotes() {
     const trimmed = notesValue.trim();
@@ -105,20 +133,11 @@ export function OverviewLeftColumn({
         <CardContent>
           {editingNotes ? (
             <div className="space-y-2">
-              <textarea
-                ref={notesRef}
+              <RichTextEditor
                 value={notesValue}
-                onChange={(e) => {
-                  setNotesValue(e.target.value);
-                  e.target.style.height = "auto";
-                  e.target.style.height = e.target.scrollHeight + "px";
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") setEditingNotes(false);
-                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSaveNotes();
-                }}
-                className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring min-h-[80px]"
+                onChange={setNotesValue}
                 placeholder="Descreva o projeto..."
+                minHeight={100}
               />
               <div className="flex items-center gap-2 justify-end">
                 <Button
@@ -149,9 +168,9 @@ export function OverviewLeftColumn({
               }}
               className="w-full text-left"
             >
-              <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed hover:bg-muted/30 rounded-md px-1 py-0.5 -mx-1 transition-colors">
-                {projectNotes}
-              </p>
+              <div className="hover:bg-muted/30 rounded-md px-1 py-0.5 -mx-1 transition-colors">
+                <RichTextViewer content={projectNotes} />
+              </div>
             </button>
           ) : (
             <button
@@ -218,67 +237,139 @@ export function OverviewLeftColumn({
                   </div>
                 );
               })}
-              {onOpenMembers && (
-                <button
-                  type="button"
-                  onClick={onOpenMembers}
-                  className="flex size-10 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/30 text-muted-foreground/50 hover:border-muted-foreground/50 hover:text-muted-foreground transition-colors"
-                >
-                  <IconPlus className="size-4" />
-                </button>
-              )}
+              <AddMemberButton
+                open={addMemberOpen}
+                onOpenChange={(o) => { setAddMemberOpen(o); if (!o) setAddMemberSearch(""); }}
+                search={addMemberSearch}
+                onSearchChange={setAddMemberSearch}
+                inputRef={addMemberInputRef}
+                availableProfiles={availableProfiles}
+                onAdd={(p) => {
+                  if (!tenantId || !currentUserId) return;
+                  addMember.mutate({ projectId, userId: p.id, tenantId, grantedBy: currentUserId });
+                  setAddMemberOpen(false);
+                  setAddMemberSearch("");
+                }}
+              />
             </div>
           ) : (
             <div className="flex items-center gap-3">
               <p className="text-sm text-muted-foreground italic">
                 Nenhum membro neste projeto.
               </p>
-              {onOpenMembers && (
-                <button
-                  type="button"
-                  onClick={onOpenMembers}
-                  className="flex size-10 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/30 text-muted-foreground/50 hover:border-muted-foreground/50 hover:text-muted-foreground transition-colors"
-                >
-                  <IconPlus className="size-4" />
-                </button>
-              )}
+              <AddMemberButton
+                open={addMemberOpen}
+                onOpenChange={(o) => { setAddMemberOpen(o); if (!o) setAddMemberSearch(""); }}
+                search={addMemberSearch}
+                onSearchChange={setAddMemberSearch}
+                inputRef={addMemberInputRef}
+                availableProfiles={availableProfiles}
+                onAdd={(p) => {
+                  if (!tenantId || !currentUserId) return;
+                  addMember.mutate({ projectId, userId: p.id, tenantId, grantedBy: currentUserId });
+                  setAddMemberOpen(false);
+                  setAddMemberSearch("");
+                }}
+              />
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Metas Conectadas */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <IconTarget className="size-4 text-muted-foreground" />
-            Metas Conectadas
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground italic">
-            Nenhuma meta conectada a este projeto.
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Arquivos Recentes */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <IconFile className="size-4 text-muted-foreground" />
-            Arquivos Recentes
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <EmptyState
-            icon={IconFile}
-            title="Nenhum arquivo"
-            description="Adicione arquivos na aba Arquivos do projeto."
-            compact
-          />
-        </CardContent>
-      </Card>
+      {/* Metas + Arquivos — inline compacto quando vazio */}
+      <div className="flex flex-col gap-2 rounded-lg border border-border/40 bg-background px-4 py-3">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <IconTarget className="size-3.5" />
+          <span>Metas Conectadas</span>
+          <span className="ml-auto text-[11px]">Nenhuma</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <IconFile className="size-3.5" />
+          <span>Arquivos Recentes</span>
+          <span className="ml-auto text-[11px]">Nenhum</span>
+        </div>
+      </div>
     </div>
+  );
+}
+
+// ─── Inline add member popover ──────────────────────────────────────────────
+
+interface ProfileItem {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+}
+
+function AddMemberButton({
+  open,
+  onOpenChange,
+  search,
+  onSearchChange,
+  inputRef,
+  availableProfiles,
+  onAdd,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  search: string;
+  onSearchChange: (s: string) => void;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  availableProfiles: ProfileItem[];
+  onAdd: (p: ProfileItem) => void;
+}) {
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(o) => {
+        onOpenChange(o);
+        if (o) setTimeout(() => inputRef.current?.focus(), 50);
+      }}
+    >
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex size-10 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/30 text-muted-foreground/50 hover:border-muted-foreground/50 hover:text-muted-foreground transition-colors"
+        >
+          <IconPlus className="size-4" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[240px] p-0" align="start" sideOffset={4}>
+        <div className="border-b border-border/60 p-2">
+          <input
+            ref={inputRef}
+            type="text"
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Buscar membro..."
+            className="h-7 w-full rounded border-0 bg-muted/40 px-2 text-sm outline-none placeholder:text-muted-foreground"
+          />
+        </div>
+        <div className="max-h-[200px] overflow-y-auto p-1">
+          {availableProfiles.length === 0 ? (
+            <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+              Nenhum usuário disponível
+            </p>
+          ) : (
+            availableProfiles.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => onAdd(p)}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted"
+              >
+                <Avatar className="size-6">
+                  {p.avatar_url && <AvatarImage src={p.avatar_url} />}
+                  <AvatarFallback className="text-[10px]">
+                    {getInitials(p.full_name)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="truncate text-xs">{p.full_name}</span>
+              </button>
+            ))
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

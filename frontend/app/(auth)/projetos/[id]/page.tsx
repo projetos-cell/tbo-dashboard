@@ -16,6 +16,9 @@ import { useToast } from "@/hooks/use-toast";
 import type { UserOption } from "@/components/ui/user-selector";
 import type { MemberInfo } from "@/features/projects/components/member-avatar-stack";
 import { RequireRole } from "@/features/auth/components/require-role";
+import { ProjectTasksToolbar, ProjectTasksSubToolbar } from "@/features/projects/components/tabs/project-tasks-toolbar";
+import { useProjectTaskFilters } from "@/stores/task-filters-store";
+import { useFilteredTasks } from "@/features/projects/hooks/use-filtered-tasks";
 
 // ── Lazy-loaded tabs — only download JS when tab becomes active ───────────
 // Next.js 16 Turbopack requires inline object literals for dynamic() options
@@ -34,15 +37,26 @@ const ProjectOverdueReport = dynamic(() => import("@/features/projects/component
 const ProjectPortal = dynamic(() => import("@/features/projects/components/tabs/project-portal").then((m) => ({ default: m.ProjectPortal })), { loading: () => tabFallback });
 const ProjectIntake = dynamic(() => import("@/features/projects/components/tabs/project-intake").then((m) => ({ default: m.ProjectIntake })), { loading: () => tabFallback });
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default function ProjectDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const routerGuard = useRouter();
+
+  // Redirect non-UUID slugs (e.g. "digital-3d") back to Quadro Geral
+  useEffect(() => {
+    if (!UUID_RE.test(id)) {
+      routerGuard.replace("/projetos");
+    }
+  }, [id, routerGuard]);
 
   useUser();
-  const { data: project, isLoading, error, refetch } = useProject(id);
+  const isValidId = UUID_RE.test(id);
+  const { data: project, isLoading, error, refetch } = useProject(isValidId ? id : "");
   const { data: profiles } = useProfiles();
   const { data: projectMembers } = useProjectMembers(id);
   const addMember = useAddProjectMember();
@@ -99,6 +113,12 @@ export default function ProjectDetailPage({
   const handleCloseTask = useCallback(() => {
     setSelectedTaskId(null);
   }, []);
+
+  // Shared task filters (for toolbar above tabs)
+  const [taskFilters, setTaskFilters] = useProjectTaskFilters(isValidId ? id : "");
+  const { parents: allParents, filtered: filteredParents } = useFilteredTasks(isValidId ? id : "");
+  const TASK_TABS = new Set<ProjectTabKey>(["list", "board", "gantt", "calendar"]);
+  const showTaskToolbar = TASK_TABS.has(activeTab);
 
   const users: UserOption[] = (profiles || []).map((p) => ({
     id: p.id,
@@ -221,6 +241,23 @@ export default function ProjectDetailPage({
         onMembersOpenChange={setMembersOpen}
       />
 
+      {/* Shared task toolbar — visible on list/board/gantt/calendar */}
+      {showTaskToolbar && (
+        <div className="space-y-2">
+          <ProjectTasksToolbar
+            filters={taskFilters}
+            onFiltersChange={setTaskFilters}
+            totalCount={allParents.length}
+            filteredCount={filteredParents.length}
+            onAddTask={() => handleSelectTask("new")}
+          />
+          <ProjectTasksSubToolbar
+            filters={taskFilters}
+            onFiltersChange={setTaskFilters}
+          />
+        </div>
+      )}
+
       {/* Tab content */}
       <div key={activeTab}>
         {activeTab === "overview" && (
@@ -259,7 +296,13 @@ export default function ProjectDetailPage({
         {activeTab === "intake" && <ProjectIntake projectId={id} />}
         {activeTab === "settings" && <ProjectSettings projectId={id} />}
         {activeTab === "portal" && (
-          <ProjectPortal projectId={id} projectName={project.name} />
+          <ProjectPortal
+            projectId={id}
+            projectName={project.name}
+            dueDate={project.due_date_end}
+            bus={project.bus}
+            portalToken={(project as Record<string, unknown>).portal_token as string | null}
+          />
         )}
       </div>
 

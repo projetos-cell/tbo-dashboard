@@ -30,7 +30,7 @@ const projectSchema = z.object({
   name: z.string().min(1, "Nome do projeto é obrigatório"),
   construtora: z.string().optional(),
   owner_name: z.string().optional(),
-  bus: z.array(z.string()).optional(),
+  bus: z.array(z.string()).min(1, "Selecione pelo menos uma unidade de negócio"),
 });
 
 type ProjectFormData = z.infer<typeof projectSchema>;
@@ -178,7 +178,7 @@ export function ProjectForm({ open, onOpenChange }: ProjectFormProps) {
 
           {/* BU Selection */}
           <div className="space-y-2">
-            <Label>Setores (BU)</Label>
+            <Label>Setores (BU) *</Label>
             <div className="flex flex-wrap gap-2">
               {BU_LIST.map((bu) => {
                 const isSelected = selectedBus.includes(bu);
@@ -200,13 +200,19 @@ export function ProjectForm({ open, onOpenChange }: ProjectFormProps) {
                           }
                         : undefined
                     }
-                    onClick={() => toggleBu(bu)}
+                    onClick={() => {
+                      toggleBu(bu);
+                      setErrors((prev) => ({ ...prev, bus: undefined }));
+                    }}
                   >
                     {bu}
                   </Badge>
                 );
               })}
             </div>
+            {errors.bus && (
+              <p className="text-xs text-red-500">{errors.bus}</p>
+            )}
           </div>
 
           {/* Construtora */}

@@ -35,6 +35,11 @@ interface SectionProgress {
 
 /* ── Status + Progress Card ──────────────────────────────────────── */
 
+interface ProjectPeriodData {
+  due_date_start: string | null;
+  due_date_end: string | null;
+}
+
 export function StatusProgressCard({
   statusCfg,
   projectStatus,
@@ -42,6 +47,8 @@ export function StatusProgressCard({
   progressPercent,
   stats,
   sectionProgress,
+  project,
+  daysLeft,
 }: {
   statusCfg: (typeof PROJECT_STATUS)[ProjectStatusKey] | undefined;
   projectStatus: string | null;
@@ -49,6 +56,8 @@ export function StatusProgressCard({
   progressPercent: number;
   stats: { totalTasks: number; completedTasks: number; overdueTasks: number; inProgressTasks: number } | null;
   sectionProgress: SectionProgress[];
+  project?: ProjectPeriodData | null;
+  daysLeft?: number | null;
 }) {
   return (
     <Card>
@@ -80,7 +89,7 @@ export function StatusProgressCard({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          <span className="text-2xl font-bold text-primary">{progressPercent}%</span>
+          <span className="text-xl font-bold tabular-nums text-primary">{progressPercent}%</span>
         </div>
         <Progress value={progressPercent} className="h-2" />
         <div className="flex items-center justify-between">
@@ -90,6 +99,30 @@ export function StatusProgressCard({
             <span className="flex items-center gap-1"><IconAlertTriangle className="size-3 text-red-500" />{stats?.overdueTasks ?? 0}</span>
           </div>
         </div>
+
+        {/* Periodo inline */}
+        {project && (
+          <div className="flex items-center justify-between border-t pt-3">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <IconCalendar className="size-3.5" />
+              {project.due_date_start && project.due_date_end ? (
+                <span className="font-medium text-foreground">
+                  {format(new Date(project.due_date_start), "dd MMM", { locale: ptBR })} {"\u2192"} {format(new Date(project.due_date_end), "dd MMM yyyy", { locale: ptBR })}
+                </span>
+              ) : project.due_date_end ? (
+                <span className="font-medium text-foreground">Entrega: {format(new Date(project.due_date_end), "dd MMM yyyy", { locale: ptBR })}</span>
+              ) : (
+                <span>Sem prazo definido</span>
+              )}
+            </div>
+            {daysLeft !== null && daysLeft !== undefined && (
+              <span className={cn("text-xs font-medium", daysLeft < 0 ? "text-red-600" : daysLeft <= 7 ? "text-amber-600" : "text-green-600")}>
+                {daysLeft < 0 ? `${Math.abs(daysLeft)}d atrasado` : daysLeft === 0 ? "Hoje" : `${daysLeft}d restantes`}
+              </span>
+            )}
+          </div>
+        )}
+
         {sectionProgress.length > 0 && (
           <div className="space-y-3 border-t pt-3">
             <p className="text-xs font-medium text-muted-foreground">Por Secao</p>

@@ -12,18 +12,14 @@ const STATUS_COLORS: Record<string, string> = {
   em_andamento: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
   planejamento: "bg-gray-100 text-gray-700 dark:bg-gray-800/40 dark:text-gray-300",
   revisao: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-  finalizado: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-  parado: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300",
-  pausado: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
+  concluido: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
 };
 
 const STATUS_LABELS: Record<string, string> = {
   em_andamento: "Em andamento",
   planejamento: "Planejamento",
   revisao: "Revisão",
-  finalizado: "Finalizado",
-  parado: "Parado",
-  pausado: "Pausado",
+  concluido: "Concluído",
 };
 
 function getProjectInitials(name: string): string {
@@ -46,7 +42,7 @@ interface RecentProjectsCardProps {
 
 export function RecentProjectsCard({ projects }: RecentProjectsCardProps) {
   const active = projects
-    .filter((p) => !["finalizado", "cancelado"].includes(p.status ?? ""))
+    .filter((p) => !["concluido", "cancelado"].includes(p.status ?? ""))
     .slice(0, 6);
 
   return (

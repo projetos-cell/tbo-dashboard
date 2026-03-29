@@ -12,23 +12,11 @@ export const PROJECT_STATUS = {
     bg: "rgba(245,158,11,0.12)",
     icon: "eye",
   },
-  finalizado: {
-    label: "Finalizado",
+  concluido: {
+    label: "Concluído",
     color: "#22c55e",
     bg: "rgba(34,197,94,0.12)",
     icon: "check-circle-2",
-  },
-  parado: {
-    label: "Parado",
-    color: "#ef4444",
-    bg: "rgba(239,68,68,0.12)",
-    icon: "pause-circle",
-  },
-  pausado: {
-    label: "Pausado",
-    color: "#f59e0b",
-    bg: "rgba(245,158,11,0.12)",
-    icon: "clock",
   },
 } as const;
 
@@ -126,6 +114,42 @@ export const BU_METHOD_PAGES: Record<string, { slug: string; label: string }> = 
   Branding: { slug: "branding", label: "Fluxo de Projeto — Branding" },
   Marketing: { slug: "marketing", label: "Fluxo de Projeto — Marketing ON/OFF" },
   Audiovisual: { slug: "audiovisual", label: "Fluxo de Serviços — Audiovisual" },
+};
+
+// BU default phases — used by portal Track Project when no DB-tracked stages exist
+export const BU_DEFAULT_PHASES: Record<string, { key: string; label: string }[]> = {
+  "Digital 3D": [
+    { key: "briefing", label: "Briefing" },
+    { key: "direcao_visual", label: "Direção Visual" },
+    { key: "modelagem", label: "Modelagem 3D" },
+    { key: "clay_render", label: "Clay Render" },
+    { key: "emissao", label: "Emissão Inicial" },
+    { key: "revisoes", label: "Revisões" },
+    { key: "entrega", label: "Entrega Final" },
+  ],
+  Branding: [
+    { key: "briefing", label: "Briefing" },
+    { key: "pesquisa", label: "Pesquisa" },
+    { key: "conceito", label: "Conceito" },
+    { key: "design", label: "Design" },
+    { key: "revisao", label: "Revisão" },
+    { key: "entrega", label: "Entrega" },
+  ],
+  Marketing: [
+    { key: "briefing", label: "Briefing" },
+    { key: "estrategia", label: "Estratégia" },
+    { key: "producao", label: "Produção" },
+    { key: "revisao", label: "Revisão" },
+    { key: "publicacao", label: "Publicação" },
+  ],
+  Audiovisual: [
+    { key: "briefing", label: "Briefing" },
+    { key: "pre_producao", label: "Pré-Produção" },
+    { key: "captacao", label: "Captação" },
+    { key: "pos_producao", label: "Pós-Produção" },
+    { key: "revisao", label: "Revisão" },
+    { key: "entrega", label: "Entrega" },
+  ],
 };
 
 // Lançamento Imobiliário is cross-BU (not tied to a single BU)
@@ -541,18 +565,7 @@ export const TAREFAS_NAV_ITEMS: readonly SubNavItem[] = [
   { href: "/tarefas/todas", label: "Todas as Tarefas", icon: "list-check" },
 ] as const;
 
-export const PROJETOS_NAV_ITEMS: readonly SubNavItem[] = [
-  { href: "/projetos/lista", label: "Lista", icon: "list" },
-  { href: "/projetos/board", label: "Board", icon: "kanban" },
-  { href: "/projetos/timeline", label: "Timeline", icon: "clock" },
-  { href: "/projetos/gantt", label: "Gantt", icon: "gantt-chart-square" },
-  { href: "/projetos/calendario", label: "Calendário", icon: "calendar" },
-  { href: "/projetos/arquivos", label: "Arquivos", icon: "folder-open" },
-  { href: "/projetos/templates", label: "Templates", icon: "copy" },
-  { href: "/projetos/fluxo-3d", label: "Fluxo 3D", icon: "cube" },
-  { href: "/projetos/decisoes", label: "Decisões", icon: "check-square" },
-  { href: "/projetos/configuracoes", label: "Configurações", icon: "settings" },
-] as const;
+export const PROJETOS_NAV_ITEMS: readonly SubNavItem[] = [] as const;
 
 export const PESSOAS_NAV_ITEMS: readonly SubNavItem[] = [
   { href: "/pessoas/colaboradores", label: "Colaboradores", icon: "users" },

@@ -80,10 +80,10 @@ export function ProjectCompactList({ projects }: ProjectCompactListProps) {
 
   const handleArchive = useCallback((project: Project) => {
     updateProject.mutate(
-      { id: project.id, updates: { status: "parado" } },
+      { id: project.id, updates: { status: "cancelado" } },
       {
-        onSuccess: () => toast({ title: "Projeto pausado" }),
-        onError: () => toast({ title: "Erro ao pausar", variant: "destructive" }),
+        onSuccess: () => toast({ title: "Projeto cancelado" }),
+        onError: () => toast({ title: "Erro ao cancelar", variant: "destructive" }),
       },
     );
   }, [updateProject, toast]);

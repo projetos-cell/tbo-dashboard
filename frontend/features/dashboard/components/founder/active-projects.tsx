@@ -14,7 +14,7 @@ interface Props {
 
 export function ActiveProjects({ projects }: Props) {
   const active = projects
-    .filter((p) => !["finalizado", "cancelado"].includes(p.status ?? ""))
+    .filter((p) => !["concluido", "cancelado"].includes(p.status ?? ""))
     .slice(0, 8);
 
   return (

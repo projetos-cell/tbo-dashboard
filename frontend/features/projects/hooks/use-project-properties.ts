@@ -25,9 +25,7 @@ function buildFallback(property: PropertyType): PropertyOption[] {
   const categoryMap: Record<string, string> = {
     em_andamento: "in_progress",
     em_revisao: "in_progress",
-    finalizado: "done",
-    parado: "todo",
-    pausado: "todo",
+    concluido: "done",
   };
 
   return Object.entries(source).map(([key, cfg], idx) => ({

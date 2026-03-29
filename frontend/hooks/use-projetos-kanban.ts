@@ -20,9 +20,7 @@ export const PROJECT_KANBAN_STATUS_MAP: Record<string, KanbanStatus> = {
   backlog:      "backlog",
   em_andamento: "in-progress",
   em_revisao:   "todo",
-  finalizado:   "done",
-  parado:       "canceled",
-  pausado:      "canceled",
+  concluido:    "done",
 };
 
 // Mapeamento de prioridade de projeto → KanbanPriority
@@ -135,8 +133,8 @@ export function useProjetosKanban(): UseProjetosKanbanReturn {
     backlog:      "backlog",
     "in-progress": "em_andamento",
     todo:         "em_revisao",
-    done:         "finalizado",
-    canceled:     "parado",
+    done:         "concluido",
+    canceled:     "cancelado",
   };
 
   const moveProjectMutation = useMutation<void, Error, MovePayload, { previous: KanbanTask[] }>({

@@ -28,6 +28,8 @@ interface UseGanttDataOptions {
   options: GanttOptions;
   collapsedSections: Set<string>;
   collapsedTasks: Set<string>;
+  /** Optional set of task IDs from shared filters — only these parents will be shown */
+  visibleTaskIds?: Set<string>;
 }
 
 export function useGanttData({
@@ -36,6 +38,7 @@ export function useGanttData({
   options,
   collapsedSections,
   collapsedTasks,
+  visibleTaskIds,
 }: UseGanttDataOptions) {
   // Core data
   const { parents, subtasksMap, allTasks, isLoading } = useProjectTasks(projectId);
@@ -95,16 +98,20 @@ export function useGanttData({
     return map;
   }, [baseline]);
 
-  // Filter tasks
+  // Filter tasks (shared filters + gantt-specific complete/incomplete filter)
   const filteredParents = useMemo(() => {
     let filtered = parents;
+    // Apply shared toolbar filters first
+    if (visibleTaskIds) {
+      filtered = filtered.filter((t) => visibleTaskIds.has(t.id));
+    }
     if (options.filter === "incomplete") {
       filtered = filtered.filter((t) => !t.is_completed);
     } else if (options.filter === "complete") {
       filtered = filtered.filter((t) => t.is_completed);
     }
     return filtered;
-  }, [parents, options.filter]);
+  }, [parents, options.filter, visibleTaskIds]);
 
   // Build Gantt chart data + task list items (must be in sync)
   const { ganttData, taskListItems } = useMemo(() => {

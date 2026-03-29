@@ -3,13 +3,15 @@ import { KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent
 import {
   useProjectTasks, useProjectSections, useCreateProjectSection, useUpdateProjectSection,
   useDeleteProjectSection, useMoveProjectTask, useReorderProjectTasks,
+  useReorderProjectSections,
 } from "@/features/projects/hooks/use-project-tasks";
 import { useCreateTask, useDeleteTask } from "@/features/tasks/hooks/use-tasks";
 import { useAuthStore } from "@/stores/auth-store";
 import { useUndoStack } from "@/hooks/use-undo-stack";
 import { useUndoKeyboard } from "@/hooks/use-undo-keyboard";
 import { useToast } from "@/hooks/use-toast";
-import { DEFAULT_TASK_FILTERS, type TaskListFilters, type TaskSortField } from "./project-tasks-toolbar";
+import { type TaskListFilters, type TaskSortField } from "./project-tasks-toolbar";
+import { useProjectTaskFilters } from "@/stores/task-filters-store";
 import { useMultiSelect } from "@/hooks/use-multi-select";
 import type { Database } from "@/lib/supabase/types";
 import { sortTasks, groupTasks } from "./task-list-helpers";
@@ -24,11 +26,21 @@ export function useTaskListState(projectId: string) {
   const deleteSection = useDeleteProjectSection(projectId);
   const moveTask = useMoveProjectTask(projectId);
   const reorderTasks = useReorderProjectTasks(projectId);
+  const reorderSections = useReorderProjectSections(projectId);
   const tenantId = useAuthStore((s) => s.tenantId);
   const { toast } = useToast();
   const undo = useUndoStack();
 
-  const [filters, setFilters] = useState<TaskListFilters>(DEFAULT_TASK_FILTERS);
+  const [filters, setFilters] = useProjectTaskFilters(projectId);
+
+  // Auto-group by section when sections exist and user hasn't changed groupBy yet
+  const didAutoGroup = useRef(false);
+  useEffect(() => {
+    if (!didAutoGroup.current && sections && sections.length > 0) {
+      didAutoGroup.current = true;
+      if (filters.groupBy === "none") setFilters({ ...filters, groupBy: "section" });
+    }
+  }, [sections, filters, setFilters]);
   const [newTaskTitle, setNewTaskTitle] = useState<string | null>(null);
   const [newSectionTitle, setNewSectionTitle] = useState<string | null>(null);
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
@@ -36,6 +48,7 @@ export function useTaskListState(projectId: string) {
   const newTaskRef = useRef<HTMLInputElement>(null);
   const newSectionRef = useRef<HTMLInputElement>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeDragType, setActiveDragType] = useState<"task" | "section" | null>(null);
   const marqueeContainerRef = useRef<HTMLDivElement>(null);
 
   const allTaskIds = useMemo(() => parents.map((t) => t.id), [parents]);
@@ -65,14 +78,60 @@ export function useTaskListState(projectId: string) {
 
   const handleDeleteSection = useCallback((sectionId: string) => deleteSection.mutate(sectionId), [deleteSection]);
 
-  const handleDragStart = useCallback((event: DragStartEvent) => setActiveId(event.active.id as string), []);
+  const handleMoveSectionUp = useCallback((sectionId: string) => {
+    if (!sections) return;
+    const sorted = [...sections].sort((a, b) => a.order_index - b.order_index);
+    const idx = sorted.findIndex((s) => s.id === sectionId);
+    if (idx <= 0) return;
+    const reordered = [...sorted];
+    [reordered[idx - 1], reordered[idx]] = [reordered[idx], reordered[idx - 1]];
+    reorderSections.mutate(reordered.map((s, i) => ({ id: s.id, order_index: i })));
+  }, [sections, reorderSections]);
+
+  const handleMoveSectionDown = useCallback((sectionId: string) => {
+    if (!sections) return;
+    const sorted = [...sections].sort((a, b) => a.order_index - b.order_index);
+    const idx = sorted.findIndex((s) => s.id === sectionId);
+    if (idx === -1 || idx >= sorted.length - 1) return;
+    const reordered = [...sorted];
+    [reordered[idx], reordered[idx + 1]] = [reordered[idx + 1], reordered[idx]];
+    reorderSections.mutate(reordered.map((s, i) => ({ id: s.id, order_index: i })));
+  }, [sections, reorderSections]);
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const id = event.active.id as string;
+    setActiveId(id);
+    setActiveDragType(id.startsWith("section-") ? "section" : "task");
+  }, []);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     setActiveId(null);
+    setActiveDragType(null);
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const taskId = active.id as string;
-    const overId = over.id as string;
+
+    const activeIdStr = active.id as string;
+    const overIdStr = over.id as string;
+
+    // ─── SECTION DRAG ───
+    if (activeIdStr.startsWith("section-") && overIdStr.startsWith("section-")) {
+      const activeSectionId = activeIdStr.replace("section-", "");
+      const overSectionId = overIdStr.replace("section-", "");
+      if (!sections) return;
+      const sorted = [...sections].sort((a, b) => a.order_index - b.order_index);
+      const oldIndex = sorted.findIndex((s) => s.id === activeSectionId);
+      const newIndex = sorted.findIndex((s) => s.id === overSectionId);
+      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
+      const reordered = [...sorted];
+      const [moved] = reordered.splice(oldIndex, 1);
+      reordered.splice(newIndex, 0, moved);
+      reorderSections.mutate(reordered.map((s, i) => ({ id: s.id, order_index: i })));
+      return;
+    }
+
+    // ─── TASK DRAG ───
+    const taskId = activeIdStr;
+    const overId = overIdStr;
     const task = parents.find((t) => t.id === taskId);
     if (!task) return;
 
@@ -97,7 +156,7 @@ export function useTaskListState(projectId: string) {
     const [moved] = reordered.splice(oldIndex, 1);
     reordered.splice(newIndex, 0, moved);
     reorderTasks.mutate(reordered.map((t, i) => ({ id: t.id, order_index: i })));
-  }, [parents, moveTask, reorderTasks, undo, sections]);
+  }, [parents, moveTask, reorderTasks, undo, sections, reorderSections]);
 
   const handleUndo = useCallback(() => {
     const action = undo.pop();
@@ -145,9 +204,9 @@ export function useTaskListState(projectId: string) {
   }, [newTaskTitle, tenantId, projectId, createTask, toast]);
 
   const handleHeaderClick = useCallback((field: TaskSortField) => {
-    if (filters.sortField === field) setFilters((f) => ({ ...f, sortDir: f.sortDir === "asc" ? "desc" : "asc" }));
-    else setFilters((f) => ({ ...f, sortField: field, sortDir: "asc" }));
-  }, [filters.sortField]);
+    if (filters.sortField === field) setFilters({ ...filters, sortDir: filters.sortDir === "asc" ? "desc" : "asc" });
+    else setFilters({ ...filters, sortField: field, sortDir: "asc" });
+  }, [filters, setFilters]);
 
   // Filtering & grouping
   const filtered = useMemo(() => {
@@ -196,9 +255,9 @@ export function useTaskListState(projectId: string) {
     parents, subtasksMap, isLoading, sections,
     filters, setFilters, filtered, processed, flatTaskIds,
     ...cols, handleHeaderClick,
-    sensors, activeId, handleDragStart, handleDragEnd,
+    sensors, activeId, activeDragType, handleDragStart, handleDragEnd,
     editingSectionId, editingSectionTitle, setEditingSectionId, setEditingSectionTitle,
-    handleRenameSectionConfirm, handleDeleteSection,
+    handleRenameSectionConfirm, handleDeleteSection, handleMoveSectionUp, handleMoveSectionDown,
     newTaskTitle, setNewTaskTitle, newTaskRef,
     newSectionTitle, setNewSectionTitle, newSectionRef,
     handleAddTaskInline, handleConfirmNewTask, handleConfirmNewSection,

@@ -8,6 +8,7 @@ import {
   IconEdit,
   IconSettings,
   IconTemplate,
+  IconSparkles,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +26,7 @@ interface ProjectActionsMenuProps {
   onArchive: () => void;
   onSettings: () => void;
   onDelete: () => void;
+  onAskAi?: () => void;
   duplicating: boolean;
   savingTemplate: boolean;
   archiving: boolean;
@@ -37,6 +39,7 @@ export function ProjectActionsMenu({
   onArchive,
   onSettings,
   onDelete,
+  onAskAi,
   duplicating,
   savingTemplate,
   archiving,
@@ -58,6 +61,12 @@ export function ProjectActionsMenu({
           <IconEdit className="mr-2 size-3.5" />
           Editar detalhes
         </DropdownMenuItem>
+        {onAskAi && (
+          <DropdownMenuItem onClick={onAskAi}>
+            <IconSparkles className="mr-2 size-3.5" />
+            Ask AI
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onDuplicate} disabled={duplicating}>
           <IconCopy className="mr-2 size-3.5" />

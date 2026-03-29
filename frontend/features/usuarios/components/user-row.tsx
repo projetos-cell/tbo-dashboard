@@ -127,7 +127,7 @@ export function UserRow({
           </div>
         </TableCell>
         <TableCell className="text-sm text-muted-foreground">
-          {formatRelativeDate(user.lastActive)}
+          {user.lastActive ? formatRelativeDate(user.lastActive) : "Nunca acessou"}
         </TableCell>
         <TableCell>
           <DropdownMenu>

@@ -3,12 +3,10 @@
   "configurations": [
     {
       "name": "TBO-OS",
-      "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "pnpm", "run", "dev"],
-      "port": 3001,
-      "autoPort": true,
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000,
       "cwd": "frontend"
     }
-  ],
-  "autoVerify": false
+  ]
 }

@@ -28,7 +28,7 @@ import {
   isPast,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useProjectTasks } from "@/features/projects/hooks/use-project-tasks";
+import { useFilteredTasks } from "@/features/projects/hooks/use-filtered-tasks";
 import { TaskContextMenu } from "@/features/tasks/components/task-context-menu";
 import { TASK_STATUS, type TaskStatusKey } from "@/lib/constants";
 import type { Database } from "@/lib/supabase/types";
@@ -43,7 +43,7 @@ interface ProjectCalendarProps {
 const WEEKDAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
 export function ProjectCalendar({ projectId, onSelectTask }: ProjectCalendarProps) {
-  const { parents, isLoading } = useProjectTasks(projectId);
+  const { filtered: parents, isLoading } = useFilteredTasks(projectId);
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const days = useMemo(() => {

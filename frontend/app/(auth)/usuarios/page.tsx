@@ -33,7 +33,7 @@ function userToTeamMember(user: User): TeamMember {
     department: user.department === "—" ? null : user.department,
     is_active: user.status === "ativo",
     created_at: user.joinedAt,
-    updated_at: user.lastActive,
+    updated_at: user.lastActive ?? user.joinedAt,
   }
 }
 
@@ -45,7 +45,7 @@ function exportToCsv(users: User[]) {
     ROLE_LABELS[u.role],
     u.department,
     STATUS_LABELS[u.status],
-    new Date(u.lastActive).toLocaleDateString("pt-BR"),
+    u.lastActive ? new Date(u.lastActive).toLocaleDateString("pt-BR") : "Nunca acessou",
   ])
 
   const csvContent = [

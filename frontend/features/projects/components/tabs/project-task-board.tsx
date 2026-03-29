@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useProjectTasks } from "@/features/projects/hooks/use-project-tasks";
+import { useFilteredTasks } from "@/features/projects/hooks/use-filtered-tasks";
 import { TaskBoard } from "@/features/tasks/components/task-board";
 import type { Database } from "@/lib/supabase/types";
 
@@ -14,7 +14,7 @@ interface ProjectTaskBoardProps {
 }
 
 export function ProjectTaskBoard({ projectId, onSelectTask }: ProjectTaskBoardProps) {
-  const { parents, isLoading } = useProjectTasks(projectId);
+  const { filtered, sections, isLoading, filters } = useFilteredTasks(projectId);
 
   const handleSelect = useCallback(
     (task: TaskRow) => onSelectTask(task.id),
@@ -31,5 +31,12 @@ export function ProjectTaskBoard({ projectId, onSelectTask }: ProjectTaskBoardPr
     );
   }
 
-  return <TaskBoard tasks={parents} onSelect={handleSelect} />;
+  return (
+    <TaskBoard
+      tasks={filtered}
+      onSelect={handleSelect}
+      sections={sections ?? undefined}
+      groupBy={filters.groupBy}
+    />
+  );
 }

@@ -1,19 +1,23 @@
 "use client";
 
-import { IconTemplate } from "@tabler/icons-react";
+import { IconTemplate, IconPencil } from "@tabler/icons-react";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
   SelectItem,
+  SelectGroup,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import {
   PROJECT_TEMPLATES,
   DEFAULT_TEMPLATE_ID,
+  useSavedTemplates,
 } from "@/features/projects/hooks/use-project-templates";
+import type { TemplateSection } from "@/features/projects/services/project-templates";
 
 interface TemplateSelectorProps {
   useTemplate: boolean;
@@ -30,9 +34,26 @@ export function TemplateSelector({
   selectedTemplateId,
   onSelectedTemplateIdChange,
 }: TemplateSelectorProps) {
-  const selectedTemplate = PROJECT_TEMPLATES.find(
+  const { data: savedTemplates } = useSavedTemplates();
+
+  const selectedBuiltIn = PROJECT_TEMPLATES.find(
     (t) => t.id === selectedTemplateId,
   );
+  const selectedSaved = savedTemplates?.find(
+    (t) => t.id === selectedTemplateId,
+  );
+
+  const sectionCount = selectedBuiltIn
+    ? selectedBuiltIn.sections.length
+    : selectedSaved
+      ? selectedSaved.sections_json.length
+      : 0;
+
+  const taskCount = selectedBuiltIn
+    ? selectedBuiltIn.sections.reduce((s, sec) => s + sec.tasks.length, 0)
+    : selectedSaved
+      ? (selectedSaved.sections_json as TemplateSection[]).reduce((s, sec) => s + sec.tasks.length, 0)
+      : 0;
 
   return (
     <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-3">
@@ -63,22 +84,31 @@ export function TemplateSelector({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {PROJECT_TEMPLATES.map((t) => (
-                <SelectItem key={t.id} value={t.id}>
-                  <span className="mr-1.5">{t.icon}</span>
-                  {t.name}
-                </SelectItem>
-              ))}
+              <SelectGroup>
+                <SelectLabel className="text-[10px] uppercase tracking-wider">Templates padrão</SelectLabel>
+                {PROJECT_TEMPLATES.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    <span className="mr-1.5">{t.icon}</span>
+                    {t.name}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+              {savedTemplates && savedTemplates.length > 0 && (
+                <SelectGroup>
+                  <SelectLabel className="text-[10px] uppercase tracking-wider">Templates salvos</SelectLabel>
+                  {savedTemplates.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      <IconPencil className="mr-1.5 inline size-3 text-muted-foreground" />
+                      {t.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              )}
             </SelectContent>
           </Select>
-          {selectedTemplate && (
+          {(selectedBuiltIn || selectedSaved) && (
             <p className="text-[11px] text-muted-foreground">
-              {selectedTemplate.sections.length} seções ·{" "}
-              {selectedTemplate.sections.reduce(
-                (sum, s) => sum + s.tasks.length,
-                0,
-              )}{" "}
-              tarefas padrão — tudo zerado
+              {sectionCount} seções · {taskCount} tarefas padrão
             </p>
           )}
         </div>

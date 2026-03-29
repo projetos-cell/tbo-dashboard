@@ -10,7 +10,7 @@ type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 
 export function ProjectsOverview({ projects }: { projects: ProjectRow[] }) {
   const active = projects
-    .filter((p) => !["finalizado", "cancelado"].includes(p.status ?? ""))
+    .filter((p) => !["concluido", "cancelado"].includes(p.status ?? ""))
     .slice(0, 6);
 
   return (

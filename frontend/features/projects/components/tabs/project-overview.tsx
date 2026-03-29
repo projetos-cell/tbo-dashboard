@@ -8,6 +8,7 @@ import { useProfiles } from "@/features/people/hooks/use-people";
 import { useReviewProjectsByProject } from "@/features/review/hooks/use-review-projects";
 import { OverviewLeftColumn } from "./overview-left-column";
 import { OverviewRightColumn } from "./overview-right-column";
+import { OverviewKpiRow } from "./overview-kpi-row";
 import type { MemberInfo } from "@/features/projects/components/member-avatar-stack";
 
 interface ProjectOverviewProps {
@@ -109,6 +110,7 @@ export function ProjectOverview({ projectId, members = [], onOpenMembers }: Proj
 
   return (
     <div className="space-y-6">
+      <OverviewKpiRow stats={stats ?? null} progressPercent={progressPercent} />
       <div className="grid gap-6 md:grid-cols-2">
         <OverviewLeftColumn
           projectId={projectId}

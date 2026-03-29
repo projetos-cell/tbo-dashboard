@@ -34,8 +34,7 @@ const COLUMN_CONFIG: { status: KanbanStatus; label: string }[] = [
   { status: "backlog",      label: "Backlog" },
   { status: "todo",         label: "Em Revisão" },
   { status: "in-progress",  label: "Em Andamento" },
-  { status: "done",         label: "Finalizado" },
-  { status: "canceled",     label: "Parado" },
+  { status: "done",         label: "Concluído" },
 ];
 
 // ---------------------------------------------------------------------------

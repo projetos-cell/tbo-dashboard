@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   IconShare,
   IconSparkles,
@@ -18,9 +18,42 @@ import {
   IconAlertTriangle,
   IconSettings,
   IconClipboardList,
+  IconPlus,
+  IconEyeOff,
+  IconEye,
+  IconRotate,
 } from "@tabler/icons-react";
+import {
+  DndContext,
+  closestCenter,
+  type DragEndEvent,
+  useSensor,
+  useSensors,
+  PointerSensor,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { InlineEditable } from "@/components/ui/inline-editable";
+import { useProjectTabsStore, type ProjectTabKey as StoreTabKey } from "@/stores/project-tabs-store";
 import { useUpdateProject, useDeleteProject } from "@/features/projects/hooks/use-projects";
 import { useSaveProjectAsTemplate } from "@/features/projects/hooks/use-project-templates";
 import { useToast } from "@/hooks/use-toast";
@@ -127,10 +160,10 @@ export function ProjectTopbar({
 
   const handleArchive = () => {
     updateProject.mutate(
-      { id: project.id, updates: { status: "parado" } },
+      { id: project.id, updates: { status: "cancelado" } },
       {
-        onSuccess: () => toast({ title: "Projeto pausado" }),
-        onError: () => toast({ title: "Erro ao pausar projeto", variant: "destructive" }),
+        onSuccess: () => toast({ title: "Projeto cancelado" }),
+        onError: () => toast({ title: "Erro ao cancelar projeto", variant: "destructive" }),
       }
     );
   };
@@ -164,6 +197,11 @@ export function ProjectTopbar({
               onSave={handleNameSave}
               className="text-base font-medium"
             />
+            {project.code && (
+              <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+                {project.code}
+              </span>
+            )}
             <ProjectStatusBadge
               status={project.status ?? "em_andamento"}
               onChange={handleStatusChange}
@@ -189,21 +227,6 @@ export function ProjectTopbar({
             Compartilhar
           </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5 text-xs"
-            onClick={() => setAiSheetOpen(true)}
-          >
-            <IconSparkles className="size-3.5" />
-            Ask AI
-          </Button>
-
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs">
-            <IconAdjustments className="size-3.5" />
-            Personalizar
-          </Button>
-
           <ProjectActionsMenu
             onEditDetails={() => setDetailsOpen(true)}
             onDuplicate={() => setDuplicateDialogOpen(true)}
@@ -211,6 +234,7 @@ export function ProjectTopbar({
             onArchive={handleArchive}
             onSettings={() => router.push("/projetos/configuracoes")}
             onDelete={() => setDeleteOpen(true)}
+            onAskAi={() => setAiSheetOpen(true)}
             duplicating={false}
             savingTemplate={saveAsTemplate.isPending}
             archiving={updateProject.isPending}
@@ -218,32 +242,8 @@ export function ProjectTopbar({
         </div>
       </div>
 
-      {/* ── CODE BAR ──────────────────────────────────────────── */}
-      {project.code && (
-        <div className="flex items-center px-4 py-1.5 text-xs text-muted-foreground">
-          <span className="font-mono font-medium text-foreground">{project.code}</span>
-        </div>
-      )}
-
-      {/* ── TABS BAR ────────────────────────────────────────────── */}
-      <div className="flex items-center gap-0 border-b border-border/50 px-4">
-        {TABS.map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => onTabChange(key)}
-            className={cn(
-              "flex items-center gap-1.5 border-b-2 px-3 py-2 text-[13px] transition-colors select-none whitespace-nowrap",
-              activeTab === key
-                ? "border-[#e85102] font-medium text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Icon className="size-3.5 opacity-65" />
-            {label}
-          </button>
-        ))}
-      </div>
+      {/* ── TABS BAR (D&D + context menu) ──────────────────────── */}
+      <ProjectTabsBar activeTab={activeTab} onTabChange={onTabChange} />
 
       {/* ── DIALOGS & SHEETS ─────────────────────────────────── */}
       <ProjectDetailsDialog
@@ -288,6 +288,205 @@ export function ProjectTopbar({
         projectId={project.id}
         projectName={project.name}
       />
+    </div>
+  );
+}
+
+// ─── Sortable Tab Item ──────────────────────────────────────────────────────
+
+function SortableTab({
+  tabKey,
+  label,
+  icon: Icon,
+  isActive,
+  onClick,
+  onHide,
+}: {
+  tabKey: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  isActive: boolean;
+  onClick: () => void;
+  onHide: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: tabKey });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  };
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <button
+          ref={setNodeRef}
+          type="button"
+          style={style}
+          {...attributes}
+          {...listeners}
+          onClick={onClick}
+          className={cn(
+            "flex items-center gap-1.5 border-b-2 px-3 py-2 text-[13px] transition-colors select-none whitespace-nowrap",
+            isDragging && "cursor-grabbing",
+            isActive
+              ? "border-[#e85102] font-medium text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Icon className="size-3.5 opacity-65" />
+          {label}
+        </button>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem onClick={onHide} className="gap-2 text-xs">
+          <IconEyeOff className="size-3.5" />
+          Ocultar tab
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
+  );
+}
+
+// ─── Tabs Bar with D&D + hide/show ──────────────────────────────────────────
+
+function ProjectTabsBar({
+  activeTab,
+  onTabChange,
+}: {
+  activeTab: ProjectTabKey;
+  onTabChange: (key: ProjectTabKey) => void;
+}) {
+  const { tabOrder, hiddenTabs, reorder, hideTab, showTab, resetTabs } =
+    useProjectTabsStore();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+  );
+
+  const visibleTabs = useMemo(() => {
+    // Use stored order, filter out hidden, reconcile with TABS definition
+    const tabMap = new Map(TABS.map((t) => [t.key, t]));
+    const ordered = tabOrder
+      .filter((key) => !hiddenTabs.includes(key) && tabMap.has(key))
+      .map((key) => tabMap.get(key)!);
+    // Add any new tabs not yet in tabOrder
+    for (const tab of TABS) {
+      if (!tabOrder.includes(tab.key) && !hiddenTabs.includes(tab.key)) {
+        ordered.push(tab);
+      }
+    }
+    return ordered;
+  }, [tabOrder, hiddenTabs]);
+
+  const hiddenTabDefs = useMemo(() => {
+    return TABS.filter((t) => hiddenTabs.includes(t.key));
+  }, [hiddenTabs]);
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+
+      const keys = visibleTabs.map((t) => t.key as StoreTabKey);
+      const oldIndex = keys.indexOf(active.id as StoreTabKey);
+      const newIndex = keys.indexOf(over.id as StoreTabKey);
+      if (oldIndex === -1 || newIndex === -1) return;
+
+      const reordered = arrayMove(keys, oldIndex, newIndex);
+      // Preserve hidden tabs in their original positions for the full order
+      const fullOrder = [
+        ...reordered,
+        ...hiddenTabs.filter((k) => !reordered.includes(k)),
+      ];
+      reorder(fullOrder);
+    },
+    [visibleTabs, hiddenTabs, reorder],
+  );
+
+  const handleHide = useCallback(
+    (key: ProjectTabKey) => {
+      hideTab(key as StoreTabKey);
+      // If hiding the active tab, switch to first visible
+      if (key === activeTab) {
+        const next = visibleTabs.find((t) => t.key !== key);
+        if (next) onTabChange(next.key);
+      }
+    },
+    [hideTab, activeTab, visibleTabs, onTabChange],
+  );
+
+  return (
+    <div
+      className="flex items-center gap-0 overflow-x-auto border-b border-border/50 px-4"
+      style={{ scrollbarWidth: "none" }}
+    >
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={visibleTabs.map((t) => t.key)}
+          strategy={horizontalListSortingStrategy}
+        >
+          {visibleTabs.map(({ key, label, icon }) => (
+            <SortableTab
+              key={key}
+              tabKey={key}
+              label={label}
+              icon={icon}
+              isActive={activeTab === key}
+              onClick={() => onTabChange(key)}
+              onHide={() => handleHide(key)}
+            />
+          ))}
+        </SortableContext>
+      </DndContext>
+
+      {/* Show hidden tabs menu */}
+      {hiddenTabDefs.length > 0 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="ml-1 flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <IconPlus className="size-3.5" />
+              <span className="tabular-nums">{hiddenTabDefs.length}</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            {hiddenTabDefs.map(({ key, label, icon: Icon }) => (
+              <DropdownMenuItem
+                key={key}
+                onClick={() => showTab(key as StoreTabKey)}
+                className="gap-2 text-xs"
+              >
+                <Icon className="size-3.5" />
+                {label}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={resetTabs}
+              className="gap-2 text-xs"
+            >
+              <IconRotate className="size-3.5" />
+              Restaurar todas
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </div>
   );
 }

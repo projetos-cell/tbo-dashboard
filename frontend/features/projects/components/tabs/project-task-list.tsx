@@ -2,7 +2,6 @@
 
 import { IconListCheck, IconPlus } from "@tabler/icons-react";
 import { EmptyState } from "@/components/shared/empty-state";
-import { ProjectTasksToolbar, ProjectTasksSubToolbar } from "./project-tasks-toolbar";
 import { SelectionMarquee } from "@/components/shared/selection-marquee";
 import type { ProjectTaskListProps } from "./task-list-helpers";
 import { TaskListTableHeader } from "./task-list-toolbar";
@@ -19,13 +18,6 @@ export function ProjectTaskList({ projectId, onSelectTask, onAddTask }: ProjectT
 
   return (
     <div className="space-y-4">
-      <ProjectTasksToolbar
-        filters={s.filters} onFiltersChange={s.setFilters}
-        totalCount={s.parents.length} filteredCount={s.filtered.length}
-        onAddTask={s.handleAddTaskInline}
-      />
-      <ProjectTasksSubToolbar filters={s.filters} onFiltersChange={s.setFilters} />
-
       <TaskListBulkActions
         count={s.multiSelect.count} totalCount={s.flatTaskIds.length}
         confirmOpen={s.confirmBulkDelete} onConfirmOpenChange={s.setConfirmBulkDelete}
@@ -57,7 +49,8 @@ export function ProjectTaskList({ projectId, onSelectTask, onAddTask }: ProjectT
 
           <TaskListDndBody
             sensors={s.sensors} processed={s.processed} sections={s.sections ?? undefined}
-            parents={s.parents} activeId={s.activeId} extraColumns={s.extraColumns}
+            parents={s.parents} activeId={s.activeId} activeDragType={s.activeDragType}
+            extraColumns={s.extraColumns}
             columnWidths={s.columnWidths} customFields={s.customFields}
             fieldValuesMap={s.fieldValuesMap} subtasksMap={s.subtasksMap}
             onDragStart={s.handleDragStart} onDragEnd={s.handleDragEnd}
@@ -72,6 +65,8 @@ export function ProjectTaskList({ projectId, onSelectTask, onAddTask }: ProjectT
               onDeleteSection: s.handleDeleteSection,
             }}
             multiSelect={s.multiSelect}
+            onMoveSectionUp={s.handleMoveSectionUp}
+            onMoveSectionDown={s.handleMoveSectionDown}
           />
 
           {s.newTaskTitle !== null && (

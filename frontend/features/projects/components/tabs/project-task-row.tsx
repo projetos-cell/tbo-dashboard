@@ -126,22 +126,22 @@ export function ProjectTaskRow({ task, subtasks, onSelect, extraColumns = [], se
         </div>
 
         {/* Status */}
-        <div className="px-2" style={{ width: columnWidths.status ?? 130, flex: "0 0 auto" }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-center px-2" style={{ width: columnWidths.status ?? 130, flex: "0 0 auto" }} onClick={(e) => e.stopPropagation()}>
           <TaskStatusSelect value={task.status ?? ""} onChange={handleUpdateStatus} />
         </div>
 
         {/* Priority */}
-        <div className="hidden px-2 md:block" style={{ width: columnWidths.priority ?? 120, flex: "0 0 auto" }} onClick={(e) => e.stopPropagation()}>
+        <div className="hidden items-center justify-center px-2 md:flex" style={{ width: columnWidths.priority ?? 120, flex: "0 0 auto" }} onClick={(e) => e.stopPropagation()}>
           <TaskPrioritySelect value={task.priority ?? ""} onChange={handleUpdatePriority} />
         </div>
 
         {/* Assignee */}
-        <div className="hidden px-2 md:block overflow-hidden" style={{ width: columnWidths.assignee_name ?? 140, flex: "0 0 auto" }} onClick={(e) => e.stopPropagation()}>
+        <div className="hidden items-center justify-center overflow-hidden px-2 md:flex" style={{ width: columnWidths.assignee_name ?? 140, flex: "0 0 auto" }} onClick={(e) => e.stopPropagation()}>
           <TaskAssigneePicker task={task} />
         </div>
 
         {/* Due date */}
-        <div className="hidden px-2 md:block" style={{ width: columnWidths.due_date ?? 160, flex: "0 0 auto" }} onClick={(e) => e.stopPropagation()}>
+        <div className="hidden items-center justify-center px-2 md:flex" style={{ width: columnWidths.due_date ?? 160, flex: "0 0 auto" }} onClick={(e) => e.stopPropagation()}>
           <TaskDateRangeCell startDate={task.start_date ?? null} dueDate={task.due_date ?? null} overdue={!!overdue} onChangeDue={handleUpdateDueDate} />
         </div>
 
@@ -157,7 +157,7 @@ export function ProjectTaskRow({ task, subtasks, onSelect, extraColumns = [], se
             display = format(new Date(task.created_at), "dd MMM yyyy", { locale: ptBR });
           }
           return (
-            <div key={col.id} className={cn("hidden px-2 md:block", col.width)}>
+            <div key={col.id} className={cn("hidden items-center justify-center px-2 md:flex", col.width)}>
               <span className="truncate text-xs text-muted-foreground">{display}</span>
             </div>
           );
@@ -167,7 +167,7 @@ export function ProjectTaskRow({ task, subtasks, onSelect, extraColumns = [], se
         {(customFields ?? []).map((field) => {
           const raw = fieldValues?.get(field.id);
           return (
-            <div key={field.id} className="hidden px-2 md:block" style={{ width: 130, flex: "0 0 auto" }}>
+            <div key={field.id} className="hidden items-center justify-center px-2 md:flex" style={{ width: 130, flex: "0 0 auto" }}>
               <EditableCustomFieldCell value={raw} type={field.type} fieldId={field.id} taskId={task.id} configJson={field.config_json} onSave={onFieldChange} />
             </div>
           );

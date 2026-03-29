@@ -22,8 +22,8 @@ export function SettingsDangerZone({ projectId }: SettingsDangerZoneProps) {
 
   const handleArchive = () => {
     updateProject.mutate(
-      { id: projectId, updates: { status: "parado" } },
-      { onSuccess: () => toast({ title: "Projeto pausado" }) },
+      { id: projectId, updates: { status: "cancelado" } },
+      { onSuccess: () => toast({ title: "Projeto cancelado" }) },
     );
   };
 
@@ -52,10 +52,10 @@ export function SettingsDangerZone({ projectId }: SettingsDangerZoneProps) {
             size="sm"
             className="gap-1.5 border-amber-300 text-amber-700 hover:bg-amber-50"
             onClick={handleArchive}
-            disabled={updateProject.isPending || project?.status === "parado"}
+            disabled={updateProject.isPending || project?.status === "cancelado"}
           >
             <IconPlayerPause className="size-3.5" />
-            Pausar projeto
+            Cancelar projeto
           </Button>
           <Button
             variant="outline"

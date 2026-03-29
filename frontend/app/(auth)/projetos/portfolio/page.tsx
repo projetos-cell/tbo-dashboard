@@ -143,7 +143,7 @@ export default function PortfolioPage() {
 
 function PortfolioRow({ project }: { project: Project }) {
   const router = useRouter();
-  const isDone = project.status === "finalizado";
+  const isDone = project.status === "concluido";
   const { data: taskStats } = useProjectTaskStats(isDone ? undefined : project.id);
   const status = PROJECT_STATUS[project.status as ProjectStatusKey];
   const busList = parseBus(project.bus);

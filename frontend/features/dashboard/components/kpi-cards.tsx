@@ -35,7 +35,7 @@ const kpiConfig = [
   },
   {
     key: "completedProjects" as const,
-    label: "Projetos Finalizados",
+    label: "Projetos Concluídos",
     icon: IconCircleCheck,
     color: "text-green-600",
     bgColor: "bg-green-50",

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { IconArrowRight, IconEye } from "@tabler/icons-react";
+import { useState, useCallback, useMemo } from "react";
+import { IconArrowRight, IconEye, IconAlertTriangle, IconPlayerPlay, IconCalendar } from "@tabler/icons-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { OverviewResourcesSection } from "./overview-resources-section";
-import { StatusProgressCard, PeriodCard, AiSummaryCard } from "./overview-status-card";
+import { StatusProgressCard, AiSummaryCard } from "./overview-status-card";
 
 interface SectionProgress {
   id: string;
@@ -109,30 +109,13 @@ export function OverviewRightColumn({
         statusCfg={statusCfg} projectStatus={project?.status ?? null}
         onStatusChange={handleStatusChange} progressPercent={progressPercent}
         stats={stats} sectionProgress={sectionProgress}
+        project={project} daysLeft={daysLeft}
       />
-      <PeriodCard project={project} daysLeft={daysLeft} />
       <AiSummaryCard aiSummary={aiSummary} aiSummaryLoading={aiSummaryLoading} onGenerate={handleGenerateSummary} />
       <OverviewResourcesSection projectId={projectId} />
 
-      {/* Atividade Recente */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
-            Atividade Recente
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recentActivity.length > 0 ? (
-            <div className="space-y-3">
-              {recentActivity.map((task) => (
-                <OverviewTaskRow key={task.id} task={task} variant={task._variant} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground italic">Nenhuma atividade recente neste projeto.</p>
-          )}
-        </CardContent>
-      </Card>
+      {/* Atividade Recente — agrupada por tipo */}
+      <RecentActivityCard recentActivity={recentActivity} />
 
       {/* Creative Review */}
       {reviewProjects && reviewProjects.length > 0 && (
@@ -171,36 +154,96 @@ export function OverviewRightColumn({
   );
 }
 
-function OverviewTaskRow({ task, variant }: {
-  task: { id: string; title: string | null; assignee_name: string | null; due_date: string | null };
-  variant: "overdue" | "progress" | "upcoming";
-}) {
+const ACTIVITY_GROUP_CONFIG = {
+  overdue: {
+    label: "Atrasadas",
+    icon: IconAlertTriangle,
+    dotColor: "bg-red-500",
+    textColor: "text-red-600",
+    bgColor: "bg-red-50 dark:bg-red-950/20",
+  },
+  progress: {
+    label: "Em andamento",
+    icon: IconPlayerPlay,
+    dotColor: "bg-blue-500",
+    textColor: "text-blue-600",
+    bgColor: "bg-blue-50 dark:bg-blue-950/20",
+  },
+  upcoming: {
+    label: "Proximas",
+    icon: IconCalendar,
+    dotColor: "bg-amber-500",
+    textColor: "text-amber-600",
+    bgColor: "bg-amber-50 dark:bg-amber-950/20",
+  },
+} as const;
+
+function RecentActivityCard({ recentActivity }: { recentActivity: RecentActivityTask[] }) {
+  const grouped = useMemo(() => {
+    const groups: Record<string, RecentActivityTask[]> = {};
+    for (const task of recentActivity) {
+      const key = task._variant;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(task);
+    }
+    return groups;
+  }, [recentActivity]);
+
+  const groupOrder = ["overdue", "progress", "upcoming"] as const;
+
   return (
-    <div className="flex items-center gap-3">
-      <div className={cn(
-        "flex size-8 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold",
-        variant === "overdue" && "bg-red-100 text-red-700",
-        variant === "progress" && "bg-blue-100 text-blue-700",
-        variant === "upcoming" && "bg-amber-100 text-amber-700",
-      )}>
-        {task.assignee_name ? task.assignee_name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase() : "?"}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm">
-          <span className="font-semibold">{task.assignee_name?.split(" ")[0] ?? "Alguem"}</span>{" "}
-          <span className="text-muted-foreground">
-            {variant === "overdue" && "tem tarefa atrasada"}
-            {variant === "progress" && "esta trabalhando em"}
-            {variant === "upcoming" && "tem tarefa proxima"}
-          </span>
-        </p>
-        <p className="text-xs text-muted-foreground truncate">{task.title}</p>
-      </div>
-      {task.due_date && (
-        <span className={cn("text-xs shrink-0", variant === "overdue" ? "text-red-600 font-medium" : "text-muted-foreground")}>
-          {format(new Date(task.due_date), "dd MMM", { locale: ptBR })}
-        </span>
-      )}
-    </div>
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <IconArrowRight className="size-4 text-muted-foreground" />
+          Atividade Recente
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {recentActivity.length > 0 ? (
+          <div className="space-y-4">
+            {groupOrder.map((variant) => {
+              const tasks = grouped[variant];
+              if (!tasks || tasks.length === 0) return null;
+              const cfg = ACTIVITY_GROUP_CONFIG[variant];
+              const GroupIcon = cfg.icon;
+              return (
+                <div key={variant} className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <GroupIcon className={cn("size-3.5", cfg.textColor)} />
+                    <span className={cn("text-xs font-medium", cfg.textColor)}>
+                      {cfg.label} ({tasks.length})
+                    </span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {tasks.slice(0, 3).map((task) => (
+                      <div key={task.id} className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-xs transition-colors hover:bg-muted/50">
+                        <div className={cn("size-1.5 shrink-0 rounded-full", cfg.dotColor)} />
+                        <span className="flex-1 truncate text-foreground">{task.title ?? "Sem titulo"}</span>
+                        {task.assignee_name && (
+                          <span className="shrink-0 text-muted-foreground">{task.assignee_name.split(" ")[0]}</span>
+                        )}
+                        {task.due_date && (
+                          <span className={cn("shrink-0 tabular-nums", variant === "overdue" ? "font-medium text-red-600" : "text-muted-foreground")}>
+                            {format(new Date(task.due_date), "dd MMM", { locale: ptBR })}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                    {tasks.length > 3 && (
+                      <p className="px-2.5 text-[11px] text-muted-foreground">
+                        +{tasks.length - 3} {tasks.length - 3 === 1 ? "tarefa" : "tarefas"}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">Nenhuma atividade recente.</p>
+        )}
+      </CardContent>
+    </Card>
   );
 }

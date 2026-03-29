@@ -33,10 +33,7 @@ export function profileToUser(profile: Record<string, unknown>): User {
       "—",
     cargo: (profile.cargo as string) || undefined,
     status,
-    lastActive:
-      (profile.updated_at as string) ||
-      (profile.created_at as string) ||
-      new Date().toISOString(),
+    lastActive: (profile.last_seen_at as string) || null,
     phone: (profile.phone as string) || undefined,
     location: undefined,
     joinedAt:

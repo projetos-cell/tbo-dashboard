@@ -11,6 +11,10 @@ export interface TemplateTask {
   priority: "urgente" | "alta" | "media" | "baixa";
   status: "pendente";
   order_index: number;
+  /** Days offset from project start date. Used to auto-set due_date when applying template. */
+  day_offset?: number;
+  /** Mark this task as a milestone visible in portal track progress. */
+  is_milestone?: boolean;
 }
 
 export interface TemplateSection {
@@ -237,6 +241,88 @@ export const PROJECT_TEMPLATES: ProjectTemplate[] = [
       },
     ],
   },
+  {
+    id: "digital-3d",
+    name: "Digital 3D",
+    description: "Fluxo completo de produção de imagens 3D — do briefing à entrega final, alinhado com o portal do cliente.",
+    category: "Digital 3D",
+    icon: "🧊",
+    sections: [
+      {
+        title: "Briefing",
+        color: "#8b5cf6",
+        order_index: 0,
+        tasks: [
+          { title: "Receber e analisar briefing do cliente", priority: "alta", status: "pendente", order_index: 0, day_offset: 0, is_milestone: true },
+          { title: "Levantar referências visuais", priority: "media", status: "pendente", order_index: 1, day_offset: 1 },
+          { title: "Definir escopo de imagens (quantidade e ângulos)", priority: "alta", status: "pendente", order_index: 2, day_offset: 2 },
+          { title: "Aprovação do briefing pelo cliente", priority: "urgente", status: "pendente", order_index: 3, day_offset: 3, is_milestone: true },
+        ],
+      },
+      {
+        title: "Direção Visual",
+        color: "#e85102",
+        order_index: 1,
+        tasks: [
+          { title: "Definir paleta cromática e materialidade", priority: "alta", status: "pendente", order_index: 0, day_offset: 4 },
+          { title: "Definir direção de câmeras", priority: "alta", status: "pendente", order_index: 1, day_offset: 5 },
+          { title: "Moodboard de referência aprovado", priority: "urgente", status: "pendente", order_index: 2, day_offset: 7, is_milestone: true },
+        ],
+      },
+      {
+        title: "Modelagem 3D",
+        color: "#3b82f6",
+        order_index: 2,
+        tasks: [
+          { title: "Modelagem volumétrica base", priority: "alta", status: "pendente", order_index: 0, day_offset: 8 },
+          { title: "Modelagem de detalhes e paisagismo", priority: "media", status: "pendente", order_index: 1, day_offset: 12 },
+          { title: "Aplicação de materiais e texturas", priority: "alta", status: "pendente", order_index: 2, day_offset: 15 },
+          { title: "Modelagem concluída", priority: "alta", status: "pendente", order_index: 3, day_offset: 18, is_milestone: true },
+        ],
+      },
+      {
+        title: "Clay Render",
+        color: "#6b7280",
+        order_index: 3,
+        tasks: [
+          { title: "Render clay de todas as câmeras", priority: "alta", status: "pendente", order_index: 0, day_offset: 19 },
+          { title: "Validação interna de proporções", priority: "media", status: "pendente", order_index: 1, day_offset: 20 },
+          { title: "Aprovação do clay pelo cliente", priority: "urgente", status: "pendente", order_index: 2, day_offset: 22, is_milestone: true },
+        ],
+      },
+      {
+        title: "Emissão Inicial",
+        color: "#0ea5e9",
+        order_index: 4,
+        tasks: [
+          { title: "Render final das imagens (primeira emissão)", priority: "alta", status: "pendente", order_index: 0, day_offset: 23 },
+          { title: "Pós-produção e tratamento", priority: "alta", status: "pendente", order_index: 1, day_offset: 27 },
+          { title: "Emissão inicial entregue ao cliente", priority: "urgente", status: "pendente", order_index: 2, day_offset: 30, is_milestone: true },
+        ],
+      },
+      {
+        title: "Revisões",
+        color: "#f59e0b",
+        order_index: 5,
+        tasks: [
+          { title: "Receber feedback do cliente", priority: "alta", status: "pendente", order_index: 0, day_offset: 31 },
+          { title: "Aplicar ajustes — rodada 1", priority: "alta", status: "pendente", order_index: 1, day_offset: 33 },
+          { title: "Aplicar ajustes — rodada 2 (se necessário)", priority: "media", status: "pendente", order_index: 2, day_offset: 36 },
+          { title: "Aprovação final das imagens", priority: "urgente", status: "pendente", order_index: 3, day_offset: 38, is_milestone: true },
+        ],
+      },
+      {
+        title: "Entrega Final",
+        color: "#22c55e",
+        order_index: 6,
+        tasks: [
+          { title: "Exportação em alta resolução (TIFF + JPEG)", priority: "alta", status: "pendente", order_index: 0, day_offset: 39 },
+          { title: "Organizar arquivos no Drive do projeto", priority: "media", status: "pendente", order_index: 1, day_offset: 40 },
+          { title: "Entrega final ao cliente", priority: "urgente", status: "pendente", order_index: 2, day_offset: 42, is_milestone: true },
+        ],
+      },
+    ],
+  },
 ];
 
 // ─── Custom (user-saved) templates ──────────────────────────────────────────
@@ -337,11 +423,71 @@ export async function getSavedTemplates(
   })) as SavedTemplate[];
 }
 
+/** Update a saved template (name, description, sections). */
+export async function updateSavedTemplate(
+  id: string,
+  updates: { name?: string; description?: string | null; sections_json?: TemplateSection[] },
+): Promise<void> {
+  const supabase = createClient();
+  const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (updates.name !== undefined) payload.name = updates.name;
+  if (updates.description !== undefined) payload.description = updates.description;
+  if (updates.sections_json !== undefined) payload.sections_json = JSON.stringify(updates.sections_json);
+
+  const { error } = await supabase
+    .from("project_templates" as never)
+    .update(payload as never)
+    .eq("id" as never, id as never) as unknown as { error: unknown };
+
+  if (error) throw error;
+}
+
+/** Delete a saved template. */
+export async function deleteSavedTemplate(id: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("project_templates" as never)
+    .delete()
+    .eq("id" as never, id as never) as unknown as { error: unknown };
+
+  if (error) throw error;
+}
+
 // Default template used on "Novo Projeto"
 export const DEFAULT_TEMPLATE_ID = "horizonte-lancamento";
 
 export function getTemplateById(id: string): ProjectTemplate | undefined {
   return PROJECT_TEMPLATES.find((t) => t.id === id);
+}
+
+/** Resolve template sections — first checks built-in, then falls back to saved templates in DB. */
+async function resolveTemplateSections(
+  templateId: string,
+  tenantId: string,
+): Promise<{ sections: TemplateSection[]; hasDayOffsets: boolean }> {
+  const builtIn = getTemplateById(templateId);
+  if (builtIn) {
+    const hasDayOffsets = builtIn.sections.some((s) => s.tasks.some((t) => t.day_offset !== undefined));
+    return { sections: builtIn.sections, hasDayOffsets };
+  }
+
+  // Try saved template from DB
+  const supabase = createClient();
+  const result = await supabase
+    .from("project_templates" as never)
+    .select("sections_json" as never)
+    .eq("id" as never, templateId as never)
+    .eq("tenant_id" as never, tenantId as never)
+    .single() as unknown as { data: { sections_json: string | TemplateSection[] } | null; error: unknown };
+
+  if (result.error || !result.data) throw new Error(`Template "${templateId}" não encontrado`);
+
+  const sections: TemplateSection[] = typeof result.data.sections_json === "string"
+    ? JSON.parse(result.data.sections_json)
+    : result.data.sections_json;
+
+  const hasDayOffsets = sections.some((s) => s.tasks.some((t) => t.day_offset !== undefined));
+  return { sections, hasDayOffsets };
 }
 
 // ─── Apply template to a created project ─────────────────────────────────────
@@ -351,12 +497,24 @@ export async function applyProjectTemplate(
   tenantId: string,
   templateId: string,
 ): Promise<void> {
-  const template = getTemplateById(templateId);
-  if (!template) throw new Error(`Template "${templateId}" não encontrado`);
+  const { sections: templateSections, hasDayOffsets } = await resolveTemplateSections(templateId, tenantId);
 
   const supabase = createClient();
 
-  for (const sectionDef of template.sections) {
+  // Fetch project start date to calculate due_dates from day_offset
+  let projectStart: Date | null = null;
+  if (hasDayOffsets) {
+    const { data: proj } = await supabase
+      .from("projects")
+      .select("due_date_start")
+      .eq("id", projectId)
+      .single();
+    if (proj?.due_date_start) {
+      projectStart = new Date(proj.due_date_start);
+    }
+  }
+
+  for (const sectionDef of templateSections) {
     // Create section
     const { data: section, error: sectionError } = await supabase
       .from("os_sections")
@@ -376,17 +534,28 @@ export async function applyProjectTemplate(
     }
 
     // Create tasks for this section
-    const taskInserts = sectionDef.tasks.map((task) => ({
-      project_id: projectId,
-      section_id: section.id,
-      tenant_id: tenantId,
-      title: task.title,
-      description: task.description ?? null,
-      priority: task.priority,
-      status: task.status,
-      order_index: task.order_index,
-      is_completed: false,
-    }));
+    const taskInserts = sectionDef.tasks.map((task) => {
+      let due_date: string | null = null;
+      if (projectStart && task.day_offset !== undefined) {
+        const d = new Date(projectStart);
+        d.setDate(d.getDate() + task.day_offset);
+        due_date = d.toISOString().split("T")[0];
+      }
+
+      return {
+        project_id: projectId,
+        section_id: section.id,
+        tenant_id: tenantId,
+        title: task.title,
+        description: task.description ?? null,
+        priority: task.priority,
+        status: task.status,
+        order_index: task.order_index,
+        is_completed: false,
+        ...(due_date ? { due_date } : {}),
+        ...(task.is_milestone ? { is_milestone: true } : {}),
+      };
+    });
 
     if (taskInserts.length > 0) {
       const { error: tasksError } = await supabase

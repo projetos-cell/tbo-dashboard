@@ -50,7 +50,7 @@ export function ProfileTabs({ user }: ProfileTabsProps) {
               </div>
               <div>
                 <p className="text-muted-foreground">Último acesso</p>
-                <p className="font-medium">{formatDate(user.lastActive)}</p>
+                <p className="font-medium">{user.lastActive ? formatDate(user.lastActive) : "Nunca acessou"}</p>
               </div>
             </div>
           </CardContent>

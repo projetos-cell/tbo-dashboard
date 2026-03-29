@@ -220,7 +220,7 @@ export function BiWidgetRenderer({ widget }: BiWidgetRendererProps) {
               <YAxis tick={{ fontSize: 10 }} />
               <Tooltip
                 contentStyle={{ fontSize: 12 }}
-                formatter={(v: number) => v.toLocaleString("pt-BR")}
+                formatter={(v: number | undefined) => (v ?? 0).toLocaleString("pt-BR")}
               />
               <Bar dataKey="value" fill={CHART_COLORS[0]} radius={[3, 3, 0, 0]} />
             </BarChart>
@@ -236,7 +236,7 @@ export function BiWidgetRenderer({ widget }: BiWidgetRendererProps) {
               <YAxis tick={{ fontSize: 10 }} />
               <Tooltip
                 contentStyle={{ fontSize: 12 }}
-                formatter={(v: number) => v.toLocaleString("pt-BR")}
+                formatter={(v: number | undefined) => (v ?? 0).toLocaleString("pt-BR")}
               />
               <Line
                 type="monotone"
@@ -258,7 +258,7 @@ export function BiWidgetRenderer({ widget }: BiWidgetRendererProps) {
               <YAxis tick={{ fontSize: 10 }} />
               <Tooltip
                 contentStyle={{ fontSize: 12 }}
-                formatter={(v: number) => v.toLocaleString("pt-BR")}
+                formatter={(v: number | undefined) => (v ?? 0).toLocaleString("pt-BR")}
               />
               <Area
                 type="monotone"
@@ -291,7 +291,7 @@ export function BiWidgetRenderer({ widget }: BiWidgetRendererProps) {
                   <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v: number) => v.toLocaleString("pt-BR")} />
+              <Tooltip formatter={(v: number | undefined) => (v ?? 0).toLocaleString("pt-BR")} />
             </PieChart>
           </ResponsiveContainer>
         );
@@ -313,7 +313,7 @@ export function BiWidgetRenderer({ widget }: BiWidgetRendererProps) {
                   <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v: number) => v.toLocaleString("pt-BR")} />
+              <Tooltip formatter={(v: number | undefined) => (v ?? 0).toLocaleString("pt-BR")} />
               <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
             </PieChart>
           </ResponsiveContainer>
@@ -331,7 +331,7 @@ export function BiWidgetRenderer({ widget }: BiWidgetRendererProps) {
         return (
           <ResponsiveContainer width="100%" height={height}>
             <FunnelChart>
-              <Tooltip formatter={(v: number) => v.toLocaleString("pt-BR")} />
+              <Tooltip formatter={(v: number | undefined) => (v ?? 0).toLocaleString("pt-BR")} />
               <Funnel dataKey="value" data={points} isAnimationActive>
                 {points.map((_, i) => (
                   <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />

@@ -282,7 +282,7 @@ export function BiWidgetRenderer({ widget }: BiWidgetRendererProps) {
                 cx="50%"
                 cy="50%"
                 outerRadius={70}
-                label={({ label: l, percent }) =>
+                label={({ name: l, percent }) =>
                   `${l} ${((percent ?? 0) * 100).toFixed(0)}%`
                 }
                 labelLine={false}

@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/supabase/types";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type UntypedClient = SupabaseClient<any>;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -117,7 +119,7 @@ function daysInMonth(year: number, month: number): number {
 // ── CRUD ─────────────────────────────────────────────────────────────────────
 
 export async function getScheduledReports(
-  supabase: SupabaseClient<Database>
+  supabase: UntypedClient
 ): Promise<ScheduledReport[]> {
   const { data, error } = await supabase
     .from("scheduled_reports")
@@ -129,7 +131,7 @@ export async function getScheduledReports(
 }
 
 export async function createScheduledReport(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   report: CreateScheduledReportInput
 ): Promise<ScheduledReport> {
   const nextSendAt = computeNextSendAt(
@@ -163,7 +165,7 @@ export async function createScheduledReport(
 }
 
 export async function updateScheduledReport(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   id: string,
   updates: Partial<Omit<ScheduledReport, "id" | "tenant_id" | "created_by" | "created_at" | "updated_at">>
 ): Promise<ScheduledReport> {
@@ -201,7 +203,7 @@ export async function updateScheduledReport(
 }
 
 export async function deleteScheduledReport(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   id: string
 ): Promise<void> {
   const { error } = await supabase
@@ -213,7 +215,7 @@ export async function deleteScheduledReport(
 }
 
 export async function toggleReportActive(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   id: string,
   isActive: boolean
 ): Promise<ScheduledReport> {

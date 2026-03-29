@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/supabase/types";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type UntypedClient = SupabaseClient<any>;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -23,7 +25,7 @@ export interface UnitEconomics {
 // ── CAC ───────────────────────────────────────────────────────────────────────
 
 export async function getCAC(
-  supabase: SupabaseClient<Database>
+  supabase: UntypedClient
 ): Promise<{ cac: number; marketing_spend: number; new_clients: number }> {
   const currentYear = new Date().getFullYear();
   const start = `${currentYear}-01-01`;
@@ -64,7 +66,7 @@ export async function getCAC(
 // ── LTV ───────────────────────────────────────────────────────────────────────
 
 export async function getLTV(
-  supabase: SupabaseClient<Database>
+  supabase: UntypedClient
 ): Promise<{ ltv: number; avg_revenue_per_client: number; avg_lifespan_months: number }> {
   // Average revenue per closed deal
   const { data: dealsRows, error: dealsError } = await supabase
@@ -90,7 +92,7 @@ export async function getLTV(
 // ── Revenue per Employee ──────────────────────────────────────────────────────
 
 export async function getRevenuePerEmployee(
-  supabase: SupabaseClient<Database>
+  supabase: UntypedClient
 ): Promise<{ revenue_per_employee: number; profit_per_employee: number; total_revenue: number; total_expenses: number; headcount: number }> {
   const currentYear = new Date().getFullYear();
   const start = `${currentYear}-01-01`;
@@ -137,7 +139,7 @@ export async function getRevenuePerEmployee(
 // ── Full Unit Economics ────────────────────────────────────────────────────────
 
 export async function getUnitEconomics(
-  supabase: SupabaseClient<Database>
+  supabase: UntypedClient
 ): Promise<UnitEconomics> {
   const [cacData, ltvData, revenueData] = await Promise.all([
     getCAC(supabase),

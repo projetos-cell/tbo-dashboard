@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/supabase/types";
+
+// Tables not yet in generated Database types — use untyped client
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type UntypedClient = SupabaseClient<any>;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -116,7 +119,7 @@ const MODULE_LABELS: Record<QualityModule, string> = {
 // ── Per-module quality ────────────────────────────────────────────────────────
 
 export async function computeModuleQuality(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   module: QualityModule
 ): Promise<ModuleQualityResult> {
   const config = getCriticalFieldsConfig().find((c) => c.module === module);
@@ -140,7 +143,7 @@ export async function computeModuleQuality(
 
   if (error) throw error;
 
-  const rows = (data ?? []) as Record<string, unknown>[];
+  const rows = (data ?? []) as unknown as Record<string, unknown>[];
   const total_records = rows.length;
   const numFields = config.fields.length;
   const total_fields = total_records * numFields;
@@ -191,7 +194,7 @@ export async function computeModuleQuality(
 // ── Full quality scan ─────────────────────────────────────────────────────────
 
 export async function computeDataQuality(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   tenantId: string
 ): Promise<ModuleQualityResult[]> {
   const modules: QualityModule[] = [
@@ -226,7 +229,7 @@ export async function computeDataQuality(
 // ── DB read/write ─────────────────────────────────────────────────────────────
 
 export async function getDataQualityScores(
-  supabase: SupabaseClient<Database>
+  supabase: UntypedClient
 ): Promise<DataQualityScore[]> {
   const { data, error } = await supabase
     .from("data_quality_scores")
@@ -248,7 +251,7 @@ export async function getDataQualityScores(
 }
 
 export async function upsertDataQualityScore(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   score: UpsertDataQualityInput
 ): Promise<DataQualityScore> {
   const { data, error } = await supabase

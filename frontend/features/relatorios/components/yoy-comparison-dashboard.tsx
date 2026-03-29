@@ -96,7 +96,7 @@ function YoYChart({ result }: { result: YoYResult }) {
             }} />
             <Tooltip
               contentStyle={{ fontSize: 11 }}
-              formatter={(value: number) => formatValue(value, result.metric)}
+              formatter={(value: number | undefined) => formatValue(value ?? 0, result.metric)}
             />
             <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
             <Line

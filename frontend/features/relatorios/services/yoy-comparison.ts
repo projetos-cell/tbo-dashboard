@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/supabase/types";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type UntypedClient = SupabaseClient<any>;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -52,7 +54,7 @@ export function computeYoYChange(current: number, previous: number): number {
 // ── Revenue & Expenses ────────────────────────────────────────────────────────
 
 async function fetchFinanceByYear(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   year: number,
   type: "income" | "expense"
 ): Promise<MonthlyData[]> {
@@ -76,7 +78,7 @@ async function fetchFinanceByYear(
 // ── Deals Won ─────────────────────────────────────────────────────────────────
 
 async function fetchDealsWonByYear(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   year: number
 ): Promise<MonthlyData[]> {
   const { data, error } = await supabase
@@ -99,7 +101,7 @@ async function fetchDealsWonByYear(
 // ── Projects Completed ────────────────────────────────────────────────────────
 
 async function fetchProjectsCompletedByYear(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   year: number
 ): Promise<MonthlyData[]> {
   const { data, error } = await supabase
@@ -122,7 +124,7 @@ async function fetchProjectsCompletedByYear(
 // ── Headcount ─────────────────────────────────────────────────────────────────
 
 async function fetchHeadcountForYear(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   year: number
 ): Promise<MonthlyData[]> {
   // Use current headcount for current year; for previous, check collaborator_history
@@ -147,7 +149,7 @@ async function fetchHeadcountForYear(
 // ── Main API ──────────────────────────────────────────────────────────────────
 
 export async function getYoYMetrics(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   metric: YoYMetric
 ): Promise<YoYResult> {
   const currentYear = new Date().getFullYear();
@@ -238,7 +240,7 @@ export async function getYoYMetrics(
 }
 
 export async function getYoYSummary(
-  supabase: SupabaseClient<Database>
+  supabase: UntypedClient
 ): Promise<YoYSummary> {
   const metrics: YoYMetric[] = [
     "revenue",

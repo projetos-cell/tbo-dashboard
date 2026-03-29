@@ -166,8 +166,8 @@ export function ScheduledReportForm({
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+    <Form form={form} onSubmit={form.handleSubmit(onSubmit)}>
+      <div className="space-y-4">
         {/* Name */}
         <FormField
           control={form.control}
@@ -383,7 +383,7 @@ export function ScheduledReportForm({
             {isEditing ? "Salvar" : "Criar Agendamento"}
           </Button>
         </div>
-      </form>
+      </div>
     </Form>
   );
 }

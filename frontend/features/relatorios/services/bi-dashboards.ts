@@ -1,5 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/supabase/types";
+
+// bi_dashboards/bi_widgets are not yet in generated Database types — use untyped
+// client to avoid "Type instantiation is excessively deep" errors
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type UntypedClient = SupabaseClient<any>;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -97,7 +101,7 @@ export interface WidgetData {
 // ── Dashboard CRUD ─────────────────────────────────────────────────────────────
 
 export async function getBIDashboards(
-  supabase: SupabaseClient<Database>
+  supabase: UntypedClient
 ): Promise<BIDashboard[]> {
   const { data, error } = await supabase
     .from("bi_dashboards")
@@ -109,7 +113,7 @@ export async function getBIDashboards(
 }
 
 export async function getBIDashboard(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   id: string
 ): Promise<BIDashboard> {
   const { data, error } = await supabase
@@ -123,7 +127,7 @@ export async function getBIDashboard(
 }
 
 export async function createBIDashboard(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   input: CreateBIDashboardInput
 ): Promise<BIDashboard> {
   const { data, error } = await supabase
@@ -145,7 +149,7 @@ export async function createBIDashboard(
 }
 
 export async function updateBIDashboard(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   id: string,
   updates: Partial<Pick<BIDashboard, "name" | "description" | "layout" | "filters" | "is_shared" | "is_default">>
 ): Promise<BIDashboard> {
@@ -161,7 +165,7 @@ export async function updateBIDashboard(
 }
 
 export async function deleteBIDashboard(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   id: string
 ): Promise<void> {
   const { error } = await supabase
@@ -175,7 +179,7 @@ export async function deleteBIDashboard(
 // ── Widget CRUD ───────────────────────────────────────────────────────────────
 
 export async function getBIWidgets(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   dashboardId: string
 ): Promise<BIWidget[]> {
   const { data, error } = await supabase
@@ -189,7 +193,7 @@ export async function getBIWidgets(
 }
 
 export async function createBIWidget(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   widget: CreateBIWidgetInput
 ): Promise<BIWidget> {
   const { data, error } = await supabase
@@ -216,7 +220,7 @@ export async function createBIWidget(
 }
 
 export async function updateBIWidget(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   id: string,
   updates: Partial<Omit<BIWidget, "id" | "tenant_id" | "dashboard_id" | "created_at" | "updated_at">>
 ): Promise<BIWidget> {
@@ -232,7 +236,7 @@ export async function updateBIWidget(
 }
 
 export async function deleteBIWidget(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   id: string
 ): Promise<void> {
   const { error } = await supabase
@@ -250,7 +254,7 @@ export async function deleteBIWidget(
  * Returns a normalized WidgetData object for rendering.
  */
 export async function getWidgetData(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   widget: Pick<BIWidget, "data_source" | "query_config" | "widget_type">
 ): Promise<WidgetData> {
   const { data_source, query_config } = widget;
@@ -272,7 +276,7 @@ export async function getWidgetData(
 }
 
 async function getProjectsWidgetData(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   config: Record<string, unknown>
 ): Promise<WidgetData> {
   const metric = (config.metric as string) ?? "tasks_by_status";
@@ -323,7 +327,7 @@ async function getProjectsWidgetData(
 }
 
 async function getFinanceWidgetData(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   config: Record<string, unknown>
 ): Promise<WidgetData> {
   const metric = (config.metric as string) ?? "revenue_by_month";
@@ -383,7 +387,7 @@ async function getFinanceWidgetData(
 }
 
 async function getCommercialWidgetData(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   config: Record<string, unknown>
 ): Promise<WidgetData> {
   const metric = (config.metric as string) ?? "deals_by_stage";
@@ -434,7 +438,7 @@ async function getCommercialWidgetData(
 }
 
 async function getPeopleWidgetData(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   config: Record<string, unknown>
 ): Promise<WidgetData> {
   const metric = (config.metric as string) ?? "headcount_by_department";
@@ -472,7 +476,7 @@ async function getPeopleWidgetData(
 }
 
 async function getOKRsWidgetData(
-  supabase: SupabaseClient<Database>,
+  supabase: UntypedClient,
   config: Record<string, unknown>
 ): Promise<WidgetData> {
   const metric = (config.metric as string) ?? "progress_by_objective";

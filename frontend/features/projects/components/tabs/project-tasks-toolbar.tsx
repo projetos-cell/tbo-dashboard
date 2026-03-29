@@ -28,7 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { TASK_STATUS, TASK_PRIORITY } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
-export type TaskSortField = "title" | "status" | "priority" | "assignee_name" | "due_date" | "created_at";
+export type TaskSortField = "order_index" | "title" | "status" | "priority" | "assignee_name" | "due_date" | "created_at";
 export type TaskSortDir = "asc" | "desc";
 export type TaskGroupField = "none" | "status" | "priority" | "section" | "assignee";
 
@@ -51,13 +51,14 @@ export interface TaskListFilters {
 export const DEFAULT_TASK_FILTERS: TaskListFilters = {
   search: "",
   status: "all",
-  sortField: "title",
+  sortField: "order_index",
   sortDir: "asc",
   groupBy: "none",
   customFilters: [],
 };
 
 const SORT_OPTIONS: { value: TaskSortField; label: string }[] = [
+  { value: "order_index", label: "Manual" },
   { value: "title", label: "Nome" },
   { value: "status", label: "Status" },
   { value: "priority", label: "Prioridade" },

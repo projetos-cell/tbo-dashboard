@@ -10,7 +10,7 @@ import type {
 const DEFAULT_FILTERS: TaskListFilters = {
   search: "",
   status: "all",
-  sortField: "title",
+  sortField: "order_index",
   sortDir: "asc",
   groupBy: "none",
   customFilters: [],

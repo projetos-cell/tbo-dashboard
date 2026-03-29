@@ -67,6 +67,9 @@ export function sortTasks(tasks: TaskRow[], field: TaskSortField, dir: SortDir):
   return [...tasks].sort((a, b) => {
     let cmp = 0;
     switch (field) {
+      case "order_index":
+        cmp = (a.order_index ?? 0) - (b.order_index ?? 0);
+        break;
       case "title":
         cmp = (a.title ?? "").localeCompare(b.title ?? "", "pt-BR");
         break;

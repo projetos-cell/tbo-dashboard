@@ -98,6 +98,24 @@ export function useTaskListState(projectId: string) {
     reorderSections.mutate(reordered.map((s, i) => ({ id: s.id, order_index: i })));
   }, [sections, reorderSections]);
 
+  // Filtering & grouping — declared here so handleDragEnd can use the visual order
+  const filtered = useMemo(() => {
+    let items = parents.filter((t) => {
+      if (filters.status !== "all" && t.status !== filters.status) return false;
+      if (filters.search) { const q = filters.search.toLowerCase(); if (!(t.title || "").toLowerCase().includes(q) && !(t.assignee_name || "").toLowerCase().includes(q)) return false; }
+      return true;
+    });
+    if (filters.customFilters.length > 0) {
+      items = items.filter((t) => filters.customFilters.every((f) => { switch (f.field) { case "status": return t.status === f.value; case "priority": return t.priority === f.value; default: return true; } }));
+    }
+    return items;
+  }, [parents, filters]);
+
+  const processed = useMemo(() => {
+    const sorted = sortTasks(filtered, filters.sortField, filters.sortDir);
+    return groupTasks(sorted, filters.groupBy, sections ?? undefined);
+  }, [filtered, filters.sortField, filters.sortDir, filters.groupBy, sections]);
+
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const id = event.active.id as string;
     setActiveId(id);
@@ -148,7 +166,10 @@ export function useTaskListState(projectId: string) {
       return;
     }
 
-    const sectionTasks = parents.filter((t) => t.section_id === targetSectionId).sort((a, b) => a.order_index - b.order_index);
+    // Use the current visual order (processed) so indices match what the user sees
+    const group = processed.find((g) => g.items.some((t) => t.id === taskId));
+    if (!group) return;
+    const sectionTasks = group.items;
     const oldIndex = sectionTasks.findIndex((t) => t.id === taskId);
     const newIndex = sectionTasks.findIndex((t) => t.id === overId);
     if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
@@ -156,7 +177,7 @@ export function useTaskListState(projectId: string) {
     const [moved] = reordered.splice(oldIndex, 1);
     reordered.splice(newIndex, 0, moved);
     reorderTasks.mutate(reordered.map((t, i) => ({ id: t.id, order_index: i })));
-  }, [parents, moveTask, reorderTasks, undo, sections, reorderSections]);
+  }, [parents, processed, moveTask, reorderTasks, undo, sections, reorderSections]);
 
   const handleUndo = useCallback(() => {
     const action = undo.pop();
@@ -207,24 +228,6 @@ export function useTaskListState(projectId: string) {
     if (filters.sortField === field) setFilters({ ...filters, sortDir: filters.sortDir === "asc" ? "desc" : "asc" });
     else setFilters({ ...filters, sortField: field, sortDir: "asc" });
   }, [filters, setFilters]);
-
-  // Filtering & grouping
-  const filtered = useMemo(() => {
-    let items = parents.filter((t) => {
-      if (filters.status !== "all" && t.status !== filters.status) return false;
-      if (filters.search) { const q = filters.search.toLowerCase(); if (!(t.title || "").toLowerCase().includes(q) && !(t.assignee_name || "").toLowerCase().includes(q)) return false; }
-      return true;
-    });
-    if (filters.customFilters.length > 0) {
-      items = items.filter((t) => filters.customFilters.every((f) => { switch (f.field) { case "status": return t.status === f.value; case "priority": return t.priority === f.value; default: return true; } }));
-    }
-    return items;
-  }, [parents, filters]);
-
-  const processed = useMemo(() => {
-    const sorted = sortTasks(filtered, filters.sortField, filters.sortDir);
-    return groupTasks(sorted, filters.groupBy, sections ?? undefined);
-  }, [filtered, filters.sortField, filters.sortDir, filters.groupBy, sections]);
 
   const flatTaskIds = useMemo(() => processed.flatMap((g) => g.items.map((t) => t.id)), [processed]);
   const multiSelect = useMultiSelect(flatTaskIds);

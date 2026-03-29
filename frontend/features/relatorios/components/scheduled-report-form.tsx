@@ -37,8 +37,8 @@ const schema = z.object({
   name: z.string().min(1, "Nome obrigatório"),
   report_type: z.enum(["projects", "finance", "commercial", "people", "custom"]),
   frequency: z.enum(["daily", "weekly", "biweekly", "monthly", "quarterly"]),
-  day_of_week: z.coerce.number().min(0).max(6).optional(),
-  day_of_month: z.coerce.number().min(1).max(28).optional(),
+  day_of_week: z.number().min(0).max(6).optional(),
+  day_of_month: z.number().min(1).max(28).optional(),
   format: z.enum(["pdf", "csv", "xlsx"]),
   is_active: z.boolean(),
 });

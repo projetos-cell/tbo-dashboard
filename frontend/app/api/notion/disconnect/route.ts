@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
 export async function DELETE() {
@@ -22,7 +23,7 @@ export async function DELETE() {
     return NextResponse.json({ error: "No tenant" }, { status: 400 });
   }
 
-  const { error } = await (supabase as any)
+  const { error } = await (supabase as unknown as SupabaseClient)
     .from("notion_integrations")
     .delete()
     .eq("tenant_id", profile.tenant_id);

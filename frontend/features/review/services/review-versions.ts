@@ -3,8 +3,7 @@ import type { ReviewVersion } from "@/features/review/types";
 import { getVersionLabel } from "@/features/review/types";
 import { REVIEW_BUCKET } from "@/features/review/constants";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyClient = SupabaseClient<any>;
+type AnyClient = SupabaseClient;
 
 export async function getVersionsByScene(
   supabase: AnyClient,

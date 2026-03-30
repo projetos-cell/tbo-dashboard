@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Dialog,
@@ -54,9 +54,8 @@ export function RecurringRuleForm({ open, onOpenChange, editingRule }: Props) {
     setValue,
     watch,
     formState: { errors },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } = useForm<RecurringRuleInput>({
-    resolver: zodResolver(recurringRuleSchema) as any,
+    resolver: zodResolver(recurringRuleSchema) as Resolver<RecurringRuleInput>,
     defaultValues: {
       type: "despesa",
       description: "",

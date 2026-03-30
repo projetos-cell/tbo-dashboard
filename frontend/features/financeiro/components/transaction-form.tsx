@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Dialog,
@@ -98,9 +98,8 @@ export function TransactionForm({
     setValue,
     watch,
     formState: { errors },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } = useForm<CreateTransactionInput>({
-    resolver: zodResolver(createTransactionSchema) as any,
+    resolver: zodResolver(createTransactionSchema) as Resolver<CreateTransactionInput>,
     defaultValues: {
       type: "despesa",
       status: "previsto",

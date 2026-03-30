@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -28,9 +29,8 @@ export async function GET() {
 
     const tenantId = profile.tenant_id;
 
-    // Use untyped client for tables not in generated types
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = supabase as unknown as any;
+    // Use untyped client for tables not in generated types (omie_sync_log, etc.)
+    const db = supabase as unknown as SupabaseClient;
 
     // Fetch stats in parallel
     const [txRes, catRes, ccRes, syncRes] = await Promise.all([

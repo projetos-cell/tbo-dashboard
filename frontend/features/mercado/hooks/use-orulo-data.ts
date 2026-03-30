@@ -8,6 +8,7 @@
 // ---------------------------------------------------------------------------
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   OruloBuildingListResponse,
   OruloBuilding,
@@ -298,7 +299,7 @@ export function useOruloSync() {
 
 export function useOruloSyncedBuildings(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tables not in generated types (orulo_buildings, orulo_units)
-  supabase: any | null,
+  supabase: SupabaseClient | null,
   tenantId: string | undefined,
   filters?: {
     state?: string;
@@ -341,7 +342,7 @@ export function useOruloSyncedBuildings(
 
 export function useOruloSyncLog(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tables not in generated types (orulo_buildings, orulo_units)
-  supabase: any | null,
+  supabase: SupabaseClient | null,
   tenantId: string | undefined,
 ) {
   return useQuery({

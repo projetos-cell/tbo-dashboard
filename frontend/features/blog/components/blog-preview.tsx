@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { sanitizeHtml } from "@/lib/sanitize";
 import Image from "next/image";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -197,7 +198,7 @@ export function BlogPreview({
           {/* Body */}
           <div
             className={cn("blog-prose", theme === "dark" ? "text-zinc-300" : "")}
-            dangerouslySetInnerHTML={{ __html: body || "<p>Comece a escrever...</p>" }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(body || "<p>Comece a escrever...</p>") }}
           />
         </article>
       </div>

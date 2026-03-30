@@ -23,8 +23,7 @@ import {
 } from "@/features/financeiro/services/reconciliation-engine";
 import { getFinanceTransactions } from "@/features/financeiro/services/finance-transactions";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnySupabase = SupabaseClient<any>;
+type AnySupabase = SupabaseClient;
 
 const logger = createLogger("use-reconciliation");
 

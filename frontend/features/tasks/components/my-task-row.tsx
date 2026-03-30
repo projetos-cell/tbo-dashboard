@@ -1,5 +1,6 @@
 "use client";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TASK_STATUS, TASK_PRIORITY } from "@/lib/constants";
@@ -136,12 +137,14 @@ export function MyTaskRow({ task, onClick, isDragOverlay }: MyTaskRowProps) {
 
       {/* Assignee avatar */}
       {task.assignee_name && (
-        <div
-          className="hidden h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-200 text-[10px] font-semibold text-gray-600 md:flex"
-          title={task.assignee_name}
-        >
-          {getInitials(task.assignee_name)}
-        </div>
+        <Avatar className="hidden h-6 w-6 shrink-0 md:flex" title={task.assignee_name}>
+          {task.assignee_avatar_url && (
+            <AvatarImage src={task.assignee_avatar_url} alt={task.assignee_name} />
+          )}
+          <AvatarFallback className="text-[10px] font-semibold bg-gray-200 text-gray-600">
+            {getInitials(task.assignee_name)}
+          </AvatarFallback>
+        </Avatar>
       )}
 
       {/* Due date */}

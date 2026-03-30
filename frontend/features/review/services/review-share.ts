@@ -1,8 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ReviewShareLink, SharePermission } from "@/features/review/types";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyClient = SupabaseClient<any>;
+type AnyClient = SupabaseClient;
 
 export async function getShareLinks(
   supabase: AnyClient,

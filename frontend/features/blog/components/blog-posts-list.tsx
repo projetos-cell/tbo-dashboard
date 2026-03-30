@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useBlogPosts, useUpdateBlogPost, useDeleteBlogPost, useBlogTags, useBlogRealtime } from "../hooks/use-blog-posts";
-import { BlogStatusBadge } from "./blog-status-badge";
+import { BlogStatusBadge, deriveVisualStatus } from "./blog-status-badge";
 import type { BlogPostStatus, BlogPostWithAuthor } from "../types";
 import { getInitials } from "@/lib/utils";
 
@@ -47,7 +47,7 @@ export function BlogPostsList() {
   useBlogRealtime();
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<BlogPostStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<BlogPostStatus | "agendado" | "all">("all");
   const [sortOption, setSortOption] = useState<SortOption>("newest");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [authorFilter, setAuthorFilter] = useState<string>("all");
@@ -72,7 +72,8 @@ export function BlogPostsList() {
         !search ||
         p.title.toLowerCase().includes(search.toLowerCase()) ||
         p.tags.some((t) => t.toLowerCase().includes(search.toLowerCase()));
-      const matchStatus = statusFilter === "all" || p.status === statusFilter;
+      const visual = deriveVisualStatus(p.status, p.published_at);
+      const matchStatus = statusFilter === "all" || visual === statusFilter;
       const matchAuthor = authorFilter === "all" || p.author_id === authorFilter;
       const matchTag = tagFilter === "all" || p.tags.includes(tagFilter);
       return matchSearch && matchStatus && matchAuthor && matchTag;
@@ -132,7 +133,7 @@ export function BlogPostsList() {
           <Input placeholder="Buscar artigos..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
         </div>
 
-        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as BlogPostStatus | "all")}>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as BlogPostStatus | "agendado" | "all")}>
           <SelectTrigger className="w-36 h-9">
             <IconFilter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
             <SelectValue placeholder="Status" />
@@ -142,6 +143,7 @@ export function BlogPostsList() {
             <SelectItem value="rascunho">Rascunho</SelectItem>
             <SelectItem value="revisao">Revisao</SelectItem>
             <SelectItem value="publicado">Publicado</SelectItem>
+            <SelectItem value="agendado">Agendado</SelectItem>
             <SelectItem value="arquivado">Arquivado</SelectItem>
           </SelectContent>
         </Select>
@@ -265,7 +267,7 @@ export function BlogPostsList() {
                 </div>
                 <div className="p-4 space-y-2">
                   <div className="flex items-center gap-2">
-                    <BlogStatusBadge status={post.status} />
+                    <BlogStatusBadge status={post.status} publishedAt={post.published_at} />
                     {post.tags.length > 0 && (
                       <span className="text-[10px] text-muted-foreground truncate">{post.tags.slice(0, 2).join(", ")}</span>
                     )}
@@ -324,7 +326,7 @@ export function BlogPostsList() {
                     </button>
                   </td>
                   <td className="px-3 py-2">
-                    <BlogStatusBadge status={post.status} />
+                    <BlogStatusBadge status={post.status} publishedAt={post.published_at} />
                   </td>
                   <td className="px-3 py-2 hidden md:table-cell">
                     {post.author_name && (

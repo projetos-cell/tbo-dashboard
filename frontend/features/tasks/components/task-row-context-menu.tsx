@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -191,14 +192,17 @@ export function TaskRowContextMenu({
         </ContextMenuContent>
       </ContextMenu>
 
-      {/* Standalone date picker (opened from context menu) */}
-      <InlineDatePicker
-        value={task.due_date ?? undefined}
-        onChange={handleDateSelect}
-        open={datePickerOpen}
-        onOpenChange={setDatePickerOpen}
-        triggerless
-      />
+      {/* Standalone date picker portaled to body to avoid invalid <span> inside <tbody> */}
+      {typeof document !== "undefined" && createPortal(
+        <InlineDatePicker
+          value={task.due_date ?? undefined}
+          onChange={handleDateSelect}
+          open={datePickerOpen}
+          onOpenChange={setDatePickerOpen}
+          triggerless
+        />,
+        document.body
+      )}
     </>
   );
 }

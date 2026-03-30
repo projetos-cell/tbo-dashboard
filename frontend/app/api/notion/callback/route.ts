@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
@@ -67,7 +68,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Upsert integration
-  const { error: upsertError } = await (supabase as any)
+  const { error: upsertError } = await (supabase as unknown as SupabaseClient)
     .from("notion_integrations")
     .upsert(
       {

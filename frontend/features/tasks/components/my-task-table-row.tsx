@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import { TableRow, TableCell } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useUpdateTask } from "@/features/tasks/hooks/use-tasks";
 import type { MyTaskWithSection } from "@/features/tasks/services/my-tasks";
 import type { ResolvedColumn } from "@/features/tasks/lib/my-tasks-columns";
@@ -33,6 +34,8 @@ interface MyTaskTableRowProps {
   onClick?: () => void;
   isDragOverlay?: boolean;
   dndDisabled?: boolean;
+  isSelected?: boolean;
+  onToggle?: () => void;
 }
 
 export function MyTaskTableRow({
@@ -42,6 +45,8 @@ export function MyTaskTableRow({
   onClick,
   isDragOverlay,
   dndDisabled,
+  isSelected,
+  onToggle,
 }: MyTaskTableRowProps) {
   const updateTask = useUpdateTask();
 
@@ -102,8 +107,19 @@ export function MyTaskTableRow({
       <TableRow
         ref={setNodeRef}
         style={style}
-        className={`group h-10 ${isDragOverlay ? "shadow-lg ring-2 ring-primary/20 bg-background" : ""} ${isDragging ? "z-10" : ""}`}
+        className={`group h-10 ${isSelected ? "bg-primary/5" : ""} ${isDragOverlay ? "shadow-lg ring-2 ring-primary/20 bg-background" : ""} ${isDragging ? "z-10" : ""}`}
       >
+        {/* Checkbox column */}
+        <TableCell className="w-9 py-0 px-2 border-r border-border/40">
+          <Checkbox
+            checked={isSelected ?? false}
+            onCheckedChange={(checked) => { if (checked !== "indeterminate") onToggle?.(); }}
+            onClick={(e) => e.stopPropagation()}
+            aria-label="Selecionar tarefa"
+            className="opacity-0 group-hover:opacity-100 data-[state=checked]:opacity-100 transition-opacity"
+          />
+        </TableCell>
+
         {visibleCols.map((col, idx) => {
           const isLast = idx === visibleCols.length - 1;
           const borderClass = isLast ? "" : CELL_BORDER;

@@ -30,6 +30,13 @@ export function DroppableSection({
   );
 }
 
+// ─── Selection context ───────────────────────────────────────
+
+interface SelectionCtx {
+  isSelected: (id: string) => boolean;
+  onToggle: (id: string) => void;
+}
+
 // ─── Shared task row ─────────────────────────────────────────
 
 interface TaskRowsProps {
@@ -38,9 +45,10 @@ interface TaskRowsProps {
   projectMap: Map<string, string>;
   onSelect: (task: MyTaskWithSection) => void;
   dndDisabled?: boolean;
+  selection?: SelectionCtx;
 }
 
-function TaskRows({ tasks, columns, projectMap, onSelect, dndDisabled }: TaskRowsProps) {
+function TaskRows({ tasks, columns, projectMap, onSelect, dndDisabled, selection }: TaskRowsProps) {
   return (
     <>
       {tasks.map((task) => (
@@ -51,6 +59,8 @@ function TaskRows({ tasks, columns, projectMap, onSelect, dndDisabled }: TaskRow
           projectName={task.project_id ? projectMap.get(task.project_id) : undefined}
           onClick={() => onSelect(task)}
           dndDisabled={!!dndDisabled}
+          isSelected={selection?.isSelected(task.id)}
+          onToggle={selection ? () => selection.onToggle(task.id) : undefined}
         />
       ))}
     </>
@@ -70,6 +80,7 @@ interface SectionGroupingProps {
   onRenameSection: (id: string, name: string) => void;
   onDeleteSection: (id: string) => void;
   dndDisabled: boolean;
+  selection?: SelectionCtx;
 }
 
 export function SectionGrouping({
@@ -83,8 +94,10 @@ export function SectionGrouping({
   onRenameSection,
   onDeleteSection,
   dndDisabled,
+  selection,
 }: SectionGroupingProps) {
-  const colSpan = columns.length;
+  // +1 for the checkbox column
+  const colSpan = columns.length + 1;
 
   return (
     <>
@@ -122,6 +135,7 @@ export function SectionGrouping({
                   projectMap={projectMap}
                   onSelect={onSelect}
                   dndDisabled={dndDisabled}
+                  selection={selection}
                 />
                 <TableRow className="hover:bg-transparent border-0">
                   <TableCell colSpan={colSpan} className="py-0 px-0">
@@ -155,6 +169,7 @@ export function SectionGrouping({
             projectMap={projectMap}
             onSelect={onSelect}
             dndDisabled
+            selection={selection}
           />
         </TableBody>
       )}
@@ -171,6 +186,7 @@ interface DynamicGroupingProps {
   projectMap: Map<string, string>;
   onSelect: (task: MyTaskWithSection) => void;
   onToggleCollapse: (id: string) => void;
+  selection?: SelectionCtx;
 }
 
 export function DynamicGrouping({
@@ -180,8 +196,9 @@ export function DynamicGrouping({
   projectMap,
   onSelect,
   onToggleCollapse,
+  selection,
 }: DynamicGroupingProps) {
-  const colSpan = columns.length;
+  const colSpan = columns.length + 1;
 
   return (
     <>
@@ -205,6 +222,7 @@ export function DynamicGrouping({
                 projectMap={projectMap}
                 onSelect={onSelect}
                 dndDisabled
+                selection={selection}
               />
             )}
           </TableBody>
@@ -221,10 +239,11 @@ interface FlatListProps {
   columns: ResolvedColumn[];
   projectMap: Map<string, string>;
   onSelect: (task: MyTaskWithSection) => void;
+  selection?: SelectionCtx;
 }
 
-export function FlatList({ tasks, columns, projectMap, onSelect }: FlatListProps) {
-  const colSpan = columns.length;
+export function FlatList({ tasks, columns, projectMap, onSelect, selection }: FlatListProps) {
+  const colSpan = columns.length + 1;
 
   return (
     <TableBody>
@@ -235,7 +254,7 @@ export function FlatList({ tasks, columns, projectMap, onSelect }: FlatListProps
           </TableCell>
         </TableRow>
       )}
-      <TaskRows tasks={tasks} columns={columns} projectMap={projectMap} onSelect={onSelect} dndDisabled />
+      <TaskRows tasks={tasks} columns={columns} projectMap={projectMap} onSelect={onSelect} dndDisabled selection={selection} />
     </TableBody>
   );
 }

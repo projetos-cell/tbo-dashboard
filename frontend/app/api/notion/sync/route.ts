@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
 const EDGE_FN_URL =
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Read stored access_token (never exposed to client)
-  const { data: integration } = await (supabase as any)
+  const { data: integration } = await (supabase as unknown as SupabaseClient)
     .from("notion_integrations")
     .select("access_token")
     .eq("tenant_id", profile.tenant_id)

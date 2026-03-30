@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { sanitizeHtml } from "@/lib/sanitize";
 import {
   IconPencil,
   IconTrash,
@@ -176,7 +177,7 @@ export function MessageContent({
     return (
       <span
         className="prose prose-sm dark:prose-invert max-w-none [&_p]:my-0 [&_ul]:my-1 [&_ol]:my-1"
-        dangerouslySetInnerHTML={{ __html: content }}
+        dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }}
       />
     );
   }

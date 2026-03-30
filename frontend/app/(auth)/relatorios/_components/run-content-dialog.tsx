@@ -6,6 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -165,7 +166,7 @@ export function RunContentDialog({ open, onOpenChange, runId, scheduleName }: Ru
               <div className="rounded-md border p-4">
                 <div
                   className="prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: run.html_content }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(run.html_content) }}
                 />
               </div>
             ) : (

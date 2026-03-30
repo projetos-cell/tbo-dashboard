@@ -12,7 +12,12 @@ import {
   IconChevronDown,
   IconChevronUp,
   IconActivity,
+  IconTimeline,
+  IconMessageCircle,
+  IconListDetails,
 } from "@tabler/icons-react";
+import { PortalTimeline } from "./portal-timeline";
+import { PortalFeedback } from "./portal-feedback";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -55,14 +60,16 @@ interface ProjectPortalViewProps {
   completedCount: number;
   totalCount: number;
   token: string;
+  pendingApprovals: number;
+  commentsCount: number;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const STATUS_LABELS: Record<string, string> = {
   em_andamento: "Em andamento",
-  revisao: "Em revisão",
-  concluida: "Concluída",
+  revisao: "Em revisao",
+  concluida: "Concluida",
 };
 
 const STATUS_UPDATE_LABELS: Record<string, { label: string; color: string }> = {
@@ -70,11 +77,11 @@ const STATUS_UPDATE_LABELS: Record<string, { label: string; color: string }> = {
   at_risk: { label: "Em risco", color: "#f59e0b" },
   off_track: { label: "Atrasado", color: "#ef4444" },
   on_hold: { label: "Pausado", color: "#6b7280" },
-  complete: { label: "Concluído", color: "#3b82f6" },
+  complete: { label: "Concluido", color: "#3b82f6" },
 };
 
 function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "—";
+  if (!dateStr) return "\u2014";
   return new Date(dateStr).toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "short",
@@ -88,6 +95,17 @@ function getHealthColor(percent: number): string {
   return "#ef4444";
 }
 
+// ─── Tabs ───────────────────────────────────────────────────────────────────
+
+type TabId = "overview" | "deliverables" | "timeline" | "feedback";
+
+interface TabDef {
+  id: TabId;
+  label: string;
+  icon: typeof IconActivity;
+  badge?: number;
+}
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function ProjectPortalView({
@@ -98,11 +116,32 @@ export function ProjectPortalView({
   completedCount,
   totalCount,
   token,
+  pendingApprovals,
+  commentsCount,
 }: ProjectPortalViewProps) {
+  const [activeTab, setActiveTab] = useState<TabId>("overview");
+
+  const tabs: TabDef[] = [
+    { id: "overview", label: "Visao Geral", icon: IconActivity },
+    {
+      id: "deliverables",
+      label: "Entregas",
+      icon: IconListDetails,
+      badge: pendingApprovals > 0 ? pendingApprovals : undefined,
+    },
+    { id: "timeline", label: "Timeline", icon: IconTimeline },
+    {
+      id: "feedback",
+      label: "Feedback",
+      icon: IconMessageCircle,
+      badge: commentsCount > 0 ? commentsCount : undefined,
+    },
+  ];
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
       {/* ── Header ──────────────────────────────────────────────── */}
-      <header className="mb-8">
+      <header className="mb-6">
         <div className="flex items-center gap-3 mb-1">
           <div
             className="flex size-10 shrink-0 items-center justify-center rounded-lg text-lg font-semibold text-white"
@@ -124,13 +163,90 @@ export function ProjectPortalView({
         {(project.due_date_start || project.due_date_end) && (
           <p className="mt-2 text-xs text-[#4a5f7a]">
             <IconClock className="mr-1 inline-block size-3.5" />
-            {formatDate(project.due_date_start)} — {formatDate(project.due_date_end)}
+            {formatDate(project.due_date_start)} —{" "}
+            {formatDate(project.due_date_end)}
           </p>
         )}
       </header>
 
-      {/* ── Progress Card ──────────────────────────────────────── */}
-      <div className="mb-6 rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+      {/* ── Tab Navigation ──────────────────────────────────────── */}
+      <nav className="mb-6 flex gap-1 overflow-x-auto rounded-lg border border-[#e5e7eb] bg-white p-1 shadow-sm">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                isActive
+                  ? "bg-[#1a1a2e] text-white shadow-sm"
+                  : "text-[#4a5f7a] hover:bg-[#f5f5f5] hover:text-[#1a1a2e]"
+              }`}
+            >
+              <Icon className="size-4" />
+              {tab.label}
+              {tab.badge !== undefined && (
+                <span
+                  className={`ml-1 flex size-5 items-center justify-center rounded-full text-[10px] font-semibold ${
+                    isActive
+                      ? "bg-white/20 text-white"
+                      : "bg-[#e85102] text-white"
+                  }`}
+                >
+                  {tab.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* ── Tab Content ─────────────────────────────────────────── */}
+      {activeTab === "overview" && (
+        <OverviewTab
+          progressPercent={progressPercent}
+          completedCount={completedCount}
+          totalCount={totalCount}
+          latestUpdate={latestUpdate}
+        />
+      )}
+
+      {activeTab === "deliverables" && (
+        <DeliverablesTab tasks={tasks} token={token} />
+      )}
+
+      {activeTab === "timeline" && <PortalTimeline token={token} />}
+
+      {activeTab === "feedback" && (
+        <PortalFeedback token={token} projectId={project.id} />
+      )}
+
+      {/* ── Footer ─────────────────────────────────────────────── */}
+      <footer className="mt-10 text-center text-xs text-[#9ca3af]">
+        Powered by <span className="font-medium text-[#e85102]">TBO OS</span>
+      </footer>
+    </div>
+  );
+}
+
+// ─── Overview Tab ──────────────────────────────────────────────────────────
+
+function OverviewTab({
+  progressPercent,
+  completedCount,
+  totalCount,
+  latestUpdate,
+}: {
+  progressPercent: number;
+  completedCount: number;
+  totalCount: number;
+  latestUpdate: StatusUpdate | null;
+}) {
+  return (
+    <div className="space-y-6">
+      {/* Progress Card */}
+      <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-[#1a1a2e]">Progresso</h2>
           <span
@@ -150,24 +266,25 @@ export function ProjectPortalView({
           />
         </div>
         <p className="mt-2 text-xs text-[#4a5f7a]">
-          {completedCount} de {totalCount} entregas concluídas
+          {completedCount} de {totalCount} entregas concluidas
         </p>
       </div>
 
-      {/* ── Latest Status Update ───────────────────────────────── */}
+      {/* Latest Status Update */}
       {latestUpdate && (
-        <div className="mb-6 rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+        <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-sm font-semibold text-[#1a1a2e] flex items-center gap-1.5">
               <IconActivity className="size-4" />
-              Última atualização
+              Ultima atualizacao
             </h2>
             {STATUS_UPDATE_LABELS[latestUpdate.status] && (
               <span
                 className="rounded-full px-2.5 py-0.5 text-xs font-medium text-white"
                 style={{
                   backgroundColor:
-                    STATUS_UPDATE_LABELS[latestUpdate.status]?.color ?? "#6b7280",
+                    STATUS_UPDATE_LABELS[latestUpdate.status]?.color ??
+                    "#6b7280",
                 }}
               >
                 {STATUS_UPDATE_LABELS[latestUpdate.status]?.label}
@@ -178,34 +295,75 @@ export function ProjectPortalView({
             {latestUpdate.summary}
           </p>
           <p className="mt-2 text-xs text-[#9ca3af]">
-            {latestUpdate.author_name && `${latestUpdate.author_name} · `}
+            {latestUpdate.author_name && `${latestUpdate.author_name} \u00B7 `}
             {formatDate(latestUpdate.created_at)}
           </p>
         </div>
       )}
 
-      {/* ── Deliverables ───────────────────────────────────────── */}
-      <div className="rounded-xl border border-[#e5e7eb] bg-white shadow-sm">
-        <div className="border-b border-[#e5e7eb] px-5 py-4">
-          <h2 className="text-sm font-semibold text-[#1a1a2e]">Entregas</h2>
+      {/* Quick stats */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-xl border border-[#e5e7eb] bg-white p-4 text-center shadow-sm">
+          <p className="text-2xl font-bold text-[#1a1a2e]">{totalCount}</p>
+          <p className="text-xs text-[#9ca3af]">Total entregas</p>
         </div>
-        {tasks.length === 0 ? (
-          <div className="px-5 py-8 text-center text-sm text-[#9ca3af]">
-            Nenhuma entrega visível no momento.
-          </div>
-        ) : (
-          <ul className="divide-y divide-[#f0f0f0]">
-            {tasks.map((task) => (
-              <DeliverableRow key={task.id} task={task} token={token} />
-            ))}
-          </ul>
-        )}
+        <div className="rounded-xl border border-[#e5e7eb] bg-white p-4 text-center shadow-sm">
+          <p className="text-2xl font-bold text-[#22c55e]">{completedCount}</p>
+          <p className="text-xs text-[#9ca3af]">Concluidas</p>
+        </div>
+        <div className="rounded-xl border border-[#e5e7eb] bg-white p-4 text-center shadow-sm">
+          <p className="text-2xl font-bold text-[#3b82f6]">
+            {totalCount - completedCount}
+          </p>
+          <p className="text-xs text-[#9ca3af]">Em andamento</p>
+        </div>
       </div>
+    </div>
+  );
+}
 
-      {/* ── Footer ─────────────────────────────────────────────── */}
-      <footer className="mt-10 text-center text-xs text-[#9ca3af]">
-        Powered by <span className="font-medium text-[#e85102]">TBO OS</span>
-      </footer>
+// ─── Deliverables Tab ──────────────────────────────────────────────────────
+
+function DeliverablesTab({
+  tasks,
+  token,
+}: {
+  tasks: PortalTask[];
+  token: string;
+}) {
+  // Sort: pending approval first, then in progress, then completed
+  const sorted = [...tasks].sort((a, b) => {
+    const aPending =
+      a.requires_client_approval &&
+      (a.client_approval_status === "pending" ||
+        a.client_approval_status === "none");
+    const bPending =
+      b.requires_client_approval &&
+      (b.client_approval_status === "pending" ||
+        b.client_approval_status === "none");
+    if (aPending && !bPending) return -1;
+    if (!aPending && bPending) return 1;
+    if (a.is_completed && !b.is_completed) return 1;
+    if (!a.is_completed && b.is_completed) return -1;
+    return 0;
+  });
+
+  return (
+    <div className="rounded-xl border border-[#e5e7eb] bg-white shadow-sm">
+      <div className="border-b border-[#e5e7eb] px-5 py-4">
+        <h2 className="text-sm font-semibold text-[#1a1a2e]">Entregas</h2>
+      </div>
+      {sorted.length === 0 ? (
+        <div className="px-5 py-8 text-center text-sm text-[#9ca3af]">
+          Nenhuma entrega visivel no momento.
+        </div>
+      ) : (
+        <ul className="divide-y divide-[#f0f0f0]">
+          {sorted.map((task) => (
+            <DeliverableRow key={task.id} task={task} token={token} />
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -220,7 +378,7 @@ function DeliverableRow({
   token: string;
 }) {
   const [approvalStatus, setApprovalStatus] = useState(
-    task.client_approval_status
+    task.client_approval_status,
   );
   const [comment, setComment] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -248,7 +406,7 @@ function DeliverableRow({
 
       if (!res.ok) {
         const data = (await res.json()) as { error?: string };
-        throw new Error(data.error ?? "Erro ao salvar aprovação");
+        throw new Error(data.error ?? "Erro ao salvar aprovacao");
       }
 
       setApprovalStatus(status);
@@ -302,7 +460,7 @@ function DeliverableRow({
           {task.requires_client_approval &&
             approvalStatus !== "none" &&
             approvalStatus !== "pending" && (
-              <div className="mt-2 flex items-center gap-1.5">
+              <div className="mt-2 flex items-center gap-1.5 flex-wrap">
                 {approvalStatus === "approved" ? (
                   <span className="inline-flex items-center gap-1 rounded-full bg-[#dcfce7] px-2.5 py-0.5 text-xs font-medium text-[#166534]">
                     <IconCheck className="size-3" />
@@ -344,7 +502,7 @@ function DeliverableRow({
                   <textarea
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    placeholder="Comentário (opcional)"
+                    placeholder="Comentario (opcional)"
                     rows={2}
                     className="w-full resize-none rounded-md border border-[#d1d5db] bg-white px-3 py-2 text-sm text-[#374151] placeholder:text-[#9ca3af] focus:border-[#e85102] focus:outline-none focus:ring-1 focus:ring-[#e85102]"
                   />

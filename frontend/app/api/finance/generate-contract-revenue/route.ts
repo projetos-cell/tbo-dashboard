@@ -44,8 +44,7 @@ async function runGeneration(source: "cron" | "manual", specificMonth?: string) 
     return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createServiceClient<any>(supabaseUrl, serviceRoleKey);
+  const supabase = createServiceClient(supabaseUrl, serviceRoleKey);
 
   // Get all tenants that have active client contracts
   const { data: tenantRows } = await supabase

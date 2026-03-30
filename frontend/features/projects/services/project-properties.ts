@@ -35,8 +35,7 @@ export interface UpdatePropertyOptionInput {
   sort_order?: number;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- table missing from generated types
-function table(): any { return createClient().from("project_property_options" as never); }
+function table() { return createClient().from("project_property_options" as never); }
 
 export async function getPropertyOptions(
   tenantId: string,

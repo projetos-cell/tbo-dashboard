@@ -84,7 +84,7 @@ export async function getLatestFirefliesSync(
 export async function getLatestOmieSync(
   supabase: SupabaseClient<Database>
 ) {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await (supabase as unknown as SupabaseClient)
     .from("omie_sync_log")
     .select("*")
     .order("started_at", { ascending: false })

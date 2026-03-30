@@ -1,9 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-// bi_dashboards/bi_widgets are not yet in generated Database types — use untyped
-// client to avoid "Type instantiation is excessively deep" errors
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type UntypedClient = SupabaseClient<any>;
+// bi_dashboards/bi_widgets are not yet in generated Database types — use untyped client
+type UntypedClient = SupabaseClient;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

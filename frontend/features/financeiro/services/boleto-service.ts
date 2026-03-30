@@ -14,8 +14,7 @@ import type {
 const TABLE = "finance_boletos" as const;
 const DEFAULT_PAGE_SIZE = 50;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Supabase = SupabaseClient<any>;
+type Supabase = SupabaseClient;
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────
 

@@ -3,8 +3,10 @@
 import { useCallback } from "react";
 import {
   TableHeader,
+  TableHead,
   TableRow,
 } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { ResolvedColumn } from "@/features/tasks/lib/my-tasks-columns";
 import {
   DndContext,
@@ -28,6 +30,9 @@ interface MyTasksTableHeaderProps {
   onSort?: (sortBy: string, direction: "asc" | "desc") => void;
   onResizeColumn?: (columnId: string, width: number) => void;
   onReorderColumns?: (columns: ResolvedColumn[]) => void;
+  isAllSelected?: boolean;
+  isIndeterminate?: boolean;
+  onToggleAll?: () => void;
 }
 
 export function MyTasksTableHeader({
@@ -37,6 +42,9 @@ export function MyTasksTableHeader({
   onSort,
   onResizeColumn,
   onReorderColumns,
+  isAllSelected,
+  isIndeterminate,
+  onToggleAll,
 }: MyTasksTableHeaderProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -65,6 +73,16 @@ export function MyTasksTableHeader({
     >
       <TableHeader className="sticky top-0 z-10 bg-background">
         <TableRow className="hover:bg-transparent border-b-2">
+          {/* Select-all checkbox */}
+          <TableHead className="w-9 px-2 border-r border-border/40">
+            <Checkbox
+              checked={isIndeterminate ? "indeterminate" : (isAllSelected ?? false)}
+              onCheckedChange={onToggleAll}
+              aria-label="Selecionar todas as tarefas"
+              className="opacity-60 hover:opacity-100 data-[state=checked]:opacity-100 data-[state=indeterminate]:opacity-100 transition-opacity"
+            />
+          </TableHead>
+
           <SortableContext
             items={columns.map((c) => c.id)}
             strategy={horizontalListSortingStrategy}

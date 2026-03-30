@@ -3,6 +3,7 @@
 // Feature #77 — Persistência de filtros ativos por rota (salvo em Supabase por view_id)
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
 
@@ -29,8 +30,7 @@ export function useViewFilters<T extends Record<string, unknown>>(
 
     async function load() {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const sb = supabase as any;
+        const sb = supabase as unknown as SupabaseClient;
         const { data } = await sb
           .from("view_filters")
           .select("filters")
@@ -67,8 +67,7 @@ export function useViewFilters<T extends Record<string, unknown>>(
         saveTimerRef.current = setTimeout(async () => {
           if (!tenantId) return;
           try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const sb = supabase as any;
+            const sb = supabase as unknown as SupabaseClient;
             await sb.from("view_filters").upsert(
               {
                 view_id: `${tenantId}:${viewId}`,

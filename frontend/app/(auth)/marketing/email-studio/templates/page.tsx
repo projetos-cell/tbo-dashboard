@@ -4,6 +4,7 @@
 // Feature #18 — Filtro por categoria com tabs dinâmicas
 
 import { useState, useMemo } from "react";
+import { sanitizeHtml } from "@/lib/sanitize";
 import {
   IconPlus,
   IconSearch,
@@ -194,7 +195,7 @@ function TemplatesContent() {
                       <div
                         className="text-[6px] leading-tight p-1 text-foreground"
                         dangerouslySetInnerHTML={{
-                          __html: template.html_content.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ""),
+                          __html: sanitizeHtml(template.html_content),
                         }}
                       />
                     </div>

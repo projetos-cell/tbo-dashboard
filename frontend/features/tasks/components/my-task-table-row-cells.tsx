@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { InlineSelect } from "@/components/ui/inline-select";
 import { TASK_STATUS, TASK_PRIORITY } from "@/lib/constants";
 import { useUpdateTask } from "@/features/tasks/hooks/use-tasks";
@@ -185,6 +185,9 @@ function AssigneeCell({ task }: CellContext) {
   }
   return (
     <Avatar className="h-6 w-6">
+      {task.assignee_avatar_url && (
+        <AvatarImage src={task.assignee_avatar_url} alt={task.assignee_name} />
+      )}
       <AvatarFallback className="text-[10px] font-semibold bg-gray-200 text-gray-600">
         {getInitials(task.assignee_name)}
       </AvatarFallback>

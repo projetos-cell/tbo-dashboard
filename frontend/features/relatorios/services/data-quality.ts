@@ -1,8 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 // Tables not yet in generated Database types — use untyped client
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type UntypedClient = SupabaseClient<any>;
+type UntypedClient = SupabaseClient;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

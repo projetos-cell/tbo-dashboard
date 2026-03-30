@@ -24,8 +24,7 @@ export interface UserRoleInfo {
  * Super-admin emails are always promoted to "admin" regardless of DB value.
  */
 export async function fetchUserRole(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: SupabaseClient<any>,
+  supabase: SupabaseClient,
   userId: string,
   userEmail?: string | null
 ): Promise<UserRoleInfo> {

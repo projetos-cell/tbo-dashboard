@@ -72,7 +72,27 @@
       "Bash(for dir:*)",
       "Bash(do echo:*)",
       "Read(//c/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/frontend/features/**)",
-      "Bash(find \"/c/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/frontend/app/\\(auth\\)/pessoas\" -type f \\\\\\( -name \"*.tsx\" -o -name \"*.ts\" \\\\\\))"
+      "Bash(find \"/c/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/frontend/app/\\(auth\\)/pessoas\" -type f \\\\\\( -name \"*.tsx\" -o -name \"*.ts\" \\\\\\))",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(find /c/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/frontend/features -type f \\\\\\(-name *.ts -o -name *.tsx \\\\\\))",
+      "Bash(find \"/c/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/frontend/app/\\(auth\\)/relatorios\" -type f \\\\\\( -name \"*.tsx\" -o -name \"*.ts\" \\\\\\))",
+      "Bash(cat \"C:/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/frontend/app/\\(auth\\)/relatorios/agendados/page.tsx\")",
+      "Bash(cat \"C:/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/frontend/app/\\(auth\\)/relatorios/yoy/page.tsx\")",
+      "Bash(cat \"C:/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/frontend/app/\\(auth\\)/relatorios/unit-economics/page.tsx\")",
+      "Bash(cat \"C:/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/frontend/app/\\(auth\\)/relatorios/qualidade-dados/page.tsx\")",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(/c/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/frontend/node_modules/.bin/tsc --noEmit)",
+      "Bash(wc -l \"/c/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/.claude/worktrees/agent-a27b4349/frontend/app/\\(auth\\)/relatorios/agendados/page.tsx\" \"/c/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/.claude/worktrees/agent-a27b4349/frontend/features/relatorios/components/yoy-comparison-dashboard.tsx\" \"/c/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/.claude/worktrees/agent-a27b4349/frontend/features/relatorios/components/unit-economics-dashboard.tsx\" \"/c/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/.claude/worktrees/agent-a27b4349/frontend/features/relatorios/components/data-quality-dashboard.tsx\")",
+      "Bash(ls -la /c/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/frontend/app/\\\\\\(auth\\\\\\))",
+      "Bash(ls -la /c/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/frontend/app/\\\\\\(auth\\\\\\)/compras)",
+      "Bash(ls -la /c/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/frontend/app/\\\\\\(auth\\\\\\)/financeiro)",
+      "Bash(ls /c/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/.claude/worktrees/agent-a1030174/frontend/app/\\\\\\(auth\\\\\\)/)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(list\\(d.keys\\(\\)\\)\\)\")",
+      "Bash(grep -n \"PageHeader\\\\|children\\\\|>$\" /c/Users/marco/Desktop/_Projetos-Dev/tbo-dashboard-main/.claude/worktrees/agent-a1030174/frontend/app/\\\\\\(auth\\\\\\)/compras/orcamentos/page.tsx)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(python3 -c \":*)",
+      "Bash(echo \"EXIT:$?\")"
     ]
   }
 }

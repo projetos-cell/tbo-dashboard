@@ -44,6 +44,7 @@ export interface MyTasksPreferences {
 export interface MyTaskWithSection extends TaskRow {
   my_section_id: string | null;
   my_sort_order: number;
+  assignee_avatar_url: string | null;
 }
 
 // ─── Sections CRUD ────────────────────────────────────────────
@@ -247,13 +248,31 @@ export async function getMyTasks(
     ])
   );
 
-  // Merge tasks with their personal section info
-  return ((tasks ?? []) as TaskRow[]).map((task) => {
+  // Fetch assignee avatar_urls from profiles (no FK, so separate query)
+  const assigneeIds = [
+    ...new Set(tasks.map((t) => t.assignee_id).filter(Boolean)),
+  ] as string[];
+  const avatarMap = new Map<string, string | null>();
+  if (assigneeIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, avatar_url")
+      .in("id", assigneeIds);
+    for (const p of profiles ?? []) {
+      avatarMap.set(p.id, p.avatar_url);
+    }
+  }
+
+  // Merge tasks with their personal section info and avatar
+  return (tasks as TaskRow[]).map((task) => {
     const order = orderMap.get(task.id);
     return {
       ...task,
       my_section_id: order?.section_id ?? null,
       my_sort_order: order?.sort_order ?? 999999,
+      assignee_avatar_url: task.assignee_id
+        ? avatarMap.get(task.assignee_id) ?? null
+        : null,
     };
   });
 }

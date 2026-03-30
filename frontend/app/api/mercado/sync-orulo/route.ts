@@ -11,6 +11,7 @@
 // ---------------------------------------------------------------------------
 
 import { NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import {
   getOruloToken,
@@ -63,9 +64,8 @@ export async function POST() {
   let syncLogId: string | null = null;
 
   const supabase = await createClient();
-  // Tables not yet in generated types — use untyped client for new tables
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any;
+  // Tables not yet in generated types (orulo_buildings, orulo_sync_logs)
+  const db = supabase as unknown as SupabaseClient;
 
   try {
     // ── Auth ──────────────────────────────────────────────────

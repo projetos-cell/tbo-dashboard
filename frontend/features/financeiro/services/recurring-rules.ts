@@ -14,8 +14,7 @@ import {
 } from "./finance-types";
 import type { RecurringRuleInput } from "./finance-schemas";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnySupabase = SupabaseClient<any>;
+type AnySupabase = SupabaseClient;
 
 // ── Queries ──────────────────────────────────────────────────────────────────
 

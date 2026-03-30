@@ -22,8 +22,7 @@ const TABLE_RECONCILIATION_RULES = "finance_reconciliation_rules" as const;
 const DEFAULT_PAGE_SIZE = 50;
 
 // Use untyped client — tables not yet in generated Database type
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Supabase = SupabaseClient<any>;
+type Supabase = SupabaseClient;
 
 // ── Bank Accounts ─────────────────────────────────────────────────────────────
 

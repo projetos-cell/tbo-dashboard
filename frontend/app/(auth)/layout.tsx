@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/header";
 import { RoleLoader } from "@/features/auth/components/role-loader";
 import { OnboardingGate } from "@/features/onboarding/components/onboarding-gate";
 import { ChatUnreadProvider } from "@/components/layout/chat-unread-provider";
+import { GlobalHotkeysProvider } from "@/components/layout/global-hotkeys-provider";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,7 @@ export default async function AuthLayout({
     <SidebarProvider defaultOpen={defaultOpen}>
       <RoleLoader />
       <ChatUnreadProvider />
+      <GlobalHotkeysProvider />
       <AppSidebar />
       <SidebarInset>
         <Header />

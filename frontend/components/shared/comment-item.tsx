@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { ptBR } from "date-fns/locale";
 import {
   IconDots,
@@ -124,7 +125,7 @@ export function CommentItem({
         ) : (
           <div
             className="mt-0.5 text-sm text-gray-500 prose prose-sm dark:prose-invert max-w-none [&_p]:my-0.5"
-            dangerouslySetInnerHTML={{ __html: comment.content }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(comment.content) }}
           />
         )}
 

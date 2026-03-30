@@ -27,8 +27,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabase: any = createServiceClient();
+    const supabase = createServiceClient();
 
     // 1. Validate portal_token — ensure project exists
     const { data: project } = await supabase

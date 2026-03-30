@@ -1,14 +1,28 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Table } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { MyTasksTableHeader } from "./my-tasks-table-header";
 import { MyTaskTableRow } from "./my-task-table-row";
 import { SectionGrouping, DynamicGrouping, FlatList } from "./my-tasks-table-body";
 import { groupTasksBySection } from "@/features/tasks/hooks/use-my-tasks";
 import { useProjects } from "@/features/projects/hooks/use-projects";
 import { useSectionDnd } from "@/features/tasks/hooks/use-section-dnd";
+import { useBulkSelection } from "@/hooks/use-bulk-selection";
+import { BulkActionBar } from "@/components/shared/bulk-action-bar";
+import { createClient } from "@/lib/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import type { MyTaskWithSection } from "@/features/tasks/services/my-tasks";
 import type { ResolvedColumn } from "@/features/tasks/lib/my-tasks-columns";
 import type { Database } from "@/lib/supabase/types";
@@ -19,7 +33,12 @@ import {
   type MyTasksFilters,
 } from "@/features/tasks/lib/my-tasks-utils";
 import { DndContext, DragOverlay, pointerWithin } from "@dnd-kit/core";
-import { IconPlus } from "@tabler/icons-react";
+import {
+  IconPlus,
+  IconCircleCheck,
+  IconRefresh,
+  IconTrash,
+} from "@tabler/icons-react";
 
 type TaskRow = Database["public"]["Tables"]["os_tasks"]["Row"];
 
@@ -49,6 +68,9 @@ export function MyTasksListView({
   onReorderColumns,
 }: MyTasksListViewProps) {
   const dndDisabled = sortBy !== "manual" || groupBy !== "section";
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   const {
     sections,
@@ -84,6 +106,94 @@ export function MyTasksListView({
     return sorted;
   }, [filteredTasks, sortBy, sortDirection]);
 
+  // Bulk selection
+  const {
+    hasSelection,
+    selectionCount,
+    isAllSelected,
+    isIndeterminate,
+    toggle,
+    toggleAll,
+    deselectAll,
+    isSelected,
+    selectedItems,
+  } = useBulkSelection({ items: sortedTasks, getKey: (t) => t.id });
+
+  // Deselect when filter/grouping changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { deselectAll(); }, [filters, groupBy, sortBy]);
+
+  const selectionCtx = useMemo(
+    () => ({ isSelected, onToggle: toggle }),
+    [isSelected, toggle]
+  );
+
+  const handleBulkComplete = useCallback(async () => {
+    const ids = selectedItems.map((t) => t.id);
+    queryClient.setQueriesData<MyTaskWithSection[]>(
+      { queryKey: ["my-tasks"] },
+      (old) => old?.map((t) => ids.includes(t.id) ? { ...t, status: "concluida", is_completed: true } : t)
+    );
+    await supabase.from("os_tasks").update({
+      status: "concluida",
+      is_completed: true,
+      completed_at: new Date().toISOString(),
+    }).in("id", ids);
+    deselectAll();
+    queryClient.invalidateQueries({ queryKey: ["my-tasks"] });
+    queryClient.invalidateQueries({ queryKey: ["tasks"] });
+  }, [selectedItems, deselectAll, queryClient, supabase]);
+
+  const handleBulkReopen = useCallback(async () => {
+    const ids = selectedItems.map((t) => t.id);
+    queryClient.setQueriesData<MyTaskWithSection[]>(
+      { queryKey: ["my-tasks"] },
+      (old) => old?.map((t) => ids.includes(t.id) ? { ...t, status: "pendente", is_completed: false } : t)
+    );
+    await supabase.from("os_tasks").update({
+      status: "pendente",
+      is_completed: false,
+      completed_at: null,
+    }).in("id", ids);
+    deselectAll();
+    queryClient.invalidateQueries({ queryKey: ["my-tasks"] });
+    queryClient.invalidateQueries({ queryKey: ["tasks"] });
+  }, [selectedItems, deselectAll, queryClient, supabase]);
+
+  const handleBulkDelete = useCallback(async () => {
+    const ids = selectedItems.map((t) => t.id);
+    queryClient.setQueriesData<MyTaskWithSection[]>(
+      { queryKey: ["my-tasks"] },
+      (old) => old?.filter((t) => !ids.includes(t.id))
+    );
+    await supabase.from("os_tasks").delete().in("id", ids);
+    deselectAll();
+    setBulkDeleteOpen(false);
+    queryClient.invalidateQueries({ queryKey: ["my-tasks"] });
+    queryClient.invalidateQueries({ queryKey: ["tasks"] });
+  }, [selectedItems, deselectAll, queryClient, supabase]);
+
+  const bulkActions = useMemo(() => [
+    {
+      label: "Concluir",
+      icon: IconCircleCheck,
+      onClick: handleBulkComplete,
+      variant: "outline" as const,
+    },
+    {
+      label: "Reabrir",
+      icon: IconRefresh,
+      onClick: handleBulkReopen,
+      variant: "outline" as const,
+    },
+    {
+      label: "Excluir",
+      icon: IconTrash,
+      onClick: () => setBulkDeleteOpen(true),
+      variant: "destructive" as const,
+    },
+  ], [handleBulkComplete, handleBulkReopen]);
+
   const useSectionGrouping = groupBy === "section";
 
   const grouped = useMemo(
@@ -96,8 +206,21 @@ export function MyTasksListView({
     [sortedTasks, groupBy, useSectionGrouping, projectMap]
   );
 
+  // Mount the dnd-kit accessibility div to document.body only after hydration
+  // to avoid the "<div> inside <table>" hydration mismatch from SSR
+  const [dndAccessibilityContainer, setDndAccessibilityContainer] = useState<HTMLElement | undefined>(undefined);
+  useEffect(() => {
+    setDndAccessibilityContainer(document.body);
+  }, []);
+
   return (
-    <DndContext collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <>
+    <DndContext
+      collisionDetection={pointerWithin}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      accessibility={{ container: dndAccessibilityContainer }}
+    >
       <div className="rounded-lg border">
         <Table>
           <MyTasksTableHeader
@@ -107,6 +230,9 @@ export function MyTasksListView({
             onSort={onSort}
             onResizeColumn={onResizeColumn}
             onReorderColumns={onReorderColumns}
+            isAllSelected={isAllSelected}
+            isIndeterminate={isIndeterminate}
+            onToggleAll={toggleAll}
           />
 
           {useSectionGrouping && grouped && (
@@ -121,6 +247,7 @@ export function MyTasksListView({
               onRenameSection={(id, name) => updateSection.mutate({ id, updates: { name } })}
               onDeleteSection={(id) => deleteSection.mutate(id)}
               dndDisabled={dndDisabled}
+              selection={selectionCtx}
             />
           )}
 
@@ -132,6 +259,7 @@ export function MyTasksListView({
               projectMap={projectMap}
               onSelect={(t) => onSelect(t as TaskRow)}
               onToggleCollapse={toggleCollapse}
+              selection={selectionCtx}
             />
           )}
 
@@ -141,6 +269,7 @@ export function MyTasksListView({
               columns={columns}
               projectMap={projectMap}
               onSelect={(t) => onSelect(t as TaskRow)}
+              selection={selectionCtx}
             />
           )}
         </Table>
@@ -163,5 +292,35 @@ export function MyTasksListView({
         ) : null}
       </DragOverlay>
     </DndContext>
+
+    {/* Bulk action floating bar */}
+
+    <BulkActionBar
+      count={selectionCount}
+      actions={bulkActions}
+      onClear={deselectAll}
+    />
+
+    {/* Bulk delete confirmation */}
+    <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Excluir {selectionCount} {selectionCount === 1 ? "tarefa" : "tarefas"}?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Esta ação não pode ser desfeita. As tarefas selecionadas serão excluídas permanentemente.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleBulkDelete}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            Excluir {selectionCount} {selectionCount === 1 ? "tarefa" : "tarefas"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

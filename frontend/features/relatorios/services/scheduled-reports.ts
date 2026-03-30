@@ -1,7 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type UntypedClient = SupabaseClient<any>;
+type UntypedClient = SupabaseClient;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

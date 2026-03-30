@@ -51,7 +51,6 @@ export const SIDEBAR_NAV_GROUPS: readonly NavGroup[] = [
     items: [
       { href: "/comercial", label: "Pipeline", icon: "briefcase", module: "comercial", subItems: COMERCIAL_NAV_ITEMS },
       { href: "/clientes", label: "Clientes", icon: "building-2", module: "clientes", subItems: CLIENTES_NAV_ITEMS },
-      { href: "/portal-cliente", label: "Portal do Cliente", icon: "external-link", module: "portal-cliente" },
       { href: "/contratos", label: "Contratos", icon: "file-text", module: "contratos", subItems: CONTRATOS_NAV_ITEMS },
       { href: "/financeiro", label: "Financeiro", icon: "dollar-sign", module: "financeiro", subItems: FINANCEIRO_NAV_ITEMS },
       { href: "/compras", label: "Compras & Fornecedores", icon: "truck", module: "compras", subItems: COMPRAS_NAV_ITEMS },

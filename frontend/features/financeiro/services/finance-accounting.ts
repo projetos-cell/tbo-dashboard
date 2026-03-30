@@ -12,8 +12,7 @@ import { getTBOMonthRangeFromString } from "./finance-cycle";
 // Use untyped client for new tables (finance_dre_snapshots, finance_chart_of_accounts)
 // not yet in generated Database types.
 type AccountingSupabase = SupabaseClient<Database>;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnySupabase = SupabaseClient<any>;
+type AnySupabase = SupabaseClient;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

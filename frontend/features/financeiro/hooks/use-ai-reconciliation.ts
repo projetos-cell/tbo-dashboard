@@ -21,8 +21,7 @@ import type {
   AIAnomaly,
 } from "@/features/financeiro/services/ai-reconciliation";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnySupabase = SupabaseClient<any>;
+type AnySupabase = SupabaseClient;
 
 const logger = createLogger("use-ai-reconciliation");
 

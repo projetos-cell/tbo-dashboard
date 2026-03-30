@@ -7927,6 +7927,65 @@ export type Database = {
           },
         ]
       }
+      hr_calendar_events: {
+        Row: {
+          id: string
+          tenant_id: string
+          title: string
+          description: string | null
+          category: string
+          start_date: string
+          end_date: string | null
+          is_all_day: boolean | null
+          recurrence_rule: string | null
+          color: string | null
+          visibility: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          title: string
+          description?: string | null
+          category: string
+          start_date: string
+          end_date?: string | null
+          is_all_day?: boolean | null
+          recurrence_rule?: string | null
+          color?: string | null
+          visibility?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          title?: string
+          description?: string | null
+          category?: string
+          start_date?: string
+          end_date?: string | null
+          is_all_day?: boolean | null
+          recurrence_rule?: string | null
+          color?: string | null
+          visibility?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_calendar_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       impact_metric_config: {
         Row: {
           created_at: string | null

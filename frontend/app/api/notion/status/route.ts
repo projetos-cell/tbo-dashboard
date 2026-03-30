@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
@@ -22,7 +23,7 @@ export async function GET() {
     return NextResponse.json({ connected: false });
   }
 
-  const { data: integration } = await (supabase as any)
+  const { data: integration } = await (supabase as unknown as SupabaseClient)
     .from("notion_integrations")
     .select("workspace_id, workspace_name, owner_name, connected_at")
     .eq("tenant_id", profile.tenant_id)

@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAlertCount } from "@/hooks/use-alert-count";
 import { useNotifications, useMarkAsRead, useMarkAllAsRead } from "@/hooks/use-alerts";
+import { useNotificationsRealtime } from "@/hooks/use-notifications-realtime";
 import { IconBell, IconCheck, IconTrophy } from "@tabler/icons-react";
 import { DealWonDrawer } from "./deal-won-drawer";
 import type { NotificationRow } from "@/services/alerts";
@@ -77,6 +78,7 @@ export function NotificationItem({
 
 export function NotificationBell() {
   const router = useRouter();
+  useNotificationsRealtime();
   const count = useAlertCount();
   const [open, setOpen] = useState(false);
   const [dealWonOpen, setDealWonOpen] = useState(false);

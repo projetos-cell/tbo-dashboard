@@ -10,10 +10,10 @@ import {
   updateIntakeForm,
   deleteIntakeForm,
 } from "@/features/projects/services/intake-forms";
-import type { Database } from "@/lib/supabase/types";
+import type { IntakeFormRow } from "@/features/projects/services/intake-forms";
 
-type IntakeFormInsert = Database["public"]["Tables"]["intake_forms"]["Insert"];
-type IntakeFormUpdate = Database["public"]["Tables"]["intake_forms"]["Update"];
+type IntakeFormInsert = Partial<IntakeFormRow> & { project_id: string; tenant_id: string; title: string; token: string };
+type IntakeFormUpdate = Partial<IntakeFormRow>;
 
 export function useIntakeForm(projectId: string | undefined) {
   const supabase = createClient();

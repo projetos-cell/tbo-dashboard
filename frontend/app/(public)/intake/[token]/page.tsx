@@ -1,8 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { IntakeFormView } from "./intake-form-view";
-import type { Database } from "@/lib/supabase/types";
-
-type IntakeFormRow = Database["public"]["Tables"]["intake_forms"]["Row"];
+import type { IntakeFormRow } from "@/features/projects/services/intake-forms";
 
 interface PageProps {
   params: Promise<{ token: string }>;

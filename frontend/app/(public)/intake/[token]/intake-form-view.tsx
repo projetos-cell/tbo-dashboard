@@ -2,9 +2,7 @@
 
 import { useState } from "react";
 import { IconSend, IconCheck, IconClipboardText } from "@tabler/icons-react";
-import type { Database } from "@/lib/supabase/types";
-
-type IntakeFormRow = Database["public"]["Tables"]["intake_forms"]["Row"];
+import type { IntakeFormRow } from "@/features/projects/services/intake-forms";
 
 interface IntakeField {
   key: string;

@@ -624,6 +624,28 @@ function ProposalView({
           )}
         </section>
 
+        {/* ── CTA Website ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.4 }}
+          className="bg-[#18181B] rounded-xl p-6 text-center"
+        >
+          <p className="text-sm text-zinc-400 mb-3">
+            Conheça mais sobre nossos serviços e portfólio
+          </p>
+          <a
+            href="https://wearetbo.com.br"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 bg-[#E85102] hover:bg-[#D04800] text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
+          >
+            Visite wearetbo.com.br
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
+          </a>
+        </motion.div>
+
         {/* ── Footer ── */}
         <div className="text-center py-8 space-y-3">
           <a
@@ -643,7 +665,7 @@ function ProposalView({
           <p className="text-xs font-medium text-zinc-500">
             TBO | Lançamentos Imobiliários
           </p>
-          <div className="flex items-center justify-center gap-4 text-xs text-zinc-400">
+          <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-zinc-400">
             <a
               href="mailto:contato@agenciatbo.com.br"
               className="hover:text-[#E85102] transition-colors"

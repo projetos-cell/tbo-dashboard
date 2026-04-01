@@ -590,61 +590,6 @@ export function ProposalD3DFlow() {
           </p>
         </div>
 
-        {/* Global timeline bar */}
-        <div className="bg-white rounded-xl border shadow-sm p-4 mb-4">
-          <div className="flex items-center gap-0">
-            {TIMELINE_SEGMENTS.map((seg, idx) => (
-              <div key={idx} className="contents">
-                {idx > 0 && <div className="w-1.5 shrink-0" />}
-                <div className="flex flex-col items-center" style={{ flex: seg.flex }}>
-                  <span className="text-[10px] font-medium text-zinc-900 mb-1">
-                    {seg.days}
-                  </span>
-                  <div
-                    className="h-1.5 rounded-full w-full"
-                    style={{
-                      backgroundColor: seg.color,
-                      opacity: seg.isGate ? 0.5 : 1,
-                    }}
-                  />
-                  <span className="text-[8px] text-zinc-400 mt-1 truncate max-w-full">
-                    {seg.label}
-                  </span>
-                </div>
-              </div>
-            ))}
-            <div className="pl-4 ml-4 border-l border-zinc-200 text-center shrink-0">
-              <p className="text-2xl font-bold text-[#E85102] leading-none">
-                55–80
-              </p>
-              <p className="text-[9px] text-zinc-400 uppercase tracking-wider mt-1">
-                dias úteis
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="flex gap-3 mb-5">
-          {[
-            { num: "8", label: "Fases" },
-            { num: "4", label: "Entregas" },
-            { num: "3", label: "Rodadas" },
-          ].map((s) => (
-            <div
-              key={s.label}
-              className="bg-white rounded-lg border shadow-sm px-4 py-2.5 text-center"
-            >
-              <p className="text-xl font-bold text-zinc-900 leading-none">
-                {s.num}
-              </p>
-              <p className="text-[9px] text-zinc-400 uppercase tracking-wider mt-1">
-                {s.label}
-              </p>
-            </div>
-          ))}
-        </div>
-
         {/* Pipeline horizontal scroll */}
         <div className="overflow-x-auto -mx-4 px-4 pb-4 scrollbar-thin scrollbar-thumb-zinc-300">
           <div className="flex items-stretch gap-0 min-w-max">

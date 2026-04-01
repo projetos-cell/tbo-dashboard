@@ -44,7 +44,7 @@ import { ProposalWhyTBO } from "./components/proposal-why-tbo";
 import { ProposalTimeline } from "./components/proposal-timeline";
 import { ProposalPaymentOptions } from "./components/proposal-payment-options";
 import type { PaymentConditionOption } from "@/features/comercial/services/proposals";
-import { ProposalUpsell } from "./components/proposal-upsell";
+import Image from "next/image";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -125,9 +125,17 @@ function DecidedState({ decision }: { decision: "approved" | "rejected" }) {
             ? "Obrigado! Nossa equipe entrará em contato em breve para dar início ao projeto."
             : "Agradecemos pela consideração. Se mudar de ideia ou quiser renegociar, entre em contato."}
         </p>
-        <div className="mt-6 text-xs text-zinc-400">
-          <p className="font-semibold text-zinc-600">TBO — The Branding Office</p>
-          <p>contato@agenciatbo.com.br</p>
+        <div className="mt-6 text-xs text-zinc-400 space-y-1">
+          <p className="font-semibold text-zinc-600">TBO | Lançamentos Imobiliários</p>
+          <p>contato@agenciatbo.com.br · +55 41 9610-1504</p>
+          <a
+            href="https://wearetbo.com.br"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#E85102] hover:underline"
+          >
+            wearetbo.com.br
+          </a>
         </div>
       </motion.div>
     </div>
@@ -355,7 +363,6 @@ function ProposalView({
     if (showD3D) {
       items.push({ id: "section-why", label: "Por que TBO" });
       items.push({ id: "section-timeline", label: "Timeline" });
-      items.push({ id: "section-upsell", label: "Pacote" });
     }
     if (proposal.notes) {
       items.push({ id: "section-notes", label: "Observações" });
@@ -369,12 +376,25 @@ function ProposalView({
       {/* ── TBO Header bar ── */}
       <div className="bg-[#18181B] text-white">
         <div className="max-w-3xl mx-auto px-4 py-5 flex items-center justify-between">
-          <div>
-            <p className="text-xl font-bold tracking-wide">TBO</p>
-            <p className="text-[10px] text-zinc-500 tracking-[0.2em] uppercase">
-              Think. Build. Own.
-            </p>
-          </div>
+          <a
+            href="https://wearetbo.com.br"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 hover:opacity-90 transition-opacity"
+          >
+            <Image
+              src="/logo-tbo-dark.svg"
+              alt="TBO"
+              width={80}
+              height={28}
+              className="h-7 w-auto"
+            />
+            <div className="hidden sm:block">
+              <p className="text-[10px] text-zinc-500 tracking-[0.15em] uppercase leading-none">
+                Lançamentos Imobiliários
+              </p>
+            </div>
+          </a>
           <div className="text-right">
             <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-0.5">
               Proposta Comercial
@@ -529,9 +549,6 @@ function ProposalView({
         {/* ── Timeline ── */}
         {showD3D && <ProposalTimeline />}
 
-        {/* ── Upsell ── */}
-        {showD3D && <ProposalUpsell />}
-
         {/* ── Notes ── */}
         {proposal.notes && <SectionNotes notes={proposal.notes} />}
 
@@ -608,13 +625,52 @@ function ProposalView({
         </section>
 
         {/* ── Footer ── */}
-        <div className="text-center py-6 space-y-1">
+        <div className="text-center py-8 space-y-3">
+          <a
+            href="https://wearetbo.com.br"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block hover:opacity-80 transition-opacity"
+          >
+            <Image
+              src="/logo-tbo.svg"
+              alt="TBO"
+              width={64}
+              height={22}
+              className="h-5 w-auto mx-auto"
+            />
+          </a>
           <p className="text-xs font-medium text-zinc-500">
-            TBO — The Branding Office
+            TBO | Lançamentos Imobiliários
           </p>
-          <p className="text-xs text-zinc-400">contato@agenciatbo.com.br</p>
-          <p className="text-[10px] text-zinc-300 mt-2">
-            Proposta gerada pelo TBO OS · Válida por {proposal.valid_days} dias
+          <div className="flex items-center justify-center gap-4 text-xs text-zinc-400">
+            <a
+              href="mailto:contato@agenciatbo.com.br"
+              className="hover:text-[#E85102] transition-colors"
+            >
+              contato@agenciatbo.com.br
+            </a>
+            <span className="text-zinc-300">·</span>
+            <a
+              href="https://wa.me/554196101504"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-[#E85102] transition-colors"
+            >
+              +55 41 9610-1504
+            </a>
+            <span className="text-zinc-300">·</span>
+            <a
+              href="https://wearetbo.com.br"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-[#E85102] transition-colors"
+            >
+              wearetbo.com.br
+            </a>
+          </div>
+          <p className="text-[10px] text-zinc-300 pt-1">
+            Válida por {proposal.valid_days} dias a partir da emissão
           </p>
         </div>
       </div>

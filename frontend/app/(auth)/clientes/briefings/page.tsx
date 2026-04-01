@@ -183,14 +183,14 @@ export default function BriefingsPage() {
                       )}
                     </div>
                     <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
-                      {fd.padrao && (
+                      {fd.padrao ? (
                         <span className="capitalize">
                           {String(fd.padrao)}
                         </span>
-                      )}
-                      {fd.bairro_cidade && (
+                      ) : null}
+                      {fd.bairro_cidade ? (
                         <span>{String(fd.bairro_cidade)}</span>
-                      )}
+                      ) : null}
                       {b.submitted_at && (
                         <span>
                           {new Date(b.submitted_at).toLocaleDateString("pt-BR")}

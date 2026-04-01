@@ -8,28 +8,24 @@ const TIMELINE_STAGES = [
     label: "Kickoff",
     description: "Briefing, análise do projeto, definição de câmeras",
     color: "#E85102",
-    icon: "🎯",
   },
   {
     week: "Sem. 3–5",
     label: "Modelagem",
     description: "Construção 3D, texturas, iluminação base, clay render",
-    color: "#3B82F6",
-    icon: "🔨",
+    color: "#3F3F46",
   },
   {
     week: "Sem. 6–7",
     label: "Revisão",
     description: "2 rodadas de ajustes, pós-produção, color grading",
-    color: "#F59E0B",
-    icon: "🔄",
+    color: "#52525B",
   },
   {
     week: "Sem. 8",
     label: "Entrega",
     description: "Renderização final, organização de assets, backup",
-    color: "#10B981",
-    icon: "✅",
+    color: "#18181B",
   },
 ];
 
@@ -98,10 +94,10 @@ export function ProposalTimeline() {
               >
                 {/* Dot */}
                 <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 relative z-10"
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 relative z-10"
                   style={{ backgroundColor: stage.color }}
                 >
-                  {stage.icon}
+                  {String(idx + 1).padStart(2, "0")}
                 </div>
 
                 {/* Content */}

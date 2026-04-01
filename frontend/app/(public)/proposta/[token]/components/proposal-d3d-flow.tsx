@@ -67,7 +67,7 @@ const PIPELINE: PipelineItem[] = [
       { icon: "◆", iconType: "ref", label: "Paleta de materiais / acabamentos" },
       { icon: "◆", iconType: "ref", label: "Atmosfera, iluminação, enquadramentos" },
     ],
-    color: "#3B82F6",
+    color: "#52525B",
     tag: "producao",
     owner: "TBO",
   },
@@ -85,7 +85,7 @@ const PIPELINE: PipelineItem[] = [
       { icon: "▲", iconType: "model", label: "Paisagismo + entorno" },
       { icon: "▲", iconType: "model", label: "Interiores + setup de câmeras" },
     ],
-    color: "#FD8241",
+    color: "#3F3F46",
     tag: "producao",
     owner: "TBO",
   },
@@ -111,7 +111,7 @@ const PIPELINE: PipelineItem[] = [
       },
       { icon: "✓", iconType: "check", label: "Validação de proporções e composição" },
     ],
-    color: "#FD8241",
+    color: "#3F3F46",
     tag: "producao",
     owner: "TBO",
   },
@@ -138,7 +138,7 @@ const PIPELINE: PipelineItem[] = [
       },
       { icon: "●", iconType: "render", label: "Ambientação + humanização" },
     ],
-    color: "#FD8241",
+    color: "#3F3F46",
     tag: "producao",
     owner: "TBO",
   },
@@ -165,7 +165,7 @@ const PIPELINE: PipelineItem[] = [
       },
       { icon: "●", iconType: "render", label: "Vegetação e entorno detalhados" },
     ],
-    color: "#FD8241",
+    color: "#3F3F46",
     tag: "producao",
     owner: "TBO",
   },
@@ -192,7 +192,7 @@ const PIPELINE: PipelineItem[] = [
       },
       { icon: "✓", iconType: "check", label: "Máx. 1 rodada de ajustes pontuais" },
     ],
-    color: "#FD8241",
+    color: "#3F3F46",
     tag: "producao",
     owner: "TBO",
   },
@@ -240,39 +240,50 @@ const PIPELINE: PipelineItem[] = [
 ];
 
 // ── Timeline bar ────────────────────────────────────────────────────
+// Monocromático: zinc + accent #E85102
 const TIMELINE_SEGMENTS = [
   { label: "Briefing", days: "1–2d", color: "#E85102", flex: 2 },
-  { label: "Dir. Visual", days: "2–3d", color: "#3B82F6", flex: 3 },
-  { label: "Modelagem", days: "10–12d", color: "#FD8241", flex: 11 },
-  { label: "Clay", days: "até 5d", color: "#FD8241", flex: 5 },
-  { label: "Aprov.", days: "3–5d", color: "#F59E0B", flex: 4, isGate: true },
-  { label: "Emissão Inicial", days: "15–20d", color: "#FD8241", flex: 17 },
-  { label: "Aprov.", days: "3–5d", color: "#F59E0B", flex: 4, isGate: true },
-  { label: "R01", days: "3–5d", color: "#FD8241", flex: 4 },
-  { label: "Aprov.", days: "3–5d", color: "#F59E0B", flex: 4, isGate: true },
-  { label: "R02", days: "3–5d", color: "#FD8241", flex: 4 },
-  { label: "Aprov.", days: "3–5d", color: "#10B981", flex: 4, isGate: true },
+  { label: "Dir. Visual", days: "2–3d", color: "#52525B", flex: 3 },
+  { label: "Modelagem", days: "10–12d", color: "#3F3F46", flex: 11 },
+  { label: "Clay", days: "até 5d", color: "#3F3F46", flex: 5 },
+  { label: "Aprov.", days: "3–5d", color: "#A1A1AA", flex: 4, isGate: true },
+  { label: "Emissão Inicial", days: "15–20d", color: "#3F3F46", flex: 17 },
+  { label: "Aprov.", days: "3–5d", color: "#A1A1AA", flex: 4, isGate: true },
+  { label: "R01", days: "3–5d", color: "#3F3F46", flex: 4 },
+  { label: "Aprov.", days: "3–5d", color: "#A1A1AA", flex: 4, isGate: true },
+  { label: "R02", days: "3–5d", color: "#3F3F46", flex: 4 },
+  { label: "Aprov.", days: "3–5d", color: "#71717A", flex: 4, isGate: true },
   { label: "Entrega", days: "1–2d", color: "#18181B", flex: 2 },
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────
+// Paleta reduzida: zinc monocromático + #E85102 accent
+const MONO = {
+  accent: "#E85102",
+  accentSoft: "rgba(232,81,2,0.08)",
+  dark: "#18181B",
+  mid: "#52525B",
+  muted: "#A1A1AA",
+  subtle: "rgba(113,113,122,0.08)",
+};
+
 const TAG_STYLES = {
-  input: { bg: "rgba(59,130,246,0.08)", color: "#3B82F6", label: "INPUT" },
-  producao: { bg: "rgba(232,81,2,0.08)", color: "#E85102", label: "PRODUÇÃO" },
-  output: { bg: "rgba(16,185,129,0.08)", color: "#10B981", label: "OUTPUT" },
+  input: { bg: MONO.accentSoft, color: MONO.accent, label: "INPUT" },
+  producao: { bg: MONO.subtle, color: MONO.mid, label: "PRODUÇÃO" },
+  output: { bg: MONO.accentSoft, color: MONO.accent, label: "OUTPUT" },
 };
 
 const ICON_STYLES = {
-  ref: { bg: "rgba(59,130,246,0.08)", color: "#3B82F6" },
-  model: { bg: "rgba(232,81,2,0.08)", color: "#E85102" },
-  render: { bg: "rgba(16,185,129,0.08)", color: "#10B981" },
-  check: { bg: "rgba(245,158,11,0.08)", color: "#F59E0B" },
+  ref: { bg: MONO.subtle, color: MONO.mid },
+  model: { bg: MONO.subtle, color: MONO.mid },
+  render: { bg: MONO.subtle, color: MONO.mid },
+  check: { bg: MONO.accentSoft, color: MONO.accent },
 };
 
 const SPEC_STYLES = {
-  format: { bg: "rgba(59,130,246,0.08)", color: "#3B82F6" },
-  res: { bg: "rgba(139,92,246,0.08)", color: "#8B5CF6" },
-  channel: { bg: "rgba(16,185,129,0.08)", color: "#10B981" },
+  format: { bg: MONO.subtle, color: MONO.mid },
+  res: { bg: MONO.subtle, color: MONO.mid },
+  channel: { bg: MONO.subtle, color: MONO.mid },
 };
 
 function isGate(item: PipelineItem): item is GateData {
@@ -281,20 +292,20 @@ function isGate(item: PipelineItem): item is GateData {
 
 // ── Gate component ──────────────────────────────────────────────────
 function GateNode({ gate }: { gate: GateData }) {
-  const gateColor = gate.color === "green" ? "#10B981" : "#F59E0B";
+  const isFinal = gate.color === "green";
+  const gateColor = isFinal ? MONO.accent : MONO.muted;
   return (
     <div className="flex flex-col items-center justify-center gap-1.5 shrink-0 w-[100px] relative py-3">
       {/* Line through */}
       <div className="absolute left-0 right-0 top-1/2 h-px bg-zinc-200" />
       {/* Diamond */}
       <div
-        className="relative z-10 w-8 h-8 rounded-md flex items-center justify-center bg-white border shadow-sm"
-        style={{ borderColor: `${gateColor}40` }}
+        className="relative z-10 w-8 h-8 rounded-md flex items-center justify-center bg-white border border-zinc-200 shadow-sm"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
           <path
             d="M12 2L22 12L12 22L2 12Z"
-            fill={`${gateColor}20`}
+            fill={`${gateColor}15`}
             stroke={gateColor}
             strokeWidth="1.5"
           />
@@ -305,7 +316,7 @@ function GateNode({ gate }: { gate: GateData }) {
       </span>
       <span
         className="relative z-10 text-[10px] font-medium text-center bg-zinc-50 px-1 leading-tight"
-        style={{ color: gateColor }}
+        style={{ color: isFinal ? MONO.accent : MONO.mid }}
       >
         {gate.action}
       </span>
@@ -411,7 +422,7 @@ function PhaseCard({ stage, idx }: { stage: StageData; idx: number }) {
                 ? "rgba(255,255,255,0.3)"
                 : isEnd
                   ? "rgba(255,255,255,0.25)"
-                  : stage.color,
+                  : "#A1A1AA",
             }}
           />
         </div>
@@ -456,7 +467,7 @@ function PhaseCard({ stage, idx }: { stage: StageData; idx: number }) {
                   isStart || isEnd
                     ? {
                         backgroundColor: "rgba(255,255,255,0.12)",
-                        color: isStart ? "#fff" : "#6EE7B7",
+                        color: isStart ? "#fff" : "rgba(255,255,255,0.6)",
                       }
                     : { backgroundColor: iconStyle.bg, color: iconStyle.color }
                 }
@@ -476,18 +487,8 @@ function PhaseCard({ stage, idx }: { stage: StageData; idx: number }) {
                           style={
                             isEnd
                               ? {
-                                  backgroundColor:
-                                    s.type === "format"
-                                      ? "rgba(59,130,246,0.12)"
-                                      : s.type === "res"
-                                        ? "rgba(139,92,246,0.12)"
-                                        : "rgba(16,185,129,0.12)",
-                                  color:
-                                    s.type === "format"
-                                      ? "#93C5FD"
-                                      : s.type === "res"
-                                        ? "#C4B5FD"
-                                        : "#6EE7B7",
+                                  backgroundColor: "rgba(255,255,255,0.08)",
+                                  color: "rgba(255,255,255,0.5)",
                                 }
                               : {
                                   backgroundColor: specStyle.bg,
@@ -523,7 +524,7 @@ function PhaseCard({ stage, idx }: { stage: StageData; idx: number }) {
             isStart
               ? { backgroundColor: "rgba(255,255,255,0.15)", color: "#fff" }
               : isEnd
-                ? { backgroundColor: "rgba(16,185,129,0.15)", color: "#6EE7B7" }
+                ? { backgroundColor: "rgba(232,81,2,0.15)", color: "#E85102" }
                 : { backgroundColor: tag.bg, color: tag.color }
           }
         >
@@ -668,10 +669,8 @@ export function ProposalD3DFlow() {
         <div className="flex flex-wrap gap-4 justify-center mt-4">
           {[
             { color: "#E85102", label: "Kickoff / Input" },
-            { color: "#3B82F6", label: "Referência" },
-            { color: "#FD8241", label: "Produção TBO" },
-            { color: "#F59E0B", label: "Aprovação Cliente" },
-            { color: "#10B981", label: "Aprovação Final" },
+            { color: "#3F3F46", label: "Produção TBO" },
+            { color: "#A1A1AA", label: "Aprovação Cliente" },
             { color: "#18181B", label: "Entrega Final" },
           ].map((l) => (
             <div key={l.label} className="flex items-center gap-2 text-xs text-zinc-400">

@@ -65,7 +65,7 @@ export function ProposalPaymentOptions({
               <p className="font-semibold text-zinc-900 text-sm mb-1">
                 {opt.label}
               </p>
-              <p className="text-[#E85102] font-bold text-lg mb-2">
+              <p className="text-zinc-900 font-bold text-lg mb-2">
                 {opt.description}
               </p>
               {opt.details && (

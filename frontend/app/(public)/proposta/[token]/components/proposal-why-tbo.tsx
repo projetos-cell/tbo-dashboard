@@ -62,8 +62,8 @@ export function ProposalWhyTBO() {
                 className="bg-white rounded-xl border p-5 shadow-sm hover:shadow-md transition-shadow group"
               >
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-[#E85102]/8 flex items-center justify-center shrink-0 group-hover:bg-[#E85102]/12 transition-colors">
-                    <Icon size={20} className="text-[#E85102]" />
+                  <div className="w-10 h-10 rounded-lg bg-zinc-100 flex items-center justify-center shrink-0 group-hover:bg-zinc-200 transition-colors">
+                    <Icon size={20} className="text-zinc-600" />
                   </div>
                   <div>
                     <p className="font-semibold text-zinc-900 text-sm mb-1">

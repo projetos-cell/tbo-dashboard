@@ -1,14 +1,8 @@
 "use client";
 
-import { useRef, useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import Image from "next/image";
-import {
-  motion,
-  useScroll,
-  useTransform,
-  AnimatePresence,
-  type Variants,
-} from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   IconFolder,
   IconFileTypePdf,
@@ -19,8 +13,8 @@ import {
   IconFileZip,
   IconDownload,
   IconLock,
-  IconArrowDown,
   IconArrowRight,
+  IconArrowUpRight,
 } from "@tabler/icons-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -76,30 +70,15 @@ function formatDate(dateStr: string) {
 
 function getDirectDownloadUrl(url: string): string | null {
   const fileMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-  if (fileMatch) {
-    return `https://drive.google.com/uc?export=download&id=${fileMatch[1]}`;
-  }
+  if (fileMatch) return `https://drive.google.com/uc?export=download&id=${fileMatch[1]}`;
   const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-  if (idMatch && !url.includes("/folders/")) {
-    return `https://drive.google.com/uc?export=download&id=${idMatch[1]}`;
-  }
+  if (idMatch && !url.includes("/folders/")) return `https://drive.google.com/uc?export=download&id=${idMatch[1]}`;
   return null;
 }
 
 function isDownloadable(type: string): boolean {
   return ["pdf", "dwg", "image", "zip", "video"].includes(type);
 }
-
-// ── Stagger Variants ────────────────────────────────────────
-const staggerContainer: Variants = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.1 } },
-};
-
-const staggerItem: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE_OUT } },
-};
 
 // ── Password Screen ────────────────────────────────────────
 function PasswordScreen({
@@ -128,7 +107,6 @@ function PasswordScreen({
 
   return (
     <div className="min-h-screen relative flex items-center justify-center p-4">
-      {/* Background */}
       {coverImageUrl ? (
         <div className="absolute inset-0 z-0">
           <Image src={coverImageUrl} alt="" fill className="object-cover" priority />
@@ -137,32 +115,18 @@ function PasswordScreen({
       ) : (
         <div className="absolute inset-0 z-0 bg-zinc-900" />
       )}
-
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: EASE_OUT }}
         className="relative z-10 text-center max-w-sm w-full"
       >
-        <Image
-          src="/logo-tbo-dark.svg"
-          alt="TBO"
-          width={80}
-          height={32}
-          className="h-7 w-auto mx-auto opacity-60 mb-10"
-        />
-
+        <Image src="/logo-tbo-dark.svg" alt="TBO" width={80} height={32} className="h-7 w-auto mx-auto opacity-60 mb-10" />
         <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-6">
           <IconLock size={20} className="text-white/50" />
         </div>
-
-        <h2 className="text-lg font-semibold text-white mb-1">
-          Entrega protegida
-        </h2>
-        <p className="text-sm text-white/40 mb-8">
-          Digite a senha de acesso fornecida pela TBO.
-        </p>
-
+        <h2 className="text-lg font-semibold text-white mb-1">Entrega protegida</h2>
+        <p className="text-sm text-white/40 mb-8">Digite a senha de acesso fornecida pela TBO.</p>
         <form onSubmit={handleSubmit} className="space-y-3">
           <Input
             type="password"
@@ -173,306 +137,45 @@ function PasswordScreen({
             autoFocus
           />
           {error && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-xs text-red-400"
-            >
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-red-400">
               Senha incorreta. Tente novamente.
             </motion.p>
           )}
-          <Button type="submit" className="w-full h-12 bg-white text-zinc-900 hover:bg-white/90 font-semibold">
+          <Button type="submit" className="w-full h-12 bg-white text-stone-900 hover:bg-white/90 font-semibold">
             Acessar entrega
           </Button>
         </form>
-
-        <p className="text-[10px] text-white/20 mt-10">
-          TBO | Lançamentos Imobiliários
-        </p>
+        <p className="text-[10px] text-white/20 mt-10">TBO | Lançamentos Imobiliários</p>
       </motion.div>
     </div>
   );
 }
 
 // ── Reveal Animation ───────────────────────────────────────
-function RevealAnimation({
-  projectName,
-  onComplete,
-}: {
-  projectName: string | null;
-  onComplete: () => void;
-}) {
+function RevealAnimation({ projectName, onComplete }: { projectName: string | null; onComplete: () => void }) {
   return (
-    <motion.div
-      className="fixed inset-0 z-50 pointer-events-none"
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      <motion.div
-        className="absolute top-0 left-0 right-0 h-1/2 bg-zinc-900 z-50"
-        initial={{ y: 0 }}
-        animate={{ y: "-100%" }}
-        transition={{ duration: 0.8, delay: 2.2, ease: CURTAIN_EASE }}
-      />
-      <motion.div
-        className="absolute bottom-0 left-0 right-0 h-1/2 bg-zinc-900 z-50"
-        initial={{ y: 0 }}
-        animate={{ y: "100%" }}
-        transition={{ duration: 0.8, delay: 2.2, ease: CURTAIN_EASE }}
-        onAnimationComplete={onComplete}
-      />
+    <motion.div className="fixed inset-0 z-50 pointer-events-none" exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+      <motion.div className="absolute top-0 left-0 right-0 h-1/2 bg-zinc-900 z-50" initial={{ y: 0 }} animate={{ y: "-100%" }} transition={{ duration: 0.8, delay: 2.2, ease: CURTAIN_EASE }} />
+      <motion.div className="absolute bottom-0 left-0 right-0 h-1/2 bg-zinc-900 z-50" initial={{ y: 0 }} animate={{ y: "100%" }} transition={{ duration: 0.8, delay: 2.2, ease: CURTAIN_EASE }} onAnimationComplete={onComplete} />
       <div className="absolute inset-0 z-[51] flex flex-col items-center justify-center bg-zinc-900">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="flex flex-col items-center"
-        >
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.3 }} className="flex flex-col items-center">
           <Image src="/logo-tbo-dark.svg" alt="TBO" width={100} height={40} className="h-8 w-auto opacity-60 mb-6" />
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.8 }}
-            className="text-white text-2xl sm:text-4xl font-bold tracking-tight"
-          >
+          <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.8 }} className="text-white text-3xl sm:text-5xl font-bold tracking-tight">
             {projectName ?? "Seu projeto"}
           </motion.p>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3, delay: 1.2 }}
-            className="text-white/40 text-sm mt-2 tracking-widest uppercase"
-          >
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3, delay: 1.2 }} className="text-white/40 text-sm mt-2 tracking-widest uppercase">
             está pronto
           </motion.p>
-          <motion.div
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ duration: 0.5, delay: 1.5 }}
-            className="w-16 h-[2px] bg-[#E85102] mt-4 origin-center"
-          />
+          <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 0.5, delay: 1.5 }} className="w-16 h-[2px] bg-[#E85102] mt-4 origin-center" />
         </motion.div>
       </div>
     </motion.div>
   );
 }
 
-// ── Hero ────────────────────────────────────────────────────
-function HeroSection({
-  projectName,
-  clientCompany,
-  heroSubtitle,
-  accentColor,
-  coverImageUrl,
-  deliveryDate,
-}: {
-  projectName: string | null;
-  clientCompany: string | null;
-  heroSubtitle: string | null;
-  accentColor: string;
-  coverImageUrl: string | null;
-  deliveryDate: string | null;
-}) {
-  const heroRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
-  const bgY = useTransform(scrollYProgress, [0, 1], [0, 80]);
-  const contentOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
-
-  return (
-    <section ref={heroRef} className="relative h-screen flex flex-col justify-end overflow-hidden">
-      {/* Background */}
-      {coverImageUrl ? (
-        <motion.div className="absolute inset-0 z-0" style={{ y: bgY }}>
-          <Image src={coverImageUrl} alt="" fill className="object-cover" priority />
-          <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/40 to-transparent" />
-        </motion.div>
-      ) : (
-        <div className="absolute inset-0 z-0 bg-zinc-900" />
-      )}
-
-      {/* Top bar — logo */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-        className="absolute top-0 left-0 right-0 z-20 p-6 sm:p-8 flex items-center justify-between"
-      >
-        <a href="https://wearetbo.com.br" target="_blank" rel="noopener noreferrer">
-          <Image
-            src="/logo-tbo-dark.svg"
-            alt="TBO | Lançamentos Imobiliários"
-            width={100}
-            height={40}
-            className="h-7 sm:h-8 w-auto opacity-70 hover:opacity-100 transition-opacity"
-            priority
-          />
-        </a>
-        {deliveryDate && (
-          <span className="text-[11px] text-white/40 tracking-wider uppercase hidden sm:block">
-            Versão Final &middot; {formatDate(deliveryDate)}
-          </span>
-        )}
-      </motion.div>
-
-      {/* Bottom content */}
-      <motion.div
-        style={{ opacity: contentOpacity }}
-        className="relative z-10 px-6 sm:px-10 pb-16 sm:pb-20 max-w-5xl"
-      >
-        {heroSubtitle && (
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.4 }}
-            className="text-xs sm:text-sm text-white/40 tracking-widest uppercase mb-4"
-          >
-            {heroSubtitle}
-          </motion.p>
-        )}
-
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-          className="text-5xl sm:text-7xl md:text-8xl font-bold text-white tracking-tight leading-[0.9]"
-        >
-          {projectName ?? "Projeto"}
-        </motion.h1>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, delay: 0.8 }}
-          className="flex items-center gap-4 mt-6"
-        >
-          {clientCompany && (
-            <span className="text-sm sm:text-base text-white/50 font-light">{clientCompany}</span>
-          )}
-          <div className="w-8 h-[1px]" style={{ background: accentColor }} />
-        </motion.div>
-
-        {/* Scroll hint */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5, duration: 0.4 }}
-          className="mt-12"
-        >
-          <motion.div
-            animate={{ y: [0, 6, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-          >
-            <IconArrowDown size={18} className="text-white/20" />
-          </motion.div>
-        </motion.div>
-      </motion.div>
-    </section>
-  );
-}
-
-// ── Content Body ────────────────────────────────────────────
-function ContentBody({
-  description,
-  deliveryDate,
-  deliveredBy,
-  personalMessage,
-  deliverables,
-  accentColor,
-}: {
-  description: string | null;
-  deliveryDate: string | null;
-  deliveredBy: string | null;
-  personalMessage: string | null;
-  deliverables: Deliverable[];
-  accentColor: string;
-}) {
-  return (
-    <section className="relative bg-white">
-      <div className="max-w-3xl mx-auto px-6 sm:px-8 py-20 sm:py-28">
-        {/* Intro */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.6, ease: EASE_OUT }}
-        >
-          {deliveryDate && (
-            <p className="text-xs tracking-widest uppercase mb-8" style={{ color: accentColor }}>
-              Entrega final &middot; {formatDate(deliveryDate)}
-            </p>
-          )}
-
-          {description && (
-            <p className="text-xl sm:text-2xl text-zinc-700 leading-relaxed font-light">
-              {description}
-            </p>
-          )}
-
-          {deliveredBy && (
-            <p className="text-sm text-zinc-400 mt-4">
-              Entregue por {deliveredBy}
-            </p>
-          )}
-
-          <div className="w-12 h-[1px] bg-zinc-200 mt-10 mb-10" />
-        </motion.div>
-
-        {/* Personal message */}
-        {personalMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.6, ease: EASE_OUT }}
-            className="mb-16 pl-6 border-l-2"
-            style={{ borderColor: `${accentColor}40` }}
-          >
-            <p className="text-lg text-zinc-600 leading-relaxed italic">
-              &ldquo;{personalMessage}&rdquo;
-            </p>
-          </motion.div>
-        )}
-
-        {/* Deliverables */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.2 }}
-          transition={{ duration: 0.5, ease: EASE_OUT }}
-        >
-          <p className="text-xs tracking-widest text-zinc-400 uppercase mb-8">
-            Entregáveis &middot; {deliverables.length} {deliverables.length === 1 ? "item" : "itens"}
-          </p>
-
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, amount: 0.1 }}
-            className="space-y-3"
-          >
-            {deliverables.map((d, i) => (
-              <DeliverableRow key={`${d.title}-${i}`} deliverable={d} accentColor={accentColor} index={i} />
-            ))}
-          </motion.div>
-        </motion.div>
-      </div>
-    </section>
-  );
-}
-
-// ── Deliverable Row ─────────────────────────────────────────
-function DeliverableRow({
-  deliverable,
-  accentColor,
-  index,
-}: {
-  deliverable: Deliverable;
-  accentColor: string;
-  index: number;
-}) {
+// ── Deliverable Card (Bento) ────────────────────────────────
+function DeliverableCard({ deliverable, accentColor }: { deliverable: Deliverable; accentColor: string }) {
   const Icon = TYPE_ICONS[deliverable.type] ?? IconExternalLink;
-
   const canDownload = isDownloadable(deliverable.type);
   const directUrl = getDirectDownloadUrl(deliverable.url);
   const downloadUrl = canDownload && directUrl ? directUrl : null;
@@ -499,82 +202,41 @@ function DeliverableRow({
       target={downloadUrl ? undefined : "_blank"}
       rel="noopener noreferrer"
       onClick={handleClick}
-      variants={staggerItem}
-      className="group flex items-start gap-5 p-5 sm:p-6 rounded-xl border border-zinc-100 hover:border-zinc-200 hover:bg-zinc-50/50 transition-all duration-300"
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ duration: 0.2 }}
+      className="group bg-white rounded-2xl p-6 flex flex-col justify-between min-h-[200px] cursor-pointer transition-shadow duration-300 hover:shadow-xl"
     >
-      {/* Number */}
-      <span className="text-[11px] font-mono text-zinc-300 mt-1 shrink-0 w-5 text-right">
-        {String(index + 1).padStart(2, "0")}
-      </span>
-
-      {/* Icon */}
-      <div
-        className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-        style={{ backgroundColor: `${accentColor}10` }}
-      >
-        <Icon size={20} style={{ color: accentColor }} />
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <h3 className="text-base font-semibold text-zinc-900 group-hover:text-zinc-700 transition-colors">
+      <div>
+        <div
+          className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
+          style={{ backgroundColor: `${accentColor}12` }}
+        >
+          <Icon size={22} style={{ color: accentColor }} />
+        </div>
+        <h3 className="text-base font-bold text-stone-900 leading-tight">
           {deliverable.title}
         </h3>
         {deliverable.description && (
-          <p className="text-sm text-zinc-400 mt-1 leading-relaxed line-clamp-2">
+          <p className="text-[13px] text-stone-400 mt-2 leading-relaxed line-clamp-3">
             {deliverable.description}
           </p>
         )}
       </div>
-
-      {/* Action */}
-      <div className="shrink-0 mt-1">
-        {downloadUrl ? (
-          <IconDownload size={16} className="text-zinc-300 group-hover:text-zinc-600 transition-colors" />
-        ) : (
-          <IconArrowRight size={16} className="text-zinc-300 group-hover:text-zinc-600 transition-colors" />
-        )}
-      </div>
-    </motion.a>
-  );
-}
-
-// ── Footer ──────────────────────────────────────────────────
-function FooterSection() {
-  return (
-    <footer className="bg-zinc-900 py-16 sm:py-20 px-6">
-      <div className="max-w-3xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-8">
-          <div>
-            <a href="https://wearetbo.com.br" target="_blank" rel="noopener noreferrer">
-              <Image
-                src="/logo-tbo-dark.svg"
-                alt="TBO | Lançamentos Imobiliários"
-                width={80}
-                height={32}
-                className="h-7 w-auto opacity-50 hover:opacity-80 transition-opacity"
-              />
-            </a>
-            <p className="text-sm text-white/30 mt-4 max-w-xs leading-relaxed">
-              Aproveite e conheça mais o nosso website e nossos serviços.
-            </p>
-            <a
-              href="https://wearetbo.com.br"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm text-white/50 hover:text-white/80 transition-colors mt-4"
-            >
-              wearetbo.com.br
-              <IconArrowRight size={14} />
-            </a>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-white/20">contato@agenciatbo.com.br</p>
-            <p className="text-[10px] text-white/10 mt-1">Gerado pelo TBO OS</p>
-          </div>
+      <div className="flex items-center justify-between mt-5 pt-4 border-t border-stone-100">
+        <span className="text-[11px] text-stone-300 font-medium uppercase tracking-wider">
+          {deliverable.type === "folder" ? "Pasta" : deliverable.type.toUpperCase()}
+          {deliverable.file_size && ` · ${deliverable.file_size}`}
+        </span>
+        <div className="w-8 h-8 rounded-full bg-stone-100 group-hover:bg-zinc-900 flex items-center justify-center transition-colors duration-300">
+          {downloadUrl ? (
+            <IconDownload size={14} className="text-stone-400 group-hover:text-white transition-colors" />
+          ) : (
+            <IconArrowUpRight size={14} className="text-stone-400 group-hover:text-white transition-colors" />
+          )}
         </div>
       </div>
-    </footer>
+    </motion.a>
   );
 }
 
@@ -602,42 +264,175 @@ export function DeliveryView({
   const [revealComplete, setRevealComplete] = useState(!isFirstAccess);
 
   if (accessPassword && !unlocked) {
-    return (
-      <PasswordScreen
-        accessPassword={accessPassword}
-        onUnlock={() => setUnlocked(true)}
-        coverImageUrl={coverImageUrl}
-      />
-    );
+    return <PasswordScreen accessPassword={accessPassword} onUnlock={() => setUnlocked(true)} coverImageUrl={coverImageUrl} />;
   }
 
   return (
-    <main className="relative">
+    <main className="min-h-screen bg-[#f0ede9]">
       <AnimatePresence>
-        {!revealComplete && (
-          <RevealAnimation projectName={projectName} onComplete={() => setRevealComplete(true)} />
-        )}
+        {!revealComplete && <RevealAnimation projectName={projectName} onComplete={() => setRevealComplete(true)} />}
       </AnimatePresence>
 
-      <HeroSection
-        projectName={projectName}
-        clientCompany={clientCompany}
-        heroSubtitle={heroSubtitle}
-        accentColor={accentColor}
-        coverImageUrl={coverImageUrl}
-        deliveryDate={deliveryDate}
-      />
+      {/* ── Outer shell with padding ── */}
+      <div className="p-3 sm:p-4 md:p-5">
 
-      <ContentBody
-        description={description}
-        deliveryDate={deliveryDate}
-        deliveredBy={deliveredBy}
-        personalMessage={personalMessage}
-        deliverables={deliverables}
-        accentColor={accentColor}
-      />
+        {/* ── Header bar ── */}
+        <motion.header
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="flex items-center justify-between mb-4"
+        >
+          <div className="flex items-center gap-3">
+            <a href="https://wearetbo.com.br" target="_blank" rel="noopener noreferrer">
+              <Image src="/logo-tbo.svg" alt="TBO" width={80} height={32} className="h-6 sm:h-7 w-auto" priority />
+            </a>
+            <div className="hidden sm:block w-[1px] h-4 bg-zinc-300" />
+            <span className="hidden sm:block text-xs text-stone-400">Lançamentos Imobiliários</span>
+          </div>
+          <div className="flex items-center gap-3">
+            {deliveryDate && (
+              <span className="text-[11px] text-stone-400 bg-white rounded-full px-3 py-1.5 font-medium">
+                {formatDate(deliveryDate)}
+              </span>
+            )}
+            {deliveredBy && (
+              <span className="hidden md:block text-[11px] text-stone-400 bg-white rounded-full px-3 py-1.5">
+                {deliveredBy}
+              </span>
+            )}
+          </div>
+        </motion.header>
 
-      <FooterSection />
+        {/* ── Bento Grid ── */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 sm:gap-4">
+
+          {/* ── Hero Card (dark, wide) — spans 8 cols ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="md:col-span-8 relative rounded-3xl overflow-hidden min-h-[360px] sm:min-h-[440px] flex flex-col justify-end"
+          >
+            {coverImageUrl ? (
+              <>
+                <Image src={coverImageUrl} alt="" fill className="object-cover" priority />
+                <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/30 to-transparent" />
+              </>
+            ) : (
+              <div className="absolute inset-0 bg-zinc-900" />
+            )}
+            <div className="relative z-10 p-6 sm:p-8">
+              {heroSubtitle && (
+                <p className="text-[11px] text-white/40 tracking-widest uppercase mb-3">
+                  {heroSubtitle}
+                </p>
+              )}
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white tracking-tight leading-[0.95]">
+                {projectName ?? "Projeto"}
+              </h1>
+              {clientCompany && (
+                <p className="text-sm text-white/40 mt-3 font-light">{clientCompany}</p>
+              )}
+            </div>
+          </motion.div>
+
+          {/* ── Accent Card (orange) — spans 4 cols ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="md:col-span-4 rounded-3xl p-6 sm:p-8 flex flex-col justify-between min-h-[200px]"
+            style={{ background: accentColor }}
+          >
+            <div>
+              <p className="text-[11px] text-white/50 tracking-widest uppercase mb-4">
+                Versão Final
+              </p>
+              <p className="text-xl sm:text-2xl font-bold text-white leading-tight">
+                {description
+                  ? description.length > 120
+                    ? description.slice(0, 120) + "…"
+                    : description
+                  : "Entrega completa do projeto"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 mt-6">
+              <div className="w-6 h-[1px] bg-white/30" />
+              <span className="text-xs text-white/50">think, build, own</span>
+            </div>
+          </motion.div>
+
+          {/* ── Personal Message Card (if present) — full width ── */}
+          {personalMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="md:col-span-12 bg-white rounded-3xl p-6 sm:p-8"
+            >
+              <p className="text-lg sm:text-xl text-stone-600 leading-relaxed font-light italic max-w-3xl">
+                &ldquo;{personalMessage}&rdquo;
+              </p>
+              {deliveredBy && (
+                <div className="flex items-center gap-3 mt-5">
+                  <div className="w-8 h-[2px] rounded-full" style={{ background: accentColor }} />
+                  <span className="text-sm font-semibold text-stone-500">{deliveredBy}</span>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* ── Deliverable Cards ── */}
+          {deliverables.map((d, i) => {
+            // Alternate card sizes: first and last span more
+            const isWide = i === 0 || i === deliverables.length - 1;
+            return (
+              <motion.div
+                key={`${d.title}-${i}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.5 + i * 0.1 }}
+                className={isWide && deliverables.length > 2 ? "md:col-span-7" : deliverables.length <= 2 ? "md:col-span-6" : "md:col-span-5"}
+              >
+                <DeliverableCard deliverable={d} accentColor={accentColor} />
+              </motion.div>
+            );
+          })}
+
+          {/* ── CTA / Website Card — spans full width ── */}
+          <motion.a
+            href="https://wearetbo.com.br"
+            target="_blank"
+            rel="noopener noreferrer"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.8 }}
+            whileHover={{ scale: 1.005 }}
+            className="md:col-span-12 bg-zinc-900 rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 cursor-pointer group"
+          >
+            <div className="flex items-center gap-4">
+              <Image src="/logo-tbo-dark.svg" alt="TBO" width={60} height={24} className="h-5 w-auto opacity-50 group-hover:opacity-80 transition-opacity" />
+              <div className="w-[1px] h-6 bg-white/10 hidden sm:block" />
+              <p className="text-sm text-white/40 group-hover:text-white/60 transition-colors">
+                Aproveite e conheça mais o nosso website e nossos serviços.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-white/40 group-hover:text-white transition-colors shrink-0">
+              <span className="text-sm font-medium">wearetbo.com.br</span>
+              <IconArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </div>
+          </motion.a>
+
+        </div>
+
+        {/* ── Footer ── */}
+        <footer className="flex items-center justify-between mt-4 px-2 pb-2">
+          <p className="text-[10px] text-stone-400">contato@agenciatbo.com.br</p>
+          <p className="text-[10px] text-stone-300">Gerado pelo TBO OS</p>
+        </footer>
+
+      </div>
     </main>
   );
 }

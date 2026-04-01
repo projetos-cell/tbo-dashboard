@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function DeliveryLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-white text-zinc-900 antialiased selection:bg-[#E85102]/20">
+    <div className="min-h-screen bg-[#f0ede9] text-stone-900 antialiased selection:bg-[#E85102]/20">
       {children}
     </div>
   );

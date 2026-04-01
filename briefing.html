@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Briefing Criativo | TBO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --zinc-950: #09090b;
+      --zinc-900: #18181b;
+      --zinc-800: #27272a;
+      --zinc-700: #3f3f46;
+      --zinc-600: #52525b;
+      --zinc-500: #71717a;
+      --zinc-400: #a1a1aa;
+      --zinc-300: #d4d4d8;
+      --zinc-200: #e4e4e7;
+      --orange: #E85102;
+      --orange-end: #EC7602;
+      --orange-dim: rgba(232, 81, 2, 0.15);
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--zinc-950);
+      color: var(--zinc-300);
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Animated orb background ── */
+    .bg-orbs { pointer-events: none; position: fixed; inset: 0; overflow: hidden; z-index: 0; }
+    .bg-orbs .base { position: absolute; inset: 0; background: var(--zinc-950); }
+    .bg-orbs .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(50px);
+    }
+    .orb-1 {
+      height: 72vh; width: 58vw; top: 5%; left: 30%;
+      background: radial-gradient(circle, rgba(220,100,30,0.95) 0%, rgba(200,75,15,0.4) 45%, transparent 70%);
+      animation: orbit1 8s cubic-bezier(0.4,0,0.2,1) infinite;
+    }
+    .orb-2 {
+      height: 52vh; width: 46vw; top: -10%; right: -10%;
+      background: radial-gradient(circle, rgba(240,228,210,0.8) 0%, rgba(220,200,170,0.2) 45%, transparent 65%);
+      animation: orbit2 11s cubic-bezier(0.4,0,0.2,1) infinite;
+    }
+    .orb-3 {
+      height: 58vh; width: 65vw; bottom: -12%; left: 0;
+      background: radial-gradient(circle, rgba(55,20,28,0.9) 0%, rgba(70,30,35,0.25) 50%, transparent 70%);
+      animation: orbit3 9s cubic-bezier(0.4,0,0.2,1) infinite;
+    }
+    .orb-4 {
+      height: 46vh; width: 39vw; top: 25%; right: 0;
+      background: radial-gradient(circle, rgba(180,70,15,0.7) 0%, rgba(150,55,10,0.15) 50%, transparent 70%);
+      animation: orbit4 7s cubic-bezier(0.4,0,0.2,1) infinite;
+    }
+    .bg-grain {
+      position: absolute; inset: 0; opacity: 0.45;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='0.06'/%3E%3C/svg%3E");
+    }
+    .bg-vignette {
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 50% 60% at 50% 50%, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.35) 70%, rgba(0,0,0,0.25) 100%);
+    }
+
+    @keyframes orbit1 {
+      0%   { transform: translate(0,0) scale(1) rotate(0deg); }
+      14%  { transform: translate(12%,-14%) scale(1.18) rotate(4deg); }
+      32%  { transform: translate(-6%,-8%) scale(0.92) rotate(-2deg); }
+      48%  { transform: translate(-16%,10%) scale(1.1) rotate(-5deg); }
+      67%  { transform: translate(8%,16%) scale(0.88) rotate(3deg); }
+      83%  { transform: translate(14%,-4%) scale(1.14) rotate(-1deg); }
+      100% { transform: translate(0,0) scale(1) rotate(0deg); }
+    }
+    @keyframes orbit2 {
+      0%   { transform: translate(0,0) scale(1.05) rotate(0deg); }
+      18%  { transform: translate(-14%,-10%) scale(0.9) rotate(-4deg); }
+      36%  { transform: translate(-8%,14%) scale(1.2) rotate(2deg); }
+      52%  { transform: translate(16%,6%) scale(0.88) rotate(5deg); }
+      71%  { transform: translate(10%,-12%) scale(1.12) rotate(-3deg); }
+      100% { transform: translate(0,0) scale(1.05) rotate(0deg); }
+    }
+    @keyframes orbit3 {
+      0%   { transform: translate(0,0) scale(1); }
+      22%  { transform: translate(10%,14%) scale(1.22) rotate(3deg); }
+      41%  { transform: translate(-14%,6%) scale(0.86) rotate(-4deg); }
+      58%  { transform: translate(-8%,-12%) scale(1.14) rotate(2deg); }
+      76%  { transform: translate(12%,-6%) scale(0.92) rotate(-2deg); }
+      100% { transform: translate(0,0) scale(1); }
+    }
+    @keyframes orbit4 {
+      0%   { transform: translate(0,0) scale(1) rotate(0deg); }
+      16%  { transform: translate(-12%,-8%) scale(1.16) rotate(-3deg); }
+      35%  { transform: translate(6%,-16%) scale(0.9) rotate(5deg); }
+      53%  { transform: translate(14%,10%) scale(1.08) rotate(-4deg); }
+      72%  { transform: translate(-6%,14%) scale(0.94) rotate(2deg); }
+      100% { transform: translate(0,0) scale(1) rotate(0deg); }
+    }
+
+    /* ── Main container ── */
+    .main-wrap {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+
+    /* ── Logo ── */
+    .logo-wrap { margin-bottom: 32px; }
+    .logo-text {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: 8px;
+      color: #fff;
+      text-transform: uppercase;
+    }
+
+    /* ── Card ── */
+    .card {
+      width: 100%;
+      max-width: 520px;
+      border-radius: 16px;
+      border: 1px solid var(--zinc-800);
+      background: rgba(24, 24, 27, 0.80);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      padding: 24px 28px;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    }
+    @media (min-width: 768px) { .card { padding: 32px 36px; } }
+
+    /* ── Intro screen ── */
+    .intro-badge {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 2.5px;
+      color: var(--orange);
+      margin-bottom: 8px;
+    }
+    .intro-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 20px;
+      line-height: 1.2;
+    }
+    .intro-text {
+      font-size: 15px;
+      color: var(--zinc-300);
+      margin-bottom: 12px;
+      line-height: 1.7;
+    }
+    .intro-text-dim {
+      font-size: 13px;
+      color: var(--zinc-400);
+      line-height: 1.7;
+      margin-bottom: 12px;
+    }
+
+    .info-box {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: rgba(39,39,42,0.6);
+      border-radius: 12px;
+      padding: 16px;
+      margin: 20px 0;
+    }
+    .info-icon {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--orange-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 2px;
+    }
+    .info-icon svg { width: 16px; height: 16px; }
+    .info-text {
+      font-size: 13px;
+      color: var(--zinc-300);
+      line-height: 1.6;
+    }
+
+    .divider { height: 1px; background: var(--zinc-800); margin: 20px 0; }
+
+    /* ── CTA button ── */
+    .btn-primary {
+      width: 100%;
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--orange) 0%, var(--orange-end) 100%);
+      box-shadow: 0 10px 25px -5px rgba(232,81,2,0.3);
+      transition: all 0.2s;
+    }
+    .btn-primary:hover { filter: brightness(1.1); box-shadow: 0 15px 35px -5px rgba(232,81,2,0.4); }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; filter: none; transform: none; }
+
+    .btn-secondary {
+      width: 100%;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      color: var(--zinc-300);
+      border: 1px solid var(--zinc-700);
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 10px;
+    }
+    .btn-secondary:hover { border-color: var(--zinc-500); background: rgba(255,255,255,0.03); }
+
+    .meta-chips {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--zinc-500);
+      margin-top: 16px;
+    }
+    .meta-dot { color: var(--zinc-700); }
+
+    /* ── Progress bar (top) ── */
+    .progress-bar {
+      position: fixed; top: 0; left: 0; width: 100%; height: 3px;
+      background: transparent; z-index: 100;
+    }
+    .progress-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, var(--orange), var(--orange-end));
+      transition: width 0.4s ease;
+    }
+
+    /* ── Section navigation ── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .section-num {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      background: var(--orange-dim);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 600; color: var(--orange);
+      flex-shrink: 0;
+    }
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .section-step {
+      font-size: 11px;
+      color: var(--zinc-500);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 4px;
+    }
+
+    /* ── Form fields ── */
+    .field { margin-bottom: 18px; }
+    .field:last-child { margin-bottom: 0; }
+    .field-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--zinc-200);
+      margin-bottom: 6px;
+    }
+    .field-label .req { color: var(--orange); }
+    .field-hint {
+      font-size: 11px;
+      color: var(--zinc-500);
+      margin-bottom: 6px;
+    }
+    .field-input, .field-textarea, .field-select {
+      width: 100%;
+      background: rgba(39,39,42,0.5);
+      border: 1px solid var(--zinc-700);
+      border-radius: 10px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 14px;
+      padding: 11px 14px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .field-input:focus, .field-textarea:focus, .field-select:focus {
+      border-color: var(--orange);
+      box-shadow: 0 0 0 3px rgba(232,81,2,0.15);
+    }
+    .field-input::placeholder, .field-textarea::placeholder { color: var(--zinc-600); }
+    .field-textarea { min-height: 80px; resize: vertical; }
+    .field-select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px;
+      cursor: pointer;
+    }
+    .field-select option { background: var(--zinc-900); }
+
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 500px) { .field-row { grid-template-columns: 1fr; } }
+
+    /* ── Toggle ── */
+    .toggle-list { margin-top: 4px; }
+    .toggle-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 0;
+      border-bottom: 1px solid rgba(39,39,42,0.5);
+    }
+    .toggle-item:last-child { border-bottom: none; }
+    .toggle-item-label { font-size: 14px; color: var(--zinc-300); }
+    .toggle {
+      position: relative;
+      width: 40px; height: 22px; flex-shrink: 0;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute; inset: 0;
+      background: var(--zinc-700); border-radius: 11px;
+      cursor: pointer; transition: background 0.25s;
+    }
+    .toggle-track::before {
+      content: '';
+      position: absolute; top: 2px; left: 2px;
+      width: 18px; height: 18px;
+      background: var(--zinc-400); border-radius: 50%;
+      transition: transform 0.25s, background 0.25s;
+    }
+    .toggle input:checked + .toggle-track { background: var(--orange); }
+    .toggle input:checked + .toggle-track::before { transform: translateX(18px); background: #fff; }
+
+    /* ── Nav buttons row ── */
+    .nav-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
+    }
+    .nav-back {
+      flex: 0 0 auto;
+      border-radius: 10px;
+      padding: 12px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      color: var(--zinc-400);
+      border: 1px solid var(--zinc-700);
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .nav-back:hover { border-color: var(--zinc-500); color: var(--zinc-200); }
+    .nav-next {
+      flex: 1;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--orange), var(--orange-end));
+      transition: all 0.2s;
+    }
+    .nav-next:hover { filter: brightness(1.1); }
+
+    /* ── Views ── */
+    .view { display: none; }
+    .view.active { display: block; animation: fadeUp 0.35s ease; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Footer ── */
+    .powered {
+      text-align: center;
+      font-size: 11px;
+      color: var(--zinc-700);
+      margin-top: 24px;
+    }
+
+    /* ── Success ── */
+    .success-wrap {
+      text-align: center;
+      padding: 20px 0;
+    }
+    .success-icon {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: var(--orange-dim);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 20px;
+      animation: popIn 0.5s ease;
+    }
+    @keyframes popIn {
+      0% { transform: scale(0); }
+      70% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+    .success-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .success-sub {
+      font-size: 14px;
+      color: var(--zinc-400);
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Animated background -->
+  <div class="bg-orbs">
+    <div class="base"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="orb orb-4"></div>
+    <div class="bg-grain"></div>
+    <div class="bg-vignette"></div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="progress-bar"><div class="progress-fill" id="pFill"></div></div>
+
+  <!-- Main -->
+  <div class="main-wrap">
+    <div class="logo-wrap">
+      <div class="logo-text">TBO</div>
+    </div>
+
+    <div class="card">
+      <!-- ===== VIEW 0: Intro ===== -->
+      <div class="view active" id="v0">
+        <div class="intro-badge" id="badgeText">Briefing Criativo</div>
+        <h1 class="intro-title">Queremos entender o seu<br>empreendimento a fundo.</h1>
+        <p class="intro-text">Este briefing direciona toda a producao criativa da TBO para o seu projeto. Quanto mais detalhes, mais assertivo sera o resultado.</p>
+        <p class="intro-text-dim">Suas respostas sao salvas automaticamente. Voce pode fechar e voltar a qualquer momento.</p>
+        <div class="info-box">
+          <div class="info-icon">
+            <svg fill="none" viewBox="0 0 24 24" stroke="#E85102" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <p class="info-text">Link exclusivo para <strong id="clientDisplay">este cliente</strong>. O briefing sera vinculado diretamente ao projeto.</p>
+        </div>
+        <div class="divider"></div>
+        <button class="btn-primary" onclick="go(1)">Comecar briefing</button>
+        <div class="meta-chips">
+          <span>6 secoes</span>
+          <span class="meta-dot">&middot;</span>
+          <span>~12 min</span>
+          <span class="meta-dot">&middot;</span>
+          <span>Salva automaticamente</span>
+        </div>
+      </div>
+
+      <!-- ===== VIEW 1: Dados do Empreendimento ===== -->
+      <div class="view" id="v1">
+        <div class="section-step">Secao 1 de 6</div>
+        <div class="section-header">
+          <div class="section-num">1</div>
+          <div class="section-title">Dados do Empreendimento</div>
+        </div>
+        <div class="field">
+          <label class="field-label">Nome do Empreendimento <span class="req">*</span></label>
+          <input class="field-input bf" name="nome_empreendimento" placeholder="Ex: Residencial Horizon">
+        </div>
+        <div class="field">
+          <label class="field-label">Incorporadora <span class="req">*</span></label>
+          <input class="field-input bf" name="incorporadora" placeholder="Nome da incorporadora">
+        </div>
+        <div class="field">
+          <label class="field-label">Endereco completo</label>
+          <input class="field-input bf" name="endereco" placeholder="Rua, numero">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label">Bairro / Cidade / UF</label>
+            <input class="field-input bf" name="bairro_cidade" placeholder="Batel, Curitiba/PR">
+          </div>
+          <div class="field">
+            <label class="field-label">Padrao</label>
+            <select class="field-select bf" name="padrao">
+              <option value="">Selecione...</option>
+              <option value="popular">Popular</option>
+              <option value="medio">Medio</option>
+              <option value="alto">Alto padrao</option>
+              <option value="luxo">Luxo</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label">Numero de torres</label>
+            <input class="field-input bf" name="num_torres" placeholder="Ex: 2">
+          </div>
+          <div class="field">
+            <label class="field-label">Total de unidades</label>
+            <input class="field-input bf" name="total_unidades" placeholder="Ex: 120">
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Tipologias</label>
+          <div class="field-hint">Ex: 2Q, 3Q, cobertura</div>
+          <input class="field-input bf" name="tipologias" placeholder="Tipos de unidade">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label">Area privativa (de - ate)</label>
+            <input class="field-input bf" name="area_privativa" placeholder="65m2 a 180m2">
+          </div>
+          <div class="field">
+            <label class="field-label">Previsao de lancamento</label>
+            <input class="field-input bf" name="previsao_lancamento" placeholder="Mar/2026">
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">VGV estimado (R$)</label>
+          <input class="field-input bf" name="vgv" placeholder="R$ 80.000.000">
+        </div>
+        <div class="nav-row">
+          <button class="nav-back" onclick="go(0)">&larr;</button>
+          <button class="nav-next" onclick="go(2)">Proximo &rarr;</button>
+        </div>
+      </div>
+
+      <!-- ===== VIEW 2: Publico-Alvo ===== -->
+      <div class="view" id="v2">
+        <div class="section-step">Secao 2 de 6</div>
+        <div class="section-header">
+          <div class="section-num">2</div>
+          <div class="section-title">Publico-Alvo</div>
+        </div>
+        <div class="field">
+          <label class="field-label">Persona principal <span class="req">*</span></label>
+          <div class="field-hint">Quem compra: idade, renda, fase da vida, motivacao</div>
+          <textarea class="field-textarea bf" name="persona_principal" placeholder="Descreva o comprador ideal..."></textarea>
+        </div>
+        <div class="field">
+          <label class="field-label">Persona secundaria</label>
+          <div class="field-hint">Quem influencia: conjuge, pais, corretor</div>
+          <textarea class="field-textarea bf" name="persona_secundaria" placeholder="Quem influencia a decisao?"></textarea>
+        </div>
+        <div class="field">
+          <label class="field-label">Faixa de renda</label>
+          <input class="field-input bf" name="faixa_renda" placeholder="R$ 15.000 a R$ 30.000/mes">
+        </div>
+        <div class="field">
+          <label class="field-label">Motivacao de compra</label>
+          <div class="field-hint">Moradia propria, investimento, upgrade</div>
+          <input class="field-input bf" name="motivacao_compra" placeholder="Principal razao para comprar">
+        </div>
+        <div class="field">
+          <label class="field-label">O que mais valoriza</label>
+          <div class="field-hint">Localizacao? Lazer? Acabamento? Preco?</div>
+          <input class="field-input bf" name="mais_valoriza" placeholder="Top 3 atributos">
+        </div>
+        <div class="field">
+          <label class="field-label">Maior medo / objecao</label>
+          <div class="field-hint">Atraso? Preco? Construtora desconhecida?</div>
+          <input class="field-input bf" name="medo_objecao" placeholder="Principal barreira de compra">
+        </div>
+        <div class="nav-row">
+          <button class="nav-back" onclick="go(1)">&larr;</button>
+          <button class="nav-next" onclick="go(3)">Proximo &rarr;</button>
+        </div>
+      </div>
+
+      <!-- ===== VIEW 3: O Produto ===== -->
+      <div class="view" id="v3">
+        <div class="section-step">Secao 3 de 6</div>
+        <div class="section-header">
+          <div class="section-num">3</div>
+          <div class="section-title">O Produto</div>
+        </div>
+        <div class="field">
+          <label class="field-label">Principal diferencial competitivo <span class="req">*</span></label>
+          <div class="field-hint">O que este empreendimento tem que os outros nao tem?</div>
+          <textarea class="field-textarea bf" name="diferencial_principal" placeholder="O que torna este empreendimento unico..."></textarea>
+        </div>
+        <div class="field">
+          <label class="field-label">Diferenciais tecnicos</label>
+          <div class="field-hint">Estrutura, tecnologia construtiva, eficiencia energetica</div>
+          <textarea class="field-textarea bf" name="diferenciais_tecnicos" placeholder="Aspectos construtivos relevantes"></textarea>
+        </div>
+        <div class="field">
+          <label class="field-label">Diferenciais de lazer</label>
+          <textarea class="field-textarea bf" name="diferenciais_lazer" placeholder="Areas de lazer destaque"></textarea>
+        </div>
+        <div class="field">
+          <label class="field-label">Diferenciais de localizacao</label>
+          <textarea class="field-textarea bf" name="diferenciais_localizacao" placeholder="O que o entorno agrega"></textarea>
+        </div>
+        <div class="field">
+          <label class="field-label">Concorrentes diretos</label>
+          <div class="field-hint">Nome + bairro</div>
+          <textarea class="field-textarea bf" name="concorrentes" placeholder="Empreendimentos concorrentes"></textarea>
+        </div>
+        <div class="field">
+          <label class="field-label">Posicionamento vs concorrencia</label>
+          <input class="field-input bf" name="posicionamento" placeholder="Mais barato? Melhor localizado? Premium?">
+        </div>
+        <div class="nav-row">
+          <button class="nav-back" onclick="go(2)">&larr;</button>
+          <button class="nav-next" onclick="go(4)">Proximo &rarr;</button>
+        </div>
+      </div>
+
+      <!-- ===== VIEW 4: Direcao Criativa ===== -->
+      <div class="view" id="v4">
+        <div class="section-step">Secao 4 de 6</div>
+        <div class="section-header">
+          <div class="section-num">4</div>
+          <div class="section-title">Direcao Criativa</div>
+        </div>
+        <div class="field">
+          <label class="field-label">Conceito / mote</label>
+          <div class="field-hint">Frase-conceito que resume a essencia</div>
+          <input class="field-input bf" name="conceito" placeholder="Viver onde a cidade encontra a natureza">
+        </div>
+        <div class="field">
+          <label class="field-label">Tom de voz</label>
+          <div class="field-hint">Sofisticado? Acolhedor? Moderno? Aspiracional?</div>
+          <input class="field-input bf" name="tom_voz" placeholder="Sofisticado e contemporaneo">
+        </div>
+        <div class="field">
+          <label class="field-label">Referencias visuais</label>
+          <div class="field-hint">Links de moodboard, referencias, marcas</div>
+          <textarea class="field-textarea bf" name="referencias_visuais" placeholder="Cole links ou descreva"></textarea>
+        </div>
+        <div class="field">
+          <label class="field-label">Paleta de cores desejada</label>
+          <input class="field-input bf" name="paleta_cores" placeholder="Tons terrosos + dourado, ou 'em aberto'">
+        </div>
+        <div class="field">
+          <label class="field-label">Estilo de fotografia / 3D</label>
+          <div class="field-hint">Warm? Clean? Dramatico? Minimalista?</div>
+          <input class="field-input bf" name="estilo_foto_3d" placeholder="Estilo visual desejado">
+        </div>
+        <div class="field">
+          <label class="field-label">O que NAO queremos</label>
+          <textarea class="field-textarea bf" name="nao_queremos" placeholder="O que evitar na comunicacao"></textarea>
+        </div>
+        <div class="nav-row">
+          <button class="nav-back" onclick="go(3)">&larr;</button>
+          <button class="nav-next" onclick="go(5)">Proximo &rarr;</button>
+        </div>
+      </div>
+
+      <!-- ===== VIEW 5: Entregas ===== -->
+      <div class="view" id="v5">
+        <div class="section-step">Secao 5 de 6</div>
+        <div class="section-header">
+          <div class="section-num">5</div>
+          <div class="section-title">Entregas Esperadas</div>
+        </div>
+        <div class="toggle-list">
+          <div class="toggle-item"><span class="toggle-item-label">Naming</span><label class="toggle"><input type="checkbox" class="bf" name="entrega_naming"><span class="toggle-track"></span></label></div>
+          <div class="toggle-item"><span class="toggle-item-label">Identidade Visual (logo + manual + KVs)</span><label class="toggle"><input type="checkbox" class="bf" name="entrega_id_visual"><span class="toggle-track"></span></label></div>
+          <div class="toggle-item"><span class="toggle-item-label">Tour virtual 360&deg;</span><label class="toggle"><input type="checkbox" class="bf" name="entrega_tour_360"><span class="toggle-track"></span></label></div>
+          <div class="toggle-item"><span class="toggle-item-label">Video teaser</span><label class="toggle"><input type="checkbox" class="bf" name="entrega_video_teaser"><span class="toggle-track"></span></label></div>
+          <div class="toggle-item"><span class="toggle-item-label">Video institucional</span><label class="toggle"><input type="checkbox" class="bf" name="entrega_video_institucional"><span class="toggle-track"></span></label></div>
+          <div class="toggle-item"><span class="toggle-item-label">Implantacao</span><label class="toggle"><input type="checkbox" class="bf" name="entrega_implantacao"><span class="toggle-track"></span></label></div>
+          <div class="toggle-item"><span class="toggle-item-label">Stand / PDV</span><label class="toggle"><input type="checkbox" class="bf" name="entrega_stand"><span class="toggle-track"></span></label></div>
+          <div class="toggle-item"><span class="toggle-item-label">Site / Landing page</span><label class="toggle"><input type="checkbox" class="bf" name="entrega_site"><span class="toggle-track"></span></label></div>
+          <div class="toggle-item"><span class="toggle-item-label">Campanha digital</span><label class="toggle"><input type="checkbox" class="bf" name="entrega_campanha"><span class="toggle-track"></span></label></div>
+        </div>
+        <div style="margin-top:18px;">
+          <div class="field-row">
+            <div class="field"><label class="field-label">Imagens 3D (qtd)</label><input class="field-input bf" name="qtd_3d" placeholder="12 imagens"></div>
+            <div class="field"><label class="field-label">Plantas humanizadas (qtd)</label><input class="field-input bf" name="qtd_plantas" placeholder="4 plantas"></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label class="field-label">Book de vendas</label><input class="field-input bf" name="book_vendas" placeholder="Digital + 200 impressos"></div>
+            <div class="field"><label class="field-label">Folder / panfleto</label><input class="field-input bf" name="folder_qtd" placeholder="5.000 unidades"></div>
+          </div>
+          <div class="field"><label class="field-label">Tapume (metragem)</label><input class="field-input bf" name="tapume_metragem" placeholder="60m lineares"></div>
+        </div>
+        <div class="nav-row">
+          <button class="nav-back" onclick="go(4)">&larr;</button>
+          <button class="nav-next" onclick="go(6)">Proximo &rarr;</button>
+        </div>
+      </div>
+
+      <!-- ===== VIEW 6: Prazos ===== -->
+      <div class="view" id="v6">
+        <div class="section-step">Secao 6 de 6</div>
+        <div class="section-header">
+          <div class="section-num">6</div>
+          <div class="section-title">Prazos e Observacoes</div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label class="field-label">Prazo naming</label><input class="field-input bf" name="prazo_naming" type="date"></div>
+          <div class="field"><label class="field-label">Prazo ID visual</label><input class="field-input bf" name="prazo_id_visual" type="date"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label class="field-label">Prazo 3Ds</label><input class="field-input bf" name="prazo_3ds" type="date"></div>
+          <div class="field"><label class="field-label">Prazo materiais graficos</label><input class="field-input bf" name="prazo_graficos" type="date"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label class="field-label">Data do lancamento</label><input class="field-input bf" name="data_lancamento" type="date"></div>
+          <div class="field"><label class="field-label">Budget marketing (R$)</label><input class="field-input bf" name="budget_marketing" placeholder="R$ 500.000"></div>
+        </div>
+        <div class="field">
+          <label class="field-label">Observacoes adicionais</label>
+          <textarea class="field-textarea bf" name="observacoes" rows="4" placeholder="Qualquer informacao relevante para a equipe criativa..."></textarea>
+        </div>
+        <div class="nav-row">
+          <button class="nav-back" onclick="go(5)">&larr;</button>
+          <button class="nav-next" id="submitBtn" onclick="submitBriefing()">Enviar Briefing &check;</button>
+        </div>
+      </div>
+
+      <!-- ===== VIEW 7: Success ===== -->
+      <div class="view" id="v7">
+        <div class="success-wrap">
+          <div class="success-icon">&#10003;</div>
+          <h2 class="success-title">Briefing enviado!</h2>
+          <p class="success-sub">O briefing foi vinculado ao projeto e a equipe criativa da TBO sera notificada. Obrigado pelo detalhamento.</p>
+        </div>
+      </div>
+    </div>
+
+    <p class="powered">Powered by TBO OS</p>
+  </div>
+
+  <script>
+  (function() {
+    'use strict';
+
+    // ── URL params ──
+    var P = new URLSearchParams(location.search);
+    var cliente = P.get('cliente') || 'cliente';
+    var projeto = P.get('projeto') || '';
+    var nome    = decodeURIComponent(P.get('nome') || cliente).replace(/-/g, ' ');
+    var projNome = decodeURIComponent(P.get('projeto_nome') || projeto).replace(/-/g, ' ');
+
+    var display = projNome ? nome + ' — ' + projNome : nome;
+    document.getElementById('clientDisplay').textContent = display;
+    document.title = 'Briefing | ' + display;
+
+    var key = 'tbo_briefing_' + cliente + (projeto ? '_' + projeto : '');
+    var fields = document.querySelectorAll('.bf');
+    var TOTAL = 7; // 0=intro, 1-6=sections, 7=success
+    var current = 0;
+
+    // ── Load draft ──
+    try {
+      var saved = JSON.parse(localStorage.getItem(key));
+      if (saved) {
+        fields.forEach(function(el) {
+          var v = saved[el.name];
+          if (v === undefined) return;
+          if (el.type === 'checkbox') el.checked = !!v;
+          else el.value = v;
+        });
+      }
+    } catch(e) {}
+
+    // ── Autosave ──
+    var timer;
+    function save() {
+      var d = {};
+      fields.forEach(function(el) { d[el.name] = el.type === 'checkbox' ? el.checked : el.value; });
+      d._meta = { cliente: cliente, projeto: projeto, nome: nome, projNome: projNome, lastSaved: new Date().toISOString(), status: 'rascunho' };
+      localStorage.setItem(key, JSON.stringify(d));
+    }
+    fields.forEach(function(el) {
+      el.addEventListener('input', function() { clearTimeout(timer); timer = setTimeout(save, 600); });
+      el.addEventListener('change', save);
+    });
+
+    // ── Navigation ──
+    window.go = function(n) {
+      save();
+      document.getElementById('v' + current).classList.remove('active');
+      current = n;
+      document.getElementById('v' + current).classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // progress
+      var pct = n === 0 ? 0 : n >= 7 ? 100 : Math.round((n / 6) * 100);
+      document.getElementById('pFill').style.width = pct + '%';
+    };
+
+    // ── Submit ──
+    window.submitBriefing = function() {
+      // validate required
+      var req = ['nome_empreendimento','incorporadora','persona_principal','diferencial_principal'];
+      for (var i = 0; i < req.length; i++) {
+        var el = document.querySelector('[name="' + req[i] + '"]');
+        if (!el || !el.value.trim()) {
+          // find which section
+          var sectionMap = { nome_empreendimento: 1, incorporadora: 1, persona_principal: 2, diferencial_principal: 3 };
+          go(sectionMap[req[i]]);
+          el.focus();
+          el.style.borderColor = '#ef4444';
+          return;
+        }
+      }
+
+      var d = {};
+      fields.forEach(function(el) { d[el.name] = el.type === 'checkbox' ? el.checked : el.value; });
+      d._meta = { cliente: cliente, projeto: projeto, nome: nome, projNome: projNome, submittedAt: new Date().toISOString(), status: 'enviado' };
+      localStorage.setItem(key, JSON.stringify(d));
+
+      // master list
+      var all = [];
+      try { all = JSON.parse(localStorage.getItem('tbo_briefings_submitted')) || []; } catch(e) {}
+      var idx = all.findIndex(function(b) { return b._meta && b._meta.cliente === cliente && b._meta.projeto === projeto; });
+      if (idx >= 0) all[idx] = d; else all.push(d);
+      localStorage.setItem('tbo_briefings_submitted', JSON.stringify(all));
+
+      go(7);
+    };
+
+  })();
+  </script>
+</body>
+</html>

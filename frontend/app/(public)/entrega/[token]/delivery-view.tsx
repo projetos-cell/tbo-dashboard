@@ -446,7 +446,11 @@ function DeliverablesSection({
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, amount: 0.2 }}
-          className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6"
+          className={`grid gap-4 sm:gap-6 ${
+            deliverables.length === 1
+              ? "grid-cols-1 max-w-md mx-auto"
+              : "grid-cols-1 md:grid-cols-2"
+          }`}
         >
           {deliverables.map((d, i) => (
             <DeliverableCard
@@ -457,61 +461,6 @@ function DeliverablesSection({
           ))}
         </motion.div>
       </div>
-    </section>
-  );
-}
-
-// ── CTA Section ──────────────────────────────────────────────
-function CTASection({
-  deliverables,
-  accentColor,
-}: {
-  deliverables: Deliverable[];
-  accentColor: string;
-}) {
-  // Find first downloadable or fallback to first deliverable
-  const primary = deliverables.find(
-    (d) => isDownloadable(d.type) && getDirectDownloadUrl(d.url),
-  ) ?? deliverables[0];
-  if (!primary) return null;
-
-  const directUrl = getDirectDownloadUrl(primary.url);
-  const isDownload = !!directUrl;
-  const href = directUrl ?? primary.url;
-
-  return (
-    <section className="py-20 sm:py-28 px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.6, ease: EASE_OUT }}
-        className="text-center max-w-lg mx-auto"
-      >
-        <p className="text-2xl sm:text-3xl font-bold text-zinc-900 mb-3">
-          Pronto para acessar?
-        </p>
-        <p className="text-sm text-zinc-500 mb-10">
-          {isDownload
-            ? "Clique abaixo para baixar os arquivos diretamente."
-            : "Clique abaixo para abrir todos os arquivos do projeto."}
-        </p>
-
-        <motion.a
-          href={href}
-          {...(isDownload ? { download: "" } : { target: "_blank", rel: "noopener noreferrer" })}
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          className="inline-flex items-center gap-3 px-10 py-4 rounded-full text-white font-semibold text-base transition-shadow duration-500"
-          style={{
-            background: accentColor,
-            boxShadow: `0 4px 24px ${accentColor}30`,
-          }}
-        >
-          <IconDownload size={20} />
-          {isDownload ? "Baixar Entrega" : "Acessar Entrega"}
-        </motion.a>
-      </motion.div>
     </section>
   );
 }
@@ -590,11 +539,6 @@ export function DeliveryView({
       />
 
       <DeliverablesSection
-        deliverables={deliverables}
-        accentColor={accentColor}
-      />
-
-      <CTASection
         deliverables={deliverables}
         accentColor={accentColor}
       />

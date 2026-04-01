@@ -175,7 +175,7 @@ function HeroSection({
           transition={{ duration: 0.4, delay: 0.2, ease: EASE_OUT }}
           className="mb-12 flex flex-col items-center"
         >
-          <a href="https://agenciatbo.com.br" target="_blank" rel="noopener noreferrer">
+          <a href="https://wearetbo.com.br" target="_blank" rel="noopener noreferrer">
             <Image
               src="/logo-tbo.svg"
               alt="TBO | Lançamentos Imobiliários"
@@ -519,9 +519,9 @@ function CTASection({
 // ── Footer ──────────────────────────────────────────────────
 function FooterSection() {
   return (
-    <footer className="border-t border-zinc-200 py-10 px-4">
-      <div className="max-w-4xl mx-auto flex flex-col items-center gap-4">
-        <a href="https://agenciatbo.com.br" target="_blank" rel="noopener noreferrer">
+    <footer className="border-t border-zinc-200 py-12 px-4">
+      <div className="max-w-4xl mx-auto flex flex-col items-center gap-5">
+        <a href="https://wearetbo.com.br" target="_blank" rel="noopener noreferrer">
           <Image
             src="/logo-tbo.svg"
             alt="TBO | Lançamentos Imobiliários"
@@ -533,19 +533,22 @@ function FooterSection() {
         <p className="text-[11px] text-zinc-400 tracking-wide">
           TBO | Lançamentos Imobiliários
         </p>
-        <div className="flex items-center gap-4 text-xs text-zinc-400">
-          <a
-            href="https://agenciatbo.com.br"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-zinc-600 transition-colors"
-          >
-            agenciatbo.com.br
-          </a>
-          <span className="text-zinc-300">·</span>
-          <span>contato@agenciatbo.com.br</span>
-        </div>
-        <p className="text-[10px] text-zinc-300 mt-1">
+        <p className="text-sm text-zinc-500 text-center max-w-xs leading-relaxed">
+          Aproveite e conheça mais o nosso website e nossos serviços.
+        </p>
+        <a
+          href="https://wearetbo.com.br"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full border border-zinc-300 text-sm font-medium text-zinc-600 hover:bg-zinc-100 hover:border-zinc-400 transition-all"
+        >
+          Visitar wearetbo.com.br
+          <IconExternalLink size={14} />
+        </a>
+        <p className="text-xs text-zinc-400 mt-2">
+          contato@agenciatbo.com.br
+        </p>
+        <p className="text-[10px] text-zinc-300">
           Este link de entrega foi gerado pelo TBO OS.
         </p>
       </div>

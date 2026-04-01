@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useState } from "react";
 import Image from "next/image";
 import {
   motion,
   useScroll,
   useTransform,
+  AnimatePresence,
   type Variants,
 } from "framer-motion";
 import {
@@ -21,8 +22,12 @@ import {
   IconCalendar,
   IconBuilding,
   IconUser,
+  IconLock,
+  IconQuote,
 } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 // ── Types ──────────────────────────────────────────────────
 interface Deliverable {
@@ -45,10 +50,15 @@ interface DeliveryViewProps {
   deliverables: Deliverable[];
   heroSubtitle: string | null;
   accentColor: string;
+  coverImageUrl: string | null;
+  personalMessage: string | null;
+  isFirstAccess: boolean;
+  accessPassword: string | null;
 }
 
 // ── Constants ──────────────────────────────────────────────
 const EASE_OUT = [0.0, 0.0, 0.2, 1] as const;
+const CURTAIN_EASE = [0.76, 0, 0.24, 1] as const;
 
 const TYPE_ICONS: Record<string, typeof IconFolder> = {
   folder: IconFolder,
@@ -78,26 +88,18 @@ function formatDate(dateStr: string) {
   });
 }
 
-/**
- * Convert Google Drive share/view URLs into direct download URLs.
- * For folder URLs or non-Drive URLs, returns null (open externally).
- */
 function getDirectDownloadUrl(url: string): string | null {
-  // Match /file/d/FILE_ID/ pattern
   const fileMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
   if (fileMatch) {
     return `https://drive.google.com/uc?export=download&id=${fileMatch[1]}`;
   }
-  // Match ?id=FILE_ID pattern
   const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
   if (idMatch && !url.includes("/folders/")) {
     return `https://drive.google.com/uc?export=download&id=${idMatch[1]}`;
   }
-  // Folder or non-Drive URLs — cannot direct download
   return null;
 }
 
-/** Returns true if the deliverable type supports direct download */
 function isDownloadable(type: string): boolean {
   return ["pdf", "dwg", "image", "zip", "video"].includes(type);
 }
@@ -120,17 +122,180 @@ const staggerItem: Variants = {
   },
 };
 
+// ── Password Screen ────────────────────────────────────────
+function PasswordScreen({
+  accessPassword,
+  onUnlock,
+}: {
+  accessPassword: string;
+  onUnlock: () => void;
+}) {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(false);
+
+  const handleSubmit = useCallback(
+    (e?: React.FormEvent) => {
+      e?.preventDefault();
+      if (password.trim().toLowerCase() === accessPassword.toLowerCase()) {
+        onUnlock();
+      } else {
+        setError(true);
+      }
+    },
+    [password, accessPassword, onUnlock],
+  );
+
+  return (
+    <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4, ease: EASE_OUT }}
+        className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-8 sm:p-10 text-center max-w-sm w-full"
+      >
+        <Image
+          src="/logo-tbo.svg"
+          alt="TBO"
+          width={80}
+          height={32}
+          className="h-7 w-auto mx-auto opacity-50 mb-8"
+        />
+
+        <div className="w-14 h-14 rounded-full bg-zinc-100 flex items-center justify-center mx-auto mb-5">
+          <IconLock size={24} className="text-zinc-400" />
+        </div>
+
+        <h2 className="text-lg font-bold text-zinc-900 mb-1">
+          Entrega protegida
+        </h2>
+        <p className="text-sm text-zinc-500 mb-6">
+          Digite a senha de acesso fornecida pela TBO.
+        </p>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <Input
+            type="password"
+            placeholder="Senha de acesso"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setError(false);
+            }}
+            className={`text-center h-11 ${error ? "border-red-400 focus-visible:ring-red-400" : ""}`}
+            autoFocus
+          />
+          {error && (
+            <motion.p
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-xs text-red-500"
+            >
+              Senha incorreta. Tente novamente.
+            </motion.p>
+          )}
+          <Button
+            type="submit"
+            className="w-full h-11 bg-[#18181B] hover:bg-zinc-800 text-white"
+          >
+            Acessar entrega
+          </Button>
+        </form>
+
+        <p className="text-[10px] text-zinc-400 mt-8">
+          TBO | Lançamentos Imobiliários
+        </p>
+      </motion.div>
+    </div>
+  );
+}
+
+// ── Reveal Animation (first access) ───────────────────────
+function RevealAnimation({
+  projectName,
+  onComplete,
+}: {
+  projectName: string | null;
+  onComplete: () => void;
+}) {
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 pointer-events-none"
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      {/* Top curtain */}
+      <motion.div
+        className="absolute top-0 left-0 right-0 h-1/2 bg-zinc-900 z-50"
+        initial={{ y: 0 }}
+        animate={{ y: "-100%" }}
+        transition={{ duration: 0.8, delay: 2.2, ease: CURTAIN_EASE }}
+      />
+
+      {/* Bottom curtain */}
+      <motion.div
+        className="absolute bottom-0 left-0 right-0 h-1/2 bg-zinc-900 z-50"
+        initial={{ y: 0 }}
+        animate={{ y: "100%" }}
+        transition={{ duration: 0.8, delay: 2.2, ease: CURTAIN_EASE }}
+        onAnimationComplete={onComplete}
+      />
+
+      {/* Center content */}
+      <div className="absolute inset-0 z-[51] flex flex-col items-center justify-center bg-zinc-900">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="flex flex-col items-center"
+        >
+          <Image
+            src="/logo-tbo-dark.svg"
+            alt="TBO"
+            width={100}
+            height={40}
+            className="h-8 w-auto opacity-60 mb-6"
+          />
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.8 }}
+            className="text-white text-2xl sm:text-3xl font-bold tracking-tight"
+          >
+            {projectName ?? "Seu projeto"}
+          </motion.p>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3, delay: 1.2 }}
+            className="text-white/40 text-sm mt-2 tracking-widest uppercase"
+          >
+            está pronto
+          </motion.p>
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 0.5, delay: 1.5 }}
+            className="w-16 h-[2px] bg-[#E85102] mt-4 origin-center"
+          />
+        </motion.div>
+      </div>
+    </motion.div>
+  );
+}
+
 // ── Hero Section ────────────────────────────────────────────
 function HeroSection({
   projectName,
   clientCompany,
   heroSubtitle,
   accentColor,
+  coverImageUrl,
 }: {
   projectName: string | null;
   clientCompany: string | null;
   heroSubtitle: string | null;
   accentColor: string;
+  coverImageUrl: string | null;
 }) {
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
@@ -139,6 +304,7 @@ function HeroSection({
   });
   const contentY = useTransform(scrollYProgress, [0, 1], [0, -120]);
   const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+  const bgY = useTransform(scrollYProgress, [0, 1], [0, 80]);
 
   const letters = (projectName ?? "Projeto").split("");
 
@@ -147,21 +313,34 @@ function HeroSection({
       ref={heroRef}
       className="relative min-h-screen flex items-center justify-center overflow-hidden bg-white"
     >
-      {/* Subtle gradient orbs — light mode */}
-      <div className="absolute inset-0 z-0">
-        <div
-          className="absolute w-[500px] h-[500px] rounded-full opacity-[0.08] blur-[140px] animate-[drift1_20s_ease-in-out_infinite]"
-          style={{ background: accentColor, top: "10%", right: "10%" }}
-        />
-        <div
-          className="absolute w-[400px] h-[400px] rounded-full opacity-[0.05] blur-[120px] animate-[drift2_25s_ease-in-out_infinite]"
-          style={{ background: "#e0dcd8", bottom: "10%", left: "5%" }}
-        />
-        <div
-          className="absolute w-[300px] h-[300px] rounded-full opacity-[0.06] blur-[100px] animate-[drift3_18s_ease-in-out_infinite]"
-          style={{ background: accentColor, top: "40%", left: "40%" }}
-        />
-      </div>
+      {/* Background: cover image with parallax OR gradient orbs */}
+      {coverImageUrl ? (
+        <motion.div className="absolute inset-0 z-0" style={{ y: bgY }}>
+          <Image
+            src={coverImageUrl}
+            alt=""
+            fill
+            className="object-cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px]" />
+        </motion.div>
+      ) : (
+        <div className="absolute inset-0 z-0">
+          <div
+            className="absolute w-[500px] h-[500px] rounded-full opacity-[0.08] blur-[140px] animate-[drift1_20s_ease-in-out_infinite]"
+            style={{ background: accentColor, top: "10%", right: "10%" }}
+          />
+          <div
+            className="absolute w-[400px] h-[400px] rounded-full opacity-[0.05] blur-[120px] animate-[drift2_25s_ease-in-out_infinite]"
+            style={{ background: "#e0dcd8", bottom: "10%", left: "5%" }}
+          />
+          <div
+            className="absolute w-[300px] h-[300px] rounded-full opacity-[0.06] blur-[100px] animate-[drift3_18s_ease-in-out_infinite]"
+            style={{ background: accentColor, top: "40%", left: "40%" }}
+          />
+        </div>
+      )}
 
       {/* Content */}
       <motion.div
@@ -266,11 +445,13 @@ function ContextSection({
   deliveryDate,
   clientCompany,
   deliveredBy,
+  accentColor,
 }: {
   description: string | null;
   deliveryDate: string | null;
   clientCompany: string | null;
   deliveredBy: string | null;
+  accentColor: string;
 }) {
   return (
     <section className="py-20 sm:py-28 px-4">
@@ -281,6 +462,21 @@ function ContextSection({
         transition={{ duration: 0.6, ease: EASE_OUT }}
         className="max-w-2xl mx-auto text-center"
       >
+        {/* Version/Date Badge */}
+        {deliveryDate && (
+          <div className="flex justify-center mb-6">
+            <Badge
+              className="text-xs font-medium tracking-wide px-4 py-1.5 rounded-full border-0"
+              style={{
+                backgroundColor: `${accentColor}15`,
+                color: accentColor,
+              }}
+            >
+              Versão Final &middot; {formatDate(deliveryDate)}
+            </Badge>
+          </div>
+        )}
+
         <p className="text-xs tracking-[0.3em] text-zinc-400 uppercase mb-6">
           Sobre esta entrega
         </p>
@@ -293,12 +489,6 @@ function ContextSection({
 
         {/* Metadata */}
         <div className="flex flex-wrap justify-center gap-6 mt-10">
-          {deliveryDate && (
-            <div className="flex items-center gap-2 text-sm text-zinc-400">
-              <IconCalendar size={16} />
-              <span>{formatDate(deliveryDate)}</span>
-            </div>
-          )}
           {clientCompany && (
             <div className="flex items-center gap-2 text-sm text-zinc-400">
               <IconBuilding size={16} />
@@ -309,6 +499,54 @@ function ContextSection({
             <div className="flex items-center gap-2 text-sm text-zinc-400">
               <IconUser size={16} />
               <span>{deliveredBy}</span>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </section>
+  );
+}
+
+// ── Personal Message Section ────────────────────────────────
+function PersonalMessageSection({
+  message,
+  author,
+  accentColor,
+}: {
+  message: string;
+  author: string | null;
+  accentColor: string;
+}) {
+  return (
+    <section className="py-8 sm:py-12 px-4">
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.3 }}
+        transition={{ duration: 0.6, ease: EASE_OUT }}
+        className="max-w-2xl mx-auto"
+      >
+        <div className="relative bg-white rounded-2xl border border-zinc-200 p-8 sm:p-10">
+          {/* Decorative quote */}
+          <div className="absolute -top-4 left-8">
+            <IconQuote
+              size={36}
+              className="rotate-180"
+              style={{ color: `${accentColor}40` }}
+            />
+          </div>
+
+          <p className="text-lg sm:text-xl text-zinc-700 leading-relaxed font-light italic mt-2">
+            {message}
+          </p>
+
+          {author && (
+            <div className="flex items-center gap-3 mt-6">
+              <div
+                className="w-8 h-[2px]"
+                style={{ background: accentColor }}
+              />
+              <p className="text-sm font-semibold text-zinc-600">{author}</p>
             </div>
           )}
         </div>
@@ -335,7 +573,6 @@ function DeliverableCard({
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
       if (downloadUrl) {
-        // Trigger direct download via hidden anchor
         e.preventDefault();
         const a = document.createElement("a");
         a.href = downloadUrl;
@@ -345,7 +582,6 @@ function DeliverableCard({
         a.click();
         document.body.removeChild(a);
       }
-      // For folders/links: default <a> behaviour (open in new tab)
     },
     [downloadUrl],
   );
@@ -363,12 +599,9 @@ function DeliverableCard({
       }}
       className="group block rounded-2xl border border-zinc-200 bg-white p-6 sm:p-8 transition-all duration-300 hover:shadow-lg hover:border-zinc-300"
     >
-      {/* Icon */}
       <div
         className="w-14 h-14 rounded-xl flex items-center justify-center transition-colors duration-300"
-        style={{
-          backgroundColor: `${accentColor}12`,
-        }}
+        style={{ backgroundColor: `${accentColor}12` }}
       >
         <Icon
           size={28}
@@ -377,7 +610,6 @@ function DeliverableCard({
         />
       </div>
 
-      {/* Content */}
       <h3 className="text-lg font-semibold text-zinc-900 mt-5">
         {deliverable.title}
       </h3>
@@ -387,7 +619,6 @@ function DeliverableCard({
         </p>
       )}
 
-      {/* Bottom row */}
       <div className="flex items-center justify-between mt-6">
         <Badge
           variant="outline"
@@ -433,7 +664,7 @@ function DeliverablesSection({
           className="text-center mb-12"
         >
           <p className="text-xs tracking-[0.3em] text-zinc-400 uppercase mb-3">
-            Entregaveis
+            Entregáveis
           </p>
           <p className="text-sm text-zinc-400">
             {deliverables.length}{" "}
@@ -517,18 +748,45 @@ export function DeliveryView({
   deliverables,
   heroSubtitle,
   accentColor,
+  coverImageUrl,
+  personalMessage,
+  isFirstAccess,
+  accessPassword,
 }: DeliveryViewProps) {
-  // Suppress unused var warning
   void clientName;
   void title;
 
+  const [unlocked, setUnlocked] = useState(false);
+  const [revealComplete, setRevealComplete] = useState(!isFirstAccess);
+
+  // Password gate — blocks everything until unlocked
+  if (accessPassword && !unlocked) {
+    return (
+      <PasswordScreen
+        accessPassword={accessPassword}
+        onUnlock={() => setUnlocked(true)}
+      />
+    );
+  }
+
   return (
     <main className="relative">
+      {/* First-access reveal animation */}
+      <AnimatePresence>
+        {!revealComplete && (
+          <RevealAnimation
+            projectName={projectName}
+            onComplete={() => setRevealComplete(true)}
+          />
+        )}
+      </AnimatePresence>
+
       <HeroSection
         projectName={projectName}
         clientCompany={clientCompany}
         heroSubtitle={heroSubtitle}
         accentColor={accentColor}
+        coverImageUrl={coverImageUrl}
       />
 
       <ContextSection
@@ -536,7 +794,16 @@ export function DeliveryView({
         deliveryDate={deliveryDate}
         clientCompany={clientCompany}
         deliveredBy={deliveredBy}
+        accentColor={accentColor}
       />
+
+      {personalMessage && (
+        <PersonalMessageSection
+          message={personalMessage}
+          author={deliveredBy}
+          accentColor={accentColor}
+        />
+      )}
 
       <DeliverablesSection
         deliverables={deliverables}

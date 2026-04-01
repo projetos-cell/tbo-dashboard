@@ -34,6 +34,8 @@ interface DeliveryRecord {
   hero_gradient_to: string | null;
   accent_color: string | null;
   cover_image_url: string | null;
+  personal_message: string | null;
+  access_password: string | null;
   access_count: number;
   first_accessed_at: string | null;
   last_accessed_at: string | null;
@@ -53,6 +55,9 @@ export default async function DeliveryPage({ params }: Props) {
   if (!delivery) notFound();
 
   const record = delivery as unknown as DeliveryRecord;
+
+  // Compute before the fire-and-forget update
+  const isFirstAccess = record.first_accessed_at === null;
 
   // Track access (fire-and-forget)
   const now = new Date().toISOString();
@@ -78,6 +83,10 @@ export default async function DeliveryPage({ params }: Props) {
       deliverables={record.deliverables}
       heroSubtitle={record.hero_subtitle}
       accentColor={record.accent_color ?? "#ff6200"}
+      coverImageUrl={record.cover_image_url}
+      personalMessage={record.personal_message}
+      isFirstAccess={isFirstAccess}
+      accessPassword={record.access_password}
     />
   );
 }

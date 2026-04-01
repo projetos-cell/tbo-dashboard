@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 
 // ── Fluxo D3D completo baseado no pipeline real da TBO ──────────────
 // 8 fases + 4 gates de aprovação
@@ -23,6 +24,8 @@ interface StageData {
   tag: "input" | "producao" | "output";
   owner: string;
   variant?: "start" | "end";
+  image?: string;
+  imageAlt?: string;
 }
 
 interface GateData {
@@ -71,6 +74,8 @@ const PIPELINE: PipelineItem[] = [
   {
     step: "02",
     title: "Modelagem 3D",
+    image: "/metodo/img/d3d_02.jpeg",
+    imageAlt: "Viewport 3D — modelagem do empreendimento",
     subtitle: "Construção do modelo",
     days: "10–12 dias",
     description:
@@ -87,6 +92,8 @@ const PIPELINE: PipelineItem[] = [
   {
     step: "03",
     title: "Clay Render",
+    image: "/metodo/img/d3d_03.jpg",
+    imageAlt: "Clay render — validação volumétrica sem materiais",
     subtitle: "Validação volumétrica",
     days: "até 5 dias",
     description:
@@ -112,6 +119,8 @@ const PIPELINE: PipelineItem[] = [
   {
     step: "04",
     title: "Emissão Inicial",
+    image: "/metodo/img/d3d_07_web.jpg",
+    imageAlt: "Emissão inicial — primeiro render com materiais aplicados",
     subtitle: "1ª Rodada de Render",
     days: "15–20 dias",
     description:
@@ -137,6 +146,8 @@ const PIPELINE: PipelineItem[] = [
   {
     step: "05",
     title: "R01",
+    image: "/metodo/img/d3d_08_1.jpg",
+    imageAlt: "R01 — ajustes de materiais e iluminação",
     subtitle: "2ª Rodada de Render",
     days: "3–5 dias",
     description:
@@ -162,6 +173,8 @@ const PIPELINE: PipelineItem[] = [
   {
     step: "06",
     title: "R02",
+    image: "/metodo/img/d3d_08_3.jpg",
+    imageAlt: "R02 — pós-produção e color grading",
     subtitle: "3ª Rodada de Render",
     days: "3–5 dias",
     description:
@@ -187,6 +200,8 @@ const PIPELINE: PipelineItem[] = [
   {
     step: "07",
     title: "Entrega Final",
+    image: "/metodo/img/d3d_08_4.jpg",
+    imageAlt: "Entrega final — render em alta resolução",
     subtitle: "Empacotamento",
     days: "1–2 dias",
     description:
@@ -323,11 +338,15 @@ function PhaseCard({ stage, idx }: { stage: StageData; idx: number }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.35, delay: idx * 0.04 }}
-      className={`${cardBg} rounded-xl border shadow-sm min-w-[220px] max-w-[240px] shrink-0 flex flex-col overflow-hidden hover:shadow-md transition-shadow ${
+      initial={{ opacity: 0, y: 16, scale: 0.97 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{
+        duration: 0.5,
+        delay: idx * 0.06,
+        ease: [0.16, 1, 0.3, 1],
+      }}
+      className={`${cardBg} rounded-xl border shadow-sm min-w-[220px] max-w-[240px] shrink-0 flex flex-col overflow-hidden hover:shadow-md hover:-translate-y-1 transition-all duration-300 ${
         isStart
           ? "border-[#E85102]"
           : isEnd
@@ -335,6 +354,22 @@ function PhaseCard({ stage, idx }: { stage: StageData; idx: number }) {
             : "border-zinc-200"
       }`}
     >
+      {/* Image area */}
+      {stage.image && (
+        <div className="relative h-[120px] overflow-hidden">
+          <Image
+            src={stage.image}
+            alt={stage.imageAlt ?? stage.title}
+            fill
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            sizes="240px"
+          />
+          {isEnd && (
+            <div className="absolute inset-0 bg-gradient-to-t from-[#18181B] to-transparent" />
+          )}
+        </div>
+      )}
+
       {/* Header */}
       <div className="px-4 pt-4 pb-0 flex items-start gap-2.5">
         <div

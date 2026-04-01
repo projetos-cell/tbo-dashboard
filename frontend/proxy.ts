@@ -4,6 +4,16 @@ import { updateSession } from "@/lib/supabase/middleware"
 const ACADEMY_HOST = "academy.wearetbo.com.br"
 
 export async function proxy(request: NextRequest) {
+  // Public routes that skip auth entirely (no Supabase client needed)
+  const path = request.nextUrl.pathname
+  if (
+    path.startsWith("/briefing") ||
+    path.startsWith("/api/briefing") ||
+    path.startsWith("/intake")
+  ) {
+    return NextResponse.next()
+  }
+
   const host = request.headers.get("host") ?? ""
 
   // Academy subdomain: redirect authenticated users to /dashboard, not /projetos

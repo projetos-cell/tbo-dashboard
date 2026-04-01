@@ -1,0 +1,891 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+
+/* ─────────── Types ─────────── */
+interface BriefingFormProps {
+  slug: string;
+  clientName: string;
+  projectSlug: string;
+  projectName: string;
+  existingData?: Record<string, unknown>;
+  briefingId?: string;
+}
+
+type FormValues = Record<string, string | boolean>;
+
+/* ─────────── Component ─────────── */
+export function BriefingForm({
+  slug,
+  clientName,
+  projectSlug,
+  projectName,
+  existingData,
+  briefingId,
+}: BriefingFormProps) {
+  const [current, setCurrent] = useState(0);
+  const [values, setValues] = useState<FormValues>(() => {
+    if (existingData && typeof existingData === "object") {
+      const v: FormValues = {};
+      for (const [k, val] of Object.entries(existingData)) {
+        if (k !== "_meta") v[k] = val as string | boolean;
+      }
+      return v;
+    }
+    return {};
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const saveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const currentBriefingId = useRef(briefingId);
+
+  const displayName = projectName
+    ? `${clientName} — ${projectName}`
+    : clientName;
+
+  // ── Auto-save (debounced) ──
+  const autoSave = useCallback(async () => {
+    try {
+      await fetch("/api/briefing/submit", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug,
+          clientName,
+          projectSlug,
+          projectName,
+          formData: values,
+          briefingId: currentBriefingId.current,
+        }),
+      });
+    } catch {
+      // Silencioso — autosave não deve interromper o usuário
+    }
+  }, [slug, clientName, projectSlug, projectName, values]);
+
+  useEffect(() => {
+    if (Object.keys(values).length === 0) return;
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(autoSave, 2000);
+    return () => clearTimeout(saveTimer.current);
+  }, [values, autoSave]);
+
+  // ── Field handlers ──
+  const set = (name: string, value: string | boolean) =>
+    setValues((prev) => ({ ...prev, [name]: value }));
+
+  const v = (name: string) => (values[name] as string) || "";
+  const checked = (name: string) => !!values[name];
+
+  // ── Navigation ──
+  const go = (n: number) => {
+    setCurrent(n);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const progress =
+    current === 0 ? 0 : current >= 7 ? 100 : Math.round((current / 6) * 100);
+
+  // ── Submit ──
+  const handleSubmit = async () => {
+    const required: { field: string; section: number }[] = [
+      { field: "nome_empreendimento", section: 1 },
+      { field: "incorporadora", section: 1 },
+      { field: "persona_principal", section: 2 },
+      { field: "diferencial_principal", section: 3 },
+    ];
+
+    for (const r of required) {
+      if (!v(r.field).trim()) {
+        go(r.section);
+        toast.error("Preencha os campos obrigatórios");
+        return;
+      }
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/briefing/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug,
+          clientName,
+          projectSlug,
+          projectName,
+          formData: values,
+          briefingId: currentBriefingId.current,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Erro ao enviar");
+      }
+
+      setSubmitted(true);
+      go(7);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Erro ao enviar briefing",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  /* ════════════════════════════════════════════════
+     RENDER
+  ════════════════════════════════════════════════ */
+  return (
+    <div className="relative min-h-screen overflow-x-hidden bg-[#09090b] text-zinc-300">
+      {/* ── Background orbs ── */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute inset-0 bg-[#09090b]" />
+        <div className="absolute left-[30%] top-[5%] h-[72vh] w-[58vw] animate-[orbit1_8s_cubic-bezier(0.4,0,0.2,1)_infinite] rounded-full bg-[radial-gradient(circle,rgba(220,100,30,0.95)_0%,rgba(200,75,15,0.4)_45%,transparent_70%)] blur-[50px]" />
+        <div className="absolute right-[-10%] top-[-10%] h-[52vh] w-[46vw] animate-[orbit2_11s_cubic-bezier(0.4,0,0.2,1)_infinite] rounded-full bg-[radial-gradient(circle,rgba(240,228,210,0.8)_0%,rgba(220,200,170,0.2)_45%,transparent_65%)] blur-[50px]" />
+        <div className="absolute bottom-[-12%] left-0 h-[58vh] w-[65vw] animate-[orbit3_9s_cubic-bezier(0.4,0,0.2,1)_infinite] rounded-full bg-[radial-gradient(circle,rgba(55,20,28,0.9)_0%,rgba(70,30,35,0.25)_50%,transparent_70%)] blur-[50px]" />
+        <div className="absolute right-0 top-[25%] h-[46vh] w-[39vw] animate-[orbit4_7s_cubic-bezier(0.4,0,0.2,1)_infinite] rounded-full bg-[radial-gradient(circle,rgba(180,70,15,0.7)_0%,rgba(150,55,10,0.15)_50%,transparent_70%)] blur-[50px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_60%_at_50%_50%,rgba(0,0,0,0.62)_0%,rgba(0,0,0,0.35)_70%,rgba(0,0,0,0.25)_100%)]" />
+      </div>
+
+      {/* ── Progress bar ── */}
+      <div className="fixed left-0 top-0 z-50 h-[3px] w-full">
+        <div
+          className="h-full bg-gradient-to-r from-[#E85102] to-[#EC7602] transition-[width] duration-400 ease-out"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+
+      {/* ── Main ── */}
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 py-6">
+        <div className="mb-8">
+          <span className="text-[32px] font-bold uppercase tracking-[8px] text-white">
+            TBO
+          </span>
+        </div>
+
+        <div className="w-full max-w-[520px] rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 shadow-2xl backdrop-blur-md md:p-8">
+          {/* ── View 0: Intro ── */}
+          <View active={current === 0}>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[2.5px] text-[#E85102]">
+              Briefing Criativo
+            </p>
+            <h1 className="mb-5 text-[28px] font-bold leading-tight text-white">
+              Queremos entender o seu
+              <br />
+              empreendimento a fundo.
+            </h1>
+            <p className="mb-3 text-[15px] leading-relaxed text-zinc-300">
+              Este briefing direciona toda a produção criativa da TBO para o seu
+              projeto. Quanto mais detalhes, mais assertivo será o resultado.
+            </p>
+            <p className="mb-3 text-[13px] leading-relaxed text-zinc-400">
+              Suas respostas são salvas automaticamente. Você pode fechar e
+              voltar a qualquer momento.
+            </p>
+            <div className="my-5 flex items-start gap-3 rounded-xl bg-zinc-800/60 p-4">
+              <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#E85102]/15">
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="#E85102"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <p className="text-[13px] leading-relaxed text-zinc-300">
+                Link exclusivo para{" "}
+                <strong className="text-white">{displayName}</strong>. O briefing
+                será vinculado diretamente ao projeto.
+              </p>
+            </div>
+            <div className="my-5 h-px bg-zinc-800" />
+            <button className="btn-primary" onClick={() => go(1)}>
+              Começar briefing
+            </button>
+            <div className="mt-4 flex items-center justify-center gap-2.5 text-xs text-zinc-500">
+              <span>6 seções</span>
+              <span className="text-zinc-700">&middot;</span>
+              <span>~12 min</span>
+              <span className="text-zinc-700">&middot;</span>
+              <span>Salva automaticamente</span>
+            </div>
+          </View>
+
+          {/* ── View 1: Dados do Empreendimento ── */}
+          <View active={current === 1}>
+            <SectionHeader num={1} title="Dados do Empreendimento" />
+            <Field
+              label="Nome do Empreendimento"
+              required
+              value={v("nome_empreendimento")}
+              onChange={(val) => set("nome_empreendimento", val)}
+              placeholder="Ex: Residencial Horizon"
+            />
+            <Field
+              label="Incorporadora"
+              required
+              value={v("incorporadora")}
+              onChange={(val) => set("incorporadora", val)}
+              placeholder="Nome da incorporadora"
+            />
+            <Field
+              label="Endereço completo"
+              value={v("endereco")}
+              onChange={(val) => set("endereco", val)}
+              placeholder="Rua, número"
+            />
+            <FieldRow>
+              <Field
+                label="Bairro / Cidade / UF"
+                value={v("bairro_cidade")}
+                onChange={(val) => set("bairro_cidade", val)}
+                placeholder="Batel, Curitiba/PR"
+              />
+              <SelectField
+                label="Padrão"
+                value={v("padrao")}
+                onChange={(val) => set("padrao", val)}
+                options={[
+                  { value: "", label: "Selecione..." },
+                  { value: "popular", label: "Popular" },
+                  { value: "medio", label: "Médio" },
+                  { value: "alto", label: "Alto padrão" },
+                  { value: "luxo", label: "Luxo" },
+                ]}
+              />
+            </FieldRow>
+            <FieldRow>
+              <Field
+                label="Número de torres"
+                value={v("num_torres")}
+                onChange={(val) => set("num_torres", val)}
+                placeholder="Ex: 2"
+              />
+              <Field
+                label="Total de unidades"
+                value={v("total_unidades")}
+                onChange={(val) => set("total_unidades", val)}
+                placeholder="Ex: 120"
+              />
+            </FieldRow>
+            <Field
+              label="Tipologias"
+              hint="Ex: 2Q, 3Q, cobertura"
+              value={v("tipologias")}
+              onChange={(val) => set("tipologias", val)}
+              placeholder="Tipos de unidade"
+            />
+            <FieldRow>
+              <Field
+                label="Área privativa (de - até)"
+                value={v("area_privativa")}
+                onChange={(val) => set("area_privativa", val)}
+                placeholder="65m² a 180m²"
+              />
+              <Field
+                label="Previsão de lançamento"
+                value={v("previsao_lancamento")}
+                onChange={(val) => set("previsao_lancamento", val)}
+                placeholder="Mar/2026"
+              />
+            </FieldRow>
+            <Field
+              label="VGV estimado (R$)"
+              value={v("vgv")}
+              onChange={(val) => set("vgv", val)}
+              placeholder="R$ 80.000.000"
+            />
+            <NavRow onBack={() => go(0)} onNext={() => go(2)} />
+          </View>
+
+          {/* ── View 2: Público-Alvo ── */}
+          <View active={current === 2}>
+            <SectionHeader num={2} title="Público-Alvo" />
+            <TextareaField
+              label="Persona principal"
+              required
+              hint="Quem compra: idade, renda, fase da vida, motivação"
+              value={v("persona_principal")}
+              onChange={(val) => set("persona_principal", val)}
+              placeholder="Descreva o comprador ideal..."
+            />
+            <TextareaField
+              label="Persona secundária"
+              hint="Quem influencia: cônjuge, pais, corretor"
+              value={v("persona_secundaria")}
+              onChange={(val) => set("persona_secundaria", val)}
+              placeholder="Quem influencia a decisão?"
+            />
+            <Field
+              label="Faixa de renda"
+              value={v("faixa_renda")}
+              onChange={(val) => set("faixa_renda", val)}
+              placeholder="R$ 15.000 a R$ 30.000/mês"
+            />
+            <Field
+              label="Motivação de compra"
+              hint="Moradia própria, investimento, upgrade"
+              value={v("motivacao_compra")}
+              onChange={(val) => set("motivacao_compra", val)}
+              placeholder="Principal razão para comprar"
+            />
+            <Field
+              label="O que mais valoriza"
+              hint="Localização? Lazer? Acabamento? Preço?"
+              value={v("mais_valoriza")}
+              onChange={(val) => set("mais_valoriza", val)}
+              placeholder="Top 3 atributos"
+            />
+            <Field
+              label="Maior medo / objeção"
+              hint="Atraso? Preço? Construtora desconhecida?"
+              value={v("medo_objecao")}
+              onChange={(val) => set("medo_objecao", val)}
+              placeholder="Principal barreira de compra"
+            />
+            <NavRow onBack={() => go(1)} onNext={() => go(3)} />
+          </View>
+
+          {/* ── View 3: O Produto ── */}
+          <View active={current === 3}>
+            <SectionHeader num={3} title="O Produto" />
+            <TextareaField
+              label="Principal diferencial competitivo"
+              required
+              hint="O que este empreendimento tem que os outros não têm?"
+              value={v("diferencial_principal")}
+              onChange={(val) => set("diferencial_principal", val)}
+              placeholder="O que torna este empreendimento único..."
+            />
+            <TextareaField
+              label="Diferenciais técnicos"
+              hint="Estrutura, tecnologia construtiva, eficiência energética"
+              value={v("diferenciais_tecnicos")}
+              onChange={(val) => set("diferenciais_tecnicos", val)}
+              placeholder="Aspectos construtivos relevantes"
+            />
+            <TextareaField
+              label="Diferenciais de lazer"
+              value={v("diferenciais_lazer")}
+              onChange={(val) => set("diferenciais_lazer", val)}
+              placeholder="Áreas de lazer destaque"
+            />
+            <TextareaField
+              label="Diferenciais de localização"
+              value={v("diferenciais_localizacao")}
+              onChange={(val) => set("diferenciais_localizacao", val)}
+              placeholder="O que o entorno agrega"
+            />
+            <TextareaField
+              label="Concorrentes diretos"
+              hint="Nome + bairro"
+              value={v("concorrentes")}
+              onChange={(val) => set("concorrentes", val)}
+              placeholder="Empreendimentos concorrentes"
+            />
+            <Field
+              label="Posicionamento vs concorrência"
+              value={v("posicionamento")}
+              onChange={(val) => set("posicionamento", val)}
+              placeholder="Mais barato? Melhor localizado? Premium?"
+            />
+            <NavRow onBack={() => go(2)} onNext={() => go(4)} />
+          </View>
+
+          {/* ── View 4: Direção Criativa ── */}
+          <View active={current === 4}>
+            <SectionHeader num={4} title="Direção Criativa" />
+            <Field
+              label="Conceito / mote"
+              hint="Frase-conceito que resume a essência"
+              value={v("conceito")}
+              onChange={(val) => set("conceito", val)}
+              placeholder="Viver onde a cidade encontra a natureza"
+            />
+            <Field
+              label="Tom de voz"
+              hint="Sofisticado? Acolhedor? Moderno? Aspiracional?"
+              value={v("tom_voz")}
+              onChange={(val) => set("tom_voz", val)}
+              placeholder="Sofisticado e contemporâneo"
+            />
+            <TextareaField
+              label="Referências visuais"
+              hint="Links de moodboard, referências, marcas"
+              value={v("referencias_visuais")}
+              onChange={(val) => set("referencias_visuais", val)}
+              placeholder="Cole links ou descreva"
+            />
+            <Field
+              label="Paleta de cores desejada"
+              value={v("paleta_cores")}
+              onChange={(val) => set("paleta_cores", val)}
+              placeholder="Tons terrosos + dourado, ou 'em aberto'"
+            />
+            <Field
+              label="Estilo de fotografia / 3D"
+              hint="Warm? Clean? Dramático? Minimalista?"
+              value={v("estilo_foto_3d")}
+              onChange={(val) => set("estilo_foto_3d", val)}
+              placeholder="Estilo visual desejado"
+            />
+            <TextareaField
+              label="O que NÃO queremos"
+              value={v("nao_queremos")}
+              onChange={(val) => set("nao_queremos", val)}
+              placeholder="O que evitar na comunicação"
+            />
+            <NavRow onBack={() => go(3)} onNext={() => go(5)} />
+          </View>
+
+          {/* ── View 5: Entregas ── */}
+          <View active={current === 5}>
+            <SectionHeader num={5} title="Entregas Esperadas" />
+            <div className="mt-1 divide-y divide-zinc-800/50">
+              <Toggle
+                label="Naming"
+                checked={checked("entrega_naming")}
+                onChange={(val) => set("entrega_naming", val)}
+              />
+              <Toggle
+                label="Identidade Visual (logo + manual + KVs)"
+                checked={checked("entrega_id_visual")}
+                onChange={(val) => set("entrega_id_visual", val)}
+              />
+              <Toggle
+                label="Tour virtual 360°"
+                checked={checked("entrega_tour_360")}
+                onChange={(val) => set("entrega_tour_360", val)}
+              />
+              <Toggle
+                label="Vídeo teaser"
+                checked={checked("entrega_video_teaser")}
+                onChange={(val) => set("entrega_video_teaser", val)}
+              />
+              <Toggle
+                label="Vídeo institucional"
+                checked={checked("entrega_video_institucional")}
+                onChange={(val) => set("entrega_video_institucional", val)}
+              />
+              <Toggle
+                label="Implantação"
+                checked={checked("entrega_implantacao")}
+                onChange={(val) => set("entrega_implantacao", val)}
+              />
+              <Toggle
+                label="Stand / PDV"
+                checked={checked("entrega_stand")}
+                onChange={(val) => set("entrega_stand", val)}
+              />
+              <Toggle
+                label="Site / Landing page"
+                checked={checked("entrega_site")}
+                onChange={(val) => set("entrega_site", val)}
+              />
+              <Toggle
+                label="Campanha digital"
+                checked={checked("entrega_campanha")}
+                onChange={(val) => set("entrega_campanha", val)}
+              />
+            </div>
+            <div className="mt-5 space-y-4">
+              <FieldRow>
+                <Field
+                  label="Imagens 3D (qtd)"
+                  value={v("qtd_3d")}
+                  onChange={(val) => set("qtd_3d", val)}
+                  placeholder="12 imagens"
+                />
+                <Field
+                  label="Plantas humanizadas (qtd)"
+                  value={v("qtd_plantas")}
+                  onChange={(val) => set("qtd_plantas", val)}
+                  placeholder="4 plantas"
+                />
+              </FieldRow>
+              <FieldRow>
+                <Field
+                  label="Book de vendas"
+                  value={v("book_vendas")}
+                  onChange={(val) => set("book_vendas", val)}
+                  placeholder="Digital + 200 impressos"
+                />
+                <Field
+                  label="Folder / panfleto"
+                  value={v("folder_qtd")}
+                  onChange={(val) => set("folder_qtd", val)}
+                  placeholder="5.000 unidades"
+                />
+              </FieldRow>
+              <Field
+                label="Tapume (metragem)"
+                value={v("tapume_metragem")}
+                onChange={(val) => set("tapume_metragem", val)}
+                placeholder="60m lineares"
+              />
+            </div>
+            <NavRow onBack={() => go(4)} onNext={() => go(6)} />
+          </View>
+
+          {/* ── View 6: Prazos ── */}
+          <View active={current === 6}>
+            <SectionHeader num={6} title="Prazos e Observações" />
+            <FieldRow>
+              <Field
+                label="Prazo naming"
+                type="date"
+                value={v("prazo_naming")}
+                onChange={(val) => set("prazo_naming", val)}
+              />
+              <Field
+                label="Prazo ID visual"
+                type="date"
+                value={v("prazo_id_visual")}
+                onChange={(val) => set("prazo_id_visual", val)}
+              />
+            </FieldRow>
+            <FieldRow>
+              <Field
+                label="Prazo 3Ds"
+                type="date"
+                value={v("prazo_3ds")}
+                onChange={(val) => set("prazo_3ds", val)}
+              />
+              <Field
+                label="Prazo materiais gráficos"
+                type="date"
+                value={v("prazo_graficos")}
+                onChange={(val) => set("prazo_graficos", val)}
+              />
+            </FieldRow>
+            <FieldRow>
+              <Field
+                label="Data do lançamento"
+                type="date"
+                value={v("data_lancamento")}
+                onChange={(val) => set("data_lancamento", val)}
+              />
+              <Field
+                label="Budget marketing (R$)"
+                value={v("budget_marketing")}
+                onChange={(val) => set("budget_marketing", val)}
+                placeholder="R$ 500.000"
+              />
+            </FieldRow>
+            <TextareaField
+              label="Observações adicionais"
+              value={v("observacoes")}
+              onChange={(val) => set("observacoes", val)}
+              placeholder="Qualquer informação relevante para a equipe criativa..."
+              rows={4}
+            />
+            <div className="mt-6 flex gap-2.5">
+              <button className="nav-back" onClick={() => go(5)}>
+                &larr;
+              </button>
+              <button
+                className="btn-primary flex-1"
+                onClick={handleSubmit}
+                disabled={submitting}
+              >
+                {submitting ? "Enviando..." : "Enviar Briefing ✓"}
+              </button>
+            </div>
+          </View>
+
+          {/* ── View 7: Success ── */}
+          <View active={current === 7}>
+            <div className="py-5 text-center">
+              <div className="mb-5 inline-flex h-16 w-16 animate-[popIn_0.5s_ease] items-center justify-center rounded-full bg-[#E85102]/15 text-[28px]">
+                &#10003;
+              </div>
+              <h2 className="mb-2 text-[22px] font-bold text-white">
+                Briefing enviado!
+              </h2>
+              <p className="text-sm leading-relaxed text-zinc-400">
+                O briefing foi vinculado ao projeto e a equipe criativa da TBO
+                será notificada. Obrigado pelo detalhamento.
+              </p>
+            </div>
+          </View>
+        </div>
+
+        <p className="mt-6 text-center text-[11px] text-zinc-700">
+          Powered by TBO OS
+        </p>
+      </div>
+
+      {/* ── Keyframe animations ── */}
+      <style jsx global>{`
+        @keyframes orbit1 {
+          0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+          14% { transform: translate(12%, -14%) scale(1.18) rotate(4deg); }
+          32% { transform: translate(-6%, -8%) scale(0.92) rotate(-2deg); }
+          48% { transform: translate(-16%, 10%) scale(1.1) rotate(-5deg); }
+          67% { transform: translate(8%, 16%) scale(0.88) rotate(3deg); }
+          83% { transform: translate(14%, -4%) scale(1.14) rotate(-1deg); }
+          100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+        }
+        @keyframes orbit2 {
+          0% { transform: translate(0, 0) scale(1.05) rotate(0deg); }
+          18% { transform: translate(-14%, -10%) scale(0.9) rotate(-4deg); }
+          36% { transform: translate(-8%, 14%) scale(1.2) rotate(2deg); }
+          52% { transform: translate(16%, 6%) scale(0.88) rotate(5deg); }
+          71% { transform: translate(10%, -12%) scale(1.12) rotate(-3deg); }
+          100% { transform: translate(0, 0) scale(1.05) rotate(0deg); }
+        }
+        @keyframes orbit3 {
+          0% { transform: translate(0, 0) scale(1); }
+          22% { transform: translate(10%, 14%) scale(1.22) rotate(3deg); }
+          41% { transform: translate(-14%, 6%) scale(0.86) rotate(-4deg); }
+          58% { transform: translate(-8%, -12%) scale(1.14) rotate(2deg); }
+          76% { transform: translate(12%, -6%) scale(0.92) rotate(-2deg); }
+          100% { transform: translate(0, 0) scale(1); }
+        }
+        @keyframes orbit4 {
+          0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+          16% { transform: translate(-12%, -8%) scale(1.16) rotate(-3deg); }
+          35% { transform: translate(6%, -16%) scale(0.9) rotate(5deg); }
+          53% { transform: translate(14%, 10%) scale(1.08) rotate(-4deg); }
+          72% { transform: translate(-6%, 14%) scale(0.94) rotate(2deg); }
+          100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+        }
+        @keyframes popIn {
+          0% { transform: scale(0); }
+          70% { transform: scale(1.15); }
+          100% { transform: scale(1); }
+        }
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(12px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .btn-primary {
+          width: 100%;
+          border-radius: 12px;
+          padding: 14px 16px;
+          font-size: 14px;
+          font-weight: 600;
+          color: #fff;
+          border: none;
+          cursor: pointer;
+          background: linear-gradient(135deg, #E85102 0%, #EC7602 100%);
+          box-shadow: 0 10px 25px -5px rgba(232, 81, 2, 0.3);
+          transition: all 0.2s;
+        }
+        .btn-primary:hover { filter: brightness(1.1); box-shadow: 0 15px 35px -5px rgba(232, 81, 2, 0.4); }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; filter: none; transform: none; }
+
+        .nav-back {
+          flex: 0 0 auto;
+          border-radius: 10px;
+          padding: 12px 18px;
+          font-size: 13px;
+          font-weight: 500;
+          color: #a1a1aa;
+          border: 1px solid #3f3f46;
+          background: transparent;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .nav-back:hover { border-color: #71717a; color: #e4e4e7; }
+      `}</style>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   SUB-COMPONENTS
+═══════════════════════════════════════════════ */
+
+function View({
+  active,
+  children,
+}: {
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  if (!active) return null;
+  return <div className="animate-[fadeUp_0.35s_ease]">{children}</div>;
+}
+
+function SectionHeader({ num, title }: { num: number; title: string }) {
+  return (
+    <>
+      <p className="mb-1 text-[11px] uppercase tracking-[1.5px] text-zinc-500">
+        Seção {num} de 6
+      </p>
+      <div className="mb-6 flex items-center gap-2.5">
+        <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-[#E85102]/15 text-[13px] font-semibold text-[#E85102]">
+          {num}
+        </div>
+        <h2 className="text-lg font-bold text-white">{title}</h2>
+      </div>
+    </>
+  );
+}
+
+function Field({
+  label,
+  required,
+  hint,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+}: {
+  label: string;
+  required?: boolean;
+  hint?: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+}) {
+  return (
+    <div className="mb-4 last:mb-0">
+      <label className="mb-1.5 block text-[13px] font-medium text-zinc-200">
+        {label}
+        {required && <span className="text-[#E85102]"> *</span>}
+      </label>
+      {hint && <p className="mb-1.5 text-[11px] text-zinc-500">{hint}</p>}
+      <input
+        type={type}
+        className="w-full rounded-[10px] border border-zinc-700 bg-zinc-800/50 px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-600 outline-none transition-all focus:border-[#E85102] focus:ring-[3px] focus:ring-[#E85102]/15"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+      />
+    </div>
+  );
+}
+
+function TextareaField({
+  label,
+  required,
+  hint,
+  value,
+  onChange,
+  placeholder,
+  rows = 3,
+}: {
+  label: string;
+  required?: boolean;
+  hint?: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  rows?: number;
+}) {
+  return (
+    <div className="mb-4 last:mb-0">
+      <label className="mb-1.5 block text-[13px] font-medium text-zinc-200">
+        {label}
+        {required && <span className="text-[#E85102]"> *</span>}
+      </label>
+      {hint && <p className="mb-1.5 text-[11px] text-zinc-500">{hint}</p>}
+      <textarea
+        className="min-h-[80px] w-full resize-y rounded-[10px] border border-zinc-700 bg-zinc-800/50 px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-600 outline-none transition-all focus:border-[#E85102] focus:ring-[3px] focus:ring-[#E85102]/15"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+      />
+    </div>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <div className="mb-4 last:mb-0">
+      <label className="mb-1.5 block text-[13px] font-medium text-zinc-200">
+        {label}
+      </label>
+      <select
+        className="w-full cursor-pointer appearance-none rounded-[10px] border border-zinc-700 bg-zinc-800/50 bg-[url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2371717a%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M6%209l6%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[right_12px_center] bg-no-repeat px-3.5 py-2.5 pr-8 text-sm text-white outline-none transition-all focus:border-[#E85102] focus:ring-[3px] focus:ring-[#E85102]/15"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value} className="bg-zinc-900">
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function Toggle({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between py-2.5">
+      <span className="text-sm text-zinc-300">{label}</span>
+      <label className="relative h-[22px] w-10 flex-shrink-0 cursor-pointer">
+        <input
+          type="checkbox"
+          className="peer sr-only"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+        />
+        <span className="absolute inset-0 rounded-full bg-zinc-700 transition-colors peer-checked:bg-[#E85102]" />
+        <span className="absolute left-0.5 top-0.5 h-[18px] w-[18px] rounded-full bg-zinc-400 transition-all peer-checked:translate-x-[18px] peer-checked:bg-white" />
+      </label>
+    </div>
+  );
+}
+
+function FieldRow({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{children}</div>
+  );
+}
+
+function NavRow({
+  onBack,
+  onNext,
+}: {
+  onBack: () => void;
+  onNext: () => void;
+}) {
+  return (
+    <div className="mt-6 flex gap-2.5">
+      <button className="nav-back" onClick={onBack}>
+        &larr;
+      </button>
+      <button
+        className="flex-1 rounded-[10px] border-none bg-gradient-to-br from-[#E85102] to-[#EC7602] px-4 py-3 text-sm font-semibold text-white transition-all hover:brightness-110"
+        onClick={onNext}
+      >
+        Próximo &rarr;
+      </button>
+    </div>
+  );
+}

@@ -11,7 +11,8 @@ import { computeClientKPIs } from "@/features/clientes/services/clients";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { ErrorState, EmptyState } from "@/components/shared";
 import { Button } from "@/components/ui/button";
-import { IconPlus, IconUsers, IconRefresh } from "@tabler/icons-react";
+import { IconPlus, IconUsers, IconRefresh, IconClipboardText } from "@tabler/icons-react";
+import Link from "next/link";
 import { toast } from "sonner";
 import type { Database } from "@/lib/supabase/types";
 
@@ -93,6 +94,12 @@ export default function ClientesPage() {
               <IconRefresh className={`mr-2 h-4 w-4 ${importMutation.isPending ? "animate-spin" : ""}`} />
               {importMutation.isPending ? "Importando…" : "Sincronizar Omie + RD"}
             </Button>
+            <Link href="/clientes/briefings">
+              <Button variant="outline">
+                <IconClipboardText className="mr-2 h-4 w-4" />
+                Briefings
+              </Button>
+            </Link>
             <Button onClick={handleNewClient}>
               <IconPlus className="mr-2 h-4 w-4" />
               Novo Cliente

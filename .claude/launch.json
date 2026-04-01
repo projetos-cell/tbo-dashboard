@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "TBO-OS",
-      "runtimeExecutable": "pnpm",
+      "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "autoPort": true,
       "cwd": "frontend"
